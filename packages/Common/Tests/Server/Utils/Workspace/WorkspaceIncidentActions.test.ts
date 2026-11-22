@@ -1296,11 +1296,12 @@ describe("WorkspaceIncidentActions.getRoleForm", () => {
       },
       { id: SCRIBE_ROLE_ID, name: "Scribe", canAssignMultipleUsers: true },
     ]);
+    // A member with no name: the part of their address before the @ (#10669).
     expect(
       form.people.map((person: { label: string }) => {
         return person.label;
       }),
-    ).toEqual(["Nawaz Dhandala (you)", "ana@acme.test", "Lee Wong"]);
+    ).toEqual(["Nawaz Dhandala (you)", "ana", "Lee Wong"]);
     expect(form.notShownPeopleCount).toBe(0);
     expect(form.holders).toEqual([
       {

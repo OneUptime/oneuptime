@@ -20,12 +20,20 @@ export interface ResponseHttpRequest {
   headers?: Dictionary<string> | undefined;
   body?: string | Dictionary<string> | undefined;
   formUrlEncoded?: boolean | undefined;
+  /*
+   * Answer every status with its headers, rather than the transport
+   * throwing for one outside 2xx: for a caller that reads a throttled
+   * answer's Retry-After (the blocklist's endpoint destinations, #10346).
+   */
+  acceptAnyStatus?: boolean | undefined;
 }
 
 export interface ResponseHttpResult {
   statusCode: number;
   bodyText: string;
   bodyJson: unknown;
+  // Lower-cased names; only when the transport kept them (acceptAnyStatus, or a 2xx).
+  headers?: Dictionary<string> | undefined;
 }
 
 const TRANSPORT_STATUS_ERROR_PATTERN: RegExp =
@@ -61,6 +69,7 @@ export default class ResponseHttp {
         body: data.request.body,
         formUrlEncoded: data.request.formUrlEncoded,
         timeoutInMs: RESPONSE_ACTION_TIMEOUT_IN_MS,
+        ...(data.request.acceptAnyStatus ? { acceptAnyStatus: true } : {}),
       });
     } catch (error) {
       const message: string =
@@ -92,6 +101,7 @@ export default class ResponseHttp {
         response.bodyJson !== undefined
           ? response.bodyJson
           : tryParseJson(response.bodyText || ""),
+      ...(response.headers ? { headers: response.headers } : {}),
     };
   }
 

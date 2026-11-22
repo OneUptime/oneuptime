@@ -55,6 +55,8 @@ terraform {
 
 La dirección de origen no nombra ningún registro: Terraform la lee del Terraform Registry, y OpenTofu del OpenTofu Registry, que publican las mismas versiones.
 
+Una versión publicada nunca cambia: los registros guardan las sumas de comprobación de lo que descargaron primero, y `init` comprueba cada descarga con ellas. Una versión que hay que reparar se publica de nuevo como la siguiente versión de parche, que un rango incluye, y las notas de esa versión dicen qué versión reemplaza.
+
 ## El archivo de bloqueo
 
 `terraform init` registra la versión que eligió, y las sumas de comprobación de sus descargas, en `.terraform.lock.hcl`. Confirme ese archivo: cada máquina y cada ejecución de CI instalan entonces exactamente esa versión, hasta que elija otra. Las sumas de comprobación cubren cada plataforma que publica el registro, así que un archivo de bloqueo sirve igual a las máquinas con Linux, macOS y Windows.
@@ -77,7 +79,7 @@ El archivo de bloqueo nombra el registro. OpenTofu escribe `registry.opentofu.or
 :::steps
 ### Leer qué cambió
 
-[Las versiones de OneUptime](https://github.com/OneUptime/oneuptime/releases) dicen qué cambió cada versión, incluido el proveedor. [Las versiones del proveedor](https://github.com/OneUptime/terraform-provider-oneuptime/releases) enlazan a los cambios desde la anterior.
+[Las versiones de OneUptime](https://github.com/OneUptime/oneuptime/releases) dicen qué cambió cada versión, incluido el proveedor. [Las versiones del proveedor](https://github.com/OneUptime/terraform-provider-oneuptime/releases) dicen qué cambió cada una en el proveedor: primero lo que rompe una configuración, luego los nuevos recursos y fuentes de datos, y los atributos que cambiaron.
 
 ### Descargarla
 

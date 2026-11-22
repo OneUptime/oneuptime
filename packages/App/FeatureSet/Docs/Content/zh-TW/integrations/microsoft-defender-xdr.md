@@ -6,6 +6,7 @@
 - [設定連線](#設定連線): 一個應用程式註冊、一項權限，以及連線的表單。
 - [匯入的內容](#匯入的內容): 每個 Defender 警示如何成為一個安全性事件。
 - [輪詢的運作方式](#輪詢的運作方式): 每次輪詢讀取的時間窗，以及繁忙的租用戶對它的影響。
+- [使用 Microsoft Defender 封鎖](#使用-microsoft-defender-封鎖): 多加一項權限，在每台裝置上執行你的封鎖清單。
 - [疑難排解](#疑難排解): 每個錯誤的含義，以及需要更改什麼。
 :::
 
@@ -64,6 +65,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | **目錄（租用戶）ID** | 應用程式的 **Overview** 頁面。租用戶的 GUID，或已驗證的網域，例如 `contoso.onmicrosoft.com`。 |
 | **應用程式（用戶端）ID** | 應用程式的 **Overview** 頁面。擁有 `SecurityAlert.Read.All` 的應用程式的 GUID。 |
 | **雲端** | **Azure 公用雲端**（也服務於 Microsoft 365 GCC），或用於 GCC High 的 **Azure Government（美國）** （`login.microsoftonline.us` 和 `graph.microsoft.us`）。不支援 Microsoft 365 DoD 和中國的 21Vianet 雲端。 |
+| **使用 Defender 封鎖網域、位址和檔案** | 新連線上是關閉的。開啟後，它會在每台裝置上封鎖你專案的封鎖清單中的內容，並且需要 `Ti.ReadWrite.All`（見 [使用 Microsoft Defender 封鎖](#使用-microsoft-defender-封鎖)）。 |
 | **用戶端密碼** | 密碼的 **Value**。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **更新憑證** 替換它。 |
 
 **輪詢** 步驟還有選用的 **描述**、**輪詢間隔（分鐘）**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。
@@ -130,6 +132,26 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 - **匯入此時間範圍** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的警示會被跳過。
 - 執行上的 **複製診斷資訊** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
+## 使用 Microsoft Defender 封鎖
+
+在連線上開啟 **使用 Defender 封鎖網域、位址和檔案**，你專案的 [封鎖清單](/docs/telemetry/security-cases#封鎖清單) 就會在 Microsoft Defender for Endpoint 保護的每台裝置上執行。每個封鎖都會成為一個歸在應用程式 `OneUptime` 名下的 Defender [指標](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview)，隨封鎖一起到期。
+
+| 封鎖清單中的內容 | Defender 指標 | Defender 的做法 |
+| --- | --- | --- |
+| 網域 | `DomainName`、`Block` | 封鎖該網域及其下的每個名稱 |
+| URL | `Url`、`Block` | 在 Microsoft Edge 中封鎖該 URL，在其他瀏覽器中封鎖其網域 |
+| 在每台機器上封鎖的位址 | `IpAddress`、`Block` | 封鎖連往該位址的連線。範圍從不傳送：Defender 一次只接受一個位址 |
+| 檔案 | `FileSha256`、`FileSha1` 或 `FileMd5`，`Block` | 阻止該檔案執行 |
+| 封鎖並隔離的檔案 | 同上，`BlockAndRemediate` | 阻止該檔案執行，並隔離它找到的副本 |
+
+新連線上這個開關是關閉的：為匯入警示而建立的連線只會讀取。要開啟它：
+
+1. 在應用程式註冊中，前往 **API permissions → Add a permission → APIs my organization uses**，搜尋 `WindowsDefenderATP`，選擇 **Application permissions**，勾選 `Ti.ReadWrite.All`，並授予系統管理員同意。這是封鎖唯一需要的權限。
+2. 在 Microsoft Defender 入口網站的 **Settings → Endpoints → Advanced features** 下開啟 **Custom network indicators** 和 **Allow or block file**。沒有它們，Defender 會保留指標，但什麼都不封鎖；在 Microsoft Edge 之外，只有網路保護處於封鎖模式的地方，網域、URL 或位址才會被封鎖。
+3. 在連線上開啟 **使用 Defender 封鎖網域、位址和檔案**，然後按一下 **測試連線**：**Block with Microsoft Defender** 會檢查該權限。
+
+一個租用戶最多保存 15,000 個指標，包括它自己的。Defender 無法保存或拒絕的封鎖，會在封鎖清單中顯示為未生效，並說明原因。OneUptime 只讀取和刪除它為這個連線新增的指標，絕不動人建立的指標。Defender 節流時，它會在下一輪重試。
+
 ## 測試連線
 
 連線所在列中的 **測試連線** 和表單中的 **測試這些設定** 在 API 程序中執行，而不是在背景工作程序中執行，所以即使工作程序出了問題，測試仍然會給出結果。它按順序執行以下檢查：
@@ -140,6 +162,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID 在你選擇的雲端中頒發用於 Microsoft Graph 的權杖。密碼錯誤或已過期、租用戶或用戶端 ID 錯誤，或者雲端選錯時，此項失敗。 |
 | **Read alerts from Microsoft Graph** | 可以讀取過去 24 小時內建立的一個警示（`$top=1`）。這裡出現 `403` 表示缺少 `SecurityAlert.Read.All` 權限、缺少管理員同意，或者租用戶沒有 Defender XDR。 |
 | **Alerts available to import** | 過去 24 小時和過去 7 天內建立了多少警示，各讀取一頁 100 個，所以 `100+` 表示更多。7 天內一個都沒有是警告，而不是失敗。 |
+| **Block with Microsoft Defender** | 僅在開啟 **使用 Defender 封鎖網域、位址和檔案** 時：應用程式註冊擁有 `Ti.ReadWrite.All`，並且可以讀取指標。它會說明租用戶的 15,000 個指標中有多少屬於 OneUptime，且不做任何變更。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
 | **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 

@@ -529,10 +529,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
           moreInformationInMarkdown: string;
         }
       ).moreInformationInMarkdown,
-    ).toBe(
-      "- Owner user-2 (user-2@acme.test)\n" +
-        "- Owner user-3 (user-3@acme.test)\n",
-    );
+    ).toBe("- Owner user-2\n" + "- Owner user-3\n");
   });
 
   test("the feed says the incident's own owners were notified", async () => {
@@ -579,7 +576,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
           moreInformationInMarkdown: string;
         }
       ).moreInformationInMarkdown,
-    ).toBe("- Owner user-2 (user-2@acme.test)\n");
+    ).toBe("- Owner user-2\n");
   });
 
   test("an incident with no owners at all converts NOTHING - but is still marked owner-notified", async () => {
@@ -1030,7 +1027,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
         expect.objectContaining({
           feedInfoInMarkdown:
             "Owners were notified that this incident was created.",
-          moreInformationInMarkdown: "- Owner bo (bo@acme.test)\n",
+          moreInformationInMarkdown: "- Owner bo\n",
         }),
       ]);
     });
@@ -1046,7 +1043,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
         expect.objectContaining({
           feedInfoInMarkdown:
             "The Project Owners were notified that this incident was created, as it has no owners yet.",
-          moreInformationInMarkdown: "- Owner bo (bo@acme.test)\n",
+          moreInformationInMarkdown: "- Owner bo\n",
         }),
       ]);
     });
@@ -1068,8 +1065,8 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
           feedInfoInMarkdown:
             "Owners were notified that this incident was created.",
           moreInformationInMarkdown:
-            "- Owner bo (bo@acme.test)\n" +
-            "\nNot notified again, as the on-call page reached them: Owner ana (ana@acme.test).\n",
+            "- Owner bo\n" +
+            "\nNot notified again, as the on-call page reached them: Owner ana.\n",
         }),
       ]);
     });
@@ -1102,7 +1099,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
 
         expect(sentTo()).toEqual(["ana", "bo"]);
         expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-          "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+          "- Owner ana\n- Owner bo\n",
         );
       },
     );
@@ -1144,7 +1141,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
 
       expect(sentTo()).toEqual(["ana", "bo"]);
       expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-        "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+        "- Owner ana\n- Owner bo\n",
       );
       expect(
         mockedLogger.error.mock.calls.some((call: Array<unknown>): boolean => {
@@ -1240,7 +1237,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       // The later run's entry names whom the two runs told - never Ana.
       expect(feedItems()).toHaveLength(1);
       expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-        "- Owner bo (bo@acme.test)\n- Owner cara (cara@acme.test)\n",
+        "- Owner bo\n- Owner cara\n",
       );
 
       now = new Date(now.getTime() + 60 * 60 * 1000);

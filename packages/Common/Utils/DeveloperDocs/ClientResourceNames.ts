@@ -16,11 +16,13 @@
  *   - "AI Agent Owner Team" and "Probe Owner Team" were the only two owner
  *     teams of 38 not named <thing>_team_owner;
  *   - a status page's subscriber notification template - the row that says
- *     a status page sends with a template - is called "Subscriber
+ *     a status page sends with a template - was called "Subscriber
  *     Notification Template" on screen, as the template itself is. Two
  *     models of one name made one provider resource, the link's endpoints
  *     won, and no template could be made with Terraform at all. The
- *     template keeps the name; the link is a status page's;
+ *     template keeps the name; the link is a status page's, as its own
+ *     singular name says too since #10664. It stays listed, so its
+ *     resource keeps this name whatever the screens call it;
  *   - an iOS app's uploaded dSYM is a "dSYM" on screen, which a client
  *     cuts at its capitals into oneuptime_d_sym and `oneuptime d-sym`.
  *     It is a dSYM file, as Apple and Xcode call one, and leaves the CLI's

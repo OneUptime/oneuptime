@@ -134,7 +134,12 @@ export const FIXTURE_MODELS: Array<FixtureModel> = [
     singularName: "Status Page",
     pluralName: "Status Pages",
   },
-  // Two models really do share this name.
+  /*
+   * Two models of one name, as the template and its link to a status page
+   * were until #10664 (the link is a Status Page Subscriber Notification
+   * Template now). ModelNamesAreUnique keeps two models from sharing one,
+   * and the picker still tells two such apart.
+   */
   {
     tableName: "StatusPageSubscriberNotificationTemplate",
     singularName: "Subscriber Notification Template",

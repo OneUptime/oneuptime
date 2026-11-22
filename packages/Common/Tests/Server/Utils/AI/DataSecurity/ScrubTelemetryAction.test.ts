@@ -34,7 +34,10 @@ import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
+import FeedMarkdown from "../../../../../Utils/Markdown/FeedMarkdown";
+import { htmlAsText } from "../../../../Helpers/HtmlText";
 import { customDomainCaller } from "../../../API/CustomDomainCallers";
+import { marked } from "marked";
 import {
   afterEach,
   beforeEach,
@@ -307,6 +310,72 @@ describe("planning the change", () => {
       kind: "nothing",
       detail: "already-scrubbed",
     });
+  });
+
+  test("a data type named with markup, as the project wrote it, reads as plain text in the reason", async () => {
+    const CUSTOM_TYPE: string = "custom:10364000-0000-4000-8000-0000000006f1";
+    const NAME: string =
+      "[Badge ID](https://evil.example/login) <img src=x onerror=alert(1)> **id** <!channel>";
+    counted = [
+      finding(EMAIL_FINDING, "email-address", "attributes.user.email", 120),
+      finding(TOKEN_FINDING, CUSTOM_TYPE, "attributes.badge", 7),
+    ];
+
+    // The project's own type: a pattern of its own, so the preview stands in for it.
+    const realPreview: typeof ScrubCoverage.previewScrubRuleForFinding =
+      ScrubCoverage.previewScrubRuleForFinding;
+    jest
+      .spyOn(ScrubCoverage, "previewScrubRuleForFinding")
+      .mockImplementation(
+        async (
+          data: Parameters<typeof ScrubCoverage.previewScrubRuleForFinding>[0],
+        ): Promise<ScrubCoverage.ScrubRulePreview> => {
+          return data.dataTypeId === CUSTOM_TYPE
+            ? {
+                signal: "log",
+                name: "Data Security: a badge in log attributes of checkout",
+                description: "It redacts every badge in log attribute values.",
+              }
+            : await realPreview(data);
+        },
+      );
+
+    const outcome: DataSecurityAiPlanOutcome = await ScrubTelemetryAction.plan({
+      ...context(),
+      dataTypeNamer: new DataTypeNamer(new Map([[CUSTOM_TYPE, NAME]])),
+    });
+    const change: DataSecurityAiPlannedChange = (
+      outcome as { changes: Array<DataSecurityAiPlannedChange> }
+    ).changes[0]!;
+    const html: string = marked.parse(change.reasonMarkdown, {
+      async: false,
+    }) as string;
+
+    /*
+     * No image, HTML or mention the name made, and no link whose words hide
+     * where it goes: a bare address is a link every renderer makes, one
+     * that shows its address. The name is read as it was typed.
+     */
+    expect(html).not.toMatch(/<(img|script)\b/);
+    for (const link of html.matchAll(
+      /<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g,
+    )) {
+      expect(htmlAsText(link[2]!)).toBe(htmlAsText(link[1]!));
+    }
+    // The one bold is the check's own: the name's asterisks are text.
+    expect(html.match(/<strong>/g)).toHaveLength(1);
+    expect(change.reasonMarkdown).not.toContain(
+      "[Badge ID](https://evil.example",
+    );
+    expect(change.reasonMarkdown).not.toContain("<!channel>");
+    expect(
+      FeedMarkdown.withoutInvisibleBreaks(htmlAsText(html)).replace(
+        /\s+/g,
+        " ",
+      ),
+    ).toContain(
+      `Email address, ${NAME} were found in 2 places of checkout logs`,
+    );
   });
 
   test("says when no rule can reach what is left: the code is the fix", async () => {

@@ -28,6 +28,12 @@ import HintChip from "./HintChip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useServiceNames from "../Telemetry/useServiceNames";
+import {
+  MetricTypeSearchState,
+  useHeldMetricType,
+  useMetricTypeSearch,
+} from "./Utils/MetricTypeSearch";
+import { getPublicDashboardContext } from "../Dashboard/Utils/PublicDashboardContext";
 
 export interface ComponentProps {
   data: MetricQueryData;
@@ -104,7 +110,29 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
 
   const selectedMetricName: string =
     props.data.filterData?.metricName?.toString() || "";
-  const selectedMetricType: MetricType | undefined = props.metricTypes.find(
+
+  /*
+   * The metrics past the list the page read, from the server (#10646): what
+   * is typed into the picker is searched, and the metric the query holds,
+   * when the list does not have it, is read by its name - it showed as no
+   * metric at all, without its unit or its kind of counter. A public
+   * dashboard reads no metric list of its own, so asks nothing.
+   */
+  const isPublicDashboard: boolean = Boolean(getPublicDashboardContext());
+  const metricSearch: MetricTypeSearchState =
+    useMetricTypeSearch(!isPublicDashboard);
+  const heldMetricType: MetricType | undefined = useHeldMetricType({
+    name: selectedMetricName,
+    known: props.metricTypes,
+    isEnabled: !isPublicDashboard,
+  });
+  const knownMetricTypes: Array<MetricType> = [
+    ...props.metricTypes,
+    ...metricSearch.found,
+    ...(heldMetricType ? [heldMetricType] : []),
+  ];
+
+  const selectedMetricType: MetricType | undefined = knownMetricTypes.find(
     (metricType: MetricType) => {
       return metricType.name === selectedMetricName;
     },
@@ -177,11 +205,24 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
     });
   };
 
+  /*
+   * The list read, what the search found, and the metric the query holds -
+   * each name once: a held one the list does not have is still shown.
+   */
   const metricNameOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromArray(
-      props.metricTypes.map((metricType: MetricType) => {
-        return metricType.name || "";
-      }),
+      Array.from(
+        new Set<string>(
+          [
+            ...knownMetricTypes.map((metricType: MetricType): string => {
+              return metricType.name || "";
+            }),
+            selectedMetricName,
+          ].filter((name: string): boolean => {
+            return Boolean(name);
+          }),
+        ),
+      ),
     );
 
   const selectedMetricNameOption: DropdownOption | undefined =
@@ -277,6 +318,7 @@ const MetricFilter: FunctionComponent<ComponentProps> = (
             value={selectedMetricNameOption}
             placeholder="Search and select a metric..."
             ariaLabel="Metric name"
+            onSearchTextChange={metricSearch.onSearchTextChange}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               updateFilterDataKey(
                 "metricName",

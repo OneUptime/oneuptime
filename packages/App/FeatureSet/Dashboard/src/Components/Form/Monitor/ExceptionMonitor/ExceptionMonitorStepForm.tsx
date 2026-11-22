@@ -1,8 +1,10 @@
+import {
+  TELEMETRY_SERVICE_PICKER,
+  INFRASTRUCTURE_ENTITY_PICKER,
+} from "../TelemetryScopePickers";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,8 +55,6 @@ export interface ComponentProps {
   onMonitorStepExceptionMonitorChanged: (
     monitorStepExceptionMonitor: MonitorStepExceptionMonitor,
   ) => void;
-  telemetryServices: Array<Service>;
-  telemetryEntities?: Array<InventoryItem> | undefined;
 }
 
 type ExceptionMonitorFormValues = {
@@ -491,14 +491,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               telemetryServiceIds: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: props.telemetryServices.map(
-              (service: Service): { label: string; value: string } => {
-                return {
-                  label: service.name || "Untitled Service",
-                  value: service.id?.toString() || "",
-                };
-              },
-            ),
+            dropdownModal: TELEMETRY_SERVICE_PICKER,
             title: "Filter by Service",
             description:
               "Only exceptions from these services. Empty: every service.",
@@ -510,20 +503,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               entityKeys: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: (props.telemetryEntities || []).map(
-              (telemetryEntity: InventoryItem) => {
-                return {
-                  label: `${
-                    telemetryEntity.displayName ||
-                    telemetryEntity.entityKey ||
-                    ""
-                  } (${telemetryEntity.entityType || ""})`,
-                  value: telemetryEntity.entityKey || "",
-                  // What the resource is called in its telemetry: as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: INFRASTRUCTURE_ENTITY_PICKER,
             title: "Filter by Infrastructure Entity",
             description:
               "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.",
