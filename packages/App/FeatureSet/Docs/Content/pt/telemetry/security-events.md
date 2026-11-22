@@ -51,6 +51,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Playbooks** | Playbooks | Etapas que rodam nos casos, sozinhas ou manualmente |
 | **Aprovações** | Playbooks | As etapas de playbook aguardando alguém aprovar ou rejeitar |
 | **Execuções** | Playbooks | O que cada playbook fez, etapa por etapa |
+| **Resposta automática** | Playbooks | As políticas que desafiam ou bloqueiam um endereço que ataca assim que a detecção é feita, cada uma com seu período de teste e suas salvaguardas |
 | **Lista de bloqueio** | Playbooks | Os endereços que seu projeto bloqueia, até quando e onde cada bloqueio é aplicado |
 | **Feeds da lista de bloqueio** | Playbooks | Os URLs secretos de onde seus firewalls e proxies leem a lista de bloqueio, e suas obtenções |
 | **Entidades protegidas** | Playbooks | Os usuários, hosts e endereços aos quais nenhum playbook aplica contenção e que nenhum bloqueio afeta |

@@ -51,6 +51,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Trin, der kører på sager, af sig selv eller manuelt |
 | **Godkendelser** | Playbooks | De playbook-trin, der venter på, at nogen godkender eller afviser dem |
 | **Playbook-kørsler** | Playbooks | Hvad hver playbook gjorde, trin for trin |
+| **Automatisk reaktion** | Playbooks | De politikker, der udfordrer eller blokerer en angribende adresse, så snart detektionen sker, hver med sin prøveperiode og sine sikkerhedsværn |
 | **Blokeringsliste** | Playbooks | De adresser, dit projekt blokerer, indtil hvornår, og hvor hver blokering håndhæves |
 | **Blokeringslistefeeds** | Playbooks | De hemmelige URL'er, dine firewalls og proxyer læser blokeringslisten fra, og deres hentninger |
 | **Beskyttede entiteter** | Playbooks | De brugere, værter og adresser, som ingen playbook inddæmmer, og som ingen blokering rører |

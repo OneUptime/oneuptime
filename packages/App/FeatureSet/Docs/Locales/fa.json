@@ -459,6 +459,7 @@
     "Get Started with Security": "شروع کار با امنیت",
     "Security Events (SIEM)": "رویدادهای امنیتی (SIEM)",
     "Security Cases and Playbooks (SOAR)": "پرونده‌های امنیتی و پلی‌بوک‌ها (SOAR)",
+    "Automatic Response": "پاسخ خودکار",
     "Blocklist Feeds for Firewalls and Proxies": "فیدهای فهرست مسدودسازی برای فایروال‌ها و پراکسی‌ها",
     "Entity Risk (Risk-Based Alerting)": "ریسک موجودیت (هشداردهی مبتنی بر ریسک)",
     "Connected Signals": "سیگنال‌های مرتبط",

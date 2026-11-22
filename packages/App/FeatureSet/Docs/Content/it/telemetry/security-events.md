@@ -51,6 +51,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Playbook** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |
 | **Approvazioni** | Playbooks | I passi dei playbook in attesa che qualcuno li approvi o li rifiuti |
 | **Esecuzioni** | Playbooks | Cosa ha fatto ogni playbook, passo per passo |
+| **Risposta automatica** | Playbooks | I criteri che sottopongono a verifica o bloccano un indirizzo che attacca appena viene fatto il rilevamento, ciascuno con il suo periodo di prova e le sue protezioni |
 | **Blocklist** | Playbooks | Gli indirizzi che il tuo progetto blocca, fino a quando e dove viene applicato ogni blocco |
 | **Feed della blocklist** | Playbooks | Gli URL segreti da cui i tuoi firewall e proxy leggono la blocklist, e i loro recuperi |
 | **Entità protette** | Playbooks | Gli utenti, gli host e gli indirizzi a cui nessun playbook applica il contenimento e che nessun blocco tocca |
