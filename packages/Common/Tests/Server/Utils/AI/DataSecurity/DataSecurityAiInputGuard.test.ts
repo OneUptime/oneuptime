@@ -110,6 +110,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
   },
+  // A pull request's sensitive data (#10376), in its production review.
+  [DataSecurityAiFeature.ReviewPullRequests]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/PullRequestLeakReview.ts`,
+  },
   [DataSecurityAiFeature.FixIssue]: {
     kind: "codeTask",
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,

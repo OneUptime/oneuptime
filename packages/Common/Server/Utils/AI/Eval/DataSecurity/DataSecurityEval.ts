@@ -53,8 +53,22 @@ import {
   FieldSuggestionEvalCase,
   FixEvalCase,
   FixEvalFileCheck,
+  PullRequestReviewEvalCase,
   StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
+import PullRequestLeakReview, {
+  PULL_REQUEST_LEAK_REVIEW_MAX_TOKENS,
+  PullRequestLeakFile,
+  PullRequestLeakReading,
+} from "../../DataSecurity/PullRequestLeakReview";
+import SensitiveDataRules, {
+  SensitiveDataRulesResult,
+} from "../../../CodeRepository/ProductionReview/SensitiveData/SensitiveDataRules";
+import {
+  SensitiveDataCandidate,
+  toLeakPoint,
+} from "../../../CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
+import { ProductionReviewLeakJSON } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import {
   buildDataStoreOwnerPrompt,
   DATA_STORE_OWNER_ANSWER_SHAPE,
@@ -103,7 +117,12 @@ import {
  *   - owners for a store (#10374): the answer, held to the evidence as the
  *     product holds it (DataStoreOwnerAnswer), names exactly the owners the
  *     case expects - one it made up counts against it - says where the
- *     evidence disagrees, and is no surer than the evidence lets it be.
+ *     evidence disagrees, and is no surer than the evidence lets it be;
+ *   - a pull request's sensitive data (#10376): the points the rules find
+ *     in a made-up diff, read as the review reads the answer
+ *     (PullRequestLeakReview.readAnswer), each kept or left out as the
+ *     case expects - a hashed value, a test, a key that only names a field
+ *     left out - and the fixes saying what the case names.
  *
  * A feature's score is the share of its cases that pass - a case run more
  * than once passes when more than half its runs did - and the release
@@ -128,6 +147,11 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    * check reads exactly, so the bar is higher than a written answer's.
    */
   [DataSecurityAiFeature.ProposeStoreOwners]: 0.75,
+  /*
+   * Which of a pull request's points are leaks: a fact a check reads
+   * exactly, as an owner is.
+   */
+  [DataSecurityAiFeature.ReviewPullRequests]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -698,6 +722,134 @@ function storeOwnersCall(testCase: StoreOwnersEvalCase): DataSecurityEvalCall {
   };
 }
 
+/*
+ * The points a pull request's case makes, as a review makes them: the
+ * rules over its diff, each candidate a point - with nothing production
+ * knows, which a case has none of and the read is never told.
+ */
+export function pullRequestReviewPoints(
+  testCase: PullRequestReviewEvalCase,
+): Array<ProductionReviewLeakJSON> {
+  const found: SensitiveDataRulesResult = SensitiveDataRules.find({
+    files: testCase.files,
+  });
+  const occurrences: Map<string, number> = new Map<string, number>();
+
+  return found.candidates.map(
+    (candidate: SensitiveDataCandidate): ProductionReviewLeakJSON => {
+      return toLeakPoint({
+        candidate,
+        isFailOn: testCase.isFailOn === true,
+        occurrences,
+      });
+    },
+  );
+}
+
+// The pull request's read asks as it ships (PullRequestLeakReview).
+function pullRequestReviewCall(
+  testCase: PullRequestReviewEvalCase,
+): DataSecurityEvalCall {
+  const prompt: DataSecurityAiPrompt = PullRequestLeakReview.buildPrompt({
+    pullRequestTitle: testCase.pullRequestTitle,
+    points: pullRequestReviewPoints(testCase),
+    files: testCase.files.map(
+      (file: { filename: string; patch: string }): PullRequestLeakFile => {
+        return { path: file.filename, patch: file.patch };
+      },
+    ),
+  });
+
+  return {
+    messages: prompt.messages,
+    maxTokens: PULL_REQUEST_LEAK_REVIEW_MAX_TOKENS,
+    temperature: 0,
+  };
+}
+
+/*
+ * A pull request's answer, held to its points as the review holds it:
+ * each point the case names kept or left out as it expects - one the
+ * answer says nothing of is kept, as the review keeps it - and the fixes
+ * of the kept ones say what the case names.
+ */
+export function scorePullRequestReview(
+  testCase: PullRequestReviewEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const points: Array<ProductionReviewLeakJSON> =
+    pullRequestReviewPoints(testCase);
+  const readings: Array<PullRequestLeakReading> | null =
+    PullRequestLeakReview.readAnswer(answer, points);
+
+  if (readings === null) {
+    return { passed: false, notes: ["the answer could not be read"] };
+  }
+
+  const notes: Array<string> = [];
+  const kept: Array<PullRequestLeakReading> = [];
+
+  for (const [subject, shouldKeep] of Object.entries(testCase.expect.keeps)) {
+    const point: ProductionReviewLeakJSON | undefined = points.find(
+      (each: ProductionReviewLeakJSON): boolean => {
+        return each.subject.toLowerCase() === subject.toLowerCase();
+      },
+    );
+
+    if (!point) {
+      notes.push(`the rules found no point for ${subject}`);
+      continue;
+    }
+
+    const reading: PullRequestLeakReading | undefined = readings.find(
+      (each: PullRequestLeakReading): boolean => {
+        return each.key === point.key;
+      },
+    );
+    const isKept: boolean = reading ? reading.keep : true;
+
+    if (isKept !== shouldKeep) {
+      notes.push(`${shouldKeep ? "dropped" : "kept"} ${subject}`);
+    }
+
+    if (isKept && reading) {
+      kept.push(reading);
+    }
+  }
+
+  const fixes: string = kept
+    .map((reading: PullRequestLeakReading): string => {
+      return `${reading.fix || ""} ${(reading.replacement || []).join(" ")}`;
+    })
+    .join(" ")
+    .toLowerCase();
+
+  for (const group of testCase.expect.fixMentions || []) {
+    if (
+      !group.some((word: string): boolean => {
+        return fixes.includes(word.toLowerCase());
+      })
+    ) {
+      notes.push(`no fix says ${group.join(" or ")}`);
+    }
+  }
+
+  const said: string = readings
+    .map((reading: PullRequestLeakReading): string => {
+      return `${reading.text || ""} ${reading.fix || ""}`;
+    })
+    .join(" ")
+    .toLowerCase();
+
+  for (const word of testCase.expect.never || []) {
+    if (said.includes(word.toLowerCase())) {
+      notes.push(`said ${word}`);
+    }
+  }
+
+  return { passed: notes.length === 0, notes };
+}
+
 export function buildEvalCall(
   testCase: DataSecurityEvalCase,
 ): DataSecurityEvalCall {
@@ -713,6 +865,8 @@ export function buildEvalCall(
       return askAiCall(testCase);
     case DataSecurityAiFeature.ProposeStoreOwners:
       return storeOwnersCall(testCase);
+    case DataSecurityAiFeature.ReviewPullRequests:
+      return pullRequestReviewCall(testCase);
   }
 }
 
@@ -732,6 +886,8 @@ export function scoreAnswer(
       return scoreWords(answer, testCase.expect);
     case DataSecurityAiFeature.ProposeStoreOwners:
       return scoreStoreOwners(testCase, answer);
+    case DataSecurityAiFeature.ReviewPullRequests:
+      return scorePullRequestReview(testCase, answer);
   }
 }
 

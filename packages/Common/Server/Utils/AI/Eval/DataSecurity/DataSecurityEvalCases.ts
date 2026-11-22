@@ -39,8 +39,12 @@ import {
   DataSecurityEvalCase,
   FieldSuggestionEvalCase,
   FixEvalCase,
+  PullRequestReviewEvalCase,
   StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
+import PULL_REQUEST_EVAL_DIFFS, {
+  PullRequestEvalDiff,
+} from "./PullRequestReviewEvalSet";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1206,12 +1210,36 @@ const STORE_OWNER_CASES: Array<StoreOwnersEvalCase> = [
   },
 ];
 
+/*
+ * A pull request's sensitive data (#10376): each diff of the eval set that
+ * says what OneUptime AI should keep of the points the rules give it.
+ */
+const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
+  PULL_REQUEST_EVAL_DIFFS.filter((diff: PullRequestEvalDiff): boolean => {
+    return Boolean(diff.ai);
+  }).map((diff: PullRequestEvalDiff): PullRequestReviewEvalCase => {
+    return {
+      id: `pull-request-${diff.id}`,
+      title: diff.title,
+      feature: DataSecurityAiFeature.ReviewPullRequests,
+      pullRequestTitle: diff.title,
+      files: diff.files,
+      isFailOn: diff.isFailOn,
+      expect: {
+        keeps: diff.ai!.keeps,
+        fixMentions: diff.ai!.fixMentions,
+        never: diff.ai!.never,
+      },
+    };
+  });
+
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
   ...FIX_CASES,
   ...ASK_AI_CASES,
   ...STORE_OWNER_CASES,
+  ...PULL_REQUEST_REVIEW_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

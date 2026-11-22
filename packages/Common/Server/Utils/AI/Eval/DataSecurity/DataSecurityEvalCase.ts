@@ -157,9 +157,35 @@ export interface StoreOwnersEvalCase extends DataSecurityEvalCaseBase {
   };
 }
 
+/*
+ * A pull request's Sensitive data section (#10376): a made-up diff, and
+ * what OneUptime AI should keep of the points the rules find in it. The
+ * case's input is built as a review builds it - the rules over the diff
+ * (SensitiveDataRules), the points they make, the read's own prompt
+ * (PullRequestLeakReview) - and the answer is held to the points as the
+ * review holds it: one it was not given, or one it would drop that fails
+ * the check, counts for nothing.
+ */
+export interface PullRequestReviewEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.ReviewPullRequests;
+  pullRequestTitle: string;
+  files: Array<{ filename: string; status: string; patch: string }>;
+  // The repository fails its check on a leak: such a point cannot be dropped.
+  isFailOn?: boolean | undefined;
+  expect: {
+    // By a point's subject, as the rules name it: whether a right answer keeps it.
+    keeps: Record<string, boolean>;
+    // Words the kept points' fixes say together (each group, one of its words).
+    fixMentions?: Array<Array<string>> | undefined;
+    // Words no point's text or fix says.
+    never?: Array<string> | undefined;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FieldSuggestionEvalCase
   | FixEvalCase
   | AskAiEvalCase
-  | StoreOwnersEvalCase;
+  | StoreOwnersEvalCase
+  | PullRequestReviewEvalCase;
