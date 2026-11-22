@@ -38,16 +38,17 @@ export interface WorldStore {
   id: string;
   projectId: string;
   name: string;
-  kind?: string;
-  provider?: string;
-  region?: string;
-  cloudAccountNumber?: string;
-  cloudTags?: Record<string, string>;
-  providerResourceId?: string;
-  cloudResourceId?: string;
-  cloudConnectionId?: string;
-  isArchived?: boolean;
-  isPublicByDesign?: boolean;
+  // Each may be set to undefined, to take away what the world gives a store by default.
+  kind?: string | undefined;
+  provider?: string | undefined;
+  region?: string | undefined;
+  cloudAccountNumber?: string | undefined;
+  cloudTags?: Record<string, string> | undefined;
+  providerResourceId?: string | undefined;
+  cloudResourceId?: string | undefined;
+  cloudConnectionId?: string | undefined;
+  isArchived?: boolean | undefined;
+  isPublicByDesign?: boolean | undefined;
 }
 
 export interface WorldGroup extends JSONObject {

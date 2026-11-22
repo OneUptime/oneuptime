@@ -57,15 +57,15 @@ interface FixtureState {
 }
 
 interface Options {
-  width?: number;
-  lang?: "de" | "fa";
-  theme?: "dark";
-  ai?: boolean;
-  role?: "viewer";
-  data?: "busy" | "empty";
-  groups?: boolean;
-  pathname?: string;
-  query?: Record<string, string>;
+  width?: number | undefined;
+  lang?: "de" | "fa" | undefined;
+  theme?: "dark" | undefined;
+  ai?: boolean | undefined;
+  role?: "viewer" | undefined;
+  data?: "busy" | "empty" | undefined;
+  groups?: boolean | undefined;
+  pathname?: string | undefined;
+  query?: Record<string, string> | undefined;
 }
 
 const pageErrors: WeakMap<Page, Array<string>> = new WeakMap();
