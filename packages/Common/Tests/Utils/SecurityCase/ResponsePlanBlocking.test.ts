@@ -95,7 +95,7 @@ function planFor(overrides: Partial<ResponsePlanInput> = {}): ResponsePlan {
     mitreTechniques: [],
     isAssigned: true,
     hasIncident: false,
-    stage: SecurityCaseStage.Investigating,
+    stage: SecurityCaseStage.Acknowledged,
     hasContainedStatus: true,
     matches: null,
     playbooks: [],
