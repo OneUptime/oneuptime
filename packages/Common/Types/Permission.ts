@@ -5553,9 +5553,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateStatusPageSubscriberNotificationTemplate,
-        title: "Create Status Page Subscriber Notification Template",
+        title: "Create Subscriber Notification Template",
         description:
-          "This permission can create Status Page Subscriber Notification Templates in this project.",
+          "This permission can create Subscriber Notification Templates in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5563,9 +5563,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteStatusPageSubscriberNotificationTemplate,
-        title: "Delete Status Page Subscriber Notification Template",
+        title: "Delete Subscriber Notification Template",
         description:
-          "This permission can delete Status Page Subscriber Notification Templates of this project.",
+          "This permission can delete Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5573,9 +5573,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditStatusPageSubscriberNotificationTemplate,
-        title: "Edit Status Page Subscriber Notification Template",
+        title: "Edit Subscriber Notification Template",
         description:
-          "This permission can edit Status Page Subscriber Notification Templates of this project.",
+          "This permission can edit Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5583,9 +5583,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadStatusPageSubscriberNotificationTemplate,
-        title: "Read Status Page Subscriber Notification Template",
+        title: "Read Subscriber Notification Template",
         description:
-          "This permission can read Status Page Subscriber Notification Templates of this project.",
+          "This permission can read Subscriber Notification Templates of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

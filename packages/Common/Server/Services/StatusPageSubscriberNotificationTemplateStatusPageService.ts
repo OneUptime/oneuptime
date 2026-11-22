@@ -44,7 +44,7 @@ export class Service extends ProjectReferencesService<Model> {
       const templateId: ObjectID | null = RelationIdUtil.readConsistent(
         createBy.data as unknown as Record<string, unknown>,
         TEMPLATE_KEYS,
-        "Status Page Subscriber Notification Template",
+        "Subscriber Notification Template",
       );
 
       await this.assertCanLink({
@@ -75,7 +75,7 @@ export class Service extends ProjectReferencesService<Model> {
     const writtenTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
       TEMPLATE_KEYS,
-      "Status Page Subscriber Notification Template",
+      "Subscriber Notification Template",
     );
     const writesStatusPage: boolean = RelationIdUtil.isPresent(
       data,
