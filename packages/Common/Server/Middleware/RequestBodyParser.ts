@@ -207,7 +207,7 @@ const handBack: (standIn: RequestStandIn, req: ExpressRequest) => void = (
  * reader's, inflated (GzipRequestBody leaves them in req.body). Null for any
  * other body: one not read, or parsed already into something else.
  */
-export const keptBodyBytesOf: (req: ExpressRequest) => Buffer | null = (
+const keptBodyBytesOf: (req: ExpressRequest) => Buffer | null = (
   req: ExpressRequest,
 ): Buffer | null => {
   if ((req as { _body?: unknown })._body === true) {
