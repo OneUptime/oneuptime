@@ -129,6 +129,8 @@ const PRODUCTS: Array<Product> = [
       [PageMap.INCIDENTS_SETTINGS_LABEL_RULES, "Label Rules"],
       [PageMap.INCIDENTS_SETTINGS_SLA_RULES, "SLA Rules"],
       [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES, "Reminder Rules"],
+      // Who changed the rules above, what and when (#10462).
+      [PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS, "Audit Logs"],
     ],
   },
   {
@@ -154,6 +156,11 @@ const PRODUCTS: Array<Product> = [
       [
         PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
         "Reminder Rules",
+      ],
+      // Who changed the rules above, what and when (#10462).
+      [
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+        "Audit Logs",
       ],
     ],
   },
