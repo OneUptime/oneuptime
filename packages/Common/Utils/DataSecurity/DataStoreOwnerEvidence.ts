@@ -69,11 +69,13 @@ export interface DataStoreReadGrant {
  * who among them can open which store.
  */
 export class DataStoreOwnerDirectory {
-  private readonly peopleByEmail: Map<string, DataStoreOwnerPerson> =
-    new Map();
+  private readonly peopleByEmail: Map<string, DataStoreOwnerPerson> = new Map();
   private readonly peopleById: Map<string, DataStoreOwnerPerson> = new Map();
   private readonly teamsById: Map<string, DataStoreOwnerTeam> = new Map();
-  private readonly teamsByForm: Map<string, Array<DataStoreOwnerTeam>> =
+  // By the team's whole name, folded; and by its name without "team".
+  private readonly teamsByName: Map<string, Array<DataStoreOwnerTeam>> =
+    new Map();
+  private readonly teamsByShortName: Map<string, Array<DataStoreOwnerTeam>> =
     new Map();
   private readonly grantsByTeam: Map<string, Array<DataStoreReadGrant>>;
 
@@ -94,9 +96,18 @@ export class DataStoreOwnerDirectory {
     for (const team of data.teams) {
       this.teamsById.set(team.id.toLowerCase(), team);
 
-      for (const form of getOwnerNameForms(team.name)) {
-        this.teamsByForm.set(form, [
-          ...(this.teamsByForm.get(form) || []),
+      const [whole, ...shorter]: Array<string> = getOwnerNameForms(team.name);
+
+      if (whole) {
+        this.teamsByName.set(whole, [
+          ...(this.teamsByName.get(whole) || []),
+          team,
+        ]);
+      }
+
+      for (const form of shorter) {
+        this.teamsByShortName.set(form, [
+          ...(this.teamsByShortName.get(form) || []),
           team,
         ]);
       }
@@ -127,23 +138,53 @@ export class DataStoreOwnerDirectory {
   }
 
   /*
-   * The team a name names: one team answers to it, by any of its forms. A
-   * name two teams answer to names neither - a guess is no evidence.
+   * The team a name names: the one team whose whole name it is, else the
+   * one whose name it is without "team" ("payments" is "Payments Team"). A
+   * name two teams answer to alike names neither - a guess is no evidence.
    */
   public getTeamByName(name: string): DataStoreOwnerTeam | null {
-    const matches: Map<string, DataStoreOwnerTeam> = new Map();
+    const [whole, ...shorter]: Array<string> = getOwnerNameForms(name);
 
-    for (const form of getOwnerNameForms(name)) {
-      for (const team of this.teamsByForm.get(form) || []) {
+    if (!whole) {
+      return null;
+    }
+
+    const levels: Array<Array<DataStoreOwnerTeam>> = [
+      // The team whose whole name it is.
+      this.teamsByName.get(whole) || [],
+      // Else one side's name without "team" is the other's whole name.
+      [
+        ...(this.teamsByShortName.get(whole) || []),
+        ...shorter.flatMap((form: string): Array<DataStoreOwnerTeam> => {
+          return this.teamsByName.get(form) || [];
+        }),
+      ],
+    ];
+
+    for (const level of levels) {
+      const matches: Map<string, DataStoreOwnerTeam> = new Map();
+
+      for (const team of level) {
         matches.set(team.id.toLowerCase(), team);
+      }
+
+      if (matches.size === 1) {
+        return Array.from(matches.values())[0]!;
+      }
+
+      if (matches.size > 1) {
+        return null;
       }
     }
 
-    return matches.size === 1 ? Array.from(matches.values())[0]! : null;
+    return null;
   }
 
   // Whether a team can open a store with these labels.
-  public canTeamOpenStore(teamId: string, storeLabelIds: Array<string>): boolean {
+  public canTeamOpenStore(
+    teamId: string,
+    storeLabelIds: Array<string>,
+  ): boolean {
     const grants: Array<DataStoreReadGrant> =
       this.grantsByTeam.get(teamId.toLowerCase()) || [];
     const labels: Set<string> = new Set(
@@ -304,7 +345,9 @@ function tagEvidence(
       }
 
       unmatched =
-        owners.length === 0 ? DataStoreOwnerUnmatched.NoMemberWithEmail : undefined;
+        owners.length === 0
+          ? DataStoreOwnerUnmatched.NoMemberWithEmail
+          : undefined;
     } else {
       for (const name of namesInTagValue(value)) {
         const found: DataStoreOwnerTeam | null = directory.getTeamByName(name);
@@ -341,8 +384,9 @@ function serviceEvidence(
     },
   );
 
-  return ordered.slice(0, MAX_OWNER_SERVICES).map(
-    (service: DataStoreOwnerServiceFact): EvidenceDraft => {
+  return ordered
+    .slice(0, MAX_OWNER_SERVICES)
+    .map((service: DataStoreOwnerServiceFact): EvidenceDraft => {
       const owners: Array<DataStoreOwnerRef> = [
         ...service.ownerTeamIds
           .filter((id: string): boolean => {
@@ -367,8 +411,7 @@ function serviceEvidence(
             ? DataStoreOwnerUnmatched.ServiceHasNoOwners
             : undefined,
       };
-    },
-  );
+    });
 }
 
 function codeOwnerEvidence(
@@ -389,8 +432,7 @@ function codeOwnerEvidence(
       };
 
       if (isCodeOwnerTeam(owner)) {
-        const found: DataStoreOwnerTeam | null =
-          directory.getTeamByName(owner);
+        const found: DataStoreOwnerTeam | null = directory.getTeamByName(owner);
 
         drafts.push(
           found
@@ -503,15 +545,16 @@ export function assembleDataStoreOwnerEvidence(data: {
 
   for (const item of evidence) {
     for (const owner of item.owners) {
-      const existing: { ref: DataStoreOwnerRef; evidenceIds: Array<string> } | undefined =
-        named.find(
-          (entry: { ref: DataStoreOwnerRef }): boolean => {
-            return (
-              entry.ref.kind === owner.kind &&
-              entry.ref.id.toLowerCase() === owner.id.toLowerCase()
-            );
-          },
-        );
+      const existing:
+        | { ref: DataStoreOwnerRef; evidenceIds: Array<string> }
+        | undefined = named.find(
+        (entry: { ref: DataStoreOwnerRef }): boolean => {
+          return (
+            entry.ref.kind === owner.kind &&
+            entry.ref.id.toLowerCase() === owner.id.toLowerCase()
+          );
+        },
+      );
 
       if (existing) {
         if (!existing.evidenceIds.includes(item.id)) {

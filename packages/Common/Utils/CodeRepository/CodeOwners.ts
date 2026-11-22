@@ -49,6 +49,15 @@ const MAX_PATH_LENGTH: number = 1_000;
 // The longest handle or email address an owner is.
 const MAX_OWNER_LENGTH: number = 254;
 
+// A handle: "@person", or "@org/team" and its nested groups.
+const OWNER_HANDLE: RegExp =
+  /^@[A-Za-z0-9][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9][A-Za-z0-9_.-]*)*$/;
+
+// An email address, as the hosts read one: something @ a dotted domain.
+const OWNER_EMAIL: RegExp = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const SPACE: RegExp = /\s/;
+
 export interface CodeOwnersRule {
   pattern: string;
   owners: Array<string>;
@@ -73,12 +82,10 @@ export function isCodeOwner(token: string): boolean {
   }
 
   if (token.startsWith("@")) {
-    return /^@[A-Za-z0-9][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9][A-Za-z0-9_.-]*)*$/.test(
-      token,
-    );
+    return OWNER_HANDLE.test(token);
   }
 
-  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(token);
+  return OWNER_EMAIL.test(token);
 }
 
 // Whether an owner names a team ("@org/team"), not a person.
@@ -94,7 +101,7 @@ function withoutComment(line: string): string {
       continue;
     }
 
-    if (line[index] === "#" && (index === 0 || /\s/.test(line[index - 1]!))) {
+    if (line[index] === "#" && (index === 0 || SPACE.test(line[index - 1]!))) {
       return line.slice(0, index);
     }
   }
@@ -116,7 +123,7 @@ function tokensOf(line: string): Array<string> {
       continue;
     }
 
-    if (/\s/.test(character)) {
+    if (SPACE.test(character)) {
       if (current) {
         tokens.push(current);
         current = "";
