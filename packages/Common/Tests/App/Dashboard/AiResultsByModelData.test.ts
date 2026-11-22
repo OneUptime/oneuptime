@@ -26,6 +26,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import {
   makeDataSecurity,
+  makeIssueVerdicts,
   makeModels,
   makeOutcomes,
   toBody,
@@ -337,7 +338,10 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
     const opened: Record<string, Array<string>> = {};
 
     for (const card of getAiResultsCards(
-      makeOutcomes({ dataSecurity: makeDataSecurity() }),
+      makeOutcomes({
+        dataSecurity: makeDataSecurity(),
+        issueVerdicts: makeIssueVerdicts(),
+      }),
     )) {
       for (const breakdown of card.breakdowns as Array<AiResultsBreakdown>) {
         for (const segment of breakdown.segments as Array<AiResultsSegment>) {
@@ -385,12 +389,23 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
       [AiOutcomesPart.DataSecurityProposals]: [
         ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.DataSecurityProposals],
       ],
+      // The bar's two, then what it could not tell and what waits beside it (#10369).
+      [AiOutcomesPart.IssueVerdicts]: [
+        "agreed",
+        "disagreed",
+        "cannotTell",
+        "waiting",
+      ],
     });
+    expect([...opened[AiOutcomesPart.IssueVerdicts]!].sort()).toEqual(
+      [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.IssueVerdicts]].sort(),
+    );
   });
 
   test("a segment's number is the count of the outcome it opens", () => {
     const outcomes: AiOutcomes = makeOutcomes({
       dataSecurity: makeDataSecurity(),
+      issueVerdicts: makeIssueVerdicts(),
     });
     const counts: Record<AiOutcomesPart, Record<string, number>> = {
       [AiOutcomesPart.Pages]: outcomes.pages as unknown as Record<
@@ -412,6 +427,8 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
         .changes as unknown as Record<string, number>,
       [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
         .proposals as unknown as Record<string, number>,
+      [AiOutcomesPart.IssueVerdicts]:
+        outcomes.issueVerdicts as unknown as Record<string, number>,
     };
 
     for (const card of getAiResultsCards(outcomes)) {

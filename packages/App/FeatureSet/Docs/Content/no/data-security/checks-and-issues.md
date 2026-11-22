@@ -7,6 +7,7 @@ Datasikkerhet kjører 34 kontroller på hvert datalager, i ni grupper. En kontro
 - [Hver kontroll](#hver-kontroll): Alle 34, med hva hver av dem kontrollerer og hvordan det fikses.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes innenfor en alvorlighetsgrad.
 - [Hva som skjer med et problem](#hva-som-skjer-med-et-problem): Åpent, løst, godtatt, ikke et problem.
+- [Analysen fra OneUptime AI](#analysen-fra-oneuptime-ai): Om et problem er reelt, hva det setter i fare, hva fiksen ville ødelegge og den korteste veien til fikset.
 - [Fiks det herfra](#fiks-det-herfra): Lukk en eksponering, eller slå på en manglende beskyttelse, med ett klikk.
 :::
 
@@ -154,11 +155,26 @@ OneUptime åpner, oppdaterer og løser problemer etter hvert som kontrollene kj�
 | **Åpen** | Kontrollen feiler på datalageret nå. | Det teller på Oversikt, i datalagerets sammendrag og i samsvar, til kontrollen består. |
 | **Løst** | Kontrollen besto ved en senere kjøring, gjelder ikke lenger eller ble slått av, eller datalageret ble arkivert. En person kan også velge **Merk som løst**: datalageret kontrolleres da på nytt med en gang. | Det åpnes igjen hvis kontrollen feiler igjen, og problemet teller hvor ofte det er gjenåpnet. |
 | **Godtatt** | En person valgte **Godta risiko**, med en **Årsak** og en dato i **Godtatt til**, høyst ett år frem i tid. | Det forblir lukket til den datoen, og åpnes deretter igjen hvis kontrollen fortsatt feiler. Godta det igjen da hvis årsaken fortsatt gjelder. |
-| **Ikke et problem** | En person valgte **Ikke et problem**: funnet var feil. | Det forblir lukket, selv mens kontrollen feiler. **Gjenåpne** setter det tilbake til Åpen. |
+| **Ikke et problem** | En person valgte **Ikke et problem** og sa hvorfor under **Årsak**: funnet var feil. | Det forblir lukket, også mens kontrollen feiler, og beholder årsaken. **Gjenåpne** setter det tilbake til Åpen. |
 
 Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier kan endre statusen til et problem, og bruke **Tildel** for å gi det til en person eller et team. Hver endring skrives til problemets **Tidslinje**: når det ble åpnet, hver endring i alvorlighetsgrad, hver statusendring og hvem som gjorde den, nye kontroller som ble bedt om, og hva integrasjonene gjorde.
 
 Et problem som åpnes igjen, beholder historikken sin. Godtatte risikoer vurderes på nytt hver dag, så en godkjenning utløper i tide selv når ingenting er skannet.
+
+## Analysen fra OneUptime AI
+
+Mens **Jobb med nye problemer** er slått på under **Datasikkerhet → KI**, analyserer OneUptime AI selv hvert nytt eller gjenåpnet problem med alvorlighetsgrad Kritisk eller Høy, før noen åpner det; KI-reglene dine for datasikkerhet kan velge andre problemer. Ethvert problem kan analyseres fra siden sin med **Analyser problemet**. Analysen åpner problemets **Oversikt**, under **OneUptime AI-analyse**, og svarer ut fra det Datasikkerhet vet:
+
+- om det er reelt: **Reelt**, **Sannsynligvis med vilje**, **Sannsynligvis et feilaktig funn** eller **Kan ikke avgjøres**, og hvorfor;
+- hva det setter i fare: dataene og omtrent hvor mange poster, hvem som kan nå dem, kopier av dem i andre lagre og sikkerhetssakene om dem;
+- hva fiksen ville ødelegge: tjenestene som er sett bruke lageret, identitetene som brukte tilgangen sin de siste 90 dagene, og tildelingene som fiksen fjerner og som noe fortsatt bruker;
+- den korteste veien til fikset: hva som demmer det inn nå, koden som erklærer lageret, og hvem som bør gjøre det.
+
+Hver linje nevner faktaene den bygger på, listet under den av en knapp som **Vis de 3 faktaene den bygger på**. En linje som ikke bygger på noe faktum, utelates, en vurdering der årsaken ikke bygger på noe, er **Kan ikke avgjøres**, og et lager med begrensede data er aldri **Sannsynligvis med vilje** på OneUptime AIs ord. En linje som bygger på noe du ikke har lov til å lese, som hvem som kan nå lageret, skjules for deg og sier det.
+
+OneUptime AI endrer aldri problemet: status og alvorlighetsgrad blir hos kontrollen og hos deg. For **Sannsynligvis med vilje** tilbyr den **Godta risiko** med årsaken skrevet, og **Offentlig med vilje** for et offentlig lager; for **Sannsynligvis et feilaktig funn** **Ikke et problem** med årsaken skrevet. Ingenting endres før du velger.
+
+Analysen lagres på problemet, med en oppføring på **Tidslinje** hver gang den skrives, på språket de fleste medlemmene i prosjektet valgte (**Analyser på nytt** skriver den på ditt). Den skrives bare på nytt når det den bygger på er endret, så å åpne problemet spør ikke OneUptime AI om noe; **Analyser på nytt** spør likevel. **Problemer** filtrerer og viser problemer etter **OneUptime AI-vurdering**. Hva den sender og aldri sender, står i [OneUptime AI i Datasikkerhet](/docs/data-security/ai). Med KI slått av finnes det ingen analyse.
 
 ## Fiks det herfra
 

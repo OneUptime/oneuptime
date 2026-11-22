@@ -8,6 +8,8 @@ import {
   AiOutcomesDataSecurityChanges,
   AiOutcomesDataSecurityKind,
   AiOutcomesDataSecurityProposals,
+  AiOutcomesIssueVerdictOutcome,
+  AiOutcomesIssueVerdicts,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
   AiOutcomesModels,
@@ -20,6 +22,11 @@ import {
   getDataSecurityChangesMadeCount,
 } from "../../../../Types/AI/AiOutcomes";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
+import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import {
+  DataSecurityAiVerdict,
+  isDataSecurityAiVerdict,
+} from "../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { DataSecurityAiProposalStatus } from "../../../../Types/DataSecurity/DataSecurityAi";
 import { OnCallPolicyAiHoldOutcome } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
@@ -89,6 +96,18 @@ export interface AiOutcomesInvestigationRow {
 }
 
 /*
+ * A Data Security issue OneUptime AI analyzed (#10369): when it wrote its
+ * verdict - the week it counts in - the verdict, where the issue stands,
+ * and whether its store is marked public by design.
+ */
+export interface AiOutcomesIssueVerdictRow {
+  createdAt: Date;
+  verdict: DataSecurityAiVerdict | string | undefined;
+  status: DataSecurityIssueStatus | string | undefined;
+  isStorePublicByDesign?: boolean | undefined;
+}
+
+/*
  * A proposal OneUptime AI made for a Data Security issue that settled in the
  * window (#10364): a change made (appliedAt), one that could not be made
  * (failedAt), or one a person dismissed (dismissedAt).
@@ -122,6 +141,11 @@ export interface AiOutcomesInput {
   pullRequestRows: Array<AiOutcomesPullRequestRow> | null;
   // Completed investigations of the window, judged or not.
   investigationRows: Array<AiOutcomesInvestigationRow> | null;
+  /*
+   * Data Security issues OneUptime AI analyzed (#10369); null when the
+   * caller may not read them, left out by a caller that does not count them.
+   */
+  issueVerdictRows?: Array<AiOutcomesIssueVerdictRow> | null | undefined;
   isPartial: boolean;
   /*
    * Whether the caller may read the project's AI Logs, where each call's
@@ -367,6 +391,92 @@ export default class AiOutcomesBuilder {
     }
   }
 
+  /*
+   * What became of an issue OneUptime AI gave a verdict on (#10369):
+   * whether what people decided agreed with it (AiOutcomesIssueVerdicts says
+   * how each verdict is agreed with), or that nobody decided yet. Null for
+   * a verdict this server does not know.
+   */
+  public static getIssueVerdictOutcome(
+    row: Pick<
+      AiOutcomesIssueVerdictRow,
+      "verdict" | "status" | "isStorePublicByDesign"
+    >,
+  ): AiOutcomesIssueVerdictOutcome | null {
+    if (!isDataSecurityAiVerdict(row.verdict)) {
+      return null;
+    }
+
+    if (row.verdict === DataSecurityAiVerdict.CannotTell) {
+      return "cannotTell";
+    }
+
+    if (!row.status || row.status === DataSecurityIssueStatus.Open) {
+      return "waiting";
+    }
+
+    switch (row.verdict) {
+      case DataSecurityAiVerdict.Real:
+        return row.status === DataSecurityIssueStatus.NotAnIssue
+          ? "disagreed"
+          : "agreed";
+      case DataSecurityAiVerdict.LikelyByDesign:
+        return row.status === DataSecurityIssueStatus.Resolved &&
+          !row.isStorePublicByDesign
+          ? "disagreed"
+          : "agreed";
+      case DataSecurityAiVerdict.LikelyWrongFinding:
+        return row.status === DataSecurityIssueStatus.NotAnIssue
+          ? "agreed"
+          : "disagreed";
+    }
+  }
+
+  private static countIssueVerdicts(
+    rows: Array<AiOutcomesIssueVerdictRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): AiOutcomesIssueVerdicts {
+    const verdicts: AiOutcomesIssueVerdicts = {
+      agreed: 0,
+      disagreed: 0,
+      waiting: 0,
+      cannotTell: 0,
+      real: 0,
+      likelyByDesign: 0,
+      likelyWrongFinding: 0,
+    };
+
+    for (const row of rows) {
+      const week: AiOutcomesWeek | null = weekOf(row.createdAt);
+      const outcome: AiOutcomesIssueVerdictOutcome | null =
+        this.getIssueVerdictOutcome(row);
+
+      if (!week || !outcome) {
+        continue;
+      }
+
+      verdicts[outcome]++;
+
+      if (row.verdict === DataSecurityAiVerdict.Real) {
+        verdicts.real++;
+      } else if (row.verdict === DataSecurityAiVerdict.LikelyByDesign) {
+        verdicts.likelyByDesign++;
+      } else if (row.verdict === DataSecurityAiVerdict.LikelyWrongFinding) {
+        verdicts.likelyWrongFinding++;
+      }
+
+      if (outcome === "agreed" || outcome === "disagreed") {
+        week.verdictsDecided++;
+      }
+
+      if (outcome === "agreed") {
+        week.verdictsAgreed++;
+      }
+    }
+
+    return verdicts;
+  }
+
   public static getRootCauseOutcome(
     row: AiOutcomesInvestigationRow,
   ): AiOutcomesRootCauseOutcome | null {
@@ -447,6 +557,8 @@ export default class AiOutcomesBuilder {
         rootCausesJudged: 0,
         dataSecurityChangesProven: 0,
         dataSecurityChangesMade: 0,
+        verdictsAgreed: 0,
+        verdictsDecided: 0,
       });
     }
 
@@ -480,6 +592,13 @@ export default class AiOutcomesBuilder {
             weekOf,
           })
         : null,
+      ...(input.issueVerdictRows !== undefined
+        ? {
+            issueVerdicts: input.issueVerdictRows
+              ? this.countIssueVerdicts(input.issueVerdictRows, weekOf)
+              : null,
+          }
+        : {}),
       models: input.canReadModels
         ? this.countModels({
             investigationRows: input.investigationRows || [],

@@ -158,6 +158,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
       // What the project blocks, beside what no block may touch.
       ["Blocklist", PageMap.SECURITY_BLOCKLIST],
+      // The secret URLs firewalls read the blocklist from (#10345).
+      ["Blocklist Feeds", PageMap.SECURITY_BLOCKLIST_FEEDS],
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
   ],
@@ -435,6 +437,20 @@ describe("Security Events side menu", () => {
     // The entry still opens the list, not the hunt.
     expect(entryAnchor("Events", "Hunts").getAttribute("href")).toBe(
       routeFor(PageMap.SECURITY_EVENTS_HUNTS),
+    );
+  });
+
+  test("on a blocklist feed's page, lights Blocklist Feeds, the list it opens from", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/security-events/blocklist/feeds/3c000000-0000-4000-8000-000000000001`,
+    );
+    await renderSecurityMenu();
+
+    expect(activeLinkTitles()).toEqual(["Blocklist Feeds"]);
+    expect(isExpanded("Playbooks")).toBe(true);
+    // The entry still opens the list, not the feed.
+    expect(entryAnchor("Playbooks", "Blocklist Feeds").getAttribute("href")).toBe(
+      routeFor(PageMap.SECURITY_BLOCKLIST_FEEDS),
     );
   });
 

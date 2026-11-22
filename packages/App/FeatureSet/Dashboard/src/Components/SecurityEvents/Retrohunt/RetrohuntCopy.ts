@@ -194,6 +194,7 @@ export const RETROHUNT_TEST_IDS: Readonly<{
   noisy: string;
   exceptions: string;
   uncounted: string;
+  refused: string;
   notice: string;
   changed: string;
   groups: string;
@@ -213,6 +214,7 @@ export const RETROHUNT_TEST_IDS: Readonly<{
   noisy: "detection-rule-retrohunt-noisy",
   exceptions: "detection-rule-retrohunt-exceptions",
   uncounted: "detection-rule-retrohunt-uncounted",
+  refused: "detection-rule-retrohunt-refused",
   notice: "detection-rule-retrohunt-notice",
   changed: "detection-rule-retrohunt-changed",
   groups: "detection-rule-retrohunt-groups",

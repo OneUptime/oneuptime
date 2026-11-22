@@ -235,6 +235,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "markFindings DataStoreFinding": Why.FollowOn,
     },
+  /*
+   * OneUptime AI's analysis of an issue (#10369), kept on the issue: its
+   * own note, never the issue's status or severity, and the issue's
+   * timeline says each one written.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts": {
+    "DataSecurityIssueAnalysis.write DataSecurityIssue": Why.Automation,
+  },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,
@@ -650,6 +658,23 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlockExpiry.ts": {
     "SecurityBlockExpiry.expireBlock SecurityBlock": Why.Recorded,
   },
+  /*
+   * A blocklist feed's health (#10345): how often its firewall fetches it,
+   * worked out from its fetches, and when its owners were told it stopped.
+   */
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedHealth.ts":
+    {
+      "SecurityBlocklistFeedHealth.checkFeed SecurityBlocklistFeed":
+        Why.Bookkeeping,
+    },
+  // What a firewall's fetch of a feed reports: when, from where, and the list it now holds (#10345).
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedServe.ts":
+    {
+      "SecurityBlocklistFeedServe.recordFetch SecurityBlocklistFeed":
+        Why.Reported,
+      "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,

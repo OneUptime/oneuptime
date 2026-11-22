@@ -1049,6 +1049,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-cases",
       },
       {
+        title: "Blocklist Feeds for Firewalls and Proxies",
+        url: "/docs/telemetry/blocklist-feeds",
+      },
+      {
         title: "Entity Risk (Risk-Based Alerting)",
         url: "/docs/telemetry/security-entity-risk",
       },

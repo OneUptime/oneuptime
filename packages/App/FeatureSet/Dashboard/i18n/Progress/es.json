@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 60451,
-    "untranslated": 2307
+    "keys": 61841,
+    "untranslated": 2306
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -176,6 +176,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Firewall",
     "First Contentful Paint",
     "Fivetran",
     "FlashArray",
@@ -274,6 +275,7 @@
     "Loopback",
     "MCP",
     "MD5",
+    "MD5 URL",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",
@@ -378,6 +380,7 @@
     "RabbitMQ",
     "Radio",
     "Re-encrypt",
+    "Real",
     "Recordsets",
     "Red Hat OpenShift",
     "Redis",

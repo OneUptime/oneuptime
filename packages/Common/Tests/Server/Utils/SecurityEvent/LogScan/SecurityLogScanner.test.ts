@@ -60,6 +60,22 @@ import {
   entraExport,
   entraFailedSignIn,
 } from "../../../../Utils/SecurityEvent/Connectors/EntraIdFixtures";
+import Redis from "../../../../../Server/Infrastructure/Redis";
+import logger from "../../../../../Server/Utils/Logger";
+import RefusedTelemetryReader from "../../../../../Server/Utils/SecurityEvent/RefusedTelemetryReader";
+import TelemetryIngestionBudgetStatusReader from "../../../../../Server/Utils/Telemetry/TelemetryIngestionBudgetStatusReader";
+import ProductType from "../../../../../Types/MeteredPlan/ProductType";
+import {
+  TelemetryIngestionBudgetScope,
+  TelemetryIngestionBudgetSignalStatus,
+  TelemetryIngestionBudgetState,
+  TelemetryIngestionBudgetStatus,
+} from "../../../../../Types/Telemetry/TelemetryIngestionBudget";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryKind,
+  readRefusedTelemetryRecord,
+} from "../../../../../Utils/SecurityEvent/RefusedTelemetry";
 
 const NOW: Date = new Date("2026-10-19T12:00:00.000Z");
 const UNTIL: Date = new Date(NOW.getTime() - LOG_SCAN_SETTLE_IN_SECONDS * 1000);
@@ -1239,5 +1255,345 @@ describe("SecurityLogScanner.scanSource - a record another way stores too", () =
     expect(result.eventsFound).toBe(2);
     expect(keys).toEqual([]);
     expect(lookUp).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * #10431: a brute force floods the project's logs, the flood uses up its
+ * daily logs budget, and what is sent after that is refused at the door -
+ * never stored, so never read here. Each scan reads the budget's own
+ * counters and keeps, on its result, when it was used up, whose budget it
+ * was and how much it refused, from scan to scan: Security Events says what
+ * it could not see instead of looking quiet for it.
+ */
+describe("SecurityLogScanner.scanSource: during an attack that uses up the logs budget", () => {
+  const EXHAUSTED_AT: string = "2026-10-19T11:58:30.000Z";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    RefusedTelemetryReader.clearCache();
+  });
+
+  const logsSignal: (
+    data: Partial<TelemetryIngestionBudgetSignalStatus>,
+  ) => TelemetryIngestionBudgetSignalStatus = (
+    data: Partial<TelemetryIngestionBudgetSignalStatus>,
+  ): TelemetryIngestionBudgetSignalStatus => {
+    return {
+      signal: ProductType.Logs,
+      dailyBudgetBytes: 10_000_000,
+      dailyBudgetSource: null,
+      rateLimitBytesPerSecond: 100_000,
+      rateLimitSource: null,
+      usedBytes: 10_000_000,
+      droppedBytes: 0,
+      droppedRequests: 0,
+      throttledRequests: 0,
+      percentUsed: 100,
+      state: TelemetryIngestionBudgetState.Exhausted,
+      warningCrossedAt: null,
+      exhaustedAt: EXHAUSTED_AT,
+      ...data,
+    };
+  };
+
+  // The project's budgets as the status reader answers on a budget day.
+  const budgets: (data: {
+    day: string;
+    logs: Partial<TelemetryIngestionBudgetSignalStatus>;
+    key?: Partial<TelemetryIngestionBudgetSignalStatus> | undefined;
+  }) => TelemetryIngestionBudgetStatus = (data: {
+    day: string;
+    logs: Partial<TelemetryIngestionBudgetSignalStatus>;
+    key?: Partial<TelemetryIngestionBudgetSignalStatus> | undefined;
+  }): TelemetryIngestionBudgetStatus => {
+    const startsAt: Date = new Date(`${data.day}T00:00:00.000Z`);
+
+    return {
+      dayStartsAt: startsAt.toISOString(),
+      resetsAt: OneUptimeDate.addRemoveDays(startsAt, 1).toISOString(),
+      resetTime: "00:00",
+      timezone: "UTC",
+      warningPercent: 80,
+      countersAvailable: true,
+      project: {
+        scope: TelemetryIngestionBudgetScope.Project,
+        signals: [logsSignal(data.logs)],
+      },
+      ingestionKeys: data.key
+        ? [
+            {
+              scope: TelemetryIngestionBudgetScope.IngestionKey,
+              ingestionKeyId: "0192f1a0-0000-7000-8000-00000000k101",
+              ingestionKeyName: "Edge collector",
+              signals: [logsSignal(data.key)],
+            },
+          ]
+        : [],
+      teamsAndLabels: [],
+    };
+  };
+
+  // The budget counters each scan reads, one answer per scan.
+  const counters: (
+    statuses: Array<TelemetryIngestionBudgetStatus>,
+  ) => ReturnType<typeof jest.spyOn> = (
+    statuses: Array<TelemetryIngestionBudgetStatus>,
+  ): ReturnType<typeof jest.spyOn> => {
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      TelemetryIngestionBudgetStatusReader,
+      "getProjectStatus",
+    );
+
+    for (const status of statuses) {
+      read.mockResolvedValueOnce(status);
+    }
+
+    return read;
+  };
+
+  // The next scan, a minute (or more) later, from what the last one kept.
+  const scanAgain: (data: {
+    at: Date;
+    previous: JSONObject;
+  }) => Promise<SecurityLogScanResult> = async (data: {
+    at: Date;
+    previous: JSONObject;
+  }): Promise<SecurityLogScanResult> => {
+    RefusedTelemetryReader.clearCache();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(data.at);
+
+    return SecurityLogScanner.scanSource(
+      source(String(data.previous["scannedTo"]), data.previous),
+    );
+  };
+
+  test("keeps when the budget was used up, whose it was and what it refused - and carries it to the next scan", async () => {
+    // The brute force's first lines got in before the budget was used up.
+    const installed: Installed = install(
+      logs(
+        3,
+        OneUptimeDate.addRemoveMinutes(NOW, -5),
+        60,
+        SSH_LINES.failedPasswordRoot,
+      ),
+    );
+    const read: ReturnType<typeof jest.spyOn> = counters([
+      budgets({
+        day: "2026-10-19",
+        logs: { droppedBytes: 4096, droppedRequests: 30 },
+      }),
+      budgets({
+        day: "2026-10-19",
+        logs: { droppedBytes: 10240, droppedRequests: 80 },
+      }),
+    ]);
+
+    const first: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -5).toISOString()),
+    );
+
+    // What got in is read as ever.
+    expect(first.eventsFound).toBe(3);
+
+    // What did not is said, on the result.
+    const refusedFirst: RefusedTelemetry = {
+      signal: ProductType.Logs,
+      kind: RefusedTelemetryKind.BudgetUsedUp,
+      scope: TelemetryIngestionBudgetScope.Project,
+      scopeId: PROJECT_ID.toString(),
+      scopeName: "",
+      from: EXHAUSTED_AT,
+      to: null,
+      refusedBytes: 4096,
+      refusedRequests: 30,
+    };
+    expect(first.refusedTelemetry).toEqual([refusedFirst]);
+    expect(first.refusedTelemetryObservation?.observedAt).toBe(
+      NOW.toISOString(),
+    );
+
+    // Read as the ingest gate decides, through the status reader.
+    expect(read.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        readsSettingsAsIngestDoes: true,
+      }),
+    );
+
+    // Kept on the source, where the next scan, the setup and a retrohunt read it.
+    const kept: JSONObject = installed.updates[0]![
+      "lastScanResult"
+    ] as JSONObject;
+    expect(readRefusedTelemetryRecord(kept).refusals).toEqual([refusedFirst]);
+
+    const second: SecurityLogScanResult = await scanAgain({
+      at: OneUptimeDate.addRemoveMinutes(NOW, 1),
+      previous: kept,
+    });
+
+    // Still used up: the same stretch, with what was refused since added.
+    expect(second.refusedTelemetry).toEqual([
+      { ...refusedFirst, refusedBytes: 10240, refusedRequests: 80 },
+    ]);
+    // Nothing new was stored: the attack's later lines were refused.
+    expect(second.eventsFound).toBe(0);
+  });
+
+  test("the stretch ends at the reset of the day it was used up in", async () => {
+    install([]);
+    counters([
+      budgets({
+        day: "2026-10-19",
+        logs: { droppedBytes: 4096, droppedRequests: 30 },
+      }),
+      budgets({
+        day: "2026-10-20",
+        logs: {
+          usedBytes: 120,
+          percentUsed: 0,
+          state: TelemetryIngestionBudgetState.Ok,
+          exhaustedAt: null,
+        },
+      }),
+    ]);
+
+    const first: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+    );
+    const afterReset: SecurityLogScanResult = await scanAgain({
+      at: new Date("2026-10-20T00:01:00.000Z"),
+      previous: first as unknown as JSONObject,
+    });
+
+    expect(afterReset.refusedTelemetry).toEqual([
+      expect.objectContaining({
+        from: EXHAUSTED_AT,
+        to: "2026-10-20T00:00:00.000Z",
+        refusedRequests: 30,
+      }),
+    ]);
+  });
+
+  test("a rate that throttles the flood is kept between the scans it happened between", async () => {
+    install([]);
+
+    const underBudget: Partial<TelemetryIngestionBudgetSignalStatus> = {
+      usedBytes: 100,
+      percentUsed: 0,
+      state: TelemetryIngestionBudgetState.Ok,
+      exhaustedAt: null,
+    };
+
+    counters([
+      budgets({ day: "2026-10-19", logs: underBudget }),
+      budgets({
+        day: "2026-10-19",
+        logs: { ...underBudget, throttledRequests: 250 },
+      }),
+    ]);
+
+    const first: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+    );
+
+    expect(first.refusedTelemetry).toEqual([]);
+
+    const second: SecurityLogScanResult = await scanAgain({
+      at: OneUptimeDate.addRemoveMinutes(NOW, 1),
+      previous: first as unknown as JSONObject,
+    });
+
+    expect(second.refusedTelemetry).toEqual([
+      {
+        signal: ProductType.Logs,
+        kind: RefusedTelemetryKind.RateLimited,
+        scope: TelemetryIngestionBudgetScope.Project,
+        scopeId: PROJECT_ID.toString(),
+        scopeName: "",
+        from: NOW.toISOString(),
+        to: null,
+        refusedBytes: 0,
+        refusedRequests: 250,
+      },
+    ]);
+  });
+
+  test("an ingestion key's own budget used up names the key", async () => {
+    install([]);
+    counters([
+      budgets({
+        day: "2026-10-19",
+        logs: {
+          usedBytes: 100,
+          percentUsed: 0,
+          state: TelemetryIngestionBudgetState.Ok,
+          exhaustedAt: null,
+        },
+        key: { droppedBytes: 512, droppedRequests: 4 },
+      }),
+    ]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+    );
+
+    expect(result.refusedTelemetry).toEqual([
+      expect.objectContaining({
+        kind: RefusedTelemetryKind.BudgetUsedUp,
+        scope: TelemetryIngestionBudgetScope.IngestionKey,
+        scopeId: "0192f1a0-0000-7000-8000-00000000k101",
+        scopeName: "Edge collector",
+        from: EXHAUSTED_AT,
+        to: null,
+      }),
+    ]);
+  });
+
+  test("a scan that cannot read the counters keeps what it knew, still going on", async () => {
+    install([]);
+    counters([
+      budgets({
+        day: "2026-10-19",
+        logs: { droppedBytes: 4096, droppedRequests: 30 },
+      }),
+    ]).mockRejectedValueOnce(new Error("Postgres is down"));
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+
+    const first: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+    );
+    const second: SecurityLogScanResult = await scanAgain({
+      at: OneUptimeDate.addRemoveMinutes(NOW, 1),
+      previous: first as unknown as JSONObject,
+    });
+
+    expect(second.refusedTelemetry).toEqual(first.refusedTelemetry);
+    expect(second.refusedTelemetry[0]!.to).toBeNull();
+    // The read before is kept, so the next good read covers the gap.
+    expect(second.refusedTelemetryObservation).toEqual(
+      first.refusedTelemetryObservation,
+    );
+  });
+
+  test("without Valkey, nothing is read and nothing is said refused", async () => {
+    install([]);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(false);
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      TelemetryIngestionBudgetStatusReader,
+      "getProjectStatus",
+    );
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(OneUptimeDate.addRemoveMinutes(NOW, -1).toISOString()),
+    );
+
+    expect(read).not.toHaveBeenCalled();
+    expect(result.refusedTelemetry).toEqual([]);
+    expect(result.refusedTelemetryObservation).toBeNull();
   });
 });

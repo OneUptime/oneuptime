@@ -1581,9 +1581,62 @@ describe("onIssuesOpened: OneUptime AI's work", () => {
       .mockResolvedValue(URL.fromString(DASHBOARD));
   });
 
-  test("the owners' email says where OneUptime AI's proposals wait, while it works on new issues", async () => {
+  /*
+   * While it works on new issues, the owners' email waits for its analysis
+   * (#10369): one held notice per store, sent by DataSecurityOwnerNotice
+   * (its own tests) - and nothing now.
+   */
+  test("while it works on new issues, the owners' email waits for its analysis: one held notice per store, and nothing sent now", async () => {
     projectWith({});
     ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+    ownedBy(STORE_B, userOf("Bob Owner", "bob@acme.io"));
+    const heldSpy: jest.SpyInstance = jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityOwnerNotice")
+      .mockResolvedValue(true);
+    const first: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+    });
+    const second: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+    const elsewhere: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.Critical,
+      storeId: STORE_B,
+    });
+
+    await opened([first, second, elsewhere]);
+    await settle();
+
+    expect(mails()).toHaveLength(0);
+    expect(
+      heldSpy.mock.calls.map((call: Array<unknown>): Array<string> => {
+        const notice: DataSecurityJobs.HeldOwnerNotice =
+          call[0] as DataSecurityJobs.HeldOwnerNotice;
+
+        expect(notice.projectId).toEqual(PROJECT_ID);
+        expect(notice.attempt).toBe(1);
+
+        return [
+          notice.dataStoreId.toString(),
+          ...notice.issueIds.map((issueId: ObjectID): string => {
+            return issueId.toString();
+          }),
+        ];
+      }),
+    ).toEqual([
+      [STORE_A.toString(), first.issueId.toString(), second.issueId.toString()],
+      [STORE_B.toString(), elsewhere.issueId.toString()],
+    ]);
+    // OneUptime AI's work is queued all the same.
+    expect(queueSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("an owners' email that cannot be held goes now, and says where OneUptime AI's proposals wait", async () => {
+    projectWith({});
+    ownedBy(STORE_A, userOf("Alice Owner", "alice@acme.io"));
+    jest
+      .spyOn(DataSecurityJobs, "queueDataSecurityOwnerNotice")
+      .mockResolvedValue(false);
 
     await opened([issueOf({ severity: SecuritySeverity.Critical })]);
     await settle();

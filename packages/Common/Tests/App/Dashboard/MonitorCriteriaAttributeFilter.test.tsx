@@ -146,8 +146,6 @@ const LogHarness: React.FunctionComponent<{ recorder: Recorder }> = (props: {
                     setLogMonitor(value);
                   }}
                   attributeKeys={ATTRIBUTE_KEYS}
-                  telemetryServices={[]}
-                  telemetryEntities={[]}
                 />
               );
             },
@@ -195,8 +193,6 @@ const TraceHarness: React.FunctionComponent<{ recorder: Recorder }> = (props: {
                     setTraceMonitor(value);
                   }}
                   attributeKeys={ATTRIBUTE_KEYS}
-                  telemetryServices={[]}
-                  telemetryEntities={[]}
                 />
               );
             },

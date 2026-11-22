@@ -3,7 +3,10 @@ import {
   ResponseLinkKind,
   ResponseTracesLink,
 } from "../../../../Types/SecurityCase/SecurityCaseResponseLink";
-import { readStepCheckDataTime } from "../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
+import {
+  SecurityCaseStepCheckSentence,
+  readStepCheckDataTime,
+} from "../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "../../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import { RESPONSE_STEP_KINDS } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
 import {
@@ -316,15 +319,25 @@ function decideBlockAddressByRequests(
       state: SecurityCaseStepCheckState.Verified,
       evidence: evidenceOf({
         sentence: block.sentence,
-        facts: reading.lastSeenAt
-          ? [
-              sentence(
-                CHECK_BLOCK_QUIET_SINCE,
-                { address: input.address },
-                { times: { since: reading.lastSeenAt } },
-              ),
-            ]
-          : [],
+        facts: [
+          // What each destination holding it says of its own: Cloudflare, the requests it stopped (#10343).
+          ...getEnforcedAddressBlocks(input.blocks).flatMap(
+            (
+              held: AddressBlockEvidence,
+            ): Array<SecurityCaseStepCheckSentence> => {
+              return held.facts || [];
+            },
+          ),
+          ...(reading.lastSeenAt
+            ? [
+                sentence(
+                  CHECK_BLOCK_QUIET_SINCE,
+                  { address: input.address },
+                  { times: { since: reading.lastSeenAt } },
+                ),
+              ]
+            : []),
+        ],
         links: [block.link || null],
         data: {
           doneSince: laterOf(getDoneSince(input.target), block.appliedAt),

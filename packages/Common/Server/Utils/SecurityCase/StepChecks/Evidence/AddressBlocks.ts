@@ -30,6 +30,13 @@ export interface AddressBlockEvidence {
   // The block where it is enforced, or on the blocklist.
   link?: ResponseLink | undefined;
   /*
+   * What the destination says of its own about the block, beside the
+   * sentence: Cloudflare, how many of the address's requests its rule
+   * stopped since the block (#10343). Facts add to the evidence; they never
+   * decide the step.
+   */
+  facts?: Array<SecurityCaseStepCheckSentence> | undefined;
+  /*
    * A block the source records that no destination holds (#10562): never
    * evidence that the address is blocked. The step says it is not enforced
    * anywhere yet, and keeps what the app's requests say.

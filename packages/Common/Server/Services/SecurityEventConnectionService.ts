@@ -1,8 +1,9 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/SecurityEventConnection";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -17,6 +18,12 @@ import {
 import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
 import SecurityEventConnectorRegistry from "../Utils/SecurityEvent/Connectors/SecurityEventConnectorRegistry";
 import { SecurityConnectorSettings } from "../Utils/SecurityEvent/Connectors/Types";
+import {
+  CloudflareBlockingSettings,
+  isCloudflareBlockingRemovalPending,
+  readCloudflareBlockingSettings,
+  readCloudflareBlockingStatus,
+} from "../../Types/SecurityBlocklist/CloudflareBlocking";
 
 /*
  * Validation happens at save time so a connection that stores is a
@@ -578,6 +585,56 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A Cloudflare connection that blocks addresses, or whose lists and rules
+   * OneUptime is still taking away, is not deleted (#10343): turning blocking
+   * off first asks whether to take OneUptime's lists and rules away from
+   * Cloudflare, and does so - which takes the connection's token, gone with
+   * the connection. Turned off and settled, it deletes as any other.
+   */
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        name: true,
+        provider: true,
+        blockingSettings: true,
+        blockingStatus: true,
+      },
+    );
+
+    for (const row of rows) {
+      if (row.provider !== SecurityEventConnectorProvider.Cloudflare) {
+        continue;
+      }
+
+      const settings: CloudflareBlockingSettings =
+        readCloudflareBlockingSettings(row.blockingSettings);
+
+      if (settings.isEnabled) {
+        throw new BadDataException(
+          `${row.name || "This connection"} blocks addresses at Cloudflare. Turn blocking off first: OneUptime then asks whether to remove its lists and rules from Cloudflare.`,
+        );
+      }
+
+      if (
+        isCloudflareBlockingRemovalPending(
+          settings,
+          readCloudflareBlockingStatus(row.blockingStatus),
+        )
+      ) {
+        throw new BadDataException(
+          `OneUptime is still removing its lists and rules from Cloudflare for ${row.name || "this connection"}. Delete it once that is done, in a few minutes.`,
+        );
+      }
+    }
+
+    return { deleteBy, carryForward: null };
+  }
+
+  /*
    * Decrypted settings for the poller and the tester. Root read; the
    * returned object must never be serialized into a response or a log.
    */
@@ -589,6 +646,8 @@ export class Service extends DatabaseService<Model> {
     let provider: SecurityEventConnectorProvider | undefined =
       connection.provider;
     let alertingOnly: boolean = connection.alertingOnly !== false;
+    let blockingSettings: JSONObject | undefined = connection.blockingSettings;
+    let projectId: ObjectID | undefined = connection.projectId;
 
     if (
       (secretsJson === undefined ||
@@ -600,10 +659,12 @@ export class Service extends DatabaseService<Model> {
         id: connection.id,
         select: {
           _id: true,
+          projectId: true,
           provider: true,
           config: true,
           secrets: true,
           alertingOnly: true,
+          blockingSettings: true,
         },
         props: { isRoot: true },
       });
@@ -616,16 +677,29 @@ export class Service extends DatabaseService<Model> {
       config = loaded.config;
       provider = loaded.provider;
       alertingOnly = loaded.alertingOnly !== false;
+      blockingSettings = loaded.blockingSettings;
+      projectId = loaded.projectId;
     }
 
     const definition: SecurityEventConnectorDefinition =
       Service.getDefinitionOrThrow(provider);
+    const blocking: CloudflareBlockingSettings =
+      readCloudflareBlockingSettings(blockingSettings);
 
     return {
       provider: definition.provider,
       config: Service.parseJsonObject(config, "Configuration"),
       secrets: Service.parseJsonObject(secretsJson, "Credentials"),
       alertingOnly,
+      // Blocking on: Test Connection checks the write access it needs (#10343).
+      ...(blocking.isEnabled && projectId
+        ? {
+            blocking: {
+              projectId: projectId.toString(),
+              zoneIds: blocking.zoneIds,
+            },
+          }
+        : {}),
     };
   }
 }
