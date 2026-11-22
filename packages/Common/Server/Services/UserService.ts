@@ -396,7 +396,17 @@ export class Service extends DatabaseService<Model> {
   public async getUserMarkdownString(data: {
     userId: ObjectID;
     projectId: ObjectID;
+    /*
+     * The change's own reader, for a change that names several people in
+     * several lines (OnCallChatByWorkspace): whoever it names is read once.
+     * It reads for the same project.
+     */
+    people?: FeedPersonName | undefined;
   }): Promise<MarkdownText> {
+    if (data.people) {
+      return await data.people.nameOf(data.userId);
+    }
+
     return await FeedPersonName.getMarkdown({
       userId: data.userId,
       projectId: data.projectId,

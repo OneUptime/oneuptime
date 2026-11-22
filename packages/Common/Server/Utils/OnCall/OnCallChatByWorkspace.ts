@@ -516,9 +516,16 @@ export default class OnCallChatByWorkspace {
       return mdText`${invitee.name}`;
     }
 
-    // OneUptime's name: in the feed, and for workspaces with no line of their own.
+    /*
+     * OneUptime's name: in the feed, and for workspaces with no line of
+     * their own - with the change's reader, so they are read once.
+     */
     if (!workspaceType) {
-      const name: MarkdownText = await this.people.nameOf(userId);
+      const name: MarkdownText = await UserService.getUserMarkdownString({
+        userId: userId,
+        projectId: this.projectId,
+        people: this.people,
+      });
 
       return name.isEmpty() ? mdText`${ON_CALL_CHAT_NOBODY_NAMED}` : name;
     }
