@@ -79,6 +79,9 @@ import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecu
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
@@ -1576,16 +1579,50 @@ export default class DataSecurityAPI extends BaseAPI<
       projectId,
     });
 
-    for (const store of stores) {
-      const categories: Array<DataCategory> = store.dataCategories || [];
+    // The stores that hold personal data, each with its owners.
+    const recorded: Array<{ store: DataStore; owners: Array<User> }> = [];
 
-      if (!categories.some(isPersonalDataCategory)) {
+    for (const store of stores) {
+      if (!(store.dataCategories || []).some(isPersonalDataCategory)) {
         continue;
       }
 
-      const owners: Array<User> = await DataSecurityIntegrations.getOwnerUsers(
-        store.id!,
-      );
+      recorded.push({
+        store,
+        owners: await DataSecurityIntegrations.getOwnerUsers(store.id!),
+      });
+    }
+
+    /*
+     * Each owner as the project knows them (#10697). The owners are read as
+     * OneUptime, and a direct owner can be someone only invited to the
+     * project, whose own account's name it may not see until they join
+     * (#9823): they are named by the name typed with their invitation, else
+     * the address they were invited at. Read once for every owner of the
+     * record. The record is read inside the project, by its auditor, so the
+     * invited address is the project's own to read here.
+     */
+    const ownerIds: Array<string> = [
+      ...new Set(
+        recorded.flatMap((entry: { owners: Array<User> }): Array<string> => {
+          return entry.owners
+            .map((owner: User): string => {
+              return owner.id?.toString() || "";
+            })
+            .filter(Boolean);
+        }),
+      ),
+    ];
+    const withheld: Map<string, WithheldProfile> =
+      ownerIds.length > 0
+        ? await PendingInviteeProfiles.readWithheldProfilesInProject({
+            userIds: ownerIds,
+            projectId,
+          })
+        : new Map<string, WithheldProfile>();
+
+    for (const { store, owners } of recorded) {
+      const categories: Array<DataCategory> = store.dataCategories || [];
       const frameworks: Set<ComplianceFramework> = new Set();
 
       for (const dataTypeId of store.dataTypeIds || []) {
@@ -1598,12 +1635,16 @@ export default class DataSecurityAPI extends BaseAPI<
       const typeNames: Array<string> = dataTypeNamer.namesOf(store.dataTypeIds);
       const declared: DataSecurityDeclaredStore | null =
         await DeclaredDataStores.describe({ projectId, store });
-      const recorded: { purpose: string; retention: string } = declared
-        ? DeclaredDataStores.getRecordedPurposeAndRetention({
-            store,
-            declared,
-          })
-        : { purpose: store.purpose || "", retention: store.retention || "" };
+      const purposeAndRetention: { purpose: string; retention: string } =
+        declared
+          ? DeclaredDataStores.getRecordedPurposeAndRetention({
+              store,
+              declared,
+            })
+          : {
+              purpose: store.purpose || "",
+              retention: store.retention || "",
+            };
 
       rows.push({
         dataStoreId: store.id!.toString(),
@@ -1618,11 +1659,18 @@ export default class DataSecurityAPI extends BaseAPI<
           DataSensitivity.Public,
         dataCategories: categories,
         dataTypeNames: typeNames,
-        owners: owners.map((owner: User) => {
-          return owner.name?.toString() || owner.email?.toString() || "";
-        }),
-        purpose: recorded.purpose,
-        retention: recorded.retention,
+        owners: owners
+          .map((owner: User): string => {
+            return PendingInviteeProfiles.getNameInProject({
+              userId: owner.id,
+              name: owner.name,
+              email: owner.email,
+              withheld,
+            });
+          })
+          .filter(Boolean),
+        purpose: purposeAndRetention.purpose,
+        retention: purposeAndRetention.retention,
         frameworks: [...frameworks],
         ...(declared ? { declared } : {}),
       });

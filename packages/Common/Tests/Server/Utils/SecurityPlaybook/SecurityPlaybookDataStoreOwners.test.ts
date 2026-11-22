@@ -5,7 +5,7 @@ import User from "../../../../Models/DatabaseModels/User";
 import DataStoreService from "../../../../Server/Services/DataStoreService";
 import MailService from "../../../../Server/Services/MailService";
 import DataSecurityIntegrations from "../../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
-import RuleRecordScope from "../../../../Server/Utils/Rules/RuleRecordScope";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import SecurityPlaybookActions, {
   PlaybookStepContext,
   PlaybookStepOutcome,
@@ -191,13 +191,19 @@ beforeEach(() => {
       return owners.get(dataStoreId.toString()) || [];
     }) as never,
   );
-  getJestSpyOn(RuleRecordScope, "keepIdsInProject").mockImplementation(
-    (async (data: { ids: Array<string> }) => {
-      return data.ids.filter((id: string): boolean => {
-        return members.has(id);
-      });
-    }) as never,
-  );
+  /*
+   * Who has joined the project (TeamMemberService.filterUsersToProjectMembers,
+   * through DataSecurityIntegrations.getOwnersToNotify): someone who left,
+   * or who is only invited, is not among them (#10697).
+   */
+  getJestSpyOn(
+    TeamMemberService,
+    "filterUsersToProjectMembers",
+  ).mockImplementation((async (data: { users: Array<User> }) => {
+    return data.users.filter((member: User): boolean => {
+      return members.has(member.id!.toString());
+    });
+  }) as never);
   sendMail = getJestSpyOn(MailService, "sendMail").mockImplementation((async (
     mail: JSONObject,
     options: JSONObject,
@@ -378,6 +384,28 @@ describe("Notify data store owners", () => {
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Skipped);
     expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A direct owner row may name someone only invited to the project: they
+   * hear nothing of its cases until they join (#10697), a name typed with
+   * their invitation or none.
+   */
+  test("never emails an owner only invited to the project", async () => {
+    const invited: User = user("ines");
+    const invitedWithNoName: User = user("ivo");
+    owners.set(CARDS.id!.toString(), [ALICE, invited, invitedWithNoName]);
+
+    const outcome: PlaybookStepOutcome = await run(
+      context([storeEntity(CARDS_KEY)]),
+    );
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
+    expect(
+      sent.map((entry: { mail: JSONObject }): string => {
+        return (entry.mail["toEmail"] as Email).toString();
+      }),
+    ).toEqual(["alice@acme.example"]);
   });
 
   test("never emails an owner who has left the project", async () => {

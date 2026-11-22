@@ -66,6 +66,9 @@ import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
 import DataSecurityIntegrations from "../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
 import DeclaredDataStores from "../../../Server/Utils/DataSecurity/DeclaredDataStores";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import SecurityEventRetention from "../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import {
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
@@ -561,6 +564,8 @@ let dropSpy: jest.SpyInstance;
 let dropImpactSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
 let declareSpy: jest.SpyInstance;
+let withheldSpy: jest.SpyInstance;
+let withheld: Map<string, WithheldProfile>;
 let eventRetentionSpy: jest.SpyInstance;
 /*
  * OneUptime AI's analysis of an issue (#10369): written and read by its own
@@ -849,6 +854,13 @@ beforeEach(() => {
   declareSpy = jest
     .spyOn(DeclaredDataStores, "declareBeforeRead")
     .mockResolvedValue(undefined);
+  // Nobody the record names is only invited, unless a test says so (#10697).
+  withheld = new Map();
+  withheldSpy = jest
+    .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+    .mockImplementation((async () => {
+      return withheld;
+    }) as never);
   eventRetentionSpy = jest
     .spyOn(SecurityEventRetention, "getRetentionInDays")
     .mockResolvedValue(15);
@@ -4783,6 +4795,91 @@ describe("the record of processing", () => {
 
     expect(result.answer).toEqual({ rows: [] });
     expect(ownersSpy).not.toHaveBeenCalled();
+    // Nobody to name: no read of who is only invited.
+    expect(withheldSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * EACH OWNER AS THE PROJECT KNOWS THEM (#10697). A direct owner can be
+   * someone only invited, whose own account's name the project may not see
+   * until they join (#9823): the record names them by the name typed with
+   * their invitation, else the address they were invited at - never their
+   * account's own name. A member is named as ever: their name, else their
+   * address.
+   */
+  test("names an invitee owner by the name typed for them, else the address they were invited at, and a member with no name by their address", async () => {
+    const crm: DataStore = storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    storeOf({
+      name: "payroll",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    // Invited, with a name typed for them; their account has a name of its own.
+    const ada: User = ownerOf(
+      "Ada Lovelace (personal account)",
+      "ada@home.example",
+    );
+    // Invited with no name typed; their account's address moved since.
+    const bea: User = ownerOf("Bea's Own Name", "bea-new@home.example");
+    // A member who never gave a name.
+    const carl: User = ownerOf("", "carl@acme.io");
+
+    withheld = new Map<string, WithheldProfile>([
+      [
+        ada.id!.toString(),
+        { inviteeName: "Ada from Legal", inviteeEmail: "ada@acme.io" },
+      ],
+      [bea.id!.toString(), { inviteeName: null, inviteeEmail: "bea@acme.io" }],
+    ]);
+    ownersSpy.mockImplementation(async (dataStoreId: ObjectID) => {
+      return dataStoreId.toString() === crm.id!.toString()
+        ? [ada, bea, carl]
+        : [carl];
+    });
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(
+      answer.rows.map(
+        (row: DataSecurityRecordOfProcessingRow): Array<string> => {
+          return row.owners;
+        },
+      ),
+    ).toEqual([
+      ["Ada from Legal", "bea@acme.io", "carl@acme.io"],
+      ["carl@acme.io"],
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("personal account");
+    expect(JSON.stringify(answer)).not.toContain("Bea's Own Name");
+    expect(JSON.stringify(answer)).not.toContain("bea-new@home.example");
+
+    // Read once for every owner of the record, each once, in the project.
+    expect(withheldSpy).toHaveBeenCalledTimes(1);
+    expect(withheldSpy.mock.calls[0]![0]).toEqual({
+      userIds: [ada.id!.toString(), bea.id!.toString(), carl.id!.toString()],
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("an owner with neither a name nor an address is left out, not listed blank", async () => {
+    storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    ownersSpy.mockResolvedValue([ownerOf(""), ownerOf("Dana Member")]);
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(answer.rows[0]!.owners).toEqual(["Dana Member"]);
   });
 
   /*

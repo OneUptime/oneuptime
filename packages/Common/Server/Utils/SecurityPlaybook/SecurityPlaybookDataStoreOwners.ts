@@ -30,7 +30,6 @@ import MailService from "../../Services/MailService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
 import { getEffectiveStoreSensitivity } from "../DataSecurity/DataSecurityCriticalitySync";
 import DataSecurityIntegrations from "../DataSecurity/DataSecurityIntegrations";
-import RuleRecordScope from "../Rules/RuleRecordScope";
 import type {
   PlaybookStepContext,
   PlaybookStepOutcome,
@@ -44,9 +43,11 @@ import type {
  * names the store as a Data Store entity ("data-store:" and its key). For
  * each - at most MAX_NOTIFIED_DATA_STORES - the step finds the store and
  * its owners as Data Security lists them, directly or through a team
- * (DataSecurityIntegrations.getOwnerUsers), and emails each owner once,
+ * (DataSecurityIntegrations.getOwnersToNotify), and emails each owner once,
  * naming the stores of theirs the case is about. Nobody who has left the
- * project is emailed, as Email people emails nobody outside it.
+ * project is emailed, as Email people emails nobody outside it, and nobody
+ * only invited to it, as Data Security's own notices tell nobody who has
+ * not joined (#10697).
  *
  * The email says which store, how sensitive it is and where the case is -
  * never the rest of the case, which its owners may not be cleared to read;
@@ -231,38 +232,22 @@ export async function findCaseDataStores(
   return stores;
 }
 
-// A store's owners who are still members of the project.
+/*
+ * A store's owners who are members of the project, an address to email
+ * each: never one who left it, nor one only invited to it, who is told
+ * nothing about the project's data before they join (#10697).
+ */
 async function findOwners(
   projectId: ObjectID,
   store: DataStore,
 ): Promise<Array<User>> {
-  const owners: Array<User> = await DataSecurityIntegrations.getOwnerUsers(
-    store.id!,
-  );
-  const ids: Array<string> = owners
-    .filter((owner: User): boolean => {
-      return Boolean(owner.id && owner.email);
-    })
-    .map((owner: User): string => {
-      return owner.id!.toString();
-    });
-
-  if (ids.length === 0) {
-    return [];
-  }
-
-  const kept: Set<string> = new Set(
-    await RuleRecordScope.keepIdsInProject({
-      projectId,
-      ids,
-      modelType: User,
-      description: "owners of a data store a security playbook step emails",
-      logAttributes: { projectId: projectId.toString() },
-    }),
-  );
+  const owners: Array<User> = await DataSecurityIntegrations.getOwnersToNotify({
+    projectId,
+    dataStoreId: store.id!,
+  });
 
   return owners.filter((owner: User): boolean => {
-    return Boolean(owner.id && kept.has(owner.id.toString()));
+    return Boolean(owner.id && owner.email);
   });
 }
 
