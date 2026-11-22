@@ -2,6 +2,9 @@ import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequ
 import AIRunService from "../../../Services/AIRunService";
 import AlertService from "../../../Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
+import DataSecurityAiDecisionService from "../../../Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../Services/DataSecurityIssueService";
 import IncidentService from "../../../Services/IncidentService";
 import LlmLogService from "../../../Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../Services/OnCallDutyPolicyExecutionLogService";
@@ -14,6 +17,8 @@ import InvestigationReportSummary, {
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
 import AiOutcomesBuilder, {
+  AiOutcomesDataSecurityAnalysisRow,
+  AiOutcomesDataSecurityProposalRow,
   AiOutcomesInvestigationRow,
   AiOutcomesIssueVerdictRow,
   AiOutcomesPageRow,
@@ -26,6 +31,9 @@ import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTas
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import DataSecurityAiDecision from "../../../../Models/DatabaseModels/DataSecurityAiDecision";
+import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecurityAiProposal";
+import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import LlmLog from "../../../../Models/DatabaseModels/LlmLog";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -41,6 +49,7 @@ import {
   AiOutcomesIssueVerdictOutcome,
   AiOutcomesPart,
   AiOutcomesRecord,
+  AiOutcomesRecordDataSecurityIssue,
   AiOutcomesRecordSubject,
   AiOutcomesRecords,
   isAiOutcomesPartOutcome,
@@ -73,6 +82,12 @@ import ObjectID from "../../../../Types/ObjectID";
  *     and a fix pull request about neither (an exception's) still counts;
  *   - the models investigations ran on are named only to a caller who may
  *     read the project's AI Logs, where each call's model is listed (#7762);
+ *   - Data Security (#10364): OneUptime AI's proposals and the record of
+ *     each time it worked on an issue, read under the caller's props, which
+ *     read only those of the issues the caller may read
+ *     (CanAccessIfCanReadOn). A caller who may not read the proposals gets
+ *     no Data Security numbers (null); one who may not read the records of
+ *     its work gets no count of the issues it analyzed (null).
  *   - OneUptime AI's verdicts on Data Security issues are read under the
  *     caller's props too, by their own reader (AiOutcomesIssueVerdicts,
  *     #10369): a caller who may not read those issues gets none.
@@ -80,8 +95,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * The counts carry no title, rationale or report. The records a number
  * opens are read by the same rows and filters, so they are exactly what it
  * counts, and carry what the reader may see of each: the incident or alert
- * with its title, the fix's runbook, the pull request's title, and an
- * investigation's one-line finding, as its AI panel shows it.
+ * with its title, the fix's runbook, the pull request's title, an
+ * investigation's one-line finding, as its AI panel shows it, and the Data
+ * Security issue with its title and what OneUptime AI proposed for it.
  *
  * Bounded: the window's newest AI_OUTCOMES_SCAN_LIMIT rows of each kind;
  * reaching it marks the outcomes partial, and the records of a number come
@@ -150,6 +166,14 @@ export interface AiOutcomesCountedRows {
    * run id: when it started, and the incident or alert it was for.
    */
   fixTaskRuns: Map<string, AIRun>;
+  /*
+   * Data Security's proposals that settled in the window (#10364): the
+   * changes made, the ones that could not be, the ones dismissed. Null:
+   * the caller may not read them.
+   */
+  dataSecurityProposals: Array<DataSecurityAiProposal> | null;
+  // The times OneUptime AI analyzed an issue; null likewise.
+  dataSecurityAnalyses: Array<DataSecurityAiDecision> | null;
   // A kind of row reached AI_OUTCOMES_SCAN_LIMIT.
   isPartial: boolean;
 }
@@ -160,6 +184,40 @@ interface CountedRecord {
   createdAt: Date;
   outcome: string | null;
   subjectKey?: AiOutcomesSubjectKey | undefined;
+  // A Data Security number's record: the issue it was about.
+  dataSecurityIssueId?: string | undefined;
+}
+
+// Data Security's settled proposals as read: null when the caller may not read them.
+interface DataSecurityProposalsRead {
+  proposals: Array<DataSecurityAiProposal> | null;
+  // A read reached AI_OUTCOMES_SCAN_LIMIT.
+  isPartial: boolean;
+}
+
+/*
+ * The column each way a proposal settles is dated by: a change made, one
+ * that could not be made, one a person dismissed. Each is read on its own,
+ * as its own date falls in the window.
+ */
+const DATA_SECURITY_SETTLED_AT_COLUMNS: ReadonlyArray<
+  "appliedAt" | "failedAt" | "dismissedAt"
+> = ["appliedAt", "failedAt", "dismissedAt"];
+
+/*
+ * When a Data Security proposal settled, the moment its week counts it at:
+ * the change made, the change that failed, or the proposal dismissed.
+ */
+export function getDataSecurityProposalSettledAt(
+  proposal: Pick<
+    DataSecurityAiProposal,
+    "appliedAt" | "failedAt" | "dismissedAt"
+  >,
+): Date | null {
+  const at: Date | undefined =
+    proposal.appliedAt || proposal.failedAt || proposal.dismissedAt;
+
+  return at ? new Date(at) : null;
 }
 
 function toDate(value: Date | undefined): Date {
@@ -227,6 +285,14 @@ export default class AiOutcomesReader {
         now,
       }),
     ]);
+
+    // When each issue a proven change was for opened: how long it took.
+    const issueOpenedAt: Map<string, Date> =
+      await this.readDataSecurityIssueOpenings({
+        projectId: options.projectId,
+        props: options.props,
+        proposals: rows.dataSecurityProposals || [],
+      });
 
     return AiOutcomesBuilder.build({
       now,
@@ -298,7 +364,123 @@ export default class AiOutcomesReader {
         : null,
       isPartial: rows.isPartial || Boolean(verdicts?.isPartial),
       canReadModels,
+      dataSecurityProposalRows: rows.dataSecurityProposals
+        ? rows.dataSecurityProposals
+            .map((proposal: DataSecurityAiProposal) => {
+              return this.toDataSecurityProposalRow(proposal, issueOpenedAt);
+            })
+            .filter(
+              (
+                row: AiOutcomesDataSecurityProposalRow | null,
+              ): row is AiOutcomesDataSecurityProposalRow => {
+                return row !== null;
+              },
+            )
+        : null,
+      dataSecurityAnalysisRows: rows.dataSecurityAnalyses
+        ? rows.dataSecurityAnalyses.map(
+            (
+              decision: DataSecurityAiDecision,
+            ): AiOutcomesDataSecurityAnalysisRow => {
+              return {
+                createdAt: toDate(decision.createdAt),
+                dataSecurityIssueId: decision.dataSecurityIssueId?.toString(),
+              };
+            },
+          )
+        : null,
     });
+  }
+
+  /*
+   * A Data Security proposal as the builder counts it: when it settled,
+   * how, and the issue it was for - with when that issue opened, when it
+   * was read. Null for one with no moment it settled at.
+   */
+  private static toDataSecurityProposalRow(
+    proposal: DataSecurityAiProposal,
+    issueOpenedAt?: Map<string, Date> | undefined,
+  ): AiOutcomesDataSecurityProposalRow | null {
+    const settledAt: Date | null = getDataSecurityProposalSettledAt(proposal);
+
+    if (!settledAt) {
+      return null;
+    }
+
+    const issueId: string | undefined =
+      proposal.dataSecurityIssueId?.toString();
+    const openedAt: Date | undefined = issueId
+      ? issueOpenedAt?.get(issueId)
+      : undefined;
+
+    return {
+      settledAt,
+      status: proposal.status,
+      kind: proposal.kind,
+      isApprovedByPerson: Boolean(proposal.approvedByUserId),
+      ...(proposal.verifiedAt
+        ? { verifiedAt: toDate(proposal.verifiedAt) }
+        : {}),
+      ...(issueId ? { dataSecurityIssueId: issueId } : {}),
+      ...(openedAt ? { issueOpenedAt: openedAt } : {}),
+    };
+  }
+
+  /*
+   * When each issue of the proven changes opened (firstDetectedAt), read
+   * under the caller's props: an issue they may not read is left out, and
+   * says nothing of how long it took.
+   */
+  private static async readDataSecurityIssueOpenings(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    proposals: Array<DataSecurityAiProposal>;
+  }): Promise<Map<string, Date>> {
+    const ids: Set<string> = new Set();
+
+    for (const proposal of data.proposals) {
+      const row: AiOutcomesDataSecurityProposalRow | null =
+        this.toDataSecurityProposalRow(proposal);
+
+      if (
+        row?.dataSecurityIssueId &&
+        AiOutcomesBuilder.getDataSecurityChangeOutcome(row) === "proven"
+      ) {
+        ids.add(row.dataSecurityIssueId);
+      }
+    }
+
+    const openings: Map<string, Date> = new Map();
+
+    if (ids.size === 0) {
+      return openings;
+    }
+
+    const issues: Array<DataSecurityIssue> =
+      (await readIfPermitted<Array<DataSecurityIssue>>(() => {
+        return DataSecurityIssueService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(
+              Array.from(ids).map((id: string): ObjectID => {
+                return new ObjectID(id);
+              }),
+            ),
+          } as never,
+          select: { _id: true, firstDetectedAt: true },
+          limit: ids.size,
+          skip: 0,
+          props: data.props,
+        });
+      })) || [];
+
+    for (const issue of issues) {
+      if (issue.id && issue.firstDetectedAt) {
+        openings.set(issue.id.toString(), toDate(issue.firstDetectedAt));
+      }
+    }
+
+    return openings;
   }
 
   /*
@@ -450,11 +632,20 @@ export default class AiOutcomesReader {
       return parts.includes(part);
     };
 
-    const [pageLogs, suggestions, pullRequests, investigations]: [
+    const [
+      pageLogs,
+      suggestions,
+      pullRequests,
+      investigations,
+      dataSecurityProposals,
+      dataSecurityAnalyses,
+    ]: [
       Array<OnCallDutyPolicyExecutionLog> | null,
       Array<AutoRemediationSuggestion> | null,
       Array<AIAgentTaskPullRequest> | null,
       Array<AIRun> | null,
+      DataSecurityProposalsRead,
+      Array<DataSecurityAiDecision> | null,
     ] = await Promise.all([
       wants(AiOutcomesPart.Pages)
         ? readIfPermitted<Array<OnCallDutyPolicyExecutionLog>>(() => {
@@ -542,6 +733,35 @@ export default class AiOutcomesReader {
             props: { isRoot: true },
           })
         : Promise.resolve(null),
+      wants(AiOutcomesPart.DataSecurityChanges) ||
+      wants(AiOutcomesPart.DataSecurityProposals)
+        ? this.readDataSecurityProposals({
+            projectId,
+            props,
+            windowStart,
+            windowEnd: data.windowEnd,
+          })
+        : Promise.resolve({ proposals: null, isPartial: false }),
+      // The times OneUptime AI analyzed an issue: dates and issues only.
+      wants(AiOutcomesPart.DataSecurityAnalyses)
+        ? readIfPermitted<Array<DataSecurityAiDecision>>(() => {
+            return DataSecurityAiDecisionService.findBy({
+              query: {
+                ...inWindow,
+                didAnalyze: true,
+              } as never,
+              select: {
+                _id: true,
+                createdAt: true,
+                dataSecurityIssueId: true,
+              },
+              sort: { createdAt: SortOrder.Descending },
+              limit: AI_OUTCOMES_SCAN_LIMIT,
+              skip: 0,
+              props,
+            });
+          })
+        : Promise.resolve(null),
     ]);
 
     const fixTaskRuns: Map<string, AIRun> = await this.readFixTaskRuns({
@@ -595,14 +815,17 @@ export default class AiOutcomesReader {
       readable.incidentIds || readable.alertIds,
     );
 
-    const isPartial: boolean = [
-      pageLogs,
-      suggestions,
-      pullRequests,
-      investigations,
-    ].some((rows: Array<unknown> | null): boolean => {
-      return Boolean(rows && rows.length >= AI_OUTCOMES_SCAN_LIMIT);
-    });
+    const isPartial: boolean =
+      dataSecurityProposals.isPartial ||
+      [
+        pageLogs,
+        suggestions,
+        pullRequests,
+        investigations,
+        dataSecurityAnalyses,
+      ].some((rows: Array<unknown> | null): boolean => {
+        return Boolean(rows && rows.length >= AI_OUTCOMES_SCAN_LIMIT);
+      });
 
     return {
       pageLogs:
@@ -655,7 +878,92 @@ export default class AiOutcomesReader {
             })
           : null,
       fixTaskRuns,
+      /*
+       * Read under the caller's props, which read only the proposals and
+       * records of the issues the caller may read: nothing to filter here.
+       */
+      dataSecurityProposals: dataSecurityProposals.proposals,
+      dataSecurityAnalyses,
       isPartial,
+    };
+  }
+
+  /*
+   * Data Security's proposals that settled in the window (#10364), under
+   * the caller's props: one read for each way a proposal settles, by its
+   * own date - a change made (appliedAt), one that could not be made
+   * (failedAt), one a person dismissed (dismissedAt) - so a proposal made
+   * weeks before it was approved counts when the change was made. States
+   * and dates only, never what it changes or why. Null when the caller may
+   * not read them.
+   */
+  private static async readDataSecurityProposals(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    windowStart: Date;
+    windowEnd?: Date | undefined;
+  }): Promise<DataSecurityProposalsRead> {
+    const reads: Array<Array<DataSecurityAiProposal> | null> =
+      await Promise.all(
+        DATA_SECURITY_SETTLED_AT_COLUMNS.map(
+          (
+            column: "appliedAt" | "failedAt" | "dismissedAt",
+          ): Promise<Array<DataSecurityAiProposal> | null> => {
+            return readIfPermitted<Array<DataSecurityAiProposal>>(() => {
+              return DataSecurityAiProposalService.findBy({
+                query: {
+                  projectId: data.projectId,
+                  [column]: data.windowEnd
+                    ? QueryHelper.inBetween(data.windowStart, data.windowEnd)
+                    : QueryHelper.greaterThanEqualTo(data.windowStart),
+                } as never,
+                select: {
+                  _id: true,
+                  status: true,
+                  kind: true,
+                  appliedAt: true,
+                  failedAt: true,
+                  dismissedAt: true,
+                  verifiedAt: true,
+                  approvedByUserId: true,
+                  dataSecurityIssueId: true,
+                },
+                sort: { [column]: SortOrder.Descending } as never,
+                limit: AI_OUTCOMES_SCAN_LIMIT,
+                skip: 0,
+                props: data.props,
+              });
+            });
+          },
+        ),
+      );
+
+    if (
+      reads.some((rows: Array<DataSecurityAiProposal> | null): boolean => {
+        return rows === null;
+      })
+    ) {
+      return { proposals: null, isPartial: false };
+    }
+
+    // A proposal settles once: read twice, it is still one.
+    const byId: Map<string, DataSecurityAiProposal> = new Map();
+
+    for (const rows of reads) {
+      for (const proposal of rows || []) {
+        if (proposal.id) {
+          byId.set(proposal.id.toString(), proposal);
+        }
+      }
+    }
+
+    return {
+      proposals: Array.from(byId.values()),
+      isPartial: reads.some(
+        (rows: Array<DataSecurityAiProposal> | null): boolean => {
+          return Boolean(rows && rows.length >= AI_OUTCOMES_SCAN_LIMIT);
+        },
+      ),
     };
   }
 
@@ -979,15 +1287,80 @@ export default class AiOutcomesReader {
               }),
             )
           : null;
+      case AiOutcomesPart.DataSecurityAnalyses:
+        return rows.dataSecurityAnalyses
+          ? this.getDataSecurityAnalysisRecords(rows.dataSecurityAnalyses)
+          : null;
+      case AiOutcomesPart.DataSecurityChanges:
+      case AiOutcomesPart.DataSecurityProposals:
+        return rows.dataSecurityProposals
+          ? records(
+              rows.dataSecurityProposals.map(
+                (proposal: DataSecurityAiProposal): CountedRecord | null => {
+                  const row: AiOutcomesDataSecurityProposalRow | null =
+                    this.toDataSecurityProposalRow(proposal);
+
+                  if (!row || !proposal.id) {
+                    return null;
+                  }
+
+                  return {
+                    id: proposal.id.toString(),
+                    createdAt: row.settledAt,
+                    outcome:
+                      part === AiOutcomesPart.DataSecurityChanges
+                        ? AiOutcomesBuilder.getDataSecurityChangeOutcome(row)
+                        : AiOutcomesBuilder.getDataSecurityProposalOutcome(row),
+                    dataSecurityIssueId: row.dataSecurityIssueId,
+                  };
+                },
+              ),
+            )
+          : null;
       default:
         return null;
     }
   }
 
   /*
+   * The issues OneUptime AI analyzed, one record each - its first analysis
+   * in the window, the moment its week counts it at - however often it was
+   * analyzed, as the number counts it.
+   */
+  private static getDataSecurityAnalysisRecords(
+    decisions: Array<DataSecurityAiDecision>,
+  ): Array<CountedRecord> {
+    const firstByIssue: Map<string, CountedRecord> = new Map();
+
+    for (const decision of decisions) {
+      const issueId: string | undefined =
+        decision.dataSecurityIssueId?.toString();
+
+      if (!issueId || !decision.id || !decision.createdAt) {
+        continue;
+      }
+
+      const createdAt: Date = toDate(decision.createdAt);
+      const first: CountedRecord | undefined = firstByIssue.get(issueId);
+
+      if (!first || createdAt.getTime() < first.createdAt.getTime()) {
+        firstByIssue.set(issueId, {
+          id: decision.id.toString(),
+          createdAt,
+          outcome: "analyzed",
+          dataSecurityIssueId: issueId,
+        });
+      }
+    }
+
+    return Array.from(firstByIssue.values());
+  }
+
+  /*
    * One page of records, with what the caller may see of each: the
-   * incident or alert under their props (a record whose incident or alert
-   * they can no longer read is left out), and the part's own details.
+   * incident or alert, or the Data Security issue, under their props (a
+   * record whose incident, alert or issue they can no longer read is left
+   * out), and the part's own details.
    */
   private static async toRecords(data: {
     projectId: ObjectID;
@@ -1005,8 +1378,9 @@ export default class AiOutcomesReader {
       },
     );
 
-    const [subjects, details]: [
+    const [subjects, dataSecurityIssues, details]: [
       Map<AiOutcomesSubjectKey, AiOutcomesRecordSubject>,
+      Map<string, AiOutcomesRecordDataSecurityIssue>,
       Map<string, Partial<AiOutcomesRecord>>,
     ] = await Promise.all([
       this.readSubjectDetails({
@@ -1014,6 +1388,13 @@ export default class AiOutcomesReader {
         props: data.props,
         keys: data.page.map((record: CountedRecord) => {
           return record.subjectKey;
+        }),
+      }),
+      this.readDataSecurityIssueDetails({
+        projectId: data.projectId,
+        props: data.props,
+        ids: data.page.map((record: CountedRecord) => {
+          return record.dataSecurityIssueId;
         }),
       }),
       this.readPartDetails({
@@ -1031,9 +1412,18 @@ export default class AiOutcomesReader {
       const subject: AiOutcomesRecordSubject | undefined = record.subjectKey
         ? subjects.get(record.subjectKey)
         : undefined;
+      const dataSecurityIssue: AiOutcomesRecordDataSecurityIssue | undefined =
+        record.dataSecurityIssueId
+          ? dataSecurityIssues.get(record.dataSecurityIssueId)
+          : undefined;
 
       // Its incident or alert can no longer be read: it is not listed.
       if (record.subjectKey && !subject) {
+        continue;
+      }
+
+      // Nor is one whose Data Security issue can no longer be read.
+      if (record.dataSecurityIssueId && !dataSecurityIssue) {
         continue;
       }
 
@@ -1041,11 +1431,66 @@ export default class AiOutcomesReader {
         id: record.id,
         at: record.createdAt.toISOString(),
         ...(subject ? { subject } : {}),
+        ...(dataSecurityIssue ? { dataSecurityIssue } : {}),
         ...(details.get(record.id) || {}),
       });
     }
 
     return records;
+  }
+
+  // The Data Security issues of a page of records, under the caller's props.
+  private static async readDataSecurityIssueDetails(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    ids: Array<string | undefined>;
+  }): Promise<Map<string, AiOutcomesRecordDataSecurityIssue>> {
+    const issueIds: Array<string> = Array.from(
+      new Set(
+        data.ids.filter((id: string | undefined): id is string => {
+          return Boolean(id);
+        }),
+      ),
+    );
+    const issues: Map<string, AiOutcomesRecordDataSecurityIssue> = new Map();
+
+    if (issueIds.length === 0) {
+      return issues;
+    }
+
+    const rows: Array<DataSecurityIssue> =
+      (await readIfPermitted<Array<DataSecurityIssue>>(() => {
+        return DataSecurityIssueService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(
+              issueIds.map((id: string): ObjectID => {
+                return new ObjectID(id);
+              }),
+            ),
+          } as never,
+          select: { _id: true, title: true },
+          limit: issueIds.length,
+          skip: 0,
+          props: data.props,
+        });
+      })) || [];
+
+    for (const issue of rows) {
+      if (issue.id) {
+        const title: string | undefined = clipText(
+          issue.title,
+          AI_OUTCOMES_RECORDS_TEXT_MAX_LENGTH,
+        );
+
+        issues.set(issue.id.toString(), {
+          id: issue.id.toString(),
+          ...(title ? { title } : {}),
+        });
+      }
+    }
+
+    return issues;
   }
 
   // The incidents and alerts of a page of records, under the caller's props.
@@ -1152,7 +1597,9 @@ export default class AiOutcomesReader {
    * runbook or kind, a pull request's number, title and link (under the
    * caller's props, as the rows were read), an investigation's one-line
    * finding and how it was judged (read as root, as its AI panel shows it
-   * to everyone who may read its incident or alert).
+   * to everyone who may read its incident or alert), and what OneUptime AI
+   * proposed for a Data Security issue, in a line, and its kind (under the
+   * caller's props).
    */
   private static async readPartDetails(data: {
     projectId: ObjectID;
@@ -1166,6 +1613,38 @@ export default class AiOutcomesReader {
       projectId: data.projectId,
       _id: QueryHelper.any(data.ids),
     };
+
+    if (
+      data.part === AiOutcomesPart.DataSecurityChanges ||
+      data.part === AiOutcomesPart.DataSecurityProposals
+    ) {
+      const proposals: Array<DataSecurityAiProposal> =
+        (await readIfPermitted<Array<DataSecurityAiProposal>>(() => {
+          return DataSecurityAiProposalService.findBy({
+            query: query as never,
+            select: { _id: true, title: true, kind: true },
+            limit: data.ids.length,
+            skip: 0,
+            props: data.props,
+          });
+        })) || [];
+
+      for (const proposal of proposals) {
+        if (proposal.id) {
+          const title: string | undefined = clipText(
+            proposal.title,
+            AI_OUTCOMES_RECORDS_TEXT_MAX_LENGTH,
+          );
+
+          details.set(proposal.id.toString(), {
+            ...(title ? { proposalTitle: title } : {}),
+            ...(proposal.kind ? { proposalKind: proposal.kind } : {}),
+          });
+        }
+      }
+
+      return details;
+    }
 
     if (data.part === AiOutcomesPart.RemediationFixes) {
       const suggestions: Array<AutoRemediationSuggestion> =

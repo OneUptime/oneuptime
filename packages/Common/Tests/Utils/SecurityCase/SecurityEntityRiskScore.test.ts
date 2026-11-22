@@ -252,6 +252,121 @@ describe("a source's place in the window", () => {
   });
 });
 
+/*
+ * EXACTLY ONCE (#10489): a rule's scheduled run judged again after its
+ * worker stopped hands each firing again under the name its first pass gave
+ * it. A source keeps the names it counted, and counts one it has once.
+ */
+describe("a firing handed again", () => {
+  const FIRING: string = "run:1760432400000:each:0f3a5c7e9b1d2468";
+
+  test("counts once: the very list comes back, with nothing added", () => {
+    const once: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      [],
+      observation({ firingKey: FIRING }),
+      NOW,
+    );
+
+    expect(once[0]!.hits).toBe(1);
+    expect(once[0]!.firingKeys).toEqual([FIRING]);
+
+    const again: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      once,
+      observation({ firingKey: FIRING, points: 80 }),
+      NOW,
+    );
+
+    expect(again).toBe(once);
+    expect(again[0]!.hits).toBe(1);
+    expect(again[0]!.points).toBe(50);
+  });
+
+  test("a new firing of the source counts, and its name is kept with the ones before", () => {
+    const first: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      [],
+      observation({ firingKey: "run:1:each:a" }),
+      NOW,
+    );
+    const second: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      first,
+      observation({ firingKey: "run:2:each:a" }),
+      NOW,
+    );
+
+    expect(second).not.toBe(first);
+    expect(second[0]!.hits).toBe(2);
+    expect(second[0]!.firingKeys).toEqual(["run:1:each:a", "run:2:each:a"]);
+  });
+
+  test("two groups of one firing that name the same entity are two firings", () => {
+    let contributions: Array<SecurityEntityRiskContribution> = [];
+
+    for (const firingKey of ["run:1:each:alice", "run:1:each:bob"]) {
+      contributions = addRiskObservation(
+        contributions,
+        observation({ firingKey }),
+        NOW,
+      );
+    }
+
+    expect(contributions[0]!.hits).toBe(2);
+  });
+
+  test("another source's firing of the same name is its own", () => {
+    const contributions: Array<SecurityEntityRiskContribution> =
+      addRiskObservation(
+        addRiskObservation([], observation({ firingKey: FIRING }), NOW),
+        observation({ sourceKey: "rule:other", firingKey: FIRING }),
+        NOW,
+      );
+
+    expect(contributions).toHaveLength(2);
+  });
+
+  test("a source that stopped counting starts afresh, its old names gone", () => {
+    const stale: SecurityEntityRiskContribution = contribution({
+      firstSeenAt: ago(30 * DAY_IN_MS).toISOString(),
+      lastSeenAt: ago(30 * DAY_IN_MS).toISOString(),
+      firingKeys: [FIRING],
+    });
+    const contributions: Array<SecurityEntityRiskContribution> =
+      addRiskObservation([stale], observation({ firingKey: FIRING }), NOW);
+
+    expect(contributions[0]!.hits).toBe(1);
+    expect(contributions[0]!.firingKeys).toEqual([FIRING]);
+  });
+
+  test("a finding that names no firing counts every time, as before", () => {
+    const once: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      [],
+      observation(),
+      NOW,
+    );
+    const twice: Array<SecurityEntityRiskContribution> = addRiskObservation(
+      once,
+      observation(),
+      NOW,
+    );
+
+    expect(twice[0]!.hits).toBe(2);
+    expect(twice[0]!.firingKeys).toBeUndefined();
+  });
+
+  test("a stored source keeps the names it counted when it is read back", () => {
+    expect(
+      readRiskContributions([
+        {
+          ...contribution(),
+          firingKeys: [FIRING, 7, FIRING, "run:2:each:a"],
+        },
+        contribution({ sourceKey: "rule:no-names" }),
+      ]).map((item: SecurityEntityRiskContribution): unknown => {
+        return item.firingKeys;
+      }),
+    ).toEqual([[FIRING, "run:2:each:a"], undefined]);
+  });
+});
+
 describe("taking a finding in", () => {
   test("a new source joins with what the finding adds", () => {
     const contributions: Array<SecurityEntityRiskContribution> =

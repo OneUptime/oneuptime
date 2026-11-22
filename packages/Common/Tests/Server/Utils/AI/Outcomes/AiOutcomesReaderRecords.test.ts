@@ -4,6 +4,9 @@ import AlertService from "../../../../../Server/Services/AlertService";
 import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -90,6 +93,9 @@ type TableName =
   | "incidents"
   | "alerts"
   | "llmLogs"
+  // Data Security's proposals, its records of analyses, and its issues (#10364).
+  | "dataSecurityProposals"
+  | "dataSecurityDecisions"
   | "dataSecurityIssues"
   | "dataStores";
 
@@ -130,6 +136,8 @@ function install(
       incidents: [],
       alerts: [],
       llmLogs: [],
+      dataSecurityProposals: [],
+      dataSecurityDecisions: [],
       dataSecurityIssues: [],
       dataStores: [],
       ...tables,
@@ -142,6 +150,8 @@ function install(
       incidents: "read",
       alerts: "read",
       llmLogs: "read",
+      dataSecurityProposals: "read",
+      dataSecurityDecisions: "read",
       dataSecurityIssues: "read",
       dataStores: "read",
       ...access,
@@ -225,6 +235,12 @@ function install(
   jest
     .spyOn(LlmLogService, "findBy")
     .mockImplementation(find("llmLogs") as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "findBy")
+    .mockImplementation(find("dataSecurityProposals") as never);
+  jest
+    .spyOn(DataSecurityAiDecisionService, "findBy")
+    .mockImplementation(find("dataSecurityDecisions") as never);
   jest
     .spyOn(DataSecurityIssueService, "findBy")
     .mockImplementation(find("dataSecurityIssues") as never);
@@ -588,6 +604,13 @@ describe("a number opens exactly what it counts", () => {
         string,
         number
       >,
+      [AiOutcomesPart.DataSecurityAnalyses]: {
+        analyzed: outcomes.dataSecurity!.issuesAnalyzed!,
+      },
+      [AiOutcomesPart.DataSecurityChanges]: outcomes.dataSecurity!
+        .changes as unknown as Record<string, number>,
+      [AiOutcomesPart.DataSecurityProposals]: outcomes.dataSecurity!
+        .proposals as unknown as Record<string, number>,
       [AiOutcomesPart.IssueVerdicts]:
         outcomes.issueVerdicts as unknown as Record<string, number>,
     };

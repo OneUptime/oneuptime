@@ -784,4 +784,21 @@ describe("what a step's approval round is held to", () => {
       trigger: SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
     });
   });
+
+  test("a person's block from the case (#10342) is theirs, on the case, with no playbook to name", async () => {
+    expect(
+      await SecurityPlaybookApprovalReader.getSource(
+        {
+          playbookName: "Block the address",
+          triggeredByUserId: JANE,
+          trigger: SecurityPlaybookTrigger.Manual,
+        },
+        { isOneStepRun: true },
+      ),
+    ).toEqual({
+      kind: "Person",
+      playbookName: "",
+      personName: "Jane Doe",
+    });
+  });
 });

@@ -218,7 +218,7 @@ Prüfen Sie zuerst die Ansicht: **Probleme** blendet Benutzerfehler und erwartet
 :::
 
 :::details Ein Fehler erscheint als mehrere Ausnahmen
-Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen.
+Der Fingerabdruck umfasst die Nachricht und den Stack-Trace. Unterscheiden sie sich, etwa wenn eine Nachricht eine kurze Zahl oder einen Namen enthält, der sich bei jedem Aufruf ändert, ist jede Variante eine eigene Ausnahme. Neue Ausnahmen werden stattdessen nach den Funktionen Ihres eigenen Codes gruppiert, das betrifft also vor allem früher erfasste Ausnahmen; führen Sie zwei, die derselbe Fehler sind, über **Ähnliche Ausnahmen** zusammen. Eine Scrub-Regel teilt keine Ausnahme: Sie wird danach gruppiert, was sie vor den Regeln enthielt. Eine Ausnahme aus Protokollen, die eine Regel in einer früheren Version von OneUptime in zwei geteilt hat, bleibt geteilt; führen Sie die beiden auf dieselbe Weise zusammen.
 :::
 
 :::details Eine behobene Ausnahme kommt immer wieder

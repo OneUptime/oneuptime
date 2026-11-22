@@ -2,7 +2,9 @@ import SecurityCaseApi, { DeclaredIncident } from "./SecurityCaseApi";
 import { SecurityCaseAiCopy } from "./SecurityCaseAiTriage";
 import { SECURITY_CASE_OPEN_TASKS } from "./Tasks/SecurityCaseTasksCopy";
 import useAiOffered from "../../Utils/UseAiOffered";
+import { liftBlockFromCase } from "./Response/SecurityCaseAddressBlocks";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
@@ -10,6 +12,7 @@ import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
+import { SecurityBlockState } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseAiVerdict, {
@@ -28,7 +31,9 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import Toast from "Common/UI/Utils/Toast";
 import {
+  formatList,
   translatableTerm,
   translationKey,
   Translator,
@@ -124,6 +129,40 @@ export const CLOSE_INTO_STATUS: string = translationKey(
   "The case moves to {{status}}.",
 );
 
+/*
+ * A case closed as a false positive or benign blocked nobody it should
+ * have (#10342): the close dialog offers to lift its blocks, ticked, and
+ * lists what it lifts.
+ */
+export const CLOSE_LIFT_BLOCKS_TITLE: string = translationKey(
+  "Lift the Case's Blocks",
+);
+export const CLOSE_LIFT_BLOCKS_DESCRIPTION: string = translationKey(
+  "Lifts the blocks this case made, so their addresses reach your app again: {{values}}.",
+);
+export const CLOSE_LIFT_REASON: string = translationKey(
+  "The case was closed as {{verdict}}.",
+);
+export const CLOSE_LIFT_FAILED: string = translationKey(
+  "The case is closed, but the block on {{value}} could not be lifted: {{error}}",
+);
+
+// The verdicts that say the case blocked nobody it should have.
+export const VERDICTS_THAT_LIFT_BLOCKS: ReadonlyArray<SecurityCaseVerdict> = [
+  SecurityCaseVerdict.FalsePositive,
+  SecurityCaseVerdict.BenignPositive,
+];
+
+export function doesVerdictLiftBlocks(verdict: unknown): boolean {
+  return VERDICTS_THAT_LIFT_BLOCKS.includes(verdict as SecurityCaseVerdict);
+}
+
+// The case's own blocks still in force, as the close dialog lists them.
+export interface CaseActiveBlock {
+  id: string;
+  value: string;
+}
+
 export interface CloseCaseModalProps extends CaseModalProps {
   /*
    * The status the case closes into: the project's closed status (Close
@@ -158,6 +197,57 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
    * that cannot read tasks closes the case as before.
    */
   const [openTasks, setOpenTasks] = useState<number>(0);
+
+  /*
+   * The blocks this case made that are still in force (#10342): offered for
+   * lifting when it closes as a false positive or benign. None when they
+   * cannot be read - a role that cannot read the Blocklist closes as before.
+   */
+  const [caseBlocks, setCaseBlocks] = useState<Array<CaseActiveBlock>>([]);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+    const caseId: string = props.securityCase._id?.toString() || "";
+
+    if (!caseId) {
+      return;
+    }
+
+    ModelAPI.getList<SecurityBlock>({
+      modelType: SecurityBlock,
+      query: {
+        securityCaseId: new ObjectID(caseId),
+        state: SecurityBlockState.Active,
+      },
+      select: { _id: true, value: true },
+      sort: { createdAt: SortOrder.Ascending },
+      skip: 0,
+      limit: 50,
+    })
+      .then((result: { data: Array<SecurityBlock> }) => {
+        if (isCurrent) {
+          setCaseBlocks(
+            result.data
+              .map((block: SecurityBlock): CaseActiveBlock => {
+                return {
+                  id: block._id?.toString() || block.id?.toString() || "",
+                  value: block.value || "",
+                };
+              })
+              .filter((block: CaseActiveBlock): boolean => {
+                return Boolean(block.id && block.value);
+              }),
+          );
+        }
+      })
+      .catch(() => {
+        // Unreadable: nothing to offer.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.securityCase._id?.toString()]);
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -231,6 +321,7 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
         name: "security-case-close",
         initialValues: {
           verdict: getInitialCloseVerdict(props.securityCase, isAiOffered),
+          liftBlocks: true,
         },
         fields: [
           {
@@ -255,6 +346,29 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
             placeholder:
               "e.g. Confirmed with the user; the sign-ins were theirs.",
           },
+          {
+            field: { liftBlocks: true },
+            title: CLOSE_LIFT_BLOCKS_TITLE,
+            description: translator.translateTemplate(
+              CLOSE_LIFT_BLOCKS_DESCRIPTION,
+              {
+                values: formatList(
+                  caseBlocks.map((block: CaseActiveBlock): string => {
+                    return block.value;
+                  }),
+                  translator,
+                ),
+              },
+            ),
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            showIf: (values: FormValues<JSONObject>): boolean => {
+              return (
+                caseBlocks.length > 0 &&
+                doesVerdictLiftBlocks((values as JSONObject)["verdict"])
+              );
+            },
+          },
         ],
       }}
       onSubmit={async (values: FormValues<JSONObject>) => {
@@ -278,6 +392,32 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
               ...(closingNote ? { closingNote } : {}),
             },
           });
+
+          const verdict: string = (values["verdict"] as string) || "";
+
+          // Its blocks, lifted as the case closed harmless (#10342).
+          if (
+            values["liftBlocks"] !== false &&
+            doesVerdictLiftBlocks(verdict)
+          ) {
+            for (const block of caseBlocks) {
+              try {
+                await liftBlockFromCase({
+                  blockId: block.id,
+                  reason: translator.translateTemplate(CLOSE_LIFT_REASON, {
+                    verdict: translatableTerm(verdict),
+                  }),
+                });
+              } catch (liftError) {
+                Toast.error(
+                  translator.translateTemplate(CLOSE_LIFT_FAILED, {
+                    value: block.value,
+                    error: API.getFriendlyMessage(liftError),
+                  }),
+                );
+              }
+            }
+          }
 
           props.onDone();
         } catch (err) {

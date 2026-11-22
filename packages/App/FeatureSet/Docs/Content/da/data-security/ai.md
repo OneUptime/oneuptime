@@ -3,11 +3,26 @@
 OneUptime AI arbejder med det, Datasikkerhed har fundet, uden at se dine data. Den får navne, former, antal og konfiguration, aldrig en værdi fra dine data, en maskeret prøve, en post eller en forbindelsesstreng. Hver funktion kører på dit projekts egen model, også en selvhostet, og hver side, kontrol, scanning og integration i Datasikkerhed virker med AI slået fra.
 
 :::cards
+- [Af sig selv](#af-sig-selv): Hvad den gør med hvert nyt problem, hvad der venter på dig, og AI-reglerne.
 - [Hvad OneUptime AI ser](#hvad-oneuptime-ai-ser): Hvad hver funktion sender, og hvad den aldrig sender.
 - [Se det selv](#se-det-selv): Det præcise input, som et af dine problemer ville sende.
 - [Din egen model](#din-egen-model): Hver funktion på dit projekts udbyder, Ollama, vLLM eller ethvert OpenAI-kompatibelt endpoint.
 - [Sådan måles det](#sådan-måles-det): Hver funktion på faste tilfælde, før hver udgivelse.
 :::
+
+## Af sig selv
+
+Med **Arbejd med nye problemer** slået til under **Datasikkerhed → AI**, som det er for nye projekter, arbejder OneUptime AI af sig selv med hvert nyt kritisk eller højt problem. Den skriver analysen af hvert sådant problem, og af hvert, der genåbnes, som **Analysér problem** gør og ud fra det, den sender, før nogen åbner det, og skriver den kun igen, når det, den bygger på, er ændret. For et telemetriproblem foreslår den de rensningsregler, der skjuler dets data i ny telemetri. Et forslag venter på den side under **Venter på dig**, de mest risikable først, med hvad der ændres, hvorfor, hvordan det bevises, og hvordan det fortrydes. **Godkend** foretager ændringen med dine egne tilladelser: en rensningsregel kræver tilladelse til at oprette logrensningsregler, trace-rensningsregler eller metrik-pipelineregler. **Afvis forslaget** siger nej, med en begrundelse, der kommer på problemets tidslinje. Problemets egen kontrol afgør, om en ændring virkede: datalageret kontrolleres igen, og problemet løses, når ingen af dets data er tilbage.
+
+Som standard spørger OneUptime AI før hver ændring, undtagen en, der kun skjuler data, kan fortrydes og er bevist sikker, og den sletter aldrig data eller tilkalder nogen uden at spørge. En ændring, den har foretaget uden at spørge, står under **Udført af AI**, med **Fortryd**. **Hvorfor AI ikke handlede** viser de problemer, den har set på og ladet være, og hvorfor. Hvert forslag, hver godkendelse, afvisning og fortrydelse står på problemets og datalagerets **Tidslinje**. Med kontakten slået fra fungerer Datasikkerhed som altid, og **Analysér problem** og **Ret med AI** virker stadig, når du trykker på dem; med AI slået fra for projektet virker ingen af dem.
+
+På et problems side viser kortet **OneUptime AI** over **Sådan rettes det** analysen og det, der blev foreslået for problemet, med de samme knapper. Datasikkerhedens **Oversigt** siger, hvor mange lækager OneUptime AI inddæmmede i denne uge, og hvor mange forslag der venter på dig. **Noter til OneUptime AI** tæller uge for uge, hvad der kom ud af dens ændringer: se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig).
+
+### AI-regler
+
+Under **AI-regler** på **Datasikkerhed → AI** siger en regel, hvilke problemer OneUptime AI arbejder med - efter deres kontrol eller kontrolgruppe, alvorlighed og datalagerets følsomhed, type, udbyder, miljø, etiketter, datakategorier og tjeneste - og for hver slags arbejde, **Analysér**, **Inddæm**, **Rettelse** og **Vurdér**, om den er **Fra**, **Foreslå** (den foreslår og venter på dig) eller **Uden at spørge**. Når flere regler passer til et problem, kører en slags arbejde, hvis en af dem slår det til, og **Foreslå** går forud for **Uden at spørge**. Hvert forslag siger, hvilken regel der afgjorde det. Uden regel gælder projektets standarder: analysér kritiske og høje problemer, og foreslå alt andet.
+
+AI-regler hører til hele projektet, ligesom AI-reglerne for hændelser og alarmer: projektejere og projektadministratorer ændrer dem, og det gør alle, der har fået tilladelserne til AI-regler. Sikkerhedsrollerne ser, hvad OneUptime AI foreslog og gjorde, men ikke reglerne.
 
 ## Hvad OneUptime AI ser
 

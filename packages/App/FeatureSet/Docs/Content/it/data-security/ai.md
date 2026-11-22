@@ -3,11 +3,26 @@
 OneUptime AI lavora su ciò che Sicurezza dei dati ha trovato senza vedere i tuoi dati. Riceve nomi, forme, conteggi e configurazione, mai un valore dei tuoi dati, un campione mascherato, un record o una stringa di connessione. Ogni funzionalità viene eseguita sul modello del tuo progetto, anche uno self-hosted, e ogni pagina, controllo, scansione e integrazione di Sicurezza dei dati funziona con l'IA disattivata.
 
 :::cards
+- [Da sola](#da-sola): Cosa fa con ogni nuovo problema, cosa ti aspetta e le regole IA.
 - [Cosa vede OneUptime AI](#cosa-vede-oneuptime-ai): Cosa invia ogni funzionalità, e cosa non invia mai.
 - [Verificalo di persona](#verificalo-di-persona): L'input esatto che invierebbe uno dei tuoi problemi.
 - [Il tuo modello](#il-tuo-modello): Ogni funzionalità sul provider del tuo progetto, Ollama, vLLM o qualsiasi endpoint compatibile con OpenAI.
 - [Come viene misurata](#come-viene-misurata): Ogni funzionalità su casi fissi, prima di ogni release.
 :::
+
+## Da sola
+
+Con **Lavora sui nuovi problemi** attivo in **Sicurezza dei dati → IA**, come per i nuovi progetti, OneUptime AI lavora da sola su ogni nuovo problema critico o alto. Scrive l'analisi di ciascuno di questi problemi, e di ciascuno che si riapre, come fa **Analizza il problema** e in base a ciò che invia, prima che qualcuno lo apra, e la riscrive solo quando cambia ciò su cui si basa. Per un problema di telemetria propone le regole di pulizia che nascondono i suoi dati nella nuova telemetria. Una proposta aspetta in quella pagina sotto **In attesa di te**, prima le più rischiose, con cosa cambierà, perché, come verrà dimostrato e come annullarlo. **Approva** fa la modifica con le tue autorizzazioni: una regola di pulizia richiede l'autorizzazione a creare regole di pulizia dei log, regole di pulizia delle tracce o regole della pipeline delle metriche. **Ignora la proposta** dice di no, con un motivo che viene aggiunto alla cronologia del problema. È il controllo del problema a decidere se una modifica ha funzionato: l'archivio viene controllato di nuovo, e il problema si risolve quando non resta nessuno dei suoi dati.
+
+Per impostazione predefinita, OneUptime AI chiede prima di ogni modifica, tranne una che nasconde solo dati, si può annullare ed è dimostrata sicura, e non elimina mai dati né avvisa nessuno senza chiedere. Una modifica fatta senza chiedere compare sotto **Fatto dall'IA**, con **Annulla**. **Perché l'IA non ha agito** elenca i problemi che ha esaminato e lasciato com'erano, e perché. Ogni proposta, approvazione, rifiuto e annullamento è nella **Cronologia** del problema e dell'archivio. Con l'interruttore disattivato, Sicurezza dei dati funziona come sempre, e **Analizza il problema** e **Correggi con l'IA** funzionano ancora quando li premi; con l'IA disattivata per il progetto, nessuno dei due.
+
+Nella pagina di un problema, la scheda **OneUptime AI** sopra **Come correggere** mostra l'analisi e ciò che è stato proposto per quel problema, con gli stessi pulsanti. La **Panoramica** della sicurezza dei dati dice quante fughe OneUptime AI ha contenuto questa settimana e quante proposte ti aspettano. **Note per OneUptime AI** conta settimana per settimana com'è andata con le sue modifiche: vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai).
+
+### Regole IA
+
+In **Regole IA** di **Sicurezza dei dati → IA**, una regola dice su quali problemi lavora OneUptime AI - per controllo o gruppo di controlli, gravità, e sensibilità, tipo, provider, ambiente, etichette, categorie di dati e servizio dell'archivio - e, per ogni tipo di lavoro, **Analizza**, **Contenimento**, **Correzione** e **Giudica**, se è **Disattivato**, **Suggerisci** (propone e ti aspetta) o **Senza chiedere**. Quando più regole corrispondono a un problema, un tipo di lavoro viene eseguito se una di esse lo attiva, e **Suggerisci** prevale su **Senza chiedere**. Ogni proposta dice quale regola l'ha decisa. Senza regole valgono le impostazioni predefinite del progetto: analizzare i problemi critici e alti, e suggerire tutto il resto.
+
+Le regole IA appartengono all'intero progetto, come quelle per incidenti e avvisi: le modificano i proprietari e gli amministratori del progetto, e chiunque abbia i permessi delle regole IA. I ruoli di sicurezza vedono ciò che OneUptime AI ha proposto e fatto, ma non le regole.
 
 ## Cosa vede OneUptime AI
 

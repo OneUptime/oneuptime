@@ -54,6 +54,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ONEUPTIME AI'S ANALYSIS OF AN ISSUE (#10369): written from what OneUptime
@@ -173,17 +174,17 @@ function kept(
 }
 
 let stored: DataSecurityIssue | null;
-let call: jest.SpiedFunction<typeof AIService.executeWithLogging>;
-let update: jest.SpiedFunction<
+let call: SpyInstance<typeof AIService.executeWithLogging>;
+let update: SpyInstance<
   typeof DataSecurityIssueService.updateColumnsByIdWithoutHooks
 >;
-let feed: jest.SpiedFunction<
+let feed: SpyInstance<
   typeof DataSecurityIssueFeedService.createDataSecurityIssueFeedItem
 >;
-let blocker: jest.SpiedFunction<
+let blocker: SpyInstance<
   typeof AIInvestigationEngine.getProviderOrBalanceReason
 >;
-let dossierReads: jest.SpiedFunction<typeof DataSecurityIssueDossier.read>;
+let dossierReads: SpyInstance<typeof DataSecurityIssueDossier.read>;
 let projectLanguage: string;
 
 function answering(content: string): void {
@@ -350,7 +351,7 @@ describe("OneUptime AI's own analysis of a new issue", () => {
   });
 
   test("is built by the input builder, as its own feature, and asked through the one Data Security call", async () => {
-    const ask: jest.SpiedFunction<typeof DataSecurityAiCall.ask> = jest.spyOn(
+    const ask: SpyInstance<typeof DataSecurityAiCall.ask> = jest.spyOn(
       DataSecurityAiCall,
       "ask",
     );

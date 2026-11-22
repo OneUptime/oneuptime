@@ -244,7 +244,11 @@ import MonitorGroupResource from "../../../Models/DatabaseModels/MonitorGroupRes
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
@@ -305,6 +309,8 @@ interface ListRequest {
   query: Record<string, unknown>;
   select: Record<string, unknown>;
   sort: Record<string, unknown>;
+  limit: number;
+  skip: number;
 }
 
 function listRequests(modelType: unknown): Array<ListRequest> {
@@ -315,6 +321,75 @@ function listRequests(modelType: unknown): Array<ListRequest> {
     .filter((request: ListRequest): boolean => {
       return request.modelType === modelType;
     });
+}
+
+interface CountRequest {
+  modelType: unknown;
+  query: Record<string, unknown>;
+}
+
+function countRequests(modelType: unknown): Array<CountRequest> {
+  return mockCount.mock.calls
+    .map((call: Array<unknown>): CountRequest => {
+      return call[0] as CountRequest;
+    })
+    .filter((request: CountRequest): boolean => {
+      return request.modelType === modelType;
+    });
+}
+
+/*
+ * The project's live monitors a query matches, by name, as the server reads
+ * the query the dialog's picker and its counts send: the monitors the group
+ * does not hold (IncludesNone), a search by name, and the ones picked, read
+ * again by id to name them.
+ */
+function monitorsMatching(
+  query: Record<string, unknown>,
+): Array<{ id: string; name: string }> {
+  return projectMonitors
+    .filter((entry: { id: string; name: string }): boolean => {
+      return Object.entries(query).every(
+        ([key, condition]: [string, unknown]): boolean => {
+          if (key === "_id" && condition instanceof IncludesNone) {
+            return !condition.values
+              .map((id: unknown): string => {
+                return String(id);
+              })
+              .includes(entry.id);
+          }
+
+          if (key === "_id" && condition instanceof Includes) {
+            return condition.values
+              .map((id: unknown): string => {
+                return String(id);
+              })
+              .includes(entry.id);
+          }
+
+          if (key === "name" && condition instanceof Search) {
+            return entry.name
+              .toLowerCase()
+              .includes(String(condition.value).toLowerCase());
+          }
+
+          // Every monitor here is live.
+          if (key === "isArchived") {
+            return condition === false;
+          }
+
+          return true;
+        },
+      );
+    })
+    .sort(
+      (
+        a: { id: string; name: string },
+        b: { id: string; name: string },
+      ): number => {
+        return a.name.localeCompare(b.name);
+      },
+    );
 }
 
 interface CreateRequest {
@@ -384,15 +459,20 @@ beforeEach(() => {
     }
 
     if (request.modelType === Monitor) {
-      return Promise.resolve(
-        listOf(
-          projectMonitors.map(
-            (entry: { id: string; name: string }): Monitor => {
-              return monitor(entry.id, entry.name);
-            },
-          ),
-        ),
+      const found: Array<{ id: string; name: string }> = monitorsMatching(
+        request.query,
       );
+
+      return Promise.resolve({
+        data: found
+          .slice(request.skip, request.skip + request.limit)
+          .map((entry: { id: string; name: string }): Monitor => {
+            return monitor(entry.id, entry.name);
+          }),
+        count: found.length,
+        skip: request.skip,
+        limit: request.limit,
+      });
     }
 
     if (request.modelType === MonitorStatus) {
@@ -404,6 +484,17 @@ beforeEach(() => {
     }
 
     return Promise.resolve(listOf([]));
+  });
+
+  // The server counts the monitors a query matches.
+  mockCount.mockImplementation((...args: Array<unknown>) => {
+    const request: CountRequest = args[0] as CountRequest;
+
+    if (request.modelType === Monitor) {
+      return Promise.resolve(monitorsMatching(request.query).length);
+    }
+
+    return Promise.resolve(0);
   });
 
   // The server takes every row unless a test says otherwise.
@@ -476,47 +567,73 @@ function picker(): HTMLElement {
   return within(dialog()).getByRole("combobox");
 }
 
-// The picker's entries, its menu opened.
-function offered(): Array<string> {
-  fireEvent.keyDown(picker(), { key: "ArrowDown", code: "ArrowDown" });
+/*
+ * The picker's list, opened. It searches the server for the monitors it
+ * offers (#10399), and opens by itself as the form takes the focus.
+ */
+async function openPickerList(): Promise<void> {
+  if (!screen.queryByTestId("entity-dropdown-menu")) {
+    await act(async () => {
+      fireEvent.click(picker());
+    });
+  }
 
-  return Array.from(
-    document.querySelectorAll<HTMLElement>(".ou-select__option"),
-  ).map((element: HTMLElement): string => {
-    return element.textContent || "";
+  await screen.findByTestId("entity-dropdown-menu");
+}
+
+// The picker's entries as drawn: the server's answer, less those picked.
+function currentlyOffered(): Array<string> {
+  const menu: HTMLElement | null = screen.queryByTestId("entity-dropdown-menu");
+
+  if (!menu || within(menu).queryByText("Searching...")) {
+    return ["(still searching)"];
+  }
+
+  return within(menu)
+    .queryAllByRole("option")
+    .map((element: HTMLElement): string => {
+      return element.textContent || "";
+    });
+}
+
+// Waits for the picker to offer exactly these, its list opened.
+async function expectOffered(expected: Array<string>): Promise<void> {
+  await openPickerList();
+
+  await waitFor(() => {
+    expect(currentlyOffered()).toEqual(expected);
   });
 }
 
-function pick(label: string): void {
-  fireEvent.keyDown(picker(), { key: "ArrowDown", code: "ArrowDown" });
+async function pick(label: string): Promise<void> {
+  await openPickerList();
 
-  const option: HTMLElement | undefined = Array.from(
-    document.querySelectorAll<HTMLElement>(".ou-select__option"),
-  ).find((element: HTMLElement): boolean => {
-    return element.textContent === label;
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: label,
   });
 
-  expect(option).toBeDefined();
-  fireEvent.click(option as HTMLElement);
+  await act(async () => {
+    fireEvent.click(option);
+  });
 }
 
 function picked(): Array<string> {
-  return Array.from(
-    document.querySelectorAll<HTMLElement>(".ou-select__multi-value__label"),
-  ).map((chip: HTMLElement): string => {
-    return chip.textContent || "";
-  });
+  return screen
+    .queryAllByTestId("entity-dropdown-chip-label")
+    .map((chip: HTMLElement): string => {
+      return chip.textContent || "";
+    });
 }
 
-// Opens Add Monitors and waits for the project's monitors to be read.
+// Opens Add Monitors and waits for the project's monitors to be counted.
 async function openAddMonitorsDialog(): Promise<void> {
   fireEvent.click(screen.getByTestId("table-card-button"));
   await waitFor(() => {
     expect(within(dialog()).getByText("Add Monitors to Group")).toBeVisible();
   });
-  // The project's monitors are read as the dialog opens.
+  // The monitors it can offer are counted as the dialog opens.
   await waitFor(() => {
-    expect(listRequests(Monitor)).toHaveLength(1);
+    expect(countRequests(Monitor).length).toBeGreaterThan(0);
   });
 }
 
@@ -585,21 +702,76 @@ describe("the group's Monitors page: Add Monitors", () => {
       ),
     ).toBeVisible();
 
-    const request: ListRequest = listRequests(Monitor)[0]!;
-    expect(request.query["isArchived"]).toBe(false);
-    expect(String(request.query["projectId"])).toBe(PROJECT_ID);
-    expect(request.sort).toEqual({ name: SortOrder.Ascending });
+    // Counted by the server, within the monitors the group does not hold.
+    const count: CountRequest = countRequests(Monitor)[0]!;
+    expect(count.query["isArchived"]).toBe(false);
+    expect(count.query["_id"]).toBeInstanceOf(IncludesNone);
+    expect((count.query["_id"] as IncludesNone).values).toEqual([CHECKOUT_ID]);
 
     // Checkout API is in the group already.
-    expect(offered()).toEqual(["Payments", "Storefront"]);
+    await expectOffered(["Payments", "Storefront"]);
+
+    /*
+     * Searched on the server, 50 by name, within the same monitors: never
+     * the project's first 10,000, searched in the browser (#10399).
+     */
+    const searches: Array<ListRequest> = listRequests(Monitor).filter(
+      (request: ListRequest): boolean => {
+        return request.query["_id"] instanceof IncludesNone;
+      },
+    );
+    expect(searches.length).toBeGreaterThan(0);
+    for (const request of searches) {
+      expect(request.limit).toBe(50);
+      expect(request.sort).toEqual({ name: SortOrder.Ascending });
+      expect(request.query["isArchived"]).toBe(false);
+      expect((request.query["_id"] as IncludesNone).values).toEqual([
+        CHECKOUT_ID,
+      ]);
+    }
+    for (const request of listRequests(Monitor)) {
+      expect(request.limit).not.toBe(LIMIT_PER_PROJECT);
+    }
+  });
+
+  test("finds a monitor by any part of its name, searched on the server (#10399)", async () => {
+    projectMonitors.push({
+      id: "c0ffee00-0000-4000-8000-00000000c005",
+      name: "WB1500KSK02",
+    });
+
+    await renderMonitorsPage();
+    await openAddMonitors();
+    await openPickerList();
+
+    await act(async () => {
+      fireEvent.change(picker(), { target: { value: "ksk02" } });
+    });
+
+    await waitFor(
+      () => {
+        expect(
+          listRequests(Monitor).some((request: ListRequest): boolean => {
+            return (
+              request.query["name"] instanceof Search &&
+              String((request.query["name"] as Search<string>).value) ===
+                "ksk02"
+            );
+          }),
+        ).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+
+    await expectOffered(["WB1500KSK02"]);
   });
 
   test("adds every picked monitor at once, one row each, then closes", async () => {
     await renderMonitorsPage();
     await openAddMonitors();
 
-    pick("Storefront");
-    pick("Payments");
+    await pick("Storefront");
+    await pick("Payments");
     expect(picked()).toEqual(["Storefront", "Payments"]);
 
     await submitAddMonitors();
@@ -654,8 +826,8 @@ describe("the group's Monitors page: Add Monitors", () => {
     await renderMonitorsPage();
     await openAddMonitors();
 
-    pick("Storefront");
-    pick("Payments");
+    await pick("Storefront");
+    await pick("Payments");
 
     observer.observe(document.body, {
       childList: true,
@@ -690,8 +862,8 @@ describe("the group's Monitors page: Add Monitors", () => {
     await renderMonitorsPage();
     await openAddMonitors();
 
-    pick("Storefront");
-    pick("Payments");
+    await pick("Storefront");
+    await pick("Payments");
     await submitAddMonitors();
 
     await waitFor(() => {
@@ -712,9 +884,12 @@ describe("the group's Monitors page: Add Monitors", () => {
 
     /*
      * ...and no longer offers the one that was: Storefront is in the group
-     * now, and the menu leaves out Payments, which is picked.
+     * now, and the menu leaves out Payments, which is picked - all the
+     * server lists is picked.
      */
-    expect(offered()).toEqual([]);
+    await openPickerList();
+    expect(await screen.findByText("All of them are picked.")).toBeVisible();
+    expect(currentlyOffered()).toEqual([]);
     // A pick kept for another try is still something to add: no notice.
     expect(within(dialog()).queryByText(EVERY_MONITOR_IN_GROUP)).toBeNull();
     expect(within(dialog()).getByRole("combobox")).toBeInTheDocument();
@@ -749,8 +924,8 @@ describe("the group's Monitors page: Add Monitors", () => {
     await renderMonitorsPage();
     await openAddMonitors();
 
-    pick("Storefront");
-    pick("Payments");
+    await pick("Storefront");
+    await pick("Payments");
     await submitAddMonitors();
 
     await waitFor(() => {
@@ -848,20 +1023,18 @@ describe("the group's Monitors page: Add Monitors", () => {
   test("when the monitors cannot be read, it says why - not that there is nothing to add - and Try again reads them again", async () => {
     const READ_FAILURE: string = "The monitors could not be read.";
     let failedOnce: boolean = false;
-    const listImplementation: (...args: Array<unknown>) => unknown =
-      mockGetList.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => unknown;
+    const countImplementation: (...args: Array<unknown>) => unknown =
+      mockCount.getMockImplementation() as (...args: Array<unknown>) => unknown;
 
-    mockGetList.mockImplementation((...args: Array<unknown>) => {
-      const request: ListRequest = args[0] as ListRequest;
+    mockCount.mockImplementation((...args: Array<unknown>) => {
+      const request: CountRequest = args[0] as CountRequest;
 
       if (request.modelType === Monitor && !failedOnce) {
         failedOnce = true;
         return Promise.reject(new Error(READ_FAILURE));
       }
 
-      return listImplementation(...args);
+      return countImplementation(...args);
     });
 
     await renderMonitorsPage();
@@ -878,12 +1051,12 @@ describe("the group's Monitors page: Add Monitors", () => {
     fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
 
     await within(dialog()).findByRole("combobox");
-    expect(listRequests(Monitor)).toHaveLength(2);
+    expect(countRequests(Monitor)).toHaveLength(2);
     expect(within(dialog()).queryByText(READ_FAILURE)).toBeNull();
-    expect(offered()).toEqual(["Payments", "Storefront"]);
+    await expectOffered(["Payments", "Storefront"]);
   });
 
-  test("opens afresh: closed and opened again, it reads the monitors again before it offers any", async () => {
+  test("opens afresh: closed and opened again, it counts the monitors again before it offers any", async () => {
     await renderMonitorsPage();
     await openAddMonitors();
 
@@ -898,24 +1071,22 @@ describe("the group's Monitors page: Add Monitors", () => {
       name: "Search API",
     });
 
-    // The second read waits until the test lets it answer.
-    let answerRead: () => void = (): void => {};
-    const listImplementation: (...args: Array<unknown>) => unknown =
-      mockGetList.getMockImplementation() as (
-        ...args: Array<unknown>
-      ) => unknown;
-    mockGetList.mockImplementation((...args: Array<unknown>) => {
-      const request: ListRequest = args[0] as ListRequest;
+    // The second count waits until the test lets it answer.
+    let answerCount: () => void = (): void => {};
+    const countImplementation: (...args: Array<unknown>) => unknown =
+      mockCount.getMockImplementation() as (...args: Array<unknown>) => unknown;
+    mockCount.mockImplementation((...args: Array<unknown>) => {
+      const request: CountRequest = args[0] as CountRequest;
 
       if (request.modelType === Monitor) {
         return new Promise((resolve: (value: unknown) => void) => {
-          answerRead = (): void => {
-            resolve(listImplementation(...args));
+          answerCount = (): void => {
+            resolve(countImplementation(...args));
           };
         });
       }
 
-      return listImplementation(...args);
+      return countImplementation(...args);
     });
 
     /*
@@ -942,21 +1113,22 @@ describe("the group's Monitors page: Add Monitors", () => {
 
     fireEvent.click(screen.getByTestId("table-card-button"));
     await waitFor(() => {
-      expect(listRequests(Monitor)).toHaveLength(2);
+      expect(countRequests(Monitor)).toHaveLength(2);
     });
 
-    // While it reads, no picker - and none was drawn on the old answer.
+    // While it counts, no picker - and none was drawn on the old answer.
     expect(within(dialog()).getByText("Add Monitors to Group")).toBeVisible();
     expect(within(dialog()).queryByRole("combobox")).toBeNull();
     observer.disconnect();
     expect(pickersDrawn).toBe(0);
 
     await act(async () => {
-      answerRead();
+      answerCount();
     });
 
     await within(dialog()).findByRole("combobox");
-    expect(offered()).toEqual(["Payments", "Storefront", "Search API"]);
+    // The server's list, by name: the new monitor among them.
+    await expectOffered(["Payments", "Search API", "Storefront"]);
   });
 
   test("opens with the page when the Overview sent the reader here to add monitors", async () => {
@@ -967,9 +1139,13 @@ describe("the group's Monitors page: Add Monitors", () => {
     await waitFor(() => {
       expect(within(dialog()).getByText("Add Monitors to Group")).toBeVisible();
     });
+    // Counted once the group's members are read, within the others.
     await waitFor(() => {
-      expect(listRequests(Monitor)).toHaveLength(1);
+      expect(countRequests(Monitor)).toHaveLength(1);
     });
+    expect(
+      (countRequests(Monitor)[0]!.query["_id"] as IncludesNone).values,
+    ).toEqual([CHECKOUT_ID]);
   });
 
   test("for whoever may not put a monitor in a group: no dialog with the page, and the button is locked with the reason", async () => {
@@ -980,6 +1156,7 @@ describe("the group's Monitors page: Add Monitors", () => {
 
     expect(screen.queryByTestId("modal")).toBeNull();
     expect(listRequests(Monitor)).toHaveLength(0);
+    expect(countRequests(Monitor)).toHaveLength(0);
 
     const button: HTMLElement = screen.getByTestId("table-card-button");
     expect(button).toHaveTextContent("Add Monitors");

@@ -340,7 +340,7 @@ Una cacería guardada con filtros de la barra lateral de Eventos los muestra en 
 
 Una cacería programada avisa a las personas y equipos que eliges en **Notificar**: al menos uno, y como máximo 50 en total. Cada ejecución:
 
-- lee los eventos cuya hora es posterior a la ejecución anterior, hasta hace dos minutos, así que cada evento se busca una vez. La primera ejecución lee desde el momento en que se estableció la programación o se cambió la búsqueda por última vez, y tras una interrupción una ejecución recupera como máximo un día más que su intervalo.
+- lee los eventos que llegaron después de la ejecución anterior, hasta hace dos minutos, ocurrieran cuando ocurrieran, así que cada evento se busca una vez, incluso uno que llega tarde. La primera ejecución lee desde el momento en que se estableció la programación o se cambió la búsqueda por última vez, y tras una interrupción una ejecución recupera como máximo un día más que su intervalo. Un evento que llega más de un día después de ocurrir se guarda y se puede buscar, pero ninguna ejecución lo cuenta.
 - cuenta los eventos que su búsqueda encuentra ahí, exactamente como **Eventos** los listaría, leyendo solo lo que puede leer la persona con la que se ejecuta.
 - cuando encuentra eventos, avisa a las personas que nombra la cacería, y a los miembros de los equipos que nombra, que pueden leer cacerías y eventos de seguridad.
 
@@ -350,11 +350,11 @@ Una cacería programada se ejecuta con la persona que por última vez estableci�
 
 ### Historial de ejecuciones
 
-Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al final de la línea que dice lo que encontraron las ejecuciones de una cacería, las lista de la más reciente a la más antigua: cuándo se ejecutó cada una y los eventos que buscó, luego cuántos encontró, con **Mostrarlos** para abrir esos eventos en la página de la cacería; que no encontró nada; o por qué no pudo ejecutarse. Quien puede abrir una cacería puede leer sus ejecuciones.
+Cada ejecución programada se guarda 90 días. **Historial de ejecuciones**, al final de la línea que dice lo que encontraron las ejecuciones de una cacería, las lista de la más reciente a la más antigua: cuándo se ejecutó cada una y cuándo llegaron los eventos que buscó, luego cuántos encontró, con **Mostrarlos** para abrir exactamente esos eventos en la página de la cacería; que no encontró nada; o por qué no pudo ejecutarse. Quien puede abrir una cacería puede leer sus ejecuciones.
 
 ### A quién se avisa
 
-La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y la ventana que leyó, y enlaza a la página de la cacería con esos eventos; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
+La notificación **Una cacería encontró eventos de seguridad** nombra la cacería y su búsqueda, cuántos eventos encontró su ejecución y cuándo llegaron, y enlaza a la página de la cacería con exactamente esos eventos: el filtro **Llegados** sobre el día anterior a ellos, que puede quitar para ver todo lo demás de ese tiempo; no incluye ninguna palabra de los eventos. Todos la reciben por correo y push, y eligen sus canales en **Ajustes de usuario → Ajustes de notificaciones**. Como otros correos de rutina, puede retenerse en un [resumen de correos](/docs/emails/notification-rollup).
 
 Para publicar en Slack, Microsoft Teams o Mattermost lo que encuentran las cacerías, añade una regla a **Reglas de cacerías** en **Productos → Eventos de seguridad → Espacio de trabajo → Slack** (o **Microsoft Teams** o **Mattermost**), debajo de las reglas que publican los [casos de seguridad](/docs/telemetry/security-cases#publicar-en-canales-de-slack-microsoft-teams-y-mattermost). Una regla nombra los canales en los que publicar (y, en Microsoft Teams, los chats) y, si quieres, las cacerías a las que se aplica, por **Nombre de la cacería**: un nombre que es tu texto, lo contiene, empieza o termina con él. Cada vez que una ejecución programada encuentra eventos, publica la cacería, su búsqueda, cuántos eventos y cuándo, con un enlace a ellos, y ninguna de las palabras propias de un evento. Una regla de cacerías la configura un rol que puede configurar playbooks de seguridad, como Propietario del proyecto, Administrador del proyecto o Administrador de seguridad.
 
@@ -504,7 +504,8 @@ OneUptime comprueba cada minuto qué reglas habilitadas han cumplido su interval
 
 - Una regla que cuenta y una correlación cuentan en ventanas tan largas como el intervalo, seguidas según el reloj: con un intervalo de 10 minutos, unos fallos a las 09:58 y a las 10:01 caen en ventanas distintas y se cuentan por separado, así que deja margen al elegir un umbral.
 - Tras un hueco, como una caída del worker o una regla que se vuelve a activar, la siguiente ejecución cubre el hueco entero, hasta las últimas 24 horas.
-- Un evento que llega tarde lo lee igualmente, una vez, la siguiente ejecución, y cuenta en la ventana en la que ocurrió: un grupo se dispara cuando su ventana alcanza el recuento, y como mucho una vez por ventana. Uno que llega más de un día después de ocurrir se guarda y se puede buscar, pero las ejecuciones de la regla no lo leen; **Ejecutar sobre eventos pasados** sí.
+- Una ejecución que falla, como una que tarda demasiado, deja la regla donde estaba: su **Estado** dice **La ejecución falló**, y se vuelve a intentar en su próximo intervalo, o en menos de una hora si su intervalo es más largo. La ejecución que funciona lee todo lo que llegó desde la última que funcionó, por lejos que quede, un día cada vez. Una ejecución detenida después de actuar sobre sus coincidencias se repite sin añadirlas dos veces a su caso.
+- Un evento que llega tarde lo lee igualmente, una vez, la siguiente ejecución, y cuenta en la ventana en la que ocurrió: un grupo se dispara cuando su ventana alcanza el recuento, y como mucho una vez por ventana. Uno que llega más de un día después de ocurrir se guarda y se puede buscar, pero las ejecuciones de la regla no lo leen; **Ejecutar sobre eventos pasados** sí. Es a propósito, para que una carga de historial no abra alertas sobre el pasado: cuando alguno llegó así de tarde en los últimos 7 días, un aviso sobre las reglas dice cuántos, de qué orígenes y cuándo ocurrieron, y abre **Ejecutar sobre eventos pasados** sobre ese periodo.
 - Cada grupo que alcanza el umbral se convierte en un Detection Finding, hasta 10.000 por ejecución. Se abren alertas, incidentes y casos para los 100 con los recuentos más altos; el resto comparte un caso sobre la regla, y el **Último error** de la regla dice cuántos grupos coincidieron.
 
 ### Reglas en tiempo real
@@ -636,6 +637,14 @@ La acción **Crear monitor** de la fila de una regla abre un monitor nuevo ya co
 ## Retención y facturación
 
 Los eventos de seguridad se facturan por GB ingerido, como el resto de tu telemetría, y se conservan durante tu retención de telemetría: la **Retención predeterminada (días)** del proyecto, en **Ajustes del proyecto → Telemetría y APM → Retención de datos**, o una retención definida en el servicio de telemetría al que pertenecen. Cuando termina la retención de un evento, se elimina.
+
+Todo lo que en Eventos de seguridad lee eventos pasados lee solo los eventos que aún se conservan, y dice cuándo necesitaría más:
+
+- Una regla **Visto por primera vez** cuyo intervalo es más largo que lo que se conservan los eventos decide que un valor es nuevo según los días conservados: con un intervalo de 30 días y 15 días conservados, sus alertas y casos dicen `First awsRegion in 15 days`, y un valor visto por última vez hace 20 días se toma por nuevo. Su fila muestra **Requiere atención**, y **Ver error** dice qué cambiar. El formulario de la regla y el detalle de una regla en la biblioteca de reglas lo dicen antes de guardarla o añadirla. Un conteo o una secuencia cuya ventana es más larga que lo que se conservan los eventos cuenta solo esos.
+- **Ejecutar sobre eventos pasados** en un periodo que empieza antes de los eventos conservados dice que los eventos de seguridad se conservan 15 días, así que miró 15 días atrás, y lo que no encontró se dice solo de esos días. Un evento que ocurrió antes pero llegó tarde sigue conservado, y se sigue leyendo. Una regla **Visto por primera vez** dice cuánto de los 30 días anteriores al periodo pudo ver.
+- Una cacería cuyo **Intervalo de tiempo** es más largo que lo que se conservan los eventos no encuentra nada más antiguo, y su formulario lo dice.
+
+**Ajustes del proyecto → Telemetría y APM → Retención de datos** lista las reglas activadas que miran más atrás que su **Retención predeterminada (días)**. Para cubrirlas, conserva los eventos más tiempo, con **Cambiar retención** bajo una regla, o acorta el intervalo de una regla a lo que se conserva. OneUptime conserva 15 días salvo que lo cambies, porque la retención fija lo que cuesta tu telemetría y cuánto tiempo se guardan los datos personales de los eventos, como direcciones y nombres de usuario. Una nueva retención se aplica a los eventos que llegan desde entonces, así que las reglas ven más atrás a medida que esos eventos envejecen.
 
 ## Solución de problemas
 

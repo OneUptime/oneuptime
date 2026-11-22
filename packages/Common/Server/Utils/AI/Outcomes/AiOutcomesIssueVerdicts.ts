@@ -227,8 +227,7 @@ export default class AiOutcomesIssueVerdicts {
           return {
             id: row.id,
             at: row.createdAt.toISOString(),
-            subject: {
-              kind: "dataSecurityIssue",
+            dataSecurityIssue: {
               id: row.id,
               ...(row.title ? { title: row.title } : {}),
             },

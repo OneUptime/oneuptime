@@ -1088,7 +1088,10 @@ export default class ReadPermission {
    *     boundary, longest name first.
    *
    * Only models that carry labels are kept. Who did something to the row
-   * (`createdByUserId`) names a user, and users carry no labels. A plain id
+   * (`createdByUserId`) names a user, and users carry no labels; nor is the
+   * API key, workflow or MCP client that created or last modified it
+   * (`createdByActorId`, `lastModifiedByActorId`, #10290) a record the row
+   * is about - it is who acted, which every row has. A plain id
    * column whose name says nothing (`resourceId`, which several kinds of
    * resource share) names a record of any kind: it is weighed against every
    * model that carries labels (anyKindColumns), unless it is known to name
@@ -1172,7 +1175,7 @@ export default class ReadPermission {
         column.type !== TableColumnType.ObjectID ||
         !columnName.endsWith("Id") ||
         keyColumns.has(columnName) ||
-        UserAttribution.isColumn(columnName) ||
+        UserAttribution.isDecidedByServer(columnName) ||
         PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS.has(
           `${model.tableName}.${columnName}`,
         ) ||

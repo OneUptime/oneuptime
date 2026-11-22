@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61243,
-    "untranslated": 8326
+    "keys": 61429,
+    "untranslated": 8323
   },
   "sameAsEnglish": [
     " is",
@@ -925,6 +925,7 @@
     "{{minutes}} min {{seconds}} s",
     "{{monitorName}} is offline",
     "{{name}} (monitor: {{monitor}})",
+    "{{name}} (workflow)",
     "{{online}} online, {{offline}} offline",
     "{{rate}}/min",
     "{{rate}}/s",

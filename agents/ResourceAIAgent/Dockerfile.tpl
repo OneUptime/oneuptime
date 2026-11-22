@@ -47,10 +47,46 @@ RUN set -eu \
   && rm -f /tmp/govc.tar.gz /tmp/govc \
   && /usr/bin/govc version
 
+# The docker CLI, from Docker's own static release rather than Alpine's
+# docker-cli package, downloaded and verified in its own stage like govc
+# above. Alpine 3.24's docker-cli 29.9.3-r1 is built with Go 1.26.10, whose
+# standard library has eight high vulnerabilities that Go fixed in 1.26.11
+# and 1.27.4 (CVE-2026-97033 to CVE-2026-97043; #10383), and Alpine has not
+# rebuilt it. Docker's 29.10.0 is built with Go 1.27.4. It is the same CLI a
+# minor release on, and changed none of the commands or flags that
+# DockerEngineCommandPolicy and DockerSwarmCommandPolicy allow, so both hold
+# as written. It is statically linked, so it needs no library from Alpine.
+# The archive also holds the engine (dockerd, containerd, runc): only the
+# CLI is taken out of it. Bump DOCKER_VERSION and both digests together
+# (Docker publishes docker-<version>.tgz.sha256 beside each archive)
+# whenever a scan reports findings a release clears; going back to Alpine's
+# package is fine once Alpine's build is clean.
+FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS docker-cli
+ARG TARGETARCH
+ARG DOCKER_VERSION=29.10.0
+ARG DOCKER_SHA256_AMD64=7c1ebadc65c716cdc6d35fc78759ed0e4317debf43c21dd12f066f2006999def
+ARG DOCKER_SHA256_ARM64=6e5159e8b5615e0c0c2954a2a1a2a12bc65f5d9b603595dba24a10cb367408cd
+RUN set -eu \
+  && apk add --no-cache curl \
+  && arch="${TARGETARCH:-amd64}" \
+  && case "${arch}" in \
+       amd64) platform=x86_64; sha256="${DOCKER_SHA256_AMD64}" ;; \
+       arm64) platform=aarch64; sha256="${DOCKER_SHA256_ARM64}" ;; \
+       *) echo "unsupported TARGETARCH ${arch}" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL --retry 6 --retry-all-errors -o /tmp/docker.tgz \
+       "https://download.docker.com/linux/static/stable/${platform}/docker-${DOCKER_VERSION}.tgz" \
+  && echo "${sha256}  /tmp/docker.tgz" | sha256sum -c - \
+  && tar -xzf /tmp/docker.tgz -C /tmp docker/docker \
+  && install -m 0755 /tmp/docker/docker /usr/bin/docker \
+  && rm -rf /tmp/docker.tgz /tmp/docker \
+  && /usr/bin/docker --version
+
 # Alpine, like the other agents. The agent itself is plain JavaScript (no
 # native modules); the image adds only the CLIs its executors spawn, each
-# from Alpine's own packages but govc (the stage above):
-#   docker-cli       docker / podman hosts and swarm managers (DockerExecutor)
+# from Alpine's own packages but docker and govc (the stages above):
+#   docker           docker / podman hosts and swarm managers (DockerExecutor),
+#                    copied in below
 #   govc             VMware vCenter (GovcExecutor), copied in below
 #   ceph19-common    the ceph CLI (CephExecutor)
 #   util-linux-misc  nsenter, to run a host's own programs (HostExecutor)
@@ -97,10 +133,11 @@ COPY ./SslCertificates /usr/local/share/ca-certificates
 # `apk upgrade` pulls in Alpine security fixes published since the base
 # image was built; --no-cache keeps the apk index out of the layer.
 RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates tini docker-cli ceph19-common util-linux-misc \
+    && apk add --no-cache ca-certificates tini ceph19-common util-linux-misc \
     && update-ca-certificates
 
-# Where Alpine's package put it, on the PATH every executor spawns with.
+# Where Alpine's packages put them, on the PATH every executor spawns with.
+COPY --from=docker-cli /usr/bin/docker /usr/bin/docker
 COPY --from=govc /usr/bin/govc /usr/bin/govc
 
 ENV PRODUCTION=true

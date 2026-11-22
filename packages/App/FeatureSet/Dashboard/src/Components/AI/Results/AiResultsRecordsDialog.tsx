@@ -2,6 +2,7 @@ import {
   AI_RESULTS_RECORDS_EMPTY,
   AI_RESULTS_RECORDS_TEST_ID,
   AI_RESULTS_RECORDS_WHAT_FAILED,
+  describeRecordDataSecurityIssue,
   describeRecordSubject,
   describeRecordsCount,
   getRecordFacts,
@@ -14,6 +15,7 @@ import {
   AI_OUTCOMES_RECORDS_PATH,
   AiOutcomesPart,
   AiOutcomesRecord,
+  AiOutcomesRecordDataSecurityIssue,
   AiOutcomesRecordSubject,
   AiOutcomesRecords,
 } from "Common/Types/AI/AiOutcomes";
@@ -30,6 +32,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
@@ -54,7 +57,8 @@ import React, {
  * held pages, each with its incident or alert one click away; "Missed the
  * root cause (15)" the fifteen investigations, with what each found and how
  * it was judged; "Still happening after the fix (2)" the two fix pull
- * requests.
+ * requests. A Data Security number (#10364) lists its issues, each one
+ * click away, with the change OneUptime AI made or proposed for it.
  *
  * The server lists exactly what the number counts, from the same window
  * (the outcomes' windowEnd), so the count under the title is the card's -
@@ -74,13 +78,19 @@ export interface ComponentProps {
 function getSubjectRoute(subject: AiOutcomesRecordSubject): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[
-      subject.kind === "incident"
-        ? PageMap.INCIDENT_VIEW
-        : subject.kind === "dataSecurityIssue"
-          ? PageMap.DATA_SECURITY_ISSUE_VIEW
-          : PageMap.ALERT_VIEW
+      subject.kind === "incident" ? PageMap.INCIDENT_VIEW : PageMap.ALERT_VIEW
     ] as Route,
     { modelId: subject.id },
+  );
+}
+
+// A Data Security issue's own page.
+function getDataSecurityIssueRoute(
+  issue: AiOutcomesRecordDataSecurityIssue,
+): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.DATA_SECURITY_ISSUE_VIEW] as Route,
+    { modelId: issue.id },
   );
 }
 
@@ -135,6 +145,22 @@ function RecordRow(props: {
           ) : (
             <></>
           )}
+          {record.dataSecurityIssue ? (
+            <Link
+              to={getDataSecurityIssueRoute(record.dataSecurityIssue)}
+              className="break-words text-sm font-medium text-gray-900 hover:text-indigo-700 hover:underline"
+              dataTestId={`${AI_RESULTS_RECORDS_TEST_ID}-issue`}
+            >
+              <IsolatedText
+                text={describeRecordDataSecurityIssue(
+                  record.dataSecurityIssue,
+                  translator,
+                )}
+              />
+            </Link>
+          ) : (
+            <></>
+          )}
           {part === AiOutcomesPart.PullRequestFixes ? (
             <p
               className="break-words text-sm text-gray-900"
@@ -170,6 +196,21 @@ function RecordRow(props: {
           data-testid={`${AI_RESULTS_RECORDS_TEST_ID}-summary`}
         >
           {record.summary}
+        </p>
+      ) : (
+        <></>
+      )}
+
+      {/*
+        What OneUptime AI changed, or proposed, for a Data Security issue,
+        as it wrote it.
+      */}
+      {record.proposalTitle ? (
+        <p
+          className="mt-1 break-words text-sm text-gray-600"
+          data-testid={`${AI_RESULTS_RECORDS_TEST_ID}-proposal`}
+        >
+          <IsolatedText text={record.proposalTitle} />
         </p>
       ) : (
         <></>

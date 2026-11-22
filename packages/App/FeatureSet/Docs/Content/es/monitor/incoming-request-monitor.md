@@ -386,6 +386,8 @@ Un webhook solo describe lo que hay en esa carga útil, así que OneUptime nunca
 1. **Campo que indica la recuperación** y **Valor que significa recuperado** están definidos y coinciden con la carga útil. La comparación es exacta y distingue mayúsculas y minúsculas: `Resolved` no coincide con `resolved`.
 2. El incidente del criterio tiene activado **Resolver incidente automáticamente**, en **Más campos** del formulario del incidente. Sin ello, los eventos de recuperación que coinciden se ignoran y los incidentes siguen abiertos. (Lo mismo vale para las alertas y **Resolver alerta automáticamente**.) El criterio predeterminado de sin conexión lo tiene activado desde el principio; un incidente que añade usted mismo a un criterio empieza con la opción desactivada.
 
+Una alerta que añade usted mismo a un criterio también empieza con **Resolver alerta automáticamente** desactivado, así que una recuperación deja la alerta abierta hasta que se active. **Auto-resolve each incident when…** indica qué incidentes y alertas del criterio resuelve una recuperación, y nombra cada uno que dejaría abierto, con un botón que activa su opción. La tarjeta **Resumen del monitor** de la **Vista general** del monitor nombra cada incidente y alerta que una recuperación dejó abiertos, y por qué.
+
 **Máximo de incidentes por solicitud** limita la extracción, no solo la creación. Las claves que superan el límite también son invisibles para la recuperación, así que, en una carga útil con más claves distintas que el límite, una alerta que informe `resolved` por encima de él no cerrará su incidente.
 
 > [!NOTE]

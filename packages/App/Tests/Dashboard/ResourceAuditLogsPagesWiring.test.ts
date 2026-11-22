@@ -115,6 +115,20 @@ function sourceFilesUnder(directory: string): Array<string> {
 }
 
 /*
+ * The pages that list the history of a family of records by their types,
+ * not one resource's: each with why it has no resource to roll up to.
+ */
+const FAMILY_AUDIT_LOG_PAGES: Record<string, string> = {
+  /*
+   * Alerts > Rules > Audit Logs (#10290): most alert rules are rows on
+   * their list, with no page of their own, so the history of every kind of
+   * them is one page, by type.
+   */
+  [path.join("Pages", "Alerts", "Settings", "AlertRulesAuditLogs.tsx")]:
+    "the project's alert rules",
+};
+
+/*
  * Every resource's Audit Logs page: each file that draws the audit log table
  * - Pages/<Product>/<View>/AuditLogs.tsx, and the exception's detail page,
  * which draws its Audit Logs section under the exception's summary.
@@ -126,6 +140,7 @@ function resourceAuditLogPages(): Array<string> {
       return (
         !file.startsWith(path.join("Pages", "Settings")) &&
         !file.startsWith(path.join("Components", "AuditLogs")) &&
+        !Object.prototype.hasOwnProperty.call(FAMILY_AUDIT_LOG_PAGES, file) &&
         readCode(file).includes("<AuditLogsTable")
       );
     })
@@ -162,6 +177,18 @@ describe("every resource's Audit Logs page", () => {
   test("the sweep finds the pages (it is not vacuous)", () => {
     expect(pages.length).toBeGreaterThanOrEqual(48);
   });
+
+  test.each(Object.keys(FAMILY_AUDIT_LOG_PAGES))(
+    "%s lists its family by type, and is no resource's page",
+    (page: string) => {
+      const source: string = readCode(page);
+
+      expect(source).toContain("<AuditLogsTable");
+      expect(source).toContain("resourceTypes={");
+      expect(source).not.toContain("rootResourceId={");
+      expect(pages).not.toContain(page);
+    },
+  );
 
   test.each(pages)(
     "%s lists everything that rolls up to its resource",

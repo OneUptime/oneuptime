@@ -86,6 +86,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import IssueAiCard from "../../../Components/DataSecurity/IssueAiCard";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
@@ -867,6 +868,20 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           onChanged={() => {
             view.refresh();
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {/*
+       * What OneUptime AI proposed for the issue, and why it left it alone
+       * (#10364). Its analysis is the card at the top (#10369), so this one
+       * leaves it out: the two are never side by side.
+       */}
+      {issue._id ? (
+        <IssueAiCard
+          issueId={new ObjectID(issue._id.toString())}
+          hideAnalysis={true}
         />
       ) : (
         <></>

@@ -37,6 +37,7 @@ import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection"
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import URL from "../../../Types/API/URL";
+import DatabaseConfig from "../../DatabaseConfig";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -197,6 +198,11 @@ export function buildOwnerNoticeMarkdown(data: {
   issues: ReadonlyArray<Pick<OpenedIssueForIntegrations, "severity" | "title">>;
   storeLink: URL;
   analysisLines?: ReadonlyArray<ReadonlyArray<MarkdownText>> | undefined;
+  /*
+   * Data Security → AI, when OneUptime AI works on the project's new issues
+   * on its own (#10364): the owners hear where what it proposes waits.
+   */
+  aiLink?: URL | undefined;
 }): MarkdownText {
   return FeedMarkdown.join(
     [
@@ -221,6 +227,11 @@ export function buildOwnerNoticeMarkdown(data: {
         ),
       ),
       mdText`[Open the store](${data.storeLink.toString()}) to see each issue and how to fix it.`,
+      ...(data.aiLink
+        ? [
+            mdText`OneUptime AI looks at new issues as your AI rules allow. Anything it proposes waits for you on [Data Security → AI](${data.aiLink.toString()}), and anything it does is on the issue's timeline.`,
+          ]
+        : []),
     ],
     "\n\n",
   );
@@ -235,6 +246,17 @@ export type OwnerNoticeAnalysisLines = (
   owner: User,
   issue: OpenedIssueForIntegrations,
 ) => Promise<Array<MarkdownText>>;
+
+// Data Security → AI in the Dashboard, for a project.
+export async function getDataSecurityAiLinkInDashboard(
+  projectId: ObjectID,
+): Promise<URL> {
+  const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+  return URL.fromString(dashboardUrl.toString()).addRoute(
+    `/${projectId.toString()}/data-security/ai`,
+  );
+}
 
 export default class DataSecurityIntegrations {
   public static async onIssuesOpened(data: {
@@ -286,7 +308,7 @@ export default class DataSecurityIntegrations {
       if (isAiWorking) {
         await this.holdOwnerNotices(data.projectId, data.issues);
       } else {
-        await this.notifyOwners(data.projectId, data.issues);
+        await this.notifyOwners(data.projectId, data.issues, false);
       }
     }
 
@@ -359,7 +381,7 @@ export default class DataSecurityIntegrations {
       });
 
       if (!isHeld) {
-        await this.notifyOwners(projectId, storeIssues);
+        await this.notifyOwners(projectId, storeIssues, true);
       }
     }
   }
@@ -798,13 +820,19 @@ export default class DataSecurityIntegrations {
    * Emails each store's owners about its new issues: one email per owner,
    * the same for all of them - or, with `getAnalysisLines` (a notice held
    * for OneUptime AI's analysis, #10369), each owner's own, with the
-   * analysis lines they may read under each issue.
+   * analysis lines they may read under each issue. While OneUptime AI works
+   * on new issues (`isAiWorking`), it says where what AI proposes waits.
    */
   public static async notifyOwners(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
+    isAiWorking: boolean,
     getAnalysisLines?: OwnerNoticeAnalysisLines | undefined,
   ): Promise<void> {
+    const aiLink: URL | undefined = isAiWorking
+      ? await getDataSecurityAiLinkInDashboard(projectId)
+      : undefined;
+
     const byStore: Map<string, Array<OpenedIssueForIntegrations>> = new Map();
 
     for (const issue of issues) {
@@ -843,6 +871,7 @@ export default class DataSecurityIntegrations {
               issues: storeIssues,
               storeLink: link,
               analysisLines,
+              aiLink,
             }).toString(),
             MarkdownContentType.Email,
           );

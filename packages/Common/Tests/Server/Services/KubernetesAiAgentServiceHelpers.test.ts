@@ -3,6 +3,7 @@ import KubernetesAiAgentService, {
   KUBERNETES_AI_AGENT_SELECT_WITHOUT_KEY,
   Service as KubernetesAiAgentServiceClass,
 } from "../../../Server/Services/KubernetesAiAgentService";
+import { RECORD_ACTOR_COLUMNS } from "../../../Types/Database/RecordActor";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import {
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -479,7 +480,9 @@ describe("KUBERNETES_AI_AGENT_SELECT_WITHOUT_KEY", () => {
         column === "keyHash" ||
         ["deletedAt", "version", "createdByUserId", "deletedByUserId"].includes(
           column,
-        )
+        ) ||
+        // Who created the row and who last modified it (#10290), as above.
+        RECORD_ACTOR_COLUMNS.includes(column)
       ) {
         continue;
       }

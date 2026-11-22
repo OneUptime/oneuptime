@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Each column is nullable with no default, so adding it rewrites nothing:
  * an existing issue has no analysis until OneUptime AI writes one.
  */
-export class AddDataSecurityIssueAiAnalysis1809187410369
+export class AddDataSecurityIssueAiAnalysis1809187431369
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityIssueAiAnalysis1809187410369";
+  public name: string = "AddDataSecurityIssueAiAnalysis1809187431369";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -160,6 +160,7 @@ export default class DataSecurityOwnerNotice {
     await DataSecurityIntegrations.notifyOwners(
       notice.projectId,
       opened,
+      isAiWorking,
       isAiWorking
         ? await this.analysisLinesFor(notice.projectId, store.id)
         : undefined,

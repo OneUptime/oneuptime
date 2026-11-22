@@ -1,5 +1,7 @@
 import {
   DataSecurityAiAskReason,
+  DataSecurityAiAutonomy,
+  DataSecurityAiProposalStatus,
   DataSecurityAiWork,
   isDataSecurityAiWork,
 } from "Common/Types/DataSecurity/DataSecurityAi";
@@ -10,7 +12,10 @@ import {
   DataSecurityAiIssueSkipReason,
   isDataSecurityAiIssueSkipReason,
 } from "Common/Types/DataSecurity/DataSecurityAiDecision";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT DATA SECURITY → AI SAYS (#10364): the names of the four kinds of
@@ -202,6 +207,121 @@ export function getDataSecurityAiAskReasonSentence(
     ? DATA_SECURITY_AI_ASK_REASON_SENTENCES[reason as DataSecurityAiAskReason]
     : undefined;
 }
+
+// Where a proposal stands, as an issue's AI card says it.
+export const DATA_SECURITY_AI_PROPOSAL_STATUS_LABELS: Readonly<
+  Record<DataSecurityAiProposalStatus, string>
+> = {
+  [DataSecurityAiProposalStatus.Proposed]: translationKey("Waiting for you"),
+  [DataSecurityAiProposalStatus.Approved]: translationKey("Approved"),
+  [DataSecurityAiProposalStatus.Applied]: translationKey("Made"),
+  [DataSecurityAiProposalStatus.AppliedWithoutAsking]:
+    translationKey("Done by AI"),
+  [DataSecurityAiProposalStatus.Dismissed]: translationKey("Dismissed"),
+  [DataSecurityAiProposalStatus.Expired]: translationKey("Expired"),
+  [DataSecurityAiProposalStatus.Undone]: translationKey("Undone"),
+  [DataSecurityAiProposalStatus.Failed]: translationKey("Failed"),
+};
+
+// The Overview's line about OneUptime AI (DataSecurityAiOverviewLine).
+export const DataSecurityAiOverviewCopy: {
+  contained: PluralTemplate;
+  waiting: PluralTemplate;
+  open: string;
+} = {
+  contained: {
+    one: "OneUptime AI contained {{count}} leak this week.",
+    other: "OneUptime AI contained {{count}} leaks this week.",
+  },
+  waiting: {
+    one: "{{count}} proposal waits for you.",
+    other: "{{count}} proposals wait for you.",
+  },
+  open: translationKey("See what OneUptime AI did"),
+};
+
+// OneUptime AI's card on an issue (IssueAiCard).
+export const IssueAiCardCopy: {
+  title: string;
+  description: string;
+  analysis: string;
+  proposals: string;
+  whyNot: string;
+} = {
+  title: translationKey("OneUptime AI"),
+  description: translationKey(
+    "What OneUptime AI found about this issue, and what it proposes for it.",
+  ),
+  analysis: translationKey("Its Analysis"),
+  proposals: translationKey("What It Proposes"),
+  whyNot: translationKey("Why AI did not act"),
+};
+
+// How much a kind of work may do without asking, as a rule says it.
+export const DATA_SECURITY_AI_AUTONOMY_LABELS: Readonly<
+  Record<DataSecurityAiAutonomy, string>
+> = {
+  [DataSecurityAiAutonomy.Off]: translationKey("Off"),
+  [DataSecurityAiAutonomy.Suggest]: translationKey("Suggest"),
+  [DataSecurityAiAutonomy.WithoutAsking]: translationKey("Without asking"),
+};
+
+// Data Security's AI rules (DataSecurityAiRulesTable), and the inbox's Rule column.
+export const DataSecurityAiRulesCopy: {
+  title: string;
+  description: string;
+  empty: string;
+  whatItDoes: string;
+  namePlaceholder: string;
+  worksSection: string;
+  analyzeDescription: string;
+  containDescription: string;
+  fixDescription: string;
+  judgeDescription: string;
+  matchSection: string;
+  matchDescription: string;
+  checkGroups: string;
+  storeLabels: string;
+  dataCategories: string;
+  services: string;
+  servicesDescription: string;
+  ruleColumn: string;
+  projectDefaults: string;
+} = {
+  title: translationKey("AI Rules"),
+  description: translationKey(
+    "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.",
+  ),
+  empty: translationKey("No AI rules yet."),
+  whatItDoes: translationKey("What It Does"),
+  namePlaceholder: translationKey("Production stores"),
+  worksSection: translationKey("What OneUptime AI May Do"),
+  analyzeDescription: translationKey(
+    "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.",
+  ),
+  containDescription: translationKey(
+    "Stop the data spreading while the issue is open, such as hiding it in new telemetry. A change that deletes data or pages people always asks.",
+  ),
+  fixDescription: translationKey(
+    "Fix the issue where it starts, such as a pull request to your code.",
+  ),
+  judgeDescription: translationKey(
+    "Judge what was found, such as whether a finding is real or who owns a store.",
+  ),
+  matchSection: translationKey("Which Issues"),
+  matchDescription: translationKey(
+    "Leave a condition empty to match every issue.",
+  ),
+  checkGroups: translationKey("Check Groups"),
+  storeLabels: translationKey("Store Labels"),
+  dataCategories: translationKey("Data Categories"),
+  services: translationKey("Services"),
+  servicesDescription: translationKey(
+    "For a telemetry issue: the service whose telemetry holds the data.",
+  ),
+  ruleColumn: translationKey("Rule"),
+  projectDefaults: translationKey("The project's defaults"),
+};
 
 export const DATA_SECURITY_AI_TABLE_IDS: {
   waiting: string;

@@ -3,11 +3,26 @@
 OneUptime AI trabaja con lo que encontró Seguridad de datos sin ver tus datos. Recibe nombres, formas, recuentos y configuración, nunca un valor de tus datos, una muestra enmascarada, una entrada ni una cadena de conexión. Cada función se ejecuta en el modelo propio de tu proyecto, incluido uno autoalojado, y cada página, comprobación, escaneo e integración de Seguridad de datos funciona con la IA desactivada.
 
 :::cards
+- [Por su cuenta](#por-su-cuenta): Qué hace con cada problema nuevo, qué te espera y las reglas de IA.
 - [Lo que ve OneUptime AI](#lo-que-ve-oneuptime-ai): Lo que envía cada función, y lo que nunca envía.
 - [Compruébalo tú mismo](#compruébalo-tú-mismo): La entrada exacta que enviaría uno de tus problemas.
 - [Tu propio modelo](#tu-propio-modelo): Cada función en el proveedor de tu proyecto, Ollama, vLLM o cualquier endpoint compatible con OpenAI.
 - [Cómo se mide](#cómo-se-mide): Cada función con casos fijos, antes de cada versión.
 :::
+
+## Por su cuenta
+
+Con **Trabajar en los problemas nuevos** activado en **Seguridad de datos → IA**, como en los proyectos nuevos, la IA de OneUptime trabaja por su cuenta en cada problema nuevo crítico o alto. Escribe el análisis de cada uno de esos problemas, y de cada uno que se vuelva a abrir, como lo hace **Analizar el problema** y a partir de lo que eso envía, antes de que nadie lo abra, y solo lo vuelve a escribir cuando cambió aquello en lo que se basa. Para un problema de telemetría propone las reglas de depuración que ocultan sus datos en la telemetría nueva. Una propuesta espera en esa página en **Esperándote**, primero las más arriesgadas, con qué cambiará, por qué, cómo se demostrará y cómo deshacerlo. **Aprobar** hace el cambio con tus propios permisos: una regla de depuración requiere permiso para crear reglas de depuración de registros, reglas de depuración de trazas o reglas del pipeline de métricas. **Descartar propuesta** dice que no, con un motivo que se añade a la cronología del problema. La comprobación propia del problema decide si un cambio funcionó: el almacén se vuelve a comprobar y el problema se resuelve cuando no queda ninguno de sus datos.
+
+De forma predeterminada, la IA de OneUptime pregunta antes de cada cambio, salvo uno que solo oculta datos, se puede deshacer y está demostrado que es seguro, y nunca borra datos ni avisa a nadie sin preguntar. Un cambio que hizo sin preguntar aparece en **Hecho por la IA**, con **Deshacer**. **Por qué la IA no actuó** lista los problemas que revisó y dejó como estaban, y por qué. Cada propuesta, aprobación, descarte y reversión está en la **Cronología** del problema y del almacén. Con el interruptor desactivado, Seguridad de datos funciona como siempre, y **Analizar el problema** y **Corregir con IA** siguen funcionando cuando los pulsas; con la IA desactivada para el proyecto, ninguno de los dos.
+
+En la página de un problema, la tarjeta **OneUptime AI** sobre **Cómo corregirlo** muestra el análisis y lo que se propuso para ese problema, con los mismos botones. La **Vista general** de seguridad de datos dice cuántas fugas contuvo la IA de OneUptime esta semana y cuántas propuestas te esperan. **Notas para la IA de OneUptime** cuenta semana a semana en qué quedaron sus cambios: consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai).
+
+### Reglas de IA
+
+En **Reglas de IA** de **Seguridad de datos → IA**, una regla dice en qué problemas trabaja la IA de OneUptime - por su comprobación o grupo de comprobaciones, su gravedad, y la sensibilidad, el tipo, el proveedor, el entorno, las etiquetas, las categorías de datos y el servicio del almacén - y, para cada tipo de trabajo, **Analizar**, **Contener**, **Corrección** y **Juzgar**, si está en **Desactivado**, **Sugerir** (propone y te espera) o **Sin preguntar**. Cuando varias reglas coinciden con un problema, un tipo de trabajo se ejecuta si alguna lo activa, y **Sugerir** gana a **Sin preguntar**. Cada propuesta dice qué regla la decidió. Sin ninguna regla, se aplican los valores predeterminados del proyecto: analizar los problemas críticos y altos, y sugerir todo lo demás.
+
+Las reglas de IA pertenecen a todo el proyecto, como las de incidentes y alertas: los propietarios y administradores del proyecto las cambian, igual que cualquiera con los permisos de reglas de IA. Los roles de seguridad ven lo que la IA de OneUptime propuso e hizo, pero no las reglas.
 
 ## Lo que ve OneUptime AI
 
