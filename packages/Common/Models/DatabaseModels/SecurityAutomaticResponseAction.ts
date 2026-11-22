@@ -69,6 +69,24 @@ const serverColumnAccess: {
   update: [],
 };
 
+/*
+ * The block an action made, read through the action: by the roles that
+ * read blocks too. A playbook reader reads which block it was
+ * (securityBlockId), not the address, state and end the block holds, which
+ * follow the block's own read (#10310).
+ */
+const blockRelationAccess: {
+  create: Array<Permission>;
+  read: Array<Permission>;
+  update: Array<Permission>;
+} = {
+  create: [],
+  read: readPermissions.filter((permission: Permission): boolean => {
+    return permission !== Permission.ReadSecurityPlaybook;
+  }),
+  update: [],
+};
+
 @EnableDocumentation()
 @TableBillingAccessControl({
   create: PlanType.Free,
@@ -288,7 +306,7 @@ export default class SecurityAutomaticResponseAction extends BaseModel {
     type: TableColumnType.ShortText,
     computed: true,
     canReadOnRelationQuery: true,
-    allowedValues: [SecurityBlockAction.Block, SecurityBlockAction.Challenge],
+    allowedValues: Object.values(SecurityBlockAction),
     title: "Action",
     description: "What the policy did, or would have done: Block or Challenge.",
   })
@@ -474,7 +492,7 @@ export default class SecurityAutomaticResponseAction extends BaseModel {
   })
   public doubtDetail?: string = undefined;
 
-  @ColumnAccessControl(serverColumnAccess)
+  @ColumnAccessControl(blockRelationAccess)
   @TableColumn({
     manyToOneRelationColumn: "securityBlockId",
     computed: true,

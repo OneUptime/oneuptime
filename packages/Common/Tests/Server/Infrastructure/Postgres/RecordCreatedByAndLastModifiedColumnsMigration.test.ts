@@ -100,6 +100,24 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityBlockCloudWaf",
     migration: "1809187430000-AddSecurityBlockCloudWaf.ts",
   },
+  // The blocklist feeds a firewall fetches, and its fetches (#10345).
+  {
+    table: "SecurityBlocklistFeed",
+    migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
+  },
+  {
+    table: "SecurityBlocklistFeedFetch",
+    migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
+  },
+  // Automatic response's policies, and what each did (#10350).
+  {
+    table: "SecurityAutomaticResponsePolicy",
+    migration: "1809187441000-AddSecurityAutomaticResponse.ts",
+  },
+  {
+    table: "SecurityAutomaticResponseAction",
+    migration: "1809187441000-AddSecurityAutomaticResponse.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

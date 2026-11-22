@@ -121,7 +121,11 @@ const serverColumnAccess: {
   where: `"deletedAt" IS NULL AND "kind" <> 'Custom'`,
 })
 export default class SecurityAutomaticResponsePolicy extends BaseModel {
-  @ColumnAccessControl(serverColumnAccess)
+  @ColumnAccessControl({
+    create: writePermissions,
+    read: readPermissions,
+    update: [],
+  })
   @TableColumn({
     manyToOneRelationColumn: "projectId",
     type: TableColumnType.Entity,
@@ -214,7 +218,6 @@ export default class SecurityAutomaticResponsePolicy extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    canReadOnRelationQuery: true,
     allowedValues: Object.values(SecurityAutomaticResponseMode),
     title: "Mode",
     description:
@@ -234,7 +237,7 @@ export default class SecurityAutomaticResponsePolicy extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    allowedValues: [SecurityBlockAction.Block, SecurityBlockAction.Challenge],
+    allowedValues: Object.values(SecurityBlockAction),
     title: "Action",
     description:
       "What the policy does to the address: Block, or Challenge (people pass a challenge, scripts do not). Where an edge cannot challenge, a challenge is enforced there as a block for the same time.",

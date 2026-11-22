@@ -225,6 +225,9 @@ const CASE: StoredRow = {
   containMissedAt: AT,
   nextDueAt: AT,
   incidentId: INCIDENT_ID,
+  // How soon an automatic response blocked its address (#10350).
+  blockedAt: AT,
+  timeToBlockInSeconds: 41,
 };
 
 const CLOUD_CONNECTION: StoredRow = {
@@ -256,6 +259,8 @@ const RUN: StoredRow = {
   status: "Succeeded",
   startedAt: AT,
   completedAt: AT,
+  // The automatic response policy a run blocked for (#10350).
+  securityAutomaticResponsePolicyId: "10310000-0000-4000-8000-0000000000c8",
 };
 
 const CLOUD_ACCOUNT: StoredRow = {

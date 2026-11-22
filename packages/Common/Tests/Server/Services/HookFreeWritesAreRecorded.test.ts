@@ -650,6 +650,22 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
         Why.Reported,
     },
+  /*
+   * Automatic response (#10350): when a policy's block took hold, and how
+   * long after its address's first request, stamped on the case beside the
+   * block the engine made and recorded; and a policy's trial run finishing
+   * on its own once its week is over.
+   */
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRecorder.ts":
+    {
+      "SecurityAutomaticResponseRecorder.recordIfHeld SecurityCase":
+        Why.FollowOn,
+    },
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseTrial.ts":
+    {
+      "SecurityAutomaticResponseTrial.finishDueTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
+    },
   // Where a web ACL stands, as AWS WAF answers OneUptime's check of it (#10344).
   "packages/Common/Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts": {
     "recordCloudWafState SecurityBlockCloudWaf": Why.Reported,

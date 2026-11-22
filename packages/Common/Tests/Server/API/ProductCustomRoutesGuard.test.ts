@@ -715,6 +715,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       BLOCKLIST_FEED_FALLBACK_ROUTE: BLOCKLIST_FEED_FALLBACK,
     },
   },
+  // Automatic response (#10350): the policies' overview names the product.
+  "packages/Common/Server/API/SecurityAutomaticResponsePolicyAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
