@@ -10,6 +10,10 @@
  * body was answered 500 with an error-level log line. Now it reads the bytes
  * StartServer inflated (RequestBodyParser): a gzip answer is taken as the
  * same answer sent uncompressed, held to the same 2 KB as it inflates.
+ *
+ * And the 2 KB holds whatever the body's encoding (#10672): StartServer
+ * parsed an uncompressed answer at the ordinary 1 MB before the route's
+ * parser came to it. It holds both routes to their 2 KB before routing now.
  */
 
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
@@ -68,9 +72,10 @@ jest.mock("../../../FeatureSet/Docs/Utils/Placeholders", () => {
 });
 
 import DocsFeatureSet from "../../../FeatureSet/Docs/Index";
+import { DOCS_SEARCH_REPORT_MAX_LENGTH } from "../../../FeatureSet/Docs/Utils/DocsSearchReport";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
-import { ORDINARY_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
+import { DOCS_REPORT_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import {
   REQUEST_BODY_REFUSAL_MESSAGES,
   getTooLargeForRouteMessage,
@@ -104,8 +109,8 @@ import zlib from "zlib";
 
 jest.setTimeout(180000);
 
-// The most these ordinary routes take (RequestBodyLimit).
-const LIMIT: number = ORDINARY_REQUEST_BODY_LIMIT.bytes;
+// The most these routes take, a limit of their own (RequestBodyLimit, #10672).
+const LIMIT: number = DOCS_REPORT_REQUEST_BODY_LIMIT.bytes;
 
 const SENT: number = 64 * MIB;
 
@@ -197,25 +202,65 @@ describe.each(ROUTES)("$name", (route: DocsRoute) => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  test("a gzip answer inflating past the route's own 2 KB is refused 413 by the route's parser", async () => {
+  test.each([...CONNECTIONS])(
+    "an answer past the route's own 2 KB is refused 413 alike, sent as it is, declared or chunked, or gzipped (%s)",
+    async (connection: Connection) => {
+      const padded: Buffer = Buffer.from(
+        JSON.stringify({
+          ...JSON.parse(route.body.toString()),
+          padding: " ".repeat(4096),
+        }),
+      );
+
+      for (const chunked of [false, true]) {
+        for (const gzip of [false, true]) {
+          const sent: SentRequest = await sendOverHttp(server, {
+            path: route.path,
+            headers: gzip
+              ? { ...JSON_HEADERS, "content-encoding": "gzip" }
+              : JSON_HEADERS,
+            connection: connection,
+            chunked: chunked,
+            body: gzip ? zlib.gzipSync(padded) : padded,
+          });
+
+          // Sent as it is, it was parsed at the ordinary 1 MB.
+          expect(sent.answer.status).toBe(413);
+          expect(sent.answer.json).toEqual({
+            error: getTooLargeForRouteMessage(LIMIT),
+          });
+          expect(sent.answer.clientError).toBeNull();
+          expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
+            LIMIT + READ_OR_TWO,
+          );
+        }
+      }
+
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an answer within the 2 KB is taken alike, as it is or gzipped", async () => {
     const padded: Buffer = Buffer.from(
       JSON.stringify({
         ...JSON.parse(route.body.toString()),
-        padding: " ".repeat(4096),
+        padding: " ".repeat(1024),
       }),
     );
 
-    const sent: SentRequest = await sendOverHttp(server, {
-      path: route.path,
-      headers: { ...JSON_HEADERS, "content-encoding": "gzip" },
-      body: zlib.gzipSync(padded),
-    });
+    expect(padded.length).toBeLessThan(LIMIT);
 
-    expect(sent.answer.status).toBe(413);
-    expect(sent.answer.json).toEqual({
-      error: REQUEST_BODY_REFUSAL_MESSAGES.tooLarge,
-    });
-    expect(logger.error).not.toHaveBeenCalled();
+    for (const gzip of [false, true]) {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: route.path,
+        headers: gzip
+          ? { ...JSON_HEADERS, "content-encoding": "gzip" }
+          : JSON_HEADERS,
+        body: gzip ? zlib.gzipSync(padded) : padded,
+      });
+
+      expect(sent.answer.status).toBe(204);
+    }
   });
 
   test("a gzip body that does not inflate is refused 400 in its sentence, logged at debug and never at error", async () => {
@@ -273,6 +318,10 @@ describe.each(ROUTES)("$name", (route: DocsRoute) => {
       });
 
       expect(chunked.answer.status).toBe(413);
+      expect(chunked.answer.json).toEqual({
+        error: getTooLargeForRouteMessage(LIMIT),
+      });
+      // It read more than 1 MB before (#10672): the ordinary limit.
       expect(await server.readInAll(chunked.tag)).toBeLessThanOrEqual(
         LIMIT + READ_OR_TWO,
       );
@@ -292,5 +341,57 @@ describe.each(ROUTES)("$name", (route: DocsRoute) => {
     expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
       LIMIT + READ_OR_TWO,
     );
+  });
+});
+
+/*
+ * The docs page posts a search that found nothing as it was typed, and the
+ * server keeps its first DOCS_SEARCH_REPORT_MAX_LENGTH characters. Held to
+ * 2 KB whatever its encoding now (#10672), a report of a longer search would
+ * be refused rather than cut: so the page cuts it where the server does, and
+ * the longest report it can post fits.
+ */
+describe("the longest search the docs page reports", () => {
+  test("is cut where the server cuts it, and fits the 2 KB in any script", async () => {
+    const realFs: typeof FileSystem = jest.requireActual(
+      "fs",
+    ) as typeof FileSystem;
+    const realPath: typeof Path = jest.requireActual("path") as typeof Path;
+    const scripts: string = realFs.readFileSync(
+      realPath.resolve(
+        __dirname,
+        "../../../FeatureSet/Docs/Views/Partials/Scripts.ejs",
+      ),
+      "utf8",
+    );
+
+    expect(scripts).toContain(
+      `var SEARCH_REPORT_MAX_LENGTH = ${DOCS_SEARCH_REPORT_MAX_LENGTH};`,
+    );
+    expect(scripts).toContain(
+      "query: query.slice(0, SEARCH_REPORT_MAX_LENGTH),",
+    );
+
+    // Three bytes each, a two-byte escape each, four bytes each two units.
+    for (const character of ["語", '"', "😀", "a"]) {
+      const body: Buffer = Buffer.from(
+        JSON.stringify({
+          query: character
+            .repeat(DOCS_SEARCH_REPORT_MAX_LENGTH)
+            .slice(0, DOCS_SEARCH_REPORT_MAX_LENGTH),
+          language: "zh-TW",
+        }),
+      );
+
+      expect(body.length).toBeLessThan(LIMIT);
+
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: "/docs/search/found-nothing",
+        headers: JSON_HEADERS,
+        body: body,
+      });
+
+      expect(sent.answer.status).toBe(204);
+    }
   });
 });
