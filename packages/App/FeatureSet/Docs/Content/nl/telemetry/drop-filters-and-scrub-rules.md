@@ -5,6 +5,7 @@ Drop-filters en scrub-regels werken op uw logboeken en spans terwijl ze binnenko
 :::cards
 - [Waar ze draaien](#waar-ze-draaien): Vóór de pipelines, vóór de opslag.
 - [Records weggooien of bemonsteren](#records-weggooien-of-bemonsteren): Records selecteren, en ze dan weggooien of een deel houden.
+- [Wat een filter zou wegnemen](#wat-een-filter-zou-wegnemen): Wat de records leest, voordat u het opslaat.
 - [Gevoelige gegevens opschonen](#gevoelige-gegevens-opschonen): Wegstrepen, maskeren of hashen wat een patroon vindt.
 - [Controleren wat een filter weggooide](#controleren-wat-een-filter-weggooide): Tellingen op elk filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Bemonstering beslist per record: bij een **Voorbeeldpercentage** van 10 wordt ongeveer één op de tien overeenkomende records bewaard. Filters draaien in de volgorde van de lijst, en het eerste dat een record weggooit, beslist; een record dat een steekproef houdt, gaat door naar het volgende filter.
+
+## Wat een filter zou wegnemen
+
+Een weggegooid record is weg voor alles wat het leest. Daarom zegt het formulier van een drop-filter terwijl u het schrijft wat het zou wegnemen, een moment nadat u stopt met typen: onder de **Filterquery** bij **Overeenkomst**, en onder de actie bij **Actie**. Eén regel noemt het belangrijkste effect, en **Details tonen** noemt de rest:
+
+- **Hoeveel het selecteert.** Hoeveel van de records die de afgelopen dag zijn opgeslagen overeenkomen: wat het filter uit uw opslag en van uw rekening houdt. Er wordt geteld op wat werd opgeslagen, nadat scrub-regels en pipelines het hebben gewijzigd, en alleen over de services waarvan u de records kunt lezen. Een telling die langer dan 10 seconden duurt, wordt gestopt, en het formulier zegt dat.
+- **Wat Beveiligingsgebeurtenissen zou verliezen.** Waar [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) uw logboeken leest met de kaart **Uw logboeken**, of uw spans, zegt het formulier hoeveel van de overeenkomende records het heeft gelezen: de aanmeldingen, aanvallen en firewallrecords die het in gebeurtenissen omzet. Een filter met **Voorbeeld** noemt ook de regels die bij een aantal afgaan, en wat er met die regels gebeurt als het filter alleen zijn deel houdt: bij 10% heeft een regel die afgaat bij 10 mislukte aanmeldingen in vijf minuten er ongeveer 100 nodig, dus gaat hij veel minder vaak af, of nooit.
+- **Wat verder dezelfde records leest.** De monitors, SLO's, dashboards met hun widgets, opnameregels en opgeslagen weergaven waarvan de query's een record kunnen bevatten dat het filter wegneemt. Een query leest ze wanneer hij hetzelfde soort record leest, van een service waaruit het filter kan wegnemen, en niets wat hij op een exacte waarde vastlegt, het filter uitsluit: een filter op logboeken van **Debug** laat een monitor van fouten met rust, en een filter op één service laat het SLO van een andere service met rust. Alles wat het formulier niet kan uitsluiten, zoals een zoekopdracht in de logtekst, telt als lezen. Elk is een link, en wat u niet kunt openen, wordt geteld, maar nooit genoemd.
+
+Wanneer iets leest wat een filter wegneemt, vraagt OneUptime u om een bevestiging als u het filter aanmaakt, het inschakelt of de query of actie wijzigt van een filter dat aan staat. U kunt het filter toch opslaan: de vraag is er zodat u weet wat u beslist. Een filter dat niets leest, wordt zonder vraag opgeslagen.
+
+Via de API wordt niets gevraagd, want een script of Terraform heeft niemand die kan antwoorden. Een filter dat via de API wordt aangemaakt of gewijzigd, wordt opgeslagen, en als het wegneemt wat anderen lezen, draagt het antwoord een header `X-OneUptime-Write-Warning` die dat in aantallen zegt, en die de Terraform-provider als waarschuwing toont. Om eerst te vragen, stuurt u `filterQuery`, `action` en `samplePercentage` van het filter naar `POST /api/telemetry/logs/drop-filter-impact`, of naar `/api/telemetry/traces/drop-filter-impact` voor spans: het antwoord bevat alles wat het formulier toont.
+
+De OpenStack-filters die OneUptime aan een project toevoegt, houden elke logregel die Beveiligingsgebeurtenissen leest, zolang ze zijn zoals OneUptime ze maakte. Wijzig er een, en het gooit weg wat het selecteert, zoals een filter van uzelf.
 
 ## Gevoelige gegevens opschonen
 

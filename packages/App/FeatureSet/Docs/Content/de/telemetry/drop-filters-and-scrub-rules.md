@@ -5,6 +5,7 @@ Drop-Filter und Scrub-Regeln wirken auf Ihre Protokolle und Spans, während sie 
 :::cards
 - [Wo sie laufen](#wo-sie-laufen): Vor den Pipelines, vor dem Speichern.
 - [Datensätze verwerfen oder Stichproben nehmen](#datensätze-verwerfen-oder-stichproben-nehmen): Datensätze abgleichen, dann verwerfen oder einen Anteil behalten.
+- [Was ein Filter wegnehmen würde](#was-ein-filter-wegnehmen-würde): Was die Datensätze liest, bevor Sie ihn speichern.
 - [Sensible Daten bereinigen](#sensible-daten-bereinigen): Schwärzen, maskieren oder hashen, was ein Muster findet.
 - [Prüfen, was ein Filter verworfen hat](#prüfen-was-ein-filter-verworfen-hat): Zähler an jedem Filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Stichproben werden Datensatz für Datensatz entschieden: Bei einem **Stichprobenprozentsatz** von 10 wird etwa einer von zehn passenden Datensätzen behalten. Filter laufen in der Reihenfolge der Liste, und der erste, der einen Datensatz verwirft, entscheidet; ein Datensatz, den eine Stichprobe behält, geht weiter zum nächsten Filter.
+
+## Was ein Filter wegnehmen würde
+
+Ein verworfener Datensatz ist für alles weg, was ihn liest. Darum sagt das Formular eines Drop-Filters schon beim Schreiben, was er wegnehmen würde, einen Moment nachdem Sie aufhören zu tippen: im Schritt **Übereinstimmung** unter der **Filterabfrage** und im Schritt **Aktion** unter der Aktion. Eine Zeile nennt die wichtigste Auswirkung, und **Details anzeigen** nennt den Rest:
+
+- **Wie viel er trifft.** Wie viele der Datensätze, die im Lauf des letzten Tages gespeichert wurden, er trifft: was der Filter aus Ihrem Speicher und von Ihrer Rechnung fernhält. Gezählt wird, was gespeichert wurde, nachdem Scrub-Regeln und Pipelines es verändert haben, und nur über die Dienste, deren Datensätze Sie lesen dürfen. Eine Zählung, die länger als 10 Sekunden dauert, wird abgebrochen, und das Formular sagt es.
+- **Was Sicherheitsereignisse verlieren würden.** Wo [Sicherheitsereignisse](/docs/telemetry/security-events) Ihre Protokolle über die Karte **Ihre Protokolle** lesen, oder Ihre Spans, sagt das Formular, wie viele der getroffenen Datensätze sie gelesen haben: die Anmeldungen, Angriffe und Firewall-Einträge, die sie zu Ereignissen machen. Ein Filter mit **Stichprobe** nennt außerdem die Regeln, die bei einer Anzahl auslösen, und was es für sie bedeutet, dass er nur seinen Anteil behält: Bei 10 % braucht eine Regel, die bei 10 fehlgeschlagenen Anmeldungen in fünf Minuten auslöst, etwa 100, sie löst also viel seltener oder nie aus.
+- **Was sonst dieselben Datensätze liest.** Die Monitore, SLOs, Dashboards mit ihren Widgets, Aufzeichnungsregeln und gespeicherten Ansichten, deren Abfragen einen Datensatz einschließen können, den der Filter wegnimmt. Eine Abfrage liest sie, wenn sie dieselbe Art von Datensatz liest, aus einem Dienst, den der Filter treffen kann, und nichts, was sie auf einen genauen Wert festlegt, den Filter ausschließt: Ein Filter für **Debug**-Protokolle lässt einen Monitor für Fehler in Ruhe, und ein Filter für einen Dienst lässt das SLO eines anderen Dienstes in Ruhe. Alles, was das Formular nicht ausschließen kann, etwa eine Suche im Protokolltext, zählt als Lesen. Jedes ist ein Link, und die, die Sie nicht öffnen können, werden gezählt, aber nie genannt.
+
+Wenn etwas liest, was ein Filter wegnimmt, bittet OneUptime Sie um eine Bestätigung, wenn Sie den Filter anlegen, ihn aktivieren oder bei einem aktiven Filter die Abfrage oder die Aktion ändern. Sie können den Filter trotzdem speichern: Die Frage ist da, damit Sie wissentlich entscheiden. Ein Filter, den nichts liest, wird ohne Frage gespeichert.
+
+Über die API fragt nichts nach, denn ein Skript oder Terraform hat niemanden, der antworten könnte. Ein Filter, der über die API angelegt oder geändert wird, wird gespeichert, und wenn er wegnimmt, was andere lesen, trägt die Antwort den Header `X-OneUptime-Write-Warning`, der das in Zahlen sagt und den der Terraform-Provider als Warnung anzeigt. Um vorher zu fragen, senden Sie `filterQuery`, `action` und `samplePercentage` des Filters an `POST /api/telemetry/logs/drop-filter-impact`, oder für Spans an `/api/telemetry/traces/drop-filter-impact`: Die Antwort enthält alles, was das Formular zeigt.
+
+Die OpenStack-Filter, die OneUptime einem Projekt hinzufügt, behalten jede Zeile, die Sicherheitsereignisse lesen, solange sie so sind, wie OneUptime sie angelegt hat. Ändern Sie einen, verwirft er, was er trifft, wie ein eigener Filter.
 
 ## Sensible Daten bereinigen
 

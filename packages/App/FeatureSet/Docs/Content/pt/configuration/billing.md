@@ -119,6 +119,8 @@ Quando o seu banco ainda está processando um pagamento, o OneUptime avisa: algu
 
 O uso de um dia aparece quando o dia termina, até por volta das 08:00 UTC do dia seguinte. Filtre por **Produto**, **Dia** ou **Serviço** para encontrar o que cresceu.
 
+Para enviar menos, um [filtro de descarte](/docs/telemetry/drop-filters-and-scrub-rules) joga fora os logs e spans que você nunca lê antes que sejam armazenados, e o que ele descarta não é cobrado. Antes de você salvar um, o formulário dele diz com quanto da telemetria do último dia ele corresponde, e o que ele levaria dos monitores, painéis, SLOs e Eventos de segurança que leem as mesmas entradas: veja [O que um filtro levaria](/docs/telemetry/drop-filters-and-scrub-rules#o-que-um-filtro-levaria).
+
 ## Saldos pré-pagos
 
 Mensagens de SMS, chamadas, WhatsApp e Telegram são pagas com o saldo do projeto, e o OneUptime AI com os créditos de IA dele. Você recarrega cada um com antecedência:

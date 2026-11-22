@@ -5,6 +5,7 @@ Drop filters and scrub rules act on your logs and spans as they arrive, before a
 :::cards
 - [Where they run](#where-they-run): Before pipelines, before storage.
 - [Drop or sample records](#drop-or-sample-records): Match records, then drop them or keep a share.
+- [What a filter would take](#what-a-filter-would-take): What reads the records, before you save it.
 - [Scrub sensitive data](#scrub-sensitive-data): Redact, mask or hash what a pattern finds.
 - [Check what a filter dropped](#check-what-a-filter-dropped): Counts on every filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Sampling decides record by record: at a **Sample Percentage** of 10, about one matching record in ten is kept. Filters run in the order of the list, and the first one that drops a record decides; a record a sample keeps goes on to the next filter.
+
+## What a filter would take
+
+A dropped record is gone for everything that reads it, so as you write a drop filter, its form says what it would take, a moment after you stop typing: under the **Filter Query** on **Match**, and under the action on **Action**. One line says the most important effect, and **Show details** says the rest:
+
+- **How much it matches.** Of the records stored in the last day, how many match: what the filter keeps out of your storage, and off your bill. It is counted from what was stored, after scrub rules and pipelines changed it, and only over the services whose records you can read. A count that takes longer than 10 seconds is stopped, and the form says so.
+- **What Security Events would lose.** Where [Security Events](/docs/telemetry/security-events) reads your logs with **Your logs**, or your spans, the form says how many of the matched records it read: the sign-ins, attacks and firewall records it turns into events. A **Sample** filter also names the rules that fire at a count, and what keeping only its share does to them: at 10%, a rule that fires at 10 failed sign-ins in five minutes needs about 100, so it fires far less often, or never.
+- **What else reads the same records.** The monitors, SLOs, dashboards with their widgets, recording rules and saved views whose queries can keep a record the filter takes. A query reads them when it reads the same kind of record, from a service the filter can take, and nothing it holds to an exact value rules the filter out: a filter of **Debug** logs leaves a monitor of errors alone, and a filter of one service leaves another service's SLO alone. Anything the form cannot rule out, such as a search of the log body, counts as reading them. Each is a link, and the ones you can't open are counted, never named.
+
+When something reads what a filter takes, creating the filter, turning it on, or changing the query or action of one that is on asks you to confirm. You can still save it: the question is there so you decide knowing. A filter nothing reads saves without a question.
+
+Through the API nothing asks, because a script or Terraform has nobody to answer. A filter it creates or changes is saved, and when it takes what others read, the answer carries an `X-OneUptime-Write-Warning` header that says so in counts, which the Terraform provider shows as a warning. To ask first, send the filter's `filterQuery`, `action` and `samplePercentage` to `POST /api/telemetry/logs/drop-filter-impact`, or `/api/telemetry/traces/drop-filter-impact` for spans: it answers with everything the form shows.
+
+The OpenStack filters OneUptime adds to a project keep every line Security Events reads, as long as they are as OneUptime made them. Change one, and it drops what it matches, like a filter of your own.
 
 ## Scrub sensitive data
 

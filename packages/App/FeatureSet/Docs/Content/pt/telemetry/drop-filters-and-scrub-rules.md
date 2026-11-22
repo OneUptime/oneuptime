@@ -5,6 +5,7 @@ Os filtros de descarte e as regras de mascaramento agem sobre os seus registros 
 :::cards
 - [Onde eles rodam](#onde-eles-rodam): Antes dos pipelines, antes do armazenamento.
 - [Descartar ou amostrar entradas](#descartar-ou-amostrar-entradas): Selecionar entradas e depois descartá-las ou manter uma parte.
+- [O que um filtro levaria](#o-que-um-filtro-levaria): O que lê as entradas, antes de você salvá-lo.
 - [Mascarar dados sensíveis](#mascarar-dados-sensíveis): Ocultar, mascarar ou trocar por um hash o que um padrão encontra.
 - [Verificar o que um filtro descartou](#verificar-o-que-um-filtro-descartou): Contagens em cada filtro.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 A amostragem decide entrada por entrada: com uma **Porcentagem de amostragem** de 10, cerca de uma em cada dez entradas correspondentes é mantida. Os filtros rodam na ordem da lista, e o primeiro que descarta uma entrada decide; uma entrada que uma amostra mantém segue para o filtro seguinte.
+
+## O que um filtro levaria
+
+Uma entrada descartada se foi para tudo o que a lê, então, enquanto você escreve um filtro de descarte, o formulário dele diz o que ele levaria, um instante depois que você para de digitar: sob a **Consulta do filtro** em **Corresponder**, e sob a ação em **Ação**. Uma linha diz o efeito mais importante, e **Mostrar detalhes** diz o resto:
+
+- **Com quanto ele corresponde.** Das entradas armazenadas no último dia, quantas correspondem: o que o filtro mantém fora do seu armazenamento e da sua fatura. A contagem é feita sobre o que foi armazenado, depois que as regras de mascaramento e os pipelines o alteraram, e só nos serviços cujas entradas você pode ler. Uma contagem que leva mais de 10 segundos é interrompida, e o formulário avisa.
+- **O que os Eventos de segurança perderiam.** Onde os [Eventos de segurança](/docs/telemetry/security-events) leem os seus registros com o cartão **Seus logs**, ou os seus spans, o formulário diz quantas das entradas correspondentes eles leram: os logins, ataques e entradas de firewall que eles transformam em eventos. Um filtro de **Amostra** também nomeia as regras que disparam a partir de uma contagem, e o que acontece com elas quando ele mantém só a sua parte: a 10%, uma regra que dispara com 10 logins com falha em cinco minutos precisa de cerca de 100, então dispara muito menos vezes, ou nunca.
+- **O que mais lê as mesmas entradas.** Os monitores, SLOs, painéis com os seus widgets, regras de gravação e visualizações salvas cujas consultas podem incluir uma entrada que o filtro leva. Uma consulta as lê quando lê o mesmo tipo de entrada, de um serviço do qual o filtro pode levar entradas, e nada do que ela fixa num valor exato exclui o filtro: um filtro de registros de **Depuração** deixa em paz um monitor de erros, e um filtro de um serviço deixa em paz o SLO de outro serviço. Tudo o que o formulário não consegue excluir, como uma pesquisa no corpo do registro, conta como leitura. Cada um é um link, e os que você não pode abrir são contados, nunca nomeados.
+
+Quando algo lê o que um filtro leva, criar o filtro, ativá-lo ou alterar a consulta ou a ação de um filtro ativo pede que você confirme. Você ainda pode salvar o filtro: a pergunta está ali para que você decida sabendo. Um filtro que nada lê é salvo sem pergunta.
+
+Pela API, nenhuma pergunta é feita, porque um script ou o Terraform não tem ninguém para responder. Um filtro que a API cria ou altera é salvo, e quando ele leva o que outros leem, a resposta traz um cabeçalho `X-OneUptime-Write-Warning` que diz isso em números, e que o provider do Terraform mostra como um aviso. Para perguntar antes, envie `filterQuery`, `action` e `samplePercentage` do filtro para `POST /api/telemetry/logs/drop-filter-impact`, ou para `/api/telemetry/traces/drop-filter-impact` no caso dos spans: a resposta traz tudo o que o formulário mostra.
+
+Os filtros do OpenStack que o OneUptime adiciona a um projeto mantêm cada linha que os Eventos de segurança leem, desde que estejam como o OneUptime os criou. Altere um, e ele descarta o que corresponde, como um filtro seu.
 
 ## Mascarar dados sensíveis
 

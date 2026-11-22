@@ -5,6 +5,7 @@ I filtri di scarto e le regole di mascheramento agiscono sui vostri log e span m
 :::cards
 - [Dove vengono eseguiti](#dove-vengono-eseguiti): Prima delle pipeline, prima del salvataggio.
 - [Scartare o campionare i record](#scartare-o-campionare-i-record): Selezionare i record, poi scartarli o conservarne una parte.
+- [Che cosa toglierebbe un filtro](#che-cosa-toglierebbe-un-filtro): Che cosa legge i record, prima di salvarlo.
 - [Mascherare i dati sensibili](#mascherare-i-dati-sensibili): Oscurare, mascherare o sostituire con un hash ciò che un pattern trova.
 - [Verificare che cosa ha scartato un filtro](#verificare-che-cosa-ha-scartato-un-filtro): Conteggi su ogni filtro.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Il campionamento decide record per record: con una **Percentuale di campionamento** di 10, viene conservato circa un record corrispondente su dieci. I filtri vengono eseguiti nell'ordine dell'elenco, e decide il primo che scarta un record; un record che un campione conserva passa al filtro successivo.
+
+## Che cosa toglierebbe un filtro
+
+Un record scartato non esiste più per tutto ciò che lo legge, quindi, mentre scrivete un filtro di scarto, il suo modulo dice che cosa toglierebbe, un attimo dopo che smettete di digitare: sotto la **Query del filtro** in **Corrispondenza**, e sotto l'azione in **Azione**. Una riga dice l'effetto più importante, e **Mostra dettagli** dice il resto:
+
+- **Quanto seleziona.** Dei record salvati nell'ultimo giorno, quanti corrispondono: ciò che il filtro tiene fuori dal vostro archivio e dalla vostra fattura. Si conta su ciò che è stato salvato, dopo che le regole di mascheramento e le pipeline l'hanno modificato, e solo sui servizi di cui potete leggere i record. Un conteggio che dura più di 10 secondi viene interrotto, e il modulo lo dice.
+- **Che cosa perderebbero gli Eventi di sicurezza.** Dove gli [Eventi di sicurezza](/docs/telemetry/security-events) leggono i vostri log con la scheda **I tuoi log**, o i vostri span, il modulo dice quanti dei record corrispondenti hanno letto: gli accessi, gli attacchi e i record del firewall che trasformano in eventi. Un filtro **Campione** nomina anche le regole che scattano a un conteggio, e che cosa succede loro se conserva solo la sua parte: al 10%, una regola che scatta a 10 accessi falliti in cinque minuti ne richiede circa 100, quindi scatta molto più di rado, o mai.
+- **Che cos'altro legge gli stessi record.** I monitor, gli SLO, le dashboard con i loro widget, le regole di registrazione e le viste salvate le cui query possono includere un record che il filtro toglie. Una query li legge quando legge lo stesso tipo di record, da un servizio da cui il filtro può togliere, e nulla di ciò che fissa a un valore esatto esclude il filtro: un filtro dei log **Debug** lascia stare un monitor degli errori, e un filtro di un servizio lascia stare lo SLO di un altro servizio. Tutto ciò che il modulo non può escludere, come una ricerca nel corpo del log, conta come lettura. Ognuno è un link, e quelli che non potete aprire vengono contati, mai nominati.
+
+Quando qualcosa legge ciò che un filtro toglie, creare il filtro, attivarlo o cambiare la query o l'azione di uno attivo vi chiede di confermare. Potete comunque salvare il filtro: la domanda c'è perché decidiate con cognizione di causa. Un filtro che nulla legge si salva senza domande.
+
+Tramite l'API non viene chiesto nulla, perché uno script o Terraform non ha nessuno che risponda. Un filtro che l'API crea o modifica viene salvato, e quando toglie ciò che altri leggono, la risposta porta un'intestazione `X-OneUptime-Write-Warning` che lo dice in numeri, e che il provider Terraform mostra come avviso. Per chiedere prima, inviate `filterQuery`, `action` e `samplePercentage` del filtro a `POST /api/telemetry/logs/drop-filter-impact`, oppure a `/api/telemetry/traces/drop-filter-impact` per gli span: risponde con tutto ciò che mostra il modulo.
+
+I filtri OpenStack che OneUptime aggiunge a un progetto conservano ogni riga che leggono gli Eventi di sicurezza, finché restano come OneUptime li ha creati. Modificatene uno, e scarta ciò che seleziona, come un vostro filtro.
 
 ## Mascherare i dati sensibili
 

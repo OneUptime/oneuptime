@@ -5,6 +5,7 @@ Drop-filtre og scrub-regler virker på dine protokoller og spans, mens de ankomm
 :::cards
 - [Hvor de kører](#hvor-de-kører): Før pipelines, før lagring.
 - [Kassér poster, eller tag stikprøver](#kassér-poster-eller-tag-stikprøver): Vælg poster, og kassér dem, eller behold en andel.
+- [Hvad et filter ville tage](#hvad-et-filter-ville-tage): Hvad der læser posterne, før du gemmer det.
 - [Rens følsomme data](#rens-følsomme-data): Skjul, maskér eller hash det, et mønster finder.
 - [Se, hvad et filter kasserede](#se-hvad-et-filter-kasserede): Tællere på hvert filter.
 :::
@@ -75,6 +76,20 @@ severityText = 'Debug' AND body LIKE 'healthcheck'
 ```
 
 Stikprøver afgøres post for post: med en **Stikprøveprocent** på 10 beholdes cirka én ud af ti matchende poster. Filtrene kører i listens rækkefølge, og det første, der kasserer en post, afgør det; en post, som en stikprøve beholder, går videre til det næste filter.
+
+## Hvad et filter ville tage
+
+En kasseret post er væk for alt, der læser den, så mens du skriver et drop-filter, siger dets formular, hvad det ville tage, et øjeblik efter at du holder op med at skrive: i trinnet **Match** under **Filterforespørgsel** og i trinnet **Handling** under handlingen. Én linje siger den vigtigste virkning, og **Vis detaljer** siger resten:
+
+- **Hvor meget det matcher.** Hvor mange af de poster, der blev gemt det seneste døgn, der matcher: det, filteret holder ude af dit lager og væk fra din regning. Det tælles ud fra det, der blev gemt, efter at scrub-regler og pipelines ændrede det, og kun over de tjenester, hvis poster du kan læse. En optælling, der tager mere end 10 sekunder, stoppes, og formularen siger det.
+- **Hvad Sikkerhedsbegivenheder ville miste.** Hvor [Sikkerhedsbegivenheder](/docs/telemetry/security-events) læser dine logs med **Dine logs**, eller dine spans, siger formularen, hvor mange af de matchede poster den læste: de logins, angreb og firewallposter, den gør til begivenheder. Et filter med **Stikprøve** nævner også de regler, der udløses ved et antal, og hvad det gør ved dem, at filteret kun beholder sin andel: ved 10 % skal en regel, der udløses ved 10 fejlede logins på fem minutter, have omkring 100, så den udløses langt sjældnere eller aldrig.
+- **Hvad der ellers læser de samme poster.** De monitorer, SLO'er, dashboards med deres widgets, optagelsesregler og gemte visninger, hvis forespørgsler kan medtage en post, som filteret tager. En forespørgsel læser dem, når den læser samme slags post, fra en tjeneste, som filteret kan tage fra, og intet, den låser til en bestemt værdi, udelukker filteret: et filter for logs på niveauet **Fejlfinding** lader en monitor for fejl være, og et filter for én tjeneste lader en anden tjenestes SLO være. Alt, hvad formularen ikke kan udelukke, såsom en søgning i logpostens brødtekst, tæller som at læse dem. Hver af dem er et link, og dem, du ikke kan åbne, tælles, men nævnes aldrig ved navn.
+
+Når noget læser det, et filter tager, beder formularen dig om at bekræfte, når du opretter filteret, slår det til eller ændrer forespørgslen eller handlingen for et filter, der er slået til. Du kan stadig gemme filteret: spørgsmålet er der, så du beslutter dig med viden om det. Et filter, som intet læser, gemmes uden spørgsmål.
+
+Gennem API'et spørger intet, for et script eller Terraform har ingen til at svare. Et filter, der oprettes eller ændres gennem API'et, gemmes, og når det tager noget, andre læser, bærer svaret headeren `X-OneUptime-Write-Warning`, der siger det med antal, og som Terraform-provideren viser som en advarsel. For at spørge først skal du sende filterets `filterQuery`, `action` og `samplePercentage` til `POST /api/telemetry/logs/drop-filter-impact`, eller til `/api/telemetry/traces/drop-filter-impact` for spans: svaret indeholder alt, hvad formularen viser.
+
+De OpenStack-filtre, OneUptime tilføjer til et projekt, beholder hver linje, Sikkerhedsbegivenheder læser, så længe de er, som OneUptime lavede dem. Ændrer du et af dem, kasserer det alt, hvad det matcher, ligesom dine egne filtre.
 
 ## Rens følsomme data
 
