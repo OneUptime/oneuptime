@@ -17,7 +17,7 @@ import IncidentTemplateService, {
   Service as IncidentTemplateServiceType,
 } from "../../../Server/Services/IncidentTemplateService";
 import LabelService, {
-  LabelService as LabelServiceType,
+  Service as LabelServiceType,
 } from "../../../Server/Services/LabelService";
 import TeamService, {
   Service as TeamServiceType,
@@ -48,6 +48,21 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormOnSubmitData";
 import { getFormSettingsFields } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormSettingsEditor";
 import {
+  FORM_RECORD_OPTIONS_SOURCES,
+  FormRecordOptionsSource,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormBuilderData";
+import {
+  FormQuestionData,
+  loadFormQuestionData,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/Templates/FormQuestionData";
+import { FormField, FormFieldSource } from "../../../Types/Form/FormField";
+import {
+  buildPublicForm,
+  PublicFormField,
+  PublicFormFieldOption,
+} from "../../../Types/Form/FormPublic";
+import { FormTargetOptionsSource } from "../../../Types/Form/FormTargetCatalog";
+import {
   afterAll,
   beforeAll,
   beforeEach,
@@ -75,6 +90,12 @@ import {
  * searches find what the old read never had, and each keeps its own rules -
  * another project's records never, an archived label never offered, a
  * member limited to a label finds only that label's monitors.
+ *
+ * A choice question offering monitors had the same shape: the builder, the
+ * Templates page and Duplicate Form read the project's monitors whole and
+ * looked for the question's among them. They read what a question offers
+ * by its ids now, as the server does for the public page, and the
+ * builder's Choices Offered searches the server.
  *
  * Opt in with RUN_POSTGRES_PICKER_SEARCH_TESTS=true (see the harness).
  */
@@ -138,7 +159,7 @@ const MONITORS_BEFORE_WB: number = LIMIT_PER_PROJECT + 50;
 const PICKER_PAGE_SIZE: number = 50;
 
 describePostgres(
-  "a form's On Submit settings, read and searched through the real server (#10646)",
+  "a form's On Submit settings and choice questions, read and searched through the real server (#10646)",
   () => {
     const harness: PostgresListRouteHarness = new PostgresListRouteHarness({
       schemaPrefix: "form_on_submit",
@@ -512,6 +533,135 @@ describePostgres(
             "name",
           ),
         ).toEqual(["customer-report"]);
+      });
+    });
+
+    /*
+     * A choice question offers the records it names. The builder, the
+     * Templates page and Duplicate Form read them by their ids now, as the
+     * server reads them for the public page (FormRecordOptions); the
+     * builder's Choices Offered searches the server.
+     */
+    describe("a form's choice questions", () => {
+      const offeredBy: (data: {
+        question: FormField;
+        questionData: FormQuestionData;
+      }) => Array<string> = (data: {
+        question: FormField;
+        questionData: FormQuestionData;
+      }): Array<string> => {
+        const field: PublicFormField | undefined = buildPublicForm({
+          form: {
+            name: "Report",
+            fields: [data.question] as never,
+            targetType: FormTargetType.Incident,
+          },
+          customFields: data.questionData.customFields,
+          recordOptions: data.questionData.recordOptions,
+          isCaptchaRequired: false,
+        }).allFields.find((candidate: PublicFormField): boolean => {
+          return candidate.id === data.question.id;
+        });
+
+        return (field?.options || []).map(
+          (option: PublicFormFieldOption): string => {
+            return option.label;
+          },
+        );
+      };
+
+      test("a question offering the monitor past the 10,000th offers it; one deleted since is not there", async () => {
+        const reads: Array<ListRequest> = harness.routeModelAPIReads({
+          userId: memberId,
+          projectId: projectId,
+        });
+
+        const question: FormField = {
+          id: "monitors",
+          source: FormFieldSource.TargetField,
+          targetField: "monitors",
+          label: "Affected Monitors",
+          isRequired: false,
+          allowedOptionIds: [
+            lateMonitorId.toString(),
+            deletedMonitorId.toString(),
+          ],
+        };
+
+        expect(
+          offeredBy({
+            question,
+            questionData: await loadFormQuestionData({
+              targetType: FormTargetType.Incident,
+              fields: [question],
+            }),
+          }),
+        ).toEqual(["WB1500KSK02"]);
+
+        // The two it names, by their ids: never the project's whole.
+        expect(
+          reads.map((read: ListRequest): [string, number] => {
+            return [read.path, read.limit];
+          }),
+        ).toEqual([["/monitor", 2]]);
+      });
+
+      test("a question offering an archived label offers only the live one, as the public page does", async () => {
+        harness.routeModelAPIReads({ userId: memberId, projectId: projectId });
+
+        const question: FormField = {
+          id: "labels",
+          source: FormFieldSource.TargetField,
+          targetField: "labels",
+          label: "Labels",
+          isRequired: false,
+          allowedOptionIds: [
+            liveLabelId.toString(),
+            archivedLabelId.toString(),
+          ],
+        };
+
+        expect(
+          offeredBy({
+            question,
+            questionData: await loadFormQuestionData({
+              targetType: FormTargetType.Incident,
+              fields: [question],
+            }),
+          }),
+        ).toEqual(["customer-report"]);
+      });
+
+      test("Choices Offered finds the monitor past the 10,000th, and never another project's", async () => {
+        const monitors: FormRecordOptionsSource =
+          FORM_RECORD_OPTIONS_SOURCES[FormTargetOptionsSource.Monitor];
+
+        const search: (text: string) => Promise<ListedPage> = async (
+          text: string,
+        ): Promise<ListedPage> => {
+          return await harness.list({
+            path: "/monitor",
+            query: withSearch(
+              ArchivedValuePicker.getPickerQuery(
+                monitors.modelType,
+                monitors.query,
+              ),
+              "name",
+              text,
+            ),
+            select: { _id: true, name: true },
+            sort: { name: SortOrder.Ascending },
+            limit: PICKER_PAGE_SIZE,
+            userId: memberId,
+            projectId: projectId,
+          });
+        };
+
+        expect(valuesOf(await search("WB1500KSK0"), "name")).toEqual([
+          "WB1500KSK02",
+          "WB1500KSK03",
+        ]);
+        expect(valuesOf(await search("WB1500KSK04"), "name")).toEqual([]);
       });
     });
   },

@@ -256,8 +256,8 @@ describe("a saved monitor whose name sorts past the 10,000th", () => {
       server
         .list({
           modelType: Monitor,
-          query: { projectId: new ObjectID(PROJECT_ID) },
-          select: { _id: true, name: true },
+          query: { projectId: new ObjectID(PROJECT_ID) } as never,
+          select: { _id: true, name: true } as never,
           sort: { name: "Ascending" } as never,
           limit: LIMIT_PER_PROJECT,
           skip: 0,

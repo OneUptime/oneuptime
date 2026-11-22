@@ -38,6 +38,7 @@ import { toDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Comp
 import { toSeverityDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateSideOver";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import Label from "../../../Models/DatabaseModels/Label";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { FormTargetSettingReferenceModel } from "../../../Types/Form/FormTargetSettings";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import ObjectID from "../../../Types/ObjectID";
@@ -372,11 +373,11 @@ describe("options built by hand", () => {
     const tableOf: (key: string) => string | undefined = (
       key: string,
     ): string | undefined => {
-      const modelType:
-        | { new (): { tableName?: string | undefined } }
-        | undefined = fields.find((field: Field<JSONObject>): boolean => {
-        return Object.keys(field.field || {})[0] === key;
-      })?.dropdownModal?.type as never;
+      const modelType: DatabaseBaseModelType | undefined = fields.find(
+        (field: Field<JSONObject>): boolean => {
+          return Object.keys(field.field || {})[0] === key;
+        },
+      )?.dropdownModal?.type;
 
       return modelType ? new modelType().tableName : undefined;
     };
