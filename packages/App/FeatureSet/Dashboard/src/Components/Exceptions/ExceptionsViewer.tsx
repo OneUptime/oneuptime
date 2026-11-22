@@ -42,7 +42,7 @@ import {
   HashedAddressSignal,
   getHashedAddressSearchTexts,
 } from "Common/Types/Telemetry/HashedAddressSearch";
-import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/useHashedAddressSearch";
 import {
   FacetCountAnswer,
   FacetCountRequestPart,
