@@ -17,9 +17,14 @@ import path from "path";
  * their account's place, and two entries printed the person's address after
  * their name. One fix in one line left the others saying it.
  *
- * Now every line names its people through OnCallChatByWorkspace (nameIn,
- * and its getInviteeName and getDisplayName rules), which names someone
- * only invited by the name typed for them, never an address. This reads the
+ * Now every line names its people through OnCallChatByWorkspace (nameIn),
+ * which names them as every feed entry and channel line does (FeedPersonName,
+ * #10668): someone only invited by the name typed for them, never an
+ * address. getUserMarkdownString and getUserStringForWorkspace follow that
+ * rule too now, but an on-call line still names its people through nameIn:
+ * each workspace's line names a person as that workspace knows them, the
+ * same in every line of the change, and each person is read once for it.
+ * FeedLinesNamePeopleInOnePlaceGuard holds every other line. This reads the
  * source of every file that writes a policy's feed entry or posts its
  * channel line, so that a new line cannot name a person any other way:
  *
@@ -42,11 +47,11 @@ const WRITES_A_LINE: RegExp =
 const NAMES_A_PERSON_ITSELF: Array<{ pattern: RegExp; what: string }> = [
   {
     pattern: /\bgetUserMarkdownString\(/,
-    what: "UserService.getUserMarkdownString: someone pending by their invited address",
+    what: "UserService.getUserMarkdownString: a name of its own, not the workspace's, read again for each line",
   },
   {
     pattern: /\bgetUserStringForWorkspace\(/,
-    what: "WorkspaceUtil.getUserStringForWorkspace: OneUptime's name, an invited address included",
+    what: "WorkspaceUtil.getUserStringForWorkspace: a name read again for each line, outside the change's reads",
   },
   {
     pattern: /(?<!get)\bnameInProject\(/,

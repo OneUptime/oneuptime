@@ -25140,6 +25140,7 @@
   "Incident AI settings": "إعدادات الذكاء الاصطناعي للحوادث",
   "No longer a member": "لم يعد عضوًا",
   "Invitation not accepted yet": "لم تُقبل الدعوة بعد",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "لم يقبل هذا الشخص الدعوة إلى هذا المشروع بعد، لذا لن يُستدعى أحد بدلًا من الشخص الغائب حتى يقبلها.",
   "* - every row, alerting separately": "* - كل صف، مع تنبيه منفصل لكل منها",
   "* or a row name": "* أو اسم صف",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. يصبح كل {{pair}} سمةً. تحتفظ القيم المقتبسة بمسافاتها، ويُتخطى النص الذي ليس زوجًا - مثل ترويسة syslog.",

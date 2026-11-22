@@ -5,9 +5,7 @@ import Model from "../../Models/DatabaseModels/MonitorOwnerUser";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import MonitorService from "./MonitorService";
@@ -16,7 +14,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -60,20 +58,15 @@ export class Service extends ProjectReferencesService<Model> {
       const userId: ObjectID | undefined = item.userId;
 
       if (monitorId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
+        /*
+         * The entry is the channels' line too: the owner is named as the
+         * added entry names them, linked to their page - someone only
+         * invited by the name typed for them, never by an address, and no
+         * address after anybody's name (FeedPersonName, #10668). A member
+         * with no name is no longer taken off without a word.
+         */
+        const owner: MarkdownText = await UserService.getUserMarkdownString({
+          userId: userId,
           projectId: projectId,
         });
 
@@ -81,14 +74,14 @@ export class Service extends ProjectReferencesService<Model> {
           monitorId: monitorId,
         });
 
-        if (user && user.name) {
+        if (!owner.isEmpty()) {
           await MonitorFeedService.createMonitorFeedItem({
             monitorId: monitorId,
             projectId: projectId,
             monitorFeedEventType: MonitorFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`.toString(),
+              mdText`👨🏻‍💻 Removed **${owner}** from the [Monitor ${monitorName}](${(await MonitorService.getMonitorLinkInDashboard(projectId!, monitorId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,

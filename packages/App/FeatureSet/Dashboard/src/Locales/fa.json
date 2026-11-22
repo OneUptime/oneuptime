@@ -25140,6 +25140,7 @@
   "Incident AI settings": "تنظیمات هوش مصنوعی حوادث",
   "No longer a member": "دیگر عضو نیست",
   "Invitation not accepted yet": "دعوت هنوز پذیرفته نشده است",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "این شخص هنوز دعوت به این پروژه را نپذیرفته است، پس تا آن زمان به جای شخص غایب کسی فراخوانده نمی‌شود.",
   "* - every row, alerting separately": "* - همه سطرها، با هشدار جداگانه",
   "* or a row name": "* یا نام یک سطر",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "۲. هر {{pair}} به یک ویژگی تبدیل می‌شود. مقادیر داخل نقل‌قول فاصله‌هایشان را نگه می‌دارند و متنی که جفت نیست - مانند سرآیند syslog - نادیده گرفته می‌شود.",

@@ -172,7 +172,8 @@ describe("SloFeedUtil - the acting user", () => {
     ).resolves.toBe(`[Jane Doe](${USER_LINK})`);
   });
 
-  test("falls back to the email for a user who never set a name", async () => {
+  // Never the whole address: the feed is read beyond the project (#10669).
+  test("falls back to the part of the email before the @ for a user who never set a name", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockResolvedValue(makeUser({ email: "jane_doe@example.com" }));
@@ -187,7 +188,7 @@ describe("SloFeedUtil - the acting user", () => {
       }).then((markdown: MarkdownText | null): string | undefined => {
         return markdown?.toString();
       }),
-    ).resolves.toBe(`[jane\\_doe@example.com](${USER_LINK})`);
+    ).resolves.toBe(`[jane\\_doe](${USER_LINK})`);
   });
 
   test("a user name cannot re-point the link or add an image", async () => {
@@ -230,20 +231,28 @@ describe("SloFeedUtil - the acting user", () => {
     ).resolves.toBeNull();
   });
 
-  test("the display name is plain text, as typed, and empty for no user", () => {
-    // Placed as text (mdText) by the feed items that name the user.
-    expect(SloFeedUtil.getUserDisplayName(makeUser({ name: "*Jane*" }))).toBe(
-      "*Jane*",
-    );
-    expect(SloFeedUtil.getUserDisplayName(null)).toBe("");
-    expect(SloFeedUtil.getUserDisplayName(makeUser({}))).toBe("");
+  test("a user with neither a name nor an email is still linked, as User", async () => {
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(makeUser({}));
+    jest
+      .spyOn(UserService, "getUserLinkInDashboard")
+      .mockResolvedValue(URL.fromString(USER_LINK));
+
+    await expect(
+      SloFeedUtil.getUserMarkdown({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
+      }),
+    ).resolves.toBe(`[User](${USER_LINK})`);
   });
 });
 
 /*
  * An SLO's owner can be someone invited to the project who has not
- * accepted: the project sees only what it invited of them - the name typed
- * for them, else their address - never their account's own name (#9823).
+ * accepted: the feed names them by the name typed for them, as text, else
+ * as someone who hasn't joined the project yet - never by their account's
+ * own name (#9823) or any address (#10668).
  */
 describe("SloFeedUtil - an owner only invited to the project", () => {
   function pending(inviteeName: string | null): jest.SpyInstance {
@@ -256,7 +265,7 @@ describe("SloFeedUtil - an owner only invited to the project", () => {
       );
   }
 
-  test("links them by the name typed for them, never their own", async () => {
+  test("names them by the name typed for them, as text, never their own", async () => {
     const withheldIn: jest.SpyInstance = pending("Jane from Payments");
     jest
       .spyOn(UserService, "findOneById")
@@ -274,23 +283,29 @@ describe("SloFeedUtil - an owner only invited to the project", () => {
       }).then((markdown: MarkdownText | null): string | undefined => {
         return markdown?.toString();
       }),
-    ).resolves.toBe(`[Jane from Payments](${USER_LINK})`);
+    ).resolves.toBe("Jane from Payments");
 
     expect(
       (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
     ).toBe(PROJECT_ID);
   });
 
-  test("names them by their address when no name was typed", async () => {
+  test("names them as someone who hasn't joined the project yet when no name was typed, never by their address", async () => {
     pending(null);
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(
+        makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+      );
 
     await expect(
-      SloFeedUtil.getUserDisplayNameInProject({
-        user: makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+      SloFeedUtil.getUserMarkdown({
         userId: USER_ID,
         projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
       }),
-    ).resolves.toBe("jane@example.com");
+    ).resolves.toBe("someone who hasn't joined the project yet");
   });
 
   test("a member is named by their own name", async () => {
@@ -298,21 +313,23 @@ describe("SloFeedUtil - an owner only invited to the project", () => {
       .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
       .mockResolvedValue(new Map<string, WithheldProfile>());
 
-    await expect(
-      SloFeedUtil.getUserDisplayNameInProject({
-        user: makeUser({ name: "Jane Doe", email: "jane@example.com" }),
-        userId: USER_ID,
-        projectId: PROJECT_ID,
-      }),
-    ).resolves.toBe("Jane Doe");
+    jest
+      .spyOn(UserService, "findOneById")
+      .mockResolvedValue(
+        makeUser({ name: "Jane Doe", email: "jane@example.com" }),
+      );
+    jest
+      .spyOn(UserService, "getUserLinkInDashboard")
+      .mockResolvedValue(URL.fromString(USER_LINK));
 
     await expect(
-      SloFeedUtil.getUserDisplayNameInProject({
-        user: null,
+      SloFeedUtil.getUserMarkdown({
         userId: USER_ID,
         projectId: PROJECT_ID,
+      }).then((markdown: MarkdownText | null): string | undefined => {
+        return markdown?.toString();
       }),
-    ).resolves.toBe("");
+    ).resolves.toBe(`[Jane Doe](${USER_LINK})`);
   });
 });
 

@@ -25140,6 +25140,7 @@
   "Incident AI settings": "Настройки ИИ для инцидентов",
   "No longer a member": "Больше не участник",
   "Invitation not accepted yet": "Приглашение ещё не принято",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "Этот человек ещё не принял приглашение в этот проект, поэтому до тех пор вместо отсутствующего никого не оповещают.",
   "* - every row, alerting separately": "* - every row, alerting separately",
   "* or a row name": "* or a row name",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.",

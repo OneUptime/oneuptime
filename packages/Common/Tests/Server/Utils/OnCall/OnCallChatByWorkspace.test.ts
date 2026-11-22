@@ -17,6 +17,7 @@ import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import MattermostUtil from "../../../../Server/Utils/Workspace/Mattermost/Mattermost";
+import FeedPersonName from "../../../../Server/Utils/Feed/FeedPersonName";
 import WorkspaceUtil from "../../../../Server/Utils/Workspace/Workspace";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
@@ -430,7 +431,7 @@ describe("how each workspace names a person", () => {
       );
       expect(UserService.getUserMarkdownString).not.toHaveBeenCalled();
       expect(logger.error).toHaveBeenCalledWith(
-        "Could not read whether somebody an on-call line names is only invited to the project; the line names them as Somebody.",
+        "Could not read whether somebody a feed entry or channel line names is only invited to the project; the line names them as Somebody.",
         expect.anything(),
       );
     });
@@ -450,20 +451,14 @@ describe("how each workspace names a person", () => {
     });
   });
 
-  test("getDisplayName: trimmed, and none for an empty name or one that holds an address", () => {
-    expect(OnCallChatByWorkspace.getDisplayName("  Ivy Hart  ")).toBe(
-      "Ivy Hart",
-    );
-    expect(OnCallChatByWorkspace.getDisplayName("")).toBe("");
-    expect(OnCallChatByWorkspace.getDisplayName(null)).toBe("");
-    expect(OnCallChatByWorkspace.getDisplayName(undefined)).toBe("");
-    expect(OnCallChatByWorkspace.getDisplayName("ivy@invited.test")).toBe("");
-    expect(OnCallChatByWorkspace.getDisplayName("Ivy (ivy@x.io)")).toBe("");
-  });
-
-  test("getInviteeName: the name typed, else 'someone who hasn't joined the project yet'", () => {
+  /*
+   * The rule an on-call line names an invitee by is every feed entry's and
+   * channel line's (FeedPersonName; its own tests hold getDisplayName and
+   * getInviteeName): one rule, and one set of words.
+   */
+  test("the names an on-call line gives an invitee are the shared rule's", () => {
     expect(
-      OnCallChatByWorkspace.getInviteeName({
+      FeedPersonName.getInviteeName({
         inviteeName: " Ivy ",
         inviteeEmail: "ivy@invited.test",
       }),
@@ -471,7 +466,7 @@ describe("how each workspace names a person", () => {
 
     for (const inviteeName of [null, "", "  ", "ivy@invited.test"]) {
       expect(
-        OnCallChatByWorkspace.getInviteeName({
+        FeedPersonName.getInviteeName({
           inviteeName: inviteeName,
           inviteeEmail: "ivy@invited.test",
         }),

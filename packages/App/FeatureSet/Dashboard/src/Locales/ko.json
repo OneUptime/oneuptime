@@ -25140,6 +25140,7 @@
   "Incident AI settings": "인시던트 AI 설정",
   "No longer a member": "더 이상 멤버가 아님",
   "Invitation not accepted yet": "초대를 아직 수락하지 않음",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "이 사람은 아직 이 프로젝트 초대를 수락하지 않았으므로, 수락할 때까지 부재 중인 사람 대신 아무도 호출되지 않습니다.",
   "* - every row, alerting separately": "* - every row, alerting separately",
   "* or a row name": "* or a row name",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.",
