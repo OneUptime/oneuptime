@@ -1,3 +1,4 @@
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
@@ -89,7 +90,7 @@ const MAYA: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,
 };
 
-type Hooks<TModel> = {
+type Hooks<TModel extends DatabaseBaseModel> = {
   onBeforeUpdate: (updateBy: UpdateBy<TModel>) => Promise<OnUpdate<TModel>>;
   onUpdateSuccess: (
     onUpdate: OnUpdate<TModel>,
