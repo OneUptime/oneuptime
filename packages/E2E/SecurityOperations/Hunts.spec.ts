@@ -959,8 +959,9 @@ test.describe("a hunt's Run History", () => {
     await expect(runRow(page, 1).locator("time").first()).toHaveText(
       "Oct 14, 10:00 AM",
     );
+    // A run reads what arrived in its window, whenever it happened (#10488).
     await expect(runRow(page, 1)).toContainText(
-      "Searched Oct 13, 9:58 AM to Oct 14, 9:58 AM",
+      "Searched what arrived Oct 13, 9:58 AM to Oct 14, 9:58 AM",
     );
     // The zone, the browser's UTC (#8475), only under the pointer.
     await expect(runRow(page, 1)).not.toContainText("UTC");
@@ -990,11 +991,22 @@ test.describe("a hunt's Run History", () => {
 
     const address: URL = new URL(page.url());
 
-    expect(address.searchParams.get("start")).toBe(
+    /*
+     * The run's arrivals (#10488), over the times its events can have
+     * happened: from a day before the first arrived to an hour and a
+     * minute past the last, as far as a source's clock may run ahead.
+     */
+    expect(address.searchParams.get("arrivedAfter")).toBe(
       new Date(NOW.getTime() - 98 * HOUR - 2 * MINUTE).toISOString(),
     );
-    expect(address.searchParams.get("end")).toBe(
+    expect(address.searchParams.get("arrivedUntil")).toBe(
       new Date(NOW.getTime() - 50 * HOUR - 2 * MINUTE).toISOString(),
+    );
+    expect(address.searchParams.get("start")).toBe(
+      new Date(NOW.getTime() - 122 * HOUR - 2 * MINUTE).toISOString(),
+    );
+    expect(address.searchParams.get("end")).toBe(
+      new Date(NOW.getTime() - 49 * HOUR - 1 * MINUTE).toISOString(),
     );
     await expect(eventRows(page)).toHaveCount(1);
     await expect(eventRows(page)).toHaveAttribute(
