@@ -245,8 +245,8 @@ async function readActors(): Promise<Array<JSONObject>> {
   );
 }
 
-function signalOf(event: NormalizedSecurityEvent): unknown {
-  return event.attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE];
+function signalOf(event: NormalizedSecurityEvent): string {
+  return String(event.attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE] ?? "");
 }
 
 integration("Security Events' mass delete read against ClickHouse", () => {

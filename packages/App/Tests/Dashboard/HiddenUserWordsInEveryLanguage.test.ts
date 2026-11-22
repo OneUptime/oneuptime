@@ -166,7 +166,10 @@ describe("the words for a user a scrub rule hid", () => {
   test("the AI Usage tab's notes name their row in the reader's language", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const translator: Translator = dashboardTranslator(language);
-      const row: string = translator.translateText("Hidden by a scrub rule");
+      const row: string =
+        translator.translateText("Hidden by a scrub rule") ?? "";
+
+      expect({ language, row: Boolean(row) }).toEqual({ language, row: true });
 
       for (const note of SENTENCES.slice(3)) {
         const drawn: string = translator.translateTemplate(note, {
