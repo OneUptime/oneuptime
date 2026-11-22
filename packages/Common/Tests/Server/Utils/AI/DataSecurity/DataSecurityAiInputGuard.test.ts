@@ -123,6 +123,18 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     // The chat whose next calls read the tools' rows.
     chatFile: "packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts",
   },
+  // A name for a group of issues one mistake made (#10370), after each grouping.
+  [DataSecurityAiFeature.NameIssueGroup]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataSecurityIssueGroupNaming.ts`,
+  },
+  // The group's one pull request (#10370): a task in Code, as Fix with AI's is.
+  [DataSecurityAiFeature.FixIssueGroup]: {
+    kind: "codeTask",
+    file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+  },
 };
 
 /*
@@ -630,6 +642,39 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       "buildMessage: () => Promise<DataSecurityAiCodeRequest>;",
     );
     expect(task.text).toContain("message: request.text,");
+    expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
+  });
+
+  test("a group's one pull request is queued only where its fix is listed, with the request the builder made", () => {
+    // A FixInfrastructureCode run (#10370) is queued, not started from a chat turn.
+    const queuing: Array<string> = SERVER_FILES.filter(
+      (file: SourceFile): boolean => {
+        return (
+          DATA_SECURITY_FILE.test(file.file) &&
+          findCalls(file, "enqueueSubjectCodeFixRun").some(
+            (call: ts.CallExpression): boolean => {
+              return receiverOf(call, file.source) === "SubjectCodeFixRun";
+            },
+          )
+        );
+      },
+    ).map((file: SourceFile): string => {
+      return file.file;
+    });
+
+    expect(queuing).toEqual([
+      (FEATURE_CALLS[DataSecurityAiFeature.FixIssueGroup] as { file: string })
+        .file,
+    ]);
+
+    const task: SourceFile = serverFile(queuing[0]!);
+
+    expect(task.text).toContain(
+      "taskType: CodeFixTaskType.FixInfrastructureCode,",
+    );
+    expect(task.text).toContain(
+      "infrastructureFix: { ...data.fix, request: request.text },",
+    );
     expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
   });
 

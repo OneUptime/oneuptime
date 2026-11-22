@@ -31,6 +31,7 @@ export interface WorldIssue {
   dataSecurityIssueGroupId?: string | null;
   aiAnalysis?: JSONObject | null;
   aiVerdict?: string | null;
+  securityCaseId?: string | null;
 }
 
 export interface WorldStore {
@@ -85,6 +86,47 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.toLowerCase() : String(value);
 }
 
+const COMPARISON: RegExp = /^\(x (>=|<=|>|<) :[A-Za-z0-9]+\)$/;
+
+// A number, or a moment, to compare.
+function magnitude(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const asDate: number = new Date(String(value)).getTime();
+
+  return Number.isNaN(asDate) ? Number(value) : asDate;
+}
+
+function compare(rowValue: unknown, operator: string, bound: unknown): boolean {
+  const left: number | null = magnitude(rowValue);
+  const right: number | null = magnitude(bound);
+
+  if (left === null || right === null) {
+    return false;
+  }
+
+  switch (operator) {
+    case ">":
+      return left > right;
+    case ">=":
+      return left >= right;
+    case "<":
+      return left < right;
+    default:
+      return left <= right;
+  }
+}
+
 // Whether a row's value matches one condition of a query.
 function matches(rowValue: unknown, condition: unknown): boolean {
   if (condition instanceof FindOperator) {
@@ -121,6 +163,17 @@ function matches(rowValue: unknown, condition: unknown): boolean {
 
       if (sql.includes("TRUE = FALSE")) {
         return false;
+      }
+
+      // QueryHelper's comparisons: "(x > :rid)", "(x >= :rid)" and the like.
+      const comparison: RegExpMatchArray | null = sql.match(COMPARISON);
+
+      if (comparison) {
+        const bound: unknown = Object.values(
+          raw.objectLiteralParameters || {},
+        )[0];
+
+        return compare(rowValue, comparison[1]!, bound);
       }
 
       if (sql.includes("IS NOT NULL")) {

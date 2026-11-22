@@ -1,7 +1,10 @@
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
 } from "../../../../Server/Services/CodeRepositoryService";
+import DataSecurityAiProposalService from "../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityIssueGroupService from "../../../../Server/Services/DataSecurityIssueGroupService";
+import DataSecurityIssueGroupNaming from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
+import DataSecurityIssueGroupProposals from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupProposals";
 import DataSecurityIssueGrouper, {
   CODE_LOOKUP_KEPT_FOR_IN_HOURS,
   IssueGroupingOutcome,
@@ -85,6 +88,17 @@ beforeEach(() => {
   world.install();
   treeReads = 0;
   creators = new Map();
+
+  // What follows the grouping, each tested on its own.
+  jest
+    .spyOn(DataSecurityIssueGroupNaming, "nameGroups")
+    .mockResolvedValue(0 as never);
+  jest
+    .spyOn(DataSecurityIssueGroupProposals, "proposeForGroups")
+    .mockResolvedValue(0 as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "expireWaitingForGroup")
+    .mockResolvedValue(0 as never);
 
   jest
     .spyOn(DataSecurityStoreCreators, "read")

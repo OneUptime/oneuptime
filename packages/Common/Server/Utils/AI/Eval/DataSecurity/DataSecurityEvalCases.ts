@@ -1371,6 +1371,40 @@ const SITES: string = SITE_BUCKETS.map((name: string): string => {
   ].join("\n");
 }).join("\n\n");
 
+const BILLING_TABLES: Array<string> = [
+  "billing-invoices",
+  "billing-payments",
+  "billing-refunds",
+];
+
+function dynamoTable(resource: string, name: string): string {
+  return [
+    `  ${resource}:`,
+    "    Type: AWS::DynamoDB::Table",
+    "    Properties:",
+    `      TableName: ${name}`,
+    "      BillingMode: PAY_PER_REQUEST",
+    "      AttributeDefinitions:",
+    "        - AttributeName: id",
+    "          AttributeType: S",
+    "      KeySchema:",
+    "        - AttributeName: id",
+    "          KeyType: HASH",
+  ].join("\n");
+}
+
+const BILLING_TEMPLATE: string = [
+  "Resources:",
+  dynamoTable("BillingInvoices", "billing-invoices"),
+  dynamoTable("BillingPayments", "billing-payments"),
+  dynamoTable("BillingRefunds", "billing-refunds"),
+].join("\n");
+
+const SESSIONS_TEMPLATE: string = [
+  "Resources:",
+  dynamoTable("SessionsTable", "web-sessions"),
+].join("\n");
+
 const ISSUE_GROUP_FIX_CASES: Array<IssueGroupFixEvalCase> = [
   {
     id: "fix-group-in-the-module-default",
@@ -1430,6 +1464,65 @@ const ISSUE_GROUP_FIX_CASES: Array<IssueGroupFixEvalCase> = [
         // One change to what every site takes: no site switched on one by one.
         mustMatch: ['source = "../../modules/static-site"'],
         mustNotMatch: ["enable_access_logging", "aws_s3_bucket_logging"],
+      },
+    ],
+  },
+  {
+    id: "fix-group-in-the-stack-template",
+    title:
+      "Turn point-in-time recovery on for every table of one CloudFormation stack, in its template",
+    feature: DataSecurityAiFeature.FixIssueGroup,
+    facts: {
+      cause: DataSecurityIssueGroupCause.DeclaredCode,
+      checkId: "no-point-in-time-recovery",
+      stackName: "billing-tables",
+      storeKind: DataStoreKind.AwsDynamoDbTable,
+      provider: "aws",
+      managedAsCode: 'CloudFormation stack "billing-tables"',
+      code: {
+        repositoryId: "10370000-0000-4000-8000-00000000a001",
+        repositoryName: "northwind/infrastructure",
+        paths: ["stacks/billing-tables.yaml"],
+        codeKind: "CloudFormation",
+        reason: "has-named-file",
+      },
+    },
+    stores: BILLING_TABLES.map((name: string, index: number) => {
+      return {
+        store: {
+          name,
+          kind: DataStoreKind.AwsDynamoDbTable,
+          region: "eu-west-1",
+          providerResourceId: `arn:aws:dynamodb:eu-west-1:123456789012:table/${name}`,
+        },
+        issue: {
+          _id: `10370000-0000-4000-8000-00000000c00${index + 1}`,
+          title: "Its data cannot be restored to a point in time",
+          checkId: "no-point-in-time-recovery",
+        },
+      };
+    }),
+    files: {
+      "stacks/billing-tables.yaml": BILLING_TEMPLATE,
+      "stacks/sessions.yaml": SESSIONS_TEMPLATE,
+    },
+    expect: [
+      {
+        path: "stacks/billing-tables.yaml",
+        // Every table of the stack, in the one template.
+        mustMatch: [
+          "(PointInTimeRecoveryEnabled:\\s*true[\\s\\S]*){3}",
+          "BillingInvoices:",
+          "BillingPayments:",
+          "BillingRefunds:",
+        ],
+        mustNotMatch: ["PointInTimeRecoveryEnabled:\\s*false"],
+      },
+      {
+        path: "stacks/sessions.yaml",
+        // Another stack's table, which the group does not hold, is left as it is.
+        mustMatch: ["SessionsTable:"],
+        mustNotMatch: ["PointInTimeRecovery"],
       },
     ],
   },

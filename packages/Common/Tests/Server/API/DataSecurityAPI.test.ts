@@ -34,6 +34,11 @@ import DataSecurityIssueAnalysis, {
   StoredDataSecurityIssueAnalysis,
 } from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import DataSecurityIssueAnalysisReader from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysisReader";
+import DataSecurityIssueGroups from "../../../Server/Utils/DataSecurity/DataSecurityIssueGroups";
+import {
+  DataSecurityIssueGroupCause,
+  DataSecurityIssueGroupJSON,
+} from "../../../Types/DataSecurity/DataSecurityIssueGroup";
 import {
   DataSecurityAiVerdict,
   DataSecurityIssueAnalysisView,
@@ -1801,7 +1806,9 @@ describe("What Scrub It would do", () => {
       { id: STORE_ID.toString() },
     );
 
-    expect((result.thrown as Exception).message).toBe("Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.");
+    expect((result.thrown as Exception).message).toBe(
+      "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
+    );
     expect(impactSpy).not.toHaveBeenCalled();
   });
 });
@@ -2372,8 +2379,26 @@ describe("A telemetry finding's records", () => {
   });
 });
 
+// The group of issues one mistake made that an issue is in (#10370).
+const ISSUE_GROUP: DataSecurityIssueGroupJSON = {
+  groupId: "10370000-0000-4000-8000-0000000000a1",
+  checkId: "public-read",
+  cause: DataSecurityIssueGroupCause.Creator,
+  facts: {
+    cause: DataSecurityIssueGroupCause.Creator,
+    checkId: "public-read",
+    creator: "role/export-job",
+  },
+  issueCount: 12,
+  openIssueCount: 12,
+  fixedIssueCount: 0,
+};
+
 describe("Explain and Fix With AI", () => {
   test("Explain answers OneUptime AI's analysis of the issue (#10369), asked for as the caller, as they may read it", async () => {
+    const groupSpy: jest.SpyInstance = jest
+      .spyOn(DataSecurityIssueGroups, "forIssue")
+      .mockResolvedValue(ISSUE_GROUP);
     const result: RouteCall = await call(
       DATA_SECURITY_API_ROUTES.explainIssue(":id"),
       { id: STORE_ID.toString() },
@@ -2400,6 +2425,13 @@ describe("Explain and Fix With AI", () => {
       markdown: DataSecurityIssueAnalysisReader.toMarkdown(ANALYSIS_VIEW),
       analysis: ANALYSIS_VIEW,
       isNew: true,
+      // The group whose cause is fixed once, read as the caller may read it.
+      group: ISSUE_GROUP,
+    });
+    expect(groupSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      issueId: issueRow!.id,
+      props: expect.objectContaining({ userId: USER_ID }),
     });
     // The analysis asks OneUptime AI itself, through the one Data Security call.
     expect(aiSpy).not.toHaveBeenCalled();
@@ -2478,9 +2510,44 @@ describe("Explain and Fix With AI", () => {
       stored: STORED_ANALYSIS,
       props: { userId: USER_ID },
     });
-    expect(result.answer).toEqual({ analysis: ANALYSIS_VIEW });
+    // An issue in no group, or in one the caller may not read: none.
+    expect(result.answer).toEqual({ analysis: ANALYSIS_VIEW, group: null });
     expect(analyzeSpy).not.toHaveBeenCalled();
     expect(aiSpy).not.toHaveBeenCalled();
+  });
+
+  test("the issue's analysis points at the group the issue is in, read as the caller may read it", async () => {
+    const groupSpy: jest.SpyInstance = jest
+      .spyOn(DataSecurityIssueGroups, "forIssue")
+      .mockResolvedValue(ISSUE_GROUP);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.issueAnalysis(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.answer).toEqual({
+      analysis: ANALYSIS_VIEW,
+      group: ISSUE_GROUP,
+    });
+    expect(groupSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      issueId: STORE_ID,
+      props: expect.objectContaining({ userId: USER_ID }),
+    });
+
+    // With no analysis to show, the page shows no group either: it is not read.
+    groupSpy.mockClear();
+    storedSpy.mockResolvedValue(null);
+
+    expect(
+      (
+        await call(DATA_SECURITY_API_ROUTES.issueAnalysis(":id"), {
+          id: STORE_ID.toString(),
+        })
+      ).answer,
+    ).toEqual({ analysis: null, group: null });
+    expect(groupSpy).not.toHaveBeenCalled();
   });
 
   test("the issue's analysis route answers none for an issue never analyzed, and none with the project's AI off", async () => {
@@ -2492,7 +2559,7 @@ describe("Explain and Fix With AI", () => {
           id: STORE_ID.toString(),
         })
       ).answer,
-    ).toEqual({ analysis: null });
+    ).toEqual({ analysis: null, group: null });
 
     storedSpy.mockResolvedValue(STORED_ANALYSIS);
     aiEnabledSpy.mockResolvedValue(false);
@@ -2503,7 +2570,7 @@ describe("Explain and Fix With AI", () => {
           id: STORE_ID.toString(),
         })
       ).answer,
-    ).toEqual({ analysis: null });
+    ).toEqual({ analysis: null, group: null });
     expect(viewSpy).not.toHaveBeenCalled();
   });
 
