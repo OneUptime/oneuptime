@@ -683,6 +683,156 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
     });
   });
 
+  /*
+   * The addresses on a probe's own network interfaces, listed in every
+   * heartbeat (#10429). Security Events knows the probe's polls and checks
+   * in the project's flows by them. A heartbeat a minute must not be a write
+   * a minute, and a global probe keeps none: its interfaces are OneUptime's
+   * own network, which no project's flows see.
+   */
+  describe("recordInterfaceAddresses (the probe's own addresses)", () => {
+    const INTERFACE_CACHE_NAMESPACE: string = "probe-interface-addresses";
+
+    test("a report the cache does not hold is written in one hookless statement, held to a probe that is not global", async () => {
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      expect(
+        await ProbeService.recordInterfaceAddresses({
+          probeId: PROBE_ID,
+          addresses: ["10.0.0.5", "2001:db8::5"],
+        }),
+      ).toBe(true);
+
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      expect(updateSpy).toHaveBeenCalledWith({
+        id: PROBE_ID,
+        data: { interfaceIpAddresses: "10.0.0.5, 2001:db8::5" },
+        expectedData: { isGlobalProbe: false },
+      });
+      // Remembered for an hour, so the next minute's report writes nothing.
+      expect(mockSetString).toHaveBeenCalledWith(
+        INTERFACE_CACHE_NAMESPACE,
+        PROBE_ID.toString(),
+        "10.0.0.5, 2001:db8::5",
+        { expiresInSeconds: 3600 },
+      );
+    });
+
+    test("the same report again writes nothing", async () => {
+      mockGetString.mockImplementation((namespace: unknown) => {
+        return Promise.resolve(
+          namespace === INTERFACE_CACHE_NAMESPACE
+            ? "10.0.0.5, 2001:db8::5"
+            : null,
+        );
+      });
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      expect(
+        await ProbeService.recordInterfaceAddresses({
+          probeId: PROBE_ID,
+          addresses: ["10.0.0.5", "2001:db8::5"],
+        }),
+      ).toBe(false);
+
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(mockSetString).not.toHaveBeenCalled();
+    });
+
+    test("a changed report is written, over what the cache held", async () => {
+      mockGetString.mockResolvedValue("10.0.0.5");
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.recordInterfaceAddresses({
+        probeId: PROBE_ID,
+        addresses: ["10.0.0.6"],
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { interfaceIpAddresses: "10.0.0.6" },
+        }),
+      );
+    });
+
+    test("a probe with no address worth keeping clears what was kept", async () => {
+      mockGetString.mockResolvedValue("10.0.0.5");
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.recordInterfaceAddresses({
+        probeId: PROBE_ID,
+        addresses: [],
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { interfaceIpAddresses: null } }),
+      );
+      expect(mockSetString).toHaveBeenCalledWith(
+        INTERFACE_CACHE_NAMESPACE,
+        PROBE_ID.toString(),
+        "",
+        { expiresInSeconds: 3600 },
+      );
+    });
+
+    test("a cache that cannot be read is no reason not to write", async () => {
+      mockGetString.mockRejectedValue(new Error("redis down"));
+      mockSetString.mockRejectedValue(new Error("redis down"));
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      expect(
+        await ProbeService.recordInterfaceAddresses({
+          probeId: PROBE_ID,
+          addresses: ["10.0.0.5"],
+        }),
+      ).toBe(true);
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a write that fails rethrows, and the cache is not told it was written", async () => {
+      jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockRejectedValue(new Error("connection pool exhausted"));
+
+      await expect(
+        ProbeService.recordInterfaceAddresses({
+          probeId: PROBE_ID,
+          addresses: ["10.0.0.5"],
+        }),
+      ).rejects.toThrow("connection pool exhausted");
+
+      expect(mockSetString).not.toHaveBeenCalled();
+    });
+
+    test("each probe's report is its own", async () => {
+      mockGetString.mockImplementation((_namespace: unknown, key: unknown) => {
+        return Promise.resolve(key === PROBE_ID.toString() ? "10.0.0.5" : null);
+      });
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await ProbeService.recordInterfaceAddresses({
+        probeId: SECOND_PROBE_ID,
+        addresses: ["10.0.0.5"],
+      });
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: SECOND_PROBE_ID }),
+      );
+    });
+  });
+
   describe("auth cache invalidation hooks", () => {
     /*
      * The auth middleware trusts a cached hash of the key, so the moment

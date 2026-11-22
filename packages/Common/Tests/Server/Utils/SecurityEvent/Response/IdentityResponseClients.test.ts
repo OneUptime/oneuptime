@@ -478,6 +478,7 @@ const BOB: JSONObject = {
   id: "104761234567890123456",
   primaryEmail: "bob@example.com",
   suspended: false,
+  isEnrolledIn2Sv: true,
 };
 
 describe("GoogleWorkspaceResponseClient", () => {
@@ -489,11 +490,30 @@ describe("GoogleWorkspaceResponseClient", () => {
     const user: GoogleWorkspaceUser | null =
       await workspaceClient(api).findUser(" bob@example.com ");
 
+    // With whether 2-Step Verification is on: the Fix step's MFA check reads it (#10347).
     expect(user).toEqual({
       id: BOB["id"],
       primaryEmail: "bob@example.com",
       suspended: false,
+      isEnrolledIn2Sv: true,
     });
+
+    // A user the Directory API does not say is enrolled is not.
+    expect(
+      (
+        await workspaceClient(
+          directory({
+            users: {
+              "bob@example.com": {
+                id: BOB["id"]!,
+                primaryEmail: "bob@example.com",
+                suspended: false,
+              },
+            },
+          }),
+        ).findUser("bob@example.com")
+      )?.isEnrolledIn2Sv,
+    ).toBe(false);
     expect(api.scopes).toEqual([GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE]);
     expect(GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE).toBe(
       "https://www.googleapis.com/auth/admin.directory.user",
@@ -525,6 +545,7 @@ describe("GoogleWorkspaceResponseClient", () => {
         id: "u-1",
         primaryEmail: "bob@example.com",
         suspended: false,
+        isEnrolledIn2Sv: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
 
@@ -538,6 +559,7 @@ describe("GoogleWorkspaceResponseClient", () => {
         id: "u-1",
         primaryEmail: "bob@example.com",
         suspended: true,
+        isEnrolledIn2Sv: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
     expect(api.requests).toHaveLength(2);
@@ -552,6 +574,7 @@ describe("GoogleWorkspaceResponseClient", () => {
         id: "u-1",
         primaryEmail: "",
         suspended: true,
+        isEnrolledIn2Sv: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
     expect(JSON.parse(String(api.requests[1]!.body))).toEqual({
@@ -562,6 +585,7 @@ describe("GoogleWorkspaceResponseClient", () => {
         id: "u-1",
         primaryEmail: "",
         suspended: false,
+        isEnrolledIn2Sv: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
   });
@@ -626,6 +650,7 @@ describe("GoogleWorkspaceResponseClient", () => {
         id: "u-1",
         primaryEmail: "",
         suspended: false,
+        isEnrolledIn2Sv: false,
       }),
     );
 

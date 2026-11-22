@@ -1,4 +1,14 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import ProbeOwnTraffic, {
+  ProbeFlowSources,
+} from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/ProbeOwnTraffic";
 import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import { Results } from "../../../../../Server/Services/AnalyticsDatabaseService";
 import AuditLogService from "../../../../../Server/Services/AuditLogService";
@@ -258,6 +268,15 @@ describe("the trace reader", () => {
 });
 
 describe("the flow reader", () => {
+  // A project with none of OneUptime's probes (FlowProbeOwnTraffic.test.ts reads theirs).
+  beforeEach(() => {
+    jest
+      .spyOn(ProbeOwnTraffic, "readSources")
+      .mockResolvedValue(
+        new ProbeFlowSources({ probes: [], globalProbeIds: [] }),
+      );
+  });
+
   function standFlows(data: {
     portScans?: Array<JSONObject>;
     sweeps?: Array<JSONObject>;

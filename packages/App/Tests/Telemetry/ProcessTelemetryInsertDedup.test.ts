@@ -152,6 +152,12 @@ describe("shouldUseInsertDedup — per-type policy matrix", () => {
     TelemetryType.ProbeIngest,
     TelemetryType.ServerMonitorIngest,
     TelemetryType.IncomingRequestIngest,
+    /*
+     * A monitor's waiting requests: each is evaluated as a request of its
+     * own is, into the same shared monitor buffers - and a retry evaluates
+     * whichever requests are waiting then, not the same ones.
+     */
+    TelemetryType.IncomingRequestPending,
     TelemetryType.TelemetryMonitorEvaluation,
     TelemetryType.SessionReplay,
     /*

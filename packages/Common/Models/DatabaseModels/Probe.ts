@@ -368,6 +368,40 @@ export default class Probe extends BaseModel {
   })
   public egressIpAddress?: string = undefined;
 
+  /*
+   * The addresses on the probe's own network interfaces, as it last listed
+   * them when it checked in (#10429; Types/Probe/ProbeInterfaceAddresses):
+   * comma-separated, each written the one way blocks are. The flows the
+   * project's routers export show the probe's polls, discovery sweeps and
+   * port checks coming from these - a LAN address, not the NAT's the probe
+   * checks in from - so Security Events knows that traffic for the probe's
+   * own work (TelemetryScan/ProbeOwnTraffic), and the blocklist never blocks
+   * them. What the probe says of itself: kept for the project's own probes
+   * only, written by OneUptime alone, and read by the probe's readers only,
+   * as the address it checks in from is.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: false,
+    title: "Interface IP Addresses",
+    description:
+      "The IP addresses on this probe's own network interfaces, as the probe last listed them when it checked in, separated by commas. Set by OneUptime from the probe's own requests; Security Events knows the probe's own polls and checks by them, and the blocklist never blocks them.",
+    example: "10.0.0.5, 2001:db8::5",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public interfaceIpAddresses?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

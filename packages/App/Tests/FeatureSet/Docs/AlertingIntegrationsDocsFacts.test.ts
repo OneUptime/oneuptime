@@ -8,6 +8,10 @@ import {
 } from "./IntegrationsDocsPages";
 import { scanMarkdown } from "./DocsContentSupport";
 import {
+  MAX_PENDING_BYTES_PER_MONITOR,
+  MAX_PENDING_REQUESTS_PER_MONITOR,
+} from "../../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
+import {
   bold,
   codeIn,
   englishPage,
@@ -761,16 +765,24 @@ describe("each workflow an alerting page builds", () => {
 });
 
 describe("what the monitor answers, and when it evaluates", () => {
+  /*
+   * The route queues the request, then answers (#10582: a request sent
+   * once this one was answered is evaluated after it) - and checks nothing
+   * of the monitor: its key, its criteria and whether it exists are the
+   * worker's, after the answer.
+   */
   it("the monitor answers 200 before it checks anything, as the alerting pages say", () => {
     const route: string = readRepoFile(
       "App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
     );
 
     expect(
-      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
-    ).toBeLessThan(
       route.indexOf("TelemetryQueueService.addIncomingRequestIngestJob("),
+    ).toBeLessThan(
+      route.indexOf("Response.sendEmptySuccessResponse(req, res);"),
     );
+    expect(route).not.toContain("MonitorService");
+    expect(route).not.toContain("MonitorResourceUtil");
 
     for (const page of ALERTING_PAGES) {
       expect(englishPage(page)).toContain(
@@ -779,15 +791,24 @@ describe("what the monitor answers, and when it evaluates", () => {
     }
   });
 
-  it("Alertmanager names the switch that evaluates every request, which is on unless set to false", () => {
-    const config: string = readRepoFile("App/FeatureSet/Telemetry/Config.ts");
+  /*
+   * This guide groups by each alert's fingerprint, so every notification
+   * is evaluated, in order, up to the limits the waiting-request store
+   * keeps (#10582).
+   */
+  it("Alertmanager says a grouped monitor evaluates every notification in order, and how many may wait", () => {
+    expect(MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
+    expect(MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
 
-    expect(config).toContain(
-      'process.env["INCOMING_REQUEST_INGEST_COALESCE_ENABLED"] !== "false"',
+    const page: string = englishPage(ALERTMANAGER);
+
+    expect(page).toContain(
+      "evaluates every notification it receives, one at a time and in the order they arrived",
     );
-    expect(englishPage(ALERTMANAGER)).toContain(
-      "set `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`",
+    expect(page).toContain(
+      "Up to 1,000 notifications, or 16 MB of them, wait to be evaluated",
     );
+    expect(page).not.toContain("INCOMING_REQUEST_INGEST_COALESCE_ENABLED");
   });
 });
 
