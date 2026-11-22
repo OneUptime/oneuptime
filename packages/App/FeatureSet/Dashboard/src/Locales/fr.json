@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonde de cette analyse n'existe plus, l'analyse ne peut donc pas s'exécuter. Choisissez une autre sonde dans Modifier.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonde de cette analyse, {{probe}}, n'est pas connectée à OneUptime, l'analyse ne peut donc pas s'exécuter maintenant. Démarrez la sonde, ou choisissez une autre sonde dans Modifier.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Vous ne pouvez pas modifier les analyses de découverte de ce projet, vous ne pouvez donc pas en exécuter.",
-  "{{scan}} is queued to run again.": "{{scan}} est de nouveau en file d'attente."
+  "{{scan}} is queued to run again.": "{{scan}} est de nouveau en file d'attente.",
+  "Show events whose target address a scrub rule hid": "Afficher les événements dont une règle de nettoyage a masqué l'adresse cible"
 }

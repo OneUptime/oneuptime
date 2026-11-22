@@ -51,9 +51,13 @@ import useSecurityEventRequestStory, {
   SecurityEventRequestStory,
 } from "./useSecurityEventRequestStory";
 import { DETAILS_TITLE } from "./SecurityEventRequestCopy";
-import { FILTER_BY_HIDDEN_ADDRESS } from "./HiddenClientAddressCopy";
+import {
+  FILTER_BY_HIDDEN_ADDRESS,
+  FILTER_BY_HIDDEN_TARGET_ADDRESS,
+} from "./HiddenClientAddressCopy";
 import { FILTER_BY_HIDDEN_USER } from "./HiddenUserCopy";
 import { readFieldValue } from "./HiddenClientAddressText";
+import { ScrubbedAddressRole } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 
 export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
   "security-event-detail-panel";
@@ -368,7 +372,11 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
               value={readFieldValue(field, translator)}
               filterLabel={
                 field.hiddenAddress
-                  ? translator.translateText(FILTER_BY_HIDDEN_ADDRESS)
+                  ? translator.translateText(
+                      field.hiddenAddressRole === ScrubbedAddressRole.Target
+                        ? FILTER_BY_HIDDEN_TARGET_ADDRESS
+                        : FILTER_BY_HIDDEN_ADDRESS,
+                    )
                   : field.isHiddenUser
                     ? translator.translateText(FILTER_BY_HIDDEN_USER)
                     : translator.translateTemplate("Filter by {{field}}", {

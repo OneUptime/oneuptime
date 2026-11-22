@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "La sonda di questa scansione non esiste più, quindi la scansione non può essere eseguita. Scegli un'altra sonda in Modifica.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "La sonda di questa scansione, {{probe}}, non è connessa a OneUptime, quindi la scansione non può essere eseguita ora. Avvia la sonda o scegli un'altra sonda in Modifica.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Non puoi modificare le scansioni di rilevamento di questo progetto, quindi non puoi eseguirne una.",
-  "{{scan}} is queued to run again.": "{{scan}} è di nuovo in coda."
+  "{{scan}} is queued to run again.": "{{scan}} è di nuovo in coda.",
+  "Show events whose target address a scrub rule hid": "Mostra gli eventi il cui indirizzo di destinazione è stato nascosto da una regola di pulizia"
 }

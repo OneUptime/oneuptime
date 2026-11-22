@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Denne scannings sonde findes ikke længere, så scanningen kan ikke køre. Vælg en anden sonde under Rediger.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Denne scannings sonde, {{probe}}, er ikke forbundet til OneUptime, så scanningen kan ikke køre nu. Start sonden, eller vælg en anden sonde under Rediger.",
   "You may not edit this project's discovery scans, so you cannot run one.": "Du må ikke redigere dette projekts opdagelsesscanninger, så du kan ikke køre en.",
-  "{{scan}} is queued to run again.": "{{scan}} er sat i kø til at køre igen."
+  "{{scan}} is queued to run again.": "{{scan}} er sat i kø til at køre igen.",
+  "Show events whose target address a scrub rule hid": "Vis hændelser, hvis måladresse en rensningsregel skjulte"
 }

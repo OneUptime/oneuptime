@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "इस स्कैन का प्रोब अब मौजूद नहीं है, इसलिए स्कैन नहीं चल सकता। संपादित करें में कोई दूसरा प्रोब चुनें।",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "इस स्कैन का प्रोब, {{probe}}, OneUptime से कनेक्ट नहीं है, इसलिए स्कैन अभी नहीं चल सकता। प्रोब शुरू करें, या संपादित करें में कोई दूसरा प्रोब चुनें।",
   "You may not edit this project's discovery scans, so you cannot run one.": "आप इस प्रोजेक्ट के डिस्कवरी स्कैन संपादित नहीं कर सकते, इसलिए आप कोई स्कैन नहीं चला सकते।",
-  "{{scan}} is queued to run again.": "{{scan}} को फिर से चलाने के लिए कतार में लगा दिया गया है।"
+  "{{scan}} is queued to run again.": "{{scan}} को फिर से चलाने के लिए कतार में लगा दिया गया है।",
+  "Show events whose target address a scrub rule hid": "वे इवेंट दिखाएँ जिनका लक्ष्य पता सफ़ाई नियम ने छिपाया"
 }

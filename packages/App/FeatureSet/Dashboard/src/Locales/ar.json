@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "لم يعد مسبار هذا الفحص موجودًا، لذا لا يمكن تشغيل الفحص. اختر مسبارًا آخر في «تعديل».",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "مسبار هذا الفحص، {{probe}}، غير مرتبط بـ OneUptime، لذا لا يمكن تشغيل الفحص الآن. شغّل المسبار، أو اختر مسبارًا آخر في «تعديل».",
   "You may not edit this project's discovery scans, so you cannot run one.": "لا يمكنك تعديل عمليات فحص الاكتشاف في هذا المشروع، لذا لا يمكنك تشغيل أي منها.",
-  "{{scan}} is queued to run again.": "أُضيف {{scan}} إلى قائمة الانتظار ليعمل مرة أخرى."
+  "{{scan}} is queued to run again.": "أُضيف {{scan}} إلى قائمة الانتظار ليعمل مرة أخرى.",
+  "Show events whose target address a scrub rule hid": "عرض الأحداث التي أخفت قاعدة تنقية عنوانها المستهدف"
 }

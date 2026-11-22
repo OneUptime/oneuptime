@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此掃描的探測器已不存在，因此無法執行掃描。請在「編輯」中選擇其他探測器。",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器 {{probe}} 未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
   "You may not edit this project's discovery scans, so you cannot run one.": "你無權編輯此專案的探索掃描，因此無法執行掃描。",
-  "{{scan}} is queued to run again.": "{{scan}} 已重新排入佇列，等待再次執行。"
+  "{{scan}} is queued to run again.": "{{scan}} 已重新排入佇列，等待再次執行。",
+  "Show events whose target address a scrub rule hid": "顯示目標位址被清除規則隱藏的事件"
 }

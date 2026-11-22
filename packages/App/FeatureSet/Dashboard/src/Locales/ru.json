@@ -62093,5 +62093,6 @@
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Зонда этого сканирования больше нет, поэтому сканирование не может запуститься. Выберите другой зонд в разделе «Редактировать».",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Зонд этого сканирования, {{probe}}, не подключён к OneUptime, поэтому сканирование сейчас не может запуститься. Запустите зонд или выберите другой зонд в разделе «Редактировать».",
   "You may not edit this project's discovery scans, so you cannot run one.": "Вы не можете редактировать сканирования обнаружения этого проекта, поэтому не можете запустить ни одно из них.",
-  "{{scan}} is queued to run again.": "{{scan}}: сканирование снова поставлено в очередь."
+  "{{scan}} is queued to run again.": "{{scan}}: сканирование снова поставлено в очередь.",
+  "Show events whose target address a scrub rule hid": "Показать события, целевой адрес которых скрыло правило очистки"
 }
