@@ -265,7 +265,8 @@ export default class OIDCUtil {
   // Whether the provider is Google: its issuer, https://accounts.google.com.
   public static isGoogleIssuer(client: Client): boolean {
     return (
-      OIDCUtil.hostnameOf(client.issuer?.issuer) === GOOGLE_ISSUER_HOSTNAME
+      OIDCUtil.hostnameOf(client.issuer?.metadata?.issuer) ===
+      GOOGLE_ISSUER_HOSTNAME
     );
   }
 
@@ -279,8 +280,8 @@ export default class OIDCUtil {
    */
   public static isMicrosoftEntraId(client: Client): boolean {
     return [
-      client.issuer?.issuer,
-      client.issuer?.metadata?.["authorization_endpoint"],
+      client.issuer?.metadata?.issuer,
+      client.issuer?.metadata?.authorization_endpoint,
     ].some((address: unknown): boolean => {
       const hostname: string | null = OIDCUtil.hostnameOf(address);
 
