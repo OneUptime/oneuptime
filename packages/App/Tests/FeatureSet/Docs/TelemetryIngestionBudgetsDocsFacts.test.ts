@@ -137,6 +137,10 @@ const SETTINGS: string = readCommonSource(
 const QUEUE: string = readAppSource(
   "FeatureSet/Telemetry/Services/Queue/TelemetryQueueService.ts",
 );
+// The syslog a probe forwards (#10716), which never reaches the queue.
+const PROBE_SYSLOG: string = readAppSource(
+  "FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+);
 // Team and label budgets (#6386): the Usage page's table, and where they count.
 const TEAM_LABEL_TABLE: string = readDashboardSource(
   "Components/TelemetryIngestionBudget/TeamLabelBudgetsTable.tsx",
@@ -578,8 +582,19 @@ describe("a team's or a label's budget", () => {
       compact("query: { projectId: projectId, labels: labelIds }"),
     );
 
+    // #10716: the syslog a probe forwards, offered by each device's service.
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("await TelemetryIngestAttribution.forBatch({"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("budget.attribution.admitResource({"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("await budget.attribution?.settle();"),
+    );
+
     expect(ENGLISH).toContain(
-      "The logs, traces, metrics and profiles of every service, host, cluster and other resource the team owns or the label is on, whether they are sent over OpenTelemetry (OTLP) or, for logs, from Fluent Bit, Fluentd or syslog.",
+      "The logs, traces, metrics and profiles of every service, host, cluster and other resource the team owns or the label is on, whether they are sent over OpenTelemetry (OTLP) or, for logs, from Fluent Bit, Fluentd or syslog, including the syslog network devices send to a probe.",
     );
     expect(ENGLISH).toContain(
       "Security events count against the project's and the key's budgets only.",
@@ -715,10 +730,20 @@ describe("what senders see", () => {
     expect(ENGLISH).toContain(`\`\`\`text\n${LOGS_DAILY_REFUSAL}\n\`\`\``);
   });
 
-  test("MQTT and the cloud streams are dropped, not refused", () => {
+  test("MQTT, the cloud streams and a probe's syslog are dropped, not refused, each device's against its own project", () => {
     expect(QUEUE).toContain("mode: TelemetryIngestionBudgetAdmissionMode.Drop");
+    // #10716: a probe's batch, project by project, in Drop mode, with no key.
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("mode: TelemetryIngestionBudgetAdmissionMode.Drop,"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("ingestionKeyPolicy: null,"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("const key: string = target.projectId.toString();"),
+    );
     expect(ENGLISH).toContain(
-      "Telemetry that arrives over MQTT or from a cloud provider's stream is dropped once its budget is used up.",
+      "- **MQTT, cloud streams and probes cannot be told.** Telemetry that arrives over MQTT or from a cloud provider's stream is dropped once its budget is used up, and so is the syslog network devices send to a probe: each device's logs count against its own project's budget. No rate limit applies to it: it could not be sent again.",
     );
   });
 });
