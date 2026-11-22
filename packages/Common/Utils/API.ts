@@ -631,11 +631,17 @@ export default class API {
 
       let finalBody: APIRequestBody | URLSearchParams | undefined = data;
 
-      // if content-type is form-url-encoded, then stringify the data
-
+      /*
+       * A form's fields, URL-encoded, when the Content-Type names a form and
+       * the data is an object of them. Bytes go as they are, whatever the
+       * Content-Type (APIRequestBody): URLSearchParams cannot read them and
+       * threw "Each query pair must be an iterable [name, value] tuple" for
+       * an API monitor's body sent as written (#9737).
+       */
       if (
         finalHeaders["Content-Type"] === "application/x-www-form-urlencoded" &&
-        data
+        data &&
+        !ArrayBuffer.isView(data)
       ) {
         finalBody = new URLSearchParams(data as Dictionary<string>);
       }
