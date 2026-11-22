@@ -1975,7 +1975,9 @@ describe("the Fluentd page", () => {
     expect(FLUENT_SERVICE_SOURCE).toContain(scrubbed);
     expect(
       oneLine(
-        readSource("App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts"),
+        readSource(
+          "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+        ),
       ),
     ).toContain(scrubbed);
     expect(FLUENT_SERVICE_SOURCE).toContain(
