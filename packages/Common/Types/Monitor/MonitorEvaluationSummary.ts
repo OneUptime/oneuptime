@@ -1,4 +1,5 @@
 import FilterCondition from "../Filter/FilterCondition";
+import { JSONObject } from "../JSON";
 import { CheckOn, FilterType } from "./CriteriaFilter";
 import { EvaluationSentence } from "./EvaluationSentence";
 
@@ -131,8 +132,63 @@ export interface MonitorEvaluationEvent {
   grouping?: MonitorEvaluationGroupingNote | undefined;
 }
 
+/*
+ * What a grouped check's latest value of a series counts: a metric's value
+ * in its unit, or a group's logs or spans.
+ */
+export enum MonitorEvaluationSeriesValueKind {
+  Metric = "Metric",
+  Logs = "Logs",
+  Spans = "Spans",
+}
+
+/*
+ * One series a grouped check read, as the Series card on the monitor's
+ * Overview lists it (#10062): what names it, its latest value, the criteria
+ * it met, and whether it keeps the monitor's status (GroupedMonitorRecovery).
+ */
+export interface MonitorEvaluationSeriesRow {
+  fingerprint: string;
+  // Its labels, as its incidents and alerts name it (SeriesLabelDisplay).
+  labels: JSONObject;
+  // What else is known about it, for its name only.
+  context?: JSONObject | undefined;
+  valueKind: MonitorEvaluationSeriesValueKind;
+  /*
+   * Its newest value of what the criteria compare, in `unit`. Absent when
+   * the series had no data in the window.
+   */
+  value?: number | undefined;
+  unit?: string | undefined;
+  // The metric the value is of, which says how its unit reads.
+  metricName?: string | undefined;
+  // The criteria it met on this check, by id, in criteria order.
+  metCriteriaIds: Array<string>;
+  /*
+   * It met a criteria that changed the monitor's status and no criteria that
+   * brings it back yet, and nothing else matched: it keeps the status.
+   */
+  isKeepingStatus?: boolean | undefined;
+}
+
+export interface MonitorEvaluationSeries {
+  // How many series the check read.
+  count: number;
+  /*
+   * At most MAX_SERIES_TABLE_ROWS of them (MonitorSeriesTable): the ones
+   * that keep the status or met a criteria that changes it first, then the
+   * ones that met another criteria, then the rest, each in the check's order.
+   */
+  rows: Array<MonitorEvaluationSeriesRow>;
+}
+
 export default interface MonitorEvaluationSummary {
   evaluatedAt: Date;
   criteriaResults: Array<MonitorEvaluationCriteriaResult>;
   events: Array<MonitorEvaluationEvent>;
+  /*
+   * The series of a grouped check (#10062). Absent for a monitor that does
+   * not judge series on its own.
+   */
+  series?: MonitorEvaluationSeries | undefined;
 }

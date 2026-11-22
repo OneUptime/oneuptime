@@ -24,6 +24,7 @@ import {
 } from "../../../Components/Monitor/Overview/MonitorOverviewTypes";
 import MonitorProbesCard from "../../../Components/Monitor/Overview/MonitorProbesCard";
 import MonitorResponseTimeCard from "../../../Components/Monitor/Overview/MonitorResponseTimeCard";
+import MonitorSeriesCard from "../../../Components/Monitor/Overview/MonitorSeriesCard";
 import MonitorSetupCard from "../../../Components/Monitor/Overview/MonitorSetupCard";
 import MonitorStatusChangesCard from "../../../Components/Monitor/Overview/MonitorStatusChangesCard";
 import MonitorTelemetryPreview from "../../../Components/Monitor/Overview/MonitorTelemetryPreview";
@@ -440,6 +441,18 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ) : (
             <></>
           )}
+
+          {/*
+           * A grouped monitor's series, as its last check read them, with
+           * what is open for each (#10062). Draws nothing for a monitor that
+           * does not group: its checks read no series.
+           */}
+          <MonitorSeriesCard
+            monitorId={modelId}
+            evaluationSummary={evaluation?.latest?.summary}
+            refreshToken={`${data.pollCount}|${data.statusChangeCount}|${data.manualRefreshCount}`}
+          />
+
 
           {sections.showUptime ? (
             <MonitorUptimeHistoryCard

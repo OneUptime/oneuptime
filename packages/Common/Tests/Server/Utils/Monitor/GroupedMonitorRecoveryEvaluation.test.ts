@@ -567,6 +567,51 @@ describe("#10061: disks at 70%, 96% and 14%, firing above 90%, recovering at or 
     expect(Array.from(statuses)).toEqual([OFFLINE.toString()]);
   });
 
+  test("the evaluation summary keeps each disk for the Overview's Series card (#10062)", async () => {
+    const monitoring: Monitoring = new Monitoring({ step: filesystemStep() });
+
+    await monitoring.check(
+      disksAt([
+        [ROOT, 70],
+        [DATA, 96],
+        [BOOT, 14],
+      ]),
+    );
+
+    const { summary } = await monitoring.check(
+      disksAt([
+        [ROOT, 70],
+        [DATA, 89],
+        [BOOT, 14],
+      ]),
+    );
+
+    expect(summary.series?.count).toBe(3);
+
+    const rows: Array<{
+      fingerprint: string;
+      value?: number | undefined;
+      unit?: string | undefined;
+      metCriteriaIds: Array<string>;
+      isKeepingStatus?: boolean | undefined;
+    }> = summary.series!.rows;
+
+    // The disk that keeps the status first, at the formula's 89%.
+    expect(rows[0]!.fingerprint).toBe(fingerprintOf(DATA));
+    expect(rows[0]!.isKeepingStatus).toBe(true);
+    expect(rows[0]!.value).toBeCloseTo(89, 6);
+    expect(rows[0]!.unit).toBe("%");
+    expect(rows[0]!.metCriteriaIds).toEqual([]);
+
+    // The others met the recovery criteria, which waited for the full disk.
+    for (const other of rows.slice(1)) {
+      expect(other.metCriteriaIds).toEqual([
+        criteriaIdNamed(monitoring.step, "online"),
+      ]);
+      expect(other.isKeepingStatus).toBeUndefined();
+    }
+  });
+
   test("the series behind the status are read only while the monitor is not at its default status", async () => {
     const monitoring: Monitoring = new Monitoring({ step: filesystemStep() });
 
@@ -749,6 +794,9 @@ describe("#10061: an ungrouped monitor behaves exactly as before", () => {
     expect(margin.response.seriesBehindStatus).toBeUndefined();
     expect(margin.response.matchedCriteria).toBeUndefined();
     expect(monitoring.memory!.reads).toBe(0);
+
+    // No series of its own: no Series card on its Overview.
+    expect(margin.summary.series).toBeUndefined();
 
     // As before: no criteria matched, so the monitor goes to its default status.
     expect(monitoring.status).toBe(ONLINE.toString());

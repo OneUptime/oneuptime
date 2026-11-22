@@ -94,7 +94,9 @@ import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
+  MonitorEvaluationSeries,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorSeriesTable from "./MonitorSeriesTable";
 import ProbeApiIngestResponse, {
   MatchedCriteriaResult,
   PerSeriesCriteriaMatch,
@@ -886,6 +888,34 @@ ${incomingRequestGrouping.rootCauseNote}
       if (recovery.seriesBehindStatus) {
         input.probeApiIngestResponse.seriesBehindStatus =
           recovery.seriesBehindStatus;
+      }
+
+      /*
+       * Each series the check read, for the Series card on the monitor's
+       * Overview (#10062): the criteria it met - a recovery criteria that
+       * waits included, which the series itself met - and whether it keeps
+       * the status.
+       */
+      const seriesTable: MonitorEvaluationSeries | undefined =
+        MonitorSeriesTable.build({
+          monitorType: input.monitor.monitorType,
+          monitorStep: input.monitorStep,
+          dataToProcess: input.dataToProcess,
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray,
+          defaultMonitorStatusId:
+            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+          matchedCriteria: matchedCriteria,
+          seriesKeepingStatus: new Set<string>(
+            recovery.seriesKeepingStatus.map(
+              (series: SeriesKeepingStatus): string => {
+                return series.fingerprint;
+              },
+            ),
+          ),
+        });
+
+      if (seriesTable) {
+        input.evaluationSummary.series = seriesTable;
       }
 
       input.probeApiIngestResponse.matchedCriteria = recovery.matchedCriteria;
