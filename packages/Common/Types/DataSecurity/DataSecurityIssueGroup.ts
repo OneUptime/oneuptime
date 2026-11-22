@@ -76,6 +76,71 @@ export function isDataSecurityIssueGroupCause(
 export const MIN_ISSUES_PER_GROUP: number = 2;
 
 /*
+ * The checks one mistake can fail on many stores at once: each reads a
+ * store's own configuration, which the code or the person that made the
+ * store set - its exposure, encryption, recovery, logging, ACLs, keys and
+ * region. A check of what a store holds (a secret, a card number, stale
+ * data), of who can reach it (each grant is its own), of whom it belongs
+ * to, or of telemetry (each service writes its own) is no group's: the
+ * cause differs store by store.
+ */
+export const DATA_SECURITY_ISSUE_GROUP_CHECK_IDS: ReadonlyArray<string> = [
+  "public-read",
+  "public-write",
+  "public-access-not-blocked",
+  "internet-reachable",
+  "open-to-all-addresses",
+  "snapshot-public",
+  "snapshot-shared-externally",
+  "shared-with-external-accounts",
+  "not-encrypted-at-rest",
+  "no-customer-managed-key",
+  "encryption-in-transit-not-enforced",
+  "weak-tls",
+  "no-backups",
+  "no-point-in-time-recovery",
+  "deletion-protection-off",
+  "deleted-data-not-recoverable",
+  "access-not-logged",
+  "shared-key-access",
+  "object-acls-enabled",
+  "residency-violation",
+];
+
+// Whether issues of a check are grouped by what made their stores.
+export function isIssueGroupCheck(checkId: string | null | undefined): boolean {
+  return DATA_SECURITY_ISSUE_GROUP_CHECK_IDS.includes(checkId || "");
+}
+
+/*
+ * The operations a cloud's change log records when a store is created, as
+ * OneUptime's change events name them: AWS's "service:EventName", Google
+ * Cloud's method names. Azure records a create and an update as the same
+ * write, so it names no creator.
+ */
+export const DATA_STORE_CREATE_OPERATIONS: ReadonlyArray<string> = [
+  "s3:CreateBucket",
+  "rds:CreateDBInstance",
+  "rds:CreateDBCluster",
+  "rds:CreateDBSnapshot",
+  "rds:CreateDBClusterSnapshot",
+  "rds:CopyDBSnapshot",
+  "rds:CopyDBClusterSnapshot",
+  "dynamodb:CreateTable",
+  "redshift:CreateCluster",
+  "es:CreateDomain",
+  "es:CreateElasticsearchDomain",
+  "elasticfilesystem:CreateFileSystem",
+  "elasticache:CreateCacheCluster",
+  "elasticache:CreateReplicationGroup",
+  "docdb-elastic:CreateCluster",
+  "storage.buckets.create",
+  "cloudsql.instances.create",
+  "google.cloud.bigquery.v2.DatasetService.InsertDataset",
+  "datasetservice.insert",
+];
+
+/*
  * Group by cause starts on in the Issues list once the project has a group
  * of this many issues or more (the person's own choice wins after that).
  */

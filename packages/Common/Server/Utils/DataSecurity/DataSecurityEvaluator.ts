@@ -27,6 +27,7 @@ import DataSecurityResidencyRuleService from "../../Services/DataSecurityResiden
 import DataSecuritySettingService from "../../Services/DataSecuritySettingService";
 import SecurityEntityRiskService from "../../Services/SecurityEntityRiskService";
 import DataSecurityFlows from "./DataSecurityFlows";
+import { queueDataSecurityIssueGrouping } from "./DataSecurityJobs";
 import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
 } from "./DataSecurityIntegrations";
@@ -298,6 +299,13 @@ export default class DataSecurityEvaluator {
       );
       logger.error(error);
     }
+
+    /*
+     * The issues one mistake made, grouped by what made them (#10370): a
+     * little after, so the evaluations a read and its scans queue are
+     * grouped once.
+     */
+    await queueDataSecurityIssueGrouping(projectId);
   }
 
   private static forIntegrations(

@@ -11,6 +11,7 @@ import DataSecurityAiEngine from "Common/Server/Utils/AI/DataSecurity/DataSecuri
 import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice";
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
+import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
   DATA_SECURITY_NOTIFY_OWNERS_JOB,
@@ -20,6 +21,7 @@ import {
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_GROUP_ISSUES_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
@@ -63,6 +65,9 @@ import ObjectID from "Common/Types/ObjectID";
  *    read), have OneUptime AI propose owners for the stores that have
  *    none (#10374); a few minutes after a store's owners are proposed, the
  *    owner rules they share.
+ *  - After each evaluation (queued by it, a little after), group the
+ *    project's issues by what made them, so the issues one mistake made are
+ *    one group, fixed once (#10370).
  *
  * The crons only decide what is due; each piece of work - one project, one
  * store, one connection - is its own queue job, deduplicated by what it is
@@ -340,3 +345,16 @@ JobDictionary.setTimeoutInMs(
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   5 * 60 * 1000,
 );
+
+// The issues one mistake made, grouped by what made them (#10370).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_GROUP_ISSUES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await DataSecurityIssueGrouper.groupProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(DATA_SECURITY_GROUP_ISSUES_JOB, 10 * 60 * 1000);
