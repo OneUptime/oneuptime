@@ -355,6 +355,27 @@ describe("every Logs viewer in the Dashboard", () => {
       "return buildKubernetesLogsSavedViewScope({ clusterIdentifier: props.clusterIdentifier, podName: props.podName, containerName: props.containerName, namespace: props.namespace, workloadKind: props.workloadKind, workloadName: props.workloadName, });",
     );
   });
+
+  test("an App Platforms app's Logs tab keeps its views, for the app's logs and for its site's, apart from the site's page in Cloud", () => {
+    const tab: string = readCode(
+      path.join("Components", "AppPlatforms", "CloudAppLogsTab.tsx"),
+    );
+    const cloudPage: string = readCode(
+      path.join("Pages", "Cloud", "View", "Logs.tsx"),
+    );
+
+    // The app's own logs: the app's page.
+    expect(tab).toContain(
+      "savedViewScope={buildSavedViewScope( SavedViewScopeKind.CloudApp, props.appId, )}",
+    );
+    // Its site's streamed logs: still the app's page, the site a part of it.
+    expect(tab).toContain(
+      "savedViewScope={buildSavedViewScope( SavedViewScopeKind.CloudApp, props.appId, siteId, )}",
+    );
+    // Never the site's own page in Cloud, whose kind is that page's alone.
+    expect(tab).not.toContain("SavedViewScopeKind.CloudMonitoredResource");
+    expect(cloudPage).toContain("SavedViewScopeKind.CloudMonitoredResource");
+  });
 });
 
 describe("the Dashboard Logs viewer", () => {
