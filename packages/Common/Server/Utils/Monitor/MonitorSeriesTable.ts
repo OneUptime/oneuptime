@@ -1,5 +1,6 @@
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import { JSONObject } from "../../../Types/JSON";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
@@ -11,9 +12,11 @@ import MetricSeriesResult from "../../../Types/Monitor/MetricMonitor/MetricSerie
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import {
   MonitorEvaluationSeries,
+  MonitorEvaluationSeriesLabels,
   MonitorEvaluationSeriesRow,
   MonitorEvaluationSeriesValueKind,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType, {
   MonitorTypeHelper,
@@ -201,7 +204,7 @@ export default class MonitorSeriesTable {
         ? groups.map((group: LogMonitorGroupResult) => {
             return {
               fingerprint: group.fingerprint,
-              labels: group.labels || {},
+              labels: MonitorSeriesTable.toKeptLabels(group.labels),
               valueKind: MonitorEvaluationSeriesValueKind.Logs,
               value: group.logCount,
               metCriteriaIds: [],
@@ -219,8 +222,10 @@ export default class MonitorSeriesTable {
         ? groups.map((group: TraceMonitorGroupResult) => {
             return {
               fingerprint: group.fingerprint,
-              labels: group.labels || {},
-              ...(group.context ? { context: group.context } : {}),
+              labels: MonitorSeriesTable.toKeptLabels(group.labels),
+              ...(group.context
+                ? { context: MonitorSeriesTable.toKeptLabels(group.context) }
+                : {}),
               valueKind: MonitorEvaluationSeriesValueKind.Spans,
               value: group.spanCount,
               metCriteriaIds: [],
@@ -264,7 +269,7 @@ export default class MonitorSeriesTable {
 
         return {
           fingerprint: series.fingerprint,
-          labels: series.labels || {},
+          labels: MonitorSeriesTable.toKeptLabels(series.labels),
           valueKind: MonitorEvaluationSeriesValueKind.Metric,
           ...(value !== undefined ? { value: value } : {}),
           ...(compared.unit ? { unit: compared.unit } : {}),
@@ -384,6 +389,23 @@ export default class MonitorSeriesTable {
 
   private static toAliasKey(alias: string | undefined): string {
     return (alias || "").trim().replace(/^\$/, "").toLowerCase();
+  }
+
+  /*
+   * A series' labels as the summary keeps them (MonitorEvaluationSeriesLabels):
+   * the ones SeriesLabelDisplay names it by, each as the text it reads as.
+   * Named again from these, the series reads as it did from the check's own.
+   */
+  private static toKeptLabels(
+    labels: JSONObject | undefined,
+  ): MonitorEvaluationSeriesLabels {
+    const kept: MonitorEvaluationSeriesLabels = {};
+
+    for (const label of SeriesLabelDisplay.getDisplayLabels(labels)) {
+      kept[label.key] = label.value;
+    }
+
+    return kept;
   }
 
   // The value of a result's newest data point, by its time.

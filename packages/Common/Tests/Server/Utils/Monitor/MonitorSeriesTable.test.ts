@@ -16,6 +16,7 @@ import {
 } from "../../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
+import SeriesLabelDisplay from "../../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import TraceMonitorResponse from "../../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 import { MatchedCriteriaResult } from "../../../../Types/Probe/ProbeApiIngestResponse";
@@ -52,9 +53,7 @@ function criteriaOf(step: MonitorStep): Array<MonitorCriteriaInstance> {
 function idOf(step: MonitorStep, statusId: ObjectID): string {
   return criteriaOf(step)
     .find((criteria: MonitorCriteriaInstance): boolean => {
-      return (
-        criteria.data!.monitorStatusId!.toString() === statusId.toString()
-      );
+      return criteria.data!.monitorStatusId!.toString() === statusId.toString();
     })!
     .data!.id.toString();
 }
@@ -72,7 +71,10 @@ function points(values: Array<number>): AggregatedResult {
 
 // A disk's query (a 0..1 ratio) and its formula (in percent), minute by minute.
 function disk(mountpoint: string, percents: Array<number>): MetricSeriesResult {
-  const labels: JSONObject = { mountpoint: mountpoint, device: `/dev/${mountpoint.length}` };
+  const labels: JSONObject = {
+    mountpoint: mountpoint,
+    device: `/dev/${mountpoint.length}`,
+  };
 
   return {
     fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
@@ -277,14 +279,17 @@ describe("MonitorSeriesTable.build: other grouped monitors, and the rest", () =>
   test("a Logs monitor's groups count their logs", () => {
     const step: MonitorStep = filesystemStep();
     const labels: JSONObject = { tunnel: "HQ-Branch1" };
-    const fingerprint: string = MetricSeriesFingerprint.computeFingerprint(labels);
+    const fingerprint: string =
+      MetricSeriesFingerprint.computeFingerprint(labels);
 
     const response: LogMonitorResponse = {
       monitorId: ObjectID.generate(),
       projectId: ObjectID.generate(),
       logCount: 12,
       logQuery: {},
-      groupBreakdown: [{ fingerprint: fingerprint, labels: labels, logCount: 12 }],
+      groupBreakdown: [
+        { fingerprint: fingerprint, labels: labels, logCount: 12 },
+      ],
     } as unknown as LogMonitorResponse;
 
     const table: MonitorEvaluationSeries = MonitorSeriesTable.build({
@@ -340,6 +345,40 @@ describe("MonitorSeriesTable.build: other grouped monitors, and the rest", () =>
     );
     expect(table.rows[0]!.value).toBe(3);
     expect(table.rows[0]!.context).toEqual({ "device.name": "Store 0412" });
+  });
+
+  test("labels are kept as the text they read as, and name the series as the check's own do", () => {
+    const step: MonitorStep = filesystemStep();
+    const labels: JSONObject = {
+      mountpoint: "/data",
+      "disk.index": 2,
+      "disk.tags": ["ssd", "nvme"],
+      "disk.label": "",
+      "disk.owner": null,
+    };
+
+    const table: MonitorEvaluationSeries = build({
+      step: step,
+      series: [
+        {
+          fingerprint: MetricSeriesFingerprint.computeFingerprint(labels),
+          labels: labels,
+          aggregatedResults: [points([0.5]), points([50])],
+        },
+      ],
+      matched: [],
+    })!;
+
+    // A number and a list as text; an empty label and a null one left out.
+    expect(table.rows[0]!.labels).toEqual({
+      mountpoint: "/data",
+      "disk.index": "2",
+      "disk.tags": "ssd, nvme",
+    });
+
+    expect(SeriesLabelDisplay.getDisplayLabels(table.rows[0]!.labels)).toEqual(
+      SeriesLabelDisplay.getDisplayLabels(labels),
+    );
   });
 
   test("a check with no series of its own keeps no table", () => {

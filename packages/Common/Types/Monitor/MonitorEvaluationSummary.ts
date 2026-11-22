@@ -1,5 +1,5 @@
+import Dictionary from "../Dictionary";
 import FilterCondition from "../Filter/FilterCondition";
-import { JSONObject } from "../JSON";
 import { CheckOn, FilterType } from "./CriteriaFilter";
 import { EvaluationSentence } from "./EvaluationSentence";
 
@@ -143,16 +143,27 @@ export enum MonitorEvaluationSeriesValueKind {
 }
 
 /*
+ * A series' labels as the summary keeps them: each label's value as the text
+ * it reads as (SeriesLabelDisplay), the empty ones and repeats left out, so
+ * they name the series as its incidents and alerts do. Text, and not the
+ * check's JSONObject: a Server monitor keeps its last summary on the monitor
+ * itself (ServerMonitorResponse.evaluationSummary), and every typed write of
+ * the monitor would spell out each value a JSONObject can hold, which is past
+ * what TypeScript can check (TS2589).
+ */
+export type MonitorEvaluationSeriesLabels = Dictionary<string>;
+
+/*
  * One series a grouped check read, as the Series card on the monitor's
  * Overview lists it (#10062): what names it, its latest value, the criteria
  * it met, and whether it keeps the monitor's status (GroupedMonitorRecovery).
  */
 export interface MonitorEvaluationSeriesRow {
   fingerprint: string;
-  // Its labels, as its incidents and alerts name it (SeriesLabelDisplay).
-  labels: JSONObject;
+  // Its labels, as its incidents and alerts name it.
+  labels: MonitorEvaluationSeriesLabels;
   // What else is known about it, for its name only.
-  context?: JSONObject | undefined;
+  context?: MonitorEvaluationSeriesLabels | undefined;
   valueKind: MonitorEvaluationSeriesValueKind;
   /*
    * Its newest value of what the criteria compare, in `unit`. Absent when
