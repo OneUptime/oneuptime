@@ -15,6 +15,13 @@ import {
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
 import { ScrubRuleAddressSignal } from "Common/Types/Telemetry/ScrubRuleAddresses";
+import {
+  checkScrubRuleKeys,
+  MAX_SCRUB_RULE_KEY_LENGTH,
+  MAX_SCRUB_RULE_KEYS,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+  ScrubRuleKeysProblem,
+} from "Common/Types/Telemetry/ScrubRuleKeys";
 import { TelemetryFieldSignal } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import { isScrubRuleHidingAddresses } from "Common/Utils/SecurityEvent/ScrubbedAddress";
@@ -68,9 +75,15 @@ import type { ReactElement } from "react";
  *     monitors, dashboards, saved views, recording rules and SLOs, and
  *     Security Events - before the rule is saved (ScrubRuleReadersPreview,
  *     #10433). It never blocks the save.
+ *   - Attributes to Hide, only for Named Attributes (#10366), right under
+ *     the type, and required there: the attributes whose whole value the
+ *     rule hides, whatever it holds - a person's name under customer_name,
+ *     a password under db.password. One a line; a key names the
+ *     attributes nested under it too.
  *
- * Four rows, the fourth only for a custom pattern, right under the choice it
- * belongs to - so one page (LongFormStepsGuard: LONG_FORMS_WITHOUT_STEPS).
+ * Three rows, the third only for a custom pattern or named attributes,
+ * right under the choice it belongs to - so one page (LongFormStepsGuard:
+ * LONG_FORMS_WITHOUT_STEPS).
  */
 
 /*
@@ -87,7 +100,32 @@ export const SCRUB_RULE_DEFAULT_NAMES: Record<string, string> = {
     "Scrub sensitive attributes",
   ),
   [LogScrubPatternType.Custom]: translationKey("Scrub custom pattern"),
+  [LogScrubPatternType.NamedKeys]: translationKey("Scrub named attributes"),
 };
+
+/*
+ * Named Attributes (#10366): what it hides, under its choice, and what
+ * the field of its attributes says - or why the keys cannot be saved.
+ */
+export const SCRUB_RULE_NAMED_KEYS_HELP: string = translationKey(
+  "Hides the whole value of the attributes you name, whatever it holds.",
+);
+
+export const SCRUB_RULE_ATTRIBUTE_KEYS_HELP: string = translationKey(
+  "One attribute key a line, such as customer_name. A key hides the attributes nested under it too.",
+);
+
+export const SCRUB_RULE_ATTRIBUTE_KEYS_MISSING: string = translationKey(
+  "Name at least one attribute. Without one, this rule would hide nothing.",
+);
+
+export const SCRUB_RULE_ATTRIBUTE_KEYS_TOO_MANY: string = translationKey(
+  "A rule names at most {{count}} attributes.",
+);
+
+export const SCRUB_RULE_ATTRIBUTE_KEYS_TOO_LONG: string = translationKey(
+  "An attribute key is at most {{length}} characters.",
+);
 
 export const SCRUB_RULE_NAME_HELP: string = translationKey(
   "Named after the pattern type until you type a name of your own.",
@@ -199,6 +237,11 @@ export const LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY: string =
     "The values of keys that look sensitive, in attributes and in a JSON log body, are replaced with [REDACTED].",
   );
 
+// A Named Attributes rule's (#10366): the values of the attributes it names.
+export const NAMED_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY: string = translationKey(
+  "The whole value of each attribute you name is replaced with [REDACTED].",
+);
+
 /**
  * The name a rule of this pattern type starts with, in the reader's
  * language; empty before a type is picked.
@@ -285,6 +328,41 @@ export const getScrubRuleCustomRegexError: (
   }
 };
 
+/**
+ * The keys' problem in the reader's language, or null - for the form's
+ * customValidation. The same check the server makes.
+ */
+export const getScrubRuleAttributeKeysError: (data: {
+  patternType: unknown;
+  attributeKeys: unknown;
+}) => string | null = (data: {
+  patternType: unknown;
+  attributeKeys: unknown;
+}): string | null => {
+  const problem: ScrubRuleKeysProblem | null = checkScrubRuleKeys({
+    patternType: normalizeFormValue(data.patternType),
+    attributeKeys: data.attributeKeys,
+  });
+
+  switch (problem) {
+    case ScrubRuleKeysProblem.Missing:
+      return (
+        translateText(SCRUB_RULE_ATTRIBUTE_KEYS_MISSING) ||
+        SCRUB_RULE_ATTRIBUTE_KEYS_MISSING
+      );
+    case ScrubRuleKeysProblem.TooMany:
+      return translateTemplate(SCRUB_RULE_ATTRIBUTE_KEYS_TOO_MANY, {
+        count: String(MAX_SCRUB_RULE_KEYS),
+      });
+    case ScrubRuleKeysProblem.TooLong:
+      return translateTemplate(SCRUB_RULE_ATTRIBUTE_KEYS_TOO_LONG, {
+        length: String(MAX_SCRUB_RULE_KEY_LENGTH),
+      });
+    default:
+      return null;
+  }
+};
+
 type IsPatternTypeFunction = (values: FormValues<LogScrubRule>) => boolean;
 
 const isCustomPattern: IsPatternTypeFunction = (
@@ -306,6 +384,16 @@ const isSensitiveKeysPattern: IsPatternTypeFunction = (
   return (
     normalizeFormValue(values.patternType) ===
     SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE
+  );
+};
+
+// A Named Attributes rule (#10366): it names the attributes it hides whole.
+const isNamedKeysPattern: IsPatternTypeFunction = (
+  values: FormValues<LogScrubRule>,
+): boolean => {
+  return (
+    normalizeFormValue(values.patternType) ===
+    SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE
   );
 };
 
@@ -370,6 +458,10 @@ export const getScrubRuleAdvancedSummary: (
 
   if (!isAtDefaults) {
     return undefined;
+  }
+
+  if (isNamedKeysPattern(formValues as FormValues<LogScrubRule>)) {
+    return [NAMED_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY];
   }
 
   return [
@@ -539,6 +631,11 @@ const getScrubRuleFormFields: (
           label: "Sensitive Attribute Keys",
           value: LogScrubPatternType.SensitiveKeys,
         },
+        {
+          label: "Named Attributes",
+          value: LogScrubPatternType.NamedKeys,
+          description: SCRUB_RULE_NAMED_KEYS_HELP,
+        },
         { label: "Custom Regex", value: LogScrubPatternType.Custom },
       ],
       /*
@@ -583,6 +680,27 @@ const getScrubRuleFormFields: (
       showIf: isCustomPattern,
       customValidation: (values: FormValues<LogScrubRule>): string | null => {
         return getScrubRuleCustomRegexError(values.customRegex);
+      },
+    },
+    /*
+     * The attributes a Named Attributes rule hides whole (#10366): one a
+     * line, saved as a list (the server reads either).
+     */
+    {
+      field: {
+        attributeKeys: true,
+      },
+      title: "Attributes to Hide",
+      description: SCRUB_RULE_ATTRIBUTE_KEYS_HELP,
+      fieldType: FormFieldSchemaType.LongText,
+      required: true,
+      placeholder: "e.g. customer_name",
+      showIf: isNamedKeysPattern,
+      customValidation: (values: FormValues<LogScrubRule>): string | null => {
+        return getScrubRuleAttributeKeysError({
+          patternType: values.patternType,
+          attributeKeys: values.attributeKeys,
+        });
       },
     },
     {

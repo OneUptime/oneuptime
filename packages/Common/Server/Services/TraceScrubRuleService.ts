@@ -3,12 +3,13 @@ import Model from "../../Models/DatabaseModels/TraceScrubRule";
 import CreateBy from "../Types/Database/CreateBy";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import {
   TRACE_SCRUB_FIELDS,
   TRACE_SCRUB_PATTERN_TYPES,
 } from "../../Types/Telemetry/ScrubRule";
 import {
+  normalizeScrubRuleKeys,
   ScrubRuleValidationOptions,
   validateScrubRuleCreate,
   validateScrubRuleUpdate,
@@ -33,9 +34,20 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // The attributes it names, as a list (#10366).
+    normalizeScrubRuleKeys(createBy.data);
     validateScrubRuleCreate(createBy.data, VALIDATION_OPTIONS);
 
     return { createBy, carryForward: null };
+  }
+
+  // The attributes an update names, as a list (#10366).
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    normalizeScrubRuleKeys(updateBy.data as { attributeKeys?: unknown });
+
+    return { updateBy, carryForward: null };
   }
 
   /*

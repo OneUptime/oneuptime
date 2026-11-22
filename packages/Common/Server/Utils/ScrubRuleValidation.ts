@@ -13,6 +13,7 @@ import {
 } from "../../Types/Telemetry/ScrubRule";
 import {
   checkScrubRuleKeys,
+  readScrubRuleKeys,
   MAX_SCRUB_RULE_KEY_LENGTH,
   MAX_SCRUB_RULE_KEYS,
   SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
@@ -189,6 +190,24 @@ export function validateScrubRule(
   if (check) {
     throw new BadDataException(getScrubRuleCustomRegexRefusal(check, options));
   }
+}
+
+/*
+ * The attributes a rule names, kept as a list (#10366): the rule form
+ * sends them as text, one a line, and an API caller may send a list or a
+ * text between commas. Each key once, trimmed, as ingest reads them. A raw
+ * SQL expression is left as it is, for the update's own check.
+ */
+export function normalizeScrubRuleKeys(data: { attributeKeys?: unknown }): void {
+  if (
+    data.attributeKeys === undefined ||
+    data.attributeKeys === null ||
+    isSqlExpressionValue(data.attributeKeys)
+  ) {
+    return;
+  }
+
+  data.attributeKeys = readScrubRuleKeys(data.attributeKeys);
 }
 
 // A rule as a create hands it to the service's onBeforeCreate.
