@@ -154,7 +154,7 @@ Every request in a test has a 20 second deadline. A test never imports anything 
 
 ## Block addresses at Cloudflare
 
-With blocking on, Cloudflare enforces your project's [blocklist](/docs/telemetry/security-cases#blocklist). Each address you block is added to an IP list in your Cloudflare account within a minute, and in each zone one custom rule per list blocks or challenges the addresses it holds. On the **Blocklist**, **Enforced At** names Cloudflare for each block OneUptime has read back from Cloudflare; a block not read back within 10 minutes is not enforced there.
+With blocking on, Cloudflare enforces your project's [blocklist](/docs/telemetry/security-cases#blocklist). Each address you block is added to an IP list in your Cloudflare account within a minute, and in each zone one custom rule per list blocks or challenges the addresses it holds. On the **Blocklist**, **Enforced At** names Cloudflare for each block OneUptime has read back from Cloudflare; a block not read back within 10 minutes is not enforced there. A case's block step then also says how many of the address's requests Cloudflare stopped since the block.
 
 Blocking needs write permissions on the connection's API token:
 

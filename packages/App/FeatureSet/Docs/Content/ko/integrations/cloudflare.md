@@ -154,7 +154,7 @@ Cloudflare의 Logpush도 방화벽 이벤트를 보낼 수 있으며, 2026년 9�
 
 ## Cloudflare에서 주소 차단
 
-차단이 켜져 있으면 Cloudflare가 프로젝트의 [차단 목록](/docs/telemetry/security-cases#차단-목록)을 적용합니다. 차단한 각 주소는 1분 안에 Cloudflare 계정의 IP 목록에 추가되고, 각 영역에서는 목록마다 사용자 지정 규칙 하나가 목록의 주소를 차단하거나 챌린지합니다. **차단 목록**에서는 OneUptime이 Cloudflare에서 다시 읽은 각 차단의 **적용 위치**에 Cloudflare가 표시됩니다. 10분 안에 다시 읽지 못한 차단은 그곳에서 적용되지 않습니다.
+차단이 켜져 있으면 Cloudflare가 프로젝트의 [차단 목록](/docs/telemetry/security-cases#차단-목록)을 적용합니다. 차단한 각 주소는 1분 안에 Cloudflare 계정의 IP 목록에 추가되고, 각 영역에서는 목록마다 사용자 지정 규칙 하나가 목록의 주소를 차단하거나 챌린지합니다. **차단 목록**에서는 OneUptime이 Cloudflare에서 다시 읽은 각 차단의 **적용 위치**에 Cloudflare가 표시됩니다. 10분 안에 다시 읽지 못한 차단은 그곳에서 적용되지 않습니다. 그러면 케이스의 차단 단계에 차단 이후 Cloudflare가 그 주소에서 온 요청을 몇 개 막았는지도 표시됩니다.
 
 차단에는 연결의 API 토큰에 다음 쓰기 권한이 필요합니다.
 

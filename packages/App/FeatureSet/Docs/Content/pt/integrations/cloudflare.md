@@ -154,7 +154,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca import
 
 ## Bloquear endereços na Cloudflare
 
-Com o bloqueio ativado, a Cloudflare aplica a [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) do seu projeto. Cada endereço que você bloqueia entra em menos de um minuto em uma lista de IP da sua conta da Cloudflare, e em cada zona uma regra personalizada por lista bloqueia os endereços que ela contém ou lhes aplica um desafio. Na **Lista de bloqueio**, **Aplicado por** nomeia a Cloudflare para cada bloqueio que o OneUptime leu de volta da Cloudflare; um bloqueio que não é lido de volta em 10 minutos não é aplicado ali.
+Com o bloqueio ativado, a Cloudflare aplica a [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) do seu projeto. Cada endereço que você bloqueia entra em menos de um minuto em uma lista de IP da sua conta da Cloudflare, e em cada zona uma regra personalizada por lista bloqueia os endereços que ela contém ou lhes aplica um desafio. Na **Lista de bloqueio**, **Aplicado por** nomeia a Cloudflare para cada bloqueio que o OneUptime leu de volta da Cloudflare; um bloqueio que não é lido de volta em 10 minutos não é aplicado ali. A etapa de bloqueio de um caso diz então também quantas requisições do endereço a Cloudflare parou desde o bloqueio.
 
 O bloqueio precisa de permissões de escrita no token de API da conexão:
 

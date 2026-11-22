@@ -154,7 +154,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 
 ## Blokker adresser hos Cloudflare
 
-Med blokkering slått på håndhever Cloudflare [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) til prosjektet ditt. Hver adresse du blokkerer, havner innen ett minutt på en IP-liste i Cloudflare-kontoen din, og i hver sone blokkerer én egendefinert regel per liste adressene listen inneholder, eller gir dem en utfordring. På **Blokkeringsliste** nevner **Håndhevet hos** Cloudflare for hver blokkering OneUptime har lest tilbake fra Cloudflare; en blokkering som ikke er lest tilbake innen 10 minutter, håndheves ikke der.
+Med blokkering slått på håndhever Cloudflare [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) til prosjektet ditt. Hver adresse du blokkerer, havner innen ett minutt på en IP-liste i Cloudflare-kontoen din, og i hver sone blokkerer én egendefinert regel per liste adressene listen inneholder, eller gir dem en utfordring. På **Blokkeringsliste** nevner **Håndhevet hos** Cloudflare for hver blokkering OneUptime har lest tilbake fra Cloudflare; en blokkering som ikke er lest tilbake innen 10 minutter, håndheves ikke der. Blokkeringstrinnet i en sak sier da også hvor mange av adressens forespørsler Cloudflare har stoppet siden blokkeringen.
 
 Blokkering trenger skrivetillatelser på API-tokenet til tilkoblingen:
 

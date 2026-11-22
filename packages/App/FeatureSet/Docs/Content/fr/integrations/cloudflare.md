@@ -154,7 +154,7 @@ Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais r
 
 ## Bloquer des adresses chez Cloudflare
 
-Quand le blocage est activé, Cloudflare applique la [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) de votre projet. Chaque adresse que vous bloquez rejoint en moins d'une minute une liste d'IP de votre compte Cloudflare, et dans chaque zone une règle personnalisée par liste bloque les adresses qu'elle contient ou leur impose un défi. Dans la **Liste de blocage**, **Appliqué sur** nomme Cloudflare pour chaque blocage que OneUptime a relu dans Cloudflare ; un blocage qui n'est pas relu en 10 minutes n'y est pas appliqué.
+Quand le blocage est activé, Cloudflare applique la [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) de votre projet. Chaque adresse que vous bloquez rejoint en moins d'une minute une liste d'IP de votre compte Cloudflare, et dans chaque zone une règle personnalisée par liste bloque les adresses qu'elle contient ou leur impose un défi. Dans la **Liste de blocage**, **Appliqué sur** nomme Cloudflare pour chaque blocage que OneUptime a relu dans Cloudflare ; un blocage qui n'est pas relu en 10 minutes n'y est pas appliqué. L'étape de blocage d'un dossier indique alors aussi combien de requêtes de l'adresse Cloudflare a arrêtées depuis le blocage.
 
 Le blocage a besoin d'autorisations d'écriture sur le jeton d'API de la connexion :
 

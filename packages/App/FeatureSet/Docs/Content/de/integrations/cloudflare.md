@@ -154,7 +154,7 @@ Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert n
 
 ## Adressen bei Cloudflare sperren
 
-Ist das Sperren eingeschaltet, setzt Cloudflare die [Sperrliste](/docs/telemetry/security-cases#sperrliste) Ihres Projekts durch. Jede Adresse, die Sie sperren, kommt innerhalb einer Minute auf eine IP-Liste in Ihrem Cloudflare-Konto, und in jeder Zone sperrt eine benutzerdefinierte Regel pro Liste die Adressen, die sie enthält, oder stellt ihnen eine Challenge. In der **Sperrliste** nennt **Durchgesetzt bei** Cloudflare für jede Sperre, die OneUptime von Cloudflare zurückgelesen hat; eine Sperre, die nicht innerhalb von 10 Minuten zurückgelesen wird, ist dort nicht durchgesetzt.
+Ist das Sperren eingeschaltet, setzt Cloudflare die [Sperrliste](/docs/telemetry/security-cases#sperrliste) Ihres Projekts durch. Jede Adresse, die Sie sperren, kommt innerhalb einer Minute auf eine IP-Liste in Ihrem Cloudflare-Konto, und in jeder Zone sperrt eine benutzerdefinierte Regel pro Liste die Adressen, die sie enthält, oder stellt ihnen eine Challenge. In der **Sperrliste** nennt **Durchgesetzt bei** Cloudflare für jede Sperre, die OneUptime von Cloudflare zurückgelesen hat; eine Sperre, die nicht innerhalb von 10 Minuten zurückgelesen wird, ist dort nicht durchgesetzt. Der Sperrschritt eines Falls sagt dann auch, wie viele Anfragen der Adresse Cloudflare seit der Sperre gestoppt hat.
 
 Das Sperren braucht Schreibberechtigungen auf dem API-Token der Verbindung:
 

@@ -154,7 +154,7 @@ Cloudflare 的 Logpush 也能傳送防火牆事件，自 2026 年 9 月 30 日�
 
 ## 在 Cloudflare 封鎖位址
 
-開啟封鎖後，Cloudflare 會執行你專案的[封鎖清單](/docs/telemetry/security-cases#封鎖清單)。你封鎖的每個位址會在 1 分鐘內加入你 Cloudflare 帳戶中的一份 IP 清單，而在每個區域中，每份清單對應的一條自訂規則會封鎖或挑戰清單中的位址。在 **封鎖清單** 中，對於 OneUptime 已從 Cloudflare 讀回的每個封鎖，**生效於** 會顯示 Cloudflare；10 分鐘內未讀回的封鎖在那裡不會生效。
+開啟封鎖後，Cloudflare 會執行你專案的[封鎖清單](/docs/telemetry/security-cases#封鎖清單)。你封鎖的每個位址會在 1 分鐘內加入你 Cloudflare 帳戶中的一份 IP 清單，而在每個區域中，每份清單對應的一條自訂規則會封鎖或挑戰清單中的位址。在 **封鎖清單** 中，對於 OneUptime 已從 Cloudflare 讀回的每個封鎖，**生效於** 會顯示 Cloudflare；10 分鐘內未讀回的封鎖在那裡不會生效。案件的封鎖步驟接著也會顯示自封鎖以來 Cloudflare 攔截了來自該位址的多少個請求。
 
 封鎖需要連線的 API 權杖具有以下寫入權限：
 

@@ -154,7 +154,7 @@ Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai
 
 ## Bloccare indirizzi su Cloudflare
 
-Con il blocco attivo, Cloudflare applica la [blocklist](/docs/telemetry/security-cases#blocklist) del tuo progetto. Ogni indirizzo che blocchi finisce entro un minuto in una lista IP del tuo account Cloudflare, e in ogni zona una regola personalizzata per lista blocca gli indirizzi che contiene o li sottopone a una verifica. Nella **Blocklist**, **Applicato su** nomina Cloudflare per ogni blocco che OneUptime ha riletto da Cloudflare; un blocco non riletto entro 10 minuti non vi è applicato.
+Con il blocco attivo, Cloudflare applica la [blocklist](/docs/telemetry/security-cases#blocklist) del tuo progetto. Ogni indirizzo che blocchi finisce entro un minuto in una lista IP del tuo account Cloudflare, e in ogni zona una regola personalizzata per lista blocca gli indirizzi che contiene o li sottopone a una verifica. Nella **Blocklist**, **Applicato su** nomina Cloudflare per ogni blocco che OneUptime ha riletto da Cloudflare; un blocco non riletto entro 10 minuti non vi è applicato. Il passo di blocco di un caso dice allora anche quante richieste dell'indirizzo Cloudflare ha fermato dal blocco.
 
 Il blocco richiede permessi di scrittura sul token API della connessione:
 

@@ -154,7 +154,7 @@ Cada solicitud de una prueba tiene un plazo de 20 segundos. Una prueba nunca imp
 
 ## Bloquear direcciones en Cloudflare
 
-Con el bloqueo activado, Cloudflare aplica la [lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo) de tu proyecto. Cada dirección que bloqueas se añade en menos de un minuto a una lista de IP de tu cuenta de Cloudflare, y en cada zona una regla personalizada por lista bloquea las direcciones que contiene o les plantea un desafío. En la **Lista de bloqueo**, **Aplicado en** nombra Cloudflare para cada bloqueo que OneUptime ha vuelto a leer de Cloudflare; un bloqueo que no se vuelve a leer en 10 minutos no se aplica allí.
+Con el bloqueo activado, Cloudflare aplica la [lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo) de tu proyecto. Cada dirección que bloqueas se añade en menos de un minuto a una lista de IP de tu cuenta de Cloudflare, y en cada zona una regla personalizada por lista bloquea las direcciones que contiene o les plantea un desafío. En la **Lista de bloqueo**, **Aplicado en** nombra Cloudflare para cada bloqueo que OneUptime ha vuelto a leer de Cloudflare; un bloqueo que no se vuelve a leer en 10 minutos no se aplica allí. El paso de bloqueo de un caso dice entonces también cuántas solicitudes de la dirección ha detenido Cloudflare desde el bloqueo.
 
 El bloqueo necesita permisos de escritura en el token de API de la conexión:
 

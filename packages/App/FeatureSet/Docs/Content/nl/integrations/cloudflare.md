@@ -154,7 +154,7 @@ Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert 
 
 ## Adressen blokkeren bij Cloudflare
 
-Met blokkeren aan past Cloudflare de [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst) van je project toe. Elk adres dat je blokkeert, komt binnen een minuut op een IP-lijst in je Cloudflare-account, en in elke zone blokkeert één aangepaste regel per lijst de adressen die erop staan, of legt ze een challenge voor. In de **Blokkeerlijst** noemt **Toegepast bij** Cloudflare voor elke blokkering die OneUptime van Cloudflare heeft teruggelezen; een blokkering die niet binnen 10 minuten is teruggelezen, wordt daar niet toegepast.
+Met blokkeren aan past Cloudflare de [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst) van je project toe. Elk adres dat je blokkeert, komt binnen een minuut op een IP-lijst in je Cloudflare-account, en in elke zone blokkeert één aangepaste regel per lijst de adressen die erop staan, of legt ze een challenge voor. In de **Blokkeerlijst** noemt **Toegepast bij** Cloudflare voor elke blokkering die OneUptime van Cloudflare heeft teruggelezen; een blokkering die niet binnen 10 minuten is teruggelezen, wordt daar niet toegepast. De blokkeerstap van een zaak zegt dan ook hoeveel aanvragen van het adres Cloudflare sinds de blokkering heeft tegengehouden.
 
 Blokkeren heeft schrijfrechten nodig op het API-token van de verbinding:
 

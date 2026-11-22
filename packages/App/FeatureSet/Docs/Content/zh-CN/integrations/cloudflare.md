@@ -154,7 +154,7 @@ Cloudflare 的 Logpush 也能发送防火墙事件，自 2026 年 9 月 30 日�
 
 ## 在 Cloudflare 封禁地址
 
-开启封禁后，Cloudflare 会执行你项目的[封禁列表](/docs/telemetry/security-cases#封禁列表)。你封禁的每个地址会在 1 分钟内加入你 Cloudflare 账户中的一个 IP 列表，并且在每个区域中，每个列表对应的一条自定义规则会封禁或质询该列表中的地址。在 **封禁列表** 中，对于 OneUptime 已从 Cloudflare 读回的每个封禁，**生效于** 会显示 Cloudflare；10 分钟内未读回的封禁在那里不生效。
+开启封禁后，Cloudflare 会执行你项目的[封禁列表](/docs/telemetry/security-cases#封禁列表)。你封禁的每个地址会在 1 分钟内加入你 Cloudflare 账户中的一个 IP 列表，并且在每个区域中，每个列表对应的一条自定义规则会封禁或质询该列表中的地址。在 **封禁列表** 中，对于 OneUptime 已从 Cloudflare 读回的每个封禁，**生效于** 会显示 Cloudflare；10 分钟内未读回的封禁在那里不生效。案例的封禁步骤随后还会显示自封禁以来 Cloudflare 拦截了来自该地址的多少个请求。
 
 封禁需要连接的 API 令牌具有以下写入权限：
 

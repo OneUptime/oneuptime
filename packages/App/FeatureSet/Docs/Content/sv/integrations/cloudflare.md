@@ -154,7 +154,7 @@ Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar
 
 ## Blockera adresser hos Cloudflare
 
-Med blockering påslagen tillämpar Cloudflare ditt projekts [blocklista](/docs/telemetry/security-cases#blocklista). Varje adress du blockerar hamnar inom en minut på en IP-lista i ditt Cloudflare-konto, och i varje zon blockerar en anpassad regel per lista de adresser listan innehåller, eller ger dem en utmaning. På **Blocklista** nämner **Tillämpad hos** Cloudflare för varje blockering som OneUptime har läst tillbaka från Cloudflare; en blockering som inte läses tillbaka inom 10 minuter tillämpas inte där.
+Med blockering påslagen tillämpar Cloudflare ditt projekts [blocklista](/docs/telemetry/security-cases#blocklista). Varje adress du blockerar hamnar inom en minut på en IP-lista i ditt Cloudflare-konto, och i varje zon blockerar en anpassad regel per lista de adresser listan innehåller, eller ger dem en utmaning. På **Blocklista** nämner **Tillämpad hos** Cloudflare för varje blockering som OneUptime har läst tillbaka från Cloudflare; en blockering som inte läses tillbaka inom 10 minuter tillämpas inte där. Ett ärendes blockeringssteg säger då också hur många av adressens begäranden Cloudflare har stoppat sedan blockeringen.
 
 Blockering behöver skrivbehörigheter på anslutningens API-token:
 
