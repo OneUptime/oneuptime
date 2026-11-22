@@ -108,6 +108,7 @@ import SecurityEventService, {
   DetectionMatchGroup,
 } from "Common/Server/Services/SecurityEventService";
 import DetectionRuleExceptionService from "Common/Server/Services/DetectionRuleExceptionService";
+import SecurityEventRetention from "Common/Server/Utils/SecurityEvent/SecurityEventRetention";
 import ThreatIntelIndicatorService from "Common/Server/Services/ThreatIntelIndicatorService";
 import DetectionRuleRetrohunt from "Common/Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
@@ -811,6 +812,10 @@ integration("Watchlists against ClickHouse", () => {
       jest
         .spyOn(DetectionRuleExceptionService, "findAllBy")
         .mockResolvedValue([] as never);
+      // How long the project keeps its events: the run reads only those.
+      jest
+        .spyOn(SecurityEventRetention, "getRetentionInDays")
+        .mockResolvedValue(15 as never);
       jest.spyOn(SecurityWatchlists, "load").mockImplementation((async (data: {
         names: Array<string>;
       }) => {

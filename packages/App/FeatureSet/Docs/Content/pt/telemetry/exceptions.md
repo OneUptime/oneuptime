@@ -218,7 +218,7 @@ Verifique primeiro a lente: **Problemas** oculta erros de usuário e negações 
 :::
 
 :::details Um erro aparece como várias exceções
-A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria. As exceções novas são agrupadas pelas funções do seu próprio código, então isto afeta sobretudo exceções registradas antes; mescle duas que sejam o mesmo bug em **Exceções semelhantes**.
+A impressão digital inclui a mensagem e o stack trace. Quando eles diferem, por exemplo quando uma mensagem inclui um número curto ou um nome que muda a cada chamada, cada variante é uma exceção própria. As exceções novas são agrupadas pelas funções do seu próprio código, então isto afeta sobretudo exceções registradas antes; mescle duas que sejam o mesmo bug em **Exceções semelhantes**. Uma regra de mascaramento não divide uma exceção: ela é agrupada pelo que dizia antes das regras. Uma exceção encontrada em registros que uma regra dividiu em duas numa versão anterior do OneUptime continua dividida; mescle as duas da mesma forma.
 :::
 
 :::details Uma exceção resolvida sempre volta

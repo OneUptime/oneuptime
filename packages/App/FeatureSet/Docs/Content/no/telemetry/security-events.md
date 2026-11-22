@@ -350,7 +350,7 @@ En hunt som er lagret med filtre fra sidepanelet under Hendelser, viser dem i **
 
 En planlagt hunt varsler personene og teamene du velger under **Varsle**: minst én og høyst 50 til sammen. Hver kjøring:
 
-- leser hendelsene med et tidspunkt etter kjøringen før, frem til for to minutter siden, så hver hendelse søkes gjennom én gang. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt.
+- leser hendelsene som kom inn etter kjøringen før, frem til for to minutter siden, uansett når de skjedde, så hver hendelse søkes gjennom én gang, også en som kommer sent. Den første kjøringen leser fra da tidsplanen ble satt eller søket sist ble endret, og etter et avbrudd henter en kjøring inn høyst én dag mer enn intervallet sitt. En hendelse som kommer mer enn en dag etter at den skjedde, lagres og kan søkes i, men ingen kjøring teller den.
 - teller hendelsene søket finner der, nøyaktig slik **Hendelser** ville listet dem, og leser bare det personen den kjører som, kan lese.
 - varsler, når den finner hendelser, personene hunten nevner, og medlemmene av teamene den nevner, som kan lese hunts og sikkerhetshendelser.
 
@@ -360,11 +360,11 @@ En planlagt hunt kjører som personen som sist satte tidsplanen, endret søket e
 
 ### Kjøringshistorikk
 
-Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og hvilke hendelser den søkte i, deretter hvor mange den fant, med **Vis dem** for å åpne de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
+Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slutten av linjen som sier hva kjøringene til en hunt fant, viser dem med den nyeste først: når hver kjørte og når hendelsene den søkte i kom inn, deretter hvor mange den fant, med **Vis dem** for å åpne nettopp de hendelsene på siden til hunten; at den ikke fant noe; eller hvorfor den ikke kunne kjøre. Den som kan åpne en hunt, kan lese kjøringene dens.
 
 ### Hvem som varsles
 
-Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
+Varslingen **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og når de kom inn, og lenker til siden til hunten på nettopp de hendelsene: filteret **Kommet inn** over dagen før dem, som du kan fjerne for å se alt annet fra den tiden; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varslingsinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
 
 For å legge ut det hunts finner i Slack, Microsoft Teams eller Mattermost, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-microsoft-teams-og-mattermost-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator.
 
@@ -514,7 +514,8 @@ OneUptime sjekker hvert minutt etter aktiverte regler der intervallet har gått 
 
 - En tellende regel og en korrelasjon teller i vinduer like lange som intervallet, etter hverandre etter klokken: med et intervall på 10 minutter havner feil kl. 09:58 og 10:01 i ulike vinduer og telles hver for seg, så legg inn margin når du velger en terskel.
 - Etter et opphold, for eksempel et worker-avbrudd eller en regel som er slått på igjen, dekker neste kjøring hele oppholdet, opptil de siste 24 timene.
-- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det.
+- En kjøring som mislykkes, for eksempel en som tar for lang tid, lar regelen bli der den var: **Status** sier **Kjøring mislyktes**, og den prøves igjen ved neste intervall, eller innen en time hvis intervallet er lengre. Kjøringen som lykkes, leser alt som har kommet inn siden den siste som lyktes, uansett hvor lenge siden, én dag om gangen. En kjøring som ble stoppet etter at den handlet på treffene sine, gjøres på nytt uten å legge dem til saken to ganger.
+- En hendelse som kommer for sent, leses likevel én gang av neste kjøring og telles i vinduet den skjedde i: en gruppe slår til når vinduet når tellingen, og høyst én gang per vindu. En hendelse som kommer mer enn et døgn etter at den skjedde, lagres og er søkbar, men regelens kjøringer leser den ikke; **Kjør på tidligere hendelser** gjør det. Det er med vilje, slik at innlasting av historikk ikke åpner varsler om fortiden: når noen har kommet så sent de siste 7 dagene, sier en melding over reglene hvor mange, fra hvilke kilder og når de skjedde, og åpner **Kjør på tidligere hendelser** over den tiden.
 - Hver gruppe som når terskelen, blir et Detection Finding, opptil 10 000 per kjøring. Varsler, hendelser og saker åpnes for de 100 med høyest telling; resten deler én sak om regelen, og regelens **Siste feil** sier hvor mange grupper som traff.
 
 ### Sanntidsregler
@@ -646,6 +647,14 @@ Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som all
 ## Oppbevaring og fakturering
 
 Sikkerhetshendelser faktureres per GB som tas inn, som resten av telemetrien din, og oppbevares i telemetriens oppbevaringstid: prosjektets **Standard oppbevaring (dager)**, under **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring**, eller en oppbevaringstid som er angitt på telemetritjenesten de hører til. Når oppbevaringstiden for en hendelse er ute, slettes den.
+
+Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene som fortsatt oppbevares, og sier når det ville trengt flere:
+
+- En **Først sett**-regel med et tidsrom som er lengre enn hendelsene oppbevares, avgjør ut fra de oppbevarte dagene om en verdi er ny: med et tidsrom på 30 dager og 15 dagers oppbevaring sier varslene og sakene dens `First awsRegion in 15 days`, og en verdi som sist ble sett for 20 dager siden, regnes som ny. Raden dens viser **Krever oppmerksomhet**, og **Vis feil** sier hva som må endres. Regelskjemaet og detaljene til en regel i regelbiblioteket sier det før den lagres eller legges til. En telling eller en sekvens med et vindu som er lengre enn hendelsene oppbevares, teller bare dem.
+- **Kjør på tidligere hendelser** over en periode som begynner før de oppbevarte hendelsene, sier at sikkerhetshendelser oppbevares i 15 dager, så den så 15 dager tilbake, og det den ikke fant, gjelder bare de dagene. En hendelse som skjedde tidligere, men kom for sent, er fortsatt oppbevart og leses fortsatt. En **Først sett**-regel sier hvor mye av de 30 dagene før perioden den kunne se.
+- En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
+
+**Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
 
 ## Feilsøking
 

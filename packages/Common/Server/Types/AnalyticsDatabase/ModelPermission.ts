@@ -13,6 +13,7 @@ import BaseModel, {
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import { EXCEPTION_SPAN_SCOPE_QUERY_KEY } from "../../../Types/Telemetry/ExceptionSpanScope";
 import { SECURITY_EVENT_SCOPE_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventScope";
+import { SECURITY_EVENT_ARRIVAL_QUERY_KEY } from "../../../Types/SecurityEvent/SecurityEventArrival";
 import ColumnBillingAccessControl from "../../../Types/BaseDatabase/ColumnBillingAccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -851,6 +852,16 @@ export default class ModelPermission {
        * and authorization still runs on the query's project and sources.
        */
       SECURITY_EVENT_SCOPE_QUERY_KEY,
+      /*
+       * Synthetic query key compiled by StatementGenerator to the security
+       * events that arrived in a range, within a day of when they happened
+       * (createdAt > ... AND createdAt <= ... AND time >= createdAt - ...),
+       * or AND 0 for a range it cannot read: a scheduled hunt's count and
+       * the events its notification opens on. Not a real column; it only
+       * narrows, and authorization still runs on the query's project and
+       * sources.
+       */
+      SECURITY_EVENT_ARRIVAL_QUERY_KEY,
     ];
 
     return returnArr;

@@ -1143,6 +1143,8 @@ import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809
 import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
 import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
 import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
 
 export default [
@@ -2291,5 +2293,7 @@ export default [
   AddSecurityCaseStepChecks1809187390000,
   AddSecurityCaseNextStepCheckIndex1809187390010,
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
+  AddDetectionRunMarksAndFiringKeys1809187421130,
+  AddDetectionRuleLastFailedAt1809187421140,
   AddProbeInterfaceIpAddresses1809187429000,
 ];

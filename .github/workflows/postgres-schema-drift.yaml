@@ -5032,6 +5032,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/API/OwnerFilterListsPostgres.test.ts --forceExit
 
+      # Link Existing Monitors on migrated Postgres (#10399): a Ping template
+      # with 264 linked monitors in a project of more than 10,000 Ping
+      # monitors, searched through the monitor list route as the dialog's
+      # picker sends it - the unlinked and the other template's found by any
+      # part of their names, never the template's own, another type, an
+      # archived one or another project's - and the read the dialog used to
+      # make, which never had the monitor to offer.
+      - name: Test Link Existing Monitors' search on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LINKABLE_MONITORS_TESTS: "true"
+          LINKABLE_MONITORS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LINKABLE_MONITORS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LINKABLE_MONITORS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/MonitorTemplateLinkableMonitorsPostgres.test.ts
+          --forceExit
+
       # The LLM provider an AI rule picks, on migrated Postgres: the two
       # migrations on copies of the rule tables that already hold rules (the
       # columns added without a backfill, each rule's index and key built

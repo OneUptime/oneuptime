@@ -33,6 +33,7 @@ import ObjectID from "../../Types/ObjectID";
 import { isSecurityDetectionSource } from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
   SecurityPlaybookActionDefinition,
+  SecurityPlaybookActionType,
   getSecurityPlaybookAction,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
@@ -41,12 +42,36 @@ import {
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
   assertSecurityPlaybookStepConditions,
   parseSecurityPlaybookSteps,
+  readBlockAddressConfig,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { SecurityBlockDuration } from "../../Types/SecurityBlocklist/SecurityBlock";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { validateSecurityPlaybookStepValues } from "../../Utils/SecurityCase/SecurityPlaybookStepValues";
 import SecurityCaseValues, {
   ProjectSecurityCaseValues,
 } from "../Utils/SecurityCase/SecurityCaseValues";
+
+/*
+ * A playbook's block always ends by itself (#10342): a playbook runs on its
+ * own, on every case it matches, and blocks that never end pile up while
+ * an address is soon someone else's. Only a person keeps a block until
+ * someone lifts it - a Security Admin, from a case or the Blocklist.
+ */
+export function assertPlaybookBlocksExpire(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+): void {
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    if (
+      step.action === SecurityPlaybookActionType.BlockAddress &&
+      readBlockAddressConfig(step.config).duration ===
+        SecurityBlockDuration.UntilLifted
+    ) {
+      throw new BadDataException(
+        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): a playbook's block expires. Choose 1 hour, 24 hours, 7 days or 30 days.`,
+      );
+    }
+  });
+}
 
 /*
  * Every record a step's settings name, by the setting it is under. A step's
@@ -286,6 +311,7 @@ export class Service extends ProjectReferencesService<Model> {
       );
 
       assertSecurityPlaybookStepConditions(steps);
+      assertPlaybookBlocksExpire(steps);
       data["steps"] = steps as unknown as JSONArray;
     }
 

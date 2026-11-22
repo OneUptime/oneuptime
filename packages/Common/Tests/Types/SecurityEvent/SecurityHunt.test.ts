@@ -16,6 +16,8 @@ import {
   getSecurityHuntIntervalInMinutes,
   getSecurityHuntProblems,
   getSecurityHuntRetryAt,
+  getSecurityHuntRunArrival,
+  getSecurityHuntRunEventTimeRange,
   getSecurityHuntRunWindow,
   getSecurityHuntSearchStart,
   getSecurityHuntTimeRangeForLength,
@@ -26,7 +28,11 @@ import {
   securityHuntFiltersFromMap,
   securityHuntFiltersToMap,
 } from "../../../Types/SecurityEvent/SecurityHunt";
-import { DETECTION_EVALUATION_DELAY_IN_SECONDS } from "../../../Types/SecurityEvent/DetectionFindingConstants";
+import {
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
+  DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
+} from "../../../Types/SecurityEvent/DetectionFindingConstants";
+import { SECURITY_EVENT_MAX_FUTURE_SKEW_IN_MINUTES } from "../../../Types/SecurityEvent/SecurityEventArrival";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { describe, expect, test } from "@jest/globals";
 
@@ -348,7 +354,7 @@ describe("the windows a scheduled hunt's runs read", () => {
     );
   });
 
-  test("a run reads from a millisecond after the last one stopped to the delay before now", () => {
+  test("a run counts what arrived after where the last one stopped, up to the delay before now", () => {
     const searchedUpTo: Date = minutesBefore(NOW, 62);
     const window: SecurityHuntRunWindow | null = getSecurityHuntRunWindow({
       schedule: SecurityHuntSchedule.EveryHour,
@@ -356,13 +362,28 @@ describe("the windows a scheduled hunt's runs read", () => {
       now: NOW,
     });
 
+    // (start, end]: what arrived after the run before stopped, up to two minutes ago.
     expect(window).toEqual({
-      startTime: new Date(searchedUpTo.getTime() + 1),
+      startTime: searchedUpTo,
       endTime: new Date(NOW.getTime() - delay),
     });
   });
 
-  test("the next run starts where this one stopped: no event read twice, none skipped", () => {
+  test("both ends are whole seconds, as an event's arrival is kept", () => {
+    const window: SecurityHuntRunWindow | null = getSecurityHuntRunWindow({
+      schedule: SecurityHuntSchedule.EveryHour,
+      // A cursor an event-time run left, to the millisecond.
+      searchedUpTo: new Date("2026-10-29T10:58:00.999Z"),
+      now: new Date("2026-10-29T12:00:41.750Z"),
+    });
+
+    expect(window).toEqual({
+      startTime: new Date("2026-10-29T10:58:00.000Z"),
+      endTime: new Date("2026-10-29T11:58:41.000Z"),
+    });
+  });
+
+  test("the next run starts where this one stopped: no arrival counted twice, none skipped", () => {
     const first: SecurityHuntRunWindow = getSecurityHuntRunWindow({
       schedule: SecurityHuntSchedule.EveryHour,
       searchedUpTo: minutesBefore(NOW, 60),
@@ -374,10 +395,45 @@ describe("the windows a scheduled hunt's runs read", () => {
       now: minutesAfter(NOW, 60),
     })!;
 
-    expect(second.startTime.getTime()).toBe(first.endTime.getTime() + 1);
+    // The first counts up to and including its end; the second only what came after.
+    expect(second.startTime.getTime()).toBe(first.endTime.getTime());
     expect(second.endTime.getTime() - first.endTime.getTime()).toBe(
       60 * MINUTE,
     );
+  });
+
+  test("a run's events, as a read of what arrived names them, and the times they can have happened", () => {
+    const window: SecurityHuntRunWindow = {
+      startTime: new Date("2026-10-29T10:58:00.000Z"),
+      endTime: new Date("2026-10-29T11:58:00.000Z"),
+    };
+
+    expect(getSecurityHuntRunArrival(window)).toEqual({
+      arrivedAfter: window.startTime,
+      arrivedUntil: window.endTime,
+    });
+
+    // A day before the first arrived, to the most a source's clock runs ahead of the last.
+    expect(getSecurityHuntRunEventTimeRange(window)).toEqual({
+      startTime: new Date("2026-10-28T10:58:00.000Z"),
+      endTime: new Date(
+        window.endTime.getTime() +
+          (SECURITY_EVENT_MAX_FUTURE_SKEW_IN_MINUTES + 1) * MINUTE,
+      ),
+    });
+    expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
+  });
+
+  test("a run's window as a read names it is on whole seconds, however it was kept", () => {
+    expect(
+      getSecurityHuntRunArrival({
+        startTime: new Date("2026-10-29T10:58:00.400Z"),
+        endTime: new Date("2026-10-29T11:58:00.900Z"),
+      }),
+    ).toEqual({
+      arrivedAfter: new Date("2026-10-29T10:58:00.000Z"),
+      arrivedUntil: new Date("2026-10-29T11:58:00.000Z"),
+    });
   });
 
   test("a hunt that has not run reads one interval back", () => {

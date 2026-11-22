@@ -49,6 +49,8 @@ export enum SecurityPlaybookActionType {
   UnsuspendGoogleWorkspaceUser = "Unsuspend Google Workspace User",
   BlockDataStorePublicAccess = "Block Data Store Public Access",
   RevokeDataStoreSharing = "Revoke Data Store Sharing",
+  BlockAddress = "Block Address",
+  LiftAddressBlock = "Lift Address Block",
 
   // Automate
   SendWebhook = "Send Webhook",
@@ -96,11 +98,16 @@ export interface SecurityPlaybookActionDefinition {
    * unless a Security Admin turned that off (doesStepNeedApproval).
    */
   isDisruptive: boolean;
-  // The connected product it acts through, for the actions that act on one.
+  /*
+   * The connected product it acts through, for the actions that act on one.
+   * A block of an address has none: it is written to the project's
+   * blocklist, and the blocklist's destinations enforce it (#10342).
+   */
   connectionProvider?: SecurityEventConnectorProvider | undefined;
   /*
    * The kind of entity it acts on, for the actions that act on the case's
-   * users or hosts: only the ones the case is about (SecurityPlaybookTargets).
+   * users, hosts or addresses: only the ones the case is about
+   * (SecurityPlaybookTargets).
    */
   entityType?: SecurityEntityType | undefined;
   // For an action that undoes a containment action: the action it undoes.
@@ -434,6 +441,36 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       isDisruptive: false,
       needsApprovalByDefault: true,
     },
+    /*
+     * An address, blocked or challenged on the project's blocklist (#10342):
+     * the blocklist's destinations - Cloudflare, AWS WAF, a firewall that
+     * reads the list - enforce it, so it acts through no connection of its
+     * own, as Block public access to data stores does not. Every block goes
+     * through SecurityBlockService, which refuses a protected or own
+     * address and expires it; the step waits for approval as every step
+     * that cuts somebody off does.
+     */
+    {
+      type: SecurityPlaybookActionType.BlockAddress,
+      title: "Block the address",
+      description:
+        "Block or challenge the address the case is about at every destination that enforces your blocklist: Cloudflare, AWS WAF or a firewall that reads a list. The block expires unless someone keeps it.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.NoSymbol,
+      isDisruptive: true,
+      entityType: SecurityEntityType.IpAddress,
+    },
+    {
+      type: SecurityPlaybookActionType.LiftAddressBlock,
+      title: "Lift the block on the address",
+      description:
+        "Lift the block on the address the case is about, so its requests reach your app again: the undo of Block the address.",
+      category: SecurityPlaybookActionCategory.Contain,
+      icon: IconProp.LockOpen,
+      isDisruptive: false,
+      entityType: SecurityEntityType.IpAddress,
+      undoes: SecurityPlaybookActionType.BlockAddress,
+    },
     {
       type: SecurityPlaybookActionType.SendWebhook,
       title: "Send a webhook",
@@ -496,11 +533,34 @@ export function getSecurityPlaybookAction(
   );
 }
 
-// Whether a step of this action acts on the case's users or hosts through a connected product.
+/*
+ * Whether a step of this action acts on the case's users, hosts or
+ * addresses: a containment action, or its undo, with a kind of entity -
+ * through a connected product (suspend in Okta, contain in CrowdStrike) or
+ * the project's blocklist (block an address, #10342). Its targets are
+ * picked by the target rule (SecurityPlaybookTargets), and an approver
+ * sees them and may leave any out.
+ */
 export function actsOnSecurityEntities(
   definition: SecurityPlaybookActionDefinition | undefined,
 ): boolean {
-  return Boolean(definition?.connectionProvider && definition.entityType);
+  return Boolean(
+    definition?.entityType &&
+      definition.category === SecurityPlaybookActionCategory.Contain,
+  );
+}
+
+/*
+ * Whether a step of this action acts through the project's blocklist rather
+ * than a connection: a block of an address and its lift (#10342).
+ */
+export function actsThroughBlocklist(
+  type: SecurityPlaybookActionType | string | undefined | null,
+): boolean {
+  return (
+    type === SecurityPlaybookActionType.BlockAddress ||
+    type === SecurityPlaybookActionType.LiftAddressBlock
+  );
 }
 
 /*
