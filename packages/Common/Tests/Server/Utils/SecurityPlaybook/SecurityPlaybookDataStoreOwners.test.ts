@@ -433,8 +433,12 @@ describe("Notify data store owners", () => {
     expect(outcome.summary.toString()).toBe(
       "Emailed 1 owner of 1 data store; 1 could not be emailed.",
     );
+    // By name, never by address: the details are the case's timeline (#10681).
     expect(outcome.detailsInMarkdown?.toString()).toContain(
-      "bob@acme.example: mailbox full",
+      "Not emailed: bob: mailbox full",
+    );
+    expect(outcome.detailsInMarkdown?.toString()).not.toContain(
+      "bob@acme.example",
     );
   });
 

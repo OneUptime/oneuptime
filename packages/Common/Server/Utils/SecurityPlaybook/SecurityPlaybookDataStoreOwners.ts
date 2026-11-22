@@ -35,6 +35,9 @@ import type {
   PlaybookStepContext,
   PlaybookStepOutcome,
 } from "./SecurityPlaybookActions";
+import SecurityPlaybookNotEmailed, {
+  NotEmailed,
+} from "./SecurityPlaybookNotEmailed";
 
 /*
  * NOTIFY DATA STORE OWNERS: the people who answer for a bucket or a
@@ -334,7 +337,7 @@ export default class SecurityPlaybookDataStoreOwners {
     }
 
     const subject: string = `[${values.number}] ${values.title}`;
-    const notSent: Array<string> = [];
+    const notEmailed: Array<NotEmailed> = [];
 
     for (const recipient of recipients.values()) {
       try {
@@ -362,11 +365,15 @@ export default class SecurityPlaybookDataStoreOwners {
           },
         );
       } catch (error) {
-        notSent.push(
-          `${recipient.user.email?.toString() || ""}: ${errorMessage(error)}`,
-        );
+        notEmailed.push({ user: recipient.user, reason: errorMessage(error) });
       }
     }
+
+    // Each owner not emailed, by name (#10681): the step's list, and its error.
+    const notSent: Array<string> = await SecurityPlaybookNotEmailed.describe({
+      projectId: context.projectId,
+      notEmailed: notEmailed,
+    });
 
     const sent: number = recipients.size - notSent.length;
     const notifiedStores: number = stores.length - withoutOwners.length;
