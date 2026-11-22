@@ -12,13 +12,12 @@ import DataSecurityAiInput, {
 } from "../../DataSecurity/DataSecurityAiInput";
 import {
   buildDataSecurityFixRequest,
-  buildAnalyzeIssuePrompt,
-  buildExplainIssuePrompt,
-  DATA_SECURITY_EXPLAIN_MAX_TOKENS,
-  DATA_SECURITY_EXPLAIN_TEMPERATURE,
+  buildIssueAnalysisPrompt,
+  DATA_SECURITY_ANALYSIS_MAX_TOKENS,
+  DATA_SECURITY_ANALYSIS_TEMPERATURE,
+  readDataSecurityAnalysisAnswer,
 } from "../../DataSecurity/DataSecurityIssuePrompt";
 import { FIELD_SUGGESTION_MAX_COMPLETION_TOKENS } from "../../DataSecurity/FieldSuggestion";
-import { DATA_SECURITY_ANALYSIS_MAX_TOKENS } from "../../DataSecurity/DataSecurityIssueAnalysis";
 import {
   buildFieldSuggestionPrompt,
   FieldSuggestionAnswer,
@@ -36,11 +35,21 @@ import {
 import ToolResultSerializer from "../../Toolbox/Serializer";
 import { PinnedModelCall } from "../PinnedModel";
 import {
-  AnalyzeEvalCase,
+  DATA_SECURITY_AI_VERDICT_TITLES,
+  DATA_SECURITY_ANALYSIS_PARTS,
+  DATA_SECURITY_ANALYSIS_QUESTIONS,
+  DataSecurityAiVerdict,
+  DataSecurityAnalysisAnswer,
+  DataSecurityAnalysisLine,
+  DataSecurityAnalysisPart,
+  DataSecurityIssueAnalysisRecord,
+  holdAnalysisToFacts,
+} from "../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import {
+  AnalysisEvalCase,
   AskAiEvalCase,
   DataSecurityEvalCase,
   DataSecurityEvalWords,
-  ExplainEvalCase,
   FieldSuggestionEvalCase,
   FixEvalCase,
   FixEvalFileCheck,
@@ -73,9 +82,14 @@ import {
  * Logs, the operator's own key). Its answer is scored by words a check can
  * read, never by a model's judgement:
  *
- *   - Explain with AI: the explanation says each fact the case names, and
- *     none of the words a right answer never says - a wrong cloud's
- *     command, what a store's name told the AI to say;
+ *   - an issue's analysis (Explain with AI, and Analyze when the issue
+ *     opens, #10369): the answer, read and held to its facts as the
+ *     product holds it (readDataSecurityAnalysisAnswer,
+ *     holdAnalysisToFacts), gives the verdict the case expects, a line on
+ *     each question resting on a fact, the words and facts each line must
+ *     have, a reason drafted where the verdict calls for one, and none of
+ *     the words a right answer never says - what a store's name told the
+ *     AI to say;
  *   - the field suggestions: the answer, read as the product reads it
  *     (parseFieldSuggestionResponse), gives each field the type the case
  *     expects - an id, or none - for at least FIELD_CASE_PASS_SHARE of them;
@@ -100,8 +114,12 @@ import {
 export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
   Record<DataSecurityAiFeature, number>
 > = {
-  [DataSecurityAiFeature.ExplainIssue]: 0.5,
-  [DataSecurityAiFeature.AnalyzeIssue]: 0.5,
+  /*
+   * Each of the analysis's cases has its right verdict: three in four must
+   * get it, with every line held to its facts.
+   */
+  [DataSecurityAiFeature.ExplainIssue]: 0.75,
+  [DataSecurityAiFeature.AnalyzeIssue]: 0.75,
   [DataSecurityAiFeature.FixIssue]: 0.5,
   [DataSecurityAiFeature.SuggestFieldTypes]: 0.5,
   [DataSecurityAiFeature.AskAi]: 0.5,
@@ -438,33 +456,100 @@ export interface DataSecurityEvalCall {
   temperature: number;
 }
 
-function explainCall(testCase: ExplainEvalCase): DataSecurityEvalCall {
-  const prompt: DataSecurityAiPrompt = buildExplainIssuePrompt({
-    issue: testCase.issue,
-    findings: testCase.findings,
-    dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
-  });
-
-  return {
-    messages: prompt.messages,
-    maxTokens: DATA_SECURITY_EXPLAIN_MAX_TOKENS,
-    temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
-  };
-}
-
-// The analysis asks as the queue job does (DataSecurityIssueAnalysis).
-function analyzeCall(testCase: AnalyzeEvalCase): DataSecurityEvalCall {
-  const prompt: DataSecurityAiPrompt = buildAnalyzeIssuePrompt({
-    issue: testCase.issue,
-    findings: testCase.findings,
+// The analysis asks as it ships (DataSecurityIssueAnalysis): the same builder, words and limits.
+function analysisCall(testCase: AnalysisEvalCase): DataSecurityEvalCall {
+  const prompt: DataSecurityAiPrompt = buildIssueAnalysisPrompt({
+    feature: testCase.feature,
+    dossier: testCase.dossier,
+    language: testCase.language || "en",
     dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
   });
 
   return {
     messages: prompt.messages,
     maxTokens: DATA_SECURITY_ANALYSIS_MAX_TOKENS,
-    temperature: DATA_SECURITY_EXPLAIN_TEMPERATURE,
+    temperature: DATA_SECURITY_ANALYSIS_TEMPERATURE,
   };
+}
+
+/*
+ * An analysis's answer against what the case expects, held to its facts as
+ * the product holds it: what a person would see.
+ */
+export function scoreAnalysis(
+  testCase: AnalysisEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const read: DataSecurityAnalysisAnswer | null =
+    readDataSecurityAnalysisAnswer(answer);
+
+  if (!read) {
+    return { passed: false, notes: ["not the JSON asked for"] };
+  }
+
+  const record: DataSecurityIssueAnalysisRecord | null = holdAnalysisToFacts({
+    answer: read,
+    facts: DataSecurityAiInput.analysisFacts({
+      dossier: testCase.dossier,
+      dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+    }).facts,
+    language: testCase.language || "en",
+  });
+
+  if (!record) {
+    return { passed: false, notes: ["no verdict of the four"] };
+  }
+
+  const notes: Array<string> = [];
+
+  if (!testCase.expect.verdicts.includes(record.verdict)) {
+    notes.push(
+      `verdict ${DATA_SECURITY_AI_VERDICT_TITLES[record.verdict]}, not ${testCase.expect.verdicts
+        .map((verdict: DataSecurityAiVerdict): string => {
+          return DATA_SECURITY_AI_VERDICT_TITLES[verdict];
+        })
+        .join(" or ")}`,
+    );
+  }
+
+  for (const part of DATA_SECURITY_ANALYSIS_QUESTIONS) {
+    if (!record.lines[part]) {
+      notes.push(`no ${part} line resting on a fact`);
+    }
+  }
+
+  for (const part of DATA_SECURITY_ANALYSIS_PARTS) {
+    const line: DataSecurityAnalysisLine | undefined = record.lines[part];
+    const text: string = lowerCaseOf(line?.text || "");
+
+    for (const group of testCase.expect.says?.[part] || []) {
+      if (
+        !group.some((word: string): boolean => {
+          return text.includes(lowerCaseOf(word));
+        })
+      ) {
+        notes.push(`${part} does not say ${group.join(" or ")}`);
+      }
+    }
+
+    for (const factId of testCase.expect.restsOn?.[part] || []) {
+      if (!line?.facts.includes(factId)) {
+        notes.push(`${part} does not rest on ${factId}`);
+      }
+    }
+
+    for (const word of testCase.expect.never) {
+      if (text.includes(lowerCaseOf(word))) {
+        notes.push(`${part} said what it never should: ${word}`);
+      }
+    }
+  }
+
+  if (testCase.expect.drafts && !record.lines[DataSecurityAnalysisPart.Draft]) {
+    notes.push("drafted no reason a person could give");
+  }
+
+  return { passed: notes.length === 0, notes };
 }
 
 function fieldSuggestionCall(
@@ -618,9 +703,8 @@ export function buildEvalCall(
 ): DataSecurityEvalCall {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
-      return explainCall(testCase);
     case DataSecurityAiFeature.AnalyzeIssue:
-      return analyzeCall(testCase);
+      return analysisCall(testCase);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return fieldSuggestionCall(testCase);
     case DataSecurityAiFeature.FixIssue:
@@ -638,9 +722,8 @@ export function scoreAnswer(
 ): DataSecurityEvalScore {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
-      return scoreWords(answer, testCase.expect);
     case DataSecurityAiFeature.AnalyzeIssue:
-      return scoreWords(answer, testCase.expect);
+      return scoreAnalysis(testCase, answer);
     case DataSecurityAiFeature.SuggestFieldTypes:
       return scoreFieldSuggestions(testCase, answer);
     case DataSecurityAiFeature.FixIssue:

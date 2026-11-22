@@ -724,6 +724,10 @@ import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
+import SecurityBlocklistFeedAPI from "Common/Server/API/SecurityBlocklistFeedAPI";
+import SecurityBlocklistFeedFetchService, {
+  Service as SecurityBlocklistFeedFetchServiceType,
+} from "Common/Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1979,6 +1983,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -4863,6 +4868,25 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityBlockCloudWafAPI().getRouter(),
+    );
+
+    /*
+     * Blocklist feeds (#10345): their CRUD, the rotation and revocation of
+     * their secrets, and the feeds firewalls read
+     * (/blocklist-feed/:feedId/..., no UserMiddleware - the secret is the
+     * credential), with every fetch of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlocklistFeedAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchServiceType
+      >(SecurityBlocklistFeedFetch, SecurityBlocklistFeedFetchService).getRouter(),
     );
 
     /*

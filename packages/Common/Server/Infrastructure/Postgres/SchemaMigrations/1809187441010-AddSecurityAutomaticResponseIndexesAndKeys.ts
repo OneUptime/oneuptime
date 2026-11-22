@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddSecurityAutomaticResponse1809187435000, and moved into a migration of
+ * AddSecurityAutomaticResponse1809187441000, and moved into a migration of
  * its own: the blocklist's reconciler reads "SecurityBlock" every minute
  * and every block, lift and expiry writes it, and "SecurityPlaybookRun" is
  * written as cases open. So the index on the new
@@ -21,11 +21,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddSecurityAutomaticResponseIndexesAndKeys1809187435010
+export class AddSecurityAutomaticResponseIndexesAndKeys1809187441010
   implements MigrationInterface
 {
   public name: string =
-    "AddSecurityAutomaticResponseIndexesAndKeys1809187435010";
+    "AddSecurityAutomaticResponseIndexesAndKeys1809187441010";
 
   // CREATE INDEX CONCURRENTLY and the validations run outside a transaction.
   public transaction: boolean = false;

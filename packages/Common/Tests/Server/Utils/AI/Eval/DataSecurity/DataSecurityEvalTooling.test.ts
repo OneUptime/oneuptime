@@ -52,9 +52,15 @@ describe("which features a pull request's changes run", () => {
         DataSecurityAiFeature.FixIssue,
       ],
     ],
+    // The analysis, a person's and OneUptime AI's own (#10369).
     [
       "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts",
-      [DataSecurityAiFeature.AnalyzeIssue],
+      [DataSecurityAiFeature.ExplainIssue, DataSecurityAiFeature.AnalyzeIssue],
+    ],
+    // How an answer is held to its facts, which the analysis's cases score.
+    [
+      "packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts",
+      [DataSecurityAiFeature.ExplainIssue, DataSecurityAiFeature.AnalyzeIssue],
     ],
     [
       "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
@@ -151,7 +157,7 @@ describe("the command line", () => {
     const picked: Array<DataSecurityEvalCase> =
       DataSecurityEvalCommandLine.pickCases({
         argv: [
-          "--case=explain-emails-in-logs,ask-who-outside-can-reach-a-store",
+          "--case=explain-public-open-dataset,ask-who-outside-can-reach-a-store",
         ],
         cases: DATA_SECURITY_EVAL_CASES,
         features: [DataSecurityAiFeature.ExplainIssue],
@@ -161,7 +167,7 @@ describe("the command line", () => {
       picked.map((testCase: DataSecurityEvalCase): string => {
         return testCase.id;
       }),
-    ).toEqual(["explain-emails-in-logs"]);
+    ).toEqual(["explain-public-open-dataset"]);
     expect(() => {
       return DataSecurityEvalCommandLine.pickCases({
         argv: ["--case=no-such-case"],
@@ -239,7 +245,7 @@ describe("the report", () => {
       DataSecurityEvalReport.buildTextReport(input).join("\n");
 
     expect(text).toContain(
-      "Explain with AI: 4 of 4 cases (100%), threshold 50%: met",
+      "Analysis on request: 3 of 3 cases (100%), threshold 75%: met",
     );
     expect(text).toContain(
       "Fix with AI: 0 of 2 cases (0%), threshold 50%: under",

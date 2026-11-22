@@ -1153,8 +1153,10 @@ import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecuri
 import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
 import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
-import { AddSecurityAutomaticResponse1809187435000 } from "./1809187435000-AddSecurityAutomaticResponse";
-import { AddSecurityAutomaticResponseIndexesAndKeys1809187435010 } from "./1809187435010-AddSecurityAutomaticResponseIndexesAndKeys";
+import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
+import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddSecurityAutomaticResponse1809187441000 } from "./1809187441000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187441010 } from "./1809187441010-AddSecurityAutomaticResponseIndexesAndKeys";
 
 export default [
   InitialMigration,
@@ -2312,6 +2314,8 @@ export default [
   AddScrubRuleService1809187433000,
   AddScrubRuleServiceIndexesAndKeys1809187433010,
   AddSecurityEventConnectionBlocking1809187434300,
-  AddSecurityAutomaticResponse1809187435000,
-  AddSecurityAutomaticResponseIndexesAndKeys1809187435010,
+  AddDataSecurityIssueAiAnalysis1809187436369,
+  AddSecurityBlocklistFeeds1809187440000,
+  AddSecurityAutomaticResponse1809187441000,
+  AddSecurityAutomaticResponseIndexesAndKeys1809187441010,
 ];

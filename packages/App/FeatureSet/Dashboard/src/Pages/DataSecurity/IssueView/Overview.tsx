@@ -29,10 +29,12 @@ import {
   useDataTypeNamer,
 } from "../../../Components/DataSecurity/IssueDataTypes";
 import { getStoreViewRoute } from "../../../Components/DataSecurity/IssueListRoute";
+import IssueAiAnalysisCard from "../../../Components/DataSecurity/IssueAiAnalysisCard";
 import {
   AcceptIssueRiskModal,
   AssignIssueModal,
   IssueRepositoryModal,
+  NotAnIssueModal,
 } from "../../../Components/DataSecurity/IssueModals";
 import IssueRemediation from "../../../Components/DataSecurity/IssueRemediation";
 import IssueResponseAction from "../../../Components/DataSecurity/IssueResponseAction";
@@ -56,7 +58,6 @@ import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
-  DataSecurityExplainResult,
   DataSecurityFixRepository,
   DataSecurityFixResult,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
@@ -85,7 +86,6 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import IssueAiCard from "../../../Components/DataSecurity/IssueAiCard";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -144,7 +144,7 @@ const HOW_TO_FIX_TELEMETRY: string = translationKey(
 );
 const MORE_ACTIONS: string = translationKey("More actions");
 
-type IssueDialog = "accept" | "assign" | "repository" | null;
+type IssueDialog = "accept" | "assign" | "repository" | "notAnIssue" | null;
 
 interface FixNotice {
   message: string;
@@ -227,12 +227,15 @@ const RequirementChip: FunctionComponent<{
  *
  * The moves are in the header: Mark Resolved once it is fixed (the store
  * is checked again at once), Accept Risk with a reason and an end date,
- * and in its ⋯ Not an Issue and Assign; a closed issue offers Reopen.
- * Explain with AI and Fix with AI sit with the fix, while the project's
- * AI is on; Fix with AI asks which repository when the person may ask
- * OneUptime AI to work in several, and offers only those. An open issue
- * that a response action fixes - a public bucket,
- * a shared snapshot - offers it first, as one click (IssueResponseAction).
+ * and in its ⋯ Not an Issue, with the reason (#10369), and Assign; a
+ * closed issue offers Reopen. While the project's AI is on, OneUptime AI's
+ * analysis comes right after the issue (IssueAiAnalysisCard, #10369): is
+ * it real, what it puts at risk, what the fix would break, the shortest
+ * path to fixed, with the buttons they name - it replaces Explain with AI.
+ * Fix with AI sits with the fix too; it asks which repository when the
+ * person may ask OneUptime AI to work in several, and offers only those.
+ * An open issue that a response action fixes - a public bucket, a shared
+ * snapshot - offers it first, as one click (IssueResponseAction).
  */
 const DataSecurityIssueOverviewPage: FunctionComponent<
   PageComponentProps
@@ -248,8 +251,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [confirmError, setConfirmError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
-  const [explanation, setExplanation] = useState<string>("");
-  const [isExplaining, setIsExplaining] = useState<boolean>(false);
+  // OneUptime AI's draft of the reason a dialog starts from (#10369).
+  const [draftReason, setDraftReason] = useState<string>("");
   const [isFixing, setIsFixing] = useState<boolean>(false);
   const [fixNotice, setFixNotice] = useState<FixNotice | null>(null);
   // The repositories Fix with AI may be asked in, when there is a choice.
@@ -309,24 +312,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     } catch (err) {
       setActionError(API.getFriendlyMessage(err));
     }
-  };
-
-  const explain: () => Promise<void> = async (): Promise<void> => {
-    setIsExplaining(true);
-    setActionError("");
-
-    try {
-      const result: DataSecurityExplainResult =
-        await DataSecurityApi.explainIssue(view.issueId);
-
-      setExplanation(result.markdown || "");
-      // Its timeline has the explanation now.
-      view.refresh();
-    } catch (err) {
-      setActionError(API.getFriendlyMessage(err));
-    }
-
-    setIsExplaining(false);
   };
 
   /*
@@ -403,6 +388,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
       buttonStyle: ButtonStyleType.OUTLINE,
       disabled: view.isWorking,
       onClick: () => {
+        setDraftReason("");
         setDialog("accept");
       },
     });
@@ -443,8 +429,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           tooltip={isLocked ? updateGate.disabledReason : undefined}
           isTooltipTranslated={true}
           onClick={() => {
-            setConfirmError("");
-            setConfirmMove(IssueMove.NotAnIssue);
+            setDraftReason("");
+            setDialog("notAnIssue");
           }}
         />,
       );
@@ -471,21 +457,10 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     );
   }
 
-  // Explain and Fix with AI, beside the fix, while the project's AI is on.
+  // Fix with AI, beside the fix, while the project's AI is on.
   const fixButtons: Array<CardButtonSchema> = [];
 
   if (isAiOffered) {
-    fixButtons.push({
-      title: "Explain with AI",
-      icon: IconProp.Bolt,
-      buttonStyle: ButtonStyleType.OUTLINE,
-      isLoading: isExplaining,
-      disabled: isExplaining,
-      onClick: () => {
-        void explain();
-      },
-    });
-
     const fixButton: CardButtonSchema | null = gate({
       title: "Fix with AI",
       icon: IconProp.Bolt,
@@ -725,6 +700,32 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         </div>
       </Card>
 
+      {isAiOffered ? (
+        <IssueAiAnalysisCard
+          issue={issue}
+          issueId={view.issueId}
+          namer={namer}
+          refreshToggle={view.refreshToggle}
+          isFixing={isFixing}
+          onAcceptRisk={(draft: string) => {
+            setDraftReason(draft);
+            setDialog("accept");
+          }}
+          onNotAnIssue={(draft: string) => {
+            setDraftReason(draft);
+            setDialog("notAnIssue");
+          }}
+          onFixWithAi={() => {
+            void fixWithAi();
+          }}
+          onChanged={() => {
+            view.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {/*
        * What is wrong and why it matters are what the cards say, not a
        * description of them: they are drawn in the cards' bodies, so a
@@ -872,10 +873,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         <></>
       )}
 
+      {/*
+       * What OneUptime AI proposed for the issue, and why it left it alone
+       * (#10364). Its analysis is the card at the top (#10369), so this one
+       * leaves it out: the two are never side by side.
+       */}
       {issue._id ? (
         <IssueAiCard
           issueId={new ObjectID(issue._id.toString())}
-          hideAnalysis={Boolean(explanation)}
+          hideAnalysis={true}
         />
       ) : (
         <></>
@@ -946,19 +952,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         </div>
       </Card>
 
-      {explanation ? (
-        <Card
-          title="Explained by OneUptime AI"
-          description="Written by OneUptime AI from this issue and its evidence. Check it before you act on it."
-        >
-          <div data-testid="data-security-issue-ai-explanation">
-            <MarkdownViewer text={explanation} safeMode={true} />
-          </div>
-        </Card>
-      ) : (
-        <></>
-      )}
-
       <Card
         title="Risk Score"
         description="Why this issue ranks where it does: its severity first, then what makes it worse on this store."
@@ -972,12 +965,31 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
       {dialog === "accept" ? (
         <AcceptIssueRiskModal
           issues={[issue]}
+          draftReason={draftReason}
           onClose={() => {
             setDialog(null);
           }}
           onSubmit={async (acceptance: IssueAcceptance): Promise<void> => {
             await view.updateIssue(
               getIssueMoveWrite(IssueMove.Accept, acceptance),
+            );
+            setDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dialog === "notAnIssue" ? (
+        <NotAnIssueModal
+          issues={[issue]}
+          draftReason={draftReason}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onSubmit={async (reason: string): Promise<void> => {
+            await view.updateIssue(
+              getIssueMoveWrite(IssueMove.NotAnIssue, undefined, reason),
             );
             setDialog(null);
           }}
