@@ -31,6 +31,8 @@ Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfun
 
 > [!NOTE]
 > Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
+>
+> Ein solcher Monitor hat trotzdem einen einzigen Status, den das erste passende Kriterium festlegt. Ein Kriterium, das ihn nur auf seinen **Standard-Überwachungsstatus** zurückbringt und keinen Vorfall und keine Warnung eröffnet, wartet auf die Hosts, die ein Kriterium erfüllt haben, das einen anderen Status setzt: Es greift, sobald jeder von ihnen es erfüllt, egal was die anderen Hosts tun. Bis dahin behält der Monitor seinen Status, auch wenn kein Kriterium passt, während die Vorfälle und Warnungen jedes Hosts weiterhin für sich aufgelöst werden.
 
 ## Was ein Kriterium enthält
 

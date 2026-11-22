@@ -40,7 +40,7 @@ describe("AI Results counts Data Security", () => {
       "It changes nothing, and counts only the incidents, alerts, on-call pages, fixes and Data Security issues you may see.",
     );
     expect(CARD_DATA).toContain(
-      '"These results count incidents, alerts, on-call pages, fixes and Data Security issues, and your role cannot read any of them. A Project Admin can give you access."',
+      '"Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access."',
     );
     // Read under the caller's own props, never as root.
     expect(READER).toContain("return DataSecurityAiProposalService.findBy({");

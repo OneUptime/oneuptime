@@ -1157,6 +1157,8 @@ import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-Add
 import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
 import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
 import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
+import { AddDiscoveryScanRunRequested1809187450000 } from "./1809187450000-AddDiscoveryScanRunRequested";
+import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450010-AddDiscoveryScanRunRequestedByUserKey";
 import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-AddCloudWafAndEnforcementReasons";
 
 export default [
@@ -2319,5 +2321,7 @@ export default [
   AddSecurityBlocklistFeeds1809187440000,
   AddSecurityBlockReachAndWiderValue1809187440100,
   AddSecurityBlockValueReachIndex1809187440110,
+  AddDiscoveryScanRunRequested1809187450000,
+  AddDiscoveryScanRunRequestedByUserKey1809187450010,
   AddCloudWafAndEnforcementReasons1809187455000,
 ];

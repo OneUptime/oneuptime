@@ -229,6 +229,7 @@ Un solo monitor de host cubre todos los discos que informa el host. Las plantill
 | Dónde | Qué muestra para cada disco |
 | --- | --- |
 | La página **Métricas** del monitor | Una línea por disco, con el nombre de su `mountpoint` y su `device`. |
+| La página **Vista general** del monitor | **Series** muestra cada disco que leyó la última comprobación: su último valor, los criterios que cumple y su incidente o alerta abiertos. |
 | **Registros de monitoreo** | La columna **Observado** cuenta las series que leyó cada comprobación: una por disco. |
 | **Incidentes** y **Alertas** | Un incidente o una alerta por disco, que nombra el montaje y el dispositivo del disco. |
 | La tarjeta **Sistemas de archivos** del host | Todos los discos que informa el colector, vigilen lo que vigilen sus monitores. |
@@ -238,7 +239,7 @@ Cada criterio se comprueba para cada disco:
 - Mientras el incidente de un disco está abierto, el criterio que lo abrió no abre ningún otro para ese disco. Otro disco que lo cumpla abre el suyo.
 - Un disco que cumple dos criterios, como uno por encima del 98 % y otro por encima del 90 %, recibe un solo incidente, el del primero de ellos en la lista. Ponga primero el más estricto.
 - El incidente de un disco se resuelve cuando ese disco deja de cumplir el criterio que lo abrió, hagan lo que hagan los demás discos.
-- El monitor tiene un solo estado, que fija el primer criterio de la lista que cumpla cualquier disco. Cuando ningún disco cumple un criterio que se dispara, basta con un disco en el umbral de recuperación o por debajo para que se cumpla el criterio que se recupera, así que el margen de recuperación del 10 % no se mantiene en un host con un disco que nunca está cerca de llenarse.
+- El monitor tiene un solo estado. Un criterio que lo cambia a otro estado, como **Sin conexión**, lo fija en cuanto un disco lo cumple. El criterio que devuelve el monitor a su **Estado de monitor predeterminado** espera a los discos que cumplieron un criterio así, y coincide cuando cada uno de ellos lo cumple, hagan lo que hagan los demás discos. Así, un disco que baja del 96 % al 89 % mantiene el monitor **Sin conexión** hasta que está en el 81 % o por debajo, el margen de recuperación del 10 %, aunque su incidente se resuelve en cuanto deja de estar por encima del 90 %. **Series** muestra ese disco como **Mantiene el estado**. Un disco que deja de informarse deja de mantener el estado.
 
 Para vigilar solo algunos discos, abra **Avanzado** y, en la consulta de **Seleccionar métricas**, añada con **Filtrar por atributos** un filtro sobre `mountpoint`: **es cualquiera de** los discos que vigilar, o **no es ninguno de** los discos que dejar fuera. Mantenga el **Agrupar por**, y escriba cada disco como lo muestra la tarjeta **Sistemas de archivos**, por ejemplo `C:` o `/var`. Para dejar de recopilar un disco por completo, de modo que también desaparezca de las páginas del host, configure `include_mount_points` o `exclude_mount_points` en el scraper `filesystem` del colector ([Métricas del host](/docs/telemetry/host-otel-collector#métricas-del-host)).
 

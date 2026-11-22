@@ -73,6 +73,12 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
      */
     case SecurityCaseFeedEventType.ResponseTarget:
       return { icon: IconProp.Clock, tone: FeedTone.Record };
+    /*
+     * A Response Plan step OneUptime saw done that stopped holding (#10340):
+     * undone, in the red the server writes it in.
+     */
+    case SecurityCaseFeedEventType.StepCheck:
+      return { icon: IconProp.ArrowUturnLeft, tone: FeedTone.Record };
     default:
       return undefined;
   }

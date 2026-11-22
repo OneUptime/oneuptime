@@ -3,6 +3,7 @@ import DiscoveryScanProgress, {
   isWaitingForDiscoveryProgress,
 } from "../../Components/NetworkDevice/DiscoveryScanProgress";
 import DiscoveryScanStatusMessage from "../../Components/NetworkDevice/DiscoveryScanStatusMessage";
+import DiscoveryScanRunAgain from "../../Components/NetworkDevice/DiscoveryScanRunAgain";
 import DiscoveryImportDialog from "../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportDialog";
 import DiscoveryImportRowStatus from "../../Components/NetworkDevice/DiscoveryImport/DiscoveryImportRowStatus";
 import useActiveDiscoveryImports, {
@@ -741,6 +742,17 @@ const NetworkDeviceDiscovery: FunctionComponent<
    */
   const activeImports: ActiveDiscoveryImports = useActiveDiscoveryImports();
 
+  /*
+   * Whether the reader may run a scan again (issue #10334): running one
+   * replaces its results and queues it, a change to the scan, so it takes
+   * the permission to edit scans - the same one Edit is gated on, and the
+   * one the run's route checks.
+   */
+  const canRunScans: boolean = PermissionGate.check(
+    new NetworkDeviceDiscoveryScan(),
+    ModelAction.Update,
+  ).isAllowed;
+
   const fetchProbes: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
@@ -993,6 +1005,12 @@ const NetworkDeviceDiscovery: FunctionComponent<
                     {item.probe?.name ||
                       translator.translateText("Probe not available")}
                     <InlineSeparator />
+                    {/*
+                     * A scan that does not repeat runs when it is created
+                     * and again whenever someone presses Run Again (issue
+                     * #10334): "On demand", where "One-time" said it ran
+                     * once and never again.
+                     */}
                     {item.isRecurring
                       ? item.rescanIntervalInMinutes
                         ? translator.translateTemplate(
@@ -1000,7 +1018,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
                             { minutes: item.rescanIntervalInMinutes },
                           )
                         : translator.translateText("Repeats automatically")
-                      : translator.translateText("One-time")}
+                      : translator.translateText("On demand")}
                   </p>
                   {/*
                    * The message renders once, as a two-line preview, and
@@ -1111,6 +1129,20 @@ const NetworkDeviceDiscovery: FunctionComponent<
               return (
                 <div className="space-y-3">
                   <DiscoveryScanProgress scan={liveUpdates.getScan(item)} />
+                  {/*
+                   * When the scan last ran, who asked for the run on the
+                   * row, and Run Again once that run has ended (#10334):
+                   * the running state above takes its place while a run is
+                   * queued or sweeping.
+                   */}
+                  <DiscoveryScanRunAgain
+                    scan={liveUpdates.getScan(item)}
+                    canRun={canRunScans}
+                    onRunQueued={() => {
+                      // The row turns Queued, and live updates follow it.
+                      setRefreshToggle(Date.now().toString());
+                    }}
+                  />
                   {activeImport && (
                     <DiscoveryImportRowStatus
                       view={activeImport}
@@ -1222,7 +1254,7 @@ const NetworkDeviceDiscovery: FunctionComponent<
               if (!item.isRecurring) {
                 return (
                   <span className="text-sm text-gray-500">
-                    {translator.translateText("One-time")}
+                    {translator.translateText("On demand")}
                   </span>
                 );
               }
@@ -1326,6 +1358,15 @@ const NetworkDeviceDiscovery: FunctionComponent<
           // Recurrence details rendered inside the "Recurrence" column.
           rescanIntervalInMinutes: true,
           nextScanAt: true,
+          /*
+           * Who asked for the run on the row with Run Again, and when
+           * (#10334): the Status column names them.
+           */
+          runRequestedAt: true,
+          runRequestedByUser: {
+            name: true,
+            email: true,
+          },
           probeId: true,
           /*
            * The credential list, so the import below can build each device
