@@ -349,7 +349,7 @@ describe("approving a proposal", () => {
     });
 
     await expect(approveAs(ALICE)).rejects.toThrow(
-      "The change could not be made, and nothing changed: No scrub rule reaches body of Sessions.",
+      "The change could not be made, and nothing changed. No scrub rule reaches body of Sessions.",
     );
     expect(row["status"]).toBe(DataSecurityAiProposalStatus.Failed);
     expect(row["failureMessage"]).toBe(
