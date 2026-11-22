@@ -1,6 +1,7 @@
 import SelectFormFields from "../../Types/SelectEntityField";
 import API from "../../Utils/API/API";
 import FormRefusals, { FormRefusalKind } from "../../Utils/FormRefusals";
+import FormSubmitCancelled from "./Types/FormSubmitCancelled";
 import ModelAPI, {
   ListResult,
   ModelAPIHttpResponse,
@@ -1867,10 +1868,16 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
       onSubmitSuccessful();
     } catch (err) {
-      const message: string = API.getFriendlyMessage(err);
-      setError(message);
-      props.onSubmitError?.(message);
-      FormRefusals.report(FormRefusalKind.Refused);
+      /*
+       * A hook that asked the person first and was told no: nothing was
+       * sent and nothing went wrong, so the form says nothing.
+       */
+      if (!FormSubmitCancelled.isCancelled(err)) {
+        const message: string = API.getFriendlyMessage(err);
+        setError(message);
+        props.onSubmitError?.(message);
+        FormRefusals.report(FormRefusalKind.Refused);
+      }
     }
 
     setLoading(false);

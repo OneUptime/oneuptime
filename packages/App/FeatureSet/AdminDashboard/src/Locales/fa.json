@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "فقط خطوط لوله‌ای که با شرط‌ها مطابقت دارند",
   "All cloud environments": "همه محیط‌های ابری",
   "Only cloud environments that match conditions": "فقط آن دسته از محیط‌های ابری که با شرط‌ها مطابقت دارند",
+  "All issues": "همه مسائل",
+  "Only issues that match conditions": "فقط آن دسته از مسائل که با شرط‌ها مطابقت دارند",
   "Only what matches conditions": "فقط مواردی که با شرط‌ها مطابقت دارند",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "سرور SMTP شرکت که روی AWS میزبانی می‌شود",

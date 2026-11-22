@@ -55,6 +55,8 @@ terraform {
 
 ソースアドレスはレジストリを指定しません。Terraform は Terraform Registry から、OpenTofu は OpenTofu Registry から読み取り、どちらも同じバージョンを公開しています。
 
+公開されたバージョンは変わりません。レジストリは最初にダウンロードしたもののチェックサムを保持し、`init` はすべてのダウンロードをそれと照合します。直す必要があるバージョンは次のパッチバージョンとして公開し直され、範囲はそれを含みます。そのリリースのノートには、どのバージョンを置き換えるかが書かれています。
+
 ## ロックファイル
 
 `terraform init` は、選んだバージョンとダウンロードのチェックサムを `.terraform.lock.hcl` に記録します。このファイルをコミットしてください。そうすれば、別のバージョンを選ぶまで、すべてのマシンと CI の実行が正確にそのバージョンをインストールします。チェックサムはレジストリが公開するすべてのプラットフォームを対象とするので、1 つのロックファイルで Linux、macOS、Windows のマシンに対応できます。
@@ -77,7 +79,7 @@ provider "registry.terraform.io/oneuptime/oneuptime" {
 :::steps
 ### 変更点を読む
 
-[OneUptime のリリース](https://github.com/OneUptime/oneuptime/releases) には、プロバイダーを含め、各リリースで何が変わったかが書かれています。[プロバイダーのリリース](https://github.com/OneUptime/terraform-provider-oneuptime/releases) は、前のリリースからの変更へのリンクを示します。
+[OneUptime のリリース](https://github.com/OneUptime/oneuptime/releases) には、プロバイダーを含め、各リリースで何が変わったかが書かれています。[プロバイダーのリリース](https://github.com/OneUptime/terraform-provider-oneuptime/releases) には、それぞれがプロバイダーで何を変えたかが書かれています。まず設定を壊す変更、次に新しいリソースとデータソース、そして変わった属性です。
 
 ### ダウンロードする
 

@@ -24,6 +24,8 @@ import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
+import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -1175,9 +1177,7 @@ import HostCollectorConfigVersionService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
-import AuditLogService, {
-  AuditLogService as AuditLogServiceType,
-} from "Common/Server/Services/AuditLogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -1199,6 +1199,7 @@ import ChangeEventService, {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
+import AuditLogAPI from "Common/Server/API/AuditLogAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -1605,7 +1606,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -4238,12 +4238,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Its reads, and the names of the records an entry's changes name (#10470).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
-        AuditLog,
-        AuditLogService,
-      ).getRouter(),
+      new AuditLogAPI(AuditLogService).getRouter(),
     );
 
     app.use(
@@ -4654,9 +4652,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<LogDropFilter, LogDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<LogDropFilter, LogDropFilterServiceType>(
         LogDropFilter,
         LogDropFilterService,
+        "log",
       ).getRouter(),
     );
 
@@ -4904,7 +4904,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         SecurityBlocklistFeedFetch,
         SecurityBlocklistFeedFetchServiceType
-      >(SecurityBlocklistFeedFetch, SecurityBlocklistFeedFetchService).getRouter(),
+      >(
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchService,
+      ).getRouter(),
     );
 
     /*
@@ -5368,9 +5371,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<TraceDropFilter, TraceDropFilterServiceType>(
         TraceDropFilter,
         TraceDropFilterService,
+        "trace",
       ).getRouter(),
     );
 
@@ -5502,6 +5507,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Events that read what it hides (#10433).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * What a drop or sample filter being written or turned on would take
+     * from Security Events, monitors, dashboards, saved views, recording
+     * rules and SLOs (#10436).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DropFilterImpactAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

@@ -105,4 +105,5 @@ Het doel: één pagina voor de checkout-service, met de latentie, het foutpercen
 - [Dashboard-widgets](/docs/dashboards/widgets): Elke widget, en welke je kiest.
 - [Dashboard-variabelen en filters](/docs/dashboards/variables): Eén dashboard voor elke service, host of klant.
 - [Delen en publieke dashboards](/docs/dashboards/sharing): Openbare links, wachtwoorden, IP-toelatingslijsten en aangepaste domeinen.
+- [Importeren uit Grafana en Datadog](/docs/dashboards/import): Haal een dashboard, of de waarschuwingsregels, binnen die je in Grafana of Datadog hebt gemaakt.
 :::

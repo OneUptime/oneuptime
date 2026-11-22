@@ -70,9 +70,9 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken |
+| OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken, beveiligingsgebeurtenissen, Network Flows, beveiligingsadreskluis | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken |
 
-Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat.
+Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 Een opslag wordt met zijn geschiedenis gearchiveerd zodra zijn bron hem niet meer vermeldt, en zijn openstaande problemen worden opgelost: **Gearchiveerde opslagen**, aan het eind van het menu van Gegevensbeveiliging, bewaart hem. Hij komt vanzelf terug als zijn bron hem weer vermeldt, en een probleem waarvan de controle nog steeds faalt, opent opnieuw.
 

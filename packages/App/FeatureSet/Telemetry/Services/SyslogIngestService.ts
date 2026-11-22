@@ -68,6 +68,9 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { measureTelemetryIngestRequest } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudgetHttp";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 class SyslogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -112,10 +115,32 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         );
       }
 
+      /*
+       * The size the worker shares the batch out at over its teams' and
+       * labels' budgets and the usage metrics (#10102): what the request
+       * path counted, read before the body is reshaped below. Only for a
+       * project that needs it; two set lookups for any other.
+       */
+      const ingestBytes: number | undefined =
+        await TelemetryIngestAttribution.getRequestBytesToShare({
+          projectId: (req as TelemetryRequest).projectId,
+          charge: (req as TelemetryRequest).telemetryIngestionBudgetCharge,
+          measure: () => {
+            return measureTelemetryIngestRequest({
+              req: req,
+              surface: TelemetryIngestSurface.Syslog,
+            });
+          },
+        });
+
       const messages: Array<string> = this.normalizeMessages(req.body);
 
       if (messages.length === 0) {
         throw new BadRequestException("No syslog messages found in request.");
+      }
+
+      if (ingestBytes !== undefined) {
+        (req as TelemetryRequest).telemetryIngestBytes = ingestBytes;
       }
 
       req.body = {
@@ -187,6 +212,10 @@ export default class SyslogIngestService extends OtelIngestBaseService {
        */
       const serviceCache: Map<string, TelemetryServiceMetadata> = new Map();
       let processed: number = 0;
+
+      // Whose lines these are: null for most projects (#10102).
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
 
       /*
        * Load pipelines, drop filters, and scrub rules once per batch so
@@ -260,6 +289,24 @@ export default class SyslogIngestService extends OtelIngestBaseService {
               projectId,
             });
             serviceCache.set(serviceName, serviceMetadata);
+          }
+
+          /*
+           * Whose line this is (TelemetryIngestAttribution, #10102): offered
+           * with its service, line by line - a service already offered adds
+           * the line to its count. A used-up budget of its team or a label
+           * drops its lines, and the rest of the batch is stored.
+           */
+          if (
+            attribution &&
+            !(await attribution.admitResource({
+              primaryEntityId: serviceMetadata.primaryEntityId,
+              primaryEntityType: serviceMetadata.primaryEntityType,
+              name: serviceName,
+              records: 1,
+            }))
+          ) {
+            continue;
           }
 
           /*
@@ -420,6 +467,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         }
       }
 
+      // The batch's attribution, counted in one round trip (#10102).
+      await attribution?.settle();
+
       await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 
       /*
@@ -434,7 +484,13 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       // The logs are stored: their hashed addresses go to the vault, on their own.
       addressVault?.write();
 
-      if (processed === 0) {
+      if (attribution && attribution.getDroppedResourceCount() > 0) {
+        logger.debug(
+          `Syslog ingest: dropped the lines of ${attribution.getDroppedResourceCount()} service(s) for project ${projectId.toString()}: a team or label budget is used up.`,
+        );
+      }
+
+      if (processed === 0 && !attribution?.getDroppedResourceCount()) {
         logger.warn("Syslog ingest: no valid messages processed");
       } else {
         logger.debug(

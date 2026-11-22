@@ -70,9 +70,9 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
+| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger, sikkerhetshendelser, Network Flows, sikkerhetsadressehvelv | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
 
-Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder.
+Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
 
 Et datalager arkiveres, med historikken sin, når kilden ikke lenger viser det, og de åpne problemene på det blir løst: **Arkiverte datalagre**, nederst i menyen til Datasikkerhet, tar vare på det. Det kommer tilbake av seg selv hvis kilden viser det igjen, og et problem der kontrollen fortsatt feiler, åpnes igjen.
 

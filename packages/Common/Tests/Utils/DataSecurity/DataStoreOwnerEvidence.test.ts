@@ -135,10 +135,17 @@ describe("the project's people and teams", () => {
     expect(twoTeams.getTeamByName("payments squad")?.id).toBe(PAYMENTS_ID);
   });
 
-  test("a person with no name goes by their email", () => {
+  /*
+   * As every line names a member (#10681): a proposal's title and its lines
+   * on the store's timeline say it, which the API and workflows read.
+   */
+  test("a person with no name goes by the part of their address before the @, never the address", () => {
     expect(
       directory().getName({ kind: DataStoreOwnerKind.User, id: BOB_ID }),
-    ).toBe("bob@acme.com");
+    ).toBe("bob");
+    expect(
+      directory().getName({ kind: DataStoreOwnerKind.User, id: ALICE_ID }),
+    ).toBe("Alice Example");
   });
 });
 
@@ -270,7 +277,8 @@ describe("the services that use it", () => {
         { kind: DataStoreOwnerKind.User, id: BOB_ID },
       ],
     });
-    expect(refsOf(set)).toEqual(["T1=Checkout Team", "P1=bob@acme.com"]);
+    // Bob has no name: the part of his address before the "@" (#10681).
+    expect(refsOf(set)).toEqual(["T1=Checkout Team", "P1=bob"]);
     expect(set.servicesUsingIt).toBe(1);
   });
 

@@ -50,7 +50,10 @@ import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventCo
 import SecurityLogSource from "../../Models/DatabaseModels/SecurityLogSource";
 import SecurityTelemetrySource from "../../Models/DatabaseModels/SecurityTelemetrySource";
 import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
-import { DataStoreKind } from "../../Types/DataSecurity/DataStoreKind";
+import {
+  DECLARED_DATA_STORE_KINDS,
+  DataStoreKind,
+} from "../../Types/DataSecurity/DataStoreKind";
 import { OBJECT_STORE_KINDS } from "../../Types/DataObservability/StoragePaths";
 import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
@@ -199,8 +202,9 @@ export const PRODUCT_RECORD_MODELS: Readonly<
  *     kind, not archived (its Overview's first-run check);
  *   - Data Observability: a database it can watch, or a bucket with paths
  *     watched, not archived (its Overview's store count);
- *   - Data Security: a data store, not archived (its Overview's store
- *     count);
+ *   - Data Security: a data store, not archived, other than the ones
+ *     OneUptime declares for every project's security (its Overview's
+ *     store count);
  *   - Security Events: a source it reads that is on - a connection, your
  *     logs, your other OneUptime data (its Get started's first step).
  */
@@ -242,8 +246,18 @@ export const PRODUCT_USAGE_RECORDS: Readonly<
       )}) AND "watchedPaths" IS NOT NULL))`,
     },
   ],
+  /*
+   * Not the stores OneUptime declares for a project's security (#10398):
+   * every project with security events or network flows has one, set up
+   * in Data Security or not.
+   */
   [ProductKey.DataSecurity]: [
-    { modelType: DataStore, where: `"isArchived" = false` },
+    {
+      modelType: DataStore,
+      where: `"isArchived" = false AND "kind" NOT IN (${sqlTextList(
+        DECLARED_DATA_STORE_KINDS,
+      )})`,
+    },
   ],
   [ProductKey.SecurityEvents]: [
     { modelType: SecurityEventConnection, where: `"isEnabled" = true` },

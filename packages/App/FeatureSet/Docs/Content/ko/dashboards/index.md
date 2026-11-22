@@ -105,4 +105,5 @@ flowchart TB
 - [대시보드 위젯](/docs/dashboards/widgets): 모든 위젯과 어떤 것을 고를지.
 - [대시보드 변수 및 필터](/docs/dashboards/variables): 서비스, 호스트, 고객마다 대시보드 하나.
 - [공유 및 공개 대시보드](/docs/dashboards/sharing): 공개 링크, 비밀번호, IP 허용 목록, 사용자 정의 도메인.
+- [Grafana 및 Datadog에서 가져오기](/docs/dashboards/import): Grafana나 Datadog에서 만든 대시보드나 알림 규칙을 가져옵니다.
 :::

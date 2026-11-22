@@ -397,8 +397,10 @@ export interface TelemetryIngestJobData {
   /*
    * The size an ingestion budget counts the batch at, when it is not the
    * size of the body the worker reads back: an OTLP/gRPC export's protobuf
-   * size (the worker holds the export as JSON). The worker shares it out
-   * over the batch's resources (TelemetryIngestAttribution). Absent on
+   * size (the worker holds the export as JSON), or the size a Fluent or
+   * syslog request arrived at, before its handler reshaped it (#10102, set
+   * only for a project whose batches are attributed). The worker shares it
+   * out over the batch's resources (TelemetryIngestAttribution). Absent on
    * every other job, whose decoded body is that size.
    */
   ingestBytes?: number;

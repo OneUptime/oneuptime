@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "条件に一致するパイプラインのみ",
   "All cloud environments": "すべてのクラウド環境",
   "Only cloud environments that match conditions": "条件に一致するクラウド環境のみ",
+  "All issues": "すべての問題",
+  "Only issues that match conditions": "条件に一致する問題のみ",
   "Only what matches conditions": "条件に一致するもののみ",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "AWS でホストされている会社の SMTP サーバー",

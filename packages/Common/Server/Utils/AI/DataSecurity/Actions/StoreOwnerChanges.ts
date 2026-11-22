@@ -18,6 +18,7 @@ import TeamService from "../../../../Services/TeamService";
 import UserService from "../../../../Services/UserService";
 import { DataStoreOwnerRow } from "../Owners/DataStoreOwnerWrites";
 import CallerPermission from "../../../Permission/CallerPermission";
+import FeedPersonName from "../../../Feed/FeedPersonName";
 
 /*
  * WHAT APPROVING, CHANGING AND UNDOING OWNERS TAKES (#10374), shared by a
@@ -170,12 +171,23 @@ export function readOwnerChanges(changes: unknown): Array<DataStoreOwnerRef> {
   return owners;
 }
 
-// The owners with their names: a team's, a person's name or email.
+/*
+ * The owners with their names: a team by its own, a person as every line
+ * names people (FeedPersonName.readNames, #10681) - the names go into the
+ * line the store's and its issues' timelines say the change in ("Owners
+ * added from OneUptime AI's proposal: ...") and into a refusal. Someone only
+ * invited by the name typed with their invitation, else "someone who hasn't
+ * joined the project yet", never by their account's own name; a member by
+ * their name, else the part of their address before the "@". Never an
+ * address. Who of them is only invited is read once for them all; a person
+ * who is gone has no name.
+ */
 export async function nameOwners(data: {
   projectId: ObjectID;
   owners: ReadonlyArray<DataStoreOwnerRef>;
 }): Promise<Array<DataStoreOwnerRef & { name: string }>> {
-  const named: Array<DataStoreOwnerRef & { name: string }> = [];
+  const teamNames: Map<string, string> = new Map<string, string>();
+  const people: Array<User> = [];
 
   for (const owner of data.owners) {
     if (owner.kind === DataStoreOwnerKind.Team) {
@@ -185,7 +197,7 @@ export async function nameOwners(data: {
         props: { isRoot: true },
       });
 
-      named.push({ ...owner, name: team?.name || "" });
+      teamNames.set(owner.id.toLowerCase(), team?.name || "");
       continue;
     }
 
@@ -195,11 +207,36 @@ export async function nameOwners(data: {
       props: { isRoot: true },
     });
 
-    named.push({
-      ...owner,
-      name: user?.name?.toString() || user?.email?.toString() || "",
-    });
+    if (user) {
+      // Under the id it was asked by, whatever the read hands back.
+      const person: User = new User(new ObjectID(owner.id));
+
+      if (user.name) {
+        person.name = user.name;
+      }
+
+      if (user.email) {
+        person.email = user.email;
+      }
+
+      people.push(person);
+    }
   }
 
-  return named;
+  const personNames: Map<string, string> = await FeedPersonName.readNames({
+    users: people,
+    projectId: data.projectId,
+  });
+
+  return data.owners.map(
+    (owner: DataStoreOwnerRef): DataStoreOwnerRef & { name: string } => {
+      return {
+        ...owner,
+        name:
+          (owner.kind === DataStoreOwnerKind.Team
+            ? teamNames.get(owner.id.toLowerCase())
+            : personNames.get(owner.id.toLowerCase())) || "",
+      };
+    },
+  );
 }

@@ -75,6 +75,21 @@ const LINE_HELPERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsOnCallMention.ts",
   "packages/Common/Server/Utils/AutoRemediation/RemediationChatMessage.ts",
   "packages/Common/Server/Utils/Notes/SavedChatMessageNote.ts",
+  /*
+   * The Security product's (#10681): who asked for, decided and undid a
+   * playbook step's approval, in its channel posts and direct messages;
+   * whom a playbook step could not email, under its line on the case; the
+   * owners Data Security's AI proposes and adds, in its lines on a store's
+   * and its issues' timelines; and the people OneUptime AI's case triage
+   * reads, which its lines on the case repeat.
+   */
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookApprovalReader.ts",
+  "packages/Common/Server/Utils/Workspace/WorkspaceSecurityPlaybookApprovalMessages.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookNotEmailed.ts",
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/StoreOwnerChanges.ts",
+  "packages/Common/Server/Utils/AI/DataSecurity/Owners/DataStoreOwnerEvidenceReader.ts",
+  "packages/Common/Server/Utils/AI/Security/SecurityCaseAIContextBuilder.ts",
 ];
 
 // The files the guard must find among the writers: one of each kind of line.
@@ -110,6 +125,15 @@ const KNOWN_LINE_WRITERS: Array<string> = [
   // The owners told, in the record's feed.
   "packages/App/FeatureSet/Workers/Jobs/IncidentOwners/SendNotePostedNotification.ts",
   "packages/App/FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification.ts",
+  /*
+   * The Security product's lines (#10681): a case's assignee and its tasks',
+   * who was told about it, a playbook step's lines and the hunts' posts.
+   */
+  "packages/Common/Server/Services/SecurityCaseService.ts",
+  "packages/Common/Server/Services/SecurityCaseTaskService.ts",
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts",
+  "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications.ts",
 ];
 
 /*
@@ -187,32 +211,6 @@ const MAY_NAME_ANOTHER_WAY: Record<string, Record<string, string>> = {
     {
       addressInTemplate:
         "who declared the episode, in the email to each of its owners",
-    },
-  /*
-   * Not held yet: the Security product's lines - cases, their tasks,
-   * playbooks and hunts - are another piece of work's (#10681).
-   */
-  "packages/Common/Server/Services/SecurityCaseService.ts": {
-    nameInProject: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Services/SecurityCaseTaskService.ts": {
-    nameInProject: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
-    getNameInProject: "not held yet (#10681)",
-    addressInTemplate: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
-    nameInProject: "not held yet (#10681)",
-    addressInTemplate: "not held yet (#10681)",
-    nameElseAddress: "not held yet (#10681)",
-  },
-  "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntNotifications.ts":
-    {
-      nameElseAddress: "not held yet (#10681)",
     },
 };
 

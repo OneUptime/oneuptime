@@ -77,6 +77,8 @@ interface OwnerFixture {
   teamsByStore: Map<string, Array<ObjectID>>;
   membersByTeam: Map<string, Array<{ userId: ObjectID; accepted: boolean }>>;
   users: Array<User>;
+  // People only invited to the project: not members until they accept (#10697).
+  invited: Set<string>;
 }
 
 let owners: OwnerFixture;
@@ -98,6 +100,7 @@ let issueLinkSpy: jest.SpyInstance;
 let ownerUsersSpy: jest.SpyInstance;
 let teamMembersSpy: jest.SpyInstance;
 let usersSpy: jest.SpyInstance;
+let projectMembersSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
 
 function userOf(name: string, email?: string): User {
@@ -118,6 +121,7 @@ beforeEach(() => {
     teamsByStore: new Map(),
     membersByTeam: new Map(),
     users: [],
+    invited: new Set(),
   };
   setting = new DataSecuritySetting();
   setting.projectId = PROJECT_ID;
@@ -281,6 +285,15 @@ beforeEach(() => {
 
       return owners.users.filter((user: User) => {
         return ids.includes(user.id!.toString());
+      });
+    }) as never);
+
+  // Who has joined the project: everyone the fixture names but its invitees.
+  projectMembersSpy = jest
+    .spyOn(TeamMemberService, "filterUsersToProjectMembers")
+    .mockImplementation((async (data: { users: Array<User> }) => {
+      return data.users.filter((user: User): boolean => {
+        return !owners.invited.has(user.id!.toString());
       });
     }) as never);
 
@@ -1314,6 +1327,74 @@ describe("onIssuesOpened: the store's owners", () => {
           "The store's 2 owners were emailed about this issue.",
       },
     ]);
+  });
+
+  /*
+   * An owner only invited to the project - a direct owner row may name one
+   * (a pending membership is accepted for it) - hears nothing of the
+   * project's data until they join (#10697), whether a name was typed with
+   * their invitation or not, as owner-added notices tell accepted members
+   * only. A member is emailed as ever, with a name or none.
+   */
+  test("an owner only invited is not emailed, with a name typed for them or none; a member with no name is", async () => {
+    const ada: User = userOf("Ada from Legal", "ada@acme.io");
+    const bea: User = userOf("", "bea@acme.io");
+    const carl: User = userOf("", "carl@acme.io");
+    owners.invited = new Set([ada.id!.toString(), bea.id!.toString()]);
+    ownedBy(STORE_A, ada, bea, carl);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    await opened([issue]);
+
+    expect(
+      mails().map((mail: SentMail): string => {
+        return mail.toEmail;
+      }),
+    ).toEqual(["carl@acme.io"]);
+    // Asked of the project, about every owner the store has.
+    expect(projectMembersSpy).toHaveBeenCalledTimes(1);
+
+    const asked: { projectId: ObjectID; users: Array<User> } = projectMembersSpy
+      .mock.calls[0]![0] as never;
+
+    expect(asked.projectId).toEqual(PROJECT_ID);
+    expect(
+      asked.users
+        .map((user: User): string => {
+          return user.id!.toString();
+        })
+        .sort(),
+    ).toEqual(
+      [ada.id!.toString(), bea.id!.toString(), carl.id!.toString()].sort(),
+    );
+    // The timeline counts who was told: the one member.
+    expect(
+      feedsOf(DataSecurityIssueFeedEventType.OwnersNotified).map(
+        (feed: JSONObject): string => {
+          return String(feed["feedInfoInMarkdown"]);
+        },
+      ),
+    ).toEqual(["The store's owner was emailed about this issue."]);
+  });
+
+  test("a store whose owners are all only invited emails nobody, and its issue is not marked notified", async () => {
+    const ada: User = userOf("Ada from Legal", "ada@acme.io");
+    owners.invited = new Set([ada.id!.toString()]);
+    ownedBy(STORE_A, ada);
+    const issue: OpenedIssueForIntegrations = issueOf({
+      severity: SecuritySeverity.High,
+    });
+
+    await opened([issue]);
+
+    expect(mails()).toEqual([]);
+    expect(notifiedSpy).not.toHaveBeenCalledWith({
+      id: issue.issueId,
+      data: { isOwnerNotified: true },
+    });
+    expect(feedsOf(DataSecurityIssueFeedEventType.OwnersNotified)).toEqual([]);
   });
 
   test("each store's owners hear of their store's issues only", async () => {

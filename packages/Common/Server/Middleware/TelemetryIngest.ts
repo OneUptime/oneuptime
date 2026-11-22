@@ -109,8 +109,10 @@ export interface TelemetryRequest extends ExpressRequest {
    * The size an ingestion budget counts this request at, set where it is
    * not the size of the body the worker reads back: an OTLP/gRPC export's
    * protobuf size, which the worker - holding the export as JSON - cannot
-   * measure. The worker shares it out over the batch's resources
-   * (TelemetryIngestAttribution, #6355, #6386).
+   * measure, or a Fluent or syslog request's, whose handler reshapes the
+   * body before it is queued (TelemetryIngestAttribution
+   * .getRequestBytesToShare, #10102). The worker shares it out over the
+   * batch's resources (TelemetryIngestAttribution, #6355, #6386).
    */
   telemetryIngestBytes?: number | undefined;
 
