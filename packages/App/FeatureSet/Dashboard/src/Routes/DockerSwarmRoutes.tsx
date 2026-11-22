@@ -13,6 +13,7 @@ import DockerSwarmClusters from "../Pages/DockerSwarm/Clusters";
 import DockerSwarmDocumentation from "../Pages/DockerSwarm/Documentation";
 import DockerSwarmSettingsOwnerRules from "../Pages/DockerSwarm/Settings/OwnerRules";
 import DockerSwarmSettingsLabelRules from "../Pages/DockerSwarm/Settings/LabelRules";
+import DockerSwarmRulesAuditLogs from "../Pages/DockerSwarm/Settings/RulesAuditLogs";
 import DockerSwarmArchived from "../Pages/DockerSwarm/Archived";
 import DockerSwarmClusterOverview from "../Pages/DockerSwarm/View/Index";
 import DockerSwarmClusterNodes from "../Pages/DockerSwarm/View/Nodes";
@@ -112,6 +113,24 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            DockerSwarmRoutePath[
+              PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS
+            ] || ""
+          }
+          element={
+            <DockerSwarmRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS
+                ] as Route
               }
             />
           }
