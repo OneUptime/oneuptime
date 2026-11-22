@@ -11,7 +11,12 @@ import SecurityEventService from "../../../../Services/SecurityEventService";
 import ThreatIntelIndicatorService from "../../../../Services/ThreatIntelIndicatorService";
 import { getQuerySettings } from "../../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../../AnalyticsDatabase/Statement";
-import SecurityConnections from "../../../SecurityEvent/Connections/SecurityConnections";
+/*
+ * The connections, taken from ConnectionsLoader when the facts are first read,
+ * never imported at load: the step checks load with SecurityCaseTaskService,
+ * which the services the connections read reach (ConnectionsLoadOrder).
+ */
+import { loadSecurityConnections } from "../../../SecurityEvent/Connections/ConnectionsLoader";
 import {
   ADDRESS_REQUESTS_READ_LIMIT,
   readAnalyticsRows,
@@ -119,7 +124,7 @@ export default class AddressFacts {
     );
 
     const [connections, indicators, signIns] = await Promise.all([
-      SecurityConnections.forEntities({
+      loadSecurityConnections().default.forEntities({
         projectId: data.projectId,
         entities: [{ type: SecurityEntityType.IpAddress, value: data.address }],
         props: { isRoot: true },
