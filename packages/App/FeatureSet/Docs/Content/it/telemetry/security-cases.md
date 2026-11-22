@@ -434,7 +434,7 @@ I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso
 
 Gli indirizzi del tuo progetto non vengono mai bloccati: le voci di **Entità protette**, i tuoi host, nodi Kubernetes, risorse cloud, dispositivi di rete ed endpoint, i tuoi nomi indirizzo e le tue sonde, le sonde di OneUptime Cloud, gli intervalli che non sono su internet e la rete perimetrale davanti alla tua app. Un blocco che ne toccherebbe uno viene rifiutato, indicando che cosa è l'indirizzo, e **Entità protette** li elenca sotto **Protezione automatica**. Quando OneUptime non riesce a stabilire se un indirizzo è tuo, non lo blocca.
 
-**Applicato su** mostra ogni punto in cui un blocco viene applicato e se lì regge. Finché nulla applica la blocklist, la pagina lo dice, e un blocco viene registrato ma non blocca nulla. Ogni blocco, revoca e scadenza resta nel log di audit del progetto e, quando c'è un caso, nella cronologia del suo caso.
+**Applicato su** mostra ogni punto in cui un blocco viene applicato e se lì regge. Un firewall o un proxy lo applica leggendo un [feed della blocklist](/docs/telemetry/blocklist-feeds), un URL segreto che recupera ogni pochi minuti. Finché nulla applica la blocklist, la pagina lo dice, e un blocco viene registrato ma non blocca nulla. Ogni blocco, revoca e scadenza resta nel log di audit del progetto e, quando c'è un caso, nella cronologia del suo caso.
 
 ### Messaggi
 
