@@ -1,6 +1,6 @@
 import { escapeRegExp } from "../../Utils/RegExpEscape";
 import { sha256Hex } from "../AutoRemediation/RemediationPlanFingerprint";
-import { translationKey } from "../Translator";
+import { PluralTemplate, translationKey } from "../Translator";
 import { toStableJsonText } from "./DataSecurityAi";
 
 /*
@@ -1298,9 +1298,9 @@ export const ISSUE_GROUP_CAUSE_WORDS: {
 };
 
 // The headline of a group: "40 issues, one cause: the static-site module".
-export const ISSUE_GROUP_HEADLINE: { singular: string; plural: string } = {
-  singular: translationKey("{{count}} issue, one cause: {{cause}}"),
-  plural: translationKey("{{count}} issues, one cause: {{cause}}"),
+export const ISSUE_GROUP_HEADLINE: PluralTemplate = {
+  one: translationKey("{{count}} issue, one cause: {{cause}}"),
+  other: translationKey("{{count}} issues, one cause: {{cause}}"),
 };
 
 // An identity as a sentence names it: "the terraform-ci role", "user alice".

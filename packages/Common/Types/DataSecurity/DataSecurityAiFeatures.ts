@@ -49,6 +49,16 @@ export enum DataSecurityAiFeature {
    * each - and the owner rules that keep stores like them owned (#10374).
    */
   ProposeStoreOwners = "ProposeStoreOwners",
+  /*
+   * A name for a group of issues one mistake made (#10370), from the facts
+   * its stores share: "the static-site module turns off access logs".
+   */
+  NameIssueGroup = "NameIssueGroup",
+  /*
+   * The pull request that fixes a group's cause once, in the module or
+   * file that declares its stores (#10370): a task in Code.
+   */
+  FixIssueGroup = "FixIssueGroup",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -269,6 +279,59 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.NameIssueGroup,
+      title: translationKey("Names for issues with one cause"),
+      startedBy: translationKey(
+        "A group of issues one mistake made, when it forms or what its stores share changes, while Work on new issues is on.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "What the group's stores share: the module, stack or tag that made them, the identity that created them, or their name pattern",
+        ),
+        translationKey(
+          "The check they fail, how many issues the group holds, the kind of store and the code that declares them",
+        ),
+      ],
+      neverSends: [
+        translationKey("The name of any one store in the group"),
+        translationKey("A sample of what was found, not even a masked one"),
+      ],
+      keeps: translationKey(
+        "The group's name, beside the facts it was written from. Its issues are never changed.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.FixIssueGroup,
+      title: translationKey("Fix the cause"),
+      startedBy: translationKey(
+        "A person, from a group of issues in the Issues list, in a repository they may change in Code; or a security playbook's Fix With AI step.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey(
+          "The check the group's issues fail, what their stores share, and the module or files that declare them, as a request to the coding agent",
+        ),
+        translationKey(
+          "Each store the pull request fixes: its name, kind, region and cloud ID, and its issue",
+        ),
+        translationKey(
+          "The repository's own code, which the coding agent reads to make the change",
+        ),
+      ],
+      neverSends: [
+        translationKey("A sample of what was found, not even a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "The task and its one pull request, under Code, which each of the group's issues keeps.",
+      ),
+      keepsProviderErrors: true,
+      modelSource: DataSecurityAiModelSource.CodeAgent,
     },
   ];
 
