@@ -574,6 +574,23 @@ describe("an explorer's question: which addresses did the search match by token"
     expect(result.answer).toEqual({ addresses: [] });
   });
 
+  test("a question that names no project is refused, saying where to name it, and reads no rule", async () => {
+    const result: CallResult = await ask(
+      "/telemetry/logs/hashed-address-search",
+      {
+        request: PROJECT_MEMBER.request,
+        props: { ...PROJECT_MEMBER.props, tenantId: undefined },
+      },
+    );
+
+    expect(result.errorResponse).toBeInstanceOf(BadDataException);
+    expect((result.errorResponse as BadDataException).message).toBe(
+      "A search for hashed addresses needs a project: send its ID in the tenantid header.",
+    );
+    expect(result.answer).toBeUndefined();
+    expect(counted.ruleReads).toBe(0);
+  });
+
   test.each([
     ["no texts", {}],
     ["texts that are no list", { texts: ADDRESS }],

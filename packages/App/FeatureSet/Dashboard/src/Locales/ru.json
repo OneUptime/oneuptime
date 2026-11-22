@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "Сработало: проверка проблемы пройдена",
   "Its Analysis": "Его анализ",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Оценить найденное, например реальна ли находка или кому принадлежит хранилище.",
-  "Leave a condition empty to match every issue.": "Оставьте условие пустым, чтобы оно подходило к любой проблеме.",
   "Median time from an issue opening to its check passing": "Медианное время от открытия проблемы до прохождения её проверки",
   "No AI rules yet.": "Правил ИИ пока нет.",
   "No changes made yet.": "Изменений пока нет.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "Какие проблемы",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "С какими проблемами работает OneUptime AI и для каждого вида работы — выключен ли он, предлагается ли на ваше одобрение или выполняется без запроса. Без правил он анализирует критические и высокие проблемы и предлагает остальное.",
   "Who changed this record, what they changed and when.": "Кто изменил эту запись, что изменил и когда.",
-  "Without asking": "Без запроса",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Записать анализ проблемы от OneUptime AI в её хронологию. Это ничего не меняет.",
   "Your blocks are no longer enforced at Cloudflare.": "Ваши блокировки больше не применяются в Cloudflare.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "Ваш межсетевой экран перестал читать этот фид {{time}}, поэтому блокировки там не применяются, пока он снова его не прочитает.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} не заблокирован на ваших машинах.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} есть в списке блокировки, но на ваших машинах его пока ничто не блокирует.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} в списке блокировки. Шаг будет выполнен, как только он будет заблокирован на каждой машине.",
-  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}.",
+  "All issues": "Все проблемы",
+  "Only issues that match conditions": "Только проблемы, соответствующие условиям"
 }

@@ -449,12 +449,18 @@ describe("Data Security's permission matrix", () => {
     }
   });
 
-  test("on an issue, a person decides only its status, the accepted risk and who it is assigned to", () => {
+  /*
+   * Why it is not an issue (#10369) is a person's, as the accepted risk's
+   * reason is: written with the Not an issue status, which the service
+   * holds it to (DataSecurityIssueService), from the Dashboard's dialog.
+   */
+  test("on an issue, a person decides only its status, the accepted risk, why it is not an issue and who it is assigned to", () => {
     expect(editableColumns(new DataSecurityIssue())).toEqual(
       [
         "status",
         "acceptedReason",
         "acceptedUntil",
+        "notAnIssueReason",
         "assignedToUser",
         "assignedToUserId",
         "assignedToTeam",

@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "효과 있음: 이슈의 검사를 통과함",
   "Its Analysis": "분석",
   "Judge what was found, such as whether a finding is real or who owns a store.": "찾은 내용을 판정합니다(예: 발견 항목이 실제인지, 저장소 소유자가 누구인지).",
-  "Leave a condition empty to match every issue.": "조건을 비워 두면 모든 이슈에 일치합니다.",
   "Median time from an issue opening to its check passing": "이슈가 열린 후 검사를 통과하기까지의 시간 중앙값",
   "No AI rules yet.": "아직 AI 규칙이 없습니다.",
   "No changes made yet.": "아직 적용한 변경이 없습니다.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "대상 이슈",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "OneUptime AI가 처리할 이슈와, 작업 종류마다 꺼둘지, 승인을 위해 제안할지, 묻지 않고 할지를 정합니다. 규칙이 없으면 심각 및 높음 이슈를 분석하고 나머지는 제안합니다.",
   "Who changed this record, what they changed and when.": "이 레코드를 누가, 무엇을, 언제 변경했는지 보여 줍니다.",
-  "Without asking": "묻지 않고",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "OneUptime AI의 이슈 분석을 이슈의 타임라인에 기록합니다. 아무것도 바꾸지 않습니다.",
   "Your blocks are no longer enforced at Cloudflare.": "차단이 더 이상 Cloudflare에서 적용되지 않습니다.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "방화벽이 {{time}}에 이 피드 읽기를 중단했으므로, 다시 읽을 때까지 그곳에서는 차단이 적용되지 않습니다.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}}은(는) 머신에서 차단되어 있지 않습니다.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}}은(는) 차단 목록에 있지만, 아직 머신에서 차단하는 곳이 없습니다.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}}이(가) 차단 목록에 추가되었습니다. 모든 머신에서 차단되면 이 단계가 완료됩니다.",
-  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다."
+  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다.",
+  "All issues": "모든 이슈",
+  "Only issues that match conditions": "조건과 일치하는 이슈만"
 }

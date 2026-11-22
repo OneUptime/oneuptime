@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "Het werkte: de controle van het probleem slaagde",
   "Its Analysis": "De analyse",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Beoordelen wat er gevonden is, zoals of een bevinding echt is of wie eigenaar van een opslag is.",
-  "Leave a condition empty to match every issue.": "Laat een voorwaarde leeg om bij elk probleem te passen.",
   "Median time from an issue opening to its check passing": "Mediane tijd van het openen van een probleem tot het slagen van de controle",
   "No AI rules yet.": "Nog geen AI-regels.",
   "No changes made yet.": "Nog geen wijzigingen gemaakt.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "Welke problemen",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Aan welke problemen OneUptime AI werkt, en voor elk soort werk of het uit staat, ter goedkeuring wordt voorgesteld of zonder te vragen wordt gedaan. Zonder regel analyseert het kritieke en hoge problemen en stelt het de rest voor.",
   "Who changed this record, what they changed and when.": "Wie dit record heeft gewijzigd, wat er is gewijzigd en wanneer.",
-  "Without asking": "Zonder te vragen",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "De analyse van het probleem door OneUptime AI op de tijdlijn ervan zetten. Dit verandert niets.",
   "Your blocks are no longer enforced at Cloudflare.": "Je blokkeringen worden niet meer toegepast bij Cloudflare.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "Je firewall is {{time}} gestopt met het lezen van deze feed, dus blokkeringen worden daar pas weer toegepast als hij de feed opnieuw leest.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} is niet geblokkeerd op je machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} staat op de blokkeerlijst, maar nog niets blokkeert het op je machines.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} staat op de blokkeerlijst. De stap is klaar zodra het op elke machine is geblokkeerd.",
-  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hoort bij {{address}}.",
+  "All issues": "Alle problemen",
+  "Only issues that match conditions": "Alleen problemen die aan de voorwaarden voldoen"
 }

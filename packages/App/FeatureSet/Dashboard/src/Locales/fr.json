@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "A fonctionné : le contrôle du problème a réussi",
   "Its Analysis": "Son analyse",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Juger ce qui a été trouvé, par exemple si une détection est réelle ou à qui appartient un magasin de données.",
-  "Leave a condition empty to match every issue.": "Laissez une condition vide pour qu'elle corresponde à tous les problèmes.",
   "Median time from an issue opening to its check passing": "Temps médian entre l'ouverture d'un problème et la réussite de son contrôle",
   "No AI rules yet.": "Aucune règle IA pour l'instant.",
   "No changes made yet.": "Aucune modification effectuée pour l'instant.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "Quels problèmes",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Sur quels problèmes OneUptime AI travaille, et pour chaque type de travail s'il est désactivé, suggéré pour votre approbation ou fait sans demander. Sans règle, il analyse les problèmes critiques et élevés et suggère le reste.",
   "Who changed this record, what they changed and when.": "Qui a modifié cet enregistrement, ce qui a été modifié et quand.",
-  "Without asking": "Sans demander",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Écrire l'analyse du problème par OneUptime AI dans sa chronologie. Cela ne modifie rien.",
   "Your blocks are no longer enforced at Cloudflare.": "Vos blocages ne sont plus appliqués chez Cloudflare.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "Votre pare-feu a cessé de lire ce flux {{time}} : les blocages n'y sont donc plus appliqués tant qu'il ne le lit pas de nouveau.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} n'est pas bloqué sur vos machines.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} est dans la liste de blocage, mais rien ne le bloque encore sur vos machines.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} est dans la liste de blocage. L'étape est terminée dès qu'il est bloqué sur chaque machine.",
-  "{{value}} is part of {{address}}.": "{{value}} fait partie de {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} fait partie de {{address}}.",
+  "All issues": "Tous les problèmes",
+  "Only issues that match conditions": "Uniquement les problèmes qui correspondent aux conditions"
 }

@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "有效：問題的檢查已通過",
   "Its Analysis": "其分析",
   "Judge what was found, such as whether a finding is real or who owns a store.": "判定找到的內容，例如某個發現是否屬實，或資料儲存區歸誰所有。",
-  "Leave a condition empty to match every issue.": "將條件留空即可符合所有問題。",
   "Median time from an issue opening to its check passing": "從問題開啟到其檢查通過的時間中位數",
   "No AI rules yet.": "尚無 AI 規則。",
   "No changes made yet.": "尚未做出任何變更。",
@@ -61448,7 +61447,6 @@
   "Which Issues": "哪些問題",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "OneUptime AI 處理哪些問題，以及每種工作是關閉、提交給您核准，還是無需詢問直接完成。沒有規則時，它會分析嚴重和高問題，其餘的提出建議。",
   "Who changed this record, what they changed and when.": "誰變更了此記錄、變更了什麼以及何時變更。",
-  "Without asking": "無需詢問",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "將 OneUptime AI 對問題的分析寫入其時間軸。這不會變更任何內容。",
   "Your blocks are no longer enforced at Cloudflare.": "你的封鎖已不再於 Cloudflare 生效。",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "你的防火牆在 {{time}} 停止讀取此來源，因此在它再次讀取之前，封鎖不會在那裡生效。",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} 未在你的機器上封鎖。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} 已在封鎖清單中，但你的機器上還沒有任何地方封鎖它。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} 已加入封鎖清單。在每台機器上封鎖後，此步驟即完成。",
-  "{{value}} is part of {{address}}.": "{{value}} 屬於 {{address}}。"
+  "{{value}} is part of {{address}}.": "{{value}} 屬於 {{address}}。",
+  "All issues": "所有問題",
+  "Only issues that match conditions": "僅符合條件的問題"
 }

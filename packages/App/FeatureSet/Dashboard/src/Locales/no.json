@@ -61157,7 +61157,6 @@
   "It worked: the issue's check passed": "Det virket: kontrollen av problemet besto",
   "Its Analysis": "Analysen",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Vurder det som ble funnet, for eksempel om et funn er ekte eller hvem som eier et datalager.",
-  "Leave a condition empty to match every issue.": "La en betingelse stå tom for å treffe alle problemer.",
   "Median time from an issue opening to its check passing": "Mediantid fra et problem åpnes til kontrollen av det består",
   "No AI rules yet.": "Ingen AI-regler ennå.",
   "No changes made yet.": "Ingen endringer gjort ennå.",
@@ -61448,7 +61447,6 @@
   "Which Issues": "Hvilke problemer",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Hvilke problemer OneUptime AI jobber med, og for hver type arbeid om det er av, foreslås til godkjenning eller gjøres uten å spørre. Uten regel analyserer den kritiske og høye problemer og foreslår resten.",
   "Who changed this record, what they changed and when.": "Hvem som endret denne posten, hva som ble endret og når.",
-  "Without asking": "Uten å spørre",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Skriv OneUptime AIs analyse av problemet på tidslinjen. Det endrer ingenting.",
   "Your blocks are no longer enforced at Cloudflare.": "Blokkeringene dine håndheves ikke lenger hos Cloudflare.",
   "Your firewall stopped reading this feed {{time}}, so blocks are not enforced there until it reads it again.": "Brannmuren din sluttet å lese denne feeden {{time}}, så blokkeringer håndheves ikke der før den leser den igjen.",
@@ -61952,5 +61950,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} er ikke blokkert på maskinene dine.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} står på blokkeringslisten, men ingenting blokkerer det på maskinene dine ennå.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} står på blokkeringslisten. Trinnet er utført så snart det er blokkert på hver maskin.",
-  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}.",
+  "All issues": "Alle problemer",
+  "Only issues that match conditions": "Bare problemer som oppfyller betingelsene"
 }
