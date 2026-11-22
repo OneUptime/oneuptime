@@ -3,6 +3,8 @@ import FeedMarkdown, {
   MarkdownValue,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
 import FeedPersonName from "../Feed/FeedPersonName";
 
 /*
@@ -222,13 +224,20 @@ export default class OwnerNotificationFeedText {
    * feed is read beyond the project, through workflows and the API (#10669).
    * Only the project's members are told, so only members are named here.
    */
-  public static personName(data: {
-    name: string | undefined;
-    email: string | undefined;
-  }): MarkdownText {
+  public static personName(
+    person:
+      | {
+          name?: Name | string | null | undefined;
+          email?: Email | string | null | undefined;
+        }
+      | null
+      | undefined,
+  ): MarkdownText {
     return mdText`${
-      FeedPersonName.getMemberName({ name: data.name, email: data.email }) ||
-      "Unknown user"
+      FeedPersonName.getMemberName({
+        name: person?.name,
+        email: person?.email,
+      }) || "Unknown user"
     }`;
   }
 }

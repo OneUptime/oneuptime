@@ -52,6 +52,7 @@ import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "./WorkspaceMemberActions";
 import WorkspaceMessageTime from "./WorkspaceMessageTime";
+import FeedPersonName from "../Feed/FeedPersonName";
 
 /*
  * WHAT A BUTTON IN SLACK OR MICROSOFT TEAMS ANSWERS, IN THE SAME WORDS IN BOTH.
@@ -922,7 +923,11 @@ export default class WorkspaceActionAnswers {
     return changes.length > 0 ? changes[changes.length - 1]! : null;
   }
 
-  // The person's name, else their email; null when neither can be read.
+  /*
+   * The person's name, else the part of their address before the "@", as
+   * every channel line names a member (FeedPersonName, #10669); null when
+   * neither can be read.
+   */
   private static async getUserName(userId: ObjectID): Promise<string | null> {
     try {
       const user: User | null = await UserService.findOneBy({
@@ -931,8 +936,10 @@ export default class WorkspaceActionAnswers {
         props: { isRoot: true },
       });
 
-      const name: string =
-        user?.name?.toString().trim() || user?.email?.toString().trim() || "";
+      const name: string = FeedPersonName.getMemberName({
+        name: user?.name,
+        email: user?.email,
+      });
 
       return name || null;
     } catch (err) {

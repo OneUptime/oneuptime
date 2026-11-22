@@ -512,10 +512,7 @@ async function notifyOwnersOfIncidentsAdded(data: {
   // A person told, as the episode's feed names them.
   const feedLineMarkdown: (user: User) => string = (user: User): string => {
     return OwnerNotificationFeedText.notifiedLineMarkdown(
-      mdText`${OwnerNotificationFeedText.personName({
-        name: user.name?.toString(),
-        email: user.email?.toString(),
-      })}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
+      mdText`${OwnerNotificationFeedText.personName(user)}, told of ${incidentCountInBatch === 1 ? "1 incident" : `${incidentCountInBatch} incidents`}`,
     );
   };
 

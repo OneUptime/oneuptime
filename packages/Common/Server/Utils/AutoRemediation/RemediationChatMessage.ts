@@ -79,6 +79,7 @@ import WorkspaceLiveMessage from "../../../Models/DatabaseModels/WorkspaceLiveMe
 import WorkspaceLiveMessageService from "../../Services/WorkspaceLiveMessageService";
 import AutoRemediationSuggestionService from "../../Services/AutoRemediationSuggestionService";
 import WorkspaceLiveMessages from "../Workspace/LiveMessages/WorkspaceLiveMessages";
+import FeedPersonName from "../Feed/FeedPersonName";
 
 /*
  * A FIX THAT WAITS FOR APPROVAL, WHERE THE TEAM IS.
@@ -148,8 +149,10 @@ export interface RemediationChatApprovals {
 }
 
 /*
- * Who someone is, as a fix's message names them: their name, else their
- * email. Null when it cannot be read - the message then says "Someone".
+ * Who someone is, as a fix's message names them: as every channel line
+ * names a member (FeedPersonName), by their name, else the part of their
+ * address before the "@" - never the address (#10669). Null when it cannot
+ * be read - the message then says "Someone".
  */
 async function readPersonName(userId: ObjectID): Promise<string | null> {
   try {
@@ -160,7 +163,10 @@ async function readPersonName(userId: ObjectID): Promise<string | null> {
     });
 
     return (
-      user?.name?.toString().trim() || user?.email?.toString().trim() || null
+      FeedPersonName.getMemberName({
+        name: user?.name,
+        email: user?.email,
+      }) || null
     );
   } catch (error) {
     logger.debug(

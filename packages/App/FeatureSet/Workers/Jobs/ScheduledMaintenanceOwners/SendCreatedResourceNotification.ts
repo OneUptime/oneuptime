@@ -173,10 +173,7 @@ RunCron(
 // A person told, as the event's feed names them.
 function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
-    OwnerNotificationFeedText.personName({
-      name: user.name?.toString(),
-      email: user.email?.toString(),
-    }),
+    OwnerNotificationFeedText.personName(user),
   );
 }
 

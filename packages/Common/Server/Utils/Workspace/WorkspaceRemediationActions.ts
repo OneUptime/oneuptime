@@ -44,6 +44,7 @@ import WorkspaceActionAuthorization, {
 import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import WorkspaceMessageTime from "./WorkspaceMessageTime";
 import ProductBrandingText from "../ProductBrandingText";
+import FeedPersonName from "../Feed/FeedPersonName";
 
 /*
  * APPROVING AND DISMISSING ONEUPTIME AI'S FIXES FROM SLACK AND MICROSOFT
@@ -619,8 +620,11 @@ export default class WorkspaceRemediationActions {
         props: { isRoot: true },
       });
 
-      const name: string =
-        user?.name?.toString().trim() || user?.email?.toString().trim() || "";
+      // As every channel line names a member: never by their address (#10669).
+      const name: string = FeedPersonName.getMemberName({
+        name: user?.name,
+        email: user?.email,
+      });
 
       return name || null;
     } catch (error) {
