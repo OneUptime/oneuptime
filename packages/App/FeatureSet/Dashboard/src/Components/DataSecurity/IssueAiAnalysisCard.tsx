@@ -32,6 +32,12 @@ import {
 } from "./IssueAiAnalysisCopy";
 import { AnalysisFactList } from "./IssueAiAnalysisFacts";
 import {
+  FIX_THE_CAUSE,
+  PART_OF_A_GROUP,
+  getGroupHeadline,
+  getGroupProgress,
+} from "./IssueGroupsCopy";
+import {
   ISSUE_MOVES_LOCKED,
   ISSUE_MOVE_ICONS,
   ISSUE_MOVE_TITLES,
@@ -60,12 +66,14 @@ import {
   getLineFacts,
 } from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import { isTelemetryFindingCheck } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import { DataSecurityIssueGroupJSON } from "Common/Types/DataSecurity/DataSecurityIssueGroup";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -110,6 +118,10 @@ import React, {
  *     with AI in the code that declares the store, the proposal waiting in
  *     Data Security > AI, Set Owners for a store nobody owns.
  *
+ * An issue that is one of a group of issues one mistake made (#10370)
+ * points at its group under the analysis: the group's cause, how many are
+ * fixed, and Fix the Cause, which opens the group's one fix.
+ *
  * It replaces Explain with AI. Opening the page reads the analysis the
  * issue keeps, with no model call; Analyze Again writes a new one. Every
  * fact and line the reader may not read is left out by the server, and
@@ -123,7 +135,57 @@ export const ISSUE_AI_ANALYSIS_TEST_ID: string =
 type LoadState =
   | { kind: "loading" }
   | { kind: "failed"; error: string }
-  | { kind: "read"; view: DataSecurityIssueAnalysisView | null };
+  | {
+      kind: "read";
+      view: DataSecurityIssueAnalysisView | null;
+      // The group of issues one mistake made that the issue is one of (#10370).
+      group?: DataSecurityIssueGroupJSON | null | undefined;
+    };
+
+/*
+ * The group the issue is one of (#10370): its cause, how far its fix has
+ * come, and Fix the Cause - on the Issues list, where the group's one fix
+ * opens.
+ */
+const IssueGroupPointer: FunctionComponent<{
+  group: DataSecurityIssueGroupJSON;
+}> = (props: { group: DataSecurityIssueGroupJSON }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.DATA_SECURITY_ISSUES] as Route,
+  ).addQueryParams({
+    [props.group.openIssueCount > 0 ? "fixGroup" : "group"]:
+      props.group.groupId,
+  });
+
+  return (
+    <div
+      className="flex flex-wrap items-start gap-x-3 gap-y-2 border-t border-gray-100 pt-3"
+      data-testid={`${ISSUE_AI_ANALYSIS_TEST_ID}-group`}
+    >
+      <Icon
+        icon={IconProp.Squares}
+        className="mt-0.5 h-4 w-4 flex-none text-indigo-500"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+          {getGroupHeadline(props.group, translator)}
+        </p>
+        <p className="mt-0.5 text-xs text-gray-600">
+          {translator.translateText(PART_OF_A_GROUP)}{" "}
+          {getGroupProgress(props.group, translator)}
+        </p>
+      </div>
+      <Link
+        to={route}
+        className="inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        dataTestId={`${ISSUE_AI_ANALYSIS_TEST_ID}-group-link`}
+      >
+        <>{translator.translateText(FIX_THE_CAUSE)}</>
+      </Link>
+    </div>
+  );
+};
 
 export interface ComponentProps {
   issue: DataSecurityIssue;
@@ -277,7 +339,11 @@ const IssueAiAnalysisCard: FunctionComponent<ComponentProps> = (
           await DataSecurityApi.getIssueAnalysis(props.issueId);
 
         if (isCurrent) {
-          setState({ kind: "read", view: result.analysis });
+          setState({
+            kind: "read",
+            view: result.analysis,
+            group: result.group,
+          });
         }
       } catch (err) {
         if (isCurrent) {
@@ -303,7 +369,11 @@ const IssueAiAnalysisCard: FunctionComponent<ComponentProps> = (
       const result: DataSecurityExplainResult =
         await DataSecurityApi.explainIssue(props.issueId, { force });
 
-      setState({ kind: "read", view: result.analysis || null });
+      setState({
+        kind: "read",
+        view: result.analysis || null,
+        group: result.group,
+      });
 
       if (force) {
         Toast.success(
@@ -631,6 +701,8 @@ const IssueAiAnalysisCard: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+
+      {state.group ? <IssueGroupPointer group={state.group} /> : <></>}
 
       {view.analyzedAt ? (
         <p

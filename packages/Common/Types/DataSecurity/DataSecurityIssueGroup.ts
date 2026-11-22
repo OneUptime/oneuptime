@@ -1299,8 +1299,8 @@ export const ISSUE_GROUP_CAUSE_WORDS: {
 
 // The headline of a group: "40 issues, one cause: the static-site module".
 export const ISSUE_GROUP_HEADLINE: PluralTemplate = {
-  one: translationKey("{{count}} issue, one cause: {{cause}}"),
-  other: translationKey("{{count}} issues, one cause: {{cause}}"),
+  one: "{{count}} issue, one cause: {{cause}}",
+  other: "{{count}} issues, one cause: {{cause}}",
 };
 
 // An identity as a sentence names it: "the terraform-ci role", "user alice".
