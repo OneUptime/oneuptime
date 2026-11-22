@@ -46,7 +46,7 @@ import IncidentPostmortemStatus from "Common/Models/DatabaseModels/IncidentPostm
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -199,11 +199,11 @@ function facet(key: string): ResourceFacet {
 }
 
 function idsIn(value: unknown): Array<string> {
-  return ((value as Includes | IncludesNone).values as Array<unknown>).map(
-    (id: unknown): string => {
-      return String(id);
-    },
-  );
+  return (
+    (value as Includes | IncludesNoneOrNull).values as Array<unknown>
+  ).map((id: unknown): string => {
+    return String(id);
+  });
 }
 
 // What the list asks for under the chips, as useResourceOwners merges them.
@@ -526,8 +526,9 @@ describe("the chips of the Postmortems list", () => {
     expect(idsIn(is)).toEqual([DRAFT, IN_REVIEW]);
     expect((is as Includes).values[0]).toBeInstanceOf(ObjectID);
 
+    // A postmortem with no status is not Completed either (#10581).
     const isNot: unknown = chip.toQueryValue!([COMPLETED], "is_not");
-    expect(isNot).toBeInstanceOf(IncludesNone);
+    expect(isNot).toBeInstanceOf(IncludesNoneOrNull);
     expect(idsIn(isNot)).toEqual([COMPLETED]);
 
     expect(chip.toQueryValue!([], "is_empty")).toBeInstanceOf(IsNull);
@@ -543,7 +544,7 @@ describe("the chips of the Postmortems list", () => {
 
     const query: Record<string, unknown> = queryFromChips(bar);
 
-    expect(query["postmortemStatus"]).toBeInstanceOf(IncludesNone);
+    expect(query["postmortemStatus"]).toBeInstanceOf(IncludesNoneOrNull);
     expect(idsIn(query["postmortemStatus"])).toEqual([COMPLETED, NOT_NEEDED]);
   });
 });

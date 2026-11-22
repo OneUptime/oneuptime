@@ -35,6 +35,8 @@ import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 class DataStoreOwnerRuleEngineServiceClass
   implements RuleRunEngine<DataStore, DataStoreOwnerRule>
@@ -344,6 +346,118 @@ class DataStoreOwnerRuleEngineServiceClass
     });
 
     return RuleApplicationResultUtil.updated(ownersAdded);
+  }
+
+  /*
+   * The project's stores a rule matches now, as this engine matches one -
+   * for a rule that does not exist yet as for one that does: every store
+   * that is not archived, each read once (#10374's preview, and the stores
+   * an approved rule is run on).
+   */
+  @CaptureSpan()
+  public async getStoresMatchingRule(data: {
+    projectId: ObjectID;
+    rule: DataStoreOwnerRule;
+  }): Promise<Array<DataStore>> {
+    const readsLabels: boolean = (data.rule.matchLabels || []).length > 0;
+    const stores: Array<DataStore> = await DataStoreService.findBy({
+      query: { projectId: data.projectId, isArchived: false },
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+        cloudTags: true,
+        ...(readsLabels ? { labels: { _id: true } } : {}),
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+
+    return stores.filter((store: DataStore): boolean => {
+      return this.doesMatchRule(store, data.rule);
+    });
+  }
+
+  /*
+   * What a rule would do now, before it exists (#10374): the stores it
+   * matches, and which of those have owners already - so a proposal can
+   * say "This rule would set Payments as the owner of 14 stores, 3 of
+   * which already have owners."
+   */
+  @CaptureSpan()
+  public async previewRule(data: {
+    projectId: ObjectID;
+    rule: DataStoreOwnerRule;
+  }): Promise<{ matching: Array<DataStore>; ownedStoreIds: Set<string> }> {
+    const matching: Array<DataStore> = await this.getStoresMatchingRule(data);
+    const ownedStoreIds: Set<string> = await this.getOwnedStoreIds({
+      projectId: data.projectId,
+      dataStoreIds: matching
+        .map((store: DataStore): ObjectID | undefined => {
+          return store.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    });
+
+    return { matching, ownedStoreIds };
+  }
+
+  // Which of these stores have an owner, a person or a team.
+  public async getOwnedStoreIds(data: {
+    projectId: ObjectID;
+    dataStoreIds: Array<ObjectID>;
+  }): Promise<Set<string>> {
+    const owned: Set<string> = new Set();
+    const chunkSize: number = 500;
+
+    for (
+      let index: number = 0;
+      index < data.dataStoreIds.length;
+      index += chunkSize
+    ) {
+      const chunk: Array<ObjectID> = data.dataStoreIds.slice(
+        index,
+        index + chunkSize,
+      );
+      const [users, teams]: [
+        Array<DataStoreOwnerUser>,
+        Array<DataStoreOwnerTeam>,
+      ] = await Promise.all([
+        DataStoreOwnerUserService.findBy({
+          query: {
+            projectId: data.projectId,
+            dataStoreId: QueryHelper.any(chunk),
+          },
+          select: { dataStoreId: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+        DataStoreOwnerTeamService.findBy({
+          query: {
+            projectId: data.projectId,
+            dataStoreId: QueryHelper.any(chunk),
+          },
+          select: { dataStoreId: true },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: { isRoot: true },
+        }),
+      ]);
+
+      for (const row of [...users, ...teams]) {
+        const id: string = row.dataStoreId?.toString().toLowerCase() || "";
+
+        if (id) {
+          owned.add(id);
+        }
+      }
+    }
+
+    return owned;
   }
 
   private doesMatchRule(

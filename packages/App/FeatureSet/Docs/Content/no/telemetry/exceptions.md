@@ -52,7 +52,7 @@ Gå til **Produkter → Observerbarhet → Unntak**. Merket på fanen **Unntak**
 
 Bytt mellom **Uløst**, **Løst**, **Arkivert** og **Alle**. Diagrammet over listen viser hvor mange forekomster som var **Uhåndtert**, og hvor mange som var **Håndtert** over tid. En rad merket **Regresjon** kom tilbake etter at den ble løst, og en merket **Ny** ble sett første gang i løpet av de siste 24 timene.
 
-Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke.
+Hver rad viser også hvor mange brukere unntaket rammet i det valgte tidsrommet, og et lite diagram over forekomstene i tidsrommet. En forekomst angir brukeren sin med attributtet `user.id`, `enduser.id` eller `enduser.pseudo.id` på unntakshendelsen, dens span eller loggpost eller dens ressurs; forekomster som ikke angir noen bruker, telles ikke. En bruker-ID som en rensingsregel har skjult, telles aldri som en bruker. En hashet ID telles likevel én gang, som en skjult bruker; forekomster der ID-en er sladdet eller maskert, telles som hendelser med en skjult bruker, siden de ikke kan skilles fra hverandre.
 
 ### Velg hva som teller som et problem
 

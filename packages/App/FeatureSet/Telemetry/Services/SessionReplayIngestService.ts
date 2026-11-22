@@ -1029,7 +1029,11 @@ export default class SessionReplayIngestService {
      * briefly unreachable.
      */
     const compiledRules: Array<CompiledScrubRule> =
-      await SessionReplayScrubService.loadRules(projectId);
+      await SessionReplayScrubService.loadRules(
+        projectId,
+        // The application's own rules: one for a service is no replay's (#10433).
+        policy.rumApplicationId,
+      );
 
     const chunkRows: Array<JSONObject> = [];
     const headerRows: Array<JSONObject> = [];

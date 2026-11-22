@@ -2,12 +2,16 @@ import IncomingRequestIncidentGrouping, {
   GROUPING_NOTE_TITLES,
   IncomingRequestGroupingDecision,
   IncomingRequestGroupingScan,
+  IncomingRequestRecoveries,
 } from "../../../../Server/Utils/Monitor/IncomingRequestIncidentGrouping";
 import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import { CheckOn, FilterType } from "../../../../Types/Monitor/CriteriaFilter";
 import IncidentGroupingConfig from "../../../../Types/Monitor/IncomingMonitor/IncidentGroupingConfig";
 import IncomingMonitorRequest from "../../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import {
   MonitorEvaluationFilterResult,
   MonitorEvaluationGroupingNote,
@@ -944,6 +948,105 @@ describe("IncomingRequestIncidentGrouping", () => {
     });
   });
 
+  /*
+   * Each grouped criteria reads a request's recoveries with its own fields,
+   * and only its own records resolve on them (#10585): two criteria grouped
+   * by paths with the same last segment share fingerprints, so a value one
+   * reads recovered and the other still firing must not resolve the
+   * other's record - which it then reopened in the same evaluation.
+   */
+  describe("collectRecoveries: what each criteria reads recovered", () => {
+    const BY_ALERT_STATUS: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+      resolvedWhenJSONPath: "requestBody.alerts[*].status",
+      resolvedWhenValue: "resolved",
+    };
+
+    const BY_PAYLOAD_STATUS: IncidentGroupingConfig = {
+      groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+      resolvedWhenJSONPath: "requestBody.status",
+      resolvedWhenValue: "resolved",
+    };
+
+    // The payload says resolved; its one alert is still firing.
+    const SPLIT: JSONObject = {
+      status: "resolved",
+      alerts: [{ status: "firing", labels: { alertname: "HighCPU" } }],
+    };
+
+    it("files each value under the criteria whose fields read it recovered, and only those", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest(SPLIT),
+          criteriaInstances: [
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+            makeCriteria(BY_PAYLOAD_STATUS, "by-payload-status"),
+          ],
+        });
+
+      expect(recoveries.fingerprints).toHaveLength(1);
+      expect(recoveries.fingerprintsByCriteriaId).toEqual({
+        "by-payload-status": recoveries.fingerprints,
+      });
+    });
+
+    it("files a value both criteria read recovered under both", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest({
+            status: "resolved",
+            alerts: [{ status: "resolved", labels: { alertname: "HighCPU" } }],
+          }),
+          criteriaInstances: [
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+            makeCriteria(BY_PAYLOAD_STATUS, "by-payload-status"),
+          ],
+        });
+
+      expect(recoveries.fingerprintsByCriteriaId).toEqual({
+        "by-alert-status": recoveries.fingerprints,
+        "by-payload-status": recoveries.fingerprints,
+      });
+    });
+
+    it("files nothing under a criteria that names no recovery field, or does not group", () => {
+      const recoveries: IncomingRequestRecoveries =
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest({
+            status: "resolved",
+            alerts: [{ status: "resolved", labels: { alertname: "HighCPU" } }],
+          }),
+          criteriaInstances: [
+            makeCriteria(
+              { groupByJSONPath: "requestBody.alerts[*].labels.alertname" },
+              "no-recovery-field",
+            ),
+            makeCriteria(undefined, "no-grouping"),
+            makeCriteria(BY_ALERT_STATUS, "by-alert-status"),
+          ],
+        });
+
+      expect(Object.keys(recoveries.fingerprintsByCriteriaId)).toEqual([
+        "by-alert-status",
+      ]);
+    });
+
+    it("files nothing on the background check, which carries no fresh request", () => {
+      expect(
+        IncomingRequestIncidentGrouping.collectRecoveries({
+          dataToProcess: makeRequest(SPLIT, {
+            onlyCheckForIncomingRequestReceivedAt: true,
+          }),
+          criteriaInstances: [makeCriteria(BY_PAYLOAD_STATUS, "c")],
+        }),
+      ).toEqual({
+        fingerprints: [],
+        fingerprintsByCriteriaId: {},
+        wholeMonitorCriteriaIds: [],
+      });
+    });
+  });
+
   describe("collectRecoveries: the matched criteria's incident for the whole monitor", () => {
     const ROOT_RECOVERY: IncidentGroupingConfig = {
       groupByJSONPath: "requestBody.commonLabels.alertname",
@@ -1114,6 +1217,98 @@ describe("IncomingRequestIncidentGrouping", () => {
       ).toBe(false);
       expect(
         IncomingRequestIncidentGrouping.isGroupingConfigured(undefined),
+      ).toBe(false);
+    });
+  });
+
+  /*
+   * Whether a monitor's requests are each evaluated, in order, or only its
+   * newest: a monitor with a criteria that groups, in any step, evaluates
+   * every request (the Telemetry worker, #10582).
+   */
+  describe("isGroupingConfiguredOnMonitor", () => {
+    function stepWith(
+      criteria: Array<MonitorCriteriaInstance> | undefined,
+    ): MonitorStep {
+      const step: MonitorStep = new MonitorStep();
+
+      if (criteria) {
+        const monitorCriteria: MonitorCriteria = new MonitorCriteria();
+        monitorCriteria.data = { monitorCriteriaInstanceArray: criteria };
+        step.data!.monitorCriteria = monitorCriteria;
+      } else {
+        step.data!.monitorCriteria = undefined as never;
+      }
+
+      return step;
+    }
+
+    function stepsOf(steps: Array<MonitorStep>): MonitorSteps {
+      const monitorSteps: MonitorSteps = new MonitorSteps();
+      monitorSteps.data = {
+        monitorStepsInstanceArray: steps,
+        defaultMonitorStatusId: ObjectID.generate(),
+      };
+      return monitorSteps;
+    }
+
+    const grouped: () => MonitorCriteriaInstance =
+      (): MonitorCriteriaInstance => {
+        return makeCriteria({ groupByJSONPath: "requestBody.alertActiveID" });
+      };
+
+    it("is true when a criteria of the monitor groups by a payload field", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria(undefined), grouped()])]),
+        ),
+      ).toBe(true);
+    });
+
+    it("reads every step, not only the first", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria(undefined)]), stepWith([grouped()])]),
+        ),
+      ).toBe(true);
+    });
+
+    it("is false when no criteria groups", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([
+            stepWith([makeCriteria(undefined), makeCriteria(undefined)]),
+          ]),
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for grouping turned on with no path to group by", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith([makeCriteria({ groupByJSONPath: "" })])]),
+        ),
+      ).toBe(false);
+    });
+
+    it("is false for a monitor without steps, criteria or settings", () => {
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          undefined,
+        ),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(null),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([]),
+        ),
+      ).toBe(false);
+      expect(
+        IncomingRequestIncidentGrouping.isGroupingConfiguredOnMonitor(
+          stepsOf([stepWith(undefined)]),
+        ),
       ).toBe(false);
     });
   });

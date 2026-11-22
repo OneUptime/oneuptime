@@ -58,6 +58,7 @@ function result(
     hasMoreGroups: false,
     candidateLimit: null,
     uncounted: null,
+    refusedTelemetry: [],
     ...overrides,
   };
 }
@@ -272,6 +273,7 @@ describe("an answer through JSON", () => {
       hasMoreGroups: false,
       candidateLimit: null,
       uncounted: null,
+      refusedTelemetry: [],
     });
   });
 

@@ -38,6 +38,7 @@ import {
   findCoveringScrubRule,
   getScrubCoverage,
   previewScrubRuleForFinding,
+  readFindingServiceId,
   ScrubCoverage,
   ScrubRulePreview,
   TelemetryFindingReference,
@@ -387,8 +388,15 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
     }
 
     const coverage: ScrubCoverage = await getScrubCoverage(context.projectId);
+    // The store's service: each rule is that service's (#10433).
     const serviceId: string | undefined =
-      context.store.serviceId?.toString() || undefined;
+      readFindingServiceId({
+        kind,
+        serviceId: context.store.serviceId,
+        storeKey: context.store.storeKey,
+      }) ||
+      context.store.serviceId?.toString() ||
+      undefined;
     const places: Array<
       ScrubPlace & { preview: ScrubRulePreview; matchCount: number }
     > = [];

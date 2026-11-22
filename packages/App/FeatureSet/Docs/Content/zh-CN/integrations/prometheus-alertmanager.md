@@ -266,7 +266,7 @@ receivers:
 - 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
 - **Field that signals recovery** 必须是 `requestBody.alerts[*].status`，**Value that means recovered** 必须恰好是 `resolved`。比较区分大小写。
 - 通知中超出 **Max incidents per request** 的警报根本不会被读取，所以它们的恢复也会丢失。
-- 在突发中被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的警报，但从不重复发送恢复。请手动解决这样的事件。
+- 因等待的通知过多而被跳过的恢复（见下文）会让它的事件永远保持打开：Alertmanager 会重复发送触发中的警报，但从不重复发送恢复。请手动解决这样的事件。
 :::
 
 :::details 完全没有打开事件
@@ -285,8 +285,8 @@ receivers:
 让路由按更少的标签分组，或调大 `group_interval`，让 Alertmanager 把相关警报一起发送。调低 **Max incidents per request** 可以限制一个通知产生的事件数，但超出上限的警报不会被读取，所以它们的恢复也会丢失。
 :::
 
-:::details 突发中有些通知被跳过
-当较新的请求在较早的请求被评估之前到达监视器时，OneUptime 只评估较新的那个，以免单个发送方压垮监视器。突发中的最后一个通知总会被评估，但关于其他警报的较早通知可能被跳过，因为 Alertmanager 把每个组都发送到同一个 URL。请调大 `group_wait` 和 `group_interval`，拉开通知之间的间隔。在自托管安装中，请在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以评估每个请求。
+:::details 一波突发的通知
+像本指南这样按字段分组的监视器，会按到达顺序逐个评估它收到的每一条通知，因此一波突发的触发中和已解决的警报会为每条警报打开并解决各自的事件。最多有 1,000 条通知（或 16 MB）可以等待评估；超出后，等待中最早的通知会被跳过， **监视器摘要** 卡片会显示跳过了多少条。调大 `group_wait` 和 `group_interval`，可以发送更少但更大的通知。没有分组的监视器只评估等待中的最新通知。
 :::
 
 ## 安全

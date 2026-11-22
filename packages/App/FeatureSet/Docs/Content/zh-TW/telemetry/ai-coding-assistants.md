@@ -91,6 +91,7 @@ Copilot 只從其代理程式功能匯出 OpenTelemetry：VS Code 的聊天和�
 
 - **每個鍵也會以 `resource.` 前置詞形式讀取。** OTLP 擷取會把資源屬性存放在該前置詞下，因此 `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` 會以 `resource.team.id` 的形式抵達。不帶前置詞的鍵會優先嘗試，因此 span 上的值勝過整個處理程序上的值。
 - **呼叫有電子郵件時，使用量分頁會顯示人員的電子郵件，否則顯示 ID。** 顯示相同電子郵件的資料列會合併，因此一位工程師使用兩台機器也只占一列。
+- **被清除規則隱藏的人員或團隊不會分攤任何使用量。** 電子郵件被規則隱藏的呼叫，若規則保留了完整的 ID，則按 ID 顯示。否則，無論規則是編修、遮罩還是雜湊處理，使用量分頁都將其計入被清除規則隱藏的使用量這一列。
 - **只會從 AI 呼叫讀取身分。** `user.id`、`user.email` 和 `team.id` 是瀏覽器和後端 span 也會攜帶的通用鍵；只有已被辨識為 AI 呼叫的 span 才會填入這些欄位。
 - **不會從日誌記錄讀取身分。** 這對 Codex 很重要，因為它只在日誌上放置 `user.email`。
 - LiteLLM 以兩種方式書寫這些鍵：其預設的 `otel` 回呼使用 `metadata.` 前置詞，而可選用的 OpenTelemetry v2 模式（`LITELLM_OTEL_V2=true`）使用 `litellm.` 命名空間。OneUptime 兩者都會讀取，因此標準 Proxy 不需要額外設定即可運作。

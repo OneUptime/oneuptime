@@ -1,4 +1,8 @@
 import { JSONArray, JSONObject, JSONValue } from "../JSON";
+import {
+  RefusedTelemetry,
+  readRefusedTelemetryList,
+} from "../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * RETROHUNT: A DETECTION RULE RUN OVER PAST EVENTS.
@@ -74,7 +78,8 @@ export interface DetectionRetrohuntGroup {
  * What a single rule that counts per value could not count over the period
  * (#10415): the events it matched that had no value for its group field -
  * left out, so they never add up as one value - and how many of them had
- * their client address hidden by a scrub rule, by the kind of record the
+ * that value hidden by a scrub rule - the client address (#10397), or the
+ * user of a rule grouped by one (#10435) - by the kind of record the
  * rule's logs' or traces' Scrub Rules hold.
  */
 export interface DetectionRetrohuntUncounted {
@@ -159,6 +164,14 @@ export interface DetectionRetrohuntResult {
    * which leaves out groups with no value as it always did.
    */
   uncounted: DetectionRetrohuntUncounted | null;
+  /*
+   * What an ingestion budget or rate refused, over the period, of the logs
+   * and traces Security Events reads (#10431): the events those would have
+   * made were never stored, so the rule could not have matched them, and a
+   * rule that "would not have fired" may only have been blind. Oldest
+   * first; empty when nothing was refused.
+   */
+  refusedTelemetry: Array<RefusedTelemetry>;
 }
 
 /*
@@ -288,6 +301,11 @@ export function detectionRetrohuntResultToJSON(
           hiddenInTracesCount: result.uncounted.hiddenInTracesCount,
         }
       : null,
+    refusedTelemetry: result.refusedTelemetry.map(
+      (refusal: RefusedTelemetry): JSONObject => {
+        return { ...refusal } as unknown as JSONObject;
+      },
+    ),
     groups: result.groups.map((group: DetectionRetrohuntGroup): JSONObject => {
       return {
         value: group.value,
@@ -361,6 +379,7 @@ export function parseDetectionRetrohuntResult(
     hasMoreGroups: json["hasMoreGroups"] === true,
     candidateLimit: readNullableNumber(json["candidateLimit"]),
     uncounted: readUncounted(json["uncounted"]),
+    refusedTelemetry: readRefusedTelemetryList(json["refusedTelemetry"]),
     groups: groups
       .filter((item: JSONValue): boolean => {
         return (

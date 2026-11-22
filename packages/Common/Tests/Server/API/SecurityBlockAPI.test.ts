@@ -68,8 +68,10 @@ import SecurityBlockAPI, {
   SECURITY_BLOCK_CHECK_ROUTE,
   SECURITY_BLOCK_DESTINATIONS_ROUTE,
 } from "../../../Server/API/SecurityBlockAPI";
+import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import {
   ExpressRequest,
@@ -220,12 +222,21 @@ beforeEach(() => {
   jest
     .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
     .mockResolvedValue(undefined as never);
+  /*
+   * The project has no Cloudflare connection, the one kind of destination
+   * that ships (#10343): nothing enforces its blocklist until a test says.
+   */
+  jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);
   reconcile = jest
     .spyOn(SecurityBlocklistJobs, "queueReconcile")
     .mockResolvedValue(undefined) as unknown as MockedFn;
   jest
     .spyOn(SecurityProtectedAddresses, "findProtection")
     .mockResolvedValue({ protection: null, unreadSources: [] });
+  // The project has picked no cloud WAF (#10344): its production source lists none.
+  jest
+    .spyOn(SecurityBlockCloudWafService, "findForProject")
+    .mockResolvedValue([]);
 });
 
 afterEach(() => {

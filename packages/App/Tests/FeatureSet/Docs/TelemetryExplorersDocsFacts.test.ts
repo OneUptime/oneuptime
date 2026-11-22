@@ -2901,6 +2901,18 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(logs).toContain("userId: readExceptionUserId([finalAttributes])");
     expect(row).toContain("affectedUsers > 0 &&");
 
+    // A user ID a scrub rule hid is never a user (#10435), and the row says so.
+    expect(page).toContain(
+      "A user ID a scrub rule hid is never counted as a user. A hashed ID still counts once, as a hidden user; occurrences whose ID was redacted or masked count as events with a hidden user, since they can't be told apart.",
+    );
+    expect(row).toContain("hiddenUsers > 0 &&");
+    expect(row).toContain("hiddenUserOccurrences > 0 &&");
+    expect(
+      readPackageFile(
+        "Common/Server/Utils/Telemetry/ExceptionListStatsReader.ts",
+      ),
+    ).toContain(") AS hiddenUserOccurrences FROM ");
+
     // Over the range picked: the rows' own range goes with the request.
     expect(exceptionsViewer).toContain("setListWindow(readWindow);");
     expect(exceptionsViewer).toContain(

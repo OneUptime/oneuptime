@@ -234,6 +234,16 @@ Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [cone
 - La lectura de la cuenta no trae nada más: los eventos de datos, los registros Data Access y los registros de Microsoft Entra ID siguen necesitando **Tus registros** o una [conexión](/docs/integrations/microsoft-entra-id).
 - Cada evento nombra los recursos en la nube de los que trata su registro por sus propios ID - un ARN, un ID de recurso de Azure, un nombre de recurso de Google Cloud -, así que aparece en la página **Eventos de seguridad** de cada uno, y en la de una función serverless en cuanto su telemetría define `cloud.account.id` y `cloud.region`.
 
+### Las sondas propias de OneUptime en tus flujos de red
+
+Activa **Flujos de red**, en **Tus datos de OneUptime** de **Conexiones**, y los flujos que exportan tus dispositivos de red se leen en busca de escaneos de puertos, barridos de red, tráfico con direcciones maliciosas conocidas y grandes transferencias hacia fuera. El trabajo propio de una sonda parece ahí un escaneo: sondear 40 dispositivos por SNMP alcanza el puerto 161 en 40 hosts cada cinco minutos. Por eso el tráfico de una de las sondas propias de OneUptime que es exactamente lo que la sonda tiene configurado hacer se aparta:
+
+- los dispositivos de red que sondea, con ping y por SNMP en su puerto;
+- el rango de cada uno de sus descubrimientos, mientras el escaneo está en marcha;
+- los hosts y puertos que comprueban sus monitores.
+
+Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra.
+
 ### Conectar un producto de seguridad
 
 **Conexiones** consulta un producto de seguridad por ti e importa sus registros nuevos como eventos de seguridad. Una conexión guarda los ajustes del producto y una credencial cifrada; un worker la consulta con el intervalo que definas y omite los registros que ya importó.

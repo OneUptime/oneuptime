@@ -388,10 +388,12 @@ Un webhook descrive solo ciò che c'è in quel payload, quindi OneUptime non ris
 
 Anche un avviso che aggiungete voi a un criterio parte con **Risoluzione automatica dell'avviso** disattivata, quindi un ripristino lascia l'avviso aperto finché l'opzione non viene attivata. **Auto-resolve each incident when…** indica quali incidenti e avvisi del criterio un ripristino risolve, e nomina ciascuno di quelli che lascerebbe aperti, con un pulsante che attiva la relativa opzione. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor nomina ogni incidente e avviso che un ripristino ha lasciato aperto, e perché.
 
+Un rientro risolve solo gli incidenti e gli avvisi del criterio che lo legge: quello i cui **Field that signals recovery** e **Value that means recovered** corrispondono al payload. Gli incidenti e gli avvisi di un altro criterio per lo stesso valore restano aperti, e quelli di un criterio che lascia vuoti quei campi si risolvono a mano.
+
 **Max incidents per request** limita l'estrazione, non solo la creazione. Anche per il ripristino le chiavi oltre il limite sono invisibili, quindi in un payload con più chiavi distinte del limite, un avviso che riporta `resolved` oltre quel limite non chiuderà il suo incidente.
 
 > [!NOTE]
-> Quando un monitor riceve richieste più in fretta di quanto OneUptime riesca a valutarle, valuta la più recente e salta quelle intermedie, quindi una raffica di webhook può lasciare non valutato un avviso attivo o uno risolto. Su un server self-hosted, impostare `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` nell'ambiente dell'app OneUptime fa valutare ogni richiesta da sola.
+> Un monitor con un criterio che raggruppa per un campo del payload valuta ogni richiesta che riceve, una alla volta e nell'ordine in cui sono arrivate, quindi una raffica di avvisi e rientri apre e risolve l'incidente e l'avviso di ogni valore. Fino a 1.000 richieste, o 16 MB, attendono di essere valutate; oltre, le più vecchie in attesa vengono saltate, e la scheda **Riepilogo del monitor** dice quante. Un monitor senza raggruppamento valuta solo la più recente delle richieste che lo attendono.
 
 > [!NOTE]
 > Se **Field that signals recovery** contiene `[*]` ma **Open a separate incident for each…** no, una richiesta è ripristinata solo quando ogni elemento di quell'array lo dice. Con `requestBody.alerts[*].status` e `resolved`, un incidente raggruppato per `requestBody.groupLabels.alertname` si risolve quando tutti gli avvisi di una richiesta sono risolti, e resta aperto finché uno è ancora attivo.

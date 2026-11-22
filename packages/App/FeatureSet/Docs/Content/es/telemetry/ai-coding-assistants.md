@@ -91,6 +91,7 @@ Cómo se leen estas claves:
 
 - **Cada clave se lee también con el prefijo `resource.`.** La ingesta OTLP guarda los atributos de recurso con ese prefijo, así que `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` llega como `resource.team.id`. Las claves sin prefijo se prueban primero, así que un valor en el span gana a uno de todo el proceso.
 - **La pestaña Uso muestra el correo de una persona cuando la llamada lo tiene, y el id en caso contrario.** Las filas que muestran el mismo correo se suman, así que un ingeniero en dos equipos es una sola fila.
+- **A una persona o un equipo que ocultó una regla de depuración nunca se le atribuye gasto.** Una llamada cuyo correo ocultó una regla se muestra con su id cuando la regla dejó el id intacto. Si no, la pestaña Uso la cuenta en una sola fila de gasto que ocultó una regla de depuración, tanto si la regla ocultó, enmascaró o convirtió en hash el valor.
 - **La identidad solo se lee de las llamadas de IA.** `user.id`, `user.email` y `team.id` son claves genéricas que también llevan los spans del navegador y del backend; solo los spans ya reconocidos como llamadas de IA reciben las columnas.
 - **Los registros de log no se leen para la identidad.** Esto importa en Codex, que solo pone `user.email` en sus logs.
 - LiteLLM escribe estas claves de dos maneras: su callback `otel` predeterminado usa el prefijo `metadata.`, y su modo opcional OpenTelemetry v2 (`LITELLM_OTEL_V2=true`) el espacio de nombres `litellm.`. OneUptime lee ambas, así que un proxy estándar funciona sin más configuración.

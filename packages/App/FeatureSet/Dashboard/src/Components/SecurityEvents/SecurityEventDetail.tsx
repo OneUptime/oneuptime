@@ -14,7 +14,10 @@ import {
   HiddenClientAddress,
   readHiddenClientAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import { ScrubbedUserRole } from "Common/Utils/SecurityEvent/ScrubbedUser";
 import HiddenClientAddressText from "./HiddenClientAddressText";
+import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenUserCopy";
+import { buildHiddenUserField } from "./SecurityEventDetailFields";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -128,7 +131,13 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "Rule Name", value: event.ruleName },
     { label: "MITRE Tactics", value: formatArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: formatArray(event.mitreTechniques) },
-    { label: "Principal User", value: event.principalUser },
+    {
+      label: "Principal User",
+      // A user a scrub rule hid says so, as the events list's drawer does.
+      value: buildHiddenUserField(event, ScrubbedUserRole.Principal)
+        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
+        : event.principalUser,
+    },
     { label: "Principal Host", value: event.principalHost },
     {
       label: "Principal IP",
@@ -146,7 +155,12 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "Parent Process", value: event.parentProcessName },
     { label: "Parent Process Path", value: event.parentProcessPath },
     { label: "Parent Command Line", value: event.parentProcessCommandLine },
-    { label: "Target User", value: event.targetUser },
+    {
+      label: "Target User",
+      value: buildHiddenUserField(event, ScrubbedUserRole.Target)
+        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
+        : event.targetUser,
+    },
     { label: "Target Host", value: event.targetHost },
     { label: "Target IP", value: event.targetIp },
     {

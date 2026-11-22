@@ -234,6 +234,16 @@ En AWS-konto, et Google Cloud-projekt eller et Azure-abonnement, der er [forbund
 - Kontoens egen læsning giver ikke mere: datahændelser, Data Access-logs og Microsoft Entra ID's logs kræver stadig **Dine logs** eller en [forbindelse](/docs/integrations/microsoft-entra-id).
 - Hver begivenhed nævner de cloud-ressourcer, dens post handler om, ved deres egne ID'er - et ARN, et Azure-ressource-ID, et ressourcenavn fra Google Cloud - så den vises på siden **Sikkerhedshændelser** for hver af dem og på en serverløs funktions, så snart dens telemetri angiver `cloud.account.id` og `cloud.region`.
 
+### OneUptimes egne sonder i dine netværksflows
+
+Slå **Netværksflows** til under **Dine OneUptime-data** på **Forbindelser**, så læses de flows, dine netværksenheder eksporterer, for portscanninger, netværkssweeps, trafik med kendte skadelige adresser og store overførsler ud. En sondes eget arbejde ligner der en scanning: at forespørge 40 enheder over SNMP rammer port 161 på 40 værter hvert femte minut. Derfor lægges trafik fra en af OneUptimes egne sonder, der netop er det, sonden er sat til at gøre, til side:
+
+- de netværksenheder, den forespørger, pinget og spurgt over SNMP på deres port;
+- området for hver af dens opdagelser, mens scanningen kører;
+- de værter og porte, dens monitorer tjekker.
+
+Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig.
+
 ### Forbind et sikkerhedsprodukt
 
 **Forbindelser** henter data fra et sikkerhedsprodukt for dig og importerer dets nye poster som sikkerhedsbegivenheder. En forbindelse indeholder produktets indstillinger og en krypteret legitimation; en worker henter fra den med det interval, du angiver, og springer poster over, som den allerede har importeret.

@@ -57,6 +57,9 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull, {
+  IncludesNoneOrNullType,
+} from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import ObjectID from "../../../Types/ObjectID";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
@@ -64,6 +67,7 @@ import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
 import GreaterThanOrNull from "../../../Types/BaseDatabase/GreaterThanOrNull";
 import LessThanOrNull from "../../../Types/BaseDatabase/LessThanOrNull";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
 import { MAX_WILDCARD_PATTERNS } from "../../../Types/BaseDatabase/WildcardPattern";
@@ -1456,6 +1460,31 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (value instanceof NotEqualOrNull) {
+        /*
+         * Anything but the value, an empty column included (#10581): a
+         * table's "Not equal to" filter keeps the rows that have none here
+         * as on Postgres. Its value is bound as a NotEqual's is. An
+         * Array(String) column is never NULL - "not set" is the empty array,
+         * which mentions nothing - so there it asks what NotEqual asks.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+
+        if (tableColumn.type === TableColumnType.ArrayText) {
+          whereStatement.append(
+            SQL`AND NOT has(${columnRef(key)}, ${{
+              value: String((value as NotEqualOrNull<string>).value ?? ""),
+              type: TableColumnType.Text,
+            }})`,
+          );
+        } else {
+          whereStatement.append(
+            SQL`AND (${columnRef(key)} != ${{
+              value: new NotEqual(value.value),
+              type: tableColumn.type,
+            }} OR ${columnRef(key)} IS NULL)`,
+          );
+        }
       } else if (value instanceof GreaterThan) {
         whereStatement.append(
           SQL`AND ${columnRef(key)} > ${{
@@ -1572,6 +1601,45 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
               type: tableColumn.type,
             }}`,
           );
+        }
+      } else if (value instanceof IncludesNoneOrNull) {
+        /*
+         * None of these, an empty column included (#10581): `NOT IN` is not
+         * true of NULL. Its values are bound as an IncludesNone's are;
+         * nothing to exclude, no predicate. An Array(String) column is never
+         * NULL (see NotEqualOrNull above), so there it asks what IncludesNone
+         * asks.
+         */
+        this.throwIfMapOrJsonColumn({ operator: value, tableColumn, key });
+
+        const excludeValues: Array<string | ObjectID | number> =
+          ((value as IncludesNoneOrNull).values as Array<
+            string | ObjectID | number
+          >) || [];
+
+        if (excludeValues.length > 0) {
+          if (tableColumn.type === TableColumnType.ArrayText) {
+            whereStatement.append(
+              SQL`AND NOT hasAny(${columnRef(key)}, ${{
+                value: excludeValues.map(
+                  (excluded: string | ObjectID | number): string => {
+                    return excluded.toString();
+                  },
+                ),
+                type: TableColumnType.ArrayText,
+              }})`,
+            );
+          } else {
+            whereStatement.append(
+              SQL`AND (${columnRef(key)} NOT IN ${{
+                value: new IncludesNone(
+                  (value as IncludesNoneOrNull)
+                    .values as IncludesNoneOrNullType,
+                ),
+                type: tableColumn.type,
+              }} OR ${columnRef(key)} IS NULL)`,
+            );
+          }
         }
       } else if (value instanceof IsNull) {
         if (tableColumn.type === TableColumnType.ArrayText) {

@@ -6,6 +6,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getLlmProviderStoredValues } from "../../../Types/Telemetry/LlmProviders";
 import {
+  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageResponse,
 } from "../../../Types/Telemetry/LlmUsageApi";
@@ -26,6 +27,7 @@ import LlmCountedCallsSql, {
   LlmCountedCallsScope,
 } from "./LlmCountedCallsSql";
 import LlmMetricUsageReader from "./LlmMetricUsageReader";
+import { buildHoldsScrubPlaceholderSql } from "./ScrubPlaceholderSql";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "./TelemetryReadScope";
@@ -67,19 +69,71 @@ const QUERY_SETTINGS: string = getQuerySettings({
   boundScanMemory: true,
 });
 
+const USER_EMAIL_SQL: string = "ifNull(llmUserEmail, '')";
+const USER_ID_SQL: string = "ifNull(llmUserId, '')";
+const TEAM_SQL: string = "ifNull(llmTeam, '')";
+
+// The usage whose person or team a scrub rule hid, as a group's value.
+function hiddenGroupSql(): Statement {
+  return SQL`${{
+    type: TableColumnType.Text,
+    value: LLM_USAGE_HIDDEN_GROUP_KEY,
+  }}`;
+}
+
 /*
  * What a call is grouped by, per dimension: the person (their email, else
  * their id - emitters send one or the other), the team, the requested
  * model, the provider. A service is every row's own service, and "none"
  * groups nothing.
+ *
+ * The person and the team are read as stored, after the project's scrub
+ * rules (#10435). What a rule left is never somebody's spend: an email a
+ * rule hid falls back to the id where a rule left that whole, and a call
+ * whose every name was hidden - "[REDACTED]", a mask, a Hash rule's token -
+ * is filed under the one group of usage nobody's name can be put to
+ * (LLM_USAGE_HIDDEN_GROUP_KEY). Asked of each stored call, so the calls
+ * stored before this are read the same.
  */
-const SPAN_GROUP_SQL: Partial<Record<LlmUsageDimension, string>> = {
-  [LlmUsageDimension.Employee]:
-    "if(ifNull(llmUserEmail, '') != '', ifNull(llmUserEmail, ''), ifNull(llmUserId, ''))",
-  [LlmUsageDimension.Team]: "ifNull(llmTeam, '')",
-  [LlmUsageDimension.Model]: "ifNull(llmRequestModel, '')",
-  [LlmUsageDimension.Provider]: "ifNull(llmSystem, '')",
-};
+export function buildSpanGroupSql(
+  dimension: LlmUsageDimension,
+): Statement | null {
+  switch (dimension) {
+    case LlmUsageDimension.Employee: {
+      const statement: Statement = SQL`multiIf(`;
+      statement.append(`${USER_EMAIL_SQL} != '' AND NOT `);
+      statement.append(buildHoldsScrubPlaceholderSql(USER_EMAIL_SQL));
+      statement.append(`, ${USER_EMAIL_SQL}, ${USER_ID_SQL} != '' AND NOT `);
+      statement.append(buildHoldsScrubPlaceholderSql(USER_ID_SQL));
+      statement.append(`, ${USER_ID_SQL}, `);
+      statement.append(buildHoldsScrubPlaceholderSql(USER_EMAIL_SQL));
+      statement.append(" OR ");
+      statement.append(buildHoldsScrubPlaceholderSql(USER_ID_SQL));
+      statement.append(", ");
+      statement.append(hiddenGroupSql());
+      statement.append(", '')");
+      return statement;
+    }
+
+    case LlmUsageDimension.Team: {
+      const statement: Statement = SQL`if(`;
+      statement.append(buildHoldsScrubPlaceholderSql(TEAM_SQL));
+      statement.append(", ");
+      statement.append(hiddenGroupSql());
+      statement.append(`, ${TEAM_SQL})`);
+      return statement;
+    }
+
+    case LlmUsageDimension.Model:
+      return new Statement(["ifNull(llmRequestModel, '')"], []);
+
+    case LlmUsageDimension.Provider:
+      return new Statement(["ifNull(llmSystem, '')"], []);
+
+    default:
+      return null;
+  }
+}
 
 export interface LlmUsageReadQuery extends TelemetryServiceFilter {
   projectId: ObjectID;
@@ -124,7 +178,7 @@ export default class LlmUsageReader {
    * grouped - one per service and group, every model call counted once.
    */
   public static buildSpanStatement(query: LlmUsageReadQuery): Statement {
-    const groupSql: string | undefined = SPAN_GROUP_SQL[query.dimension];
+    const groupSql: Statement | null = buildSpanGroupSql(query.dimension);
     const scope: LlmCountedCallsScope =
       LlmUsageReader.getCountedCallsScope(query);
     const statement: Statement = new Statement();
@@ -138,11 +192,13 @@ export default class LlmUsageReader {
         "FROM (SELECT toString(primaryEntityId) AS serviceKey, ",
     );
 
-    statement.append(
-      groupSql
-        ? `concat('${GROUP_PREFIX}', ${groupSql}) AS groupKey, `
-        : "'' AS groupKey, ",
-    );
+    if (groupSql) {
+      statement.append(`concat('${GROUP_PREFIX}', `);
+      statement.append(groupSql);
+      statement.append(") AS groupKey, ");
+    } else {
+      statement.append("'' AS groupKey, ");
+    }
 
     statement.append(
       "statusCode, llmInputTokens, llmOutputTokens, llmTotalTokens, llmCost, ",

@@ -151,11 +151,42 @@ const SERVICE_PORT_CONDITION: string = `dstPort > 0 AND dstPort < ${Math.trunc(
 )}`;
 
 /*
+ * The sources a scan or sweep read is held to (#10429): OneUptime's own
+ * probes' addresses, read apart from everyone's, so a probe's polls never
+ * take the places of another source's sweep in a read's rows, and are held
+ * to what the probe is set to do (ProbeOwnTraffic). `only` reads those
+ * sources alone; otherwise every source but them. One parameter however
+ * many addresses there are.
+ */
+export interface FlowSourceFilter {
+  addresses: Array<string>;
+  only: boolean;
+}
+
+function flowSources(statement: Statement, sources?: FlowSourceFilter): void {
+  if (!sources || sources.addresses.length === 0) {
+    return;
+  }
+
+  statement.append(sources.only ? " AND srcIp IN (" : " AND srcIp NOT IN (");
+  statement.append(
+    SQL`${{
+      type: TableColumnType.Text,
+      value: new Includes(sources.addresses),
+    }})`,
+  );
+}
+
+/*
  * One row per source and destination pair that reached at least `minPorts`
  * service ports of the destination in the window.
  */
 export function buildPortScanStatement(
-  data: TelemetryScanWindow & { minPorts: number; limit: number },
+  data: TelemetryScanWindow & {
+    minPorts: number;
+    limit: number;
+    sources?: FlowSourceFilter | undefined;
+  },
 ): Statement {
   // The condition is this file's own constant, so it is appended as text.
   const statement: Statement = SQL`SELECT srcIp, dstIp, `;
@@ -167,6 +198,7 @@ export function buildPortScanStatement(
   );
   statement.append(tableOf(AnalyticsTableName.NetworkFlow));
   flowWhere(statement, data);
+  flowSources(statement, data.sources);
   statement.append(
     SQL` GROUP BY srcIp, dstIp HAVING ports >= ${{
       type: TableColumnType.Number,
@@ -187,7 +219,11 @@ export function buildPortScanStatement(
  * day left out.
  */
 export function buildNetworkSweepStatement(
-  data: TelemetryScanWindow & { minHosts: number; limit: number },
+  data: TelemetryScanWindow & {
+    minHosts: number;
+    limit: number;
+    sources?: FlowSourceFilter | undefined;
+  },
 ): Statement {
   const ignoredPorts: string = SWEEP_IGNORED_PORTS.map((port: number) => {
     return String(Math.trunc(port));
@@ -199,11 +235,74 @@ export function buildNetworkSweepStatement(
   statement.append(
     ` AND ${SERVICE_PORT_CONDITION} AND dstPort NOT IN (${ignoredPorts})`,
   );
+  flowSources(statement, data.sources);
   statement.append(
     SQL` GROUP BY srcIp, dstPort HAVING hosts >= ${{
       type: TableColumnType.Number,
       value: Math.max(1, Math.trunc(data.minHosts)),
     }} ORDER BY hosts DESC, srcIp ASC, dstPort ASC LIMIT ${{
+      type: TableColumnType.Number,
+      value: Math.max(1, Math.trunc(data.limit)),
+    }}`,
+  );
+  statement.append(settings());
+
+  return statement;
+}
+
+/*
+ * The hosts one source reached on one port in the window, a row per host
+ * and protocol, with the name the collecting probe looked the host up by:
+ * what a network sweep from one of OneUptime's own probes is read again
+ * for, host by host (ProbeOwnTraffic, #10429). In address order, so a read
+ * cut at its limit stops at a whole host but the last.
+ */
+export function buildProbeSweepDestinationsStatement(
+  data: TelemetryScanWindow & { srcIp: string; dstPort: number; limit: number },
+): Statement {
+  const statement: Statement = SQL`SELECT dstIp, protocol, any(dstName) AS dstName, count() AS flows FROM `;
+  statement.append(tableOf(AnalyticsTableName.NetworkFlow));
+  flowWhere(statement, data);
+  statement.append(
+    SQL` AND srcIp = ${{
+      type: TableColumnType.Text,
+      value: data.srcIp,
+    }} AND dstPort = ${{
+      type: TableColumnType.Number,
+      value: Math.max(0, Math.trunc(data.dstPort)),
+    }} GROUP BY dstIp, protocol ORDER BY dstIp ASC, protocol ASC LIMIT ${{
+      type: TableColumnType.Number,
+      value: Math.max(1, Math.trunc(data.limit)),
+    }}`,
+  );
+  statement.append(settings());
+
+  return statement;
+}
+
+/*
+ * The service ports one source reached on one host in the window, a row per
+ * port and protocol: what a port scan from one of OneUptime's own probes is
+ * read again for, port by port (ProbeOwnTraffic, #10429).
+ */
+export function buildProbeScanDestinationsStatement(
+  data: TelemetryScanWindow & { srcIp: string; dstIp: string; limit: number },
+): Statement {
+  const statement: Statement = SQL`SELECT dstPort, protocol, any(dstName) AS dstName, count() AS flows FROM `;
+  statement.append(tableOf(AnalyticsTableName.NetworkFlow));
+  flowWhere(statement, data);
+  statement.append(
+    SQL` AND srcIp = ${{
+      type: TableColumnType.Text,
+      value: data.srcIp,
+    }} AND dstIp = ${{
+      type: TableColumnType.Text,
+      value: data.dstIp,
+    }}`,
+  );
+  statement.append(` AND ${SERVICE_PORT_CONDITION}`);
+  statement.append(
+    SQL` GROUP BY dstPort, protocol ORDER BY dstPort ASC, protocol ASC LIMIT ${{
       type: TableColumnType.Number,
       value: Math.max(1, Math.trunc(data.limit)),
     }}`,
@@ -290,7 +389,7 @@ export function buildAuditRecordsStatement(
     offset: number;
   },
 ): Statement {
-  const statement: Statement = SQL`SELECT _id, createdAt, resourceType, resourceId, resourceName, action, userId, userName, userEmail, userType, apiKeyId, apiKeyName, mcpClientName, workflowName FROM `;
+  const statement: Statement = SQL`SELECT _id, createdAt, resourceType, resourceId, resourceName, action, userId, userName, userEmail, userType, apiKeyId, apiKeyName, mcpClientName, workflowId, workflowName, workflowRunAs, workflowRunAsCustomRoleName, workflowRunAsGiverApiKeyId, workflowRunAsGiverName FROM `;
   statement.append(tableOf(AnalyticsTableName.AuditLog));
   statement.append(
     SQL` WHERE projectId = ${{
@@ -318,14 +417,23 @@ export function buildAuditRecordsStatement(
   return statement;
 }
 
-// One row per actor that deleted at least `minDeletes` records in the window.
+/*
+ * One row per actor that deleted at least `minDeletes` records in the
+ * window. An actor is its kind and its id (#10430): a person (userId), a
+ * project API key (apiKeyId), one of the project's workflows (workflowId)
+ * or OneUptime itself (userType System, no id). Summed by userId and
+ * apiKeyId alone, every workflow's deletes and OneUptime's own fell into
+ * one group with no id, and two workflows deleting 15 records each read as
+ * one actor deleting 30. A workflow is named as the latest of its entries
+ * in the window name it, with what it ran as.
+ */
 export function buildMassDeleteStatement(
   data: Omit<TelemetryScanWindow, "happenedAfter"> & {
     minDeletes: number;
     limit: number;
   },
 ): Statement {
-  const statement: Statement = SQL`SELECT toString(userId) AS actorUserId, any(userName) AS actorUserName, any(userEmail) AS actorUserEmail, any(userType) AS actorUserType, toString(apiKeyId) AS actorApiKeyId, any(apiKeyName) AS actorApiKeyName, count() AS deletes, groupUniqArray(5)(resourceType) AS sampleResourceTypes, min(createdAt) AS firstAt, max(createdAt) AS lastAt FROM `;
+  const statement: Statement = SQL`SELECT ifNull(userType, '') AS actorUserType, toString(userId) AS actorUserId, any(userName) AS actorUserName, any(userEmail) AS actorUserEmail, toString(apiKeyId) AS actorApiKeyId, any(apiKeyName) AS actorApiKeyName, toString(workflowId) AS actorWorkflowId, argMax(ifNull(workflowName, ''), createdAt) AS actorWorkflowName, argMax(ifNull(workflowRunAs, ''), createdAt) AS actorWorkflowRunAs, argMax(ifNull(workflowRunAsCustomRoleName, ''), createdAt) AS actorWorkflowRunAsRole, argMax(ifNull(workflowRunAsGiverName, ''), createdAt) AS actorWorkflowRunAsGivenBy, argMax(ifNull(toString(workflowRunAsGiverApiKeyId), ''), createdAt) AS actorWorkflowRunAsGiverApiKeyId, count() AS deletes, groupUniqArray(5)(resourceType) AS sampleResourceTypes, min(createdAt) AS firstAt, max(createdAt) AS lastAt FROM `;
   statement.append(tableOf(AnalyticsTableName.AuditLog));
   statement.append(
     SQL` WHERE projectId = ${{
@@ -340,7 +448,7 @@ export function buildMassDeleteStatement(
     }} AND action = ${{
       type: TableColumnType.Text,
       value: AuditLogAction.Delete,
-    }} AND retentionDate >= now() GROUP BY userId, apiKeyId HAVING deletes >= ${{
+    }} AND retentionDate >= now() GROUP BY userType, userId, apiKeyId, workflowId HAVING deletes >= ${{
       type: TableColumnType.Number,
       value: Math.max(1, Math.trunc(data.minDeletes)),
     }} ORDER BY deletes DESC LIMIT ${{

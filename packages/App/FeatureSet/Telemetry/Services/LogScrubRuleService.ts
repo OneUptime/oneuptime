@@ -10,6 +10,7 @@ import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import {
   compileScrubRuleCustomRegex,
+  SCRUB_RULE_BUILT_IN_PATTERNS,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
@@ -28,6 +29,7 @@ import ScrubAction, {
 } from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { readOwnValue } from "Common/Utils/LookupTable";
+import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
 
 interface CompiledRule {
   rule: LogScrubRule;
@@ -40,27 +42,17 @@ const MAX_CACHED_PROJECTS: number = 10_000;
 const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
   new InMemoryTTLCache<Array<CompiledRule>>(MAX_CACHED_PROJECTS);
 
-// Built-in PII detection patterns
-const BUILT_IN_PATTERNS: Record<string, RegExp> = {
-  /*
-   * Each part of the address is length-bounded to the sizes RFC 5321 allows
-   * (local part 64, domain 253, final label 63), so finding addresses in a
-   * log body stays in line with the body's length however long it is - this
-   * runs over every ingested log body for a project with an email scrub rule.
-   */
-  [LogScrubPatternType.Email]:
-    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
-  [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-  [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
-  [LogScrubPatternType.PhoneNumber]:
-    /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  /*
-   * IP Address is not here: its matches are what Data Security's own
-   * detectors call an IP address - public IPv4 and IPv6 addresses, and
-   * documentation ones - and not private, loopback or link-local ones
-   * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
-   */
-};
+/*
+ * Built-in PII detection patterns: written once, in Common
+ * (SCRUB_RULE_BUILT_IN_PATTERNS), for both engines and for the lookup of
+ * what reads a value a rule would hide (#10433). IP Address is not among
+ * them: its matches are what Data Security's own detectors call an IP
+ * address - public IPv4 and IPv6 addresses, and documentation ones - and
+ * not private, loopback or link-local ones
+ * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+ */
+const BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> =
+  SCRUB_RULE_BUILT_IN_PATTERNS;
 
 /*
  * Attribute-KEY denylist for the SensitiveKeys pattern. Value-regex rules
@@ -110,6 +102,8 @@ export class LogScrubRuleService {
         scrubAction: true,
         fieldsToScrub: true,
         sortOrder: true,
+        // A rule for one service scrubs that service's logs only (#10433).
+        serviceId: true,
       },
       props: {
         isRoot: true,
@@ -385,12 +379,21 @@ export class LogScrubRuleService {
    * Security Events' address vault - passed by ingest only for a batch whose
    * logs Security Events reads (SecurityAddressVaultWriter.startBatch,
    * #10395). The row is scrubbed the same with it or without it.
+   *
+   * Only the rules that apply to the row's service run: a rule that names
+   * a service scrubs that service's logs alone (Types/Telemetry/
+   * ScrubRuleScope, #10433), whichever route the line came in by.
    */
   public static scrubLog(
     logRow: JSONObject,
-    compiledRules: Array<CompiledRule>,
+    projectRules: Array<CompiledRule>,
     recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): JSONObject {
+    const compiledRules: Array<CompiledRule> = getScrubRulesOfRecord(
+      projectRules,
+      logRow["primaryEntityId"],
+    );
+
     if (compiledRules.length === 0) {
       return logRow;
     }

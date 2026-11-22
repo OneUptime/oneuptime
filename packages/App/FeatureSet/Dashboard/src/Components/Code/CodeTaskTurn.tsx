@@ -583,6 +583,7 @@ export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
   [CodeTaskOriginType.Incident]: PageMap.INCIDENT_VIEW,
   [CodeTaskOriginType.Alert]: PageMap.ALERT_VIEW,
   [CodeTaskOriginType.Insight]: PageMap.AI_INSIGHT_VIEW,
+  [CodeTaskOriginType.SecurityCase]: PageMap.SECURITY_CASE_VIEW,
 };
 
 /*

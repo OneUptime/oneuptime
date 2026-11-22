@@ -1,4 +1,10 @@
 import IconProp from "../Icon/IconProp";
+import { isOneUptimeActorPrincipal } from "../SecurityEvent/OneUptimeActorPrincipal";
+import {
+  SCRUB_REDACTED_PLACEHOLDER,
+  ScrubPlaceholderKind,
+  getScrubPlaceholderKind,
+} from "../Telemetry/ScrubRule";
 
 /*
  * The things a security case is about: the accounts, machines, addresses
@@ -210,9 +216,91 @@ export function securityEntityKey(entity: SecurityEntity): string {
 }
 
 /*
+ * THE KINDS A RESPONSE ACTS ON: a user is suspended, a host contained, an
+ * address, a domain or a file hash blocked. A value of one of these kinds
+ * names one account, machine or indicator - so it can never be what a
+ * scrub rule left of one, nor one of OneUptime's own actors.
+ */
+export const ACTIONABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
+  SecurityEntityType.User,
+  SecurityEntityType.Host,
+  SecurityEntityType.IpAddress,
+  SecurityEntityType.Domain,
+  SecurityEntityType.FileHash,
+];
+
+/*
+ * WHAT A CASE MAY HOLD AS AN ENTITY (#10430, #10435): an entity is
+ * something a response can act on or a person can look up, so
+ *
+ *   - what Redact or Mask left of a user, a host or an address
+ *     ("[REDACTED]", "j***@***.com") is no entity at all: one placeholder
+ *     stands for everybody whose value a rule hid, and a playbook offered
+ *     "[REDACTED]" as the user to suspend;
+ *   - a Hash token stands for one value, so it stays - as Other, an entity
+ *     a case can be about and nobody can act on: no identity provider
+ *     knows "[HASHED:3f9a...]";
+ *   - one of OneUptime's own actors as a user - a workflow
+ *     ("workflow:<id>") or OneUptime itself ("oneuptime",
+ *     OneUptimeActorPrincipal) - is no person: Other too.
+ *
+ * Text of other kinds (a process's command line, a URL) may hold what a
+ * rule hid and still mean something; only a value that is nothing but
+ * "[REDACTED]" is dropped from them. Null drops the entity.
+ */
+export function getEntityAsActionable(
+  entity: SecurityEntity,
+): SecurityEntity | null {
+  const value: string = (entity.value || "").trim();
+
+  if (!value) {
+    return null;
+  }
+
+  if (!ACTIONABLE_ENTITY_TYPES.includes(entity.type)) {
+    return value === SCRUB_REDACTED_PLACEHOLDER
+      ? null
+      : { type: entity.type, value };
+  }
+
+  const placeholder: ScrubPlaceholderKind | null =
+    getScrubPlaceholderKind(value);
+
+  if (
+    placeholder === ScrubPlaceholderKind.Redacted ||
+    placeholder === ScrubPlaceholderKind.Masked
+  ) {
+    return null;
+  }
+
+  if (
+    placeholder === ScrubPlaceholderKind.Hashed ||
+    (entity.type === SecurityEntityType.User &&
+      isOneUptimeActorPrincipal(value))
+  ) {
+    return { type: SecurityEntityType.Other, value };
+  }
+
+  return { type: entity.type, value };
+}
+
+/*
+ * Whether a response may act on this value as an entity of this kind: what
+ * getEntityAsActionable keeps of that kind. Asked again right where a
+ * target is chosen, since a case stored before the rule may hold anything.
+ */
+export function canActOnSecurityEntity(entity: SecurityEntity): boolean {
+  const kept: SecurityEntity | null = getEntityAsActionable(entity);
+
+  return kept !== null && kept.type === entity.type;
+}
+
+/*
  * Merges entity lists: first occurrence wins (an entity typed from a field
  * keeps that type even when an untyped copy of it comes later), empty values
- * are dropped, and the result is capped at SECURITY_ENTITY_LIMIT.
+ * are dropped, and the result is capped at SECURITY_ENTITY_LIMIT. What no
+ * response can act on is dropped or held as Other first
+ * (getEntityAsActionable).
  */
 export function mergeSecurityEntities(
   ...lists: Array<Array<SecurityEntity> | undefined | null>
@@ -220,17 +308,23 @@ export function mergeSecurityEntities(
   const seen: Map<string, SecurityEntity> = new Map();
 
   for (const list of lists) {
-    for (const entity of list || []) {
-      if (!entity || typeof entity.value !== "string") {
+    for (const listed of list || []) {
+      if (!listed || typeof listed.value !== "string") {
         continue;
       }
 
-      const value: string = entity.value.trim();
+      const entity: SecurityEntity | null = getEntityAsActionable({
+        type: Object.values(SecurityEntityType).includes(listed.type)
+          ? listed.type
+          : inferSecurityEntityType(listed.value),
+        value: listed.value,
+      });
 
-      if (!value) {
+      if (!entity) {
         continue;
       }
 
+      const value: string = entity.value;
       const key: string = value.toLowerCase();
       const existing: SecurityEntity | undefined = seen.get(key);
 
@@ -253,12 +347,7 @@ export function mergeSecurityEntities(
         continue;
       }
 
-      seen.set(key, {
-        type: Object.values(SecurityEntityType).includes(entity.type)
-          ? entity.type
-          : inferSecurityEntityType(value),
-        value,
-      });
+      seen.set(key, { type: entity.type, value });
     }
   }
 

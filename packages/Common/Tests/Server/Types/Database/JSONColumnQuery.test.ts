@@ -15,6 +15,7 @@ import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../../Types/BaseDatabase/LessThan";
 import LessThanOrEqual from "../../../../Types/BaseDatabase/LessThanOrEqual";
@@ -280,6 +281,27 @@ describe("buildJSONColumnQuery — negation includes rows without the key", () =
     expect(sql).toContain("IS NOT TRUE");
     // Not the containment check a value nothing handles falls through to.
     expect(sql).not.toBe(sqlOf({ Team: { value: "Payments" } }));
+  });
+
+  /*
+   * IncludesNoneOrNull (#10581) asks for an empty value too, which the
+   * negated any-of already keeps: on a key it is IncludesNone, never the
+   * containment check an operator nobody handles would fall through to.
+   */
+  test("IncludesNoneOrNull on a key is IncludesNone: the same SQL, with the key missing kept", () => {
+    const sql: string = sqlOf({
+      Team: new IncludesNoneOrNull(["Payments", "SRE"]),
+    });
+
+    expect(sql).toBe(sqlOf({ Team: new IncludesNone(["Payments", "SRE"]) }));
+    expect(sql).toContain("IS NOT TRUE");
+    expect(sql).not.toBe(sqlOf({ Team: { value: "Payments" } }));
+  });
+
+  test("IncludesNoneOrNull of nothing constrains nothing on a key", () => {
+    expect(sqlOf({ Team: new IncludesNoneOrNull([]) })).toBe(
+      sqlOf({ Team: new IncludesNone([]) }),
+    );
   });
 
   test("IncludesNone negates the whole any-of predicate", () => {

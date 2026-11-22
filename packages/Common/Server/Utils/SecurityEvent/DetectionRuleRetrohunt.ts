@@ -29,6 +29,11 @@ import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   ScrubbedAddressPlace,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+} from "../../../Utils/SecurityEvent/ScrubbedUser";
 import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
 import {
   DetectionRuleDefinition,
@@ -51,6 +56,7 @@ import {
 } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { buildHoldsSharedScrubPlaceholderSql } from "../Telemetry/ScrubPlaceholderSql";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "../Telemetry/TelemetryReadScope";
@@ -72,6 +78,11 @@ import SigmaClickhouseCompiler, {
   buildSigmaFieldExpression,
   buildSigmaFieldHasValue,
 } from "./Sigma/SigmaClickhouseCompiler";
+import RefusedTelemetryReader from "./RefusedTelemetryReader";
+import {
+  RefusedTelemetry,
+  getRefusedTelemetryBetween,
+} from "../../../Utils/SecurityEvent/RefusedTelemetry";
 
 /*
  * RETROHUNT: a detection rule run over past events, to see what it would
@@ -439,10 +450,61 @@ export function buildSingleRuleRetrohuntStatement(data: {
 }
 
 /*
+ * The marker a scrub rule leaves on an event whose value of a group field it
+ * hid: the key that says so and its value, and the key that says where,
+ * with the value that means a span. A rule grouped by a user reads the
+ * user's marker (ScrubbedUser, #10435); any other the client address's
+ * (ScrubbedAddress, #10397).
+ *
+ * `storedIn` is the user's own column, for an event stored before the scans
+ * set the marker: it still holds Redact's "[REDACTED]" or a mask, which say
+ * a rule hid the user just as well. Such an event doesn't say where the
+ * user was hidden, so it is counted with the logs, where most such users
+ * are found.
+ */
+export interface HiddenValueMarker {
+  hiddenKey: string;
+  hiddenValue: string;
+  inKey: string;
+  inTracesValue: string;
+  storedIn: string | null;
+}
+
+export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
+  const field: string = (groupByField || "").trim();
+
+  if (field === "principalUser" || field === "targetUser") {
+    const keys: { hidden: string; in: string } =
+      SCRUBBED_USER_ATTRIBUTES[
+        field === "principalUser"
+          ? ScrubbedUserRole.Principal
+          : ScrubbedUserRole.Target
+      ];
+
+    return {
+      hiddenKey: keys.hidden,
+      hiddenValue: USER_HIDDEN_BY_SCRUB_RULE,
+      inKey: keys.in,
+      inTracesValue: "trace",
+      storedIn: field,
+    };
+  }
+
+  return {
+    hiddenKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+    inKey: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+    inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+    storedIn: null,
+  };
+}
+
+/*
  * What a single rule that counts per value left out (#10415): the events it
  * matched, and its exceptions kept, that had no value for its group field,
- * and how many of them had their client address hidden by a scrub rule
- * (#10397), in a log line or a span. Null for a rule that leaves none out.
+ * and how many of them had that value hidden by a scrub rule - a client
+ * address (#10397) or a user (#10435) - in a log line or a span. Null for a
+ * rule that leaves none out.
  */
 export function buildUncountedRetrohuntStatement(data: {
   projectId: ObjectID;
@@ -460,6 +522,9 @@ export function buildUncountedRetrohuntStatement(data: {
     return null;
   }
 
+  const marker: HiddenValueMarker = getHiddenValueMarker(
+    data.counting.groupByField,
+  );
   const statement: Statement = SQL`WITH `;
 
   if (data.skipped) {
@@ -471,18 +536,27 @@ export function buildUncountedRetrohuntStatement(data: {
   }
 
   statement.append(
-    SQL` AS __skipped, attributes[${{
+    SQL` AS __skipped, (attributes[${{
       type: TableColumnType.Text,
-      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+      value: marker.hiddenKey,
     }}] = ${{
       type: TableColumnType.Text,
-      value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
-    }} AS __hidden, attributes[${{
+      value: marker.hiddenValue,
+    }}`,
+  );
+
+  if (marker.storedIn) {
+    statement.append(" OR ");
+    statement.append(buildHoldsSharedScrubPlaceholderSql(marker.storedIn));
+  }
+
+  statement.append(
+    SQL`) AS __hidden, attributes[${{
       type: TableColumnType.Text,
-      value: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+      value: marker.inKey,
     }}] = ${{
       type: TableColumnType.Text,
-      value: ScrubbedAddressPlace.SpanAttributes,
+      value: marker.inTracesValue,
     }} AS __inTraces SELECT countIf(NOT __skipped) AS eventCount, countIf(NOT __skipped AND __hidden AND NOT __inTraces) AS hiddenInLogsCount, countIf(NOT __skipped AND __hidden AND __inTraces) AS hiddenInTracesCount FROM `,
   );
   statement.append(data.tableName);
@@ -636,6 +710,8 @@ export function summarizeSingleRuleRetrohunt(data: {
     hasMoreGroups: totalGroups > Math.min(fired.length, data.maxGroups),
     candidateLimit: null,
     uncounted: data.uncounted || null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
 }
 
@@ -706,7 +782,32 @@ export function summarizeCorrelationRetrohunt(data: {
       : null,
     // A correlation leaves out groups with no value, as it always did.
     uncounted: null,
+    // Read by the run, which knows the project (readRefusedTelemetryOverPeriod).
+    refusedTelemetry: [],
   };
+}
+
+/*
+ * What an ingestion budget or rate refused of the logs and traces Security
+ * Events reads, over the period (#10431): a retrohunt over it says the
+ * events those would have made are missing, rather than letting "would
+ * not have fired" read as nothing happened. As the sources kept it, with
+ * the counters as they are now; nothing when that cannot be read.
+ */
+export async function readRefusedTelemetryOverPeriod(data: {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+}): Promise<Array<RefusedTelemetry>> {
+  return getRefusedTelemetryBetween({
+    refusals: await RefusedTelemetryReader.readForProject({
+      projectId: data.projectId,
+      now: data.endTime,
+    }),
+    from: data.startTime,
+    to: data.endTime,
+    now: data.endTime,
+  });
 }
 
 // The sources a person may read, as a restriction on a correlation's reads; null for every source.
@@ -839,16 +940,23 @@ export default class DetectionRuleRetrohunt {
           kept: { retentionInDays, at: endTime },
         });
 
-      return summarizeCorrelationRetrohunt({
-        match,
-        exceptionCount,
-        startTime,
-        endTime,
-        periodInHours: request.periodInHours,
-        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-        groupByFields: definition.correlation.groupBy,
-        kept,
-      });
+      return {
+        ...summarizeCorrelationRetrohunt({
+          match,
+          exceptionCount,
+          startTime,
+          endTime,
+          periodInHours: request.periodInHours,
+          maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+          groupByFields: definition.correlation.groupBy,
+          kept,
+        }),
+        refusedTelemetry: await readRefusedTelemetryOverPeriod({
+          projectId: request.projectId,
+          startTime,
+          endTime,
+        }),
+      };
     }
 
     const parsedRule: SigmaRule = definition.rule;
@@ -915,16 +1023,23 @@ export default class DetectionRuleRetrohunt {
       });
     }
 
-    return summarizeSingleRuleRetrohunt({
-      rows: readSingleRuleRetrohuntRows(response.data || []),
-      counting,
-      exceptionCount,
-      startTime,
-      endTime,
-      periodInHours: request.periodInHours,
-      maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
-      uncounted,
-      kept,
-    });
+    return {
+      ...summarizeSingleRuleRetrohunt({
+        rows: readSingleRuleRetrohuntRows(response.data || []),
+        counting,
+        exceptionCount,
+        startTime,
+        endTime,
+        periodInHours: request.periodInHours,
+        maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
+        uncounted,
+        kept,
+      }),
+      refusedTelemetry: await readRefusedTelemetryOverPeriod({
+        projectId: request.projectId,
+        startTime,
+        endTime,
+      }),
+    };
   }
 }

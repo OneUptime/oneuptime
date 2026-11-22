@@ -122,6 +122,7 @@ const ANSWER: DetectionRetrohuntResult = {
   hasMoreGroups: false,
   candidateLimit: null,
   uncounted: null,
+  refusedTelemetry: [],
 };
 
 let ruleReads: Array<Record<string, unknown>>;

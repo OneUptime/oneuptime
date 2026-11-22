@@ -3,6 +3,7 @@ import SecuritySeverity from "../../../Types/SecuritySeverity";
 import {
   DATA_SECURITY_AI_ALWAYS_ASKS,
   DATA_SECURITY_AI_CHANGES_WITHOUT_ASKING_PER_HOUR,
+  DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS,
   DATA_SECURITY_AI_PROPOSAL_KINDS,
   DATA_SECURITY_AI_RISKIER_CHANGES,
   DATA_SECURITY_AI_RULE_DEFAULT_AUTONOMY,
@@ -29,6 +30,7 @@ import {
   getDataSecurityAiRuleProblem,
   getDataSecurityAiWithoutAskingVerdict,
   getDefaultDataSecurityAiWork,
+  isDataSecurityAiOwnerProposalKind,
   isDataSecurityAiPlanFingerprint,
   isDataSecurityAiProposalKind,
   isDataSecurityAiProposalUndoable,
@@ -534,6 +536,8 @@ describe("what may run without asking", () => {
   test.each([
     DataSecurityAiChangeSafety.Deletes,
     DataSecurityAiChangeSafety.Pages,
+    // An owner is told about the store: never added without a person (#10374).
+    DataSecurityAiChangeSafety.ChangesWhoIsTold,
   ])(
     "%s always asks, whatever a rule says or names",
     (safety: DataSecurityAiChangeSafety) => {
@@ -638,6 +642,66 @@ describe("the kinds of change", () => {
       work: DataSecurityAiWork.Contain,
       safety: DataSecurityAiChangeSafety.MaskOnly,
     });
+  });
+
+  test("a store's owners, and an owner rule, are Judge work that changes who is told (#10374)", () => {
+    for (const kind of [
+      DataSecurityAiProposalKind.SetStoreOwners,
+      DataSecurityAiProposalKind.CreateOwnerRule,
+    ]) {
+      expect(DATA_SECURITY_AI_PROPOSAL_KINDS[kind]).toEqual({
+        kind,
+        work: DataSecurityAiWork.Judge,
+        safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
+      });
+      expect(isDataSecurityAiOwnerProposalKind(kind)).toBe(true);
+    }
+
+    expect([...DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS].sort()).toEqual(
+      [
+        DataSecurityAiProposalKind.CreateOwnerRule,
+        DataSecurityAiProposalKind.SetStoreOwners,
+      ].sort(),
+    );
+    expect(
+      isDataSecurityAiOwnerProposalKind(
+        DataSecurityAiProposalKind.ScrubTelemetry,
+      ),
+    ).toBe(false);
+    expect(isDataSecurityAiOwnerProposalKind(undefined)).toBe(false);
+  });
+
+  test("an owner always waits for a person, and one approval is enough", () => {
+    for (const fromDefaults of [true, false]) {
+      expect(
+        getDataSecurityAiWithoutAskingVerdict({
+          work: {
+            autonomy: DataSecurityAiAutonomy.WithoutAsking,
+            fromDefaults,
+          },
+          safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
+          meetsDefaultConditions: true,
+          isNamedByRule: true,
+          requireTwoApprovalsForRiskierChanges: true,
+          changesWithoutAskingThisHour: 0,
+        }),
+      ).toEqual({
+        runWithoutAsking: false,
+        askReason: DataSecurityAiAskReason.AlwaysAsks,
+      });
+    }
+
+    expect(
+      isRiskierDataSecurityAiChange(
+        DataSecurityAiChangeSafety.ChangesWhoIsTold,
+      ),
+    ).toBe(false);
+    expect(
+      getDataSecurityAiApprovalsNeeded({
+        requireTwoApprovalsForRiskierChanges: true,
+        safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
+      }),
+    ).toBe(1);
   });
 
   test("every kind has its definition, under its own name", () => {

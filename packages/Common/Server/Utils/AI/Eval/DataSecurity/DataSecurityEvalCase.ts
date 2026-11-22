@@ -1,4 +1,9 @@
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  DataStoreOwnerCandidate,
+  DataStoreOwnerConfidence,
+  DataStoreOwnerEvidence,
+} from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
 import {
   AiAccessRecord,
@@ -114,9 +119,33 @@ export interface AskAiEvalCase extends DataSecurityEvalCaseBase {
   expect: DataSecurityEvalWords;
 }
 
+/*
+ * Owners for a store (#10374): the store, the candidates and the evidence
+ * as the product reads them, and the owners each should get - by the refs
+ * OneUptime AI is told ("T1", "P1"). The answer is held to the evidence as
+ * the product holds it before it is scored, so a made-up owner counts
+ * against it.
+ */
+export interface StoreOwnersEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.ProposeStoreOwners;
+  store: AiStoreRecord;
+  candidates: Array<DataStoreOwnerCandidate>;
+  evidence: Array<DataStoreOwnerEvidence>;
+  servicesUsingIt: number;
+  expect: {
+    // The owners a right answer names: exactly one of these sets.
+    ownersOneOf: Array<Array<string>>;
+    // It says the evidence disagrees.
+    disagrees?: boolean | undefined;
+    // It is no surer than this: Low where the evidence is weak or disagrees.
+    atMostConfidence?: DataStoreOwnerConfidence | undefined;
+  };
+}
+
 export type DataSecurityEvalCase =
   | ExplainEvalCase
   | AnalyzeEvalCase
   | FieldSuggestionEvalCase
   | FixEvalCase
-  | AskAiEvalCase;
+  | AskAiEvalCase
+  | StoreOwnersEvalCase;

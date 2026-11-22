@@ -388,10 +388,12 @@ En webhook beskriver bare det som står i den nyttelasten, så OneUptime løser 
 
 Et varsel du selv legger til i et kriterium, starter også med **Løs varsel automatisk** slått av, så en gjenoppretting lar varselet stå åpent til det er slått på. **Auto-resolve each incident when…** viser hvilke av kriteriets hendelser og varsler en gjenoppretting løser, og nevner hver den ville la stå åpen, med en knapp som slår på den tilhørende innstillingen. Kortet **Monitor-sammendrag** på monitorens **Oversikt** nevner hver hendelse og hvert varsel en gjenoppretting lot stå åpent, og hvorfor.
 
+En gjenoppretting løser bare hendelsene og varslene til kriteriet som leser den: det der **Field that signals recovery** og **Value that means recovered** samsvarer med nyttelasten. Hendelsene og varslene til et annet kriterium for samme verdi forblir åpne, og de til et kriterium som lar feltene stå tomme, løses manuelt.
+
 **Max incidents per request** begrenser uthentingen, ikke bare opprettelsen. Nøkler forbi taket er også usynlige for løsningen, så i en nyttelast med flere særskilte nøkler enn taket lukker ikke et varsel som melder `resolved` forbi taket, hendelsen sin.
 
 > [!NOTE]
-> Når én monitor mottar forespørsler raskere enn OneUptime evaluerer dem, evaluerer OneUptime den nyeste og hopper over dem imellom, så en bølge av webhooks kan etterlate et aktivt eller et løst varsel uevaluert. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i miljøet til OneUptime-appen hver forespørsel til å bli evaluert for seg.
+> En monitor med et kriterium som grupperer etter et felt i innholdet, evaluerer hver forespørsel den mottar, én om gangen og i den rekkefølgen de kom, så en bølge av varsler og gjenopprettinger åpner og løser hendelsen og varselet for hver verdi. Opptil 1 000 forespørsler, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. En monitor uten gruppering evaluerer bare den nyeste av forespørslene som venter på den.
 
 > [!NOTE]
 > Hvis **Field that signals recovery** inneholder `[*]`, men **Open a separate incident for each…** ikke gjør det, er en forespørsel over først når hvert element i matrisen sier det. Med `requestBody.alerts[*].status` og `resolved` løses en hendelse gruppert etter `requestBody.groupLabels.alertname` når alle varslene i en forespørsel er løst, og den forblir åpen så lenge ett fortsatt er aktivt.

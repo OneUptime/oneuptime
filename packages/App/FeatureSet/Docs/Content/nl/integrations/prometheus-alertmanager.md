@@ -266,7 +266,7 @@ Wanneer de watchdog-waarschuwing tien minuten niet is aangekomen, gaat de watchd
 - Het incident van het criterium heeft **Incident automatisch oplossen** nodig, onder **Meer velden**.
 - **Field that signals recovery** moet `requestBody.alerts[*].status` zijn, en **Value that means recovered** precies `resolved`. De vergelijking is hoofdlettergevoelig.
 - Waarschuwingen van een melding boven **Max incidents per request** worden helemaal niet gelezen, dus hun herstel gaat ook verloren.
-- Een herstel dat in een uitbarsting is overgeslagen (zie hieronder) laat zijn incident voorgoed open: Alertmanager herhaalt afgaande waarschuwingen, maar nooit een herstel. Los zo'n incident met de hand op.
+- Een herstel dat is overgeslagen omdat er te veel meldingen wachtten (zie hieronder) laat zijn incident voorgoed open: Alertmanager herhaalt afgaande waarschuwingen, maar nooit een herstel. Los zo'n incident met de hand op.
 :::
 
 :::details Er gaat geen incident open
@@ -285,8 +285,8 @@ Een verwijzing naar een veld dat de melding niet heeft, blijft staan zoals ze ge
 Groepeer je route op minder labels, of verhoog `group_interval`, zodat Alertmanager samenhangende waarschuwingen samen stuurt. Een lagere **Max incidents per request** beperkt de incidenten van één melding, maar waarschuwingen boven de grens worden niet gelezen, dus hun herstel gaat ook verloren.
 :::
 
-:::details Meldingen worden tijdens een uitbarsting overgeslagen
-Wanneer een nieuwer verzoek een monitor bereikt voordat een eerder verzoek is geëvalueerd, evalueert OneUptime alleen het nieuwste, zodat één afzender een monitor niet kan overspoelen. De laatste melding van een uitbarsting wordt altijd geëvalueerd, maar een eerdere over andere waarschuwingen kan worden overgeslagen, omdat Alertmanager elke groep naar dezelfde URL stuurt. Verhoog `group_wait` en `group_interval` om de meldingen te spreiden. Zet op een zelf gehoste installatie `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in de omgeving van de OneUptime-app om elk verzoek te evalueren.
+:::details Een uitbarsting van meldingen
+Een monitor waarvan het criterium groepeert op een veld, zoals deze handleiding het instelt, toetst elke melding die hij krijgt, één tegelijk en in de volgorde van binnenkomst, dus een uitbarsting van afgaande en opgeloste waarschuwingen opent en lost het incident van elke waarschuwing op. Tot 1.000 meldingen, of 16 MB ervan, wachten op hun toetsing; daarboven worden de oudste wachtende overgeslagen, en de kaart **Monitorsamenvatting** zegt hoeveel. Verhoog `group_wait` en `group_interval` om minder, grotere meldingen te sturen. Een monitor zonder groepering toetst alleen de nieuwste melding die op hem wacht.
 :::
 
 ## Beveiliging

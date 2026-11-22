@@ -234,6 +234,16 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 - Kontoens egen lesing gir ikke mer: datahendelser, Data Access-logger og loggene til Microsoft Entra ID trenger fortsatt **Loggene dine** eller en [tilkobling](/docs/integrations/microsoft-entra-id).
 - Hver hendelse nevner skyressursene posten gjelder, ved deres egne ID-er - en ARN, en Azure-ressurs-ID, et ressursnavn fra Google Cloud - så den vises på siden **Sikkerhetshendelser** til hver av dem, og på siden til en serverløs funksjon så snart telemetrien dens setter `cloud.account.id` og `cloud.region`.
 
+### OneUptimes egne sonder i nettverksflyten din
+
+Slå på **Nettverksflyt** under **OneUptime-dataene dine** på **Tilkoblinger**, så leses flytene nettverksenhetene dine eksporterer, etter portskanninger, nettverkssveip, trafikk med kjente ondsinnede adresser og store overføringer ut. En sondes eget arbeid ligner der på en skanning: å spørre 40 enheter over SNMP treffer port 161 på 40 verter hvert femte minutt. Derfor legges trafikk fra en av OneUptimes egne sonder som er nøyaktig det sonden er satt til å gjøre, til side:
+
+- nettverksenhetene den spør, pinget og spurt over SNMP på porten deres;
+- området til hver av oppdagelsene dens, mens skanningen pågår;
+- vertene og portene monitorene dens sjekker.
+
+Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg.
+
 ### Koble til et sikkerhetsprodukt
 
 **Tilkoblinger** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.

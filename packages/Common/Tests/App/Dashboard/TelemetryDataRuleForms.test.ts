@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
+import Service from "../../../Models/DatabaseModels/Service";
 import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
 import LogDropFilterAction from "../../../Types/Log/LogDropFilterAction";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
@@ -18,6 +19,9 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { TelemetryFieldSignal } from "../../../Types/Telemetry/TelemetryFieldReaders";
+import ObjectID from "../../../Types/ObjectID";
+import { ReactElement } from "react";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import {
   getScrubRuleCustomRegexRefusal,
@@ -43,13 +47,16 @@ import {
   getTraceScrubRuleFormFields,
   LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
   LOG_SCRUB_RULE_FORM_OPTIONS,
+  LOG_SCRUB_RULE_SERVICE_HELP,
   LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   SCRUB_RULE_CUSTOM_REGEX_MATCHES_EMPTY_TEXT,
   SCRUB_RULE_CUSTOM_REGEX_MISSING,
   SCRUB_RULE_DEFAULT_NAMES,
+  ScrubRuleReadersFooter,
   SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_FORM_OPTIONS,
+  TRACE_SCRUB_RULE_SERVICE_HELP,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleForm";
 
 /*
@@ -97,6 +104,8 @@ function optionValues(field: AnyField): Array<unknown> {
 
 interface ScrubRuleFormCase {
   name: string;
+  signal: TelemetryFieldSignal;
+  serviceHelp: string;
   fields: Array<AnyField>;
   defaults: ScrubRuleDefaults;
   patternTypes: ReadonlyArray<string>;
@@ -112,6 +121,8 @@ describe("the scrub rule form", () => {
   const forms: Array<ScrubRuleFormCase> = [
     {
       name: "Logs",
+      signal: "log",
+      serviceHelp: LOG_SCRUB_RULE_SERVICE_HELP,
       fields: getLogScrubRuleFormFields(),
       defaults: LOG_SCRUB_RULE_DEFAULTS,
       patternTypes: LOG_SCRUB_PATTERN_TYPES,
@@ -119,6 +130,8 @@ describe("the scrub rule form", () => {
     },
     {
       name: "Traces",
+      signal: "trace",
+      serviceHelp: TRACE_SCRUB_RULE_SERVICE_HELP,
       fields: getTraceScrubRuleFormFields() as unknown as Array<AnyField>,
       defaults: TRACE_SCRUB_RULE_DEFAULTS,
       patternTypes: TRACE_SCRUB_PATTERN_TYPES,
@@ -128,7 +141,14 @@ describe("the scrub rule form", () => {
 
   describe.each(forms)(
     "on $name",
-    ({ fields, defaults, patternTypes, scrubFields }: ScrubRuleFormCase) => {
+    ({
+      signal,
+      serviceHelp,
+      fields,
+      defaults,
+      patternTypes,
+      scrubFields,
+    }: ScrubRuleFormCase) => {
       test("starts from what the rule scrubs: the pattern type, its regex, then the name", () => {
         expect(fields.map(keyOf)).toEqual([
           "patternType",
@@ -137,8 +157,73 @@ describe("the scrub rule form", () => {
           "description",
           "scrubAction",
           "fieldsToScrub",
+          "service",
           "isEnabled",
         ]);
+      });
+
+      /*
+       * A rule scrubs one service's records, or every service's (#10433):
+       * picked from the project's services, folded, left empty by default -
+       * every service, as a rule saved before a rule could name one.
+       */
+      test("asks, folded, for the one service it is for - empty for every service", () => {
+        const service: AnyField = fieldNamed(fields, "service");
+
+        expect(service.title).toBe("Only for one service");
+        expect(service.fieldType).toBe(FormFieldSchemaType.Dropdown);
+        expect(service.required).toBe(false);
+        expect(service.defaultValue).toBeUndefined();
+        expect(service.dropdownModal).toEqual({
+          type: Service,
+          labelField: "name",
+          valueField: "_id",
+        });
+        expect(service.description).toBe(serviceHelp);
+        expect(serviceHelp).toBe(
+          `Leave empty to scrub the ${signal === "log" ? "logs" : "spans"} of every service.`,
+        );
+        // One short sentence under the field (Docs/ux/README.md#help-text).
+        expect(serviceHelp.length).toBeLessThanOrEqual(150);
+      });
+
+      /*
+       * What reads the values the rule would hide is said under the name,
+       * the last field always shown, from the form's values as they are -
+       * before the rule is saved (#10433). The page hands in what draws it
+       * (ScrubRuleReadersPreview), so the form asks nothing of the server.
+       */
+      test("draws under the name what the page hands it, from the form as it is", () => {
+        const values: FormValues<LogScrubRule> = {
+          patternType: "email",
+          scrubAction: "redact",
+          fieldsToScrub: "attributes",
+          service: new ObjectID("6b6b6b6b-0000-4000-8000-0000000000b2"),
+        } as unknown as FormValues<LogScrubRule>;
+        const drawn: ReactElement = { type: "p" } as unknown as ReactElement;
+        const asked: Array<FormValues<LogScrubRule>> = [];
+        const footer: ScrubRuleReadersFooter = (
+          formValues: FormValues<LogScrubRule>,
+        ): ReactElement => {
+          asked.push(formValues);
+          return drawn;
+        };
+        const withFooter: Array<AnyField> = (signal === "log"
+          ? getLogScrubRuleFormFields(footer)
+          : getTraceScrubRuleFormFields(footer)) as unknown as Array<AnyField>;
+
+        expect(fieldNamed(withFooter, "name").getFooterElement!(values)).toBe(
+          drawn,
+        );
+        expect(asked).toEqual([values]);
+        // Nothing else draws it: one place says it.
+        expect(
+          withFooter.filter((field: AnyField): boolean => {
+            return Boolean(field.getFooterElement);
+          }),
+        ).toHaveLength(1);
+        // Handed nothing, the form draws nothing there.
+        expect(fieldNamed(fields, "name").getFooterElement).toBeUndefined();
       });
 
       test("walks no steps", () => {
@@ -147,7 +232,7 @@ describe("the scrub rule form", () => {
         }
       });
 
-      test("folds the description, the action, the fields and Enabled under one Advanced", () => {
+      test("folds the description, the action, the fields, the service and Enabled under one Advanced", () => {
         const folded: Array<AnyField> = fields.filter((field: AnyField) => {
           return Boolean(field.collapsibleSection);
         });
@@ -156,6 +241,7 @@ describe("the scrub rule form", () => {
           "description",
           "scrubAction",
           "fieldsToScrub",
+          "service",
           "isEnabled",
         ]);
 
@@ -278,6 +364,14 @@ describe("the scrub rule form", () => {
   );
 
   test("the trace form takes the trace scopes, the log form the log scopes", () => {
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.signal).toBe("trace");
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.signal).toBe("log");
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.serviceHelp).toBe(
+      TRACE_SCRUB_RULE_SERVICE_HELP,
+    );
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.serviceHelp).toBe(
+      LOG_SCRUB_RULE_SERVICE_HELP,
+    );
     expect(TRACE_SCRUB_RULE_FORM_OPTIONS.defaults).toBe(
       TRACE_SCRUB_RULE_DEFAULTS,
     );
@@ -554,6 +648,14 @@ describe("what the scrub rule's folded Advanced says", () => {
       { fieldsToScrub: "body" },
       { isEnabled: false },
       { description: "Card numbers from checkout" },
+      // One service's records, not every service's (#10433).
+      { service: "6b6b6b6b-0000-4000-8000-0000000000b2" },
+      {
+        service: {
+          label: "checkout",
+          value: "6b6b6b6b-0000-4000-8000-0000000000b2",
+        },
+      },
     ] as Array<FormValues<LogScrubRule>>) {
       expect(
         getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
@@ -561,6 +663,16 @@ describe("what the scrub rule's folded Advanced says", () => {
           ...changed,
         }),
       ).toBeUndefined();
+    }
+  });
+
+  test("no service, however the form holds it, is every service: the default", () => {
+    for (const service of [undefined, null, ""]) {
+      expect(
+        getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
+          service,
+        } as unknown as FormValues<LogScrubRule>),
+      ).toEqual([LOG_SCRUB_RULE_DEFAULTS_SUMMARY]);
     }
   });
 

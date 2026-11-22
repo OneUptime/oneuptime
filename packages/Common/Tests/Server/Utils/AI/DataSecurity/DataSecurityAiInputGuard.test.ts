@@ -101,6 +101,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/FieldSuggestion.ts`,
   },
+  // Owners for a store with none (#10374), in the engine's and the daily run's jobs.
+  [DataSecurityAiFeature.ProposeStoreOwners]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
+  },
   [DataSecurityAiFeature.FixIssue]: {
     kind: "codeTask",
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,

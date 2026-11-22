@@ -132,16 +132,16 @@ A cada passagem de turno, os canais de uma política de plantão ficam sabendo q
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments leva à política no OneUptime. Quando a política aciona mais de um agendamento, a linha também nomeia o agendamento: Payments (Primary).
-- Uma pessoa é nomeada pelo nome no Slack depois de conectar a conta do Slack ao OneUptime, e pelo nome no OneUptime até lá, em cada linha de plantão: passagens de turno, substituições e pessoas adicionadas à política ou removidas. Os horários aparecem no fuso horário de cada leitor.
+- Uma pessoa é nomeada pelo nome no Slack depois de conectar a conta do Slack ao OneUptime, e pelo nome no OneUptime até lá, em cada linha de plantão: passagens de turno, substituições e pessoas adicionadas à política ou removidas. Alguém convidado que ainda não entrou no projeto é nomeado pelo nome digitado no convite, ou como "someone who hasn't joined the project yet", nunca pelo endereço de e-mail, aqui e no feed da política. Os horários aparecem no fuso horário de cada leitor.
 - Quando várias regras de escalonamento da política acionam o mesmo agendamento, cada passagem de turno é publicada uma vez, e não uma vez por regra.
 
 Uma regra publica o que escolheu na etapa **Atualizações**, e uma regra nova começa com **Somente atualizações importantes**: quem está de plantão agora, e quando não há ninguém. O mesmo vale para uma regra criada pela API ou com o Terraform que omite `updatesToPost`: envie `"updatesToPost": null` para todas as atualizações. Uma edição que omite `updatesToPost` mantém as atualizações que a regra publica.
 
 | Atualização | O que o canal fica sabendo |
 | --- | --- |
-| **Quem está de plantão agora** | A linha acima, a cada passagem de turno. |
-| **Quem está de plantão a seguir** | Quem assume na próxima passagem de turno, e quando: no fim dessa linha, ou em uma linha própria para uma regra que não publica quem está de plantão agora. |
-| **Ninguém de plantão** | Um agendamento que fica sem ninguém de plantão, de modo que os alertas que chegam a ele não acionam ninguém: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." |
+| **Quem está de plantão agora** | A linha acima, a cada passagem de turno, e quando a pessoa de plantão entra no projeto durante o turno dela: "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." |
+| **Quem está de plantão a seguir** | Quem assume na próxima passagem de turno, e quando: no fim dessa linha, ou em uma linha própria para uma regra que não publica quem está de plantão agora. Quando a próxima pessoa ainda não entrou no projeto, ninguém assume, e a linha diz por quê: "📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then nobody: Ivy is next but hasn't joined the project yet." |
+| **Ninguém de plantão** | Um agendamento que fica sem ninguém de plantão, de modo que os alertas que chegam a ele não acionam ninguém: "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over." Também o turno de alguém que ainda não entrou no projeto, já que nada aciona essa pessoa até que entre: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." |
 | **Substituições de usuário** | Uma substituição adicionada, alterada ou desfeita: quem está ausente e quem cobre. |
 | **Mudanças na política** | Agendamentos, pessoas e equipes adicionados às suas regras de escalonamento ou removidos. |
 | **Proprietários** | Proprietários adicionados e removidos. |

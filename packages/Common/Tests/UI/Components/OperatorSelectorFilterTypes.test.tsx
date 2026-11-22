@@ -16,6 +16,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
@@ -1177,8 +1178,12 @@ describe("OperatorSelector as each filter type uses it", () => {
 
       const value: unknown = written(onFilterChanged)["ownerId"];
 
-      expect(value).toBeInstanceOf(IncludesNone);
-      expect((value as IncludesNone).values).toEqual(["user-1"]);
+      /*
+       * Every record not pointing at the value, the ones pointing at none
+       * included (#10581): IncludesNone (`NOT IN`) dropped those.
+       */
+      expect(value).toBeInstanceOf(IncludesNoneOrNull);
+      expect((value as IncludesNoneOrNull).values).toEqual(["user-1"]);
     });
   });
 

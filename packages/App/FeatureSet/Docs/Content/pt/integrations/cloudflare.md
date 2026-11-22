@@ -1,11 +1,12 @@
 # Cloudflare
 
-Importe para os eventos de segurança do OneUptime o que o firewall da [Cloudflare](https://www.cloudflare.com) fez na borda: as requisições que as regras WAF gerenciadas e personalizadas, a limitação de taxa, as IP Access Rules, o gerenciamento de bots e a proteção DDoS HTTP dela bloquearam, desafiaram ou registraram. Cada uma fica ao lado das requisições do seu próprio app, então um caso diz o que a Cloudflare parou e o que ainda chegou ao seu app. O OneUptime as lê com um token de API que só pode ler, e não muda nada na Cloudflare.
+Importe para os eventos de segurança do OneUptime o que o firewall da [Cloudflare](https://www.cloudflare.com) fez na borda: as requisições que as regras WAF gerenciadas e personalizadas, a limitação de taxa, as IP Access Rules, o gerenciamento de bots e a proteção DDoS HTTP dela bloquearam, desafiaram ou registraram. Cada uma fica ao lado das requisições do seu próprio app, então um caso diz o que a Cloudflare parou e o que ainda chegou ao seu app. O OneUptime as lê com um token de API que só pode ler, e não muda nada na Cloudflare a menos que você ative o bloqueio, que aplica ali a sua lista de bloqueio.
 
 :::cards
 - [Configurar a conexão](#configurar-a-conexão): Um token de API com duas permissões de leitura, e o formulário da conexão.
 - [O que é importado](#o-que-é-importado): Quais eventos, e como cada um vira um evento de segurança.
 - [Como a consulta funciona](#como-a-consulta-funciona): A janela que cada consulta lê, e por que ela se sobrepõe em 10 minutos.
+- [Bloquear endereços na Cloudflare](#bloquear-endereços-na-cloudflare): Sua lista de bloqueio, aplicada por duas listas de IP e uma regra personalizada por lista.
 - [Solução de problemas](#solução-de-problemas): O que cada erro significa e o que mudar.
 :::
 
@@ -63,7 +64,7 @@ A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **In
 
 ### O acesso de escrita é uma escolha à parte
 
-Esta conexão nunca muda nada na Cloudflare. Bloquear endereços lá é uma adesão à parte, que precisa de permissões de escrita: `Account > Account Filter Lists > Edit` para as listas, `Zone > Zone WAF > Edit` em cada zona onde bloquear, e `Account > Account Firewall Access Rules > Edit` em planos sem listas suficientes. Adicione-as ao token só quando ligar o bloqueio.
+Esta conexão não muda nada na Cloudflare até você ativar o bloqueio, na linha dela. Só então o OneUptime pede permissões de escrita, e as verifica antes de bloquear qualquer coisa: [Bloquear endereços na Cloudflare](#bloquear-endereços-na-cloudflare) nomeia cada uma e para que serve. Adicione-as ao token só quando ativar o bloqueio.
 
 ## O que é importado
 
@@ -151,6 +152,58 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
+## Bloquear endereços na Cloudflare
+
+Com o bloqueio ativado, a Cloudflare aplica a [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) do seu projeto. Cada endereço que você bloqueia entra em menos de um minuto em uma lista de IP da sua conta da Cloudflare, e em cada zona uma regra personalizada por lista bloqueia os endereços que ela contém ou lhes aplica um desafio. Na **Lista de bloqueio**, **Aplicado por** nomeia a Cloudflare para cada bloqueio que o OneUptime leu de volta da Cloudflare; um bloqueio que não é lido de volta em 10 minutos não é aplicado ali. A etapa de bloqueio de um caso diz então também quantas requisições do endereço a Cloudflare parou desde o bloqueio.
+
+O bloqueio precisa de permissões de escrita no token de API da conexão:
+
+| Permissão | O que o OneUptime faz com ela |
+| --- | --- |
+| `Account > Account Filter Lists > Edit` | Cria suas duas listas, e adiciona e remove os endereços delas. |
+| `Zone > Zone WAF > Edit`, em cada zona onde bloquear | Adiciona suas regras personalizadas, e lê as da própria zona. |
+| `Account > Account Firewall Access Rules > Edit` | Adiciona e remove IP Access Rules, em um plano sem uma lista ou uma regra personalizada sobrando. |
+
+:::steps
+### Dar permissões de escrita ao token
+
+Na Cloudflare, abra **My Profile → API Tokens**, edite o token da conexão e adicione as permissões acima. Ou crie um token que as tenha, junto com as duas permissões de leitura.
+
+### Ativar o bloqueio
+
+Na linha da conexão, selecione **Bloquear endereços**. Cole um token novo em **Novo token de API**, ou deixe vazio para manter o atual, e em **Zonas** deixe **Todas as zonas**, ou escolha as zonas onde bloquear. **Verificar permissões** pergunta à Cloudflare se o token tem cada permissão, e não muda nada. **Ativar bloqueio** ativa o bloqueio só quando todas as verificações passam, e o OneUptime configura a Cloudflare em menos de um minuto.
+:::
+
+Enquanto o bloqueio está ativado, **Testar conexão** executa as mesmas verificações: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** e, onde IP Access Rules são usadas, **Edit IP Access Rules**.
+
+### O que o OneUptime adiciona à Cloudflare
+
+| Na Cloudflare | O que é |
+| --- | --- |
+| As listas `oneuptime_block` e `oneuptime_challenge` | Duas listas de IP na conta, uma para bloqueios e outra para desafios. A descrição delas nomeia o seu projeto do OneUptime. |
+| Uma regra personalizada por lista, em cada zona | `(ip.src in $oneuptime_block)` com a ação Block, e `(ip.src in $oneuptime_challenge)` com a ação Managed Challenge. A descrição delas diz que o OneUptime as gerencia. |
+| Um item de lista por bloqueio | O comentário dele nomeia o caso e quando o bloqueio termina, como `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+
+Cada regra fica em primeiro lugar entre as regras personalizadas da zona, então roda antes das suas: uma regra Skip sua não consegue deixar passar um endereço bloqueado. Quando suas regras Skip deixam passar endereços, como os dos seus monitores ou de um parceiro, **Estado do bloqueio** os nomeia. **Proteger estes endereços** os adiciona a **Entidades protegidas**, que ninguém pode bloquear.
+
+### Limites do plano para o bloqueio
+
+| Plano | Free | Pro | Business | Enterprise |
+| --- | --- | --- | --- | --- |
+| Listas na conta | 1 | 10 | 10 | 1.000 |
+| Itens de lista na conta | 10.000 | 10.000 | 10.000 | 500.000 |
+| Regras personalizadas em uma zona | 5 | 20 | 100 | 1.000 |
+
+Suas próprias listas e regras também contam. Quando você ativa o bloqueio, cada ação pega uma lista, e uma regra em cada zona, onde o plano as tem sobrando, Block primeiro; onde não, pega IP Access Rules. Em um plano Free cuja única lista está livre, os bloqueios pegam a lista e os desafios, IP Access Rules. Uma conta comporta 50.000 IP Access Rules, cada uma um endereço, um intervalo IPv4 de /16 ou /24, ou um intervalo IPv6 de /32, /48 ou /64: um bloqueio de outro intervalo não é aplicado ali, e a **Lista de bloqueio** diz por quê. **How blocking is set up** diz o que cada ação pega, e por quê.
+
+### Quando alguém muda uma regra
+
+O OneUptime lê de volta suas listas e regras a cada 3 minutos, e nunca desfaz uma mudança que alguém fez na Cloudflare. Uma regra desativada, excluída ou alterada lá aparece na linha da conexão e em **Estado do bloqueio**, com a zona dela, e a **Lista de bloqueio** mostra os bloqueios da regra dessa zona como não aplicados na Cloudflare. **Restaurar** configura a regra de novo. Enquanto **Zonas** for **Todas as zonas**, uma zona adicionada depois à conta é configurada sozinha.
+
+### Desativar o bloqueio
+
+**Desativar bloqueio** pergunta se deve remover da Cloudflare as listas e regras do OneUptime, com **Remover as listas e regras do OneUptime da Cloudflare** selecionado. A remoção tira as regras do OneUptime, as duas listas dele e as IP Access Rules que ele adicionou, encontradas pelos nomes, referências e notas que ele lhes deu, e nada mais. Se mantidas, ficam na Cloudflare e continuam bloqueando o que contêm. Uma conexão que bloqueia endereços não pode ser excluída: desative o bloqueio primeiro, e exclua-a quando a remoção terminar.
+
 ## Solução de problemas
 
 O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Cada mensagem nomeia a requisição que falhou e cita o motivo dado pela Cloudflare.
@@ -176,7 +229,11 @@ A requisição não teve resposta: um tempo limite, um nome que não resolve ou 
 :::
 
 :::details Um caso mostra as ações da Cloudflare, mas nenhuma requisição do endereço no seu app
-Atrás da Cloudflare, seu app vê os endereços da Cloudflare, a menos que leia o do visitante no cabeçalho `CF-Connecting-IP`. Escreva esse endereço nos seus logs e traces como `client.address`, para que o OneUptime consiga relacionar as requisições do seu app ao endereço que a Cloudflare tratou.
+Atrás da Cloudflare, as requisições do seu app vêm dos endereços da Cloudflare, e o endereço do visitante é o último que a Cloudflare acrescenta a `X-Forwarded-For`. Registre esse cabeçalho (`http.request.header.x-forwarded-for`) e o endereço da própria conexão (`network.peer.address`) nos seus traces. Enquanto esta conexão existir, o OneUptime confia nos endereços da Cloudflare como proxy, então lê o visitante no cabeçalho e associa as requisições do seu app ao endereço sobre o qual a Cloudflare agiu. Um `client.address` que o seu app copia de `CF-Connecting-IP` não é considerado confiável: qualquer um que chegue diretamente ao seu app pode enviar esse cabeçalho.
+:::
+
+:::details O estado do bloqueio diz `already exists in this Cloudflare account`
+Outro projeto do OneUptime, ou uma pessoa, criou uma lista chamada `oneuptime_block` ou `oneuptime_challenge`, e o OneUptime nunca muda uma lista que ele não criou para este projeto. Renomeie ou exclua essa lista na Cloudflare, ou desative o bloqueio no projeto que a criou. O OneUptime configura o bloqueio de novo em até 5 minutos.
 :::
 
 :::details O teste passa, mas Last Polled é Never
