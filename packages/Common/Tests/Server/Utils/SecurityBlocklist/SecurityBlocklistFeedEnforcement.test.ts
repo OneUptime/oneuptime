@@ -6,6 +6,7 @@ import SecurityBlockService from "../../../../Server/Services/SecurityBlockServi
 import SecurityBlocklistFeedFetchService, {
   SecurityBlocklistFeedFetchRecord,
 } from "../../../../Server/Services/SecurityBlocklistFeedFetchService";
+import SecurityBlockCloudWafService from "../../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityBlocklistFeedService from "../../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../../Server/Services/SecurityCaseFeedService";
 import SecurityBlockDestinations from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
@@ -398,6 +399,10 @@ afterEach(() => {
 describe("the feeds are a kind of destination every server has", () => {
   test("a project's feeds are found as destinations, keyed by feed, named as people named them", async () => {
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
+    // The project has picked no AWS WAF web ACL (#10344): its feeds are all it has.
+    jest
+      .spyOn(SecurityBlockCloudWafService, "findForProject")
+      .mockResolvedValue([] as never);
 
     const found: Awaited<
       ReturnType<typeof SecurityBlockDestinations.findForProject>
