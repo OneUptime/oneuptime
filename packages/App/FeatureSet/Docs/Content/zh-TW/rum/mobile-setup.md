@@ -19,7 +19,7 @@ flowchart TB
     app["你的行動應用程式"] --> sdk["OpenTelemetry SDK<br/>帶有 device.* 屬性"]
     sdk -->|"使用行動裝置金鑰<br/>的 OTLP"| oneuptime["OneUptime"]
     oneuptime --> rum["行動 RUM 應用程式"]
-    replay["React Native<br/>重播 SDK"] -->|"使用 Browser 金鑰<br/>的錄製"| oneuptime
+    replay["React Native<br/>重播 SDK"] -->|"使用同一個行動裝置<br/>金鑰的錄製"| oneuptime
 ```
 
 ## OneUptime 需要什麼
@@ -52,7 +52,7 @@ flowchart TB
 | 日誌 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。行動裝置金鑰的副本只能傳送此應用程式的追蹤、日誌和指標，全部歸入其 **固定的服務名稱** 之下，而且絕不能從網頁傳送。它仍可在金鑰的 **每分鐘請求數上限** 以內為此應用程式傳送捏造的資料，所以請加上 **到期於** 日期，並隨每次發布輪替金鑰。
+> 金鑰會隨應用程式一起發布，而應用程式可以被解開，所以請假設有人會複製它。行動裝置金鑰的副本只能傳送此應用程式的追蹤、日誌、指標和工作階段重播，全部歸入其 **固定的服務名稱** 之下，而且絕不能從網頁傳送。它仍可在金鑰的 **每分鐘請求數上限** 以內為此應用程式傳送捏造的資料，所以請加上 **到期於** 日期，並隨每次發布輪替金鑰。
 
 ## 設定你的平台
 
@@ -289,7 +289,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 行動端的工作階段重播
 
-React Native 應用程式可以使用 `@oneuptime/react-native-replay` 錄製工作階段。它會把原生檢視樹記錄為線框，絕不記錄螢幕截圖或畫面上的文字，其錄製與 Web 錄製在同一個播放器中開啟。它使用 **瀏覽器** 金鑰傳送，該金鑰的 **允許的來源** 以 `app://` 加上 Android 應用程式 ID 或 iOS 套件組合 ID 的形式列出你的應用程式：這是一個獨立的金鑰，不同於 OpenTelemetry SDK 使用的行動裝置金鑰。 [在 React Native 中安裝](/docs/telemetry/session-replay#在-react-native-中安裝) 會逐步說明。
+React Native 應用程式可以使用 `@oneuptime/react-native-replay` 錄製工作階段。它會把原生檢視樹記錄為線框，絕不記錄螢幕截圖或畫面上的文字，其錄製與 Web 錄製在同一個播放器中開啟。它使用與 OpenTelemetry SDK 相同的 **行動裝置** 金鑰傳送，以金鑰的 **固定的服務名稱** 作為 `appIdentifier`，因此應用程式只需附帶一個金鑰。 **允許的來源** 以 `app://` 加上 Android 應用程式 ID 或 iOS 套件組合 ID 的形式列出你的應用程式的 **瀏覽器** 金鑰也可以使用。 [在 React Native 中安裝](/docs/telemetry/session-replay#在-react-native-中安裝) 會逐步說明。
 
 原生 Android 和 iOS 應用程式以及其他平台沒有工作階段錄製器：它們的 **工作階段重播** 頁面會保持空白，而追蹤、日誌、指標、例外和 **用戶端** 頁面照常運作。
 
@@ -298,7 +298,7 @@ React Native 應用程式可以使用 `@oneuptime/react-native-replay` 錄製工
 :::details 金鑰檢查回傳 401，或金鑰被拒絕
 `401` 表示金鑰不明、已撤銷、已關閉或已過期：請建立行動裝置金鑰，並用它重新建置應用程式。
 
-Browser 金鑰能通過檢查，但行動應用程式的每次匯出都會被拒絕，回傳 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` 。請使用 **行動裝置** 金鑰。行動裝置金鑰透過 gRPC 或從網頁傳送時也會以 `422` 被拒絕：請透過 OTLP/HTTP 匯出。
+Browser 金鑰能通過檢查，但行動應用程式的每次匯出都會被拒絕，回傳 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` 。請使用 **行動裝置** 金鑰。行動裝置金鑰透過 gRPC 傳送、從網頁傳送，或傳送 `appIdentifier` 不是其 **固定的服務名稱** 的工作階段重播時，也會以 `422` 被拒絕：請透過 OTLP/HTTP 匯出，並把金鑰的固定名稱交給重播 SDK。
 :::
 
 :::details 應用程式出現在服務下，而不是真實使用者監測下

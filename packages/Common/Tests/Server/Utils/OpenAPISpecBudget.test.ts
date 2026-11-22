@@ -32,14 +32,25 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * more of today's size (9%). The spec has grown fast - OpenAPI.ts's
  * comment measured 16.5 MB on 2026-10-28, three weeks before - so a tighter
  * budget would stop every other change.
+ *
+ * Raised on 2026-11-20, from 25,000,000. The spec was 24.66 MB, and every
+ * resource then gained what created each record and who last modified it
+ * (#10290): kept out of the read, query, select and sort schemas and the
+ * reference (hideColumnInDocumentation), but in each resource's own model
+ * schema, which lists every column a reader may read - 1.78 MB in all, to
+ * 26,435,798 bytes. This leaves room for about 6% more.
  */
-const MAX_SPEC_BYTES: number = 25_000_000;
+const MAX_SPEC_BYTES: number = 28_000_000;
 
 /*
  * The budget for what is sent: 995,447 bytes gzipped on 2026-11-16, 1,948
  * a resource on average. This leaves room for about 53 more (10%).
+ *
+ * Raised on 2026-11-20, from 1,100,000: the spec had grown to 1,106,661
+ * bytes gzipped, past it, and the record actor columns (#10290, above) took
+ * it to 1,237,436. This leaves room for about 5% more.
  */
-const MAX_SPEC_GZIP_BYTES: number = 1_100_000;
+const MAX_SPEC_GZIP_BYTES: number = 1_300_000;
 
 /*
  * How far above the spec a budget may sit. A budget much bigger than what it

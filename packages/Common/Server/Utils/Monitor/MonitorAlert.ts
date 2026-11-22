@@ -255,14 +255,22 @@ export default class MonitorAlert {
    * alerts for the given payload-derived fingerprints — and only those —
    * when the criteria that created them has auto-resolve enabled. Mirrors
    * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
-   * absence (a webhook describes only the keys in its payload), and
+   * absence (a webhook describes only the keys in its payload),
    * `wholeMonitor` resolves a grouped criteria's alert for the whole
-   * monitor in the same pass.
+   * monitor in the same pass, and `fingerprintsByCriteriaId` holds each
+   * criteria to its own recoveries (#10585).
    */
   @CaptureSpan()
   public static async resolveSeriesAlertsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
+    /*
+     * The values each criteria reads recovered, by its id: an alert
+     * resolves only when the criteria that opened it reads its value
+     * recovered. Without it, a value in `fingerprints` resolves an alert of
+     * any criteria - a Logs monitor's groups, which a log resolves.
+     */
+    fingerprintsByCriteriaId?: Dictionary<Array<string>> | undefined;
     rootCause: string;
     // What the evaluation summary says of each alert resolved here.
     resolvedMessage?: string | undefined;
@@ -275,6 +283,14 @@ export default class MonitorAlert {
     dataToProcess: DataToProcess;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /*
+     * The monitor log names each open alert a recovery was reported for
+     * but left open, because its criteria's alert has Auto Resolve Alert
+     * off (an Incoming Request monitor's recoveries, #10550). The grouping
+     * settings ask for the resolve and the switch withholds it: without
+     * this, the log said only that the request opened nothing new.
+     */
+    noteLeftOpen?: boolean | undefined;
   }): Promise<void> {
     const fingerprintSet: Set<string> = new Set<string>(
       input.fingerprints || [],
@@ -301,6 +317,7 @@ export default class MonitorAlert {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         projectId: true,
         alertNumber: true,
@@ -324,7 +341,12 @@ export default class MonitorAlert {
       }
 
       const isRecoveredValue: boolean = Boolean(
-        fingerprint && fingerprintSet.has(fingerprint),
+        fingerprint &&
+          (input.fingerprintsByCriteriaId
+            ? (
+                input.fingerprintsByCriteriaId[createdCriteriaId] || []
+              ).includes(fingerprint)
+            : fingerprintSet.has(fingerprint)),
       );
       const isRecoveredWholeMonitor: boolean =
         !fingerprint && wholeMonitorCriteriaIds.has(createdCriteriaId);
@@ -341,6 +363,26 @@ export default class MonitorAlert {
             input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
         })
       ) {
+        if (input.noteLeftOpen) {
+          input.evaluationSummary?.events.push({
+            type: "alert-skipped",
+            ...EvaluationEventText.from({
+              title: translatableSentence("Alert left open: {{title}}", {
+                title: String(openAlert.title || openAlert.id?.toString()),
+              }),
+              message: translatableSentence(
+                "A request reported this alert recovered, but Auto Resolve Alert is off in its criteria, so the alert stays open. Turn on Auto Resolve Alert, under More fields in the criteria's alert, to resolve it on recovery.",
+              ),
+            }),
+            relatedCriteriaId: createdCriteriaId,
+            relatedAlertId: openAlert.id?.toString(),
+            relatedAlertNumber: openAlert.alertNumber,
+            relatedAlertNumberWithPrefix: openAlert.alertNumberWithPrefix,
+            relatedAlertCreatedAt: openAlert.createdAt,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         continue;
       }
 

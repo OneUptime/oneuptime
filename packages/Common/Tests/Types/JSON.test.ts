@@ -7,6 +7,8 @@ describe("ObjectType", () => {
     "EqualTo",
     "EqualToOrNull",
     "NotEqual",
+    "NotEqualOrNull",
+    "IncludesNoneOrNull",
     "Email",
     "Phone",
     "Color",

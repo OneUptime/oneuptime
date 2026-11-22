@@ -235,6 +235,16 @@ Un compte AWS, un projet Google Cloud ou un abonnement Azure [connecté sous **C
 - La lecture du compte n'apporte rien de plus : les événements de données, les journaux Data Access et les journaux de Microsoft Entra ID passent toujours par **Vos journaux** ou par une [connexion](/docs/integrations/microsoft-entra-id).
 - Chaque événement nomme les ressources cloud dont parle son enregistrement par leurs propres identifiants - un ARN, un ID de ressource Azure, un nom de ressource Google Cloud -, il apparaît donc sur la page **Événements de sécurité** de chacune, et sur celle d'une fonction serverless dès que sa télémétrie définit `cloud.account.id` et `cloud.region`.
 
+### Les propres sondes de OneUptime dans vos flux réseau
+
+Activez **Flux réseau**, sous **Vos données OneUptime** sur **Connexions**, et les flux que vos appareils réseau exportent sont lus pour y trouver des scans de ports, des balayages réseau, du trafic avec des adresses malveillantes connues et de gros transferts sortants. Le travail d'une sonde y ressemble à un scan : interroger 40 appareils en SNMP atteint le port 161 sur 40 hôtes toutes les cinq minutes. Le trafic de l'une des propres sondes de OneUptime qui correspond exactement à ce que la sonde est configurée pour faire est donc mis de côté :
+
+- les appareils réseau qu'elle interroge, par ping et en SNMP sur leur port ;
+- la plage de chacune de ses découvertes, pendant que le scan tourne ;
+- les hôtes et les ports que ses moniteurs vérifient.
+
+Il est conservé comme un événement informatif, `oneuptime-probe-traffic`, qui nomme la sonde, et aucune règle ne le lit. **Flux réseau** indique combien a été mis de côté au cours du dernier jour, avec **Les voir**. Tout le reste venant de l'adresse d'une sonde est compté comme le trafic de n'importe qui, et un balayage ou un scan au-delà du travail de la sonde est signalé, en nommant la sonde. Une sonde est reconnue à l'adresse depuis laquelle elle se signale et aux adresses de ses propres interfaces réseau, qu'elle liste à chaque fois qu'elle se signale.
+
 ### Connecter un produit de sécurité
 
 **Connexions** interroge un produit de sécurité pour vous et importe ses nouveaux enregistrements comme événements de sécurité. Une connexion conserve les paramètres du produit et un identifiant chiffré ; un worker l'interroge à l'intervalle que vous fixez et ignore les enregistrements déjà importés.
@@ -341,7 +351,7 @@ Une chasse enregistrée avec des filtres de la barre latérale d'Événements le
 
 Une chasse planifiée prévient les personnes et les équipes que vous choisissez sous **Notifier** : au moins une, et 50 au plus en tout. Chaque exécution :
 
-- lit les événements dont l'heure suit l'exécution précédente, jusqu'à il y a deux minutes, si bien que chaque événement est parcouru une fois. La première exécution lit à partir du moment où la planification a été définie ou la recherche modifiée pour la dernière fois, et après une panne une exécution rattrape au plus un jour de plus que son intervalle.
+- lit les événements arrivés après l'exécution précédente, jusqu'à il y a deux minutes, quel que soit le moment où ils se sont produits, si bien que chaque événement est parcouru une fois, même celui qui arrive en retard. La première exécution lit à partir du moment où la planification a été définie ou la recherche modifiée pour la dernière fois, et après une panne une exécution rattrape au plus un jour de plus que son intervalle. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais aucune exécution ne le compte.
 - compte les événements que sa recherche y trouve, exactement comme **Événements** les listerait, en ne lisant que ce que peut lire la personne sous laquelle elle s'exécute.
 - quand elle trouve des événements, prévient les personnes que la chasse nomme, et les membres des équipes qu'elle nomme, qui peuvent lire les chasses et les événements de sécurité.
 
@@ -351,11 +361,11 @@ Une chasse planifiée s'exécute sous la personne qui a défini sa planification
 
 ### Historique des exécutions
 
-Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
+Chaque exécution planifiée est conservée 90 jours. **Historique des exécutions**, au bout de la ligne qui dit ce que les exécutions d'une chasse ont trouvé, les liste de la plus récente à la plus ancienne : quand chacune s'est exécutée et quand sont arrivés les événements qu'elle a parcourus, puis combien elle en a trouvé, avec **Les afficher** pour ouvrir exactement ces événements sur la page de la chasse ; qu'elle n'a rien trouvé ; ou pourquoi elle n'a pas pu s'exécuter. Quiconque peut ouvrir une chasse peut lire ses exécutions.
 
 ### Qui est prévenu
 
-La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et la fenêtre qu'elle a lue, et renvoie vers la page de la chasse sur ces événements ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
+La notification **Une chasse a trouvé des événements de sécurité** nomme la chasse et sa recherche, le nombre d'événements trouvés par son exécution et quand ils sont arrivés, et renvoie vers la page de la chasse sur exactement ces événements : le filtre **Arrivés** sur la journée qui les précède, que vous pouvez retirer pour voir tout le reste de cette période ; aucun mot d'un événement n'y figure. Tout le monde la reçoit par e-mail et push, et choisit ses canaux sous **Paramètres utilisateur → Paramètres de notification**. Comme les autres e-mails de routine, elle peut être retenue dans un [récapitulatif d'e-mails](/docs/emails/notification-rollup).
 
 Pour publier dans Slack, Microsoft Teams ou Mattermost ce que trouvent les chasses, ajoutez une règle à **Règles des chasses** sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams** ou **Mattermost**), sous les règles qui publient les [dossiers de sécurité](/docs/telemetry/security-cases#publier-dans-des-canaux-slack-microsoft-teams-et-mattermost). Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les chasses auxquelles elle s'applique, par **Nom de la chasse** : un nom qui est votre texte, le contient, commence par lui ou se termine par lui. Chaque fois qu'une exécution planifiée trouve des événements, elle publie la chasse, sa recherche, combien d'événements et quand, avec un lien vers eux, et aucun des mots propres à un événement. Une règle de chasse est mise en place par un rôle qui peut configurer des playbooks de sécurité, comme Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité.
 
@@ -505,7 +515,8 @@ OneUptime vérifie chaque minute quelles règles activées ont dépassé leur in
 
 - Une règle qui compte et une corrélation comptent dans des fenêtres aussi longues que l'intervalle, bout à bout sur l'horloge : avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 tombent dans des fenêtres différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
-- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait.
+- Une exécution qui échoue, par exemple parce qu'elle prend trop de temps, laisse la règle là où elle en était : son **Statut** indique **Échec de l'exécution**, et elle est relancée à son prochain intervalle, ou dans l'heure si celui-ci est plus long. L'exécution qui réussit lit tout ce qui est arrivé depuis la dernière qui a réussi, si ancienne soit-elle, une journée à la fois. Une exécution arrêtée après avoir agi sur ses correspondances est refaite sans les ajouter deux fois à leur dossier.
+- Un événement qui arrive en retard est quand même lu, une fois, par l'exécution suivante, et compté dans la fenêtre où il s'est produit : un groupe se déclenche quand sa fenêtre atteint le comptage, et au plus une fois par fenêtre. Un événement qui arrive plus d'un jour après s'être produit est stocké et consultable, mais les exécutions de la règle ne le lisent pas ; **Exécuter sur les événements passés** le fait. C'est voulu, pour qu'un import d'historique n'ouvre pas d'alertes sur le passé : quand des événements sont arrivés aussi tard au cours des 7 derniers jours, une notice au-dessus des règles indique combien, de quelles sources et quand ils se sont produits, et ouvre **Exécuter sur les événements passés** sur cette période.
 - Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Règles en temps réel
@@ -637,6 +648,14 @@ L'action **Créer un moniteur** dans la ligne d'une règle ouvre un nouveau moni
 ## Conservation et facturation
 
 Les événements de sécurité sont facturés par Go ingéré, comme le reste de votre télémétrie, et conservés selon votre conservation de télémétrie : la **Conservation par défaut (jours)** du projet, sous **Paramètres du projet → Télémétrie & APM → Rétention des données**, ou une conservation réglée sur le service de télémétrie auquel ils appartiennent. Quand la conservation d'un événement prend fin, il est supprimé.
+
+Tout ce qui, dans Événements de sécurité, lit des événements passés ne lit que les événements encore conservés, et dit quand il lui en faudrait davantage :
+
+- Une règle **Vu pour la première fois** dont la durée dépasse la conservation des événements juge qu'une valeur est nouvelle d'après les jours conservés : avec une durée de 30 jours et 15 jours conservés, ses alertes et ses dossiers disent `First awsRegion in 15 days`, et une valeur vue pour la dernière fois il y a 20 jours est considérée comme nouvelle. Sa ligne affiche **Attention requise**, et **Voir l'erreur** dit quoi changer. Le formulaire de la règle et le détail d'une règle dans la bibliothèque de règles le disent avant qu'elle soit enregistrée ou ajoutée. Un comptage ou une séquence dont la fenêtre dépasse la conservation des événements ne compte que ceux-là.
+- **Exécuter sur les événements passés** sur une période qui commence avant les événements conservés dit que les événements de sécurité sont conservés 15 jours, donc qu'il a remonté 15 jours, et ce qu'il n'a pas trouvé ne vaut que pour ces jours-là. Un événement survenu plus tôt mais arrivé en retard reste conservé, et reste lu. Une règle **Vu pour la première fois** dit quelle part des 30 jours précédant la période elle a pu voir.
+- Une chasse dont la **Plage temporelle** dépasse la conservation des événements ne trouve rien de plus ancien, et son formulaire le dit.
+
+**Paramètres du projet → Télémétrie & APM → Rétention des données** liste les règles activées qui remontent plus loin que sa **Conservation par défaut (jours)**. Pour les couvrir, conservez les événements plus longtemps, avec **Modifier la rétention** sous une règle, ou raccourcissez la durée d'une règle à ce qui est conservé. OneUptime conserve 15 jours sauf si vous le changez, car la conservation fixe ce que coûte votre télémétrie et combien de temps les données personnelles des événements, comme les adresses et les noms d'utilisateur, sont gardées. Une nouvelle conservation s'applique aux événements qui arrivent à partir de ce moment, donc les règles voient plus loin à mesure que ces événements vieillissent.
 
 ## Dépannage
 

@@ -17,7 +17,9 @@ import OtelPayloadDecoder, {
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
-import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatestPayloadStore";
+import IncomingRequestPendingStore, {
+  PushedIncomingRequest,
+} from "../../Utils/IncomingRequestPendingStore";
 import NetworkDevicePollLatestStore from "../../Utils/NetworkDevicePollLatestStore";
 import SnmpTrapPendingStore from "../../Utils/SnmpTrapPendingStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
@@ -51,6 +53,12 @@ export enum TelemetryType {
   ProbeIngest = "probe-ingest",
   ServerMonitorIngest = "server-monitor-ingest",
   IncomingRequestIngest = "incoming-request-ingest",
+  /*
+   * A monitor's waiting Incoming Requests (IncomingRequestPendingStore). A
+   * type of its own, so a worker of an earlier release, which would read
+   * one as a request to evaluate, hands it back to the queue instead.
+   */
+  IncomingRequestPending = "incoming-request-pending",
   TelemetryMonitorEvaluation = "telemetry-monitor-evaluation",
   KubernetesCostIngest = "kubernetes-cost-ingest",
   SessionReplay = "session-replay",
@@ -227,13 +235,24 @@ export interface IncomingRequestIngestJobData {
    */
   answeredVerification?: WebhookVerificationProvider | undefined;
   /*
-   * Set only when the request was queued with same-monitor coalescing: its id
-   * in IncomingRequestLatestPayloadStore. It tells the worker to evaluate the
-   * monitor's newest stored request, which may be newer than this copy. The
-   * copy stays on the job for workers that predate the store (a rolling
-   * deploy) and for jobs queued with coalescing off.
+   * Set only on a job an earlier release queued with same-monitor
+   * coalescing: its id in IncomingRequestLatestPayloadStore, the one slot
+   * that release kept the monitor's newest request in. It tells the worker
+   * to evaluate that slot's request, which may be newer than this copy. This
+   * release keeps every request instead (IncomingRequestPendingStore) and
+   * queues an IncomingRequestPending job, so only jobs queued during an
+   * upgrade carry it.
    */
   coalescedPayloadId?: string | undefined;
+}
+
+/*
+ * Which monitor's waiting requests to work through: the hash of its secret
+ * key, which names its list in IncomingRequestPendingStore. The requests,
+ * secret key included, are in the list, not on the job.
+ */
+export interface IncomingRequestPendingJobData {
+  secretKeyHash: string;
 }
 
 export interface TelemetryMonitorEvaluationJobData {
@@ -351,11 +370,22 @@ export interface TelemetryIngestJobData {
   /*
    * Set only for a job a Mobile ingestion key admitted (issue #6457): the
    * worker keeps only a mobile app's own resource attributes and files the
-   * batch as the pinned app's mobile RUM (PinMobileRumResource), so a key
+   * batch as the pinned app's mobile RUM (PinRumClientResource), so a key
    * copied out of an app can write nothing else. Carried on the job for the
    * same reason as pinnedServiceName: the payload is decoded in the worker.
    */
   isMobileKey?: true;
+  /*
+   * The same for a job a Browser ingestion key admitted (issue #10539): the
+   * worker keeps only a web page's own resource attributes and files the
+   * batch as the page's browser RUM, so a key copied out of a page - its
+   * Origin header is any a script likes - cannot file telemetry under a
+   * host, a cluster, a cloud resource, a database or a backend service. A
+   * flag of its own rather than a kind beside isMobileKey, so a worker of
+   * the release before, during a rolling upgrade, still files a Mobile
+   * key's batch as it always did.
+   */
+  isBrowserKey?: true;
   /*
    * Set only when the body was counted against an ingestion budget at an
    * estimate - a compressed OTLP/HTTP body, sized from its own header
@@ -379,6 +409,8 @@ export interface TelemetryIngestJobData {
   serverMonitorIngest?: ServerMonitorIngestJobData;
   // IncomingRequestIngest-specific
   incomingRequestIngest?: IncomingRequestIngestJobData;
+  // IncomingRequestPending-specific
+  incomingRequestPending?: IncomingRequestPendingJobData;
   // TelemetryMonitorEvaluation-specific
   telemetryMonitorEvaluation?: TelemetryMonitorEvaluationJobData;
   // KubernetesCostIngest-specific
@@ -806,12 +838,24 @@ export default class TelemetryQueueService {
         jobData.pinnedServiceName = pinnedServiceName;
       }
 
-      // A Mobile key writes only its app's mobile RUM (issue #6457).
+      /*
+       * A Mobile key writes only its app's mobile RUM (issue #6457), and a
+       * Browser key only its page's browser RUM (issue #10539). Every OTel
+       * job they make is marked, the ones the Sentry endpoint queues for a
+       * Browser key's envelopes among them (CompatibleIngestService).
+       */
       if (
         isOtelType &&
         ingestionKeyPolicy?.keyType === TelemetryIngestionKeyType.Mobile
       ) {
         jobData.isMobileKey = true;
+      }
+
+      if (
+        isOtelType &&
+        ingestionKeyPolicy?.keyType === TelemetryIngestionKeyType.Browser
+      ) {
+        jobData.isBrowserKey = true;
       }
 
       const budgetSignal: TelemetryIngestionBudgetSignal | null =
@@ -1513,32 +1557,47 @@ export default class TelemetryQueueService {
           : {}),
       };
 
-      /*
-       * Read once: whether the request is stored for coalescing and whether
-       * its job is deduplicated must agree.
-       */
-      const coalesce: boolean = INCOMING_REQUEST_INGEST_COALESCE_ENABLED;
-
-      if (coalesce) {
+      if (INCOMING_REQUEST_INGEST_COALESCE_ENABLED) {
         /*
-         * BullMQ's deduplication below keeps the newest payload only while
-         * the monitor's job is ACTIVE. A request that arrives while the job is
-         * still WAITING is discarded and the older waiting payload is the one
-         * evaluated - under a backlog, most requests. So the request is also
-         * stored as the monitor's newest, and a coalesced job evaluates that
-         * when it runs (see IncomingRequestLatestPayloadStore). Stored BEFORE
-         * the job is added, so the job that ends up evaluating this request
-         * always finds it.
+         * Coalesce same-monitor incoming requests. An external sender can
+         * hammer one monitor's incoming-request URL at an arbitrary rate;
+         * as a job each, they would fan out into many concurrent
+         * monitorResource() calls all contending on the same per-monitor
+         * lock ("Acquire mutex ... timeout"), and be judged in whatever order
+         * they won it. So the request is kept behind the monitor's others
+         * (IncomingRequestPendingStore), and the monitor has one job at a
+         * time that works through them in the order they arrived: every one
+         * of them for a monitor whose criteria group by a payload field, the
+         * newest for any other (ProcessIncomingRequestIngest). Kept BEFORE
+         * the job is added, so the job that runs always finds it.
          */
-        incomingRequestData.coalescedPayloadId = ObjectID.generate().toString();
+        const kept: PushedIncomingRequest =
+          await IncomingRequestPendingStore.push({
+            secretKey: data.secretKey,
+            requestId: ObjectID.generate().toString(),
+            payload: incomingRequestData,
+          });
 
-        await IncomingRequestLatestPayloadStore.store({
-          secretKey: data.secretKey,
-          payloadId: incomingRequestData.coalescedPayloadId,
-          payload: incomingRequestData,
+        if (kept.skipped > 0) {
+          logger.debug(
+            `Incoming request kept; ${kept.skipped} older waiting request(s) of its monitor were skipped to stay within the limit.`,
+          );
+        }
+
+        await TelemetryQueueService.addIncomingRequestPendingJob({
+          secretKeyHash: IncomingRequestPendingStore.getSecretKeyHash(
+            data.secretKey,
+          ),
         });
+
+        return;
       }
 
+      /*
+       * Coalescing turned off (INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false,
+       * an operator's switch): every request is a job of its own, carrying
+       * it, evaluated whenever a worker takes it.
+       */
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.IncomingRequestIngest,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
@@ -1560,35 +1619,6 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
-          /*
-           * Coalesce same-monitor incoming requests. An external sender can
-           * hammer one monitor's incoming-request URL at an arbitrary rate;
-           * without coalescing each call becomes its own job and they fan out
-           * into many concurrent monitorResource() calls all contending on the
-           * same per-monitor Redis lock ("Acquire mutex ... timeout"). With
-           * keepLastIfActive BullMQ keeps at most one active + one waiting job
-           * per monitor, so same-monitor processing is serialized at enqueue
-           * time (no worker slots, no lock contention). Keyed by secretKey
-           * because the monitorId is only resolved later in the worker; the
-           * secret key is 1:1 with the monitor. Gated so ops can disable
-           * without a deploy.
-           *
-           * Which request gets evaluated is not left to BullMQ, which keeps
-           * the latest payload only for a request that arrives while the
-           * monitor's job is ACTIVE: the job evaluates the monitor's newest
-           * request from IncomingRequestLatestPayloadStore, stored above, so
-           * the newest one is evaluated whichever job runs. Liveness does not
-           * depend on it either: the endpoint records every arrival in
-           * IncomingRequestReceivedAtStore before enqueueing.
-           */
-          ...(coalesce
-            ? {
-                deduplication: {
-                  id: `incoming-request-${data.secretKey}`,
-                  keepLastIfActive: true,
-                },
-              }
-            : {}),
         },
       );
 
@@ -1598,6 +1628,71 @@ export default class TelemetryQueueService {
       logger.error(error);
       throw error;
     }
+  }
+
+  /*
+   * Queues the job that works through a monitor's waiting requests - unless
+   * one is waiting already, which will. Added while the monitor's job is
+   * running, it is queued after it (keepLastIfActive), so a request kept
+   * while a job works through the list is never left behind. A job that
+   * stopped before the end of the list queues itself this way, behind every
+   * job already waiting, so one sender takes its turn with everyone else.
+   *
+   * `delayInMs` holds the job back: a job whose last attempt failed queues
+   * the next one a while later, so the requests still waiting are not left
+   * without a job.
+   */
+  public static async addIncomingRequestPendingJob(data: {
+    secretKeyHash: string;
+    delayInMs?: number | undefined;
+  }): Promise<void> {
+    const jobData: TelemetryIngestJobData = {
+      type: TelemetryType.IncomingRequestPending,
+      ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+      incomingRequestPending: {
+        secretKeyHash: data.secretKeyHash,
+      },
+    };
+
+    /*
+     * Neither the id nor the deduplication id spells out the secret key: it
+     * is the monitor's credential, and ids end up in queue dashboards and
+     * logs.
+     */
+    const jobId: string = `incoming-request-pending-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+    await Queue.addJob(
+      QueueName.Telemetry,
+      jobId,
+      "ProcessTelemetry",
+      jobData as unknown as JSONObject,
+      {
+        skipExistenceCheck: true,
+        ...(data.delayInMs && data.delayInMs > 0
+          ? { delayInMs: data.delayInMs }
+          : {}),
+        deduplication: {
+          id: TelemetryQueueService.getIncomingRequestPendingDeduplicationId(
+            data.secretKeyHash,
+          ),
+          keepLastIfActive: true,
+        },
+      },
+    );
+
+    logger.debug(`Added incoming request job: ${jobId}`);
+  }
+
+  /*
+   * One job at a time per monitor. Not the id an earlier release's jobs were
+   * deduplicated by (`incoming-request-<secret key>`): during an upgrade a
+   * job of each kind may be queued for a monitor, and neither may swallow the
+   * other's add.
+   */
+  public static getIncomingRequestPendingDeduplicationId(
+    secretKeyHash: string,
+  ): string {
+    return `incoming-request-pending-${secretKeyHash}`;
   }
 
   public static async addTelemetryMonitorEvaluationJob(data: {

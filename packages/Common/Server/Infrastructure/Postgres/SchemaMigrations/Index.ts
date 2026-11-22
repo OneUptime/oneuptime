@@ -1142,7 +1142,13 @@ import { AddCloudAppPlatformCloudResource1809187383700 } from "./1809187383700-A
 import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809187383710-AddCloudAppPlatformCloudResourceIndexAndKey";
 import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
 import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
-import { AddSecurityBlocklistFeeds1809187400000 } from "./1809187400000-AddSecurityBlocklistFeeds";
+import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
+import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
+import { AddSecurityBlocklistFeeds1809187430000 } from "./1809187430000-AddSecurityBlocklistFeeds";
 
 export default [
   InitialMigration,
@@ -2289,5 +2295,11 @@ export default [
   AddCloudAppPlatformCloudResourceIndexAndKey1809187383710,
   AddSecurityCaseStepChecks1809187390000,
   AddSecurityCaseNextStepCheckIndex1809187390010,
-  AddSecurityBlocklistFeeds1809187400000,
+  AddRecordCreatedByAndLastModifiedColumns1809187400000,
+  AddDetectionRunMarksAndFiringKeys1809187421130,
+  AddDetectionRuleLastFailedAt1809187421140,
+  AddAIAgentTaskPullRequestSecurityCase1809187421500,
+  AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
+  AddProbeInterfaceIpAddresses1809187429000,
+  AddSecurityBlocklistFeeds1809187430000,
 ];

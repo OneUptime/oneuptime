@@ -35,13 +35,13 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 
 | | **Server** | **Webbläsare** | **Mobil** |
 | --- | --- | --- | --- |
-| För | Applikationer, collectors och agenter på maskiner du driver | Webbsidor, och React Native Session Replay | En iOS-, Android- eller React Native-app |
-| Skickar | All sorts telemetri, till alla endpoints | Spår, loggar, mätvärden, Session Replays och [Sentry-händelser](/docs/telemetry/compatible-endpoints#sentry-sdker) | Den appens spår, loggar och mätvärden, över OTLP/HTTP |
+| För | Applikationer, collectors och agenter på maskiner du driver | Webbsidor | En iOS-, Android- eller React Native-app |
+| Skickar | All sorts telemetri, till alla endpoints | Spår, loggar, mätvärden, Session Replays och [Sentry-händelser](/docs/telemetry/compatible-endpoints#sentry-sdker) | Den appens spår, loggar och mätvärden, över OTLP/HTTP, och dess Session Replays |
 | En hemlighet | Ja: håll den på dina servrar | Nej: alla som ser sidan kan läsa den | Nej: alla som har appen kan kopiera den |
 | Ursprung | Kontrolleras inte | Bara de angivna ursprungen godkänns | En begäran från en webbsida avvisas |
 | Begäranden per minut | Ingen gräns, om du inte anger en | 6 000, om du inte anger en annan gräns | 6 000, om du inte anger en annan gräns |
 
-Överallt annars avvisar OneUptime en webbläsarnyckel, till exempel över gRPC och MQTT, för profiler, Syslog, Fluent Bit och Fluentd, och för uppladdning av source maps, och en mobilnyckel överallt utom för OTLP-spår, -loggar och -mätvärden över HTTP. För att flytta en avsändare till en annan typ skapar du en nyckel av den typen, byter avsändaren till den och tar sedan bort den gamla nyckeln.
+Överallt annars avvisar OneUptime en webbläsarnyckel, till exempel över gRPC och MQTT, för profiler, Syslog, Fluent Bit och Fluentd, och för uppladdning av source maps, och en mobilnyckel överallt utom för OTLP-spår, -loggar och -mätvärden över HTTP och dess apps Session Replays. För att flytta en avsändare till en annan typ skapar du en nyckel av den typen, byter avsändaren till den och tar sedan bort den gamla nyckeln.
 
 ## Innan du börjar
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Lås ned en webbläsarnyckel
 
-En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Intagningsnyckel**.
+En webbläsarnyckel finns i din sida, där vem som helst kan kopiera den. Allt den skickar lagras som en webbläsar-RUM-applikation, aldrig som en värd, ett kluster, en molnresurs, en databas eller en backend-tjänst: av resursen som en avsändare sätter behåller nyckeln bara det som en sida säger om sig själv, som attributen `service.*`, `browser.*` och `user_agent.*` och etiketterna `oneuptime.label.*`. De här inställningarna begränsar vad en kopia kan göra. Ändra dem på nyckelns sida med **Redigera Intagningsnyckel**.
 
 | Inställning | Vad den gör |
 | --- | --- |
 | **Tillåtna ursprung** | De enda ursprung som nyckeln godkänns från. En begäran från något annat ursprung, eller helt utan `Origin`-header, avvisas. En webbläsarnyckel måste behålla minst ett. |
-| **Fäst tjänstnamn** | Lägger allt som nyckeln skickar över OTLP/HTTP under den här enda tjänsten, oavsett vilket `service.name` avsändaren har satt. En kopia av nyckeln kan då bara skriva till den tjänsten. |
+| **Fäst tjänstnamn** | Lägger allt som nyckeln skickar över OTLP/HTTP under den här enda applikationen, oavsett vilket `service.name` avsändaren har satt. En kopia av nyckeln kan då bara skriva till den applikationen. |
 | **Gräns för förfrågningar per minut** | Det största antalet begäranden som nyckeln godkänns för varje minut, delat av alla besökare. En webbläsarnyckel får 6 000 när du lämnar fältet tomt. |
 | **Upphör** | Datumet då nyckeln börjar avvisas, så att en publicerad kopia slutar fungera. |
 
-Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.com` täcker inte `https://app.example.com:8443`. Ett inledande `*.` täcker alla underdomäner, men inte själva domänen. React Native Session Replay skickar en exakt `app://`-identitet, som inte tar något jokertecken:
+Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.com` täcker inte `https://app.example.com:8443`. Ett inledande `*.` täcker alla underdomäner, men inte själva domänen. React Native Session Replay med en webbläsarnyckel skickar en exakt `app://`-identitet, som inte tar något jokertecken:
 
 ```json
 [
@@ -111,11 +111,11 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 En mobilnyckel följer med i din app, och alla som har appen kan kopiera den. De här gränserna håller varje kopia till appen som nyckeln skapades för:
 
 - **Den skriver bara som en app.** Allt den skickar arkiveras under dess **Fäst tjänstnamn** som en mobil RUM-applikation, oavsett vilken tjänst eller värd avsändaren anger. En kopia kan inte skriva i dina backend-tjänster, värdar eller kluster.
-- **Den skickar bara den appens telemetri.** OTLP-spår, -loggar och -mätvärden över HTTP. Den avvisas över gRPC och MQTT, för Session Replays, profiler och source maps, på alla andra endpoints och från alla webbsidor.
+- **Den skickar bara den appens telemetri.** OTLP-spår, -loggar och -mätvärden över HTTP och appens Session Replays från dess React Native-inspelare, med nyckelns **Fäst tjänstnamn** som `appIdentifier`. Den avvisas över gRPC och MQTT, för en annan apps Session Replays, profiler och source maps, på alla andra endpoints och från alla webbsidor.
 - **Den har en hastighetsgräns.** 6 000 begäranden per minut för alla kopior tillsammans, om du inte anger dess **Gräns för förfrågningar per minut**.
 - **Du kan stoppa den.** Stäng av **Aktiverad**, eller ange **Upphör**, så avvisas varje kopia inom några sekunder.
 
-Vad den inte kan förhindra: Den som har din app kan fortfarande skicka påhittade spår, loggar och mätvärden för den enda appen, upp till nyckelns gräns, tills du stänger av nyckeln eller den upphör. Byt nyckeln med dina releaser, så att en gammal kopia slutar fungera med sin version.
+Vad den inte kan förhindra: Den som har din app kan fortfarande skicka påhittade spår, loggar, mätvärden och Session Replays för den enda appen, upp till nyckelns gräns, tills du stänger av nyckeln eller den upphör. Byt nyckeln med dina releaser, så att en gammal kopia slutar fungera med sin version.
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
@@ -144,7 +144,8 @@ Nyckelns sida räknar också: **Avvisad telemetri** visar vad som avvisats från
 | `422` med `This telemetry ingestion key has been disabled.` | Någon har stängt av **Aktiverad**. |
 | `422` med `A browser ingestion key cannot be used for` | En webbläsarnyckel nådde en endpoint som bara tar servernycklar. |
 | `422` med `did not send an Origin header` | En webbläsarnyckel skickades utanför en webbläsare. Använd en mobilnyckel i en mobilapp och en servernyckel överallt annars. |
-| `422` med `A mobile ingestion key cannot be used for` | En mobilnyckel nådde en annan endpoint än OTLP-spår, -loggar och -mätvärden över HTTP, till exempel gRPC eller Session Replay. |
+| `422` med `A mobile ingestion key cannot be used for` | En mobilnyckel nådde en annan endpoint än OTLP-spår, -loggar och -mätvärden över HTTP och Session Replay, till exempel gRPC eller profiler. |
+| `422` med `A mobile ingestion key can send session replays only` | En mobilnyckel skickade en webbsidas inspelning, eller en annan apps. Ge React Native-inspelaren nyckelns **Fäst tjänstnamn** som `appIdentifier`. |
 | `422` med `A mobile ingestion key cannot be used from a web page` | En mobilnyckel skickades från en webbläsare. Använd en webbläsarnyckel på en webbsida. |
 | `422` med `is not allowed for this browser ingestion key` | Sidans ursprung finns inte i **Tillåtna ursprung**. |
 | `422` med `is pinned to a single service` | En nyckel med ett **Fäst tjänstnamn** användes för att registrera en agent. Använd en servernyckel utan fastlåst namn. |

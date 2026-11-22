@@ -179,6 +179,11 @@ describe("which columns record a person doing something", () => {
     const wrong: Array<string> = [];
 
     for (const entry of ATTRIBUTION_COLUMNS) {
+      // What made a record and who last modified it: held below.
+      if (UserAttribution.isRecordActorColumn(entry.column)) {
+        continue;
+      }
+
       const metadata: TableColumnMetadata =
         new entry.modelType().getTableColumnMetadata(entry.column);
 
@@ -197,6 +202,51 @@ describe("which columns record a person doing something", () => {
 
       if (!isUserId && !isUserRelation) {
         wrong.push(`${entry.table}.${entry.column}: ${metadata.type}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  /*
+   * What made a record and who last modified it (Types/Database/RecordActor,
+   * #10290), on every model: a kind as text, the key's, workflow's or MCP
+   * client's id, when, and the person by id and by relation.
+   */
+  test("what made a record and who last modified it are a kind, an id, a time and a person, on every model", () => {
+    const EXPECTED_TYPES: Record<string, TableColumnType> = {
+      createdByActorType: TableColumnType.ShortText,
+      createdByActorId: TableColumnType.ObjectID,
+      lastModifiedAt: TableColumnType.Date,
+      lastModifiedByActorType: TableColumnType.ShortText,
+      lastModifiedByActorId: TableColumnType.ObjectID,
+      lastModifiedByUserId: TableColumnType.ObjectID,
+      lastModifiedByUser: TableColumnType.Entity,
+    };
+
+    const wrong: Array<string> = [];
+
+    for (const modelType of Models as Array<ModelType>) {
+      const covered: Array<string> = attributionIn(tableOf(modelType));
+
+      for (const [column, type] of Object.entries(EXPECTED_TYPES)) {
+        const metadata: TableColumnMetadata =
+          new modelType().getTableColumnMetadata(column);
+
+        if (!covered.includes(column)) {
+          wrong.push(`${tableOf(modelType)}.${column}: not covered`);
+        }
+
+        if (metadata?.type !== type) {
+          wrong.push(`${tableOf(modelType)}.${column}: ${metadata?.type}`);
+        }
+      }
+
+      if (
+        new modelType().getTableColumnMetadata("lastModifiedByUser")?.modelType
+          ?.name !== "User"
+      ) {
+        wrong.push(`${tableOf(modelType)}.lastModifiedByUser: not a user`);
       }
     }
 
@@ -266,6 +316,14 @@ describe("which columns record a person doing something", () => {
        */
       "firstApproved",
       "humanVerdict",
+      /*
+       * <every model>.lastModifiedByUserId: the person who last modified a
+       * record, or the member an MCP client modified it for (#10290).
+       * DatabaseService stamps it, with the kind and the time beside it, on
+       * each row an update made in a project really changes; no request
+       * chooses it (Types/Database/RecordActor).
+       */
+      "lastModified",
       /*
        * SecurityBlock.liftedByUserId: who lifted a block of the blocklist
        * (#10338). SecurityBlockService stamps it from the caller once the

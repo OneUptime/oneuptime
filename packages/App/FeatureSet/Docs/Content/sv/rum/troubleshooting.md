@@ -87,14 +87,14 @@ En webbläsare skickar sällan så stora batcher, om inte spans bär stora attri
 
 ## Kontrollera var telemetrin hamnar
 
-Förfrågan fungerar, men appen dyker upp under **Produkter → Tjänster** i stället för under **Produkter → Resurser → Övervakning av verkliga användare**. Det är det vanligaste ärendet, och orsaken är nästan alltid en resurs utan klientattribut. OneUptime arkiverar bara en batch som RUM när dess resurs bär något av de här:
+Förfrågan fungerar, men appen dyker upp under **Produkter → Tjänster** i stället för under **Produkter → Resurser → Övervakning av verkliga användare**. Det är det vanligaste ärendet, och orsaken är nästan alltid en annan nyckel än en Webbläsare- eller Mobil-nyckel, som skickar en resurs utan klientattribut. Allt som en Webbläsare- eller Mobil-nyckel skickar arkiveras som RUM; med vilken annan nyckel som helst arkiverar OneUptime bara en batch som RUM när dess resurs bär något av de här:
 
 | Typ | Attribut |
 | --- | --- |
 | Webbläsare | `browser.platform`, `browser.language` eller en icke-tom `browser.brands` |
 | Mobil | `device.id` eller `device.model.identifier`, eller `device.manufacturer` på en resurs utan värdidentitet (`host.name`, `host.id` eller `k8s.node.name`) |
 
-Ett `service.name` ensamt skapar en backend-tjänst. OpenTelemetry-SDK:t för webbläsare lägger inte till några `browser.*`-attribut om du inte lägger till webbläsarens resursdetektor eller sätter dem själv: se [Webbläsarkonfiguration](/docs/rum/browser-setup).
+Med vilken annan nyckel som helst skapar ett `service.name` ensamt en backend-tjänst. OpenTelemetry-SDK:t för webbläsare lägger inte till några `browser.*`-attribut om du inte lägger till webbläsarens resursdetektor eller sätter dem själv: se [Webbläsarkonfiguration](/docs/rum/browser-setup).
 
 För att se vad du faktiskt skickar öppnar du OTLP-förfrågan på fliken Nätverk och tittar på nyttolasten: `resourceSpans[0].resource.attributes` är listan som avgör. Om det inte finns något `browser.*`-attribut lägger SDK:t inte till det, vad dokumentationen än säger.
 
@@ -127,7 +127,7 @@ Det tomma diagrammet på applikationens **Översikt** säger vilket fall det är
 
 Undantag behöver en felhanterare, eftersom SDK:t inte fångar ohanterade fel: [Rapportera ohanterade fel](/docs/rum/browser-setup#rapportera-ohanterade-fel) har koden. Ett fel som en error boundary eller en `try`/`catch` hanterar når aldrig fönstret, så registrera det där du hanterar det, med `span.recordException`.
 
-Loggar behöver en pipeline för loggar och kod som skriver loggposter, eftersom en `LoggerProvider` ensam inte skickar något: [Lägg till loggar och mätvärden](/docs/rum/browser-setup#lägg-till-loggar-och-mätvärden) har båda. Bygg pipelinen med samma `resource` som dina spår, annars arkiveras loggarna under en backend-tjänst.
+Loggar behöver en pipeline för loggar och kod som skriver loggposter, eftersom en `LoggerProvider` ensam inte skickar något: [Lägg till loggar och mätvärden](/docs/rum/browser-setup#lägg-till-loggar-och-mätvärden) har båda. Bygg pipelinen med samma `resource` som dina spår, så att loggarna arkiveras under samma applikation.
 
 När sidladdningar kommer in släpper nyckeln, dess tillåtna ursprung och din Content Security Policy igenom undantag och loggar också, så länge loggexportören använder samma nyckel och värd. En felhanterare som ännu inte har fångat något skickar ingenting, precis som en som aldrig lades till, så kasta ett testfel från webbläsarens konsol för att skilja de två åt:
 

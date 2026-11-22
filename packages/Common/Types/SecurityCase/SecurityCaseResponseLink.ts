@@ -25,6 +25,8 @@ export enum ResponseLinkKind {
   OpenProvider = "OpenProvider",
   // The Scrub Rules of the logs or the traces: where a rule hid a case's address (#10397).
   OpenScrubRules = "OpenScrubRules",
+  // The project's Blocklist, on the block of an address or a range (#10562).
+  OpenBlocklist = "OpenBlocklist",
 }
 
 // The most traces a link carries.
@@ -35,6 +37,9 @@ const MAX_TEXT_LENGTH: number = 2048;
 
 // An https address, with nothing after it but more of the address.
 const HTTPS_ADDRESS: RegExp = /^https:\/\/[^\s]+$/i;
+
+// An IPv4 or IPv6 address or range, as the Blocklist writes one: hex digits, dots, colons and a length.
+const BLOCK_VALUE: RegExp = /^[0-9a-f.:]+(\/\d{1,3})?$/i;
 
 export interface ResponseTracesLink {
   kind: ResponseLinkKind.OpenTraces;
@@ -66,11 +71,18 @@ export interface ResponseScrubRulesLink {
   signal: ScrubbedAddressSignal;
 }
 
+export interface ResponseBlocklistLink {
+  kind: ResponseLinkKind.OpenBlocklist;
+  // The block's value, as blocks are written: an address or a range.
+  value: string;
+}
+
 export type ResponseLink =
   | ResponseTracesLink
   | ResponseEventsLink
   | ResponseProviderLink
-  | ResponseScrubRulesLink;
+  | ResponseScrubRulesLink
+  | ResponseBlocklistLink;
 
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string"
@@ -147,6 +159,15 @@ export function readResponseLink(value: unknown): ResponseLink | null {
 
       return signal === "log" || signal === "trace"
         ? { kind: ResponseLinkKind.OpenScrubRules, signal }
+        : null;
+    }
+
+    // Only an address or a range, written as blocks are: never anything else.
+    case ResponseLinkKind.OpenBlocklist: {
+      const value: string = readText(link["value"]);
+
+      return value && BLOCK_VALUE.test(value) && value.length <= 64
+        ? { kind: ResponseLinkKind.OpenBlocklist, value }
         : null;
     }
 

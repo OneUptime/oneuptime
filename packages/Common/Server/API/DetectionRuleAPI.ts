@@ -19,6 +19,16 @@ import DetectionRuleDraft, {
 import DetectionRuleRetrohunt, {
   DetectionRetrohuntRule,
 } from "../Utils/SecurityEvent/DetectionRuleRetrohunt";
+import SecurityEventLateArrivalService from "../Services/SecurityEventLateArrivalService";
+import SecurityEventRetention from "../Utils/SecurityEvent/SecurityEventRetention";
+import {
+  SecurityEventRetentionStatus,
+  securityEventRetentionStatusToJSON,
+} from "../../Types/SecurityEvent/SecurityEventRetention";
+import {
+  SecurityEventLateArrivals,
+  lateArrivalsToJSON,
+} from "../../Types/SecurityEvent/SecurityEventLateArrival";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -75,6 +85,12 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  *                                        YAML from a description
  *   POST /detection-rule/retrohunt       the rule run over past events: what
  *                                        it would have found
+ *   POST /detection-rule/late-arrivals   the security events that arrived more
+ *                                        than a day after they happened in the
+ *                                        last week, which no rule's run judged
+ *   POST /detection-rule/retention       how long the project keeps its
+ *                                        security events, and the enabled
+ *                                        rules that read further back (#10432)
  *
  * The draft is for the Detection Rules form, which fills its YAML with it
  * for the person to read and save; nothing is saved here. Asking takes the
@@ -87,6 +103,16 @@ function readOptionalText(body: JSONObject, key: string): string | undefined {
  * rule (detectionRuleId: its exceptions apply), about the rule as the form
  * holds it (sigmaRuleYaml and how it counts, with or without the id of the
  * rule being edited), or both; nothing is opened, sent or written.
+ *
+ * The late arrivals (#10491) are counts of security events by source, for
+ * the notice on Detection Rules: they take what a retrohunt takes, and
+ * count only the sources the caller may read.
+ *
+ * The retention (#10432) is the project's, as its Settings show it to every
+ * member, so any member may ask; the rules that read past it are read as
+ * the caller, and left out (null) for a role that may not read detection
+ * rules. The rule form, the Rule Library, Run on Past Events, a hunt's time
+ * range and Settings -> Telemetry say with it how far back events go.
  */
 export default class DetectionRuleAPI extends BaseAPI<
   DetectionRule,
@@ -205,6 +231,90 @@ export default class DetectionRuleAPI extends BaseAPI<
             req,
             res,
             detectionRetrohuntResultToJSON(result),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.router.post(
+      `${basePath}/late-arrivals`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: DetectionRule,
+            props,
+            errorMessage:
+              "Seeing the events your rules did not check takes a role that can read detection rules.",
+          });
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityEvent().getReadPermissions(),
+            errorMessage:
+              "Seeing the events your rules did not check takes a role that can read security events.",
+          });
+
+          // Only the sources the caller may read, as every read of the events themselves.
+          const serviceFilter: TelemetryServiceFilter =
+            await TelemetryReadAccess.getServiceFilter({
+              modelType: SecurityEvent,
+              props,
+            });
+
+          const lateArrivals: SecurityEventLateArrivals =
+            await SecurityEventLateArrivalService.getLateArrivals({
+              projectId,
+              serviceFilter,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            lateArrivalsToJSON(lateArrivals),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    this.registerRetentionRoute(basePath);
+  }
+
+  /*
+   * How long the project keeps its security events, read now, and the
+   * enabled rules that read further back than that.
+   */
+  private registerRetentionRoute(basePath: string): void {
+    this.router.post(
+      `${basePath}/retention`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const status: SecurityEventRetentionStatus =
+            await SecurityEventRetention.getStatus({ projectId, props });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            securityEventRetentionStatusToJSON(status),
           );
         } catch (error) {
           next(error);

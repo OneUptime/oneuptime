@@ -1,3 +1,4 @@
+import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddFixProductionCheck1804950000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804950000000-AddFixProductionCheck";
 import { AddExternalMcpServers1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddExternalMcpServers";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -143,7 +144,12 @@ describe("the External MCP Servers migration", () => {
      */
     const stored: Array<string> = Object.keys(getTableColumns(server))
       .filter((column: string): boolean => {
-        return !server.isEntityColumn(column) && column !== "headerNames";
+        return (
+          !server.isEntityColumn(column) &&
+          column !== "headerNames" &&
+          // Added to every table later (AddRecordCreatedByAndLastModifiedColumns, #10290).
+          !RecordActorUtil.isColumn(column)
+        );
       })
       .sort();
 

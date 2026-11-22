@@ -235,6 +235,16 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 - La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
 - Ogni evento nomina le risorse cloud di cui parla il suo record con i loro ID - un ARN, un ID di risorsa Azure, un nome di risorsa Google Cloud - quindi compare nella pagina **Eventi di sicurezza** di ciascuna, e in quella di una funzione serverless non appena la sua telemetria imposta `cloud.account.id` e `cloud.region`.
 
+### Le sonde di OneUptime nei tuoi flussi di rete
+
+Attiva **Flussi di rete**, in **I tuoi dati OneUptime** su **Connessioni**, e i flussi che i tuoi dispositivi di rete esportano vengono letti per cercare scansioni delle porte, sweep di rete, traffico con indirizzi noti come malevoli e grandi trasferimenti verso l'esterno. Il lavoro di una sonda lì sembra una scansione: interrogare 40 dispositivi via SNMP raggiunge la porta 161 su 40 host ogni cinque minuti. Per questo il traffico di una delle sonde di OneUptime che è esattamente ciò che la sonda è configurata per fare viene messo da parte:
+
+- i dispositivi di rete che interroga, con ping e via SNMP sulla loro porta;
+- l'intervallo di ciascun suo rilevamento, mentre la scansione è in corso;
+- gli host e le porte che i suoi monitor controllano.
+
+Viene conservato come evento informativo, `oneuptime-probe-traffic`, che nomina la sonda, e nessuna regola lo legge. **Flussi di rete** dice quanti ne sono stati messi da parte nell'ultimo giorno, con **Vedili**. Qualsiasi altra cosa dall'indirizzo di una sonda viene contata come il traffico di chiunque, e uno sweep o una scansione oltre il lavoro della sonda viene segnalato, nominando la sonda. Una sonda è riconosciuta dall'indirizzo da cui si collega e dagli indirizzi delle sue interfacce di rete, che elenca ogni volta che si collega.
+
 ### Collegare un prodotto di sicurezza
 
 **Connessioni** interroga per te un prodotto di sicurezza e ne importa i nuovi record come eventi di sicurezza. Una connessione contiene le impostazioni del prodotto e una credenziale cifrata; un worker la interroga all'intervallo che imposti e salta i record già importati.
@@ -341,7 +351,7 @@ Una caccia salvata con filtri dalla barra laterale di Eventi li mostra in **Modi
 
 Una caccia pianificata avvisa le persone e i team che scegli in **Notifica**: almeno uno, e al massimo 50 in tutto. Ogni esecuzione:
 
-- legge gli eventi il cui orario segue l'esecuzione precedente, fino a due minuti fa, così ogni evento viene cercato una volta. La prima esecuzione legge dal momento in cui è stata impostata la pianificazione o è stata cambiata la ricerca l'ultima volta, e dopo un'interruzione un'esecuzione recupera al massimo un giorno in più del suo intervallo.
+- legge gli eventi arrivati dopo l'esecuzione precedente, fino a due minuti fa, in qualunque momento siano avvenuti, così ogni evento viene cercato una volta, anche uno che arriva in ritardo. La prima esecuzione legge dal momento in cui è stata impostata la pianificazione o è stata cambiata la ricerca l'ultima volta, e dopo un'interruzione un'esecuzione recupera al massimo un giorno in più del suo intervallo. Un evento che arriva più di un giorno dopo essere avvenuto viene conservato e si può cercare, ma nessuna esecuzione lo conta.
 - conta gli eventi che la sua ricerca trova lì, esattamente come **Eventi** li elencherebbe, leggendo solo ciò che può leggere la persona con cui viene eseguita.
 - quando trova eventi, avvisa le persone che la caccia nomina, e i membri dei team che nomina, che possono leggere le cacce e gli eventi di sicurezza.
 
@@ -351,11 +361,11 @@ Una caccia pianificata viene eseguita con la persona che per ultima ha impostato
 
 ### Cronologia delle esecuzioni
 
-Ogni esecuzione pianificata viene conservata per 90 giorni. **Cronologia delle esecuzioni**, alla fine della riga che dice cosa hanno trovato le esecuzioni di una caccia, le elenca dalla più recente: quando è stata eseguita ciascuna e gli eventi che ha cercato, poi quanti ne ha trovati, con **Mostrali** per aprire quegli eventi sulla pagina della caccia; che non ha trovato nulla; oppure perché non è stata eseguita. Chi può aprire una caccia può leggerne le esecuzioni.
+Ogni esecuzione pianificata viene conservata per 90 giorni. **Cronologia delle esecuzioni**, alla fine della riga che dice cosa hanno trovato le esecuzioni di una caccia, le elenca dalla più recente: quando è stata eseguita ciascuna e quando sono arrivati gli eventi che ha cercato, poi quanti ne ha trovati, con **Mostrali** per aprire esattamente quegli eventi sulla pagina della caccia; che non ha trovato nulla; oppure perché non è stata eseguita. Chi può aprire una caccia può leggerne le esecuzioni.
 
 ### Chi viene avvisato
 
-La notifica **Una caccia ha trovato eventi di sicurezza** nomina la caccia e la sua ricerca, quanti eventi ha trovato la sua esecuzione e la finestra che ha letto, e rimanda alla pagina della caccia su quegli eventi; non contiene alcuna parola degli eventi. Tutti la ricevono via email e push, e ne scelgono i canali in **Impostazioni utente → Impostazioni notifiche**. Come le altre email di routine, può essere trattenuta in un [riepilogo email](/docs/emails/notification-rollup).
+La notifica **Una caccia ha trovato eventi di sicurezza** nomina la caccia e la sua ricerca, quanti eventi ha trovato la sua esecuzione e quando sono arrivati, e rimanda alla pagina della caccia esattamente su quegli eventi: il filtro **Arrivati** sul giorno che li precede, che puoi togliere per vedere tutto il resto di quel periodo; non contiene alcuna parola degli eventi. Tutti la ricevono via email e push, e ne scelgono i canali in **Impostazioni utente → Impostazioni notifiche**. Come le altre email di routine, può essere trattenuta in un [riepilogo email](/docs/emails/notification-rollup).
 
 Per pubblicare su Slack, Microsoft Teams o Mattermost ciò che trovano le cacce, aggiungi una regola a **Regole delle cacce** in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams** o **Mattermost**), sotto le regole che pubblicano i [casi di sicurezza](/docs/telemetry/security-cases#pubblicare-nei-canali-di-slack-microsoft-teams-e-mattermost). Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, le cacce a cui si applica, per **Nome della caccia**: un nome che è il tuo testo, lo contiene, inizia o finisce con esso. Ogni volta che un'esecuzione pianificata trova eventi, pubblica la caccia, la sua ricerca, quanti eventi e quando, con un link a essi, e nessuna delle parole proprie di un evento. Una regola delle cacce la configura un ruolo che può configurare playbook di sicurezza, come Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza.
 
@@ -505,7 +515,8 @@ OneUptime controlla ogni minuto quali regole abilitate hanno superato il loro in
 
 - Una regola che conta e una correlazione contano in finestre lunghe quanto l'intervallo, una dopo l'altra secondo l'orologio: con un intervallo di 10 minuti, errori alle 09:58 e alle 10:01 cadono in finestre diverse e vengono contati separatamente, quindi lascia margine quando scegli una soglia.
 - Dopo un'interruzione, come un worker fermo o una regola riattivata, l'esecuzione successiva copre l'intera interruzione, fino alle ultime 24 ore.
-- Un evento che arriva in ritardo viene letto comunque, una volta, dall'esecuzione successiva, e contato nella finestra in cui è avvenuto: un gruppo scatta quando la sua finestra raggiunge il conteggio, e al massimo una volta per finestra. Uno che arriva più di un giorno dopo essere avvenuto viene salvato ed è ricercabile, ma le esecuzioni della regola non lo leggono; **Esegui su eventi passati** sì.
+- Un'esecuzione che non riesce, ad esempio perché dura troppo, lascia la regola dov'era: il suo **Stato** indica **Esecuzione non riuscita**, e viene riprovata al prossimo intervallo, o entro un'ora se il suo intervallo è più lungo. L'esecuzione che riesce legge tutto ciò che è arrivato dall'ultima riuscita, per quanto lontana, un giorno alla volta. Un'esecuzione fermata dopo aver agito sulle sue corrispondenze viene rifatta senza aggiungerle due volte al loro caso.
+- Un evento che arriva in ritardo viene letto comunque, una volta, dall'esecuzione successiva, e contato nella finestra in cui è avvenuto: un gruppo scatta quando la sua finestra raggiunge il conteggio, e al massimo una volta per finestra. Uno che arriva più di un giorno dopo essere avvenuto viene salvato ed è ricercabile, ma le esecuzioni della regola non lo leggono; **Esegui su eventi passati** sì. È voluto, così un caricamento di dati storici non apre avvisi sul passato: quando qualcuno è arrivato così tardi negli ultimi 7 giorni, un avviso sopra le regole dice quanti, da quali fonti e quando sono accaduti, e apre **Esegui su eventi passati** su quel periodo.
 - Ogni gruppo che raggiunge la soglia diventa un Detection Finding, fino a 10.000 per esecuzione. Avvisi, incidenti e casi si aprono per i 100 con i conteggi più alti; gli altri condividono un caso sulla regola, e l'**Ultimo errore** della regola dice quanti gruppi hanno corrisposto.
 
 ### Regole in tempo reale
@@ -637,6 +648,14 @@ L'azione **Crea monitor** nella riga di una regola apre un nuovo monitor già co
 ## Conservazione e fatturazione
 
 Gli eventi di sicurezza vengono fatturati per GB acquisito, come il resto della tua telemetria, e conservati secondo la tua conservazione della telemetria: la **Conservazione predefinita (giorni)** del progetto, in **Impostazioni del progetto → Telemetria e APM → Conservazione dei dati**, oppure una conservazione impostata sul servizio di telemetria a cui appartengono. Quando la conservazione di un evento termina, l'evento viene eliminato.
+
+Tutto ciò che in Eventi di sicurezza legge eventi passati legge solo gli eventi ancora conservati, e dice quando gliene servirebbero di più:
+
+- Una regola **Visto per la prima volta** il cui intervallo supera la conservazione degli eventi decide che un valore è nuovo in base ai giorni conservati: con un intervallo di 30 giorni e 15 giorni conservati, i suoi avvisi e casi dicono `First awsRegion in 15 days`, e un valore visto l'ultima volta 20 giorni fa risulta nuovo. La sua riga mostra **Richiede attenzione**, e **Visualizza errore** dice cosa cambiare. Il modulo della regola e i dettagli di una regola nella libreria delle regole lo dicono prima che venga salvata o aggiunta. Un conteggio o una sequenza la cui finestra supera la conservazione degli eventi conta solo quelli.
+- **Esegui su eventi passati** su un periodo che inizia prima degli eventi conservati dice che gli eventi di sicurezza vengono conservati per 15 giorni, quindi è risalito di 15 giorni, e ciò che non ha trovato vale solo per quei giorni. Un evento avvenuto prima ma arrivato in ritardo resta conservato, e viene ancora letto. Una regola **Visto per la prima volta** dice quanta parte dei 30 giorni prima del periodo ha potuto vedere.
+- Una caccia il cui **Intervallo di tempo** supera la conservazione degli eventi non trova nulla di più vecchio, e il suo modulo lo dice.
+
+**Impostazioni del progetto → Telemetria e APM → Conservazione dei dati** elenca le regole attive che guardano più indietro della sua **Conservazione predefinita (giorni)**. Per coprirle, conserva gli eventi più a lungo, con **Modifica conservazione** sotto una regola, oppure accorcia l'intervallo di una regola a ciò che è conservato. OneUptime conserva 15 giorni se non lo cambi, perché la conservazione stabilisce quanto costa la tua telemetria e per quanto tempo vengono conservati i dati personali negli eventi, come indirizzi e nomi utente. Una nuova conservazione si applica agli eventi che arrivano da quel momento, quindi le regole vedono più indietro man mano che quegli eventi invecchiano.
 
 ## Risoluzione dei problemi
 

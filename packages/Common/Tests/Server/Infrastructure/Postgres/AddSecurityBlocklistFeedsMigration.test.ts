@@ -1,4 +1,4 @@
-import { AddSecurityBlocklistFeeds1809187400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187400000-AddSecurityBlocklistFeeds";
+import { AddSecurityBlocklistFeeds1809187430000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187430000-AddSecurityBlocklistFeeds";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import SecurityBlocklistFeed from "../../../../Models/DatabaseModels/SecurityBlocklistFeed";
 import SecurityBlocklistFeedFetch from "../../../../Models/DatabaseModels/SecurityBlocklistFeedFetch";
@@ -36,8 +36,8 @@ import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs"
  *     migration before it.
  */
 
-const CLASS_NAME: string = "AddSecurityBlocklistFeeds1809187400000";
-const TIMESTAMP: number = 1809187400000;
+const CLASS_NAME: string = "AddSecurityBlocklistFeeds1809187430000";
+const TIMESTAMP: number = 1809187430000;
 
 const FEED_TABLE: string = "SecurityBlocklistFeed";
 const FETCH_TABLE: string = "SecurityBlocklistFeedFetch";
@@ -65,7 +65,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityBlocklistFeeds1809187400000()[direction](queryRunner);
+  await new AddSecurityBlocklistFeeds1809187430000()[direction](queryRunner);
 
   return statements;
 }
@@ -181,8 +181,8 @@ function foreignKeyOf(
 
 describe("AddSecurityBlocklistFeeds migration - identity and registration", () => {
   test("its class, name and stamp agree", () => {
-    expect(new AddSecurityBlocklistFeeds1809187400000().name).toBe(CLASS_NAME);
-    expect(AddSecurityBlocklistFeeds1809187400000.name).toBe(CLASS_NAME);
+    expect(new AddSecurityBlocklistFeeds1809187430000().name).toBe(CLASS_NAME);
+    expect(AddSecurityBlocklistFeeds1809187430000.name).toBe(CLASS_NAME);
   });
 
   test("is registered once, after every migration before it", () => {

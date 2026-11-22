@@ -1381,9 +1381,9 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
+      "Telemetry's queries, as POSTs for their bodies - attributes, histograms, facets, analytics, session counts, an export, a flame graph, a replay's manifest and chunks, and which addresses a log, trace or exception search matched by the token an IP Address rule hashed them to (#10418), which reads the project's scrub rules and no record: they only read. A replay's heartbeat is the audit of a person watching it, which a read keeps, as the server.",
       {
-        "packages/Common/Server/API/TelemetryAPI.ts": 72,
+        "packages/Common/Server/API/TelemetryAPI.ts": 75,
       },
     ),
     ...decided(

@@ -6,8 +6,23 @@ import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../Services/ThreatIntelIndicatorService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityCaseMatches from "../SecurityCase/Context/SecurityCaseMatches";
+import SecurityProtectedAddresses, {
+  SecurityProtectionCheck,
+} from "../SecurityBlocklist/SecurityProtectedAddresses";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { describeSecurityAddressProtection } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import { SecurityCaseMatchesJson } from "../../../Types/SecurityCase/SecurityCaseMatches";
+import { getCaseClaimedOnlyAddresses } from "../../../Utils/SecurityCase/CaseClaimedClientAddress";
+import {
+  SecurityAddressScope,
+  canonicalAddress,
+  getSecurityAddressScope,
+} from "../../../Utils/SecurityCase/SecurityConnectionMatch";
+import NetworkAddressBlockUtil, {
+  NetworkAddressBlock,
+} from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
   SecurityEntity,
   SecurityEntityType,
@@ -55,10 +70,15 @@ export interface GroupedDetection {
  *     the project's threat intel.
  *
  * Of the step's kind only (users for Okta, hosts for CrowdStrike and
- * Defender), grouped-on ones first, at most CONTAINMENT_ENTITY_LIMIT. A
- * target on the project's protected list stays in the list, marked
- * Protected, and is never acted on. The approver sees the targets and may
- * leave any out (SecurityPlaybookRunAPI).
+ * Defender, addresses for a block), grouped-on ones first, at most
+ * CONTAINMENT_ENTITY_LIMIT. A target on the project's protected list stays
+ * in the list, marked Protected, and is never acted on. The approver sees
+ * the targets and may leave any out (SecurityPlaybookRunAPI).
+ *
+ * An address (#10342) is a target only when it is public and the case's
+ * requests did not only claim it (#10416); one of the project's own - a
+ * host's, a load balancer's, the edge in front of the app - is Protected,
+ * saying what it is.
  */
 export default class SecurityPlaybookTargets {
   /*
@@ -216,9 +236,111 @@ export default class SecurityPlaybookTargets {
     );
   }
 
+  /*
+   * An address a block may target (#10342): a public one - a private or a
+   * local one is never reached from the internet, so an edge has nothing
+   * to block - and never one the case's requests only claimed (#10416):
+   * whoever sent them wrote it, and blocking it could block a customer.
+   */
+  public static keepBlockableAddresses(data: {
+    targets: Array<SecurityPlaybookTarget>;
+    claimedOnly: ReadonlySet<string>;
+  }): Array<SecurityPlaybookTarget> {
+    return data.targets.filter((target: SecurityPlaybookTarget): boolean => {
+      const address: string | null = canonicalAddress(target.value);
+
+      return Boolean(
+        address &&
+          getSecurityAddressScope(address) === SecurityAddressScope.Public &&
+          !data.claimedOnly.has(address),
+      );
+    });
+  }
+
+  /*
+   * The project's own addresses among the targets - a host's, a load
+   * balancer's, a probe's, the edge in front of the app - marked Protected,
+   * with what they are (SecurityProtectedAddresses): the protected list is
+   * read already, by the rule. One OneUptime cannot tell about stays
+   * proposed, and the blocklist refuses it when the step acts, saying so.
+   */
+  public static async protectOwnAddresses(data: {
+    projectId: ObjectID;
+    targets: Array<SecurityPlaybookTarget>;
+  }): Promise<Array<SecurityPlaybookTarget>> {
+    const marked: Array<SecurityPlaybookTarget> = [];
+
+    for (const target of data.targets) {
+      const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+        target.value,
+      );
+
+      if (target.state !== SecurityPlaybookTargetState.Proposed || !block) {
+        marked.push(target);
+        continue;
+      }
+
+      const check: SecurityProtectionCheck =
+        await SecurityProtectedAddresses.findProtection({
+          projectId: data.projectId,
+          block,
+        });
+
+      marked.push(
+        check.protection
+          ? {
+              ...target,
+              state: SecurityPlaybookTargetState.Protected,
+              detail: describeSecurityAddressProtection({
+                value: block.text,
+                protection: check.protection,
+              }),
+            }
+          : target,
+      );
+    }
+
+    return marked;
+  }
+
   // The targets a step of this kind has on the case, by the rule.
   @CaptureSpan()
   public static async selectTargets(data: {
+    projectId: ObjectID;
+    securityCase: SecurityCase;
+    entityType: SecurityEntityType;
+  }): Promise<Array<SecurityPlaybookTarget>> {
+    const targets: Array<SecurityPlaybookTarget> =
+      await this.selectTargetsByRule(data);
+
+    if (data.entityType !== SecurityEntityType.IpAddress) {
+      return targets;
+    }
+
+    /*
+     * An address: the case's requests say which addresses they only
+     * claimed. A case whose requests cannot be read is not acted on: it
+     * fails toward a person, who can block from the case.
+     */
+    const matches: SecurityCaseMatchesJson | null = data.securityCase.id
+      ? await SecurityCaseMatches.build({
+          projectId: data.projectId,
+          securityCaseId: data.securityCase.id,
+          props: { isRoot: true },
+          now: OneUptimeDate.getCurrentDate(),
+        })
+      : null;
+
+    return await this.protectOwnAddresses({
+      projectId: data.projectId,
+      targets: this.keepBlockableAddresses({
+        targets,
+        claimedOnly: getCaseClaimedOnlyAddresses(matches),
+      }),
+    });
+  }
+
+  private static async selectTargetsByRule(data: {
     projectId: ObjectID;
     securityCase: SecurityCase;
     entityType: SecurityEntityType;

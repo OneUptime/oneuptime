@@ -284,11 +284,22 @@ export default class MonitorIncident {
    * grouped criteria opens for the whole monitor, for a request that names
    * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
    * once a request it matches reports its items without a value recovered.
+   *
+   * `fingerprintsByCriteriaId`, when given, holds each criteria to its own
+   * recoveries: an incident resolves only when the criteria that opened it
+   * reads its value recovered (an Incoming Request monitor's recoveries,
+   * #10585).
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
+    /*
+     * The values each criteria reads recovered, by its id. Without it, a
+     * value in `fingerprints` resolves an incident of any criteria - a Logs
+     * monitor's groups, which a log resolves.
+     */
+    fingerprintsByCriteriaId?: Dictionary<Array<string>> | undefined;
     rootCause: string;
     // What the evaluation summary says of each incident resolved here.
     resolvedMessage?: string | undefined;
@@ -303,6 +314,14 @@ export default class MonitorIncident {
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /*
+     * The monitor log names each open incident a recovery was reported for
+     * but left open, because its criteria's incident has Auto Resolve
+     * Incident off (an Incoming Request monitor's recoveries, #10550). The
+     * grouping settings ask for the resolve and the switch withholds it:
+     * without this, the log said only that the request opened nothing new.
+     */
+    noteLeftOpen?: boolean | undefined;
   }): Promise<void> {
     const fingerprintSet: Set<string> = new Set<string>(
       input.fingerprints || [],
@@ -329,6 +348,7 @@ export default class MonitorIncident {
       select: {
         _id: true,
         title: true,
+        createdAt: true,
         createdCriteriaId: true,
         createdIncidentTemplateId: true,
         projectId: true,
@@ -346,7 +366,14 @@ export default class MonitorIncident {
         openIncident.seriesFingerprint || undefined;
 
       const isRecoveredValue: boolean = Boolean(
-        fingerprint && fingerprintSet.has(fingerprint),
+        fingerprint &&
+          (input.fingerprintsByCriteriaId
+            ? (
+                input.fingerprintsByCriteriaId[
+                  openIncident.createdCriteriaId?.toString() || ""
+                ] || []
+              ).includes(fingerprint)
+            : fingerprintSet.has(fingerprint)),
       );
       const isRecoveredWholeMonitor: boolean =
         !fingerprint &&
@@ -366,6 +393,30 @@ export default class MonitorIncident {
             input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
         })
       ) {
+        if (input.noteLeftOpen) {
+          input.evaluationSummary?.events.push({
+            type: "incident-skipped",
+            ...EvaluationEventText.from({
+              title: translatableSentence("Incident left open: {{title}}", {
+                title: String(
+                  openIncident.title || openIncident.id?.toString(),
+                ),
+              }),
+              message: translatableSentence(
+                "A request reported this incident recovered, but Auto Resolve Incident is off in its criteria, so the incident stays open. Turn on Auto Resolve Incident, under More fields in the criteria's incident, to resolve it on recovery.",
+              ),
+            }),
+            relatedCriteriaId:
+              openIncident.createdCriteriaId?.toString() || undefined,
+            relatedIncidentId: openIncident.id?.toString(),
+            relatedIncidentNumber: openIncident.incidentNumber,
+            relatedIncidentNumberWithPrefix:
+              openIncident.incidentNumberWithPrefix,
+            relatedIncidentCreatedAt: openIncident.createdAt,
+            at: OneUptimeDate.getCurrentDate(),
+          });
+        }
+
         continue;
       }
 

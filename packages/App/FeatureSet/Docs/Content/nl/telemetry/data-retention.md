@@ -38,6 +38,7 @@ Volledig uitgeschreven leest OneUptime deze instellingen in deze volgorde, en de
 - **Instellingen 1 tot en met 5 zijn bewaringsoverschrijvingen.** Ze maken deel uit van de [Enterprise Edition](/docs/self-hosted/enterprise), en van het Scale-abonnement op OneUptime Cloud. Zonder deze overschrijvingen wordt elk record bewaard volgens de standaard van het project.
 - **Een wijziging geldt voor nieuwe telemetrie.** Een record houdt de datum waarmee het is voorzien: een kortere bewaring verwijdert het niet eerder, en een langere bewaart het niet langer. Nieuwe records volgen een wijziging binnen ongeveer vijf minuten.
 - **Uitzonderingen volgen waarin ze zijn gevonden.** Een uitzondering wordt even lang bewaard als de span of logboekregel waar ze vandaan komt. Session Replays hebben een eigen bewaring: zie [Andere gegevens met een eigen bewaring](#andere-gegevens-met-een-eigen-bewaring).
+- **Beveiligingsgebeurtenissen worden op dezelfde manier bewaard.** Detectieregels, Uitvoeren op eerdere gebeurtenissen en hunts lezen alleen zo ver terug als beveiligingsgebeurtenissen worden bewaard, en zeggen het waar ze meer nodig zouden hebben: zie [Beveiligingsgebeurtenissen](/docs/telemetry/security-events).
 
 ## Voordat u begint
 

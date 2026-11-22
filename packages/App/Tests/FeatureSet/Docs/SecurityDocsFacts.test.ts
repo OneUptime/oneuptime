@@ -12,6 +12,20 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsSearchQuery";
 import { DEFAULT_SECURITY_EVENTS_TIME_RANGE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTimeRange";
 import {
+  CHANGE_RETENTION,
+  HUNT_RANGE_PAST_RETENTION,
+  RETROHUNT_KEPT,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/SecurityEventRetentionCopy";
+import { SEARCH_OVER_FIELD_TITLE } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
+import { getSecurityHuntTimeRangeLengthInMinutes } from "Common/Types/SecurityEvent/SecurityHunt";
+import {
+  SECONDS_IN_A_DAY,
+  getKeptLookbackInSeconds,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
+import { describeDetectionRetentionNotice } from "Common/Utils/SecurityEvent/DetectionRetentionNotice";
+import { isDetectionRunNotice } from "Common/Utils/SecurityEvent/DetectionOverflow";
+import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
   SECURITY_MATCH_RAISES_ANSWERS,
   SECURITY_MATCH_RAISES_COPY,
   SECURITY_MATCH_RAISES_FIELD_TITLE,
@@ -54,6 +68,7 @@ import ThreatIntelFeedPoller, {
   StixIndicatorParseResult,
   StixParseContext,
 } from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelFeedPoller";
+import { isDetectionArrivalCandidate } from "Common/Server/Utils/SecurityEvent/DetectionArrivalRead";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -90,16 +105,31 @@ import {
   DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import {
+  getDetectionRetryAt,
+  getNextStretch,
+  getScheduledArrivalRange,
+} from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import SecurityEventLateArrival from "Common/Models/AnalyticsModels/SecurityEventLateArrival";
+import {
+  SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS,
+  SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS,
+} from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
   DETECTION_REAL_TIME_RULES_MAX,
   REAL_TIME_REGULAR_EXPRESSION_PROBLEM,
   getRealTimeCountWindow,
 } from "Common/Types/SecurityEvent/RealTimeDetection";
-import { DETECTION_RULE_REAL_TIME } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  DETECTION_RULE_NEEDS_ATTENTION,
+  DETECTION_RULE_REAL_TIME,
+  DETECTION_RULE_RUN_FAILED_TRIED_AGAIN,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityDetectionStatus";
 import {
   RESPONSE_STEPS_TITLE,
   RESPONSE_STEP_MOVE_DOWN,
@@ -155,6 +185,7 @@ import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import SigmaRuleSetParser, {
+  describeSigmaTimespan,
   sigmaRulesOf,
 } from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
@@ -245,6 +276,12 @@ const SOURCES: Record<string, string> = {
   detectionMatches: "packages/Common/Server/Services/SecurityEventService.ts",
   detectionRuleService:
     "packages/Common/Server/Services/DetectionRuleService.ts",
+  // How far back security events go (#10432): the reads, and where it is said.
+  correlationMatcher: `${SECURITY}/Correlation/CorrelationRuleMatcher.ts`,
+  retrohunt: `${SECURITY}/DetectionRuleRetrohunt.ts`,
+  retrohuntPanel: `${DASHBOARD}/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntPanel.tsx`,
+  ruleLibraryPanel: `${DASHBOARD}/Components/SecurityEvents/RuleLibraryRulePanel.tsx`,
+  huntFormFields: `${DASHBOARD}/Components/SecurityEvents/Hunts/HuntFormFields.ts`,
   matchJob:
     "packages/App/FeatureSet/Workers/Jobs/ThreatIntel/MatchThreatIntelIndicators.ts",
   pollJob:
@@ -1831,14 +1868,49 @@ describe("the Security Events page", () => {
     expect(job).toContain(
       "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
     );
-    // What arrived since the last run (#10337), at most a day back.
-    expect(evaluator).toContain(
-      "let arrivedAfter: Date = lastRun && !Number.isNaN(lastRun.getTime()) ? floorToSecond(lastRun) : OneUptimeDate.addRemoveMinutes( arrivedUntil, -Math.max(1, data.evaluationIntervalInMinutes || 1), ); if (OneUptimeDate.isBefore(arrivedAfter, earliest)) { arrivedAfter = earliest; }",
+    /*
+     * What arrived since the last run (#10337), at most a day back - unless
+     * the rule's runs have been failing, when it reads everything since its
+     * last good one (#10490).
+     */
+    const runNow: Date = new Date("2026-11-04T09:02:00.000Z");
+    const weekAgo: Date = new Date("2026-10-28T09:00:00.000Z");
+
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+      }).arrivedAfter,
+    ).toEqual(new Date("2026-11-03T09:00:00.000Z"));
+    expect(
+      getScheduledArrivalRange({
+        now: runNow,
+        lastEvaluatedAt: weekAgo,
+        evaluationIntervalInMinutes: 5,
+        lastFailedAt: new Date("2026-11-04T08:30:00.000Z"),
+      }).arrivedAfter,
+    ).toEqual(weekAgo);
+    /*
+     * ...whenever it happened, as long as it arrived within a day of that:
+     * the condition a rule's run and a hunt's run both read by
+     * (DetectionArrivalRead), as it is built.
+     */
+    const arrived: { query: string; query_params: Record<string, unknown> } =
+      isDetectionArrivalCandidate({
+        kind: "run",
+        arrivedAfter: new Date("2026-11-04T09:00:00.000Z"),
+        arrivedUntil: new Date("2026-11-04T09:01:00.000Z"),
+        candidateStartTime: new Date("2026-11-03T09:00:00.000Z"),
+        candidateEndTime: new Date("2026-11-04T10:02:00.000Z"),
+      });
+    expect(arrived.query).toBe(
+      "(createdAt > {p0:DateTime} AND createdAt <= {p1:DateTime} AND time >= createdAt - toIntervalSecond({p2:Int32}))",
     );
-    // ...whenever it happened, as long as it arrived within a day of that.
-    expect(service).toContain(
-      "AND time >= createdAt - toIntervalSecond(${{ type: TableColumnType.Number, value: DETECTION_RUN_LATE_EVENT_SECONDS, }}))`;",
+    expect(arrived.query_params["p2"]).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
     );
+    expect(service).toContain("isDetectionArrivalCandidate(arrival)");
     expect(DETECTION_LATE_EVENT_WINDOW_IN_MINUTES).toBe(24 * 60);
     // A rule that counts reads the windows of its interval on the clock that hold what arrived.
     expect(evaluator).toContain(
@@ -1880,8 +1952,48 @@ describe("the Security Events page", () => {
     expect(page).toContain(
       "- An event that arrives late is still read, once, by the next run, and counted in the window it happened in: a group fires when its window reaches the count, and at most once a window. One that arrives more than a day after it happened is stored and searchable, but the rule's runs don't read it; **Run on Past Events** does.",
     );
+    /*
+     * What arrives later than that is counted by a view whose filter is the
+     * exact complement of a run's bound, and Detection Rules says so for the
+     * last week, opening Run on Past Events over it (#10491).
+     */
+    expect(SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS).toBe(
+      DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60,
+    );
+    expect(
+      new SecurityEventLateArrival().materializedViews[0]?.query,
+    ).toContain(
+      `WHERE time < createdAt - toIntervalSecond(${SECURITY_EVENT_LATE_ARRIVAL_IN_SECONDS})`,
+    );
+    expect(SECURITY_EVENT_LATE_ARRIVAL_NOTICE_DAYS).toBe(7);
+    expect(page).toContain(
+      "**Run on Past Events** does. That is on purpose, so a backfill of history doesn't open alerts about the past: when any arrived that late in the last 7 days, a notice above the rules says how many, from which sources and when they happened, and opens **Run on Past Events** over that time.",
+    );
     expect(page).toContain(
       "the next run covers the whole gap, up to the last 24 hours.",
+    );
+    /*
+     * A run that fails backs off and catches up, never skipping (#10490), and
+     * one stopped after it acted is redone once (#10489).
+     */
+    expect(DETECTION_RETRY_AFTER_FAILURE_IN_MINUTES).toBe(60);
+    expect(
+      getDetectionRetryAt({
+        lastFailedAt: new Date("2026-11-04T09:00:00.000Z"),
+        evaluationIntervalInMinutes: 1440,
+      }),
+    ).toEqual(new Date("2026-11-04T10:00:00.000Z"));
+    expect(
+      getNextStretch(
+        new Date("2026-11-01T09:00:00.000Z"),
+        new Date("2026-11-04T09:00:00.000Z"),
+      ).arrivedUntil,
+    ).toEqual(new Date("2026-11-02T09:00:00.000Z"));
+    expect(evaluator).toContain(
+      "lastFailedAt: OneUptimeDate.getCurrentDate(),",
+    );
+    expect(page).toContain(
+      `- A run that fails, such as one that takes too long, leaves the rule where it was: its **Status** says **${DETECTION_RULE_RUN_FAILED_TRIED_AGAIN.text}**, and it is tried again at its next interval, or within the hour when its interval is longer. The run that works reads everything that arrived since the last one that did, however long ago, a day at a time. A run stopped after it acted on its matches is done again without adding them to their case twice.`,
     );
     expect(page).toContain(
       "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",
@@ -2750,6 +2862,142 @@ describe("the Threat Intelligence page", () => {
 
     expect(page).toContain(
       "Read **Last Poll Summary**. No objects fetched: the collection is empty or publishes no indicators. Unsupported patterns: the provider uses pattern features this page lists as skipped. Below minimum confidence: lower **Minimum Confidence**. Already inactive: the provider sent indicators that were already revoked or expired.",
+    );
+  });
+});
+
+/*
+ * HOW FAR BACK SECURITY EVENTS GO (#10432): what the Security Events page's
+ * Retention and billing section says rules, Run on Past Events and hunts
+ * do when they read further back than the project keeps its events - held
+ * to the code that does it, run on the page's own example: a 30-day First
+ * seen rule, 15 days kept.
+ */
+describe("the Security Events page: how far back security events go", () => {
+  const page: string = englishPage(SECURITY_EVENTS);
+  const DAY: number = SECONDS_IN_A_DAY;
+  const FIRST_SEEN_30_DAYS: string = `title: AWS activity in a new region
+correlation:
+  type: new_value
+  rules: [call]
+  group-by: [targetHost]
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+title: Call
+name: call
+detection:
+  selection:
+    productName: AWS CloudTrail
+  condition: selection`;
+
+  it("keeps 15 days unless the project changes it", () => {
+    expect(HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS).toBe(15);
+    expect(page).toContain(
+      "OneUptime keeps 15 days unless you change it, because retention sets what your telemetry costs and how long personal data in events, such as addresses and user names, is kept.",
+    );
+  });
+
+  it("a First seen rule tells a value is new by the days kept, and its alerts say how many", () => {
+    // The matcher's sentence, worded by the history kept: 15 of the 30 days.
+    expect(source("correlationMatcher")).toContain(
+      "summary: `First ${fields} in ${span}:",
+    );
+    expect(
+      describeSigmaTimespan(
+        getKeptLookbackInSeconds({
+          lookbackInSeconds: 30 * DAY,
+          retentionInDays: 15,
+        }),
+      ),
+    ).toBe("15 days");
+    expect(page).toContain(
+      "with a 30-day timespan and 15 days kept, its alerts and cases say `First awsRegion in 15 days`, and a value last seen 20 days ago reads as new.",
+    );
+  });
+
+  it("its row reads Needs attention, and View Error says what to change", () => {
+    const notice: string | null = describeDetectionRetentionNotice({
+      definition: SigmaRuleSetParser.parse(FIRST_SEEN_30_DAYS),
+      retentionInDays: 15,
+    });
+
+    expect(isDetectionRunNotice(notice)).toBe(true);
+    expect(notice).toContain("or shorten the rule's timespan to 15 days.");
+    expect(DETECTION_RULE_NEEDS_ATTENTION.text).toBe("Needs attention");
+    expect(
+      fs.readFileSync(
+        path.join(
+          REPO_DIR,
+          DASHBOARD,
+          "Components/SecurityEvents/SecurityDetectionErrorModal.tsx",
+        ),
+        "utf8",
+      ),
+    ).toContain('title: "View Error",');
+    expect(page).toContain(
+      "Its row reads **Needs attention**, and **View Error** says what to change.",
+    );
+  });
+
+  it("the rule form and the Rule Library say so before a rule is saved or added", () => {
+    expect(source("detectionRules")).toContain(
+      "<DetectionRuleRetentionWarning shape={shape} />",
+    );
+    expect(source("ruleLibraryPanel")).toContain(
+      "<DetectionRuleRetentionWarning shape={view.shape} />",
+    );
+    expect(page).toContain(
+      "The rule form and a rule's details in the Rule Library say so before it is saved or added.",
+    );
+  });
+
+  it("Run on Past Events reads the whole period's kept events, and says how far back they go", () => {
+    expect(RETROHUNT_KEPT).toBe(
+      "Security events are kept for {{retention}}, so this looked back {{retention}}.",
+    );
+    // Every read is of kept events, from the period's own start: a late arrival from before is read.
+    expect(flat(source("retrohunt"))).toContain("keptAt: endTime,");
+    expect(flat(source("retrohunt"))).toContain(
+      "const startTime: Date = OneUptimeDate.addRemoveHours( endTime, -request.periodInHours, );",
+    );
+    expect(source("retrohuntPanel")).toContain("getRetrohuntKeptLines(result)");
+    expect(page).toContain(
+      "**Run on Past Events** over a period that starts before the kept events says that security events are kept for 15 days, so it looked back 15 days, and what it did not find is said of those days only. An event that happened earlier but arrived late is still kept, and still read.",
+    );
+  });
+
+  it("a hunt's Time Range longer than events are kept finds nothing older, and its form says so", () => {
+    expect(SEARCH_OVER_FIELD_TITLE).toBe("Time Range");
+    expect(HUNT_RANGE_PAST_RETENTION).toBe(
+      "Security events are kept for {{retention}}: this range finds nothing older.",
+    );
+    expect(source("huntFormFields")).toContain(
+      "getFooterElement: renderHuntRangeRetentionWarning,",
+    );
+    // A month's range is longer than the 15 days kept.
+    expect(
+      getSecurityHuntTimeRangeLengthInMinutes(TimeRange.PAST_ONE_MONTH)! * 60,
+    ).toBeGreaterThan(15 * DAY);
+    expect(page).toContain(
+      "- A hunt whose **Time Range** is longer than events are kept finds nothing older, and its form says so.",
+    );
+  });
+
+  it("Data Retention lists the enabled rules that look back further, with Change Retention under a rule", () => {
+    expect(source("telemetrySettings")).toContain(
+      '<RulesPastRetentionNotice className="mb-5" />',
+    );
+    expect(CHANGE_RETENTION).toBe("Change Retention");
+    expect(page).toContain(
+      "**Project Settings → Telemetry & APM → Data Retention** lists the enabled rules that look back further than its **Default Retention (Days)**. To cover them, keep events longer, with **Change Retention** under a rule, or shorten a rule's timespan to what is kept.",
+    );
+  });
+
+  it("a new retention applies to events that arrive from then on", () => {
+    expect(page).toContain(
+      "A new retention applies to events that arrive from then on, so rules see further back as those events age.",
     );
   });
 });

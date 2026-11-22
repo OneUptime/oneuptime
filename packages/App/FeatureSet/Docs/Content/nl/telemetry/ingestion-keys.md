@@ -35,13 +35,13 @@ Kies het type op basis van waar de sleutel komt te staan. Het type kan niet meer
 
 | | **Server** | **Browser** | **Mobiel** |
 | --- | --- | --- | --- |
-| Voor | Applicaties, collectors en agents op machines die u beheert | Webpagina's, en React Native Session Replay | Eén iOS-, Android- of React Native-app |
-| Verzendt | Elk soort telemetrie, naar elk endpoint | Traces, logboeken, metrieken, Session Replays en [Sentry-gebeurtenissen](/docs/telemetry/compatible-endpoints#sentry-sdks) | De traces, logboeken en metrieken van die app, via OTLP/HTTP |
+| Voor | Applicaties, collectors en agents op machines die u beheert | Webpagina's | Eén iOS-, Android- of React Native-app |
+| Verzendt | Elk soort telemetrie, naar elk endpoint | Traces, logboeken, metrieken, Session Replays en [Sentry-gebeurtenissen](/docs/telemetry/compatible-endpoints#sentry-sdks) | De traces, logboeken en metrieken van die app, via OTLP/HTTP, en de Session Replays ervan |
 | Een geheim | Ja: bewaar hem op uw servers | Nee: iedereen die de pagina bekijkt, kan hem lezen | Nee: iedereen die de app heeft, kan hem kopiëren |
 | Origins | Niet gecontroleerd | Alleen de vermelde origins worden geaccepteerd | Een verzoek vanaf een webpagina wordt geweigerd |
 | Verzoeken per minuut | Geen limiet, tenzij u er een instelt | 6.000, tenzij u een andere limiet instelt | 6.000, tenzij u een andere limiet instelt |
 
-Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor profielen, Syslog, Fluent Bit en Fluentd, en voor het uploaden van source maps, en een mobiele sleutel overal behalve voor OTLP-traces, -logboeken en -metrieken via HTTP. Om een afzender naar een ander type te verplaatsen, maakt u een sleutel van dat type aan, zet u de afzender daarop over en verwijdert u daarna de oude sleutel.
+Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor profielen, Syslog, Fluent Bit en Fluentd, en voor het uploaden van source maps, en een mobiele sleutel overal behalve voor OTLP-traces, -logboeken en -metrieken via HTTP en de Session Replays van zijn app. Om een afzender naar een ander type te verplaatsen, maakt u een sleutel van dat type aan, zet u de afzender daarop over en verwijdert u daarna de oude sleutel.
 
 ## Voordat u begint
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Een browsersleutel afschermen
 
-Een browsersleutel staat in uw pagina, waar iedereen hem kan kopiëren. Deze instellingen beperken wat een kopie kan doen. Wijzig ze op de pagina van de sleutel met **Ingestiesleutel bewerken**.
+Een browsersleutel staat in uw pagina, waar iedereen hem kan kopiëren. Alles wat hij verzendt, wordt opgeslagen als een browser-RUM-applicatie, nooit als een host, een cluster, een cloudresource, een database of een backend-service: van de resource die een afzender instelt, houdt de sleutel alleen over wat een pagina over zichzelf zegt, zoals de attributen `service.*`, `browser.*` en `user_agent.*` en de labels `oneuptime.label.*`. Deze instellingen beperken wat een kopie kan doen. Wijzig ze op de pagina van de sleutel met **Ingestiesleutel bewerken**.
 
 | Instelling | Wat ze doet |
 | --- | --- |
 | **Toegestane origins** | De enige origins waarvandaan de sleutel wordt geaccepteerd. Een verzoek vanaf een andere origin, of helemaal zonder `Origin`-header, wordt geweigerd. Een browsersleutel moet er minstens één houden. |
-| **Vastgezette servicenaam** | Zet alles wat de sleutel via OTLP/HTTP verzendt onder deze ene service, welke `service.name` de afzender ook instelde. Een kopie van de sleutel kan dan alleen in die service schrijven. |
+| **Vastgezette servicenaam** | Zet alles wat de sleutel via OTLP/HTTP verzendt onder deze ene applicatie, welke `service.name` de afzender ook instelde. Een kopie van de sleutel kan dan alleen in die applicatie schrijven. |
 | **Limiet voor verzoeken per minuut** | Het maximale aantal verzoeken waarvoor de sleutel elke minuut wordt geaccepteerd, gedeeld door alle bezoekers. Een browsersleutel krijgt 6.000 als u het veld leeg laat. |
 | **Verloopt om** | De datum waarna de sleutel wordt geweigerd, zodat een gepubliceerde kopie niet meer werkt. |
 
-Een origin is een schema, een host en een optionele poort: `https://app.example.com` dekt `https://app.example.com:8443` niet. Eén `*.` vooraan dekt elk subdomein, maar niet het domein zelf. React Native Session Replay stuurt een exacte `app://`-identiteit, die geen jokerteken toestaat:
+Een origin is een schema, een host en een optionele poort: `https://app.example.com` dekt `https://app.example.com:8443` niet. Eén `*.` vooraan dekt elk subdomein, maar niet het domein zelf. React Native Session Replay met een browsersleutel stuurt een exacte `app://`-identiteit, die geen jokerteken toestaat:
 
 ```json
 [
@@ -111,11 +111,11 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 Een mobiele sleutel wordt in uw app meegeleverd, en iedereen die de app heeft, kan hem kopiëren. Deze grenzen houden elke kopie bij de app waarvoor de sleutel is gemaakt:
 
 - **Hij schrijft alleen als één app.** Alles wat hij verstuurt, wordt onder zijn **Vastgezette servicenaam** als mobiele RUM-applicatie ingedeeld, welke service of host de afzender ook noemt. Een kopie kan niet in uw backend-services, hosts of clusters schrijven.
-- **Hij verstuurt alleen de telemetrie van die app.** OTLP-traces, -logboeken en -metrieken via HTTP. Hij wordt geweigerd via gRPC en MQTT, voor Session Replays, profielen en source maps, op elk ander endpoint en vanaf elke webpagina.
+- **Hij verstuurt alleen de telemetrie van die app.** OTLP-traces, -logboeken en -metrieken via HTTP, en de Session Replays van de app uit zijn React Native-recorder, met de **Vastgezette servicenaam** van de sleutel als `appIdentifier`. Hij wordt geweigerd via gRPC en MQTT, voor Session Replays van een andere app, profielen en source maps, op elk ander endpoint en vanaf elke webpagina.
 - **Hij heeft een snelheidslimiet.** 6.000 verzoeken per minuut voor alle kopieën samen, tenzij u zijn **Limiet voor verzoeken per minuut** instelt.
 - **U kunt hem stoppen.** Zet **Ingeschakeld** uit, of stel **Verloopt om** in, en elke kopie wordt binnen enkele seconden geweigerd.
 
-Wat hij niet kan voorkomen: wie uw app heeft, kan nog steeds verzonnen traces, logboeken en metrieken voor die ene app versturen, tot de limiet van de sleutel, totdat u de sleutel uitzet of hij verloopt. Vervang de sleutel bij elke release, zodat een oude kopie met zijn versie ophoudt te werken.
+Wat hij niet kan voorkomen: wie uw app heeft, kan nog steeds verzonnen traces, logboeken, metrieken en Session Replays voor die ene app versturen, tot de limiet van de sleutel, totdat u de sleutel uitzet of hij verloopt. Vervang de sleutel bij elke release, zodat een oude kopie met zijn versie ophoudt te werken.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
@@ -144,7 +144,8 @@ De pagina van de sleutel houdt ook de telling bij: **Geweigerde telemetrie** too
 | `422` met `This telemetry ingestion key has been disabled.` | Iemand heeft **Ingeschakeld** uitgezet. |
 | `422` met `A browser ingestion key cannot be used for` | Een browsersleutel bereikte een endpoint dat alleen serversleutels accepteert. |
 | `422` met `did not send an Origin header` | Een browsersleutel werd van buiten een browser verzonden. Gebruik een mobiele sleutel in een mobiele app, en een serversleutel overal elders. |
-| `422` met `A mobile ingestion key cannot be used for` | Een mobiele sleutel bereikte een ander endpoint dan OTLP-traces, -logboeken en -metrieken via HTTP, zoals gRPC of Session Replay. |
+| `422` met `A mobile ingestion key cannot be used for` | Een mobiele sleutel bereikte een ander endpoint dan OTLP-traces, -logboeken en -metrieken via HTTP en Session Replay, zoals gRPC of profielen. |
+| `422` met `A mobile ingestion key can send session replays only` | Een mobiele sleutel verstuurde de opname van een webpagina, of die van een andere app. Geef de React Native-recorder de **Vastgezette servicenaam** van de sleutel als `appIdentifier`. |
 | `422` met `A mobile ingestion key cannot be used from a web page` | Een mobiele sleutel werd vanuit een browser verzonden. Gebruik op een webpagina een browsersleutel. |
 | `422` met `is not allowed for this browser ingestion key` | De origin van de pagina staat niet in **Toegestane origins**. |
 | `422` met `is pinned to a single service` | Een sleutel met een **Vastgezette servicenaam** werd gebruikt om een agent te registreren. Gebruik een serversleutel zonder vastgelegde naam. |

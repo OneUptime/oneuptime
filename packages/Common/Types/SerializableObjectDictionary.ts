@@ -10,6 +10,7 @@ import Includes from "./BaseDatabase/Includes";
 import IncludesAll from "./BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "./BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "./BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "./BaseDatabase/IncludesNoneOrNull";
 import StartsWith from "./BaseDatabase/StartsWith";
 import EndsWith from "./BaseDatabase/EndsWith";
 import NotContains from "./BaseDatabase/NotContains";
@@ -24,6 +25,7 @@ import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
 import LessThanOrNull from "./BaseDatabase/LessThanOrNull";
 import GreaterThanOrNull from "./BaseDatabase/GreaterThanOrNull";
 import NotEqual from "./BaseDatabase/NotEqual";
+import NotEqualOrNull from "./BaseDatabase/NotEqualOrNull";
 import NotNull from "./BaseDatabase/NotNull";
 import Search from "./BaseDatabase/Search";
 import MultiSearch from "./BaseDatabase/MultiSearch";
@@ -99,6 +101,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   get [ObjectType.NotEqual](): any {
     return NotEqual;
   },
+  get [ObjectType.NotEqualOrNull](): any {
+    return NotEqualOrNull;
+  },
   get [ObjectType.Email](): any {
     return Email;
   },
@@ -167,6 +172,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.IncludesNone](): any {
     return IncludesNone;
+  },
+  get [ObjectType.IncludesNoneOrNull](): any {
+    return IncludesNoneOrNull;
   },
   get [ObjectType.StartsWith](): any {
     return StartsWith;

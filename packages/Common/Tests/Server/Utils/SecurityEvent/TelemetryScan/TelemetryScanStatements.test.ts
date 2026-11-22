@@ -11,6 +11,8 @@ import {
   buildMassDeleteStatement,
   buildNetworkSweepStatement,
   buildPortScanStatement,
+  buildProbeScanDestinationsStatement,
+  buildProbeSweepDestinationsStatement,
   buildRumUserCountriesStatement,
   buildTraceCandidatesStatement,
 } from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TelemetryScanStatements";
@@ -159,7 +161,7 @@ describe("the trace read", () => {
     }
 
     expect(statement.query).toContain(
-      "multiSearchAnyCaseInsensitive(llmUserMessagePreview, [unhex({p",
+      "multiSearchAnyCaseInsensitive(llmUserMessagePreview, CAST(unhex({p",
     );
   });
 });
@@ -239,6 +241,125 @@ describe("the flow reads", () => {
       "198.51.100.9",
     ]);
     expect(traffic.query).not.toContain("203.0.113.50");
+  });
+});
+
+/*
+ * OneUptime's own probes' scans and sweeps, read apart from everyone's and
+ * read again destination by destination (#10429).
+ */
+describe("the flow reads of OneUptime's own probes", () => {
+  const PROBES: Array<string> = ["10.0.0.250", "203.0.113.7"];
+
+  test("everyone's scans and sweeps leave the probes' addresses out, bound as one parameter", () => {
+    for (const statement of [
+      buildPortScanStatement({
+        ...WINDOW,
+        minPorts: 25,
+        limit: 50,
+        sources: { addresses: PROBES, only: false },
+      }),
+      buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources: { addresses: PROBES, only: false },
+      }),
+    ]) {
+      expectProjectFirst(statement);
+      expect(statement.query).toContain(" AND srcIp NOT IN ({");
+      expect(statement.query).not.toContain(" AND srcIp IN (");
+      expect(boundIncludes(statement)).toContainEqual(PROBES);
+      expect(statement.query).not.toContain("10.0.0.250");
+      // Before the rows are summed: a probe's flows never take a place in them.
+      expect(statement.query.indexOf("srcIp NOT IN")).toBeLessThan(
+        statement.query.indexOf("GROUP BY"),
+      );
+    }
+  });
+
+  test("the probes' own are read alone", () => {
+    for (const statement of [
+      buildPortScanStatement({
+        ...WINDOW,
+        minPorts: 25,
+        limit: 50,
+        sources: { addresses: PROBES, only: true },
+      }),
+      buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources: { addresses: PROBES, only: true },
+      }),
+    ]) {
+      expect(statement.query).toContain(" AND srcIp IN ({");
+      expect(statement.query).not.toContain("NOT IN ({");
+      expect(boundIncludes(statement)).toContainEqual(PROBES);
+    }
+  });
+
+  test("with no probe addresses, a read is held to no source at all", () => {
+    for (const sources of [undefined, { addresses: [], only: false }]) {
+      const statement: Statement = buildNetworkSweepStatement({
+        ...WINDOW,
+        minHosts: 30,
+        limit: 50,
+        sources,
+      });
+
+      expect(statement.query).not.toContain("srcIp IN");
+      expect(statement.query).not.toContain("srcIp NOT IN");
+    }
+  });
+
+  test("a probe's sweep, read again: its hosts on the port, by protocol, in address order", () => {
+    const statement: Statement = buildProbeSweepDestinationsStatement({
+      ...WINDOW,
+      srcIp: "10.0.0.250",
+      dstPort: 161,
+      limit: 20000,
+    });
+
+    expect(statement.query).toContain(
+      `FROM ${getClickhouseDatabaseName()}.NetworkFlowV1`,
+    );
+    expectProjectFirst(statement);
+    expect(statement.query).toContain("AND ingestedAt > {");
+    expect(statement.query).toContain("AND flowStartAt >= {");
+    expect(statement.query).toContain("AND srcIp = {");
+    expect(statement.query).toContain("AND dstPort = {");
+    expect(statement.query).toContain("any(dstName) AS dstName");
+    expect(statement.query).toContain(
+      "GROUP BY dstIp, protocol ORDER BY dstIp ASC, protocol ASC LIMIT {",
+    );
+    expect(bound(statement)).toContain("10.0.0.250");
+    expect(bound(statement)).toContain(161);
+    expect(bound(statement)).toContain(20000);
+    expect(statement.query).not.toContain("10.0.0.250");
+    expectTimeLimited(statement);
+  });
+
+  test("a probe's port scan, read again: the host's service ports, by protocol", () => {
+    const statement: Statement = buildProbeScanDestinationsStatement({
+      ...WINDOW,
+      srcIp: "10.0.0.250",
+      dstIp: "10.0.0.9",
+      limit: 20000,
+    });
+
+    expectProjectFirst(statement);
+    expect(statement.query).toContain("AND srcIp = {");
+    expect(statement.query).toContain("AND dstIp = {");
+    expect(statement.query).toContain(
+      `AND dstPort > 0 AND dstPort < ${EPHEMERAL_PORT_START}`,
+    );
+    expect(statement.query).toContain(
+      "GROUP BY dstPort, protocol ORDER BY dstPort ASC, protocol ASC LIMIT {",
+    );
+    expect(bound(statement)).toContain("10.0.0.250");
+    expect(bound(statement)).toContain("10.0.0.9");
+    expectTimeLimited(statement);
   });
 });
 

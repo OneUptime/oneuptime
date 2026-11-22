@@ -386,10 +386,14 @@ flowchart TB
 1. **Field that signals recovery** 和 **Value that means recovered** 已设置并与负载匹配。比较是精确且区分大小写的：`Resolved` 不匹配 `resolved`。
 2. 条件的事件打开了 **自动解决事件**，该选项位于事件表单的 **更多字段** 下。没有它，匹配的恢复事件会被忽略，事件保持打开。（警报和 **自动解决警报** 同理。）默认的离线条件一开始就打开了它；你自己添加到条件中的事件一开始是关闭的。
 
+你自己添加到条件中的警报，一开始也关闭了 **自动解决警报**，因此在打开它之前，恢复会让警报保持打开。**Auto-resolve each incident when…** 会显示恢复会解决该条件的哪些事件和警报，并列出它会保持打开的每一项，附带一个打开相应开关的按钮。监视器 **概览** 上的 **监视器摘要** 卡片会列出恢复保持打开的每个事件和警报，以及原因。
+
+恢复只会解决读取它的那个条件的事件和警报，也就是 **Field that signals recovery** 和 **Value that means recovered** 与负载匹配的条件。同一个值在其他条件下的事件和警报会保持打开，而将这些字段留空的条件，其事件和警报需要手动解决。
+
 **Max incidents per request** 限制的是提取，而不仅是创建。超出上限的键对恢复判断同样不可见，因此在一个不同键数量超过上限的负载中，超出上限部分报告 `resolved` 的警报不会关闭它的事件。
 
 > [!NOTE]
-> 当一个监视器收到请求的速度快于 OneUptime 评估它们的速度时，OneUptime 会评估最新的请求并跳过中间的请求，因此一波突发的 Webhook 可能让某条触发中或已解决的警报得不到评估。在自托管服务器上，在 OneUptime 应用的环境中设置 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，即可单独评估每一个请求。
+> 某个条件按负载字段分组的监视器，会按到达顺序逐个评估它收到的每一个请求，因此一波突发的警报和恢复会为每个值打开并解决各自的事件和警报。最多有 1,000 个请求（或 16 MB）可以等待评估；超出后，等待中最早的请求会被跳过， **监视器摘要** 卡片会显示跳过了多少个。没有分组的监视器只评估等待中的最新请求。
 
 > [!NOTE]
 > 如果 **Field that signals recovery** 包含 `[*]`，而 **Open a separate incident for each…** 不包含，那么只有当该数组的每个元素都表示已恢复时，请求才算已恢复。使用 `requestBody.alerts[*].status` 和 `resolved` 时，按 `requestBody.groupLabels.alertname` 分组的事件会在请求的所有警报都已解决时解决，只要还有一个仍在触发就保持打开。

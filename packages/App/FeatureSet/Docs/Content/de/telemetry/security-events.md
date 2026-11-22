@@ -235,6 +235,16 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 - Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
 - Jedes Ereignis nennt die Cloud-Ressourcen, um die es in seinem Eintrag geht, mit ihren eigenen IDs - einem ARN, einer Azure-Ressourcen-ID, einem Ressourcennamen von Google Cloud -, daher erscheint es auf der Seite **Sicherheitsereignisse** jeder dieser Ressourcen und auf der einer Serverless-Funktion, sobald ihre Telemetrie `cloud.account.id` und `cloud.region` setzt.
 
+### Die eigenen Sonden von OneUptime in Ihren Netzwerk-Flows
+
+Schalten Sie **Netzwerk-Flows** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann werden die Flows, die Ihre Netzwerkgeräte exportieren, auf Port-Scans, Netzwerk-Sweeps, Datenverkehr mit bekannt bösartigen Adressen und große Übertragungen nach außen gelesen. Die eigene Arbeit einer Sonde sieht dort wie ein Scan aus: Wer 40 Geräte über SNMP abfragt, erreicht alle fünf Minuten Port 161 auf 40 Hosts. Deshalb wird Datenverkehr einer der eigenen Sonden von OneUptime, der genau das ist, wofür die Sonde eingerichtet ist, beiseitegelegt:
+
+- die Netzwerkgeräte, die sie abfragt, per Ping und per SNMP auf ihrem Port;
+- der Bereich jedes ihrer Erkennungsscans, solange der Scan läuft;
+- die Hosts und Ports, die ihre Monitore prüfen.
+
+Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die Sonde nennt, und keine Regel liest es. **Netzwerk-Flows** zeigt, wie viel am letzten Tag beiseitegelegt wurde, mit **Anzeigen**. Alles andere von der Adresse einer Sonde wird gezählt wie jeder andere Datenverkehr, und ein Sweep oder Scan über die Arbeit der Sonde hinaus wird gemeldet, mit dem Namen der Sonde. Eine Sonde wird an der Adresse erkannt, von der aus sie sich meldet, und an den Adressen ihrer eigenen Netzwerkschnittstellen, die sie bei jeder Meldung auflistet.
+
 ### Ein Sicherheitsprodukt verbinden
 
 **Verbindungen** fragt ein Sicherheitsprodukt für Sie ab und importiert seine neuen Datensätze als Sicherheitsereignisse. Eine Verbindung enthält die Einstellungen des Produkts und verschlüsselte Zugangsdaten; ein Worker fragt sie in dem Intervall ab, das Sie festlegen, und überspringt bereits importierte Datensätze.
@@ -341,7 +351,7 @@ Eine Bedrohungssuche, die mit Filtern aus der Seitenleiste von Ereignisse gespei
 
 Eine geplante Bedrohungssuche benachrichtigt die Personen und Teams, die Sie unter **Benachrichtigen** wählen: mindestens eine Person oder ein Team und höchstens 50 insgesamt. Jeder Lauf:
 
-- liest die Ereignisse, deren Zeitpunkt nach dem vorherigen Lauf liegt, bis vor zwei Minuten, sodass jedes Ereignis einmal durchsucht wird. Der erste Lauf liest ab dem Zeitpunkt, zu dem der Zeitplan festgelegt oder die Suche zuletzt geändert wurde, und nach einem Ausfall holt ein Lauf höchstens einen Tag mehr als sein Intervall nach.
+- liest die Ereignisse, die nach dem vorherigen Lauf angekommen sind, bis vor zwei Minuten, wann immer sie geschehen sind, sodass jedes Ereignis einmal durchsucht wird, auch eines, das spät ankommt. Der erste Lauf liest ab dem Zeitpunkt, zu dem der Zeitplan festgelegt oder die Suche zuletzt geändert wurde, und nach einem Ausfall holt ein Lauf höchstens einen Tag mehr als sein Intervall nach. Ein Ereignis, das mehr als einen Tag nach seinem Geschehen ankommt, wird gespeichert und ist durchsuchbar, aber kein Lauf zählt es.
 - zählt die Ereignisse, die seine Suche dort findet, genau so, wie **Ereignisse** sie auflisten würde, und liest nur, was die Person lesen darf, unter der er läuft.
 - benachrichtigt, wenn er Ereignisse findet, die Personen, die die Bedrohungssuche nennt, und die Mitglieder der Teams, die sie nennt, sofern sie Bedrohungssuchen und Sicherheitsereignisse lesen dürfen.
 
@@ -351,11 +361,11 @@ Eine geplante Bedrohungssuche läuft unter der Person, die zuletzt ihren Zeitpla
 
 ### Ausführungsverlauf
 
-Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und welche Ereignisse er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
+Jeder geplante Lauf wird 90 Tage aufbewahrt. **Ausführungsverlauf**, am Ende der Zeile, die sagt, was die Läufe einer Bedrohungssuche gefunden haben, listet sie mit dem neuesten zuerst: wann jeder lief und wann die Ereignisse ankamen, die er durchsucht hat, dann wie viele er gefunden hat, mit **Anzeigen**, um genau diese Ereignisse auf der Seite der Bedrohungssuche zu öffnen; dass er nichts gefunden hat; oder warum er nicht laufen konnte. Wer eine Bedrohungssuche öffnen kann, kann auch ihre Läufe lesen.
 
 ### Wer benachrichtigt wird
 
-Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und welches Zeitfenster er gelesen hat, und verlinkt auf die Seite der Bedrohungssuche mit diesen Ereignissen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
+Die Benachrichtigung **Bedrohungssuche hat Sicherheitsereignisse gefunden** nennt die Bedrohungssuche und ihre Suche, wie viele Ereignisse ihr Lauf gefunden hat und wann sie angekommen sind, und verlinkt auf die Seite der Bedrohungssuche mit genau diesen Ereignissen: der Filter **Angekommen** über dem Tag davor, den Sie entfernen können, um alles andere aus dieser Zeit zu sehen; kein Wortlaut eines Ereignisses steht darin. Alle erhalten sie per E-Mail und Push und wählen ihre Kanäle unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Wie andere Routine-E-Mails kann sie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten werden.
 
 Um in Slack, Microsoft Teams oder Mattermost zu posten, was Bedrohungssuchen finden, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams** oder **Mattermost**) eine Regel zu **Regeln für Bedrohungssuchen** hinzu, unterhalb der Regeln, die [Sicherheitsfälle](/docs/telemetry/security-cases#in-kanäle-von-slack-microsoft-teams-und-mattermost-posten) posten. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und, wenn Sie möchten, die Bedrohungssuchen, für die sie gilt, nach **Name der Bedrohungssuche**: ein Name, der Ihr Text ist, ihn enthält, mit ihm beginnt oder auf ihn endet. Jedes Mal, wenn ein geplanter Lauf Ereignisse findet, werden die Bedrohungssuche, ihre Suche, wie viele Ereignisse und wann mit einem Link zu ihnen gepostet, und keines der eigenen Worte eines Ereignisses. Eine Regel für Bedrohungssuchen richtet eine Rolle ein, die Sicherheits-Playbooks einrichten darf, etwa Projektinhaber, Projektadministrator oder Sicherheits-Administrator.
 
@@ -505,7 +515,8 @@ OneUptime prüft jede Minute, welche aktivierten Regeln ihr Intervall seit ihrem
 
 - Eine zählende Regel und eine Korrelation zählen in Zeitfenstern so lang wie das Intervall, lückenlos nach der Uhr: Bei einem Intervall von 10 Minuten fallen Fehlschläge um 09:58 und 10:01 in verschiedene Zeitfenster und werden getrennt gezählt, also lassen Sie bei der Wahl eines Schwellenwerts Spielraum.
 - Nach einer Lücke, etwa einem Worker-Ausfall oder einer wieder eingeschalteten Regel, deckt der nächste Lauf die ganze Lücke ab, bis zu den letzten 24 Stunden.
-- Ein Ereignis, das verspätet eintrifft, liest der nächste Lauf trotzdem, einmal, und zählt es in dem Zeitfenster, in dem es geschehen ist: Eine Gruppe löst aus, wenn ihr Zeitfenster die Zählung erreicht, und höchstens einmal pro Zeitfenster. Eines, das mehr als einen Tag nach seinem Geschehen eintrifft, wird gespeichert und ist durchsuchbar, aber die Läufe der Regel lesen es nicht; **Auf vergangene Ereignisse anwenden** tut es.
+- Ein fehlgeschlagener Lauf, etwa einer, der zu lange dauert, lässt die Regel, wo sie war: Ihr **Status** zeigt **Ausführung fehlgeschlagen**, und sie wird beim nächsten Intervall erneut versucht, bei einem längeren Intervall innerhalb einer Stunde. Der Lauf, der gelingt, liest alles, was seit dem letzten gelungenen Lauf angekommen ist, wie lange das auch her ist, jeweils einen Tag. Ein Lauf, der angehalten wurde, nachdem er auf seine Treffer reagiert hat, wird wiederholt, ohne sie ihrem Fall ein zweites Mal hinzuzufügen.
+- Ein Ereignis, das verspätet eintrifft, liest der nächste Lauf trotzdem, einmal, und zählt es in dem Zeitfenster, in dem es geschehen ist: Eine Gruppe löst aus, wenn ihr Zeitfenster die Zählung erreicht, und höchstens einmal pro Zeitfenster. Eines, das mehr als einen Tag nach seinem Geschehen eintrifft, wird gespeichert und ist durchsuchbar, aber die Läufe der Regel lesen es nicht; **Auf vergangene Ereignisse anwenden** tut es. Das ist Absicht, damit ein Nachladen von Verlaufsdaten keine Warnungen über die Vergangenheit öffnet: Ist in den letzten 7 Tagen ein Ereignis so spät eingetroffen, sagt ein Hinweis über den Regeln, wie viele, aus welchen Quellen und wann sie aufgetreten sind, und öffnet **Auf vergangene Ereignisse anwenden** über diesen Zeitraum.
 - Jede Gruppe, die den Schwellenwert erreicht, wird zu einem Detection Finding, bis zu 10.000 pro Lauf. Warnungen, Vorfälle und Fälle öffnen sich für die 100 mit den höchsten Zählungen; die übrigen teilen sich einen Fall zur Regel, und **Letzter Fehler** der Regel nennt, wie viele Gruppen passten.
 
 ### Echtzeitregeln
@@ -637,6 +648,14 @@ Die Aktion **Monitor erstellen** in der Zeile einer Regel öffnet einen neuen Mo
 ## Aufbewahrung und Abrechnung
 
 Sicherheitsereignisse werden pro aufgenommenem GB abgerechnet, wie der Rest Ihrer Telemetrie, und für Ihre Telemetrie-Aufbewahrung behalten: die **Standardaufbewahrung (Tage)** des Projekts unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**, oder eine Aufbewahrung, die am Telemetrie-Dienst festgelegt ist, zu dem sie gehören. Endet die Aufbewahrung eines Ereignisses, wird es gelöscht.
+
+Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die noch aufbewahrten Ereignisse und sagt, wenn es mehr bräuchte:
+
+- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Alarme und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
+- **Auf vergangene Ereignisse anwenden** über einen Zeitraum, der vor den aufbewahrten Ereignissen beginnt, sagt, dass Sicherheitsereignisse 15 Tage lang aufbewahrt werden und es daher 15 Tage zurückgeblickt hat, und was es nicht gefunden hat, gilt nur für diese Tage. Ein Ereignis, das früher geschah, aber verspätet eintraf, bleibt aufbewahrt und wird weiterhin gelesen. Eine Regel vom Typ **Zuerst gesehen** sagt, wie viel der 30 Tage vor dem Zeitraum sie sehen konnte.
+- Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
+
+**Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
 
 ## Fehlerbehebung
 

@@ -9,8 +9,10 @@ import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -85,10 +87,12 @@ export default class TenantPermission {
    * project A" was answered with one of the caller's projects, which let
    * someone outside A pass a check that read A as them.
    *
-   * IncludesAll on a column of one ID keeps any of its IDs, and
-   * EqualToOrNull its one ID, as QueryUtil writes them for the database;
-   * no record's tenant column is empty. A filter that cannot be worked
-   * out on an ID - a text search, a range - is refused, never dropped.
+   * IncludesAll on a column of one ID keeps any of its IDs, EqualToOrNull
+   * its one ID, NotEqualOrNull every other and IncludesNoneOrNull every one
+   * but its IDs, as QueryUtil writes them for the database; no record's
+   * tenant column is empty, so the "or empty" half never adds a project. A
+   * filter that cannot be worked out on an ID - a text search, a range - is
+   * refused, never dropped.
    */
   public static getProjectsTheFilterKeeps(data: {
     filter: unknown;
@@ -112,12 +116,15 @@ export default class TenantPermission {
       ids = [filter];
     } else if (filter instanceof EqualTo || filter instanceof EqualToOrNull) {
       ids = [filter.value];
-    } else if (filter instanceof NotEqual) {
+    } else if (filter instanceof NotEqual || filter instanceof NotEqualOrNull) {
       ids = [filter.value];
       isExcluded = true;
     } else if (filter instanceof Includes || filter instanceof IncludesAll) {
       ids = filter.values;
-    } else if (filter instanceof IncludesNone) {
+    } else if (
+      filter instanceof IncludesNone ||
+      filter instanceof IncludesNoneOrNull
+    ) {
       ids = filter.values;
       isExcluded = true;
     }

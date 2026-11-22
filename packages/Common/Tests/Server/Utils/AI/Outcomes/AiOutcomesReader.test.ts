@@ -2,6 +2,9 @@ import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgen
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import OnCallDutyPolicyExecutionLogService from "../../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
@@ -70,7 +73,11 @@ type TableName =
   | "incidents"
   | "alerts"
   // The project's AI Logs: who may read them is told each model's name (#7762).
-  | "llmLogs";
+  | "llmLogs"
+  // Data Security's proposals, its records of analyses, and its issues (#10364).
+  | "dataSecurityProposals"
+  | "dataSecurityDecisions"
+  | "dataSecurityIssues";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -105,6 +112,9 @@ function emptyTables(): Tables {
     incidents: [],
     alerts: [],
     llmLogs: [],
+    dataSecurityProposals: [],
+    dataSecurityDecisions: [],
+    dataSecurityIssues: [],
   };
 }
 
@@ -117,6 +127,9 @@ function readsAll(): Record<TableName, Access> {
     incidents: "read",
     alerts: "read",
     llmLogs: "read",
+    dataSecurityProposals: "read",
+    dataSecurityDecisions: "read",
+    dataSecurityIssues: "read",
   };
 }
 
@@ -225,6 +238,15 @@ function install(
   jest
     .spyOn(LlmLogService, "findBy")
     .mockImplementation(find("llmLogs") as never);
+  jest
+    .spyOn(DataSecurityAiProposalService, "findBy")
+    .mockImplementation(find("dataSecurityProposals") as never);
+  jest
+    .spyOn(DataSecurityAiDecisionService, "findBy")
+    .mockImplementation(find("dataSecurityDecisions") as never);
+  jest
+    .spyOn(DataSecurityIssueService, "findBy")
+    .mockImplementation(find("dataSecurityIssues") as never);
 
   return store;
 }

@@ -24,7 +24,10 @@ import {
   processSnmpTrapBatchFromQueue,
 } from "../ProbeIngest/ProcessCoalescedProbeIngest";
 import KubernetesCostIngestService from "../../Services/KubernetesCostIngestService";
-import { processIncomingRequestJobFromQueue } from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
+import {
+  processIncomingRequestJobFromQueue,
+  processPendingIncomingRequestsFromQueue,
+} from "../IncomingRequestIngest/ProcessIncomingRequestIngest";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import logger from "Common/Server/Utils/Logger";
@@ -50,7 +53,12 @@ import SessionReplayIngestService from "../../Services/SessionReplayIngestServic
 import ProductAnalyticsEventIngestService from "../../Services/ProductAnalyticsEventIngestService";
 import { JSONObject } from "Common/Types/JSON";
 import PinServiceName from "Common/Server/Utils/Telemetry/PinServiceName";
-import PinMobileRumResource from "Common/Server/Utils/Telemetry/PinMobileRumResource";
+import PinRumClientResource from "Common/Server/Utils/Telemetry/PinRumClientResource";
+import {
+  RUM_CLIENT_KIND_BROWSER,
+  RUM_CLIENT_KIND_MOBILE,
+  RumClientKind,
+} from "Common/Types/Rum/RumClientKind";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
@@ -110,23 +118,50 @@ function applyPinnedServiceName(
   }
 
   /*
-   * A Mobile key's batch (issue #6457) is its app's mobile RUM and nothing
-   * else: only a mobile app's own resource attributes are kept, the pinned
-   * service.name among them, and every resource is stamped as a mobile
-   * client (PinMobileRumResource). After the pin, for the same reason, and
-   * wrapped for the same reason: it never throws, and must not fail the job
-   * if it ever does.
+   * A public key's batch is its app's or its page's RUM and nothing else: a
+   * Mobile key's its app's mobile RUM (issue #6457), a Browser key's its
+   * page's browser RUM (issue #10539). Only what that kind of client says
+   * about itself is kept on each resource, the pinned service.name among
+   * them, and every resource is stamped as that kind of client
+   * (PinRumClientResource), so a copied key files nothing under a host, a
+   * cluster, a cloud resource, a database or a backend service. After the
+   * pin, for the same reason, and wrapped for the same reason: it never
+   * throws, and must not fail the job if it ever does.
    */
-  if (jobData.isMobileKey) {
+  const publicKeyClientKind: RumClientKind | null =
+    getPublicKeyRumClientKind(jobData);
+
+  if (publicKeyClientKind) {
     try {
-      PinMobileRumResource.pinInPlace(body);
+      PinRumClientResource.pinInPlace(body, publicKeyClientKind);
     } catch (error) {
       logger.error(
-        `ProcessTelemetry: failed to file a Mobile key's batch as mobile RUM for project ${jobData.projectId}:`,
+        `ProcessTelemetry: failed to file a ${publicKeyClientKind} key's batch as ${publicKeyClientKind} RUM for project ${jobData.projectId}:`,
       );
       logger.error(error);
     }
   }
+}
+
+/*
+ * Which kind of RUM client a public key's job is from, or null for any
+ * other job. A Mobile key's flag is read first: the two are never both set,
+ * and a Mobile key's batch must never be filed as anything but mobile.
+ *
+ * Exported for tests.
+ */
+export function getPublicKeyRumClientKind(
+  jobData: Pick<TelemetryIngestJobData, "isMobileKey" | "isBrowserKey">,
+): RumClientKind | null {
+  if (jobData.isMobileKey) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  if (jobData.isBrowserKey) {
+    return RUM_CLIENT_KIND_BROWSER;
+  }
+
+  return null;
 }
 
 /*
@@ -355,7 +390,8 @@ export async function settleIngestionBudgetCharge(data: {
  * statement rate is negligible, so their retry idempotence costs nothing
  * to keep.
  *
- * The probe / server-monitor / incoming-request types are excluded
+ * The probe / server-monitor / incoming-request types (a request of its
+ * own, and a monitor's waiting requests) are excluded
  * deliberately: their inserts go through shared cross-job buffers
  * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
  * rows from several jobs — a retry would then reuse a token for a
@@ -445,6 +481,17 @@ async function withSessionReplaySlot(fn: () => Promise<void>): Promise<void> {
       sessionReplayInFlight--;
     }
   }
+}
+
+/*
+ * Whether this run of the job is its last: BullMQ fails it for good if this
+ * one throws (attemptsMade counts the attempts that failed before it).
+ */
+export function isFinalAttemptOf(job: QueueJob): boolean {
+  const attempts: number = Number(job.opts?.attempts) || 1;
+  const failedBefore: number = Number(job.attemptsMade) || 0;
+
+  return failedBefore + 1 >= attempts;
 }
 
 /*
@@ -718,6 +765,17 @@ if (DisableQueueWorkers) {
               logger.debug(
                 `Successfully processed incoming request ingest job`,
               );
+              break;
+
+            case TelemetryType.IncomingRequestPending:
+              // A monitor's waiting requests (IncomingRequestPendingStore).
+              if (jobData.incomingRequestPending) {
+                await processPendingIncomingRequestsFromQueue(
+                  jobData.incomingRequestPending,
+                  { isFinalAttempt: isFinalAttemptOf(job) },
+                );
+              }
+              logger.debug(`Successfully processed incoming request job`);
               break;
 
             case TelemetryType.TelemetryMonitorEvaluation:
