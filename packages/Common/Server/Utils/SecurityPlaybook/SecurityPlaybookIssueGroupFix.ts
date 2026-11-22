@@ -12,6 +12,7 @@ import {
   DataSecurityIssueGroupFixResultJSON,
 } from "../../../Types/DataSecurity/DataSecurityIssueGroupFix";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
+import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookStepStatus } from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import FeedMarkdown, {
   MarkdownText,
@@ -88,7 +89,11 @@ export default class SecurityPlaybookIssueGroupFix {
   public static async fixGroupsOfCase(
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome | null> {
-    if (!context.securityCase.id) {
+    // A Data Security case only: every other case's step reads nothing more.
+    if (
+      !context.securityCase.id ||
+      context.securityCase.source !== SecurityDetectionSource.DataSecurity
+    ) {
       return null;
     }
 
