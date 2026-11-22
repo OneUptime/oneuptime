@@ -3,6 +3,7 @@ import {
   getStartingRepositoryId,
 } from "../AutoRemediation/DeclaredCodeChangeWords";
 import DataSecurityApi from "./DataSecurityApi";
+import { RESPONSE_ACTION_TITLES } from "./IssueResponseAction";
 import {
   CLOUD_PART_DONE,
   CLOUD_PART_FAILED,
@@ -40,6 +41,7 @@ import {
   DataSecurityIssueGroupLeftOutReason,
   countIssueGroupFixStores,
 } from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
+import { isDataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DeclaredCodeChangeState,
@@ -86,6 +88,15 @@ import React, {
  */
 
 export const ISSUE_GROUP_FIX_TEST_ID: string = "data-security-issue-group-fix";
+
+// The action as the issue's page names it ("Block Public Access"), in the reader's language.
+function getActionTitle(action: string, translator: Translator): string {
+  const title: string = isDataSecurityResponseAction(action)
+    ? RESPONSE_ACTION_TITLES[action]
+    : action;
+
+  return translator.translateText(title) || title;
+}
 
 // The most stores a part names before it counts the rest.
 const MAX_STORES_NAMED: number = 6;
@@ -373,9 +384,7 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
             didSomething = true;
             Toast.success(
               translator.translatePlural(CLOUD_PART_DONE, done, {
-                action:
-                  translator.translateText(result.cloud.action) ||
-                  result.cloud.action,
+                action: getActionTitle(result.cloud.action, translator),
               }),
             );
           }
@@ -581,8 +590,7 @@ const IssueGroupFixModal: FunctionComponent<ComponentProps> = (
                 CLOUD_PART_SENTENCE,
                 cloud.stores.length,
                 {
-                  action:
-                    translator.translateText(cloud.action) || cloud.action,
+                  action: getActionTitle(cloud.action, translator),
                 },
               )}
             </p>
