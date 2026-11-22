@@ -327,7 +327,7 @@ describe("a Response Plan step and its check, in every language", () => {
     mitreTechniques: [],
     isAssigned: true,
     hasIncident: false,
-    stage: SecurityCaseStage.Investigating,
+    stage: SecurityCaseStage.Acknowledged,
     hasContainedStatus: true,
     matches: null,
     playbooks: [],
@@ -357,8 +357,12 @@ describe("a Response Plan step and its check, in every language", () => {
           return candidate.key === "contain:block-domain:evil.example";
         },
       )!;
+
+      // A sentence, not a count's: one domain, one product.
+      expect(typeof step.text.template).toBe("string");
+
       const text: string = translator.translateTemplate(
-        step.text.template,
+        step.text.template as string,
         step.text.values,
       );
 

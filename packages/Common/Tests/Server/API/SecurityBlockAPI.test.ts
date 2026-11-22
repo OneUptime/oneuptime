@@ -70,6 +70,7 @@ import SecurityBlockAPI, {
 } from "../../../Server/API/SecurityBlockAPI";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
+import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import {
   ExpressRequest,
@@ -81,6 +82,10 @@ import SecurityBlocklistJobs from "../../../Server/Utils/SecurityBlocklist/Secur
 import SecurityBlockDestinations from "../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
 import SecurityProtectedAddresses from "../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
 import TestSecurityBlockDestination from "../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
+import CrowdStrikeBlockDestination from "../../../Server/Utils/SecurityBlocklist/Destinations/CrowdStrikeBlockDestination";
+import MicrosoftDefenderBlockDestination from "../../../Server/Utils/SecurityBlocklist/Destinations/MicrosoftDefenderBlockDestination";
+import CrowdStrikeFalconResponseClient from "../../../Server/Utils/SecurityEvent/Response/CrowdStrikeFalconResponseClient";
+import MicrosoftDefenderEndpointClient from "../../../Server/Utils/SecurityEvent/Response/MicrosoftDefenderEndpointClient";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Exception from "../../../Types/Exception/Exception";
@@ -226,6 +231,8 @@ beforeEach(() => {
   jest
     .spyOn(SecurityProtectedAddresses, "findProtection")
     .mockResolvedValue({ protection: null, unreadSources: [] });
+  // No Microsoft Defender or CrowdStrike Falcon connection blocks (#10346): the default destinations find none.
+  jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -594,9 +601,91 @@ describe("POST /security-block/destinations", () => {
           key: "Test:destination",
           name: "Edge",
           provider: SecurityBlockDestinationProvider.Test,
+          // What it holds, and where (#10346): the test destination holds every kind, at the edge.
+          blocks: [
+            SecurityBlockIndicatorType.IpAddress,
+            SecurityBlockIndicatorType.IpRange,
+            SecurityBlockIndicatorType.Domain,
+            SecurityBlockIndicatorType.Url,
+            SecurityBlockIndicatorType.FileSha256,
+            SecurityBlockIndicatorType.FileSha1,
+            SecurityBlockIndicatorType.FileMd5,
+          ],
+          enforcesOnEveryMachine: false,
+          quarantinesFiles: false,
         },
       ],
       cannotTell: true,
+    });
+  });
+
+  test("Microsoft Defender and CrowdStrike Falcon block on every machine: what each holds, and which quarantines a file (#10346)", async () => {
+    props = caller(Permission.SecurityViewer);
+    const connectionId: ObjectID = new ObjectID(
+      "6f0a2c3e-4b5d-4e6f-8a7b-9c0d1e2f3a4b",
+    );
+    SecurityBlockDestinations.setSourcesForTests([
+      {
+        provider: SecurityBlockDestinationProvider.MicrosoftDefender,
+        findForProject: async () => {
+          return [
+            new MicrosoftDefenderBlockDestination({
+              connectionId,
+              name: "Microsoft Defender",
+              // Listing destinations never calls the product.
+              client: {} as MicrosoftDefenderEndpointClient,
+            }),
+          ];
+        },
+      },
+      {
+        provider: SecurityBlockDestinationProvider.CrowdStrike,
+        findForProject: async () => {
+          return [
+            new CrowdStrikeBlockDestination({
+              connectionId,
+              name: "CrowdStrike Falcon",
+              client: {} as CrowdStrikeFalconResponseClient,
+            }),
+          ];
+        },
+      },
+    ]);
+
+    await call({ method: "post", uri: SECURITY_BLOCK_DESTINATIONS_ROUTE });
+
+    expect(answered()).toEqual({
+      destinations: [
+        {
+          key: `MicrosoftDefender:${connectionId.toString()}`,
+          name: "Microsoft Defender",
+          provider: SecurityBlockDestinationProvider.MicrosoftDefender,
+          // One address at a time, never a range; every kind of file hash.
+          blocks: [
+            SecurityBlockIndicatorType.IpAddress,
+            SecurityBlockIndicatorType.Domain,
+            SecurityBlockIndicatorType.Url,
+            SecurityBlockIndicatorType.FileSha256,
+            SecurityBlockIndicatorType.FileSha1,
+            SecurityBlockIndicatorType.FileMd5,
+          ],
+          enforcesOnEveryMachine: true,
+          quarantinesFiles: true,
+        },
+        {
+          key: `CrowdStrike:${connectionId.toString()}`,
+          name: "CrowdStrike Falcon",
+          provider: SecurityBlockDestinationProvider.CrowdStrike,
+          // Falcon prevents files by SHA-256 or MD5 only.
+          blocks: [
+            SecurityBlockIndicatorType.FileSha256,
+            SecurityBlockIndicatorType.FileMd5,
+          ],
+          enforcesOnEveryMachine: true,
+          quarantinesFiles: false,
+        },
+      ],
+      cannotTell: false,
     });
   });
 
