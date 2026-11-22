@@ -61415,5 +61415,13 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} of the {{total}} accounts the attack went after, has no MFA set up."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "{{user}}, {{count}} of the {{total}} accounts the attack went after, has no MFA set up.",
+  "Interface IP Addresses": "Interface IP Addresses",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+  "Requests not evaluated: {{skipped}}": "Requests not evaluated: {{skipped}}"
 }

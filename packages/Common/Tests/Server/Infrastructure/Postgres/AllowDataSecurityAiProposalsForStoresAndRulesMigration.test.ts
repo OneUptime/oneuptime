@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AllowDataSecurityAiProposalsForStoresAndRules1809187421600 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187421600-AllowDataSecurityAiProposalsForStoresAndRules";
+import { AllowDataSecurityAiProposalsForStoresAndRules1809187429100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187429100-AllowDataSecurityAiProposalsForStoresAndRules";
 import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecurityAiProposal";
 
 /*
@@ -20,12 +20,11 @@ import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecuri
  * under a lock. The schema drift check holds the result to the model.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809187421600";
+const MIGRATION_TIMESTAMP: string = "1809187429100";
 const MIGRATION_BASE_NAME: string =
   "AllowDataSecurityAiProposalsForStoresAndRules";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
-const MIGRATION_BEFORE: string =
-  "AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510";
+const MIGRATION_BEFORE: string = "AddProbeInterfaceIpAddresses1809187429000";
 
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -40,7 +39,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AllowDataSecurityAiProposalsForStoresAndRules1809187421600();
+    new AllowDataSecurityAiProposalsForStoresAndRules1809187429100();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -51,7 +50,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AllowDataSecurityAiProposalsForStoresAndRules1809187421600", () => {
+describe("AllowDataSecurityAiProposalsForStoresAndRules1809187429100", () => {
   test("lets a proposal have no issue and no store, and does nothing else", async () => {
     expect(await statementsOf("up")).toEqual([
       `ALTER TABLE "DataSecurityAiProposal" ALTER COLUMN "dataSecurityIssueId" DROP NOT NULL`,
@@ -99,7 +98,7 @@ describe("AllowDataSecurityAiProposalsForStoresAndRules1809187421600", () => {
       }),
     ).toHaveLength(1);
     expect(
-      new AllowDataSecurityAiProposalsForStoresAndRules1809187421600().name,
+      new AllowDataSecurityAiProposalsForStoresAndRules1809187429100().name,
     ).toBe(MIGRATION_CLASS_NAME);
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(
       names.indexOf(MIGRATION_BEFORE),

@@ -92,6 +92,11 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
     tactics: ["TA0010"],
     techniques: ["T1048"],
   },
+  // OneUptime's own probe doing what it is set to do: no attack at all.
+  [SecurityTelemetrySignal.OneUptimeProbeTraffic]: {
+    tactics: [],
+    techniques: [],
+  },
   [SecurityTelemetrySignal.ApiKeyCreated]: {
     tactics: ["TA0003"],
     techniques: ["T1098"],

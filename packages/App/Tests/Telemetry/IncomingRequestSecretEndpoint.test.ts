@@ -343,17 +343,22 @@ describe("a project that requires an incoming request secret", () => {
     ]);
   });
 
-  test("answers before it records the arrival, and records it before it queues", async () => {
+  /*
+   * Queued before it is answered (#10582), so a request sent once this one
+   * was answered is evaluated after it; the arrival is recorded once the
+   * sender has its answer.
+   */
+  test("queues the request before it answers, and answers before it records the arrival", async () => {
     await send({ headers: { "x-oneuptime-secret": PROJECT_SECRET } });
 
+    const queued: number =
+      addIncomingRequestIngestJob.mock.invocationCallOrder[0]!;
     const responded: number =
       sendEmptySuccessResponse.mock.invocationCallOrder[0]!;
     const recorded: number = advanceIfTracked.mock.invocationCallOrder[0]!;
-    const queued: number =
-      addIncomingRequestIngestJob.mock.invocationCallOrder[0]!;
 
+    expect(queued).toBeLessThan(responded);
     expect(responded).toBeLessThan(recorded);
-    expect(recorded).toBeLessThan(queued);
   });
 });
 

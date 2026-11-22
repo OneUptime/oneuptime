@@ -61415,5 +61415,13 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "گذرواژهٔ {{user}} در {{provider}} در {{time}} تغییر کرد، اما نشست‌هایش پس از باز شدن پرونده پایان نیافت.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "پیش از آن، درخواست‌های حملهٔ بسیار کمی به {{route}} عبور کرده بودند، پس حمله‌های پس از آن نمی‌توانند نشان دهند اصلاح جواب داده است.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "برای {{count}} از {{total}} حسابی که هدف حمله بودند MFA تنظیم نشده است، از جمله {{user}}.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "برای {{user}}، {{count}} از {{total}} حسابی که هدف حمله بودند، MFA تنظیم نشده است."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "برای {{user}}، {{count}} از {{total}} حسابی که هدف حمله بودند، MFA تنظیم نشده است.",
+  "Interface IP Addresses": "آدرس‌های IP رابط‌ها",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "ترافیک پراب‌های خود OneUptime که دقیقاً همان پرس‌وجوی دستگاه‌ها، کشف و بررسی مانیتورهای آن‌هاست، به نام خودشان برچسب می‌خورد و کنار گذاشته می‌شود و به‌عنوان پویش گزارش نمی‌شود.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "در یک روز گذشته {{count}} پیمایش یا پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "در یک روز گذشته {{count}} پیمایش و پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "در یک روز گذشته {{count}} پیمایش یا پویش از پراب‌های خود OneUptime کنار گذاشته شد.",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "درخواستی که ارزیابی‌اش {{attempts}} بار شکست بخورد رد می‌شود. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "بیش از آنچه این مانیتور نگه می‌دارد درخواست منتظر ارزیابی بود، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "Requests not evaluated: {{skipped}}": "درخواست‌های ارزیابی‌نشده: {{skipped}}"
 }

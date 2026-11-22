@@ -266,7 +266,7 @@ receivers:
 - 條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
 - **Field that signals recovery** 必須是 `requestBody.alerts[*].status`，**Value that means recovered** 必須恰好是 `resolved`。比較區分大小寫。
 - 通知中超出 **Max incidents per request** 的警示根本不會被讀取，所以它們的恢復也會遺失。
-- 在突發中被跳過的恢復（見下文）會讓它的事件永遠保持開啟：Alertmanager 會重複傳送觸發中的警示，但從不重複傳送恢復。請手動解決這樣的事件。
+- 因等待的通知過多而被跳過的恢復（見下文）會讓它的事件永遠保持開啟：Alertmanager 會重複傳送觸發中的警示，但從不重複傳送恢復。請手動解決這樣的事件。
 :::
 
 :::details 完全沒有開啟事件
@@ -285,8 +285,8 @@ receivers:
 讓路由按更少的標籤分組，或調大 `group_interval`，讓 Alertmanager 把相關警示一起傳送。調低 **Max incidents per request** 可以限制一個通知產生的事件數，但超出上限的警示不會被讀取，所以它們的恢復也會遺失。
 :::
 
-:::details 突發中有些通知被跳過
-當較新的請求在較早的請求被評估之前到達監測器時，OneUptime 只評估較新的那個，以免單一傳送方壓垮監測器。突發中的最後一個通知總會被評估，但關於其他警示的較早通知可能被跳過，因為 Alertmanager 把每個組都發送到同一個 URL。請調大 `group_wait` 和 `group_interval`，拉開通知之間的間隔。在自行託管安裝中，請在 OneUptime 應用程式的環境中設定 `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false`，以評估每個請求。
+:::details 一波突發的通知
+像本指南這樣依欄位分組的監測器，會依到達順序逐一評估它收到的每一則通知，因此一波突發的觸發中與已解決的警示會為每則警示開啟並解決各自的事件。最多有 1,000 則通知（或 16 MB）可以等待評估；超過之後，等待中最早的通知會被略過， **監測器摘要** 卡片會顯示略過了多少則。調大 `group_wait` 與 `group_interval`，可以傳送更少但更大的通知。沒有分組的監測器只評估等待中的最新通知。
 :::
 
 ## 安全

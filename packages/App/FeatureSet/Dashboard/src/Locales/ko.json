@@ -61415,5 +61415,13 @@
   "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.": "{{user}}의 비밀번호는 {{provider}}에서 {{time}}에 변경되었지만, 케이스가 열린 후 세션이 종료되지 않았습니다.",
   "Before it, so few attack requests to {{route}} got through that the attacks since cannot show the fix worked.": "그 전에 {{route}}에 대한 공격 요청이 통과한 경우가 너무 적어서, 그 이후의 공격으로는 수정이 효과가 있었는지 보여 줄 수 없습니다.",
   "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them.": "공격 대상이 된 계정 {{total}}개 중 {{count}}개에 MFA가 설정되어 있지 않습니다. {{user}}도 그중 하나입니다.",
-  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "공격 대상이 된 계정 {{total}}개 중 {{count}}개에 MFA가 설정되어 있지 않습니다. {{user}}도 그중 하나입니다."
+  "{{count}} of the {{total}} accounts the attack went after have no MFA set up, {{user}} among them._one": "공격 대상이 된 계정 {{total}}개 중 {{count}}개에 MFA가 설정되어 있지 않습니다. {{user}}도 그중 하나입니다.",
+  "Interface IP Addresses": "인터페이스 IP 주소",
+  "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime 자체 프로브의 트래픽 중 정확히 장치 폴링, 탐색, 모니터 확인에 해당하는 트래픽은 프로브의 것으로 표시되어 따로 보관되며 스캔으로 보고되지 않습니다.",
+  "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "지난 하루 동안 OneUptime 자체 프로브의 스윕과 스캔 {{count}}건이 따로 보관되었습니다.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "지난 하루 동안 OneUptime 자체 프로브의 스윕과 스캔 {{count}}건이 따로 보관되었습니다.",
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "지난 하루 동안 OneUptime 자체 프로브의 스윕과 스캔 {{count}}건이 따로 보관되었습니다.",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "요청은 평가가 {{attempts}}번 실패하면 건너뜁니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "이 모니터가 보관하는 것보다 많은 요청이 평가를 기다리고 있어서 가장 오래된 요청을 건너뛰었습니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
+  "Requests not evaluated: {{skipped}}": "평가되지 않은 요청: {{skipped}}"
 }
