@@ -10,12 +10,12 @@ import TeamPermissionService from "../../../../../Server/Services/TeamPermission
 import TeamService from "../../../../../Server/Services/TeamService";
 import UserService from "../../../../../Server/Services/UserService";
 import { nameOwners } from "../../../../../Server/Utils/AI/DataSecurity/Actions/StoreOwnerChanges";
+import { DataSecurityAiPlannedChange } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiAction";
 import DataSecurityIssueDossier from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueDossier";
 import DataStoreOwnerPlanner from "../../../../../Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner";
 import DataStoreOwnerEvidenceReader from "../../../../../Server/Utils/AI/DataSecurity/Owners/DataStoreOwnerEvidenceReader";
 import { FEED_INVITEE_UNNAMED } from "../../../../../Server/Utils/Feed/FeedPersonName";
 import { WithheldProfile } from "../../../../../Server/Utils/TeamMember/PendingInviteeProfiles";
-import { DataSecurityAiPlannedChange } from "../../../../../Types/DataSecurity/DataSecurityAi";
 import {
   DataStoreOwnerCandidate,
   DataStoreOwnerConfidence,

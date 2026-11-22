@@ -2412,7 +2412,7 @@ export default class SecurityCaseNotifications {
 
   /*
    * Whom a case is assigned to, as every message about it names them - its
-   * channels' posts, and the emails and texts to everybody told about it
+   * channels' posts, and the emails to everybody told about it
    * (FeedPersonName, #10681): someone only invited by the name typed with
    * their invitation, else "someone who hasn't joined the project yet",
    * never by their account's own name (#9823); a member by their name, else

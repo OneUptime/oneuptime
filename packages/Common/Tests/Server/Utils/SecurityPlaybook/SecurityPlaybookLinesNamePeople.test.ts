@@ -43,9 +43,8 @@ import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntit
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { SecurityPlaybookStepStatus } from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { parseSecurityPlaybookSteps } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import {
+import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
-  WorkspaceMessagePayload,
   WorkspacePayloadMarkdown,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
