@@ -444,6 +444,8 @@
     "Stream Azure Monitor Metrics and Logs": "Azure Monitor मेट्रिक्स और लॉग स्ट्रीम करें",
     "Stream Google Cloud Logs": "Google Cloud लॉग स्ट्रीम करें",
     "Block Addresses in AWS WAF": "AWS WAF में पते ब्लॉक करें",
+    "Block Addresses in Azure WAF": "Azure WAF में पते ब्लॉक करें",
+    "Block Addresses in Cloud Armor": "Cloud Armor में पते ब्लॉक करें",
     "Cloud Costs and Savings": "क्लाउड लागत और बचत",
     "Cloud Resources (IaaS & PaaS)": "क्लाउड संसाधन (IaaS और PaaS)",
     "AI / LLM Observability": "AI / LLM ऑब्ज़र्वेबिलिटी",
