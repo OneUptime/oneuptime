@@ -96,6 +96,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import {
   SecurityBlockClientAddress,
+  SecurityBlockCloudWafLeftKind,
   SecurityBlockCloudWafStatus,
 } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
 import { customDomainCaller } from "./CustomDomainCallers";
@@ -527,7 +528,12 @@ describe("changing and removing one", () => {
       const remove: MockedFn = jest
         .spyOn(SecurityBlockCloudWafs, "remove")
         .mockResolvedValue({
-          leftInCloud: [{ kind: "ipSet", name: "oneuptime-x-block-ipv4" }],
+          leftInCloud: [
+            {
+              kind: SecurityBlockCloudWafLeftKind.IpSet,
+              name: "oneuptime-x-block-ipv4",
+            },
+          ],
         }) as unknown as MockedFn;
 
       const { refusal } = await call({
