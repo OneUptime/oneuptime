@@ -435,6 +435,7 @@ import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
+import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
@@ -1051,6 +1052,7 @@ const services: Array<BaseService> = [
   SecurityCaseNoteService,
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
+  SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
