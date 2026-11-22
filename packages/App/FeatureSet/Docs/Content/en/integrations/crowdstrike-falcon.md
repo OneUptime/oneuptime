@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-Import [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) alerts, from endpoint, identity and cloud detections, into OneUptime's Security Events. There you search them beside your logs, traces and metrics, correlate them with every other source, and page on-call for the ones that matter. OneUptime reads them through the Falcon Alerts API with an API client you create, and never writes to Falcon.
+Import [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) alerts, from endpoint, identity and cloud detections, into OneUptime's Security Events. There you search them beside your logs, traces and metrics, correlate them with every other source, and page on-call for the ones that matter. OneUptime reads them through the Falcon Alerts API with an API client you create, and writes to Falcon only to block the files you block, once you turn that on.
 
 :::cards
 - [Set up the connection](#set-up-the-connection): An API client with one scope, and the connection's form.
 - [What is imported](#what-is-imported): How each Falcon alert becomes a security event.
 - [How polling works](#how-polling-works): The window each poll reads, and what a busy CID does to it.
+- [Block files with CrowdStrike](#block-files-with-crowdstrike): Stop the files on your blocklist running on every host.
 - [Troubleshooting](#troubleshooting): What each error means, and what to change.
 :::
 
@@ -33,7 +34,7 @@ Every minute, OneUptime polls each enabled connection whose poll interval has pa
 ### Create an API client
 
 1. In the Falcon console, open **Support and resources → API clients and keys**, and select **Create API client**.
-2. Name it, for example `OneUptime security events`. Under **API scopes**, turn on **Alerts → Read**, and leave every other scope off: the connection never writes to Falcon.
+2. Name it, for example `OneUptime security events`. Under **API scopes**, turn on **Alerts → Read**, and leave every other scope off: reading alerts writes nothing to Falcon. Blocking files needs two more (see [Block files with CrowdStrike](#block-files-with-crowdstrike)).
 3. Create the client. Falcon shows its client ID, its secret and its base URL once. Copy all three now: the secret can be reset later, but never shown again.
 
 ### Find your Falcon cloud
@@ -60,6 +61,7 @@ Click **Test these settings** under **Test before saving**. The test signs in an
 | --- | --- |
 | **Client ID** | The API client's ID, as Falcon showed it when you created the client. |
 | **Falcon cloud** | The cloud your CID is in: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** or **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Every request goes to that cloud's API host. |
+| **Block files with CrowdStrike** | Off on a new connection. On, it stops the files on your project's blocklist on every host, and needs **IOC Management → Read** and **Write** (see [Block files with CrowdStrike](#block-files-with-crowdstrike)). |
 | **Client secret** | The API client's secret. It is encrypted, never returned by the API and never shown again. Replace it with **Update credentials** on the connection. |
 
 The **Polling** step also has an optional **Description**, the **Poll Interval (Minutes)**, a whole number from `1` to `1440` that starts at `5`, and **Enabled**, which starts on. A connection that is not enabled can still be tested, and polled by hand.
@@ -123,6 +125,17 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 - **Import this time range** imports a range of up to 7 days, after you confirm, without moving the cursor. Alerts already imported are skipped.
 - **Copy diagnostics** on a run copies its report for support. It never includes credentials.
 
+## Block files with CrowdStrike
+
+Turn on **Block files with CrowdStrike** on a connection, and the files on your project's [blocklist](/docs/telemetry/security-cases#blocklist) are stopped on every host Falcon protects. Each file becomes a custom IOC of its SHA-256 or MD5 hash, with the source `OneUptime` and the action `prevent`, on Windows, Mac and Linux hosts, that expires when the block does. A file to quarantine too is blocked, and Falcon quarantines it as the host's prevention policy says. Falcon matches no SHA-1 hash, and only detects a domain or an address, so it is sent none of those: block them with [Microsoft Defender](/docs/integrations/microsoft-defender-xdr).
+
+The switch is off on a new connection. To turn it on:
+
+1. In the Falcon console, open **Support and resources → API clients and keys**, edit the API client, and turn on **IOC Management → Read** and **Write**.
+2. On the connection, turn on **Block files with CrowdStrike**, and click **Test connection**: **Block with CrowdStrike Falcon** checks both scopes, without changing any IOC.
+
+An IOC Falcon refuses shows as not enforced on the Blocklist, saying why. OneUptime reads and changes only the IOCs it added for this connection, never one a person made.
+
 ## Test connection
 
 **Test connection** on a connection's row, and **Test these settings** in the form, run in the API process, not in a background worker, so a test still answers when the workers are the problem. It runs these checks, in order:
@@ -133,6 +146,7 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` with the API client's ID and secret, on your cloud's host, returns a token. |
 | **Read alerts from the Falcon Alerts API** | An alerts query for one alert (`limit=1`) over the last 24 hours is accepted, which proves the **Alerts → Read** scope. |
 | **Alerts available to import** | How many alerts were created in the last 24 hours and the last 7 days. None in 7 days is a warning, not a failure: polling imports new alerts as Falcon creates them. |
+| **Block with CrowdStrike Falcon** | Only with **Block files with CrowdStrike** on: the API client holds **IOC Management → Read** and **Write**. It says how many custom IOCs OneUptime holds in Falcon, and changes none. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime's own side: a process takes the Worker queue's jobs, the poll job runs every minute, and the store of security events answers. |
 | **Scheduled polling** | For a saved connection: polling is on, no run is stuck waiting for a worker, and polls run on time. |
 

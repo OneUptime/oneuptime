@@ -6,6 +6,7 @@ Importieren Sie die Warnungen jeder Arbeitslast von [Microsoft Defender XDR](htt
 - [Die Verbindung einrichten](#die-verbindung-einrichten): Eine App-Registrierung, eine Berechtigung und das Formular der Verbindung.
 - [Was importiert wird](#was-importiert-wird): Wie aus jeder Defender-Warnung ein Sicherheitsereignis wird.
 - [So funktioniert das Abfragen](#so-funktioniert-das-abfragen): Das Zeitfenster jeder Abfrage, und was ein ausgelasteter Mandant damit macht.
+- [Mit Microsoft Defender sperren](#mit-microsoft-defender-sperren): Setzen Sie Ihre Sperrliste auf jedem Gerät durch, mit einer weiteren Berechtigung.
 - [Fehlerbehebung](#fehlerbehebung): Was jeder Fehler bedeutet und was zu ändern ist.
 :::
 
@@ -64,6 +65,7 @@ Klicken Sie unter **Vor dem Speichern testen** auf **Diese Einstellungen testen*
 | **Verzeichnis-ID (Tenant)** | Die Seite **Overview** der App. Die GUID des Mandanten oder eine verifizierte Domäne wie `contoso.onmicrosoft.com`. |
 | **Anwendungs-ID (Client)** | Die Seite **Overview** der App. Die GUID der App, die `SecurityAlert.Read.All` hat. |
 | **Cloud** | **Öffentliche Azure-Cloud**, die auch Microsoft 365 GCC bedient, oder **Azure Government (USA)** für GCC High (`login.microsoftonline.us` und `graph.microsoft.us`). Microsoft 365 DoD und die 21Vianet-Cloud in China werden nicht unterstützt. |
+| **Domänen, Adressen und Dateien mit Defender sperren** | Bei einer neuen Verbindung aus. Eingeschaltet sperrt sie, was die Sperrliste Ihres Projekts enthält, auf jedem Gerät, und braucht `Ti.ReadWrite.All` (siehe [Mit Microsoft Defender sperren](#mit-microsoft-defender-sperren)). |
 | **Client-Secret** | Der **Value** des Geheimnisses. Es wird verschlüsselt, nie von der API zurückgegeben und nie wieder angezeigt. Ersetzen Sie es mit **Anmeldedaten aktualisieren** an der Verbindung. |
 
 Der Schritt **Abfrage** hat außerdem eine optionale **Beschreibung**, das **Abfrageintervall (Minuten)**, eine ganze Zahl von `1` bis `1440`, die mit `5` beginnt, und **Aktiviert**, das eingeschaltet beginnt.
@@ -130,6 +132,26 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 - **Diesen Zeitraum importieren** importiert nach Ihrer Bestätigung einen Zeitraum von bis zu 7 Tagen, ohne den Cursor zu verschieben. Bereits importierte Warnungen werden übersprungen.
 - **Diagnosen kopieren** an einem Lauf kopiert seinen Bericht für den Support. Er enthält nie Anmeldedaten.
 
+## Mit Microsoft Defender sperren
+
+Schalten Sie an einer Verbindung **Domänen, Adressen und Dateien mit Defender sperren** ein, und die [Sperrliste](/docs/telemetry/security-cases#sperrliste) Ihres Projekts wird auf jedem Gerät durchgesetzt, das Microsoft Defender for Endpoint schützt. Jede Sperre wird zu einem Defender-[Indikator](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview), abgelegt unter der Anwendung `OneUptime`, der abläuft, wenn die Sperre abläuft:
+
+| Auf der Sperrliste | Defender-Indikator | Was Defender tut |
+| --- | --- | --- |
+| Eine Domäne | `DomainName`, `Block` | Sperrt die Domäne und jeden Namen darunter |
+| Eine URL | `Url`, `Block` | Sperrt die URL in Microsoft Edge und ihre Domäne in anderen Browsern |
+| Eine auf jedem Rechner gesperrte Adresse | `IpAddress`, `Block` | Sperrt Verbindungen zur Adresse. Ein Bereich wird nie gesendet: Defender nimmt eine Adresse nach der anderen |
+| Eine Datei | `FileSha256`, `FileSha1` oder `FileMd5`, `Block` | Verhindert, dass die Datei läuft |
+| Eine gesperrte und unter Quarantäne gestellte Datei | Dasselbe, `BlockAndRemediate` | Verhindert, dass die Datei läuft, und stellt die gefundenen Kopien unter Quarantäne |
+
+Der Schalter ist bei einer neuen Verbindung aus: Eine Verbindung, die nur Warnungen importiert, liest nur. So schalten Sie ihn ein:
+
+1. Gehen Sie in der App-Registrierung zu **API permissions → Add a permission → APIs my organization uses**, suchen Sie nach `WindowsDefenderATP`, wählen Sie **Application permissions**, wählen Sie `Ti.ReadWrite.All` und erteilen Sie die Administratorzustimmung. Es ist die einzige Berechtigung, die das Sperren braucht.
+2. Schalten Sie im Microsoft Defender-Portal unter **Settings → Endpoints → Advanced features** **Custom network indicators** und **Allow or block file** ein. Ohne sie behält Defender die Indikatoren, sperrt aber nichts; außerhalb von Microsoft Edge wird eine Domäne, URL oder Adresse nur dort gesperrt, wo der Netzwerkschutz im Sperrmodus läuft.
+3. Schalten Sie an der Verbindung **Domänen, Adressen und Dateien mit Defender sperren** ein und klicken Sie auf **Verbindung testen**: **Block with Microsoft Defender** prüft die Berechtigung.
+
+Ein Mandant hält 15.000 Indikatoren, seine eigenen eingeschlossen. Eine Sperre, die Defender nicht halten kann oder ablehnt, erscheint auf der Sperrliste als nicht durchgesetzt, mit dem Grund. OneUptime liest und entfernt nur die Indikatoren, die es für diese Verbindung angelegt hat, nie einen, den eine Person angelegt hat. Drosselt Defender es, versucht es es beim nächsten Durchlauf erneut.
+
 ## Verbindung testen
 
 **Verbindung testen** in der Zeile einer Verbindung und **Diese Einstellungen testen** im Formular laufen im API-Prozess, nicht in einem Hintergrund-Worker, sodass ein Test auch dann antwortet, wenn die Worker das Problem sind. Er führt diese Prüfungen der Reihe nach aus:
@@ -140,6 +162,7 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID stellt ein Token für Microsoft Graph aus, in der gewählten Cloud. Das schlägt bei einem falschen oder abgelaufenen Geheimnis fehl, bei einer falschen Mandanten- oder Client-ID oder bei der falschen Cloud. |
 | **Read alerts from Microsoft Graph** | Eine in den letzten 24 Stunden erstellte Warnung lässt sich lesen (`$top=1`). Ein `403` hier ist die fehlende Berechtigung `SecurityAlert.Read.All`, die fehlende Administratorzustimmung oder ein Mandant ohne Defender XDR. |
 | **Alerts available to import** | Wie viele Warnungen in den letzten 24 Stunden und den letzten 7 Tagen erstellt wurden, je eine Seite mit 100, `100+` heißt also mehr. Keine in 7 Tagen ist eine Warnung, kein Fehler. |
+| **Block with Microsoft Defender** | Nur mit eingeschaltetem **Domänen, Adressen und Dateien mit Defender sperren**: Die App-Registrierung hält `Ti.ReadWrite.All`, und die Indikatoren lassen sich lesen. Die Prüfung sagt, wie viele der 15.000 Indikatoren des Mandanten OneUptime hält, und ändert keinen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Die Seite von OneUptime selbst: Ein Prozess nimmt die Aufträge der Worker-Warteschlange an, der Abfrageauftrag läuft jede Minute, und der Speicher der Sicherheitsereignisse antwortet. |
 | **Geplante Abfrage** | Für eine gespeicherte Verbindung: Das Abfragen ist eingeschaltet, kein Lauf wartet festgefahren auf einen Worker, und die Abfragen laufen pünktlich. |
 

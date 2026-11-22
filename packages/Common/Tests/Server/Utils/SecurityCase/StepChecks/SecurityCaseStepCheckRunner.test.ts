@@ -848,7 +848,10 @@ describe("the every-minute run over the due cases", () => {
 
   test("the idle moment of a case with nothing due is half an hour on (control)", () => {
     expect(SECURITY_CASE_STEP_CHECK_IDLE_MINUTES).toBe(30);
-    // #10340's six, and #10347's three Fix steps.
-    expect(STEP_CHECKS.length).toBe(9);
+    /*
+     * #10340's six, #10347's three Fix steps, and #10346's three: a domain,
+     * a file and an address blocked on every machine.
+     */
+    expect(STEP_CHECKS.length).toBe(12);
   });
 });
