@@ -29,6 +29,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Toast from "Common/UI/Utils/Toast";
@@ -409,10 +410,11 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
                   }),
                 });
               } catch (liftError) {
+                // The error said in the reader's language, a reference with it.
                 Toast.error(
                   translator.translateTemplate(CLOSE_LIFT_FAILED, {
                     value: block.value,
-                    error: API.getFriendlyMessage(liftError),
+                    error: errorInSentence(API.getFriendlyMessage(liftError)),
                   }),
                 );
               }

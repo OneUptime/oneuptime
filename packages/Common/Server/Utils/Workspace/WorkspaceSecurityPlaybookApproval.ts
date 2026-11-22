@@ -13,9 +13,7 @@ import {
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import FeedMarkdown, {
-  MarkdownText,
-} from "../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   SecurityPlaybookApprovalAsk,
   SecurityPlaybookApprovalButtonWords,
@@ -419,19 +417,22 @@ export default class WorkspaceSecurityPlaybookApproval {
     ask: SecurityPlaybookApprovalAsk,
     wording: SecurityPlaybookApprovalWording,
   ): string {
-    const headline: string = `**${wording.headline.markdown.toString()}**`;
+    // The wording's Markdown placed as it is: every name in it is text already.
+    const headline: MarkdownText = mdText`**${wording.headline.markdown}**`;
 
     switch (ask.standing.kind) {
       case SecurityPlaybookApprovalStandingKind.Approved:
-        return wording.progress
-          ? `✅ ${headline} ${wording.progress.markdown.toString()}`
-          : `✅ ${headline}`;
+        return (
+          wording.progress
+            ? mdText`✅ ${headline} ${wording.progress.markdown}`
+            : mdText`✅ ${headline}`
+        ).toString();
       case SecurityPlaybookApprovalStandingKind.Rejected:
-        return `❌ ${headline}`;
+        return mdText`❌ ${headline}`.toString();
       case SecurityPlaybookApprovalStandingKind.NoLongerWaiting:
-        return `⏹️ ${headline}`;
+        return mdText`⏹️ ${headline}`.toString();
       default:
-        return `⏸️ ${headline}`;
+        return mdText`⏸️ ${headline}`.toString();
     }
   }
 
@@ -504,9 +505,10 @@ export default class WorkspaceSecurityPlaybookApproval {
     const wording: SecurityPlaybookApprovalWording =
       wordSecurityPlaybookApproval({ ask: data.ask, context });
 
+    // What the step does, then the form's own sentence, each a paragraph.
     const intro: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
-      text: `${wording.action.markdown.toString()}\n\n${FeedMarkdown.textInLine(words.intro).toString()}`,
+      text: mdText`${wording.action.markdown}\n\n${words.intro}`.toString(),
     };
 
     const boxes: Array<WorkspaceCheckboxBlock> =

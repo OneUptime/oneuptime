@@ -30,6 +30,8 @@ import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueS
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
+  DataSecurityDeclaredStore,
+  DataSecurityDeclaredStoreResponse,
   DataSecurityExplainResult,
   DataSecurityFindingOccurrences,
   DataSecurityIssueAnalysisResult,
@@ -46,6 +48,7 @@ import DataTypeNamer from "../../Types/DataSecurity/DataTypeNamer";
 import {
   DataStoreKind,
   TELEMETRY_DATA_STORE_KINDS,
+  isDeclaredDataStoreKind,
 } from "../../Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "../../Types/DataSecurity/DataStorePosture";
 import { readFindingSampleRecords } from "../../Types/DataSecurity/FindingSampleRecord";
@@ -75,6 +78,10 @@ import DataSecurityIssueAnalysisReader from "../Utils/AI/DataSecurity/DataSecuri
 import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
+import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../Utils/TeamMember/PendingInviteeProfiles";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
@@ -381,6 +388,22 @@ export default class DataSecurityAPI extends BaseAPI<
       async (projectId: ObjectID) => {
         return (await DataSecurityAPI.getRecordOfProcessing(
           projectId,
+        )) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.declaredStore(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataSecurityAPI.getDeclaredStore(
+          projectId,
+          DataSecurityAPI.readId(req),
+          props,
         )) as unknown as JSONObject;
       },
     );
@@ -1249,21 +1272,31 @@ export default class DataSecurityAPI extends BaseAPI<
     // The zone the reader's days are in; UTC's days when undefined.
     timezone?: Timezone | undefined,
   ): Promise<DataSecurityOverview> {
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        kind: true,
-        sensitivity: true,
-        sensitivityOverride: true,
-        dataCategories: true,
-        exposure: true,
-        configurationReadAt: true,
-        contentScannedAt: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
+    /*
+     * What Data Security found and checks: not the stores OneUptime
+     * declares (#10398), which nothing scans or checks, so they would only
+     * count as never checked. Data Stores and the record of processing
+     * list them.
+     */
+    const stores: Array<DataStore> = (
+      await DataStoreService.findBy({
+        query: { projectId, isArchived: false },
+        select: {
+          _id: true,
+          kind: true,
+          sensitivity: true,
+          sensitivityOverride: true,
+          dataCategories: true,
+          exposure: true,
+          configurationReadAt: true,
+          contentScannedAt: true,
+        },
+        skip: 0,
+        limit: 10000,
+        props: { isRoot: true },
+      })
+    ).filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
     });
     const storesBySensitivity: Record<DataSensitivity, number> = {
       [DataSensitivity.Restricted]: 0,
@@ -1508,9 +1541,20 @@ export default class DataSecurityAPI extends BaseAPI<
     };
   }
 
+  /*
+   * The GDPR record of processing (Article 30): one row per store that
+   * holds personal data. The stores OneUptime keeps for the project's
+   * security - its security events, network flows and address vault - are
+   * declared first, so the record never misses one the project holds, and
+   * their rows say what OneUptime knows of them: the purpose, the retention
+   * each table keeps (read now, so a retention changed since is the one
+   * said) until the team writes its own, and who can read them (#10398).
+   */
   public static async getRecordOfProcessing(
     projectId: ObjectID,
   ): Promise<DataSecurityRecordOfProcessingResponse> {
+    await DeclaredDataStores.declareBeforeRead(projectId);
+
     const stores: Array<DataStore> = await DataStoreService.findBy({
       query: { projectId, isArchived: false },
       select: {
@@ -1541,16 +1585,50 @@ export default class DataSecurityAPI extends BaseAPI<
       projectId,
     });
 
-    for (const store of stores) {
-      const categories: Array<DataCategory> = store.dataCategories || [];
+    // The stores that hold personal data, each with its owners.
+    const recorded: Array<{ store: DataStore; owners: Array<User> }> = [];
 
-      if (!categories.some(isPersonalDataCategory)) {
+    for (const store of stores) {
+      if (!(store.dataCategories || []).some(isPersonalDataCategory)) {
         continue;
       }
 
-      const owners: Array<User> = await DataSecurityIntegrations.getOwnerUsers(
-        store.id!,
-      );
+      recorded.push({
+        store,
+        owners: await DataSecurityIntegrations.getOwnerUsers(store.id!),
+      });
+    }
+
+    /*
+     * Each owner as the project knows them (#10697). The owners are read as
+     * OneUptime, and a direct owner can be someone only invited to the
+     * project, whose own account's name it may not see until they join
+     * (#9823): they are named by the name typed with their invitation, else
+     * the address they were invited at. Read once for every owner of the
+     * record. The record is read inside the project, by its auditor, so the
+     * invited address is the project's own to read here.
+     */
+    const ownerIds: Array<string> = [
+      ...new Set(
+        recorded.flatMap((entry: { owners: Array<User> }): Array<string> => {
+          return entry.owners
+            .map((owner: User): string => {
+              return owner.id?.toString() || "";
+            })
+            .filter(Boolean);
+        }),
+      ),
+    ];
+    const withheld: Map<string, WithheldProfile> =
+      ownerIds.length > 0
+        ? await PendingInviteeProfiles.readWithheldProfilesInProject({
+            userIds: ownerIds,
+            projectId,
+          })
+        : new Map<string, WithheldProfile>();
+
+    for (const { store, owners } of recorded) {
+      const categories: Array<DataCategory> = store.dataCategories || [];
       const frameworks: Set<ComplianceFramework> = new Set();
 
       for (const dataTypeId of store.dataTypeIds || []) {
@@ -1561,6 +1639,18 @@ export default class DataSecurityAPI extends BaseAPI<
       }
 
       const typeNames: Array<string> = dataTypeNamer.namesOf(store.dataTypeIds);
+      const declared: DataSecurityDeclaredStore | null =
+        await DeclaredDataStores.describe({ projectId, store });
+      const purposeAndRetention: { purpose: string; retention: string } =
+        declared
+          ? DeclaredDataStores.getRecordedPurposeAndRetention({
+              store,
+              declared,
+            })
+          : {
+              purpose: store.purpose || "",
+              retention: store.retention || "",
+            };
 
       rows.push({
         dataStoreId: store.id!.toString(),
@@ -1575,15 +1665,59 @@ export default class DataSecurityAPI extends BaseAPI<
           DataSensitivity.Public,
         dataCategories: categories,
         dataTypeNames: typeNames,
-        owners: owners.map((owner: User) => {
-          return owner.name?.toString() || owner.email?.toString() || "";
-        }),
-        purpose: store.purpose || "",
-        retention: store.retention || "",
+        owners: owners
+          .map((owner: User): string => {
+            return PendingInviteeProfiles.getNameInProject({
+              userId: owner.id,
+              name: owner.name,
+              email: owner.email,
+              withheld,
+            });
+          })
+          .filter(Boolean),
+        purpose: purposeAndRetention.purpose,
+        retention: purposeAndRetention.retention,
         frameworks: [...frameworks],
+        ...(declared ? { declared } : {}),
       });
     }
 
     return { rows };
+  }
+
+  /*
+   * What the record says of one store OneUptime declares (#10398), for its
+   * page: what it holds, why, for how long and who can read it. A store of
+   * any other kind is no declared store.
+   */
+  public static async getDeclaredStore(
+    projectId: ObjectID,
+    dataStoreId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    // Read as the caller: a store they may not read is one they are not told of.
+    const store: DataStore | null = await DataStoreService.findOneBy({
+      query: { _id: dataStoreId, projectId },
+      select: { _id: true, kind: true, purpose: true, retention: true },
+      props,
+    });
+
+    if (!store) {
+      throw new NotFoundException("This data store could not be found.");
+    }
+
+    const declared: DataSecurityDeclaredStore | null =
+      await DeclaredDataStores.describe({ projectId, store });
+
+    if (!declared) {
+      throw new BadDataException(
+        "OneUptime declares only its own security stores: this store is found by Data Security's scans.",
+      );
+    }
+
+    return {
+      declared,
+      ...DeclaredDataStores.getRecordedPurposeAndRetention({ store, declared }),
+    };
   }
 }

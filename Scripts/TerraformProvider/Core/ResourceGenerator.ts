@@ -2636,6 +2636,9 @@ ${this.generateGuardedCreateRequestBody(resource, resourceVarName)}${this.genera
 
     // What OneUptime left out because only it writes it, if anything (see entries.go).
     resp.Diagnostics.Append(FieldsLeftOutWarning(httpResp, "${resource.name.replace(/_/g, " ")}")...)
+
+    // What the write does that someone should know, if anything (see entries.go).
+    resp.Diagnostics.Append(WriteWarnings(httpResp, "${resource.name.replace(/_/g, " ")}")...)
 ${readBackCode}
 
     // Write logs using the tflog package
@@ -2863,6 +2866,9 @@ ${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVar
             return
         }
         _ = ${resourceVarName}Response
+
+        // What the write does that someone should know, if anything (see entries.go).
+        resp.Diagnostics.Append(WriteWarnings(httpResp, "${resource.name.replace(/_/g, " ")}")...)
     }
 ${readBackCode}${
       this.getImportedFromServerAttributes(resource).length > 0

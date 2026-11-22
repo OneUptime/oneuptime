@@ -265,7 +265,12 @@ describe.each(DROP_FILTER_PAGES)("$form", (page: DataRulePage) => {
   test("builds its form with the shared drop filter builder", () => {
     const code: string = readCode(page.file);
 
-    expect(code).toMatch(/get(Log|Trace)DropFilterFormFields\(\)/);
+    /*
+     * Handed the footer that says what the filter would take, as it is
+     * written (#10436): the fields are still the shared builder's.
+     */
+    expect(code).toMatch(/get(Log|Trace)DropFilterFormFields\(/);
+    expect(code).toContain("<DropFilterImpactPreview");
     expect(code).toContain("getDropFilterFormSteps<");
     expect(code).not.toContain("FormFieldSchemaType.");
     expect(code).not.toContain("stepId:");

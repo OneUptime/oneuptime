@@ -20,7 +20,6 @@ import DataCategory, {
 } from "Common/Types/DataSecurity/DataCategory";
 import {
   DATA_SECURITY_AI_WORK_AUTONOMIES,
-  DATA_SECURITY_AI_WORK_COLUMN,
   DATA_SECURITY_AI_WORKS,
   DataSecurityAiAutonomy,
   DataSecurityAiWork,
@@ -32,9 +31,11 @@ import {
   DataSecurityCheckGroup,
   DataSecurityCheckInfo,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import RuleCriteriaSubject from "Common/Types/Rules/RuleCriteriaSubject";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -59,17 +60,29 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * A rule matches an issue by its check or check group, its severity, and
  * its store's sensitivity, kind, provider, environment, labels, data
- * categories and service; an empty condition matches every issue. With no
+ * categories and service. Its form asks it as every AI rule's form does:
+ * which issues (one conditions builder, on "All issues" or "Only issues
+ * that match conditions"), then what OneUptime AI may do with them, then
+ * the rule's name. With no
  * rule, the project's defaults apply (getDefaultDataSecurityAiWork). What
  * runs without asking is still held to the change's own safety: deleting
  * data and paging people always ask, whatever a rule says.
  *
  * The server holds each rule to these words (AutoRemediationRuleService):
- * Analyze is Off or Without asking, and a rule that does nothing is
+ * Analyze is Off or Automatically, and a rule that does nothing is
  * refused, with why.
  */
 
 export const DATA_SECURITY_AI_RULES_TABLE_ID: string = "data-security-ai-rules";
+
+/*
+ * The AI rules this table lists and makes: Data Security issues' own. The
+ * one AI rule model is split between tables by its trigger, each reading
+ * only its own, so a rule is edited in one place (AiRulesTable for
+ * incidents and alerts, TelemetryAiRulesTable for telemetry products).
+ */
+const triggerEntityType: AutoRemediationTriggerEntity =
+  AutoRemediationTriggerEntity.DataSecurityIssue;
 
 const SEVERITY_OPTIONS: Array<DropdownOption> = [
   { label: "Critical", value: SecuritySeverity.Critical },
@@ -156,9 +169,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
       id={DATA_SECURITY_AI_RULES_TABLE_ID}
       userPreferencesKey={DATA_SECURITY_AI_RULES_TABLE_ID}
       name="Data Security AI Rules"
-      query={{
-        triggerEntityType: AutoRemediationTriggerEntity.DataSecurityIssue,
-      }}
+      query={{ triggerEntityType: triggerEntityType }}
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
@@ -176,7 +187,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
       onBeforeCreate={(
         rule: AutoRemediationRule,
       ): Promise<AutoRemediationRule> => {
-        rule.triggerEntityType = AutoRemediationTriggerEntity.DataSecurityIssue;
+        rule.triggerEntityType = triggerEntityType;
         return Promise.resolve(rule);
       }}
       selectMoreFields={{
@@ -236,49 +247,24 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           },
         },
       ]}
+      // "All issues" or "Only issues that match conditions".
+      ruleCriteriaSubject={RuleCriteriaSubject.DataSecurityIssues}
+      /*
+       * As every AI rule's form: which issues, then what OneUptime AI may
+       * do with them, then the rule's name.
+       */
+      formSteps={[
+        { title: DataSecurityAiRulesCopy.matchSection, id: "match-criteria" },
+        { title: DataSecurityAiRulesCopy.worksSection, id: "work" },
+        { title: "Name", id: "name" },
+      ]}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: DataSecurityAiRulesCopy.namePlaceholder,
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          description: RULE_ENABLED_DESCRIPTION,
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-        },
-        ...DATA_SECURITY_AI_WORKS.map((work: DataSecurityAiWork) => {
-          return {
-            field: { [DATA_SECURITY_AI_WORK_COLUMN[work]]: true } as never,
-            title: DATA_SECURITY_AI_WORK_LABELS[work],
-            description: WORK_DESCRIPTIONS[work],
-            sectionTitle:
-              work === DataSecurityAiWork.Analyze
-                ? DataSecurityAiRulesCopy.worksSection
-                : undefined,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: autonomyOptions(work),
-            required: true,
-          };
-        }),
+        // Which issues: drawn as one conditions builder, on "All issues".
         {
           field: { dataSecuritySeverities: true },
           hideColumnDescription: true,
           title: "Severity",
-          sectionTitle: DataSecurityAiRulesCopy.matchSection,
-          sectionDescription: DataSecurityAiRulesCopy.matchDescription,
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: SEVERITY_OPTIONS,
           required: false,
@@ -287,6 +273,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { dataSecurityChecks: true },
           hideColumnDescription: true,
           title: "Checks",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: CHECK_OPTIONS,
           required: false,
@@ -294,7 +281,8 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
         {
           field: { dataSecurityCheckGroups: true },
           hideColumnDescription: true,
-          title: DataSecurityAiRulesCopy.checkGroups,
+          title: "Check Groups",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: CHECK_GROUP_OPTIONS,
           required: false,
@@ -303,6 +291,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { dataStoreSensitivities: true },
           hideColumnDescription: true,
           title: "Sensitivity",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_SENSITIVITY_OPTIONS,
           required: false,
@@ -311,6 +300,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { dataStoreKinds: true },
           hideColumnDescription: true,
           title: "Kind",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_KIND_OPTIONS,
           required: false,
@@ -319,6 +309,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { dataStoreProviders: true },
           hideColumnDescription: true,
           title: "Provider",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_PROVIDER_OPTIONS,
           required: false,
@@ -327,6 +318,7 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
           field: { dataStoreEnvironments: true },
           hideColumnDescription: true,
           title: "Environment",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: STORE_ENVIRONMENT_OPTIONS,
           required: false,
@@ -334,7 +326,8 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
         {
           field: { dataStoreLabels: true },
           hideColumnDescription: true,
-          title: DataSecurityAiRulesCopy.storeLabels,
+          title: "Store Labels",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Label,
@@ -346,15 +339,22 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
         {
           field: { dataCategories: true },
           hideColumnDescription: true,
-          title: DataSecurityAiRulesCopy.dataCategories,
+          title: "Data Categories",
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownOptions: DATA_CATEGORY_OPTIONS,
           required: false,
         },
+        /*
+         * For a store that is a service's telemetry: the service - picked,
+         * by its labels or by its name, as a telemetry AI rule matches it
+         * (DataSecurityAiRuleMatch reads all three).
+         */
         {
           field: { services: true },
-          title: DataSecurityAiRulesCopy.services,
+          title: "Services",
           description: DataSecurityAiRulesCopy.servicesDescription,
+          stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Service,
@@ -362,6 +362,96 @@ const DataSecurityAiRulesTable: FunctionComponent = (): ReactElement | null => {
             valueField: "_id",
           },
           required: false,
+        },
+        {
+          field: { serviceLabels: true },
+          title: "Service Labels",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Label,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          hideColumnDescription: true,
+          placeholder: "Select Service Labels",
+        },
+        {
+          field: { serviceNamePattern: true },
+          title: "Service Name",
+          stepId: "match-criteria",
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          hideColumnDescription: true,
+          placeholder: "checkout|payments",
+        },
+        // What OneUptime AI may do, kind by kind: Analyze is never Suggest.
+        {
+          field: { dataSecurityAnalyze: true },
+          title: DATA_SECURITY_AI_WORK_LABELS[DataSecurityAiWork.Analyze],
+          description: WORK_DESCRIPTIONS[DataSecurityAiWork.Analyze],
+          stepId: "work",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: autonomyOptions(DataSecurityAiWork.Analyze),
+          required: true,
+        },
+        {
+          field: { dataSecurityContain: true },
+          title: DATA_SECURITY_AI_WORK_LABELS[DataSecurityAiWork.Contain],
+          description: WORK_DESCRIPTIONS[DataSecurityAiWork.Contain],
+          stepId: "work",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: autonomyOptions(DataSecurityAiWork.Contain),
+          required: true,
+        },
+        {
+          field: { dataSecurityFix: true },
+          title: DATA_SECURITY_AI_WORK_LABELS[DataSecurityAiWork.Fix],
+          description: WORK_DESCRIPTIONS[DataSecurityAiWork.Fix],
+          stepId: "work",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: autonomyOptions(DataSecurityAiWork.Fix),
+          required: true,
+        },
+        {
+          field: { dataSecurityJudge: true },
+          title: DATA_SECURITY_AI_WORK_LABELS[DataSecurityAiWork.Judge],
+          description: WORK_DESCRIPTIONS[DataSecurityAiWork.Judge],
+          stepId: "work",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: autonomyOptions(DataSecurityAiWork.Judge),
+          required: true,
+        },
+        /*
+         * Its name, its Enabled switch on the Edit form only (a rule starts
+         * on), and its description folded under More fields, as every rule
+         * form ends.
+         */
+        {
+          field: { name: true },
+          title: "Name",
+          stepId: "name",
+          fieldType: FormFieldSchemaType.Text,
+          required: true,
+          placeholder: DataSecurityAiRulesCopy.namePlaceholder,
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description: RULE_ENABLED_DESCRIPTION,
+          stepId: "name",
+          fieldType: FormFieldSchemaType.Toggle,
+          doNotShowWhenCreating: true,
+          required: false,
+        },
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: "name",
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          collapsibleSection: getAdvancedFormSection<AutoRemediationRule>(),
         },
       ]}
     />

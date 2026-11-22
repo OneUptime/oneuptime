@@ -336,10 +336,11 @@ describe("adding an action item", () => {
 
   /*
    * An action item's owner can be someone invited to the project who has
-   * not accepted: the project sees only what it invited of them - the name
-   * typed for them, else their address - never their own name (#9823).
+   * not accepted: the feed names them by the name typed for them, else as
+   * someone who hasn't joined the project yet - never by their own name
+   * (#9823) or any address (#10668): the feed is read beyond the project.
    */
-  test("its owner only invited to the project: named by the name typed for them, else their address", async () => {
+  test("its owner only invited to the project: named by the name typed for them, never an address", async () => {
     jest
       .spyOn(UserService, "findOneById")
       .mockImplementation(async (args: unknown) => {
@@ -380,7 +381,7 @@ describe("adding an action item", () => {
 
     expect(feedTexts()).toEqual([
       "📝 Added the action item **Alert on pool usage**, owned by **Ana from Platform**.",
-      "📝 Added the action item **Alert on pool usage**, owned by **ana@example.com**.",
+      "📝 Added the action item **Alert on pool usage**, owned by **someone who hasn't joined the project yet**.",
     ]);
     expect(
       (withheldIn.mock.calls[0]![0] as { projectId: ObjectID }).projectId,

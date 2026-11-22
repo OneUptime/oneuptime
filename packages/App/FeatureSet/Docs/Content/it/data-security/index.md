@@ -70,9 +70,9 @@ Apri **Sicurezza dei dati**. Gli archivi compaiono in **Archivi dati** man mano 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Database che gestisci | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche |
+| OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche, Eventi di sicurezza, Network Flows, Cassaforte indirizzi di sicurezza | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche |
 
-Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga.
+Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 Un archivio viene archiviato, con la sua cronologia, quando la sua origine non lo elenca più, e i suoi problemi aperti vengono risolti: **Archivi dati archiviati**, in fondo al menu di Sicurezza dei dati, lo conserva. Torna da solo se la sua origine lo elenca di nuovo, e un problema il cui controllo continua a non essere superato si riapre.
 

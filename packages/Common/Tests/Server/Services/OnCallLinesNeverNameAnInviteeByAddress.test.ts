@@ -543,12 +543,18 @@ describe("a person added to an escalation rule", () => {
     );
   });
 
-  test("a member with no name is still named by their address: they joined, and the project knows them by it", async () => {
+  /*
+   * A member with no name is named by the part of their address before the
+   * "@", linked to their page: the channel still tells who it is, and the
+   * project's people open their page, address and all (#10669).
+   */
+  test("a member with no name is named by the part of their address before the @, never the address", async () => {
     await addToRule(NELL);
 
     expect(items[0]!.chatInfoByWorkspaceType?.[WorkspaceType.Slack]).toBe(
-      `👨🏻‍💻 Added **[nell@acme.test](${linkOf(NELL)})** to on-call policy [Payments](${POLICY_LINK}).`,
+      `👨🏻‍💻 Added **[nell](${linkOf(NELL)})** to on-call policy [Payments](${POLICY_LINK}).`,
     );
+    expect(items[0]!.feedInfoInMarkdown).not.toContain("nell@acme.test");
   });
 
   test("once Ivy has joined, she is named by her own name, as any member", async () => {
@@ -601,7 +607,7 @@ describe("a person taken out of an escalation rule", () => {
 
     expect(items).toHaveLength(1);
     expect(items[0]!.chatInfoInMarkdown).toBe(
-      `👨🏻‍💻 Removed **[nell@acme.test](${linkOf(NELL)})** from on-call policy [Payments](${POLICY_LINK}).`,
+      `👨🏻‍💻 Removed **[nell](${linkOf(NELL)})** from on-call policy [Payments](${POLICY_LINK}).`,
     );
   });
 
@@ -770,8 +776,9 @@ describe("an owner of the policy", () => {
 
     expect(items).toHaveLength(1);
     expect(items[0]!.feedInfoInMarkdown).toContain(
-      `Removed **[nell@acme.test](${linkOf(NELL)})** from the`,
+      `Removed **[nell](${linkOf(NELL)})** from the`,
     );
+    expect(items[0]!.feedInfoInMarkdown).not.toContain("nell@acme.test");
   });
 });
 
@@ -806,7 +813,7 @@ describe("what is read, and a read that fails", () => {
     );
     expectNothingOfIvysAddress();
     expect(logger.error).toHaveBeenCalledWith(
-      "Could not read whether somebody an on-call line names is only invited to the project; the line names them as Somebody.",
+      "Could not read whether somebody a feed entry or channel line names is only invited to the project; the line names them as Somebody.",
       expect.anything(),
     );
   });

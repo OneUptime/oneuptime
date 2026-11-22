@@ -129,7 +129,12 @@ export interface DataStoreOwnerEvidence {
 export interface DataStoreOwnerCandidate extends DataStoreOwnerRef {
   // "T1" for a team, "P1" for a person: all OneUptime AI calls them.
   ref: string;
-  // A team's name, a person's name or email: shown to people only.
+  /*
+   * A team's name, or a person's as every line names a member - their name,
+   * else the part of their address before the "@" (#10681): shown to people
+   * only, in the proposal's title and its lines on the store's and its
+   * issues' timelines. Never an address.
+   */
   name: string;
   // The evidence that names it.
   evidenceIds: Array<string>;

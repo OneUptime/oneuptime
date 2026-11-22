@@ -881,7 +881,7 @@ export default class DataSecurityAiProposals {
       });
 
       throw new BadDataException(
-        `The change could not be made, and nothing changed: ${messageOf(error)}`,
+        `The change could not be made, and nothing changed. ${messageOf(error)}`,
       );
     }
 

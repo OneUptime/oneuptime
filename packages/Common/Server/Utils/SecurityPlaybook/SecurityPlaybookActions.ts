@@ -102,7 +102,6 @@ import TeamService from "../../Services/TeamService";
 import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../Services/ThreatIntelIndicatorService";
-import UserService from "../../Services/UserService";
 import WebhookService from "../../Services/WebhookService";
 import WorkflowService from "../../Services/WorkflowService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
@@ -118,9 +117,12 @@ import SecurityPlaybookAddressBlocks from "./SecurityPlaybookAddressBlocks";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
 import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
 import SecurityPlaybookDataStoreResponse from "./SecurityPlaybookDataStoreResponse";
+import SecurityPlaybookNotEmailed, {
+  NotEmailed,
+} from "./SecurityPlaybookNotEmailed";
 import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
-import PendingInviteeProfiles from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../Feed/FeedPersonName";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import { AiAffectedResourceRef } from "../../../Types/AI/AiAffectedResources";
@@ -567,18 +569,6 @@ export default class SecurityPlaybookActions {
         )[0]
       : undefined;
 
-    /*
-     * The case's timeline names them as the project knows them: someone
-     * only invited by the name typed for them, else their address - never
-     * their account's own name, which it does not see until they join
-     * (#9823, #9934). A step can hand tasks to someone only invited: the
-     * people pickers offer them.
-     */
-    await PendingInviteeProfiles.nameInProject({
-      users: [assignee],
-      projectId: context.projectId,
-    });
-
     for (const title of toAdd) {
       const task: SecurityCaseTask = new SecurityCaseTask();
       task.projectId = context.projectId;
@@ -596,8 +586,26 @@ export default class SecurityPlaybookActions {
     const added: MarkdownText = mdText`Added ${String(toAdd.length)} task${toAdd.length === 1 ? "" : "s"}`;
 
     if (assignee) {
+      /*
+       * The step's line on the case's timeline names them as every feed
+       * entry names people (FeedPersonName, #10681). A step can hand tasks
+       * to someone only invited - the people pickers offer them - who is
+       * named by the name typed with their invitation, else "someone who
+       * hasn't joined the project yet", never by their account's own name
+       * (#9823, #9934); a member by their name, else the part of their
+       * address before the "@". Never an address. They were read already,
+       * name and address, so only whether they are invited is read.
+       */
+      const names: Map<string, string> = await FeedPersonName.readNames({
+        users: [assignee],
+        projectId: context.projectId,
+      });
+      const assigneeName: string | undefined = assignee.id
+        ? names.get(assignee.id.toString().toLowerCase())
+        : undefined;
+
       return succeeded(
-        mdText`${added} for **${assignee.name?.toString() || assignee.email?.toString() || ""}**.`,
+        mdText`${added} for **${assigneeName || FEED_NOBODY_NAMED}**.`,
         { hasWrittenOwnFeed: true },
       );
     }
@@ -808,7 +816,7 @@ export default class SecurityPlaybookActions {
     );
     const subject: string = `[${values.number}] ${values.title}`;
 
-    const notSent: Array<string> = [];
+    const notEmailed: Array<NotEmailed> = [];
 
     for (const user of people.values()) {
       try {
@@ -830,9 +838,15 @@ export default class SecurityPlaybookActions {
           },
         );
       } catch (error) {
-        notSent.push(`${user.email?.toString()}: ${errorMessage(error)}`);
+        notEmailed.push({ user: user, reason: errorMessage(error) });
       }
     }
+
+    // Who could not be emailed, by name: the step's list, and its error.
+    const notSent: Array<string> = await SecurityPlaybookNotEmailed.describe({
+      projectId: context.projectId,
+      notEmailed: notEmailed,
+    });
 
     const sent: number = people.size - notSent.length;
 
@@ -1497,24 +1511,22 @@ export default class SecurityPlaybookActions {
     let assignee: string = "Unassigned";
 
     if (securityCase.assignedToUserId) {
-      const user: User | null = await UserService.findOneById({
-        id: securityCase.assignedToUserId,
-        select: { name: true, email: true },
-        props: ROOT,
-      });
-
       /*
-       * {{assignee}} goes into notes, emails, channel posts, incidents and
-       * pages the project's people read: someone the case is assigned to
-       * but who has only been invited is named as the project knows them,
-       * by the name typed for them, else their address (#9934).
+       * {{case.assignee}} goes into notes, emails, channel posts, the alert
+       * a page opens and runbooks, as does the summary a message without a
+       * template of its own sends: the person is named as every feed entry
+       * and channel line names people (FeedPersonName, #10681). Someone the
+       * case is assigned to who has only been invited by the name typed
+       * with their invitation, else "someone who hasn't joined the project
+       * yet", never by their account's own name (#9934); a member by their
+       * name, else the part of their address before the "@". Never an
+       * address.
        */
-      await PendingInviteeProfiles.nameInProject({
-        users: [user],
-        projectId: context.projectId,
-      });
-
-      assignee = user?.name?.toString() || user?.email?.toString() || assignee;
+      assignee =
+        (await FeedPersonName.getText({
+          userId: securityCase.assignedToUserId,
+          projectId: context.projectId,
+        })) || assignee;
     } else if (securityCase.assignedToTeamId) {
       const team: Team | null = await TeamService.findOneById({
         id: securityCase.assignedToTeamId,

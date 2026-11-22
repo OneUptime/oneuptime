@@ -75,10 +75,35 @@ function spanUrlText(statement: Statement): void {
 }
 
 /*
- * A page of the spans that arrived in a window and may hold an attack: a
- * server span whose URL holds an attack string or a cloud metadata
- * address, or an LLM span whose prompt holds a prompt-injection phrase.
- * Read in a fixed order, so the same window pages the same way again.
+ * The spans the trace scan reads for an attack, as a condition: a server
+ * span whose URL holds an attack string or a cloud metadata address, or an
+ * LLM span whose prompt holds a prompt-injection phrase. The scan's page
+ * reads by it, and so does the count of what a drop filter would take from
+ * Security Events (Telemetry/DropFilterRecordCount, #10436).
+ */
+export function appendTraceScanCandidateCondition(statement: Statement): void {
+  statement.append(
+    SQL`((kind = ${{
+      type: TableColumnType.Text,
+      value: SpanKind.Server,
+    }} AND multiSearchAnyCaseInsensitive(`,
+  );
+  spanUrlText(statement);
+  statement.append(
+    SQL`, ${{
+      type: TableColumnType.ArrayText,
+      value: getTraceScanUrlMarkers(),
+    }})) OR (isLlmSpan = 1 AND multiSearchAnyCaseInsensitive(llmUserMessagePreview, ${{
+      type: TableColumnType.ArrayText,
+      value: [...PROMPT_INJECTION_PHRASES],
+    }})))`,
+  );
+}
+
+/*
+ * A page of the spans that arrived in a window and may hold an attack
+ * (appendTraceScanCandidateCondition). Read in a fixed order, so the same
+ * window pages the same way again.
  */
 export function buildTraceCandidatesStatement(
   data: TelemetryScanWindow & { limit: number; offset: number },
@@ -101,20 +126,11 @@ export function buildTraceCandidatesStatement(
     }} AND createdAt <= ${{
       type: TableColumnType.Date,
       value: data.arrivedUntil,
-    }} AND retentionDate >= now() AND ((kind = ${{
-      type: TableColumnType.Text,
-      value: SpanKind.Server,
-    }} AND multiSearchAnyCaseInsensitive(`,
+    }} AND retentionDate >= now() AND `,
   );
-  spanUrlText(statement);
+  appendTraceScanCandidateCondition(statement);
   statement.append(
-    SQL`, ${{
-      type: TableColumnType.ArrayText,
-      value: getTraceScanUrlMarkers(),
-    }})) OR (isLlmSpan = 1 AND multiSearchAnyCaseInsensitive(llmUserMessagePreview, ${{
-      type: TableColumnType.ArrayText,
-      value: [...PROMPT_INJECTION_PHRASES],
-    }}))) ORDER BY createdAt ASC, traceId ASC, spanId ASC LIMIT ${{
+    SQL` ORDER BY createdAt ASC, traceId ASC, spanId ASC LIMIT ${{
       type: TableColumnType.Number,
       value: Math.max(1, Math.trunc(data.limit)),
     }} OFFSET ${{

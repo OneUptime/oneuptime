@@ -552,6 +552,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
   },
+  /*
+   * The security stores OneUptime declares (#10398): archived once their
+   * data is gone and restored when it is back, as discovery archives and
+   * restores a store, each with its Timeline line; when they were last
+   * seen, and what they hold as the code says it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DeclaredDataStores.ts": {
+    "DeclaredDataStores.declareStore DataStore": Why.Bookkeeping,
+    "DeclaredDataStores.keep DataStore": Why.Bookkeeping,
+  },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
   },
@@ -658,6 +668,23 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlockExpiry.ts": {
     "SecurityBlockExpiry.expireBlock SecurityBlock": Why.Recorded,
   },
+  /*
+   * A blocklist feed's health (#10345): how often its firewall fetches it,
+   * worked out from its fetches, and when its owners were told it stopped.
+   */
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedHealth.ts":
+    {
+      "SecurityBlocklistFeedHealth.checkFeed SecurityBlocklistFeed":
+        Why.Bookkeeping,
+    },
+  // What a firewall's fetch of a feed reports: when, from where, and the list it now holds (#10345).
+  "packages/Common/Server/Utils/SecurityBlocklist/SecurityBlocklistFeedServe.ts":
+    {
+      "SecurityBlocklistFeedServe.recordFetch SecurityBlocklistFeed":
+        Why.Reported,
+      "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,

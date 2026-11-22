@@ -24,6 +24,7 @@ import {
 } from "./Evidence/AddressRequests";
 import { AddressFactsReading } from "./Evidence/AddressFacts";
 import { AccountFixReading } from "./Evidence/AccountFixState";
+import { IndicatorBlockReading } from "./Evidence/IndicatorBlocks";
 import { ContainmentStateReading } from "./Evidence/ContainmentState";
 import { FixChangesReading } from "./Evidence/FixChanges";
 import { MonitorsDownReading } from "./Evidence/MonitorsDown";
@@ -104,6 +105,8 @@ export interface StepCheckEvidence {
   readAddressCoverage(): Promise<AddressCoverageReading>;
   // The blocks of an address applied and read back at a destination.
   readAddressBlocks(address: string): Promise<Array<AddressBlockEvidence>>;
+  // A value's blocks on the blocklist - a domain, a file, an address - and where each holds (#10346).
+  readIndicatorBlocks(value: string): Promise<IndicatorBlockReading>;
   // A user's account, or a host, in the products the project is connected to.
   readUserState(user: string): Promise<ContainmentStateReading>;
   readHostState(host: string): Promise<ContainmentStateReading>;

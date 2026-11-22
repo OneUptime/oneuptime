@@ -1,4 +1,4 @@
-import DatabaseService from "./DatabaseService";
+import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/LogScrubRule";
 import CreateBy from "../Types/Database/CreateBy";
 import Select from "../Types/Database/Select";
@@ -21,19 +21,29 @@ const VALIDATION_OPTIONS: ScrubRuleValidationOptions = {
   fieldsToScrub: LOG_SCRUB_FIELDS,
 };
 
-export class Service extends DatabaseService<Model> {
+/*
+ * A rule names the service whose logs it scrubs (#10433), and a caller writes
+ * it: so the service must be the project's own (ProjectReferencesService),
+ * or a rule could name another project's service and read its name back
+ * through the relation.
+ */
+export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
   }
 
   /*
-   * A rule is refused unless ingest can scrub with it - a Custom Regex rule
-   * with no pattern, or one that does not compile, scrubbed nothing while it
-   * looked active. See Utils/ScrubRuleValidation.ts.
+   * The service a rule names is the project's own, checked first (the base
+   * hook). Then a rule is refused unless ingest can scrub with it - a Custom
+   * Regex rule with no pattern, or one that does not compile, scrubbed
+   * nothing while it looked active. See Utils/ScrubRuleValidation.ts. An
+   * update's service is checked by the base onBeforeUpdate.
    */
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
     // The attributes it names, as a list (#10366).
     normalizeScrubRuleKeys(createBy.data);
     validateScrubRuleCreate(createBy.data, VALIDATION_OPTIONS);
@@ -41,13 +51,16 @@ export class Service extends DatabaseService<Model> {
     return { createBy, carryForward: null };
   }
 
-  // The attributes an update names, as a list (#10366).
+  /*
+   * The attributes an update names, as a list (#10366) - then the base
+   * hook, which checks the service it names is the project's own.
+   */
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     normalizeScrubRuleKeys(updateBy.data as { attributeKeys?: unknown });
 
-    return { updateBy, carryForward: null };
+    return await super.onBeforeUpdate(updateBy);
   }
 
   /*

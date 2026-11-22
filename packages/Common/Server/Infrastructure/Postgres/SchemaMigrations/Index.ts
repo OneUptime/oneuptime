@@ -1154,7 +1154,10 @@ import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleSe
 import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
-import { AddScrubRuleNamedKeysAndProof1809187436600 } from "./1809187436600-AddScrubRuleNamedKeysAndProof";
+import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
+import { AddScrubRuleNamedKeysAndProof1809187440200 } from "./1809187440200-AddScrubRuleNamedKeysAndProof";
 
 export default [
   InitialMigration,
@@ -2313,5 +2316,8 @@ export default [
   AddScrubRuleServiceIndexesAndKeys1809187433010,
   AddSecurityEventConnectionBlocking1809187434300,
   AddDataSecurityIssueAiAnalysis1809187436369,
-  AddScrubRuleNamedKeysAndProof1809187436600,
+  AddSecurityBlocklistFeeds1809187440000,
+  AddSecurityBlockReachAndWiderValue1809187440100,
+  AddSecurityBlockValueReachIndex1809187440110,
+  AddScrubRuleNamedKeysAndProof1809187440200,
 ];

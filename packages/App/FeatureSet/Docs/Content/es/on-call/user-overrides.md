@@ -27,6 +27,7 @@ Mientras una sustitución está vigente, desde su inicio hasta su fin:
 - Con alguien en **¿Quién cubre?**, esa persona recibe todos los avisos de la persona ausente, de cada programación, equipo y regla a los que se aplica la sustitución. El aviso le llega según sus propias reglas de guardia personales.
 - Sin nadie que cubra, se omite a la persona. En una programación de guardia, cada uno de sus turnos pasa a la siguiente persona de la rotación que no esté ausente; si todos en una capa están ausentes, toman el relevo las capas de debajo. Una regla que la nombra directamente, o mediante un equipo, no la avisa, y la ejecución de la política dice que está ausente, y hasta cuándo.
 - Las sustituciones no se encadenan. Si quien cubre también está ausente, sigue siendo a quien se avisa por la persona que cubre.
+- Se puede elegir en **¿Quién cubre?** a alguien invitado que aún no se ha unido al proyecto, pero nada le avisa hasta que acepta su invitación, así que hasta entonces no se avisa a nadie en lugar de la persona ausente. El formulario lo dice en cuanto lo eliges, y también la línea que reciben los canales y el feed de la política: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 Cuando termina la sustitución, los avisos vuelven a ser suyos. La **Cronología de la programación**, las capas de una programación y los feeds de calendario muestran quién tiene cada turno cubierto.
 

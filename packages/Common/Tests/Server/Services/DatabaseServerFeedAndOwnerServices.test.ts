@@ -289,9 +289,12 @@ describe("DatabaseServerOwnerUserService feed items", () => {
     expect(item.databaseServerFeedEventType).toBe(
       DatabaseServerFeedEventType.OwnerUserRemoved,
     );
+    // Named as the added entry names them, linked, with no address (#10668).
+    expect(item.feedInfoInMarkdown).toContain("Removed **[Jane Doe](");
     expect(item.feedInfoInMarkdown).toContain(
-      `Removed **Jane Doe** (jane@example.com) as an owner of ${LINK}.`,
+      `/users/${USER_ID.toString()})** as an owner of ${LINK}.`,
     );
+    expect(item.feedInfoInMarkdown).not.toContain("jane@example.com");
   });
 });
 

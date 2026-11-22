@@ -248,6 +248,15 @@ describe("each trail names the page as the menu does", () => {
     ],
     [PageMap.SECURITY_BLOCKLIST, ["Security Events", "Playbooks", "Blocklist"]],
     [
+      PageMap.SECURITY_BLOCKLIST_FEEDS,
+      ["Security Events", "Playbooks", "Blocklist Feeds"],
+    ],
+    // A feed's page, under the list it opens from.
+    [
+      PageMap.SECURITY_BLOCKLIST_FEED_VIEW,
+      ["Security Events", "Playbooks", "Blocklist Feeds", "Blocklist Feed"],
+    ],
+    [
       PageMap.SECURITY_PROTECTED_ENTITIES,
       ["Security Events", "Playbooks", "Protected Entities"],
     ],

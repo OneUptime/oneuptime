@@ -127,7 +127,7 @@ describe("who was notified", () => {
   test("is a list, one person per line - not lines run into one paragraph", () => {
     const details: string =
       OwnerNotificationFeedText.notifiedLineMarkdown(
-        OwnerNotificationFeedText.nameAndEmail({
+        OwnerNotificationFeedText.personName({
           name: "Nitin Kumar",
           email: "nitin@example.com",
         }),
@@ -137,28 +137,51 @@ describe("who was notified", () => {
       );
 
     expect(details).toBe(
-      "- Nitin Kumar (nitin@example.com)\n- [Aidil Rahman](https://oneuptime.com/u/a)\n",
+      "- Nitin Kumar\n- [Aidil Rahman](https://oneuptime.com/u/a)\n",
     );
   });
 
-  test("a person without a name is their address, and without either 'Unknown user'", () => {
+  /*
+   * The feed is read beyond the project, through workflows and the API, so
+   * nobody's address is in it: a person without a name is the part of their
+   * address before the "@" (FeedPersonName, #10669).
+   */
+  test("a person without a name is the part of their address before the @, and without either 'Unknown user'", () => {
     expect(
-      OwnerNotificationFeedText.nameAndEmail({
+      OwnerNotificationFeedText.personName({
         name: undefined,
         email: "ops@example.com",
       }).toString(),
-    ).toBe("ops@example.com");
+    ).toBe("ops");
     expect(
-      OwnerNotificationFeedText.nameAndEmail({
+      OwnerNotificationFeedText.personName({
+        name: "ops@example.com",
+        email: "ops@example.com",
+      }).toString(),
+    ).toBe("ops");
+    expect(
+      OwnerNotificationFeedText.personName({
         name: "",
         email: "",
       }).toString(),
     ).toBe("Unknown user");
+    expect(OwnerNotificationFeedText.personName(null).toString()).toBe(
+      "Unknown user",
+    );
+  });
+
+  test("a person with a name is their name alone: no address after it", () => {
+    expect(
+      OwnerNotificationFeedText.personName({
+        name: "Nitin Kumar",
+        email: "nitin@example.com",
+      }).toString(),
+    ).toBe("Nitin Kumar");
   });
 
   test("a name cannot start a list or a heading of its own", () => {
     const line: string = OwnerNotificationFeedText.notifiedLineMarkdown(
-      OwnerNotificationFeedText.nameAndEmail({
+      OwnerNotificationFeedText.personName({
         name: "# Heading\n- injected",
         email: "x@example.com",
       }),
@@ -175,11 +198,11 @@ describe("who was notified", () => {
  * its entry says who they were after those it notified - never among them.
  */
 describe("who was not notified again, as the on-call page reached them", () => {
-  const ANA: MarkdownText = OwnerNotificationFeedText.nameAndEmail({
+  const ANA: MarkdownText = OwnerNotificationFeedText.personName({
     name: "Ana Lopez",
     email: "ana@example.com",
   });
-  const BO: MarkdownText = OwnerNotificationFeedText.nameAndEmail({
+  const BO: MarkdownText = OwnerNotificationFeedText.personName({
     name: "Bo Chen",
     email: "bo@example.com",
   });
@@ -190,10 +213,10 @@ describe("who was not notified again, as the on-call page reached them", () => {
 
   test("names each person left out, in one sentence", () => {
     expect(OwnerNotificationFeedText.reachedByPageMarkdown([ANA])).toBe(
-      "\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com).\n",
+      "\nNot notified again, as the on-call page reached them: Ana Lopez.\n",
     );
     expect(OwnerNotificationFeedText.reachedByPageMarkdown([ANA, BO])).toBe(
-      "\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com), Bo Chen (bo@example.com).\n",
+      "\nNot notified again, as the on-call page reached them: Ana Lopez, Bo Chen.\n",
     );
   });
 
@@ -203,7 +226,7 @@ describe("who was not notified again, as the on-call page reached them", () => {
       OwnerNotificationFeedText.reachedByPageMarkdown([ANA]);
 
     expect(details).toBe(
-      "- Bo Chen (bo@example.com)\n\nNot notified again, as the on-call page reached them: Ana Lopez (ana@example.com).\n",
+      "- Bo Chen\n\nNot notified again, as the on-call page reached them: Ana Lopez.\n",
     );
 
     const blocks: Array<Token> = marked
@@ -218,14 +241,12 @@ describe("who was not notified again, as the on-call page reached them", () => {
       }),
     ).toEqual(["list", "paragraph"]);
     expect((blocks[0] as Tokens.List).items).toHaveLength(1);
-    expect((blocks[0] as Tokens.List).items[0]!.text).toBe(
-      "Bo Chen (bo@example.com)",
-    );
+    expect((blocks[0] as Tokens.List).items[0]!.text).toBe("Bo Chen");
   });
 
   test("a name is text, not Markdown", () => {
     const sentence: string = OwnerNotificationFeedText.reachedByPageMarkdown([
-      OwnerNotificationFeedText.nameAndEmail({
+      OwnerNotificationFeedText.personName({
         name: "[Ana](https://evil.example)",
         email: "ana@example.com",
       }),

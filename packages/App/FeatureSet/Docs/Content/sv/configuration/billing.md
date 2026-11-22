@@ -119,6 +119,8 @@ När din bank fortfarande behandlar en betalning säger OneUptime det: vissa ban
 
 En dags användning visas när dagen är slut, senast omkring 08:00 UTC nästa dag. Filtrera efter **Produkt**, **Dag** eller **Tjänst** för att hitta det som har växt.
 
+För att skicka mindre kastar ett [drop-filter](/docs/telemetry/drop-filters-and-scrub-rules) de loggar och spans du aldrig läser innan de lagras, och det som det kasserar faktureras inte. Innan du sparar ett säger dess formulär hur mycket av det senaste dygnets telemetri det matchar, och vad det skulle ta från de monitorer, instrumentpaneler, SLO:er och Säkerhetshändelser som läser samma poster: se [Vad ett filter skulle ta](/docs/telemetry/drop-filters-and-scrub-rules#vad-ett-filter-skulle-ta).
+
 ## Förbetalda saldon
 
 SMS, samtal, WhatsApp- och Telegram-meddelanden betalas från projektets saldo, och OneUptime AI från dess AI-krediter. Du fyller på vart och ett i förväg:

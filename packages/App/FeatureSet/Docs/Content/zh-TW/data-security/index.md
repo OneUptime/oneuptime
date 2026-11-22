@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
+| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標、安全事件、Network Flows、安全位址保管庫 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
 
-每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。
+每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。安全事件、Network Flows 和安全位址保管庫是 OneUptime 為你的安全所保留的自有資料儲存區：它們是宣告的，從不掃描，也從不檢查（請參閱 [OneUptime 為你的安全所保留的資料儲存區](/docs/data-security/compliance#oneuptime-為你的安全所保留的資料儲存區)）。
 
 一旦來源不再列出某個資料儲存區，它就會連同其歷程一起封存，其未解決的問題也會變為已解決：資料安全選單末端的 **已封存的資料儲存區** 會保留它。如果來源再次列出它，它會自行恢復，而檢查仍未通過的問題會重新開啟。
 

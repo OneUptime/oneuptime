@@ -70,9 +70,9 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA, métricas | Logs, traces, exceções, replays de sessão, conversas de IA, métricas |
+| OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA, métricas, eventos de segurança, Network Flows, cofre de endereços de segurança | Logs, traces, exceções, replays de sessão, conversas de IA, métricas |
 
-Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha.
+Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 Um repositório é arquivado, com o seu histórico, assim que a origem dele deixa de listá-lo, e os problemas abertos dele são resolvidos: **Repositórios arquivados**, no fim do menu da Segurança de dados, o guarda. Ele volta sozinho se a origem voltar a listá-lo, e um problema cuja verificação ainda falha abre de novo.
 

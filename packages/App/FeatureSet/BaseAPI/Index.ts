@@ -26,6 +26,8 @@ import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
 import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
 import ScrubRuleValueCountsAPI from "Common/Server/API/ScrubRuleValueCountsAPI";
+import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
+import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -726,6 +728,10 @@ import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
+import SecurityBlocklistFeedAPI from "Common/Server/API/SecurityBlocklistFeedAPI";
+import SecurityBlocklistFeedFetchService, {
+  Service as SecurityBlocklistFeedFetchServiceType,
+} from "Common/Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService, {
   Service as SecurityEntityRiskServiceType,
 } from "Common/Server/Services/SecurityEntityRiskService";
@@ -1170,9 +1176,7 @@ import HostCollectorConfigVersionService, {
 import LabelService, {
   Service as LabelServiceType,
 } from "Common/Server/Services/LabelService";
-import AuditLogService, {
-  AuditLogService as AuditLogServiceType,
-} from "Common/Server/Services/AuditLogService";
+import AuditLogService from "Common/Server/Services/AuditLogService";
 import LogService, {
   LogService as LogServiceType,
 } from "Common/Server/Services/LogService";
@@ -1194,6 +1198,7 @@ import ChangeEventService, {
 
 import MetricService from "Common/Server/Services/MetricService";
 import MetricAPI from "Common/Server/API/MetricAPI";
+import AuditLogAPI from "Common/Server/API/AuditLogAPI";
 import MonitorCustomFieldService, {
   Service as MonitorCustomFieldServiceType,
 } from "Common/Server/Services/MonitorCustomFieldService";
@@ -1600,7 +1605,6 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
@@ -1981,6 +1985,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
 import DataObservabilityAPI from "Common/Server/API/DataObservabilityAPI";
@@ -4231,12 +4236,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Its reads, and the names of the records an entry's changes name (#10470).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<AuditLog, AuditLogServiceType>(
-        AuditLog,
-        AuditLogService,
-      ).getRouter(),
+      new AuditLogAPI(AuditLogService).getRouter(),
     );
 
     app.use(
@@ -4647,9 +4650,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<LogDropFilter, LogDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<LogDropFilter, LogDropFilterServiceType>(
         LogDropFilter,
         LogDropFilterService,
+        "log",
       ).getRouter(),
     );
 
@@ -4865,6 +4870,28 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityBlockCloudWafAPI().getRouter(),
+    );
+
+    /*
+     * Blocklist feeds (#10345): their CRUD, the rotation and revocation of
+     * their secrets, and the feeds firewalls read
+     * (/blocklist-feed/:feedId/..., no UserMiddleware - the secret is the
+     * credential), with every fetch of them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlocklistFeedAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchServiceType
+      >(
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchService,
+      ).getRouter(),
     );
 
     /*
@@ -5328,9 +5355,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<TraceDropFilter, TraceDropFilterServiceType>(
         TraceDropFilter,
         TraceDropFilterService,
+        "trace",
       ).getRouter(),
     );
 
@@ -5475,6 +5504,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * and version, for the scrub rule lists (#10366).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleValueCountsAPI);
+
+    /*
+     * What a drop or sample filter being written or turned on would take
+     * from Security Events, monitors, dashboards, saved views, recording
+     * rules and SLOs (#10436).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DropFilterImpactAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a
