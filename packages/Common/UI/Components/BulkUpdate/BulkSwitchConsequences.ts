@@ -104,8 +104,15 @@ export const BULK_SWITCH_CONSEQUENCES: Readonly<
       ),
     },
   },
+  /*
+   * Turning several on at once asks no one what each takes: a filter's own
+   * Enable, its form and its page do (#10436).
+   */
   LogDropFilter: {
     isEnabled: {
+      on: translationKey(
+        "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.",
+      ),
       off: translationKey(
         "A disabled drop filter keeps the logs it would drop, until it is enabled again.",
       ),
@@ -113,6 +120,9 @@ export const BULK_SWITCH_CONSEQUENCES: Readonly<
   },
   TraceDropFilter: {
     isEnabled: {
+      on: translationKey(
+        "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.",
+      ),
       off: translationKey(
         "A disabled drop filter keeps the spans it would drop, until it is enabled again.",
       ),

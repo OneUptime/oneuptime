@@ -23,6 +23,7 @@ import IsolatedTextList from "Common/UI/Components/IsolatedText/IsolatedTextList
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   PluralTemplate,
+  TemplateValues,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -246,6 +247,19 @@ export function getFieldReaderRoute(
   }
 }
 
+/*
+ * The list's sentences, for a caller whose change is not a scrub rule's: a
+ * drop or sample filter takes whole records (#10436), and says so in its
+ * own words. Left out, the list says what a scrub rule does. `values` fill
+ * the sentences' placeholders: the share a sample keeps.
+ */
+export interface TelemetryFieldReadersWords {
+  heading: string;
+  consequences: Readonly<Record<TelemetryFieldReaderKind, string>>;
+  unchecked: Readonly<Record<TelemetryFieldReaderKind, string>>;
+  values?: TemplateValues | undefined;
+}
+
 // Whether a kind lists anything: a reader the person can open, or one they cannot.
 export function isFieldReaderKindShown(
   ofKind: TelemetryFieldReadersOfKind,
@@ -375,9 +389,11 @@ const WidgetsOfDashboard: FunctionComponent<{
 const ReadersOfKind: FunctionComponent<{
   kind: TelemetryFieldReaderKind;
   ofKind: TelemetryFieldReadersOfKind;
+  words?: TelemetryFieldReadersWords | undefined;
 }> = (props: {
   kind: TelemetryFieldReaderKind;
   ofKind: TelemetryFieldReadersOfKind;
+  words?: TelemetryFieldReadersWords | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -398,7 +414,12 @@ const ReadersOfKind: FunctionComponent<{
         {translator.translateText(TITLES[props.kind])}
       </div>
       <p className="mt-0.5 text-gray-600">
-        {translator.translateText(FIELD_READER_CONSEQUENCES[props.kind])}
+        {props.words
+          ? translator.translateTemplate(
+              props.words.consequences[props.kind],
+              props.words.values || {},
+            )
+          : translator.translateText(FIELD_READER_CONSEQUENCES[props.kind])}
       </p>
       <ul className="mt-1 space-y-1">
         {shown.map((reader: TelemetryFieldReader): ReactElement => {
@@ -460,6 +481,8 @@ const ReadersOfKind: FunctionComponent<{
 
 export interface ComponentProps {
   readers: TelemetryFieldReaders;
+  // The sentences of a change that is not a scrub rule's; a scrub rule's otherwise.
+  words?: TelemetryFieldReadersWords | undefined;
 }
 
 const TelemetryFieldReadersList: FunctionComponent<ComponentProps> = (
@@ -482,7 +505,12 @@ const TelemetryFieldReadersList: FunctionComponent<ComponentProps> = (
     <div className="space-y-3" data-testid="telemetry-field-readers">
       {isAnyReader ? (
         <p data-testid="telemetry-field-readers-heading">
-          {translator.translateText(FIELD_READERS_HEADING)}
+          {props.words
+            ? translator.translateTemplate(
+                props.words.heading,
+                props.words.values || {},
+              )
+            : translator.translateText(FIELD_READERS_HEADING)}
         </p>
       ) : (
         <></>
@@ -494,6 +522,7 @@ const TelemetryFieldReadersList: FunctionComponent<ComponentProps> = (
               key={kind}
               kind={kind}
               ofKind={readers.kinds[kind]}
+              words={props.words}
             />
           );
         },
@@ -532,7 +561,11 @@ const TelemetryFieldReadersList: FunctionComponent<ComponentProps> = (
             className="text-gray-600"
             data-testid={`telemetry-field-readers-${kind}-unchecked`}
           >
-            {translator.translateText(FIELD_READER_UNCHECKED[kind])}
+            {translator.translateText(
+              props.words
+                ? props.words.unchecked[kind]
+                : FIELD_READER_UNCHECKED[kind],
+            )}
           </p>
         );
       })}
