@@ -119,6 +119,8 @@ Wenn Ihre Bank eine Zahlung noch verarbeitet, sagt OneUptime das: Manche Banken 
 
 Die Nutzung eines Tages erscheint, sobald der Tag vorbei ist, bis etwa 08:00 UTC am nächsten Tag. Filtern Sie nach **Produkt**, **Tag** oder **Dienst**, um zu finden, was gewachsen ist.
 
+Um weniger zu senden, verwirft ein [Drop-Filter](/docs/telemetry/drop-filters-and-scrub-rules) die Protokolle und Spans, die Sie nie lesen, bevor sie gespeichert werden, und was er verwirft, wird nicht abgerechnet. Bevor Sie einen speichern, sagt sein Formular, wie viel der Telemetrie des letzten Tages er trifft und was er den Monitoren, Dashboards, SLOs und Sicherheitsereignissen wegnehmen würde, die dieselben Datensätze lesen: siehe [Was ein Filter wegnehmen würde](/docs/telemetry/drop-filters-and-scrub-rules#was-ein-filter-wegnehmen-würde).
+
 ## Vorausbezahltes Guthaben
 
 SMS-, Telefon-, WhatsApp- und Telegram-Nachrichten werden aus dem Guthaben des Projekts bezahlt, OneUptime AI aus seinem KI-Guthaben. Sie laden beides im Voraus auf:

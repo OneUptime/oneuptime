@@ -336,9 +336,26 @@ describe("the resource's Go", () => {
     expect(create).toContain(
       'resp.Diagnostics.Append(FieldsLeftOutWarning(httpResp, "incident")...)',
     );
+    // And what the write does that someone should know (#10436).
+    expect(create).toContain(
+      'resp.Diagnostics.Append(WriteWarnings(httpResp, "incident")...)',
+    );
     expect(create).toContain(
       "resp.Diagnostics.Append(r.heldEntriesAfterWrite(ctx, nil, &data, &plan, &config, true).Write(ctx, resp.Private)...)",
     );
+  });
+
+  test("an update says what the write does that someone should know, from its own answer (#10436)", () => {
+    const update: string = method(resourceGo, "Update");
+    const parsed: number = update.indexOf(
+      "err = r.client.ParseResponse(httpResp, &incidentResponse)",
+    );
+    const warned: number = update.indexOf(
+      'resp.Diagnostics.Append(WriteWarnings(httpResp, "incident")...)',
+    );
+
+    expect(parsed).toBeGreaterThan(-1);
+    expect(warned).toBeGreaterThan(parsed);
   });
 
   test("a read keeps the declared entries the record still has, from the state before it", () => {

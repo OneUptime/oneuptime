@@ -6,6 +6,11 @@ import MicrosoftSignInClient, {
   MicrosoftSignInRequest,
 } from "../../../../Server/Utils/MicrosoftSignIn/MicrosoftSignInClient";
 import { MarketplaceHttpRequest } from "../../../../Server/Utils/Marketplace/MarketplaceHttp";
+import RemoteJwtVerifier from "../../../../Server/Utils/Marketplace/RemoteJwtVerifier";
+import {
+  SignInAgainRefusal,
+  judgeSignInAgain,
+} from "../../../../Types/Accounts/Reauthentication";
 import {
   FakeHttpClient,
   TestSigningKey,
@@ -138,23 +143,44 @@ describe("MicrosoftSignInClient.createSignInRequest", () => {
 
 /*
  * Sign In Again (#10217): Microsoft is asked to have the person sign in
- * again (prompt=login) and to say when (max_age=0). Microsoft Entra ID
- * puts auth_time in the ID token only once the server's app has it as an
- * optional claim (Marketplace/RELEASING.md).
+ * again (prompt=login), and the ID token's auth_time says when they did.
+ * Microsoft Entra ID puts auth_time in the ID token only once the server's
+ * app has it as an optional claim (Marketplace/RELEASING.md).
+ *
+ * No max_age (#10529): Microsoft documents prompt=login and no max_age,
+ * and two reports on Microsoft Q&A found max_age=0 made Entra ID answer
+ * with an ID token that had already expired. Fixed from Microsoft's docs
+ * and those reports; no live tenant was asked.
  */
 describe("MicrosoftSignInClient, for Sign In Again", () => {
-  it("asks Microsoft to have the person sign in again, and to say when, in place of choosing an account", () => {
+  it("asks Microsoft to have the person sign in again, in place of choosing an account, and sends no max_age", () => {
     const request: MicrosoftSignInRequest = createClient(
       createFakeHttpClient([]),
     ).createSignInRequest({ isSignInAgain: true });
 
-    const params: URLSearchParams = new URL(request.authorizationUrl)
-      .searchParams;
+    const url: URL = new URL(request.authorizationUrl);
 
-    expect(params.get("prompt")).toBe("login");
-    expect(params.get("max_age")).toBe("0");
-    expect(params.get("state")).toBe(request.state);
-    expect(params.get("nonce")).toBe(request.nonce);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    );
+    // Everything a sign-in sends, with prompt=login, and nothing more.
+    expect(Object.fromEntries(url.searchParams.entries())).toEqual({
+      client_id: CLIENT_ID,
+      response_type: "code",
+      redirect_uri: REDIRECT_URI,
+      response_mode: "query",
+      scope: "openid profile email",
+      state: request.state,
+      nonce: request.nonce,
+      code_challenge: crypto
+        .createHash("sha256")
+        .update(request.codeVerifier, "ascii")
+        .digest("base64url"),
+      code_challenge_method: "S256",
+      prompt: "login",
+    });
+    expect(url.searchParams.has("max_age")).toBe(false);
+    expect(url.searchParams.getAll("prompt")).toEqual(["login"]);
   });
 
   it("any other sign-in chooses an account, as it did", () => {
@@ -195,6 +221,137 @@ describe("MicrosoftSignInClient, for Sign In Again", () => {
         ).authenticatedAt,
       ).toBeNull();
     }
+  });
+});
+
+/*
+ * THE ID TOKEN max_age=0 WAS REPORTED TO BRING (#10529), to the second, as
+ * Microsoft Q&A quotes it: iat and nbf 1695209618, exp 1695209918,
+ * auth_time 1695209915, received at 1695209919 - issued, by its iat, five
+ * minutes before the person signed in, expiring three seconds after, and
+ * read a second after it expired. Sign In Again no longer sends max_age, so
+ * Entra ID should not send one; one that comes anyway is verified as the
+ * callback verifies it (RemoteJwtVerifier, its clock injected here), with
+ * the minute either way it allows the two clocks, and Sign In Again holds
+ * its auth_time to the request - never its iat.
+ */
+describe("MicrosoftSignInClient, given the ID token max_age=0 was reported to bring", () => {
+  const AUTH_TIME: number = 1695209915;
+  const REPORTED_TIMES: Record<string, number> = {
+    iat: 1695209618,
+    nbf: 1695209618,
+    exp: 1695209918,
+    auth_time: AUTH_TIME,
+  };
+  const RECEIVED_AT: number = 1695209919;
+  const EXP: number = REPORTED_TIMES["exp"]!;
+
+  // The token endpoint answers with `claims`, and the callback reads it at `nowInSeconds`.
+  const completeAt: (
+    nowInSeconds: number,
+    claims: Record<string, unknown>,
+  ) => Promise<MicrosoftIdentity> = async (
+    nowInSeconds: number,
+    claims: Record<string, unknown>,
+  ): Promise<MicrosoftIdentity> => {
+    const http: FakeHttpClient = createFakeHttpClient([
+      {
+        status: 200,
+        body: {
+          token_type: "Bearer",
+          // The claims' own iat, nbf and exp: no lifetime of the signer's.
+          id_token: signToken({ key: entraKey, claims: claims }),
+        },
+      },
+      { status: 200, body: jwksDocument([entraKey]) },
+    ]);
+
+    return await new MicrosoftSignInClient({
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      redirectUri: REDIRECT_URI,
+      httpClient: http.client,
+      verifier: new RemoteJwtVerifier({
+        httpClient: http.client,
+        now: (): number => {
+          return nowInSeconds * 1000;
+        },
+      }),
+    }).completeSignIn({
+      code: "authorization-code",
+      codeVerifier: "code-verifier",
+      nonce: NONCE,
+    });
+  };
+
+  const reported: Record<string, unknown> = claimsFor(
+    MICROSOFT_CONSUMER_TENANT_ID,
+    REPORTED_TIMES,
+  );
+
+  it("signs the person in when read a second after its exp, as the report read it, and says when they signed in", async () => {
+    const identity: MicrosoftIdentity = await completeAt(RECEIVED_AT, reported);
+
+    expect(identity.tenantId).toBe(MICROSOFT_CONSUMER_TENANT_ID);
+    expect(identity.authenticatedAt).toEqual(new Date(AUTH_TIME * 1000));
+  });
+
+  it("confirms a Sign In Again by its auth_time, never by its iat from five minutes before", async () => {
+    const identity: MicrosoftIdentity = await completeAt(RECEIVED_AT, reported);
+    // Sent to Microsoft twenty seconds before they signed in.
+    const requestedAt: Date = new Date((AUTH_TIME - 20) * 1000);
+    const now: Date = new Date(RECEIVED_AT * 1000);
+
+    expect(
+      judgeSignInAgain({
+        requestedAt: requestedAt,
+        authenticatedAt: identity.authenticatedAt,
+        now: now,
+      }),
+    ).toEqual({ reauthenticatedAt: new Date(AUTH_TIME * 1000) });
+
+    // Its iat, read as when they signed in, would be a session from before.
+    expect(
+      judgeSignInAgain({
+        requestedAt: requestedAt,
+        authenticatedAt: new Date(REPORTED_TIMES["iat"]! * 1000),
+        now: now,
+      }),
+    ).toEqual({ refusal: SignInAgainRefusal.ReusedSession });
+  });
+
+  it("is still read inside the minute the two clocks are allowed, and refused from the minute's end", async () => {
+    await expect(completeAt(EXP + 59, reported)).resolves.toMatchObject({
+      authenticatedAt: new Date(AUTH_TIME * 1000),
+    });
+
+    for (const late of [EXP + 60, EXP + 61, EXP + 60 * 60]) {
+      await expect(completeAt(late, reported)).rejects.toThrow(
+        /The Microsoft ID token is not valid: The token is not valid: jwt expired/,
+      );
+    }
+  });
+
+  it("a Sign In Again Microsoft answered with a session from before it was sent is still refused, however fresh the token", async () => {
+    const now: number = RECEIVED_AT;
+    // Issued just now, for its usual hour, by a session ten minutes old.
+    const identity: MicrosoftIdentity = await completeAt(
+      now,
+      claimsFor(MICROSOFT_CONSUMER_TENANT_ID, {
+        iat: now - 300,
+        nbf: now - 300,
+        exp: now + 3600,
+        auth_time: now - 600,
+      }),
+    );
+
+    expect(
+      judgeSignInAgain({
+        requestedAt: new Date((now - 30) * 1000),
+        authenticatedAt: identity.authenticatedAt,
+        now: new Date(now * 1000),
+      }),
+    ).toEqual({ refusal: SignInAgainRefusal.ReusedSession });
   });
 });
 

@@ -2697,6 +2697,11 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     text: '{translator.translateText(productText.notFound)}{" "} <Link',
     why: "Why OneUptime cannot add you, a whole sentence for the chat product, then the link to connect your account.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntPanel.tsx",
+    text: '{uncounted.lines .map((sentence: RetrohuntSentence): string => { return writeRetrohuntSentence(translator, sentence); }) .join(" ")}',
+    why: "Why Run on Past Events could not count some events (#10415): whole sentences, each a plural template translated whole (\"1,204 matching events had no IP address, so this rule couldn't count them.\", then how many of them a scrub rule hid), read through the panel's writeRetrohuntSentence, then the link to Scrub Rules, an action of its own.",
+  },
   /*
    * A thing named by its kind, or a figure by its label, and its value:
    * names and facts, not sentences (#8483).

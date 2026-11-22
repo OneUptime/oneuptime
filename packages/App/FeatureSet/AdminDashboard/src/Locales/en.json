@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "Only pipelines that match conditions",
   "All cloud environments": "All cloud environments",
   "Only cloud environments that match conditions": "Only cloud environments that match conditions",
+  "All issues": "All issues",
+  "Only issues that match conditions": "Only issues that match conditions",
   "Only what matches conditions": "Only what matches conditions",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "Company SMTP server hosted on AWS",
@@ -4458,5 +4460,7 @@
   "IAM Role in Your AWS Account": "IAM Role in Your AWS Account",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.",
-  "Role ARN": "Role ARN"
+  "Role ARN": "Role ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta."
 }

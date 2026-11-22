@@ -209,7 +209,13 @@ interface ScanSetup {
 }
 
 export default class DataSecurityRunner {
-  // Every project with something Data Security may watch.
+  /*
+   * Every project with something Data Security may watch - and, so the
+   * stores OneUptime keeps for a project's security are declared without
+   * anyone opening Data Security first (DeclaredDataStores, #10398), every
+   * project whose Security Events reads something or whose devices report
+   * network flows.
+   */
   public static async listProjectIds(): Promise<Array<ObjectID>> {
     const rows: Array<{ projectId: string }> =
       await DataStoreService.getRepository().manager.query(
@@ -217,6 +223,10 @@ export default class DataSecurityRunner {
          UNION SELECT DISTINCT "projectId" FROM "CloudConnection" WHERE "deletedAt" IS NULL
          UNION SELECT DISTINCT "projectId" FROM "DatabaseServer" WHERE "deletedAt" IS NULL
          UNION SELECT DISTINCT "projectId" FROM "Service" WHERE "deletedAt" IS NULL AND "lastSeenAt" > now() - interval '1 day'
+         UNION SELECT DISTINCT "projectId" FROM "SecurityEventConnection" WHERE "deletedAt" IS NULL
+         UNION SELECT DISTINCT "projectId" FROM "SecurityLogSource" WHERE "deletedAt" IS NULL
+         UNION SELECT DISTINCT "projectId" FROM "SecurityTelemetrySource" WHERE "deletedAt" IS NULL
+         UNION SELECT DISTINCT "projectId" FROM "NetworkDevice" WHERE "deletedAt" IS NULL
          LIMIT 20000`,
       );
 

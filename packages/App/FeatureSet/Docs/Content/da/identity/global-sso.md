@@ -106,7 +106,7 @@ Hvor Okta, Microsoft Entra ID, Auth0 og Keycloak har disse indstillinger, står 
 
 ## Log ind igen for at bekræfte, at det er dig
 
-En person, der kun logger ind via en global udbyder, bekræfter, at det er dem, med **Log ind igen**, før de ændrer, hvordan de logger ind, eller sletter deres konto: OneUptime sender dem tilbage til udbyderen med `ForceAuthn="true"` for SAML eller `prompt=login` og `max_age=0` for OpenID Connect og tæller det kun, når udbyderen i `AuthnInstant` eller `auth_time` siger, at de loggede ind på eller efter det tidspunkt. Når du tilføjer, ændrer eller sletter en global udbyder, bliver du først bedt om at [bekræfte, at det er dig](/docs/introduction/your-account#bekræft-at-det-er-dig).
+En person, der kun logger ind via en global udbyder, bekræfter, at det er dem, med **Log ind igen**, før de ændrer, hvordan de logger ind, eller sletter deres konto: OneUptime sender dem tilbage til udbyderen med `ForceAuthn="true"` for SAML eller `prompt=login` og `max_age=0` for OpenID Connect (kun `prompt=login` til Microsoft Entra ID) og tæller det kun, når udbyderen i `AuthnInstant` eller `auth_time` siger, at de loggede ind på eller efter det tidspunkt. Når du tilføjer, ændrer eller sletter en global udbyder, bliver du først bedt om at [bekræfte, at det er dig](/docs/introduction/your-account#bekræft-at-det-er-dig).
 
 Hvad du skal indstille i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#log-ind-igen-for-at-bekræfte-at-det-er-dig).
 

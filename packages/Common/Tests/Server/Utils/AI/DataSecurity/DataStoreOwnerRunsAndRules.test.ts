@@ -435,6 +435,42 @@ describe("the daily owners run", () => {
     }
   });
 
+  /*
+   * Security Events, Network Flows and the address vault are OneUptime's
+   * own (#10398): no tag, code owner or service says who owns them, so the
+   * model is never asked, and the team names their owners itself.
+   */
+  test("a store OneUptime declares is never asked about", async () => {
+    useWorld({
+      stores: [
+        store(7, {
+          name: "Security Events",
+          kind: "Security Events",
+          provider: "oneuptime",
+          sensitivity: "Internal",
+        }),
+        store(8, {
+          name: "Network Flows",
+          kind: "Network Flows",
+          provider: "oneuptime",
+          sensitivity: "Internal",
+        }),
+        store(2),
+      ],
+    });
+    answerPaymentsFor(1);
+
+    const outcome: DataStoreOwnerRunOutcome = await runOwners();
+
+    expect(outcome.storesProposed).toBe(1);
+    expect(completion).toHaveBeenCalledTimes(1);
+    expect(
+      storeProposals().map((row: StoredRow): string => {
+        return String(row["dataStoreId"]).toLowerCase();
+      }),
+    ).toEqual([storeId(2)]);
+  });
+
   test("a store with an owner proposal already, or a sensitive store, is not asked about again", async () => {
     useWorld({
       stores: [store(2), store(3)],

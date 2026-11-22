@@ -148,7 +148,8 @@ Noen få svar beregnes ved forespørsel i stedet for å lagres. Hver av dem er e
 | `/data-security/compliance` | Scoren og kravene for hvert rammeverk |
 | `/data-security/resource-scope` | Datalagrene til én ressurs – en Kubernetes-klynge, en Docker- eller Podman-vert, en database, en tjeneste eller en skyressurs – og hvilken ressurs' samsvarsbrytere de følger |
 | `/data-security/resource-compliance` | Rammeverkene til én ressurs: scorene deres for datalagrene til ressursen, og hva som er slått av for den |
-| `/data-security/record-of-processing` | GDPR-behandlingsprotokollen, en rad for hvert datalager som inneholder personopplysninger |
+| `/data-security/record-of-processing` | GDPR-behandlingsprotokollen, en rad for hvert datalager som inneholder personopplysninger. Et datalager OneUptime oppbevarer for sikkerheten din, har et objekt `declared`: sitt eget formål og sin egen oppbevaring, og hvem som kan lese det |
+| `/data-store/<id>/declared` | Hva protokollen sier om et datalager OneUptime oppbevarer for sikkerheten din: hva det inneholder, hvorfor, hvor lenge og hvem som kan lese det |
 | `/data-store/<id>/scan-now` | **Skann nå**: tar stikkprøver av innholdet i datalageret nå |
 | `/data-store/<id>/check-now` | **Kontroller nå**: leser konfigurasjonen til datalageret på nytt og kjører kontrollene |
 | `/data-store-finding/<id>/scrub` | **Rens** på et telemetrifunn |

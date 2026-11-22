@@ -18,6 +18,7 @@ import {
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
+  DataSecurityDeclaredStoreResponse,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -193,6 +194,19 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
     )) as unknown as DataSecurityRecordOfProcessingResponse;
+  }
+
+  /*
+   * What the record says of one of the stores OneUptime keeps for the
+   * project's security (#10398): what it holds, why, for how long and who
+   * can read it.
+   */
+  public static async getDeclaredStore(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.declaredStore(dataStoreId.toString()),
+    )) as unknown as DataSecurityDeclaredStoreResponse;
   }
 
   public static async scanNow(dataStoreId: ObjectID): Promise<void> {

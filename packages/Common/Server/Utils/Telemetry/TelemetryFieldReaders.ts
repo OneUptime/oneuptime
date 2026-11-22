@@ -26,16 +26,26 @@ import {
 } from "../../../Types/Telemetry/TelemetryFieldReaders";
 import {
   DashboardFieldReferences,
+  DashboardTelemetryQueries,
   findDashboardFieldReferences,
+  findDashboardTelemetryQueries,
   findExceptionSavedViewFieldReferences,
+  findExceptionSavedViewTelemetryQueries,
   findLogRecordingRuleFieldReferences,
+  findLogRecordingRuleTelemetryQueries,
   findLogSavedViewFieldReferences,
+  findLogSavedViewTelemetryQueries,
   findMonitorFieldReferences,
+  findMonitorTelemetryQueries,
   findSloFieldReferences,
+  findSloTelemetryQueries,
   findTraceRecordingRuleFieldReferences,
+  findTraceRecordingRuleTelemetryQueries,
   findTraceSavedViewFieldReferences,
+  findTraceSavedViewTelemetryQueries,
   TelemetryFieldReference,
   TelemetryFieldReferenceWidget,
+  TelemetryReadQuery,
 } from "../../../Utils/Telemetry/TelemetryFieldReferences";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import DashboardService from "../../Services/DashboardService";
@@ -84,9 +94,26 @@ export type TelemetryFieldReferenceReads = (
   reference: TelemetryFieldReference,
 ) => boolean;
 
+/*
+ * Asked of each query a record keeps records by: whether the change takes
+ * records it keeps - a drop or sample filter (#10436), which takes whole
+ * records rather than a field of them.
+ */
+export type TelemetryReadQueryReads = (query: TelemetryReadQuery) => boolean;
+
+/*
+ * What a caller asks of the records: of each field they read (a scrub
+ * rule), or of each query they keep records by (a drop filter).
+ */
+type ReaderQuestion =
+  | { of: "field"; reads: TelemetryFieldReferenceReads }
+  | { of: "query"; reads: TelemetryReadQueryReads };
+
 // A record, as the parts it reads fields in.
 interface ReadingPart {
   references: Array<TelemetryFieldReference>;
+  // The queries the part keeps records by: read only when the question is of queries.
+  queries?: Array<TelemetryReadQuery> | undefined;
   // A dashboard's widget; none for a record read whole.
   widget?: TelemetryFieldReferenceWidget | undefined;
 }
@@ -121,12 +148,18 @@ function wholeRecord(data: {
   id: string;
   name: string;
   references: Array<TelemetryFieldReference>;
+  queries?: Array<TelemetryReadQuery> | undefined;
   list?: TelemetryFieldReaderList | undefined;
 }): ReadingRecord {
   return {
     id: data.id,
     name: data.name,
-    parts: [{ references: data.references }],
+    parts: [
+      {
+        references: data.references,
+        ...(data.queries ? { queries: data.queries } : {}),
+      },
+    ],
     ...(data.list ? { list: data.list } : {}),
   };
 }
@@ -148,34 +181,76 @@ function readKey(read: TelemetryFieldRead): string {
   return `${read.part}|${(read.key || "").toLowerCase()}|${read.use}`;
 }
 
+// Whether a question holds for one thing asked about; a question that throws says no.
+function holds<T>(reads: (asked: T) => boolean, asked: T): boolean {
+  try {
+    return reads(asked);
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * What of a part reads what is asked about: the fields it reads that the
+ * change takes, or every field of the queries whose records it takes. Null
+ * when nothing of it does; none when a query the change reaches reads no
+ * field (a monitor counting every log of a service).
+ */
+function readingOfPart(
+  part: ReadingPart,
+  question: ReaderQuestion,
+): Array<TelemetryFieldReference> | null {
+  if (question.of === "field") {
+    const reading: Array<TelemetryFieldReference> = part.references.filter(
+      (reference: TelemetryFieldReference): boolean => {
+        return holds(question.reads, reference);
+      },
+    );
+
+    return reading.length > 0 ? reading : null;
+  }
+
+  const reached: Array<TelemetryReadQuery> = (part.queries || []).filter(
+    (readQuery: TelemetryReadQuery): boolean => {
+      return holds(question.reads, readQuery);
+    },
+  );
+
+  return reached.length > 0
+    ? reached.flatMap(
+        (readQuery: TelemetryReadQuery): Array<TelemetryFieldReference> => {
+          return readQuery.references;
+        },
+      )
+    : null;
+}
+
 /*
  * A record as a reader of what is asked about: its parts that read it, with
  * the widgets among them and what each reads - or null when none does.
  */
 function asReader(
   record: ReadingRecord,
-  reads: TelemetryFieldReferenceReads,
+  question: ReaderQuestion,
 ): TelemetryFieldReader | null {
   const fieldReads: Map<string, TelemetryFieldRead> = new Map<
     string,
     TelemetryFieldRead
   >();
   const widgets: Array<TelemetryFieldReaderWidget> = [];
+  let isReading: boolean = false;
 
   for (const part of record.parts) {
-    const reading: Array<TelemetryFieldReference> = part.references.filter(
-      (reference: TelemetryFieldReference): boolean => {
-        try {
-          return reads(reference);
-        } catch {
-          return false;
-        }
-      },
+    const reading: Array<TelemetryFieldReference> | null = readingOfPart(
+      part,
+      question,
     );
 
-    if (reading.length === 0) {
+    if (!reading) {
       continue;
     }
+
+    isReading = true;
 
     if (part.widget) {
       widgets.push({ ...part.widget });
@@ -190,7 +265,7 @@ function asReader(
     }
   }
 
-  if (fieldReads.size === 0) {
+  if (!isReading) {
     return null;
   }
 
@@ -283,7 +358,10 @@ async function readRecords<T>(data: {
     });
 }
 
-function dashboardRecord(dashboard: Dashboard): ReadingRecord | null {
+function dashboardRecord(
+  dashboard: Dashboard,
+  question: ReaderQuestion["of"],
+): ReadingRecord | null {
   const id: string = idOf(dashboard);
 
   if (!id) {
@@ -294,20 +372,60 @@ function dashboardRecord(dashboard: Dashboard): ReadingRecord | null {
     dashboard.dashboardViewConfig,
   );
 
+  if (question === "field") {
+    return {
+      id,
+      name: dashboard.name || "",
+      parts: [
+        ...found.widgets.map(
+          (entry: {
+            widget: TelemetryFieldReferenceWidget;
+            references: Array<TelemetryFieldReference>;
+          }): ReadingPart => {
+            return { references: entry.references, widget: entry.widget };
+          },
+        ),
+        { references: found.dashboard },
+      ],
+    };
+  }
+
+  /*
+   * Of queries: every log and trace widget, one that filters nothing too -
+   * it reads every record of its signal - each with the fields it reads.
+   */
+  const referencesOfWidget: Map<
+    string,
+    Array<TelemetryFieldReference>
+  > = new Map<string, Array<TelemetryFieldReference>>(
+    found.widgets.map(
+      (entry: {
+        widget: TelemetryFieldReferenceWidget;
+        references: Array<TelemetryFieldReference>;
+      }): [string, Array<TelemetryFieldReference>] => {
+        return [entry.widget.id, entry.references];
+      },
+    ),
+  );
+  const queried: DashboardTelemetryQueries = findDashboardTelemetryQueries(
+    dashboard.dashboardViewConfig,
+  );
+
   return {
     id,
     name: dashboard.name || "",
-    parts: [
-      ...found.widgets.map(
-        (entry: {
-          widget: TelemetryFieldReferenceWidget;
-          references: Array<TelemetryFieldReference>;
-        }): ReadingPart => {
-          return { references: entry.references, widget: entry.widget };
-        },
-      ),
-      { references: found.dashboard },
-    ],
+    parts: queried.widgets.map(
+      (entry: {
+        widget: TelemetryFieldReferenceWidget;
+        queries: Array<TelemetryReadQuery>;
+      }): ReadingPart => {
+        return {
+          references: referencesOfWidget.get(entry.widget.id) || [],
+          queries: entry.queries,
+          widget: entry.widget,
+        };
+      },
+    ),
   };
 }
 
@@ -315,7 +433,19 @@ function dashboardRecord(dashboard: Dashboard): ReadingRecord | null {
  * The project's records of every kind, read as the server, each with the
  * fields it reads - and how the person's own read of each table is asked.
  */
-async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
+async function readKinds(
+  projectId: ObjectID,
+  question: ReaderQuestion["of"],
+): Promise<Array<KindRead>> {
+  // The queries of a record, read only when the question is of queries.
+  const queriesIf: (
+    read: () => Array<TelemetryReadQuery>,
+  ) => Array<TelemetryReadQuery> | undefined = (
+    read: () => Array<TelemetryReadQuery>,
+  ): Array<TelemetryReadQuery> | undefined => {
+    return question === "query" ? read() : undefined;
+  };
+
   const idsQuery: (ids: Array<string>) => {
     projectId: ObjectID;
     _id: ReturnType<typeof QueryHelper.any>;
@@ -351,6 +481,9 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               id: idOf(monitor),
               name: monitor.name || "",
               references: findMonitorFieldReferences(monitor.monitorSteps),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findMonitorTelemetryQueries(monitor.monitorSteps);
+              }),
             })
           : null;
       },
@@ -367,7 +500,9 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
           props: { isRoot: true },
         });
       },
-      recordOf: dashboardRecord,
+      recordOf: (dashboard: Dashboard): ReadingRecord | null => {
+        return dashboardRecord(dashboard, question);
+      },
     }),
     readRecords<LogSavedView>({
       what: "log saved views",
@@ -390,6 +525,12 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               references: findLogSavedViewFieldReferences({
                 query: view.query,
                 scope: view.scope,
+              }),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findLogSavedViewTelemetryQueries({
+                  query: view.query,
+                  scope: view.scope,
+                });
               }),
             })
           : null;
@@ -416,6 +557,11 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               references: findTraceSavedViewFieldReferences({
                 query: view.query,
               }),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findTraceSavedViewTelemetryQueries({
+                  query: view.query,
+                });
+              }),
             })
           : null;
       },
@@ -441,6 +587,11 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               references: findExceptionSavedViewFieldReferences({
                 query: view.query,
               }),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findExceptionSavedViewTelemetryQueries({
+                  query: view.query,
+                });
+              }),
             })
           : null;
       },
@@ -464,6 +615,9 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               name: rule.name || "",
               list: TelemetryFieldReaderList.Logs,
               references: findLogRecordingRuleFieldReferences(rule.definition),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findLogRecordingRuleTelemetryQueries(rule.definition);
+              }),
             })
           : null;
       },
@@ -489,6 +643,9 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
               references: findTraceRecordingRuleFieldReferences(
                 rule.definition,
               ),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findTraceRecordingRuleTelemetryQueries(rule.definition);
+              }),
             })
           : null;
       },
@@ -519,18 +676,25 @@ async function readKinds(projectId: ObjectID): Promise<Array<KindRead>> {
         });
       },
       recordOf: (slo: ServiceLevelObjective): ReadingRecord | null => {
+        const read: {
+          sliType: ServiceLevelObjective["sliType"];
+          requestFilter: unknown;
+          serviceIds: Array<string>;
+        } = {
+          sliType: slo.sliType,
+          requestFilter: slo.requestFilter,
+          serviceIds: (slo.services || []).map((service: Service): string => {
+            return service.id?.toString() || "";
+          }),
+        };
+
         return idOf(slo)
           ? wholeRecord({
               id: idOf(slo),
               name: slo.name || "",
-              references: findSloFieldReferences({
-                sliType: slo.sliType,
-                requestFilter: slo.requestFilter,
-                serviceIds: (slo.services || []).map(
-                  (service: Service): string => {
-                    return service.id?.toString() || "";
-                  },
-                ),
+              references: findSloFieldReferences(read),
+              queries: queriesIf((): Array<TelemetryReadQuery> => {
+                return findSloTelemetryQueries(read);
               }),
             })
           : null;
@@ -710,9 +874,42 @@ export async function findTelemetryFieldReaders(data: {
   reads: TelemetryFieldReferenceReads;
   props: DatabaseCommonInteractionProps;
 }): Promise<TelemetryFieldReadersByKind> {
+  return await findReaders({
+    projectId: data.projectId,
+    question: { of: "field", reads: data.reads },
+    props: data.props,
+  });
+}
+
+/*
+ * The same, asked of each query a record keeps records by (#10436): a
+ * reader when one of its queries `reads` - a monitor whose step keeps the
+ * logs a drop filter would take. Each reader says the fields of those
+ * queries.
+ */
+export async function findTelemetryQueryReaders(data: {
+  projectId: ObjectID;
+  reads: TelemetryReadQueryReads;
+  props: DatabaseCommonInteractionProps;
+}): Promise<TelemetryFieldReadersByKind> {
+  return await findReaders({
+    projectId: data.projectId,
+    question: { of: "query", reads: data.reads },
+    props: data.props,
+  });
+}
+
+async function findReaders(data: {
+  projectId: ObjectID;
+  question: ReaderQuestion;
+  props: DatabaseCommonInteractionProps;
+}): Promise<TelemetryFieldReadersByKind> {
   const answer: TelemetryFieldReadersByKind =
     getEmptyTelemetryFieldReadersByKind(true);
-  const kinds: Array<KindRead> = await readKinds(data.projectId);
+  const kinds: Array<KindRead> = await readKinds(
+    data.projectId,
+    data.question.of,
+  );
 
   await Promise.all(
     kinds.map(async (kindRead: KindRead): Promise<void> => {
@@ -728,7 +925,7 @@ export async function findTelemetryFieldReaders(data: {
 
         const found: Array<TelemetryFieldReader> = group.records
           .map((record: ReadingRecord): TelemetryFieldReader | null => {
-            return asReader(record, data.reads);
+            return asReader(record, data.question);
           })
           .filter(
             (
