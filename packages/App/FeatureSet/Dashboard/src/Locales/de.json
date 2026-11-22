@@ -61884,5 +61884,7 @@
   "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert.",
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "Der Schritt vertraut nur diesem Zertifikat (PEM): dem der signierenden CA oder dem eigenen eines selbstsignierten Servers. Oder legen Sie es in einer Variablen ab und schreiben Sie hier {{reference}}.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Hier steht eine Variable neben anderem Text. Schreiben Sie nur die Variable, die das Zertifikat enthält, oder fügen Sie nur das Zertifikat ein.",
-  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Verwenden Sie eine Variable in der URL, im Header, im Body oder im CA-Zertifikat als {{reference}}. Auch Geheimnisse werden eingesetzt und in dem, was der Schritt aufzeichnet, verborgen."
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Verwenden Sie eine Variable in der URL, im Header, im Body oder im CA-Zertifikat als {{reference}}. Auch Geheimnisse werden eingesetzt und in dem, was der Schritt aufzeichnet, verborgen.",
+  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
+  "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "Dies enthält einen privaten Schlüssel. Fügen Sie nur das Zertifikat ein: Jeder, der dieses Playbook lesen darf, kann seine Schritte lesen."
 }

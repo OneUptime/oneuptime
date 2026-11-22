@@ -61884,5 +61884,7 @@
   "{{size}} in {{count}} requests was not stored._one": "{{count}} درخواست ({{size}}) ذخیره نشد.",
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "این گام فقط به این گواهی (PEM) اعتماد می‌کند: گواهی CA امضاکننده، یا گواهی خود سروری که خودامضاست. یا آن را در یک متغیر نگه دارید و اینجا {{reference}} را بنویسید.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "این، متغیری را کنار متن دیگری نام می‌برد. فقط متغیری را بنویسید که گواهی را نگه می‌دارد، یا فقط گواهی را بگذارید.",
-  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "در نشانی، سرآیندها، بدنه یا گواهی CA از متغیر به شکل {{reference}} استفاده کنید. رازها هم جایگذاری می‌شوند و در آنچه گام ثبت می‌کند پنهان می‌مانند."
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "در نشانی، سرآیندها، بدنه یا گواهی CA از متغیر به شکل {{reference}} استفاده کنید. رازها هم جایگذاری می‌شوند و در آنچه گام ثبت می‌کند پنهان می‌مانند.",
+  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
+  "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "این شامل یک کلید خصوصی است. فقط گواهی را بگذارید: هر کسی که بتواند این پلی‌بوک را بخواند، گام‌های آن را هم می‌خواند."
 }

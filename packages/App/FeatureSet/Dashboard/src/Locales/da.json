@@ -61884,5 +61884,7 @@
   "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt.",
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "Trinnet stoler kun på dette certifikat (PEM): den signerende CA's eller en selvsigneret servers eget. Eller gem det i en variabel, og skriv {{reference}} her.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Dette nævner en variabel ved siden af anden tekst. Skriv kun den variabel, der indeholder certifikatet, eller indsæt kun certifikatet.",
-  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Brug en variabel i URL'en, headerne, brødteksten eller CA-certifikatet som {{reference}}. Hemmeligheder udfyldes også og skjules i det, trinnet gemmer."
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Brug en variabel i URL'en, headerne, brødteksten eller CA-certifikatet som {{reference}}. Hemmeligheder udfyldes også og skjules i det, trinnet gemmer.",
+  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
+  "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "Dette indeholder en privat nøgle. Indsæt kun certifikatet: alle, der må læse denne playbook, kan læse dens trin."
 }
