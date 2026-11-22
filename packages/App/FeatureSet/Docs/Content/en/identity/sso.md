@@ -297,17 +297,17 @@ OneUptime sends `ForceAuthn="true"`, and reads when the person signed in from th
 
 | Identity provider | What to set |
 | --- | --- |
-| Okta | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and set **Honor Force Authentication** to **Yes**. Set to **No**, Okta ignores the request. |
+| Okta | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and set **Honor Force Authentication** to **Yes**. Set to **No**, Okta ignores the request. OneUptime reminds you of this beside an Okta provider. |
 | Microsoft Entra ID | Nothing: Entra ID honors the request, and its `AuthnInstant` is when the person signed in. |
-| Keycloak | Nothing: Keycloak honors the request. Its `AuthnInstant` is when it answers, though, not when the person signed in, so OneUptime cannot check that Keycloak asked them again. Connect Keycloak through OpenID Connect for a check OneUptime makes itself. |
+| Keycloak | Nothing: Keycloak honors the request, though 26.8.2 and earlier can skip it when the sign-in is restarted on Keycloak's sign-in page, which 26.8.3 and 27.0.0 fix. Its `AuthnInstant` is when it answers, not when the person signed in, so OneUptime cannot check that Keycloak asked them again, and says so beside the provider. Connect Keycloak through OpenID Connect for a check OneUptime makes itself. |
 | Google Workspace | Nothing to set. Google does not say whether it honors the request. Its `AuthnInstant` is when the person last signed in to Google, so someone still signed in to Google signs out of Google first. |
 @tab OpenID Connect
-OneUptime sends `prompt=login` and `max_age=0`, and reads when the person signed in from the ID token's `auth_time`.
+OneUptime sends `prompt=login` and `max_age=0`, or `prompt=login` alone to Microsoft Entra ID, and reads when the person signed in from the ID token's `auth_time`.
 
 | Identity provider | What to set |
 | --- | --- |
 | Okta | Nothing: Okta honors both, and always sends `auth_time`. |
-| Microsoft Entra ID | In the app registration's **Token configuration**, click **Add optional claim**, choose **ID** and add `auth_time`: Entra ID sends it only as an optional claim. It honors `prompt=login`. |
+| Microsoft Entra ID | In the app registration's **Token configuration**, click **Add optional claim**, choose **ID** and add `auth_time`: Entra ID sends it only as an optional claim. It honors `prompt=login`. OneUptime sends it no `max_age`, which Microsoft does not document and which was reported to make Entra ID answer with an ID token that had already expired. |
 | Keycloak | Keep the `basic` client scope on the client: it carries `auth_time`. Keycloak 25 and later give every client this scope. |
 | Google Workspace | Turn on **Session age claims** for the OAuth client, under **Google Auth Platform** > **Settings** > **Advanced Settings**; the app must be published and verified. Google takes neither request, so OneUptime asks it for `auth_time` instead, and someone still signed in to Google signs out of Google first. |
 :::
