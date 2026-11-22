@@ -15,6 +15,13 @@
  * going and what the proxy answered, never the proxy itself. A Runbook HTTP
  * step words it the same way (getHttpStepProxyTunnelMessage).
  *
+ * A request sent with Node's fetch goes through undici's proxy support
+ * instead (Server/Utils/OutboundFetch, issue #10720), whose refusal says the
+ * proxy's status code and nothing else. OutboundFetch turns it into a
+ * refusal of its own, which names where the request was going and carries
+ * that code (`destination`, `statusCode`): wordStatus() words it, and
+ * describe() reads it as it reads Node's.
+ *
  * Browser-safe: the API client reads it, on a server and in a browser.
  */
 
@@ -26,11 +33,18 @@ const TUNNEL_DESTINATION: RegExp = /Failed to establish tunnel to (\S+) via /;
 // What the proxy answered, its status line, at the end of Node's message.
 const PROXY_ANSWER: RegExp = /: (HTTP\/\d(?:\.\d)? (\d{3})[^\r\n]*)$/;
 
+// The status a proxy answers when it does not take the user name and password.
+const PROXY_AUTHENTICATION_REQUIRED: number = 407;
+
 interface ErrorLike {
   code?: unknown;
   message?: unknown;
   cause?: unknown;
   error?: unknown;
+  // A refusal known by its status code alone (OutboundFetch's).
+  destination?: unknown;
+  statusCode?: unknown;
+  reason?: unknown;
 }
 
 export default class ProxyTunnelRefusal {
@@ -44,6 +58,17 @@ export default class ProxyTunnelRefusal {
 
     if (!refusal) {
       return null;
+    }
+
+    if (
+      typeof refusal.destination === "string" &&
+      typeof refusal.statusCode === "number"
+    ) {
+      return ProxyTunnelRefusal.wordStatus({
+        destination: refusal.destination,
+        statusCode: refusal.statusCode,
+        reason: typeof refusal.reason === "string" ? refusal.reason : undefined,
+      });
     }
 
     const message: string =
@@ -74,7 +99,41 @@ export default class ProxyTunnelRefusal {
       ? PROXY_ANSWER.exec(`: ${data.answer}`)?.[2]
       : undefined;
 
-    if (data.answer && status === "407") {
+    return ProxyTunnelRefusal.phrase({
+      destination: data.destination,
+      answer: data.answer,
+      refusedCredentials:
+        status === String(PROXY_AUTHENTICATION_REQUIRED) &&
+        Boolean(data.answer),
+    });
+  }
+
+  /*
+   * The refusal of a request to `destination` ("host:port") the proxy
+   * answered `statusCode` for, with the status's reason phrase when it is
+   * known ("403 Forbidden"): undici, which Node's fetch goes through, says
+   * the proxy's status code and not its status line.
+   */
+  public static wordStatus(data: {
+    destination: string;
+    statusCode: number;
+    reason?: string | undefined;
+  }): string {
+    return ProxyTunnelRefusal.phrase({
+      destination: data.destination,
+      answer: data.reason
+        ? `${data.statusCode} ${data.reason}`
+        : String(data.statusCode),
+      refusedCredentials: data.statusCode === PROXY_AUTHENTICATION_REQUIRED,
+    });
+  }
+
+  private static phrase(data: {
+    destination: string;
+    answer: string | null;
+    refusedCredentials: boolean;
+  }): string {
+    if (data.refusedCredentials) {
       return `The outbound proxy did not take OneUptime's user name and password: it answered ${data.answer}, so the request to ${data.destination} was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`;
     }
 
