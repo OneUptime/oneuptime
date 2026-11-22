@@ -417,7 +417,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD));
-  mail = jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined);
+  mail = jest
+    .spyOn(MailService, "sendMail")
+    .mockResolvedValue(undefined as never);
 });
 
 afterEach(() => {
