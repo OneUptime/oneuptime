@@ -1079,13 +1079,14 @@ describe("RemediationChatMessage.getMessageState: read from the fix's row", () =
     ).resolves.toEqual({ kind: "dismissed", dismisserName: undefined });
   });
 
-  test("a person with no name is named by their email", async () => {
+  // The fix's channels are not all the project's people to read (#10669).
+  test("a person with no name is named by the part of their address before the @, never the address", async () => {
     names.set(BEN_ID.toString(), person("", "ben@example.com"));
     dismissedBy(BEN_ID);
 
     await expect(
       RemediationChatMessage.getMessageState(suggestionOf(row)),
-    ).resolves.toEqual({ kind: "dismissed", dismisserName: "ben@example.com" });
+    ).resolves.toEqual({ kind: "dismissed", dismisserName: "ben" });
   });
 
   test.each([

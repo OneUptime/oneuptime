@@ -692,7 +692,12 @@ describe("REGRESSION: someone takes Deane off Responder in the Dashboard", () =>
     }
   });
 
-  test("a person who never gave a name is named, and linked, by their email", async () => {
+  /*
+   * A member with no name is named by the part of their address before the
+   * "@", linked to their page - never by the whole address, which the
+   * incident's channels are not all the project's people to read (#10669).
+   */
+  test("a person who never gave a name is named, and linked, by the part of their email before the @", async () => {
     feedRows = [];
     posted = [];
     PEOPLE[ANA_ID.toString()] = { name: "", email: "ana@example.com" };
@@ -707,11 +712,12 @@ describe("REGRESSION: someone takes Deane off Responder in the Dashboard", () =>
     }
 
     expect(onlyFeedRow().feedInfoInMarkdown).toBe(
-      `👤 Removed **[ana@example.com](${personPage(ANA_ID)})** as **Responder** from ${INCIDENT_LINK}.`,
+      `👤 Removed **[ana](${personPage(ANA_ID)})** as **Responder** from ${INCIDENT_LINK}.`,
     );
     expect(slackShows().reads).toBe(
-      "👤 Valeria Mustafaeva removed ana@example.com as Responder from Incident INC-18.",
+      "👤 Valeria Mustafaeva removed ana as Responder from Incident INC-18.",
     );
+    expect(onlyFeedRow().feedInfoInMarkdown).not.toContain("ana@example.com");
   });
 
   test("nobody is named for a person who is gone: no line at all", async () => {
