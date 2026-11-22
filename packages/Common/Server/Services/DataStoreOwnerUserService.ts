@@ -4,14 +4,12 @@ import Model from "../../Models/DatabaseModels/DataStoreOwnerUser";
 import DataStoreFeedService from "./DataStoreFeedService";
 import { DataStoreFeedEventType } from "../../Models/DatabaseModels/DataStoreFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
 import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import DataStoreService from "./DataStoreService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
 import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
@@ -66,24 +64,19 @@ export class Service extends ProjectReferencesService<Model> {
         continue;
       }
 
-      const user: User | null = await UserService.findOneById({
-        id: userId,
-        select: {
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      // Someone only invited is named as the project knows them (#9823).
-      await PendingInviteeProfiles.nameInProject({
-        users: [user],
+      /*
+       * The entry is the channels' line too: the owner is named as the
+       * added entry names them, linked to their page - someone only
+       * invited by the name typed for them, never by an address, and no
+       * address after anybody's name (FeedPersonName, #10668). A member
+       * with no name is no longer taken off without a word.
+       */
+      const owner: MarkdownText = await UserService.getUserMarkdownString({
+        userId: userId,
         projectId: projectId,
       });
 
-      if (!user || !user.name) {
+      if (owner.isEmpty()) {
         continue;
       }
 
@@ -93,7 +86,7 @@ export class Service extends ProjectReferencesService<Model> {
         dataStoreFeedEventType: DataStoreFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
         feedInfoInMarkdown:
-          mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DataStoreService.getDataStoreMarkdownLink(
+          mdText`👨🏻‍💻 Removed **${owner}** as an owner of ${await DataStoreService.getDataStoreMarkdownLink(
             projectId,
             dataStoreId,
           )}.`.toString(),

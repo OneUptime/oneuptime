@@ -68,6 +68,7 @@ import WorkspacePage, {
 } from "./WorkspacePage";
 import { MAX_ON_CALL_DIRECT_PAGE_TARGETS } from "../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { toOnCallPersonPageMessage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * ACTING ON AN INCIDENT FROM SLACK OR MICROSOFT TEAMS.
@@ -1796,13 +1797,20 @@ export default class WorkspaceIncidentActions {
     });
   }
 
-  // A person's name, as a list shows it: their name, or their email.
+  /*
+   * A member's name, as a list or an answer shows it: as every channel line
+   * names a member (FeedPersonName), their name, else the part of their
+   * address before the "@" - never the address (#10669).
+   */
   private static getUserName(user: User | undefined | null): string {
     if (!user) {
       return "";
     }
 
-    return user.name?.toString().trim() || user.email?.toString().trim() || "";
+    return FeedPersonNameRule.getMemberName({
+      name: user.name,
+      email: user.email,
+    });
   }
 
   // The name of somebody given a role, read as OneUptime: they are named.

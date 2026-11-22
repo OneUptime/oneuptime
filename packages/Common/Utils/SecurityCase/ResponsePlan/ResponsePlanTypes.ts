@@ -1,8 +1,11 @@
 import { ResponseLink } from "../../../Types/SecurityCase/SecurityCaseResponseLink";
 import {
   SecurityBlockAction,
+  SecurityBlockDuration,
+  SecurityBlockReach,
   SecurityBlockSource,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockHolder } from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
 import { SecurityEntity } from "../../../Types/SecurityCase/SecurityEntity";
 import { SecurityCaseStepCheckEvidence } from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
@@ -45,6 +48,22 @@ export enum ResponseActionKind {
    * the menu beside it says - challenged, for 7 days, until lifted.
    */
   BlockAddress = "BlockAddress",
+  /*
+   * Blocks the step's value through the project's blocklist (#10346): a
+   * domain, a file or a command-and-control address on every machine. It
+   * goes through the blocklist's one way in, so the protected list, the
+   * expiry and the case's timeline hold as for any block.
+   */
+  BlockIndicator = "BlockIndicator",
+}
+
+// What a BlockIndicator action blocks, and how.
+export interface ResponseBlockRequest {
+  // As the step names it.
+  value: string;
+  action: SecurityBlockAction;
+  reach: SecurityBlockReach;
+  duration: SecurityBlockDuration;
 }
 
 export interface ResponseAction {
@@ -59,6 +78,33 @@ export interface ResponseAction {
    * into its own address (the Dashboard into a route).
    */
   link?: ResponseLink | undefined;
+  // What a BlockIndicator action blocks.
+  block?: ResponseBlockRequest | undefined;
+}
+
+/*
+ * One of the blocks in force on a value the case is about (#10346), as the
+ * plan reads it: whatever made it - this step, another case, a person on
+ * the Blocklist page.
+ */
+export interface ResponseBlock {
+  // As blocks are written.
+  value: string;
+  reach: SecurityBlockReach;
+  action: SecurityBlockAction;
+  // The destinations that hold it now, by name: none until one has read it back.
+  enforcedAt: Array<string>;
+}
+
+/*
+ * The project's blocklist as the plan reads it (#10346): what its
+ * destinations can hold - which makes a domain's, a file's and a
+ * command-and-control address's step one click - and the blocks in force
+ * on the case's values, which make it done.
+ */
+export interface ResponseBlocklist {
+  holders: Array<SecurityBlockHolder>;
+  blocks: Array<ResponseBlock>;
 }
 
 // How a step is known to be done.

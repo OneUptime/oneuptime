@@ -247,6 +247,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<KubernetesCluster> =
     useInfrastructureResources<KubernetesCluster>({
+      valueField: "clusterIdentifier",
+      searchFields: ["name", "clusterIdentifier"],
+      heldValue: monitorStepKubernetesMonitor.clusterIdentifier,
       modelType: KubernetesCluster,
       select: {
         _id: true,
@@ -523,6 +526,7 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: KUBERNETES_CLUSTER_ONBOARDING.addTitle,
           renderModal: (input: {

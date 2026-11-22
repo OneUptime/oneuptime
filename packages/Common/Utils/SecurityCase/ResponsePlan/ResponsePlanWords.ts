@@ -154,6 +154,35 @@ export const STEP_QUARANTINE_FILE: string = translationKey(
   "Find the file {{value}} on your machines and quarantine it.",
 );
 /*
+ * The same steps when an endpoint product the project connected blocks them
+ * on every machine (#10346): one click, naming the product. {{product}} is
+ * a product's name as it calls itself: Microsoft Defender, CrowdStrike
+ * Falcon. The address step of a case about a command-and-control server
+ * reads as the domain's: outbound traffic is what matters there.
+ */
+export const STEP_BLOCK_EVERYWHERE_WITH: string = translationKey(
+  "Block {{value}} on every machine with {{product}}.",
+);
+export const STEP_BLOCK_FILE_WITH: string = translationKey(
+  "Block the file {{value}} on every machine with {{product}}.",
+);
+export const STEP_BLOCK_FILE_WITH_TWO: string = translationKey(
+  "Block the file {{value}} on every machine with {{product}} and {{otherProduct}}.",
+);
+export const STEP_QUARANTINE_FILE_WITH: string = translationKey(
+  "Block and quarantine the file {{value}} with {{product}}.",
+);
+export const STEP_QUARANTINE_FILE_WITH_TWO: string = translationKey(
+  "Block and quarantine the file {{value}} with {{product}}, and block it with {{otherProduct}}.",
+);
+export const STEP_BLOCK_C2_BY_HAND: string = translationKey(
+  "Block {{value}} on every machine too, at your EDR or egress firewall, so none of them can reach it.",
+);
+// Under a step blocked on every machine, while no product holds the block yet.
+export const STEP_BLOCK_EVERYWHERE_WAITING: string = translationKey(
+  "On the blocklist, waiting for {{product}} to hold it.",
+);
+/*
  * Where the plan would say to block the address, but a scrub rule hid it
  * from every event of the case (#10397): find it where the requests came
  * in, and the line under it says which rule hid it. The Dashboard's
@@ -255,6 +284,14 @@ export const ACTION_DECLARE_INCIDENT: string =
 export const ACTION_MARK_CONTAINED: string =
   translationKey("Mark as Contained");
 export const ACTION_CLOSE_CASE: string = translationKey("Close Case");
+export const ACTION_BLOCK_FOR_7_DAYS: string =
+  translationKey("Block for 7 Days");
+export const ACTION_BLOCK_FILE: string = translationKey("Block File");
+
+// What the card says once a step's block is made (#10346): on the blocklist, not yet held.
+export const RESPONSE_BLOCKED: string = translationKey(
+  "{{value}} is on the blocklist. The step is done once it is blocked on every machine.",
+);
 export const ACTION_COPY: string = translationKey("Copy");
 // One click blocks the address for a day; the menu beside it holds the rest (#10342).
 export const ACTION_BLOCK_FOR_A_DAY: string =

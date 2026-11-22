@@ -25,6 +25,7 @@ import PendingInviteeProfiles, {
 } from "../TeamMember/PendingInviteeProfiles";
 import ProjectMembership from "../TeamMember/ProjectMembership";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 import OnCallHandoffPolicies, {
   OnCallHandoffPolicy,
 } from "./OnCallHandoffPolicies";
@@ -925,9 +926,7 @@ export default class OnCallHandoffPosts {
 
         people.set(userId.toString().toLowerCase(), {
           because: OnCallNotPagedBecause.NotJoinedYet,
-          displayName: OnCallChatByWorkspace.getDisplayName(
-            invited.inviteeName,
-          ),
+          displayName: FeedPersonNameRule.getDisplayName(invited.inviteeName),
         });
       }
 
@@ -953,7 +952,7 @@ export default class OnCallHandoffPosts {
         if (user.id) {
           people.set(user.id.toString().toLowerCase(), {
             because: OnCallNotPagedBecause.NotAMember,
-            displayName: OnCallChatByWorkspace.getDisplayName(
+            displayName: FeedPersonNameRule.getDisplayName(
               user.name?.toString(),
             ),
           });

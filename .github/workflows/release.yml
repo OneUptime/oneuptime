@@ -1538,6 +1538,15 @@ jobs:
     # Publishes the provider, so it runs only for `release`, as every job that
     # publishes does (Tests/Ops/ReleaseCriticalPath).
     if: github.ref == 'refs/heads/release'
+    # One publish of the provider at a time, this job's and the Republish a
+    # Terraform provider version workflow's: two at once could each find a
+    # version unpublished and each make it a draft. None is cancelled. A run
+    # repeated for a version this job published stops at once, changing
+    # nothing: a published release is never changed (publish-terraform-
+    # provider.sh, Tests/Ops/TerraformProviderPublishedRelease.test.js).
+    concurrency:
+      group: terraform-provider-repository
+      cancel-in-progress: false
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # Go's soft memory limit, for every compile of the provider here: the
@@ -1638,6 +1647,13 @@ jobs:
       # a broken generation stops it there. The job used to generate, vet and
       # test once more first, the same work twice
       # (Tests/Ops/TerraformProviderPublishOnce.test.js).
+      #
+      # It makes the release a draft, uploads every asset to it, checks them
+      # against what it built, and only then publishes it, with notes of its
+      # own (Scripts/TerraformProvider/GenerateReleaseNotes.js), which go to
+      # this job's summary too. GITHUB_SHA, the commit this run built, is the
+      # OneUptime commit the provider's commit names, and the notes read
+      # OneUptime's pull requests up to it.
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 

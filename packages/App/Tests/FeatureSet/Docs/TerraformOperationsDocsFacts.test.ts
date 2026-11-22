@@ -1571,14 +1571,42 @@ describe("the registry page", () => {
     ).toBe("The registry's guides");
   });
 
-  it("names the provider's own repository and what its releases link to", () => {
+  it("names the provider's own repository and what its releases say", () => {
+    // Each release's notes, as the publish script has them written.
+    const notes: string = readRepoFile(
+      "Scripts/TerraformProvider/GenerateReleaseNotes.js",
+    );
+
     expect(publish).toContain('GITHUB_ORG="OneUptime"');
     expect(publish).toContain(
       'PROVIDER_REPO="terraform-provider-$PROVIDER_NAME"',
     );
-    expect(publish).toContain("**Full Changelog**");
+    expect(publish).toContain(
+      'NOTES_GENERATOR="$SCRIPT_DIR/GenerateReleaseNotes.js"',
+    );
+    expect(notes).toContain('"## ⚠️ Breaking changes"');
+    expect(notes).toContain('"## 🧩 New resources and data sources"');
+    expect(notes).toContain("## 🔁 Changed resources and data sources");
+    expect(notes).toContain("**Full changelog:**");
     expect(englishPage(REGISTRY)).toContain(
-      "[The provider's releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases) link to the changes since the one before.",
+      "[The provider's releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases) say what each one changed in the provider: first what breaks a configuration, then the new resources and data sources, and the attributes that changed.",
+    );
+  });
+
+  it("is right that a published version never changes, and that one mended is the next patch version", () => {
+    const republish: string = readRepoFile(
+      ".github/workflows/terraform-provider-republish.yml",
+    );
+
+    expect(publish).toContain(
+      "A published release is never changed: there is nothing to do.",
+    );
+    expect(publish).toContain("--republish-from TAG");
+    expect(republish).toContain(
+      'publish-terraform-provider.sh --republish-from "$FROM" --version "$VERSION"',
+    );
+    expect(englishSection(REGISTRY, "## How versions are numbered")).toContain(
+      "A published version never changes: the registries keep the checksums of what they first downloaded, and `init` checks every download against them. A version that has to be mended is published again as the next patch version, which a range takes, and that release's notes say which version it replaces.",
     );
   });
 

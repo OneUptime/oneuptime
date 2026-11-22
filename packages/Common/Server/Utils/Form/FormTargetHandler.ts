@@ -107,6 +107,12 @@ export interface FormTargetHandler<TPrepared> {
   validateReferences(data: {
     projectId: ObjectID;
     settings: JSONObject;
+    /*
+     * What the form held before the write, on an update of the same
+     * target: a record it held that is gone since is not refused again
+     * (FormTargetHelpers.validateSettingReferences).
+     */
+    storedSettings?: JSONObject | undefined;
   }): Promise<void>;
 
   prepare(context: FormSubmissionContext): Promise<TPrepared>;
@@ -386,21 +392,64 @@ export class FormTargetHelpers {
    * write is refused naming the setting. Users are checked as members of
    * the project (they have no project of their own); everything else as a
    * record of the project.
+   *
+   * What the form already held (heldReferences, on an update) is not judged
+   * again for being there: a monitor it attached and that was deleted since
+   * is no reason to refuse the next save, as a question's held options and
+   * a template's held answers are not judged again (FormService). The
+   * settings dialog shows such a record as "Deleted", to keep or take out,
+   * and saving keeps it as it was left (#10646); a submission attaches only
+   * what is still there (getUsableIds). A held record is still never one of
+   * another project's: the read by id alone that a missing one gets
+   * (mustExist: false) refuses those. A held owner who has left the
+   * project is not added to anything a submission creates
+   * (getUsableOwnerUserIds).
    */
   public static async validateSettingReferences(data: {
     projectId: ObjectID;
     references: Array<FormTargetSettingReference>;
+    heldReferences?: Array<FormTargetSettingReference> | undefined;
     getService: FormReferenceServiceFunction;
   }): Promise<void> {
+    const heldIdsByModel: Map<
+      FormTargetSettingReferenceModel,
+      Set<string>
+    > = new Map();
+
+    for (const held of data.heldReferences || []) {
+      const ids: Set<string> =
+        heldIdsByModel.get(held.model) || new Set<string>();
+
+      for (const id of held.ids) {
+        ids.add(id.toString().toLowerCase());
+      }
+
+      heldIdsByModel.set(held.model, ids);
+    }
+
     for (const reference of data.references) {
+      const heldIds: Set<string> =
+        heldIdsByModel.get(reference.model) || new Set<string>();
+
       if (reference.model === FormTargetSettingReferenceModel.User) {
+        // The people the write adds; the ones the form held are left alone.
+        const addedIds: Array<string> = reference.ids.filter(
+          (id: string): boolean => {
+            return !heldIds.has(id.toString().toLowerCase());
+          },
+        );
+
+        if (addedIds.length === 0) {
+          continue;
+        }
+
         const members: Array<ObjectID> =
           await TeamMemberService.getProjectMemberUserIds({
             projectId: data.projectId,
-            userIds: reference.ids,
+            userIds: addedIds,
           });
 
-        if (members.length !== reference.ids.length) {
+        if (members.length !== addedIds.length) {
           throw new BadDataException(
             `${reference.title}: every owner must be a member of this project.`,
           );
@@ -426,6 +475,8 @@ export class FormTargetHelpers {
             modelName: reference.title,
             id: id,
             service: service,
+            // Held already: may be gone since, never another project's.
+            mustExist: !heldIds.has(id.toString().toLowerCase()),
           };
         }),
       });

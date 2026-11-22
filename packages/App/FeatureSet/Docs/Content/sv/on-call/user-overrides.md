@@ -27,6 +27,7 @@ Medan en åsidosättning gäller, från dess start till dess slut:
 - Står någon under **Vem täcker upp?** får den personen alla utlarmningar till den som är borta, från varje schema, team och regel som åsidosättningen gäller för. Utlarmningen når hen via hens egna personliga jourregler.
 - Finns ingen som täcker upp hoppas personen över. I ett jourschema går vart och ett av hens pass till nästa person i rotationen som inte är borta; om alla i ett lager är borta tar lagren under över. En regel som nämner personen direkt, eller via ett team, larmar inte hen, och policyns körning visar att hen är borta, och till när.
 - Åsidosättningar kedjas inte. Om den som täcker upp också är borta är det ändå hen som larmas för den person hen täcker upp för.
+- Någon som är inbjuden men ännu inte har gått med i projektet kan väljas under **Vem täcker upp?**, men inget larmar hen förrän hen har accepterat sin inbjudan, så tills dess larmas ingen i stället för den som är borta. Formuläret säger det så fort du väljer hen, och det gör också raden som policyns kanaler och flöde får: "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do."
 
 När åsidosättningen tar slut är utlarmningarna personens egna igen. **Tidslinje för jourscheman**, ett schemas lager och kalenderflödena visar alla vem som har varje pass som täcks upp.
 

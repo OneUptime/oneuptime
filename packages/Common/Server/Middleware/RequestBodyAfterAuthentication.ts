@@ -10,7 +10,9 @@ import {
 import RequestBodyJson from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import { withAppRequestBodyLimit } from "../Utils/RequestBodyRefusal";
-import GzipRequestBodyMiddleware from "./GzipRequestBody";
+import GzipRequestBodyMiddleware, {
+  isJsonContentType,
+} from "./GzipRequestBody";
 import RequestBodyParser from "./RequestBodyParser";
 
 /*
@@ -34,6 +36,9 @@ import RequestBodyParser from "./RequestBodyParser";
  *   - readJson reads them and parses them, counted first (RequestBodyJson),
  *     for a route whose caller's key is in its headers, checked before
  *     this runs.
+ *   - readUpload reads an upload (#10673) - a Pyroscope profile, source maps,
+ *     dSYMs - in each of the forms its route takes: a multipart form, JSON,
+ *     or the bytes themselves.
  *
  * A body something already read - StartServer's parsers, a test's - is left
  * as it is: a stream is read once.
@@ -88,6 +93,47 @@ export const createJsonParseFailedError: (cause: unknown) => Error = (
 
 // A body parsed, or the error it is refused with.
 export type ParsedRequestBody = { body: unknown } | { error: Error };
+
+// What an upload's route takes (readUpload).
+export interface UploadBodyReaders {
+  // What the body is held to, as sent and once inflated.
+  limit: RequestBodyLimit;
+  // The route's multipart reader (MultipartFormData's), held to `limit`.
+  multipart: RequestHandler;
+  // JSON is parsed: the dSYMs the CLI sends.
+  json?: boolean | undefined;
+  // A body of any other type is read as its bytes: a raw profile.
+  bytes?: boolean | undefined;
+}
+
+// Runs the handlers in turn, each once the one before it went on.
+const inTurn: (handlers: ReadonlyArray<RequestHandler>) => RequestHandler = (
+  handlers: ReadonlyArray<RequestHandler>,
+): RequestHandler => {
+  return (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void => {
+    const runFrom: (index: number) => void = (index: number): void => {
+      const handler: RequestHandler | undefined = handlers[index];
+
+      if (!handler) {
+        return next();
+      }
+
+      handler(req, res, ((err?: unknown): void => {
+        if (err) {
+          return next(err);
+        }
+
+        runFrom(index + 1);
+      }) as NextFunction);
+    };
+
+    runFrom(0);
+  };
+};
 
 export default class RequestBodyAfterAuthentication {
   /*
@@ -198,5 +244,72 @@ export default class RequestBodyAfterAuthentication {
         return next();
       }) as NextFunction);
     };
+  }
+
+  /*
+   * AN UPLOAD, READ ONCE ITS CALLER'S KEY IS CHECKED (#10673): a Pyroscope
+   * profile, source maps, an iOS app's dSYMs. Their clients send the key in a
+   * header, so nothing in the body is needed to check it: StartServer leaves
+   * the body unread (readsBodyAfterAuthentication), the route checks the key,
+   * and this reads, after it, what StartServer and the route read before it -
+   * held to `limit`, as sent and once inflated:
+   *
+   *   - a gzip body inflated first, whatever its type (GzipRequestBody), as
+   *     StartServer inflated it before routing;
+   *   - a multipart form parsed by `multipart` (MultipartFormData), from those
+   *     bytes, or off the request as it comes;
+   *   - JSON, on a route that takes it, counted and parsed (readJson);
+   *   - a body of any other type, on a route that takes the bytes
+   *     themselves, read as them (readBytes).
+   *
+   * A body of a type the route takes none of is left unread, and the route
+   * finds it empty, as it did. A request refused before this runs - no key,
+   * a wrong one - has nothing of its body read: UnreadRequestBody closes the
+   * connection once the refusal is sent, which the client still reads.
+   */
+  public static readUpload(readers: UploadBodyReaders): RequestHandler {
+    const limit: RequestBodyLimit = readers.limit;
+    const readBytes: RequestHandler =
+      RequestBodyAfterAuthentication.readBytes(limit);
+    const readJson: RequestHandler =
+      RequestBodyAfterAuthentication.readJson(limit);
+
+    const inflateGzip: RequestHandler = (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      // What the route's readers hold the body to (MultipartFormData's too).
+      (req as OneUptimeRequest).requestBodyLimit = limit;
+
+      if (
+        headerValueToString(req.headers["content-encoding"])?.includes("gzip")
+      ) {
+        return readBytes(req, res, next);
+      }
+
+      return next();
+    };
+
+    const readJsonBody: RequestHandler = (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      if (
+        !isJsonContentType(headerValueToString(req.headers["content-type"]))
+      ) {
+        return next();
+      }
+
+      return readJson(req, res, next);
+    };
+
+    return inTurn([
+      inflateGzip,
+      readers.multipart,
+      ...(readers.json ? [readJsonBody] : []),
+      ...(readers.bytes ? [readBytes] : []),
+    ]);
   }
 }

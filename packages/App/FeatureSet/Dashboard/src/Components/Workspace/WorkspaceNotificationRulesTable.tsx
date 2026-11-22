@@ -59,7 +59,11 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import NotificationRuleCondition, {
+  NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -180,7 +184,23 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
-  const [monitors, setMonitors] = React.useState<Array<Monitor>>([]);
+  /*
+   * The monitors the shown rules' conditions hold, read by their ids
+   * (#10646): the page read every monitor of the project - the first 10,000
+   * by name - and a rule's monitor past them read "No longer in this
+   * project" on its card. Undefined until the rules are read, so no monitor
+   * is said to be gone from a list nobody read. A condition's picker reads
+   * and searches its own (MonitorConditionPicker).
+   */
+  const [monitors, setMonitors] = React.useState<Array<Monitor> | undefined>(
+    undefined,
+  );
+  const heldMonitorsRef: React.MutableRefObject<Map<string, Monitor>> =
+    React.useRef<Map<string, Monitor>>(new Map());
+  // One of the project's monitors, to show the name of a channel with.
+  const [exampleMonitorName, setExampleMonitorName] = React.useState<
+    string | undefined
+  >(undefined);
   const [labels, setLabels] = React.useState<Array<Label>>([]);
   const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
   const [alertSeverities, setAlertSeverities] = React.useState<
@@ -361,6 +381,64 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The monitors the rules on the page name, read by their ids - only the
+   * ones not read already - so each card names its rule's monitors however
+   * many the project has, and one deleted since reads "No longer in this
+   * project". A read that fails names nothing, and says nothing is gone.
+   */
+  const readMonitorsOfRules: (
+    rules: Array<WorkspaceNotificationRule>,
+  ) => Promise<void> = async (
+    rules: Array<WorkspaceNotificationRule>,
+  ): Promise<void> => {
+    const ids: Set<string> = new Set<string>();
+
+    for (const rule of rules) {
+      const conditions: Array<NotificationRuleCondition> =
+        (rule.notificationRule as IncidentNotificationRule | undefined)
+          ?.filters || [];
+
+      for (const condition of conditions) {
+        if (condition?.checkOn !== NotificationRuleConditionCheckOn.Monitors) {
+          continue;
+        }
+
+        for (const id of NotificationRuleConditionUtil.getValueIds(condition)) {
+          ids.add(id.toLowerCase());
+        }
+      }
+    }
+
+    const known: Map<string, Monitor> = heldMonitorsRef.current;
+    const toRead: Array<string> = Array.from(ids).filter(
+      (id: string): boolean => {
+        return !known.has(id);
+      },
+    );
+
+    try {
+      if (toRead.length > 0) {
+        const read: Array<Monitor> = await RecordsById.read<Monitor>({
+          modelType: Monitor,
+          ids: toRead,
+          query: { projectId: ProjectUtil.getCurrentProjectId()! },
+          select: { _id: true, name: true, isArchived: true },
+        });
+
+        for (const monitor of read) {
+          if (monitor._id) {
+            known.set(monitor._id.toString().toLowerCase(), monitor);
+          }
+        }
+      }
+
+      setMonitors(Array.from(known.values()));
+    } catch {
+      // Named by nothing, and nothing said to be gone (monitors undefined).
+    }
+  };
+
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -371,24 +449,26 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
        * value is archived: a picker leaves an archived one out for a new
        * pick, and marks one a rule holds already (#7582).
        */
-      const monitors: ListResult<Monitor> = await ModelAPI.getList({
-        modelType: Monitor,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        select: {
-          name: true,
-          _id: true,
-          isArchived: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
+      // A monitor's name for the channel name a monitor rule's form shows.
+      if (props.eventType === NotificationRuleEventType.Monitor) {
+        const firstMonitor: ListResult<Monitor> = await ModelAPI.getList({
+          modelType: Monitor,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            name: true,
+            _id: true,
+          },
+          skip: 0,
+          limit: 1,
+          sort: {
+            name: SortOrder.Ascending,
+          },
+        });
 
-      setMonitors(monitors.data);
+        setExampleMonitorName(firstMonitor.data[0]?.name || undefined);
+      }
 
       const labels: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
@@ -910,7 +990,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
    */
   const exampleRecordName: string | undefined =
     props.eventType === NotificationRuleEventType.Monitor
-      ? monitors[0]?.name || undefined
+      ? exampleMonitorName
       : props.eventType === NotificationRuleEventType.OnCallDutyPolicy
         ? onCallPolicyName
         : undefined;
@@ -1001,7 +1081,10 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <ModelTable<WorkspaceNotificationRule>
         modelType={WorkspaceNotificationRule}
-        onFetchSuccess={owningTeams.onRulesFetched}
+        onFetchSuccess={(rules: Array<WorkspaceNotificationRule>) => {
+          owningTeams.onRulesFetched(rules);
+          void readMonitorsOfRules(rules);
+        }}
         getEditDisabledReason={owningTeams.getEditDisabledReason}
         getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
         onEditFormItemFetched={owningTeams.onEditFormItemFetched}

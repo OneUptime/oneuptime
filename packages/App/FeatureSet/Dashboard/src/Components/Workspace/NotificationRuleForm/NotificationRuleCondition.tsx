@@ -68,6 +68,7 @@ import {
   POLICY_NAME_SWITCH_ACTION,
   VALUE_NOT_FOUND_NAME,
 } from "./NotificationRuleConditionWords";
+import MonitorConditionPicker from "./MonitorConditionPicker";
 
 /*
  * ONE CONDITION OF A WORKSPACE RULE, AS A LINE OF A SENTENCE.
@@ -121,7 +122,12 @@ export interface ComponentProps {
   index?: number | undefined;
   // How the rule combines its conditions: "And" for All, "Or" for Any.
   filterCondition?: FilterCondition | undefined;
-  monitors: Array<Monitor>;
+  /*
+   * Not read by the condition: its monitors are searched on the server and
+   * read by their ids (MonitorConditionPicker). Kept for the callers that
+   * still hand them in.
+   */
+  monitors?: Array<Monitor> | undefined;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
@@ -423,10 +429,33 @@ const NotificationRuleConditionFormElement: FunctionComponent<
       );
     }
 
+    /*
+     * The monitors a condition picks are searched on the server, and the
+     * ones it holds are read by their ids (MonitorConditionPicker, #10646):
+     * a project's monitors read whole stopped at the first 10,000.
+     */
+    if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
+      return (
+        <div
+          data-testid={`notification-rule-condition-value-${props.index || 0}`}
+        >
+          <MonitorConditionPicker
+            id={`${rowId}-value`}
+            ariaLabel={valueAriaLabel}
+            ariaDescribedby={valueDescribedBy}
+            ids={valueIds}
+            onChange={(ids: Array<string>) => {
+              changeValue(ids);
+            }}
+          />
+        </div>
+      );
+    }
+
     if (isDropdownValue) {
       const lists: ConditionValueLists = {
         checkOn: checkOn,
-        monitors: props.monitors,
+        monitors: props.monitors || [],
         labels: props.labels,
         alertStates: props.alertStates,
         incidentStates: props.incidentStates,

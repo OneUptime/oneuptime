@@ -35,7 +35,7 @@ import {
   CloudflareAccessRuleConfiguration,
 } from "../../../../../Types/SecurityBlocklist/CloudflareBlocking";
 import {
-  SECURITY_BLOCK_ACTIONS,
+  SECURITY_BLOCK_ADDRESS_ACTIONS,
   SecurityBlockAction,
   SecurityBlockValue,
   readSecurityBlockValue,
@@ -323,9 +323,11 @@ export default class CloudflareBlocking {
 
     for (const list of lists) {
       const action: SecurityBlockAction | undefined =
-        SECURITY_BLOCK_ACTIONS.find((candidate: SecurityBlockAction) => {
-          return CLOUDFLARE_BLOCK_LIST_NAMES[candidate] === list.name;
-        });
+        SECURITY_BLOCK_ADDRESS_ACTIONS.find(
+          (candidate: SecurityBlockAction) => {
+            return CLOUDFLARE_BLOCK_LIST_NAMES[candidate] === list.name;
+          },
+        );
 
       if (!action) {
         customerListCount++;
@@ -397,9 +399,11 @@ export default class CloudflareBlocking {
 
     for (const rule of ruleset?.rules || []) {
       const action: SecurityBlockAction | undefined =
-        SECURITY_BLOCK_ACTIONS.find((candidate: SecurityBlockAction) => {
-          return CLOUDFLARE_BLOCK_RULE_REFS[candidate] === rule.ref;
-        });
+        SECURITY_BLOCK_ADDRESS_ACTIONS.find(
+          (candidate: SecurityBlockAction) => {
+            return CLOUDFLARE_BLOCK_RULE_REFS[candidate] === rule.ref;
+          },
+        );
 
       if (action) {
         oneUptimeRules[action] = rule;
@@ -431,7 +435,7 @@ export default class CloudflareBlocking {
     return chooseCloudflareBlockingMechanisms({
       plan: reading.plan,
       customerListCount: reading.customerListCount,
-      oneUptimeLists: SECURITY_BLOCK_ACTIONS.filter(
+      oneUptimeLists: SECURITY_BLOCK_ADDRESS_ACTIONS.filter(
         (action: SecurityBlockAction): boolean => {
           return Boolean(reading.lists[action]);
         },
@@ -443,7 +447,7 @@ export default class CloudflareBlocking {
             name: zone.zone.name,
             plan: zone.plan,
             ruleCount: zone.ruleset?.rules.length || 0,
-            oneUptimeRules: SECURITY_BLOCK_ACTIONS.filter(
+            oneUptimeRules: SECURITY_BLOCK_ADDRESS_ACTIONS.filter(
               (action: SecurityBlockAction): boolean => {
                 return Boolean(zone.oneUptimeRules[action]);
               },
@@ -471,7 +475,7 @@ export default class CloudflareBlocking {
       return chosen;
     }
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const kept: CloudflareActionStatus | null = getCloudflareActionStatus(
         previous,
         action,
@@ -515,7 +519,7 @@ export default class CloudflareBlocking {
         this.scope.accountId,
       );
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       if (
         mechanisms[action].mechanism !== CloudflareBlockingMechanism.List ||
         reading.lists[action]
@@ -573,13 +577,14 @@ export default class CloudflareBlocking {
     zone: CloudflareZoneReading,
     mechanisms: Record<SecurityBlockAction, CloudflareMechanismChoice>,
   ): Promise<void> {
-    const actions: Array<SecurityBlockAction> = SECURITY_BLOCK_ACTIONS.filter(
-      (action: SecurityBlockAction): boolean => {
-        return (
-          mechanisms[action].mechanism === CloudflareBlockingMechanism.List
-        );
-      },
-    );
+    const actions: Array<SecurityBlockAction> =
+      SECURITY_BLOCK_ADDRESS_ACTIONS.filter(
+        (action: SecurityBlockAction): boolean => {
+          return (
+            mechanisms[action].mechanism === CloudflareBlockingMechanism.List
+          );
+        },
+      );
 
     if (actions.length === 0) {
       return;
@@ -670,7 +675,7 @@ export default class CloudflareBlocking {
       await this.client.getCustomRulesEntrypoint(zoneId);
 
     for (const rule of ruleset?.rules || []) {
-      const isOneUptimes: boolean = SECURITY_BLOCK_ACTIONS.some(
+      const isOneUptimes: boolean = SECURITY_BLOCK_ADDRESS_ACTIONS.some(
         (action: SecurityBlockAction): boolean => {
           return CLOUDFLARE_BLOCK_RULE_REFS[action] === rule.ref;
         },
@@ -766,7 +771,7 @@ export default class CloudflareBlocking {
         );
         const rules: Array<CloudflareZoneRuleStatus> = [];
 
-        for (const action of SECURITY_BLOCK_ACTIONS) {
+        for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
           if (
             mechanisms[action].mechanism !== CloudflareBlockingMechanism.List
           ) {
@@ -811,21 +816,22 @@ export default class CloudflareBlocking {
       },
     );
 
-    const actions: Array<CloudflareActionStatus> = SECURITY_BLOCK_ACTIONS.map(
-      (action: SecurityBlockAction): CloudflareActionStatus => {
-        const choice: CloudflareMechanismChoice = mechanisms[action];
-        const list: CloudflareList | undefined = reading.lists[action];
+    const actions: Array<CloudflareActionStatus> =
+      SECURITY_BLOCK_ADDRESS_ACTIONS.map(
+        (action: SecurityBlockAction): CloudflareActionStatus => {
+          const choice: CloudflareMechanismChoice = mechanisms[action];
+          const list: CloudflareList | undefined = reading.lists[action];
 
-        return {
-          action,
-          choice,
-          ...(list ? { listId: list.id } : {}),
-          isInPlace:
-            choice.mechanism === CloudflareBlockingMechanism.AccessRules ||
-            Boolean(list),
-        };
-      },
-    );
+          return {
+            action,
+            choice,
+            ...(list ? { listId: list.id } : {}),
+            isInPlace:
+              choice.mechanism === CloudflareBlockingMechanism.AccessRules ||
+              Boolean(list),
+          };
+        },
+      );
 
     const usesLists: boolean = actions.some(
       (entry: CloudflareActionStatus): boolean => {
@@ -852,7 +858,7 @@ export default class CloudflareBlocking {
       limit = CLOUDFLARE_ACCESS_RULES_PER_ACCOUNT;
     }
 
-    const items: number = SECURITY_BLOCK_ACTIONS.reduce(
+    const items: number = SECURITY_BLOCK_ADDRESS_ACTIONS.reduce(
       (total: number, action: SecurityBlockAction): number => {
         return total + (reading.lists[action]?.numItems || 0);
       },
@@ -899,7 +905,7 @@ export default class CloudflareBlocking {
   ): Promise<Array<SecurityBlockHeldItem>> {
     const held: Array<SecurityBlockHeldItem> = [];
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const entry: CloudflareActionStatus | null = getCloudflareActionStatus(
         status,
         action,
@@ -997,7 +1003,7 @@ export default class CloudflareBlocking {
   ): Promise<Array<SecurityBlockWriteResult>> {
     const results: Array<SecurityBlockWriteResult> = [];
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const ofAction: Array<SecurityBlockEntry> = entries.filter(
         (entry: SecurityBlockEntry): boolean => {
           return entry.action === action;
@@ -1176,7 +1182,7 @@ export default class CloudflareBlocking {
   ): Promise<Array<SecurityBlockWriteResult>> {
     const results: Array<SecurityBlockWriteResult> = [];
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const ofAction: Array<SecurityBlockHeldItem> = items.filter(
         (item: SecurityBlockHeldItem): boolean => {
           return item.action === action;
@@ -1374,7 +1380,7 @@ export default class CloudflareBlocking {
 
     const keptLists: Array<string> = [];
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const list: CloudflareList | undefined = reading.lists[action];
 
       if (!list) {
@@ -1437,7 +1443,7 @@ export default class CloudflareBlocking {
 
     let left: number = 0;
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const rules: Array<CloudflareAccessRule> =
         await this.readOneUptimeAccessRules(action);
 
@@ -1514,14 +1520,14 @@ export default class CloudflareBlocking {
 
     const mechanisms: Record<SecurityBlockAction, CloudflareMechanismChoice> =
       CloudflareBlocking.chooseMechanisms(reading);
-    const usesLists: boolean = SECURITY_BLOCK_ACTIONS.some(
+    const usesLists: boolean = SECURITY_BLOCK_ADDRESS_ACTIONS.some(
       (action: SecurityBlockAction): boolean => {
         return (
           mechanisms[action].mechanism === CloudflareBlockingMechanism.List
         );
       },
     );
-    const usesAccessRules: boolean = SECURITY_BLOCK_ACTIONS.some(
+    const usesAccessRules: boolean = SECURITY_BLOCK_ADDRESS_ACTIONS.some(
       (action: SecurityBlockAction): boolean => {
         return (
           mechanisms[action].mechanism ===
@@ -1699,7 +1705,7 @@ export default class CloudflareBlocking {
       );
     }
 
-    for (const action of SECURITY_BLOCK_ACTIONS) {
+    for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
       const choice: CloudflareMechanismChoice = mechanisms[action];
       const what: string =
         action === SecurityBlockAction.Block ? "Blocks" : "Challenges";
@@ -1719,7 +1725,7 @@ export default class CloudflareBlocking {
     }
 
     for (const zone of reading.zones) {
-      const taken: number = SECURITY_BLOCK_ACTIONS.filter(
+      const taken: number = SECURITY_BLOCK_ADDRESS_ACTIONS.filter(
         (action: SecurityBlockAction): boolean => {
           return (
             mechanisms[action].mechanism === CloudflareBlockingMechanism.List
