@@ -20,6 +20,7 @@ import {
   TELL_FIELD_TITLE,
 } from "./HuntsCopy";
 import { renderHuntFormFilters } from "./HuntFormFilters";
+import { renderHuntRangeRetentionWarning } from "../Retention/HuntRangeRetentionWarning";
 import SecurityHunt from "Common/Models/DatabaseModels/SecurityHunt";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -252,6 +253,11 @@ export function getHuntFormFields(data: {
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: getHuntTimeRangeDropdownOptions(),
       required: true,
+      /*
+       * A range longer than the project keeps its security events finds
+       * nothing older (#10432): said under it as it is chosen.
+       */
+      getFooterElement: renderHuntRangeRetentionWarning,
       dataTestId: "hunt-time-range",
     },
     {

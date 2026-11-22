@@ -1509,10 +1509,12 @@ describe("the Incoming Request Ingress page", () => {
      * JSON and form parsers also keep a signed request's bytes
      * (keepSignedBodyBytes), and the signed-body reader keeps them for any
      * other type, so its signature still holds through the probe. A JSON
-     * body is counted first, as OneUptime counts it (#10183).
+     * body is counted first, as OneUptime counts it (#10183). A body over
+     * the limit is refused without the rest of it read, as OneUptime refuses
+     * it (RequestBodyParser, UnreadRequestBody, #10598).
      */
     expect(ingress.replace(/\s+/g, " ")).toContain(
-      "app.use( ExpressJson({ limit: INGRESS_BODY_LIMIT, verify: countJsonAndKeepSignedBodyBytes, }), ); app.use( ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes, }), ); app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT)); app.use( WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest), ); app.use(router);",
+      "app.use(UnreadRequestBody.closeConnectionInstead); app.use( RequestBodyParser.create(ExpressJson, { limit: INGRESS_BODY_LIMIT, verify: countJsonAndKeepSignedBodyBytes, }), ); app.use( RequestBodyParser.create(ExpressUrlEncoded, { extended: true, limit: INGRESS_BODY_LIMIT, verify: keepSignedBodyBytes, }), ); app.use(WebhookRequestBody.getRawReader(INGRESS_BODY_LIMIT)); app.use( WebhookRequestBody.getSignedBodyReader(INGRESS_BODY_LIMIT, isSignedRequest), ); app.use(router);",
     );
     expect(ingress).toContain(
       "RequestBodyJson.assertWithinLimit(buf, LARGE_REQUEST_BODY_LIMIT);",

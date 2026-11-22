@@ -234,6 +234,16 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 - Kontots egen läsning ger inget mer: datahändelser, Data Access-loggar och Microsoft Entra ID:s loggar behöver fortfarande **Dina loggar** eller en [anslutning](/docs/integrations/microsoft-entra-id).
 - Varje händelse nämner de molnresurser som dess post gäller med deras egna ID:n - ett ARN, ett Azure-resurs-ID, ett resursnamn från Google Cloud - så den visas på sidan **Säkerhetshändelser** för var och en av dem, och på en serverlös funktions sida så snart dess telemetri anger `cloud.account.id` och `cloud.region`.
 
+### OneUptimes egna sonder i dina nätverksflöden
+
+Slå på **Nätverksflöden** under **Dina OneUptime-data** på **Anslutningar**, så läses de flöden dina nätverksenheter exporterar efter portskanningar, nätverkssvep, trafik med kända skadliga adresser och stora överföringar ut. En sonds eget arbete liknar där en skanning: att avsöka 40 enheter över SNMP når port 161 på 40 värdar var femte minut. Därför läggs trafik från en av OneUptimes egna sonder som är exakt det sonden är inställd att göra åt sidan:
+
+- nätverksenheterna den avsöker, pingade och tillfrågade över SNMP på sin port;
+- intervallet för var och en av dess identifieringar, medan skanningen pågår;
+- värdarna och portarna som dess monitorer kontrollerar.
+
+Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in.
+
 ### Anslut en säkerhetsprodukt
 
 **Anslutningar** hämtar data från en säkerhetsprodukt åt dig och importerar dess nya poster som säkerhetshändelser. En anslutning innehåller produktens inställningar och en krypterad autentiseringsuppgift; en worker hämtar från den med intervallet du anger och hoppar över poster som den redan har importerat.
@@ -637,6 +647,14 @@ Fynd är händelser, så en monitor kan bevaka själva reglerna:
 ## Lagring och fakturering
 
 Säkerhetshändelser faktureras per GB som tas in, som resten av din telemetri, och lagras enligt din lagringstid för telemetri: projektets **Standardlagring (dagar)**, under **Projektinställningar → Telemetri och APM → Datalagring**, eller en lagringstid som angetts på telemetritjänsten de hör till. När en händelses lagringstid löper ut tas den bort.
+
+Allt i Säkerhetshändelser som läser tidigare händelser läser bara de händelser som fortfarande lagras, och säger när det skulle behöva fler:
+
+- En **Först sedd**-regel vars tidsspann är längre än händelserna lagras avgör utifrån de lagrade dagarna om ett värde är nytt: med ett tidsspann på 30 dagar och 15 dagars lagring säger dess larm och ärenden `First awsRegion in 15 days`, och ett värde som senast sågs för 20 dagar sedan räknas som nytt. Dess rad visar **Kräver uppmärksamhet**, och **Visa fel** säger vad som ska ändras. Regelformuläret och en regels detaljer i regelbiblioteket säger det innan den sparas eller läggs till. En räkning eller en sekvens vars fönster är längre än händelserna lagras räknar bara dem.
+- **Kör på tidigare händelser** över en period som börjar före de lagrade händelserna säger att säkerhetshändelser lagras i 15 dagar, så den tittade 15 dagar tillbaka, och det den inte hittade gäller bara de dagarna. En händelse som inträffade tidigare men kom in sent är fortfarande lagrad och läses fortfarande. En **Först sedd**-regel säger hur mycket av de 30 dagarna före perioden den kunde se.
+- En hunt vars **Tidsintervall** är längre än händelserna lagras hittar inget äldre, och dess formulär säger det.
+
+**Projektinställningar → Telemetri och APM → Datalagring** listar de aktiverade regler som tittar längre tillbaka än dess **Standardlagring (dagar)**. För att täcka dem, lagra händelser längre, med **Ändra lagring** under en regel, eller korta av en regels tidsspann till det som lagras. OneUptime lagrar 15 dagar om du inte ändrar det, eftersom lagringen avgör vad din telemetri kostar och hur länge personuppgifter i händelser, som adresser och användarnamn, lagras. En ny lagring gäller händelser som kommer in från och med då, så reglerna ser längre tillbaka i takt med att de händelserna blir äldre.
 
 ## Felsökning
 

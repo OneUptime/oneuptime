@@ -49,7 +49,7 @@ El menú lateral de una aplicación agrupa sus páginas así; **Desarrolladores*
 
 ## Cómo reconoce OneUptime el RUM
 
-La mayoría de las preguntas del tipo «mi aplicación no aparece» terminan aquí. OneUptime decide, para cada lote de telemetría al llegar, a partir de sus **atributos de recurso**:
+La mayoría de las preguntas del tipo «mi aplicación no aparece» terminan aquí. Todo lo que envía una clave de **Navegador** es RUM de navegador, y todo lo que envía una clave de **Móvil** es RUM móvil, diga lo que diga su recurso. Con cualquier otra clave, OneUptime decide, para cada lote de telemetría al llegar, a partir de sus **atributos de recurso**:
 
 1. Un lote cuyo recurso tiene `browser.platform`, `browser.language` o un `browser.brands` no vacío es RUM de **navegador**.
 2. Si no, un lote con `device.id` o `device.model.identifier` es RUM **móvil**.
@@ -71,7 +71,7 @@ Los SDK de backend nunca definen `browser.*`, `device.id` ni `device.model.ident
 OneUptime encuentra la aplicación por su `service.name`, sin distinguir mayúsculas y minúsculas, y la crea cuando el proyecto no tiene ninguna. Un `service.name` nuevo inicia una aplicación nueva, así que mantenlo estable y distingue los entornos con una etiqueta en lugar de con un nombre nuevo. [Gestionar aplicaciones](/docs/rum/applications) trata los nombres, las etiquetas, los propietarios y la retención.
 
 > [!IMPORTANT]
-> El SDK de OpenTelemetry para navegador no añade atributos `browser.*` a menos que añadas el detector de recursos del navegador o los definas tú. Con solo `service.name`, la telemetría se convierte en un servicio backend, no en una aplicación RUM. [Configuración para navegadores](/docs/rum/browser-setup) muestra las dos formas.
+> El SDK de OpenTelemetry para navegador no añade atributos `browser.*` a menos que añadas el detector de recursos del navegador o los definas tú. Enviada con una clave de Navegador, la telemetría sigue siendo una aplicación RUM, pero su página **Clientes** no lista ninguna plataforma; con cualquier otra clave y solo `service.name`, se convierte en un servicio backend, no en una aplicación RUM. [Configuración para navegadores](/docs/rum/browser-setup) muestra las dos formas.
 
 ## Qué obtienes
 
@@ -94,7 +94,7 @@ Una aplicación muestra **Recibiendo datos** mientras llega telemetría y **Sin 
 :::steps
 ### Crear una clave de ingesta
 
-Abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**. Una aplicación web necesita una clave de **Navegador**, que solo funciona desde los orígenes que indiques. Una aplicación móvil necesita una clave de **Móvil**, fijada al `service.name` de la aplicación: viaja dentro de la aplicación, así que solo puede enviar las trazas, los registros y las métricas de esa aplicación.
+Abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**. Una aplicación web necesita una clave de **Navegador**, que solo funciona desde los orígenes que indiques. Una aplicación móvil necesita una clave de **Móvil**, fijada al `service.name` de la aplicación: viaja dentro de la aplicación, así que solo puede enviar las trazas, los registros, las métricas y las reproducciones de sesiones de esa aplicación.
 
 ### Instrumentar tu aplicación
 

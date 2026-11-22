@@ -218,7 +218,7 @@ Sjekk visningen først: **Problemer** skjuler brukerfeil og forventede avvisning
 :::
 
 :::details Én feil vises som flere unntak
-Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**.
+Fingeravtrykket inkluderer meldingen og stack trace. Når de er forskjellige, for eksempel når en melding inneholder et kort tall eller et navn som endrer seg ved hvert kall, er hver variant et eget unntak. Nye unntak grupperes i stedet etter funksjonene i din egen kode, så dette gjelder mest unntak registrert før; slå sammen to som er den samme feilen fra **Lignende unntak**. En scrub-regel deler ikke et unntak: det grupperes etter det det sa før reglene kjørte. Et unntak funnet i logger som en regel delte i to i en tidligere versjon av OneUptime, forblir delt; slå de to sammen på samme måte.
 :::
 
 :::details Et løst unntak kommer stadig tilbake

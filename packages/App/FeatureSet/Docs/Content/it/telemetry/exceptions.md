@@ -218,7 +218,7 @@ Controllate prima la vista: **Problemi** nasconde gli errori degli utenti e i ri
 :::
 
 :::details Un errore compare come più eccezioni
-L'impronta include il messaggio e lo stack trace. Quando differiscono, ad esempio quando un messaggio contiene un numero breve o un nome che cambia a ogni chiamata, ogni variante è un'eccezione a sé. Le nuove eccezioni vengono invece raggruppate per le funzioni del vostro codice, quindi questo riguarda soprattutto le eccezioni registrate prima; unitene due che sono lo stesso bug da **Eccezioni simili**.
+L'impronta include il messaggio e lo stack trace. Quando differiscono, ad esempio quando un messaggio contiene un numero breve o un nome che cambia a ogni chiamata, ogni variante è un'eccezione a sé. Le nuove eccezioni vengono invece raggruppate per le funzioni del vostro codice, quindi questo riguarda soprattutto le eccezioni registrate prima; unitene due che sono lo stesso bug da **Eccezioni simili**. Una regola di mascheramento non divide un'eccezione: viene raggruppata in base a ciò che diceva prima delle regole. Un'eccezione trovata nei log che una regola ha diviso in due in una versione precedente di OneUptime resta divisa; unite le due allo stesso modo.
 :::
 
 :::details Un'eccezione risolta continua a tornare

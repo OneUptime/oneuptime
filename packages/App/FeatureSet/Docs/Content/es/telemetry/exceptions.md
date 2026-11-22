@@ -218,7 +218,7 @@ Compruebe primero la vista: **Problemas** oculta los errores de usuario y las de
 :::
 
 :::details Un error aparece como varias excepciones
-La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuando un mensaje incluye un número corto o un nombre que cambia en cada llamada, cada variante es su propia excepción. Las excepciones nuevas se agrupan en cambio por las funciones de su propio código, así que esto afecta sobre todo a excepciones registradas antes; fusione dos que sean el mismo error desde **Excepciones similares**.
+La huella incluye el mensaje y el stack trace. Cuando difieren, por ejemplo cuando un mensaje incluye un número corto o un nombre que cambia en cada llamada, cada variante es su propia excepción. Las excepciones nuevas se agrupan en cambio por las funciones de su propio código, así que esto afecta sobre todo a excepciones registradas antes; fusione dos que sean el mismo error desde **Excepciones similares**. Una regla de depuración no divide una excepción: se agrupa por lo que decía antes de aplicarse las reglas. Una excepción encontrada en registros que una regla dividió en dos en una versión anterior de OneUptime sigue dividida; fusione las dos de la misma manera.
 :::
 
 :::details Una excepción resuelta vuelve una y otra vez

@@ -49,7 +49,7 @@ Il menu laterale di un'applicazione raggruppa le sue pagine così; **Sviluppator
 
 ## Come OneUptime riconosce il RUM
 
-La maggior parte delle domande del tipo «la mia app non compare» finisce qui. OneUptime decide, per ogni lotto di telemetria al suo arrivo, in base ai suoi **attributi di risorsa**:
+La maggior parte delle domande del tipo «la mia app non compare» finisce qui. Tutto ciò che invia una chiave **Browser** è RUM del browser, e tutto ciò che invia una chiave **Mobile** è RUM mobile, qualunque cosa dica la sua risorsa. Con qualsiasi altra chiave, OneUptime decide, per ogni lotto di telemetria al suo arrivo, in base ai suoi **attributi di risorsa**:
 
 1. Un lotto la cui risorsa ha `browser.platform`, `browser.language` o un `browser.brands` non vuoto è RUM **browser**.
 2. Altrimenti, un lotto con `device.id` o `device.model.identifier` è RUM **mobile**.
@@ -71,7 +71,7 @@ Gli SDK di backend non impostano mai `browser.*`, `device.id` o `device.model.id
 OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiuscole e minuscole, e la crea quando il progetto non ne ha una. Un nuovo `service.name` avvia una nuova applicazione: tienilo quindi stabile e distingui gli ambienti con un'etichetta anziché con un nuovo nome. [Gestire le applicazioni](/docs/rum/applications) tratta nomi, etichette, proprietari e conservazione.
 
 > [!IMPORTANT]
-> L'SDK OpenTelemetry per browser non aggiunge attributi `browser.*` finché non aggiungi il rilevatore di risorse del browser o li imposti tu. Con il solo `service.name`, la telemetria diventa un servizio backend, non un'applicazione RUM. [Configurazione browser](/docs/rum/browser-setup) mostra entrambi i modi.
+> L'SDK OpenTelemetry per browser non aggiunge attributi `browser.*` finché non aggiungi il rilevatore di risorse del browser o li imposti tu. Inviata con una chiave Browser, la telemetria resta un'applicazione RUM, ma la sua pagina **Client** non elenca alcuna piattaforma; con qualsiasi altra chiave e il solo `service.name`, diventa un servizio backend, non un'applicazione RUM. [Configurazione browser](/docs/rum/browser-setup) mostra entrambi i modi.
 
 ## Cosa ottieni
 
@@ -94,7 +94,7 @@ Un'applicazione mostra **Riceve dati** finché arriva telemetria e **Nessun traf
 :::steps
 ### Creare una chiave di acquisizione
 
-Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Un'app web ha bisogno di una chiave **Browser**, che funziona solo dalle origini che elenchi. Un'app mobile ha bisogno di una chiave **Mobile**, fissata al `service.name` dell'app: viaggia dentro l'app, quindi può inviare solo le tracce, i log e le metriche di quell'app.
+Apri **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione** e fai clic su **Crea chiave di acquisizione**. Un'app web ha bisogno di una chiave **Browser**, che funziona solo dalle origini che elenchi. Un'app mobile ha bisogno di una chiave **Mobile**, fissata al `service.name` dell'app: viaggia dentro l'app, quindi può inviare solo le tracce, i log, le metriche e le riproduzioni delle sessioni di quell'app.
 
 ### Strumentare la tua app
 

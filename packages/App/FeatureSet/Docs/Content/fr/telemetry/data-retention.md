@@ -38,6 +38,7 @@ En détail, OneUptime lit ces paramètres dans cet ordre, et le premier qui est 
 - **Les paramètres 1 à 5 sont des remplacements de rétention.** Ils font partie de l'[Édition Enterprise](/docs/self-hosted/enterprise), et du plan Scale sur OneUptime Cloud. Sans eux, chaque enregistrement est conservé selon le défaut du projet.
 - **Un changement s'applique à la nouvelle télémétrie.** Un enregistrement garde la date qui lui a été apposée : une rétention plus courte ne le supprime pas plus tôt, et une plus longue ne le conserve pas plus longtemps. Les nouveaux enregistrements suivent un changement en cinq minutes environ.
 - **Les exceptions suivent ce dans quoi elles ont été trouvées.** Une exception est conservée aussi longtemps que le span ou le journal d'où elle vient. Les Session Replays ont leur propre rétention : voir [Autres données avec leur propre rétention](#autres-données-avec-leur-propre-rétention).
+- **Les événements de sécurité sont conservés de la même façon.** Les règles de détection, Exécuter sur les événements passés et les chasses ne remontent qu'aussi loin que les événements de sécurité sont conservés, et le disent là où il leur en faudrait plus : voir [Événements de sécurité](/docs/telemetry/security-events).
 
 ## Avant de commencer
 

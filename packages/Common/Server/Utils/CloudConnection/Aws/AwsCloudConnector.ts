@@ -153,6 +153,7 @@ import {
   getStsRegion,
 } from "./AwsSts";
 import { getNameTags } from "./AwsTagging";
+import OneUptimeAwsSessions from "./OneUptimeAwsSessions";
 import {
   AwsOrganizationAccount,
   listAwsOrganizationAccounts,
@@ -707,6 +708,8 @@ export default class AwsCloudConnector implements CloudConnector {
 
     const server: AwsServerCredentials =
       await AwsCloudConnector.getServerCredentials();
+    // When the sign-in was asked for: no call of the session is earlier.
+    const signInAtMs: number = Date.now();
     let session: AwsAssumedRole;
 
     try {
@@ -730,6 +733,24 @@ export default class AwsCloudConnector implements CloudConnector {
       // The server's own credentials expired or are unknown: new ones next time.
       AwsServerIdentity.refusedBy({ source: server.source, error });
       throw error;
+    }
+
+    /*
+     * The ID of the key AWS handed this session - never its secret or token
+     * - so its calls are known as OneUptime's own when they come back
+     * through the account's CloudTrail (OneUptimeAwsSessions, #10427): only
+     * OneUptime holds the secret. A saved connection's alone.
+     */
+    if (options.connectionId) {
+      await OneUptimeAwsSessions.remember({
+        projectId: settings.projectId,
+        connectionId: options.connectionId,
+        roleArn,
+        purpose: AwsRolePurpose.CloudConnect,
+        accessKeyId: session.credentials.accessKeyId,
+        issuedAtMs: signInAtMs,
+        expiresAtMs: session.expiresAtMs,
+      });
     }
 
     if (!options.noCache) {

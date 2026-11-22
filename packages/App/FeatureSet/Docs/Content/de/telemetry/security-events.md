@@ -234,6 +234,16 @@ Ein AWS-Konto, Google Cloud-Projekt oder Azure-Abonnement, das [unter **Cloud** 
 - Mehr bringt der Lesevorgang des Kontos nicht: Datenereignisse, Data Access-Logs und die Logs von Microsoft Entra ID brauchen weiterhin **Ihre Protokolle** oder eine [Verbindung](/docs/integrations/microsoft-entra-id).
 - Jedes Ereignis nennt die Cloud-Ressourcen, um die es in seinem Eintrag geht, mit ihren eigenen IDs - einem ARN, einer Azure-Ressourcen-ID, einem Ressourcennamen von Google Cloud -, daher erscheint es auf der Seite **Sicherheitsereignisse** jeder dieser Ressourcen und auf der einer Serverless-Funktion, sobald ihre Telemetrie `cloud.account.id` und `cloud.region` setzt.
 
+### Die eigenen Sonden von OneUptime in Ihren Netzwerk-Flows
+
+Schalten Sie **Netzwerk-Flows** unter **Ihre OneUptime-Daten** auf **Verbindungen** ein, dann werden die Flows, die Ihre Netzwerkgeräte exportieren, auf Port-Scans, Netzwerk-Sweeps, Datenverkehr mit bekannt bösartigen Adressen und große Übertragungen nach außen gelesen. Die eigene Arbeit einer Sonde sieht dort wie ein Scan aus: Wer 40 Geräte über SNMP abfragt, erreicht alle fünf Minuten Port 161 auf 40 Hosts. Deshalb wird Datenverkehr einer der eigenen Sonden von OneUptime, der genau das ist, wofür die Sonde eingerichtet ist, beiseitegelegt:
+
+- die Netzwerkgeräte, die sie abfragt, per Ping und per SNMP auf ihrem Port;
+- der Bereich jedes ihrer Erkennungsscans, solange der Scan läuft;
+- die Hosts und Ports, die ihre Monitore prüfen.
+
+Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die Sonde nennt, und keine Regel liest es. **Netzwerk-Flows** zeigt, wie viel am letzten Tag beiseitegelegt wurde, mit **Anzeigen**. Alles andere von der Adresse einer Sonde wird gezählt wie jeder andere Datenverkehr, und ein Sweep oder Scan über die Arbeit der Sonde hinaus wird gemeldet, mit dem Namen der Sonde. Eine Sonde wird an der Adresse erkannt, von der aus sie sich meldet, und an den Adressen ihrer eigenen Netzwerkschnittstellen, die sie bei jeder Meldung auflistet.
+
 ### Ein Sicherheitsprodukt verbinden
 
 **Verbindungen** fragt ein Sicherheitsprodukt für Sie ab und importiert seine neuen Datensätze als Sicherheitsereignisse. Eine Verbindung enthält die Einstellungen des Produkts und verschlüsselte Zugangsdaten; ein Worker fragt sie in dem Intervall ab, das Sie festlegen, und überspringt bereits importierte Datensätze.
@@ -637,6 +647,14 @@ Die Aktion **Monitor erstellen** in der Zeile einer Regel öffnet einen neuen Mo
 ## Aufbewahrung und Abrechnung
 
 Sicherheitsereignisse werden pro aufgenommenem GB abgerechnet, wie der Rest Ihrer Telemetrie, und für Ihre Telemetrie-Aufbewahrung behalten: die **Standardaufbewahrung (Tage)** des Projekts unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**, oder eine Aufbewahrung, die am Telemetrie-Dienst festgelegt ist, zu dem sie gehören. Endet die Aufbewahrung eines Ereignisses, wird es gelöscht.
+
+Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die noch aufbewahrten Ereignisse und sagt, wenn es mehr bräuchte:
+
+- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Alarme und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
+- **Auf vergangene Ereignisse anwenden** über einen Zeitraum, der vor den aufbewahrten Ereignissen beginnt, sagt, dass Sicherheitsereignisse 15 Tage lang aufbewahrt werden und es daher 15 Tage zurückgeblickt hat, und was es nicht gefunden hat, gilt nur für diese Tage. Ein Ereignis, das früher geschah, aber verspätet eintraf, bleibt aufbewahrt und wird weiterhin gelesen. Eine Regel vom Typ **Zuerst gesehen** sagt, wie viel der 30 Tage vor dem Zeitraum sie sehen konnte.
+- Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
+
+**Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
 
 ## Fehlerbehebung
 

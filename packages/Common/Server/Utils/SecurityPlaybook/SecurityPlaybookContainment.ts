@@ -80,6 +80,35 @@ export interface ProductContainmentReading {
   url?: string | undefined;
 }
 
+/*
+ * What a Fix step's check reads back of an account (#10347): whether its
+ * password was reset and its sessions ended after the case opened, and
+ * whether it can sign in with a second factor. A field the read did not
+ * ask for is null.
+ */
+export interface AccountFixFacts {
+  // The product, as it names itself.
+  provider: string;
+  // The product says when a password last changed: Google Workspace does not.
+  canTellPassword: boolean;
+  passwordChangedAt: Date | null;
+  // Since when every earlier session and token of the account is ended.
+  sessionsEndedAt: Date | null;
+  hasMfa: boolean | null;
+  // The account's page in the product, https.
+  url?: string | undefined;
+}
+
+// An account's page in the Microsoft Entra admin center; none outside the public cloud.
+export function getEntraIdUserUrl(
+  cloud: string,
+  userId: string,
+): string | undefined {
+  return cloud === "public"
+    ? `https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/${encodeURIComponent(userId)}`
+    : undefined;
+}
+
 // The products a user is read back in, and a host, by the connection's provider.
 export const USER_STATE_PROVIDERS: ReadonlyArray<SecurityEventConnectorProvider> =
   [
@@ -152,14 +181,31 @@ function errorMessage(error: unknown): string {
     : String(error || "unknown error");
 }
 
-function nounFor(entityType: SecurityEntityType | undefined): string {
-  return entityType === SecurityEntityType.User ? "user" : "host";
+// What a step acts on, in a sentence: "user", "host", or an address (#10342).
+function nounFor(entityType: SecurityEntityType | undefined): {
+  one: string;
+  many: string;
+  aOne: string;
+} {
+  switch (entityType) {
+    case SecurityEntityType.User:
+      return { one: "user", many: "users", aOne: "a user" };
+    case SecurityEntityType.IpAddress:
+      return { one: "address", many: "addresses", aOne: "an address" };
+    default:
+      return { one: "host", many: "hosts", aOne: "a host" };
+  }
 }
 
 // What the step result says of a target, after its value.
 export function describeTarget(target: SecurityPlaybookTarget): string {
   switch (target.state) {
     case SecurityPlaybookTargetState.Protected:
+      // What the blocklist said protects an address (#10342), as it said it.
+      if (target.detail) {
+        return `protected: ${target.detail.replace(/[.\s]+$/, "")}`;
+      }
+
       return target.protectedBy &&
         target.protectedBy.toLowerCase() !== target.value.toLowerCase()
         ? `protected (matches ${target.protectedBy})`
@@ -316,7 +362,9 @@ export default class SecurityPlaybookContainment {
     entityType: SecurityEntityType;
     targets: Array<SecurityPlaybookTarget>;
   }): MarkdownText {
-    const noun: string = nounFor(data.entityType);
+    const noun: { one: string; many: string; aOne: string } = nounFor(
+      data.entityType,
+    );
     const kept: Array<SecurityPlaybookTarget> = data.targets.filter(
       (target: SecurityPlaybookTarget): boolean => {
         return (
@@ -327,10 +375,12 @@ export default class SecurityPlaybookContainment {
     );
 
     if (kept.length === 0) {
-      return mdText`No ${noun} to act on: no detection of the case is grouped on a ${noun}, and threat intel knows none of its ${noun}s.`;
+      return data.entityType === SecurityEntityType.IpAddress
+        ? mdText`No address to act on: no detection of the case is grouped on a public address it did not only claim, and threat intel knows none of its addresses.`
+        : mdText`No ${noun.one} to act on: no detection of the case is grouped on ${noun.aOne}, and threat intel knows none of its ${noun.many}.`;
     }
 
-    return mdText`No ${noun} to act on: ${FeedMarkdown.join(
+    return mdText`No ${noun.one} to act on: ${FeedMarkdown.join(
       kept.map((target: SecurityPlaybookTarget): MarkdownText => {
         return mdText`${FeedMarkdown.code(target.value)} is ${describeTarget(target)}`;
       }),
@@ -415,10 +465,7 @@ export default class SecurityPlaybookContainment {
           return notFound;
         }
 
-        const url: string | undefined =
-          cloud === "public"
-            ? `https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/${encodeURIComponent(user.id)}`
-            : undefined;
+        const url: string | undefined = getEntraIdUserUrl(cloud, user.id);
 
         if (user.accountEnabled) {
           return {
@@ -587,6 +634,240 @@ export default class SecurityPlaybookContainment {
     }
   }
 
+  /*
+   * Whether an account's password was reset and its sessions ended, read
+   * back without changing anything: the Fix step "reset the password"
+   * (#10347). Okta says when the password changed (passwordChanged) and its
+   * System Log when every session was cleared (user.session.clear, since
+   * `since`); Microsoft Entra ID says both of the account
+   * (lastPasswordChangeDateTime, signInSessionsValidFromDateTime). Google
+   * Workspace's Directory API says neither: it is read as an account
+   * OneUptime cannot tell about. Null when the product has no such account;
+   * throws when the product cannot be read.
+   */
+  public static async readAccountCredentials(data: {
+    provider: SecurityEventConnectorProvider;
+    settings: SecurityConnectorSettings;
+    value: string;
+    since: Date;
+    now: Date;
+    transport?: ConnectorTransport | undefined;
+  }): Promise<AccountFixFacts | null> {
+    const transport: ConnectorTransport =
+      data.transport || DataSourceHttpFetch.fetch;
+    const provider: string = PRODUCT_NAMES[data.provider] || data.provider;
+    const value: string = data.value.trim();
+
+    switch (data.provider) {
+      case SecurityEventConnectorProvider.OktaSystemLog: {
+        const orgUrl: string = readSettingString(
+          data.settings.config,
+          "orgUrl",
+        );
+        const client: OktaResponseClient = new OktaResponseClient({
+          orgUrl,
+          apiToken: readSettingString(data.settings.secrets, "apiToken"),
+          transport,
+        });
+        const state: {
+          user: OktaUser;
+          passwordChangedAt: Date | null;
+        } | null = await client.readPasswordChanged(value);
+
+        if (!state) {
+          return null;
+        }
+
+        return {
+          provider,
+          canTellPassword: true,
+          passwordChangedAt: state.passwordChangedAt,
+          sessionsEndedAt: await client.readSessionsClearedAt({
+            user: state.user,
+            since: data.since,
+            until: data.now,
+          }),
+          hasMfa: null,
+          url: getOktaUserUrl(orgUrl, state.user.id),
+        };
+      }
+
+      case SecurityEventConnectorProvider.MicrosoftEntraId: {
+        const cloud: string =
+          readSettingString(data.settings.config, "cloud") || "public";
+        const client: MicrosoftEntraIdResponseClient =
+          SecurityPlaybookContainment.entraIdClient(data.settings, transport);
+        const user: EntraIdUser | null = await client.findUser(value);
+
+        if (!user) {
+          return null;
+        }
+
+        const state: {
+          passwordChangedAt: Date | null;
+          sessionsValidFrom: Date | null;
+        } = await client.readCredentialState(user);
+
+        return {
+          provider,
+          canTellPassword: true,
+          passwordChangedAt: state.passwordChangedAt,
+          sessionsEndedAt: state.sessionsValidFrom,
+          hasMfa: null,
+          url: getEntraIdUserUrl(cloud, user.id),
+        };
+      }
+
+      case SecurityEventConnectorProvider.GoogleWorkspace: {
+        const user: GoogleWorkspaceUser | null =
+          await SecurityPlaybookContainment.googleWorkspaceClient(
+            data.settings,
+            transport,
+          ).findUser(value);
+
+        if (!user) {
+          return null;
+        }
+
+        return {
+          provider,
+          canTellPassword: false,
+          passwordChangedAt: null,
+          sessionsEndedAt: null,
+          hasMfa: null,
+          url: `https://admin.google.com/ac/users/${encodeURIComponent(user.id)}`,
+        };
+      }
+
+      default:
+        throw new Error(`OneUptime cannot read an account in ${provider}.`);
+    }
+  }
+
+  /*
+   * Whether an account can sign in with a second factor, read back: the Fix
+   * step "MFA on the accounts it went after" (#10347). Okta: a factor
+   * enrolled and active; Microsoft Entra ID: an MFA method registered
+   * (ENTRA_ID_MFA_METHOD_TYPES); Google Workspace: enrolled in 2-Step
+   * Verification. Null when the product has no such account; throws when
+   * the product cannot be read.
+   */
+  public static async readAccountMfa(data: {
+    provider: SecurityEventConnectorProvider;
+    settings: SecurityConnectorSettings;
+    value: string;
+    transport?: ConnectorTransport | undefined;
+  }): Promise<AccountFixFacts | null> {
+    const transport: ConnectorTransport =
+      data.transport || DataSourceHttpFetch.fetch;
+    const provider: string = PRODUCT_NAMES[data.provider] || data.provider;
+    const value: string = data.value.trim();
+    const facts: (
+      hasMfa: boolean,
+      url: string | undefined,
+    ) => AccountFixFacts = (
+      hasMfa: boolean,
+      url: string | undefined,
+    ): AccountFixFacts => {
+      return {
+        provider,
+        canTellPassword: false,
+        passwordChangedAt: null,
+        sessionsEndedAt: null,
+        hasMfa,
+        url,
+      };
+    };
+
+    switch (data.provider) {
+      case SecurityEventConnectorProvider.OktaSystemLog: {
+        const orgUrl: string = readSettingString(
+          data.settings.config,
+          "orgUrl",
+        );
+        const client: OktaResponseClient = new OktaResponseClient({
+          orgUrl,
+          apiToken: readSettingString(data.settings.secrets, "apiToken"),
+          transport,
+        });
+        const user: OktaUser | null = await client.findUser(value);
+
+        if (!user) {
+          return null;
+        }
+
+        return facts(
+          await client.hasActiveFactor(user),
+          getOktaUserUrl(orgUrl, user.id),
+        );
+      }
+
+      case SecurityEventConnectorProvider.MicrosoftEntraId: {
+        const cloud: string =
+          readSettingString(data.settings.config, "cloud") || "public";
+        const client: MicrosoftEntraIdResponseClient =
+          SecurityPlaybookContainment.entraIdClient(data.settings, transport);
+        const user: EntraIdUser | null = await client.findUser(value);
+
+        if (!user) {
+          return null;
+        }
+
+        return facts(
+          (await client.readMfaMethods(user)).length > 0,
+          getEntraIdUserUrl(cloud, user.id),
+        );
+      }
+
+      case SecurityEventConnectorProvider.GoogleWorkspace: {
+        const user: GoogleWorkspaceUser | null =
+          await SecurityPlaybookContainment.googleWorkspaceClient(
+            data.settings,
+            transport,
+          ).findUser(value);
+
+        if (!user) {
+          return null;
+        }
+
+        return facts(
+          user.isEnrolledIn2Sv,
+          `https://admin.google.com/ac/users/${encodeURIComponent(user.id)}`,
+        );
+      }
+
+      default:
+        throw new Error(`OneUptime cannot read an account in ${provider}.`);
+    }
+  }
+
+  private static entraIdClient(
+    settings: SecurityConnectorSettings,
+    transport: ConnectorTransport,
+  ): MicrosoftEntraIdResponseClient {
+    return new MicrosoftEntraIdResponseClient({
+      tenantId: readSettingString(settings.config, "tenantId"),
+      clientId: readSettingString(settings.config, "clientId"),
+      clientSecret: readSettingString(settings.secrets, "clientSecret"),
+      cloud: readSettingString(settings.config, "cloud") || "public",
+      transport,
+    });
+  }
+
+  private static googleWorkspaceClient(
+    settings: SecurityConnectorSettings,
+    transport: ConnectorTransport,
+  ): GoogleWorkspaceResponseClient {
+    return new GoogleWorkspaceResponseClient({
+      serviceAccountJson: readSettingString(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      adminEmail: readSettingString(settings.config, "adminEmail"),
+      transport,
+    });
+  }
+
   private static failure(error: string): PlaybookStepOutcome {
     return {
       status: SecurityPlaybookStepStatus.Failed,
@@ -631,7 +912,7 @@ export default class SecurityPlaybookContainment {
               return FeedMarkdown.code(target.value);
             }),
           )}${failures.length > 0 ? mdText`; ${String(failures.length)} could not be` : FeedMarkdown.empty()}.`
-        : mdText`${data.definition.title}: no ${nounFor(data.definition.entityType)} of the case could be acted on.`;
+        : mdText`${data.definition.title}: no ${nounFor(data.definition.entityType).one} of the case could be acted on.`;
 
     if (failures.length > 0 || actedOn.length === 0) {
       return {

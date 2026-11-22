@@ -156,6 +156,14 @@ export enum SecurityTelemetrySignal {
   NetworkSweep = "network-sweep",
   ThreatIntelTraffic = "threat-intel-traffic",
   LargeOutboundTransfer = "large-outbound-transfer",
+  /*
+   * What would have been a port scan or a network sweep, but is exactly
+   * what one of OneUptime's own probes is set to do - its device polling,
+   * discovery sweeps and monitors (#10429). Set aside as OneUptime's own:
+   * stored as Informational so it stays visible, and no rule for a scan or
+   * a sweep reads it (TelemetryScan/ProbeOwnTraffic).
+   */
+  OneUptimeProbeTraffic = "oneuptime-probe-traffic",
   // OneUptime's own audit log.
   ApiKeyCreated = "api-key-created",
   ApiKeyDeleted = "api-key-deleted",
@@ -197,6 +205,8 @@ export const SECURITY_TELEMETRY_SIGNAL_SOURCES: Record<
     SecurityTelemetrySourceKind.NetworkFlows,
   [SecurityTelemetrySignal.LargeOutboundTransfer]:
     SecurityTelemetrySourceKind.NetworkFlows,
+  [SecurityTelemetrySignal.OneUptimeProbeTraffic]:
+    SecurityTelemetrySourceKind.NetworkFlows,
   [SecurityTelemetrySignal.ApiKeyCreated]: SecurityTelemetrySourceKind.AuditLog,
   [SecurityTelemetrySignal.ApiKeyDeleted]: SecurityTelemetrySourceKind.AuditLog,
   [SecurityTelemetrySignal.RoleChanged]: SecurityTelemetrySourceKind.AuditLog,
@@ -220,5 +230,22 @@ export function isSecurityTelemetrySignal(
   return (
     typeof value === "string" &&
     (SECURITY_TELEMETRY_SIGNALS as ReadonlyArray<string>).includes(value)
+  );
+}
+
+/*
+ * The signals a scan sets aside rather than finds: OneUptime's own work,
+ * stored so it stays visible, never counted as a security event found, and
+ * read by no rule of the library.
+ */
+export const SECURITY_TELEMETRY_SET_ASIDE_SIGNALS: ReadonlyArray<SecurityTelemetrySignal> =
+  [SecurityTelemetrySignal.OneUptimeProbeTraffic];
+
+export function isSetAsideSecurityTelemetrySignal(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (SECURITY_TELEMETRY_SET_ASIDE_SIGNALS as ReadonlyArray<string>).includes(
+      value,
+    )
   );
 }

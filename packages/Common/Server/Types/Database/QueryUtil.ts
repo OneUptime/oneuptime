@@ -10,6 +10,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesAnyOfGroups from "../../../Types/BaseDatabase/IncludesAnyOfGroups";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
@@ -790,11 +791,19 @@ export default class QueryUtil {
         }
       } else if (
         query[key] &&
-        query[key] instanceof IncludesNone &&
+        (query[key] instanceof IncludesNone ||
+          query[key] instanceof IncludesNoneOrNull) &&
         tableColumnMetadata
       ) {
+        /*
+         * A list of related records (a monitor's labels) that holds none at
+         * all holds none of these either: the subquery below keeps it, for
+         * IncludesNone and IncludesNoneOrNull alike.
+         */
         if (tableColumnMetadata.type === TableColumnType.EntityArray) {
-          const includesNone: IncludesNone = query[key] as IncludesNone;
+          const includesNone: IncludesNone | IncludesNoneOrNull = query[key] as
+            | IncludesNone
+            | IncludesNoneOrNull;
           const values: Array<string | ObjectID> = (
             includesNone.values as Array<string | ObjectID | number>
           ).map((item: string | ObjectID | number) => {
@@ -831,13 +840,20 @@ export default class QueryUtil {
           } else {
             delete query[key];
           }
-        } else if (tableColumnMetadata.type === TableColumnType.Entity) {
-          query[key] = QueryHelper.notIn(
-            (query[key] as IncludesNone).values as Array<string | ObjectID>,
-          ) as any;
         } else {
-          query[key] = QueryHelper.notIn(
-            (query[key] as IncludesNone).values as Array<string | ObjectID>,
+          const excluded: Array<string | ObjectID> = (
+            query[key] as IncludesNone | IncludesNoneOrNull
+          ).values as Array<string | ObjectID>;
+
+          /*
+           * `NOT IN` alone is not true of an empty column, so IncludesNone
+           * leaves it out; IncludesNoneOrNull keeps it (#10581), as a list's
+           * "is not" filter means.
+           */
+          query[key] = (
+            query[key] instanceof IncludesNoneOrNull
+              ? QueryHelper.notInOrNull(excluded)
+              : QueryHelper.notIn(excluded)
           ) as any;
         }
       } else if (

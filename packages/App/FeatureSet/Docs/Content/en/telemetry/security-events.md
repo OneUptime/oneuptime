@@ -234,6 +234,16 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 - The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
 - Each event names the cloud resources its record is about by their own IDs - an ARN, an Azure resource ID, a Google Cloud resource name - so it shows on each one's **Security Events** page, and on a serverless function's once its telemetry sets `cloud.account.id` and `cloud.region`.
 
+### OneUptime's own probes in your network flows
+
+Turn on **Network flows**, under **Your OneUptime data** on **Connections**, and the flows your network devices export are read for port scans, network sweeps, traffic with known-bad addresses and large transfers out. A probe's own work looks like a scan there: polling 40 devices over SNMP reaches port 161 on 40 hosts every five minutes. So traffic from one of OneUptime's own probes that is exactly what the probe is set to do is set aside:
+
+- the network devices it polls, pinged and asked over SNMP on their port;
+- the range of each of its discovery scans, while the scan runs;
+- the hosts and ports its monitors check.
+
+It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in.
+
 ### Connect a security product
 
 **Connections** polls a security product for you and imports its new records as security events. A connection holds the product's settings and an encrypted credential; a worker polls it on the interval you set and skips records it already imported.
@@ -637,6 +647,14 @@ The **Create Monitor** action in a rule's row opens a new monitor already set up
 ## Retention and billing
 
 Security events are billed per GB ingested, like the rest of your telemetry, and kept for your telemetry retention: the project's **Default Retention (Days)**, under **Project Settings → Telemetry & APM → Data Retention**, or a retention set on the telemetry service they belong to. When an event's retention ends, it is deleted.
+
+Everything in Security Events that reads past events reads only the events still kept, and says when it would need more:
+
+- A **First seen** rule whose timespan is longer than events are kept tells a value is new by the days that are kept: with a 30-day timespan and 15 days kept, its alerts and cases say `First awsRegion in 15 days`, and a value last seen 20 days ago reads as new. Its row reads **Needs attention**, and **View Error** says what to change. The rule form and a rule's details in the Rule Library say so before it is saved or added. A count or a sequence whose window is longer than events are kept counts only those.
+- **Run on Past Events** over a period that starts before the kept events says that security events are kept for 15 days, so it looked back 15 days, and what it did not find is said of those days only. An event that happened earlier but arrived late is still kept, and still read. A **First seen** rule says how much of the 30 days before the period it could see.
+- A hunt whose **Time Range** is longer than events are kept finds nothing older, and its form says so.
+
+**Project Settings → Telemetry & APM → Data Retention** lists the enabled rules that look back further than its **Default Retention (Days)**. To cover them, keep events longer, with **Change Retention** under a rule, or shorten a rule's timespan to what is kept. OneUptime keeps 15 days unless you change it, because retention sets what your telemetry costs and how long personal data in events, such as addresses and user names, is kept. A new retention applies to events that arrive from then on, so rules see further back as those events age.
 
 ## Troubleshooting
 

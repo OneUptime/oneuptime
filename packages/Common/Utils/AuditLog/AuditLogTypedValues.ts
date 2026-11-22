@@ -116,6 +116,7 @@ export const AUDIT_LOG_TYPED_VALUE_READINGS: Readonly<
   [ObjectType.IncludesAll]: AuditLogTypedValueReading.Json,
   [ObjectType.IncludesAnyOfGroups]: AuditLogTypedValueReading.Json,
   [ObjectType.IncludesNone]: AuditLogTypedValueReading.Json,
+  [ObjectType.IncludesNoneOrNull]: AuditLogTypedValueReading.Json,
   [ObjectType.StartsWith]: AuditLogTypedValueReading.Json,
   [ObjectType.EndsWith]: AuditLogTypedValueReading.Json,
   [ObjectType.NotContains]: AuditLogTypedValueReading.Json,

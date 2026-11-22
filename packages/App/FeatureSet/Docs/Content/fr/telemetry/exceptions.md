@@ -218,7 +218,7 @@ Vérifiez d'abord la vue : **Problèmes** masque les erreurs d'utilisateur et le
 :::
 
 :::details Une erreur apparaît comme plusieurs exceptions
-L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception. Les nouvelles exceptions sont plutôt regroupées par les fonctions de votre propre code, cela concerne donc surtout les exceptions enregistrées avant ; fusionnez-en deux qui sont le même bug depuis **Exceptions similaires**.
+L'empreinte inclut le message et la stack trace. Quand ils diffèrent, par exemple quand un message contient un petit nombre ou un nom qui change à chaque appel, chaque variante est sa propre exception. Les nouvelles exceptions sont plutôt regroupées par les fonctions de votre propre code, cela concerne donc surtout les exceptions enregistrées avant ; fusionnez-en deux qui sont le même bug depuis **Exceptions similaires**. Une règle de masquage ne scinde pas une exception : elle est regroupée selon ce qu'elle disait avant les règles. Une exception trouvée dans des journaux qu'une règle a scindée en deux dans une version antérieure de OneUptime reste scindée ; fusionnez les deux de la même façon.
 :::
 
 :::details Une exception résolue revient sans cesse

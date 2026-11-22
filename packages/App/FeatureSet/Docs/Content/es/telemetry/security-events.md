@@ -234,6 +234,16 @@ Una cuenta de AWS, un proyecto de Google Cloud o una suscripción de Azure [cone
 - La lectura de la cuenta no trae nada más: los eventos de datos, los registros Data Access y los registros de Microsoft Entra ID siguen necesitando **Tus registros** o una [conexión](/docs/integrations/microsoft-entra-id).
 - Cada evento nombra los recursos en la nube de los que trata su registro por sus propios ID - un ARN, un ID de recurso de Azure, un nombre de recurso de Google Cloud -, así que aparece en la página **Eventos de seguridad** de cada uno, y en la de una función serverless en cuanto su telemetría define `cloud.account.id` y `cloud.region`.
 
+### Las sondas propias de OneUptime en tus flujos de red
+
+Activa **Flujos de red**, en **Tus datos de OneUptime** de **Conexiones**, y los flujos que exportan tus dispositivos de red se leen en busca de escaneos de puertos, barridos de red, tráfico con direcciones maliciosas conocidas y grandes transferencias hacia fuera. El trabajo propio de una sonda parece ahí un escaneo: sondear 40 dispositivos por SNMP alcanza el puerto 161 en 40 hosts cada cinco minutos. Por eso el tráfico de una de las sondas propias de OneUptime que es exactamente lo que la sonda tiene configurado hacer se aparta:
+
+- los dispositivos de red que sondea, con ping y por SNMP en su puerto;
+- el rango de cada uno de sus descubrimientos, mientras el escaneo está en marcha;
+- los hosts y puertos que comprueban sus monitores.
+
+Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra.
+
 ### Conectar un producto de seguridad
 
 **Conexiones** consulta un producto de seguridad por ti e importa sus registros nuevos como eventos de seguridad. Una conexión guarda los ajustes del producto y una credencial cifrada; un worker la consulta con el intervalo que definas y omite los registros que ya importó.
@@ -637,6 +647,14 @@ La acción **Crear monitor** de la fila de una regla abre un monitor nuevo ya co
 ## Retención y facturación
 
 Los eventos de seguridad se facturan por GB ingerido, como el resto de tu telemetría, y se conservan durante tu retención de telemetría: la **Retención predeterminada (días)** del proyecto, en **Ajustes del proyecto → Telemetría y APM → Retención de datos**, o una retención definida en el servicio de telemetría al que pertenecen. Cuando termina la retención de un evento, se elimina.
+
+Todo lo que en Eventos de seguridad lee eventos pasados lee solo los eventos que aún se conservan, y dice cuándo necesitaría más:
+
+- Una regla **Visto por primera vez** cuyo intervalo es más largo que lo que se conservan los eventos decide que un valor es nuevo según los días conservados: con un intervalo de 30 días y 15 días conservados, sus alertas y casos dicen `First awsRegion in 15 days`, y un valor visto por última vez hace 20 días se toma por nuevo. Su fila muestra **Requiere atención**, y **Ver error** dice qué cambiar. El formulario de la regla y el detalle de una regla en la biblioteca de reglas lo dicen antes de guardarla o añadirla. Un conteo o una secuencia cuya ventana es más larga que lo que se conservan los eventos cuenta solo esos.
+- **Ejecutar sobre eventos pasados** en un periodo que empieza antes de los eventos conservados dice que los eventos de seguridad se conservan 15 días, así que miró 15 días atrás, y lo que no encontró se dice solo de esos días. Un evento que ocurrió antes pero llegó tarde sigue conservado, y se sigue leyendo. Una regla **Visto por primera vez** dice cuánto de los 30 días anteriores al periodo pudo ver.
+- Una cacería cuyo **Intervalo de tiempo** es más largo que lo que se conservan los eventos no encuentra nada más antiguo, y su formulario lo dice.
+
+**Ajustes del proyecto → Telemetría y APM → Retención de datos** lista las reglas activadas que miran más atrás que su **Retención predeterminada (días)**. Para cubrirlas, conserva los eventos más tiempo, con **Cambiar retención** bajo una regla, o acorta el intervalo de una regla a lo que se conserva. OneUptime conserva 15 días salvo que lo cambies, porque la retención fija lo que cuesta tu telemetría y cuánto tiempo se guardan los datos personales de los eventos, como direcciones y nombres de usuario. Una nueva retención se aplica a los eventos que llegan desde entonces, así que las reglas ven más atrás a medida que esos eventos envejecen.
 
 ## Solución de problemas
 

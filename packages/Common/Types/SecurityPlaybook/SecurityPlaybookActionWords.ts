@@ -99,6 +99,11 @@ export const SECURITY_PLAYBOOK_ACTION_TITLE_WORDS: Readonly<
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: translationKey(
     "Revoke data store sharing",
   ),
+  [SecurityPlaybookActionType.BlockAddress]:
+    translationKey("Block the address"),
+  [SecurityPlaybookActionType.LiftAddressBlock]: translationKey(
+    "Lift the block on the address",
+  ),
   [SecurityPlaybookActionType.SendWebhook]: translationKey("Send a webhook"),
   [SecurityPlaybookActionType.RunWorkflow]: translationKey("Run a workflow"),
   [SecurityPlaybookActionType.RunRunbook]: translationKey("Run a runbook"),

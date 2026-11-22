@@ -87,14 +87,14 @@ Ein Browser sendet selten so große Batches, es sei denn, Spans tragen große At
 
 ## Prüfen, wo die Telemetrie landet
 
-Die Anfrage gelingt, aber die App erscheint unter **Produkte → Dienste** statt unter **Produkte → Ressourcen → Real User Monitoring**. Das ist die häufigste Meldung, und die Ursache ist fast immer eine Ressource ohne Client-Attribute. OneUptime ordnet einen Batch nur dann als RUM ein, wenn seine Ressource eines dieser Attribute trägt:
+Die Anfrage gelingt, aber die App erscheint unter **Produkte → Dienste** statt unter **Produkte → Ressourcen → Real User Monitoring**. Das ist die häufigste Meldung, und die Ursache ist fast immer ein anderer Schlüssel als ein Browser- oder Mobil-Schlüssel, der eine Ressource ohne Client-Attribute sendet. Alles, was ein Browser- oder Mobil-Schlüssel sendet, wird als RUM eingeordnet; mit jedem anderen Schlüssel ordnet OneUptime einen Batch nur dann als RUM ein, wenn seine Ressource eines dieser Attribute trägt:
 
 | Art | Attribute |
 | --- | --- |
 | Browser | `browser.platform`, `browser.language` oder ein nicht leeres `browser.brands` |
 | Mobil | `device.id` oder `device.model.identifier`, oder `device.manufacturer` auf einer Ressource ohne Host-Identität (`host.name`, `host.id` oder `k8s.node.name`) |
 
-Ein `service.name` allein ergibt einen Backend-Dienst. Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder sie selbst setzen: siehe [Einrichtung für Browser](/docs/rum/browser-setup).
+Mit jedem anderen Schlüssel ergibt ein `service.name` allein einen Backend-Dienst. Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder sie selbst setzen: siehe [Einrichtung für Browser](/docs/rum/browser-setup).
 
 Um zu sehen, was Sie tatsächlich senden, öffnen Sie die OTLP-Anfrage im Tab „Netzwerk“ und sehen sich ihre Nutzlast an: `resourceSpans[0].resource.attributes` ist die Liste, die darüber entscheidet. Steht dort kein `browser.*`-Attribut, fügt das SDK es nicht hinzu, was auch immer seine Dokumentation sagt.
 
@@ -127,7 +127,7 @@ Das leere Diagramm in der **Übersicht** der Anwendung sagt, welcher Fall vorlie
 
 Ausnahmen brauchen einen Fehler-Handler, weil das SDK unbehandelte Fehler nicht erfasst: [Unbehandelte Fehler melden](/docs/rum/browser-setup#unbehandelte-fehler-melden) enthält den Code. Ein Fehler, den eine Error Boundary oder ein `try`/`catch` abfängt, erreicht das Fenster nie. Erfassen Sie ihn also dort, wo Sie ihn behandeln, mit `span.recordException`.
 
-Logs brauchen eine Log-Pipeline und Code, der Log-Einträge schreibt, weil ein `LoggerProvider` allein nichts sendet: [Logs und Metriken hinzufügen](/docs/rum/browser-setup#logs-und-metriken-hinzufügen) enthält beides. Bauen Sie die Pipeline mit derselben `resource` wie Ihre Traces, sonst werden die Logs unter einem Backend-Dienst eingeordnet.
+Logs brauchen eine Log-Pipeline und Code, der Log-Einträge schreibt, weil ein `LoggerProvider` allein nichts sendet: [Logs und Metriken hinzufügen](/docs/rum/browser-setup#logs-und-metriken-hinzufügen) enthält beides. Bauen Sie die Pipeline mit derselben `resource` wie Ihre Traces, damit die Logs unter derselben Anwendung eingeordnet werden.
 
 Wenn Seitenaufrufe ankommen, lassen der Schlüssel, seine erlaubten Origins und Ihre Content Security Policy auch Ausnahmen und Logs durch, solange der Log-Exporter denselben Schlüssel und Host verwendet. Ein Fehler-Handler, der noch nichts abgefangen hat, sendet nichts, genau wie einer, der nie hinzugefügt wurde. Werfen Sie also in der Konsole des Browsers einen Testfehler, um die beiden zu unterscheiden:
 

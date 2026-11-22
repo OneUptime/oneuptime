@@ -14,6 +14,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import DetectionRuleExceptionService from "Common/Server/Services/DetectionRuleExceptionService";
+import SecurityEventRetention from "Common/Server/Utils/SecurityEvent/SecurityEventRetention";
 import DetectionRuleService from "Common/Server/Services/DetectionRuleService";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -833,6 +834,11 @@ function installWorld(): void {
   jest
     .spyOn(DetectionRuleExceptionService, "findAllBy")
     .mockResolvedValue([] as never);
+
+  // The project keeps its events for 30 days: every event the suite writes is kept.
+  jest
+    .spyOn(SecurityEventRetention, "getRetentionInDays")
+    .mockResolvedValue(30 as never);
 
   jest
     .spyOn(OTelIngestService, "telemetryServiceFromName")

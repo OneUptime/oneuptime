@@ -17,6 +17,7 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseChanges";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import { NOT_ENFORCED_ANYWHERE_ERROR } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookAddressBlocks";
 import { CREATE_FROM_TEMPLATE } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplateModel";
 import {
   ATTACK_COVERAGE_VIEW_LABELS,
@@ -127,10 +128,16 @@ import { THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION } from "Common/Types/Securit
 import {
   ACTION_ADD_EXCEPTION,
   ACTION_ASSIGN_TO_ME,
+  ACTION_BLOCK_FOR_A_DAY,
   ACTION_CLOSE_CASE,
   ACTION_DECLARE_INCIDENT,
   ACTION_MARK_CONTAINED,
   ACTION_RUN_PLAYBOOK,
+  BLOCK_CHALLENGE_INSTEAD,
+  BLOCK_FOR_SEVEN_DAYS,
+  BLOCK_FROM_CASE_MENU_ITEM,
+  BLOCK_HELP_SHOW,
+  BLOCK_UNTIL_LIFTED,
   RESPONSE_BY_HAND,
   RESPONSE_PHASE_TITLES,
   RESPONSE_TITLE,
@@ -208,6 +215,8 @@ import {
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  actsThroughBlocklist,
+  getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
@@ -227,8 +236,17 @@ import { SECURITY_PLAYBOOK_TRIGGERS } from "Common/Types/SecurityPlaybook/Securi
 import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
 import { STEP_CHECK_DOCS_PATH } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheck";
+import {
+  FIX_ROUTE_MIN_PROOF,
+  FIX_ROUTE_PROOF_CONFIDENCE,
+  FIX_ROUTE_WATCH_DAYS,
+} from "Common/Server/Utils/SecurityCase/StepChecks/FixRouteStepCheck";
+import { getStepCheck } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheckRegistry";
+import { ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION } from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
-import { SECURITY_CASE_STEP_CHECK_STATES } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import SecurityCaseStepCheckState, {
+  SECURITY_CASE_STEP_CHECK_STATES,
+} from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
 import {
   STEP_CHECK_CONFIRM,
   STEP_CHECK_DOCS_LINK,
@@ -867,6 +885,69 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
+  it("says what OneUptime reads to check the Fix steps, and how much evidence proves a fix, as the checks hold it (#10347)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const steps: Array<Array<string>> = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    );
+    const fixWithAi: string =
+      SECURITY_PLAYBOOK_ACTIONS.find(
+        (definition: SecurityPlaybookActionDefinition): boolean => {
+          return definition.type === SecurityPlaybookActionType.FixWithAi;
+        },
+      )?.title || "";
+
+    // A row for each Fix step a check reads, as the registry holds them.
+    for (const kind of [
+      "fix:public-app",
+      "fix:credentials",
+      "fix:brute-force",
+    ]) {
+      expect(getStepCheck(kind)?.kind).toBe(kind);
+    }
+    expect(getStepCheck("fix:account-changes")).toBeNull();
+    expect(column(steps, 0)).toEqual(
+      expect.arrayContaining([
+        "Fix the route the attack went to",
+        "Reset the password",
+        "Make sure the accounts use MFA",
+      ]),
+    );
+
+    // How much evidence counts as proof, and how long the route is watched.
+    expect(FIX_ROUTE_PROOF_CONFIDENCE).toBe(0.95);
+    expect(FIX_ROUTE_MIN_PROOF).toBe(3);
+    expect(FIX_ROUTE_WATCH_DAYS).toBe(7);
+    expect(checks).toContain(
+      `at least one would almost surely (${FIX_ROUTE_PROOF_CONFIDENCE * 100}%) have got through had nothing changed, and never fewer than ${FIX_ROUTE_MIN_PROOF}.`,
+    );
+    expect(checks).toContain(
+      `watches the route for ${FIX_ROUTE_WATCH_DAYS} days after the fix ships`,
+    );
+    expect(checks).toContain("a deploy alone is not a fix");
+    expect(checks).toContain(
+      `the step stays **${STEP_CHECK_STATE_LABELS[SecurityCaseStepCheckState.LooksDone]}** for you to confirm`,
+    );
+
+    // The playbook step whose pull request is kept on the case, by its title.
+    expect(fixWithAi).toBe("Fix the code with AI");
+    expect(checks).toContain(
+      `A pull request **${fixWithAi}** opened is kept on the case`,
+    );
+    expect(flat(section(page, "Responding through OneUptime"))).toContain(
+      `Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step).`,
+    );
+
+    // The permission the Entra ID MFA read asks for, as its client names it.
+    expect(ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION).toBe(
+      "UserAuthenticationMethod.Read.All",
+    );
+    expect(checks).toContain(
+      `takes the ${ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION} application permission`,
+    );
+  });
+
   it("names the switch that marks a case Contained once its containment is verified as the Case Statuses page titles it, and who may turn it off", () => {
     const checks: string = flat(section(page, "How OneUptime checks a step"));
     const statusesPage: string = source(
@@ -1491,18 +1572,57 @@ describe("Security Cases and Playbooks docs", () => {
         },
       );
 
-    // Okta, CrowdStrike, Defender, and Microsoft Entra ID and Google Workspace's two each.
-    expect(disruptive).toHaveLength(8);
+    /*
+     * Okta, CrowdStrike, Defender, Microsoft Entra ID and Google Workspace's
+     * two each, and blocking an address (#10342).
+     */
+    expect(disruptive).toHaveLength(9);
     expect(
       disruptive.every((action: SecurityPlaybookActionDefinition): boolean => {
         return action.category === SecurityPlaybookActionCategory.Contain;
       }),
     ).toBe(true);
     expect(page).toContain(
-      "The eight steps that cut someone off always do, unless a Security Admin turns it off.",
+      "The nine steps that cut someone off always do, unless a Security Admin turns it off.",
     );
     expect(flat(section(page, "Approval"))).toContain(
-      "The eight steps that cut someone off wait for approval.",
+      "The nine steps that cut someone off wait for approval.",
+    );
+  });
+
+  /*
+   * #10342: a case's address is blocked from its Response Plan in one
+   * click, through the playbook engine, with the words its card draws.
+   */
+  it("says how an address is blocked from a case, in the words the step and its menu draw", () => {
+    const text: string = flat(section(page, "Block an address from a case"));
+
+    expect(ACTION_BLOCK_FOR_A_DAY).toBe("Block for 24 Hours");
+    expect(BLOCK_CHALLENGE_INSTEAD).toBe("Challenge Instead");
+    expect(BLOCK_FOR_SEVEN_DAYS).toBe("Block for 7 Days");
+    expect(BLOCK_UNTIL_LIFTED).toBe("Block Until Lifted");
+    expect(BLOCK_HELP_SHOW).toBe("How to Block It");
+    expect(BLOCK_FROM_CASE_MENU_ITEM).toBe("Block…");
+
+    for (const words of [
+      `**${ACTION_BLOCK_FOR_A_DAY}**`,
+      `**${BLOCK_CHALLENGE_INSTEAD}**`,
+      `**${BLOCK_FOR_SEVEN_DAYS}**`,
+      `**${BLOCK_UNTIL_LIFTED}**`,
+      `**${BLOCK_HELP_SHOW}**`,
+      `**${BLOCK_FROM_CASE_MENU_ITEM}**`,
+      "**Lift**",
+    ]) {
+      expect(text).toContain(words);
+    }
+
+    // The approval rule is a playbook's: someone else's, unless the person may turn it off.
+    expect(text).toContain(
+      "It waits for someone else's approval, unless you are a Security Admin, a Project Admin or a Project Owner.",
+    );
+    // A block nothing enforces fails a playbook's step, in the step's own words.
+    expect(flat(section(page, "Containment"))).toContain(
+      `"${NOT_ENFORCED_ANYWHERE_ERROR}"`,
     );
   });
 
@@ -1854,7 +1974,10 @@ describe("Security Cases and Playbooks docs", () => {
     const containRows: Array<Array<string>> = rowsOf("Containment");
     const containTitles: Array<string> = SECURITY_PLAYBOOK_ACTIONS.filter(
       (action: SecurityPlaybookActionDefinition): boolean => {
-        return action.category === SecurityPlaybookActionCategory.Contain;
+        return (
+          action.category === SecurityPlaybookActionCategory.Contain &&
+          !actsThroughBlocklist(action.type)
+        );
       },
     ).map((action: SecurityPlaybookActionDefinition): string => {
       return action.title;
@@ -1862,6 +1985,10 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(containRows, 0).join(", ").split(", ").sort()).toEqual(
       [...containTitles].sort(),
+    );
+    // The blocklist's steps need no connection of their own (#10342): said beside the table.
+    expect(flat(section(page, "Containment"))).toContain(
+      `**${getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)!.title}** and **${getSecurityPlaybookAction(SecurityPlaybookActionType.LiftAddressBlock)!.title}** act through your [Blocklist](#blocklist), which its destinations enforce, so they need no connection of their own.`,
     );
     expect(page).toContain(
       `A step acts on at most ${CONTAINMENT_ENTITY_LIMIT} users or hosts.`,
@@ -2099,16 +2226,17 @@ describe("Security Cases and Playbooks docs", () => {
       ]!;
     });
 
-    // Okta's and Google Workspace's undo are both Unsuspend.
+    // Okta's and Google Workspace's undo are both Unsuspend; a block's is Lift (#10342).
     expect(undoable).toEqual([
       "Unsuspend",
       "Lift Containment",
       "Release",
       "Enable",
       "Unsuspend",
+      "Lift",
     ]);
     expect(flat(section(page, "Undo"))).toContain(
-      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release** or **Enable**. A sign-out cannot be undone.",
+      "a contained user or host also has a button of its own on its step: **Unsuspend**, **Lift Containment**, **Release**, **Enable** or **Lift**. A sign-out cannot be undone.",
     );
   });
 

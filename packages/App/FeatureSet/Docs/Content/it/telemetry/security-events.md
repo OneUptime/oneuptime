@@ -234,6 +234,16 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 - La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
 - Ogni evento nomina le risorse cloud di cui parla il suo record con i loro ID - un ARN, un ID di risorsa Azure, un nome di risorsa Google Cloud - quindi compare nella pagina **Eventi di sicurezza** di ciascuna, e in quella di una funzione serverless non appena la sua telemetria imposta `cloud.account.id` e `cloud.region`.
 
+### Le sonde di OneUptime nei tuoi flussi di rete
+
+Attiva **Flussi di rete**, in **I tuoi dati OneUptime** su **Connessioni**, e i flussi che i tuoi dispositivi di rete esportano vengono letti per cercare scansioni delle porte, sweep di rete, traffico con indirizzi noti come malevoli e grandi trasferimenti verso l'esterno. Il lavoro di una sonda lì sembra una scansione: interrogare 40 dispositivi via SNMP raggiunge la porta 161 su 40 host ogni cinque minuti. Per questo il traffico di una delle sonde di OneUptime che è esattamente ciò che la sonda è configurata per fare viene messo da parte:
+
+- i dispositivi di rete che interroga, con ping e via SNMP sulla loro porta;
+- l'intervallo di ciascun suo rilevamento, mentre la scansione è in corso;
+- gli host e le porte che i suoi monitor controllano.
+
+Viene conservato come evento informativo, `oneuptime-probe-traffic`, che nomina la sonda, e nessuna regola lo legge. **Flussi di rete** dice quanti ne sono stati messi da parte nell'ultimo giorno, con **Vedili**. Qualsiasi altra cosa dall'indirizzo di una sonda viene contata come il traffico di chiunque, e uno sweep o una scansione oltre il lavoro della sonda viene segnalato, nominando la sonda. Una sonda è riconosciuta dall'indirizzo da cui si collega e dagli indirizzi delle sue interfacce di rete, che elenca ogni volta che si collega.
+
 ### Collegare un prodotto di sicurezza
 
 **Connessioni** interroga per te un prodotto di sicurezza e ne importa i nuovi record come eventi di sicurezza. Una connessione contiene le impostazioni del prodotto e una credenziale cifrata; un worker la interroga all'intervallo che imposti e salta i record già importati.
@@ -637,6 +647,14 @@ L'azione **Crea monitor** nella riga di una regola apre un nuovo monitor già co
 ## Conservazione e fatturazione
 
 Gli eventi di sicurezza vengono fatturati per GB acquisito, come il resto della tua telemetria, e conservati secondo la tua conservazione della telemetria: la **Conservazione predefinita (giorni)** del progetto, in **Impostazioni del progetto → Telemetria e APM → Conservazione dei dati**, oppure una conservazione impostata sul servizio di telemetria a cui appartengono. Quando la conservazione di un evento termina, l'evento viene eliminato.
+
+Tutto ciò che in Eventi di sicurezza legge eventi passati legge solo gli eventi ancora conservati, e dice quando gliene servirebbero di più:
+
+- Una regola **Visto per la prima volta** il cui intervallo supera la conservazione degli eventi decide che un valore è nuovo in base ai giorni conservati: con un intervallo di 30 giorni e 15 giorni conservati, i suoi avvisi e casi dicono `First awsRegion in 15 days`, e un valore visto l'ultima volta 20 giorni fa risulta nuovo. La sua riga mostra **Richiede attenzione**, e **Visualizza errore** dice cosa cambiare. Il modulo della regola e i dettagli di una regola nella libreria delle regole lo dicono prima che venga salvata o aggiunta. Un conteggio o una sequenza la cui finestra supera la conservazione degli eventi conta solo quelli.
+- **Esegui su eventi passati** su un periodo che inizia prima degli eventi conservati dice che gli eventi di sicurezza vengono conservati per 15 giorni, quindi è risalito di 15 giorni, e ciò che non ha trovato vale solo per quei giorni. Un evento avvenuto prima ma arrivato in ritardo resta conservato, e viene ancora letto. Una regola **Visto per la prima volta** dice quanta parte dei 30 giorni prima del periodo ha potuto vedere.
+- Una caccia il cui **Intervallo di tempo** supera la conservazione degli eventi non trova nulla di più vecchio, e il suo modulo lo dice.
+
+**Impostazioni del progetto → Telemetria e APM → Conservazione dei dati** elenca le regole attive che guardano più indietro della sua **Conservazione predefinita (giorni)**. Per coprirle, conserva gli eventi più a lungo, con **Modifica conservazione** sotto una regola, oppure accorcia l'intervallo di una regola a ciò che è conservato. OneUptime conserva 15 giorni se non lo cambi, perché la conservazione stabilisce quanto costa la tua telemetria e per quanto tempo vengono conservati i dati personali negli eventi, come indirizzi e nomi utente. Una nuova conservazione si applica agli eventi che arrivano da quel momento, quindi le regole vedono più indietro man mano che quegli eventi invecchiano.
 
 ## Risoluzione dei problemi
 

@@ -234,6 +234,16 @@ En AWS-konto, et Google Cloud-prosjekt eller et Azure-abonnement som er [koblet 
 - Kontoens egen lesing gir ikke mer: datahendelser, Data Access-logger og loggene til Microsoft Entra ID trenger fortsatt **Loggene dine** eller en [tilkobling](/docs/integrations/microsoft-entra-id).
 - Hver hendelse nevner skyressursene posten gjelder, ved deres egne ID-er - en ARN, en Azure-ressurs-ID, et ressursnavn fra Google Cloud - så den vises på siden **Sikkerhetshendelser** til hver av dem, og på siden til en serverløs funksjon så snart telemetrien dens setter `cloud.account.id` og `cloud.region`.
 
+### OneUptimes egne sonder i nettverksflyten din
+
+Slå på **Nettverksflyt** under **OneUptime-dataene dine** på **Tilkoblinger**, så leses flytene nettverksenhetene dine eksporterer, etter portskanninger, nettverkssveip, trafikk med kjente ondsinnede adresser og store overføringer ut. En sondes eget arbeid ligner der på en skanning: å spørre 40 enheter over SNMP treffer port 161 på 40 verter hvert femte minutt. Derfor legges trafikk fra en av OneUptimes egne sonder som er nøyaktig det sonden er satt til å gjøre, til side:
+
+- nettverksenhetene den spør, pinget og spurt over SNMP på porten deres;
+- området til hver av oppdagelsene dens, mens skanningen pågår;
+- vertene og portene monitorene dens sjekker.
+
+Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg.
+
 ### Koble til et sikkerhetsprodukt
 
 **Tilkoblinger** henter data fra et sikkerhetsprodukt for deg og importerer de nye postene som sikkerhetshendelser. En tilkobling inneholder produktets innstillinger og en kryptert legitimasjon; en worker henter fra den med intervallet du angir, og hopper over poster den allerede har importert.
@@ -637,6 +647,14 @@ Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som all
 ## Oppbevaring og fakturering
 
 Sikkerhetshendelser faktureres per GB som tas inn, som resten av telemetrien din, og oppbevares i telemetriens oppbevaringstid: prosjektets **Standard oppbevaring (dager)**, under **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring**, eller en oppbevaringstid som er angitt på telemetritjenesten de hører til. Når oppbevaringstiden for en hendelse er ute, slettes den.
+
+Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene som fortsatt oppbevares, og sier når det ville trengt flere:
+
+- En **Først sett**-regel med et tidsrom som er lengre enn hendelsene oppbevares, avgjør ut fra de oppbevarte dagene om en verdi er ny: med et tidsrom på 30 dager og 15 dagers oppbevaring sier varslene og sakene dens `First awsRegion in 15 days`, og en verdi som sist ble sett for 20 dager siden, regnes som ny. Raden dens viser **Krever oppmerksomhet**, og **Vis feil** sier hva som må endres. Regelskjemaet og detaljene til en regel i regelbiblioteket sier det før den lagres eller legges til. En telling eller en sekvens med et vindu som er lengre enn hendelsene oppbevares, teller bare dem.
+- **Kjør på tidligere hendelser** over en periode som begynner før de oppbevarte hendelsene, sier at sikkerhetshendelser oppbevares i 15 dager, så den så 15 dager tilbake, og det den ikke fant, gjelder bare de dagene. En hendelse som skjedde tidligere, men kom for sent, er fortsatt oppbevart og leses fortsatt. En **Først sett**-regel sier hvor mye av de 30 dagene før perioden den kunne se.
+- En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
+
+**Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
 
 ## Feilsøking
 

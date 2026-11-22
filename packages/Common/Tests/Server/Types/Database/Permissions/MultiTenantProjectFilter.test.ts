@@ -12,6 +12,7 @@ import GreaterThan from "../../../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../../Types/BaseDatabase/NotEqual";
 import NotEqualOrNull from "../../../../../Types/BaseDatabase/NotEqualOrNull";
@@ -297,6 +298,16 @@ describe("the operators a read across projects may filter the project by", () =>
       [firstProjectId, secondProjectId],
     ],
     [
+      "IncludesNoneOrNull keeps the projects it does not list: no record's project is empty",
+      new IncludesNoneOrNull([firstProjectId.toString()]),
+      [secondProjectId],
+    ],
+    [
+      "IncludesNoneOrNull of a project the caller is not in keeps all of theirs",
+      new IncludesNoneOrNull([outsideProjectId.toString()]),
+      [firstProjectId, secondProjectId],
+    ],
+    [
       "EqualToOrNull keeps its one project: no record's project is empty",
       new EqualToOrNull<string>(firstProjectId.toString()),
       [firstProjectId],
@@ -323,6 +334,13 @@ describe("the operators a read across projects may filter the project by", () =>
     [
       "IncludesNone of every project",
       new IncludesNone([firstProjectId.toString(), secondProjectId.toString()]),
+    ],
+    [
+      "IncludesNoneOrNull of every project: its empty half widens nothing",
+      new IncludesNoneOrNull([
+        firstProjectId.toString(),
+        secondProjectId.toString(),
+      ]),
     ],
   ])(
     "%s keeps no project, and the read is refused rather than run unscoped",

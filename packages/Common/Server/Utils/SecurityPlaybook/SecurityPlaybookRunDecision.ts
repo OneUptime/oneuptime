@@ -15,6 +15,7 @@ import PartialEntity from "../../../Types/Database/PartialEntity";
 import { securityEntityKey } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   SecurityPlaybookActionDefinition,
+  actsThroughBlocklist,
   getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookRunStatus, {
@@ -49,6 +50,7 @@ import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import logger from "../Logger";
 import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
+import SecurityPlaybookAddressBlocks from "./SecurityPlaybookAddressBlocks";
 import SecurityPlaybookApprovalReader from "./SecurityPlaybookApprovalReader";
 import SecurityPlaybookContainment, {
   ContainmentTargetOutcome,
@@ -526,61 +528,21 @@ export default class SecurityPlaybookRunDecision {
       );
     }
 
-    const connectionId: JSONValue | undefined = step.config["connectionId"];
-    const connection: SecurityEventConnection | null =
-      typeof connectionId === "string"
-        ? await SecurityEventConnectionService.findOneBy({
-            query: {
-              _id: connectionId,
-              projectId: data.projectId,
-            },
-            select: {
-              _id: true,
-              name: true,
-              provider: true,
-              config: true,
-              secrets: true,
-              alertingOnly: true,
-            },
-            props: { isRoot: true },
-          })
-        : null;
-
-    if (!connection) {
-      throw new BadDataException(
-        "The connection this step acted through no longer exists. Release it in the product itself.",
-      );
-    }
-
-    const securityCase: SecurityCase | null = run.securityCaseId
-      ? await SecurityCaseService.findOneById({
-          id: run.securityCaseId,
-          select: { caseNumberWithPrefix: true },
-          props: { isRoot: true },
+    const outcome: ContainmentTargetOutcome = actsThroughBlocklist(step.action)
+      ? await this.liftBlockOfStep({
+          projectId: data.projectId,
+          runId: data.runId,
+          value: target.value,
+          undoTitle: undo.title,
+          props: data.props,
         })
-      : null;
-
-    let outcome: ContainmentTargetOutcome;
-
-    try {
-      outcome = await SecurityPlaybookContainment.undo({
-        action: step.action,
-        connection,
-        settings:
-          await SecurityEventConnectionService.getConnectorSettings(connection),
-        value: target.value,
-        caseNumber: securityCase?.caseNumberWithPrefix || "",
-      });
-    } catch (error) {
-      // The product's own words, without a full stop of their own.
-      const reason: string = (
-        error instanceof Error ? error.message : String(error)
-      ).replace(/[.\s]+$/, "");
-
-      throw new BadDataException(
-        `${undo.title} did not work for ${target.value}: ${reason}. Try again, or release it in the product itself.`,
-      );
-    }
+      : await this.undoInProduct({
+          projectId: data.projectId,
+          run,
+          step,
+          target,
+          undoTitle: undo.title,
+        });
 
     if (
       outcome.state !== SecurityPlaybookTargetState.Done &&
@@ -640,6 +602,104 @@ export default class SecurityPlaybookRunDecision {
     }
 
     return undone;
+  }
+
+  /*
+   * The undo of a block a step made (#10342): the block of the target's
+   * address that this run made, lifted as the person - their permission to
+   * lift is theirs, and the Blocklist names them as who lifted it.
+   */
+  private static async liftBlockOfStep(data: {
+    projectId: ObjectID;
+    runId: ObjectID;
+    value: string;
+    undoTitle: string;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ContainmentTargetOutcome> {
+    const outcome: ContainmentTargetOutcome =
+      await SecurityPlaybookAddressBlocks.liftOne({
+        projectId: data.projectId,
+        value: data.value,
+        props: data.props,
+        reason: `${data.undoTitle}, from the case's playbook run.`,
+        securityPlaybookRunId: data.runId,
+      });
+
+    if (outcome.state === SecurityPlaybookTargetState.Failed) {
+      throw new BadDataException(
+        `${data.undoTitle} did not work for ${data.value}: ${outcome.detail.replace(/[.\s]+$/, "")}. Try again, or lift it on the Blocklist.`,
+      );
+    }
+
+    return outcome;
+  }
+
+  /*
+   * The undo of a containment step in the product it acted through: the
+   * account unsuspended, the containment lifted, the device released -
+   * through the step's own connection.
+   */
+  private static async undoInProduct(data: {
+    projectId: ObjectID;
+    run: SecurityPlaybookRun;
+    step: SecurityPlaybookStep;
+    target: SecurityPlaybookTarget;
+    undoTitle: string;
+  }): Promise<ContainmentTargetOutcome> {
+    const { run, step, target } = data;
+    const connectionId: JSONValue | undefined = step.config["connectionId"];
+    const connection: SecurityEventConnection | null =
+      typeof connectionId === "string"
+        ? await SecurityEventConnectionService.findOneBy({
+            query: {
+              _id: connectionId,
+              projectId: data.projectId,
+            },
+            select: {
+              _id: true,
+              name: true,
+              provider: true,
+              config: true,
+              secrets: true,
+              alertingOnly: true,
+            },
+            props: { isRoot: true },
+          })
+        : null;
+
+    if (!connection) {
+      throw new BadDataException(
+        "The connection this step acted through no longer exists. Release it in the product itself.",
+      );
+    }
+
+    const securityCase: SecurityCase | null = run.securityCaseId
+      ? await SecurityCaseService.findOneById({
+          id: run.securityCaseId,
+          select: { caseNumberWithPrefix: true },
+          props: { isRoot: true },
+        })
+      : null;
+
+    try {
+      return await SecurityPlaybookContainment.undo({
+        action: step.action,
+        connection,
+        settings:
+          await SecurityEventConnectionService.getConnectorSettings(connection),
+        value: target.value,
+        caseNumber: securityCase?.caseNumberWithPrefix || "",
+      });
+    } catch (error) {
+      // The product's own words, without a full stop of their own.
+      const reason: string = (
+        error instanceof Error ? error.message : String(error)
+      ).replace(/[.\s]+$/, "");
+
+      throw new BadDataException(
+        `${data.undoTitle} did not work for ${target.value}: ${reason}. Try again, or release it in the product itself.`,
+      );
+    }
   }
 
   /*

@@ -34,6 +34,7 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
+import DataSecurityAiOverviewLine from "../../Components/DataSecurity/DataSecurityAiOverviewLine";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import {
@@ -388,6 +389,8 @@ const DataSecurityOverviewPage: FunctionComponent<
           )}
         />
       </EventStatBar>
+
+      <DataSecurityAiOverviewLine />
 
       <CardGrid columns={2} dataTestId={DATA_SECURITY_OVERVIEW_CHARTS_ID}>
         <Card
