@@ -674,6 +674,121 @@ describe("parseSecurityPlaybookSteps", () => {
       /https:\/\//,
     );
   });
+
+  /*
+   * Send a webhook's certificate settings (#10440): a Runbook HTTP step's
+   * two, read as there - the switch only when exactly true, and the CA
+   * certificate while it is a certificate in PEM.
+   */
+  describe("Send a webhook's certificate settings", () => {
+    const URL_ONLY: Record<string, unknown> = {
+      url: "https://hooks.internal.example/soc",
+    };
+    const PEM: string =
+      "-----BEGIN CERTIFICATE-----\nMIIBszCCAVmgAwIBAgIUQ0E=\n-----END CERTIFICATE-----";
+    const PRIVATE_KEY: string =
+      "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg==\n-----END PRIVATE KEY-----";
+
+    test("with neither, the step keeps its URL alone, as it always did", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, URL_ONLY).config,
+      ).toEqual({ url: "https://hooks.internal.example/soc" });
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: false,
+          caCertificate: "  ",
+        }).config,
+      ).toEqual({ url: "https://hooks.internal.example/soc" });
+    });
+
+    test("the switch is kept only when it is exactly true", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        allowSelfSignedCertificates: true,
+      });
+
+      for (const value of ["true", 1, "on", {}]) {
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, allowSelfSignedCertificates: value },
+          /allowSelfSignedCertificates to true to skip the server's certificate checks, or to false to keep them/,
+        );
+      }
+    });
+
+    test("a CA certificate in PEM is kept, trimmed", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          caCertificate: `\n${PEM}\n\n`,
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        caCertificate: PEM,
+      });
+    });
+
+    test.each([
+      ["text", "hello", /is not a certificate in PEM/],
+      [
+        "a runbook variable, which a playbook does not fill in",
+        "{{global.variables.INTERNAL_CA}}",
+        /is not a certificate in PEM/,
+      ],
+      ["a private key", PRIVATE_KEY, /holds a private key/],
+      ["more than 64 KB", `${PEM}\n${"x".repeat(70 * 1024)}`, /longer than 64 KB/],
+    ])(
+      "a CA certificate that is %s is refused, naming the step",
+      (_what: string, text: string, message: RegExp) => {
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, caCertificate: text },
+          message,
+        );
+        expectRejected(
+          SecurityPlaybookActionType.SendWebhook,
+          { ...URL_ONLY, caCertificate: text },
+          /^Step 1 \(/,
+        );
+      },
+    );
+
+    test("a CA certificate that is not text is refused", () => {
+      expectRejected(
+        SecurityPlaybookActionType.SendWebhook,
+        { ...URL_ONLY, caCertificate: 42 },
+        /caCertificate to the CA's certificate in PEM, or leave it out/,
+      );
+    });
+
+    test("with the switch on, the CA certificate is not used: only a private key is still refused", () => {
+      expect(
+        parseOne(SecurityPlaybookActionType.SendWebhook, {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+          caCertificate: "not a certificate",
+        }).config,
+      ).toEqual({
+        url: "https://hooks.internal.example/soc",
+        allowSelfSignedCertificates: true,
+      });
+      expectRejected(
+        SecurityPlaybookActionType.SendWebhook,
+        {
+          ...URL_ONLY,
+          allowSelfSignedCertificates: true,
+          caCertificate: PRIVATE_KEY,
+        },
+        /holds a private key/,
+      );
+    });
+  });
 });
 
 /*
