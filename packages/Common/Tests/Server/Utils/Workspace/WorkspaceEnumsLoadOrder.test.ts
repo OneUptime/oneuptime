@@ -107,19 +107,23 @@ describe("the chats' tables of presses load whichever Workspace file loads first
       `${first.file} first (it ${first.why})`,
       () => {
         jest.isolateModules(() => {
+          // A Workspace file, loaded into this test's own registry.
+          const load: (file: string) => Record<string, unknown> = (
+            file: string,
+          ): Record<string, unknown> => {
+            return jest.requireActual(path.join(WORKSPACE, file)) as Record<
+              string,
+              unknown
+            >;
+          };
+
           expect(() => {
-            jest.requireActual(path.join(WORKSPACE, first.file));
+            load(first.file);
           }).not.toThrow();
 
-          const prompt: TeamsConnectPrompt = jest.requireActual<{
-            default: TeamsConnectPrompt;
-          }>(
-            path.join(
-              WORKSPACE,
-              "MicrosoftTeams",
-              "MicrosoftTeamsConnectPrompt",
-            ),
-          ).default;
+          const prompt: TeamsConnectPrompt = load(
+            path.join("MicrosoftTeams", "MicrosoftTeamsConnectPrompt"),
+          )["default"] as TeamsConnectPrompt;
 
           // Acknowledge on an incident's card is finished once they connect.
           expect(
@@ -130,30 +134,20 @@ describe("the chats' tables of presses load whichever Workspace file loads first
           ).toMatchObject({ kind: "Acknowledge", eventType: "Incident" });
 
           // An episode's notes wait for the incident workflow's approval.
-          const held: HeldPublicNote = jest.requireActual<{
-            default: HeldPublicNote;
-          }>(path.join(WORKSPACE, "WorkspaceHeldPublicNote")).default;
+          const held: HeldPublicNote = load("WorkspaceHeldPublicNote")[
+            "default"
+          ] as HeldPublicNote;
 
           expect(held.getApprovalEventType("IncidentEpisode")).toBe("Incident");
 
           // The files that declared them export the very same enums.
-          expect(
-            jest.requireActual<{ WorkspaceEventType: unknown }>(
-              path.join(WORKSPACE, "WorkspaceMemberActions"),
-            ).WorkspaceEventType,
-          ).toBe(
-            jest.requireActual<{ WorkspaceEventType: unknown }>(
-              path.join(WORKSPACE, "WorkspaceEventType"),
-            ).WorkspaceEventType,
+          expect(load("WorkspaceMemberActions")["WorkspaceEventType"]).toBe(
+            load("WorkspaceEventType")["WorkspaceEventType"],
           );
           expect(
-            jest.requireActual<{ WorkspacePendingActionKind: unknown }>(
-              path.join(WORKSPACE, "WorkspaceConnectRequest"),
-            ).WorkspacePendingActionKind,
+            load("WorkspaceConnectRequest")["WorkspacePendingActionKind"],
           ).toBe(
-            jest.requireActual<{ WorkspacePendingActionKind: unknown }>(
-              path.join(WORKSPACE, "WorkspacePendingActionKind"),
-            ).WorkspacePendingActionKind,
+            load("WorkspacePendingActionKind")["WorkspacePendingActionKind"],
           );
         });
       },
