@@ -106,7 +106,7 @@ Wo Okta, Microsoft Entra ID, Auth0 und Keycloak diese Einstellungen haben, steht
 
 ## Erneut anmelden, um zu bestätigen, dass Sie es sind
 
-Wer sich nur über einen globalen Anbieter anmeldet, bestätigt mit **Erneut anmelden**, dass er es ist, bevor er ändert, wie er sich anmeldet, oder sein Konto löscht: OneUptime schickt die Person mit `ForceAuthn="true"` für SAML oder `prompt=login` und `max_age=0` für OpenID Connect zurück zum Anbieter und zählt das nur, wenn der Anbieter in `AuthnInstant` oder `auth_time` sagt, dass sie sich zu diesem Zeitpunkt oder danach angemeldet hat. Wenn Sie einen globalen Anbieter hinzufügen, ändern oder löschen, werden Sie zuerst gebeten, [zu bestätigen, dass Sie es sind](/docs/introduction/your-account#bestätigen-dass-sie-es-sind).
+Wer sich nur über einen globalen Anbieter anmeldet, bestätigt mit **Erneut anmelden**, dass er es ist, bevor er ändert, wie er sich anmeldet, oder sein Konto löscht: OneUptime schickt die Person mit `ForceAuthn="true"` für SAML oder `prompt=login` und `max_age=0` für OpenID Connect (an Microsoft Entra ID nur `prompt=login`) zurück zum Anbieter und zählt das nur, wenn der Anbieter in `AuthnInstant` oder `auth_time` sagt, dass sie sich zu diesem Zeitpunkt oder danach angemeldet hat. Wenn Sie einen globalen Anbieter hinzufügen, ändern oder löschen, werden Sie zuerst gebeten, [zu bestätigen, dass Sie es sind](/docs/introduction/your-account#bestätigen-dass-sie-es-sind).
 
 Was Sie in Okta, Microsoft Entra ID, Keycloak und Google Workspace einstellen, steht auf der Seite [SSO](/docs/identity/sso#erneut-anmelden-um-zu-bestätigen-dass-sie-es-sind).
 

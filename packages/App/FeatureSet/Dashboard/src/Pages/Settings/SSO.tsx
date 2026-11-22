@@ -27,6 +27,10 @@ import Link from "Common/UI/Components/Link/Link";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
+import {
+  SAML_SIGN_IN_AGAIN_SELECT,
+  getSamlProviderNameColumn,
+} from "Common/UI/Components/Sso/SamlSignInAgainNote";
 import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
@@ -74,6 +78,11 @@ interface SamlConfigDialogTarget {
  * identity provider opens straight away: that is the next thing to do. It
  * shows the Single Logout URL too, and the signing certificate to download,
  * which an identity provider needs to sign people out of it too (#9603).
+ *
+ * Under a Keycloak or an Okta provider's name, one line says what Sign In
+ * Again needs of it (#10530): through Keycloak over SAML it cannot be
+ * checked, so add the realm as an OIDC provider; through Okta, Honor Force
+ * Authentication must be on (Common/UI/Components/Sso/SamlSignInAgainNote).
  */
 const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -161,6 +170,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
             onProviderListLoaded();
           }}
           viewPageRoute={Navigation.getCurrentRoute()}
+          // What the Name column's Sign In Again line reads (#10530).
+          selectMoreFields={SAML_SIGN_IN_AGAIN_SELECT}
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
             getTeamsFooterElement: getSsoTeamsGrantNote,
@@ -223,13 +234,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
             },
           ]}
           columns={[
-            {
-              field: {
-                name: true,
-              },
-              title: "Name",
-              type: FieldType.Text,
-            },
+            // The name, and under it what Sign In Again needs of the provider.
+            getSamlProviderNameColumn<ProjectSSO>(),
             {
               field: {
                 description: true,

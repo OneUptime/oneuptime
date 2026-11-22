@@ -170,6 +170,17 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Choose what kind of store it is.");
     }
 
+    /*
+     * Security Events, Network Flows and the address vault are OneUptime's
+     * own, declared for every project that has one (DeclaredDataStores,
+     * #10398): one added by hand would be a second, with nothing in it.
+     */
+    if (info.isDeclared) {
+      throw new BadDataException(
+        `OneUptime adds the ${info.kind} store itself, once your project has such data.`,
+      );
+    }
+
     if (!createBy.data.name?.trim()) {
       throw new BadDataException("Give the store a name.");
     }
@@ -712,6 +723,10 @@ export class Service extends ProjectReferencesService<Model> {
         break;
       case "Service map":
         gone = mdText`🗄️ ${link} is no longer seen in any service's traces, so it was archived.`;
+        break;
+      // A store OneUptime declares (DeclaredDataStores): its data is gone.
+      case "OneUptime":
+        gone = mdText`🗄️ ${link} no longer holds any of this project's data, so it was archived.`;
         break;
       default:
         gone = mdText`🗄️ ${link} is no longer listed by its source, so it was archived.`;

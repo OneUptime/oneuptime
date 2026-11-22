@@ -16,7 +16,7 @@ import {
   isDefaultStatusCodeRanges,
   isSecretHeader,
   mergeStatusCodeRanges,
-  readJsonObjectBody,
+  readJsonBody,
   readStatusCodeRanges,
   splitRequestHeaders,
   TOOL_IMPORT_DEFAULT_MONITORING_INTERVAL,
@@ -258,16 +258,25 @@ describe("headers and body a check sends", () => {
     expect(Object.getPrototypeOf(split.kept)).toBe(Object.prototype);
   });
 
-  test("a body is sent only as a JSON object, written compactly", () => {
-    expect(readJsonObjectBody('{ "a": 1, "b": [1, 2] }')).toBe(
-      '{"a":1,"b":[1,2]}',
-    );
-    expect(readJsonObjectBody("[1, 2]")).toBeNull();
-    expect(readJsonObjectBody("a=1&b=2")).toBeNull();
-    expect(readJsonObjectBody('"text"')).toBeNull();
-    expect(readJsonObjectBody("null")).toBeNull();
-    expect(readJsonObjectBody("")).toBeNull();
-    expect(readJsonObjectBody(42)).toBeNull();
+  test("a body is sent as any JSON value, written compactly", () => {
+    expect(readJsonBody('{ "a": 1, "b": [1, 2] }')).toBe('{"a":1,"b":[1,2]}');
+    // #9737: an array or a single value is a body an API monitor sends too.
+    expect(readJsonBody('[1, 2, {"id": 3}]')).toBe('[1,2,{"id":3}]');
+    expect(readJsonBody(' "text" ')).toBe('"text"');
+    expect(readJsonBody("42")).toBe("42");
+    expect(readJsonBody("true")).toBe("true");
+    expect(readJsonBody("null")).toBe("null");
+  });
+
+  test("a body that is not JSON is not sent", () => {
+    expect(readJsonBody("a=1&b=2")).toBeNull();
+    expect(readJsonBody("<ping/>")).toBeNull();
+    expect(readJsonBody('{"a": 1,}')).toBeNull();
+    expect(readJsonBody("")).toBeNull();
+    expect(readJsonBody("   ")).toBeNull();
+    // Only text is a body: a value that is not a string is not read.
+    expect(readJsonBody(42)).toBeNull();
+    expect(readJsonBody(undefined)).toBeNull();
   });
 });
 
@@ -330,7 +339,23 @@ describe("what a web check becomes", () => {
     ]);
   });
 
-  test("a body that is not a JSON object is left out and said, and a GET sends none", () => {
+  test("an array body is kept, as an API monitor sends one (#9737)", () => {
+    const monitor: ImportedMonitor = toHttpMonitor({
+      sourceId: "5",
+      name: "Batch",
+      sourceType: "http",
+      url: "https://api.example.com/batch",
+      method: "POST",
+      body: '[{"id": 1}, {"id": 2}]',
+      isPaused: false,
+    });
+
+    expect(monitor.monitorType).toBe(MonitorType.API);
+    expect(monitor.requestBody).toBe('[{"id":1},{"id":2}]');
+    expect(codes(monitor.notes)).toEqual([]);
+  });
+
+  test("a body that is not JSON is left out and said, and a GET sends none", () => {
     expect(
       codes(
         toHttpMonitor({

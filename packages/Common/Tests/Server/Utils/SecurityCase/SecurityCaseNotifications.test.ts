@@ -634,8 +634,9 @@ describe("who is told that a case reached their priority", () => {
     expect(feedItems[0]!["feedInfoInMarkdown"]).toBe(
       "🔔 Notified 2 people of this new **Critical** case.",
     );
+    // Each by name alone: the feed is read through the API (#10681).
     expect(feedItems[0]!["moreInformationInMarkdown"]).toBe(
-      "- Owner (owner@example.com)\n- Analyst (analyst@example.com)",
+      "- Owner\n- Analyst",
     );
 
     expect(channelPosts).toHaveLength(1);

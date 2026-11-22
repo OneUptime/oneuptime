@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | आपके चलाए डेटाबेस | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत, मेट्रिक्स | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत, मेट्रिक्स |
+| OneUptime | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत, मेट्रिक्स, सुरक्षा इवेंट, Network Flows, सुरक्षा पता वॉल्ट | लॉग, ट्रेस, अपवाद, सेशन रीप्ले, AI बातचीत, मेट्रिक्स |
 
-हर स्टोर पर वे जांचें चलती हैं जो उसके प्रकार पर लागू होती हैं। जिस स्टोर की सामग्री का नमूना नहीं लिया जा सकता, उसकी भी जांच होती है: सार्वजनिक बकेट या बिना एन्क्रिप्शन वाला डेटाबेस अपने आप में समस्या है, उसमें चाहे जो रखा हो।
+हर स्टोर पर वे जांचें चलती हैं जो उसके प्रकार पर लागू होती हैं। जिस स्टोर की सामग्री का नमूना नहीं लिया जा सकता, उसकी भी जांच होती है: सार्वजनिक बकेट या बिना एन्क्रिप्शन वाला डेटाबेस अपने आप में समस्या है, उसमें चाहे जो रखा हो। सुरक्षा इवेंट, Network Flows और सुरक्षा पता वॉल्ट OneUptime के अपने स्टोर हैं, जिन्हें वह आपकी सुरक्षा के लिए रखता है: ये घोषित हैं, कभी स्कैन या जांचे नहीं जाते (देखें [OneUptime आपकी सुरक्षा के लिए जो स्टोर रखता है](/docs/data-security/compliance#oneuptime-आपकी-सुरक्षा-के-लिए-जो-स्टोर-रखता-है))।
 
 जब किसी स्टोर का स्रोत उसे सूचीबद्ध करना बंद कर देता है, तो वह अपने इतिहास के साथ संग्रहीत हो जाता है, और उसकी खुली समस्याएं सुलझा दी जाती हैं: डेटा सुरक्षा के मेनू के अंत में **संग्रहीत स्टोर** उसे रखता है। अगर उसका स्रोत उसे फिर से सूचीबद्ध करता है तो वह अपने आप लौट आता है, और जिस समस्या की जांच अब भी विफल होती है, वह फिर से खुलती है।
 

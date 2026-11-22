@@ -148,7 +148,8 @@ OneUptime AI 也會依照您的 AI 規則，自動處理每個新問題：請參
 | `/data-security/compliance` | 每個框架的分數和要求 |
 | `/data-security/resource-scope` | 單一資源（Kubernetes 叢集、Docker 或 Podman 主機、資料庫、服務或雲端資源）的資料儲存區，以及它們遵循哪個資源的合規開關 |
 | `/data-security/resource-compliance` | 單一資源的框架：它們針對該資源資料儲存區的分數，以及為該資源關閉了哪些內容 |
-| `/data-security/record-of-processing` | GDPR 處理活動記錄，每個保存個人資料的資料儲存區一列 |
+| `/data-security/record-of-processing` | GDPR 處理活動記錄，每個保存個人資料的資料儲存區一列。OneUptime 為你的安全所保留的資料儲存區帶有 `declared` 物件：它自己的目的和保留期，以及誰可以讀取它 |
+| `/data-store/<id>/declared` | 記錄對 OneUptime 為你的安全所保留之資料儲存區的說明：存放什麼、為什麼、保留多久以及誰可以讀取 |
 | `/data-store/<id>/scan-now` | **立即掃描**：立即對資料儲存區的內容抽樣 |
 | `/data-store/<id>/check-now` | **立即檢查**：重新讀取資料儲存區的設定並執行其檢查 |
 | `/data-store-finding/<id>/scrub` | 遙測發現上的 **清除** |

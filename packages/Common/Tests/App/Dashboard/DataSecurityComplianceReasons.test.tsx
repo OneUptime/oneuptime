@@ -140,6 +140,10 @@ async function drawAndPickPci(
   jest
     .spyOn(DataSecurityApi, "getCompliance")
     .mockResolvedValue({ frameworks: frameworksWith(turnedOff) });
+  // The record of processing under the frameworks (#10398): its own suite draws it.
+  jest
+    .spyOn(DataSecurityApi, "getRecordOfProcessing")
+    .mockResolvedValue({ rows: [] });
 
   await act(async () => {
     render(

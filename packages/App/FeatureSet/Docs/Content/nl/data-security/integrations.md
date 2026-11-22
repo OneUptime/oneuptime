@@ -148,7 +148,8 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-security/compliance` | De score en de eisen van elk kader |
 | `/data-security/resource-scope` | De gegevensopslagen van één resource - een Kubernetes-cluster, een Docker- of Podman-host, een database, een service of een cloud-resource - en van welke resource ze de compliance-schakelaars volgen |
 | `/data-security/resource-compliance` | De kaders van één resource: hun scores voor de opslagen ervan, en wat ervoor is uitgeschakeld |
-| `/data-security/record-of-processing` | Het verwerkingsregister van de AVG, een rij voor elke opslag die persoonsgegevens bevat |
+| `/data-security/record-of-processing` | Het verwerkingsregister van de AVG, een rij voor elke opslag die persoonsgegevens bevat. Een opslag die OneUptime voor je beveiliging bewaart, heeft een object `declared`: het eigen doel en de eigen bewaartermijn, en wie hem kan lezen |
+| `/data-store/<id>/declared` | Wat het register zegt over een opslag die OneUptime voor je beveiliging bewaart: wat erin staat, waarom, hoe lang en wie hem kan lezen |
 | `/data-store/<id>/scan-now` | **Nu scannen**: bemonstert nu de inhoud van de opslag |
 | `/data-store/<id>/check-now` | **Nu controleren**: leest de configuratie van de opslag opnieuw en voert de controles ervan uit |
 | `/data-store-finding/<id>/scrub` | **Opschonen** op een telemetriebevinding |

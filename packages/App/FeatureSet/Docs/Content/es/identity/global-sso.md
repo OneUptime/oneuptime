@@ -106,7 +106,7 @@ Dónde guardan estos ajustes Okta, Microsoft Entra ID, Auth0 y Keycloak se expli
 
 ## Volver a iniciar sesión para confirmar que eres tú
 
-Quien inicia sesión solo a través de un proveedor global confirma que es él con **Volver a iniciar sesión** antes de cambiar cómo inicia sesión o eliminar su cuenta: OneUptime lo devuelve al proveedor con `ForceAuthn="true"` para SAML, o `prompt=login` y `max_age=0` para OpenID Connect, y solo lo cuenta cuando el proveedor dice, en `AuthnInstant` o `auth_time`, que inició sesión en ese momento o después. Al añadir, cambiar o eliminar un proveedor global, primero se te pide [confirmar que eres tú](/docs/introduction/your-account#confirmar-que-eres-tú).
+Quien inicia sesión solo a través de un proveedor global confirma que es él con **Volver a iniciar sesión** antes de cambiar cómo inicia sesión o eliminar su cuenta: OneUptime lo devuelve al proveedor con `ForceAuthn="true"` para SAML, o `prompt=login` y `max_age=0` para OpenID Connect (solo `prompt=login` para Microsoft Entra ID), y solo lo cuenta cuando el proveedor dice, en `AuthnInstant` o `auth_time`, que inició sesión en ese momento o después. Al añadir, cambiar o eliminar un proveedor global, primero se te pide [confirmar que eres tú](/docs/introduction/your-account#confirmar-que-eres-tú).
 
 Qué configurar en Okta, Microsoft Entra ID, Keycloak y Google Workspace se explica en la página [SSO](/docs/identity/sso#volver-a-iniciar-sesión-para-confirmar-que-eres-tú).
 

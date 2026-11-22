@@ -177,7 +177,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 
 ## Registro das atividades de tratamento
 
-O Artigo 30 do RGPD pede que você mantenha um registro das suas atividades de tratamento. A Segurança de dados escreve a parte dele que trata de onde os dados pessoais são guardados: uma linha para cada repositório que guarda dados pessoais.
+O Artigo 30 do RGPD pede que você mantenha um registro das suas atividades de tratamento. A Segurança de dados escreve a parte dele que trata de onde os dados pessoais são guardados: uma linha para cada repositório que guarda dados pessoais. Ele é o cartão **Registro das atividades de tratamento** no fim de **Segurança de dados → Conformidade**, com **Exportar CSV** e **Exportar JSON**.
 
 | Coluna | De onde vem |
 | --- | --- |
@@ -185,11 +185,27 @@ O Artigo 30 do RGPD pede que você mantenha um registro das suas atividades de t
 | Ambiente | As tags ou o nome do repositório, ou o que você definiu |
 | Sensibilidade, categorias e tipos de dados | O que as varreduras encontraram, ou a sensibilidade que você definiu |
 | Proprietários | Os proprietários do repositório, pessoas e os membros das equipes dele |
-| Finalidade | O que você escreve em **Finalidade** no repositório: por que ele guarda dados pessoais |
-| Retenção | O que você escreve em **Retenção** no repositório: por quanto tempo os dados ficam nele |
+| Finalidade | O que você escreve em **Finalidade** no repositório: por que ele guarda dados pessoais. O OneUptime a preenche nos repositórios que guarda para a sua segurança |
+| Retenção | O que você escreve em **Retenção** no repositório: por quanto tempo os dados ficam nele. O OneUptime a preenche nos repositórios que guarda para a sua segurança |
+| Quem pode ler | Quem pode ler um repositório que o OneUptime guarda para a sua segurança |
 | Estruturas de conformidade | As estruturas que os tipos de dados dele trazem para o escopo |
+| Declarado por | OneUptime, nos repositórios que guarda para a sua segurança |
 
-Preencha **Finalidade** e **Retenção** nas **Configurações** de cada repositório: são as duas coisas que nenhuma varredura consegue saber. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing`, `/data-security/compliance` e, para um único recurso, `/data-security/resource-compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
+Em um repositório que a Segurança de dados encontrou, preencha **Finalidade** e **Retenção** nas **Configurações** dele: nenhuma varredura consegue saber isso. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing`, `/data-security/compliance` e, para um único recurso, `/data-security/resource-compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
+
+### Repositórios que o OneUptime guarda para a sua segurança
+
+Três repositórios guardam endereços IP de propósito, para proteger a sua rede: **Eventos de segurança**, **Network Flows** e **Cofre de endereços de segurança**. O registro lista cada um que o seu projeto tem. O OneUptime os declara em vez de encontrá-los: o que eles guardam é conhecido por projeto, então nenhuma varredura os lê, nenhuma verificação se aplica a eles e guardar esses endereços nunca é um problema, pois é para isso que existem. Eles mostram **Declarado pelo OneUptime** em **Repositórios de dados**, e a **Visão geral** e as pontuações das estruturas os deixam de fora.
+
+| Repositório | O que guarda | Retenção | Quem pode lê-lo |
+| --- | --- | --- | --- |
+| Eventos de segurança | Os endereços IP, nomes de usuário e endereços de e-mail de quem agiu e do que foi tocado | A [retenção de telemetria](/docs/telemetry/data-retention) do seu projeto, lida sempre que o registro é lido, então uma mudança vale na hora | Proprietários do projeto, Administradores do projeto, Administradores de segurança, Membros de segurança, Visualizadores de segurança e quem tiver Read Security Event |
+| Network Flows | Os endereços IP de quem se comunicou com quem | 30 dias depois de um fluxo chegar | Quem pode ler dispositivos de rede |
+| Cofre de endereços de segurança | O endereço IP por trás de cada token deixado por uma regra de endereço IP que aplica hash nos logs e traces que os [Eventos de segurança](/docs/telemetry/security-events) leem | 30 dias depois da última vez em que um endereço foi visto | Somente as varreduras de Eventos de segurança, dentro do OneUptime: nenhuma pessoa, página, exportação, API ou ferramenta de IA |
+
+A finalidade de cada um é "Segurança das redes e da informação (considerando 49 do RGPD)". Para escrever a sua própria finalidade ou retenção, use **Editar registro** nas **Configurações** do repositório: um campo deixado em branco mantém a do OneUptime.
+
+Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, e por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
 
 ## Próximos passos
 

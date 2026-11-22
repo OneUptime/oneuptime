@@ -112,7 +112,11 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.RevokeDataStoreSharing]: [],
   [SecurityPlaybookActionType.BlockAddress]: ["blockAction", "duration"],
   [SecurityPlaybookActionType.LiftAddressBlock]: [],
-  [SecurityPlaybookActionType.SendWebhook]: ["url"],
+  [SecurityPlaybookActionType.SendWebhook]: [
+    "url",
+    "allowSelfSignedCertificates",
+    "caCertificate",
+  ],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
   [SecurityPlaybookActionType.RunRunbook]: ["runbookId"],
   [SecurityPlaybookActionType.PreserveEvidence]: [],
@@ -202,7 +206,10 @@ const ID_KEYS: ReadonlySet<string> = new Set<string>([
 ]);
 
 // Switches among an action's settings: kept as true or false.
-const SWITCH_KEYS: ReadonlySet<string> = new Set<string>(["notifySubscribers"]);
+const SWITCH_KEYS: ReadonlySet<string> = new Set<string>([
+  "notifySubscribers",
+  "allowSelfSignedCertificates",
+]);
 
 /*
  * RUN THIS STEP: always, or only after earlier steps' results - the one

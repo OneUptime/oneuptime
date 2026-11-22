@@ -343,21 +343,19 @@ export function splitRequestHeaders(
 }
 
 /*
- * A request body as an API monitor sends it: a JSON object, written back
- * compactly. Null for anything else (a form, plain text, a JSON array):
- * OneUptime's API monitors send JSON objects only.
+ * A request body as an API monitor sends it: any JSON value - an object,
+ * an array or a single value (MonitorRequestBody, #9737) - written back
+ * compactly. Null for anything else (a form's fields, plain text, XML):
+ * OneUptime's API monitors send JSON. Arrays and single values were left
+ * out too, while the probe could send only an object.
  */
-export function readJsonObjectBody(text: unknown): string | null {
+export function readJsonBody(text: unknown): string | null {
   if (typeof text !== "string" || !text.trim()) {
     return null;
   }
 
   try {
-    const value: unknown = JSON.parse(text);
-
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? JSON.stringify(value)
-      : null;
+    return JSON.stringify(JSON.parse(text));
   } catch {
     return null;
   }

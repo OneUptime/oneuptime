@@ -575,7 +575,7 @@ Skriv området i **Skannemål**, kontroller **Sonde**, og velg **Skannemetode**:
 Bare en SNMP-skanning ber om påloggingsinformasjon: velger du **SNMP**, kommer trinnet **SNMP-påloggingsinformasjon** til, med settene med påloggingsinformasjon som skal prøves. En [ICMP-skanning](#icmp-skanninger) har ikke noe andre trinn, og **Start skanning** står på første side.
 
 ### Start skanningen
-Klikk på **Start skanning**. Sonden skanner området og rapporterer hvor mange verter den skannet og hvor mange som svarte: hvor mange som svarte på SNMP, eller, ved en ICMP-skanning, hvor mange som svarte på ping.
+Klikk på **Start skanning**. Sonden skanner området og rapporterer hvor mange verter den skannet og hvor mange som svarte: hvor mange som svarte på SNMP, eller, ved en ICMP-skanning, hvor mange som svarte på ping. For å skanne området igjen senere klikker du på **Kjør igjen** på skanningen.
 
 ### Importer det den fant
 Klikk på **Se gjennom resultater** på skanningen, velg vertene som skal importeres, og klikk på **Neste**. Velg hvor ofte de sjekkes og om hver får en monitor, og importer dem så; se [Import av det en skanning fant](#import-av-det-en-skanning-fant).
@@ -595,7 +595,7 @@ Foldet sammen under **Flere felt** på første trinn, for skanningene som trenge
 | Navn | Hva skanningen er til, så du kan skille den fra andre skanninger. Listen viser skannemålet når dette står tomt. | Tomt |
 | Slå opp Windows-navn (NetBIOS) | Spør hver vert som mangler SNMP-systemnavn, om NetBIOS-navnet, Windows-datamaskinnavnet, over UDP 137. Det navnet vinner over vertens omvendte DNS-navn. Bare private adresser og egendefinerte sonder; se [Slik får oppdagede enheter navn](#slik-får-oppdagede-enheter-navn). | På |
 | Name devices by their short hostname | Gi importerte enheter navn etter første del av et fullt kvalifisert vertsnavn: `core-sw-01` i stedet for `core-sw-01.corp.example.com`. | Av |
-| Repeat this scan | Kjør skanningen igjen med et intervall, **Intervall for ny skanning (minutter)**, på minst 15 minutter, for å holde discovery i gang; se [automatiske importregler](#importer-automatisk-med-automatiske-importregler). Verter som en gjentatt skanning finner, venter på gjennomgangen din med mindre en automatisk importregel treffer dem. | Av |
+| Repeat this scan | Kjør skanningen igjen med et intervall, **Intervall for ny skanning (minutter)**, på minst 15 minutter, for å holde discovery i gang; se [automatiske importregler](#importer-automatisk-med-automatiske-importregler). Verter som en gjentatt skanning finner, venter på gjennomgangen din med mindre en automatisk importregel treffer dem. Slått av viser skanningen **Ved behov** og kjører igjen hver gang du klikker på **Kjør igjen**. | Av |
 
 ### Notasjon for skannemål
 
@@ -647,6 +647,12 @@ Når vertene du importerer, omfatter SNMP-verter, tilbyr trinnet **Overvåking**
 3. Trinnet **Importer** teller enheter og monitorer hver for seg, etter hvert som hver opprettes, finnes fra før eller mislykkes. Til slutt lenker det til det som ble opprettet, og viser under årsaken hver vert det ikke importerte, og hver enhet det importerte uten monitoren sin. Et nytt forsøk prøver bare de mislykkede vertene igjen og oppretter aldri noe to ganger. **Stopp importen** stopper etter verten som importeres nå, og beholder det som ble opprettet.
 
 Importen kjører på serveren og handler på dine vegne: hver enhet og hver monitor opprettes med dine tillatelser, og det du ikke har lov til å opprette, vises med årsaken. Du kan lukke dialogen når som helst: skanningens rad viser hvor langt importen har kommet, og **Vis fremdrift** åpner den igjen. **Importer flere enheter** begynner på nytt med vertene som er igjen. Én import tar opptil 5 000 verter; importer en større skanning i deler, etter subnett eller etter hva vertene svarte på. Et prosjekts importer kjører én om gangen: en som bestilles mens en annen kjører, venter på den.
+
+### Kjøre en skanning igjen
+
+En skanning er ikke oppbrukt etter den første kjøringen. For å skanne det samme området igjen, for eksempel etter at nye enheter er installert, klikker du på **Kjør igjen** i raden til skanningen, under når den sist kjørte. Den samme skanningen kjører igjen med sitt eget mål, sin sonde, sin skannemetode og sin påloggingsinformasjon, så det opprettes ingen ny skanning: raden viser **I kø**, deretter **Skanner**, og resultatene fra den nye kjøringen erstatter de forrige etter hvert som de kommer. Enheter du allerede har importert, blir som de er. En skanning som ikke gjentas, viser **Ved behov** i listen og kjører hver gang du klikker på **Kjør igjen**.
+
+**Kjør igjen** vises så snart en kjøring er over, fullført eller mislykket: så lenge en skanning står i kø eller kjører, står fremdriften der knappen ellers står, og en ny kjøring avvises. En kjøring avvises også så lenge sonden til skanningen ikke er koblet til OneUptime, slik at skanningen beholder de siste resultatene; start sonden, eller velg en annen sonde under **Rediger**. En skanning som gjentas, beholder tidsplanen sin: den gjentas like ofte som før, og neste kjøring regnes fra når denne er ferdig. Å kjøre en skanning krever tillatelse til å redigere oppdagelsesskanninger; raden viser hvem som kjørte den sist, og revisjonsloggene registrerer hver kjøring som vedkommendes. En API-nøkkel med den tillatelsen kan også kjøre en skanning, med `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### Slik får oppdagede enheter navn
 
@@ -731,7 +737,7 @@ I en regel bestemmer **Sjekk hvert** hvor ofte skanningens sonde poller hver enh
 
 Regler har ingen egen tidsplan og trenger ingen. Aktiverte regler kjører av seg selv mot hver skannings resultater etter hvert som de kommer, inkludert delresultatene en lang skanning laster opp mens den fortsatt pågår, så verter importeres innen ett minutt etter at de er funnet i stedet for på slutten av området. Slå på **Gjenta denne skanningen** på en discovery-skanning, så blir paret en fast ordning: skanningen skanner området sitt på nytt med intervallet ditt, og hver nye vert den finner, importeres uten at noen trykker på noe.
 
-Å lagre en regel bruker den også på resultater prosjektet allerede har: en regel du skriver eller aktiverer i dag, når verter som er oppdaget de siste 24 timene, innen omtrent ett minutt, så en regel som skrives etter en enkeltstående skanning, blir ikke stående og vente på en skanning som aldri kjører igjen. Eldre resultater får være, fordi å importere et miljø som ble oppdaget forrige måned, er en beslutning, ikke en bieffekt av å lagre en regel. De to knappene på en regel er måten å ta den beslutningen på, og de når hver skanning i prosjektet, uansett hvor gammel:
+Å lagre en regel bruker den også på resultater prosjektet allerede har: en regel du skriver eller aktiverer i dag, når verter som er oppdaget de siste 24 timene, innen omtrent ett minutt, så en regel som skrives etter en skanning, blir ikke stående og vente på at skanningen kjører igjen. Eldre resultater får være, fordi å importere et miljø som ble oppdaget forrige måned, er en beslutning, ikke en bieffekt av å lagre en regel. For å importere det et område inneholder i dag, klikker du på **Kjør igjen** på skanningen: de nye resultatene er ferske, og reglene importerer dem innen ett minutt etter at de kommer. For å importere de gamle resultatene slik de er, bruker du de to knappene på en regel, som når hver skanning i prosjektet, uansett hvor gammel:
 
 - **Prøvekjøring** vurderer hver fullførte skanning og rapporterer hva regelen ville importert og overvåket. Ingenting skrives, så det er den trygge måten å se hva en regel ville gjort krav på før du aktiverer den i et miljø i drift. En deaktivert regel kan prøvekjøres; bare en ekte kjøring krever at den er aktivert, og derfor starter en regel som opprettes i dashbordet, med **Aktivert** slått av: gjør en prøvekjøring, og slå den deretter på.
 - **Kjør regel** gjør den samme vurderingen og utfører importen.

@@ -28,9 +28,27 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelDetailField from "Common/UI/Components/ModelDetail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import {
+  DECLARED_PURPOSE,
+  FILLED_IN_BY_ONEUPTIME,
+  LEAVE_EMPTY_FOR_ONEUPTIMES,
+  WRITTEN_BY_YOUR_TEAM,
+  getDeclaredRetentionHint,
+  getDeclaredRetentionText,
+} from "../../../Components/DataSecurity/DeclaredStoreCopy";
+import useDeclaredStore, {
+  DeclaredStoreState,
+} from "../../../Components/DataSecurity/UseDeclaredStore";
+import { DataSecurityDeclaredStore } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import EmptyValue, {
   EMPTY_VALUE_MARK,
 } from "Common/UI/Components/Detail/EmptyValue";
@@ -57,6 +75,18 @@ const DataStoreSettings: FunctionComponent<
   const translator: Translator = useTranslator();
   const { dataStoreId, dataStore, refresh } = useDataStoreViewContext();
   const kindFacts: DataStoreKindFacts = getDataStoreKindFacts(dataStore?.kind);
+  /*
+   * A store OneUptime declares (#10398) is never classified, checked or
+   * scanned: its Settings are its name and its record, where OneUptime's
+   * purpose and retention stand until the team writes its own.
+   */
+  const isDeclared: boolean = isDeclaredDataStoreKind(dataStore?.kind);
+  const declared: DeclaredStoreState = useDeclaredStore(
+    dataStoreId,
+    isDeclared,
+  );
+  const declaredStore: DataSecurityDeclaredStore | null =
+    declared.answer?.declared || null;
 
   const scanMethodSection: FormFieldCollapsibleSection<DataStore> =
     getAdvancedFormSection<DataStore>({
@@ -334,198 +364,355 @@ const DataStoreSettings: FunctionComponent<
        * Each card's button names what it edits: three cards all saying
        * "Edit Data Store" read as three ways to do one thing.
        */}
-      <CardModelDetail<DataStore>
-        name="Classification"
-        cardProps={{
-          title: "Classification",
-          description:
-            "What its tags and scans cannot always tell. Each changes what its checks find.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Classification"
-        formFields={[
-          {
-            field: { environment: true },
-            title: "Environment",
+      {isDeclared ? (
+        <></>
+      ) : (
+        <CardModelDetail<DataStore>
+          name="Classification"
+          cardProps={{
+            title: "Classification",
             description:
-              "Read from its tags and name. Production data in a store that is not production is an issue of its own.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: STORE_ENVIRONMENT_OPTIONS,
-            required: true,
-          },
-          {
-            field: { sensitivityOverride: true },
-            title: "Sensitivity Override",
-            description:
-              "Treat the store as this sensitive, whatever its scans find. Leave it empty to go by its scans.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: STORE_SENSITIVITY_OPTIONS,
-            required: false,
-            placeholder: "As its scans find",
-          },
-          {
-            field: { isPublicByDesign: true },
-            title: "Public By Design",
-            description:
-              "The store is meant to be public, such as a website's images. Its public access checks pass.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            collapsibleSection: treatmentMoreFields,
-          },
-          {
-            field: { isAiData: true },
-            title: "Used For AI",
-            description:
-              "The store holds data used to train or ground an AI model. Restricted data in it is an issue of its own.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            collapsibleSection: treatmentMoreFields,
-          },
-        ]}
-        onSaveSuccess={(): void => {
-          refresh();
-        }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: DataStore,
-          id: "data-store-handling",
-          modelId: dataStoreId,
-          selectMoreFields: { sensitivity: true },
-          fields: [
+              "What its tags and scans cannot always tell. Each changes what its checks find.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Classification"
+          formFields={[
             {
               field: { environment: true },
               title: "Environment",
-              fieldType: FieldType.Element,
-              getElement: (item: DataStore): ReactElement => {
-                return (
-                  <span className="text-sm text-gray-900">
-                    {getDataStoreEnvironmentTitle(
-                      translator,
-                      item.environment,
-                    ) || <EmptyValue />}
-                  </span>
-                );
-              },
+              description:
+                "Read from its tags and name. Production data in a store that is not production is an issue of its own.",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions: STORE_ENVIRONMENT_OPTIONS,
+              required: true,
             },
             {
               field: { sensitivityOverride: true },
-              title: "Sensitivity",
-              fieldType: FieldType.Element,
-              getElement: (item: DataStore): ReactElement => {
-                return (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <SensitivityPill
-                      sensitivity={item.sensitivityOverride || item.sensitivity}
-                    />
-                    <span className="text-sm text-gray-500">
-                      {item.sensitivityOverride
-                        ? translator.translateText("Set by hand")
-                        : translator.translateText("As its scans find")}
-                    </span>
-                  </div>
-                );
-              },
+              title: "Sensitivity Override",
+              description:
+                "Treat the store as this sensitive, whatever its scans find. Leave it empty to go by its scans.",
+              fieldType: FormFieldSchemaType.Dropdown,
+              dropdownOptions: STORE_SENSITIVITY_OPTIONS,
+              required: false,
+              placeholder: "As its scans find",
             },
             {
               field: { isPublicByDesign: true },
               title: "Public By Design",
-              fieldType: FieldType.Element,
-              getElement: (item: DataStore): ReactElement => {
-                return yesOrNo(item.isPublicByDesign);
-              },
+              description:
+                "The store is meant to be public, such as a website's images. Its public access checks pass.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              collapsibleSection: treatmentMoreFields,
             },
             {
               field: { isAiData: true },
               title: "Used For AI",
-              fieldType: FieldType.Element,
-              getElement: (item: DataStore): ReactElement => {
-                return yesOrNo(item.isAiData);
-              },
+              description:
+                "The store holds data used to train or ground an AI model. Restricted data in it is an issue of its own.",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              collapsibleSection: treatmentMoreFields,
             },
-          ],
-        }}
-      />
+          ]}
+          onSaveSuccess={(): void => {
+            refresh();
+          }}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 2,
+            modelType: DataStore,
+            id: "data-store-handling",
+            modelId: dataStoreId,
+            selectMoreFields: { sensitivity: true },
+            fields: [
+              {
+                field: { environment: true },
+                title: "Environment",
+                fieldType: FieldType.Element,
+                getElement: (item: DataStore): ReactElement => {
+                  return (
+                    <span className="text-sm text-gray-900">
+                      {getDataStoreEnvironmentTitle(
+                        translator,
+                        item.environment,
+                      ) || <EmptyValue />}
+                    </span>
+                  );
+                },
+              },
+              {
+                field: { sensitivityOverride: true },
+                title: "Sensitivity",
+                fieldType: FieldType.Element,
+                getElement: (item: DataStore): ReactElement => {
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SensitivityPill
+                        sensitivity={
+                          item.sensitivityOverride || item.sensitivity
+                        }
+                      />
+                      <span className="text-sm text-gray-500">
+                        {item.sensitivityOverride
+                          ? translator.translateText("Set by hand")
+                          : translator.translateText("As its scans find")}
+                      </span>
+                    </div>
+                  );
+                },
+              },
+              {
+                field: { isPublicByDesign: true },
+                title: "Public By Design",
+                fieldType: FieldType.Element,
+                getElement: (item: DataStore): ReactElement => {
+                  return yesOrNo(item.isPublicByDesign);
+                },
+              },
+              {
+                field: { isAiData: true },
+                title: "Used For AI",
+                fieldType: FieldType.Element,
+                getElement: (item: DataStore): ReactElement => {
+                  return yesOrNo(item.isAiData);
+                },
+              },
+            ],
+          }}
+        />
+      )}
 
-      <CardModelDetail<DataStore>
-        name="Content Scans"
-        cardProps={{
-          title: "Content Scans",
-          description:
-            "Whether samples of its content are read to find sensitive data, and what the scans skip.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Content Scans"
-        formFields={scanningFormFields}
-        onSaveSuccess={(): void => {
-          refresh();
-        }}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: DataStore,
-          id: "data-store-scanning",
-          modelId: dataStoreId,
-          // What decides whether its content can be sampled at all.
-          selectMoreFields: {
-            kind: true,
-            provider: true,
-            scanProbeId: true,
-            ...(kindFacts.isSelfManaged
-              ? { probeConnectionVariable: true }
-              : {}),
-          },
-          fields: scanningDetailFields,
-        }}
-      />
+      {isDeclared ? (
+        <></>
+      ) : (
+        <CardModelDetail<DataStore>
+          name="Content Scans"
+          cardProps={{
+            title: "Content Scans",
+            description:
+              "Whether samples of its content are read to find sensitive data, and what the scans skip.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Content Scans"
+          formFields={scanningFormFields}
+          onSaveSuccess={(): void => {
+            refresh();
+          }}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 2,
+            modelType: DataStore,
+            id: "data-store-scanning",
+            modelId: dataStoreId,
+            // What decides whether its content can be sampled at all.
+            selectMoreFields: {
+              kind: true,
+              provider: true,
+              scanProbeId: true,
+              ...(kindFacts.isSelfManaged
+                ? { probeConnectionVariable: true }
+                : {}),
+            },
+            fields: scanningDetailFields,
+          }}
+        />
+      )}
 
-      <CardModelDetail<DataStore>
-        name="Record of Processing"
-        cardProps={{
-          title: "Record of Processing",
-          description:
-            "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Record"
-        formFields={[
-          {
-            field: { purpose: true },
-            title: "Purpose",
-            description: "Why the store holds personal data.",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Customer orders, for fulfilment and support",
-          },
-          {
-            field: { retention: true },
-            title: "Retention",
-            description: "How long data is kept in the store.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "Two years after an account is closed",
-          },
-        ]}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 2,
-          modelType: DataStore,
-          id: "data-store-record-of-processing",
-          modelId: dataStoreId,
-          fields: [
+      {isDeclared ? (
+        <DeclaredRecordCard
+          dataStoreId={dataStoreId}
+          declared={declaredStore}
+          error={declared.error}
+          readAgain={declared.readAgain}
+        />
+      ) : (
+        <CardModelDetail<DataStore>
+          name="Record of Processing"
+          cardProps={{
+            title: "Record of Processing",
+            description:
+              "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Record"
+          formFields={[
             {
               field: { purpose: true },
               title: "Purpose",
-              fieldType: FieldType.Text,
-              placeholder: "Not set",
+              description: "Why the store holds personal data.",
+              fieldType: FormFieldSchemaType.LongText,
+              required: false,
+              placeholder: "Customer orders, for fulfilment and support",
             },
             {
               field: { retention: true },
               title: "Retention",
-              fieldType: FieldType.Text,
-              placeholder: "Not set",
+              description: "How long data is kept in the store.",
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              placeholder: "Two years after an account is closed",
             },
-          ],
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 2,
+            modelType: DataStore,
+            id: "data-store-record-of-processing",
+            modelId: dataStoreId,
+            fields: [
+              {
+                field: { purpose: true },
+                title: "Purpose",
+                fieldType: FieldType.Text,
+                placeholder: "Not set",
+              },
+              {
+                field: { retention: true },
+                title: "Retention",
+                fieldType: FieldType.Text,
+                placeholder: "Not set",
+              },
+            ],
+          }}
+        />
+      )}
     </Fragment>
+  );
+};
+
+const RECORD_CARD_DESCRIPTION: string = translationKey(
+  "Why this store holds personal data and how long it keeps it, for the GDPR record of processing on Compliance.",
+);
+
+/*
+ * A declared store's record (#10398): OneUptime's purpose and retention -
+ * its retention read now, so a change in Settings since shows - each
+ * saying it is OneUptime's, until the team writes its own, which is then
+ * kept and drawn as written. An emptied field gives OneUptime's back.
+ */
+const DeclaredRecordCard: FunctionComponent<{
+  dataStoreId: ObjectID;
+  declared: DataSecurityDeclaredStore | null;
+  error: string;
+  readAgain: () => void;
+}> = (props: {
+  dataStoreId: ObjectID;
+  declared: DataSecurityDeclaredStore | null;
+  error: string;
+  readAgain: () => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const declared: DataSecurityDeclaredStore | null = props.declared;
+
+  // What the card says of a field: the team's words, or OneUptime's with where they come from.
+  const recorded: (data: {
+    teams: string | undefined;
+    oneUptimes: string;
+    oneUptimesHint: string;
+  }) => ReactElement = (data: {
+    teams: string | undefined;
+    oneUptimes: string;
+    oneUptimesHint: string;
+  }): ReactElement => {
+    const teams: string = (data.teams || "").trim();
+
+    return (
+      <div className="space-y-0.5 text-sm text-gray-900">
+        <p>{teams ? <IsolatedText text={teams} /> : data.oneUptimes}</p>
+        <p className="text-xs text-gray-500">
+          {teams
+            ? translator.translateText(WRITTEN_BY_YOUR_TEAM)
+            : translator.translateText(data.oneUptimesHint)}
+        </p>
+      </div>
+    );
+  };
+
+  if (props.error) {
+    return (
+      <Card title="Record of Processing" description={RECORD_CARD_DESCRIPTION}>
+        <ErrorMessage message={props.error} onRefreshClick={props.readAgain} />
+      </Card>
+    );
+  }
+
+  const oneUptimesRetention: string = declared
+    ? getDeclaredRetentionText(
+        {
+          retention: "",
+          declared: { ...declared, isRetentionTheTeams: false },
+        },
+        translator,
+      )
+    : "";
+
+  return (
+    <CardModelDetail<DataStore>
+      name="Record of Processing"
+      cardProps={{
+        title: "Record of Processing",
+        description: RECORD_CARD_DESCRIPTION,
+      }}
+      isEditable={true}
+      editButtonText="Edit Record"
+      formFields={[
+        {
+          field: { purpose: true },
+          title: "Purpose",
+          description: LEAVE_EMPTY_FOR_ONEUPTIMES,
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          placeholder: DECLARED_PURPOSE,
+        },
+        {
+          field: { retention: true },
+          title: "Retention",
+          description: LEAVE_EMPTY_FOR_ONEUPTIMES,
+          fieldType: FormFieldSchemaType.Text,
+          required: false,
+          ...(oneUptimesRetention ? { placeholder: oneUptimesRetention } : {}),
+        },
+      ]}
+      onSaveSuccess={(): void => {
+        props.readAgain();
+      }}
+      modelDetailProps={{
+        showDetailsInNumberOfColumns: 2,
+        modelType: DataStore,
+        id: "data-store-record-of-processing",
+        modelId: props.dataStoreId,
+        fields: [
+          {
+            field: { purpose: true },
+            title: "Purpose",
+            fieldType: FieldType.Element,
+            getElement: (item: DataStore): ReactElement => {
+              return recorded({
+                teams: item.purpose,
+                oneUptimes: translator.translateText(DECLARED_PURPOSE) || "",
+                oneUptimesHint: FILLED_IN_BY_ONEUPTIME,
+              });
+            },
+          },
+          {
+            field: { retention: true },
+            title: "Retention",
+            fieldType: FieldType.Element,
+            getElement: (item: DataStore): ReactElement => {
+              if (!declared && !(item.retention || "").trim()) {
+                return <InlineValueSkeleton />;
+              }
+
+              return recorded({
+                teams: item.retention,
+                oneUptimes: oneUptimesRetention,
+                oneUptimesHint: declared
+                  ? getDeclaredRetentionHint(declared)
+                  : FILLED_IN_BY_ONEUPTIME,
+              });
+            },
+          },
+        ],
+      }}
+    />
   );
 };
 

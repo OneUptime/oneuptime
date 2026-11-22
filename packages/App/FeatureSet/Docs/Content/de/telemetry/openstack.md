@@ -1069,7 +1069,7 @@ Eine Cloud schreibt sehr viel, was niemand liest. Wenn die OpenStack-Logs eines 
 | **OpenStack: health checks** | Ein Load Balancer, der jede API nach `/` oder `/healthcheck` fragt: alle paar Sekunden eine Zeile, pro API, pro Controller | Bei einer Prüfung alle 2 Sekunden 43.200 Zeilen am Tag für jede API auf jedem Controller. Bei den 220 bis 490 Bytes, die diese Zeilen auf unseren Test-Clouds hatten, sind das 10 bis 21 MB am Tag. Das ist Arithmetik aus der Größe einer Zeile: Unsere Test-Clouds haben keinen Load Balancer | Nichts, was eine Person liest. Dieselbe Zeile von einer Person sieht gleich aus |
 | **OpenStack: routine notifications** | `metrics.update` und jedes `*.exists` und `*.usage`. Siehe [Lebenszyklusereignisse](#lebenszyklusereignisse) | Nicht gemessen: Unsere Aufzeichnungen sind zu kurz, um viele zu enthalten. Es wächst mit der Zahl der Instanzen | Nichts, was sagt, dass sich etwas geändert hat. Schalten Sie diesen aus, um jede Benachrichtigung zu behalten |
 
-Diese Filter treffen nur, was OneUptime aus den Logs einer Cloud gelesen hat, daher wird nichts anderes in einem Projekt angefasst.
+Diese Filter treffen nur, was OneUptime aus den Logs einer Cloud gelesen hat, daher wird nichts anderes in einem Projekt angefasst. So wie OneUptime sie angelegt hat, behalten sie jede Zeile, die [Sicherheitsereignisse](/docs/telemetry/security-events) lesen: eine Anmeldung, einen Angriff in einer Anfrage, einen Audit-Eintrag. Ändern Sie einen, verwirft er, was er trifft, wie ein eigener Filter.
 
 ### Secrets in Logs
 

@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab HTTP अनुरोध में
-[HTTP अनुरोध चरण](/docs/runbooks/authoring#http-request) के URL, हेडर या बॉडी में संदर्भ लिखें:
+[HTTP अनुरोध चरण](/docs/runbooks/authoring#http-request) के URL, हेडर, बॉडी या **CA प्रमाणपत्र** में संदर्भ लिखें:
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+**CA प्रमाणपत्र** में संदर्भ अकेला रहता है, जैसे `{{global.variables.INTERNAL_CA}}`, और वेरिएबल में प्रमाणपत्र PEM में रहता है: जो भी चरण उसका नाम लेता है वह उसी CA पर भरोसा करता है, और नया CA एक ही जगह सेट होता है।
 @tab SSH साइन-इन
 [SSH चरण](/docs/runbooks/authoring#ssh) अपनी निजी कुंजी या पासवर्ड वाला सीक्रेट वेरिएबल **इससे साइन इन करें** में चुनता है, और अपनी कुंजी का पासफ़्रेज़ **और फ़ील्ड → की पासफ़्रेज़** में। मान ही बताता है कि वह कुंजी है या पासवर्ड।
 @tab Kubeconfig

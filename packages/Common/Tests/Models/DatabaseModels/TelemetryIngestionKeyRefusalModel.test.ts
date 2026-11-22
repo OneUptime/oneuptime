@@ -14,6 +14,7 @@ import {
   isTelemetryIngestRefusalReason,
 } from "../../../Types/Telemetry/TelemetryIngestRefusal";
 import {
+  TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES,
   TelemetryIngestionBudgetRefusalKind,
   TelemetryIngestionBudgetScope,
 } from "../../../Types/Telemetry/TelemetryIngestionBudget";
@@ -129,6 +130,7 @@ describe("the refusal reasons it stores", () => {
       "key-expired",
       "origin-not-allowed",
       "browser-key-not-allowed-here",
+      "mobile-key-not-allowed-here",
       "pinned-key-not-allowed-here",
       "key-requests-per-minute",
       "key-daily-budget",
@@ -205,6 +207,13 @@ describe("the refusal reasons it stores", () => {
       }
     }
 
+    /*
+     * Every scope is named: the project's and the key's, and a team's and a
+     * label's (#6386). Those two never refuse a request - they drop in the
+     * worker, after the sender was answered, and keep their own counters -
+     * and would read as the project's: whichever key sent the telemetry, it
+     * is dropped the same way, so it is never the key's own reason.
+     */
     expect(answers).toEqual([
       [
         TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
@@ -217,6 +226,16 @@ describe("the refusal reasons it stores", () => {
         TelemetryIngestRefusalReason.KeyDailyBudget,
       ],
       [
+        TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+        TelemetryIngestionBudgetScope.Team,
+        TelemetryIngestRefusalReason.ProjectDailyBudget,
+      ],
+      [
+        TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+        TelemetryIngestionBudgetScope.Label,
+        TelemetryIngestRefusalReason.ProjectDailyBudget,
+      ],
+      [
         TelemetryIngestionBudgetRefusalKind.RateLimited,
         TelemetryIngestionBudgetScope.Project,
         TelemetryIngestRefusalReason.ProjectIngestionRate,
@@ -226,7 +245,28 @@ describe("the refusal reasons it stores", () => {
         TelemetryIngestionBudgetScope.IngestionKey,
         TelemetryIngestRefusalReason.KeyIngestionRate,
       ],
+      [
+        TelemetryIngestionBudgetRefusalKind.RateLimited,
+        TelemetryIngestionBudgetScope.Team,
+        TelemetryIngestRefusalReason.ProjectIngestionRate,
+      ],
+      [
+        TelemetryIngestionBudgetRefusalKind.RateLimited,
+        TelemetryIngestionBudgetScope.Label,
+        TelemetryIngestRefusalReason.ProjectIngestionRate,
+      ],
     ]);
+
+    // A team's or a label's reason is one every key of the project shares.
+    for (const scope of TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES) {
+      for (const kind of Object.values(TelemetryIngestionBudgetRefusalKind)) {
+        expect(
+          PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
+            getTelemetryIngestRefusalReasonForBudget({ kind, scope }),
+          ),
+        ).toBe(true);
+      }
+    }
   });
 
   test("the key guard's refusals (gRPC, MQTT) are each the key's own reason, none shared", () => {

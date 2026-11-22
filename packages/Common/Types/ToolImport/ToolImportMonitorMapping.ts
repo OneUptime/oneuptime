@@ -6,7 +6,7 @@ import {
   ToolImportNoteCode,
 } from "./ToolImportNote";
 import {
-  readJsonObjectBody,
+  readJsonBody,
   splitRequestHeaders,
   TOOL_IMPORT_MAX_TIMEOUT_SECONDS,
   ToolImportHeaderSplit,
@@ -113,7 +113,7 @@ export function toHttpMonitor(input: HttpCheckInput): ImportedMonitor {
     method !== HTTPMethod.GET &&
     method !== HTTPMethod.HEAD
   ) {
-    body = readJsonObjectBody(input.body) || undefined;
+    body = readJsonBody(input.body) || undefined;
 
     if (!body) {
       notes.push(makeToolImportNote(ToolImportNoteCode.MonitorBodyLeftOut));

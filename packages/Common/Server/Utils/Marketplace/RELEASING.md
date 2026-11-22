@@ -639,9 +639,12 @@ the account and its gotchas. Use the same account.
      design: an email address Microsoft does not vouch for is never matched to
      a OneUptime user. Without `auth_time`, Sign In Again (#10217) never
      confirms it's someone who signs in only with Microsoft: it sends them
-     with `prompt=login` and `max_age=0`, and counts the sign-in only when the
-     ID token says they signed in after it sent them there
+     with `prompt=login`, and counts the sign-in only when the ID token says
+     they signed in after it sent them there
      ([MicrosoftSignInClient.ts](../MicrosoftSignIn/MicrosoftSignInClient.ts)).
+     It sends no `max_age`, which Microsoft does not document and which has
+     been reported to make Entra ID answer with an ID token that has already
+     expired (#10529).
      Add it under **Token configuration > Add optional claim > ID**.
      An existing OneUptime account whose address was never verified is sent a
      verification link instead of being signed in, as with Global OIDC; users

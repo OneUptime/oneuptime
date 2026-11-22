@@ -1,3 +1,4 @@
+import http from "http";
 import https from "https";
 import axios from "axios";
 import KubernetesExecutor, {
@@ -20,7 +21,9 @@ const patchMock: jest.Mock = axios.patch as unknown as jest.Mock;
 // The shape KubernetesExecutor actually passes as axios' third argument.
 interface PatchConfig {
   headers: Record<string, string>;
+  httpAgent: http.Agent;
   httpsAgent: https.Agent;
+  proxy: false;
   timeout: number;
   validateStatus: (status: number) => boolean;
 }
@@ -870,7 +873,8 @@ describe("KubernetesExecutor", () => {
       const agent: https.Agent = patchCall().config.httpsAgent;
 
       expect(agent).toBeInstanceOf(https.Agent);
-      expect(agentOptions(agent).rejectUnauthorized).toBe(true);
+      // Left unset, Node checks the certificate, as every request's.
+      expect(agentOptions(agent).rejectUnauthorized).toBeUndefined();
       expect(agentOptions(agent).rejectUnauthorized).not.toBe(false);
       expect(agentOptions(agent).ca).toBeUndefined();
     });
@@ -889,8 +893,108 @@ describe("KubernetesExecutor", () => {
 
       const agent: https.Agent = patchCall().config.httpsAgent;
 
-      expect(agentOptions(agent).rejectUnauthorized).toBe(true);
+      expect(agentOptions(agent).rejectUnauthorized).not.toBe(false);
       expect(agentOptions(agent).ca).toBeUndefined();
+    });
+  });
+
+  /*
+   * The Runner reaches the API server through the outbound proxy its
+   * environment names, or directly (OutboundProxyAgents), never through a
+   * proxy axios reads itself, which sent the proxy's password
+   * percent-encoded (#10442). The cluster CA stays on the connection to the
+   * API server: an https:// proxy's own connection keeps the CAs the Runner
+   * trusts.
+   */
+  describe("the route to the API server", () => {
+    const PROXY_VARIABLES: Array<string> = [
+      "HTTPS_PROXY",
+      "https_proxy",
+      "HTTP_PROXY",
+      "http_proxy",
+      "ALL_PROXY",
+      "all_proxy",
+      "NO_PROXY",
+      "no_proxy",
+    ];
+    const saved: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      for (const name of PROXY_VARIABLES) {
+        saved[name] = process.env[name];
+        delete process.env[name];
+      }
+    });
+
+    afterEach(() => {
+      for (const name of PROXY_VARIABLES) {
+        if (saved[name] === undefined) {
+          delete process.env[name];
+        } else {
+          process.env[name] = saved[name];
+        }
+      }
+    });
+
+    function proxyEnvOf(agent: http.Agent): unknown {
+      return (agent as unknown as { options: { proxyEnv?: unknown } }).options
+        .proxyEnv;
+    }
+
+    async function restart(caCertificate?: string): Promise<PatchConfig> {
+      await KubernetesExecutor.execute({
+        payload: {
+          action: KubernetesAction.RestartWorkload,
+          workloadKind: "Deployment",
+          namespace: "prod",
+          workloadName: "checkout-api",
+        },
+        credential: credential(caCertificate ? { caCertificate } : {}),
+        timeoutInMs: 30000,
+      });
+
+      return patchCall().config;
+    }
+
+    test("goes through HTTPS_PROXY on agents of its own, with axios's proxy off", async () => {
+      process.env["HTTPS_PROXY"] = "http://ops:p%40ss@proxy.corp.example:3128";
+
+      const config: PatchConfig = await restart();
+
+      expect(config.proxy).toBe(false);
+      expect(proxyEnvOf(config.httpsAgent)).toEqual({
+        https_proxy: "http://ops:p%40ss@proxy.corp.example:3128/",
+      });
+    });
+
+    test("keeps the cluster CA on the agent of the API server's connection", async () => {
+      process.env["HTTPS_PROXY"] = "https://proxy.corp.example:3128";
+      const ca: string =
+        "-----BEGIN CERTIFICATE-----\nMIIBcluster\n-----END CERTIFICATE-----";
+
+      const config: PatchConfig = await restart(ca);
+
+      expect(agentOptions(config.httpsAgent).ca).toBe(ca);
+      expect(proxyEnvOf(config.httpsAgent)).toEqual({
+        https_proxy: "https://proxy.corp.example:3128/",
+      });
+    });
+
+    test("goes directly when NO_PROXY names the API server, as an in-cluster one usually is", async () => {
+      process.env["HTTPS_PROXY"] = "http://proxy.corp.example:3128";
+      process.env["NO_PROXY"] = "k8s.example.com";
+
+      const config: PatchConfig = await restart();
+
+      expect(config.proxy).toBe(false);
+      expect(proxyEnvOf(config.httpsAgent)).toEqual({});
+    });
+
+    test("goes directly with no proxy set at all", async () => {
+      const config: PatchConfig = await restart();
+
+      expect(config.proxy).toBe(false);
+      expect(proxyEnvOf(config.httpsAgent)).toEqual({});
     });
   });
 });

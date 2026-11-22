@@ -24,6 +24,8 @@ import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
+import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -2176,6 +2178,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -4646,9 +4649,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<LogDropFilter, LogDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<LogDropFilter, LogDropFilterServiceType>(
         LogDropFilter,
         LogDropFilterService,
+        "log",
       ).getRouter(),
     );
 
@@ -4882,7 +4887,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         SecurityBlocklistFeedFetch,
         SecurityBlocklistFeedFetchServiceType
-      >(SecurityBlocklistFeedFetch, SecurityBlocklistFeedFetchService).getRouter(),
+      >(
+        SecurityBlocklistFeedFetch,
+        SecurityBlocklistFeedFetchService,
+      ).getRouter(),
     );
 
     /*
@@ -5346,9 +5354,11 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<TraceDropFilter, TraceDropFilterServiceType>(
+      // A write with an API key says what the filter takes (#10436).
+      new DropFilterAPI<TraceDropFilter, TraceDropFilterServiceType>(
         TraceDropFilter,
         TraceDropFilterService,
+        "trace",
       ).getRouter(),
     );
 
@@ -5480,6 +5490,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Events that read what it hides (#10433).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * What a drop or sample filter being written or turned on would take
+     * from Security Events, monitors, dashboards, saved views, recording
+     * rules and SLOs (#10436).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DropFilterImpactAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a
@@ -6965,6 +6982,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
+    );
+
+    /*
+     * Running a discovery scan again, on demand (Network > Discovery > Run
+     * Again, issue #10334). A bare router beside the scan's CRUD API, which
+     * claims no `/:id/run` path: the run is written as root, so its own
+     * check of who may edit scans is the gate.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryScanRunAPI,
     );
 
     /*
