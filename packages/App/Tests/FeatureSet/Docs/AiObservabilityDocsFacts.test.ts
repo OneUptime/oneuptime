@@ -2150,12 +2150,21 @@ describe("the AI Coding Assistants page", () => {
   });
 
   it("says the Usage tab labels a person by email first, and reads identity only from AI calls", () => {
+    // The email first, else the id: each past what a scrub rule left of it (#10435).
     expect(source("usageReader")).toContain(
-      "if(ifNull(llmUserEmail, '') != '', ifNull(llmUserEmail, ''), ifNull(llmUserId, ''))",
+      "statement.append(`${USER_EMAIL_SQL} != '' AND NOT `);",
+    );
+    expect(source("usageReader")).toContain(
+      "statement.append(`, ${USER_EMAIL_SQL}, ${USER_ID_SQL} != '' AND NOT `);",
     );
     expect(page).toContain(
       "**The Usage tab shows a person's email when the call has one, and the id otherwise.**",
     );
+    // Spend a scrub rule hid the person of is one row of its own, never a person's.
+    expect(page).toContain(
+      "**A person or team a scrub rule hid is never anyone's spend.** A call whose email a rule hid is shown under its ID when the rule left the ID whole. Otherwise the Usage tab counts it in one row of spend a scrub rule hid, whether the rule redacted, masked or hashed it.",
+    );
+    expect(source("usageReader")).toContain("hiddenGroupSql()");
     expect(source("llmSpan")).toContain(
       "fields.llmUserId = this.getString(attributes, LlmUserIdAttributeKeys);",
     );
