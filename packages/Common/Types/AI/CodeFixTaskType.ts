@@ -126,6 +126,20 @@ enum CodeFixTaskType {
    * just answer, or ask the person a question, and change nothing.
    */
   CodeRequest = "CodeRequest",
+  /*
+   * Fix the CAUSE of a group of Data Security issues once, in the
+   * infrastructure code that declares their stores (#10370): forty buckets
+   * one Terraform module made without access logs get one pull request to
+   * the module - its default, or the setting every store takes - never forty
+   * resources edited one by one. Started by a person from the group in Data
+   * Security's Issues list, by a security playbook's Fix With AI step, or by
+   * an approved proposal of OneUptime AI's, always in a repository a person
+   * confirmed (AIRun.codeRepositoryId). Its whole context - the request as
+   * Data Security's input builder wrote it, the cause, and the stores and
+   * issues it fixes, which its pull request lists - is captured into
+   * AIRun.taskContext.infrastructureFix at trigger time.
+   */
+  FixInfrastructureCode = "FixInfrastructureCode",
 }
 
 export default CodeFixTaskType;
@@ -194,6 +208,7 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.GitHubPullRequestReview:
       case CodeFixTaskType.GitHubPullRequestProductionReview:
       case CodeFixTaskType.CodeRequest:
+      case CodeFixTaskType.FixInfrastructureCode:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;
@@ -321,6 +336,7 @@ export class CodeFixTaskTypeHelper {
       CodeFixTaskType.ImproveLogging,
       CodeFixTaskType.ImproveTracing,
       CodeFixTaskType.FixFromIncident,
+      CodeFixTaskType.FixInfrastructureCode,
     ];
   }
 
@@ -357,13 +373,17 @@ export class CodeFixTaskTypeHelper {
    * still be online, and handed a recipe it has no handler for it fails the
    * run at once ("No handler registered"). So such a Runner is only given
    * the recipes every Runner has had - every recipe but the ones added since.
-   * A request from Code waits for a Runner that can do it instead. The
-   * recipes the server runs itself are never a Runner's (isRunByServer).
+   * A request from Code, and the fix of a group of Data Security issues'
+   * cause (#10370), wait for a Runner that can do them instead. The recipes
+   * the server runs itself are never a Runner's (isRunByServer).
    */
   public static getTaskTypesForRunnersThatDoNotSay(): Array<CodeFixTaskType> {
     return CodeFixTaskTypeHelper.getRunnerTaskTypes().filter(
       (taskType: CodeFixTaskType): boolean => {
-        return taskType !== CodeFixTaskType.CodeRequest;
+        return (
+          taskType !== CodeFixTaskType.CodeRequest &&
+          taskType !== CodeFixTaskType.FixInfrastructureCode
+        );
       },
     );
   }

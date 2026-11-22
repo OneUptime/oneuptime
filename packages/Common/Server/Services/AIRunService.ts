@@ -13,6 +13,7 @@ import CodeFixTaskType, {
 import CodeFixTaskContext, {
   getCodeTaskRequest,
   getGitHubTaskContext,
+  getInfrastructureFixTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
@@ -491,6 +492,23 @@ export class Service extends DatabaseService<Model> {
         missingContextMessage = getGitHubTaskContext(run.taskContext)
           ? null
           : "Queued GitHub run has no complete GitHub conversation in its task context.";
+      } else if (
+        run.codeFixTaskType === CodeFixTaskType.FixInfrastructureCode
+      ) {
+        /*
+         * The fix of a group of Data Security issues' cause (#10370): its
+         * request and the stores it fixes, and the repository a person
+         * confirmed for it - without either, nothing to do or nowhere to.
+         */
+        if (
+          !getInfrastructureFixTaskContext(run.taskContext?.infrastructureFix)
+        ) {
+          missingContextMessage =
+            "Queued infrastructure fix has no request in its task context.";
+        } else if (!run.codeRepositoryId) {
+          missingContextMessage =
+            "The repository this infrastructure fix was asked in is no longer connected to the project.";
+        }
       } else if (
         run.codeFixTaskType === CodeFixTaskType.ImproveLogging ||
         run.codeFixTaskType === CodeFixTaskType.ImproveTracing
