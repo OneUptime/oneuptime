@@ -7,7 +7,13 @@ import EgressGuardException, {
   EgressFailureReason,
 } from "../../../Types/Exception/EgressGuardException";
 import logger from "../Logger";
-import OutboundProxy from "../OutboundProxy";
+import OutboundProxyAgents, {
+  OUTBOUND_PROXY_VARIABLES,
+  OutboundAgentOptions,
+  TargetTlsOptions,
+} from "../OutboundProxyAgents";
+
+export type { TargetTlsOptions };
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -51,15 +57,21 @@ import OutboundProxy from "../OutboundProxy";
  * validation, accepting a small residual rebind window in exchange for
  * intact TLS hostname verification.
  *
- * An HTTP request sent with axios goes through the outbound proxy the
- * operator configured (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY), apart from the
- * hosts in NO_PROXY, as every other request of the server does. Its pinned
- * agents (createPinnedAgents) answer only the checked host's name from the
- * pin, look the proxy's own name up as usual, and refuse every other name
+ * An HTTP request goes through the outbound proxy the operator configured
+ * (HTTPS_PROXY, HTTP_PROXY, ALL_PROXY), apart from the hosts in NO_PROXY, as
+ * every other request of the server does. Its pinned agents
+ * (createPinnedAgents) carry that route themselves, through Node's own proxy
+ * support (OutboundProxyAgents), and are sent with axios's proxy off: axios
+ * sent a proxy's user name and password percent-encoded (#10442), and copied
+ * a request's certificate settings onto an https:// proxy's connection
+ * (#10277). They answer only the checked host's name from the pin, look the
+ * proxy's own name up as usual, and refuse every other name
  * (createPinnedLookupForTarget), so a proxy named by host name is reached
  * at its own address. Through a proxy it is the proxy that looks the
  * target's name up and connects: the docs (self-hosted/
- * private-network-access) ask the operator to police it there.
+ * private-network-access) ask the operator to police it there. A caller
+ * whose target must be the one dialled asks for agents that never go
+ * through a proxy (PinnedAgentOptions.direct).
  */
 
 export interface ResolvedAddress {
@@ -134,21 +146,22 @@ export interface PinnedAgents {
 }
 
 /*
- * How a request checks its target's certificate, for one request: the
- * settings of a Runbook HTTP step (Types/Runbook/HttpStepCertificates).
- * They go on the https agent built for that request alone, so they reach
- * the TLS connection to the target and nothing else - never another
- * request, never the global agent, never NODE_TLS_REJECT_UNAUTHORIZED, and
- * never the connection to an https:// outbound proxy, which keeps the CAs
- * the process trusts (createPinnedAgentsForNodeHttp). Unset, the target is
- * checked as every request's is.
+ * How a pinned request's agents are built, beside the pin itself:
+ *
+ *   - tls (TargetTlsOptions): how the target's certificate is checked, for
+ *     that request alone - a Runbook HTTP step's settings
+ *     (Types/Runbook/HttpStepCertificates), a workflow API step's or a
+ *     playbook's Send Webhook's (Types/Webhook/WebhookCertificates). They go
+ *     on the https agent built for that request, so they reach the TLS
+ *     connection to the target and nothing else - never another request,
+ *     never the global agent, never NODE_TLS_REJECT_UNAUTHORIZED, and never
+ *     the connection to an https:// outbound proxy, which keeps the CAs the
+ *     process trusts. Unset, the target is checked as every request's is;
+ *   - direct: never through an outbound proxy, whatever the environment
+ *     says - a Git server, a Mattermost server, an MCP client's metadata
+ *     document, where a proxy would connect somewhere the check never saw.
  */
-export interface TargetTlsOptions {
-  // false: the target's certificate is not checked at all.
-  rejectUnauthorized?: boolean | undefined;
-  // The certificates (PEM) the target's chain must end at, and no others.
-  ca?: string | Array<string> | undefined;
-}
+export type PinnedAgentOptions = Omit<OutboundAgentOptions, "lookup">;
 
 /*
  * The agents of a client sent with Node's own http client that learns its
@@ -183,16 +196,10 @@ export interface PinnedTarget {
 
 /*
  * The environment variables an outbound proxy is read from, by axios
- * (proxy-from-env) and by Node's own env proxy, in either case.
+ * (proxy-from-env) and by OutboundProxy, in either case.
  */
-export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
-  "http_proxy",
-  "HTTP_PROXY",
-  "https_proxy",
-  "HTTPS_PROXY",
-  "all_proxy",
-  "ALL_PROXY",
-];
+export const OUTBOUND_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> =
+  OUTBOUND_PROXY_VARIABLES;
 
 // What a pinned HTTP agent's lookup answers when it is asked for any other name.
 export const UNAPPROVED_LOOKUP_MESSAGE: string =
@@ -910,7 +917,7 @@ export default class DataSourceEgressGuard {
    * connection), where the checked address becomes the address that gets
    * dialed, closing the DNS-rebind window between validation and connect.
    * TLS still verifies against the original hostname because SNI is taken
-   * from the URL, not from here. An HTTP agent, which axios may point at an
+   * from the URL, not from here. An HTTP agent, which may go through an
    * outbound proxy, takes createPinnedLookupForTarget instead.
    *
    * It always answers asynchronously, the way dns.lookup does. Node's
@@ -979,12 +986,12 @@ export default class DataSourceEgressGuard {
    *     always: no second lookup, so a name that resolves somewhere else a
    *     moment later (DNS rebinding) is never dialled;
    *   - the host name of an outbound proxy the operator configured is
-   *     looked up as any other request's would be. Axios sends a request
-   *     through HTTPS_PROXY, HTTP_PROXY or ALL_PROXY, unless NO_PROXY names
-   *     its host, and has these agents connect to the proxy: a forward
-   *     proxy for http, and for https a CONNECT tunnel whose agent takes
-   *     this lookup over. Answering the proxy's name from the pin dialled
-   *     the target's address on the proxy's port (issue #8873);
+   *     looked up as any other request's would be. A request goes through
+   *     HTTPS_PROXY, HTTP_PROXY or ALL_PROXY, unless NO_PROXY names its
+   *     host, and these agents connect to the proxy: a forward proxy for
+   *     http, and for https a CONNECT tunnel. Answering the proxy's name
+   *     from the pin dialled the target's address on the proxy's port
+   *     (issue #8873);
    *   - any other name is refused.
    *
    * A host written as an IP address is never looked up at all: Node dials
@@ -1063,111 +1070,44 @@ export default class DataSourceEgressGuard {
   /*
    * An http and an https agent for a request to the target's URL: they dial
    * only the addresses its check approved, and an outbound proxy the
-   * operator configured (createPinnedLookupForTarget). Destroy both once
-   * the request is over.
-   */
-  public static createPinnedAgents(target: PinnedTarget): PinnedAgents {
-    const lookup: EgressLookupFunction =
-      this.createPinnedLookupForTarget(target);
-
-    return {
-      httpAgent: new http.Agent({ lookup: lookup as never }),
-      httpsAgent: new https.Agent({ lookup: lookup as never }),
-    };
-  }
-
-  /*
-   * The agents of createPinnedAgents, for a request sent with Node's own
-   * http client (http.request), which reads no proxy setting by itself
-   * (#8932). Axios goes through the outbound proxy on agents like these; a
-   * request on these goes through it too, decided as axios decides
-   * (OutboundProxy.getProxyFor):
+   * operator configured (createPinnedLookupForTarget). Every pinned request
+   * goes out on these - with axios (`proxy: false`) or with Node's own http
+   * client, which reads no proxy setting by itself (#8932) - and they go
+   * through the outbound proxy themselves, decided as axios decides
+   * (OutboundProxy.getProxyFor), through Node's own proxy support
+   * (OutboundProxyAgents):
    *
    *   - through a proxy, the agent of the URL's scheme hands the request to
-   *     Node's own proxy support: a CONNECT tunnel for https, naming the
-   *     host the URL names, and for http the whole URL to the proxy. The
-   *     proxy's own name is looked up as usual, and never checked against
-   *     the egress policy (a proxy on 10.x is the operator's, whatever the
-   *     policy says of 10.x); it is the proxy that looks the target's name
-   *     up and connects;
-   *   - with no proxy, or NO_PROXY naming the host, the agents dial the
-   *     approved addresses only, as createPinnedAgents' do.
+   *     the proxy: a CONNECT tunnel for https, naming the host the URL
+   *     names, and for http the whole URL. The proxy's user name and
+   *     password are sent decoded (#10442). The proxy's own name is looked
+   *     up as usual, and never checked against the egress policy (a proxy
+   *     on 10.x is the operator's, whatever the policy says of 10.x); it is
+   *     the proxy that looks the target's name up and connects;
+   *   - with no proxy, NO_PROXY naming the host, or `direct`, the agents
+   *     dial the approved addresses only.
    *
-   * axios sends on these agents too when it is told not to proxy by itself
-   * (`proxy: false`), as a Runbook HTTP step does: axios's own tunnel hands
-   * the https agent's options to its connection to an https:// proxy, so a
-   * step's certificate settings would reach the proxy's connection as well.
-   * Node's tunnel keeps them to the target's.
-   *
-   * `tls` is how the target's certificate is checked (TargetTlsOptions):
-   * on the https agent only, so on the TLS connection to the target only,
-   * inside a proxy's tunnel too.
+   * Both agents carry their route, so axios, which reads the environment
+   * only for an agent that carries none, never adds a proxy of its own on
+   * top. Axios's own tunnel would also hand the https agent's options to
+   * its connection to an https:// proxy, so a request's certificate
+   * settings would reach the proxy's connection as well; Node's tunnel
+   * keeps them to the target's (PinnedAgentOptions.tls).
    *
    * Destroy both once the request is over.
    */
-  public static createPinnedAgentsForNodeHttp(
+  public static createPinnedAgents(
     target: PinnedTarget,
-    tls?: TargetTlsOptions | undefined,
+    options?: PinnedAgentOptions | undefined,
   ): PinnedAgents {
     const lookup: EgressLookupFunction =
       this.createPinnedLookupForTarget(target);
-    const proxy: URL | null = this.getOutboundProxyForNodeHttp(target.url);
-    const isHttps: boolean = target.url.protocol === "https:";
 
-    return {
-      httpAgent: new http.Agent({
-        lookup: lookup as never,
-        ...(proxy && !isHttps ? { proxyEnv: { http_proxy: proxy.href } } : {}),
-      }),
-      httpsAgent: new https.Agent({
-        lookup: lookup as never,
-        ...this.getTargetTlsAgentOptions(tls),
-        ...(proxy && isHttps ? { proxyEnv: { https_proxy: proxy.href } } : {}),
-      }),
-    };
-  }
-
-  /*
-   * The https agent's options for `tls`: only what it sets, so an unset
-   * TargetTlsOptions leaves the agent as every other request's.
-   */
-  private static getTargetTlsAgentOptions(
-    tls: TargetTlsOptions | undefined,
-  ): https.AgentOptions {
-    const options: https.AgentOptions = {};
-
-    if (tls?.rejectUnauthorized === false) {
-      options.rejectUnauthorized = false;
-    }
-
-    if (
-      tls?.ca !== undefined &&
-      (Array.isArray(tls.ca) ? tls.ca.length > 0 : tls.ca.trim() !== "")
-    ) {
-      options.ca = tls.ca;
-    }
-
-    return options;
-  }
-
-  /*
-   * assertUrlAllowedAndPin, for a request sent with Node's own http client,
-   * or with axios told not to proxy by itself: the agents go through the
-   * outbound proxy as axios's would, and check the target's certificate as
-   * `tls` says (createPinnedAgentsForNodeHttp).
-   */
-  public static async assertUrlAllowedAndPinForNodeHttp(
-    urlString: string,
-    options?: EgressGuardOptions,
-    tls?: TargetTlsOptions | undefined,
-  ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
-    const { url, addresses } = await this.assertUrlAllowed(urlString, options);
-
-    return {
-      url,
-      addresses,
-      ...this.createPinnedAgentsForNodeHttp({ url, addresses }, tls),
-    };
+    return OutboundProxyAgents.createAgents(target.url, {
+      tls: options?.tls,
+      direct: options?.direct,
+      lookup: lookup as never,
+    });
   }
 
   /*
@@ -1223,7 +1163,7 @@ export default class DataSourceEgressGuard {
     return {
       agentFor: (url: URL): http.Agent => {
         const isHttps: boolean = url.protocol === "https:";
-        const proxy: URL | null = this.getOutboundProxyForNodeHttp(url);
+        const proxy: URL | null = OutboundProxyAgents.getProxyFor(url);
 
         if (!proxy) {
           return isHttps ? directHttps : directHttp;
@@ -1264,33 +1204,6 @@ export default class DataSourceEgressGuard {
   }
 
   /*
-   * The outbound proxy a request to `url`, sent with Node's own http client,
-   * goes through: axios's choice (OutboundProxy.getProxyFor). Node's proxy
-   * support speaks to an http or https proxy only, and would go direct past
-   * any other, so another is refused, as axios fails a request to one. The
-   * refusal names no proxy: its URL may hold its password.
-   */
-  private static getOutboundProxyForNodeHttp(url: URL): URL | null {
-    let proxy: URL | null;
-
-    try {
-      proxy = OutboundProxy.getProxyFor(url);
-    } catch {
-      throw new BadDataException(
-        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
-      );
-    }
-
-    if (proxy && proxy.protocol !== "http:" && proxy.protocol !== "https:") {
-      throw new BadDataException(
-        "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not an http or https proxy.",
-      );
-    }
-
-    return proxy;
-  }
-
-  /*
    * `agent`, with `check` run on the host of every socket it opens before
    * the socket is made; a refusal fails the request with the guard's error.
    * A socket kept alive for a host is reused unchecked, as it was checked
@@ -1328,15 +1241,23 @@ export default class DataSourceEgressGuard {
    * one-call form for HTTP callers. Pair with maxRedirects 0 /
    * doNotFollowRedirects: pinning only covers the host that was validated, so
    * a 3xx to an unvalidated host would otherwise walk straight around it.
-   * Send the URL it returns, whose host name is the one the agents dial.
+   * Send the URL it returns, whose host name is the one the agents dial,
+   * with axios's proxy off (`proxy: false`, API's disableProxy): the agents
+   * go through the outbound proxy themselves (createPinnedAgents), checking
+   * the target's certificate as `pin.tls` says.
    */
   public static async assertUrlAllowedAndPin(
     urlString: string,
     options?: EgressGuardOptions,
+    pin?: PinnedAgentOptions | undefined,
   ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
     const { url, addresses } = await this.assertUrlAllowed(urlString, options);
 
-    return { url, addresses, ...this.createPinnedAgents({ url, addresses }) };
+    return {
+      url,
+      addresses,
+      ...this.createPinnedAgents({ url, addresses }, pin),
+    };
   }
 
   // A host name as a lookup compares it: no case, no IPv6 brackets.

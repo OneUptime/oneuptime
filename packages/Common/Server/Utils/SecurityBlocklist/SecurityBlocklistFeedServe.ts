@@ -18,7 +18,11 @@ import {
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import ObjectID from "../../../Types/ObjectID";
-import { SecurityBlockState } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import {
+  SECURITY_BLOCK_ADDRESS_TYPES,
+  SecurityBlockState,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   SecurityBlocklistFeedEntry,
   isSecurityBlocklistFeedSecretShape,
@@ -390,9 +394,11 @@ export default class SecurityBlocklistFeedServe {
 
   /*
    * The entries the feed serves now, or null when what would protect one
-   * could not be read: every active block of the project, the oldest first
-   * (as many as the reconciler keeps), held to the feed's rules and to what
-   * the project protects.
+   * could not be read: every active block of an address or a range in the
+   * project, the oldest first (as many as the reconciler keeps), held to
+   * the feed's rules and to what the project protects. A domain, a URL or a
+   * file (#10346) is blocked on every machine, never through a firewall's
+   * list, so it never takes a place an address would.
    */
   @CaptureSpan()
   public static async readEntries(data: {
@@ -403,6 +409,7 @@ export default class SecurityBlocklistFeedServe {
       query: {
         projectId: data.feed.projectId!,
         state: SecurityBlockState.Active,
+        indicatorType: new Includes([...SECURITY_BLOCK_ADDRESS_TYPES]),
       },
       select: {
         _id: true,

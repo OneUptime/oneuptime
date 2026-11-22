@@ -118,6 +118,8 @@ const USER_PERMISSIONS_CALLERS: Record<string, string> = {
     "The grant ceiling for an API key's permissions.",
   "packages/Common/Server/Services/OnCallDutyPolicyChildService.ts":
     "Builds the props a create runs with from the caller's rows for the table's create permissions, blocks kept; the CRUD path decides.",
+  "packages/Common/Server/Utils/RecordAccess/RecordAccessBuilder.ts":
+    "Names the teams in a private record's refusal: of the teams that own the record, those the reader's rows come from - allow or block, any team of theirs (getReaderTeamIds) - for the sentence that says which of their teams own it and may not make the change. It decides nothing: the operation was refused by the checks a write runs, and an explanation never turns a refusal into an allowance (#10272).",
   "packages/Common/Server/Utils/Permission/PropsHoldingOnly.ts":
     "Builds the props a run reads the workflow or runbook with from the caller's rows for the grant that lets them run alone, blocks kept, after the rule let them in (WorkflowRunAccess, RunbookRunAccess) - and, the other way round, the props without some allow rows, to ask which user overrides a caller reaches without their team-scoped grant (OnCallDutyPolicyUserOverrideService); the CRUD path decides what the rows reach.",
 };

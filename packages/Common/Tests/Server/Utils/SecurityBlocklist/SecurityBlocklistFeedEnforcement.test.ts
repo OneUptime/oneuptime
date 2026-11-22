@@ -7,6 +7,7 @@ import SecurityBlocklistFeedFetchService, {
   SecurityBlocklistFeedFetchRecord,
 } from "../../../../Server/Services/SecurityBlocklistFeedFetchService";
 import SecurityBlockCloudWafService from "../../../../Server/Services/SecurityBlockCloudWafService";
+import SecurityEventConnectionService from "../../../../Server/Services/SecurityEventConnectionService";
 import CloudflareBlockDestinations from "../../../../Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import SecurityBlocklistFeedService from "../../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../../Server/Services/SecurityCaseFeedService";
@@ -23,11 +24,13 @@ import SecurityBlocklistReconciler, {
   isConfirmedBeforeBlock,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistReconciler";
 import SecurityProtectedAddresses from "../../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import HashedString from "../../../../Types/HashedString";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockIndicatorType,
   SecurityBlockSource,
   SecurityBlockState,
   SecurityBlockValue,
@@ -245,10 +248,16 @@ beforeEach(() => {
 
     return Array.from(blocks.values())
       .filter((block: SecurityBlock): boolean => {
+        const kinds: Includes | undefined = findBy.query["indicatorType"] as
+          | Includes
+          | undefined;
+
         return (
           sameId(block.projectId, findBy.query["projectId"]) &&
           (findBy.query["state"] === undefined ||
-            block.state === findBy.query["state"])
+            block.state === findBy.query["state"]) &&
+          (kinds === undefined ||
+            (kinds.values as Array<unknown>).includes(block.indicatorType))
         );
       })
       .sort((left: SecurityBlock, right: SecurityBlock): number => {
@@ -400,12 +409,19 @@ afterEach(() => {
 describe("the feeds are a kind of destination every server has", () => {
   test("a project's feeds are found as destinations, keyed by feed, named as people named them", async () => {
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
-    // The project has no Cloudflare zone (#10343) and picked no AWS WAF web ACL (#10344): its feeds are all it has.
+    /*
+     * The project has no Cloudflare zone (#10343), picked no AWS WAF web ACL
+     * (#10344) and blocks with no Microsoft Defender or CrowdStrike Falcon
+     * connection (#10346): its feeds are all it has.
+     */
     jest
       .spyOn(CloudflareBlockDestinations, "findForProject")
       .mockResolvedValue([] as never);
     jest
       .spyOn(SecurityBlockCloudWafService, "findForProject")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(SecurityEventConnectionService, "findBy")
       .mockResolvedValue([] as never);
 
     const found: Awaited<
@@ -658,6 +674,50 @@ describe("what a feed cannot hold says why", () => {
     expect(rowOf(1)!.state).toBe(SecurityBlockEnforcementState.Failed);
     expect(rowOf(1)!.error).toBe(`Not applied: ${FEED_NAME} cannot challenge`);
     expect(bodyOf(await fetchFeed(2))).toBe("192.0.2.1\n");
+  });
+
+  test("a domain or a file (#10346) is never served, nor read for the list: it is blocked on every machine", async () => {
+    addBlock({ index: 1, value: "35.205.11.131", createdAt: at(0) });
+
+    for (const [index, value, indicatorType] of [
+      [2, "evil.example", SecurityBlockIndicatorType.Domain],
+      [3, "ab".repeat(32), SecurityBlockIndicatorType.FileSha256],
+    ] as const) {
+      const other: SecurityBlock = new SecurityBlock();
+      other._id = blockId(index).toString();
+      other.projectId = PROJECT_ID;
+      other.value = value;
+      other.indicatorType = indicatorType;
+      other.action = SecurityBlockAction.Block;
+      other.state = SecurityBlockState.Active;
+      other.source = SecurityBlockSource.Person;
+      other.createdAt = at(-1);
+      other.expiresAt = at(24 * 60);
+      blocks.set(other.id!.toString(), other);
+    }
+
+    expect(bodyOf(await fetchFeed(1))).toBe("35.205.11.131\n");
+
+    // The list's read asks for addresses and ranges only.
+    const asked: Array<Includes> = [];
+
+    for (const call of jest.mocked(SecurityBlockService.findBy).mock.calls) {
+      const kinds: unknown = (call[0] as unknown as { query: JSONObject })
+        .query["indicatorType"];
+
+      if (kinds !== undefined) {
+        asked.push(kinds as Includes);
+      }
+    }
+
+    expect(asked.length).toBeGreaterThan(0);
+
+    for (const kinds of asked) {
+      expect(kinds.values).toEqual([
+        SecurityBlockIndicatorType.IpAddress,
+        SecurityBlockIndicatorType.IpRange,
+      ]);
+    }
   });
 
   test("a feed of IPv4 says it serves IPv4 only, and never serves the other family", async () => {

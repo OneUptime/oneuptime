@@ -79,8 +79,22 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 )
 @TableMetadata({
   tableName: "StatusPageSubscriberNotificationTemplateStatusPage",
-  singularName: "Subscriber Notification Template",
-  pluralName: "Subscriber Notification Templates",
+  /*
+   * A status page's subscriber notification template: the row that puts a
+   * template on a status page. Until #10664 it had the template's own name,
+   * so the audit log, its export and the API read the two alike. The name
+   * is the one the Terraform provider and the CLI already gave it
+   * (oneuptime_status_page_subscriber_notification_template).
+   */
+  singularName: "Status Page Subscriber Notification Template",
+  pluralName: "Status Page Subscriber Notification Templates",
+  /*
+   * The name it shared with the template. The Terraform provider moves a
+   * link's state from oneuptime_subscriber_notification_template, the
+   * template's name, and the audit log finds the entries recorded under
+   * it in this table too (getAuditLogResourceTypesOfModel).
+   */
+  formerSingularName: "Subscriber Notification Template",
   icon: IconProp.Link,
   tableDescription:
     "Links subscriber notification templates to specific status pages. This allows you to use different notification templates for different status pages.",

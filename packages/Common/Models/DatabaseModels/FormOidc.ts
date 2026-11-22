@@ -144,7 +144,6 @@ export default class FormOIDC extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.CreateFormOIDC,
     ],
     read: [
@@ -181,7 +180,6 @@ export default class FormOIDC extends BaseModel {
     create: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.ProjectMember,
       Permission.CreateFormOIDC,
     ],
     read: [

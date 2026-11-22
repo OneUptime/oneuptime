@@ -37,13 +37,17 @@ import {
   getSecurityPlaybookAction,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
+  SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES,
   SecurityPlaybookApprovalTurnedOff,
   SecurityPlaybookStep,
+  SendWebhookConfig,
   TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
   assertSecurityPlaybookStepConditions,
   parseSecurityPlaybookSteps,
   readBlockAddressConfig,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import { CaCertificatePemProblem } from "../../Types/Runbook/HttpStepCertificates";
+import { getCaCertificatePemProblem } from "../Utils/Runbook/HttpStepCaCertificate";
 import { SecurityBlockDuration } from "../../Types/SecurityBlocklist/SecurityBlock";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { validateSecurityPlaybookStepValues } from "../../Utils/SecurityCase/SecurityPlaybookStepValues";
@@ -68,6 +72,40 @@ export function assertPlaybookBlocksExpire(
     ) {
       throw new BadDataException(
         `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): a playbook's block expires. Choose 1 hour, 24 hours, 7 days or 30 days.`,
+      );
+    }
+  });
+}
+
+/*
+ * A Send Webhook step's CA certificate, parsed certificate by certificate as
+ * the server parses one (#10440): Node takes text that is not a certificate
+ * as a CA without a word, and the step would then fail on the certificate it
+ * was meant to trust. The step's settings already hold only the shape of
+ * one (parseSecurityPlaybookSteps); the run checks again.
+ */
+export function assertSendWebhookCertificatesParse(
+  steps: ReadonlyArray<SecurityPlaybookStep>,
+): void {
+  steps.forEach((step: SecurityPlaybookStep, index: number): void => {
+    if (step.action !== SecurityPlaybookActionType.SendWebhook) {
+      return;
+    }
+
+    const config: SendWebhookConfig =
+      step.config as unknown as SendWebhookConfig;
+
+    if (!config.caCertificate || config.allowSelfSignedCertificates === true) {
+      return;
+    }
+
+    const problem: CaCertificatePemProblem | null = getCaCertificatePemProblem(
+      config.caCertificate,
+    );
+
+    if (problem) {
+      throw new BadDataException(
+        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}`,
       );
     }
   });
@@ -312,6 +350,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       assertSecurityPlaybookStepConditions(steps);
       assertPlaybookBlocksExpire(steps);
+      assertSendWebhookCertificatesParse(steps);
       data["steps"] = steps as unknown as JSONArray;
     }
 

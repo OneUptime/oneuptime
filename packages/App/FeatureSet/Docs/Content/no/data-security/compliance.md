@@ -177,7 +177,7 @@ Sikkerhetsmedlem, Sikkerhetsadministrator, Prosjektadministrator og Prosjekteier
 
 ## Behandlingsprotokoll
 
-GDPR artikkel 30 krever at du fører en protokoll over behandlingsaktivitetene dine. Datasikkerhet skriver den delen av den som handler om hvor personopplysninger oppbevares: én rad for hvert datalager som inneholder personopplysninger.
+GDPR artikkel 30 krever at du fører en protokoll over behandlingsaktivitetene dine. Datasikkerhet skriver den delen av den som handler om hvor personopplysninger oppbevares: én rad for hvert datalager som inneholder personopplysninger. Den er kortet **Behandlingsprotokoll** nederst på **Datasikkerhet → Samsvar**, med **Eksporter CSV** og **Eksporter JSON**.
 
 | Kolonne | Hvor den kommer fra |
 | --- | --- |
@@ -185,11 +185,27 @@ GDPR artikkel 30 krever at du fører en protokoll over behandlingsaktivitetene d
 | Miljø | Taggene eller navnet til datalageret, eller det du angir |
 | Sensitivitet, kategorier og datatyper | Det skanningene fant, eller sensitiviteten du angir |
 | Eiere | Eierne av datalageret, personer og medlemmene av teamene |
-| Formål | Det du skriver i **Formål** for datalageret: hvorfor det inneholder personopplysninger |
-| Oppbevaring | Det du skriver i **Oppbevaring** for datalageret: hvor lenge data oppbevares i det |
+| Formål | Det du skriver i **Formål** for datalageret: hvorfor det inneholder personopplysninger. OneUptime fyller det ut for datalagrene det oppbevarer for sikkerheten din |
+| Oppbevaring | Det du skriver i **Oppbevaring** for datalageret: hvor lenge data oppbevares i det. OneUptime fyller det ut for datalagrene det oppbevarer for sikkerheten din |
+| Hvem kan lese | Hvem som kan lese et datalager OneUptime oppbevarer for sikkerheten din |
 | Rammeverk | Rammeverkene datatypene bringer inn i omfanget |
+| Oppgitt av | OneUptime, for datalagrene det oppbevarer for sikkerheten din |
 
-Fyll ut **Formål** og **Oppbevaring** under **Innstillinger** for hvert datalager: det er de to tingene ingen skanning kan vite. Protokollen og scorene er også tilgjengelige fra API-et til Datasikkerhet, på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressurs, `/data-security/resource-compliance`, for alle som kan lese datalagre (se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations#api-terraform-og-mcp)).
+For et datalager Datasikkerhet har funnet, fyller du ut **Formål** og **Oppbevaring** under **Innstillinger** for det: ingen skanning kan vite dem. Protokollen og scorene er også tilgjengelige fra API-et til Datasikkerhet, på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressurs, `/data-security/resource-compliance`, for alle som kan lese datalagre (se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations#api-terraform-og-mcp)).
+
+### Datalagre OneUptime oppbevarer for sikkerheten din
+
+Tre datalagre inneholder IP-adresser med vilje, for å beskytte nettverket ditt: **Sikkerhetshendelser**, **Network Flows** og **Sikkerhetsadressehvelv**. Protokollen viser hvert av dem prosjektet ditt har. OneUptime oppgir dem i stedet for å finne dem: hva de inneholder, er kjent fra starten, så ingen skanning leser dem, ingen kontroll gjelder for dem, og at de inneholder disse adressene, er aldri et problem, for det er det de er til for. De viser **Oppgitt av OneUptime** under **Datalagre**, og **Oversikt** og scorene for rammeverkene utelater dem.
+
+| Datalager | Hva det inneholder | Oppbevaring | Hvem kan lese det |
+| --- | --- | --- | --- |
+| Sikkerhetshendelser | IP-adressene, brukernavnene og e-postadressene til den som handlet og det som ble berørt | Prosjektets [oppbevaring av telemetri](/docs/telemetry/data-retention), lest hver gang protokollen leses, så en endring gjelder med en gang | Prosjekteiere, Prosjektadministratorer, Sikkerhetsadministratorer, Sikkerhetsmedlemmer, Sikkerhetslesere og alle med Read Security Event |
+| Network Flows | IP-adressene til dem som kommuniserte med hverandre | 30 dager etter at en flyt kommer inn | Alle som kan lese nettverksenheter |
+| Sikkerhetsadressehvelv | IP-adressen bak hvert token en IP-adresseregel som hasher, la igjen i loggene og trasene [Sikkerhetshendelser](/docs/telemetry/security-events) leser | 30 dager etter at en adresse sist ble sett | Bare skanningene i Sikkerhetshendelser, inne i OneUptime: ingen person, side, eksport, API eller AI-verktøy |
+
+Formålet med hvert av dem er «Nettverks- og informasjonssikkerhet (GDPR fortalepunkt 49)». For å skrive ditt eget formål eller din egen oppbevaring, bruk **Rediger protokoll** under **Innstillinger** for datalageret: et felt som står tomt, beholder OneUptimes.
+
+Et datalager vises så lenge prosjektet ditt oppbevarer dataene: hvelvet så lenge en aktivert IP-adresseregel hasher logger eller traser Sikkerhetshendelser leser, og i 31 dager etter (se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Når dataene er borte, arkiveres datalageret, og det kommer tilbake med formålet og oppbevaringen din hvis dataene gjør det.
 
 ## Neste steg
 

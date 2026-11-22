@@ -914,11 +914,15 @@ describe.each(SUITES)(
     /*
      * The stored rows are read once the permission checks have narrowed the
      * update to the caller's own project, so a refusal never tells anyone
-     * about another project's rule - and in one read, by the query that
-     * check left the update with: the caller's permission to update is not
-     * asked a second time, and the rows they may write are not read first.
+     * about another project's rule. A rule names a service of its project,
+     * checked by the services' update hook (ProjectReferencesService,
+     * #10433), so the update path keeps the rows the caller may write before
+     * its hooks run, as it does for every service with one: one narrowing,
+     * one read of their ids. The check then reads the rule once, by id,
+     * within the same project - never a second narrowing, never another
+     * project's rule.
      */
-    test("reads the stored rule only within the caller's project, in one read, by the query the permission check left it with", async () => {
+    test("reads the stored rule only within the caller's project, once the update has kept the rows the caller may write", async () => {
       const stored: any = new suite.modelType();
       stored._id = RULE_ID.toString();
       stored.patternType = suite.customPatternType;
@@ -944,11 +948,18 @@ describe.each(SUITES)(
         }),
       ).rejects.toThrow(/needs a regular expression/);
 
-      // No second narrowing, and no read of the rows the caller may write.
-      expect(updatableQuery).not.toHaveBeenCalled();
-      expect(readsOfRowsCallerMayWrite(suite.service as never)).toEqual([]);
+      // One narrowing, and one read of the rows the caller may write: in their project.
+      expect(updatableQuery).toHaveBeenCalledTimes(1);
+      const kept: Array<any> = readsOfRowsCallerMayWrite(
+        suite.service as never,
+      );
+      expect(kept).toHaveLength(1);
+      expect(kept[0].query["_id"]).toBe(RULE_ID.toString());
+      expect(inspect(kept[0].query["projectId"], { depth: 4 })).toContain(
+        PROJECT_ID.toString(),
+      );
 
-      // One read: the rule, by id, within the update's query as its permission check narrowed it.
+      // One read of the rule: by id, within the update's query as its permission check narrowed it.
       expect(findBy).toHaveBeenCalledTimes(1);
       const request: any = findBy.mock.calls[0]![0];
       expect(request.query["_id"]).toBe(RULE_ID.toString());

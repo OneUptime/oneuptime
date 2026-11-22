@@ -31,6 +31,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import Email from "../../../../../Types/Email";
 import EmailTemplateType from "../../../../../Types/Email/EmailTemplateType";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import { JSONObject } from "../../../../../Types/JSON";
 import Name from "../../../../../Types/Name";
 import NotificationSettingEventType from "../../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -606,6 +607,40 @@ describe("who is told", () => {
     expect(send).not.toHaveBeenCalled();
     // Nor its channels: nobody is waiting to hear.
     expect(post).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Nothing a hunt posts or sends names who was told (#10681). The people
+   * it tells kept their name, else their address - a member with no name by
+   * their address, one line away from a channel. They keep whom to tell and
+   * their time zone now, and neither a name nor an address is read.
+   */
+  test("the people told keep no name or address, none is read, and nothing sent or posted holds one", async () => {
+    const teamRead: Spy = getJestSpyOn(TeamMemberService, "findBy");
+
+    const told: Array<SecurityHuntRecipient> = await notify();
+
+    // Maya, with her time zone; Diego, who set none.
+    expect(
+      told.map((recipient: SecurityHuntRecipient): Array<string> => {
+        return Object.keys(recipient).sort();
+      }),
+    ).toEqual([["timezone", "userId"], ["userId"]]);
+
+    const huntRead: { select: JSONObject } = findHunt.mock.calls[0]![0] as {
+      select: JSONObject;
+    };
+
+    expect(huntRead.select["notifyUsers"]).toEqual({
+      _id: true,
+      timezone: true,
+    });
+    expect(
+      (teamRead.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual({ userId: true, user: { timezone: true } });
+
+    expect(JSON.stringify(send.mock.calls)).not.toContain("@");
+    expect(JSON.stringify(post.mock.calls)).not.toContain("@");
   });
 
   test("nobody, when no one it names can read it - but its channels still hear", async () => {

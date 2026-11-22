@@ -50,7 +50,12 @@ import { getListSeparator, joinList } from "Common/UI/Utils/ListSeparator";
 export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
   value?: string | Array<string>;
-  monitors: Array<Monitor>;
+  /*
+   * The monitors the rules hold, read by their ids (#10646). Undefined
+   * while they are read: no monitor is said to be gone from a list nobody
+   * read.
+   */
+  monitors?: Array<Monitor> | undefined;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
@@ -436,7 +441,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     }
 
     if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
-      const selectedMonitors: Array<Monitor> = props.monitors.filter(
+      const selectedMonitors: Array<Monitor> = (props.monitors || []).filter(
         (monitor: Monitor) => {
           return selectedIds.includes(monitor.id!.toString());
         },

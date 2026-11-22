@@ -777,7 +777,7 @@ export default class QueryHelper {
   } {
     if (globs.length > MAX_WILDCARD_PATTERNS) {
       throw new BadDataException(
-        `A wildcard filter cannot carry more than ${MAX_WILDCARD_PATTERNS} patterns`,
+        `A wildcard filter can hold at most ${MAX_WILDCARD_PATTERNS} patterns. Filter by fewer at once.`,
       );
     }
 

@@ -119,6 +119,8 @@ Quando la tua banca sta ancora elaborando un pagamento, OneUptime lo segnala: al
 
 L'utilizzo di un giorno compare quando il giorno è finito, entro le 08:00 UTC circa del giorno dopo. Filtra per **Prodotto**, **Giorno** o **Servizio** per trovare che cosa è cresciuto.
 
+Per inviare meno, un [filtro di scarto](/docs/telemetry/drop-filters-and-scrub-rules) butta via i log e gli span che non leggi mai prima che vengano salvati, e ciò che scarta non viene fatturato. Prima che tu ne salvi uno, il suo modulo dice quanta della telemetria dell'ultimo giorno seleziona, e che cosa toglierebbe ai monitor, alle dashboard, agli SLO e agli Eventi di sicurezza che leggono gli stessi record: vedi [Che cosa toglierebbe un filtro](/docs/telemetry/drop-filters-and-scrub-rules#che-cosa-toglierebbe-un-filtro).
+
 ## Saldi prepagati
 
 I messaggi SMS, le chiamate, WhatsApp e Telegram si pagano con il saldo del progetto, e OneUptime AI con i suoi crediti IA. Li ricarichi entrambi in anticipo:

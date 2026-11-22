@@ -39,6 +39,7 @@ import {
   validateRpcRequest,
 } from "./RpcProtocol";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
 
 type HostObject = Record<string, unknown>;
 
@@ -1255,7 +1256,15 @@ export default class PlaywrightCapabilityBroker {
     }
 
     try {
-      const response: AxiosResponse = await axios.request(config);
+      /*
+       * Through the outbound proxy the probe's environment names, or
+       * directly, as every request of the probe goes (OutboundProxyAgents):
+       * never through a proxy axios reads itself, which sent the proxy's
+       * password percent-encoded (#10442).
+       */
+      const response: AxiosResponse = await axios.request(
+        OutboundProxyAgents.routeAxiosRequest(config),
+      );
       return {
         data: response.data,
         headers: this.copyHeaders(response.headers),

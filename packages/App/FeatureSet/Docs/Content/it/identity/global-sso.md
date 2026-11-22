@@ -106,7 +106,7 @@ Dove Okta, Microsoft Entra ID, Auth0 e Keycloak tengono queste impostazioni è s
 
 ## Accedere di nuovo per confermare che sei tu
 
-Chi accede solo tramite un provider globale conferma che è lui con **Accedi di nuovo** prima di cambiare il modo in cui accede o di eliminare il proprio account: OneUptime lo rimanda al provider con `ForceAuthn="true"` per SAML, oppure `prompt=login` e `max_age=0` per OpenID Connect, e lo conta solo quando il provider dice, in `AuthnInstant` o `auth_time`, che ha effettuato l'accesso in quel momento o dopo. Aggiungere, cambiare o eliminare un provider globale ti chiede prima di [confermare che sei tu](/docs/introduction/your-account#confermare-che-sei-tu).
+Chi accede solo tramite un provider globale conferma che è lui con **Accedi di nuovo** prima di cambiare il modo in cui accede o di eliminare il proprio account: OneUptime lo rimanda al provider con `ForceAuthn="true"` per SAML, oppure `prompt=login` e `max_age=0` per OpenID Connect (solo `prompt=login` per Microsoft Entra ID), e lo conta solo quando il provider dice, in `AuthnInstant` o `auth_time`, che ha effettuato l'accesso in quel momento o dopo. Aggiungere, cambiare o eliminare un provider globale ti chiede prima di [confermare che sei tu](/docs/introduction/your-account#confermare-che-sei-tu).
 
 Cosa impostare in Okta, Microsoft Entra ID, Keycloak e Google Workspace è spiegato nella pagina [SSO](/docs/identity/sso#accedere-di-nuovo-per-confermare-che-sei-tu).
 

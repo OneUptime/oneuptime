@@ -27,6 +27,7 @@ import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertOwnerTeamService from "../../../Server/Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "../../../Server/Services/AlertOwnerUserService";
 import AlertService from "../../../Server/Services/AlertService";
+import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import IncidentEpisodeFeedService from "../../../Server/Services/IncidentEpisodeFeedService";
 import IncidentEpisodeOwnerTeamService from "../../../Server/Services/IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeOwnerUserService from "../../../Server/Services/IncidentEpisodeOwnerUserService";
@@ -633,6 +634,19 @@ beforeEach(() => {
     .mockResolvedValue(LINK);
   jest
     .spyOn(IncidentFeedService, "createIncidentFeedItem")
+    .mockResolvedValue(undefined);
+
+  /*
+   * An alert's owner is said in its feed whatever their name: a member with
+   * no name used to be added without a word (#10668).
+   */
+  jest.spyOn(AlertService, "getAlertNumber").mockResolvedValue({
+    number: 1,
+    numberWithPrefix: "ALT-1",
+  });
+  jest.spyOn(AlertService, "getAlertLinkInDashboard").mockResolvedValue(LINK);
+  jest
+    .spyOn(AlertFeedService, "createAlertFeedItem")
     .mockResolvedValue(undefined);
 
   jest

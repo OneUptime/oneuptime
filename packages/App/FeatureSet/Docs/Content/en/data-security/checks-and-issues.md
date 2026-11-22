@@ -1,6 +1,6 @@
 # Data Security Checks and Issues
 
-Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.

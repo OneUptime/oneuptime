@@ -107,7 +107,7 @@ Estos ajustes están plegados en **Más campos**. El encabezado plegado los enum
 | Campo | Predeterminado | Qué hace |
 | --- | --- | --- |
 | **Encabezados de la solicitud** | Ninguno | Los encabezados que se envían, como pares de nombre y valor. Haga clic en **Añadir Encabezado de la solicitud** para cada uno. |
-| **Cuerpo de la solicitud (en JSON)** | Ninguno | Un objeto JSON que se envía como cuerpo, normalmente con **POST**, **PUT** o **PATCH**. Debe ser JSON válido. |
+| **Cuerpo de la solicitud (en JSON)** | Ninguno | El cuerpo que se envía, normalmente con **POST**, **PUT** o **PATCH**: cualquier valor JSON, como un objeto, un array, una cadena o un número. Se envía tal como lo escribe, como `application/json`, salvo que defina un `Content-Type` en **Encabezados de la solicitud**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un objeto se envía como campos de formulario. |
 | **No seguir redirecciones** | Desactivado | Juzgar la primera respuesta en lugar de seguir las redirecciones. Consulte [más abajo](#no-seguir-redirecciones). |
 | **Permitir certificados autofirmados** | Desactivado | Omitir la validación del certificado TLS para el propio nombre de host del monitor. |
 | **Usar certificado de cliente (mTLS)** | Desactivado | Presentar un certificado de cliente y una clave privada. Consulte [Certificado de cliente (mTLS)](#certificado-de-cliente-mtls). |
@@ -242,6 +242,10 @@ La API redirigió una solicitud con un cuerpo, o con un método distinto de `GET
 
 :::details La comprobación falla con «Remote response exceeded the allowed size.»
 La sonda lee como máximo 512 KiB de una respuesta, y esta es más grande. Llame a un endpoint que devuelva menos, por ejemplo con un tamaño de página menor.
+:::
+
+:::details La comprobación falla con «El cuerpo de la solicitud no es un JSON válido, así que la solicitud no se envió.»
+El cuerpo no es JSON una vez rellenados sus [secretos de monitor](/docs/monitor/monitor-secrets), así que la sonda no envió la solicitud. Corrija el cuerpo en **Más campos**, o el valor de un secreto que use: un valor con un `"` rompe la cadena JSON en la que está.
 :::
 
 ## Próximos pasos

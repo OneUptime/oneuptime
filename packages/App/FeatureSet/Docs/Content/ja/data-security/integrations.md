@@ -148,7 +148,8 @@ OneUptime AI は、AI ルールが許す範囲で、新しい問題それぞれ�
 | `/data-security/compliance` | すべてのフレームワークのスコアと要件 |
 | `/data-security/resource-scope` | 1 つのリソース (Kubernetes クラスター、Docker または Podman ホスト、データベース、サービス、クラウドリソース) のデータストアと、それらがどのリソースのコンプライアンスのスイッチに従うか |
 | `/data-security/resource-compliance` | 1 つのリソースのフレームワーク: そのリソースのデータストアについてのスコアと、そのリソースでオフにされているもの |
-| `/data-security/record-of-processing` | GDPR の処理の記録。個人データを保持するデータストアごとに 1 行 |
+| `/data-security/record-of-processing` | GDPR の処理の記録。個人データを保持するデータストアごとに 1 行。OneUptime がセキュリティのために保持するデータストアには `declared` オブジェクトがあり、独自の目的と保持期間、閲覧できるユーザーを示します |
+| `/data-store/<id>/declared` | OneUptime がセキュリティのために保持するデータストアについて記録が示す内容: 保持しているもの、その理由、保持期間、閲覧できるユーザー |
 | `/data-store/<id>/scan-now` | **今すぐスキャン**: データストアのコンテンツをすぐにサンプリングします |
 | `/data-store/<id>/check-now` | **今すぐチェック**: データストアの設定を再度読み取り、チェックを実行します |
 | `/data-store-finding/<id>/scrub` | テレメトリの検出結果での **スクラブ** |

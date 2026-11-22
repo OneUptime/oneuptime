@@ -606,6 +606,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a discovery scan's Run Again was refused (issue #10334): already
+   * running, its probe not connected, and the rest - the words the server
+   * refuses with, said in the reader's language on the scan's row. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory: "packages/Common/Utils/NetworkDiscovery/DiscoveryScanRun.ts",
+    kind: "keys",
+  },
+  /*
    * Why Add or Delete is locked on the Global User Overrides page for a
    * reader whose permission to add or delete overrides covers only some
    * policies - the words the server refuses with. Only the sentences the

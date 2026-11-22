@@ -165,7 +165,8 @@ export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
   onChange?: undefined | ((value: IncidentNotificationRule) => void);
   eventType: NotificationRuleEventType;
-  monitors: Array<Monitor>;
+  // Not needed: a Monitors condition searches the server (#10646).
+  monitors?: Array<Monitor> | undefined;
   labels: Array<Label>;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;

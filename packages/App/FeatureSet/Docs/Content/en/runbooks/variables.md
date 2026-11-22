@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab In an HTTP request
-Write the reference in an [HTTP request step](/docs/runbooks/authoring#http-request)'s URL, headers or body:
+Write the reference in an [HTTP request step](/docs/runbooks/authoring#http-request)'s URL, headers, body or **CA certificate**:
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+In **CA certificate**, the reference stands alone, such as `{{global.variables.INTERNAL_CA}}`, and the variable holds the certificate in PEM: every step that names it trusts the same CA, and a new CA is set in one place.
 @tab SSH sign-in
 An [SSH step](/docs/runbooks/authoring#ssh) picks the secret variable that holds its private key or password under **Sign in with**, and its key's passphrase under **More fields → Key passphrase**. The value says whether it is a key or a password.
 @tab Kubeconfig

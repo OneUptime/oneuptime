@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-Importa gli avvisi di [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), dai rilevamenti su endpoint, identità e cloud, negli eventi di sicurezza di OneUptime. Lì li cerchi accanto a log, trace e metriche, li correli con ogni altra fonte e chiami la reperibilità per quelli che contano. OneUptime li legge tramite la Alerts API di Falcon con un client API che crei tu, e non scrive mai in Falcon.
+Importa gli avvisi di [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), dai rilevamenti su endpoint, identità e cloud, negli eventi di sicurezza di OneUptime. Lì li cerchi accanto a log, trace e metriche, li correli con ogni altra fonte e chiami la reperibilità per quelli che contano. OneUptime li legge tramite la Alerts API di Falcon con un client API che crei tu, e scrive in Falcon solo per bloccare i file che blocchi, una volta che lo attivi.
 
 :::cards
 - [Configurare la connessione](#configurare-la-connessione): Un client API con un solo ambito e il modulo della connessione.
 - [Cosa viene importato](#cosa-viene-importato): Come ogni avviso di Falcon diventa un evento di sicurezza.
 - [Come funziona il polling](#come-funziona-il-polling): La finestra che legge ogni interrogazione, e cosa le fa un CID molto attivo.
+- [Bloccare file con CrowdStrike](#bloccare-file-con-crowdstrike): Impedisci ai file della tua blocklist di essere eseguiti su ogni host.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Cosa significa ogni errore e cosa cambiare.
 :::
 
@@ -33,7 +34,7 @@ Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di
 ### Creare un client API
 
 1. Nella console Falcon, apri **Support and resources → API clients and keys** e seleziona **Create API client**.
-2. Dagli un nome, per esempio `OneUptime security events`. In **API scopes**, attiva **Alerts → Read** e lascia disattivato ogni altro ambito: la connessione non scrive mai in Falcon.
+2. Dagli un nome, per esempio `OneUptime security events`. In **API scopes**, attiva **Alerts → Read** e lascia disattivato ogni altro ambito: leggere gli avvisi non scrive nulla in Falcon. Bloccare i file ne richiede altri due (vedi [Bloccare file con CrowdStrike](#bloccare-file-con-crowdstrike)).
 3. Crea il client. Falcon mostra una sola volta il suo ID client, il suo segreto e il suo URL di base. Copiali tutti e tre adesso: il segreto si può reimpostare in seguito, ma non viene più mostrato.
 
 ### Trovare il tuo cloud Falcon
@@ -60,6 +61,7 @@ Fai clic su **Prova queste impostazioni** in **Testa prima di salvare**. Il test
 | --- | --- |
 | **Client ID** | L'ID del client API, come lo ha mostrato Falcon quando hai creato il client. |
 | **Cloud Falcon** | Il cloud del tuo CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** o **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Ogni richiesta va all'host API di quel cloud. |
+| **Blocca file con CrowdStrike** | Disattivato su una nuova connessione. Attivato, ferma i file nella blocklist del tuo progetto su ogni host, e richiede **IOC Management → Read** e **Write** (vedi [Bloccare file con CrowdStrike](#bloccare-file-con-crowdstrike)). |
 | **Segreto client** | Il segreto del client API. È cifrato, mai restituito dall'API e mai più mostrato. Sostituiscilo con **Aggiorna le credenziali** sulla connessione. |
 
 Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo. Una connessione non abilitata si può comunque testare e interrogare a mano.
@@ -123,6 +125,17 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 - **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Gli avvisi già importati vengono saltati.
 - **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
+## Bloccare file con CrowdStrike
+
+Attiva **Blocca file con CrowdStrike** su una connessione, e i file nella [blocklist](/docs/telemetry/security-cases#blocklist) del tuo progetto vengono fermati su ogni host protetto da Falcon. Ogni file diventa un IOC personalizzato del suo hash SHA-256 o MD5, con l'origine `OneUptime` e l'azione `prevent`, sugli host Windows, Mac e Linux, che scade quando scade il blocco. Un file da mettere anche in quarantena viene bloccato, e Falcon lo mette in quarantena come indica la policy di prevenzione dell'host. Falcon non riconosce alcun hash SHA-1 e si limita a rilevare un dominio o un indirizzo, quindi non ne riceve nessuno: bloccali con [Microsoft Defender](/docs/integrations/microsoft-defender-xdr).
+
+L'interruttore è disattivato su una nuova connessione. Per attivarlo:
+
+1. Nella console di Falcon, apri **Support and resources → API clients and keys**, modifica il client API e attiva **IOC Management → Read** e **Write**.
+2. Sulla connessione, attiva **Blocca file con CrowdStrike** e fai clic su **Testa la connessione**: **Block with CrowdStrike Falcon** verifica entrambi gli ambiti, senza cambiare alcun IOC.
+
+Un IOC che Falcon rifiuta appare come non applicato nella blocklist, con il motivo. OneUptime legge e cambia solo gli IOC che ha aggiunto per questa connessione, mai uno creato da una persona.
+
 ## Testare la connessione
 
 **Testa la connessione** sulla riga di una connessione, e **Prova queste impostazioni** nel modulo, vengono eseguiti nel processo dell'API, non in un worker in background, così un test risponde anche quando il problema sono i worker. Esegue questi controlli, in ordine:
@@ -133,6 +146,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` con l'ID e il segreto del client API, sull'host del tuo cloud, restituisce un token. |
 | **Read alerts from the Falcon Alerts API** | Una query di avvisi per un solo avviso (`limit=1`) sulle ultime 24 ore viene accettata, il che dimostra l'ambito **Alerts → Read**. |
 | **Alerts available to import** | Quanti avvisi sono stati creati nelle ultime 24 ore e negli ultimi 7 giorni. Nessuno in 7 giorni è un avviso, non un errore: il polling importa i nuovi avvisi man mano che Falcon li crea. |
+| **Block with CrowdStrike Falcon** | Solo con **Blocca file con CrowdStrike** attivato: il client API ha **IOC Management → Read** e **Write**. Il controllo dice quanti IOC personalizzati ha OneUptime in Falcon, e non ne cambia nessuno. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
 | **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 

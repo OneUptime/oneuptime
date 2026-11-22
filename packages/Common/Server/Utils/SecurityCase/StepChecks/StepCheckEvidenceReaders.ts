@@ -11,6 +11,9 @@ import ContainmentState, {
   ContainmentStateReading,
 } from "./Evidence/ContainmentState";
 import FixChanges, { FixChangesReading } from "./Evidence/FixChanges";
+import IndicatorBlocks, {
+  IndicatorBlockReading,
+} from "./Evidence/IndicatorBlocks";
 import MonitorsDown, {
   MonitorsDownReading,
   getRequestServiceIds,
@@ -93,6 +96,11 @@ export function createStepCheckEvidence(data: {
     ): Promise<Array<AddressBlockEvidence>> => {
       return once(`blocks:${address}`, () => {
         return AddressBlocks.read({ projectId, address, now: data.now });
+      });
+    },
+    readIndicatorBlocks: (value: string): Promise<IndicatorBlockReading> => {
+      return once(`indicator-blocks:${value.toLowerCase()}`, () => {
+        return IndicatorBlocks.read({ projectId, value, now: data.now });
       });
     },
     readUserState: (user: string): Promise<ContainmentStateReading> => {

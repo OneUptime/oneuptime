@@ -3,6 +3,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import {
   DATA_STORE_KINDS,
   DATABASE_ENGINE_STORE_KINDS,
+  DECLARED_DATA_STORE_KINDS,
   DataStoreFamily,
   DataStoreKind,
   DataStoreKindInfo,
@@ -10,8 +11,12 @@ import {
   getDataStoreKindForCloudResourceType,
   getDataStoreKindInfo,
   isDataStoreKind,
+  isDeclaredDataStoreKind,
+  PROBE_SCANNABLE_DATA_STORE_KINDS,
   TELEMETRY_DATA_STORE_KINDS,
+  WORKER_CLAIMED_DATA_STORE_KINDS,
 } from "../../../Types/DataSecurity/DataStoreKind";
+import { declaredDataStoreKey } from "../../../Types/DataSecurity/DataStoreKey";
 
 /*
  * EVERY KIND OF DATA STORE, AND HOW EACH IS FOUND.
@@ -78,17 +83,29 @@ describe("the kinds of data store", () => {
     ).toBeUndefined();
   });
 
-  test("give object storage a folder, telemetry its own icon and the rest a database", () => {
+  test("give object storage a folder, telemetry and OneUptime's security records their own icons and the rest a database", () => {
     for (const info of DATA_STORE_KINDS) {
       if (info.family === DataStoreFamily.ObjectStorage) {
         expect(info.icon).toBe(IconProp.Folder);
-      } else if (info.family !== DataStoreFamily.Telemetry) {
+      } else if (
+        info.family !== DataStoreFamily.Telemetry &&
+        info.family !== DataStoreFamily.SecurityRecords
+      ) {
         expect(info.icon).toBe(IconProp.Database);
       }
     }
 
     expect(getDataStoreKindInfo(DataStoreKind.TelemetryTraces)?.icon).toBe(
       IconProp.Waterfall,
+    );
+    expect(getDataStoreKindInfo(DataStoreKind.SecurityEvents)?.icon).toBe(
+      IconProp.ShieldCheck,
+    );
+    expect(getDataStoreKindInfo(DataStoreKind.NetworkFlows)?.icon).toBe(
+      IconProp.Globe,
+    );
+    expect(getDataStoreKindInfo(DataStoreKind.SecurityAddressVault)?.icon).toBe(
+      IconProp.Lock,
     );
   });
 
@@ -129,6 +146,78 @@ describe("TELEMETRY_DATA_STORE_KINDS", () => {
         DataStoreProvider.OneUptime,
       );
     }
+  });
+});
+
+/*
+ * The stores OneUptime declares (#10398): what they hold is known by
+ * design, so none is ever scanned - not by the workers, not by a probe,
+ * not by the telemetry scan - and none is told apart from the others but
+ * by its kind.
+ */
+describe("DECLARED_DATA_STORE_KINDS", () => {
+  test("are exactly the kinds marked declared: OneUptime's security records", () => {
+    expect(
+      DATA_STORE_KINDS.filter((info: DataStoreKindInfo) => {
+        return info.isDeclared;
+      }).map((info: DataStoreKindInfo) => {
+        return info.kind;
+      }),
+    ).toEqual([...DECLARED_DATA_STORE_KINDS]);
+    expect([...DECLARED_DATA_STORE_KINDS]).toEqual([
+      DataStoreKind.SecurityEvents,
+      DataStoreKind.NetworkFlows,
+      DataStoreKind.SecurityAddressVault,
+    ]);
+    expect(
+      DATA_STORE_KINDS.filter((info: DataStoreKindInfo) => {
+        return info.family === DataStoreFamily.SecurityRecords;
+      }).map((info: DataStoreKindInfo) => {
+        return info.kind;
+      }),
+    ).toEqual([...DECLARED_DATA_STORE_KINDS]);
+  });
+
+  test.each([...DECLARED_DATA_STORE_KINDS])(
+    "%s is OneUptime's, found in no cloud, and nothing scans its content",
+    (kind: DataStoreKind) => {
+      const info: DataStoreKindInfo = getDataStoreKindInfo(kind)!;
+
+      expect(info.provider).toBe(DataStoreProvider.OneUptime);
+      expect(info.cloudResourceType).toBeUndefined();
+      expect(info.contentScannable).toBe(false);
+      expect(isDeclaredDataStoreKind(kind)).toBe(true);
+      expect(TELEMETRY_DATA_STORE_KINDS).not.toContain(kind);
+      expect(WORKER_CLAIMED_DATA_STORE_KINDS).not.toContain(kind);
+      expect(PROBE_SCANNABLE_DATA_STORE_KINDS).not.toContain(kind);
+      expect(Object.values(DATABASE_ENGINE_STORE_KINDS)).not.toContain(kind);
+      expect(declaredDataStoreKey(kind).startsWith("oneuptime:")).toBe(true);
+    },
+  );
+
+  test("no other kind is declared", () => {
+    for (const info of DATA_STORE_KINDS) {
+      expect([info.kind, isDeclaredDataStoreKind(info.kind)]).toEqual([
+        info.kind,
+        DECLARED_DATA_STORE_KINDS.includes(info.kind),
+      ]);
+    }
+
+    expect(isDeclaredDataStoreKind(undefined)).toBe(false);
+    expect(isDeclaredDataStoreKind(null)).toBe(false);
+    expect(isDeclaredDataStoreKind("Security events")).toBe(false);
+  });
+
+  test("each is keyed by its kind alone, one per project", () => {
+    expect(declaredDataStoreKey(DataStoreKind.SecurityEvents)).toBe(
+      "oneuptime:security-events",
+    );
+    expect(declaredDataStoreKey(DataStoreKind.NetworkFlows)).toBe(
+      "oneuptime:network-flows",
+    );
+    expect(declaredDataStoreKey(DataStoreKind.SecurityAddressVault)).toBe(
+      "oneuptime:security-address-vault",
+    );
   });
 });
 
