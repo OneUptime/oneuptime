@@ -31,6 +31,8 @@ A criteria that matches but changes no status still decides the check: the monit
 
 > [!NOTE]
 > A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once. That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.
+>
+> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.
 
 ## What a criteria holds
 

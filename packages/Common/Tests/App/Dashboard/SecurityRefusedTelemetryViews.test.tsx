@@ -129,6 +129,7 @@ import HuntRunHistory from "../../../../App/FeatureSet/Dashboard/src/Components/
 import { HUNTS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
 import SecurityEventsReadBudgetBanners, {
   getSecurityEventsReadBudgetBannerSignals,
+  shareOneBudgetsRead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RefusedTelemetry/SecurityEventsReadBudgetBanners";
 import SecurityEventsNoResults, {
   SECURITY_EVENTS_NO_RESULTS_REFUSED_ID,
@@ -991,6 +992,61 @@ describe("the budget banners of what Security Events reads", () => {
     expect(
       screen.queryByTestId("telemetry-ingestion-budget-banner"),
     ).not.toBeInTheDocument();
+    expect(budgetStatusMock).not.toHaveBeenCalled();
+  });
+
+  test("one read of the budgets answers every banner that asks", async () => {
+    const read: MockFunction = getJestMockFunction();
+    read.mockResolvedValue(usedUp as never);
+
+    const shared: () => Promise<TelemetryIngestionBudgetStatus> =
+      shareOneBudgetsRead(
+        read as unknown as () => Promise<TelemetryIngestionBudgetStatus>,
+      );
+
+    // Asked by the Security Events banner, then the logs' and the traces'.
+    const answers: Array<TelemetryIngestionBudgetStatus> = await Promise.all([
+      shared(),
+      shared(),
+      shared(),
+    ]);
+
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(answers).toEqual([usedUp, usedUp, usedUp]);
+  });
+
+  test("on a Security Events page, they read the budgets the page shares with its own banner, not again (#10431)", async () => {
+    const pageRead: MockFunction = getJestMockFunction();
+    pageRead.mockResolvedValue(usedUp as never);
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async () => {
+      // Your logs and the Traces source both on: two banners.
+      return { data: [{ _id: "x" }], count: 1 };
+    }) as never);
+
+    const readBudgets: () => Promise<TelemetryIngestionBudgetStatus> =
+      shareOneBudgetsRead(
+        pageRead as unknown as () => Promise<TelemetryIngestionBudgetStatus>,
+      );
+
+    // The page's own budget's banner has read them already.
+    await readBudgets();
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityEventsReadBudgetBanners fetchStatus={readBudgets} />
+        </MemoryRouter>,
+      );
+    });
+
+    const banners: Array<HTMLElement> = await screen.findAllByTestId(
+      "telemetry-ingestion-budget-banner",
+    );
+
+    expect(banners).toHaveLength(2);
+    expect(banners[0]).toHaveTextContent("Logs");
+    expect(banners[1]).toHaveTextContent("Traces");
+    expect(pageRead).toHaveBeenCalledTimes(1);
     expect(budgetStatusMock).not.toHaveBeenCalled();
   });
 });

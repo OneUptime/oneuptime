@@ -51,7 +51,7 @@ export const WEB_ACL_WHERE: string = translationKey(
 export const CLIENT_ADDRESS_FIELD_TITLE: string =
   translationKey("Client Address");
 export const CLIENT_ADDRESS_FIELD_DESCRIPTION: string = translationKey(
-  "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, the source address is the proxy's: read the header it sets instead.",
+  "Where AWS WAF reads the address a block is matched against. Behind another proxy or CDN, read the header that proxy sets instead.",
 );
 
 export const CLIENT_ADDRESS_LABELS: Record<SecurityBlockClientAddress, string> =
@@ -91,7 +91,7 @@ export const CLOUD_WAF_STATUS_LABELS: Record<
 export const ADD_WEB_ACL_TITLE: string = translationKey("Add Web ACL");
 
 export const ADD_WEB_ACL_DESCRIPTION: string = translationKey(
-  "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets in the web ACL's Region and adds its rule below your first rule, or waits for yours when you keep the web ACL in code.",
+  "Pick a web ACL to enforce your blocklist in. OneUptime makes its IP sets and adds its rule, or waits for yours when you keep the web ACL in code.",
 );
 
 export const WEB_ACL_FIELD_TITLE: string = translationKey("Web ACL");
@@ -135,10 +135,10 @@ export const ADDED_NOT_ENFORCING_TOAST: string = translationKey(
 export const SHOW_RULE_ACTION: string = translationKey("Show Rule");
 export const RULE_TITLE: string = translationKey("OneUptime's Rule");
 export const RULE_ADDED_DESCRIPTION: string = translationKey(
-  "OneUptime added these two rules to {{name}}, below your first rule, and keeps them there. They block and challenge the addresses in OneUptime's IP sets.",
+  "OneUptime added these two rules to {{name}}, below your first rule, and keeps them there. They block and challenge the addresses in its IP sets.",
 );
 export const RULE_IN_CODE_DESCRIPTION: string = translationKey(
-  "Add these two rules to {{name}} in your code, before your other rules. OneUptime reads the web ACL until it finds them, and its blocks are enforced from then on.",
+  "Add these two rules to {{name}} in your code, before your other rules. OneUptime enforces its blocks there once it finds them in the web ACL.",
 );
 export const RULE_SETS_NOT_MADE: string = translationKey(
   "OneUptime has not made its IP sets yet. Check Again makes them, and the rule then names each.",
@@ -157,13 +157,13 @@ export const CHECKED_TOAST: string = translationKey("{{name}} is checked.");
 export const REMOVE_ACTION: string = translationKey("Remove");
 export const REMOVE_TITLE: string = translationKey("Remove Web ACL");
 export const REMOVE_DESCRIPTION: string = translationKey(
-  "OneUptime takes its rule out of {{name}}, and deletes its IP sets once no other web ACL in the Region uses them. Your blocklist is then no longer enforced there.",
+  "OneUptime takes its rule out of {{name}}, and deletes its IP sets once no other web ACL uses them. Your blocklist is then no longer enforced there.",
 );
 export const KEEP_IN_CLOUD_FIELD_TITLE: string = translationKey(
   "Remove From OneUptime Only",
 );
 export const KEEP_IN_CLOUD_FIELD_DESCRIPTION: string = translationKey(
-  "Leaves OneUptime's rule and IP sets in AWS WAF, still blocking what they hold. For when OneUptime may no longer write them: delete them in AWS WAF yourself.",
+  "Leaves OneUptime's rule and IP sets in AWS WAF, still blocking what they hold. For when OneUptime can no longer write them: delete them yourself.",
 );
 export const REMOVED_TOAST: string = translationKey(
   "{{name}} no longer enforces your blocklist.",

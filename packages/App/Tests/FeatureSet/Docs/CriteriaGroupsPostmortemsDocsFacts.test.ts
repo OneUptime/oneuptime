@@ -965,6 +965,42 @@ describe("how criteria decide", () => {
       "That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
     );
   });
+
+  it("brings a grouped monitor back only once the hosts behind its status meet the criteria that brings it back (#10061)", () => {
+    const recovery: string = readCommonSource(
+      "Server/Utils/Monitor/GroupedMonitorRecovery.ts",
+    );
+
+    // "Only brings it back": the default status, and nothing opened.
+    const getRole: string = between(
+      recovery,
+      "public static getRole(input: {",
+      "\n  }\n",
+    );
+
+    expect(getRole).toContain("criteria.isEnabled === false");
+    expect(getRole).toContain(
+      "return MonitorCriteriaInstance.opensRecords(criteria)",
+    );
+    expect(getRole).toContain(": GroupedCriteriaRole.Recovery;");
+
+    // It waits for the series behind the status, not for every series.
+    expect(recovery).toContain(
+      "if (behind.has(fingerprint) && !recovery.metSeries.has(fingerprint)) {",
+    );
+
+    // The first match after it, and the status kept while one waits.
+    expect(EVALUATOR).toContain(
+      "await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({",
+    );
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain("await MonitorResourceUtil.keepStatusForSeriesBehindIt({");
+
+    expect(criteriaPage).toContain(
+      "> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.",
+    );
+  });
 });
 
 // ---- What a criteria holds ----------------------------------------------------------

@@ -442,6 +442,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Grouped monitors evaluate every criteria.",
     "order the criteria most severe first",
     "Ungrouped monitors stop at the first matching criteria.",
+    // How a grouped monitor's status comes back (#10061).
+    "A grouped monitor's status comes back with the series that changed it.",
     // A step written in PromQL (#7712).
     "A comparison in the expression",
     "At most 100 series a check.",
