@@ -236,6 +236,16 @@ export interface EntityDropdownProps {
    * only (ArchivedValuePicker).
    */
   listsArchivedValues?: boolean | undefined;
+  /*
+   * How a record reads as an option, past the one built from labelField,
+   * colorField and descriptionField: a network device named by its hostname
+   * when it has no name, and without its hostname beside a name that is the
+   * same (#10646). Every record the dropdown reads - a search's, a held
+   * value's, a label's entries - goes through it. Unset, as built.
+   */
+  formatOption?:
+    | ((option: DropdownOption, record: BaseModel) => DropdownOption)
+    | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -519,6 +529,11 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   > = useRef<Record<string, unknown> | undefined>(props.heldValueQuery);
   heldValueQueryRef.current = props.heldValueQuery;
   const descriptionField: string | undefined = props.descriptionField;
+  // Read from a ref, so a caller's inline function never searches again.
+  const formatOptionRef: React.MutableRefObject<
+    EntityDropdownProps["formatOption"]
+  > = useRef<EntityDropdownProps["formatOption"]>(props.formatOption);
+  formatOptionRef.current = props.formatOption;
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -968,7 +983,10 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           option.sharedName = sharedName;
         }
       }
-      return option;
+      // How the caller has the record read (formatOption).
+      return formatOptionRef.current
+        ? formatOptionRef.current(option, item)
+        : option;
     },
     [labelField, valueField, colorField, descriptionField],
   );
