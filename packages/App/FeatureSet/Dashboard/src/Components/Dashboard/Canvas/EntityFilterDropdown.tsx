@@ -8,6 +8,9 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import EntityDropdown, {
+  EntityDropdownValue,
+} from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import {
@@ -55,6 +58,17 @@ interface EntityModelDef<T extends BaseModel> {
   modelType: ModelTypeOf<T>;
   sortField: keyof T;
   sortOrder: SortOrder;
+  /*
+   * A kind a project can have any number of - monitors, SLOs, labels,
+   * clusters, hosts: the picker searches the server as the reader types,
+   * 50 by name (EntityDropdown), so every one can be found (#10580). The
+   * picker used to read the first 1,000 by name and search those in the
+   * browser, so a monitor whose name sorted past the 1,000th was never
+   * offered. The other kinds are short lists of the project's own values
+   * (severities, states, site types) or of saved views, kept in their own
+   * order (or worded under their names) and read whole.
+   */
+  isSearchedOnServer?: boolean | undefined;
   /*
    * Narrows what can be PICKED for a new selection, on top of the project
    * scope - e.g. archived SLOs are retired and must not be offered for a new
@@ -220,7 +234,7 @@ const getSelectedIds: GetSelectedIdsFunction = (
   });
 };
 
-function getEntityModelDef(
+export function getEntityModelDef(
   entityFilterModelType: EntityFilterModelType,
 ): EntityModelDef<BaseModel> {
   switch (entityFilterModelType) {
@@ -259,12 +273,14 @@ function getEntityModelDef(
         modelType: Monitor as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.ServiceLevelObjective:
       return {
         modelType: ServiceLevelObjective as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
         /*
          * An archived SLO is retired - not evaluated, its numbers frozen - so
          * it is not offered for a new widget or dashboard variable. A widget
@@ -282,54 +298,63 @@ function getEntityModelDef(
         modelType: Label as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.KubernetesCluster:
       return {
         modelType: KubernetesCluster as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.DockerHost:
       return {
         modelType: DockerHost as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.PodmanHost:
       return {
         modelType: PodmanHost as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.ProxmoxCluster:
       return {
         modelType: ProxmoxCluster as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.VMwareVCenter:
       return {
         modelType: VMwareVCenter as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.CephCluster:
       return {
         modelType: CephCluster as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.StorageArray:
       return {
         modelType: StorageArray as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.DockerSwarmCluster:
       return {
         modelType: DockerSwarmCluster as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
       };
     case EntityFilterModelType.ProductAnalyticsSavedFunnel:
     case EntityFilterModelType.ProductAnalyticsSavedRetention:
@@ -383,9 +408,56 @@ export interface EntityFilterDropdownProps {
   onChange: (value: string | Array<string> | null) => void;
 }
 
-const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
-  props: EntityFilterDropdownProps,
-): ReactElement => {
+// The rows one read of a short list takes; every page is read.
+export const ENTITY_FILTER_LIST_PAGE_SIZE: number = 1000;
+
+/*
+ * A short list read whole: a page at a time until every row is in, in the
+ * list's own order. One read for every project there is, but never a row
+ * left out of the options because it came after the first page.
+ */
+const readEveryPage: (data: {
+  def: EntityModelDef<BaseModel>;
+  projectId: ObjectID;
+  select: Record<string, true>;
+}) => Promise<Array<BaseModel>> = async (data: {
+  def: EntityModelDef<BaseModel>;
+  projectId: ObjectID;
+  select: Record<string, true>;
+}): Promise<Array<BaseModel>> => {
+  const rows: Array<BaseModel> = [];
+
+  for (;;) {
+    const page: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
+      modelType: data.def.modelType,
+      query: {
+        ...(data.def.pickableQuery || {}),
+        projectId: data.projectId,
+      } as Query<BaseModel>,
+      limit: ENTITY_FILTER_LIST_PAGE_SIZE,
+      skip: rows.length,
+      select: data.select,
+      sort: { [data.def.sortField]: data.def.sortOrder } as Record<
+        string,
+        SortOrder
+      >,
+    });
+
+    rows.push(...page.data);
+
+    if (
+      page.data.length === 0 ||
+      page.data.length < ENTITY_FILTER_LIST_PAGE_SIZE ||
+      rows.length >= page.count
+    ) {
+      return rows;
+    }
+  }
+};
+
+const ListedEntityFilterDropdown: FunctionComponent<
+  EntityFilterDropdownProps
+> = (props: EntityFilterDropdownProps): ReactElement => {
   const translator: Translator = useTranslator();
   const [options, setOptions] = useState<Array<DropdownOption>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -411,33 +483,23 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
           def.modelType,
         );
 
-        const listResult: ListResult<BaseModel> =
-          await ModelAPI.getList<BaseModel>({
-            modelType: def.modelType,
-            query: {
-              ...(def.pickableQuery || {}),
-              projectId: projectId,
-            } as Query<BaseModel>,
-            limit: 1000,
-            skip: 0,
-            select: {
-              ...(def.optionSelect || {}),
-              ...getOptionSelect(colorColumnName),
-              ...getSharedNameSelect(def.modelType),
-            },
-            sort: { [def.sortField]: def.sortOrder } as Record<
-              string,
-              SortOrder
-            >,
-          });
+        const listedRows: Array<BaseModel> = await readEveryPage({
+          def: def,
+          projectId: projectId,
+          select: {
+            ...(def.optionSelect || {}),
+            ...getOptionSelect(colorColumnName),
+            ...getSharedNameSelect(def.modelType),
+          },
+        });
 
-        const newOptions: Array<DropdownOption> = listResult.data.map(
+        const newOptions: Array<DropdownOption> = listedRows.map(
           (item: BaseModel): DropdownOption => {
             return toDropdownOption(item, colorColumnName);
           },
         );
         // The rows the options were built from, in the same order.
-        const optionItems: Array<BaseModel> = [...listResult.data];
+        const optionItems: Array<BaseModel> = [...listedRows];
 
         /*
          * A saved selection can be missing from the list above: past its row
@@ -577,22 +639,219 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
       placeholder={props.placeholder || "Select..."}
       value={initialValue}
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-        if (value === null) {
-          props.onChange(props.isMultiSelect ? [] : "");
-          return;
-        }
-
-        if (Array.isArray(value)) {
-          props.onChange(
-            value.map((v: DropdownValue) => {
-              return v.toString();
-            }),
-          );
-        } else {
-          props.onChange(value.toString());
-        }
+        props.onChange(toPickedValue(value, props.isMultiSelect));
       }}
     />
+  );
+};
+
+// What the widget's argument keeps of a pick: ids, as text.
+export const toPickedValue: (
+  value: DropdownValue | Array<DropdownValue> | null,
+  isMultiSelect: boolean,
+) => string | Array<string> = (
+  value: DropdownValue | Array<DropdownValue> | null,
+  isMultiSelect: boolean,
+): string | Array<string> => {
+  if (value === null) {
+    return isMultiSelect ? [] : "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((v: DropdownValue) => {
+      return v.toString();
+    });
+  }
+
+  return value.toString();
+};
+
+/*
+ * What a saved item that is no longer there reads as - deleted since, or
+ * out of the reader's reach - rather than its id.
+ */
+export const ENTITY_FILTER_NOT_FOUND_LABEL: string = translationKey(
+  "No longer available",
+);
+
+/*
+ * A KIND A PROJECT CAN HAVE ANY NUMBER OF, SEARCHED ON THE SERVER (#10580).
+ *
+ * The picker (EntityDropdown) asks the server for 50 by name as the reader
+ * types, within the kind's own rules (an archived SLO is never offered,
+ * nor an archived label), so a monitor is found by its name however many
+ * the project has. What the widget already points at is read by its id
+ * first, so it is named - an archived SLO as "{{name}} (archived)" - even
+ * where no search would offer it.
+ */
+const SearchedEntityFilterDropdown: FunctionComponent<
+  EntityFilterDropdownProps
+> = (props: EntityFilterDropdownProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const def: EntityModelDef<BaseModel> = getEntityModelDef(
+    props.entityFilterModelType,
+  );
+  // The saved items, named, by id; null while they are read.
+  const [savedOptions, setSavedOptions] = useState<Map<
+    string,
+    DropdownOption
+  > | null>(null);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    const load: () => Promise<void> = async (): Promise<void> => {
+      setSavedOptions(null);
+
+      /*
+       * Only well-formed ids are looked up: a saved value that is not one
+       * would make the server refuse the whole lookup and cost the real
+       * selections their names too.
+       */
+      const ids: Array<string> = getSelectedIds(props.value).filter(
+        (id: string): boolean => {
+          return ObjectID.isValidUUID(id);
+        },
+      );
+
+      if (ids.length === 0) {
+        setSavedOptions(new Map<string, DropdownOption>());
+        return;
+      }
+
+      const named: Map<string, DropdownOption> = new Map<
+        string,
+        DropdownOption
+      >();
+
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+      try {
+        const colorColumnName: string | null = getColorColumnName(
+          def.modelType,
+        );
+
+        const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>(
+          {
+            modelType: def.modelType,
+            query: {
+              ...(projectId ? { projectId: projectId } : {}),
+              _id: new Includes(
+                ids.map((id: string): ObjectID => {
+                  return new ObjectID(id);
+                }),
+              ),
+            } as Query<BaseModel>,
+            limit: ids.length,
+            skip: 0,
+            select: {
+              ...(def.unpickableSelect || {}),
+              ...getOptionSelect(colorColumnName),
+              ...getSharedNameSelect(def.modelType),
+            } as Record<string, true>,
+            sort: {},
+          },
+        );
+
+        for (const item of result.data) {
+          const listed: DropdownOption = toDropdownOption(
+            item,
+            colorColumnName,
+          );
+
+          named.set(
+            String(listed.value).toLowerCase(),
+            def.isUnpickable?.(item) && def.unpickableLabelTemplate
+              ? getUnpickableOption(
+                  listed,
+                  def.unpickableLabelTemplate,
+                  translator,
+                )
+              : listed,
+          );
+        }
+      } catch {
+        /*
+         * Naming the saved items is a nicety: the picker names them itself
+         * when this read fails, and searching must not fail with it.
+         */
+      }
+
+      if (isCurrent) {
+        setSavedOptions(named);
+      }
+    };
+
+    void load();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [props.entityFilterModelType]);
+
+  if (savedOptions === null) {
+    return (
+      <div className="text-xs text-gray-500 py-2 px-3 border border-gray-200 rounded-md bg-gray-50">
+        {translator.translateText("Loading options...")}
+      </div>
+    );
+  }
+
+  // What the widget holds, each named where its name was read.
+  const held: Array<DropdownOption | string> = getSelectedIds(props.value).map(
+    (id: string): DropdownOption | string => {
+      return savedOptions.get(id.toLowerCase()) || id;
+    },
+  );
+
+  return (
+    <EntityDropdown
+      modelType={def.modelType}
+      labelField="name"
+      valueField="_id"
+      query={def.pickableQuery as Record<string, unknown> | undefined}
+      isMultiSelect={props.isMultiSelect}
+      value={
+        (props.isMultiSelect ? held : held[0] || null) as EntityDropdownValue
+      }
+      placeholder={props.placeholder || "Select..."}
+      notFoundLabel={ENTITY_FILTER_NOT_FOUND_LABEL}
+      onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+        props.onChange(toPickedValue(value, props.isMultiSelect));
+      }}
+    />
+  );
+};
+
+/*
+ * Whether a kind's picker searches the server. A kind this build does not
+ * know is listed, and the list says it cannot be read, as it always did.
+ */
+export const isEntityFilterSearchedOnServer: (
+  entityFilterModelType: EntityFilterModelType,
+) => boolean = (entityFilterModelType: EntityFilterModelType): boolean => {
+  try {
+    return Boolean(getEntityModelDef(entityFilterModelType).isSearchedOnServer);
+  } catch {
+    return false;
+  }
+};
+
+const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
+  props: EntityFilterDropdownProps,
+): ReactElement => {
+  if (isEntityFilterSearchedOnServer(props.entityFilterModelType)) {
+    // Keyed by kind: a widget's argument never changes kind in place.
+    return (
+      <SearchedEntityFilterDropdown
+        key={props.entityFilterModelType}
+        {...props}
+      />
+    );
+  }
+
+  return (
+    <ListedEntityFilterDropdown key={props.entityFilterModelType} {...props} />
   );
 };
 
