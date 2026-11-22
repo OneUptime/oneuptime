@@ -1229,6 +1229,10 @@ then `npm run i18n:validate` from the root.
   for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
   drawer's screen-reader line (#8260),
   [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
+  for Scrub It's warning before it saves a rule: whose records the rule changes, and what reads
+  the values it would hide, a monitor that would stop matching and an address Security Events
+  could no longer block (#10433),
+  [ScrubItWarningInEveryLanguage](../../packages/Common/Tests/App/Dashboard/ScrubItWarningInEveryLanguage.test.tsx),
   and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
   whose 186 texts had no entry in its locales and read English in every language (#8227),
   [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
