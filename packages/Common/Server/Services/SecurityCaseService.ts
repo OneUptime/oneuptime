@@ -3,12 +3,10 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import ProjectService from "./ProjectService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import TeamService from "./TeamService";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import Model from "../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../Models/DatabaseModels/SecurityCaseFeed";
 import Team from "../../Models/DatabaseModels/Team";
-import User from "../../Models/DatabaseModels/User";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -1060,31 +1058,24 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A person as the project names them: someone only invited to it by the
-   * name typed for them, else their address - never their account's own
-   * name, which it does not see until they join (#9823).
+   * Whom the case is assigned to, as its timeline says it - and the
+   * timeline is read through the API and workflows, by whoever they hand it
+   * to: named through FeedPersonName (#10681). Someone only invited by the
+   * name typed with their invitation, else "someone who hasn't joined the
+   * project yet", never by their account's own name (#9823); a member by
+   * their name, else the part of their address before the "@". Never an
+   * address. "a user" for somebody who is gone.
    */
   private async getUserName(
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<string> {
-    const user: User | null = await UserService.findOneById({
-      id: userId,
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    await PendingInviteeProfiles.nameInProject({
-      users: [user],
-      projectId: projectId,
-    });
-
-    return user?.name?.toString() || user?.email?.toString() || "a user";
+    return (
+      (await FeedPersonName.getText({
+        userId: userId,
+        projectId: projectId,
+      })) || "a user"
+    );
   }
 
   private async getTeamName(teamId: ObjectID): Promise<string> {
