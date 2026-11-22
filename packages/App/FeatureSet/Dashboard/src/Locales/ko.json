@@ -61951,5 +61951,7 @@
   "{{value}} is not blocked on your machines.": "{{value}}은(는) 머신에서 차단되어 있지 않습니다.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}}은(는) 차단 목록에 있지만, 아직 머신에서 차단하는 곳이 없습니다.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}}이(가) 차단 목록에 추가되었습니다. 모든 머신에서 차단되면 이 단계가 완료됩니다.",
-  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다."
+  "{{value}} is part of {{address}}.": "{{value}}은(는) {{address}}에 속합니다.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "다시 로그인을 쓰려면 Okta에서 이 앱의 SAML 설정에 있는 Honor Force Authentication을 Yes로 설정하세요.",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "SAML로 연결한 Keycloak에서는 다시 로그인을 확인할 수 없습니다. 대신 이 렐름을 OIDC 공급자로 추가하세요."
 }

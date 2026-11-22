@@ -61951,5 +61951,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} er ikke blokkert på maskinene dine.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} står på blokkeringslisten, men ingenting blokkerer det på maskinene dine ennå.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} står på blokkeringslisten. Trinnet er utført så snart det er blokkert på hver maskin.",
-  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}."
+  "{{value}} is part of {{address}}.": "{{value}} hører til {{address}}.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "For å bruke Logg på igjen må du sette Honor Force Authentication til Yes i denne appens SAML-innstillinger i Okta.",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "Logg på igjen kan ikke kontrolleres via Keycloak med SAML. Legg heller til dette realmet som OIDC-leverandør."
 }

@@ -61951,5 +61951,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} روی ماشین‌های شما مسدود نیست.",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} در فهرست مسدودسازی است، اما هنوز چیزی آن را روی ماشین‌های شما مسدود نمی‌کند.",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} در فهرست مسدودسازی است. این گام به محض اینکه روی همهٔ ماشین‌ها مسدود شود انجام شده است.",
-  "{{value}} is part of {{address}}.": "{{value}} بخشی از {{address}} است."
+  "{{value}} is part of {{address}}.": "{{value}} بخشی از {{address}} است.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "برای «ورود دوباره»، در Okta در تنظیمات SAML این برنامه، Honor Force Authentication را روی Yes بگذارید.",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "«ورود دوباره» را نمی‌توان با Keycloak از راه SAML بررسی کرد. به‌جای آن، این realm را به‌عنوان ارائه‌دهنده OIDC بیفزایید."
 }

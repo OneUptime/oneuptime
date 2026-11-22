@@ -4458,5 +4458,7 @@
   "IAM Role in Your AWS Account": "IAM-rol in uw AWS-account",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Maak in uw AWS-account een rol die met Amazon SES mag verzenden en OneUptime vertrouwt. Er wordt geen sleutel opgeslagen.",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "De ARN van de IAM-rol waarbij OneUptime zich aanmeldt. Maak de rol met het vertrouwensbeleid hieronder.",
-  "Role ARN": "Rol-ARN"
+  "Role ARN": "Rol-ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "Opnieuw aanmelden kan via Keycloak met SAML niet worden gecontroleerd. Voeg deze realm in plaats daarvan toe als OIDC-provider.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "Zet voor Opnieuw aanmelden Honor Force Authentication op Yes in de SAML-instellingen van deze app in Okta."
 }

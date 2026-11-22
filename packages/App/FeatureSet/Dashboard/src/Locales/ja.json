@@ -61951,5 +61951,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} はマシンでブロックされていません。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} はブロックリストに登録されていますが、マシンでブロックしているものはまだありません。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} をブロックリストに登録しました。すべてのマシンでブロックされた時点でこのステップは完了です。",
-  "{{value}} is part of {{address}}.": "{{value}} は {{address}} の一部です。"
+  "{{value}} is part of {{address}}.": "{{value}} は {{address}} の一部です。",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "「もう一度サインイン」を使うには、Okta でこのアプリの SAML 設定にある Honor Force Authentication を Yes にしてください。",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "SAML で接続した Keycloak では「もう一度サインイン」を確かめられません。代わりに、このレルムを OIDC プロバイダーとして追加してください。"
 }

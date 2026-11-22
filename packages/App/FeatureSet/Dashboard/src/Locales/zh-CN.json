@@ -61951,5 +61951,7 @@
   "{{value}} is not blocked on your machines.": "{{value}} 未在你的机器上封禁。",
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.": "{{value}} 已在封禁列表中，但你的机器上还没有任何地方封禁它。",
   "{{value}} is on the blocklist. The step is done once it is blocked on every machine.": "{{value}} 已加入封禁列表。在每台机器上封禁后，此步骤即完成。",
-  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。"
+  "{{value}} is part of {{address}}.": "{{value}} 属于 {{address}}。",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "要使用“重新登录”，请在 Okta 中将此应用 SAML 设置里的 Honor Force Authentication 设为 Yes。",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "通过 SAML 连接的 Keycloak 无法核实“重新登录”。请改为将此 realm 添加为 OIDC 提供商。"
 }

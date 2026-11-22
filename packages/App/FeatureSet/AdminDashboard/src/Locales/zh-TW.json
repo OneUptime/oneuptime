@@ -4458,5 +4458,7 @@
   "IAM Role in Your AWS Account": "你的 AWS 帳戶中的 IAM 角色",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "在你的 AWS 帳戶中建立一個可以透過 Amazon SES 傳送並信任 OneUptime 的角色。不會儲存任何金鑰。",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "OneUptime 登入的 IAM 角色的 ARN。請使用下方的信任政策建立它。",
-  "Role ARN": "角色 ARN"
+  "Role ARN": "角色 ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "透過 SAML 連接的 Keycloak 無法核實「重新登入」。請改為將此 realm 新增為 OIDC 提供者。",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "若要使用「重新登入」，請在 Okta 中將此應用程式 SAML 設定裡的 Honor Force Authentication 設為 Yes。"
 }
