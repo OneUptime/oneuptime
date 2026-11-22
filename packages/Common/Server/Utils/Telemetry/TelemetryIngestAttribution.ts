@@ -5,6 +5,7 @@ import TelemetryIngestAttributionCounter, {
   TelemetryIngestAttributionUsage,
 } from "./TelemetryIngestAttributionCounter";
 import TelemetryIngestAttributionSettings, {
+  getTelemetryIngestResourceKey,
   TelemetryIngestAttributionConfig,
   TelemetryIngestTeamLabelBudget,
 } from "./TelemetryIngestAttributionSettings";
@@ -34,40 +35,49 @@ import {
 
 /*
  * WHOSE A BATCH OF TELEMETRY WAS, once the telemetry worker has decoded it
- * and filed each of its resources under a service (issues #6355, #6386).
+ * and filed each of its resources under a service, a host, a cluster or
+ * another resource (issues #6355, #6386, #10101).
  *
  * The request path counts a batch against its project's and its ingestion
  * key's budgets without decoding it (TelemetryIngestionBudget), so it
  * cannot tell whose telemetry the batch carries. This splits that same
  * count across the batch's resources, and with it:
  *
- *   - checks and charges the budgets of the teams that own those services,
- *     and of the labels on them (#6386). A resource whose team's or label's
- *     budget is used up is dropped (admitResource answers false, and the
- *     ingest service skips its records), and what it would have counted is
- *     taken back off the project's and the key's day, so one team's runaway
- *     service cannot use up the budget of every other team;
+ *   - checks and charges the budgets of the teams that own those resources,
+ *     and of the labels on them (#6386, #10101). A resource whose team's or
+ *     label's budget is used up is dropped (admitResource answers false,
+ *     and the ingest service skips its records), and what it would have
+ *     counted is taken back off the project's and the key's day, so one
+ *     team's runaway service or host cannot use up the budget of every
+ *     other team;
  *   - adds each resource's share to the five-minute counters behind the
  *     oneuptime.telemetry.usage.bytes metrics (#6355), when the project
  *     publishes them.
  *
+ * Every ingest path that files telemetry under resources is attributed: the
+ * OTLP logs, traces, metrics and profiles (and the compatible endpoints,
+ * queued as OTLP), and the logs of Fluent Bit, Fluentd and syslog (#10102),
+ * whose batches the request path reshapes before queueing them, and so
+ * carry their counted size (getRequestBytesToShare).
+ *
  * ONE COUNT. A batch's bytes are the size the request path counts it at -
  * its body decompressed, or an OTLP/gRPC export's protobuf size - and they
  * are shared out over its resources by how many records (log records,
- * spans, metric points, profiles) each sent. The shares add up to the
- * batch exactly, so a team's, a label's and the project's budgets count the
- * same bytes, and the usage metrics add up to what the project's budget
- * counted.
+ * spans, metric points, profiles, syslog lines) each sent. The shares add
+ * up to the batch exactly, so a team's, a label's and the project's budgets
+ * count the same bytes, and the usage metrics add up to what the project's
+ * budget counted.
  *
  * WHAT IT COSTS. A project with no team or label budget and no usage
  * metrics: two in-process set lookups per batch, then nothing
  * (forBatch answers null). Otherwise, per batch: a map lookup and an array
- * push per resource, and ONE Valkey round trip when the batch is done
+ * push per resource - independent of how many resources the project's
+ * budgets count - and ONE Valkey round trip when the batch is done
  * (settle) - plus one read of the project's budgets' day counters when this
  * server has not read them in the last few seconds (the budgets' state is
  * cached per project, signal and budget day, and every settle refreshes
  * it). Never a database round trip per record or per resource: the
- * services each budget counts are cached per project
+ * resources each budget counts are cached per project
  * (TelemetryIngestAttributionSettings). Memory: one small entry per
  * resource of the batch, released with it.
  *
@@ -103,10 +113,17 @@ interface BatchBudget {
 }
 
 interface AttributedResource {
+  // The resource, with every record the batch offered it with.
   resource: TelemetryIngestAttributionResource;
   // The batch's budgets it counts in, as indexes into `budgets`.
   budgets: Array<number>;
+  isAdmitted: boolean;
 }
+
+// A record count as a share is weighed by: a whole number, never below 0.
+const toRecords: (records: number) => number = (records: number): number => {
+  return Number.isFinite(records) && records > 0 ? Math.floor(records) : 0;
+};
 
 // Shares of a whole that add up to it exactly (largest remainder first).
 export const shareTelemetryIngestBytes: (
@@ -175,8 +192,12 @@ export default class TelemetryIngestAttribution {
   private static state: InMemoryTTLCache<Map<string, number>> =
     new InMemoryTTLCache(STATE_CACHE_MAX_ENTRIES);
 
-  private admitted: Array<AttributedResource> = [];
-  private dropped: Array<AttributedResource> = [];
+  /*
+   * The batch's resources, in the order they were first offered, each once:
+   * a resource offered again (the next syslog line of a service already
+   * seen) adds its records to the first offer.
+   */
+  private entries: Map<string, AttributedResource> = new Map();
   private used: Map<string, number> | null = null;
   private isSettled: boolean = false;
 
@@ -192,7 +213,14 @@ export default class TelemetryIngestAttribution {
       isRetry: boolean;
       publishesUsageMetrics: boolean;
       budgets: Array<BatchBudget>;
-      budgetsByServiceId: Map<string, Array<number>>;
+      /*
+       * The project's resources and the budgets each counts in, as indexes
+       * into the project's budgets - shared with the settings, never copied
+       * per batch - and those indexes as the batch's own (`budgets`): only
+       * the budgets of the batch's signal.
+       */
+      budgetsByResourceId: Map<string, Array<number>>;
+      batchIndexOf: Map<number, number>;
       refundScopes: Array<{
         scope: TelemetryIngestionBudgetScope;
         scopeId: string;
@@ -214,6 +242,52 @@ export default class TelemetryIngestAttribution {
       );
     } catch {
       return false;
+    }
+  }
+
+  /*
+   * The size the worker is to share a batch out at, for an ingest path that
+   * reshapes the body before it is queued - Fluent Bit's and Fluentd's
+   * entries, syslog's lines (#10102) - so the worker cannot measure what the
+   * request path counted: the size the request path counted it at, or, when
+   * no budget was in force and nothing was counted, the same measure of the
+   * body as it arrived. Asked before the body is reshaped, and only answered
+   * for a project whose batches are attributed: every other project costs
+   * two lookups in in-process sets, and nothing is measured. Never throws.
+   */
+  public static async getRequestBytesToShare(data: {
+    projectId: ObjectID | string | null | undefined;
+    // What the request path counted, when it counted anything.
+    charge: { countedBytes: number; isPending: boolean } | null | undefined;
+    // The body's size, as the request path measures one.
+    measure: () => { bytes: number };
+  }): Promise<number | undefined> {
+    try {
+      if (
+        !data.projectId ||
+        !(await TelemetryIngestAttributionSettings.isAttributedProject(
+          data.projectId,
+        ))
+      ) {
+        return undefined;
+      }
+
+      const counted: number | null =
+        data.charge && !data.charge.isPending ? data.charge.countedBytes : null;
+      const bytes: number =
+        counted !== null && Number.isFinite(counted) && counted >= 0
+          ? counted
+          : data.measure().bytes;
+
+      return Number.isFinite(bytes) && bytes >= 0
+        ? Math.floor(bytes)
+        : undefined;
+    } catch (err) {
+      logger.warn(
+        `TelemetryIngestAttribution: could not size a batch of project ${String(data.projectId)} for its team and label budgets and usage; it is attributed at its stored size`,
+      );
+      logger.warn(err);
+      return undefined;
     }
   }
 
@@ -276,30 +350,17 @@ export default class TelemetryIngestAttribution {
         timezone: instance.timezone,
       });
 
-      // The budget indexes of `config.budgets` -> of `budgets`.
-      const indexOf: Map<number, number> = new Map();
+      /*
+       * The budget indexes of `config.budgets` -> of `budgets`: one entry a
+       * budget of the signal. A resource's own are translated when it is
+       * offered, so a batch costs the same however many resources the
+       * project's budgets count.
+       */
+      const batchIndexOf: Map<number, number> = new Map();
 
       budgets.forEach((budget: BatchBudget, index: number): void => {
-        indexOf.set(config.budgets.indexOf(budget.budget), index);
+        batchIndexOf.set(config.budgets.indexOf(budget.budget), index);
       });
-
-      const budgetsByServiceId: Map<string, Array<number>> = new Map();
-
-      if (budgets.length > 0) {
-        for (const [serviceId, indexes] of config.budgetsByServiceId) {
-          const batchIndexes: Array<number> = indexes
-            .map((index: number): number | undefined => {
-              return indexOf.get(index);
-            })
-            .filter((index: number | undefined): index is number => {
-              return index !== undefined;
-            });
-
-          if (batchIndexes.length > 0) {
-            budgetsByServiceId.set(serviceId, batchIndexes);
-          }
-        }
-      }
 
       return new TelemetryIngestAttribution({
         projectId: projectId,
@@ -311,7 +372,8 @@ export default class TelemetryIngestAttribution {
         isRetry: data.isRetry === true,
         publishesUsageMetrics: config.publishesUsageMetrics,
         budgets: budgets,
-        budgetsByServiceId: budgetsByServiceId,
+        budgetsByResourceId: config.budgetsByResourceId,
+        batchIndexOf: batchIndexOf,
         refundScopes: (data.gateCharge?.scopes || []).map(
           (scope: {
             scope: TelemetryIngestionBudgetScope;
@@ -338,54 +400,81 @@ export default class TelemetryIngestAttribution {
   }
 
   /*
-   * One resource of the batch, once filed under its service: whether its
-   * records may be stored. false when a budget of its team or label is used
-   * up - its records are dropped, and counted as dropped. Never throws: a
+   * One resource of the batch, once filed under its service, host, cluster
+   * or other resource: whether its records may be stored. false when a
+   * budget of its team or label is used up - its records are dropped, and
+   * counted as dropped. A resource offered again in the same batch adds its
+   * records to its first offer and is answered the same: an ingest path
+   * that files its records one by one (syslog) offers each. Never throws: a
    * failure admits the resource.
    */
   public async admitResource(
     resource: TelemetryIngestAttributionResource,
   ): Promise<boolean> {
+    const key: string = this.entryKey(resource);
+    const known: AttributedResource | undefined = this.entries.get(key);
+
+    if (known) {
+      known.resource.records += toRecords(resource.records);
+      return known.isAdmitted;
+    }
+
+    let budgets: Array<number> = [];
+    let isAdmitted: boolean = true;
+
     try {
-      const budgets: Array<number> =
-        this.data.budgetsByServiceId.get(resource.primaryEntityId.toString()) ||
-        [];
+      budgets = this.getBudgetsOf(resource);
 
-      if (budgets.length === 0) {
-        this.admitted.push({ resource: resource, budgets: [] });
-        return true;
+      if (budgets.length > 0) {
+        const used: Map<string, number> = await this.readUsed();
+
+        isAdmitted = !budgets.some((index: number): boolean => {
+          const budget: BatchBudget = this.data.budgets[index]!;
+
+          return (
+            (used.get(this.scopeKey(budget.budget)) || 0) >=
+            budget.dailyBudgetBytes
+          );
+        });
       }
-
-      const used: Map<string, number> = await this.readUsed();
-      const isUsedUp: boolean = budgets.some((index: number): boolean => {
-        const budget: BatchBudget = this.data.budgets[index]!;
-
-        return (
-          (used.get(this.scopeKey(budget.budget)) || 0) >=
-          budget.dailyBudgetBytes
-        );
-      });
-
-      if (isUsedUp) {
-        this.dropped.push({ resource: resource, budgets: budgets });
-        return false;
-      }
-
-      this.admitted.push({ resource: resource, budgets: budgets });
-      return true;
     } catch (err) {
       logger.warn(
         `TelemetryIngestAttribution: could not check a resource of project ${this.data.projectId} against its team and label budgets; storing it`,
       );
       logger.warn(err);
-      this.admitted.push({ resource: resource, budgets: [] });
-      return true;
+      budgets = [];
+      isAdmitted = true;
     }
+
+    // Offered again while its budgets were read: one entry, one answer.
+    const offeredMeanwhile: AttributedResource | undefined =
+      this.entries.get(key);
+
+    if (offeredMeanwhile) {
+      offeredMeanwhile.resource.records += toRecords(resource.records);
+      return offeredMeanwhile.isAdmitted;
+    }
+
+    this.entries.set(key, {
+      resource: { ...resource, records: toRecords(resource.records) },
+      budgets: budgets,
+      isAdmitted: isAdmitted,
+    });
+
+    return isAdmitted;
   }
 
   // How many resources were dropped: for the ingest service's log line.
   public getDroppedResourceCount(): number {
-    return this.dropped.length;
+    let dropped: number = 0;
+
+    for (const entry of this.entries.values()) {
+      if (!entry.isAdmitted) {
+        dropped++;
+      }
+    }
+
+    return dropped;
   }
 
   /*
@@ -405,10 +494,15 @@ export default class TelemetryIngestAttribution {
     }
 
     try {
-      const entries: Array<AttributedResource> = [
-        ...this.admitted,
-        ...this.dropped,
-      ];
+      // What was stored, then what was dropped, each in the order offered.
+      const admitted: Array<AttributedResource> = [];
+      const dropped: Array<AttributedResource> = [];
+
+      for (const entry of this.entries.values()) {
+        (entry.isAdmitted ? admitted : dropped).push(entry);
+      }
+
+      const entries: Array<AttributedResource> = [...admitted, ...dropped];
 
       if (entries.length === 0) {
         return;
@@ -420,7 +514,7 @@ export default class TelemetryIngestAttribution {
           return entry.resource.records;
         }),
       );
-      const admittedCount: number = this.admitted.length;
+      const admittedCount: number = admitted.length;
 
       const scopes: Array<TelemetryIngestAttributionScopeCharge> = [];
 
@@ -469,7 +563,7 @@ export default class TelemetryIngestAttribution {
           this.data.signal,
         );
 
-        this.admitted.forEach((entry: AttributedResource, at: number): void => {
+        admitted.forEach((entry: AttributedResource, at: number): void => {
           const field: string = TelemetryIngestAttributionCounter.getUsageField(
             {
               signalSlug: signalSlug,
@@ -526,9 +620,9 @@ export default class TelemetryIngestAttribution {
         );
       }
 
-      if (this.dropped.length > 0) {
+      if (dropped.length > 0) {
         logger.debug(
-          `TelemetryIngestAttribution: dropped ${this.dropped.length} resource(s) of a ${getTelemetryIngestionBudgetSignalWords(
+          `TelemetryIngestAttribution: dropped ${dropped.length} resource(s) of a ${getTelemetryIngestionBudgetSignalWords(
             this.data.signal,
           )} batch of project ${this.data.projectId}: a team or label budget is used up.`,
         );
@@ -658,6 +752,47 @@ export default class TelemetryIngestAttribution {
 
     this.used = used;
     return used;
+  }
+
+  /*
+   * The batch's budgets a resource counts in, as indexes into `budgets`: its
+   * team's and its labels' of the batch's signal. One map lookup.
+   */
+  private getBudgetsOf(
+    resource: TelemetryIngestAttributionResource,
+  ): Array<number> {
+    if (this.data.budgets.length === 0) {
+      return [];
+    }
+
+    const indexes: Array<number> | undefined =
+      this.data.budgetsByResourceId.get(
+        getTelemetryIngestResourceKey(resource.primaryEntityId),
+      );
+
+    if (!indexes) {
+      return [];
+    }
+
+    const budgets: Array<number> = [];
+
+    for (const index of indexes) {
+      const batchIndex: number | undefined = this.data.batchIndexOf.get(index);
+
+      if (batchIndex !== undefined) {
+        budgets.push(batchIndex);
+      }
+    }
+
+    return budgets;
+  }
+
+  /*
+   * A resource of the batch, as its usage is kept: its kind, id and name. A
+   * service renamed within a batch is two names, as its usage fields are.
+   */
+  private entryKey(resource: TelemetryIngestAttributionResource): string {
+    return `${resource.primaryEntityId.toString()}\u0000${resource.primaryEntityType}\u0000${resource.name}`;
   }
 
   private stateKey(): string {
