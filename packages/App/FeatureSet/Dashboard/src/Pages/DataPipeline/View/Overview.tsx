@@ -22,6 +22,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { DataPipelineLateness } from "Common/Types/DataObservability/DataPipelineSchedule";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -137,6 +138,13 @@ const PipelineOverviewPage: FunctionComponent<
         columns={4}
         ariaLabel="Pipeline health"
         isLaidOutByOwnWidth={true}
+        footer={
+          // Who added the pipeline and who last changed it (#10461).
+          <RecordActivityLine
+            modelType={DataPipeline}
+            recordId={dataPipelineId}
+          />
+        }
       >
         <EventStatTile
           variant="segment"
