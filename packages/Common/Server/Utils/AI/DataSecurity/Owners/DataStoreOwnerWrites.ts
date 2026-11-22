@@ -1,28 +1,28 @@
-import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
-import DataStoreOwnerUser from "../../../../Models/DatabaseModels/DataStoreOwnerUser";
-import Team from "../../../../Models/DatabaseModels/Team";
-import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import DataStoreOwnerTeam from "../../../../../Models/DatabaseModels/DataStoreOwnerTeam";
+import DataStoreOwnerUser from "../../../../../Models/DatabaseModels/DataStoreOwnerUser";
+import Team from "../../../../../Models/DatabaseModels/Team";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   DataStoreOwnerKind,
   DataStoreOwnerRef,
-} from "../../../../Types/DataSecurity/DataStoreOwnerProposal";
-import BadDataException from "../../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../../Types/JSON";
-import ObjectID from "../../../../Types/ObjectID";
-import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamService";
-import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
-import TeamMemberService from "../../../Services/TeamMemberService";
-import TeamService from "../../../Services/TeamService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
-import logger from "../../Logger";
+} from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
+import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
+import ObjectID from "../../../../../Types/ObjectID";
+import DataStoreOwnerTeamService from "../../../../Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../../../Services/DataStoreOwnerUserService";
+import TeamMemberService from "../../../../Services/TeamMemberService";
+import TeamService from "../../../../Services/TeamService";
+import QueryHelper from "../../../../Types/Database/QueryHelper";
+import logger from "../../../Logger";
 
 /*
  * OWNERS A PERSON APPROVED, ADDED AND TAKEN BACK (#10374).
  *
  * An owner OneUptime AI proposed is added as the person who approved it -
  * their own permission to add a store's owners, so a refusal is theirs -
- * and told as any owner is (isOwnerNotified false: the owner-added job
- * tells them). What one approval adds is made whole or not at all: a
+ * and told as any owner is (isOwnerNotified is OneUptime's to set, and
+ * starts false, so the owner-added job tells them). What one approval adds is made whole or not at all: a
  * person who has left the project, or a team that is not one of its teams,
  * refuses the approval in words, rather than being skipped quietly, and a
  * refusal part way takes back what was added before it. An owner the store
@@ -39,7 +39,9 @@ export interface DataStoreOwnerRow extends JSONObject {
   rowId: string;
 }
 
-export function readDataStoreOwnerRows(value: unknown): Array<DataStoreOwnerRow> {
+export function readDataStoreOwnerRows(
+  value: unknown,
+): Array<DataStoreOwnerRow> {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -54,7 +56,8 @@ export function readDataStoreOwnerRows(value: unknown): Array<DataStoreOwnerRow>
       const rowId: unknown = raw["rowId"];
 
       if (
-        (kind !== DataStoreOwnerKind.User && kind !== DataStoreOwnerKind.Team) ||
+        (kind !== DataStoreOwnerKind.User &&
+          kind !== DataStoreOwnerKind.Team) ||
         typeof dataStoreId !== "string" ||
         typeof ownerId !== "string" ||
         typeof rowId !== "string" ||
@@ -120,23 +123,25 @@ export default class DataStoreOwnerWrites {
     projectId: ObjectID;
     dataStoreId: ObjectID;
   }): Promise<Set<string>> {
-    const [users, teams]: [Array<DataStoreOwnerUser>, Array<DataStoreOwnerTeam>] =
-      await Promise.all([
-        DataStoreOwnerUserService.findBy({
-          query: { projectId: data.projectId, dataStoreId: data.dataStoreId },
-          select: { userId: true },
-          skip: 0,
-          limit: 500,
-          props: { isRoot: true },
-        }),
-        DataStoreOwnerTeamService.findBy({
-          query: { projectId: data.projectId, dataStoreId: data.dataStoreId },
-          select: { teamId: true },
-          skip: 0,
-          limit: 500,
-          props: { isRoot: true },
-        }),
-      ]);
+    const [users, teams]: [
+      Array<DataStoreOwnerUser>,
+      Array<DataStoreOwnerTeam>,
+    ] = await Promise.all([
+      DataStoreOwnerUserService.findBy({
+        query: { projectId: data.projectId, dataStoreId: data.dataStoreId },
+        select: { userId: true },
+        skip: 0,
+        limit: 500,
+        props: { isRoot: true },
+      }),
+      DataStoreOwnerTeamService.findBy({
+        query: { projectId: data.projectId, dataStoreId: data.dataStoreId },
+        select: { teamId: true },
+        skip: 0,
+        limit: 500,
+        props: { isRoot: true },
+      }),
+    ]);
 
     return new Set([
       ...users.map((row: DataStoreOwnerUser): string => {
@@ -179,7 +184,6 @@ export default class DataStoreOwnerWrites {
           row.projectId = data.projectId;
           row.dataStoreId = data.dataStoreId;
           row.userId = new ObjectID(owner.id);
-          row.isOwnerNotified = false;
 
           const created: DataStoreOwnerUser =
             await DataStoreOwnerUserService.create({
@@ -201,7 +205,6 @@ export default class DataStoreOwnerWrites {
         row.projectId = data.projectId;
         row.dataStoreId = data.dataStoreId;
         row.teamId = new ObjectID(owner.id);
-        row.isOwnerNotified = false;
 
         const created: DataStoreOwnerTeam =
           await DataStoreOwnerTeamService.create({

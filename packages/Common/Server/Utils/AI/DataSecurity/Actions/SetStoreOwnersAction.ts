@@ -20,11 +20,11 @@ import {
   queueDataSecurityEvaluation,
   queueDataStoreOwnerRuleProposals,
 } from "../../../DataSecurity/DataSecurityJobs";
-import DataStoreOwnerEvidenceReader from "../../../DataSecurity/Owners/DataStoreOwnerEvidenceReader";
+import DataStoreOwnerEvidenceReader from "../Owners/DataStoreOwnerEvidenceReader";
 import DataStoreOwnerWrites, {
   DataStoreOwnerRow,
   readDataStoreOwnerRows,
-} from "../../../DataSecurity/Owners/DataStoreOwnerWrites";
+} from "../Owners/DataStoreOwnerWrites";
 import {
   DataSecurityAiAction,
   DataSecurityAiActor,
@@ -33,10 +33,11 @@ import {
   DataSecurityAiIssueContext,
   DataSecurityAiPlanOutcome,
 } from "../DataSecurityAiAction";
-import DataStoreOwnerPlanner, {
+import {
   DATA_STORE_FOR_OWNER_PLAN_SELECT,
   DataStoreForOwnerPlan,
-} from "../DataStoreOwnerPlanner";
+} from "../Owners/DataStoreOwnerSelects";
+import DataStoreOwnerPlanner from "../DataStoreOwnerPlanner";
 import {
   getAddOwnersRefusal,
   getRemoveOwnersRefusal,

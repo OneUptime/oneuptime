@@ -16,7 +16,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
 import TeamService from "../../../../Services/TeamService";
 import UserService from "../../../../Services/UserService";
-import { DataStoreOwnerRow } from "../../../DataSecurity/Owners/DataStoreOwnerWrites";
+import { DataStoreOwnerRow } from "../Owners/DataStoreOwnerWrites";
 import CallerPermission from "../../../Permission/CallerPermission";
 
 /*

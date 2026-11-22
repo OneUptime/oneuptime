@@ -24,7 +24,7 @@ import { queueDataSecurityEvaluation } from "../../../DataSecurity/DataSecurityJ
 import DataStoreOwnerWrites, {
   DataStoreOwnerRow,
   readDataStoreOwnerRows,
-} from "../../../DataSecurity/Owners/DataStoreOwnerWrites";
+} from "../Owners/DataStoreOwnerWrites";
 import logger from "../../../Logger";
 import {
   DataSecurityAiAction,

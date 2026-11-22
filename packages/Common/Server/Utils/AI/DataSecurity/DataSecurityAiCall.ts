@@ -50,17 +50,28 @@ import {
  * The AI Logs label each feature that calls a model here files its calls
  * under. Fix with AI's calls are the coding agent's (AI Code Fix), and Ask
  * AI's the chat's: they reach a model through their own runs.
+ *
+ * Each is read when asked, never when this file loads: AIService, which
+ * holds the labels, reaches Data Security's actions through the services
+ * it imports, and an action that asks OneUptime AI (#10374's owners)
+ * reaches this file - so while AIService loads, its labels are not defined
+ * yet, and a table built then would file every call under no label.
  */
 export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   Partial<Record<DataSecurityAiFeature, string>>
 > = {
-  [DataSecurityAiFeature.ExplainIssue]:
-    AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
-  [DataSecurityAiFeature.AnalyzeIssue]: AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
-  [DataSecurityAiFeature.SuggestFieldTypes]:
-    AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
-  [DataSecurityAiFeature.ProposeStoreOwners]:
-    AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+  get [DataSecurityAiFeature.ExplainIssue](): string {
+    return AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE;
+  },
+  get [DataSecurityAiFeature.AnalyzeIssue](): string {
+    return AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE;
+  },
+  get [DataSecurityAiFeature.SuggestFieldTypes](): string {
+    return AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE;
+  },
+  get [DataSecurityAiFeature.ProposeStoreOwners](): string {
+    return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;
+  },
 };
 
 export interface DataSecurityAiCallRequest {

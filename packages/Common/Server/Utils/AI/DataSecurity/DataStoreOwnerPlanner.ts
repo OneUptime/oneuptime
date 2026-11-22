@@ -31,9 +31,8 @@ import DataStoreOwnerTeamService from "../../../Services/DataStoreOwnerTeamServi
 import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserService";
 import DataStoreOwnerEvidenceReader, {
   CodeOwnersFileCache,
-  DATA_STORE_FOR_OWNER_EVIDENCE_SELECT,
-  DataStoreForOwnerEvidence,
-} from "../../DataSecurity/Owners/DataStoreOwnerEvidenceReader";
+} from "./Owners/DataStoreOwnerEvidenceReader";
+import { DataStoreForOwnerPlan } from "./Owners/DataStoreOwnerSelects";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
@@ -42,7 +41,6 @@ import {
   DataSecurityAiPlanOutcome,
 } from "./DataSecurityAiAction";
 import DataSecurityAiCall from "./DataSecurityAiCall";
-import { AiStoreRecord } from "./DataSecurityAiInput";
 import {
   buildDataStoreOwnerPrompt,
   DATA_STORE_OWNER_ANSWER_SHAPE,
@@ -74,34 +72,6 @@ import { readStrictAnswer } from "./StrictAnswer";
  * Owners are told, so the change always asks (ChangesWhoIsTold): nothing
  * here makes it. What stopped it is a short code Why AI did not act says.
  */
-
-// The columns of a store the planner reads: the evidence's, and the builder's.
-export const DATA_STORE_FOR_OWNER_PLAN_SELECT: typeof DATA_STORE_FOR_OWNER_EVIDENCE_SELECT & {
-  kind: true;
-  provider: true;
-  region: true;
-  environment: true;
-  sensitivity: true;
-  sensitivityOverride: true;
-  dataTypeIds: true;
-  dataCategories: true;
-  exposure: true;
-  isPublicByDesign: true;
-} = {
-  ...DATA_STORE_FOR_OWNER_EVIDENCE_SELECT,
-  kind: true,
-  provider: true,
-  region: true,
-  environment: true,
-  sensitivity: true,
-  sensitivityOverride: true,
-  dataTypeIds: true,
-  dataCategories: true,
-  exposure: true,
-  isPublicByDesign: true,
-};
-
-export type DataStoreForOwnerPlan = DataStoreForOwnerEvidence & AiStoreRecord;
 
 // Why there is nothing to propose, as Why AI did not act's detail codes.
 export const DATA_STORE_OWNER_NOTHING: {

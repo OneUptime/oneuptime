@@ -738,7 +738,9 @@ export default class DataSecurityAiProposals {
 
     // What two people approve is the plan both were shown.
     if (changes && step.kind !== RemediationApprovalStepKind.Only) {
-      throw new BadDataException(PROPOSAL_TWO_APPROVALS_TAKE_NO_CHANGES_MESSAGE);
+      throw new BadDataException(
+        PROPOSAL_TWO_APPROVALS_TAKE_NO_CHANGES_MESSAGE,
+      );
     }
 
     const now: Date = OneUptimeDate.getCurrentDate();
@@ -1071,7 +1073,6 @@ export default class DataSecurityAiProposals {
             dataSecurityIssueId: issueId,
             at,
           });
-          await DataSecurityAiProposals.proveOwnerRules({ issueId, at });
         }
 
         await DataSecurityAiProposalService.expireWaitingForIssue({
@@ -1082,6 +1083,20 @@ export default class DataSecurityAiProposals {
         logger.error(
           `DataSecurity AI: could not settle the proposals of closed issue ${issueId.toString()}: ${error}`,
         );
+      }
+
+      /*
+       * Apart from the issue's own proposals: an owner rule that could not
+       * be read as proven never keeps them waiting.
+       */
+      if (data.checkPassed) {
+        try {
+          await DataSecurityAiProposals.proveOwnerRules({ issueId, at });
+        } catch (error) {
+          logger.error(
+            `DataSecurity AI: could not prove the owner rules of closed issue ${issueId.toString()}: ${error}`,
+          );
+        }
       }
     }
   }
@@ -1098,7 +1113,12 @@ export default class DataSecurityAiProposals {
     const issue: DataSecurityIssue | null =
       await DataSecurityIssueService.findOneById({
         id: data.issueId,
-        select: { _id: true, projectId: true, checkId: true, dataStoreId: true },
+        select: {
+          _id: true,
+          projectId: true,
+          checkId: true,
+          dataStoreId: true,
+        },
         props: { isRoot: true },
       });
 

@@ -1,37 +1,37 @@
-import DataStore from "../../../../Models/DatabaseModels/DataStore";
-import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
-import Label from "../../../../Models/DatabaseModels/Label";
-import Service from "../../../../Models/DatabaseModels/Service";
-import ServiceOwnerTeam from "../../../../Models/DatabaseModels/ServiceOwnerTeam";
-import ServiceOwnerUser from "../../../../Models/DatabaseModels/ServiceOwnerUser";
-import Team from "../../../../Models/DatabaseModels/Team";
-import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
-import TeamPermission from "../../../../Models/DatabaseModels/TeamPermission";
-import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTableName";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
-import TableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
-import { readCloudTags } from "../../../../Types/Cloud/CloudInventory";
-import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
-import RecordActorType from "../../../../Types/Database/RecordActor";
-import { DataStorePrincipalType } from "../../../../Types/DataSecurity/DataStoreAccess";
-import OneUptimeDate from "../../../../Types/Date";
-import Dictionary from "../../../../Types/Dictionary";
-import { JSONObject } from "../../../../Types/JSON";
-import ObjectID from "../../../../Types/ObjectID";
+import DataStore from "../../../../../Models/DatabaseModels/DataStore";
+import DataStoreAccess from "../../../../../Models/DatabaseModels/DataStoreAccess";
+import Label from "../../../../../Models/DatabaseModels/Label";
+import Service from "../../../../../Models/DatabaseModels/Service";
+import ServiceOwnerTeam from "../../../../../Models/DatabaseModels/ServiceOwnerTeam";
+import ServiceOwnerUser from "../../../../../Models/DatabaseModels/ServiceOwnerUser";
+import Team from "../../../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
+import TeamPermission from "../../../../../Models/DatabaseModels/TeamPermission";
+import AnalyticsTableName from "../../../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
+import TableColumnType from "../../../../../Types/AnalyticsDatabase/TableColumnType";
+import { readCloudTags } from "../../../../../Types/Cloud/CloudInventory";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
+import RecordActorType from "../../../../../Types/Database/RecordActor";
+import { DataStorePrincipalType } from "../../../../../Types/DataSecurity/DataStoreAccess";
+import OneUptimeDate from "../../../../../Types/Date";
+import Dictionary from "../../../../../Types/Dictionary";
+import { JSONObject } from "../../../../../Types/JSON";
+import ObjectID from "../../../../../Types/ObjectID";
 import {
   DeclaredCode,
   DeclaredCodeOwnerReason,
   isDeclaredCodePath,
   isPathNamedAfter,
   readDeclaredCode,
-} from "../../../../Utils/AiRemediation/DeclaredCodeChange";
+} from "../../../../../Utils/AiRemediation/DeclaredCodeChange";
 import {
   CodeOwnersFile,
   getCodeOwnersOfPath,
   GITHUB_CODE_OWNERS_PATHS,
   GITLAB_CODE_OWNERS_PATHS,
   parseCodeOwners,
-} from "../../../../Utils/CodeRepository/CodeOwners";
+} from "../../../../../Utils/CodeRepository/CodeOwners";
 import {
   assembleDataStoreOwnerEvidence,
   DataStoreOwnerChangeFact,
@@ -43,35 +43,36 @@ import {
   DataStoreOwnerServiceFact,
   DataStoreReadGrant,
   MAX_OWNER_SERVICES,
-} from "../../../../Utils/DataSecurity/DataStoreOwnerEvidence";
-import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+} from "../../../../../Utils/DataSecurity/DataStoreOwnerEvidence";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import {
   ChangeEventAttribute,
   ChangeEventSource,
-} from "../../../../Utils/Telemetry/ChangeEventFields";
-import { Results } from "../../../Services/AnalyticsDatabaseService";
-import ChangeEventService from "../../../Services/ChangeEventService";
-import { Service as CodeRepositoryServiceClass } from "../../../Services/CodeRepositoryService";
-import DataStoreAccessService from "../../../Services/DataStoreAccessService";
-import ServiceOwnerTeamService from "../../../Services/ServiceOwnerTeamService";
-import ServiceOwnerUserService from "../../../Services/ServiceOwnerUserService";
-import ServiceService from "../../../Services/ServiceService";
-import TeamMemberService from "../../../Services/TeamMemberService";
-import TeamPermissionService from "../../../Services/TeamPermissionService";
-import TeamService from "../../../Services/TeamService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
+} from "../../../../../Utils/Telemetry/ChangeEventFields";
+import { Results } from "../../../../Services/AnalyticsDatabaseService";
+import ChangeEventService from "../../../../Services/ChangeEventService";
+import { Service as CodeRepositoryServiceClass } from "../../../../Services/CodeRepositoryService";
+import DataStoreAccessService from "../../../../Services/DataStoreAccessService";
+import ServiceOwnerTeamService from "../../../../Services/ServiceOwnerTeamService";
+import ServiceOwnerUserService from "../../../../Services/ServiceOwnerUserService";
+import ServiceService from "../../../../Services/ServiceService";
+import TeamMemberService from "../../../../Services/TeamMemberService";
+import TeamPermissionService from "../../../../Services/TeamPermissionService";
+import TeamService from "../../../../Services/TeamService";
+import QueryHelper from "../../../../Types/Database/QueryHelper";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
   getRepositoryFullName,
-} from "../../AI/Remediation/DeclaredCodeOwner";
-import CloudAiTargets from "../../AI/ResourceAccess/CloudAiTargets";
-import { getClickhouseDatabaseName } from "../../AnalyticsDatabase/ClusterConfig";
-import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
-import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
-import { ResolvableRepository } from "../../CodeRepository/StackTraceRepoResolver";
-import logger from "../../Logger";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
+} from "../../Remediation/DeclaredCodeOwner";
+import CloudAiTargets from "../../ResourceAccess/CloudAiTargets";
+import { getClickhouseDatabaseName } from "../../../AnalyticsDatabase/ClusterConfig";
+import { getQuerySettings } from "../../../AnalyticsDatabase/QuerySettingsHelper";
+import { SQL, Statement } from "../../../AnalyticsDatabase/Statement";
+import { ResolvableRepository } from "../../../CodeRepository/StackTraceRepoResolver";
+import logger from "../../../Logger";
+import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { ResponseJSON } from "@clickhouse/client";
+import { DataStoreForOwnerEvidence } from "./DataStoreOwnerSelects";
 
 /*
  * WHAT POINTS TO A STORE'S OWNERS, READ BY PLAIN CODE (#10374).
@@ -118,43 +119,6 @@ export type CodeOwnersFileCache = Map<
   string,
   Promise<{ path: string; file: CodeOwnersFile } | null>
 >;
-
-// The columns of a store the reader needs.
-export type DataStoreForOwnerEvidence = Pick<
-  DataStore,
-  | "_id"
-  | "id"
-  | "name"
-  | "cloudTags"
-  | "serviceId"
-  | "cloudResourceId"
-  | "providerResourceId"
-  | "labels"
-  | "createdByActorType"
-  | "createdByUserId"
->;
-
-export const DATA_STORE_FOR_OWNER_EVIDENCE_SELECT: {
-  _id: true;
-  name: true;
-  cloudTags: true;
-  serviceId: true;
-  cloudResourceId: true;
-  providerResourceId: true;
-  labels: { _id: true };
-  createdByActorType: true;
-  createdByUserId: true;
-} = {
-  _id: true,
-  name: true,
-  cloudTags: true,
-  serviceId: true,
-  cloudResourceId: true,
-  providerResourceId: true,
-  labels: { _id: true },
-  createdByActorType: true,
-  createdByUserId: true,
-};
 
 function idOf(value: { id?: ObjectID | null; _id?: unknown } | null): string {
   if (!value) {
@@ -386,7 +350,12 @@ export default class DataStoreOwnerEvidenceReader {
         isSeenInTraces: true,
         principalType: DataStorePrincipalType.Service,
       },
-      select: { _id: true, principal: true, principalName: true, lastUsedAt: true },
+      select: {
+        _id: true,
+        principal: true,
+        principalName: true,
+        lastUsedAt: true,
+      },
       sort: { lastUsedAt: SortOrder.Descending },
       skip: 0,
       limit: 50,
@@ -553,7 +522,9 @@ export default class DataStoreOwnerEvidenceReader {
         return (
           isDeclaredCodePath(path, declared.kind) &&
           [declared.stackName || "", name].some((resourceName: string) => {
-            return resourceName.length > 0 && isPathNamedAfter(path, resourceName);
+            return (
+              resourceName.length > 0 && isPathNamedAfter(path, resourceName)
+            );
           })
         );
       });
@@ -598,8 +569,9 @@ export default class DataStoreOwnerEvidenceReader {
     repository: ResolvableRepository,
     cache: CodeOwnersFileCache,
   ): Promise<{ path: string; file: CodeOwnersFile } | null> {
-    const cached: Promise<{ path: string; file: CodeOwnersFile } | null> | undefined =
-      cache.get(repository.id);
+    const cached:
+      | Promise<{ path: string; file: CodeOwnersFile } | null>
+      | undefined = cache.get(repository.id);
 
     if (cached) {
       return cached;
@@ -672,7 +644,8 @@ export default class DataStoreOwnerEvidenceReader {
 
     return ((response.data || []) as Array<JSONObject>)
       .map((row: JSONObject): DataStoreOwnerChangeFact | null => {
-        const actor: string = typeof row["actor"] === "string" ? row["actor"] : "";
+        const actor: string =
+          typeof row["actor"] === "string" ? row["actor"] : "";
         const lastAt: number = Number(row["lastChangedAtInMs"]);
 
         if (!actor.trim()) {

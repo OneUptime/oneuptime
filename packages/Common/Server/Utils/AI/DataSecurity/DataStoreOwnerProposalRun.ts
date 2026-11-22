@@ -29,23 +29,21 @@ import DataStoreOwnerRuleEngineService from "../../../Services/DataStoreOwnerRul
 import DataStoreService from "../../../Services/DataStoreService";
 import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import {
-  queueDataSecurityAiEvaluation,
-  queueDataStoreOwnerRuleProposals,
-} from "../../DataSecurity/DataSecurityJobs";
+import { queueDataSecurityAiEvaluation } from "../../DataSecurity/DataSecurityJobs";
 import DataStoreOwnerEvidenceReader, {
   CodeOwnersFileCache,
-} from "../../DataSecurity/Owners/DataStoreOwnerEvidenceReader";
+} from "./Owners/DataStoreOwnerEvidenceReader";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import SetStoreOwnersAction from "./Actions/SetStoreOwnersAction";
 import { DataSecurityAiPlanOutcome } from "./DataSecurityAiAction";
 import DataSecurityAiEngine from "./DataSecurityAiEngine";
 import DataSecurityAiProposals from "./DataSecurityAiProposals";
-import DataStoreOwnerPlanner, {
+import {
   DATA_STORE_FOR_OWNER_PLAN_SELECT,
   DataStoreForOwnerPlan,
-} from "./DataStoreOwnerPlanner";
+} from "./Owners/DataStoreOwnerSelects";
+import DataStoreOwnerPlanner from "./DataStoreOwnerPlanner";
 
 /*
  * WHEN ONEUPTIME AI PROPOSES OWNERS ON ITS OWN (#10374): once a day for the
@@ -66,7 +64,9 @@ import DataStoreOwnerPlanner, {
  *     against the AI rules as a store with no issue - a rule that names a
  *     check or a severity matches none - and proposed for the store alone.
  *  4. Then, a few minutes on, the owner rules the proposals share
- *     (DataStoreOwnerRuleProposals).
+ *     (DataStoreOwnerRuleProposals): each proposal queues that run
+ *     (SetStoreOwnersAction.onProposed), once for all of them, as the queue
+ *     keeps one job per project.
  *
  * An owner is told, so every proposal waits for a person, whatever a rule
  * says (ChangesWhoIsTold). Read and written as OneUptime (root), with the
@@ -155,7 +155,8 @@ export default class DataStoreOwnerProposalRun {
       const sensitiveStoreIds: Set<string> = new Set();
 
       for (const issue of issues) {
-        const storeId: string = issue.dataStoreId?.toString().toLowerCase() || "";
+        const storeId: string =
+          issue.dataStoreId?.toString().toLowerCase() || "";
 
         if (!issue.id || !storeId) {
           continue;
@@ -193,8 +194,8 @@ export default class DataStoreOwnerProposalRun {
           return { ...outcome, skipped: "rules-unreadable" };
         }
 
-        outcome.storesProposed = await DataStoreOwnerProposalRun.proposeForStores(
-          {
+        outcome.storesProposed =
+          await DataStoreOwnerProposalRun.proposeForStores({
             projectId: data.projectId,
             cloudConnectionId: data.cloudConnectionId,
             now,
@@ -203,13 +204,7 @@ export default class DataStoreOwnerProposalRun {
             skipStoreIds: new Set([...sensitiveStoreIds, ...proposedStoreIds]),
             requireTwoApprovalsForRiskierChanges:
               project.requireTwoApprovalsForRiskierFixes === true,
-          },
-        );
-      }
-
-      // 4. The rules the proposals share, a few minutes on.
-      if (outcome.storesProposed > 0) {
-        await queueDataStoreOwnerRuleProposals(data.projectId);
+          });
       }
 
       return outcome;
@@ -361,14 +356,13 @@ export default class DataStoreOwnerProposalRun {
       return 0;
     }
 
-    const owned: Set<string> = await DataStoreOwnerRuleEngineService.getOwnedStoreIds(
-      {
+    const owned: Set<string> =
+      await DataStoreOwnerRuleEngineService.getOwnedStoreIds({
         projectId: data.projectId,
         dataStoreIds: candidates.map((store: DataStore): ObjectID => {
           return new ObjectID(idOf(store));
         }),
-      },
-    );
+      });
     const directory: DataStoreOwnerDirectory =
       await DataStoreOwnerEvidenceReader.readDirectory(data.projectId);
     const dataTypes: {

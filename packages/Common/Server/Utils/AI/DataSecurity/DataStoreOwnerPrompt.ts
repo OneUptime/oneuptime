@@ -75,7 +75,11 @@ export const DATA_STORE_OWNER_ANSWER_SHAPE: StrictObject<{
 // A list of refs or ids: a longer one is no ref, and is left out.
 function ownersShape(): StrictList<StrictText> {
   return StrictAnswer.list(
-    StrictAnswer.text({ maxLength: 10, isOneLine: true, whenTooLong: "refuse" }),
+    StrictAnswer.text({
+      maxLength: 10,
+      isOneLine: true,
+      whenTooLong: "refuse",
+    }),
     { maxItems: 20 },
   );
 }

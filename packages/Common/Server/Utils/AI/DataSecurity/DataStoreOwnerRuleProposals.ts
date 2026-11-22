@@ -47,7 +47,9 @@ import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import CreateOwnerRuleAction, { buildRule } from "./Actions/CreateOwnerRuleAction";
+import CreateOwnerRuleAction, {
+  buildRule,
+} from "./Actions/CreateOwnerRuleAction";
 import { DataSecurityAiPlannedChange } from "./DataSecurityAiAction";
 import DataSecurityAiProposals from "./DataSecurityAiProposals";
 
@@ -110,7 +112,9 @@ function readNamedOwners(
       const ref: DataStoreOwnerRef | null = readDataStoreOwnerRef(item);
       const name: unknown = (item as JSONObject | null)?.["name"];
 
-      return ref ? { ...ref, name: typeof name === "string" ? name : "" } : null;
+      return ref
+        ? { ...ref, name: typeof name === "string" ? name : "" }
+        : null;
     })
     .filter(
       (
@@ -312,17 +316,18 @@ export default class DataStoreOwnerRuleProposals {
           props: { isRoot: true },
         });
 
-      const groups: Array<DataStoreOwnerRuleGroup> = getDataStoreOwnerRuleGroups(
-        proposals
-          .map(readGroupStore)
-          .filter(
-            (
-              store: DataStoreOwnerRuleGroupStore | null,
-            ): store is DataStoreOwnerRuleGroupStore => {
-              return store !== null;
-            },
-          ),
-      );
+      const groups: Array<DataStoreOwnerRuleGroup> =
+        getDataStoreOwnerRuleGroups(
+          proposals
+            .map(readGroupStore)
+            .filter(
+              (
+                store: DataStoreOwnerRuleGroupStore | null,
+              ): store is DataStoreOwnerRuleGroupStore => {
+                return store !== null;
+              },
+            ),
+        );
 
       if (groups.length === 0) {
         return 0;
@@ -376,11 +381,13 @@ export default class DataStoreOwnerRuleProposals {
             previewedAt: now.toISOString(),
           },
         };
-        const preview: { matching: Array<DataStore>; ownedStoreIds: Set<string> } =
-          await DataStoreOwnerRuleEngineService.previewRule({
-            projectId: data.projectId,
-            rule: buildRule({ projectId: data.projectId, plan: draftPlan }),
-          });
+        const preview: {
+          matching: Array<DataStore>;
+          ownedStoreIds: Set<string>;
+        } = await DataStoreOwnerRuleEngineService.previewRule({
+          projectId: data.projectId,
+          rule: buildRule({ projectId: data.projectId, plan: draftPlan }),
+        });
         const plan: DataStoreOwnerRulePlan = {
           ...draftPlan,
           preview: {

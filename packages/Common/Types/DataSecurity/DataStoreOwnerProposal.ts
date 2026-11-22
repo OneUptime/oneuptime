@@ -9,7 +9,7 @@ import { JSONObject } from "../JSON";
  * Everything in Data Security is routed to a store's owners, and a store
  * with none has nobody to tell. OneUptime already holds most of the answer,
  * spread across products, and plain code reads it
- * (Server/Utils/DataSecurity/Owners/DataStoreOwnerEvidenceReader):
+ * (Server/Utils/AI/DataSecurity/Owners/DataStoreOwnerEvidenceReader):
  *
  *   - CloudTag: a tag on the store that names an owner ("team=payments",
  *     "owner=alice@acme.com") - a team by its name, a person by email;
@@ -302,10 +302,7 @@ export function getOwnerNameForms(name: string): Array<string> {
   const words: Array<string> = folded.split(" ");
   const last: string = words[words.length - 1] || "";
 
-  if (
-    words.length > 1 &&
-    ["team", "squad", "group", "crew"].includes(last)
-  ) {
+  if (words.length > 1 && ["team", "squad", "group", "crew"].includes(last)) {
     forms.push(words.slice(0, -1).join(" "));
   }
 
@@ -325,7 +322,8 @@ export function isSameOwnerName(left: string, right: string): boolean {
 export function findEmailAddresses(text: string): Array<string> {
   const found: Array<string> = [];
   // Bounded: a tag's value or an actor is short, and is read no further.
-  const pattern: RegExp = /[a-z0-9._%+-]{1,64}@[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})+/gi;
+  const pattern: RegExp =
+    /[a-z0-9._%+-]{1,64}@[a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63})+/gi;
 
   for (const match of text.slice(0, 1000).matchAll(pattern)) {
     const email: string = match[0].toLowerCase().replace(/[.-]+$/, "");

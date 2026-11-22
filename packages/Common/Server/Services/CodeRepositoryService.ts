@@ -677,14 +677,13 @@ export class Service extends ProjectReferencesService<Model> {
       !repository.repositoryHostedAt ||
       repository.repositoryHostedAt === CodeRepositoryType.GitHub
     ) {
-      const file: { content: string } | null =
-        await GitHubUtil.getFileContent({
-          installationId: repository.gitHubAppInstallationId!,
-          organizationName: repository.organizationName,
-          repositoryName: repository.repositoryName,
-          branchName: repository.mainBranchName,
-          filePath,
-        });
+      const file: { content: string } | null = await GitHubUtil.getFileContent({
+        installationId: repository.gitHubAppInstallationId!,
+        organizationName: repository.organizationName,
+        repositoryName: repository.repositoryName,
+        branchName: repository.mainBranchName,
+        filePath,
+      });
 
       return file ? file.content : null;
     }

@@ -1306,20 +1306,24 @@ const OWNER_EVIDENCE_SOURCE_WORDS: Readonly<
   Record<DataStoreOwnerEvidenceSource, string>
 > = {
   [DataStoreOwnerEvidenceSource.CloudTag]: "cloud tag",
-  [DataStoreOwnerEvidenceSource.ServiceOwners]: "owners of a service that uses it",
+  [DataStoreOwnerEvidenceSource.ServiceOwners]:
+    "owners of a service that uses it",
   [DataStoreOwnerEvidenceSource.CodeOwners]:
     "code owners of the file that declares it",
-  [DataStoreOwnerEvidenceSource.ChangedBy]: "changed it, by the cloud's change log",
+  [DataStoreOwnerEvidenceSource.ChangedBy]:
+    "changed it, by the cloud's change log",
   [DataStoreOwnerEvidenceSource.AddedBy]: "added it to OneUptime",
 };
 
 // Why a piece of evidence names nobody, as the data says it.
 const OWNER_UNMATCHED_WORDS: Readonly<Record<DataStoreOwnerUnmatched, string>> =
   {
-    [DataStoreOwnerUnmatched.NoTeamNamed]: "no team of the project has this name",
+    [DataStoreOwnerUnmatched.NoTeamNamed]:
+      "no team of the project has this name",
     [DataStoreOwnerUnmatched.NoMemberWithEmail]:
       "no member of the project has this email address",
-    [DataStoreOwnerUnmatched.NotAPerson]: "a role or an automation, not a person",
+    [DataStoreOwnerUnmatched.NotAPerson]:
+      "a role or an automation, not a person",
     [DataStoreOwnerUnmatched.ServiceHasNoOwners]: "the service has no owners",
     [DataStoreOwnerUnmatched.UnknownHandle]:
       "a person's handle on the code host, no member of the project is known by",
