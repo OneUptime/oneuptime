@@ -97,7 +97,7 @@ Ogni punto porta questi attributi:
 | `resourceName` | Il suo nome quando il punto è stato scritto. |
 
 - **Conteggiato man mano che arriva.** Ogni punto è la quota della risorsa in ciò che è arrivato, decompresso, come lo conteggiano i budget di acquisizione, quindi può indicare più delle righe di utilizzo, che conteggiano ciò che è stato salvato.
-- **Inviato tramite OpenTelemetry.** Vengono conteggiati i log, le tracce, le metriche e i profili inviati tramite OTLP. Gli eventi di sicurezza, le riproduzioni delle sessioni e i log di Fluent Bit, Fluentd o syslog no.
+- **Cosa viene conteggiato.** Vengono conteggiati i log, le tracce, le metriche e i profili inviati tramite OTLP, e anche i log di Fluent Bit, Fluentd o syslog. Gli eventi di sicurezza e le riproduzioni delle sessioni no.
 - **Ogni punto appartiene alla sua risorsa.** Chi può leggere la telemetria di un servizio o di una risorsa ne legge i punti: un ruolo limitato ad alcune etichette vede solo i loro.
 - **Non costano nulla.** Questi punti non vengono conteggiati su alcun budget né come utilizzo, e vengono conservati quanto le metriche dei monitor: 30 giorni, a meno che l'amministratore dell'istanza non lo cambi. I nomi di metrica che iniziano con `oneuptime.telemetry.usage.` sono riservati a loro: le metriche che le vostre applicazioni inviano con un nome simile vengono scartate.
 - **Disattivato per impostazione predefinita.** Finché è disattivato non viene scritto nulla, e i punti già scritti vengono conservati finché non scadono.

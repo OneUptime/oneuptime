@@ -12,11 +12,13 @@ import {
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityIssueAnalysisResult,
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
+  DataSecurityDeclaredStoreResponse,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -36,6 +38,7 @@ import {
   MetricOutputReaders,
   readMetricOutputReaders,
 } from "Common/Types/Metrics/MetricOutputReaders";
+import { readDataSecurityIssueAnalysisView } from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -191,6 +194,19 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
     )) as unknown as DataSecurityRecordOfProcessingResponse;
+  }
+
+  /*
+   * What the record says of one of the stores OneUptime keeps for the
+   * project's security (#10398): what it holds, why, for how long and who
+   * can read it.
+   */
+  public static async getDeclaredStore(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.declaredStore(dataStoreId.toString()),
+    )) as unknown as DataSecurityDeclaredStoreResponse;
   }
 
   public static async scanNow(dataStoreId: ObjectID): Promise<void> {
@@ -477,12 +493,40 @@ export default class DataSecurityApi {
     };
   }
 
+  /*
+   * OneUptime AI's analysis of an issue (#10369), as the reader may read
+   * it: the one the issue keeps when nothing it rests on changed, else one
+   * written now - and with `force` (Analyze Again) one written now whatever
+   * changed.
+   */
   public static async explainIssue(
     issueId: ObjectID,
+    options: { force?: boolean | undefined } = {},
   ): Promise<DataSecurityExplainResult> {
-    return (await post(
+    const answer: JSONObject = await post(
       DATA_SECURITY_API_ROUTES.explainIssue(issueId.toString()),
-    )) as unknown as DataSecurityExplainResult;
+      options.force ? { force: true } : {},
+    );
+
+    return {
+      markdown:
+        typeof answer["markdown"] === "string" ? answer["markdown"] : "",
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+      isNew: answer["isNew"] === true,
+    };
+  }
+
+  // The analysis the issue keeps, as the reader may read it: no model call.
+  public static async getIssueAnalysis(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueAnalysisResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueAnalysis(issueId.toString()),
+    );
+
+    return {
+      analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+    };
   }
 
   // Which response actions a store can take now, and why not.

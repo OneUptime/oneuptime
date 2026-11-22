@@ -1,6 +1,6 @@
 import WebhookService, { WebhookSendInput } from "../Services/WebhookService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import Express, {
@@ -36,6 +36,32 @@ router.post(
 
       if (body["secret"]) {
         message.secret = String(body["secret"]);
+      }
+
+      /*
+       * How the receiver's certificate is checked, for a step that has the
+       * settings (a playbook's Send Webhook, #10440). Read as the step reads
+       * them: the switch on only when exactly true.
+       */
+      const certificates: JSONValue | undefined = body["certificates"];
+
+      if (
+        certificates &&
+        typeof certificates === "object" &&
+        !Array.isArray(certificates)
+      ) {
+        const caCertificate: JSONValue | undefined = (
+          certificates as JSONObject
+        )["caCertificate"];
+
+        message.certificates = {
+          allowSelfSignedCertificates:
+            (certificates as JSONObject)["allowSelfSignedCertificates"] ===
+            true,
+          ...(typeof caCertificate === "string" && caCertificate.trim()
+            ? { caCertificate: caCertificate }
+            : {}),
+        };
       }
 
       await WebhookService.sendWebhook(message, {

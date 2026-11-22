@@ -39,7 +39,7 @@ flowchart TB
 - **證據一律經過遮罩。** 一項發現只保留計數和最多三個遮罩樣本，例如 `j***@e******.com`，這些樣本在離開掃描器之前就已在掃描器內部完成遮罩。關閉樣本後，它只保留計數。
 - **掃描器是開放原始碼的。** 每種資料類型的模式、總和檢查碼、上下文字詞和測試值都在 OneUptime 的原始碼中，因此你可以確切了解一項發現是如何產生的。同一套程式碼在 OneUptime 的工作程序、探測器以及 **測試** 方塊中執行。
 - **它與 OneUptime 的其他部分協同運作。** 「嚴重」問題會針對該資料儲存區開啟安全案例，讓 [Security Operations](/docs/telemetry/security-cases) 像處理任何其他威脅一樣處理它，而且任何安全案例都會顯示其使用者和角色可以存取的敏感資料。它可以發出警示來呼叫正在待命的人員，並以電子郵件通知資料儲存區的擁有者。請參閱 [資料安全整合](/docs/data-security/integrations)。
-- **OneUptime AI 協助修正。** **用 AI 說明** 會告訴資料儲存區的擁有者哪裡不對，以及如何在其雲端上修正，**用 AI 修正** 則會在你的基礎架構程式碼中開啟提取要求，OneUptime AI 還會推測沒有任何偵測器能歸類的欄位裡存放的是什麼，供人確認。它絕不會收到你的資料：請參閱 [資料安全中的 OneUptime AI](/docs/data-security/ai)。
+- **OneUptime AI 協助修正。** **分析問題** 會說明問題是否確實存在、它讓什麼面臨風險、修正會破壞什麼，以及最短修正路徑，**用 AI 修正** 則會在你的基礎架構程式碼中開啟提取要求，OneUptime AI 還會推測沒有任何偵測器能歸類的欄位裡存放的是什麼，供人確認。它絕不會收到你的資料：請參閱 [資料安全中的 OneUptime AI](/docs/data-security/ai)。
 
 ## 開始之前
 
@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你自行執行的資料庫 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
+| OneUptime | 日誌、追蹤、例外、工作階段重播、AI 對話、指標、安全事件、Network Flows、安全位址保管庫 | 日誌、追蹤、例外、工作階段重播、AI 對話、指標 |
 
-每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。
+每個資料儲存區都會執行適用於其種類的檢查。無法對內容取樣的資料儲存區仍會接受檢查：公開的儲存貯體或未加密的資料庫，無論其中保存什麼，都是缺失。安全事件、Network Flows 和安全位址保管庫是 OneUptime 為你的安全所保留的自有資料儲存區：它們是宣告的，從不掃描，也從不檢查（請參閱 [OneUptime 為你的安全所保留的資料儲存區](/docs/data-security/compliance#oneuptime-為你的安全所保留的資料儲存區)）。
 
 一旦來源不再列出某個資料儲存區，它就會連同其歷程一起封存，其未解決的問題也會變為已解決：資料安全選單末端的 **已封存的資料儲存區** 會保留它。如果來源再次列出它，它會自行恢復，而檢查仍未通過的問題會重新開啟。
 

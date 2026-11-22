@@ -461,6 +461,7 @@
     "Get Started with Security": "セキュリティをはじめる",
     "Security Events (SIEM)": "セキュリティイベント (SIEM)",
     "Security Cases and Playbooks (SOAR)": "セキュリティケースとプレイブック (SOAR)",
+    "Blocklist Feeds for Firewalls and Proxies": "ファイアウォールとプロキシ向けのブロックリストフィード",
     "Entity Risk (Risk-Based Alerting)": "エンティティリスク (リスクベースのアラート)",
     "Connected Signals": "関連シグナル",
     "Threat Intelligence (STIX/TAXII)": "脅威インテリジェンス (STIX/TAXII)",

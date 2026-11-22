@@ -17,6 +17,9 @@ import {
   recordDroppedRecord,
 } from "../Utils/DropFilterDropRecorder";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import { isOpenStackDefaultDropFilter } from "Common/Server/Utils/OpenStack/OpenStackLogDefaults";
+import SecurityEventsReadTelemetry from "Common/Server/Utils/SecurityEvent/SecurityEventsReadTelemetry";
+import { matchesSecurityLogPrefilter } from "Common/Utils/SecurityEvent/LogParsers/SecurityLogParser";
 
 export interface LoadedLogDropFilter {
   filter: LogDropFilter;
@@ -32,6 +35,14 @@ export interface LoadedLogDropFilter {
    * log row being evaluated.
    */
   projectId: ObjectID;
+  /*
+   * One of OneUptime's own filters as it made it (the OpenStack defaults),
+   * in a project whose Security Events reads its logs: a line the log
+   * scan would read is kept, whatever the filter says (#10436). Nobody
+   * chose to take those lines - OneUptime made the filter to save money -
+   * and a filter a person saved, or changed, drops what it matches.
+   */
+  keepsSecurityEventsLines?: boolean | undefined;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -79,6 +90,26 @@ export class LogDropFilterService {
       },
     });
 
+    /*
+     * Asked only of a project that has one of OneUptime's own filters, and
+     * cached as the filters are: a source turned on is followed within a
+     * minute or two.
+     */
+    const hasOneUptimeDefault: boolean = filters.some(
+      (filter: LogDropFilter): boolean => {
+        return isOpenStackDefaultDropFilter({
+          name: filter.name,
+          filterQuery: filter.filterQuery as string | undefined,
+        });
+      },
+    );
+    const securityEventsReadsLogs: boolean = hasOneUptimeDefault
+      ? await SecurityEventsReadTelemetry.readsProjectTelemetry({
+          projectId,
+          signal: "log",
+        })
+      : false;
+
     const loaded: Array<LoadedLogDropFilter> = filters.map(
       (filter: LogDropFilter) => {
         return {
@@ -96,6 +127,12 @@ export class LogDropFilterService {
             emptyQueryMatches: false,
           }),
           projectId: projectId,
+          keepsSecurityEventsLines:
+            securityEventsReadsLogs &&
+            isOpenStackDefaultDropFilter({
+              name: filter.name,
+              filterQuery: filter.filterQuery as string | undefined,
+            }),
         };
       },
     );
@@ -115,8 +152,21 @@ export class LogDropFilterService {
      */
     PatternWorkScope.handOverRecord(logRow);
 
-    for (const { filter, compiledFilter, projectId } of filters) {
+    for (const {
+      filter,
+      compiledFilter,
+      projectId,
+      keepsSecurityEventsLines,
+    } of filters) {
       if (!evaluateCompiledFilter(logRow, compiledFilter)) {
+        continue;
+      }
+
+      // A line Security Events reads is kept from OneUptime's own filters.
+      if (
+        keepsSecurityEventsLines &&
+        matchesSecurityLogPrefilter(String(logRow["body"] ?? ""))
+      ) {
         continue;
       }
 

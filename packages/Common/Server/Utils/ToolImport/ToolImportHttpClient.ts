@@ -12,6 +12,7 @@ import DataSourceEgressGuard, {
 import RetryAfter from "../../../Utils/RetryAfter";
 import { redactLogString } from "../LogRedaction";
 import OutboundUserAgent from "../OutboundUserAgent";
+import OutboundProxyAgents from "../OutboundProxyAgents";
 import axios, { AxiosResponse } from "axios";
 
 /*
@@ -732,33 +733,40 @@ async function sendToolImportRequest(data: {
   request: ToolImportHttpRequest;
   agents?: PinnedAgents | undefined;
 }): Promise<ToolImportHttpResponse> {
-  const response: AxiosResponse<string> = await axios.request<string>({
-    // Only Node's http adapter uses the pinned agents.
-    adapter: "http",
-    method: data.request.method,
-    url: data.url.toString(),
-    headers: OutboundUserAgent.withDefault(data.request.headers),
-    timeout: data.request.timeoutInMs,
-    maxRedirects: 0,
-    maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-    maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
-    responseType: "text",
-    transformResponse: [
-      (body: string): string => {
-        return body;
+  /*
+   * Through the outbound proxy, or directly, as every request of the server
+   * goes (OutboundProxyAgents): on the pinned agents, which carry the route
+   * themselves, or else on the shared agents for the tool's URL.
+   */
+  const response: AxiosResponse<string> = await axios.request<string>(
+    OutboundProxyAgents.routeAxiosRequest({
+      // Only Node's http adapter uses the pinned agents.
+      adapter: "http",
+      method: data.request.method,
+      url: data.url.toString(),
+      headers: OutboundUserAgent.withDefault(data.request.headers),
+      timeout: data.request.timeoutInMs,
+      maxRedirects: 0,
+      maxContentLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+      maxBodyLength: TOOL_IMPORT_MAX_RESPONSE_BYTES,
+      responseType: "text",
+      transformResponse: [
+        (body: string): string => {
+          return body;
+        },
+      ],
+      validateStatus: (): boolean => {
+        return true;
       },
-    ],
-    validateStatus: (): boolean => {
-      return true;
-    },
-    // The socket dials only the addresses the egress guard checked.
-    ...(data.agents
-      ? {
-          httpAgent: data.agents.httpAgent,
-          httpsAgent: data.agents.httpsAgent,
-        }
-      : {}),
-  });
+      // The socket dials only the addresses the egress guard checked.
+      ...(data.agents
+        ? {
+            httpAgent: data.agents.httpAgent,
+            httpsAgent: data.agents.httpsAgent,
+          }
+        : {}),
+    }),
+  );
 
   const bodyText: string = response.data || "";
   let bodyJson: unknown = undefined;

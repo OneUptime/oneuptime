@@ -5,6 +5,7 @@ import SecurityBlockService, {
   SecurityBlockOutcome,
   SecurityBlockOutcomeStatus,
 } from "../../../Server/Services/SecurityBlockService";
+import SecurityBlocklistFeedService from "../../../Server/Services/SecurityBlocklistFeedService";
 import SecurityCaseFeedService from "../../../Server/Services/SecurityCaseFeedService";
 import SecurityEventConnectionService from "../../../Server/Services/SecurityEventConnectionService";
 import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
@@ -16,6 +17,9 @@ import SecurityProtectedAddresses, {
   SecurityProtectionCheck,
 } from "../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
 import TestSecurityBlockDestination from "../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
+import SecurityProtectedIndicators from "../../../Server/Utils/SecurityBlocklist/SecurityProtectedIndicators";
+import SecurityCaseStepChecks from "../../../Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
+import SecurityBlockDestination from "../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -25,6 +29,7 @@ import {
   SecurityBlockAction,
   SecurityBlockDuration,
   SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
@@ -131,6 +136,7 @@ describe("SecurityBlockService", () => {
   >;
   let auditCreateSpy: SpyInstance<typeof AuditLogService.recordCreate>;
   let auditUpdateSpy: SpyInstance<typeof AuditLogService.recordUpdate>;
+  let stepCheckSpy: SpyInstance<typeof SecurityCaseStepChecks.requestCheck>;
 
   // What the audit log was handed of each change: the columns and who made it.
   function auditedCreates(): Array<{ value: unknown; userId: unknown }> {
@@ -227,6 +233,10 @@ describe("SecurityBlockService", () => {
     protectionSpy = jest
       .spyOn(SecurityProtectedAddresses, "findProtection")
       .mockResolvedValue({ protection: null, unreadSources: [] });
+    // The project has made no blocklist feed (#10345): nothing enforces its blocks.
+    jest
+      .spyOn(SecurityBlocklistFeedService, "findForProject")
+      .mockResolvedValue([]);
     auditCreateSpy = jest
       .spyOn(AuditLogService, "recordCreate")
       .mockResolvedValue(undefined);
@@ -235,6 +245,16 @@ describe("SecurityBlockService", () => {
       .mockResolvedValue(undefined);
 
     table = useInMemoryTable(service, []);
+
+    /*
+     * Nothing enforces the blocklist unless a test says (#10346 registers the
+     * Microsoft Defender and CrowdStrike kinds, which read connections), and
+     * a case's steps are checked again at each of its block's lines.
+     */
+    SecurityBlockDestinations.setSourcesForTests([]);
+    stepCheckSpy = jest
+      .spyOn(SecurityCaseStepChecks, "requestCheck")
+      .mockResolvedValue(undefined);
 
     /*
      * The case a block is made for: read as the caller reads it, so it may be
@@ -1086,6 +1106,451 @@ describe("SecurityBlockService", () => {
           })
           .sort(),
       ).toEqual(["203.0.113.10", "35.205.11.131"]);
+    });
+  });
+
+  /*
+   * Domains, URLs and files, and an address blocked everywhere (#10346):
+   * written one way, held to their own protections, enforced everywhere,
+   * and refused - saying what to turn on - when nothing connected could
+   * hold them.
+   */
+  describe("domains, URLs, files and where a block is enforced (#10346)", () => {
+    let indicatorProtectionSpy: SpyInstance<
+      typeof SecurityProtectedIndicators.findProtection
+    >;
+
+    // A destination on every machine: what Microsoft Defender holds.
+    function enforceOnEveryMachine(
+      configure?: (destination: TestSecurityBlockDestination) => void,
+    ): TestSecurityBlockDestination {
+      const destination: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination();
+      Object.assign(destination, { enforcesOnEveryMachine: true });
+
+      if (configure) {
+        configure(destination);
+      }
+
+      SecurityBlockDestinations.setSourcesForTests([
+        {
+          provider: SecurityBlockDestinationProvider.Test,
+          findForProject: async (): Promise<
+            Array<SecurityBlockDestination>
+          > => {
+            return [destination];
+          },
+        },
+      ]);
+
+      return destination;
+    }
+
+    beforeEach(() => {
+      indicatorProtectionSpy = jest
+        .spyOn(SecurityProtectedIndicators, "findProtection")
+        .mockResolvedValue({ protection: null, unreadSources: [] });
+    });
+
+    test("a domain is blocked written one way, everywhere, and its kind recorded", async () => {
+      enforceOnEveryMachine();
+
+      const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "  Evil.Example.  ",
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(outcome.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+      expect(rows()[0]).toEqual(
+        expect.objectContaining({
+          value: "evil.example",
+          indicatorType: SecurityBlockIndicatorType.Domain,
+          reach: SecurityBlockReach.Everywhere,
+          action: SecurityBlockAction.Block,
+        }),
+      );
+      // Held to a domain's protections, never an address's.
+      expect(indicatorProtectionSpy).toHaveBeenCalledTimes(1);
+      expect(protectionSpy).not.toHaveBeenCalled();
+    });
+
+    test("a URL and a file, each written one way; a file blocked and quarantined", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "HTTPS://Evil.Example/Login#top",
+        props: ROOT,
+      });
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "44D88612FEA8A8F36DE82E1278ABB02F",
+        action: SecurityBlockAction.BlockAndQuarantine,
+        props: ROOT,
+      });
+
+      expect(
+        rows().map((row: StoredRow) => {
+          return [
+            row["value"],
+            row["indicatorType"],
+            row["action"],
+            row["reach"],
+          ];
+        }),
+      ).toEqual([
+        [
+          "https://evil.example/Login",
+          SecurityBlockIndicatorType.Url,
+          SecurityBlockAction.Block,
+          SecurityBlockReach.Everywhere,
+        ],
+        [
+          "44d88612fea8a8f36de82e1278abb02f",
+          SecurityBlockIndicatorType.FileMd5,
+          SecurityBlockAction.BlockAndQuarantine,
+          SecurityBlockReach.Everywhere,
+        ],
+      ]);
+    });
+
+    test("a domain nothing connected could hold is refused, saying what to turn on", async () => {
+      const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "evil.example",
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(outcome).toEqual({
+        status: SecurityBlockOutcomeStatus.Refused,
+        message:
+          "Nothing you have connected blocks domains. Turn on Block domains, addresses and files with Defender on your Microsoft Defender XDR connection.",
+      });
+      expect(rows()).toEqual([]);
+    });
+
+    test("a file only an edge destination is connected for is refused too: it holds addresses alone", async () => {
+      // An edge destination, as Cloudflare's IP list is: addresses and nothing else.
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination();
+      const supportsAddresses: TestSecurityBlockDestination["supports"] =
+        edge.supports.bind(edge);
+      edge.supports = (entry: {
+        indicatorType: SecurityBlockIndicatorType;
+        action: SecurityBlockAction;
+        value: string;
+      }) => {
+        return entry.indicatorType === SecurityBlockIndicatorType.IpAddress ||
+          entry.indicatorType === SecurityBlockIndicatorType.IpRange
+          ? supportsAddresses(entry)
+          : { isSupported: false, reason: "it blocks addresses only" };
+      };
+
+      SecurityBlockDestinations.setSourcesForTests([
+        {
+          provider: SecurityBlockDestinationProvider.Test,
+          findForProject: async () => {
+            return [edge];
+          },
+        },
+      ]);
+
+      const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "44d88612fea8a8f36de82e1278abb02f",
+        props: ROOT,
+      });
+
+      expect(outcome.status).toBe(SecurityBlockOutcomeStatus.Refused);
+    });
+
+    test("while a kind of destination cannot be listed, nobody can tell: the block is made", async () => {
+      SecurityBlockDestinations.setSourcesForTests([
+        {
+          provider: SecurityBlockDestinationProvider.Test,
+          findForProject: async () => {
+            throw new Error("Connections could not be read.");
+          },
+        },
+      ]);
+
+      const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "evil.example",
+        props: ROOT,
+      });
+
+      expect(outcome.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+    });
+
+    test("an address at the edge is kept whatever is connected, and one everywhere needs a destination on every machine", async () => {
+      const atEdge: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "198.51.100.7",
+        props: ROOT,
+      });
+
+      expect(atEdge.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+
+      const everywhere: SecurityBlockOutcome = await SecurityBlockService.block(
+        {
+          projectId: PROJECT_ID,
+          value: "198.51.100.8",
+          reach: SecurityBlockReach.Everywhere,
+          props: ROOT,
+        },
+      );
+
+      expect(everywhere).toEqual({
+        status: SecurityBlockOutcomeStatus.Refused,
+        message:
+          "Nothing you have connected blocks an address on every machine. Turn on Block domains, addresses and files with Defender on your Microsoft Defender XDR connection, or block the address at the edge.",
+      });
+    });
+
+    test("an address can be blocked at the edge and, on its own, everywhere: two blocks", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "198.51.100.7",
+        props: ROOT,
+      });
+      const everywhere: SecurityBlockOutcome = await SecurityBlockService.block(
+        {
+          projectId: PROJECT_ID,
+          value: "198.51.100.7",
+          reach: SecurityBlockReach.Everywhere,
+          props: ROOT,
+        },
+      );
+
+      expect(everywhere.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+      expect(
+        rows().map((row: StoredRow) => {
+          return row["reach"];
+        }),
+      ).toEqual([SecurityBlockReach.Edge, SecurityBlockReach.Everywhere]);
+
+      // A block everywhere is a block at the edge too: the edge's is already made.
+      const again: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "198.51.100.7",
+        props: ROOT,
+      });
+
+      expect(again.status).toBe(SecurityBlockOutcomeStatus.AlreadyBlocked);
+    });
+
+    test("an address blocked everywhere covers the edge, and a block at the edge never covers everywhere", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "198.51.100.0/24",
+        props: member(SECURITY_ADMIN),
+      });
+
+      const everywhere: SecurityBlockOutcome = await SecurityBlockService.block(
+        {
+          projectId: PROJECT_ID,
+          value: "198.51.100.7",
+          reach: SecurityBlockReach.Everywhere,
+          props: ROOT,
+        },
+      );
+
+      expect(everywhere.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+    });
+
+    test("a challenge of a domain, a challenge everywhere and a quarantine of an address are refused", async () => {
+      enforceOnEveryMachine();
+
+      for (const request of [
+        {
+          value: "evil.example",
+          action: SecurityBlockAction.Challenge,
+          reach: undefined,
+        },
+        {
+          value: "198.51.100.7",
+          action: SecurityBlockAction.Challenge,
+          reach: SecurityBlockReach.Everywhere,
+        },
+        {
+          value: "198.51.100.8",
+          action: SecurityBlockAction.BlockAndQuarantine,
+          reach: undefined,
+        },
+      ]) {
+        const outcome: SecurityBlockOutcome = await SecurityBlockService.block({
+          projectId: PROJECT_ID,
+          value: request.value,
+          action: request.action,
+          reach: request.reach,
+          props: ROOT,
+        });
+
+        expect(outcome.status).toBe(SecurityBlockOutcomeStatus.Refused);
+      }
+
+      expect(rows()).toEqual([]);
+    });
+
+    test("a protected domain is refused with what protects it, and one OneUptime could not check is refused too", async () => {
+      enforceOnEveryMachine();
+      indicatorProtectionSpy.mockResolvedValueOnce({
+        protection: {
+          source: SecurityProtectedAddressSource.StatusPage,
+          protectedValue: "status.acme.com",
+          name: "Acme Status",
+        },
+        unreadSources: [],
+      });
+
+      const parent: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "acme.com",
+        props: ROOT,
+      });
+
+      expect(parent).toEqual(
+        expect.objectContaining({
+          status: SecurityBlockOutcomeStatus.Protected,
+          message:
+            "Blocking acme.com would also block status.acme.com. status.acme.com is the domain of your status page Acme Status.",
+        }),
+      );
+
+      indicatorProtectionSpy.mockResolvedValueOnce({
+        protection: null,
+        unreadSources: [SecurityProtectedAddressSource.Monitor],
+      });
+
+      const unread: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "evil.example",
+        props: ROOT,
+      });
+
+      expect(unread).toEqual({
+        status: SecurityBlockOutcomeStatus.Refused,
+        message:
+          "OneUptime could not check whether evil.example is protected, so it did not block it. Try again in a minute.",
+      });
+      expect(rows()).toEqual([]);
+    });
+
+    test("a domain already blocked is already blocked; a name under it is blocked on its own", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "evil.example",
+        props: ROOT,
+      });
+
+      const same: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "EVIL.example.",
+        props: ROOT,
+      });
+      const under: SecurityBlockOutcome = await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "www.evil.example",
+        props: ROOT,
+      });
+
+      expect(same.status).toBe(SecurityBlockOutcomeStatus.AlreadyBlocked);
+      expect(under.status).toBe(SecurityBlockOutcomeStatus.Blocked);
+    });
+
+    test("where a block is enforced never changes", async () => {
+      enforceOnEveryMachine();
+      table = useInMemoryTable(service, [
+        activeBlock({ id: BLOCK_ID, value: "198.51.100.7" }),
+      ]);
+
+      const error: Error = await refusalOf(
+        SecurityBlockService.updateOneById({
+          id: new ObjectID(BLOCK_ID),
+          data: { reach: SecurityBlockReach.Everywhere } as never,
+          props: member(SECURITY_ADMIN),
+        }),
+      );
+
+      expect(error.message).toBe(
+        "Where a block is enforced never changes. Block the address again everywhere: the block at the edge stays until it ends.",
+      );
+    });
+
+    test("a domain's timeline line says it is blocked, and a case's steps are checked at once", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "evil.example",
+        duration: SecurityBlockDuration.SevenDays,
+        securityCaseId: CASE_ID,
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(feedLines()).toEqual(["🚫 Blocked `evil.example` for 7 days."]);
+      expect(stepCheckSpy).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+      });
+    });
+
+    test("an address blocked everywhere says so on the timeline, and a file blocked and quarantined says that", async () => {
+      enforceOnEveryMachine();
+
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "198.51.100.7",
+        reach: SecurityBlockReach.Everywhere,
+        duration: SecurityBlockDuration.SevenDays,
+        securityCaseId: CASE_ID,
+        props: ROOT,
+        source: SecurityBlockSource.Playbook,
+      });
+      await SecurityBlockService.block({
+        projectId: PROJECT_ID,
+        value: "44d88612fea8a8f36de82e1278abb02f",
+        action: SecurityBlockAction.BlockAndQuarantine,
+        duration: SecurityBlockDuration.ThirtyDays,
+        securityCaseId: CASE_ID,
+        props: member(SECURITY_MEMBER),
+      });
+
+      expect(feedLines()).toEqual([
+        "🚫 A playbook blocked `198.51.100.7` on every machine for 7 days.",
+        "🚫 Blocked and quarantined `44d88612fea8a8f36de82e1278abb02f` for 30 days.",
+      ]);
+    });
+
+    test("check() reads a domain as kept, with what would cover it and what protects it", async () => {
+      enforceOnEveryMachine();
+      table = useInMemoryTable(service, [
+        {
+          ...activeBlock({ id: BLOCK_ID, value: "evil.example" }),
+          indicatorType: SecurityBlockIndicatorType.Domain,
+          reach: SecurityBlockReach.Everywhere,
+        },
+      ]);
+
+      const check: Awaited<ReturnType<typeof SecurityBlockService.check>> =
+        await SecurityBlockService.check({
+          projectId: PROJECT_ID,
+          value: "Evil.Example.",
+          props: member(SECURITY_MEMBER),
+        });
+
+      expect(check.value?.value).toBe("evil.example");
+      expect(check.problem).toBeNull();
+      expect(check.coveredBy?.value).toBe("evil.example");
+      expect(check.protection).toEqual({ protection: null, unreadSources: [] });
     });
   });
 });

@@ -240,7 +240,14 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
 - A failure in the code, before anything was published: fix it in the release
   branch, as in step 5 (which merges it into `main` too), and merge the branch
   into `release` again. The version has no GitHub release yet, so the new run
-  goes ahead.
+  goes ahead. If the first run published the Terraform provider, the new run
+  leaves it as it is: a published provider release is never changed, since the
+  registries keep the checksums of what they first read
+  ([Scripts/TerraformProvider/README.md](Scripts/TerraformProvider/README.md#-publishing)).
+- A Terraform provider version that `terraform init` refuses with "checksum
+  list has unexpected SHA-256 hash": publish its provider again as the next
+  patch version, with **Republish a Terraform provider version**
+  (`gh workflow run terraform-provider-republish.yml -f from=17.1.0 -f version=17.1.1`).
 - `docs-screens / Draw every docs screenshot again` failed: a docs screenshot
   no longer shows its page, and `push-release-tags` waits for it. Its log names
   the shots. That is a failure in the code: draw them again in the release

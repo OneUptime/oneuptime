@@ -1,12 +1,13 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
+Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
 - [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
+- [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
 - [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
 :::
 
@@ -154,11 +155,26 @@ OneUptime abre, actualiza y resuelve problemas a medida que se ejecutan las comp
 | **Abierto** | Su comprobación falla ahora en el almacén. | Cuenta en la Vista general, en el resumen del almacén y en el cumplimiento, hasta que la comprobación se supera. |
 | **Resuelto** | Su comprobación se superó en una ejecución posterior, ya no se aplica o se desactivó, o se archivó su almacén. Una persona también puede elegir **Marcar como resuelto**: el almacén se vuelve a comprobar al momento. | Se vuelve a abrir si la comprobación vuelve a fallar, y el problema cuenta cuántas veces se reabrió. |
 | **Aceptado** | Una persona eligió **Aceptar el riesgo**, con un **Motivo** y una fecha en **Aceptado hasta**, como máximo a un año. | Sigue cerrado hasta esa fecha, y después se vuelve a abrir si la comprobación sigue fallando. Acéptalo de nuevo entonces si el motivo sigue siendo válido. |
-| **No es un problema** | Una persona eligió **No es un problema**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle. **Reabrir** lo devuelve a Abierto. |
+| **No es un problema** | Una persona eligió **No es un problema** y dijo por qué en **Motivo**: el hallazgo era erróneo. | Sigue cerrado, aunque la comprobación falle, y conserva el motivo. **Reabrir** lo devuelve a Abierto. |
 
 Los Miembros de seguridad, los Administradores de seguridad, los Administradores del proyecto y los Propietarios del proyecto pueden cambiar el estado de un problema y usar **Asignar** para dárselo a una persona o a un equipo. Cada cambio se escribe en la **Cronología** del problema: cuándo se abrió, cada cambio de gravedad, cada cambio de estado y quién lo hizo, las nuevas comprobaciones solicitadas y lo que hicieron las integraciones.
 
 Un problema que se vuelve a abrir conserva su historial. Los riesgos aceptados se revisan cada día, así que uno caduca a tiempo aunque no se haya escaneado nada.
+
+## El análisis de OneUptime AI
+
+Mientras **Trabajar en los problemas nuevos** esté activado en **Seguridad de datos → IA**, OneUptime AI analiza por su cuenta cada problema nuevo o reabierto de gravedad Crítica o Alta, antes de que nadie lo abra; tus reglas de IA de Seguridad de datos pueden elegir otros problemas. Cualquier problema se puede analizar desde su página con **Analizar el problema**. El análisis abre la **Vista general** del problema, bajo **Análisis de OneUptime AI**, y responde a partir de lo que Seguridad de datos sabe:
+
+- si es real: **Real**, **Probablemente intencionado**, **Probablemente un hallazgo erróneo** o **No se puede determinar**, y por qué;
+- lo que pone en riesgo: los datos y aproximadamente cuántos registros, quién puede llegar a ellos, sus copias en otros almacenes y los casos de seguridad sobre ellos;
+- lo que rompería la corrección: los servicios vistos usando el almacén, las identidades que usaron su acceso en los últimos 90 días y los permisos que la corrección elimina y que algo sigue usando;
+- el camino más corto hacia la corrección: lo que lo contiene ahora, el código que declara el almacén y quién debería hacerlo.
+
+Cada línea nombra los hechos en los que se basa, listados debajo con un botón como **Mostrar los 3 hechos en los que se basa**. Una línea que no se basa en ningún hecho se descarta, un veredicto cuyo motivo no se basa en ninguno es **No se puede determinar**, y un almacén de datos restringidos nunca es **Probablemente intencionado** por la sola palabra de OneUptime AI. Una línea que se basa en algo que no puedes leer, como quién puede llegar al almacén, se te oculta, y lo dice.
+
+OneUptime AI nunca cambia el problema: su estado y su gravedad quedan en manos de su comprobación y de ti. Para **Probablemente intencionado** ofrece **Aceptar el riesgo** con el motivo redactado, y **Público por diseño** para un almacén público; para **Probablemente un hallazgo erróneo**, **No es un problema** con el motivo redactado. Nada cambia hasta que elijas.
+
+El análisis se guarda en el problema, con una entrada en su **Cronología** cada vez que se escribe, en el idioma que eligió la mayoría de los miembros de tu proyecto (**Analizar de nuevo** lo escribe en el tuyo). Solo se vuelve a escribir cuando cambió aquello en lo que se basa, así que abrir el problema no pregunta nada a OneUptime AI; **Analizar de nuevo** pregunta de todos modos. **Problemas** filtra y muestra los problemas por **Veredicto de OneUptime AI**. Lo que envía, y lo que nunca envía, está en [OneUptime AI en Seguridad de datos](/docs/data-security/ai). Con la IA desactivada, no hay análisis.
 
 ## Corrígelo desde aquí
 

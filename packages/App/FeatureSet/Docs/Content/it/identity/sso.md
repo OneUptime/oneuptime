@@ -297,17 +297,17 @@ OneUptime invia `ForceAuthn="true"` e legge quando la persona ha effettuato l'ac
 
 | Provider di identità | Cosa impostare |
 | --- | --- |
-| Okta | Nella scheda **General**, modifica **SAML Settings**, fai clic su **Show Advanced Settings** e imposta **Honor Force Authentication** su **Yes**. Su **No**, Okta ignora la richiesta. |
+| Okta | Nella scheda **General**, modifica **SAML Settings**, fai clic su **Show Advanced Settings** e imposta **Honor Force Authentication** su **Yes**. Su **No**, Okta ignora la richiesta. OneUptime te lo ricorda accanto a un provider Okta. |
 | Microsoft Entra ID | Niente: Entra ID rispetta la richiesta, e il suo `AuthnInstant` è quando la persona ha effettuato l'accesso. |
-| Keycloak | Niente: Keycloak rispetta la richiesta. Il suo `AuthnInstant` però è quando risponde, non quando la persona ha effettuato l'accesso, quindi OneUptime non può verificare che Keycloak gliel'abbia richiesto. Collega Keycloak tramite OpenID Connect per una verifica che OneUptime fa da sé. |
+| Keycloak | Niente: Keycloak rispetta la richiesta, anche se la 26.8.2 e le versioni precedenti possono saltarla quando l'accesso viene riavviato dalla pagina di accesso di Keycloak, cosa che la 26.8.3 e la 27.0.0 correggono. Il suo `AuthnInstant` è quando risponde, non quando la persona ha effettuato l'accesso, quindi OneUptime non può verificare che Keycloak gliel'abbia richiesto, e lo dice accanto al provider. Collega Keycloak tramite OpenID Connect per una verifica che OneUptime fa da sé. |
 | Google Workspace | Niente da impostare. Google non dice se rispetta la richiesta. Il suo `AuthnInstant` è l'ultimo accesso della persona a Google, quindi chi è ancora connesso a Google esce prima da Google. |
 @tab OpenID Connect
-OneUptime invia `prompt=login` e `max_age=0`, e legge quando la persona ha effettuato l'accesso dall'`auth_time` del token ID.
+OneUptime invia `prompt=login` e `max_age=0`, o solo `prompt=login` a Microsoft Entra ID, e legge quando la persona ha effettuato l'accesso dall'`auth_time` del token ID.
 
 | Provider di identità | Cosa impostare |
 | --- | --- |
 | Okta | Niente: Okta rispetta entrambi e invia sempre `auth_time`. |
-| Microsoft Entra ID | In **Token configuration** della registrazione dell'app, fai clic su **Add optional claim**, scegli **ID** e aggiungi `auth_time`: Entra ID lo invia solo come attestazione facoltativa. Rispetta `prompt=login`. |
+| Microsoft Entra ID | In **Token configuration** della registrazione dell'app, fai clic su **Add optional claim**, scegli **ID** e aggiungi `auth_time`: Entra ID lo invia solo come attestazione facoltativa. Rispetta `prompt=login`. OneUptime non gli invia `max_age`, che Microsoft non documenta e che, secondo alcune segnalazioni, fa rispondere Entra ID con un token ID già scaduto. |
 | Keycloak | Mantieni l'ambito client `basic` sul client: contiene `auth_time`. Keycloak 25 e versioni successive danno questo ambito a ogni client. |
 | Google Workspace | Attiva **Session age claims** per il client OAuth, in **Google Auth Platform** > **Settings** > **Advanced Settings**; l'app deve essere pubblicata e verificata. Google non accetta nessuna delle due richieste, quindi OneUptime gli chiede invece `auth_time`, e chi è ancora connesso a Google esce prima da Google. |
 :::

@@ -2,6 +2,8 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityBlockAction,
   SecurityBlockIndicatorType,
+  SecurityBlockReach,
+  getSecurityBlockReach,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { SecurityBlockReason } from "../../../Types/SecurityBlocklist/SecurityBlockReason";
@@ -91,6 +93,14 @@ export interface SecurityBlockHeldItem {
    */
   isPropagating?: boolean | undefined;
   /*
+   * When the provider ends it by itself (#10346), for a provider that
+   * expires what it holds - Microsoft Defender deletes an indicator past
+   * its expirationTime, CrowdStrike sets one to no action: null for never.
+   * Left out by a provider that keeps what it holds until it is removed.
+   * A block extended at OneUptime is extended there too (moveEnds()).
+   */
+  expiresAt?: Date | null | undefined;
+  /*
    * Held, but not in force, and why, in words the block shows: what
    * enforces the item was turned off or deleted at the provider ("Your rule
    * in example.com was turned off: blocks there are not enforced"). Not done
@@ -101,6 +111,12 @@ export interface SecurityBlockHeldItem {
   notInForceReason?: string | undefined;
   // The same, as a sentence the Dashboard words in the reader's language (#10629).
   notInForceSentence?: SecurityBlockReason | undefined;
+}
+
+// An entry to move the end of, and the item at the provider that holds it.
+export interface SecurityBlockEndMove {
+  entry: SecurityBlockEntry;
+  item: SecurityBlockHeldItem;
 }
 
 // Whether a destination can hold an entry, and if not, why.
@@ -160,6 +176,26 @@ export default interface SecurityBlockDestination {
   readonly connectionId: ObjectID | null;
 
   /*
+   * Whether it enforces on every machine (#10346) - an endpoint product,
+   * Microsoft Defender or CrowdStrike - rather than at the edge in front of
+   * the app. It is asked to hold an address only when the address is
+   * blocked everywhere (SecurityBlockReach), so it never fills with every
+   * scanner the edge turns away; a block at the edge alone is not its to
+   * hold, and gets no row there. Left out: the edge.
+   */
+  readonly enforcesOnEveryMachine?: boolean | undefined;
+
+  /*
+   * Whether it quarantines the copies of a file it blocks (Microsoft
+   * Defender's BlockAndRemediate), beside blocking it. A destination may
+   * hold a block-and-quarantine of a file and only block it - CrowdStrike
+   * prevents the file from running, and quarantines it only as the host's
+   * prevention policy says - so a case never says a file is quarantined
+   * where it is only blocked. Left out: it does not.
+   */
+  readonly quarantinesFiles?: boolean | undefined;
+
+  /*
    * Readies the destination for a pass, under its lock and before anything
    * else is asked of it: sets up what the provider needs to hold blocks
    * when that was asked for (Cloudflare's lists and rules, when blocking is
@@ -210,4 +246,40 @@ export default interface SecurityBlockDestination {
   }>;
 
   readBack(): Promise<Array<SecurityBlockHeldItem>>;
+
+  /*
+   * Moves the end of entries it holds to their block's (#10346): for a
+   * provider that ends what it holds by itself (readBack's expiresAt), so
+   * a block renewed at OneUptime is renewed there, and the provider never
+   * lifts a block OneUptime still holds. Left out by a provider that keeps
+   * what it holds until it is removed.
+   */
+  moveEnds?(
+    moves: Array<SecurityBlockEndMove>,
+  ): Promise<Array<SecurityBlockWriteResult>>;
+}
+
+/*
+ * Whether a destination is asked to hold a block at all: every block it
+ * can hold, except - for one that enforces on every machine - an address
+ * blocked at the edge alone. A block it is not asked to hold gets no row
+ * there, rather than a row that says it was not applied.
+ */
+export function isSecurityBlockForDestination(data: {
+  destination: Pick<SecurityBlockDestination, "enforcesOnEveryMachine">;
+  block: {
+    indicatorType?: SecurityBlockIndicatorType | string | undefined | null;
+    reach?: SecurityBlockReach | string | undefined | null;
+  };
+}): boolean {
+  if (!data.destination.enforcesOnEveryMachine) {
+    return true;
+  }
+
+  return (
+    getSecurityBlockReach({
+      indicatorType: data.block.indicatorType,
+      reach: data.block.reach,
+    }) === SecurityBlockReach.Everywhere
+  );
 }

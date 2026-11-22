@@ -39,7 +39,7 @@ flowchart TB
 - **Evidence is masked, always.** A finding keeps counts and at most three masked samples, such as `j***@e******.com`, masked inside the scanner before anything leaves it. Turn samples off and it keeps counts only.
 - **The scanner is open source.** Every data type's pattern, checksum, context words and test values are in OneUptime's source code, so you can read exactly what makes a finding. The same code runs on OneUptime's workers, on a probe, and in the **Test It** box.
 - **It works with the rest of OneUptime.** A Critical issue opens a security case on the store, so [Security Operations](/docs/telemetry/security-cases) works it like any other threat, and any security case shows the sensitive data its users and roles can reach. It can raise an alert that pages whoever is on call, and it emails the store's owners. See [Data Security Integrations](/docs/data-security/integrations).
-- **OneUptime AI helps fix it.** **Explain with AI** tells a store's owner what is wrong and how to fix it on their cloud, **Fix with AI** opens a pull request in your infrastructure code, and OneUptime AI suggests what a field no detector could place holds, for a person to confirm. It is never sent your data: see [OneUptime AI in Data Security](/docs/data-security/ai).
+- **OneUptime AI helps fix it.** **Analyze Issue** says whether an issue is real, what it puts at risk, what the fix would break and the shortest path to fixed, **Fix with AI** opens a pull request in your infrastructure code, and OneUptime AI suggests what a field no detector could place holds, for a person to confirm. It is never sent your data: see [OneUptime AI in Data Security](/docs/data-security/ai).
 
 ## Before you begin
 
@@ -70,9 +70,9 @@ Open **Data Security**. Stores appear under **Data Stores** as discovery finds t
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databases you run | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics |
+| OneUptime | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics, Security Events, Network Flows, Security Address Vault | Logs, Traces, Exceptions, Session Replays, AI Conversations, Metrics |
 
-Every store gets the checks that apply to its kind. A store whose content cannot be sampled is still checked: a public bucket or an unencrypted database is a problem whatever it holds.
+Every store gets the checks that apply to its kind. A store whose content cannot be sampled is still checked: a public bucket or an unencrypted database is a problem whatever it holds. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 A store is archived, with its history, once its source no longer lists it, and its open issues are resolved: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again, and an issue whose check still fails opens again.
 

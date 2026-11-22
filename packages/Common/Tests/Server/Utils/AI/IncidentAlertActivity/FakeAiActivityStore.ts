@@ -1,3 +1,4 @@
+import Includes from "../../../../../Types/BaseDatabase/Includes";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
 import AlertService from "../../../../../Server/Services/AlertService";
@@ -134,6 +135,21 @@ function firstParameter(operator: Operator): unknown {
 }
 
 export function matchesFilter(value: unknown, filter: unknown): boolean {
+  // new Includes([...]): any of its values.
+  if (filter instanceof Includes) {
+    const values: Array<string> = (filter.values as Array<unknown>).map(
+      (item: unknown): string => {
+        return String(toComparable(item));
+      },
+    );
+
+    return (
+      value !== null &&
+      value !== undefined &&
+      values.includes(String(toComparable(value)))
+    );
+  }
+
   if (!isOperator(filter)) {
     return toComparable(value) === toComparable(filter);
   }

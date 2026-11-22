@@ -15,10 +15,11 @@ provider "oneuptime" {
 # Test: a subscriber notification template, and a status page that sends
 # with it.
 #
-# The template and its link to a status page share the name "Subscriber
-# Notification Template" in the product. The provider made ONE resource of
-# the two, the link's endpoints winning, so no template could be made with
-# Terraform at all. Each model has a resource of its own now:
+# The template and its link to a status page shared the name "Subscriber
+# Notification Template" in the product (the link is a "Status Page
+# Subscriber Notification Template" since #10664). The provider made ONE
+# resource of the two, the link's endpoints winning, so no template could
+# be made with Terraform at all. Each model has a resource of its own now:
 # oneuptime_subscriber_notification_template is the template, and
 # oneuptime_status_page_subscriber_notification_template links it to a
 # status page. Choices take one of their values (event_type,

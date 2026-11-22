@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "Kun pipelines, der matcher betingelser",
   "All cloud environments": "Alle cloud-miljøer",
   "Only cloud environments that match conditions": "Kun cloud-miljøer, der opfylder betingelserne",
+  "All issues": "Alle problemer",
+  "Only issues that match conditions": "Kun problemer, der opfylder betingelserne",
   "Only what matches conditions": "Kun det, der opfylder betingelserne",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "Virksomhedens SMTP-server hostet på AWS",
@@ -4458,5 +4460,7 @@
   "IAM Role in Your AWS Account": "IAM-rolle i din AWS-konto",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "Opret en rolle i din AWS-konto, der må sende med Amazon SES og stoler på OneUptime. Ingen nøgle gemmes.",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "ARN'et for den IAM-rolle, OneUptime logger ind på. Opret den med tillidspolitikken nedenfor.",
-  "Role ARN": "Rolle-ARN"
+  "Role ARN": "Rolle-ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "Log ind igen kan ikke kontrolleres via Keycloak med SAML. Tilføj i stedet dette realm som OIDC-udbyder.",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "For at bruge Log ind igen skal du sætte Honor Force Authentication til Yes i denne apps SAML-indstillinger i Okta."
 }

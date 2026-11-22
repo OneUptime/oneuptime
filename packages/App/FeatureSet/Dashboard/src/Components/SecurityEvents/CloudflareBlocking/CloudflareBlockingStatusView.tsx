@@ -71,6 +71,8 @@ export interface ComponentProps {
 const ACTION_LABELS: Record<SecurityBlockAction, string> = {
   [SecurityBlockAction.Block]: translationKey("Block"),
   [SecurityBlockAction.Challenge]: translationKey("Challenge"),
+  // A file's (#10346): Cloudflare holds addresses only, so it never lists one.
+  [SecurityBlockAction.BlockAndQuarantine]: translationKey("Block"),
 };
 
 // The zones' skip-rule addresses, each once.

@@ -20,11 +20,15 @@ import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../../../Server/Services/AIService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
+import DataSecurityFlowService from "../../../../../Server/Services/DataSecurityFlowService";
 import DataSecurityIssueFeedService from "../../../../../Server/Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import DataStoreAccessService from "../../../../../Server/Services/DataStoreAccessService";
 import DataStoreFindingService from "../../../../../Server/Services/DataStoreFindingService";
+import DataStoreOwnerTeamService from "../../../../../Server/Services/DataStoreOwnerTeamService";
+import DataStoreOwnerUserService from "../../../../../Server/Services/DataStoreOwnerUserService";
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
@@ -41,8 +45,6 @@ import DataSecurityAiInput, {
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
-import DataStoreOwnerTeamService from "../../../../../Server/Services/DataStoreOwnerTeamService";
-import DataStoreOwnerUserService from "../../../../../Server/Services/DataStoreOwnerUserService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
@@ -71,6 +73,8 @@ import CodeHostAccess, {
   CodeHostConnectionSummary,
 } from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import DataSecurityFindingWriter from "../../../../../Server/Utils/DataSecurity/DataSecurityFindingWriter";
+import DataSecurityResponse from "../../../../../Server/Utils/DataSecurity/DataSecurityResponse";
+import ProjectLanguage from "../../../../../Server/Utils/Notification/ProjectLanguage";
 import DataSecurityRunner from "../../../../../Server/Utils/DataSecurity/DataSecurityRunner";
 import { toStoredFieldSuggestionState } from "../../../../../Server/Utils/DataSecurity/FieldSuggestionState";
 import {
@@ -155,6 +159,12 @@ const BUCKET_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a1";
 const TELEMETRY_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a2";
 const INFRA_ID: string = "10365000-0000-4000-8000-0000000000c1";
 const RUN_ID: ObjectID = new ObjectID("10365000-0000-4000-8000-0000000000f1");
+
+// An analysis of an issue, as OneUptime AI answers one (#10369).
+const ANALYSIS_ANSWER: string = JSON.stringify({
+  verdict: "Real",
+  reason: { text: "Anyone can read what the store holds.", facts: ["S2"] },
+});
 
 // The planted values: what a record keeps of the data, and the secrets.
 const PLANTED: Readonly<Record<string, string>> = {
@@ -427,6 +437,19 @@ beforeEach(() => {
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
   useInMemoryTable(asService(DataStoreAccessService), accessRows());
+  // What else an issue's analysis reads (#10369): none of it here.
+  useInMemoryTable(asService(DataSecurityFlowService), []);
+  useInMemoryTable(asService(DataSecurityAiProposalService), []);
+  useInMemoryTable(asService(DataStoreOwnerUserService), []);
+  useInMemoryTable(asService(DataStoreOwnerTeamService), []);
+  jest
+    .spyOn(DataSecurityResponse, "getAvailability")
+    .mockResolvedValue({ actions: [] });
+  jest.spyOn(ProjectLanguage, "getLanguage").mockResolvedValue("en");
+  // Written as one statement the tables in memory do not run: what it saves is no input.
+  jest
+    .spyOn(DataSecurityIssueService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined as never);
   useInMemoryTable(asService(DataSecurityCustomDataTypeService), []);
   useInMemoryTable(asService(LlmLogService), []);
   useInMemoryTable(asService(CodeRepositoryService), [
@@ -553,6 +576,11 @@ async function post(
 // Each feature's run over the planted rows, and everything it sent.
 const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   [DataSecurityAiFeature.ExplainIssue]: async (): Promise<string> => {
+    completion.mockResolvedValue({
+      content: ANALYSIS_ANSWER,
+      usage: { promptTokens: 900, completionTokens: 60, totalTokens: 960 },
+    });
+
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const sent: SentRequest = await post(
         DATA_SECURITY_API_ROUTES.explainIssue(issueId),
@@ -573,6 +601,10 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null);
+    completion.mockResolvedValue({
+      content: ANALYSIS_ANSWER,
+      usage: { promptTokens: 900, completionTokens: 60, totalTokens: 960 },
+    });
 
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const outcome: { analyzed: boolean } =
@@ -582,7 +614,7 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
           dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
         });
 
-      expect(outcome).toEqual({ analyzed: true });
+      expect(outcome.analyzed).toBe(true);
     }
 
     expect(completion).toHaveBeenCalledTimes(2);
@@ -826,10 +858,22 @@ describe("the search finds a planted value in a prompt that carries one", () => 
     finding.maskedSamples = [PLANTED["maskedSample"]!];
 
     const prompt: DataSecurityAiPrompt =
-      DataSecurityAiInput.buildExplainIssuePrompt({
-        instructions: "Explain it.",
-        issue: { checkId: "sensitive-data-in-telemetry" },
-        findings: [finding],
+      DataSecurityAiInput.buildAnalyzeIssuePrompt({
+        feature: DataSecurityAiFeature.ExplainIssue,
+        instructions: "Analyze it.",
+        dossier: {
+          issue: { checkId: "sensitive-data-in-telemetry" },
+          store: { name: "checkout · Logs" },
+          places: [finding],
+          access: [],
+          copies: [],
+          securityCaseIds: [],
+          responses: [],
+          proposals: [],
+          declaredCode: null,
+          owners: { recordIds: [], names: [], count: 0 },
+          now: new Date("2026-11-20T12:00:00.000Z"),
+        },
       });
 
     expect(plantedIn(JSON.stringify(prompt.messages))).toEqual([]);

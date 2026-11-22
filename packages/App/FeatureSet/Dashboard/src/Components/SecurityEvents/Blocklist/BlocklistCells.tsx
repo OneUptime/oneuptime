@@ -7,6 +7,9 @@ import {
   BLOCKLIST_TEST_IDS,
   CHALLENGED_LABEL,
   ENFORCEMENT_TOOLTIPS,
+  EVERY_MACHINE_LABEL,
+  EVERY_MACHINE_TOOLTIP,
+  QUARANTINED_LABEL,
   EXPIRED_LABEL,
   LIFTED_LABEL,
   NOT_ENFORCED_LABEL,
@@ -21,14 +24,19 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
+  isSecurityBlockAddressType,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import {
+  SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
   SecurityBlockEnforcementView,
   getSecurityBlockEnforcementView,
 } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { FEED_ENFORCEMENT_TOOLTIPS } from "../BlocklistFeeds/BlocklistFeedsCopy";
+import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
@@ -73,6 +81,7 @@ export function writeEnforcementTooltip(
   translator: Translator,
   enforcement: SecurityBlockEnforcement,
   now: Date,
+  blockCreatedAt?: Date | string | undefined,
 ): string {
   const view: SecurityBlockEnforcementView = getSecurityBlockEnforcementView(
     enforcement,
@@ -85,6 +94,25 @@ export function writeEnforcementTooltip(
     !enforcement.lastConfirmedAt
       ? SecurityBlockEnforcementView.Pending
       : view;
+
+  /*
+   * A feed is fetched, never written to (#10345): its chip says when a
+   * firewall fetched the block - "2 min after it was made" - and last
+   * fetched it, or that a firewall has yet to.
+   */
+  const feedTooltip: string | null =
+    enforcement.provider === SecurityBlockDestinationProvider.Feed
+      ? writeFeedEnforcementTooltip({
+          translator,
+          enforcement,
+          view: shown,
+          blockCreatedAt,
+        })
+      : null;
+
+  if (feedTooltip) {
+    return feedTooltip;
+  }
 
   // Why, in the reader's words where the destination said it as a sentence (#10629).
   const reason: SecurityBlockReason | null = readSecurityBlockReason(
@@ -104,19 +132,81 @@ export function writeEnforcementTooltip(
   });
 }
 
+// What a feed's chip says, or null to say it as any destination's chip does.
+function writeFeedEnforcementTooltip(data: {
+  translator: Translator;
+  enforcement: SecurityBlockEnforcement;
+  view: SecurityBlockEnforcementView;
+  blockCreatedAt: Date | string | undefined;
+}): string | null {
+  const template: string | undefined = FEED_ENFORCEMENT_TOOLTIPS[data.view];
+
+  if (!template) {
+    return null;
+  }
+
+  const appliedAt: number | null = data.enforcement.appliedAt
+    ? new Date(data.enforcement.appliedAt).getTime()
+    : null;
+  const createdAt: number | null = data.blockCreatedAt
+    ? new Date(data.blockCreatedAt).getTime()
+    : null;
+
+  // How long after the block a firewall first fetched it, in whole minutes.
+  const delay: string | null =
+    appliedAt !== null && createdAt !== null
+      ? formatCompactDurationInMinutes(
+          Math.max(1, Math.round((appliedAt - createdAt) / (60 * 1000))),
+          data.translator.language,
+        )
+      : null;
+
+  if (data.view === SecurityBlockEnforcementView.Enforced && !delay) {
+    return null;
+  }
+
+  return data.translator.translateTemplate(template, {
+    destination: data.enforcement.destinationName || "",
+    delay: delay || "",
+    time: data.enforcement.lastConfirmedAt
+      ? OneUptimeDate.fromNow(new Date(data.enforcement.lastConfirmedAt))
+      : "",
+  });
+}
+
 export interface AddressCellProps {
   block: SecurityBlock;
 }
 
-// The address or range, as code, with why it was blocked under it.
+/*
+ * What is blocked, as code - an address or a range, a domain, a URL, a
+ * file's hash - with why it was blocked under it, and an address blocked
+ * on every machine too saying so (#10346).
+ */
 export const BlockAddressCell: FunctionComponent<AddressCellProps> = (
   props: AddressCellProps,
 ): ReactElement => {
+  const isEveryMachine: boolean =
+    isSecurityBlockAddressType(props.block.indicatorType) &&
+    props.block.reach === SecurityBlockReach.Everywhere;
+
   return (
     <div data-testid={BLOCKLIST_TEST_IDS.addressCell}>
       <span className="break-all font-mono text-sm text-gray-900">
         {props.block.value || ""}
       </span>
+      {isEveryMachine ? (
+        <span className="ml-2 inline-block align-middle">
+          <Pill
+            text={EVERY_MACHINE_LABEL}
+            tooltip={EVERY_MACHINE_TOOLTIP}
+            tone={PillTone.Neutral}
+            isDotHidden={true}
+          />
+        </span>
+      ) : (
+        <></>
+      )}
       {props.block.reason ? (
         <span className="mt-0.5 block text-xs text-gray-500">
           <IsolatedText text={props.block.reason} />
@@ -129,22 +219,20 @@ export const BlockAddressCell: FunctionComponent<AddressCellProps> = (
 };
 
 /*
- * Blocked or Challenged: what someone chose to do to the address, a plain
- * fact, so never red (Docs/ux: red is for what broke).
+ * Blocked, Challenged, or - a file - Blocked and quarantined: what someone
+ * chose to do, a plain fact, so never red (Docs/ux: red is for what broke).
  */
 export const BlockActionCell: FunctionComponent<AddressCellProps> = (
   props: AddressCellProps,
 ): ReactElement => {
-  const isChallenge: boolean =
-    props.block.action === SecurityBlockAction.Challenge;
+  const text: string =
+    props.block.action === SecurityBlockAction.Challenge
+      ? CHALLENGED_LABEL
+      : props.block.action === SecurityBlockAction.BlockAndQuarantine
+        ? QUARANTINED_LABEL
+        : BLOCKED_LABEL;
 
-  return (
-    <Pill
-      text={isChallenge ? CHALLENGED_LABEL : BLOCKED_LABEL}
-      tone={PillTone.Neutral}
-      isDotHidden={true}
-    />
-  );
+  return <Pill text={text} tone={PillTone.Neutral} isDotHidden={true} />;
 };
 
 export interface EnforcedAtCellProps {
@@ -215,6 +303,7 @@ export const BlockEnforcedAtCell: FunctionComponent<EnforcedAtCellProps> = (
               translator,
               enforcement,
               props.now,
+              props.block.createdAt,
             )}
             isTooltipUserContent={true}
           />

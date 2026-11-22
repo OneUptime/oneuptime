@@ -177,7 +177,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 
 ## Verwerkingsregister
 
-Artikel 30 van de AVG vraagt je een register van je verwerkingsactiviteiten bij te houden. Gegevensbeveiliging schrijft het deel ervan dat gaat over waar persoonsgegevens worden bewaard: één rij voor elke opslag die persoonsgegevens bevat.
+Artikel 30 van de AVG vraagt je een register van je verwerkingsactiviteiten bij te houden. Gegevensbeveiliging schrijft het deel ervan dat gaat over waar persoonsgegevens worden bewaard: één rij voor elke opslag die persoonsgegevens bevat. Het is de kaart **Verwerkingsregister** onderaan **Gegevensbeveiliging → Compliance**, met **CSV exporteren** en **JSON exporteren**.
 
 | Kolom | Waar ze vandaan komt |
 | --- | --- |
@@ -185,11 +185,27 @@ Artikel 30 van de AVG vraagt je een register van je verwerkingsactiviteiten bij 
 | Omgeving | De tags of de naam van de opslag, of wat je instelt |
 | Gevoeligheid, categorieën en gegevenstypen | Wat de scans vonden, of de gevoeligheid die je instelt |
 | Eigenaren | De eigenaren van de opslag, personen en de leden van zijn teams |
-| Doel | Wat je in het **Doel** van de opslag schrijft: waarom hij persoonsgegevens bevat |
-| Bewaartermijn | Wat je in de **Bewaartermijn** van de opslag schrijft: hoe lang gegevens erin worden bewaard |
+| Doel | Wat je in het **Doel** van de opslag schrijft: waarom hij persoonsgegevens bevat. OneUptime vult het in voor de opslag die het voor je beveiliging bewaart |
+| Bewaartermijn | Wat je in de **Bewaartermijn** van de opslag schrijft: hoe lang gegevens erin worden bewaard. OneUptime vult die in voor de opslag die het voor je beveiliging bewaart |
+| Wie kan lezen | Wie een opslag kan lezen die OneUptime voor je beveiliging bewaart |
 | Kaders | De kaders waaronder de opslag door zijn gegevenstypen valt |
+| Opgegeven door | OneUptime, voor de opslag die het voor je beveiliging bewaart |
 
-Vul **Doel** en **Bewaartermijn** in bij de **Instellingen** van elke opslag: dat zijn de twee dingen die geen scan kan weten. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing`, `/data-security/compliance` en, voor één resource, `/data-security/resource-compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
+Vul voor een opslag die Gegevensbeveiliging heeft gevonden **Doel** en **Bewaartermijn** in bij de **Instellingen** ervan: geen scan kan die weten. Het register en de scores worden ook geleverd door de API van Gegevensbeveiliging, op `/data-security/record-of-processing`, `/data-security/compliance` en, voor één resource, `/data-security/resource-compliance`, voor iedereen die gegevensopslagen mag lezen (zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations#api-terraform-en-mcp)).
+
+### Opslag die OneUptime voor je beveiliging bewaart
+
+Drie opslagen bevatten met opzet IP-adressen, om je netwerk te beschermen: **Beveiligingsgebeurtenissen**, **Network Flows** en **Beveiligingsadreskluis**. Het register noemt elke opslag daarvan die je project heeft. OneUptime geeft ze op in plaats van ze te vinden: wat ze bevatten, is bij ontwerp bekend, dus geen scan leest ze, geen controle geldt voor ze, en dat ze deze adressen bevatten, is nooit een probleem, want daar zijn ze voor. Ze tonen **Opgegeven door OneUptime** onder **Gegevensopslagen**, en het **Overzicht** en de scores van de kaders laten ze weg.
+
+| Opslag | Wat erin staat | Bewaartermijn | Wie hem kan lezen |
+| --- | --- | --- | --- |
+| Beveiligingsgebeurtenissen | De IP-adressen, gebruikersnamen en e-mailadressen van wie iets deed en waar dat aan raakte | De [bewaartermijn voor telemetrie](/docs/telemetry/data-retention) van je project, gelezen telkens als het register wordt gelezen, zodat een wijziging meteen geldt | Projecteigenaren, Projectbeheerders, Beveiligingsbeheerders, Beveiligingsleden, Beveiligingskijkers en iedereen met Read Security Event |
+| Network Flows | De IP-adressen van wie met wie communiceerde | 30 dagen nadat een flow binnenkomt | Iedereen die netwerkapparaten mag lezen |
+| Beveiligingsadreskluis | Het IP-adres achter elk token dat een IP-adresregel die hasht achterliet in de logs en traces die [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) leest | 30 dagen nadat een adres voor het laatst is gezien | Alleen de scans van Beveiligingsgebeurtenissen, binnen OneUptime: geen persoon, pagina, export, API of AI-tool |
+
+Het doel van elk is "Netwerk- en informatiebeveiliging (overweging 49 AVG)". Om je eigen doel of bewaartermijn te schrijven, gebruik je **Register bewerken** in de **Instellingen** van de opslag: een veld dat je leeg laat, houdt dat van OneUptime.
+
+Een opslag staat erin zolang je project de gegevens ervan bewaart: de kluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, en nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
 
 ## Volgende stappen
 

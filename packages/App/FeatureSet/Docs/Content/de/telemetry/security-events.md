@@ -52,6 +52,7 @@ flowchart TB
 | **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
 | **Sperrliste** | Playbooks | Die Adressen, die Ihr Projekt sperrt, bis wann, und wo jede Sperre durchgesetzt wird |
+| **Sperrlisten-Feeds** | Playbooks | Die geheimen URLs, von denen Ihre Firewalls und Proxys die Sperrliste lesen, und ihre Abrufe |
 | **Geschützte Entitäten** | Playbooks | Die Benutzer, Hosts und Adressen, die kein Playbook eindämmt und keine Sperre berührt |
 | **Einstellungen** | KI | Ob OneUptime AI jeden neuen Fall triagiert |
 | **Verbindungen** | Verbindungen | Ihre Logs, die Sicherheitsprodukte, die OneUptime abfragt, und die SIEMs, an die es sendet |
@@ -283,6 +284,17 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 | Attribute | Der ganze Quell-Payload, auf Schlüssel mit Punkten abgeflacht |
 
 Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
+
+### Von einer Bereinigungsregel verborgen
+
+Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
+
+- **Quell-IP** im Panel des Ereignisses nennt, wenn möglich, die Regel, die sie verborgen hat, als Link zu den **Scrub-Regeln** der Logs oder Traces. Der Filter daneben zeigt jedes Ereignis, dessen Adresse eine Scrub-Regel verborgen hat.
+- **Was danach geschah** sagt, dass die Anfrage von einer Adresse kam, die eine Scrub-Regel verborgen hat, und **Kampagnen** fasst solche Anfragen in einer eigenen Zeile zusammen.
+- Ein Fall, dessen Ereignisse alle ihre Adresse verloren haben, sagt das in seinem **Reaktionsplan**: Statt die Adresse zu sperren, fordert er Sie auf, sie in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen und dort zu sperren, mit **Scrub-Regeln öffnen**.
+- Die **Übersicht** nennt die Regel, die die Adressen verbirgt, die Sicherheitsereignisse liest, ebenfalls mit **Scrub-Regeln öffnen**.
+
+Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`.
 
 ## Sicherheitsereignisse erkunden
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 60451,
-    "untranslated": 2755
+    "keys": 61841,
+    "untranslated": 2753
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -242,6 +242,7 @@
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
+    "Firewall",
     "First Contentful Paint",
     "Fivetran",
     "Flags",

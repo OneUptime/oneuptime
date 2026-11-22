@@ -1,12 +1,13 @@
 # Data Security Checks and Issues
 
-Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
 - [Every check](#every-check): All 34, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
+- [OneUptime AI's analysis](#oneuptime-ais-analysis): Whether an issue is real, what it puts at risk, what the fix would break and the shortest path to fixed.
 - [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
 :::
 
@@ -154,11 +155,26 @@ OneUptime opens, updates and resolves issues as the checks run. What a person do
 | **Open** | Its check fails on the store now. | It counts on the Overview, in the store's summary and in compliance, until the check passes. |
 | **Resolved** | Its check passed on a later run, no longer applies or was turned off, or its store was archived. A person may choose **Mark Resolved** too: the store is checked again at once. | It opens again if the check fails again, and the issue counts how often it reopened. |
 | **Accepted** | A person chose **Accept Risk**, with a **Reason** and a date in **Accepted Until**, at most a year away. | It stays closed until that date, then opens again if the check still fails. Accept it again then if the reason still holds. |
-| **Not an issue** | A person chose **Not an Issue**: the finding was wrong. | It stays closed, even while the check fails. **Reopen** puts it back to Open. |
+| **Not an issue** | A person chose **Not an Issue** and said why in **Reason**: the finding was wrong. | It stays closed, even while the check fails, and keeps the reason. **Reopen** puts it back to Open. |
 
 Security Members, Security Admins, Project Admins and Project Owners can change an issue's status, and **Assign** it to a person or a team. Every change is written to the issue's **Timeline**: when it opened, each change of severity, each status change and who made it, the re-checks asked for, and what the integrations did.
 
 An issue that opens again keeps its history. Accepted risks are looked at again every day, so one expires on time even when nothing was scanned.
+
+## OneUptime AI's analysis
+
+While **Work on new issues** is on under **Data Security → AI**, OneUptime AI analyzes each new or reopened Critical or High issue by itself, before anyone opens it; your Data Security AI rules can choose other issues. Any issue can be analyzed from its page with **Analyze Issue**. The analysis opens the issue's **Overview**, under **OneUptime AI Analysis**, and answers from what Data Security knows:
+
+- whether it is real: **Real**, **Likely by design**, **Likely a wrong finding** or **Cannot tell**, and why;
+- what it puts at risk: the data and about how many records, who can reach it, copies of it in other stores, and the security cases on it;
+- what the fix would break: the services seen using the store, the identities that used their access in the last 90 days, and the grants the fix removes that something still uses;
+- the shortest path to fixed: what contains it now, the code that declares the store, and who should do it.
+
+Each line names the facts it rests on, listed under it by a button such as **Show the 3 facts it rests on**. A line that rests on no fact is dropped, a verdict whose reason rests on none is **Cannot tell**, and a store of Restricted data is never **Likely by design** on OneUptime AI's word. A line that rests on something you may not read, such as who can reach the store, is hidden from you, and says so.
+
+OneUptime AI never changes the issue: its status and severity stay with its check and with you. For **Likely by design** it offers **Accept Risk** with the reason drafted, and **Public By Design** for a public store; for **Likely a wrong finding**, **Not an Issue** with the reason drafted. Nothing changes until you choose.
+
+The analysis is kept on the issue, with an entry on its **Timeline** each time it is written, in the language most of your project's members chose (**Analyze Again** writes it in yours). It is written again only when what it rests on changed, so opening the issue asks OneUptime AI nothing; **Analyze Again** asks anyway. **Issues** filters and shows issues by **OneUptime AI Verdict**. What it sends, and never sends, is on [OneUptime AI in Data Security](/docs/data-security/ai). With AI off, there is no analysis.
 
 ## Fix it from here
 

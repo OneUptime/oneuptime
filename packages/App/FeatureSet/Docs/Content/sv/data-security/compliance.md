@@ -177,7 +177,7 @@ Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och P
 
 ## Register över behandling
 
-GDPR artikel 30 kräver att du för ett register över dina behandlingar. Datasäkerhet skriver den del av det som handlar om var personuppgifter förvaras: en rad för varje datalager som innehåller personuppgifter.
+GDPR artikel 30 kräver att du för ett register över dina behandlingar. Datasäkerhet skriver den del av det som handlar om var personuppgifter förvaras: en rad för varje datalager som innehåller personuppgifter. Det är kortet **Register över behandling** längst ned på **Datasäkerhet → Efterlevnad**, med **Exportera CSV** och **Exportera JSON**.
 
 | Kolumn | Var den kommer ifrån |
 | --- | --- |
@@ -185,11 +185,27 @@ GDPR artikel 30 kräver att du för ett register över dina behandlingar. Datas�
 | Miljö | Datalagrets taggar eller namn, eller det som du anger |
 | Känslighet, kategorier och datatyper | Det som skanningarna hittade, eller den känslighet som du anger |
 | Ägare | Datalagrets ägare, personer och medlemmarna i dess team |
-| Syfte | Det som du skriver i datalagrets **Syfte**: varför det innehåller personuppgifter |
-| Lagringstid | Det som du skriver i datalagrets **Lagringstid**: hur länge data sparas i det |
+| Syfte | Det som du skriver i datalagrets **Syfte**: varför det innehåller personuppgifter. OneUptime fyller i det för de datalager som det sparar för din säkerhet |
+| Lagringstid | Det som du skriver i datalagrets **Lagringstid**: hur länge data sparas i det. OneUptime fyller i den för de datalager som det sparar för din säkerhet |
+| Vem kan läsa | Vem som kan läsa ett datalager som OneUptime sparar för din säkerhet |
 | Ramverk | De ramverk som dess datatyper gör tillämpliga |
+| Angivet av | OneUptime, för de datalager som det sparar för din säkerhet |
 
-Fyll i **Syfte** och **Lagringstid** i varje datalagers **Inställningar**: det är de två saker som ingen skanning kan veta. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing`, `/data-security/compliance` och, för en enskild resurs, `/data-security/resource-compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
+För ett datalager som Datasäkerhet har hittat fyller du i **Syfte** och **Lagringstid** i dess **Inställningar**: ingen skanning kan veta dem. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing`, `/data-security/compliance` och, för en enskild resurs, `/data-security/resource-compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
+
+### Datalager som OneUptime sparar för din säkerhet
+
+Tre datalager innehåller IP-adresser med avsikt, för att skydda ditt nätverk: **Säkerhetshändelser**, **Network Flows** och **Säkerhetsadressvalv**. Registret tar upp vart och ett som ditt projekt har. OneUptime anger dem i stället för att hitta dem: vad de innehåller är känt från början, så ingen skanning läser dem, ingen kontroll gäller för dem, och att de innehåller dessa adresser är aldrig ett problem, eftersom det är det som de är till för. De visar **Angivet av OneUptime** under **Datalager**, och **Översikt** och ramverkens poäng utelämnar dem.
+
+| Datalager | Vad det innehåller | Lagringstid | Vem kan läsa det |
+| --- | --- | --- | --- |
+| Säkerhetshändelser | IP-adresserna, användarnamnen och e-postadresserna för den som agerade och det som berördes | Ditt projekts [lagringstid för telemetri](/docs/telemetry/data-retention), läst varje gång registret läses, så en ändring gäller direkt | Projektägare, Projektadministratörer, Säkerhetsadministratörer, Säkerhetsmedlemmar, Säkerhetstittare och alla med Read Security Event |
+| Network Flows | IP-adresserna för vem som kommunicerade med vem | 30 dagar efter att ett flöde kommer in | Alla som får läsa nätverksenheter |
+| Säkerhetsadressvalv | IP-adressen bakom varje token som en IP-adressregel som hashar lämnade i de loggar och spår som [Säkerhetshändelser](/docs/telemetry/security-events) läser | 30 dagar efter att en adress senast sågs | Bara skanningarna i Säkerhetshändelser, inne i OneUptime: ingen person, sida, export, API eller AI-verktyg |
+
+Syftet med vart och ett är "Nät- och informationssäkerhet (GDPR skäl 49)". För att skriva ett eget syfte eller en egen lagringstid använder du **Redigera register** i datalagrets **Inställningar**: ett fält som lämnas tomt behåller OneUptimes.
+
+Ett datalager visas så länge ditt projekt sparar dess data: valvet så länge en aktiverad IP-adressregel hashar loggar eller spår som Säkerhetshändelser läser, och i 31 dagar efter det (se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). När dess data är borta arkiveras datalagret, och det kommer tillbaka med ditt syfte och din lagringstid om datan gör det.
 
 ## Nästa steg
 

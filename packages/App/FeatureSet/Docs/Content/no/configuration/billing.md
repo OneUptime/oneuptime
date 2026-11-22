@@ -119,6 +119,8 @@ Når banken din fortsatt behandler en betaling, sier OneUptime det: noen banker 
 
 En dags bruk vises når dagen er over, innen omtrent kl. 08:00 UTC dagen etter. Filtrer etter **Produkt**, **Dag** eller **Tjeneste** for å finne det som har vokst.
 
+For å sende mindre kaster et [drop-filter](/docs/telemetry/drop-filters-and-scrub-rules) loggene og spansene du aldri leser, før de lagres, og det det forkaster, faktureres ikke. Før du lagrer et, sier skjemaet hvor mye av det siste døgnets telemetri det treffer, og hva det ville ta fra monitorene, dashbordene, SLO-ene og Sikkerhetshendelser som leser de samme postene: se [Hva et filter ville ta](/docs/telemetry/drop-filters-and-scrub-rules#hva-et-filter-ville-ta).
+
 ## Forhåndsbetalte saldoer
 
 SMS, anrop, WhatsApp- og Telegram-meldinger betales fra prosjektets saldo, og OneUptime AI fra AI-kredittene. Du fyller på hver av dem på forhånd:

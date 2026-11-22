@@ -297,17 +297,17 @@ OneUptime 傳送 `ForceAuthn="true"`，並從判斷提示的 `AuthnInstant` 讀�
 
 | 身分提供者 | 要設定什麼 |
 | --- | --- |
-| Okta | 在 **General** 分頁編輯 **SAML Settings**，按一下 **Show Advanced Settings**，將 **Honor Force Authentication** 設為 **Yes**。設為 **No** 時，Okta 會忽略該要求。 |
+| Okta | 在 **General** 分頁編輯 **SAML Settings**，按一下 **Show Advanced Settings**，將 **Honor Force Authentication** 設為 **Yes**。設為 **No** 時，Okta 會忽略該要求。OneUptime 會在 Okta 提供者旁邊提醒您這一點。 |
 | Microsoft Entra ID | 無：Entra ID 會遵從該要求，它的 `AuthnInstant` 就是此人的登入時間。 |
-| Keycloak | 無：Keycloak 會遵從該要求。但它的 `AuthnInstant` 是它回應的時間，而不是此人登入的時間，因此 OneUptime 無法核實 Keycloak 是否再次詢問了此人。如需由 OneUptime 自己核實，請透過 OpenID Connect 連接 Keycloak。 |
+| Keycloak | 無：Keycloak 會遵從該要求，但 26.8.2 及更早版本在 Keycloak 登入頁面上重新開始登入時可能略過它，26.8.3 和 27.0.0 修正了這一點。它的 `AuthnInstant` 是它回應的時間，而不是此人登入的時間，因此 OneUptime 無法核實 Keycloak 是否再次詢問了此人，並會在該提供者旁邊說明。如需由 OneUptime 自己核實，請透過 OpenID Connect 連接 Keycloak。 |
 | Google Workspace | 無需設定。Google 沒有說明是否遵從該要求。它的 `AuthnInstant` 是此人上次登入 Google 的時間，因此仍登入著 Google 的人要先登出 Google。 |
 @tab OpenID Connect
-OneUptime 傳送 `prompt=login` 和 `max_age=0`，並從 ID 權杖的 `auth_time` 讀取此人的登入時間。
+OneUptime 傳送 `prompt=login` 和 `max_age=0`（對 Microsoft Entra ID 只傳送 `prompt=login`），並從 ID 權杖的 `auth_time` 讀取此人的登入時間。
 
 | 身分提供者 | 要設定什麼 |
 | --- | --- |
 | Okta | 無：Okta 兩者都遵從，並一律傳送 `auth_time`。 |
-| Microsoft Entra ID | 在應用程式註冊的 **Token configuration** 中按一下 **Add optional claim**，選擇 **ID** 並新增 `auth_time`：Entra ID 只把它當作選擇性宣告傳送。它遵從 `prompt=login`。 |
+| Microsoft Entra ID | 在應用程式註冊的 **Token configuration** 中按一下 **Add optional claim**，選擇 **ID** 並新增 `auth_time`：Entra ID 只把它當作選擇性宣告傳送。它遵從 `prompt=login`。OneUptime 不向它傳送 `max_age`：Microsoft 沒有記錄這個參數，而且有報告指出它會讓 Entra ID 回傳一個已經過期的 ID 權杖。 |
 | Keycloak | 在用戶端上保留 `basic` 用戶端範圍：它帶有 `auth_time`。Keycloak 25 及更新版本會給每個用戶端加上這個範圍。 |
 | Google Workspace | 在 **Google Auth Platform** > **Settings** > **Advanced Settings** 中為 OAuth 用戶端開啟 **Session age claims**；應用程式必須已發布並已驗證。Google 不接受這兩個要求，因此 OneUptime 改為向它要求 `auth_time`，仍登入著 Google 的人要先登出 Google。 |
 :::

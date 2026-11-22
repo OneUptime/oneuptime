@@ -167,9 +167,9 @@ Volver a iniciar sesión solo cuenta cuando tu proveedor de identidad indica que
 | Proveedor | Lo que OneUptime pide | Cuando no confirma nada |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` y el momento en que iniciaste sesión (`AuthnInstant`) | Haz que el proveedor respete la solicitud, por ejemplo con Honor Force Authentication en Okta. |
-| OpenID Connect | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Haz que el proveedor envíe `auth_time`. En Microsoft Entra ID, añádelo al token de ID como notificación opcional. |
+| OpenID Connect | `prompt=login` y `max_age=0` (Microsoft Entra ID: solo `prompt=login`), y el momento en que iniciaste sesión (`auth_time`) | Haz que el proveedor envíe `auth_time`. En Microsoft Entra ID, añádelo al token de ID como notificación opcional. |
 | Google | El momento en que iniciaste sesión (`auth_time`). A Google no se le puede pedir que te haga iniciar sesión de nuevo. | Activa Session age claims para la aplicación de inicio de sesión de Google del servidor, que debe estar publicada y verificada. |
-| Microsoft | `prompt=login` y `max_age=0`, y el momento en que iniciaste sesión (`auth_time`) | Añade `auth_time` al token de ID de la aplicación de inicio de sesión de Microsoft del servidor como notificación opcional. |
+| Microsoft | `prompt=login`, y el momento en que iniciaste sesión (`auth_time`) | Añade `auth_time` al token de ID de la aplicación de inicio de sesión de Microsoft del servidor como notificación opcional. |
 | Vercel | Nada: no se le puede pedir a Vercel que te haga iniciar sesión de nuevo, y no indica cuándo iniciaste sesión. | Nunca confirma. Elige **Iniciar sesión de otra forma** e inicia sesión con un enlace que te enviamos por correo electrónico, o crea una contraseña con **¿Olvidó su contraseña?** y confirma con ella. |
 
 Qué configurar en Okta, Microsoft Entra ID, Keycloak y Google Workspace se explica en la página [SSO](/docs/identity/sso#volver-a-iniciar-sesión-para-confirmar-que-eres-tú).

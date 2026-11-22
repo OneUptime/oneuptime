@@ -351,6 +351,20 @@ describe("the guide says which outbound connections go through a proxy", () => {
     );
   });
 
+  /*
+   * #10442: a proxy's password is percent-encoded in its URL when it holds a
+   * character a URL reserves, and every request signs in with it decoded
+   * (OutboundProxyAgents), so the page says how to write one.
+   */
+  test("says how to write a proxy password that holds a character a URL reserves", () => {
+    const paragraph: string = readPage("en").split("\n")[proxyParagraphLine()]!;
+
+    expect(paragraph).toContain(
+      "A user name or password with a character a URL reserves, such as `@`, `:` or `%`, is written percent-encoded, as in `http://user:p%40ss@proxy.internal:3128` for the password `p@ss`, and OneUptime signs in with it decoded.",
+    );
+    expect(encodeURIComponent("p@ss")).toBe("p%40ss");
+  });
+
   test("by the variables the egress guard reads a proxy's name from", () => {
     const paragraph: string = readPage("en").split("\n")[proxyParagraphLine()]!;
     const named: Array<string> = Array.from(
@@ -401,7 +415,7 @@ describe("the guide says which outbound connections go through a proxy", () => {
   /*
    * #8932: external calendars, MCP servers, backups and OIDC single sign-on
    * send with Node's own HTTP client, and now go through the proxy too
-   * (createPinnedAgentsForNodeHttp, createGuardedAgentsForNodeHttp). Only
+   * (createPinnedAgents, createGuardedAgentsForNodeHttp). Only
    * database and SMTP connections and Git servers connect directly
    * (EgressGuardedRequestsBehindProxy, NodeHttp suites).
    */

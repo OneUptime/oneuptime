@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 60451,
-    "untranslated": 8372
+    "keys": 61841,
+    "untranslated": 8323
   },
   "sameAsEnglish": [
     " is",
@@ -184,6 +184,7 @@
     "Filter: {{expression}}",
     "Filters",
     "Finland (+358)",
+    "Firewall",
     "Flame graph",
     "FlashArray",
     "FlashBlade",

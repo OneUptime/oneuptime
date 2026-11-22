@@ -24,7 +24,6 @@ import MonitorStepSecurityEventsMonitor, {
   MonitorStepSecurityEventsMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepSecurityEventsMonitor";
 import SecurityWatchlist from "../../../Models/DatabaseModels/SecurityWatchlist";
-import Service from "../../../Models/DatabaseModels/Service";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -87,13 +86,6 @@ function pick(combobox: HTMLElement, optionText: string): void {
   fireEvent.click(option);
 }
 
-function checkoutService(): Service {
-  const service: Service = new Service();
-  service.id = TELEMETRY_SERVICE_ID;
-  service.name = "checkout";
-  return service;
-}
-
 interface Recorder {
   latest: MonitorStepSecurityEventsMonitor | null;
 }
@@ -114,7 +106,6 @@ function renderForm(
       ) => {
         recorder.latest = value;
       }}
-      telemetryServices={[checkoutService()]}
     />,
   );
 

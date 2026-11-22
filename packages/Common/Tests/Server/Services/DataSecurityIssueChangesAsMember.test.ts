@@ -308,6 +308,103 @@ describe("changing a data security issue", () => {
     expect(closedAlertsSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * Not an Issue asks why (#10369): the reason is kept with that status and
+   * its timeline says it, for whoever looks next - and OneUptime AI learns
+   * from it which findings are noise (#10372).
+   */
+  test.each(EDITORS)(
+    "%s says it is not an issue, and why: the reason is kept, and its timeline says it",
+    async (_who: string, permissions: Array<Permission>) => {
+      const props: DatabaseCommonInteractionProps = member(permissions);
+
+      await change(
+        {
+          status: DataSecurityIssueStatus.NotAnIssue,
+          notAnIssueReason:
+            "  The column holds order ids that pass the Luhn check.  ",
+        },
+        props,
+      );
+
+      expect(stored("status")).toBe(DataSecurityIssueStatus.NotAnIssue);
+      expect(stored("notAnIssueReason")).toBe(
+        "The column holds order ids that pass the Luhn check.",
+      );
+      expect(feedSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: DataSecurityIssueFeedEventType.StatusChanged,
+          feedInfoInMarkdown:
+            "Marked not an issue: The column holds order ids that pass the Luhn check.",
+          userId: props.userId,
+        }),
+      );
+    },
+  );
+
+  test("a reason that says nothing is none, and the timeline says only the change", async () => {
+    await change(
+      {
+        status: DataSecurityIssueStatus.NotAnIssue,
+        notAnIssueReason: "   ",
+      },
+      member([Permission.SecurityAdmin]),
+    );
+
+    expect(stored("status")).toBe(DataSecurityIssueStatus.NotAnIssue);
+    expect(stored("notAnIssueReason")).toBeNull();
+    expect(feedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown: "Status changed from **Open** to **Not an issue**.",
+      }),
+    );
+  });
+
+  test("opening it again clears why it was not an issue", async () => {
+    const owner: DatabaseCommonInteractionProps = member([
+      Permission.ProjectOwner,
+    ]);
+
+    await change(
+      {
+        status: DataSecurityIssueStatus.NotAnIssue,
+        notAnIssueReason: "A test fixture, not customer data.",
+      },
+      owner,
+    );
+    await change({ status: DataSecurityIssueStatus.Open }, owner);
+
+    expect(stored("status")).toBe(DataSecurityIssueStatus.Open);
+    expect(stored("notAnIssueReason")).toBeNull();
+  });
+
+  test("a reason it is not an issue, sent with another status, is not kept", async () => {
+    await change(
+      {
+        status: DataSecurityIssueStatus.Resolved,
+        notAnIssueReason: "Not ours.",
+      },
+      member([Permission.SecurityAdmin]),
+    );
+
+    expect(stored("status")).toBe(DataSecurityIssueStatus.Resolved);
+    expect(stored("notAnIssueReason")).toBeNull();
+  });
+
+  test("a reason it is not an issue, on its own, is refused before anything is written", async () => {
+    await expect(
+      change(
+        { notAnIssueReason: "Not ours." },
+        member([Permission.SecurityAdmin]),
+      ),
+    ).rejects.toThrow(
+      "Say an issue is not an issue by setting its status to Not an issue, with the reason.",
+    );
+
+    expect(stored("status")).toBe(DataSecurityIssueStatus.Open);
+    expect(stored("notAnIssueReason")).toBeUndefined();
+  });
+
   test("opening an accepted issue again clears what the acceptance said, and who made it", async () => {
     const owner: DatabaseCommonInteractionProps = member([
       Permission.ProjectOwner,

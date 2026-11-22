@@ -24,14 +24,18 @@ import {
 } from "Common/Utils/Slo/SloMetricSli";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
   getSloMetricKindHint,
   loadSloMetricPointType,
   loadSloMetricTypes,
+  readSloMetricType,
+  searchSloMetricTypes,
   readSloMetricConfigInForm,
   setSloMetricPartElement,
   SLO_METRIC_FIELD_PLACEHOLDERS,
@@ -83,6 +87,98 @@ const useSloMetricTypes: () => Array<MetricType> | null =
     return metricTypes;
   };
 
+// How long the picker waits after a key before it searches the server.
+const SLO_METRIC_SEARCH_DEBOUNCE_MS: number = 250;
+
+/*
+ * The metrics what is typed into the picker names, from the server
+ * (#10646): debounced, the newest answer winning, nothing asked for an
+ * empty box. The picker offers them beside the first 500 it read.
+ */
+const useSloMetricSearch: () => {
+  found: Array<MetricType>;
+  onSearchTextChange: (text: string) => void;
+} = (): {
+  found: Array<MetricType>;
+  onSearchTextChange: (text: string) => void;
+} => {
+  const [found, setFound] = useState<Array<MetricType>>([]);
+  const timerRef: MutableRefObject<number | null> = useRef<number | null>(null);
+  const sequenceRef: MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    found: found,
+    onSearchTextChange: (text: string): void => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+      }
+
+      if (!text.trim()) {
+        return;
+      }
+
+      const sequence: number = ++sequenceRef.current;
+
+      timerRef.current = window.setTimeout(() => {
+        void searchSloMetricTypes(text).then((metrics: Array<MetricType>) => {
+          if (sequence === sequenceRef.current) {
+            setFound(metrics);
+          }
+        });
+      }, SLO_METRIC_SEARCH_DEBOUNCE_MS);
+    },
+  };
+};
+
+/*
+ * The metric of the name the form holds, read by it when the first 500 do
+ * not have it (#10646): its unit is said under a histogram's value.
+ */
+const useHeldSloMetricType: (data: {
+  name: string;
+  metricTypes: Array<MetricType> | null;
+}) => MetricType | undefined = (data: {
+  name: string;
+  metricTypes: Array<MetricType> | null;
+}): MetricType | undefined => {
+  const [held, setHeld] = useState<MetricType | undefined>(undefined);
+  const isKnown: boolean = (data.metricTypes || []).some(
+    (metricType: MetricType): boolean => {
+      return metricType.name === data.name;
+    },
+  );
+  const isRead: boolean = data.metricTypes !== null;
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    if (!data.name || !isRead || isKnown) {
+      setHeld(undefined);
+      return;
+    }
+
+    void readSloMetricType(data.name).then((metric: MetricType | null) => {
+      if (isCurrent) {
+        setHeld(metric || undefined);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [data.name, isKnown, isRead]);
+
+  return held;
+};
+
 interface SloMetricNamePickerProps {
   value: string;
   // The kind of events the form counts it as, for what is said under it.
@@ -103,10 +199,15 @@ export const SloMetricNamePicker: FunctionComponent<
 > = (props: SloMetricNamePickerProps): ReactElement => {
   const translator: Translator = useTranslator();
   const metricTypes: Array<MetricType> | null = useSloMetricTypes();
+  const search: {
+    found: Array<MetricType>;
+    onSearchTextChange: (text: string) => void;
+  } = useSloMetricSearch();
 
+  // The first 500, and what the search found past them.
   const names: Array<string> = Array.from(
     new Set<string>(
-      (metricTypes || [])
+      [...(metricTypes || []), ...search.found]
         .map((metricType: MetricType): string => {
           return metricType.name || "";
         })
@@ -150,6 +251,7 @@ export const SloMetricNamePicker: FunctionComponent<
         isCreatable={true}
         isClearable={true}
         isLoading={metricTypes === null}
+        onSearchTextChange={search.onSearchTextChange}
         placeholder={translator.translateText(
           SLO_METRIC_FIELD_PLACEHOLDERS[SloMetricQueryPart.MetricName],
         )}
@@ -240,11 +342,17 @@ export const SloMetricUnitHint: FunctionComponent<SloMetricUnitHintProps> = (
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
   const metricTypes: Array<MetricType> | null = useSloMetricTypes();
+  const heldMetricType: MetricType | undefined = useHeldSloMetricType({
+    name: props.metricName,
+    metricTypes: metricTypes,
+  });
 
   const unit: string =
-    (metricTypes || []).find((metricType: MetricType): boolean => {
-      return metricType.name === props.metricName;
-    })?.unit || "";
+    (
+      (metricTypes || []).find((metricType: MetricType): boolean => {
+        return metricType.name === props.metricName;
+      }) || heldMetricType
+    )?.unit || "";
 
   if (!unit.trim()) {
     return null;

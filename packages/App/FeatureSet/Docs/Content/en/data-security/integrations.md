@@ -7,7 +7,7 @@ Data Security does not run a pager or a security queue of its own. It hands what
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
-- [OneUptime AI](#oneuptime-ai): Explain an issue, open a pull request that fixes it, or ask Ask AI about your data.
+- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data.
 - [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook, and turn on a missing protection from an issue.
 :::
 
@@ -66,6 +66,8 @@ A store's owners are people and teams, on the store's **Owners** page. They are 
 
 With **Notify Owners** on, each evaluation that opens issues on a store sends its owners one email - the people who own it, and the members of the teams that do, up to 50 - titled with how many new issues the store has, such as "Data Security: 2 new issues on orders-db". It lists each new issue's severity and title and the store's sensitivity, and links to the store. It never carries a sample.
 
+While OneUptime AI works on new issues on its own, the email waits for its analysis of them, up to 10 minutes, and gives each issue OneUptime AI analyzed two more lines: its verdict and why, and the shortest path to fixed. Each owner gets the lines they may read: an owner who may not read the issue gets none, and a line that rests on something they may not read is left out.
+
 ### Owner rules and label rules
 
 Rules set owners and labels for you, as stores are found:
@@ -93,9 +95,9 @@ See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger pa
 
 ## OneUptime AI
 
-Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind, region and cloud id, its sensitivity and data types, each by its name - one of your own data types by the name you gave it - the evidence, why the check matters and the fix for the store's cloud - never a finding's samples. For a telemetry issue they send where each kind of data was found too: the data type and the attribute, log body or prompt it sits in, never a sample or a record. Both run under the project's OneUptime AI switches and limits. What each sends, what it never sends and the model it runs on are on [OneUptime AI in Data Security](/docs/data-security/ai).
+Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind and region, its sensitivity and data types, each by its name - one of your own data types by the name you gave it - the evidence, why the check matters and the steps that fix it - never a finding's samples. For a telemetry issue they send where each kind of data was found too: the data type and the attribute, log body or prompt it sits in, never a sample or a record. Both run under the project's OneUptime AI switches and limits. What each sends, what it never sends and the model it runs on are on [OneUptime AI in Data Security](/docs/data-security/ai).
 
-- **Explain with AI** writes, for the store's owner, what is wrong, what could happen and the exact steps to fix it on their cloud. For a telemetry issue it writes, for the service's owner, what reaches their telemetry and where, and how to stop it: scrub it at ingest, then change the code that writes it. The explanation is kept on the issue's **Timeline**. Neither the issue it sent nor the answer is kept in **Project Settings → AI → AI Logs**, which every Project Member and Viewer can read: that row says only that the call was made, and what it cost. Anyone who can read the issue can ask.
+- **Analyze Issue**, at the top of the issue's page, has OneUptime AI write its analysis: whether the issue is real, what it puts at risk, what the fix would break and the shortest path to fixed (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues)). It also sends who can reach the store - each grant and roughly when it was last used, and the services seen using it - copies of its data in other stores, its security cases, the response action that fixes it, the repository and files that declare the store, and how many owners it has, never who they are. The analysis is kept on the issue, its verdict on the issue's **Timeline**. Neither what it sent nor the answer is kept in **Project Settings → AI → AI Logs**, which every Project Member and Viewer can read: that row says only that the call was made, and what it cost. Anyone who can read the issue can ask, and **Explain with AI** on the API and the MCP server answers with the same analysis.
 - **Fix with AI** asks OneUptime AI to fix the issue in your infrastructure code - Terraform, CloudFormation, Bicep or the like - with the smallest change that makes the check pass, and to open a pull request. For a telemetry issue it asks for a change to the code of the service that writes the data instead, at each place it was found: leave the value out, or mask or hash it before it is logged or put on a span. It needs the repository that holds the store's infrastructure code - or the service's code, for a telemetry issue - connected under **Code**: choose it under **Repository** when you can ask in several. The pull request appears under **Code** (see [Code](/docs/ai/ai-agent)). Security Members and above can ask, in a repository they may change under **Code**, as asking AI there takes: a Security role reads and changes no repository on its own, so give their team **Read Code Repository** and **Edit Code Repository** too. When AI cannot work now - it is switched off, the project is out of AI credits, its daily limits are reached, or no Runner is online - Fix with AI says what to fix, and starts nothing.
 
 OneUptime AI also works on each new issue on its own, as your AI rules allow: see [OneUptime AI in Data Security](/docs/data-security/ai).
@@ -146,13 +148,15 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security/compliance` | Every framework's score and requirements |
 | `/data-security/resource-scope` | The data stores of one resource - a Kubernetes cluster, a Docker or Podman host, a database, a service or a cloud resource - and whose compliance switches they follow |
 | `/data-security/resource-compliance` | One resource's frameworks: their scores for its stores, and what is turned off for it |
-| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data |
+| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data. A store OneUptime keeps for your security has a `declared` object: its own purpose and retention, and who can read it |
+| `/data-store/<id>/declared` | What the record says of a store OneUptime keeps for your security: what it holds, why, for how long and who can read it |
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |
 | `/data-store-finding/<id>/drop-metric-impact` | What **Drop This Metric** would drop for a finding in a metric's name: how many metrics, and the monitors, dashboards, SLOs and recording rules that read them |
 | `/data-store-finding/<id>/drop-metric` | **Drop This Metric**: a metric pipeline rule that drops the service's new data points of those metrics for good. It takes `{"confirmDataLoss": true}` |
-| `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
+| `/data-security-issue/<id>/explain` | **Explain with AI**: OneUptime AI's analysis of an issue, as **Analyze Issue** writes it. It answers the analysis the issue keeps when nothing it rests on changed, else writes a new one; `{"force": true}` writes a new one, as **Analyze Again** does |
+| `/data-security-issue/<id>/analysis` | The analysis the issue keeps, as you may read it. It never asks OneUptime AI |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
 | `/data-store/<id>/respond` | One response action on the store, such as **Block Public Access** or **Turn On Versioning**, with the issue it was run from |

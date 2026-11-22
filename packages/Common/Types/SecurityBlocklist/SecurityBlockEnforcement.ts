@@ -55,6 +55,12 @@ export enum SecurityBlockDestinationProvider {
   AzureWaf = "AzureWaf",
   // One Google Cloud Armor security policy, through a Google Cloud connection (#10349).
   CloudArmor = "CloudArmor",
+  // A blocklist feed a firewall reads (#10345): it holds what the firewall fetched last.
+  Feed = "Feed",
+  // Microsoft Defender for Endpoint's indicators, on every machine (#10346).
+  MicrosoftDefender = "MicrosoftDefender",
+  // CrowdStrike Falcon's custom IOCs, on every machine (#10346).
+  CrowdStrike = "CrowdStrike",
 }
 
 /*

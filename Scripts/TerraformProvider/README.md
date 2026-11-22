@@ -214,16 +214,69 @@ terraform apply
 
 ## 📦 Publishing
 
-```bash
-# Build for multiple platforms and prepare for publishing
-./publish-terraform-provider.sh
+The release run publishes the provider (`publish-terraform-provider` in
+`.github/workflows/release.yml`), with `publish-terraform-provider.sh`. It
+generates the provider, syncs it into
+[OneUptime/terraform-provider-oneuptime](https://github.com/OneUptime/terraform-provider-oneuptime),
+vets and tests it, builds and signs every asset with GoReleaser, and only then
+pushes the commit and its tag. Then it publishes the GitHub release, which the
+Terraform and OpenTofu registries read.
 
-# This creates:
-# - Binaries for multiple OS/arch combinations
-# - SHA256 checksums
-# - Release notes
-# - GitHub release assets
+**A published release is never changed.** The registries read a version's
+assets once, when it is published, and keep each zip's SHA-256; `terraform
+init` and `tofu init` check what GitHub serves against it. GoReleaser does not
+make the same zip twice, so assets built again and uploaded over a published
+release break that version for everyone: that happened to 14.3.0, 16.0.0,
+17.0.0, 17.1.0 and older versions, when a release run was repeated
+([#20](https://github.com/OneUptime/terraform-provider-oneuptime/issues/20)).
+So the script:
+
+- asks first whether its version is published. Published with every asset its
+  `SHA256SUMS` lists, the run stops there, successfully, having generated and
+  built nothing. Published without them, or with an asset that is not what its
+  `SHA256SUMS` says, it fails and changes nothing (`--force` too);
+- makes the release a draft, which no registry sees, uploads every asset to it
+  once, checks the draft against what it built (names, sizes, SHA-256s), and
+  only then publishes it. A run that stops halfway leaves a tag, which the next
+  run builds from, or a draft, which the next run deletes, by its id, and makes
+  again;
+- calls GitHub by release id, never by tag: `gh release view` finds a draft of
+  the tag too, and answers with whichever it finds first.
+
+`ProviderRelease.js` holds those checks, and `GenerateReleaseNotes.js` writes
+each release's notes: what breaks a configuration, new resources and data
+sources with their registry pages, the attributes that changed, and
+OneUptime's pull requests that changed the provider. It reads what changed
+from both releases' pages in `docs/`, and the pull requests between the
+OneUptime commits the two releases were generated from, which each release's
+commit names in its `OneUptime-Commit` trailer. The notes go to the job's
+summary too.
+
+To mend a published version, publish its provider again as the next patch
+version, from the same commit: run **Republish a Terraform provider version**
+(`.github/workflows/terraform-provider-republish.yml`), which runs the script
+with `--republish-from`:
+
+```bash
+gh workflow run terraform-provider-republish.yml -f from=17.1.0 -f version=17.1.1
 ```
+
+To write a published release's notes again:
+
+```bash
+git clone https://github.com/OneUptime/terraform-provider-oneuptime provider
+git -C provider fetch --tags
+GH_TOKEN=$(gh auth token) node Scripts/TerraformProvider/GenerateReleaseNotes.js \
+  --version 17.1.0 --provider-dir provider --previous v17.0.0 \
+  --oneuptime-to 17.1.0 --output notes.md
+gh release edit v17.1.0 --repo OneUptime/terraform-provider-oneuptime --notes-file notes.md
+```
+
+`Tests/Ops/TerraformProviderPublishedRelease.test.js` runs the script end to
+end against a stand-in GitHub, git remote and GoReleaser;
+`Tests/Ops/TerraformProviderReleaseNotes.test.js` tests the notes, and
+`Tests/ReleaseNotesReadTheDocs.test.ts` that they read the pages this
+generator writes.
 
 ## 🔄 Dynamic Updates
 

@@ -1,12 +1,13 @@
 # Kontroller och problem i Datasäkerhet
 
-Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid.
+Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid. Säkerhetshändelser, Network Flows och säkerhetsadressvalvet är OneUptimes egna, sparade för din säkerhet: angivna, aldrig skannade eller kontrollerade (se [Datalager som OneUptime sparar för din säkerhet](/docs/data-security/compliance#datalager-som-oneuptime-sparar-för-din-säkerhet)).
 
 :::cards
 - [Hur en kontroll avgör](#hur-en-kontroll-avgör): Godkänd, underkänd eller kan inte avgöra, och hur allvarligt ett underkännande är.
 - [Varje kontroll](#varje-kontroll): Alla 34, med vad var och en kontrollerar och hur det åtgärdas.
 - [Riskpoäng](#riskpoäng): Hur problem ordnas inom en allvarlighetsgrad.
 - [Vad som händer med ett problem](#vad-som-händer-med-ett-problem): Öppet, löst, accepterat, inte ett problem.
+- [OneUptime AI:s analys](#oneuptime-ais-analys): Om ett problem är verkligt, vad det sätter på spel, vad åtgärden skulle förstöra och den kortaste vägen till åtgärdat.
 - [Åtgärda härifrån](#åtgärda-härifrån): Stäng en exponering, eller slå på ett skydd som saknas, med ett klick.
 :::
 
@@ -154,11 +155,26 @@ OneUptime öppnar, uppdaterar och löser problem när kontrollerna körs. Det en
 | **Öppen** | Dess kontroll underkänns på datalagret nu. | Det räknas i Översikt, i datalagrets sammanfattning och i efterlevnaden, tills kontrollen godkänns. |
 | **Löst** | Dess kontroll godkändes vid en senare körning, gäller inte längre eller stängdes av, eller så arkiverades dess datalager. En person kan också välja **Markera som löst**: datalagret kontrolleras då igen direkt. | Det öppnas igen om kontrollen underkänns igen, och problemet räknar hur ofta det har öppnats igen. |
 | **Accepterat** | En person valde **Acceptera risk**, med en **Orsak** och ett datum i **Accepterat till**, högst ett år framåt. | Det förblir stängt till det datumet och öppnas sedan igen om kontrollen fortfarande underkänns. Acceptera det då igen om orsaken fortfarande gäller. |
-| **Inte ett problem** | En person valde **Inte ett problem**: fyndet var fel. | Det förblir stängt, även när kontrollen underkänns. **Öppna igen** sätter tillbaka det till Öppen. |
+| **Inte ett problem** | En person valde **Inte ett problem** och sa varför under **Orsak**: fyndet var fel. | Det förblir stängt, även medan kontrollen misslyckas, och behåller orsaken. **Öppna igen** sätter tillbaka det till Öppet. |
 
 Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och Projektägare kan ändra ett problems status och **Tilldela** det till en person eller ett team. Varje ändring skrivs till problemets **Tidslinje**: när det öppnades, varje ändring av allvarlighetsgrad, varje statusändring och vem som gjorde den, de omkontroller som begärts och vad integrationerna gjorde.
 
 Ett problem som öppnas igen behåller sin historik. Accepterade risker granskas igen varje dag, så att en acceptans löper ut i tid även när inget har skannats.
+
+## OneUptime AI:s analys
+
+Medan **Arbeta med nya problem** är påslaget under **Datasäkerhet → AI** analyserar OneUptime AI själv varje nytt eller återöppnat problem med allvarlighetsgrad Kritisk eller Hög, innan någon öppnar det; dina AI-regler för datasäkerhet kan välja andra problem. Alla problem kan analyseras från sin sida med **Analysera problemet**. Analysen öppnar problemets **Översikt**, under **OneUptime AI-analys**, och svarar utifrån det som Datasäkerhet vet:
+
+- om det är verkligt: **Verkligt**, **Troligen avsiktligt**, **Troligen ett felaktigt fynd** eller **Går inte att avgöra**, och varför;
+- vad det sätter på spel: datan och ungefär hur många poster, vem som kan nå den, kopior av den i andra lager och säkerhetsärendena om den;
+- vad åtgärden skulle förstöra: de tjänster som setts använda lagret, de identiteter som använde sin åtkomst de senaste 90 dagarna och de behörigheter som åtgärden tar bort och som något fortfarande använder;
+- den kortaste vägen till åtgärdat: vad som begränsar det nu, koden som deklarerar lagret och vem som bör göra det.
+
+Varje rad nämner de fakta den bygger på, listade under den av en knapp som **Visa de 3 fakta som den bygger på**. En rad som inte bygger på något faktum utelämnas, en bedömning vars orsak inte bygger på något är **Går inte att avgöra**, och ett lager med begränsad data är aldrig **Troligen avsiktligt** på OneUptime AI:s ord. En rad som bygger på något som du inte får läsa, till exempel vem som kan nå lagret, döljs för dig och säger det.
+
+OneUptime AI ändrar aldrig problemet: status och allvarlighetsgrad stannar hos kontrollen och hos dig. För **Troligen avsiktligt** erbjuder den **Acceptera risk** med orsaken skriven, och **Offentlig avsiktligt** för ett offentligt lager; för **Troligen ett felaktigt fynd** **Inte ett problem** med orsaken skriven. Inget ändras förrän du väljer.
+
+Analysen sparas på problemet, med en post i dess **Tidslinje** varje gång den skrivs, på det språk som de flesta av projektets medlemmar valt (**Analysera igen** skriver den på ditt). Den skrivs bara om när det den bygger på har ändrats, så att öppna problemet frågar inte OneUptime AI om något; **Analysera igen** frågar ändå. **Problem** filtrerar och visar problem efter **OneUptime AI:s bedömning**. Vad den skickar och aldrig skickar finns i [OneUptime AI i Datasäkerhet](/docs/data-security/ai). Med AI avstängt finns ingen analys.
 
 ## Åtgärda härifrån
 

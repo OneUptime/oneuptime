@@ -13,9 +13,13 @@ import {
   RequestBodyLimit,
 } from "../Utils/RequestBodyLimit";
 import {
+  RequestBodyRefusal,
   closeConnectionAfterAnswer,
   createInflateFailedError,
+  createTooLargeError,
   createTooManyJsonValuesError,
+  getTooLargeForRouteMessage,
+  readRequestBodyRefusal,
   stopReadingRequestBody,
 } from "../Utils/RequestBodyRefusal";
 import zlib from "zlib";
@@ -380,8 +384,19 @@ export default class GzipRequestBodyMiddleware {
       getLogAttributesFromRequest(req as OneUptimeRequest),
     );
 
+    /*
+     * In the words, and the field, the same body sent uncompressed is refused
+     * in (#10672): the limit OneUptime holds the route to
+     * (RequestBodyRefusal). This answered in a sentence and a field of its
+     * own ("message"), so a body over a route's limit was answered one way
+     * gzipped and another sent as it is.
+     */
+    const refusal: RequestBodyRefusal | null = readRequestBodyRefusal(
+      createTooLargeError(limit, bytes),
+    );
+
     res.status(413).json({
-      message: `Request body too large. The ${stage} body of a gzip-encoded request may not exceed ${limit} bytes.`,
+      error: refusal ? refusal.message : getTooLargeForRouteMessage(limit),
     });
   }
 }

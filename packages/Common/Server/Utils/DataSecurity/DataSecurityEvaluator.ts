@@ -60,6 +60,7 @@ import {
   DataStoreKind,
   DataStoreKindInfo,
   getDataStoreKindInfo,
+  isDeclaredDataStoreKind,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   DataStoreExposure,
@@ -499,7 +500,7 @@ export default class DataSecurityEvaluator {
       dataTypeIds: true,
     };
 
-    return this.readPages(
+    const stores: Array<DataStore> = await this.readPages(
       (skip: number, limit: number): Promise<Array<DataStore>> => {
         return DataStoreService.findBy({
           query: { projectId, isArchived: false },
@@ -511,6 +512,17 @@ export default class DataSecurityEvaluator {
       },
       MAX_STORES_PER_EVALUATION,
     );
+
+    /*
+     * Not the stores OneUptime declares (#10398): what they hold is known
+     * by design and holding it is their purpose, so no check applies and
+     * none opens an issue - and their data types, categories and
+     * sensitivity are OneUptime's, never worked out again from findings
+     * they never have.
+     */
+    return stores.filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
+    });
   }
 
   private static async readCustomTypes(

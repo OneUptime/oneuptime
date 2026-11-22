@@ -36,6 +36,9 @@ import WorkspaceSecurityPlaybookApprovalPress from "../../../../Server/Utils/Wor
 import WorkspaceSecurityPlaybookApproval, {
   SecurityPlaybookApprovalMessage,
 } from "../../../../Server/Utils/Workspace/WorkspaceSecurityPlaybookApproval";
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+import { htmlAsText } from "../../../Helpers/HtmlText";
+import { marked } from "marked";
 
 /*
  * THE MESSAGE A PLAYBOOK STEP WAITING FOR APPROVAL IS, IN SLACK AND
@@ -487,6 +490,149 @@ describe("the message", () => {
     expect(message.notificationText).toBe(
       "Genehmigung nötig für SEC-12: Credential stuffing",
     );
+  });
+});
+
+/*
+ * A case's title, a connection's name and an approver's name are what
+ * someone wrote - an attacker, through what a case is named after, the
+ * project, or a person. In the message, whatever it stands at, and in
+ * Approve Some… each reads as typed: no link, image, HTML, bold or mention
+ * of theirs, and the case's own link is the only link.
+ */
+describe("a name with markup in it reads as plain text", () => {
+  const HOSTILE: string =
+    "[Reset your password](https://evil.example/login) <img src=x onerror=alert(1)> **now** <!channel>";
+
+  // What a reader sees of the Markdown, as an email renders it.
+  function rendered(markdown: string): { html: string; text: string } {
+    const html: string = marked.parse(markdown, { async: false }) as string;
+
+    return {
+      html,
+      text: FeedMarkdown.withoutInvisibleBreaks(htmlAsText(html)).replace(
+        /\s+/g,
+        " ",
+      ),
+    };
+  }
+
+  /*
+   * The addresses of the links whose words are not the address they open.
+   * A bare address in a name is made a link by every renderer, one that
+   * shows where it goes; a link whose words hide where it goes is what a
+   * name must never make.
+   */
+  function hiddenLinksIn(html: string): Array<string> {
+    return Array.from(html.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g))
+      .filter((match: RegExpMatchArray): boolean => {
+        return (
+          FeedMarkdown.withoutInvisibleBreaks(htmlAsText(match[2]!)).trim() !==
+          htmlAsText(match[1]!)
+        );
+      })
+      .map((match: RegExpMatchArray): string => {
+        return htmlAsText(match[1]!);
+      });
+  }
+
+  const DECIDED_AT: Date = new Date("2026-11-20T10:43:00.000Z");
+
+  test.each([
+    [
+      "waiting",
+      { kind: SecurityPlaybookApprovalStandingKind.Waiting },
+      `SEC-12: ${HOSTILE}`,
+    ],
+    [
+      "approved, and done",
+      {
+        kind: SecurityPlaybookApprovalStandingKind.Approved,
+        deciderName: HOSTILE,
+        decidedAt: DECIDED_AT,
+        progress: SecurityPlaybookApprovalProgress.Done,
+        completedAt: new Date("2026-11-20T10:43:05.000Z"),
+      },
+      `Approved by ${HOSTILE}`,
+    ],
+    [
+      "rejected",
+      {
+        kind: SecurityPlaybookApprovalStandingKind.Rejected,
+        deciderName: HOSTILE,
+        decidedAt: DECIDED_AT,
+      },
+      HOSTILE,
+    ],
+    [
+      "no longer waiting",
+      {
+        kind: SecurityPlaybookApprovalStandingKind.NoLongerWaiting,
+        isRunCancelled: true,
+      },
+      "",
+    ],
+  ])(
+    "in the message, %s",
+    (
+      _name: string,
+      standing: SecurityPlaybookApprovalAsk["standing"],
+      headlineSays: string,
+    ) => {
+      const message: SecurityPlaybookApprovalMessage =
+        WorkspaceSecurityPlaybookApproval.getMessage({
+          ask: askOf({
+            caseTitle: HOSTILE,
+            connectionName: HOSTILE,
+            standing,
+          }),
+          round: ROUND,
+          workspaceType: WorkspaceType.Slack,
+        });
+      const markdown: string = markdownOf(message);
+      const { html, text } = rendered(markdown);
+
+      expect(markdown).not.toContain(
+        "[Reset your password](https://evil.example",
+      );
+      expect(markdown).not.toContain("<!channel>");
+      expect(html).not.toMatch(/<(img|script)\b/);
+      // The case's own link is the only one with words, and only a waiting headline has it.
+      expect(hiddenLinksIn(html)).toEqual(
+        standing.kind === SecurityPlaybookApprovalStandingKind.Waiting
+          ? [CASE_URL]
+          : [],
+      );
+      // The headline and the action read the names as they were written.
+      expect(text).toContain(headlineSays);
+      expect(text).toContain(`through ${HOSTILE}`);
+      // Only the message's own words are bold: the name's asterisks are text.
+      expect(html).not.toContain("<strong>now</strong>");
+      expect(text).toContain("**now**");
+    },
+  );
+
+  test("in Approve Some…'s intro", () => {
+    const form: WorkspaceModalBlock =
+      WorkspaceSecurityPlaybookApproval.getApproveSomeForm({
+        ask: askOf({ connectionName: HOSTILE }),
+        round: ROUND,
+      });
+    const intro: string = (
+      form.blocks.find((block: WorkspaceMessageBlock): boolean => {
+        return block._type === "WorkspacePayloadMarkdown";
+      }) as WorkspacePayloadMarkdown
+    ).text;
+    const { html, text } = rendered(intro);
+
+    expect(intro).not.toContain("[Reset your password](https://evil.example");
+    expect(intro).not.toContain("<!channel>");
+    expect(html).not.toMatch(/<(img|script)\b/);
+    expect(hiddenLinksIn(html)).toEqual([]);
+    expect(html).not.toContain("<strong>now</strong>");
+    expect(text).toContain(`through ${HOSTILE}`);
+    // The form's own sentence follows as a paragraph of its own.
+    expect(html.match(/<p>/g)!.length).toBeGreaterThanOrEqual(2);
   });
 });
 

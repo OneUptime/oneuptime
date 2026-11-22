@@ -167,9 +167,9 @@ At logge ind igen tæller kun, når din identitetsudbyder siger, at du loggede i
 | Udbyder | Hvad OneUptime beder om | Når det ikke bekræfter noget |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` og tidspunktet, hvor du loggede ind (`AuthnInstant`) | Få udbyderen til at efterkomme anmodningen, fx med Honor Force Authentication i Okta. |
-| OpenID Connect | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Få udbyderen til at sende `auth_time`. I Microsoft Entra ID føjer du det til ID-tokenet som et valgfrit krav. |
+| OpenID Connect | `prompt=login` og `max_age=0` (Microsoft Entra ID: kun `prompt=login`) samt tidspunktet, hvor du loggede ind (`auth_time`) | Få udbyderen til at sende `auth_time`. I Microsoft Entra ID føjer du det til ID-tokenet som et valgfrit krav. |
 | Google | Tidspunktet, hvor du loggede ind (`auth_time`). Google kan ikke bedes om at få dig til at logge ind igen. | Slå Session age claims til for serverens Google-login-app, som skal være udgivet og verificeret. |
-| Microsoft | `prompt=login` og `max_age=0` samt tidspunktet, hvor du loggede ind (`auth_time`) | Føj `auth_time` til ID-tokenet i serverens Microsoft-login-app som et valgfrit krav. |
+| Microsoft | `prompt=login` samt tidspunktet, hvor du loggede ind (`auth_time`) | Føj `auth_time` til ID-tokenet i serverens Microsoft-login-app som et valgfrit krav. |
 | Vercel | Intet: Vercel kan ikke bedes om at få dig til at logge ind igen og oplyser ikke, hvornår du loggede ind. | Det bekræfter aldrig. Vælg **Log ind på en anden måde**, og log ind med et link, der sendes til din e-mail, eller opret en adgangskode med **Glemt adgangskode?**, og bekræft med den. |
 
 Hvad du skal indstille i Okta, Microsoft Entra ID, Keycloak og Google Workspace, står på siden [SSO](/docs/identity/sso#log-ind-igen-for-at-bekræfte-at-det-er-dig).

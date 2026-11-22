@@ -1153,6 +1153,10 @@ import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecuri
 import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
 import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
+import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
+import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
 import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-AddCloudWafAndEnforcementReasons";
 
 export default [
@@ -2311,5 +2315,9 @@ export default [
   AddScrubRuleService1809187433000,
   AddScrubRuleServiceIndexesAndKeys1809187433010,
   AddSecurityEventConnectionBlocking1809187434300,
+  AddDataSecurityIssueAiAnalysis1809187436369,
+  AddSecurityBlocklistFeeds1809187440000,
+  AddSecurityBlockReachAndWiderValue1809187440100,
+  AddSecurityBlockValueReachIndex1809187440110,
   AddCloudWafAndEnforcementReasons1809187455000,
 ];

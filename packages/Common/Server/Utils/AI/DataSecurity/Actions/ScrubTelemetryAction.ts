@@ -525,7 +525,7 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
       ).toString(),
       reasonMarkdown: FeedMarkdown.join(
         [
-          mdText`**${check}**: ${typeNames.join(", ")} ${typeNames.length === 1 ? "was" : "were"} found in ${placesPhrase(places.length)} of ${storeName} in the last ${String(FINDING_FRESHNESS_IN_DAYS)} days, and no scrub rule hides it as the telemetry arrives. Every new record copies it again until the code stops writing it.`,
+          mdText`**${check}**: ${FeedMarkdown.join(typeNames)} ${typeNames.length === 1 ? "was" : "were"} found in ${placesPhrase(places.length)} of ${storeName} in the last ${String(FINDING_FRESHNESS_IN_DAYS)} days, and no scrub rule hides it as the telemetry arrives. Every new record copies it again until the code stops writing it.`,
           FeedMarkdown.bulletList(
             places.map(
               (place: ScrubPlace & { matchCount: number }): MarkdownText => {

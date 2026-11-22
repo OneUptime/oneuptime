@@ -271,7 +271,8 @@ describe("what a workflow ran as, and whose permissions", () => {
     )!;
 
     expect(event.message).toBe(
-      'The workflow "Access Sync", running as Project Owner with the permissions Jane Doe gave it, gave a team a custom role "Admins"',
+      // The role's name is a custom role's, which the event's readers may not read (#10663).
+      'The workflow "Access Sync", running as Project Owner with the permissions Jane Doe gave it, gave a team a custom role',
     );
     expect(event.principalUser).toBe(`workflow:${NIGHTLY_ID}`);
     expect(signalOf(event)).toBe(SecurityTelemetrySignal.RoleChanged);
@@ -352,7 +353,8 @@ describe("OneUptime's own deletes", () => {
       }),
     )!;
 
-    expect(event.message).toBe('OneUptime deleted the team "Ops"');
+    // The team's name is the team's: its readers are not all security events' (#10663).
+    expect(event.message).toBe("OneUptime deleted a team");
     expect(event.principalUser).toBe(ONEUPTIME_PRINCIPAL);
   });
 });

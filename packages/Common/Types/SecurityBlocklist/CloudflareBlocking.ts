@@ -3,7 +3,7 @@ import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
-  SECURITY_BLOCK_ACTIONS,
+  SECURITY_BLOCK_ADDRESS_ACTIONS,
   SecurityBlockAction,
   SecurityBlockValue,
   readSecurityBlockValue,
@@ -50,6 +50,8 @@ export const CLOUDFLARE_BLOCK_LIST_NAMES: Readonly<
 > = {
   [SecurityBlockAction.Block]: "oneuptime_block",
   [SecurityBlockAction.Challenge]: "oneuptime_challenge",
+  // A file's (#10346): Cloudflare holds addresses only (supports()), so it never sets one up.
+  [SecurityBlockAction.BlockAndQuarantine]: "oneuptime_block",
 };
 
 // The custom rules' stable refs, by action: how OneUptime finds its rule in a zone.
@@ -58,6 +60,8 @@ export const CLOUDFLARE_BLOCK_RULE_REFS: Readonly<
 > = {
   [SecurityBlockAction.Block]: "oneuptime_blocklist_block",
   [SecurityBlockAction.Challenge]: "oneuptime_blocklist_challenge",
+  // A file's (#10346): Cloudflare holds addresses only (supports()), so it never sets one up.
+  [SecurityBlockAction.BlockAndQuarantine]: "oneuptime_blocklist_block",
 };
 
 // What each rule does, as the Rulesets API names the action.
@@ -67,6 +71,8 @@ export const CLOUDFLARE_BLOCK_RULE_ACTIONS: Readonly<
   [SecurityBlockAction.Block]: "block",
   // Cloudflare's recommended challenge, not the JS Challenge.
   [SecurityBlockAction.Challenge]: "managed_challenge",
+  // A file's (#10346): Cloudflare holds addresses only (supports()), so it never sets one up.
+  [SecurityBlockAction.BlockAndQuarantine]: "block",
 };
 
 // What an IP Access Rule does, by action (its mode).
@@ -75,6 +81,8 @@ export const CLOUDFLARE_ACCESS_RULE_MODES: Readonly<
 > = {
   [SecurityBlockAction.Block]: "block",
   [SecurityBlockAction.Challenge]: "managed_challenge",
+  // A file's (#10346): Cloudflare holds addresses only (supports()), so it never sets one up.
+  [SecurityBlockAction.BlockAndQuarantine]: "block",
 };
 
 export const CLOUDFLARE_BLOCK_RULE_DESCRIPTION: string =
@@ -312,7 +320,7 @@ export function chooseCloudflareBlockingMechanisms(data: {
     Record<SecurityBlockAction, CloudflareMechanismChoice>
   > = {};
 
-  for (const action of SECURITY_BLOCK_ACTIONS) {
+  for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
     const hasList: boolean = data.oneUptimeLists.includes(action);
 
     if (!hasList && listsLeft <= 0) {
