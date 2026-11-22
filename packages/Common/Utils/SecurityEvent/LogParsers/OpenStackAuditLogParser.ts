@@ -20,6 +20,7 @@ import {
   cutText,
   readAttribute,
   readIpAddress,
+  readIpAddressOnly,
   readPort,
   readRemoteIpAddress,
 } from "./SecurityLogLine";
@@ -379,6 +380,7 @@ interface Initiator {
   id: string;
   name: string;
   projectId: string;
+  // The address, or what a scrub rule left in its place (readIpAddress, #10419).
   address: string;
 }
 
@@ -432,10 +434,15 @@ function baseAttributes(data: {
     OpenStackAuditAttribute.InitiatorProjectId,
     data.initiator.projectId,
   );
+  /*
+   * Only an address: "OpenStack failed logins burst" counts per this, so
+   * what a scrub rule left is no address every hidden sign-in shares. The
+   * event says a rule hid it instead (buildLogSecurityEvent, #10419).
+   */
   set(
     attributes,
     OpenStackAuditAttribute.InitiatorAddress,
-    data.initiator.address,
+    readIpAddressOnly(data.initiator.address),
   );
   set(
     attributes,

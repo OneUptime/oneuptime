@@ -44,6 +44,15 @@ import {
 } from "../NormalizerHelpers";
 import { writeOwnValue } from "../../LookupTable";
 import { TrustedProxies } from "../ClientAddressTrust";
+import {
+  EventAddressReading,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  markAddressScrubbed,
+  readEventAddress,
+  readScrubbedAddress,
+} from "../ScrubbedAddress";
 import { readEventUsers } from "../ScrubbedUser";
 
 /*
@@ -128,8 +137,34 @@ export function readWord(text: string, from: number): string {
   return word.length > MAX_TOKEN_LENGTH ? "" : word;
 }
 
-// An address worth recording: a valid IPv4 or IPv6 address, else "".
-export function readIpAddress(value: string): string {
+/*
+ * HOW EVERY FORMAT READS AN ADDRESS (#10419).
+ *
+ * Security Events reads logs after ingest's scrub rules have run, so where
+ * an IP Address rule hid an address the line holds what the rule left:
+ * "[REDACTED]", a mask, or a Hash rule's token ("Failed password for root
+ * from [HASHED:3f9a1c0be27d4e5a] port 52314 ssh2"). readIpAddress and
+ * readRemoteIpAddress - what every format reads its source and destination
+ * with - keep that value, in the one spelling ScrubbedAddress reads, where
+ * they used to drop it. Handed over as the event's principalIp or targetIp,
+ * it becomes no address and the marker that says a scrub rule hid it
+ * (buildLogSecurityEvent), and the log scan looks a page's tokens up in the
+ * address vault (Server/Utils/SecurityEvent/AddressVault), so the event
+ * names the address behind each one it holds.
+ *
+ * A parser takes them from the field it always took the address from, so
+ * the vault names only what the line would have named unscrubbed. A
+ * message, or an attribute copied from the record, keeps what the rule
+ * left, as stored.
+ *
+ * readIpAddressOnly and readRemoteIpAddressOnly read an address and nothing
+ * else: for a value that is no address field (a device's host name), and
+ * the parsers that tell a hidden address apart themselves (SSH's, the web
+ * access log's).
+ */
+
+// An address worth recording, and nothing else: a valid IPv4 or IPv6 address, else "".
+export function readIpAddressOnly(value: string): string {
   const candidate: string = (value || "").trim();
 
   if (!candidate || candidate.length > 64) {
@@ -140,24 +175,41 @@ export function readIpAddress(value: string): string {
 }
 
 /*
+ * What a scrub rule left where an address was written, read through the
+ * port, brackets, "::ffff:" or full stop around it, in the one spelling
+ * the scan resolves: else "".
+ */
+function readScrubbedAddressValue(value: string): string {
+  return readScrubbedAddress(value || "")?.value || "";
+}
+
+/*
+ * An address field's value: a valid IPv4 or IPv6 address, or what a scrub
+ * rule left in its place, else "".
+ */
+export function readIpAddress(value: string): string {
+  return readIpAddressOnly(value) || readScrubbedAddressValue(value);
+}
+
+/*
  * The address a request came from, worth recording as an entity: a valid
  * address that is not this machine's own (127.0.0.1, ::1) and not "any"
  * (0.0.0.0, ::), else "". An IPv4 address written as IPv6
  * (::ffff:203.0.113.7, as Windows writes a Kerberos client's) is read as
- * the IPv4 address it is.
+ * the IPv4 address it is. Nothing else: never what a scrub rule left.
  */
-export function readRemoteIpAddress(value: string): string {
+export function readRemoteIpAddressOnly(value: string): string {
   let candidate: string = (value || "").trim();
 
   if (candidate.toLowerCase().startsWith("::ffff:")) {
     const mapped: string = candidate.slice("::ffff:".length);
 
-    if (readIpAddress(mapped) && !mapped.includes(":")) {
+    if (readIpAddressOnly(mapped) && !mapped.includes(":")) {
       candidate = mapped;
     }
   }
 
-  const address: string = readIpAddress(candidate);
+  const address: string = readIpAddressOnly(candidate);
 
   if (!address) {
     return "";
@@ -175,6 +227,43 @@ export function readRemoteIpAddress(value: string): string {
   }
 
   return address;
+}
+
+/*
+ * The address a request came from, as a field holds it: a remote address
+ * (readRemoteIpAddressOnly), or what a scrub rule left in its place - an IP
+ * Address rule keeps this machine's own addresses, so what it hid was
+ * another's - else "".
+ */
+export function readRemoteIpAddress(value: string): string {
+  return readRemoteIpAddressOnly(value) || readScrubbedAddressValue(value);
+}
+
+/*
+ * Of the fields a record may name one address in, in the order they are
+ * preferred, the one the event names: the first address, else the first
+ * value a scrub rule left, else "" - an address wins wherever it is read,
+ * as a hidden one says only that a rule hid it (ScrubbedAddress, #10397).
+ * Each value as read by readIpAddress or readRemoteIpAddress.
+ */
+export function pickAddress(values: ReadonlyArray<string>): string {
+  let scrubbed: string = "";
+
+  for (const value of values) {
+    const text: string = (value || "").trim();
+
+    if (!text) {
+      continue;
+    }
+
+    if (!readScrubbedAddress(text)) {
+      return text;
+    }
+
+    scrubbed = scrubbed || text;
+  }
+
+  return scrubbed;
 }
 
 // The most attributes an event made from one structured record keeps.
@@ -499,15 +588,50 @@ export function buildLogSecurityEvent(
   const logId: string = input.line.logId || "";
 
   const principalHost: string = (input.principalHost || "").trim();
-  const principalIp: string = (input.principalIp || "").trim();
   const targetHost: string = (input.targetHost || "").trim();
-  const targetIp: string = (input.targetIp || "").trim();
+
+  /*
+   * An address a scrub rule hid is no address (#10419): what the rule left
+   * is the field's value as the parser read it (readIpAddress), and the
+   * event names no address there, so threat intel, entity risk and the
+   * rules that count per address never take "[REDACTED]" for an address
+   * every hidden event shares (#10415).
+   */
+  const principalAddress: EventAddressReading = readEventAddress(
+    input.principalIp,
+  );
+  const targetAddress: EventAddressReading = readEventAddress(input.targetIp);
+  const principalIp: string = principalAddress.address;
+  const targetIp: string = targetAddress.address;
 
   const attributes: JSONObject = {
     ...input.attributes,
     [SECURITY_LOG_SOURCE_ATTRIBUTE]: SECURITY_LOG_SOURCE_VALUE,
     [SECURITY_LOG_FORMAT_ATTRIBUTE]: input.format,
   };
+
+  /*
+   * ...and the event says a scrub rule hid it, with what the rule left, so
+   * the log scan can look a Hash rule's token up in the address vault
+   * (#10395) and name the rule (#10397). Every format reads its addresses
+   * from the line's text. A parser that marked an address itself (SSH's,
+   * the web access log's) knows where it read it, and keeps its marker.
+   */
+  for (const [role, reading] of [
+    [ScrubbedAddressRole.Principal, principalAddress],
+    [ScrubbedAddressRole.Target, targetAddress],
+  ] as Array<[ScrubbedAddressRole, EventAddressReading]>) {
+    if (
+      reading.scrubbed &&
+      attributes[SCRUBBED_ADDRESS_ATTRIBUTES[role].hidden] === undefined
+    ) {
+      markAddressScrubbed(attributes, {
+        role,
+        scrubbed: reading.scrubbed,
+        place: ScrubbedAddressPlace.LogBody,
+      });
+    }
+  }
 
   /*
    * A user a scrub rule hid is no user: Redact's and a mask's are none at
