@@ -229,6 +229,7 @@ Ein einziger Host-Monitor deckt jede Festplatte ab, die der Host meldet. Die Vor
 | Wo | Was es für jede Festplatte zeigt |
 | --- | --- |
 | Die Seite **Metriken** des Monitors | Eine Linie pro Festplatte, benannt nach ihrem `mountpoint` und ihrem `device`. |
+| Die Seite **Übersicht** des Monitors | **Serie** listet jede Festplatte, die die letzte Prüfung gelesen hat: ihren letzten Wert, die Kriterien, die sie erfüllt, und ihren offenen Vorfall oder ihre offene Warnung. |
 | **Überwachungsprotokolle** | Die Spalte **Beobachtet** zählt die Reihen, die jede Prüfung gelesen hat: eine pro Festplatte. |
 | **Vorfälle** und **Warnungen** | Ein Eintrag pro Festplatte, der Mount und Gerät der Festplatte nennt. |
 | Die Karte **Dateisysteme** des Hosts | Jede Festplatte, die der Collector meldet, egal was Ihre Monitore überwachen. |
@@ -238,7 +239,7 @@ Jedes Kriterium wird für jede Festplatte geprüft:
 - Solange der Vorfall einer Festplatte offen ist, eröffnet das Kriterium, das ihn eröffnet hat, für diese Festplatte keinen weiteren. Eine andere Festplatte, die es erfüllt, eröffnet ihren eigenen.
 - Eine Festplatte, die zwei Kriterien erfüllt, etwa eines über 98 % und eines über 90 %, erhält einen einzigen Vorfall, vom ersten der beiden in der Liste. Stellen Sie das strengere an die erste Stelle.
 - Der Vorfall einer Festplatte wird aufgelöst, sobald diese Festplatte das Kriterium, das ihn eröffnet hat, nicht mehr erfüllt, egal was die anderen Festplatten tun.
-- Der Monitor hat einen einzigen Status: Ihn legt das erste Kriterium der Liste fest, das irgendeine Festplatte erfüllt. Erfüllt keine Festplatte ein Kriterium, das auslöst, genügt dem Kriterium, das wiederherstellt, eine einzige Festplatte bei oder unter seinem Schwellenwert; auf einem Host mit einer Festplatte, die nie annähernd voll ist, greift der Abstand von 10 % für die Wiederherstellung daher nicht.
+- Der Monitor hat einen einzigen Status. Ein Kriterium, das ihn auf einen anderen Status setzt, etwa **Offline**, legt ihn fest, sobald eine Festplatte es erfüllt. Das Kriterium, das den Monitor auf seinen **Standard-Überwachungsstatus** zurückbringt, wartet auf die Festplatten, die ein solches Kriterium erfüllt haben, und greift, sobald jede von ihnen es erfüllt, egal was die anderen Festplatten tun. Eine Festplatte, die von 96 % auf 89 % fällt, hält den Monitor daher **Offline**, bis sie bei oder unter 81 % liegt, dem Abstand von 10 % für die Wiederherstellung, obwohl ihr Vorfall aufgelöst wird, sobald sie nicht mehr über 90 % liegt. **Serie** zeigt diese Festplatte als **Hält den Status**. Eine Festplatte, die nicht mehr gemeldet wird, hält den Status nicht mehr.
 
 Um nur einige Festplatten zu überwachen, öffnen Sie **Erweitert** und legen Sie in der Abfrage unter **Metriken auswählen** mit **Nach Attributen filtern** einen Filter auf `mountpoint` an: **ist eines von** für die zu überwachenden Festplatten oder **ist keines von** für die auszulassenden. Behalten Sie **Gruppieren nach** bei, und schreiben Sie jede Festplatte so, wie die Karte **Dateisysteme** sie zeigt, etwa `C:` oder `/var`. Um eine Festplatte gar nicht mehr zu erfassen, sodass sie auch von den Seiten des Hosts verschwindet, setzen Sie `include_mount_points` oder `exclude_mount_points` im Scraper `filesystem` des Collectors ([Host-Metriken](/docs/telemetry/host-otel-collector#host-metriken)).
 

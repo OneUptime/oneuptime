@@ -31,6 +31,8 @@ Un criterio che corrisponde ma non cambia alcuno stato decide comunque il contro
 
 > [!NOTE]
 > Un monitor che apre un incidente o un avviso per ogni host, container, disco o interfaccia giudica tutti i criteri a ogni controllo, così due host possono corrispondere a due criteri diversi contemporaneamente. È un monitor la cui query ha un **Raggruppa per**, come un monitor di metriche o di log, oppure un criterio che indica `*` per ogni disco o interfaccia. Un monitor di richieste in ingresso che raggruppa gli incidenti per un campo del payload si ferma comunque alla prima corrispondenza.
+>
+> Un monitor del genere ha comunque un solo stato, impostato dal primo criterio che corrisponde. Un criterio che lo riporta soltanto al suo **Stato predefinito del monitor**, senza aprire incidenti né avvisi, attende gli host che hanno soddisfatto un criterio che imposta un altro stato: corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri host. Fino ad allora il monitor mantiene il suo stato, anche quando nessun criterio corrisponde, mentre gli incidenti e gli avvisi di ogni host continuano a risolversi ciascuno per conto proprio.
 
 ## Cosa contiene un criterio
 
