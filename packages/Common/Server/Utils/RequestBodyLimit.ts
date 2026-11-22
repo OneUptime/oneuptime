@@ -25,10 +25,11 @@ import { JsonElementLimits } from "../../Utils/JsonElementCount";
  * the API, the CLI and Terraform send is a record, a query or a few ids.
  * The largest dashboard template is 13 KB and 1,056 values, the largest
  * workflow template 43 KB and 250 (measured), against 1 MiB and 100,000.
- * The routes that take more are listed below, each with why, and match as
- * the App's routers do: in any case, with or without a trailing slash,
- * under every prefix their router is mounted on. A path that is not listed,
- * one no route answers included, is ordinary.
+ * The routes that take more are listed below, each with why, and so are the
+ * few that take less (SMALL_REQUEST_BODY_ROUTES). They match as the App's
+ * routers do: in any case, with or without a trailing slash, under every
+ * prefix their router is mounted on. A path that is not listed, one no route
+ * answers included, is ordinary.
  *
  * A self-hosted server can raise the ordinary limits with
  * REQUEST_BODY_MAX_BYTES and REQUEST_BODY_MAX_JSON_VALUES (EnvironmentConfig),
@@ -41,7 +42,8 @@ export interface RequestBodyLimit extends JsonElementLimits {
   bytes: number;
 }
 
-const MIB: number = 1024 * 1024;
+const KIB: number = 1024;
+const MIB: number = 1024 * KIB;
 
 // What the App has always taken, and its ingress (nginx) takes on /api.
 export const LARGE_REQUEST_BODY_BYTES: number = 50 * MIB;
@@ -98,6 +100,42 @@ export const REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = {
   objectsArraysAndStrings: 8000000,
 };
 
+/*
+ * A limit held by its size alone: as many JSON values as its bytes can hold
+ * (one in two bytes, "0,"), so counting them refuses nothing the size lets
+ * through. For a route that takes less than an ordinary one, whose size is
+ * already the tighter bound.
+ */
+const heldBySize: (bytes: number) => RequestBodyLimit = (
+  bytes: number,
+): RequestBodyLimit => {
+  return {
+    bytes: bytes,
+    values: Math.ceil(bytes / 2),
+    objectsArraysAndStrings: Math.ceil(bytes / 2),
+  };
+};
+
+/*
+ * The MCP OAuth endpoints' bodies (#10672): the token, revocation and
+ * authorization forms, client registration and the consent page's answers,
+ * each a handful of short parameters, from anyone. 64 KB, as their own
+ * parsers have always held them (OAuthRoutes): now held to it before
+ * routing too, whatever the body's encoding.
+ */
+export const MCP_OAUTH_REQUEST_BODY_LIMIT: RequestBodyLimit = heldBySize(
+  64 * KIB,
+);
+
+/*
+ * The docs' "Was this page helpful?" and "found nothing" reports (#10672):
+ * a few dozen bytes, from any reader. 2 KB, as their own parser has always
+ * held them (Docs/Index.ts).
+ */
+export const DOCS_REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = heldBySize(
+  2 * KIB,
+);
+
 export interface RequestBodyRoute {
   /*
    * The paths, as the App receives them: "/" between segments, a ":name"
@@ -113,7 +151,7 @@ export interface RequestBodyRoute {
    * (Middleware/RequestBodyAfterAuthentication).
    */
   readsBodyAfterAuthentication?: boolean;
-  // Why this route takes more than an ordinary one.
+  // Why this route takes more, or less, than an ordinary one.
   reason: string;
 }
 
@@ -336,6 +374,32 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
   },
 ];
 
+/*
+ * THE ROUTES THAT TAKE LESS THAN AN ORDINARY ONE (#10672). Each holds its
+ * body to a limit of its own, which StartServer holds it to before routing
+ * as it holds every route to its limit: a body sent as it is past the limit
+ * is refused unread (its Content-Length, or at the chunk that passes it), a
+ * gzip one as it is sent or inflates past it, each answered alike. The
+ * route's own parser held only a gzip body to it - StartServer had parsed an
+ * uncompressed one at the ordinary 1 MB and 100,000 values first - so the
+ * same 100 KB form was refused gzipped and parsed sent as it is.
+ * REQUEST_BODY_MAX_BYTES does not raise these: they are no ordinary routes.
+ */
+export const SMALL_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
+  {
+    paths: ["/mcp/oauth/*"],
+    limit: MCP_OAUTH_REQUEST_BODY_LIMIT,
+    reason:
+      "The MCP OAuth endpoints - the token, revocation and authorization forms, client registration, the consent page - take a handful of short parameters, from anyone, so no one makes the server read more to find that out.",
+  },
+  {
+    paths: ["/docs/feedback", "/docs/search/found-nothing"],
+    limit: DOCS_REPORT_REQUEST_BODY_LIMIT,
+    reason:
+      'The docs\' "Was this page helpful?" and "found nothing" reports are a few dozen bytes each, from any reader of the docs.',
+  },
+];
+
 interface CompiledPattern {
   segments: Array<string>;
   // A last segment "*": the path and everything under it.
@@ -401,9 +465,10 @@ const compile: (
   return byFirstSegment;
 };
 
-const PATTERNS_BY_FIRST_SEGMENT: Map<string, Array<CompiledPattern>> = compile(
-  LARGE_REQUEST_BODY_ROUTES,
-);
+const PATTERNS_BY_FIRST_SEGMENT: Map<string, Array<CompiledPattern>> = compile([
+  ...LARGE_REQUEST_BODY_ROUTES,
+  ...SMALL_REQUEST_BODY_ROUTES,
+]);
 
 const matches: (
   pattern: CompiledPattern,
