@@ -31,6 +31,7 @@ import {
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  CA_CERTIFICATE_PLACEHOLDER,
   CaCertificateProblem,
   HttpStepCertificateSettings,
   getHttpStepCertificateSettings,
@@ -322,7 +323,7 @@ export const HTTP_CA_CERTIFICATE_HELP: string = translationKey(
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.",
 );
 export const HTTP_CA_CERTIFICATE_PLACEHOLDER: string =
-  "-----BEGIN CERTIFICATE-----";
+  CA_CERTIFICATE_PLACEHOLDER;
 
 /*
  * Under the CA certificate, while it is not one a save takes: the server

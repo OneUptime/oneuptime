@@ -61885,6 +61885,5 @@
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "Шаг доверяет только этому сертификату (PEM): сертификату подписавшего ЦС или собственному сертификату самоподписанного сервера. Или храните его в переменной и напишите здесь {{reference}}.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Здесь переменная указана рядом с другим текстом. Напишите только переменную, в которой хранится сертификат, или вставьте только сертификат.",
   "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Используйте переменную в URL, заголовках, теле или сертификате ЦС как {{reference}}. Секреты тоже подставляются и скрываются в том, что сохраняет шаг.",
-  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
   "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "Здесь есть закрытый ключ. Вставьте только сертификат: все, кто может читать этот плейбук, могут читать его шаги."
 }

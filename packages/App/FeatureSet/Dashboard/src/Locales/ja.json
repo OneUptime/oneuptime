@@ -61885,6 +61885,5 @@
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "このステップは、この証明書 (PEM) だけを信頼します。署名した CA の証明書か、自己署名のサーバー自身の証明書です。変数に保存して、ここに {{reference}} と書くこともできます。",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "変数がほかのテキストと一緒に書かれています。証明書を保存した変数だけを書くか、証明書だけを貼り付けてください。",
   "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "URL、ヘッダー、本文、CA 証明書では変数を {{reference}} として使います。シークレットも埋め込まれ、ステップの記録では隠されます。",
-  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
   "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "ここには秘密鍵が含まれています。証明書だけを貼り付けてください。このプレイブックを閲覧できる人は誰でも、そのステップを閲覧できます。"
 }

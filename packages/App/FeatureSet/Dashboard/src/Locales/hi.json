@@ -61885,6 +61885,5 @@
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "यह चरण केवल इसी प्रमाणपत्र (PEM) पर भरोसा करता है: साइन करने वाले CA का, या स्व-हस्ताक्षरित सर्वर का अपना। या इसे किसी वेरिएबल में रखें और यहाँ {{reference}} लिखें।",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "इसमें किसी वेरिएबल के साथ दूसरा टेक्स्ट भी है। केवल वह वेरिएबल लिखें जिसमें प्रमाणपत्र है, या केवल प्रमाणपत्र पेस्ट करें।",
   "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "URL, हेडर, बॉडी या CA प्रमाणपत्र में वेरिएबल को {{reference}} के रूप में इस्तेमाल करें। सीक्रेट भी भरे जाते हैं, और चरण जो दर्ज करता है उसमें छिपाए जाते हैं।",
-  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
   "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "इसमें एक निजी कुंजी है। केवल प्रमाणपत्र पेस्ट करें: जो कोई भी इस प्लेबुक को पढ़ सकता है, वह इसके चरण पढ़ सकता है।"
 }

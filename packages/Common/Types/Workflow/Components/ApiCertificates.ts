@@ -1,3 +1,4 @@
+import { CA_CERTIFICATE_PLACEHOLDER } from "../../Runbook/HttpStepCertificates";
 import { translationKey } from "../../Translator";
 import { Argument, ComponentInputType } from "../Component";
 
@@ -51,7 +52,7 @@ export const API_CERTIFICATE_ARGUMENTS: Array<Argument> = [
     type: ComponentInputType.LongText,
     required: false,
     isAdvanced: true,
-    placeholder: "-----BEGIN CERTIFICATE-----",
+    placeholder: CA_CERTIFICATE_PLACEHOLDER,
     // With the checks off, the certificate is not used.
     shownWhen: {
       argumentId: ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID,

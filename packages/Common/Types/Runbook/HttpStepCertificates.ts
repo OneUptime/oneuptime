@@ -121,6 +121,14 @@ export function getHttpStepCaCertificateVariable(
  */
 export const HTTP_STEP_CA_CERTIFICATE_MAX_LENGTH: number = 64 * 1024;
 
+/*
+ * What a CA certificate field shows while it is empty, on a runbook's HTTP
+ * step, a workflow's API steps and a playbook's Send Webhook alike. It is
+ * PEM's own first line, the same in every language, so it is never handed
+ * to translation as a key of its own.
+ */
+export const CA_CERTIFICATE_PLACEHOLDER: string = "-----BEGIN CERTIFICATE-----";
+
 const PEM_CERTIFICATE_BLOCK: RegExp =
   /-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g;
 

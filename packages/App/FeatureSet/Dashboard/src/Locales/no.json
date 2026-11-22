@@ -61885,6 +61885,5 @@
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "Trinnet stoler bare på dette sertifikatet (PEM): den signerende CA-ens, eller en selvsignert servers eget. Eller lagre det i en variabel og skriv {{reference}} her.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Her står en variabel ved siden av annen tekst. Skriv bare variabelen som inneholder sertifikatet, eller lim inn bare sertifikatet.",
   "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Bruk en variabel i URL-en, overskriftene, brødteksten eller CA-sertifikatet som {{reference}}. Hemmeligheter fylles også inn og skjules i det trinnet lagrer.",
-  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
   "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "Dette inneholder en privat nøkkel. Lim inn bare sertifikatet: alle som kan lese denne playbooken, kan lese trinnene i den."
 }

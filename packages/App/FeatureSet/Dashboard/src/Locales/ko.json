@@ -61885,6 +61885,5 @@
   "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "이 단계는 이 인증서(PEM)만 신뢰합니다. 서명한 CA의 인증서, 또는 자체 서명된 서버 자신의 인증서입니다. 또는 변수에 넣어 두고 여기에 {{reference}} 형식으로 적으세요.",
   "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "변수가 다른 텍스트와 함께 적혀 있습니다. 인증서가 들어 있는 변수만 적거나, 인증서만 붙여넣으세요.",
   "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "URL, 헤더, 본문, CA 인증서에서는 변수를 {{reference}}(으)로 사용합니다. 시크릿도 채워지며, 단계가 기록하는 내용에서는 숨겨집니다.",
-  "-----BEGIN CERTIFICATE-----": "-----BEGIN CERTIFICATE-----",
   "This holds a private key. Paste only the certificate: everyone who may read this playbook can read its steps.": "여기에는 개인 키가 들어 있습니다. 인증서만 붙여넣으세요. 이 플레이북을 읽을 수 있는 사람은 누구나 그 단계를 읽을 수 있습니다."
 }

@@ -40,6 +40,7 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  CA_CERTIFICATE_PLACEHOLDER,
   CaCertificatePemProblem,
   CaCertificateProblem,
   getCaCertificatePemShapeProblem,
@@ -1045,7 +1046,7 @@ export function getStepSettingsFields(
         "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
       fieldType: FormFieldSchemaType.LongText,
       stepId: "settings",
-      placeholder: "-----BEGIN CERTIFICATE-----",
+      placeholder: CA_CERTIFICATE_PLACEHOLDER,
       required: false,
       collapsibleSection: howItRuns,
       showIf: (values: FormValues<JSONObject>): boolean => {
