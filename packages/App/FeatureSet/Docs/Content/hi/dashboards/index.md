@@ -105,4 +105,5 @@ flowchart TB
 - [डैशबोर्ड विजेट](/docs/dashboards/widgets): हर विजेट, और कौन-सा चुनें।
 - [डैशबोर्ड वेरिएबल और फ़िल्टर](/docs/dashboards/variables): हर सेवा, होस्ट या ग्राहक के लिए एक डैशबोर्ड।
 - [साझाकरण और सार्वजनिक डैशबोर्ड](/docs/dashboards/sharing): सार्वजनिक लिंक, पासवर्ड, IP अनुमति सूचियाँ और कस्टम डोमेन।
+- [Grafana और Datadog से आयात](/docs/dashboards/import): Grafana या Datadog में बनाया गया डैशबोर्ड, या अलर्ट नियम, ले आएँ।
 :::

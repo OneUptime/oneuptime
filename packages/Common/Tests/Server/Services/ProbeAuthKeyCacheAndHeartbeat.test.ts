@@ -799,6 +799,25 @@ describe("ProbeService probe-auth cache and heartbeat throttle", () => {
       expect(updateSpy).toHaveBeenCalledTimes(1);
     });
 
+    test("a report with no probe is refused in a sentence, and writes nothing", async () => {
+      const updateSpy: jest.SpyInstance = jest
+        .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")
+        .mockResolvedValue(undefined);
+
+      await expect(
+        ProbeService.recordInterfaceAddresses({
+          probeId: undefined as unknown as ObjectID,
+          addresses: ["10.0.0.5"],
+        }),
+      ).rejects.toThrow(
+        new BadDataException(
+          "Interface addresses are kept for the probe that reported them: send its probe ID with them.",
+        ),
+      );
+      expect(updateSpy).not.toHaveBeenCalled();
+      expect(mockSetString).not.toHaveBeenCalled();
+    });
+
     test("a write that fails rethrows, and the cache is not told it was written", async () => {
       jest
         .spyOn(ProbeService, "updateColumnsByIdWithoutHooks")

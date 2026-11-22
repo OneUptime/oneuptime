@@ -459,10 +459,11 @@ describe("an ordinary API route", () => {
       headers: { "content-encoding": "gzip" },
     });
 
-    expect(result.status).toBe(413);
-    expect(result.body["message"]).toBe(
-      `Request body too large. The decompressed body of a gzip-encoded request may not exceed ${ORDINARY_BYTES} bytes.`,
-    );
+    // As the same body sent uncompressed is answered (#10672), not in words of its own.
+    expect(result).toEqual({
+      status: 413,
+      body: { error: TOO_LARGE_FOR_ROUTE },
+    });
     expect(reached).toEqual([]);
   });
 

@@ -5,7 +5,6 @@ import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngest
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import Express, {
-  ExpressRaw,
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
@@ -14,6 +13,8 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import PyroscopeIngestService from "../Services/PyroscopeIngestService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import { mapAuthorizationToIngestToken } from "../Utils/PyroscopeAuthorization";
 
 const router: ExpressRouter = Express.getRouter();
@@ -43,32 +44,35 @@ const mapAuthorizationTokenMiddleware: RequestHandler = (
 };
 
 /*
- * pyroscope-nodejs 0.6.2+ posts /ingest as the gzipped pprof itself, raw,
- * as Content-Type application/octet-stream - no multipart, no
- * Content-Encoding. No global parser reads that type, so the body reached
- * the handler as {} and every upload was answered 400.
+ * A profile posted to /ingest, read once the ingest key is checked (#10673):
+ * StartServer leaves the body unread (RequestBodyLimit), and nothing of it is
+ * read for a request without the right key - its 401 is sent, and the
+ * connection closed under the rest (UnreadRequestBody), which the client
+ * still reads. The key is in a header from every SDK (Authorization, mapped
+ * above, or x-oneuptime-token), never in the body.
  *
- * Mounted AFTER the ingest-key check, so an unauthenticated caller cannot
- * make the App buffer anything through it. A body the global gzip reader
- * (Content-Encoding: gzip) has already consumed is left alone: the stream
- * is gone, and reading it again would fail the request.
+ * Then the profile, in the forms the SDKs send it, held to 50 MB as sent and
+ * once inflated, and refused past it with the rest unread:
+ *
+ *   - a multipart form, its profile a file part: pyroscope-go,
+ *     pyroscope-dotnet up to 0.13, pyroscope-nodejs up to 0.6.1
+ *     (MultipartFormData);
+ *   - the profile itself, as its bytes: pyroscope-nodejs 0.6.2 and later as
+ *     application/octet-stream, the pyroscope-rs SDKs (Python up to 0.8,
+ *     Ruby up to 0.6.0; later ones push) as binary/octet-stream,
+ *     gzip-encoded or not. Any other type is read as the bytes it is too:
+ *     the handler finds pprof or folded text in it, or says it found
+ *     neither.
+ *
+ * A gzip body, multipart or not, is inflated first, as StartServer inflated
+ * it before.
  */
-const rawProfileBodyParser: RequestHandler = ExpressRaw({
-  type: ["application/octet-stream", "binary/octet-stream"],
-  limit: "50mb",
-}) as RequestHandler;
-
-const parseRawProfileBody: RequestHandler = (
-  req: ExpressRequest,
-  res: ExpressResponse,
-  next: NextFunction,
-): void => {
-  if (Buffer.isBuffer(req.body)) {
-    return next();
-  }
-
-  rawProfileBodyParser(req, res, next);
-};
+const readProfileBody: RequestHandler =
+  RequestBodyAfterAuthentication.readUpload({
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    multipart: MultipartFormDataMiddleware,
+    bytes: true,
+  });
 
 /*
  * DISABLE_TELEMETRY_INGESTION answers every push with a success so clients
@@ -91,11 +95,10 @@ const pushIngestionDisabledMiddleware: RequestHandler = (
 router.post(
   "/pyroscope/ingest",
   TelemetryIngestionDisabled.middleware,
-  MultipartFormDataMiddleware,
   mapAuthorizationTokenMiddleware,
   setProfilesProductType,
   TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
-  parseRawProfileBody,
+  readProfileBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

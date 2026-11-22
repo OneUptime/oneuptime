@@ -109,6 +109,23 @@ export const ENTRA_BACKGROUND_SIGN_INS_KEY: string = "includeBackgroundSignIns";
 export const GOOGLE_WORKSPACE_DRIVE_KEY: string = "includeDrive";
 
 /*
+ * The setting that lets OneUptime enforce the project's blocklist through
+ * a connection (#10346): Microsoft Defender's indicators block domains,
+ * URLs, addresses and files on every machine, CrowdStrike Falcon's custom
+ * IOCs block files. Off until someone turns it on, with the permission it
+ * takes, and checked before every call that changes anything there: no
+ * connection may change what it was only allowed to read.
+ */
+export const BLOCK_INDICATORS_KEY: string = "blockIndicators";
+
+// Whether a connection's settings let OneUptime block through it.
+export function isBlockingTurnedOn(
+  config: Record<string, unknown> | null | undefined,
+): boolean {
+  return Boolean(config) && config![BLOCK_INDICATORS_KEY] === true;
+}
+
+/*
  * A two-option presentation of alertingOnly: the alerting records are
  * always imported (a fixed, checked option) and a second option adds the
  * non-alerting ones. Checking the second option stores alertingOnly=false.
@@ -355,6 +372,19 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           defaultValue: "public",
           isAdvanced: true,
         },
+        {
+          key: BLOCK_INDICATORS_KEY,
+          title: translationKey(
+            "Block domains, addresses and files with Defender",
+          ),
+          description: translationKey(
+            "OneUptime adds Defender indicators for what you block. Needs the WindowsDefenderATP permission Ti.ReadWrite.All, with admin consent.",
+          ),
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
+        },
       ],
       secretFields: [
         {
@@ -412,6 +442,21 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
             },
           ],
           defaultValue: "us-1",
+        },
+        /*
+         * Files only: Falcon prevents a file's hash on Windows, Mac and
+         * Linux, and only detects a domain or an address there.
+         */
+        {
+          key: BLOCK_INDICATORS_KEY,
+          title: translationKey("Block files with CrowdStrike"),
+          description: translationKey(
+            "OneUptime adds custom IOCs that stop a file running on every computer. Needs the IOC Management: Read and Write scopes.",
+          ),
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
         },
       ],
       secretFields: [

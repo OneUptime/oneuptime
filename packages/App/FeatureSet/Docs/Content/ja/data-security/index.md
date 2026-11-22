@@ -39,7 +39,7 @@ flowchart TB
 - **証拠は常にマスクされます。** 検出結果が保持するのは件数と、 `j***@e******.com` のような最大 3 つのマスクされたサンプルだけで、マスクは何かがスキャナーの外に出る前にスキャナーの中で行われます。サンプルをオフにすると、件数だけを保持します。
 - **スキャナーはオープンソースです。** すべてのデータタイプのパターン、チェックサム、コンテキストの語、テスト値は OneUptime のソースコードにあるので、何が検出結果になるのかを正確に読めます。同じコードが OneUptime のワーカー、プローブ、そして **テスト** ボックスで動きます。
 - **OneUptime のほかの機能と連携します。** 重大度が「重大」の問題はそのデータストアについてセキュリティケースを開くので、 [セキュリティオペレーション](/docs/telemetry/security-cases) がほかの脅威と同じように対応します。どのセキュリティケースにも、そのユーザーとロールが到達できる機密データが表示されます。オンコール担当者を呼び出すアラートを発生させることもでき、データストアの所有者にはメールが届きます。 [データセキュリティの連携](/docs/data-security/integrations) を参照してください。
-- **OneUptime AI が修正を手伝います。** **AI で説明** はデータストアの所有者に、何が問題で、そのクラウドでどう修正するかを伝えます。 **AI で修正** はインフラストラクチャのコードにプルリクエストを作成します。さらに OneUptime AI は、どの検出器も分類できなかったフィールドの中身を提案し、人が確認します。OneUptime AI にデータが送られることはありません: [データセキュリティの OneUptime AI](/docs/data-security/ai) を参照してください。
+- **OneUptime AI が修正を手伝います。** **問題を分析** は、問題が実在するか、何を危険にさらすか、修正で何が壊れるか、修正への最短経路を示します。 **AI で修正** はインフラストラクチャのコードにプルリクエストを作成します。さらに OneUptime AI は、どの検出器も分類できなかったフィールドの中身を提案し、人が確認します。OneUptime AI にデータが送られることはありません: [データセキュリティの OneUptime AI](/docs/data-security/ai) を参照してください。
 
 ## 始める前に
 
@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
+| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス、セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫 | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
 
-すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。
+すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫は、OneUptime がセキュリティのために保持する独自のデータストアです: 宣言されたもので、スキャンもチェックもされません ( [OneUptime がセキュリティのために保持するデータストア](/docs/data-security/compliance#oneuptime-がセキュリティのために保持するデータストア) を参照)。
 
 ソースに載らなくなったデータストアは、履歴とともにアーカイブされ、そのオープンの問題は解決済みになります: データセキュリティのメニューの最後にある **アーカイブ済みのデータストア** に残ります。ソースに再び載ると、自動で戻ってきて、チェックがまだ不合格の問題は再びオープンになります。
 

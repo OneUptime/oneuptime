@@ -132,7 +132,7 @@ SLO의 규칙은 오류 예산 정책의 변화를 게시합니다. SLO가 단�
 > 📞 @ana is now on call for Payments until tomorrow at 5:50 PM, then @bob.
 
 - Payments 는 OneUptime의 정책으로 연결됩니다. 정책이 둘 이상의 스케줄을 호출하면 줄에 스케줄 이름도 들어갑니다: Payments (Primary).
-- Slack 계정을 OneUptime에 연결한 사람은 인계, 재정의, 정책에 추가되거나 빠진 사람 등 모든 온콜 줄에서 Slack 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 초대되었지만 아직 프로젝트에 참여하지 않은 사람은 여기서도, 정책의 피드에서도 초대할 때 입력한 이름이나 "someone who hasn't joined the project yet"으로 표시되며, 이메일 주소로 표시되지 않습니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다.
+- Slack 계정을 OneUptime에 연결한 사람은 인계, 재정의, 정책에 추가되거나 빠진 사람 등 모든 온콜 줄에서 Slack 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 초대되었지만 아직 프로젝트에 참여하지 않은 사람은 여기서도, 정책의 피드에서도 초대할 때 입력한 이름이나 "someone who hasn't joined the project yet"으로 표시되며, 이메일 주소로 표시되지 않습니다. OneUptime에 이름이 없는 사람은 이메일 주소에서 @ 앞부분으로 표시됩니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다.
 - 정책의 여러 에스컬레이션 규칙이 같은 스케줄을 호출해도 인계는 규칙마다가 아니라 한 번만 게시됩니다.
 
 규칙은 **업데이트** 단계에서 고른 것을 게시하며, 새 규칙은 **주요 업데이트만** (현재 온콜 담당자와 담당자가 없는 때)으로 시작합니다. API나 Terraform으로 `updatesToPost` 없이 만든 규칙도 마찬가지입니다. 모든 업데이트를 게시하려면 `"updatesToPost": null` 을 보내세요. `updatesToPost` 를 빼고 수정하면 규칙이 게시하는 업데이트가 그대로 유지됩니다.

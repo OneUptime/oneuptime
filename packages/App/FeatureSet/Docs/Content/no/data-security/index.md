@@ -39,7 +39,7 @@ flowchart TB
 - **Bevis maskeres, alltid.** Et funn beholder tellinger og høyst tre maskerte prøver, som `j***@e******.com`, maskert inne i skanneren før noe forlater den. Slår du av prøver, beholder det bare tellinger.
 - **Skanneren er åpen kildekode.** Mønsteret, kontrollsummen, kontekstordene og testverdiene til hver datatype ligger i OneUptimes kildekode, så du kan lese nøyaktig hva som gir et funn. Den samme koden kjører på OneUptimes workers, på en sonde og i boksen **Test det**.
 - **Den fungerer sammen med resten av OneUptime.** Et kritisk problem åpner en sikkerhetssak på datalageret, så [Security Operations](/docs/telemetry/security-cases) behandler det som enhver annen trussel, og enhver sikkerhetssak viser de sensitive dataene som brukerne og rollene dens kan nå. Det kan opprette et varsel som tilkaller den som har vakt, og det sender e-post til eierne av datalageret. Se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations).
-- **OneUptime AI hjelper deg å fikse det.** **Forklar med AI** forteller eieren av et datalager hva som er galt og hvordan det fikses i skyen deres, **Fiks med AI** åpner en pull request i infrastrukturkoden din, og OneUptime AI foreslår hva et felt som ingen detektor kunne plassere, inneholder, slik at et menneske kan bekrefte det. Den får aldri tilsendt dataene dine: se [OneUptime AI i Datasikkerhet](/docs/data-security/ai).
+- **OneUptime AI hjelper deg å fikse det.** **Analyser problemet** forteller om et problem er reelt, hva det setter i fare, hva fiksen ville ødelegge og den korteste veien til fikset, **Fiks med AI** åpner en pull request i infrastrukturkoden din, og OneUptime AI foreslår hva et felt som ingen detektor kunne plassere, inneholder, slik at et menneske kan bekrefte det. Den får aldri tilsendt dataene dine: se [OneUptime AI i Datasikkerhet](/docs/data-security/ai).
 
 ## Før du begynner
 
@@ -70,9 +70,9 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
+| OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger, sikkerhetshendelser, Network Flows, sikkerhetsadressehvelv | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
 
-Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder.
+Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
 
 Et datalager arkiveres, med historikken sin, når kilden ikke lenger viser det, og de åpne problemene på det blir løst: **Arkiverte datalagre**, nederst i menyen til Datasikkerhet, tar vare på det. Det kommer tilbake av seg selv hvis kilden viser det igjen, og et problem der kontrollen fortsatt feiler, åpnes igjen.
 

@@ -1,12 +1,13 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele.
+A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
 - [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
 - [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema.
+- [A análise do OneUptime AI](#a-análise-do-oneuptime-ai): Se um problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção.
 - [Corrigir daqui](#corrigir-daqui): Feche uma exposição, ou ative uma proteção que falta, com um clique.
 :::
 
@@ -154,11 +155,26 @@ O OneUptime abre, atualiza e resolve problemas à medida que as verificações r
 | **Aberto** | A verificação dele falha no repositório agora. | Ele conta na Visão geral, no resumo do repositório e na conformidade, até a verificação passar. |
 | **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
 | **Aceito** | Uma pessoa escolheu **Aceitar o risco**, com um **Motivo** e uma data em **Aceito até**, no máximo daqui a um ano. | Ele fica fechado até essa data e depois abre de novo se a verificação ainda falhar. Aceite-o de novo então, se o motivo ainda for válido. |
-| **Não é um problema** | Uma pessoa escolheu **Não é um problema**: a descoberta estava errada. | Ele fica fechado, mesmo enquanto a verificação falha. **Reabrir** o devolve para Aberto. |
+| **Não é um problema** | Uma pessoa escolheu **Não é um problema** e disse por quê em **Motivo**: a detecção estava errada. | Continua fechado, mesmo enquanto a verificação falha, e guarda o motivo. **Reabrir** o devolve para Aberto. |
 
 As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem mudar o status de um problema e **Atribuir** o problema a uma pessoa ou a uma equipe. Cada mudança é gravada na **Linha do tempo** do problema: quando ele abriu, cada mudança de gravidade, cada mudança de status e quem a fez, as reverificações pedidas e o que as integrações fizeram.
 
 Um problema que abre de novo mantém o seu histórico. Os riscos aceitos são examinados de novo todos os dias, então uma aceitação expira na hora certa mesmo quando nada foi varrido.
+
+## A análise do OneUptime AI
+
+Enquanto **Trabalhar em problemas novos** estiver ativado em **Segurança de dados → IA**, o OneUptime AI analisa sozinho cada problema novo ou reaberto de gravidade Crítica ou Alta, antes que alguém o abra; suas regras de IA de Segurança de dados podem escolher outros problemas. Qualquer problema pode ser analisado na sua página com **Analisar problema**. A análise abre a **Visão geral** do problema, em **Análise do OneUptime AI**, e responde a partir do que a Segurança de dados sabe:
+
+- se ele é real: **Real**, **Provavelmente intencional**, **Provavelmente uma detecção errada** ou **Não é possível dizer**, e por quê;
+- o que põe em risco: os dados e cerca de quantos registros, quem consegue alcançá-los, cópias deles em outros repositórios e os casos de segurança sobre eles;
+- o que a correção quebraria: os serviços vistos usando o repositório, as identidades que usaram seu acesso nos últimos 90 dias e as concessões que a correção remove e que algo ainda usa;
+- o caminho mais curto para a correção: o que o contém agora, o código que declara o repositório e quem deve fazer isso.
+
+Cada linha nomeia os fatos em que se baseia, listados abaixo dela por um botão como **Mostrar os 3 fatos em que se baseia**. Uma linha que não se baseia em nenhum fato é descartada, um veredito cujo motivo não se baseia em nenhum é **Não é possível dizer**, e um repositório de dados restritos nunca é **Provavelmente intencional** só pela palavra do OneUptime AI. Uma linha que se baseia em algo que você não pode ler, como quem consegue alcançar o repositório, fica oculta para você, e diz isso.
+
+O OneUptime AI nunca muda o problema: o status e a gravidade ficam com a verificação dele e com você. Para **Provavelmente intencional**, ele oferece **Aceitar o risco** com o motivo redigido, e **Público por design** para um repositório público; para **Provavelmente uma detecção errada**, **Não é um problema** com o motivo redigido. Nada muda até você escolher.
+
+A análise fica guardada no problema, com uma entrada na **Linha do tempo** dele a cada vez que é escrita, no idioma que a maioria dos membros do seu projeto escolheu (**Analisar novamente** a escreve no seu). Ela só é escrita de novo quando muda aquilo em que se baseia, então abrir o problema não pergunta nada ao OneUptime AI; **Analisar novamente** pergunta mesmo assim. **Problemas** filtra e mostra os problemas por **Veredito do OneUptime AI**. O que ela envia, e nunca envia, está em [OneUptime AI na Segurança de dados](/docs/data-security/ai). Com a IA desativada, não há análise.
 
 ## Corrigir daqui
 

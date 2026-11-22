@@ -52,6 +52,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Approvals** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
 | **Blocklist** | Playbooks | The addresses your project blocks, until when, and where each block is enforced |
+| **Blocklist Feeds** | Playbooks | The secret URLs your firewalls and proxies read the blocklist from, and each one's fetches |
 | **Protected Entities** | Playbooks | The users, hosts and addresses no playbook contains and no block touches |
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
@@ -283,6 +284,17 @@ Every event is stored with typed fields and its source payload:
 | Attributes | The whole source payload, flattened to dotted keys |
 
 Events stored before OneUptime 14.0.84 leave the process fields empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
+
+### Hidden by a scrub rule
+
+An IP Address scrub rule that redacts or masks your logs or traces hides the address an attack came from before Security Events reads them. The event is still stored, with no address, and wherever it would name the address it says a scrub rule hid it:
+
+- **Principal IP**, in the event's panel, names the rule that hid it when it can, as a link to the logs' or traces' **Scrub Rules**. The filter beside it shows every event whose address a scrub rule hid.
+- **What happened next** says the request came from an address a scrub rule hid, and **Campaigns** groups such requests into one row of their own.
+- A case whose events all lost their address says so on its **Response Plan**: in place of blocking the address, it tells you to find it in your load balancer's or firewall's logs and block it there, with **Open Scrub Rules**.
+- The **Overview** names the rule that hides the addresses Security Events reads, with **Open Scrub Rules** too.
+
+A rule that hashes keeps the address for Security Events, so the event names it, unless its token is older than 30 days or was made before tokens had a key: see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). To find these events, search `@oneuptime.request.client_address_hidden:scrub-rule`. What the rule left in the address's place, such as `[REDACTED]`, is in `oneuptime.request.client_address_scrubbed`.
 
 ## Explore security events
 

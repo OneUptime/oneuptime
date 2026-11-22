@@ -129,7 +129,7 @@ SLO의 규칙은 오류 예산 정책의 변화를 게시합니다. SLO가 단�
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments 는 OneUptime의 정책으로 연결됩니다. Microsoft Teams 계정을 OneUptime에 연결한 사람은 모든 온콜 줄에서 Microsoft Teams 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 초대되었지만 아직 프로젝트에 참여하지 않은 사람은 초대할 때 입력한 이름으로 표시되며, 이메일 주소로 표시되지 않습니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다. 규칙의 **업데이트** 단계는 Slack과 같이 게시할 온콜 메시지를 고르며, 새 규칙은 현재 온콜 담당자와 담당자가 없는 때로 시작합니다. [온콜 메시지](/docs/workspace-connections/slack#온콜-메시지)를 참고하세요. **온콜을 이어받는 사람 멘션** 을 켜면, Microsoft Teams 계정을 연결한 사람은 줄에서 멘션되어 Microsoft Teams 알림을 받습니다.
+Payments 는 OneUptime의 정책으로 연결됩니다. Microsoft Teams 계정을 OneUptime에 연결한 사람은 모든 온콜 줄에서 Microsoft Teams 이름으로, 그 전에는 OneUptime 이름으로 표시됩니다. 초대되었지만 아직 프로젝트에 참여하지 않은 사람은 초대할 때 입력한 이름으로 표시되며, 이메일 주소로 표시되지 않습니다. OneUptime에 이름이 없는 사람은 이메일 주소에서 @ 앞부분으로 표시됩니다. 시간은 읽는 사람 각자의 시간대로 표시됩니다. 규칙의 **업데이트** 단계는 Slack과 같이 게시할 온콜 메시지를 고르며, 새 규칙은 현재 온콜 담당자와 담당자가 없는 때로 시작합니다. [온콜 메시지](/docs/workspace-connections/slack#온콜-메시지)를 참고하세요. **온콜을 이어받는 사람 멘션** 을 켜면, Microsoft Teams 계정을 연결한 사람은 줄에서 멘션되어 Microsoft Teams 알림을 받습니다.
 
 ## 규칙 테스트
 

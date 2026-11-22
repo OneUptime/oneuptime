@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61770,
+    "keys": 62240,
     "untranslated": 8287
   },
   "sameAsEnglish": [
@@ -119,6 +119,7 @@
     "Favicon",
     "Feed",
     "Feedback",
+    "Firewall",
     "Flags",
     "FlashArray",
     "FlashBlade",
@@ -274,6 +275,7 @@
     "RX",
     "RabbitMQ",
     "Re-encrypt",
+    "Real",
     "Recordsets",
     "Red Hat OpenShift",
     "Red Hat OpenStack on OpenShift",

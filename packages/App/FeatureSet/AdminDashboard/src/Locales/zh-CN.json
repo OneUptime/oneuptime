@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "仅符合条件的管道",
   "All cloud environments": "所有云环境",
   "Only cloud environments that match conditions": "仅符合条件的云环境",
+  "All issues": "所有问题",
+  "Only issues that match conditions": "仅符合条件的问题",
   "Only what matches conditions": "仅符合条件的对象",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "托管在 AWS 上的公司 SMTP 服务器",
@@ -4458,5 +4460,7 @@
   "IAM Role in Your AWS Account": "你的 AWS 账户中的 IAM 角色",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "在你的 AWS 账户中创建一个可以通过 Amazon SES 发送并信任 OneUptime 的角色。不存储任何密钥。",
   "The ARN of the IAM role OneUptime signs in to. Create it with the trust policy below.": "OneUptime 登录的 IAM 角色的 ARN。请使用下面的信任策略创建它。",
-  "Role ARN": "角色 ARN"
+  "Role ARN": "角色 ARN",
+  "Sign In Again can't be checked through Keycloak over SAML. Add this realm as an OIDC provider instead.": "通过 SAML 连接的 Keycloak 无法核实“重新登录”。请改为将此 realm 添加为 OIDC 提供商。",
+  "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "要使用“重新登录”，请在 Okta 中将此应用 SAML 设置里的 Honor Force Authentication 设为 Yes。"
 }

@@ -72,11 +72,13 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 @tab HTTP 요청에서
-[HTTP 요청 단계](/docs/runbooks/authoring#http-request)의 URL, 헤더, 본문에 참조를 씁니다.
+[HTTP 요청 단계](/docs/runbooks/authoring#http-request)의 URL, 헤더, 본문, **CA 인증서**에 참조를 씁니다.
 
 ```json
 { "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
 ```
+
+**CA 인증서**에는 `{{global.variables.INTERNAL_CA}}`처럼 참조만 단독으로 쓰고, 변수에는 PEM 형식의 인증서를 담습니다. 그 변수를 쓰는 모든 단계가 같은 CA를 신뢰하며, 새 CA는 한 곳에서 설정합니다.
 @tab SSH 로그인
 [SSH 단계](/docs/runbooks/authoring#ssh)는 개인 키나 비밀번호를 담은 시크릿 변수를 **로그인 방법** 에서 고르고, 키의 암호 문구를 **추가 필드 → 키 암호 문구** 에서 고릅니다. 키인지 비밀번호인지는 값으로 판단합니다.
 @tab Kubeconfig

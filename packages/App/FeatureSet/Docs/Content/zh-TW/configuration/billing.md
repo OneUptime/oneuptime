@@ -119,6 +119,8 @@ API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM �
 
 一天的用量在當天結束後顯示，大約在隔天 08:00 UTC 之前。依**產品**、**天**或**服務**篩選，找出增長的部分。
 
+若要少傳送一些，[捨棄過濾器](/docs/telemetry/drop-filters-and-scrub-rules) 會在你從不讀取的日誌和 Span 儲存之前把它們丟掉，被捨棄的內容不會計費。在你儲存過濾器之前，它的表單會說明它符合過去一天遙測資料中的多少，以及它會從讀取相同記錄的監測器、儀表板、SLO 和安全性事件那裡拿走什麼：請參閱 [過濾器會拿走什麼](/docs/telemetry/drop-filters-and-scrub-rules#過濾器會拿走什麼)。
+
 ## 預付餘額
 
 簡訊、電話、WhatsApp 和 Telegram 訊息從專案的餘額中支付，OneUptime AI 從其 AI 點數中支付。你需要預先為每一項儲值：

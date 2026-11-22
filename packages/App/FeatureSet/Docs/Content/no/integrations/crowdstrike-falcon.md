@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-Importer varsler fra [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), fra deteksjoner på endepunkter, identiteter og i skyen, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom Falcon Alerts API med en API-klient som du oppretter, og skriver aldri til Falcon.
+Importer varsler fra [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), fra deteksjoner på endepunkter, identiteter og i skyen, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom Falcon Alerts API med en API-klient som du oppretter, og skriver bare til Falcon for å blokkere filene du blokkerer, når du slår det på.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En API-klient med ett omfang og skjemaet for tilkoblingen.
 - [Hva som importeres](#hva-som-importeres): Hvordan hvert Falcon-varsel blir en sikkerhetshendelse.
 - [Slik fungerer polling](#slik-fungerer-polling): Vinduet hver poll leser, og hva en travel CID gjør med det.
+- [Blokker filer med CrowdStrike](#blokker-filer-med-crowdstrike): Stopp filene på blokkeringslisten din på hver vert.
 - [Feilsøking](#feilsøking): Hva hver feil betyr, og hva du skal endre.
 :::
 
@@ -33,7 +34,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 ### Opprett en API-klient
 
 1. Åpne **Support and resources → API clients and keys** i Falcon-konsollen, og velg **Create API client**.
-2. Gi den et navn, for eksempel `OneUptime security events`. Slå på **Alerts → Read** under **API scopes**, og la alle andre omfang være slått av: tilkoblingen skriver aldri til Falcon.
+2. Gi den et navn, for eksempel `OneUptime security events`. Slå på **Alerts → Read** under **API scopes**, og la alle andre omfang være slått av: Å lese varsler skriver ingenting til Falcon. Å blokkere filer trenger to til (se [Blokker filer med CrowdStrike](#blokker-filer-med-crowdstrike)).
 3. Opprett klienten. Falcon viser klient-ID-en, hemmeligheten og basis-URL-en én gang. Kopier alle tre nå: hemmeligheten kan tilbakestilles senere, men vises aldri igjen.
 
 ### Finn Falcon-skyen din
@@ -60,6 +61,7 @@ Klikk på **Test disse innstillingene** under **Test før du lagrer**. Testen lo
 | --- | --- |
 | **Klient-ID** | ID-en til API-klienten, slik Falcon viste den da du opprettet klienten. |
 | **Falcon-sky** | Skyen CID-en din ligger i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Hver forespørsel går til API-verten for den skyen. |
+| **Blokker filer med CrowdStrike** | Slått av på en ny tilkobling. Slått på stopper den filene på prosjektets blokkeringsliste på hver vert, og krever **IOC Management → Read** og **Write** (se [Blokker filer med CrowdStrike](#blokker-filer-med-crowdstrike)). |
 | **Klienthemmelighet** | Hemmeligheten til API-klienten. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
 
 Trinnet **Henting** har også en valgfri **Beskrivelse**, **Henteintervall (minutter)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på. En tilkobling som ikke er aktivert, kan fortsatt testes og polles manuelt.
@@ -123,6 +125,17 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 - **Importer dette tidsrommet** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Varsler som allerede er importert, hoppes over.
 - **Kopier diagnostikk** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
+## Blokker filer med CrowdStrike
+
+Slå på **Blokker filer med CrowdStrike** på en tilkobling, og filene på prosjektets [blokkeringsliste](/docs/telemetry/security-cases#blokkeringsliste) stoppes på hver vert som Falcon beskytter. Hver fil blir en egen IOC av SHA-256- eller MD5-hashen dens, med kilden `OneUptime` og handlingen `prevent`, på Windows-, Mac- og Linux-verter, som utløper når blokkeringen utløper. En fil som også skal i karantene, blokkeres, og Falcon setter den i karantene slik vertens forebyggingspolicy sier. Falcon kjenner ikke igjen noen SHA-1-hash og bare oppdager et domene eller en adresse, så den får ingen av dem: Blokker dem med [Microsoft Defender](/docs/integrations/microsoft-defender-xdr).
+
+Bryteren er slått av på en ny tilkobling. Slik slår du den på:
+
+1. Åpne **Support and resources → API clients and keys** i Falcon-konsollen, rediger API-klienten, og slå på **IOC Management → Read** og **Write**.
+2. Slå på **Blokker filer med CrowdStrike** på tilkoblingen, og klikk på **Test tilkoblingen**: **Block with CrowdStrike Falcon** sjekker begge omfangene uten å endre noen IOC.
+
+En IOC som Falcon avviser, vises som ikke håndhevet på blokkeringslisten, med årsaken. OneUptime leser og endrer bare IOC-ene den har lagt til for denne tilkoblingen, aldri en som en person har laget.
+
 ## Test tilkoblingen
 
 **Test tilkoblingen** på raden til en tilkobling og **Test disse innstillingene** i skjemaet kjører i API-prosessen, ikke i en bakgrunnsworker, slik at en test også svarer når det er workerne som er problemet. Den kjører disse kontrollene i rekkefølge:
@@ -133,6 +146,7 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` med ID-en og hemmeligheten til API-klienten, på verten for skyen din, returnerer et token. |
 | **Read alerts from the Falcon Alerts API** | En varselspørring etter ett varsel (`limit=1`) over de siste 24 timene godtas, noe som beviser omfanget **Alerts → Read**. |
 | **Alerts available to import** | Hvor mange varsler som er opprettet de siste 24 timene og de siste 7 dagene. Ingen på 7 dager er en advarsel, ikke en feil: polling importerer nye varsler etter hvert som Falcon oppretter dem. |
+| **Block with CrowdStrike Falcon** | Bare med **Blokker filer med CrowdStrike** slått på: API-klienten har **IOC Management → Read** og **Write**. Sjekken sier hvor mange egne IOC-er OneUptime har i Falcon, og endrer ingen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en prosess tar jobbene fra Worker-køen, poll-jobben kjører hvert minutt, og lageret for sikkerhetshendelser svarer. |
 | **Planlagt henting** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
 

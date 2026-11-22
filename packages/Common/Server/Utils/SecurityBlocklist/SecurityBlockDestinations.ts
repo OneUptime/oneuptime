@@ -1,9 +1,23 @@
 import ObjectID from "../../../Types/ObjectID";
+import {
+  SECURITY_BLOCK_INDICATOR_TYPES,
+  SecurityBlockAction,
+  SecurityBlockIndicatorType,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SECURITY_BLOCK_SAMPLE_VALUES,
+  SecurityBlockHolder,
+} from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
 import logger from "../Logger";
 import { CLOUDFLARE_BLOCK_DESTINATION_SOURCE } from "../SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
+import SecurityBlocklistFeedDestination from "./SecurityBlocklistFeedDestination";
+import {
+  CrowdStrikeBlockDestinationSource,
+  MicrosoftDefenderBlockDestinationSource,
+} from "./Destinations/EndpointBlockDestinationSources";
 
 /*
  * WHERE A PROJECT'S BLOCKLIST IS ENFORCED (#10338): every destination of
@@ -71,6 +85,18 @@ export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBloc
       CLOUDFLARE_BLOCK_DESTINATION_SOURCE,
       // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
       new AwsWafBlockDestinationSource(),
+      // The blocklist feeds a project made, which its firewalls read (#10345).
+      {
+        provider: SecurityBlockDestinationProvider.Feed,
+        findForProject: (
+          projectId: ObjectID,
+        ): Promise<Array<SecurityBlockDestination>> => {
+          return SecurityBlocklistFeedDestination.findForProject(projectId);
+        },
+      },
+      // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
+      MicrosoftDefenderBlockDestinationSource,
+      CrowdStrikeBlockDestinationSource,
     ];
   }
 
@@ -106,6 +132,51 @@ export default class SecurityBlockDestinations {
 
   public static resetSourcesForTests(): void {
     this.sources = null;
+  }
+
+  /*
+   * What each destination can hold (#10346), from its own supports(): the
+   * kinds of value it blocks, whether it quarantines files, and whether it
+   * enforces on every machine. What a case's plan and the server's refusal
+   * of a block nothing could hold read.
+   */
+  public static getHolders(
+    destinations: ReadonlyArray<SecurityBlockDestination>,
+  ): Array<SecurityBlockHolder> {
+    return destinations.map(
+      (destination: SecurityBlockDestination): SecurityBlockHolder => {
+        const holds: (
+          indicatorType: SecurityBlockIndicatorType,
+          action: SecurityBlockAction,
+        ) => boolean = (
+          indicatorType: SecurityBlockIndicatorType,
+          action: SecurityBlockAction,
+        ): boolean => {
+          return destination.supports({
+            indicatorType,
+            action,
+            value: SECURITY_BLOCK_SAMPLE_VALUES[indicatorType],
+          }).isSupported;
+        };
+
+        return {
+          name: destination.name,
+          provider: destination.provider,
+          enforcesOnEveryMachine: Boolean(destination.enforcesOnEveryMachine),
+          blocks: SECURITY_BLOCK_INDICATOR_TYPES.filter(
+            (indicatorType: SecurityBlockIndicatorType): boolean => {
+              return holds(indicatorType, SecurityBlockAction.Block);
+            },
+          ),
+          quarantinesFiles:
+            Boolean(destination.quarantinesFiles) &&
+            holds(
+              SecurityBlockIndicatorType.FileSha256,
+              SecurityBlockAction.BlockAndQuarantine,
+            ),
+        };
+      },
+    );
   }
 
   /*

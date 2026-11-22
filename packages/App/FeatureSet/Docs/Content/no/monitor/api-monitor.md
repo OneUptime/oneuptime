@@ -107,7 +107,7 @@ Disse innstillingene er brettet sammen under **Flere felt**. Den sammenbrettede 
 | Felt | Standard | Hva det gjør |
 | --- | --- | --- |
 | **Forespørselshoder** | Ingen | Hoder som sendes, som par av navn og verdi. Klikk på **Legg til Forespørselshode** for hvert av dem. |
-| **Forespørselstekst (i JSON)** | Ingen | Et JSON-objekt som sendes som brødtekst, som regel med **POST**, **PUT** eller **PATCH**. Det må være gyldig JSON. |
+| **Forespørselstekst (i JSON)** | Ingen | Brødteksten som sendes, som regel med **POST**, **PUT** eller **PATCH**: en hvilken som helst JSON-verdi, for eksempel et objekt, en matrise, en streng eller et tall. Den sendes slik du skriver den, som `application/json`, med mindre du angir en `Content-Type` under **Forespørselshoder**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt som skjemafelt. |
 | **Ikke følg omdirigeringer** | Av | Vurder det første svaret i stedet for å følge omdirigeringer. Se [nedenfor](#ikke-følg-omdirigeringer). |
 | **Tillat selvsignerte sertifikater** | Av | Hopp over valideringen av TLS-sertifikatet for monitorens eget vertsnavn. |
 | **Bruk klientsertifikat (mTLS)** | Av | Presenter et klientsertifikat og en privat nøkkel. Se [Klientsertifikat (mTLS)](#klientsertifikat-mtls). |
@@ -242,6 +242,10 @@ API-et omdirigerte en forespørsel med en brødtekst, eller med en annen metode 
 
 :::details Sjekken feiler med "Remote response exceeded the allowed size."
 Sonden leser høyst 512 KiB av et svar, og dette er større. Kall et endepunkt som returnerer mindre, for eksempel med en mindre sidestørrelse.
+:::
+
+:::details Sjekken feiler med "Forespørselsteksten er ikke gyldig JSON, så forespørselen ble ikke sendt."
+Brødteksten er ikke JSON når [monitorhemmelighetene](/docs/monitor/monitor-secrets) er satt inn, så sonden sendte ikke forespørselen. Rett brødteksten under **Flere felt**, eller verdien av en hemmelighet den bruker: en verdi med en `"` i bryter JSON-strengen den står i.
 :::
 
 ## Neste steg

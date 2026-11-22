@@ -39,7 +39,7 @@ flowchart TB
 - **证据始终经过脱敏。** 一个发现只保留计数和最多三个脱敏样本，例如 `j***@e******.com`，这些样本在任何内容离开扫描器之前就已在扫描器内部完成脱敏。关闭样本后，它只保留计数。
 - **扫描器是开源的。** 每种数据类型的模式、校验和、上下文词和测试值都在 OneUptime 的源代码中，所以你可以准确读到是什么构成了一个发现。同一份代码运行在 OneUptime 的工作进程上、探测器上，以及 **测试** 框中。
 - **它与 OneUptime 的其他部分协同工作。** 严重级别的问题会针对该数据存储打开一个安全案例，这样 [安全运营](/docs/telemetry/security-cases) 就会像处理任何其他威胁一样处理它，而且任何安全案例都会显示其用户和角色可以访问的敏感数据。它可以触发警报来呼叫值班人员，还会给数据存储的所有者发送电子邮件。请参阅 [数据安全集成](/docs/data-security/integrations)。
-- **OneUptime AI 帮助修复。** **用 AI 解释** 会告诉数据存储的所有者哪里不对，以及如何在他们的云上修复，**用 AI 修复** 会在你的基础设施代码中打开一个拉取请求，OneUptime AI 还会推测没有任何检测器能归类的字段里存放的是什么，供人确认。它永远不会收到你的数据：参见 [数据安全中的 OneUptime AI](/docs/data-security/ai)。
+- **OneUptime AI 帮助修复。** **分析问题** 会说明问题是否真实存在、它让什么面临风险、修复会破坏什么，以及最短修复路径，**用 AI 修复** 会在你的基础设施代码中打开一个拉取请求，OneUptime AI 还会推测没有任何检测器能归类的字段里存放的是什么，供人确认。它永远不会收到你的数据：参见 [数据安全中的 OneUptime AI](/docs/data-security/ai)。
 
 ## 开始之前
 
@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你运行的数据库 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标 | 日志、追踪、异常、会话回放、AI 对话、指标 |
+| OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标、安全事件、Network Flows、安全地址保管库 | 日志、追踪、异常、会话回放、AI 对话、指标 |
 
-每个数据存储都会接受适用于其类型的检查。无法对内容抽样的数据存储仍会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。
+每个数据存储都会接受适用于其类型的检查。无法对内容抽样的数据存储仍会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。安全事件、Network Flows 和安全地址保管库是 OneUptime 为你的安全保留的自有数据存储：它们是声明的，从不扫描，也从不检查（参见 [OneUptime 为你的安全保留的数据存储](/docs/data-security/compliance#oneuptime-为你的安全保留的数据存储)）。
 
 一旦来源不再列出某个数据存储，它就会连同其历史记录一起被归档，其未解决的问题也会被解决：数据安全菜单末尾的 **已归档的数据存储** 会保留它。如果来源再次列出它，它会自行恢复，检查仍然失败的问题会再次打开。
 

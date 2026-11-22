@@ -127,6 +127,13 @@ export enum ProbeFailureCause {
    * since the probe would have sent {{monitorSecrets.NAME}} as written.
    */
   ProbeTooOldForOneTimeCodes = "ProbeTooOldForOneTimeCodes",
+
+  /*
+   * ApiMonitor: a request body that is not JSON once the monitor's secrets
+   * and one-time codes are filled in (#9737). The request is not sent
+   * (Common/Utils/Monitor/MonitorRequestBody).
+   */
+  RequestBodyNotJson = "RequestBodyNotJson",
 }
 
 /*
@@ -297,6 +304,10 @@ export const PROBE_FAILURE_CAUSES: Readonly<Record<ProbeFailureCause, string>> =
 
     [ProbeFailureCause.ProbeTooOldForOneTimeCodes]: translationKey(
       "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+    ),
+
+    [ProbeFailureCause.RequestBodyNotJson]: translationKey(
+      "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.",
     ),
   };
 
@@ -691,6 +702,7 @@ const READING_ORDER: ReadonlyArray<ProbeFailureCause> = [
   ProbeFailureCause.PingCouldNotResolve,
   ProbeFailureCause.PingNoEchoReply,
   ProbeFailureCause.ProbeTooOldForOneTimeCodes,
+  ProbeFailureCause.RequestBodyNotJson,
   ...PROBE_SIDE_CAUSES,
   ...CLAUSES,
 ];

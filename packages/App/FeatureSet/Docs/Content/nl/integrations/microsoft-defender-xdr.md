@@ -6,6 +6,7 @@ Importeer de waarschuwingen van elke [Microsoft Defender XDR](https://learn.micr
 - [De verbinding instellen](#de-verbinding-instellen): Een app-registratie, één machtiging en het formulier van de verbinding.
 - [Wat er wordt geïmporteerd](#wat-er-wordt-geïmporteerd): Hoe elke Defender-waarschuwing een beveiligingsgebeurtenis wordt.
 - [Hoe pollen werkt](#hoe-pollen-werkt): Het venster dat elke poll leest, en wat een drukke tenant daarmee doet.
+- [Blokkeren met Microsoft Defender](#blokkeren-met-microsoft-defender): Pas je blokkeerlijst toe op elk apparaat, met één machtiging meer.
 - [Problemen oplossen](#problemen-oplossen): Wat elke fout betekent en wat je moet wijzigen.
 :::
 
@@ -64,6 +65,7 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | **Directory-ID (tenant)** | De pagina **Overview** van de app. De GUID van de tenant, of een geverifieerd domein zoals `contoso.onmicrosoft.com`. |
 | **Applicatie-ID (client)** | De pagina **Overview** van de app. De GUID van de app die `SecurityAlert.Read.All` heeft. |
 | **Cloud** | **Openbare Azure-cloud**, die ook Microsoft 365 GCC bedient, of **Azure Government (VS)** voor GCC High (`login.microsoftonline.us` en `graph.microsoft.us`). Microsoft 365 DoD en de 21Vianet-cloud in China worden niet ondersteund. |
+| **Domeinen, adressen en bestanden blokkeren met Defender** | Uit op een nieuwe verbinding. Aan blokkeert hij wat de blokkeerlijst van je project bevat op elk apparaat, en heeft hij `Ti.ReadWrite.All` nodig (zie [Blokkeren met Microsoft Defender](#blokkeren-met-microsoft-defender)). |
 | **Clientgeheim** | De **Value** van het geheim. Het wordt versleuteld, nooit door de API teruggegeven en nooit meer getoond. Vervang het met **Inloggegevens bijwerken** op de verbinding. |
 
 De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
@@ -130,6 +132,26 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 - **Dit tijdsbereik importeren** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde waarschuwingen worden overgeslagen.
 - **Diagnose kopiëren** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
+## Blokkeren met Microsoft Defender
+
+Zet **Domeinen, adressen en bestanden blokkeren met Defender** aan op een verbinding, en de [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst) van je project wordt toegepast op elk apparaat dat Microsoft Defender for Endpoint beschermt. Elke blokkering wordt een Defender-[indicator](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview), opgeslagen onder de toepassing `OneUptime`, die verloopt wanneer de blokkering verloopt:
+
+| Op de blokkeerlijst | Defender-indicator | Wat Defender doet |
+| --- | --- | --- |
+| Een domein | `DomainName`, `Block` | Blokkeert het domein en elke naam eronder |
+| Een URL | `Url`, `Block` | Blokkeert de URL in Microsoft Edge, en het domein ervan in andere browsers |
+| Een adres dat op elke machine is geblokkeerd | `IpAddress`, `Block` | Blokkeert verbindingen naar het adres. Een bereik wordt nooit verstuurd: Defender neemt één adres tegelijk |
+| Een bestand | `FileSha256`, `FileSha1` of `FileMd5`, `Block` | Voorkomt dat het bestand draait |
+| Een geblokkeerd bestand in quarantaine | Hetzelfde, `BlockAndRemediate` | Voorkomt dat het bestand draait, en plaatst de kopieën die het vindt in quarantaine |
+
+De schakelaar staat uit op een nieuwe verbinding: een verbinding die gemaakt is om waarschuwingen te importeren, leest alleen. Zo zet je hem aan:
+
+1. Ga in de app-registratie naar **API permissions → Add a permission → APIs my organization uses**, zoek naar `WindowsDefenderATP`, kies **Application permissions**, selecteer `Ti.ReadWrite.All` en verleen beheerderstoestemming. Het is de enige machtiging die blokkeren nodig heeft.
+2. Zet in de Microsoft Defender-portal **Custom network indicators** en **Allow or block file** aan onder **Settings → Endpoints → Advanced features**. Zonder die twee bewaart Defender de indicatoren maar blokkeert het niets; buiten Microsoft Edge wordt een domein, URL of adres alleen geblokkeerd waar netwerkbeveiliging in blokkeermodus staat.
+3. Zet op de verbinding **Domeinen, adressen en bestanden blokkeren met Defender** aan en klik op **Verbinding testen**: **Block with Microsoft Defender** controleert de machtiging.
+
+Een tenant bevat 15.000 indicatoren, die van de tenant zelf meegerekend. Een blokkering die Defender niet kan bevatten, of weigert, staat op de blokkeerlijst als niet toegepast, met de reden. OneUptime leest en verwijdert alleen de indicatoren die het voor deze verbinding heeft toegevoegd, nooit een die een persoon heeft gemaakt. Als Defender het afknijpt, probeert het het bij de volgende ronde opnieuw.
+
 ## Verbinding testen
 
 **Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
@@ -140,6 +162,7 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID geeft een token voor Microsoft Graph uit, in de cloud die je hebt gekozen. Dit mislukt bij een verkeerd of verlopen geheim, een verkeerde tenant- of client-ID, of de verkeerde cloud. |
 | **Read alerts from Microsoft Graph** | Eén waarschuwing die in de afgelopen 24 uur is gemaakt, kan worden gelezen (`$top=1`). Een `403` hier is de ontbrekende machtiging `SecurityAlert.Read.All`, de ontbrekende beheerderstoestemming of een tenant zonder Defender XDR. |
 | **Alerts available to import** | Hoeveel waarschuwingen in de afgelopen 24 uur en de afgelopen 7 dagen zijn gemaakt, één pagina van 100 voor elk, dus `100+` betekent meer. Geen in 7 dagen is een waarschuwing, geen fout. |
+| **Block with Microsoft Defender** | Alleen met **Domeinen, adressen en bestanden blokkeren met Defender** aan: de app-registratie heeft `Ti.ReadWrite.All`, en de indicatoren zijn te lezen. De controle zegt hoeveel van de 15.000 indicatoren van de tenant OneUptime heeft, en wijzigt er geen. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
 | **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 

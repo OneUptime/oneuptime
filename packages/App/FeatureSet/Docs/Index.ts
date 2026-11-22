@@ -45,7 +45,10 @@ import Express, {
   ExpressResponse,
   ExpressStatic,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
+import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
+import { DOCS_REPORT_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import DocsPlaceholders from "./Utils/Placeholders";
 import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -191,6 +194,20 @@ function renderNotFound(
     searchReport: DocsSearchReport.isReported(),
   });
 }
+
+/*
+ * The body of "Was this page helpful?" and of a search that found nothing: a
+ * few dozen bytes, held to 2 KB (DOCS_REPORT_REQUEST_BODY_LIMIT). StartServer
+ * holds both routes to it before routing (RequestBodyLimit, #10672), whatever
+ * the body's encoding: one sent uncompressed it parses, a gzip one it only
+ * inflates, and this parses it from those bytes (RequestBodyParser), held to
+ * the same 2 KB. body-parser alone read the spent stream again, and answered
+ * a valid gzip body 500 (#10643).
+ */
+const readSmallJsonBody: RequestHandler = RequestBodyParser.create(
+  ExpressJson,
+  { limit: DOCS_REPORT_REQUEST_BODY_LIMIT.bytes },
+);
 
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
@@ -350,7 +367,7 @@ const DocsFeatureSet: FeatureSet = {
      */
     app.post(
       "/docs/feedback",
-      ExpressJson({ limit: "2kb" }),
+      readSmallJsonBody,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const answer: DocsFeedbackAnswer | null = DocsFeedback.read(req.body);
 
@@ -373,7 +390,7 @@ const DocsFeatureSet: FeatureSet = {
      */
     app.post(
       "/docs/search/found-nothing",
-      ExpressJson({ limit: "2kb" }),
+      readSmallJsonBody,
       async (req: ExpressRequest, res: ExpressResponse) => {
         const report: DocsSearchFoundNothing | null = DocsSearchReport.read(
           req.body,

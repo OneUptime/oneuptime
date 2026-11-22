@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61770,
+    "keys": 62240,
     "untranslated": 8239
   },
   "sameAsEnglish": [
@@ -137,6 +137,7 @@
     "Filesystem",
     "Filesystem %",
     "Fingerprint",
+    "Firewall",
     "Flame graph",
     "FlashArray",
     "FlashBlade",
@@ -214,6 +215,7 @@
     "Logo",
     "Loopback",
     "MCP",
+    "MD5 URL",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",

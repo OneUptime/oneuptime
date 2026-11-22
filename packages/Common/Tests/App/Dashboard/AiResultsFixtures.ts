@@ -2,6 +2,7 @@ import {
   AI_OUTCOMES_UNKNOWN_MODEL,
   AiOutcomes,
   AiOutcomesDataSecurity,
+  AiOutcomesIssueVerdicts,
   AiOutcomesModels,
   AiOutcomesWeek,
 } from "../../../Types/AI/AiOutcomes";
@@ -87,9 +88,31 @@ export function makeWeeks(
           DATA_SECURITY_CHANGES_PROVEN_BY_WEEK)[index]!,
         dataSecurityChangesMade: (counts.dataSecurityChangesMade ||
           DATA_SECURITY_CHANGES_MADE_BY_WEEK)[index]!,
+        verdictsAgreed: counts.verdictsAgreed?.[index] || 0,
+        verdictsDecided: counts.verdictsDecided?.[index] || 0,
       };
     },
   );
+}
+
+/*
+ * OneUptime AI's verdicts on Data Security issues (#10369): eleven issues
+ * analyzed, seven decided - five as it said - three still open, and one it
+ * could not tell about.
+ */
+export function makeIssueVerdicts(
+  overrides: Partial<AiOutcomesIssueVerdicts> = {},
+): AiOutcomesIssueVerdicts {
+  return {
+    agreed: 5,
+    disagreed: 2,
+    waiting: 3,
+    cannotTell: 1,
+    real: 6,
+    likelyByDesign: 3,
+    likelyWrongFinding: 1,
+    ...overrides,
+  };
 }
 
 // Twelve weeks of zeros: nothing finished yet.

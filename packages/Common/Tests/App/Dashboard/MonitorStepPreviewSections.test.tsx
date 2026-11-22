@@ -105,7 +105,6 @@ const CASES: Array<PreviewCase> = [
             functionName: "parseOrder",
           }}
           onMonitorStepProfileMonitorChanged={() => {}}
-          telemetryServices={[]}
         />
       );
     },
@@ -119,7 +118,6 @@ const CASES: Array<PreviewCase> = [
         <LlmMonitorStepForm
           monitorStepLlmMonitor={MonitorStepLlmMonitorUtil.getDefault()}
           onMonitorStepLlmMonitorChanged={() => {}}
-          telemetryServices={[]}
         />
       );
     },
@@ -133,7 +131,6 @@ const CASES: Array<PreviewCase> = [
         <SecurityEventsMonitorStepForm
           monitorStepSecurityEventsMonitor={MonitorStepSecurityEventsMonitorUtil.getDefault()}
           onMonitorStepSecurityEventsMonitorChanged={() => {}}
-          telemetryServices={[]}
         />
       );
     },

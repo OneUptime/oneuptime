@@ -6,6 +6,7 @@
 - [연결 설정](#연결-설정): 앱 등록, 권한 하나, 그리고 연결 양식.
 - [가져오는 내용](#가져오는-내용): 각 Defender 경고가 보안 이벤트가 되는 방식.
 - [폴링 작동 방식](#폴링-작동-방식): 각 폴링이 읽는 구간과, 바쁜 테넌트에서 일어나는 일.
+- [Microsoft Defender로 차단](#microsoft-defender로-차단): 권한 하나를 더해 차단 목록을 모든 기기에 적용합니다.
 - [문제 해결](#문제-해결): 각 오류의 의미와 바꿔야 할 점.
 :::
 
@@ -64,6 +65,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | **디렉터리(테넌트) ID** | 앱의 **Overview** 페이지. 테넌트의 GUID 또는 `contoso.onmicrosoft.com` 같은 확인된 도메인. |
 | **애플리케이션(클라이언트) ID** | 앱의 **Overview** 페이지. `SecurityAlert.Read.All`을 가진 앱의 GUID. |
 | **클라우드** | Microsoft 365 GCC도 제공하는 **Azure 퍼블릭 클라우드**, 또는 GCC High용 **Azure Government(미국)** (`login.microsoftonline.us`와 `graph.microsoft.us`). Microsoft 365 DoD와 중국의 21Vianet 클라우드는 지원되지 않습니다. |
+| **Defender로 도메인, 주소, 파일 차단** | 새 연결에서는 꺼져 있습니다. 켜면 프로젝트의 차단 목록에 있는 것을 모든 기기에서 차단하며, `Ti.ReadWrite.All` 이 필요합니다([Microsoft Defender로 차단](#microsoft-defender로-차단) 참고). |
 | **클라이언트 시크릿** | 시크릿의 **Value**. 암호화되며, API가 반환하지 않고 다시는 표시되지 않습니다. 연결의 **자격 증명 업데이트**로 교체합니다. |
 
 **폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
@@ -130,6 +132,26 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 - **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 경고는 건너뜁니다.
 - 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
+## Microsoft Defender로 차단
+
+연결에서 **Defender로 도메인, 주소, 파일 차단** 를 켜면 프로젝트의 [차단 목록](/docs/telemetry/security-cases#차단-목록) 이 Microsoft Defender for Endpoint가 보호하는 모든 기기에 적용됩니다. 각 차단은 애플리케이션 `OneUptime` 아래에 등록되는 Defender [지표](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview) 가 되며, 차단이 만료될 때 함께 만료됩니다.
+
+| 차단 목록에 있는 것 | Defender 지표 | Defender의 동작 |
+| --- | --- | --- |
+| 도메인 | `DomainName`, `Block` | 도메인과 그 아래의 모든 이름을 차단합니다 |
+| URL | `Url`, `Block` | Microsoft Edge에서는 URL을, 다른 브라우저에서는 그 도메인을 차단합니다 |
+| 모든 머신에서 차단된 주소 | `IpAddress`, `Block` | 주소로 가는 연결을 차단합니다. 범위는 보내지 않습니다. Defender는 주소를 하나씩 받습니다 |
+| 파일 | `FileSha256`, `FileSha1` 또는 `FileMd5`, `Block` | 파일 실행을 막습니다 |
+| 차단 및 격리할 파일 | 같은 지표, `BlockAndRemediate` | 파일 실행을 막고, 찾은 사본을 격리합니다 |
+
+새 연결에서는 이 스위치가 꺼져 있으며, 경고를 가져오려고 만든 연결은 읽기만 합니다. 켜려면 다음과 같이 합니다.
+
+1. 앱 등록에서 **API permissions → Add a permission → APIs my organization uses** 로 이동해 `WindowsDefenderATP` 를 검색하고, **Application permissions** 를 고른 뒤 `Ti.ReadWrite.All` 을 선택하고 관리자 동의를 부여합니다. 차단에 필요한 권한은 이것 하나뿐입니다.
+2. Microsoft Defender 포털의 **Settings → Endpoints → Advanced features** 에서 **Custom network indicators** 와 **Allow or block file** 을 켭니다. 이것이 없으면 Defender는 지표를 보관만 하고 아무것도 차단하지 않습니다. Microsoft Edge 밖에서는 네트워크 보호가 차단 모드인 곳에서만 도메인, URL, 주소가 차단됩니다.
+3. 연결에서 **Defender로 도메인, 주소, 파일 차단** 를 켜고 **연결 테스트** 을 클릭합니다. **Block with Microsoft Defender** 가 권한을 확인합니다.
+
+테넌트 하나는 자체 지표를 포함해 15,000개의 지표를 보관합니다. Defender가 보관할 수 없거나 거부한 차단은 차단 목록에 적용되지 않은 것으로 표시되며, 그 이유가 함께 나옵니다. OneUptime은 이 연결을 위해 자신이 추가한 지표만 읽고 제거하며, 사람이 만든 지표는 건드리지 않습니다. Defender가 요청을 제한하면 다음 처리 때 다시 시도합니다.
+
 ## 연결 테스트
 
 연결 행의 **연결 테스트**와 양식의 **이 설정 테스트**는 백그라운드 워커가 아니라 API 프로세스에서 실행되므로, 워커가 문제일 때에도 테스트는 응답합니다. 다음 검사를 순서대로 실행합니다:
@@ -140,6 +162,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 | **Authenticate with Microsoft Entra** | 고른 클라우드에서 Microsoft Entra ID가 Microsoft Graph용 토큰을 발급하는지. 시크릿이 틀렸거나 만료된 경우, 테넌트나 클라이언트 ID가 틀린 경우, 클라우드가 잘못된 경우 실패합니다. |
 | **Read alerts from Microsoft Graph** | 지난 24시간 동안 생성된 경고 하나를 읽을 수 있는지(`$top=1`). 여기서 `403`이 나오면 `SecurityAlert.Read.All` 권한이 없거나, 관리자 동의가 없거나, 테넌트에 Defender XDR이 없는 것입니다. |
 | **Alerts available to import** | 지난 24시간과 지난 7일 동안 생성된 경고 수. 각각 100개짜리 한 페이지로 세므로 `100+`는 그보다 많다는 뜻입니다. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
+| **Block with Microsoft Defender** | **Defender로 도메인, 주소, 파일 차단** 가 켜져 있을 때만: 앱 등록에 `Ti.ReadWrite.All` 이 있고 지표를 읽을 수 있는지 확인합니다. 테넌트의 15,000개 지표 중 OneUptime이 몇 개를 보관하는지 알려 주며, 아무것도 바꾸지 않습니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
 | **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 

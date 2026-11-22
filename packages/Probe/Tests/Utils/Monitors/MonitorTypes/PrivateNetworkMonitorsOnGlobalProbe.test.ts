@@ -401,6 +401,9 @@ async function pingWebsite(
   return response!;
 }
 
+// The API monitor's body: JSON text, sent as written.
+const API_BODY: string = '{"check": "deep"}';
+
 async function pingApi(
   monitors: LoadedMonitors,
   url: string,
@@ -410,7 +413,7 @@ async function pingApi(
     {
       requestType: HTTPMethod.POST,
       requestHeaders: { "Content-Type": "application/json" },
-      requestBody: { check: "deep" },
+      requestBody: API_BODY,
       retry: 3,
       isOnlineCheckRequest: false,
     },
@@ -637,7 +640,8 @@ describe("Website, API and External Status Page monitors on private targets", ()
           method: "POST",
           url: API_TARGET,
           host: PRIVATE_ADDRESS,
-          body: JSON.stringify({ check: "deep" }),
+          // As written, byte for byte (#9737).
+          body: API_BODY,
         },
       ]);
       expect(blockPrivateAddressesPassedToGuard(spies)).toEqual([false]);

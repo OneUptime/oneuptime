@@ -262,6 +262,8 @@ import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
+import SecurityBlocklistFeed from "./SecurityBlocklistFeed";
+import SecurityBlocklistFeedFetch from "./SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -792,6 +794,8 @@ const AllModelTypes: Array<{
   SecurityBlock,
   SecurityBlockEnforcement,
   SecurityBlockCloudWaf,
+  SecurityBlocklistFeed,
+  SecurityBlocklistFeedFetch,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,

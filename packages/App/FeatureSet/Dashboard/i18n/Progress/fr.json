@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61770,
+    "keys": 62240,
     "untranslated": 4746
   },
   "sameAsEnglish": [
@@ -343,6 +343,7 @@
     "Luxembourg",
     "MCP",
     "MD5",
+    "MD5 URL",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",

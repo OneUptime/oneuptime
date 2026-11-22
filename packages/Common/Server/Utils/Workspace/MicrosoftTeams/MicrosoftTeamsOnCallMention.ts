@@ -17,6 +17,7 @@ import WorkspaceNotificationRuleService, {
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import FeedPersonName from "../../Feed/FeedPersonName";
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { WorkspaceUserGroupPerson } from "../UserGroups/WorkspaceUserGroupProvider";
@@ -476,6 +477,18 @@ export default class MicrosoftTeamsOnCallMention {
         }),
       ]);
 
+    /*
+     * Named as every channel line names a person (FeedPersonName): by
+     * their name, else the part of their address before the "@" - never
+     * the address itself, which a channel's readers are not all the
+     * project's people to see (#10669). The address is kept to find them
+     * in the team, never shown.
+     */
+    const names: Map<string, string> = await FeedPersonName.readNames({
+      users: users,
+      projectId: data.projectId,
+    });
+
     const people: Array<WorkspaceUserGroupPerson & { name: string }> = [];
 
     for (const userId of data.userIds) {
@@ -501,7 +514,7 @@ export default class MicrosoftTeamsOnCallMention {
         userId: userId,
         email: email,
         connectedWorkspaceUserId: connection?.workspaceUserId || null,
-        name: user.name?.toString().trim() || email || "Someone",
+        name: names.get(key) || "Someone",
       });
     }
 

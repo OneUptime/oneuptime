@@ -1,12 +1,13 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
+Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
 - [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
+- [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
 - [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
 :::
 
@@ -154,11 +155,26 @@ OneUptime opent, werkt bij en lost problemen op terwijl de controles draaien. Wa
 | **Openstaand** | De controle faalt nu op de opslag. | Het telt mee in het Overzicht, in de samenvatting van de opslag en in compliance, tot de controle slaagt. |
 | **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
 | **Geaccepteerd** | Een mens koos **Risico accepteren**, met een **Reden** en een datum in **Geaccepteerd tot**, hoogstens een jaar vooruit. | Het blijft gesloten tot die datum, en opent daarna opnieuw als de controle nog steeds faalt. Accepteer het dan opnieuw als de reden nog geldt. |
-| **Geen probleem** | Een mens koos **Geen probleem**: de bevinding was onjuist. | Het blijft gesloten, ook terwijl de controle faalt. **Heropenen** zet het terug op Openstaand. |
+| **Geen probleem** | Een mens koos **Geen probleem** en zei waarom bij **Reden**: de bevinding was onjuist. | Het blijft gesloten, ook zolang de controle faalt, en houdt de reden. **Heropenen** zet het terug op Open. |
 
 Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen de status van een probleem wijzigen, en het met **Toewijzen** bij een persoon of een team neerleggen. Elke wijziging wordt in de **Tijdlijn** van het probleem geschreven: wanneer het opende, elke wijziging van de ernst, elke statuswijziging en wie die deed, de gevraagde hercontroles, en wat de integraties deden.
 
 Een probleem dat opnieuw opent, behoudt zijn geschiedenis. Geaccepteerde risico's worden elke dag opnieuw bekeken, zodat een acceptatie op tijd verloopt, ook als er niets is gescand.
+
+## De analyse van OneUptime AI
+
+Zolang **Aan nieuwe problemen werken** aan staat onder **Gegevensbeveiliging → AI**, analyseert OneUptime AI elk nieuw of heropend probleem met ernst Kritiek of Hoog zelf, voordat iemand het opent; uw AI-regels voor gegevensbeveiliging kunnen andere problemen kiezen. Elk probleem kan vanaf zijn pagina worden geanalyseerd met **Probleem analyseren**. De analyse opent het **Overzicht** van het probleem, onder **OneUptime AI-analyse**, en antwoordt op basis van wat gegevensbeveiliging weet:
+
+- of het echt is: **Echt**, **Waarschijnlijk bewust**, **Waarschijnlijk een onjuiste vondst** of **Niet te zeggen**, en waarom;
+- wat het in gevaar brengt: de gegevens en ongeveer hoeveel records, wie ze kan bereiken, kopieën ervan in andere opslag en de beveiligingszaken erover;
+- wat de oplossing zou breken: de diensten die de opslag gebruiken, de identiteiten die hun toegang in de afgelopen 90 dagen gebruikten en de toekenningen die de oplossing verwijdert en die iets nog gebruikt;
+- de kortste weg naar opgelost: wat het nu indamt, de code die de opslag declareert en wie het moet doen.
+
+Elke regel noemt de feiten waarop hij berust, eronder opgesomd door een knop zoals **De 3 feiten tonen waarop het berust**. Een regel die op geen enkel feit berust, valt weg, een oordeel waarvan de reden op geen enkel feit berust, is **Niet te zeggen**, en opslag met beperkte gegevens is nooit **Waarschijnlijk bewust** op het woord van OneUptime AI. Een regel die berust op iets wat u niet mag lezen, zoals wie de opslag kan bereiken, wordt voor u verborgen, en zegt dat.
+
+OneUptime AI verandert het probleem nooit: de status en de ernst blijven bij de controle en bij u. Bij **Waarschijnlijk bewust** biedt het **Risico accepteren** met de reden al geschreven, en **Bewust openbaar** voor openbare opslag; bij **Waarschijnlijk een onjuiste vondst** **Geen probleem** met de reden al geschreven. Er verandert niets tot u kiest.
+
+De analyse wordt bij het probleem bewaard, met een vermelding in de **Tijdlijn** telkens als ze wordt geschreven, in de taal die de meeste leden van uw project kozen (**Opnieuw analyseren** schrijft haar in de uwe). Ze wordt alleen opnieuw geschreven als veranderd is waarop ze berust, dus het probleem openen vraagt OneUptime AI niets; **Opnieuw analyseren** vraagt het toch. **Problemen** filtert en toont problemen op **Oordeel van OneUptime AI**. Wat ze verstuurt, en nooit verstuurt, staat in [OneUptime AI in gegevensbeveiliging](/docs/data-security/ai). Met AI uit is er geen analyse.
 
 ## Hier oplossen
 

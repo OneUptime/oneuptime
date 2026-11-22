@@ -214,6 +214,7 @@ import NoteTestPagesAcknowledgedBeforeFirstSteps from "./NoteTestPagesAcknowledg
 import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilestonesFromClickhouse";
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
+import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1603,6 +1604,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the two slots kept last.
    */
   new UpgradeLibraryRuleCopies(),
+  /*
+   * Takes out of the security events the audit log's scan stored before
+   * #10663, and of the detections, cases, alerts, incidents, feed items and
+   * evidence made of them, the names of records their readers may not read
+   * (an API key's, a custom role's, a team's): Postgres first, then one
+   * asynchronous ClickHouse mutation, bounded to the partitions since the
+   * scan shipped. Idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new WithholdAuditRecordNamesInSecurityEvents(),
   /*
    * OneUptime AI working security cases end to end (#10352): every existing
    * member gets the setting for OneUptime AI handing a case to people, with

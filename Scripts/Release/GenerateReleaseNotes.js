@@ -466,7 +466,22 @@ function entryOf(title, labels, reference) {
   };
 }
 
-function buildEntries({ pullRequests, directCommits }, repository) {
+/*
+ * A pull request as this repository's release page names it, "#123", which
+ * GitHub links to the pull request. The Terraform provider's release page,
+ * in a repository of its own, names it in full instead
+ * (Scripts/TerraformProvider/GenerateReleaseNotes.js): there, "#123" would
+ * be the provider repository's.
+ */
+function referenceInThisRepository(pullRequest) {
+  return `#${pullRequest.number}`;
+}
+
+function buildEntries(
+  { pullRequests, directCommits },
+  repository,
+  referenceOf = referenceInThisRepository,
+) {
   const entries = pullRequests
     .filter((pullRequest) => {
       return !labelsOf(pullRequest).includes(LEFT_OUT_LABEL);
@@ -475,7 +490,7 @@ function buildEntries({ pullRequests, directCommits }, repository) {
       return entryOf(
         pullRequest.title,
         labelsOf(pullRequest),
-        `#${pullRequest.number}`,
+        referenceOf(pullRequest),
       );
     });
 
@@ -747,8 +762,11 @@ function canSucceedLater(status) {
 /*
  * The two calls the notes need, each repeated on what is likely to pass by:
  * the draft job died on a 503 on 2026-08-17 with every image already pushed.
+ * `api` is GitHub's REST API, https://api.github.com unless a caller names
+ * another (the Terraform provider's notes take GITHUB_API_URL, which Actions
+ * sets, and which its tests point at a stand-in).
  */
-function createGitHub({ token, fetcher, sleep }) {
+function createGitHub({ token, fetcher, sleep, api = GITHUB_API }) {
   const headers = {
     Accept: "application/vnd.github+json",
     Authorization: `Bearer ${token}`,
@@ -775,8 +793,12 @@ function createGitHub({ token, fetcher, sleep }) {
           return readAnswer(await response.json());
         }
 
-        failure = new Error(
-          `${url} answered ${response.status}: ${await response.text()}`,
+        // The status goes with it, so a caller can tell "no such tag" (404).
+        failure = Object.assign(
+          new Error(
+            `${url} answered ${response.status}: ${await response.text()}`,
+          ),
+          { status: response.status },
         );
         if (!canSucceedLater(response.status)) {
           throw Object.assign(failure, { permanent: true });
@@ -794,14 +816,14 @@ function createGitHub({ token, fetcher, sleep }) {
 
   return {
     rest(route) {
-      return send(`${GITHUB_API}${route}`, { method: "GET" }, (answer) => {
+      return send(`${api}${route}`, { method: "GET" }, (answer) => {
         return answer;
       });
     },
 
     graphql(query) {
       return send(
-        `${GITHUB_API}/graphql`,
+        `${api}/graphql`,
         { method: "POST", body: JSON.stringify({ query }) },
         (answer) => {
           // A commit GitHub cannot find is one line less. Anything else it
@@ -1042,19 +1064,34 @@ if (require.main === module) {
   });
 }
 
+/*
+ * The Terraform provider's notes (Scripts/TerraformProvider/
+ * GenerateReleaseNotes.js) list the changes of OneUptime's that are the
+ * provider's, read and sorted as these are, so they use the same parts.
+ */
 module.exports = {
   MAX_NOTES_LENGTH,
+  SECTIONS,
   assembleNotes,
   areaName,
   buildEntries,
+  compareVersions,
+  createGitHub,
   escapeMarkdown,
   findContributors,
   findPreviousRelease,
+  findPullRequestsOfCommits,
+  findStartOfRange,
+  listCommits,
   parseArguments,
   parseTitle,
+  parseVersion,
+  partsOfArea,
+  renderEntries,
   renderFallbackNotes,
   renderNotes,
   run,
+  sleepFor,
   sortChanges,
   startSentence,
 };

@@ -55,6 +55,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "telemetry per ingestion key",
   "packages/Common/Server/Utils/Telemetry/TelemetryIngestionBudgetCounter.ts":
     "telemetry bytes and requests per project or ingestion key with a budget of its own, signal and day, and their per-second rate",
+  "packages/Common/Server/Utils/Telemetry/TelemetryIngestAttributionCounter.ts":
+    "ingested telemetry bytes per team or label with a budget of its own, signal and day, and per resource and signal every five minutes for the usage metrics (#6386, #6355): what was sent, never who sent it",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterShedMetrics.ts":
     "telemetry writes shed per minute, for the instance's health",
   "packages/Common/Server/Utils/SessionReplay/SessionReplayHealthCounters.ts":
@@ -104,6 +106,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
 const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
   "packages/Common/Server/Utils/Express.ts":
     "defines getClientIp, the address requests are recorded and logged with",
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts":
+    "holds a firewall's fetch of a blocklist feed to the feed's allowlist and records the address of each fetch (#10345); its fetches are counted by SecurityBlocklistFeedRateLimit, per feed and address and per address",
   "packages/App/FeatureSet/Identity/API/Authentication.ts":
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
@@ -185,6 +189,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/PublicDashboardRateLimit.ts",
   "packages/Common/Server/Middleware/FormRateLimit.ts",
   "packages/Common/Server/Middleware/OnCallCalendarFeedRateLimit.ts",
+  "packages/Common/Server/Middleware/SecurityBlocklistFeedRateLimit.ts",
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
   "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",

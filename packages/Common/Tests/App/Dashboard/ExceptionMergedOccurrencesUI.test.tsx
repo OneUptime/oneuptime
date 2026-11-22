@@ -282,8 +282,6 @@ describe("the Exceptions monitor form's preview", () => {
         onMonitorStepExceptionMonitorChanged={() => {
           // Not what these tests read.
         }}
-        telemetryServices={[]}
-        telemetryEntities={[]}
       />,
     );
     fireEvent.click(

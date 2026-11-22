@@ -354,7 +354,15 @@ beforeEach(() => {
       options as { url: { toString: () => string }; data?: JSONObject };
 
     posts.push({
-      path: new URL(request.url.toString()).pathname,
+      /*
+       * The route, past the API's own /api: with config.env's HOST the URL
+       * is http://localhost/api/..., and without one it reads as
+       * http:///api/..., whose path has no /api.
+       */
+      path: new URL(request.url.toString()).pathname.replace(
+        /^\/api(?=\/)/,
+        "",
+      ),
       data: request.data || {},
     });
 

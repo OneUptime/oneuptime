@@ -52,6 +52,7 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Aprobaciones** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Lista de bloqueo** | Playbooks | Las direcciones que bloquea tu proyecto, hasta cuándo y dónde se aplica cada bloqueo |
+| **Feeds de lista de bloqueo** | Playbooks | Las URL secretas desde las que tus firewalls y proxies leen la lista de bloqueo, y sus obtenciones |
 | **Entidades protegidas** | Playbooks | Los usuarios, hosts y direcciones a los que ningún playbook aplica contención y ningún bloqueo afecta |
 | **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
@@ -283,6 +284,17 @@ Cada evento se guarda con campos tipados y su payload de origen:
 | Atributos | El payload de origen completo, aplanado en claves con puntos |
 
 Los eventos guardados antes de OneUptime 14.0.84 dejan vacíos los campos de proceso y nombran su proceso solo como `principalProcess`, el proceso que actuó. No se completan después: conservan lo que tenían al guardarse hasta que termina su retención.
+
+### Oculta por una regla de depuración
+
+Una regla de dirección IP que borra o enmascara tus registros o trazas oculta la dirección de la que vino un ataque antes de que Eventos de seguridad los lea. El evento se guarda igualmente, sin dirección, y allí donde nombraría la dirección dice que una regla de depuración la ocultó:
+
+- **IP de origen**, en el panel del evento, nombra la regla que la ocultó cuando puede, como un enlace a las **Reglas de depuración** de los registros o de las trazas. El filtro de al lado muestra cada evento cuya dirección ocultó una regla de depuración.
+- **Qué pasó después** dice que la solicitud vino de una dirección que ocultó una regla de depuración, y **Campañas** agrupa esas solicitudes en una fila propia.
+- Un caso cuyos eventos perdieron todos su dirección lo dice en su **Plan de respuesta**: en lugar de bloquear la dirección, te indica que la busques en los registros de tu balanceador de carga o de tu firewall y la bloquees allí, con **Abrir reglas de depuración**.
+- **Vista general** nombra la regla que oculta las direcciones que lee Eventos de seguridad, también con **Abrir reglas de depuración**.
+
+Una regla que aplica hash guarda la dirección para Eventos de seguridad, así que el evento la nombra, salvo que su token tenga más de 30 días o se creara antes de que los tokens tuvieran una clave: consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles). Para encontrar estos eventos, busca `@oneuptime.request.client_address_hidden:scrub-rule`. Lo que la regla dejó en lugar de la dirección, como `[REDACTED]`, está en `oneuptime.request.client_address_scrubbed`.
 
 ## Explorar los eventos de seguridad
 

@@ -166,6 +166,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * OneUptime AI's analysis of an issue (#10369): its verdicts, the
+   * questions it answers, what a hidden line rests on and how recently
+   * access was used, as the issue's page, the Issues list and AI Results
+   * draw them. The server keeps the same file's English for the owners'
+   * email. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -580,6 +592,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Utils/NetworkDevice/Naming/NamingLookup.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a discovery scan's Run Again was refused (issue #10334): already
+   * running, its probe not connected, and the rest - the words the server
+   * refuses with, said in the reader's language on the scan's row. Only the
+   * sentences the file marks are read.
+   */
+  {
+    directory: "packages/Common/Utils/NetworkDiscovery/DiscoveryScanRun.ts",
     kind: "keys",
   },
   /*
