@@ -521,13 +521,17 @@ export default class OnCallChatByWorkspace {
      * their own - with the change's reader, so they are read once.
      */
     if (!workspaceType) {
-      const name: MarkdownText = await UserService.getUserMarkdownString({
-        userId: userId,
-        projectId: this.projectId,
-        people: this.people,
-      });
+      const name: string = (
+        await UserService.getUserMarkdownString({
+          userId: userId,
+          projectId: this.projectId,
+          people: this.people,
+        })
+      ).toString();
 
-      return name.isEmpty() ? mdText`${ON_CALL_CHAT_NOBODY_NAMED}` : name;
+      return name
+        ? FeedMarkdown.asMarkdown(name)
+        : mdText`${ON_CALL_CHAT_NOBODY_NAMED}`;
     }
 
     const name: string = (

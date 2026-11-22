@@ -142,12 +142,10 @@ describe("UserService.getUserMarkdownString names someone only invited as the pr
   });
 
   test("a member with no name is the part of their address before the @, linked to their page", async () => {
-    const user: User = person({
-      id: MEMBER_ID,
-      name: "Ada Lovelace",
-      email: "ada.lovelace@example.com",
-    });
-    user.name = undefined;
+    // A member with no name: SSO or SCIM that sent none.
+    const user: User = new User();
+    user._id = MEMBER_ID.toString();
+    user.email = new Email("ada.lovelace@example.com");
 
     const markdown: string = await markdownFor(user);
 

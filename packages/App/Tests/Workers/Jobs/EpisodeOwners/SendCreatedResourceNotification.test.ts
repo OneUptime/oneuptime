@@ -453,7 +453,7 @@ describe.each(CASES)(
           [entry.feedEpisodeKey]: EPISODE_ID,
           feedInfoInMarkdown: `Owners were notified that this ${entry.noun} was created.`,
           moreInformationInMarkdown:
-            "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+            "- Owner ana\n- Owner bo\n",
         }),
       ]);
 
@@ -497,7 +497,7 @@ describe.each(CASES)(
       expect(feedItems()).toEqual([
         expect.objectContaining({
           feedInfoInMarkdown: `The Project Owners were notified that this ${entry.noun} was created, as it has no owners yet.`,
-          moreInformationInMarkdown: "- Owner bo (bo@acme.test)\n",
+          moreInformationInMarkdown: "- Owner bo\n",
         }),
       ]);
     });
@@ -511,7 +511,7 @@ describe.each(CASES)(
 
       expect(sentTo()).toEqual(["bo"]);
       expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-        "- Owner bo (bo@acme.test)\n",
+        "- Owner bo\n",
       );
     });
 
@@ -529,8 +529,8 @@ describe.each(CASES)(
         expect.objectContaining({
           feedInfoInMarkdown: `Owners were notified that this ${entry.noun} was created.`,
           moreInformationInMarkdown:
-            "- Owner bo (bo@acme.test)\n" +
-            "\nNot notified again, as the on-call page reached them: Owner ana (ana@acme.test).\n",
+            "- Owner bo\n" +
+            "\nNot notified again, as the on-call page reached them: Owner ana.\n",
         }),
       ]);
     });
@@ -560,7 +560,7 @@ describe.each(CASES)(
 
         expect(sentTo()).toEqual(["ana", "bo"]);
         expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-          "- Owner ana (ana@acme.test)\n- Owner bo (bo@acme.test)\n",
+          "- Owner ana\n- Owner bo\n",
         );
       },
     );
@@ -665,7 +665,7 @@ describe.each(CASES)(
       // The later run's entry names whom the two runs told - never Ana.
       expect(feedItems()).toHaveLength(1);
       expect(feedItems()[0]!.moreInformationInMarkdown).toBe(
-        "- Owner bo (bo@acme.test)\n- Owner cara (cara@acme.test)\n",
+        "- Owner bo\n- Owner cara\n",
       );
 
       now = new Date(now.getTime() + 60 * 60 * 1000);
