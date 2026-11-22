@@ -488,6 +488,8 @@ import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
+import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
+import SecurityBlocklistFeedFetchService from "./SecurityBlocklistFeedFetchService";
 import SecurityEntityRiskService from "./SecurityEntityRiskService";
 import SecurityEntityCriticalityService from "./SecurityEntityCriticalityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
@@ -1106,6 +1108,8 @@ const services: Array<BaseService> = [
   SecurityProtectedEntityService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
+  SecurityBlocklistFeedService,
+  SecurityBlocklistFeedFetchService,
   SecurityEntityRiskService,
   SecurityEntityCriticalityService,
   AlertNoteTemplateService,

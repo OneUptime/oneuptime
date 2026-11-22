@@ -49,13 +49,14 @@ import zlib from "zlib";
  *     its end before the 413 - 64 MiB sent were 64 MiB read, a chunked one
  *     for as long as its client went on sending (#10644). It is now refused
  *     with the rest unread, the connection closed.
- *   - multipart, as pyroscope-dotnet and others post it, before the key is
- *     checked. multer read the request itself: a gzip body StartServer had
- *     already inflated was read again from its spent stream, and a deflate
- *     or malformed one was not read at all - each a 500 with an error-level
- *     log line, from any client - and a body it refused was read to its end
- *     first, and logged. Now the body is read as every body is, held to the
- *     route's 50 MB, and multer parses the bytes read.
+ *   - multipart, as pyroscope-dotnet and others post it. multer read the
+ *     request itself: a gzip body StartServer had already inflated was read
+ *     again from its spent stream, and a deflate or malformed one was not
+ *     read at all - each a 500 with an error-level log line, from any
+ *     client - and a body it refused was read to its end first, and logged.
+ *     Now the body is read as every body is, held to the route's 50 MB, and
+ *     multer parses the bytes read - once the ingest key is checked
+ *     (#10673): it was parsed before, for anyone.
  */
 
 jest.setTimeout(180000);
@@ -397,7 +398,40 @@ describe("a multipart profile (#10643)", () => {
   });
 
   test.each([...CONNECTIONS])(
-    "over 50 MB, with no key at all: refused 413, declared or chunked, the rest unread (%s)",
+    "64 MiB with no key at all, declared or chunked: refused 401 before a byte of it is read, never parsed (#10673) (%s)",
+    async (connection: Connection) => {
+      const head: Buffer = Buffer.from(
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="profile"; filename="big"\r\n\r\n`,
+      );
+      const body: Buffer = Buffer.concat([
+        head,
+        Buffer.alloc(SENT - head.length, 0x61),
+      ] as unknown as Array<Uint8Array>);
+
+      for (const chunked of [false, true]) {
+        const sent: SentRequest = await sendOverHttp(server, {
+          path: FOLDED_PATH,
+          headers: { "content-type": MULTIPART_TYPE },
+          connection: connection,
+          chunked: chunked,
+          body: body,
+        });
+
+        // It was a 413, chunked once 50 MB were read: the key comes first now.
+        expect(sent.answer.status).toBe(401);
+        expect(sent.answer.connection).toBe("close");
+        expect(sent.answer.clientError).toBeNull();
+        expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
+          READ_OR_TWO,
+        );
+      }
+
+      expect(queued).toBe(0);
+    },
+  );
+
+  test.each([...CONNECTIONS])(
+    "over 50 MB with the right key, declared or chunked: refused 413, the rest unread (%s)",
     async (connection: Connection) => {
       const head: Buffer = Buffer.from(
         `--${BOUNDARY}\r\nContent-Disposition: form-data; name="profile"; filename="big"\r\n\r\n`,
@@ -409,7 +443,7 @@ describe("a multipart profile (#10643)", () => {
 
       const declared: SentRequest = await sendOverHttp(server, {
         path: FOLDED_PATH,
-        headers: { "content-type": MULTIPART_TYPE },
+        headers: { "content-type": MULTIPART_TYPE, ...RIGHT_KEY },
         connection: connection,
         body: body,
       });
@@ -422,7 +456,7 @@ describe("a multipart profile (#10643)", () => {
 
       const chunked: SentRequest = await sendOverHttp(server, {
         path: FOLDED_PATH,
-        headers: { "content-type": MULTIPART_TYPE },
+        headers: { "content-type": MULTIPART_TYPE, ...RIGHT_KEY },
         connection: connection,
         chunked: true,
         body: body,
@@ -431,11 +465,12 @@ describe("a multipart profile (#10643)", () => {
       expect(chunked.answer.status).toBe(413);
       expect(chunked.answer.connection).toBe("close");
 
-      // multer read all 64 MiB before it answered.
+      // multer alone read all 64 MiB before it answered (#10643).
       const read: number = await server.readInAll(chunked.tag);
 
       expect(read).toBeGreaterThan(LIMIT);
       expect(read).toBeLessThanOrEqual(LIMIT + READ_OR_TWO);
+      expect(queued).toBe(0);
       expect(logger.error).not.toHaveBeenCalled();
     },
   );

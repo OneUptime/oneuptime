@@ -4,7 +4,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -124,7 +123,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | undefined>(undefined);
 
   // Dropdown data for filters
-  const [monitors, setMonitors] = React.useState<Array<Monitor>>([]);
   const [labels, setLabels] = React.useState<Array<Label>>([]);
   const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
   const [alertSeverities, setAlertSeverities] = React.useState<
@@ -246,16 +244,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
        * value is archived: a picker leaves an archived one out for a new
        * pick, and marks one a summary holds already (#7582).
        */
-      const monitorsResult: ListResult<Monitor> = await ModelAPI.getList({
-        modelType: Monitor,
-        query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: { name: true, _id: true, isArchived: true },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
-      });
-      setMonitors(monitorsResult.data);
-
+      /*
+       * Monitors are not read here: a Monitors condition searches the
+       * server and names the ones it holds by their ids
+       * (MonitorConditionPicker, #10646). The page read the project's first
+       * 10,000, and a summary's monitor past them read as gone.
+       */
       const labelsResult: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
@@ -1099,7 +1093,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               return (
                 <NotificationRuleConditions
                   eventType={eventType}
-                  monitors={monitors}
                   labels={labels}
                   alertStates={alertStates}
                   alertSeverities={alertSeverities}

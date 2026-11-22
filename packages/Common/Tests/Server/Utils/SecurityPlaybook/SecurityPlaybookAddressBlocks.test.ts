@@ -409,6 +409,38 @@ describe("blocking each target", () => {
     expect(reconcile).not.toHaveBeenCalled();
   });
 
+  test("a destination on every machine alone enforces nothing of an address blocked at the edge (#10346)", async () => {
+    // Microsoft Defender holds only what is blocked everywhere.
+    const defender: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination({
+        key: "Test:defender",
+        name: "Microsoft Defender",
+      });
+    Object.assign(defender, { enforcesOnEveryMachine: true });
+    SecurityBlockDestinations.setSourcesForTests([
+      {
+        provider: SecurityBlockDestinationProvider.Test,
+        findForProject: async () => {
+          return [defender];
+        },
+      },
+    ]);
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block: madeBlock({ index: 1, value: ADDRESS }),
+    });
+
+    const outcome: PlaybookStepOutcome = await blockTargets({
+      targets: [target(ADDRESS)],
+    });
+
+    expect(outcome.status).toBe(SecurityPlaybookStepStatus.Failed);
+    expect(outcome.error).toBe(NOT_ENFORCED_ANYWHERE_ERROR);
+    expect(outcome.targets?.[0]?.detail).toBe(
+      "blocked until 2026-11-22 10:42 UTC, but nothing enforces your blocklist",
+    );
+  });
+
   test("already blocked by a range: done before, naming the range", async () => {
     outcomes.set(ADDRESS, {
       status: SecurityBlockOutcomeStatus.AlreadyBlocked,

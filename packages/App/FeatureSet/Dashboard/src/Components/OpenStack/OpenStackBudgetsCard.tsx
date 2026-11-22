@@ -1,21 +1,22 @@
+import {
+  getOpenStackProjectPicker,
+  OpenStackProjectNames,
+  useOpenStackProjectNames,
+} from "./OpenStackProjectPicker";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
-import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { CLOUD_BUDGET_DEFAULT_THRESHOLDS } from "Common/Types/Cloud/CloudCost";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-import useOpenStackRead, { OpenStackRead } from "./Part/UseOpenStackRead";
 import {
   CloudBudgetStatus,
   getCloudBudgetStatus,
@@ -41,12 +42,8 @@ export const OPENSTACK_BUDGET_NOT_CHECKED_TEXT: string = translationKey(
   "Budgets compare against estimates, so they need prices or CloudKitty's figures first.",
 );
 
-// The most projects a form offers: the largest first, which on a large cloud are the ones budgeted.
-const PROJECT_OPTIONS: number = 1000;
-
 export interface ComponentProps {
   openStackCloudId: ObjectID;
-  month: string;
   currency: string | null;
   isPriced: boolean;
 }
@@ -56,30 +53,15 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const projects: OpenStackRead<Array<DropdownOption>> = useOpenStackRead<
-    Array<DropdownOption>
-  >(async () => {
-    const rows: ListResult<OpenStackProjectUsage> =
-      await ModelAPI.getList<OpenStackProjectUsage>({
-        modelType: OpenStackProjectUsage,
-        query: {
-          openStackCloudId: props.openStackCloudId,
-          period: props.month,
-        },
-        select: { openStackProjectId: true, name: true },
-        sort: { sortValue: SortOrder.Descending },
-        skip: 0,
-        limit: PROJECT_OPTIONS,
-      });
-
-    return rows.data.map((row: OpenStackProjectUsage): DropdownOption => {
-      return {
-        value: row.openStackProjectId || "",
-        label: row.name || row.openStackProjectId || "",
-        isUserContent: true,
-      };
-    });
-  }, [props.openStackCloudId.toString(), props.month]);
+  /*
+   * The projects the budgets are for, named by the cloud's ids for them as
+   * the budgets are read (#10646); the form searches the cloud's projects
+   * itself (getOpenStackProjectPicker). The card read the month's 1,000
+   * costliest, and a budget for any other showed as its id.
+   */
+  const projectNames: OpenStackProjectNames = useOpenStackProjectNames(
+    props.openStackCloudId,
+  );
 
   const nameOfProject: (id: string | undefined) => string = (
     id: string | undefined,
@@ -88,13 +70,7 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
       return translator.translateText(translationKey("The whole cloud")) || "";
     }
 
-    const option: DropdownOption | undefined = projects.data?.find(
-      (entry: DropdownOption): boolean => {
-        return entry.value === id;
-      },
-    );
-
-    return option?.label || id;
+    return projectNames.nameOf(id) || id;
   };
 
   return (
@@ -113,6 +89,13 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         query={{ openStackCloudId: props.openStackCloudId }}
+        onFetchSuccess={(budgets: Array<OpenStackBudget>) => {
+          void projectNames.readNamesOf(
+            budgets.map((budget: OpenStackBudget): string | undefined => {
+              return budget.openStackProjectId;
+            }),
+          );
+        }}
         onBeforeCreate={(item: OpenStackBudget): Promise<OpenStackBudget> => {
           item.openStackCloudId = props.openStackCloudId;
           return Promise.resolve(item);
@@ -272,7 +255,7 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
             title: "Project",
             stepId: "budget",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: projects.data || [],
+            dropdownModal: getOpenStackProjectPicker(props.openStackCloudId),
             required: false,
             placeholder: "The whole cloud",
             description: "Leave empty for a budget over this whole cloud.",

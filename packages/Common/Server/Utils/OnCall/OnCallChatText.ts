@@ -1,4 +1,5 @@
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { FEED_INVITEE_UNNAMED } from "../Feed/FeedPersonNameRule";
 
 /*
  * WHAT AN ON-CALL POLICY'S CHANNELS ARE TOLD OF ITS ROSTER, IN ONE LINE.
@@ -42,10 +43,10 @@ export type OnCallMomentText = (date: Date) => MarkdownText;
 /*
  * Who a line names for someone only invited to the project when no name
  * was typed with their invitation, or the name typed holds an address
- * (#10616): never their email address (OnCallChatByWorkspace.getInviteeName).
+ * (#10616): never their email address. Every feed entry and channel line
+ * says the same (FeedPersonName.getInviteeName).
  */
-export const ON_CALL_CHAT_INVITEE_UNNAMED: string =
-  "someone who hasn't joined the project yet";
+export const ON_CALL_CHAT_INVITEE_UNNAMED: string = FEED_INVITEE_UNNAMED;
 
 // Why somebody a schedule's rotation reaches is paged by nothing (#10586).
 export enum OnCallNotPagedBecause {
@@ -65,6 +66,16 @@ export interface OnCallNotPagedPerson {
   because: OnCallNotPagedBecause;
 }
 
+/*
+ * The cover of an override who has not joined the project yet (#10670):
+ * nothing pages them until they do, so while they have not, nobody is paged
+ * in place of the person away. Whether the line has a name of theirs to say
+ * (FeedPersonName): with none, `cover` says they have not joined already.
+ */
+export interface OnCallOverrideCoverNotJoined {
+  isNamed: boolean;
+}
+
 // An override, as a line about it is handed it: added, or changed.
 export interface OnCallOverrideLine {
   policy: MarkdownText;
@@ -72,6 +83,8 @@ export interface OnCallOverrideLine {
   person: MarkdownText;
   // Who covers for them; none when their turns pass to the next person.
   cover?: MarkdownText | undefined;
+  // The cover has not joined the project yet: said after the terms.
+  coverNotJoined?: OnCallOverrideCoverNotJoined | undefined;
   from: Date;
   until: Date;
   moment: OnCallMomentText;
@@ -343,6 +356,24 @@ export default class OnCallChatText {
     return mdText`✏️ Changed an override on ${data.policy}: ${OnCallChatText.overrideTerms(data)}.`;
   }
 
+  /*
+   * The policy's feed's own sentence for a cover who has not joined the
+   * project yet (#10670), after what the override routes: "**Ivy** hasn't
+   * joined the project yet, so nobody is paged in place of **Ana** until
+   * they do." With no name of theirs to say, the cover's name says they have
+   * not joined already: "Nobody is paged in place of **Ana** until they join
+   * the project."
+   */
+  public static coverNotJoinedSentence(data: {
+    cover: MarkdownText;
+    person: MarkdownText;
+    coverNotJoined: OnCallOverrideCoverNotJoined;
+  }): MarkdownText {
+    return data.coverNotJoined.isNamed
+      ? mdText`**${data.cover}** hasn't joined the project yet, so nobody is paged in place of **${data.person}** until they do.`
+      : mdText`Nobody is paged in place of **${data.person}** until they join the project.`;
+  }
+
   // An override taken back: the person covered is paged on their turns again.
   public static overrideRemoved(data: {
     policy: MarkdownText;
@@ -354,14 +385,26 @@ export default class OnCallChatText {
   /*
    * What an override does, from when to when: "@Bob covers for @Ana from
    * ... to ...", or, with nobody named to cover, "@Ana is away from ... to
-   * ..., and their turns go to the next person in the rotation".
+   * ..., and their turns go to the next person in the rotation". A cover
+   * who has not joined the project yet is paged by nothing (#10670), and
+   * the line says so, as a coverage gap's does (#10586): "Ivy covers for
+   * @Ana from ... to ..., but Ivy hasn't joined the project yet, so nobody
+   * is paged in place of @Ana until they do".
    */
   private static overrideTerms(data: OnCallOverrideLine): MarkdownText {
     const from: MarkdownText = data.moment(data.from);
     const until: MarkdownText = data.moment(data.until);
 
     if (data.cover && !data.cover.isEmpty()) {
-      return mdText`${data.cover} covers for ${data.person} from ${from} to ${until}`;
+      const covers: MarkdownText = mdText`${data.cover} covers for ${data.person} from ${from} to ${until}`;
+
+      if (!data.coverNotJoined) {
+        return covers;
+      }
+
+      return data.coverNotJoined.isNamed
+        ? mdText`${covers}, but ${data.cover} hasn't joined the project yet, so nobody is paged in place of ${data.person} until they do`
+        : mdText`${covers}, so nobody is paged in place of ${data.person} until they join`;
     }
 
     return mdText`${data.person} is away from ${from} to ${until}, and their turns go to the next person in the rotation`;

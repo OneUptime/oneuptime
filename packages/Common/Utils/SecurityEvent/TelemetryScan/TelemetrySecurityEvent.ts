@@ -44,6 +44,13 @@ export const MAX_TELEMETRY_EVENT_MESSAGE_LENGTH: number = 1000;
 // The longest value of any one attribute a telemetry event keeps.
 export const MAX_TELEMETRY_ATTRIBUTE_LENGTH: number = 2000;
 
+/*
+ * Text cut to `limit` characters, the last of them an ellipsis. Never in
+ * the middle of a character: a cut between the two halves of a surrogate
+ * pair (an emoji, a character beyond the Basic Multilingual Plane) left half
+ * a character, which ClickHouse refuses as JSON - and with it every event
+ * of the insert.
+ */
 export function cutTelemetryText(text: string, limit: number): string {
   const value: string = text || "";
 
@@ -51,7 +58,15 @@ export function cutTelemetryText(text: string, limit: number): string {
     return value;
   }
 
-  return `${value.slice(0, limit - 1)}…`;
+  let end: number = limit - 1;
+  const lastKept: number = value.charCodeAt(end - 1);
+
+  // The first half of a pair whose second half the cut would drop.
+  if (lastKept >= 0xd800 && lastKept <= 0xdbff) {
+    end -= 1;
+  }
+
+  return `${value.slice(0, end)}…`;
 }
 
 /*

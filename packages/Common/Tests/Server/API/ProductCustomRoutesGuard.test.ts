@@ -98,6 +98,8 @@ const READ_HELPER: string =
   "A helper that registers reads for its callers: each call is listed in readHelpers, with why.";
 const FEED_FALLBACK: string =
   "It answers a write to a calendar feed's address with 405: a feed only reads.";
+const BLOCKLIST_FEED_FALLBACK: string =
+  "It answers a write to a blocklist feed's address with 405: a firewall only reads a feed.";
 const PAGE_LINK: string =
   "A page's own link or key press: the person paged answers it. What already runs keeps running, and refusing the answer would page everyone up the policy.";
 const IN_FIX: string =
@@ -701,6 +703,17 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/SecurityBlockCloudWafAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
+  },
+  /*
+   * Blocklist feeds (#10345): Rotate Secret and Revoke Secret name the
+   * product; what a firewall fetches is a read, and a write to a feed's
+   * address is answered 405.
+   */
+  "packages/Common/Server/API/SecurityBlocklistFeedAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {
+      BLOCKLIST_FEED_FALLBACK_ROUTE: BLOCKLIST_FEED_FALLBACK,
+    },
   },
   "packages/Common/Server/API/DetectionRuleAPI.ts": {
     products: [ProductKey.SecurityEvents],

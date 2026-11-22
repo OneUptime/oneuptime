@@ -105,4 +105,5 @@ El objetivo: una página para el servicio de checkout, con su latencia, su tasa 
 - [Widgets del panel](/docs/dashboards/widgets): Cada widget, y cuál elegir.
 - [Variables y filtros del panel](/docs/dashboards/variables): Un panel para cada servicio, host o cliente.
 - [Compartir y paneles públicos](/docs/dashboards/sharing): Enlaces públicos, contraseñas, listas de IP permitidas y dominios personalizados.
+- [Importar desde Grafana y Datadog](/docs/dashboards/import): Trae un panel, o las reglas de alerta, que creaste en Grafana o Datadog.
 :::

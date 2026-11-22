@@ -288,10 +288,7 @@ async function readEpisode(
 // A person told, as the episode's feed names them.
 function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
-    OwnerNotificationFeedText.nameAndEmail({
-      name: user.name?.toString(),
-      email: user.email?.toString(),
-    }),
+    OwnerNotificationFeedText.personName(user),
   );
 }
 

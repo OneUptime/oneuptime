@@ -4,9 +4,11 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import getRequestBodyLimit, {
+  DOCS_REPORT_REQUEST_BODY_LIMIT,
   FILE_REQUEST_BODY_LIMIT,
   INCOMING_REQUEST_ROUTE_PREFIXES,
   LARGE_REQUEST_BODY_LIMIT,
+  MCP_OAUTH_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
@@ -16,6 +18,7 @@ import getRequestBodyLimit, {
   readsBodyAfterAuthentication,
 } from "Common/Server/Utils/RequestBodyLimit";
 import { TELEMETRY_WRITER_INSERT_ROUTE } from "Common/Server/Utils/Telemetry/TelemetryWriterClient";
+import { parseBodyLimit } from "Common/Server/Middleware/RequestBodyParser";
 import {
   isCloudStreamPath,
   isVercelLogDrainPath,
@@ -202,13 +205,23 @@ describe("the paths the App's own clients send large bodies to", () => {
         ...under(TELEMETRY_ROUTE_PREFIXES, "/change-events/v1/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/openlineage/api/v1/lineage"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/dbt/v1/artifacts"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/source-maps/v1/upload"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/dsyms/v1/upload"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/pyroscope/ingest"),
+        ...under(
+          TELEMETRY_ROUTE_PREFIXES,
+          "/pyroscope/push.v1.PusherService/Push",
+        ),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/android-agent/v1/log-sessions"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fivetran/v1/webhook/id"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/airbyte/v1/webhook/key"),
+      ],
+      LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "the uploads read once their ingest key is checked (#10673): a profile, source maps, dSYMs",
+      [
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/pyroscope/ingest"),
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/source-maps/v1/upload"),
+        ...under(TELEMETRY_ROUTE_PREFIXES, "/dsyms/v1/upload"),
       ],
       LARGE_REQUEST_BODY_LIMIT,
     ],
@@ -284,6 +297,11 @@ describe("the paths the App's own clients send large bodies to", () => {
         "FeatureSet/Telemetry/API/SourceMapIngest.ts",
         '"/source-maps/v1/upload"',
       ],
+      ["FeatureSet/Telemetry/API/DsymIngest.ts", '"/dsyms/v1/upload"'],
+      ["FeatureSet/Telemetry/API/Pyroscope.ts", '"/pyroscope/ingest"'],
+      ["FeatureSet/MCP/OAuth/OAuthRoutes.ts", '= "/mcp/oauth"'],
+      ["FeatureSet/Docs/Index.ts", '"/docs/feedback"'],
+      ["FeatureSet/Docs/Index.ts", '"/docs/search/found-nothing"'],
     ] as Array<[string, string]>) {
       expect({ file, registers: readSource(file).includes(route) }).toEqual({
         file,
@@ -353,10 +371,99 @@ describe("the paths the App's own clients send large bodies to", () => {
 
     expect(checked).toEqual(
       expect.arrayContaining([
-        "/dsyms/v1/upload",
+        "/pyroscope/push.v1.PusherService/Push",
         "/telemetry/fluentd/v1/logs",
       ]),
     );
+  });
+
+  /*
+   * #10672: a route that reads its body with a parser of its own, after
+   * StartServer, holds the body to that parser's limit only where
+   * StartServer left the body to it - a gzip body, whose bytes it only
+   * inflated - unless StartServer holds the route to the same limit. The
+   * MCP OAuth endpoints' 64 KB and the docs' 2 KB held for a gzip body
+   * alone: an uncompressed one StartServer parsed first, at 1 MB. Every
+   * route-level reader with a limit of its own (RequestBodyReadersGuard
+   * lists them) is held here to the limit StartServer holds its route to,
+   * so a body is held to one limit whatever its encoding.
+   */
+  test("every route that reads its body with a limit of its own is held to it by StartServer as well", () => {
+    const oauthRoutes: string = readSource(
+      "FeatureSet/MCP/OAuth/OAuthRoutes.ts",
+    );
+    const docs: string = readSource("FeatureSet/Docs/Index.ts");
+    const mcpRoutes: string = readSource(
+      "FeatureSet/MCP/Handlers/RouteHandler.ts",
+    );
+
+    // The OAuth endpoints' parsers take their limit from the list.
+    expect(oauthRoutes).toContain(
+      "const MAX_BODY_BYTES: number = MCP_OAUTH_REQUEST_BODY_LIMIT.bytes;",
+    );
+    expect(oauthRoutes.match(/limit: MAX_BODY_BYTES/g)).toHaveLength(2);
+    expect(oauthRoutes).not.toMatch(/limit: "\d/);
+
+    for (const endpoint of [
+      "/mcp/oauth/authorize",
+      "/mcp/oauth/token",
+      "/mcp/oauth/register",
+      "/mcp/oauth/revoke",
+      "/mcp/oauth/consent/details",
+      "/mcp/oauth/consent/approve",
+      "/mcp/oauth/consent/deny",
+    ]) {
+      expect({ endpoint, limit: getRequestBodyLimit(endpoint) }).toEqual({
+        endpoint,
+        limit: MCP_OAUTH_REQUEST_BODY_LIMIT,
+      });
+    }
+
+    // The docs' reports' parser, the same.
+    expect(docs).toContain("{ limit: DOCS_REPORT_REQUEST_BODY_LIMIT.bytes }");
+
+    for (const report of ["/docs/feedback", "/docs/search/found-nothing"]) {
+      expect({ report, limit: getRequestBodyLimit(report) }).toEqual({
+        report,
+        limit: DOCS_REPORT_REQUEST_BODY_LIMIT,
+      });
+    }
+
+    // The MCP endpoint's JSON-RPC parser reads its route's own limit.
+    expect(mcpRoutes).toContain(
+      "{ limit: getRequestBodyLimit(mcpEndpoint).bytes }",
+    );
+
+    // The webhook text readers: their routes' 50 MB, as StartServer's.
+    const sizeNamed: (file: string, name: string) => number = (
+      file: string,
+      name: string,
+    ): number => {
+      const match: RegExpMatchArray | null = readSource(file).match(
+        new RegExp(`export const ${name}: string = "([^"]+)";`),
+      );
+
+      expect({ file, name, found: Boolean(match) }).toEqual({
+        file,
+        name,
+        found: true,
+      });
+
+      return parseBodyLimit(match![1]!);
+    };
+
+    expect(
+      sizeNamed(
+        "FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts",
+        "TEXT_BODY_LIMIT",
+      ),
+    ).toBe(getRequestBodyLimit("/incoming-request/key").bytes);
+    expect(
+      sizeNamed(
+        "../Common/Server/Types/Workflow/Components/Webhook.ts",
+        "WEBHOOK_TEXT_BODY_LIMIT",
+      ),
+    ).toBe(getRequestBodyLimit("/workflow/trigger/key").bytes);
   });
 
   test("an ordinary route of the API takes the ordinary limit", () => {
