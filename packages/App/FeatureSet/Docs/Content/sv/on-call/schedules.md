@@ -46,6 +46,8 @@ Allt annat finns under **Fler fält**, hopfällt tills du öppnar det:
 
 Så länge någon turas om och inget under **Fler fält** har ändrats säger den hopfällda rubriken vad som kommer att hända: varje person har jour i en vecka, sedan tar nästa över.
 
+Även någon som är inbjuden till projektet men ännu inte har gått med kan turas om, men inget larmar hen förrän hen har accepterat sin inbjudan, och hen får inte veta något. Turen är en täckningslucka, och kanalerna och flödet för varje jourpolicy som larmar schemat säger det och nämner hen med namnet som skrevs med inbjudan, aldrig med e-postadressen: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." `/oneuptime oncall` i Slack och `oncall` i Microsoft Teams säger det också. När hen går med når larmen fram, hen får veta vilka jourpolicyer som larmar hen nu, och kanalerna får "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." Fram till dess visar [Beredskap och rapporter](/docs/on-call/readiness) hen, med vad som behöver göras.
+
 ## Lager
 
 Ett schemas rotation består av lager, på dess sida **Lager**. Lagren läses uppifrån och ned: det översta lagret där någon har jour är det som larmar, så lägg huvudrotationen överst och reservtäckningen under den.

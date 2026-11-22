@@ -46,6 +46,8 @@ flowchart TB
 
 誰かが交代で担当し、 **その他の項目** で何も変更していない間は、折りたたまれた見出しにこれから起きることが表示されます。各人が 1 週間オンコールを務め、次の人が引き継ぎます。
 
+プロジェクトに招待されたもののまだ参加していない人も交代で担当できますが、招待を承諾するまでその人は何からも呼び出されず、何も知らされません。その人の担当時間はカバレッジの空白になり、スケジュールを呼び出す各オンコールポリシーのチャネルとフィードがそのことを伝えます。その人は招待時に入力された名前で示され、メールアドレスで示されることはありません: "⚠️ Nobody is paged for Payments through schedule Primary until tomorrow at 5:50 PM, when @bob takes over: Ivy is on call but hasn't joined the project yet." Slack の `/oneuptime oncall` と Microsoft Teams の `oncall` も同じように伝えます。参加すると呼び出しが届くようになり、今どのオンコールポリシーが自分を呼び出すかが本人に知らされ、チャネルには "📞 Ivy has joined the project and is now on call for Payments until tomorrow at 5:50 PM, then @bob." と投稿されます。それまでは、 [準備状況とレポート](/docs/on-call/readiness) にその人が、対処方法とともに表示されます。
+
 ## レイヤー
 
 スケジュールのローテーションは、その **レイヤー** ページにあるレイヤーで構成されます。レイヤーは上から順に読まれ、オンコール担当者がいる最も上のレイヤーが呼び出します。そのため、メインのローテーションを上に、予備の担当をその下に置きます。

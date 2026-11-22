@@ -99,12 +99,14 @@ import OnCallChatText, {
  * but hasn't joined the project yet." Setup Health and On-Call Readiness
  * already name the invitee, with the fix ("Ivy hasn't accepted the
  * invitation to this project, so pages don't reach them"): no warning of
- * its own is added. In a channel, such a person is named by their display
- * name alone - the name typed for them with the invitation - and never by
- * their email address; with no name, as "the person on call". The policy's
- * feed names them as the project knows them, as its other entries do.
- * Joining during their shift posts again (postJoinedDuringShift): a page
- * reaches them from then on.
+ * its own is added. In a channel and in the policy's feed alike, such a
+ * person is named by their display name alone - the name typed for them
+ * with the invitation - and never by their email address; with no name, as
+ * "the person on call" (#10616: the feed is posted to the channels, and
+ * read beyond the project too). Everyone else is named through one
+ * OnCallChatByWorkspace for the whole change, feed and channels. Joining
+ * during their shift posts again (postJoinedDuringShift): a page reaches
+ * them from then on.
  *
  * Never throws: the roster refresh that calls this must go on to store the
  * new roster.
@@ -501,9 +503,15 @@ export default class OnCallHandoffPosts {
         link: link,
       });
 
-      // Who of its people nothing pages, why, and what a channel calls them.
+      // Who of its people nothing pages, why, and what a line calls them.
       const notPaged: OnCallNotPagedPeople =
         await this.readNotPagedPeople(handoff);
+
+      // Each person's name in the feed and each workspace, asked once.
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: handoff.projectId,
+        timezone: handoff.scheduleTimezone,
+      });
 
       await this.writeFeedEntry({
         handoff,
@@ -511,9 +519,16 @@ export default class OnCallHandoffPosts {
         policy,
         policyAlone,
         notPaged,
+        chat,
       });
 
-      await this.postToChannels({ handoff, policy, policyAlone, notPaged });
+      await this.postToChannels({
+        handoff,
+        policy,
+        policyAlone,
+        notPaged,
+        chat,
+      });
     } catch (err) {
       logger.error("Could not post an on-call handoff to the policy.", {
         projectId: handoff.projectId?.toString(),
@@ -552,11 +567,13 @@ export default class OnCallHandoffPosts {
   }
 
   /*
-   * The policy's feed: one entry for the change, its people named and its
-   * moments in the schedule's zone, as the Dashboard shows them. Its
-   * channels are told below, a line each. A gap - nobody on call, or
-   * somebody nothing pages - is a Coverage gap started, in red; who is
-   * next, when nothing will page them, a warning.
+   * The policy's feed: one entry for the change, its people named as
+   * OneUptime names them (chat.nameIn(null)) and its moments in the
+   * schedule's zone, as the Dashboard shows them. Its channels are told
+   * below, a line each. A gap - nobody on call, or somebody nothing pages -
+   * is a Coverage gap started, in red; who is next, when nothing will page
+   * them, a warning. Somebody nothing pages is named as the channels name
+   * them: by their display name alone, never their address (#10616).
    */
   private static async writeFeedEntry(data: {
     handoff: OnCallHandoff;
@@ -564,6 +581,7 @@ export default class OnCallHandoffPosts {
     policy: MarkdownText;
     policyAlone: MarkdownText;
     notPaged: OnCallNotPagedPeople;
+    chat: OnCallChatByWorkspace;
   }): Promise<void> {
     const handoff: OnCallHandoff = data.handoff;
     const timezone: Timezone = handoff.scheduleTimezone || Timezone.UTC;
@@ -577,16 +595,11 @@ export default class OnCallHandoffPosts {
             ? OnCallChatLine.NextOnCall
             : OnCallChatLine.NowOnCallThenNext;
 
-    // As the Dashboard names people: someone only invited as the project knows them.
+    // As the Dashboard names people, a link to each one's page.
     const nameOf: OnCallNameOf = async (
       userId: ObjectID,
     ): Promise<MarkdownText> => {
-      const name: MarkdownText = await UserService.getUserMarkdownString({
-        userId: userId,
-        projectId: handoff.projectId,
-      });
-
-      return name.isEmpty() ? mdText`Somebody` : mdText`**${name}**`;
+      return mdText`**${await data.chat.nameIn(null)(userId)}**`;
     };
 
     const feedInfoInMarkdown: MarkdownText = await this.getLine({
@@ -604,10 +617,7 @@ export default class OnCallHandoffPosts {
         )}`;
       },
       notPagedOf: async (userId: ObjectID): Promise<OnCallNotPagedPerson> => {
-        return {
-          name: await nameOf(userId),
-          because: this.getNotPagedBecause(data.notPaged, userId),
-        };
+        return this.getNotPagedPerson(data.notPaged, userId);
       },
     });
 
@@ -655,6 +665,8 @@ export default class OnCallHandoffPosts {
     policy: MarkdownText;
     policyAlone: MarkdownText;
     notPaged: OnCallNotPagedPeople;
+    // Each person's name in each workspace, asked once for all the lines.
+    chat: OnCallChatByWorkspace;
   }): Promise<void> {
     const handoff: OnCallHandoff = data.handoff;
     const posts: Array<OnCallChatPost> = this.getChatPosts(handoff);
@@ -663,11 +675,7 @@ export default class OnCallHandoffPosts {
       return;
     }
 
-    // Each person's name in each workspace, asked once for all the lines.
-    const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
-      projectId: handoff.projectId,
-      timezone: handoff.scheduleTimezone,
-    });
+    const chat: OnCallChatByWorkspace = data.chat;
 
     // Nothing connected: nowhere to post.
     if ((await chat.getWorkspaceTypes()).length === 0) {
@@ -677,7 +685,7 @@ export default class OnCallHandoffPosts {
     const notPagedOf: OnCallNotPagedOf = async (
       userId: ObjectID,
     ): Promise<OnCallNotPagedPerson> => {
-      return this.getNotPagedInChannel(data.notPaged, userId);
+      return this.getNotPagedPerson(data.notPaged, userId);
     };
 
     for (const post of posts) {
@@ -917,7 +925,9 @@ export default class OnCallHandoffPosts {
 
         people.set(userId.toString().toLowerCase(), {
           because: OnCallNotPagedBecause.NotJoinedYet,
-          displayName: this.getDisplayName(invited.inviteeName),
+          displayName: OnCallChatByWorkspace.getDisplayName(
+            invited.inviteeName,
+          ),
         });
       }
 
@@ -943,7 +953,9 @@ export default class OnCallHandoffPosts {
         if (user.id) {
           people.set(user.id.toString().toLowerCase(), {
             because: OnCallNotPagedBecause.NotAMember,
-            displayName: this.getDisplayName(user.name?.toString()),
+            displayName: OnCallChatByWorkspace.getDisplayName(
+              user.name?.toString(),
+            ),
           });
         }
       }
@@ -963,16 +975,6 @@ export default class OnCallHandoffPosts {
     return people;
   }
 
-  /*
-   * A name a channel may say: trimmed, and none when it is empty or holds
-   * an email address - an inviter can type one as the name (#10586).
-   */
-  public static getDisplayName(name: string | null | undefined): string {
-    const trimmed: string = (name || "").trim();
-
-    return trimmed.includes("@") ? "" : trimmed;
-  }
-
   // Why nothing pages somebody, as read: not a member when unread.
   private static getNotPagedBecause(
     notPaged: OnCallNotPagedPeople,
@@ -985,10 +987,10 @@ export default class OnCallHandoffPosts {
   }
 
   /*
-   * Somebody nothing pages, as a channel says them: their display name -
-   * as text, linking nowhere - or none, and why.
+   * Somebody nothing pages, as a channel and the policy's feed say them:
+   * their display name - as text, linking nowhere - or none, and why.
    */
-  private static getNotPagedInChannel(
+  private static getNotPagedPerson(
     notPaged: OnCallNotPagedPeople,
     userId: ObjectID,
   ): OnCallNotPagedPerson {
