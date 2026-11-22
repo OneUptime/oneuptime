@@ -85,7 +85,7 @@ function facts(
 }
 
 describe("what a channel is told", () => {
-  test("the headline, the hunt linked to its page on the run's window, its search, and the window in each reader's time", () => {
+  test("the headline, the hunt linked to its page on the events its run counted, its search, and when they arrived in each reader's time", () => {
     const markdown: string = buildHuntFoundChannelMarkdown(facts()).toString();
     const paragraphs: Array<string> = markdown.split("\n\n");
 
@@ -95,9 +95,9 @@ describe("what a channel is told", () => {
     expect(paragraphs[2]).toBe(
       "Search: `processname:powershell.exe commandline:-enc`",
     );
-    // Each moment as both workspaces show it in the reader's own zone and clock.
+    // When they arrived, each moment as both workspaces show it in the reader's own zone and clock.
     expect(paragraphs[3]).toBe(
-      `Events from ${WorkspaceMessageTime.dateAndTime(WINDOW.startTime).toString()} to ${WorkspaceMessageTime.dateAndTime(WINDOW.endTime).toString()}`,
+      `Events that arrived from ${WorkspaceMessageTime.dateAndTime(WINDOW.startTime).toString()} to ${WorkspaceMessageTime.dateAndTime(WINDOW.endTime).toString()}`,
     );
   });
 

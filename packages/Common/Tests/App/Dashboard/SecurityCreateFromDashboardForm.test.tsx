@@ -47,6 +47,23 @@ const WAIT: { timeout: number } = { timeout: 20000 };
 
 const mockCreateOrUpdate: MockFunction = getJestMockFunction();
 
+/*
+ * How long the project keeps its security events is read from the server
+ * on its own (SecurityEventRetentionUi.test.tsx): not known here, so
+ * nothing is said of it (#10432).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retention/UseSecurityEventRetention",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -92,6 +109,22 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
     },
   };
 });
+
+/*
+ * The notice about events that arrived too late for the rules reads the
+ * server on its own (SecurityEventsLateArrivalsNotice.test.tsx).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 
 import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";

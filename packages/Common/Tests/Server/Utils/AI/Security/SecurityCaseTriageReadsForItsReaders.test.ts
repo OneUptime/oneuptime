@@ -56,6 +56,11 @@ import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesSt
  * by a label where a team reads every kind only for some labels, never
  * reaches the triage; checkout-api does. Before #9612 a triage read the
  * whole project as OneUptime, and these fail.
+ *
+ * The triage is posted on the case and its timeline alone, so the team's
+ * labels narrow it only while somebody on the team may read security cases
+ * (#9632) - as the harness's member does, through the Security team. A team
+ * none of whose members may read cases sets nothing apart from it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -272,6 +277,47 @@ describe("a security case's triage, read for everyone who may see the case", () 
     await triage();
 
     expect(JSON.stringify(written)).toContain(SET_APART_MONITOR_NAME);
+    expect(JSON.stringify(written)).toContain(OPEN_MONITOR_NAME);
+  });
+});
+
+describe("a security case's triage, narrowed only by what reaches somebody who may read the case (#9632)", () => {
+  test("a team that reads every kind only for some labels, none of whose members may read security cases, sets no monitor apart from the triage", async () => {
+    readersOfAProject({
+      narrowedByLabels: true,
+      narrowedTeamReadsSecurityCases: false,
+    });
+    theCase({});
+    const model: ModelReadingMonitors = modelReadsMonitors({
+      answerTail: ANSWER_TAIL,
+    });
+
+    await triage();
+
+    // Nobody who may read the case reads any kind only by label.
+    expect(model.toolProps).toEqual([
+      readAudienceProps(
+        readAudienceOf({
+          projectId: PROJECT_ID,
+          named: { SecurityCase: [CASE_ID.toString()] },
+        }),
+      ),
+    ]);
+    expect(JSON.stringify(written)).toContain(SET_APART_MONITOR_NAME);
+    expect(JSON.stringify(written)).toContain(OPEN_MONITOR_NAME);
+  });
+
+  test("the same team narrows the triage again once somebody on it may read security cases: the monitor set apart never reaches the case or its timeline", async () => {
+    readersOfAProject({
+      narrowedByLabels: true,
+      narrowedTeamReadsSecurityCases: true,
+    });
+    theCase({});
+    modelReadsMonitors({ answerTail: ANSWER_TAIL });
+
+    await triage();
+
+    expect(JSON.stringify(written)).not.toContain(SET_APART_MONITOR_NAME);
     expect(JSON.stringify(written)).toContain(OPEN_MONITOR_NAME);
   });
 });

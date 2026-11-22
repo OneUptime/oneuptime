@@ -683,10 +683,17 @@ describe("a step's button", () => {
     expect(
       within(step).getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkbox),
     ).not.toBeChecked();
+    // Its steps too: a one-step block from the case (#10342) is read by what it blocks.
     expect(getListMock).toHaveBeenCalledWith(
       expect.objectContaining({
         modelType: SecurityPlaybookRun,
-        select: { _id: true, securityPlaybookId: true, status: true },
+        select: {
+          _id: true,
+          securityPlaybookId: true,
+          status: true,
+          steps: true,
+          stepResults: true,
+        },
       }),
     );
   });

@@ -61,6 +61,12 @@ export interface BlocklistDestination {
   key: string;
   name: string;
   provider: string;
+  /*
+   * It enforces on every machine (#10346): Microsoft Defender, CrowdStrike
+   * Falcon. Such a destination holds only what is blocked everywhere, never
+   * an address blocked at the edge alone.
+   */
+  enforcesOnEveryMachine?: boolean | undefined;
 }
 
 export interface BlocklistDestinations {
@@ -176,6 +182,7 @@ export async function readBlocklistDestinations(): Promise<BlocklistDestinations
         key,
         name,
         provider: readText(object?.["provider"]) || "",
+        enforcesOnEveryMachine: object?.["enforcesOnEveryMachine"] === true,
       });
     }
   }

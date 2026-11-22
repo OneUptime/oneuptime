@@ -51,6 +51,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * THE WORK ONEUPTIME AI DOES ON A DATA SECURITY ISSUE WHEN IT OPENS
@@ -83,9 +84,9 @@ let world: World;
 let decisions: Array<DataSecurityAiDecision>;
 let proposals: Array<DataSecurityAiProposal>;
 let transitions: Array<{ fromStatuses: unknown; set: { status: string } }>;
-let analyze: jest.SpiedFunction<typeof DataSecurityIssueAnalysis.analyze>;
+let analyze: SpyInstance<typeof DataSecurityIssueAnalysis.analyze>;
 let action: DataSecurityAiAction;
-let issueFeed: jest.SpiedFunction<
+let issueFeed: SpyInstance<
   typeof DataSecurityIssueFeedService.createDataSecurityIssueFeedItem
 >;
 

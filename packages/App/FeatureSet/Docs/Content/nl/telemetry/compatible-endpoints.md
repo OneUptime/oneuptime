@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-De `1` aan het eind van de DSN is verplicht voor de SDK's van Sentry en wordt niet gelezen. De DSN van een browserapp is openbaar, dus gebruik daar een **Browser**-ingestiesleutel, met de origins van je site erop.
+De `1` aan het eind van de DSN is verplicht voor de SDK's van Sentry en wordt niet gelezen. De DSN van een browserapp is openbaar, dus gebruik daar een **Browser**-ingestiesleutel, met de origins van je site erop. Alles wat hij verstuurt, wordt dan ingedeeld als RUM-telemetrie van die browserapp, nooit als backend-service.
 
 ### Wat een envelop wordt
 

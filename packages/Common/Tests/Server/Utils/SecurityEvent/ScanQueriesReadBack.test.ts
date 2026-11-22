@@ -207,7 +207,7 @@ describe("the log scan's query, written down, reads as nothing", () => {
     );
 
     expect(line).toContain(`(version ${CLICKHOUSE_VERSION} (official build))`);
-    expect(line).toContain("multiSearchAnyCaseInsensitive(body, [unhex('");
+    expect(line).toContain("multiSearchAnyCaseInsensitive(body, CAST(unhex('");
     expect(line.toLowerCase()).not.toContain("${jndi:");
     expect(line.toLowerCase()).not.toContain("%24%7bjndi");
     expect(eventsOf(line)).toEqual([]);

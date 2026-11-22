@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Ettallet `1` på slutten av DSN-en kreves av SDK-ene til Sentry og leses ikke. DSN-en til en nettleserapp er offentlig, så bruk en inntaksnøkkel av typen **Nettleser** der, med opprinnelsene til nettstedet ditt på.
+Ettallet `1` på slutten av DSN-en kreves av SDK-ene til Sentry og leses ikke. DSN-en til en nettleserapp er offentlig, så bruk en inntaksnøkkel av typen **Nettleser** der, med opprinnelsene til nettstedet ditt på. Alt den sender, arkiveres da som RUM-telemetri for den nettleserappen, aldri som en backend-tjeneste.
 
 ### Hva en konvolutt blir til
 

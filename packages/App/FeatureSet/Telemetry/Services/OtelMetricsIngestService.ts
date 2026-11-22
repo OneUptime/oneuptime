@@ -1755,6 +1755,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
 
           /*
+           * A RUM client's datapoints - a browser's or a mobile app's, and
+           * everything a Browser or Mobile key writes, stamped as one
+           * (PinRumClientResource, #10539) - name no cloud resource. A
+           * cloud-monitoring receiver names its resources on each datapoint,
+           * not the resource, so the resource allowlist cannot stop a key
+           * copied out of a page or an app from sending a datapoint with an
+           * `azuremonitor.resource_id`; this does, before discovery reads it.
+           */
+          const mayNameCloudResources: boolean = !this.getRumClientType(
+            resourceAttributes_raw,
+          );
+
+          /*
            * Synthetic per-host heartbeat. Lets users alert on "host went
            * silent" by querying `count(oneuptime.host.heartbeat) > 0`
            * over a window instead of relying on the presence of a
@@ -2558,9 +2571,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                         /*
                          * A cloud-monitoring datapoint is about one cloud
                          * resource, named on the datapoint - read off the
-                         * FINAL row, like the queue key above.
+                         * FINAL row, like the queue key above. Never a RUM
+                         * client's (mayNameCloudResources).
                          */
-                        cloudMonitoredResources.observeMetricRow(metricRow);
+                        if (mayNameCloudResources) {
+                          cloudMonitoredResources.observeMetricRow(metricRow);
+                        }
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;

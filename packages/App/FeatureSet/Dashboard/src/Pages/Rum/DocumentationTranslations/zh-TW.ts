@@ -17,8 +17,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "然後將它設為應用程式的**第一個**匯入，這樣檢測會在其他任何程式碼執行之前修補 `fetch`：",
   "Replace `storefront-web` with your application's name. It is how the app appears in OneUptime, so keep it stable: a new name registers a new application.":
     "將 `storefront-web` 替換為您的應用程式名稱。應用程式在 OneUptime 中以此名稱顯示，因此請保持不變：新名稱會註冊為新的應用程式。",
-  "> **Setting `service.name` alone is not enough.** The OpenTelemetry browser SDKs do not add `browser.*` attributes unless you enable the browser resource detector or set them yourself — without them this becomes a backend Service, not a RUM application.":
-    "> **僅設定 `service.name` 是不夠的**。OpenTelemetry 瀏覽器 SDK 不會加入 `browser.*` 屬性，除非您啟用瀏覽器資源偵測器或自行設定——沒有這些屬性，它會成為後端服務，而不是 RUM 應用程式。",
+  "> **Keep `browserDetector`.** Everything a Browser key sends is filed as this application, but the OpenTelemetry browser SDKs add no `browser.*` attributes unless you enable the browser resource detector or set them yourself — and without `browser.platform` the **Clients** tab lists no platforms.":
+    "> **保留 `browserDetector`**。瀏覽器金鑰傳送的所有內容都會以此應用程式的形式儲存，但 OpenTelemetry 瀏覽器 SDK 不會加入 `browser.*` 屬性，除非您啟用瀏覽器資源偵測器或自行設定——沒有 `browser.platform`，**用戶端**分頁不會列出任何平台。",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "在步驟 1 中選擇一個擷取金鑰來填入 `<YOUR_API_KEY>`。",
   "Merge it into your existing `connect-src` directive. No Content Security Policy on your site? Skip this step.":
@@ -27,8 +27,10 @@ const TRANSLATION: SetupGuideTranslation = {
     '`200` 加上 `"valid": true` 表示 OneUptime 接受該金鑰——對於瀏覽器金鑰，訊息還會說明它只能在瀏覽器中、從其允許的來源之一使用。`401` 表示該金鑰不明、已撤銷、已停用或已到期。',
   "Then load a page of your site. Within a minute the application appears under **Real User Monitoring**, named after its `service.name`, with page views, error rate and p95 duration.":
     "然後載入您網站的一個頁面。一分鐘內，該應用程式會以其 `service.name` 命名出現在**真實使用者監測**中，並顯示頁面瀏覽量、錯誤率和 p95 持續時間。",
-  "OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
-    "當資源帶有用戶端屬性時，OneUptime 會將遙測歸類為 **RUM**——對於網頁，即 `browser.platform`、`browser.language` 或非空的 `browser.brands` 中的任一個。應用程式以 `service.name`（不區分大小寫）識別，其遙測屬於此 RUM 應用程式——絕不會再以後端服務的形式重複儲存。",
+  "Everything a Browser key sends is filed as this browser app, whatever its resource says. The key keeps only what a page says about itself on the resource — such as its `service.*`, `browser.*`, `user_agent.*` and `telemetry.*` attributes and its `oneuptime.label.*` labels — and drops the rest, so a copied key cannot pass its telemetry off as a host, a cluster or a backend service.":
+    "瀏覽器金鑰傳送的所有內容都會以此瀏覽器應用程式的形式儲存，無論其資源怎麼寫。金鑰只保留資源中頁面對自身的描述——例如其 `service.*`、`browser.*`、`user_agent.*` 和 `telemetry.*` 屬性以及 `oneuptime.label.*` 標籤——其餘全部丟棄，因此複製的金鑰無法將其遙測冒充為主機、叢集或後端服務。",
+  "With any other key, OneUptime classifies telemetry as **RUM** when its resource carries client attributes — for web, any of `browser.platform`, `browser.language` or a non-empty `browser.brands`. The application is identified by `service.name` (matched case-insensitively), and its telemetry is owned by this RUM application — it is never duplicated as a backend Service.":
+    "使用其他任何金鑰時，當資源帶有用戶端屬性時，OneUptime 會將遙測歸類為 **RUM**——對於網頁，即 `browser.platform`、`browser.language` 或非空的 `browser.brands` 中的任一個。應用程式以 `service.name`（不區分大小寫）識別，其遙測屬於此 RUM 應用程式——絕不會再以後端服務的形式重複儲存。",
   "| Attribute | Required | What it does |": "| 屬性 | 必要 | 作用 |",
   "| `service.name` | **yes** | The application's identity, e.g. `storefront-web`. Renaming it later creates a new application. |":
     "| `service.name` | **是** | 應用程式的識別，例如 `storefront-web`。之後重新命名會建立新的應用程式。 |",
@@ -62,8 +64,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "OpenTelemetry 瀏覽器 SDK 不會自動攔截未處理的錯誤。請明確回報它們，讓它們與後端錯誤一起出現在**例外**檢視中：",
   "Traces are enough to fill the overview. Add log and metric pipelines if you want browser logs searchable in OneUptime, or Core Web Vitals:":
     "追蹤足以填滿概覽。如果您想在 OneUptime 中搜尋瀏覽器日誌，或查看 Core Web Vitals，請加入日誌和指標管線：",
-  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object: a pipeline whose resource lacks `browser.*` is filed as a separate backend Service.":
-    "它們的匯出器使用相同的 `x-oneuptime-token` 標頭傳送到 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` 和 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`——程式碼請見[瀏覽器設定](/docs/rum/browser-setup)。請使用同一個 `resource` 物件建構它們：資源中沒有 `browser.*` 的管線會被儲存為獨立的後端服務。",
+  "Their exporters send to `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` and `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics` with the same `x-oneuptime-token` header — [Browser Setup](/docs/rum/browser-setup) has the code. Build them with the same `resource` object, so their logs and metrics are filed under this application too.":
+    "它們的匯出器使用相同的 `x-oneuptime-token` 標頭傳送到 `<YOUR_ONEUPTIME_URL>/otlp/v1/logs` 和 `<YOUR_ONEUPTIME_URL>/otlp/v1/metrics`——程式碼請見[瀏覽器設定](/docs/rum/browser-setup)。請使用同一個 `resource` 物件建構它們，這樣它們的日誌和指標也會歸入此應用程式之下。",
   "The **Core Web Vitals** card — LCP, INP, CLS, FCP and TTFB — is filled only from metrics your app reports, under names such as `web_vital.lcp`. [Core Web Vitals](/docs/rum/web-vitals) lists the names OneUptime reads and wires up the `web-vitals` library.":
     "**Core Web Vitals** 卡片（LCP、INP、CLS、FCP 和 TTFB）只由您的應用程式以 `web_vital.lcp` 等名稱回報的指標填入。[Core Web Vitals](/docs/rum/web-vitals) 列出了 OneUptime 讀取的名稱，並說明如何接上 `web-vitals` 程式庫。",
   "Any resource attribute prefixed `oneuptime.label.` becomes a project label on the application — `oneuptime.label.env` set to `production` adds the label `env:production`:":
@@ -104,8 +106,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **`401`**——該金鑰不明、已撤銷或已到期。在步驟 5 中執行金鑰檢查，並在步驟 1 中選擇或建立有效的瀏覽器金鑰。",
   "- **`404`** — the URL is wrong. The trace exporter needs the full path, `/otlp/v1/traces`.":
     "- **`404`**——URL 錯誤。追蹤匯出器需要完整路徑 `/otlp/v1/traces`。",
-  "The resource carries no browser attribute, so the telemetry was filed as a backend Service. Enable `browserDetector` as in step 3, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
-    "資源中沒有任何瀏覽器屬性，因此遙測被儲存為後端服務。請像步驟 3 那樣啟用 `browserDetector`，或自行設定 `browser.*` 屬性（請見進階中的**OneUptime 如何識別瀏覽器應用程式**）。",
+  "The telemetry was sent with a key other than a Browser key, and its resource carries no browser attribute, so it was filed as a backend Service. Send with a Browser key (step 1), which files everything it sends as this app, or set the `browser.*` attributes yourself (**How OneUptime recognises a browser app** under Advanced).":
+    "該遙測是用瀏覽器金鑰以外的金鑰傳送的，且其資源中沒有任何瀏覽器屬性，因此被儲存為後端服務。請使用瀏覽器金鑰（步驟 1）傳送——它會將傳送的所有內容以此應用程式的形式儲存——或自行設定 `browser.*` 屬性（請見進階中的**OneUptime 如何識別瀏覽器應用程式**）。",
   "Confirm what you send in DevTools → **Network** → the OTLP request → **Payload**: `resourceSpans[0].resource.attributes` is the list that decides it.":
     "在 DevTools → **Network** → OTLP 請求 → **Payload** 中檢查您傳送的內容：決定結果的是 `resourceSpans[0].resource.attributes` 清單。",
   "The Service that was already created does not turn into a RUM application — the two are separate records — so delete it once RUM telemetry arrives.":
@@ -160,8 +162,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "`device.manufacturer` 也會將一批資料標記為行動裝置，但僅限於沒有 `host.name` 或 `host.id` 的資源——它在主機的資產清單項目中也代表實體機器的製造商。同時設定 `device.id` 或 `device.model.identifier`，就永遠不會遇到這種區分。",
   "`device.id` should be an install-scoped identifier, not an advertising ID or anything that identifies a person.":
     "`device.id` 應是每次安裝的識別碼，而不是廣告 ID 或任何能識別個人的資訊。",
-  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs and metrics, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
-    "> **任何擁有您應用程式的人都能複製它的金鑰**。這正是它是行動裝置金鑰的原因：複本只能傳送此應用程式的追蹤、日誌和指標，歸入該金鑰所固定的服務名稱之下，且絕不能從網頁傳送。它仍然可以在金鑰的限額內為此應用程式傳送捏造的資料，因此請設定到期時間、隨版本發布輪替金鑰，並在遭到濫用時將它關閉。",
+  "> **Anyone who has your app can copy its key.** That is why it is a Mobile key: a copy can only send this app's traces, logs, metrics and session replays, filed under the service name the key is pinned to, and never from a web page. It can still send made-up data for this app, up to the key's limit, so set an expiry, rotate the key with your releases, and turn it off if it is misused.":
+    "> **任何擁有您應用程式的人都能複製它的金鑰**。這正是它是行動裝置金鑰的原因：複本只能傳送此應用程式的追蹤、日誌、指標和工作階段重播，歸入該金鑰所固定的服務名稱之下，且絕不能從網頁傳送。它仍然可以在金鑰的限額內為此應用程式傳送捏造的資料，因此請設定到期時間、隨版本發布輪替金鑰，並在遭到濫用時將它關閉。",
   "Each of these is on the key's page in **Project Settings > Telemetry & APM > Ingestion Keys**: **Pinned Service Name** is the app everything the key sends is filed under, **Requests Per Minute Limit** caps the key across every copy of your app, **Expires At** stops it being accepted after a date, and **Enabled** turns it off at once.":
     "這些都在**專案設定 > 遙測與 APM > 擷取金鑰**中該金鑰的頁面上：**固定的服務名稱**是該金鑰傳送的所有內容所歸入的應用程式，**每分鐘請求數上限**在您應用程式的所有複本之間限制該金鑰，**到期於**讓它在某個日期之後不再被接受，**已啟用**可立即將它關閉。",
   "Never ship a **Server** key in an app instead: it can write every kind of telemetry into this project, from anywhere, as any service.":
@@ -170,8 +172,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **Android**——[OpenTelemetry Android](https://github.com/open-telemetry/opentelemetry-android) 代理程式（`io.opentelemetry.android:android-agent`）會在自己的資源上設定 `device.model.identifier`、`device.model.name` 和 `device.manufacturer`，因此無需額外設定即可完成歸類，而且它會自行回報當機、ANR、緩慢與凍結的影格、應用程式啟動以及工作階段。除非您設定 `service.name`，否則它會以啟動器標籤為應用程式命名，而且不會傳送 `device.id`。[Android 設定](/docs/rum/android-setup)提供了 Gradle 相依項目、程式碼，以及每一項在 OneUptime 中對應什麼。",
   "- **iOS / Swift** — with [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift), set `device.model.identifier` and `device.manufacturer` on the resource yourself: the resource an SDK version contributes has changed between releases.":
     "- **iOS / Swift**——使用 [opentelemetry-swift](https://github.com/open-telemetry/opentelemetry-swift) 時，請自行在資源上設定 `device.model.identifier` 和 `device.manufacturer`：各 SDK 版本加入的資源在不同版本之間有所變化。",
-  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app.":
-    "- **React Native / Expo**——執行 JavaScript SDK，因此設定與[瀏覽器設定](/docs/rum/browser-setup)中的瀏覽器設定相同，但有兩點不同：沒有 `browserDetector`，而且您需要自行設定 `device.manufacturer` 和 `device.model.identifier`，讓**用戶端**分頁列出裝置。它與任何行動應用程式一樣使用**行動裝置**金鑰傳送。",
+  "- **React Native / Expo** — runs the JavaScript SDK, so the setup is the browser one from [Browser Setup](/docs/rum/browser-setup) with two differences: there is no `browserDetector`, and you set `device.manufacturer` and `device.model.identifier` yourself so the **Clients** tab lists the devices. It sends with a **Mobile** key, like any mobile app, and so do its [session replays](/docs/telemetry/session-replay#install-in-react-native): give the replay SDK the same key, with the key's pinned service name as `appIdentifier`.":
+    "- **React Native / Expo**——執行 JavaScript SDK，因此設定與[瀏覽器設定](/docs/rum/browser-setup)中的瀏覽器設定相同，但有兩點不同：沒有 `browserDetector`，而且您需要自行設定 `device.manufacturer` 和 `device.model.identifier`，讓**用戶端**分頁列出裝置。它與任何行動應用程式一樣使用**行動裝置**金鑰傳送，其[工作階段重播](/docs/telemetry/session-replay#install-in-react-native)也是如此：為重播 SDK 提供同一個金鑰，並將該金鑰固定的服務名稱用作 `appIdentifier`。",
   "- **Anything else** — Flutter, Unity, .NET MAUI or a hand-rolled OTLP writer work the same way, as long as the resource carries `service.name` plus one `device.*` attribute.":
     "- **其他任何方式**——Flutter、Unity、.NET MAUI 或手寫的 OTLP 寫入器都以同樣的方式運作，只要資源帶有 `service.name` 加上一個 `device.*` 屬性。",
   "The mobile OpenTelemetry SDKs change their builder APIs between releases. [Mobile Setup](/docs/rum/mobile-setup) has code for each; check the method names against the version you pin.":
@@ -186,8 +188,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- **用戶端**——曾出現此應用程式的裝置型號，來自 `device.model.identifier`。依型號粗略統計，絕不依個別終端使用者統計。",
   "A `401` means the key is unknown, revoked, disabled or expired: pick or create a Mobile key in step 1 and rebuild the app with it.":
     "`401` 表示該金鑰不明、已撤銷、已停用或已到期：請在步驟 1 中選擇或建立行動裝置金鑰，並用它重新建置應用程式。",
-  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and never from a web page: an SDK that exports over gRPC, or a request that carries an `Origin` header, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
-    "`422` 會說明遭到拒絕的內容。行動裝置金鑰只透過 HTTP 傳送應用程式的 OTLP 追蹤、日誌和指標，絕不從網頁傳送：透過 gRPC 匯出的 SDK，或帶有 `Origin` 標頭的請求，都會遭到拒絕。瀏覽器金鑰能通過檢查，但從行動應用程式傳送時會遭到拒絕，因為它需要 `Origin` 標頭，而行動裝置 SDK 不會傳送。",
+  "A `422` says what was refused. A Mobile key sends only the app's OTLP traces, logs and metrics, over HTTP, and its session replays, and never from a web page: an SDK that exports over gRPC, a request that carries an `Origin` header, or another app's recording, is refused. A Browser key passes the check but is refused from a mobile app, because it needs an `Origin` header and mobile SDKs send none.":
+    "`422` 會說明遭到拒絕的內容。行動裝置金鑰只透過 HTTP 傳送應用程式的 OTLP 追蹤、日誌和指標，以及該應用程式的工作階段重播，絕不從網頁傳送：透過 gRPC 匯出的 SDK、帶有 `Origin` 標頭的請求，或其他應用程式的錄製，都會遭到拒絕。瀏覽器金鑰能通過檢查，但從行動應用程式傳送時會遭到拒絕，因為它需要 `Origin` 標頭，而行動裝置 SDK 不會傳送。",
   "The telemetry was sent with a Server key, and its resource carries no `device.id` or `device.model.identifier`, so it was filed as a backend Service. Send with a Mobile key (step 1), which files everything it sends as this app, or set them on the SDK's resource, as in step 2.":
     "該遙測是用伺服器金鑰傳送的，且其資源中既沒有 `device.id` 也沒有 `device.model.identifier`，因此被儲存為後端服務。請使用行動裝置金鑰（步驟 1）傳送——它會將傳送的所有內容以此應用程式的形式儲存——或者像步驟 2 那樣在 SDK 的資源上設定這些屬性。",
   "Client rows come from `device.model.identifier` specifically. An SDK that only sets `device.manufacturer` classifies as mobile, but lists no clients — set `device.model.identifier` as well.":

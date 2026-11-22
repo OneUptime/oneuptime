@@ -63,6 +63,12 @@ import URL from "Common/Types/API/URL";
 import { DOCS_URL } from "Common/UI/Config";
 import { OPEN_FOR_EVERY_EMAIL_DOCS_PATH } from "Common/Types/Monitor/IncomingEmailMonitor/OpenForEveryEmail";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import {
+  getGroupingRecovery,
+  GroupingRecovery,
+  withAlertsResolvingOnTheirOwn,
+  withIncidentsResolvingOnTheirOwn,
+} from "../../../Utils/Form/Monitor/GroupingRecovery";
 
 export interface ComponentProps {
   monitorStatusDropdownOptions: Array<DropdownOption>;
@@ -301,6 +307,50 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       groupByJSONPath: "",
     };
     monitorCriteriaInstance.setIncidentGrouping({ ...current, ...patch });
+    if (props.onChange) {
+      props.onChange(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
+    }
+  };
+
+  /*
+   * What a recovery the payload reports resolves, and what it leaves open
+   * because its incident or alert does not resolve on its own (#10550).
+   */
+  const groupingRecovery: GroupingRecovery = getGroupingRecovery(
+    monitorCriteriaInstance.data,
+  );
+
+  /*
+   * The incident and alert forms below read their rows once, when they are
+   * drawn. Turning a row's Auto Resolve on from here draws them again, so
+   * they show it.
+   */
+  const [incidentsFormVersion, setIncidentsFormVersion] = useState<number>(0);
+  const [alertsFormVersion, setAlertsFormVersion] = useState<number>(0);
+
+  const turnOnAutoResolve: (kind: "incident" | "alert") => void = (
+    kind: "incident" | "alert",
+  ): void => {
+    if (kind === "incident") {
+      monitorCriteriaInstance.setIncidents(
+        withIncidentsResolvingOnTheirOwn(
+          monitorCriteriaInstance.data?.incidents || [],
+        ),
+      );
+      setIncidentsFormVersion((version: number) => {
+        return version + 1;
+      });
+    } else {
+      monitorCriteriaInstance.setAlerts(
+        withAlertsResolvingOnTheirOwn(
+          monitorCriteriaInstance.data?.alerts || [],
+        ),
+      );
+      setAlertsFormVersion((version: number) => {
+        return version + 1;
+      });
+    }
+
     if (props.onChange) {
       props.onChange(MonitorCriteriaInstance.clone(monitorCriteriaInstance));
     }
@@ -648,6 +698,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
 
               <MonitorCriteriaAlertsForm
+                key={alertsFormVersion}
                 initialValue={monitorCriteriaInstance?.data?.alerts || []}
                 alertSeverityDropdownOptions={
                   props.alertSeverityDropdownOptions
@@ -713,6 +764,7 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               />
 
               <MonitorCriteriaIncidentsForm
+                key={incidentsFormVersion}
                 initialValue={monitorCriteriaInstance?.data?.incidents || []}
                 incidentSeverityDropdownOptions={
                   props.incidentSeverityDropdownOptions
@@ -999,26 +1051,87 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                         </div>
                       </div>
                     </div>
-                    {incidentGrouping?.resolvedWhenJSONPath &&
-                      incidentGrouping?.resolvedWhenValue && (
-                        <p className="ml-7 mt-2 text-xs text-gray-500">
-                          <TranslatedSentence
-                            template="Resolves an incident when {{field}} equals {{value}}."
-                            slots={{
-                              field: (
-                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                                  {incidentGrouping.resolvedWhenJSONPath}
-                                </code>
-                              ),
-                              value: (
-                                <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
-                                  {incidentGrouping.resolvedWhenValue}
-                                </code>
-                              ),
-                            }}
-                          />
-                        </p>
-                      )}
+                    {/*
+                     * What a recovery resolves - only what is set to resolve
+                     * on its own - and, with the switch that would resolve
+                     * it, what it leaves open (#10550).
+                     */}
+                    {groupingRecovery.isNamed && incidentGrouping && (
+                      <div
+                        className="ml-7 mt-2 space-y-2"
+                        data-testid="monitor-criteria-grouping-recovery"
+                      >
+                        {(groupingRecovery.resolvesIncidents ||
+                          groupingRecovery.resolvesAlerts) && (
+                          <p className="text-xs text-gray-500">
+                            <TranslatedSentence
+                              template={
+                                groupingRecovery.resolvesIncidents &&
+                                groupingRecovery.resolvesAlerts
+                                  ? "Resolves an incident and an alert when {{field}} equals {{value}}."
+                                  : groupingRecovery.resolvesAlerts
+                                    ? "Resolves an alert when {{field}} equals {{value}}."
+                                    : "Resolves an incident when {{field}} equals {{value}}."
+                              }
+                              slots={{
+                                field: (
+                                  <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                    {incidentGrouping.resolvedWhenJSONPath}
+                                  </code>
+                                ),
+                                value: (
+                                  <code className="rounded bg-gray-100 px-1 py-0.5 font-mono text-gray-700">
+                                    {incidentGrouping.resolvedWhenValue}
+                                  </code>
+                                ),
+                              }}
+                            />
+                          </p>
+                        )}
+
+                        {groupingRecovery.leavesIncidentsOpen && (
+                          <div
+                            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-900"
+                            data-testid="monitor-criteria-grouping-incidents-left-open"
+                          >
+                            <span className="min-w-0 flex-1">
+                              {translator.translateText(
+                                "A recovery leaves this criteria's incidents open until Auto Resolve Incident is on.",
+                              )}
+                            </span>
+                            <Button
+                              title="Turn On Auto Resolve Incident"
+                              buttonStyle={ButtonStyleType.NORMAL}
+                              buttonSize={ButtonSize.Small}
+                              onClick={() => {
+                                turnOnAutoResolve("incident");
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {groupingRecovery.leavesAlertsOpen && (
+                          <div
+                            className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-900"
+                            data-testid="monitor-criteria-grouping-alerts-left-open"
+                          >
+                            <span className="min-w-0 flex-1">
+                              {translator.translateText(
+                                "A recovery leaves this criteria's alerts open until Auto Resolve Alert is on.",
+                              )}
+                            </span>
+                            <Button
+                              title="Turn On Auto Resolve Alert"
+                              buttonStyle={ButtonStyleType.NORMAL}
+                              buttonSize={ButtonSize.Small}
+                              onClick={() => {
+                                turnOnAutoResolve("alert");
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Safety cap — kept compact and out of the way */}

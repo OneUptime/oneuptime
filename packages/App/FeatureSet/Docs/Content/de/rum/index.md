@@ -49,7 +49,7 @@ Das Seitenmenü einer Anwendung gliedert ihre Seiten so; **Entwickler** und **Er
 
 ## Wie OneUptime RUM erkennt
 
-Die meisten Fragen der Art „meine App taucht nicht auf“ enden hier. OneUptime entscheidet für jeden Telemetrie-Batch beim Eintreffen anhand seiner **Ressourcenattribute**:
+Die meisten Fragen der Art „meine App taucht nicht auf“ enden hier. Alles, was ein **Browser**-Schlüssel sendet, ist Browser-RUM, und alles, was ein **Mobil**-Schlüssel sendet, ist mobiles RUM, egal was seine Ressource sagt. Mit jedem anderen Schlüssel entscheidet OneUptime für jeden Telemetrie-Batch beim Eintreffen anhand seiner **Ressourcenattribute**:
 
 1. Ein Batch, dessen Ressource `browser.platform`, `browser.language` oder ein nicht leeres `browser.brands` hat, ist **Browser**-RUM.
 2. Andernfalls ist ein Batch mit `device.id` oder `device.model.identifier` **mobiles** RUM.
@@ -71,7 +71,7 @@ Backend-SDKs setzen nie `browser.*`, `device.id` oder `device.model.identifier`,
 OneUptime findet die Anwendung über `service.name`, ohne Rücksicht auf Groß- und Kleinschreibung, und legt sie an, wenn das Projekt noch keine hat. Ein neuer `service.name` startet eine neue Anwendung. Halten Sie ihn also stabil und unterscheiden Sie Umgebungen mit einem Label statt mit einem neuen Namen. [Anwendungen verwalten](/docs/rum/applications) behandelt Namen, Labels, Eigentümer und Aufbewahrung.
 
 > [!IMPORTANT]
-> Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder die Attribute selbst setzen. Mit nur `service.name` wird die Telemetrie ein Backend-Dienst, keine RUM-Anwendung. [Einrichtung für Browser](/docs/rum/browser-setup) zeigt beide Wege.
+> Das OpenTelemetry-Browser-SDK fügt keine `browser.*`-Attribute hinzu, solange Sie nicht den Browser-Ressourcendetektor einbinden oder die Attribute selbst setzen. Mit einem Browser-Schlüssel gesendet, bleibt die Telemetrie eine RUM-Anwendung, aber ihre Seite **Clients** listet keine Plattformen auf; mit jedem anderen Schlüssel und nur `service.name` wird sie ein Backend-Dienst, keine RUM-Anwendung. [Einrichtung für Browser](/docs/rum/browser-setup) zeigt beide Wege.
 
 ## Was Sie bekommen
 
@@ -94,7 +94,7 @@ Eine Anwendung zeigt **Empfängt Daten**, solange Telemetrie eintrifft, und **Ke
 :::steps
 ### Ingestion-Schlüssel erstellen
 
-Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Mobil**-Schlüssel, festgelegt auf den `service.name` der App: Er wird mit der App ausgeliefert und kann daher nur die Traces, Logs und Metriken dieser App senden.
+Öffnen Sie **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und klicken Sie auf **Ingestion-Schlüssel erstellen**. Eine Web-App braucht einen **Browser**-Schlüssel, der nur von den Ursprüngen aus funktioniert, die Sie angeben. Eine Mobil-App braucht einen **Mobil**-Schlüssel, festgelegt auf den `service.name` der App: Er wird mit der App ausgeliefert und kann daher nur die Traces, Logs, Metriken und Sitzungswiedergaben dieser App senden.
 
 ### App instrumentieren
 

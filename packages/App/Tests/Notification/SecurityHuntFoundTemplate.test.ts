@@ -91,12 +91,13 @@ describe("the email a scheduled hunt sends", () => {
     expect(fs.existsSync(TEMPLATE)).toBe(true);
   });
 
-  test("says the hunt, what it found, the time range it read, its search and its project, in that order", () => {
+  test("says the hunt, what it found, when those events arrived, its search and its project, in that order", () => {
+    // When they arrived (#10488): a run counts what arrived, whenever it happened.
     expect(
       rows(render()).map((row: DetailCardRow): string => {
         return row.label;
       }),
-    ).toEqual(["Hunt:", "Found:", "Time Range:", "Search:", "Project:"]);
+    ).toEqual(["Hunt:", "Found:", "Arrived:", "Search:", "Project:"]);
 
     const html: string = render();
 

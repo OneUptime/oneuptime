@@ -1,4 +1,17 @@
 import Project from "../../../../../Models/DatabaseModels/Project";
+import SecurityBlock from "../../../../../Models/DatabaseModels/SecurityBlock";
+import SecurityBlockEnforcement from "../../../../../Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityBlockEnforcementService from "../../../../../Server/Services/SecurityBlockEnforcementService";
+import SecurityBlockService from "../../../../../Server/Services/SecurityBlockService";
+import AddressBlocks, {
+  AddressBlockEvidence,
+} from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressBlocks";
+import {
+  SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockState,
+} from "../../../../../Types/SecurityBlocklist/SecurityBlock";
+import { SecurityBlockEnforcementState } from "../../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseStepCheck from "../../../../../Models/DatabaseModels/SecurityCaseStepCheck";
@@ -625,6 +638,168 @@ describe("marking a case Contained", () => {
     ).toBe(SecurityCaseStepCheckState.LooksDone);
     expect(outcome.isContained).toBe(false);
     expect(recorded.updates).toEqual([]);
+  });
+
+  /*
+   * #10562: the project's Blocklist is a source of the address's blocks.
+   * The case's block step is read through the real source, from the
+   * blocks and enforcement rows the database holds, with the app's
+   * requests faked as before.
+   */
+  describe("through the Blocklist", () => {
+    let blocklist: Array<SecurityBlock>;
+    let enforcement: Array<SecurityBlockEnforcement>;
+
+    beforeEach(() => {
+      blocklist = [];
+      enforcement = [];
+
+      jest
+        .spyOn(SecurityBlockService, "findBy")
+        .mockImplementation(async (findBy: unknown): Promise<any> => {
+          const query: JSONObject = (findBy as { query: JSONObject }).query;
+
+          return blocklist.filter((block: SecurityBlock): boolean => {
+            return (
+              block.state === query["state"] &&
+              (query["value"] === undefined ||
+                block.value === query["value"]) &&
+              (query["indicatorType"] === undefined ||
+                block.indicatorType === query["indicatorType"])
+            );
+          });
+        });
+      jest
+        .spyOn(SecurityBlockEnforcementService, "findForBlocks")
+        .mockImplementation(
+          async (): Promise<Array<SecurityBlockEnforcement>> => {
+            return enforcement;
+          },
+        );
+    });
+
+    function blockOfAddress(): SecurityBlock {
+      const block: SecurityBlock = new SecurityBlock(
+        new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-000000000001"),
+      );
+      block.projectId = PROJECT_ID;
+      block.value = ADDRESS;
+      block.indicatorType = SecurityBlockIndicatorType.IpAddress;
+      block.action = SecurityBlockAction.Block;
+      block.state = SecurityBlockState.Active;
+      block.createdAt = at(24);
+      block.expiresAt = at(24 * 60);
+      return block;
+    }
+
+    function rowAt(data: {
+      state: SecurityBlockEnforcementState;
+      appliedAt?: Date;
+      lastConfirmedAt?: Date;
+    }): SecurityBlockEnforcement {
+      const row: SecurityBlockEnforcement = new SecurityBlockEnforcement();
+      row.securityBlockId = new ObjectID(
+        "bbbbbbbb-bbbb-4bbb-8bbb-000000000001",
+      );
+      row.destinationName = "Cloudflare";
+      row.state = data.state;
+
+      if (data.appliedAt) {
+        row.appliedAt = data.appliedAt;
+      }
+
+      if (data.lastConfirmedAt) {
+        row.lastConfirmedAt = data.lastConfirmedAt;
+      }
+
+      return row;
+    }
+
+    async function runThroughBlocklist(
+      minute: number,
+    ): Promise<StepCheckRunOutcome> {
+      return await SecurityCaseStepCheckRunner.checkCase({
+        securityCase: scannerCase(),
+        now: at(minute),
+        evidence: (): StepCheckEvidence => {
+          return {
+            ...fakeEvidence({ appRequests: TURNED_AWAY }).evidence,
+            readAddressBlocks: (
+              address: string,
+            ): Promise<Array<AddressBlockEvidence>> => {
+              return AddressBlocks.read({
+                projectId: PROJECT_ID,
+                address,
+                now: at(minute),
+              });
+            },
+          };
+        },
+      });
+    }
+
+    function blockStepCheck(): SecurityCaseStepCheck | undefined {
+      return recorded.created.find((check: SecurityCaseStepCheck): boolean => {
+        return check.stepKey === BLOCK_KEY;
+      });
+    }
+
+    test("moves the case to Contained once a destination holds the block and read it back", async () => {
+      blocklist.push(blockOfAddress());
+      enforcement.push(
+        rowAt({
+          state: SecurityBlockEnforcementState.Applied,
+          appliedAt: at(25),
+          lastConfirmedAt: at(59),
+        }),
+      );
+
+      const outcome: StepCheckRunOutcome = await runThroughBlocklist(60);
+
+      expect(blockStepCheck()?.state).toBe(SecurityCaseStepCheckState.Verified);
+      expect(outcome.isContained).toBe(true);
+      expect(recorded.updates).toEqual([
+        expect.objectContaining({
+          id: CASE_ID,
+          data: {
+            securityCaseStatusId: testStatusId(SecurityCaseStage.Contained),
+          },
+          miscDataProps: { [SECURITY_CASE_CONTAINED_BY_CHECKS_KEY]: true },
+        }),
+      ]);
+    });
+
+    test("a block the Blocklist records that nothing holds leaves the case to a person", async () => {
+      blocklist.push(blockOfAddress());
+      enforcement.push(rowAt({ state: SecurityBlockEnforcementState.Pending }));
+
+      const outcome: StepCheckRunOutcome = await runThroughBlocklist(60);
+
+      expect(blockStepCheck()?.state).toBe(
+        SecurityCaseStepCheckState.LooksDone,
+      );
+      expect(outcome.isContained).toBe(false);
+      expect(recorded.updates).toEqual([]);
+    });
+
+    test("a lifted block is no block: the case waits for a person", async () => {
+      blocklist.push(blockOfAddress());
+      blocklist[0]!.state = SecurityBlockState.Lifted;
+      enforcement.push(
+        rowAt({
+          state: SecurityBlockEnforcementState.Removed,
+          appliedAt: at(25),
+          lastConfirmedAt: at(40),
+        }),
+      );
+
+      const outcome: StepCheckRunOutcome = await runThroughBlocklist(60);
+
+      expect(blockStepCheck()?.state).toBe(
+        SecurityCaseStepCheckState.LooksDone,
+      );
+      expect(outcome.isContained).toBe(false);
+    });
   });
 
   test("never moves a case that is contained already", async () => {

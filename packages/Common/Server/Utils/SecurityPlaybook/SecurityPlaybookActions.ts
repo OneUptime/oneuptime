@@ -55,6 +55,7 @@ import {
   SendWebhookConfig,
   SetCasePriorityConfig,
   SetCaseStatusConfig,
+  readBlockAddressConfig,
   readTaskLines,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { SecurityPlaybookTarget } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
@@ -113,6 +114,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import Includes from "../../../Types/BaseDatabase/Includes";
 import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
+import SecurityPlaybookAddressBlocks from "./SecurityPlaybookAddressBlocks";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
 import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
 import SecurityPlaybookDataStoreResponse from "./SecurityPlaybookDataStoreResponse";
@@ -142,6 +144,12 @@ export interface PlaybookStepContext {
    * approver left them. Picked here when the run has none yet.
    */
   targets?: Array<SecurityPlaybookTarget> | undefined;
+  /*
+   * A person's one-step run from a case, not a playbook's (#10342): a
+   * block it makes is the person's (triggeredByUserId), as one from the
+   * Blocklist page is.
+   */
+  isOneStepRun?: boolean | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -296,6 +304,10 @@ export default class SecurityPlaybookActions {
       case SecurityPlaybookActionType.EnableEntraIdUser:
       case SecurityPlaybookActionType.UnsuspendGoogleWorkspaceUser:
         return await this.contain(context);
+      // An address, on the project's blocklist (#10342).
+      case SecurityPlaybookActionType.BlockAddress:
+      case SecurityPlaybookActionType.LiftAddressBlock:
+        return await this.blockOrLiftAddress(context);
     }
 
     return failed(
@@ -1382,6 +1394,51 @@ export default class SecurityPlaybookActions {
         context.step.config["isolationType"] === DefenderIsolationType.Selective
           ? DefenderIsolationType.Selective
           : DefenderIsolationType.Full,
+    });
+  }
+
+  /*
+   * Block the address, or lift its block (#10342), on the step's targets:
+   * the case's public addresses by the target rule, as the approver left
+   * them, held to the protected list as it is right now. The blocklist
+   * checks each again - protected, own, already blocked - as it writes it.
+   */
+  private static async blockOrLiftAddress(
+    context: PlaybookStepContext,
+  ): Promise<PlaybookStepOutcome> {
+    const targets: Array<SecurityPlaybookTarget> = context.targets
+      ? SecurityPlaybookTargets.protect({
+          targets: context.targets,
+          rules: await SecurityProtectedEntityService.getRules({
+            projectId: context.projectId,
+            entityType: SecurityEntityType.IpAddress,
+          }),
+        })
+      : await SecurityPlaybookTargets.selectTargets({
+          projectId: context.projectId,
+          securityCase: context.securityCase,
+          entityType: SecurityEntityType.IpAddress,
+        });
+
+    if (context.step.action === SecurityPlaybookActionType.LiftAddressBlock) {
+      return await SecurityPlaybookAddressBlocks.lift({
+        projectId: context.projectId,
+        targets,
+        reason: `Lifted by playbook ${context.playbookName}.`,
+      });
+    }
+
+    return await SecurityPlaybookAddressBlocks.block({
+      projectId: context.projectId,
+      runId: context.runId,
+      securityCaseId: context.securityCase.id!,
+      reason: context.securityCase.title || undefined,
+      config: readBlockAddressConfig(context.step.config),
+      targets,
+      personId:
+        context.isOneStepRun && context.triggeredByUserId
+          ? context.triggeredByUserId
+          : undefined,
     });
   }
 

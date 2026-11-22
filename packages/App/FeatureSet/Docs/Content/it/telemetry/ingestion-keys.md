@@ -35,13 +35,13 @@ Scegliete il tipo in base a dove vivrà la chiave. Il tipo non si può cambiare 
 
 | | **Server** | **Browser** | **Mobile** |
 | --- | --- | --- | --- |
-| Per | Applicazioni, collector e agenti su macchine che gestite | Pagine web, e React Native Session Replay | Un'app iOS, Android o React Native |
-| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche, Session Replay ed [eventi di Sentry](/docs/telemetry/compatible-endpoints#sdk-di-sentry) | Le tracce, i log e le metriche di quell'app, tramite OTLP/HTTP |
+| Per | Applicazioni, collector e agenti su macchine che gestite | Pagine web | Un'app iOS, Android o React Native |
+| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche, Session Replay ed [eventi di Sentry](/docs/telemetry/compatible-endpoints#sdk-di-sentry) | Le tracce, i log e le metriche di quell'app, tramite OTLP/HTTP, e le sue Session Replay |
 | È un segreto | Sì: tenetela sui vostri server | No: chiunque visualizzi la pagina può leggerla | No: chiunque abbia l'app può copiarla |
 | Origini | Non verificate | Sono accettate solo le origini elencate | Una richiesta da una pagina web viene rifiutata |
 | Richieste al minuto | Nessun limite, a meno che non ne impostiate uno | 6.000, a meno che non impostiate un altro limite | 6.000, a meno che non impostiate un altro limite |
 
-Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT, per i profili, Syslog, Fluent Bit e Fluentd, e per il caricamento delle source map, e una chiave Mobile ovunque tranne per tracce, log e metriche OTLP su HTTP. Per passare un mittente a un altro tipo, create una chiave di quel tipo, spostate il mittente su di essa, poi eliminate la vecchia chiave.
+Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT, per i profili, Syslog, Fluent Bit e Fluentd, e per il caricamento delle source map, e una chiave Mobile ovunque tranne per tracce, log e metriche OTLP su HTTP e le Session Replay della sua app. Per passare un mittente a un altro tipo, create una chiave di quel tipo, spostate il mittente su di essa, poi eliminate la vecchia chiave.
 
 ## Prima di iniziare
 
@@ -85,16 +85,16 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## Proteggere una chiave Browser
 
-Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Chiave di acquisizione**.
+Una chiave Browser sta nella vostra pagina, dove chiunque può copiarla. Tutto ciò che invia viene archiviato come un'applicazione RUM del browser, mai come un host, un cluster, una risorsa cloud, un database o un servizio backend: della risorsa impostata da un mittente, la chiave tiene solo ciò che una pagina dice di sé, come gli attributi `service.*`, `browser.*` e `user_agent.*` e le etichette `oneuptime.label.*`. Queste impostazioni limitano ciò che una copia può fare. Cambiatele nella pagina della chiave con **Modifica: Chiave di acquisizione**.
 
 | Impostazione | Che cosa fa |
 | --- | --- |
 | **Origini consentite** | Le sole origini da cui la chiave è accettata. Una richiesta da qualsiasi altra origine, o senza alcuna intestazione `Origin`, viene rifiutata. Una chiave Browser deve conservarne almeno una. |
-| **Nome del servizio fissato** | Archivia tutto ciò che la chiave invia su OTLP/HTTP sotto quest'unico servizio, qualunque `service.name` abbia impostato il mittente. Una copia della chiave può allora scrivere solo in quel servizio. |
+| **Nome del servizio fissato** | Archivia tutto ciò che la chiave invia su OTLP/HTTP sotto quest'unica applicazione, qualunque `service.name` abbia impostato il mittente. Una copia della chiave può allora scrivere solo in quell'applicazione. |
 | **Limite di richieste al minuto** | Il numero massimo di richieste per cui la chiave è accettata ogni minuto, condiviso da tutti i visitatori. Una chiave Browser ne riceve 6.000 se lasciate il campo vuoto. |
 | **Scade il** | La data dopo la quale la chiave viene rifiutata, così una copia pubblicata smette di funzionare. |
 
-Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.com` non copre `https://app.example.com:8443`. Un `*.` iniziale copre ogni sottodominio, ma non il dominio stesso. React Native Session Replay invia un'identità `app://` esatta, che non accetta caratteri jolly:
+Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.com` non copre `https://app.example.com:8443`. Un `*.` iniziale copre ogni sottodominio, ma non il dominio stesso. React Native Session Replay inviato con una chiave Browser porta un'identità `app://` esatta, che non accetta caratteri jolly:
 
 ```json
 [
@@ -111,11 +111,11 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 Una chiave Mobile viaggia dentro la vostra app, e chiunque abbia l'app può copiarla. Questi limiti tengono ogni copia legata all'app per cui è stata creata:
 
 - **Scrive solo come un'app.** Tutto ciò che invia è archiviato sotto il suo **Nome del servizio fissato** come applicazione RUM mobile, qualunque servizio o host indichi il mittente. Una copia non può scrivere nei vostri servizi backend, host o cluster.
-- **Invia solo la telemetria di quell'app.** Tracce, log e metriche OTLP su HTTP. Viene rifiutata su gRPC e MQTT, per le Session Replay, i profili e le source map, su ogni altro endpoint e da qualsiasi pagina web.
+- **Invia solo la telemetria di quell'app.** Tracce, log e metriche OTLP su HTTP, e le Session Replay dell'app dal suo registratore React Native, con il **Nome del servizio fissato** della chiave come `appIdentifier`. Viene rifiutata su gRPC e MQTT, per le Session Replay di un'altra app, i profili e le source map, su ogni altro endpoint e da qualsiasi pagina web.
 - **Ha un limite di frequenza.** 6.000 richieste al minuto per tutte le copie insieme, a meno che non impostiate il suo **Limite di richieste al minuto**.
 - **Potete fermarla.** Disattivate **Abilitato**, o impostate **Scade il**, e ogni copia viene rifiutata in pochi secondi.
 
-Cosa non può impedire: chi ha la vostra app può comunque inviare tracce, log e metriche inventati per quell'unica app, fino al limite della chiave, finché non la disattivate o non scade. Ruotate la chiave a ogni rilascio, così una vecchia copia smette di funzionare con la sua versione.
+Cosa non può impedire: chi ha la vostra app può comunque inviare tracce, log, metriche e Session Replay inventati per quell'unica app, fino al limite della chiave, finché non la disattivate o non scade. Ruotate la chiave a ogni rilascio, così una vecchia copia smette di funzionare con la sua versione.
 
 ## Ruotare, disattivare o eliminare una chiave
 
@@ -144,7 +144,8 @@ Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ci�
 | `422` con `This telemetry ingestion key has been disabled.` | Qualcuno ha disattivato **Abilitato**. |
 | `422` con `A browser ingestion key cannot be used for` | Una chiave Browser ha raggiunto un endpoint che accetta solo chiavi Server. |
 | `422` con `did not send an Origin header` | Una chiave Browser è stata inviata da fuori un browser. Usate una chiave Mobile in un'app mobile, e una chiave Server ovunque altrove. |
-| `422` con `A mobile ingestion key cannot be used for` | Una chiave Mobile ha raggiunto un endpoint diverso da tracce, log e metriche OTLP su HTTP, come gRPC o Session Replay. |
+| `422` con `A mobile ingestion key cannot be used for` | Una chiave Mobile ha raggiunto un endpoint diverso da tracce, log e metriche OTLP su HTTP e Session Replay, come gRPC o i profili. |
+| `422` con `A mobile ingestion key can send session replays only` | Una chiave Mobile ha inviato la registrazione di una pagina web, o quella di un'altra app. Date al registratore React Native il **Nome del servizio fissato** della chiave come `appIdentifier`. |
 | `422` con `A mobile ingestion key cannot be used from a web page` | Una chiave Mobile è stata inviata da un browser. In una pagina web usate una chiave Browser. |
 | `422` con `is not allowed for this browser ingestion key` | L'origine della pagina non è in **Origini consentite**. |
 | `422` con `is pinned to a single service` | Una chiave con un **Nome del servizio fissato** è stata usata per registrare un agente. Usate una chiave Server senza nome fissato. |

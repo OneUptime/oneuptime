@@ -56,6 +56,14 @@ import {
   SecurityCaseEventsAddResult,
   readSecurityCaseEventsAddResult,
 } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import {
+  SecurityEventLateArrivals,
+  parseLateArrivals,
+} from "Common/Types/SecurityEvent/SecurityEventLateArrival";
+import {
+  SecurityEventRetentionStatus,
+  parseSecurityEventRetentionStatus,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -429,6 +437,27 @@ export default class SecurityCaseApi {
     const body: JSONObject = await post("/detection-rule/retrohunt", request);
 
     return parseDetectionRetrohuntResult(body);
+  }
+
+  /*
+   * The security events that arrived more than a day after they happened
+   * in the last week (POST /detection-rule/late-arrivals, #10491), which no
+   * rule's run checked: how many, from which sources, and when. Null when
+   * the answer is not one.
+   */
+  public static async getLateArrivals(): Promise<SecurityEventLateArrivals | null> {
+    return parseLateArrivals(await post("/detection-rule/late-arrivals", {}));
+  }
+
+  /*
+   * How long the project keeps its security events, and the enabled rules
+   * that read further back (POST /detection-rule/retention, #10432). Null
+   * when the answer is not one.
+   */
+  public static async getSecurityEventRetention(): Promise<SecurityEventRetentionStatus | null> {
+    return parseSecurityEventRetentionStatus(
+      await post("/detection-rule/retention", {}),
+    );
   }
 
   /*

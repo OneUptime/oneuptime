@@ -30,7 +30,7 @@ import {
   STEP_BLOCK_DOMAIN,
   STEP_BLOCK_EVERYWHERE_WITH,
   STEP_BLOCK_FILE_WITH,
-  STEP_BLOCK_WAITING,
+  STEP_BLOCK_EVERYWHERE_WAITING,
   STEP_QUARANTINE_FILE,
   STEP_QUARANTINE_FILE_WITH,
   STEP_QUARANTINE_FILE_WITH_TWO,
@@ -184,7 +184,7 @@ describe("a domain's step", () => {
     expect(step.isDone).toBe(false);
     expect(step.action).toBeUndefined();
     expect(step.detail).toEqual({
-      template: STEP_BLOCK_WAITING,
+      template: STEP_BLOCK_EVERYWHERE_WAITING,
       values: { product: "Microsoft Defender" },
     });
   });

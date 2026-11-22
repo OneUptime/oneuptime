@@ -1143,8 +1143,10 @@ import { AddCloudAppPlatformCloudResourceIndexAndKey1809187383710 } from "./1809
 import { AddSecurityCaseStepChecks1809187390000 } from "./1809187390000-AddSecurityCaseStepChecks";
 import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-AddSecurityCaseNextStepCheckIndex";
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
-import { AddSecurityBlockReachAndWiderValue1809187410000 } from "./1809187410000-AddSecurityBlockReachAndWiderValue";
-import { AddSecurityBlockValueReachIndex1809187410010 } from "./1809187410010-AddSecurityBlockValueReachIndex";
+import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
+import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
+import { AddSecurityBlockReachAndWiderValue1809187421200 } from "./1809187421200-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187421210 } from "./1809187421210-AddSecurityBlockValueReachIndex";
 
 export default [
   InitialMigration,
@@ -2292,6 +2294,8 @@ export default [
   AddSecurityCaseStepChecks1809187390000,
   AddSecurityCaseNextStepCheckIndex1809187390010,
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
-  AddSecurityBlockReachAndWiderValue1809187410000,
-  AddSecurityBlockValueReachIndex1809187410010,
+  AddDetectionRunMarksAndFiringKeys1809187421130,
+  AddDetectionRuleLastFailedAt1809187421140,
+  AddSecurityBlockReachAndWiderValue1809187421200,
+  AddSecurityBlockValueReachIndex1809187421210,
 ];

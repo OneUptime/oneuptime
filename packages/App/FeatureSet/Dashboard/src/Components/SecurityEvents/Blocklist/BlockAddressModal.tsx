@@ -214,6 +214,8 @@ export interface ComponentProps {
   securityCaseId?: ObjectID | undefined;
   // What it blocks: an address unless said (#10346).
   kind?: BlocklistKind | undefined;
+  // The address it starts on: a campaign's, blocked from its row (#10342).
+  initialValue?: string | undefined;
 }
 
 const BlockAddressModal: FunctionComponent<ComponentProps> = (
@@ -414,6 +416,7 @@ const BlockAddressModal: FunctionComponent<ComponentProps> = (
       formProps={{
         name: words.blockTitle,
         initialValues: typed || {
+          ...(props.initialValue ? { [VALUE_FIELD]: props.initialValue } : {}),
           [EXPIRES_FIELD]: BLOCKLIST_KIND_DEFAULT_DURATIONS[kind],
           [UNTIL_LIFTED_FIELD]: false,
           ...(kind === BlocklistKind.Addresses

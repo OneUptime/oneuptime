@@ -11,6 +11,7 @@ import RequestBodyJson from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import { APP_REQUEST_BODY_LIMIT_FIELD } from "../Utils/RequestBodyRefusal";
 import GzipRequestBodyMiddleware from "./GzipRequestBody";
+import RequestBodyParser from "./RequestBodyParser";
 
 /*
  * A BODY READ ONCE ITS CALLER IS KNOWN (#10222).
@@ -26,9 +27,10 @@ import GzipRequestBodyMiddleware from "./GzipRequestBody";
  *   - readBytes leaves the body's bytes in req.body, unparsed: a gzip body
  *     inflated by GzipRequestBody (bounded, and its values counted as it
  *     inflates when it is JSON), any other as it was sent. Both are held to
- *     the limit's bytes. A probe's collection reads them this way, and a
- *     probe that sent no headers has its key read from them before they
- *     are parsed (ProbeReportOpening).
+ *     the limit's bytes. A probe's collection reads them this way once its
+ *     headers named the probe. An older probe names itself only at the
+ *     start of its report, and its body is read no further than that until
+ *     the key there is checked (RequestBodyOpening, #10260).
  *   - readJson reads them and parses them, counted first (RequestBodyJson),
  *     for a route whose caller's key is in its headers, checked before
  *     this runs.
@@ -40,7 +42,8 @@ import GzipRequestBodyMiddleware from "./GzipRequestBody";
 /*
  * The bytes of a body of any type, one reader per size. A body compressed
  * another way than gzip is inflated by body-parser itself, held to the same
- * size, or refused (415) when it is no way it reads.
+ * size, or refused (415) when it is no way it reads. A body over the size is
+ * refused without the rest of it read (RequestBodyParser, #10598).
  */
 const rawReaders: Map<number, RequestHandler> = new Map();
 
@@ -50,12 +53,12 @@ const rawReaderFor: (bytes: number) => RequestHandler = (
   let reader: RequestHandler | undefined = rawReaders.get(bytes);
 
   if (!reader) {
-    reader = ExpressRaw({
+    reader = RequestBodyParser.create(ExpressRaw, {
       type: (): boolean => {
         return true;
       },
       limit: bytes,
-    }) as RequestHandler;
+    });
     rawReaders.set(bytes, reader);
   }
 

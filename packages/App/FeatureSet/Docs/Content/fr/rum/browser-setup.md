@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### Créer le fichier de télémétrie
 
-Créez `src/telemetry.ts`. `browserDetector` ajoute les attributs `browser.*` qui classent la télémétrie comme RUM, et `service.name` nomme l'application.
+Créez `src/telemetry.ts`. `browserDetector` ajoute les attributs `browser.*` que liste la page **Clients**, et `service.name` nomme l'application : tout ce qu'envoie une clé Navigateur y est classé comme RUM.
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ Tout ce que contient l'extrait est envoyé à vos visiteurs : n'importe qui peut
 | --- | --- |
 | **Origines autorisées** | Les requêtes ne sont acceptées que depuis ces origines, chacune avec son schéma et son port éventuel. Un hôte peut commencer par un seul joker `*.` : `https://*.example.com` couvre chaque sous-domaine de `example.com`, mais pas `example.com` lui-même. |
 | **Limite de requêtes par minute** | Un plafond unique pour tous les visiteurs qui utilisent la clé : 6000 requêtes par minute, sauf si vous fixez le vôtre. |
-| **Nom du service épinglé** | Impose `service.name` sur tout ce que la clé écrit, pour qu'une copie ne puisse pas faire passer sa télémétrie pour l'un de vos services backend. |
+| **Nom du service épinglé** | Impose `service.name` sur tout ce que la clé écrit, pour qu'une copie ne puisse écrire que dans cette seule application. |
 | **Expire le** | Après cette date, la clé n'est plus acceptée. |
 | **Activé** | Désactivez-le pour arrêter immédiatement une clé qui a fuité. |
 
-Une clé Navigateur écrit des traces, journaux et métriques OTLP, des relectures de session et des événements d'un [SDK Sentry dans le navigateur](/docs/telemetry/compatible-endpoints#sdk-sentry) ; toutes les autres voies d'ingestion la refusent. Vous modifiez ces paramètres sur la page de la clé. Le type de clé ne peut plus être changé une fois la clé créée.
+Une clé Navigateur écrit des traces, journaux et métriques OTLP, des relectures de session et des événements d'un [SDK Sentry dans le navigateur](/docs/telemetry/compatible-endpoints#sdk-sentry) ; toutes les autres voies d'ingestion la refusent. Tout ce qu'elle écrit est classé comme RUM navigateur, jamais comme un hôte, un cluster ou un service backend : de la ressource, elle ne garde que ce qu'une page dit d'elle-même, comme les attributs `service.*`, `browser.*` et `user_agent.*` et les étiquettes `oneuptime.label.*`. Vous modifiez ces paramètres sur la page de la clé. Le type de clé ne peut plus être changé une fois la clé créée.
 
 > [!WARNING]
 > Ne mettez jamais une clé **Serveur** dans une page. Une clé Serveur écrit tout type de télémétrie depuis n'importe où, sans vérification d'origine : quiconque lit votre page pourrait écrire dans votre projet.
@@ -179,7 +179,7 @@ Une clé Navigateur écrit des traces, journaux et métriques OTLP, des relectur
 
 `browserDetector` lit l'[API UA Client Hints](https://wicg.github.io/ua-client-hints/), que seuls les navigateurs Chromium possèdent. Sur Safari et Firefox, il définit `browser.language` et `user_agent.original`, mais pas `browser.platform`, `browser.brands` ni `browser.mobile`.
 
-Cela suffit pourtant à classer la télémétrie comme RUM, car `browser.language` seul marque un lot comme RUM navigateur. La page **Clients** liste toutefois les plateformes à partir de `browser.platform` : les visites depuis Safari et Firefox n'y ajoutent donc aucune ligne.
+Avec une clé Navigateur, la télémétrie est classée comme RUM dans tous les cas, et avec toute autre clé `browser.language` seul marque un lot comme RUM navigateur. La page **Clients** liste toutefois les plateformes à partir de `browser.platform` : les visites depuis Safari et Firefox n'y ajoutent donc aucune ligne.
 
 Pour vous passer du détecteur, ou pour donner une plateforme à chaque navigateur, définissez les attributs vous-même :
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-Construisez-les avec le même objet `resource`. Un pipeline de journaux ou de métriques dont la ressource n'a pas `browser.*` est classé comme service backend distinct.
+Construisez-les avec le même objet `resource`, pour que leurs journaux et métriques soient classés sous la même application.
 
 Un pipeline de journaux n'envoie que les entrées que votre code écrit : écrivez-en une partout où se passe quelque chose qui mérite d'être su :
 
@@ -452,7 +452,7 @@ Ouvrez les outils de développement de votre navigateur, allez dans l'onglet Ré
 :::
 
 :::details L'application apparaît sous Services au lieu de Surveillance des utilisateurs réels
-La ressource n'a aucun attribut `browser.*`, la télémétrie a donc été classée comme service backend. Ajoutez `browserDetector`, ou définissez les attributs comme dans [Définir `browser.*` sans le détecteur](#définir-browser-sans-le-détecteur).
+La télémétrie a été envoyée avec une autre clé qu'une clé Navigateur, et sa ressource n'a aucun attribut `browser.*` : elle a donc été classée comme service backend. Envoyez avec une clé Navigateur, qui classe tout ce qu'elle envoie comme RUM, ou ajoutez `browserDetector` ou définissez les attributs comme dans [Définir `browser.*` sans le détecteur](#définir-browser-sans-le-détecteur).
 
 Vérifiez ce que vous envoyez dans l'onglet Réseau, dans la charge utile de la requête : `resourceSpans[0].resource.attributes` est la liste qui en décide. Le service déjà créé ne devient pas une application RUM : supprimez-le sous **Produits → Services** dès que la télémétrie RUM arrive.
 :::

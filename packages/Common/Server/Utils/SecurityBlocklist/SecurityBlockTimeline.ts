@@ -191,11 +191,16 @@ export function blockNotAppliedMarkdown(data: {
 
 export default class SecurityBlockTimeline {
   /*
-   * One line on the case's timeline. Never throws (SecurityCaseFeedService).
-   * Every line is a change to one of the case's blocks - made, lifted,
-   * extended, ended, held at a destination or refused there - so the case's
-   * Response Plan steps are checked at once too (#10346): a step blocked
-   * from the plan reads done within moments of a destination holding it.
+   * One line on the case's timeline. Never throws (SecurityCaseFeedService,
+   * SecurityCaseStepChecks).
+   *
+   * Whatever the line says - a block made, lifted, extended or expired, a
+   * destination holding it or turning it down - changes what the case's
+   * block step is, so the case's steps are checked at once (#10562): a
+   * block a destination holds is Checked by OneUptime within a minute of
+   * it holding, and a lifted one no longer is. The same holds for a
+   * domain's, a file's and a command-and-control address's block on every
+   * machine (#10346).
    */
   public static async write(data: {
     projectId: ObjectID;
@@ -219,7 +224,6 @@ export default class SecurityBlockTimeline {
       ...(data.postedAt ? { postedAt: data.postedAt } : {}),
     });
 
-    // Never throws either: a block stands whether or not its case could be checked.
     await SecurityCaseStepChecks.requestCheck({
       projectId: data.projectId,
       securityCaseId: data.securityCaseId,
