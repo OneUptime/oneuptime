@@ -131,7 +131,7 @@ Sotto la classificazione, la scheda **OneUptime AI** dice come OneUptime AI sta 
 | **Affidato alle persone** | Si è fermato, e dice perché. |
 | **Il caso è chiuso** | Ha chiuso il caso, oppure l'ha fatto una persona. Il suo **Report di chiusura** è sopra i suoi passaggi. |
 
-Sotto, ogni passaggio che ha eseguito, chiesto o lasciato, dal più recente, ciascuno con il suo motivo: **Fatto in autonomia: le tue impostazioni lo consentono.**, **Secondo le tue impostazioni, questo attende l'approvazione di una persona.**, **OneUptime non ha modo di eseguire questo passaggio, quindi lo fa una persona.** Un passaggio su cui ha chiesto ha **Approva** e **Decline**; un passaggio che ha eseguito rimanda alla sua esecuzione, dove si può annullare. Un passaggio che OneUptime controlla dice cosa ha trovato il controllo, e un passaggio che ha già eseguito su casi della stessa regola dice quante volte ha retto: «Ha retto in 14 su 15 casi simili.»
+Sotto, ogni passaggio che ha eseguito, chiesto o lasciato, dal più recente, ciascuno con il suo motivo: **Fatto in autonomia: le tue impostazioni lo consentono.**, **Secondo le tue impostazioni, questo attende l'approvazione di una persona.**, **OneUptime non ha modo di eseguire questo passaggio, quindi lo fa una persona.** Un passaggio su cui ha chiesto ha **Approva** e **Rifiuta**; un passaggio che ha eseguito rimanda alla sua esecuzione, dove si può annullare. Un passaggio che OneUptime controlla dice cosa ha trovato il controllo, e un passaggio che ha già eseguito su casi della stessa regola dice quante volte ha retto: «Ha retto in 14 su 15 casi simili.»
 
 ### Un caso che valuta come innocuo o falso positivo
 
