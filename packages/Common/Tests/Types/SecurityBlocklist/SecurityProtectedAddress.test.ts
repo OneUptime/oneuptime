@@ -2,14 +2,20 @@ import {
   SECURITY_LOCAL_ADDRESS_RANGES,
   SECURITY_PROTECTED_ADDRESS_SENTENCES,
   SECURITY_PROTECTED_CLOUD_RESOURCE_WITHOUT_ACCOUNT,
+  SECURITY_PROTECTED_DOMAIN_HOLDS,
+  SECURITY_PROTECTED_INSIDE_RANGE,
   SECURITY_PROTECTED_OWN_ADDRESS,
+  SECURITY_PROTECTED_OWN_DOMAIN,
+  SECURITY_PROTECTED_RANGE_HOLDS,
   SECURITY_PROTECTED_RECORD_SOURCES,
+  SECURITY_PROTECTED_UNDER_DOMAIN,
   SecurityAddressProtection,
   SecurityProtectedAddressSource,
   SecurityProtectionOverlap,
   describeSecurityAddressProtection,
   findLocalRangeProtection,
   findProtectionAmong,
+  getSecurityProtectionLead,
   getSecurityProtectionOverlap,
   getSecurityProtectionSentence,
   isSecurityProtectionWithheld,
@@ -344,5 +350,147 @@ describe("SECURITY_PROTECTED_ADDRESS_SENTENCES", () => {
       expect(sentence!.startsWith("{{address}} ")).toBe(true);
       expect(sentence!.endsWith(".")).toBe(true);
     }
+  });
+});
+
+/*
+ * What protects a domain, a URL or a file (#10346): the same protections,
+ * the same sentences, with a domain's own leads.
+ */
+describe("protections of domains and files", () => {
+  test("the domain sources name their records only to whoever may read them", () => {
+    expect(SECURITY_PROTECTED_RECORD_SOURCES).toContain(
+      SecurityProtectedAddressSource.Monitor,
+    );
+    expect(SECURITY_PROTECTED_RECORD_SOURCES).toContain(
+      SecurityProtectedAddressSource.StatusPage,
+    );
+
+    const withheldDomain: SecurityAddressProtection = {
+      source: SecurityProtectedAddressSource.Monitor,
+      protectedValue: "api.acme.com",
+    };
+    const withheldAddress: SecurityAddressProtection = {
+      source: SecurityProtectedAddressSource.Host,
+      protectedValue: "203.0.113.10",
+    };
+
+    expect(isSecurityProtectionWithheld(withheldDomain)).toBe(true);
+    expect(getSecurityProtectionSentence(withheldDomain)).toBe(
+      SECURITY_PROTECTED_OWN_DOMAIN,
+    );
+    expect(getSecurityProtectionSentence(withheldAddress)).toBe(
+      SECURITY_PROTECTED_OWN_ADDRESS,
+    );
+  });
+
+  test("a block of a protected name's parent leads with what else it would block", () => {
+    expect(
+      getSecurityProtectionLead({
+        value: "acme.com",
+        protectedValue: "status.acme.com",
+      }),
+    ).toBe(SECURITY_PROTECTED_DOMAIN_HOLDS);
+    expect(
+      describeSecurityAddressProtection({
+        value: "acme.com",
+        protection: {
+          source: SecurityProtectedAddressSource.StatusPage,
+          protectedValue: "status.acme.com",
+          name: "Acme Status",
+        },
+      }),
+    ).toBe(
+      "Blocking acme.com would also block status.acme.com. status.acme.com is the domain of your status page Acme Status.",
+    );
+  });
+
+  test("a name or a URL under a protected domain leads with being part of it", () => {
+    expect(
+      getSecurityProtectionLead({
+        value: "evil.acme.com",
+        protectedValue: "acme.com",
+      }),
+    ).toBe(SECURITY_PROTECTED_UNDER_DOMAIN);
+    expect(
+      getSecurityProtectionLead({
+        value: "https://status.acme.com/x",
+        protectedValue: "status.acme.com",
+      }),
+    ).toBe(SECURITY_PROTECTED_UNDER_DOMAIN);
+    expect(
+      describeSecurityAddressProtection({
+        value: "evil.acme.com",
+        protection: {
+          source: SecurityProtectedAddressSource.ProjectDomain,
+          protectedValue: "acme.com",
+          name: "acme.com",
+        },
+      }),
+    ).toBe(
+      "evil.acme.com is part of acme.com. acme.com is a domain your project verified it owns.",
+    );
+  });
+
+  test("no lead for the same name, an unrelated one, or a `*.` entry", () => {
+    expect(
+      getSecurityProtectionLead({
+        value: "acme.com",
+        protectedValue: "acme.com",
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityProtectionLead({
+        value: "evil.example",
+        protectedValue: "acme.com",
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityProtectionLead({
+        value: "evil.acme.com",
+        protectedValue: "*.acme.com",
+      }),
+    ).toBeNull();
+  });
+
+  test("an address's leads are as they were", () => {
+    expect(
+      getSecurityProtectionLead({
+        value: "35.205.11.0/24",
+        protectedValue: "35.205.11.131",
+      }),
+    ).toBe(SECURITY_PROTECTED_RANGE_HOLDS);
+    expect(
+      getSecurityProtectionLead({
+        value: "35.205.11.131",
+        protectedValue: "35.205.11.0/24",
+      }),
+    ).toBe(SECURITY_PROTECTED_INSIDE_RANGE);
+  });
+
+  test("the empty file and the endpoint products say why", () => {
+    expect(
+      describeSecurityAddressProtection({
+        value: "d41d8cd98f00b204e9800998ecf8427e",
+        protection: {
+          source: SecurityProtectedAddressSource.EmptyFile,
+          protectedValue: "d41d8cd98f00b204e9800998ecf8427e",
+        },
+      }),
+    ).toBe(
+      "d41d8cd98f00b204e9800998ecf8427e is the hash of an empty file: blocking it would block every empty file on every machine.",
+    );
+    expect(
+      describeSecurityAddressProtection({
+        value: "windows.net",
+        protection: {
+          source: SecurityProtectedAddressSource.EndpointProduct,
+          protectedValue: "blob.core.windows.net",
+          name: "Microsoft Defender",
+        },
+      }),
+    ).toBe(
+      "Blocking windows.net would also block blob.core.windows.net. blob.core.windows.net is Microsoft Defender's own address: blocking it would cut your machines off from Microsoft Defender.",
+    );
   });
 });

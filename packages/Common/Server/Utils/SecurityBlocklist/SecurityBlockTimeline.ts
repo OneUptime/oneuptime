@@ -11,8 +11,11 @@ import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   describeSecurityBlockLength,
+  isSecurityBlockAddressType,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import FeedMarkdown, {
   MarkdownText,
@@ -59,12 +62,16 @@ function howLong(data: {
 
 export function blockAddedMarkdown(data: {
   value: string;
+  // What it holds: an address unless said (#10346).
+  indicatorType?: SecurityBlockIndicatorType | undefined;
   action: SecurityBlockAction;
+  // Where it is enforced: at the edge unless said.
+  reach?: SecurityBlockReach | undefined;
   source: SecurityBlockSource;
   createdAt: Date;
   expiresAt: Date | null | undefined;
   reason?: string | undefined;
-  // Whether anything enforces the project's blocklist at all.
+  // Whether anything is asked to hold it: a destination of its reach.
   hasDestinations: boolean;
 }): MarkdownText {
   const value: MarkdownText = FeedMarkdown.code(data.value);
@@ -73,15 +80,29 @@ export function blockAddedMarkdown(data: {
     until: data.expiresAt,
   });
   const isChallenge: boolean = data.action === SecurityBlockAction.Challenge;
+  const isQuarantine: boolean =
+    data.action === SecurityBlockAction.BlockAndQuarantine;
+  const isAddress: boolean = isSecurityBlockAddressType(
+    data.indicatorType || SecurityBlockIndicatorType.IpAddress,
+  );
+  // An address blocked everywhere says so; a domain, a URL or a file always is.
+  const where: MarkdownText =
+    isAddress && data.reach === SecurityBlockReach.Everywhere
+      ? mdText` on every machine`
+      : FeedMarkdown.empty();
 
   const line: MarkdownText =
     data.source === SecurityBlockSource.Person
       ? isChallenge
         ? mdText`🚫 Challenged ${value} ${length}.`
-        : mdText`🚫 Blocked ${value} ${length}.`
+        : isQuarantine
+          ? mdText`🚫 Blocked and quarantined ${value} ${length}.`
+          : mdText`🚫 Blocked ${value}${where} ${length}.`
       : isChallenge
         ? mdText`🚫 ${madeBy(data.source)} challenged ${value} ${length}.`
-        : mdText`🚫 ${madeBy(data.source)} blocked ${value} ${length}.`;
+        : isQuarantine
+          ? mdText`🚫 ${madeBy(data.source)} blocked and quarantined ${value} ${length}.`
+          : mdText`🚫 ${madeBy(data.source)} blocked ${value}${where} ${length}.`;
 
   const reason: MarkdownText = data.reason
     ? mdText` Reason: ${FeedMarkdown.textInLine(data.reason)}`
@@ -89,7 +110,9 @@ export function blockAddedMarkdown(data: {
 
   const enforcement: MarkdownText = data.hasDestinations
     ? FeedMarkdown.empty()
-    : mdText` Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list.`;
+    : isAddress && data.reach !== SecurityBlockReach.Everywhere
+      ? mdText` Nothing enforces the blocklist yet, so it is not blocked anywhere: connect Cloudflare, AWS WAF, Azure WAF, Cloud Armor or a firewall that reads a list.`
+      : mdText` Nothing blocks it on your machines yet: turn on blocking on your Microsoft Defender XDR or CrowdStrike Falcon connection.`;
 
   // The reason last: it is someone's words, which need not end a sentence.
   return mdText`${line}${enforcement}${reason}`;
@@ -175,7 +198,9 @@ export default class SecurityBlockTimeline {
    * destination holding it or turning it down - changes what the case's
    * block step is, so the case's steps are checked at once (#10562): a
    * block a destination holds is Checked by OneUptime within a minute of
-   * it holding, and a lifted one no longer is.
+   * it holding, and a lifted one no longer is. The same holds for a
+   * domain's, a file's and a command-and-control address's block on every
+   * machine (#10346).
    */
   public static async write(data: {
     projectId: ObjectID;

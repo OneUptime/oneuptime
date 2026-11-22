@@ -274,6 +274,36 @@ describe("where the blocklist is enforced", () => {
     ).toEqual([]);
   });
 
+  test("a destination on every machine never holds the edge's block of an address (#10346)", () => {
+    expect(
+      readDestinationNames({
+        destinations: [
+          { key: "a", name: "Cloudflare", provider: "Cloudflare" },
+          {
+            key: "b",
+            name: "Microsoft Defender",
+            provider: "MicrosoftDefender",
+            enforcesOnEveryMachine: true,
+          },
+        ],
+        cannotTell: false,
+      }),
+    ).toEqual(["Cloudflare"]);
+    expect(
+      readDestinationNames({
+        destinations: [
+          {
+            key: "b",
+            name: "Microsoft Defender",
+            provider: "MicrosoftDefender",
+            enforcesOnEveryMachine: true,
+          },
+        ],
+        cannotTell: false,
+      }),
+    ).toEqual([]);
+  });
+
   test("none listed and a kind could not be: OneUptime cannot tell, and the step is done by hand", () => {
     expect(
       readDestinationNames({ destinations: [], cannotTell: true }),

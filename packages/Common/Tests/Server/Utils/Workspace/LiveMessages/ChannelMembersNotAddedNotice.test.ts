@@ -235,15 +235,16 @@ describe("ChannelMembersNotAddedNotice", () => {
     });
   });
 
-  test("several people at once: one note naming them all; a person without a name by their email", async () => {
+  // A channel is not all the project's people to read: never an address (#10669).
+  test("several people at once: one note naming them all; a person without a name by the part of their email before the @", async () => {
     await note([NB_USER_3, JANE, NO_NAME]);
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postedText(0)).toContain(
-      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet, and they could not be found by their email addresses.",
+      "👥 **NB User 3**, **Jane Doe** and **noname** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet, and they could not be found by their email addresses.",
     );
     expect(postedNotificationText(0)).toBe(
-      "NB User 3, Jane Doe and noname@example.com could not be added to this channel",
+      "NB User 3, Jane Doe and noname could not be added to this channel",
     );
   });
 
