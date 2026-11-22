@@ -975,24 +975,22 @@ export default class AuditLogReadAccess {
       return;
     }
 
-    entry.changes = changes.map((change: JSONValue): JSONValue => {
+    entry.changes = changes.map((change: JSONObject): JSONObject => {
       if (!change || typeof change !== "object" || Array.isArray(change)) {
         return change;
       }
 
-      const field: unknown = (change as JSONObject)["field"];
+      const field: unknown = change["field"];
 
       if (
         !read.isRecordShown ||
         typeof field !== "string" ||
         !read.shownColumns.has(field)
       ) {
-        return hideAuditLogChange(change as JSONObject);
+        return hideAuditLogChange(change);
       }
 
-      return read.table
-        ? reads.holdRelatedNames(read.table, change as JSONObject)
-        : change;
+      return read.table ? reads.holdRelatedNames(read.table, change) : change;
     });
   }
 }
