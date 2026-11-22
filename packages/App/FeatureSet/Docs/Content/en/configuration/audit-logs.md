@@ -32,7 +32,7 @@ flowchart TB
 
 - **On OneUptime Cloud, the Enterprise plan.** On other plans, the audit log pages show what the feature does and how to get it.
 - **When you self-host, the Enterprise Edition**, with a license that includes audit logs. See [Enterprise Edition](/docs/self-hosted/enterprise).
-- **A role that reads the audit log.** Project Owner, Project Admin, Settings Admin, or the **Read Audit Log** permission. Turning audit logging on, and changing its settings, takes a Project Owner, a Project Admin, or permission to edit the project.
+- **A role that reads the audit log.** Project Owner, Project Admin, Settings Admin, or the **Read Audit Log** permission. An entry shows a field's values only if you may read that field on the resource itself, and a resource's name only if you may read the resource. Turning audit logging on, and changing its settings, takes a Project Owner, a Project Admin, or permission to edit the project.
 
 ## Turn on audit logging
 
