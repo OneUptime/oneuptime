@@ -48,17 +48,39 @@ export default class ProxyTunnelRefusal {
 
     const message: string =
       typeof refusal.message === "string" ? refusal.message : "";
-    const destination: string =
-      TUNNEL_DESTINATION.exec(message)?.[1] || "the server";
-    const answer: RegExpExecArray | null = PROXY_ANSWER.exec(message);
 
-    if (answer && answer[2] === "407") {
-      return `The outbound proxy did not take OneUptime's user name and password: it answered ${answer[1]}, so the request to ${destination} was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`;
+    return ProxyTunnelRefusal.word({
+      destination: TUNNEL_DESTINATION.exec(message)?.[1] || "the server",
+      answer: ProxyTunnelRefusal.getAnswer(message),
+    });
+  }
+
+  // What the proxy answered, its status line, in Node's message; or null.
+  public static getAnswer(nodeMessage: string): string | null {
+    return PROXY_ANSWER.exec(nodeMessage || "")?.[1] || null;
+  }
+
+  /*
+   * The refusal of a tunnel to `destination` ("host:port"), with what the
+   * proxy answered, when it said: a 407 is the proxy not taking OneUptime's
+   * user name and password, anything else the proxy not letting the request
+   * through.
+   */
+  public static word(data: {
+    destination: string;
+    answer: string | null;
+  }): string {
+    const status: string | undefined = data.answer
+      ? PROXY_ANSWER.exec(`: ${data.answer}`)?.[2]
+      : undefined;
+
+    if (data.answer && status === "407") {
+      return `The outbound proxy did not take OneUptime's user name and password: it answered ${data.answer}, so the request to ${data.destination} was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`;
     }
 
-    return answer
-      ? `The outbound proxy did not open a connection to ${destination}: it answered ${answer[1]}. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`
-      : `The outbound proxy did not open a connection to ${destination}, so the request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`;
+    return data.answer
+      ? `The outbound proxy did not open a connection to ${data.destination}: it answered ${data.answer}. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`
+      : `The outbound proxy did not open a connection to ${data.destination}, so the request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`;
   }
 
   // The tunnel error `error` is or wraps, a few levels down at most.

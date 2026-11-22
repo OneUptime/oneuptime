@@ -54,6 +54,7 @@ import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import ProxyTunnelRefusal from "Common/Utils/ProxyTunnelRefusal";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import GlobalRunnerChoice from "Common/Server/Utils/Runner/GlobalRunnerChoice";
 import {
@@ -754,14 +755,13 @@ function getErrorCode(err: unknown): string | undefined {
     : undefined;
 }
 
-// What an outbound proxy answered a tunnel it would not open with.
-const PROXY_TUNNEL_ANSWER: RegExp = /: (HTTP\/\d(?:\.\d)? \d{3}[^\r\n]*)$/;
-
 /*
  * What an HTTPS request step says when the outbound proxy would not open a
  * tunnel to the target: that the proxy refused, not the target, and what
- * the proxy answered. Node's own message names the proxy's address, which
- * is the operator's and not the step's: it is left out.
+ * the proxy answered - a 407 being the proxy not taking OneUptime's user name
+ * and password - in the words every request uses (ProxyTunnelRefusal).
+ * Node's own message names the proxy's address, which is the operator's and
+ * not the step's: it is left out.
  */
 export function getHttpStepProxyTunnelMessage(data: {
   target: URL;
@@ -769,14 +769,11 @@ export function getHttpStepProxyTunnelMessage(data: {
 }): string {
   const port: string =
     data.target.port || (data.target.protocol === "https:" ? "443" : "80");
-  const answer: string | undefined = PROXY_TUNNEL_ANSWER.exec(
-    data.nodeMessage || "",
-  )?.[1];
-  const destination: string = `${data.target.hostname}:${port}`;
 
-  return answer
-    ? `The outbound proxy did not open a connection to ${destination}: it answered ${answer}. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`
-    : `The outbound proxy did not open a connection to ${destination}, so the request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`;
+  return ProxyTunnelRefusal.word({
+    destination: `${data.target.hostname}:${port}`,
+    answer: ProxyTunnelRefusal.getAnswer(data.nodeMessage),
+  });
 }
 
 export async function runBashStep(
