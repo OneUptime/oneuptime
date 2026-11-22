@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "効果あり: 問題のチェックに合格",
   "Its Analysis": "分析",
   "Judge what was found, such as whether a finding is real or who owns a store.": "見つかったものを判定します (検出結果が本物か、データストアの所有者は誰かなど)。",
-  "Leave a condition empty to match every issue.": "条件を空にすると、すべての問題に一致します。",
   "Median time from an issue opening to its check passing": "問題が開いてからチェックに合格するまでの時間の中央値",
   "No AI rules yet.": "AI ルールはまだありません。",
   "No changes made yet.": "まだ変更はありません。",
@@ -61323,7 +61322,6 @@
   "Which Issues": "対象の問題",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "OneUptime AI が対応する問題と、作業の種類ごとにオフにするか、承認のために提案するか、確認なしで行うかを指定します。ルールがない場合は、重大と高の問題を分析し、それ以外は提案します。",
   "Who changed this record, what they changed and when.": "このレコードを誰が、何を、いつ変更したか。",
-  "Without asking": "確認なしで",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "OneUptime AI による問題の分析を問題のタイムラインに書きます。何も変更しません。",
   "Your blocks are no longer enforced at Cloudflare.": "ブロックは Cloudflare で適用されなくなりました。",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "{{zone}} のルールはまだ設定されていません: そこではブロックが適用されていません",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} 件のリクエストがスロットリングされました。",
   "{{count}} requests were throttled._one": "{{count}} 件のリクエストがスロットリングされました。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 件のリクエスト（{{size}}）が保存されませんでした。",
+  "All issues": "すべての問題",
+  "Only issues that match conditions": "条件に一致する問題のみ"
 }

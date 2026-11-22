@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Det virkede: problemets kontrol bestod",
   "Its Analysis": "Dens analyse",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Vurdér det, der blev fundet, for eksempel om et fund er ægte, eller hvem der ejer et datalager.",
-  "Leave a condition empty to match every issue.": "Lad en betingelse være tom for at matche alle problemer.",
   "Median time from an issue opening to its check passing": "Mediantid fra et problem åbnes, til dets kontrol består",
   "No AI rules yet.": "Ingen AI-regler endnu.",
   "No changes made yet.": "Ingen ændringer foretaget endnu.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Hvilke problemer",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Hvilke problemer OneUptime AI arbejder med, og for hver slags arbejde om det er slået fra, foreslås til din godkendelse eller gøres uden at spørge. Uden regel analyserer den kritiske og høje problemer og foreslår resten.",
   "Who changed this record, what they changed and when.": "Hvem der ændrede denne post, hvad der blev ændret, og hvornår.",
-  "Without asking": "Uden at spørge",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Skriv OneUptime AI's analyse af problemet på dets tidslinje. Det ændrer intet.",
   "Your blocks are no longer enforced at Cloudflare.": "Dine blokeringer håndhæves ikke længere hos Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Din regel i {{zone}} er ikke sat op endnu: blokeringer håndhæves ikke der",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} anmodninger blev begrænset.",
   "{{count}} requests were throttled._one": "{{count}} anmodning blev begrænset.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} anmodninger ({{size}}) blev ikke gemt.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt.",
+  "All issues": "Alle problemer",
+  "Only issues that match conditions": "Kun problemer, der opfylder betingelserne"
 }

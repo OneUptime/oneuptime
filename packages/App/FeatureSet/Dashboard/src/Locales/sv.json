@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Det fungerade: problemets kontroll godkändes",
   "Its Analysis": "Dess analys",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Bedöm det som hittades, till exempel om ett fynd är äkta eller vem som äger ett datalager.",
-  "Leave a condition empty to match every issue.": "Lämna ett villkor tomt för att matcha alla problem.",
   "Median time from an issue opening to its check passing": "Mediantid från att ett problem öppnas tills dess kontroll godkänns",
   "No AI rules yet.": "Inga AI-regler ännu.",
   "No changes made yet.": "Inga ändringar gjorda ännu.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Vilka problem",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Vilka problem OneUptime AI arbetar med, och för varje typ av arbete om det är avstängt, föreslås för ditt godkännande eller görs utan att fråga. Utan regel analyserar den kritiska och höga problem och föreslår resten.",
   "Who changed this record, what they changed and when.": "Vem som ändrade posten, vad som ändrades och när.",
-  "Without asking": "Utan att fråga",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Skriv OneUptime AI:s analys av problemet på dess tidslinje. Det ändrar ingenting.",
   "Your blocks are no longer enforced at Cloudflare.": "Dina blockeringar tillämpas inte längre hos Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Din regel i {{zone}} är inte konfigurerad än: blockeringar tillämpas inte där",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} begäranden ströps.",
   "{{count}} requests were throttled._one": "{{count}} begäran ströps.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} begäranden ({{size}}) lagrades inte.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte.",
+  "All issues": "Alla problem",
+  "Only issues that match conditions": "Endast problem som uppfyller villkoren"
 }

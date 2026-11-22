@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Det virket: kontrollen av problemet besto",
   "Its Analysis": "Analysen",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Vurder det som ble funnet, for eksempel om et funn er ekte eller hvem som eier et datalager.",
-  "Leave a condition empty to match every issue.": "La en betingelse stå tom for å treffe alle problemer.",
   "Median time from an issue opening to its check passing": "Mediantid fra et problem åpnes til kontrollen av det består",
   "No AI rules yet.": "Ingen AI-regler ennå.",
   "No changes made yet.": "Ingen endringer gjort ennå.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Hvilke problemer",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Hvilke problemer OneUptime AI jobber med, og for hver type arbeid om det er av, foreslås til godkjenning eller gjøres uten å spørre. Uten regel analyserer den kritiske og høye problemer og foreslår resten.",
   "Who changed this record, what they changed and when.": "Hvem som endret denne posten, hva som ble endret og når.",
-  "Without asking": "Uten å spørre",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Skriv OneUptime AIs analyse av problemet på tidslinjen. Det endrer ingenting.",
   "Your blocks are no longer enforced at Cloudflare.": "Blokkeringene dine håndheves ikke lenger hos Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Regelen din i {{zone}} er ikke satt opp ennå: blokkeringer håndheves ikke der",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} forespørsler ble strupet.",
   "{{count}} requests were throttled._one": "{{count}} forespørsel ble strupet.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} forespørsler ({{size}}) ble ikke lagret.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret.",
+  "All issues": "Alle problemer",
+  "Only issues that match conditions": "Bare problemer som oppfyller betingelsene"
 }

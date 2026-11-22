@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "مؤثر بود: بررسی مسئله قبول شد",
   "Its Analysis": "تحلیل آن",
   "Judge what was found, such as whether a finding is real or who owns a store.": "آنچه پیدا شد را داوری کن، مثلاً اینکه یک یافته واقعی است یا مالک یک مخزن کیست.",
-  "Leave a condition empty to match every issue.": "یک شرط را خالی بگذارید تا با هر مسئله‌ای جور شود.",
   "Median time from an issue opening to its check passing": "میانهٔ زمان از باز شدن یک مسئله تا قبول شدن بررسی آن",
   "No AI rules yet.": "هنوز هیچ قاعدهٔ هوش مصنوعی‌ای وجود ندارد.",
   "No changes made yet.": "هنوز هیچ تغییری انجام نشده است.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "کدام مسائل",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "OneUptime AI روی کدام مسائل کار کند، و برای هر نوع کار اینکه خاموش باشد، برای تأیید شما پیشنهاد شود یا بدون پرسیدن انجام شود. بدون قاعده، مسائل بحرانی و زیاد را تحلیل می‌کند و بقیه را پیشنهاد می‌دهد.",
   "Who changed this record, what they changed and when.": "چه کسی این رکورد را تغییر داد، چه چیزی را و چه زمانی.",
-  "Without asking": "بدون پرسیدن",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "تحلیل OneUptime AI از مسئله را در خط زمانی آن بنویس. چیزی را تغییر نمی‌دهد.",
   "Your blocks are no longer enforced at Cloudflare.": "مسدودسازی‌های شما دیگر در Cloudflare اعمال نمی‌شوند.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "قاعده شما در زُن {{zone}} هنوز راه‌اندازی نشده است: مسدودسازی‌ها آنجا اعمال نمی‌شوند",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} درخواست محدود شد.",
   "{{count}} requests were throttled._one": "{{count}} درخواست محدود شد.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} درخواست ({{size}}) ذخیره نشد.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} درخواست ({{size}}) ذخیره نشد."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} درخواست ({{size}}) ذخیره نشد.",
+  "All issues": "همه مسائل",
+  "Only issues that match conditions": "فقط آن دسته از مسائل که با شرط‌ها مطابقت دارند"
 }

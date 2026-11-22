@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "نجح: اجتاز فحص المشكلة",
   "Its Analysis": "تحليله",
   "Judge what was found, such as whether a finding is real or who owns a store.": "احكم على ما وُجد، مثل ما إذا كانت النتيجة حقيقية أو من يملك المخزن.",
-  "Leave a condition empty to match every issue.": "اترك الشرط فارغًا ليطابق كل المشكلات.",
   "Median time from an issue opening to its check passing": "الوقت الوسيط من فتح المشكلة حتى اجتياز فحصها",
   "No AI rules yet.": "لا توجد قواعد ذكاء اصطناعي بعد.",
   "No changes made yet.": "لم تُجرَ أي تغييرات بعد.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "أي المشكلات",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "المشكلات التي يعمل عليها OneUptime AI، ولكل نوع من العمل ما إذا كان متوقفًا أو مقترحًا لموافقتك أو يُنفّذ دون سؤال. من دون قاعدة، يحلل المشكلات الحرجة والمرتفعة ويقترح الباقي.",
   "Who changed this record, what they changed and when.": "من غيّر هذا السجل، وما الذي غيّره، ومتى.",
-  "Without asking": "دون سؤال",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "اكتب تحليل OneUptime AI للمشكلة في مخططها الزمني. لا يغيّر شيئًا.",
   "Your blocks are no longer enforced at Cloudflare.": "لم يعد حظرك مُطبَّقًا في Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "قاعدتك في المنطقة {{zone}} لم تُعدّ بعد: الحظر غير مُطبَّق هناك",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "خُنق {{count}} من الطلبات.",
   "{{count}} requests were throttled._one": "خُنق {{count}} طلب.",
   "{{size}} in {{count}} requests was not stored.": "لم يُخزَّن {{count}} من الطلبات ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}})."
+  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}}).",
+  "All issues": "كل المشكلات",
+  "Only issues that match conditions": "المشكلات التي تطابق الشروط فقط"
 }

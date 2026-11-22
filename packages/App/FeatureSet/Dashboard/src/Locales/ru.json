@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Сработало: проверка проблемы пройдена",
   "Its Analysis": "Его анализ",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Оценить найденное, например реальна ли находка или кому принадлежит хранилище.",
-  "Leave a condition empty to match every issue.": "Оставьте условие пустым, чтобы оно подходило к любой проблеме.",
   "Median time from an issue opening to its check passing": "Медианное время от открытия проблемы до прохождения её проверки",
   "No AI rules yet.": "Правил ИИ пока нет.",
   "No changes made yet.": "Изменений пока нет.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Какие проблемы",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "С какими проблемами работает OneUptime AI и для каждого вида работы — выключен ли он, предлагается ли на ваше одобрение или выполняется без запроса. Без правил он анализирует критические и высокие проблемы и предлагает остальное.",
   "Who changed this record, what they changed and when.": "Кто изменил эту запись, что изменил и когда.",
-  "Without asking": "Без запроса",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Записать анализ проблемы от OneUptime AI в её хронологию. Это ничего не меняет.",
   "Your blocks are no longer enforced at Cloudflare.": "Ваши блокировки больше не применяются в Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Ваше правило в зоне {{zone}} ещё не настроено: блокировки там не применяются",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "Ограничено по скорости запросов: {{count}}.",
   "{{count}} requests were throttled._one": "{{count}} запрос ограничен по скорости.",
   "{{size}} in {{count}} requests was not stored.": "Не сохранено запросов: {{count}} ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён.",
+  "All issues": "Все проблемы",
+  "Only issues that match conditions": "Только проблемы, соответствующие условиям"
 }

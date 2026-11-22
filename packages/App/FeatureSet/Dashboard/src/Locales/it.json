@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Ha funzionato: il controllo del problema è passato",
   "Its Analysis": "La sua analisi",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Giudicare ciò che è stato trovato, ad esempio se un risultato è reale o chi possiede un archivio.",
-  "Leave a condition empty to match every issue.": "Lascia vuota una condizione perché corrisponda a ogni problema.",
   "Median time from an issue opening to its check passing": "Tempo mediano dall'apertura di un problema al superamento del suo controllo",
   "No AI rules yet.": "Ancora nessuna regola IA.",
   "No changes made yet.": "Ancora nessuna modifica fatta.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Quali problemi",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Su quali problemi lavora OneUptime AI e, per ogni tipo di lavoro, se è disattivato, suggerito per la tua approvazione o fatto senza chiedere. Senza regole, analizza i problemi critici e alti e suggerisce il resto.",
   "Who changed this record, what they changed and when.": "Chi ha modificato questo record, cosa ha modificato e quando.",
-  "Without asking": "Senza chiedere",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Scrivere l'analisi del problema di OneUptime AI nella sua cronologia. Non modifica nulla.",
   "Your blocks are no longer enforced at Cloudflare.": "I tuoi blocchi non sono più applicati su Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "La tua regola in {{zone}} non è ancora configurata: lì i blocchi non sono applicati",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} richieste sono state limitate.",
   "{{count}} requests were throttled._one": "{{count}} richiesta è stata limitata.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} richieste ({{size}}) non sono state memorizzate.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata.",
+  "All issues": "Tutti i problemi",
+  "Only issues that match conditions": "Solo i problemi che soddisfano le condizioni"
 }

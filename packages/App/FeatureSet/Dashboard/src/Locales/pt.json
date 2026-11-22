@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "Funcionou: a verificação do problema passou",
   "Its Analysis": "A análise dele",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Julgar o que foi encontrado, como se uma descoberta é real ou quem é o dono de um repositório.",
-  "Leave a condition empty to match every issue.": "Deixe uma condição vazia para corresponder a todos os problemas.",
   "Median time from an issue opening to its check passing": "Tempo mediano da abertura de um problema até a verificação dele passar",
   "No AI rules yet.": "Ainda não há regras de IA.",
   "No changes made yet.": "Nenhuma alteração feita ainda.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Quais problemas",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Em quais problemas o OneUptime AI trabalha e, para cada tipo de trabalho, se está desligado, sugerido para sua aprovação ou feito sem perguntar. Sem regra, ele analisa problemas críticos e altos e sugere o resto.",
   "Who changed this record, what they changed and when.": "Quem alterou este registro, o que alterou e quando.",
-  "Without asking": "Sem perguntar",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Escrever a análise do problema feita pelo OneUptime AI na linha do tempo dele. Isso não muda nada.",
   "Your blocks are no longer enforced at Cloudflare.": "Seus bloqueios não são mais aplicados na Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Sua regra em {{zone}} ainda não está configurada: os bloqueios não são aplicados lá",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} solicitações foram limitadas.",
   "{{count}} requests were throttled._one": "{{count}} solicitação foi limitada.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} solicitações ({{size}}) não foram armazenadas.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} solicitação ({{size}}) não foi armazenada."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} solicitação ({{size}}) não foi armazenada.",
+  "All issues": "Todos os problemas",
+  "Only issues that match conditions": "Somente os problemas que atendem às condições"
 }

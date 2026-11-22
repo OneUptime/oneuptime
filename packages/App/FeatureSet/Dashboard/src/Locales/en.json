@@ -61154,7 +61154,6 @@
   "It worked: the issue's check passed": "It worked: the issue's check passed",
   "Its Analysis": "Its Analysis",
   "Judge what was found, such as whether a finding is real or who owns a store.": "Judge what was found, such as whether a finding is real or who owns a store.",
-  "Leave a condition empty to match every issue.": "Leave a condition empty to match every issue.",
   "Median time from an issue opening to its check passing": "Median time from an issue opening to its check passing",
   "No AI rules yet.": "No AI rules yet.",
   "No changes made yet.": "No changes made yet.",
@@ -61323,7 +61322,6 @@
   "Which Issues": "Which Issues",
   "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.": "Which issues OneUptime AI works on, and for each kind of work whether it is off, suggested for your approval, or done without asking. With no rule, it analyzes Critical and High issues and suggests the rest.",
   "Who changed this record, what they changed and when.": "Who changed this record, what they changed and when.",
-  "Without asking": "Without asking",
   "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.": "Write OneUptime AI's analysis of the issue on its timeline. It changes nothing.",
   "Your blocks are no longer enforced at Cloudflare.": "Your blocks are no longer enforced at Cloudflare.",
   "Your rule in {{zone}} is not set up yet: blocks there are not enforced": "Your rule in {{zone}} is not set up yet: blocks there are not enforced",
@@ -61753,5 +61751,7 @@
   "{{count}} requests were throttled.": "{{count}} requests were throttled.",
   "{{count}} requests were throttled._one": "{{count}} request was throttled.",
   "{{size}} in {{count}} requests was not stored.": "{{size}} in {{count}} requests was not stored.",
-  "{{size}} in {{count}} requests was not stored._one": "{{size}} in {{count}} request was not stored."
+  "{{size}} in {{count}} requests was not stored._one": "{{size}} in {{count}} request was not stored.",
+  "All issues": "All issues",
+  "Only issues that match conditions": "Only issues that match conditions"
 }

@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "조건과 일치하는 파이프라인만",
   "All cloud environments": "모든 클라우드 환경",
   "Only cloud environments that match conditions": "조건과 일치하는 클라우드 환경만",
+  "All issues": "모든 이슈",
+  "Only issues that match conditions": "조건과 일치하는 이슈만",
   "Only what matches conditions": "조건과 일치하는 항목만",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "AWS에서 호스팅되는 회사 SMTP 서버",
