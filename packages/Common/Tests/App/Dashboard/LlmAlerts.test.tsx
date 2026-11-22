@@ -57,6 +57,8 @@ type CapturedFormProps = {
       value: unknown;
       description?: string;
     }>;
+    // A field searched on the server (#10646): its picker's settings.
+    dropdownModal?: unknown;
     collapsibleSection?: unknown;
     placeholder?: string;
   }>;
