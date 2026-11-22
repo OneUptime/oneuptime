@@ -102,7 +102,7 @@ Una chiamata HTTP in uscita, effettuata dal Worker di OneUptime. Non serve alcun
 | **URL** | L'endpoint da chiamare. | Vuoto |
 | **Intestazioni (JSON)** | In **Altri campi**. Un oggetto JSON, ad esempio `{ "Authorization": "Bearer ..." }`. Header che non sono JSON valido fanno fallire il passaggio. | Nessuno |
 | **Consenti certificati autofirmati** | In **Altri campi**. Se attivo, il passaggio accetta qualsiasi certificato mostri il server, così uno autofirmato funziona, ma non controlla né il nome host né le date di validità, e chiunque sul percorso di rete potrebbe leggere la richiesta, segreti compresi, e modificare la risposta. | Disattivato |
-| **Certificato della CA** | In **Altri campi**, finché **Consenti certificati autofirmati** è disattivato. Il certificato, in PEM, della CA che ha firmato il certificato del server, o quello del server stesso se è autofirmato. Il passaggio si fida allora solo di quel certificato, e controlla comunque il nome host e le date di validità. | Nessuno |
+| **Certificato della CA** | In **Altri campi**, finché **Consenti certificati autofirmati** è disattivato. Il certificato, in PEM, della CA che ha firmato il certificato del server, o quello del server stesso se è autofirmato, o una [variabile di runbook](/docs/runbooks/variables) che lo contiene. Il passaggio si fida allora solo di quel certificato, e controlla comunque il nome host e le date di validità. | Nessuno |
 | **Corpo** | Mostrato per `POST`, `PUT`, `PATCH` e `DELETE`. Inviato come JSON se è interpretabile come JSON, altrimenti come testo. | Nessuno |
 | **Timeout della richiesta** | Quanto attendere la risposta dell'endpoint prima di far fallire il passaggio. | 30 secondi |
 
@@ -118,10 +118,12 @@ Utile per: aprire un incidente PagerDuty, pubblicare su un webhook Slack, chiama
 
 Un server il cui certificato è autofirmato, o firmato dalla tua CA, viene rifiutato finché il passaggio non se ne fida, e non viene inviato nulla. L'errore del passaggio dice cosa cambiare: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Incolla il certificato che lo ha firmato in **Certificato della CA**: quello della CA, o quello del server stesso se è autofirmato. Il passaggio controlla allora il certificato del server con esso, nome host e date di validità compresi, quindi un server che si spaccia soltanto per il tuo viene comunque rifiutato. Attiva **Consenti certificati autofirmati** solo se non puoi incollarne uno. L'uno e l'altro valgono solo per la richiesta di questo passaggio, mai per un altro passaggio, un'altra richiesta di OneUptime o la connessione a un proxy in uscita.
 
+Quando molti passaggi chiamano servizi firmati dalla tua CA, tieni il suo certificato in una [variabile di runbook](/docs/runbooks/variables) e scrivi solo `{{global.variables.INTERNAL_CA}}` in **Certificato della CA**. Il passaggio legge la variabile a ogni esecuzione, quindi quando la CA cambia, cambi la variabile una volta sola. Basta una variabile normale, perché un certificato non è un segreto; anche una segreta funziona, ed è nascosta in ciò che il passaggio registra. Una variabile che non esiste, o che non contiene alcun certificato, fa fallire il passaggio prima che venga inviato qualcosa, e l'errore nomina la variabile. Finché **Consenti certificati autofirmati** è attivo, il passaggio non legge la variabile.
+
 > [!TIP]
 > Per fidarti invece della tua CA per tutte le richieste in una volta, monitor compresi, un'installazione self-hosted imposta `NODE_EXTRA_CA_CERTS` sui suoi container.
 
-Tramite l'API e Terraform, l'interruttore è il `allowSelfSignedCertificates` della configurazione del passaggio, `true` o `false`, e il certificato della CA è il suo `caCertificate`, il PEM come testo. Un salvataggio viene rifiutato quando `caCertificate` non è un certificato o contiene una chiave privata.
+Tramite l'API e Terraform, l'interruttore è il `allowSelfSignedCertificates` della configurazione del passaggio, `true` o `false`, e il certificato della CA è il suo `caCertificate`: il PEM come testo, oppure un solo riferimento a una variabile. Un salvataggio viene rifiutato quando `caCertificate` non è né l'uno né l'altro, o contiene una chiave privata.
 
 ```hcl
 config = {

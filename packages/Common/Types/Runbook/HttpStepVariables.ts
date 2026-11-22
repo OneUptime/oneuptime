@@ -1,3 +1,4 @@
+import { getHttpStepCaCertificateVariable } from "./HttpStepCertificates";
 import { HttpRequestStepConfig } from "./RunbookStep";
 import {
   RunbookVariableReference,
@@ -14,6 +15,9 @@ import { redactSecretValues } from "./SecretOutputRedaction";
  * everyone who may read the runbook reads it. Now its URL, headers and body
  * name variables the way scripts do ({{global.variables.NAME}},
  * {{local.variables.NAME}}), and OneUptime fills them in when the step runs.
+ * So does its CA certificate, when it is one variable alone and the step
+ * checks certificates (#10441, Types/Runbook/HttpStepCertificates): one
+ * private CA's certificate, kept once, serves every step that names it.
  *
  * Who gets a secret: an HTTP request step is sent by OneUptime itself, from
  * its own servers - which keep the secret already, encrypted, and decrypt it
@@ -31,16 +35,36 @@ import { redactSecretValues } from "./SecretOutputRedaction";
  *     in them (names included) is filled in, and the JSON written again, so
  *     a value with a quote or a line break in it stays one string;
  *   - otherwise (a reference standing where a number goes, or a body that is
- *     plain text): the text is filled in as written, and read as before.
+ *     plain text): the text is filled in as written, and read as before;
+ *   - the CA certificate: the variable's value, as it is - a certificate in
+ *     PEM, with nothing around it to escape. With Allow self-signed
+ *     certificates on, the CA certificate is not used, so its variable is
+ *     neither read nor asked to exist.
  *
  * Pure, so the step's executor and the tests read the same rules.
  */
 
-// The step's fields that may name variables, as stored.
+/*
+ * The step's fields that may name variables, as stored: the URL, the
+ * headers, the body, and the CA certificate when it is one variable the
+ * step reads (empty otherwise).
+ */
 export function getHttpStepVariableTexts(
-  config: Pick<HttpRequestStepConfig, "url" | "headersJson" | "body">,
+  config: Pick<
+    HttpRequestStepConfig,
+    | "url"
+    | "headersJson"
+    | "body"
+    | "allowSelfSignedCertificates"
+    | "caCertificate"
+  >,
 ): Array<string> {
-  return [config.url || "", config.headersJson || "", config.body || ""];
+  return [
+    config.url || "",
+    config.headersJson || "",
+    config.body || "",
+    getHttpStepCaCertificateVariable(config) ? config.caCertificate || "" : "",
+  ];
 }
 
 type GetValueFunction = (
@@ -105,11 +129,20 @@ export function fillHttpStepJsonText(
   return JSON.stringify(fillJsonValue(parsed, getValue));
 }
 
-// The step's URL, headers and body with the variables it names filled in.
+/*
+ * The step's URL, headers, body and CA certificate with the variables they
+ * name filled in. A variable `getValue` has no value for stays as written.
+ */
 export function fillHttpStepConfig<T extends HttpRequestStepConfig>(
   config: T,
   getValue: GetValueFunction,
 ): T {
+  const caCertificateVariable: RunbookVariableReference | null =
+    getHttpStepCaCertificateVariable(config);
+  const caCertificate: string | undefined = caCertificateVariable
+    ? getValue(caCertificateVariable)
+    : undefined;
+
   return {
     ...config,
     url: replaceRunbookVariableReferences(config.url || "", getValue),
@@ -119,6 +152,7 @@ export function fillHttpStepConfig<T extends HttpRequestStepConfig>(
     ...(config.body
       ? { body: fillHttpStepJsonText(config.body, getValue) }
       : {}),
+    ...(caCertificate !== undefined ? { caCertificate } : {}),
   };
 }
 

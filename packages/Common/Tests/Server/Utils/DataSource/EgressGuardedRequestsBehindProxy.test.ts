@@ -9,6 +9,8 @@ import GuardedMcpHttpTransport, {
 import CodeHostHttp from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostHttp";
 import DataSourceHttpFetch from "../../../../Server/Utils/DataSource/HttpFetch";
 import LLMService from "../../../../Server/Utils/LLM/LLMService";
+import MattermostWebhook from "../../../../Server/Utils/Mattermost/MattermostWebhook";
+import SafeWebhookRequest from "../../../../Server/Utils/SafeWebhookRequest";
 import ExternalCalendarFetch, {
   ExternalCalendarFetchResult,
 } from "../../../../Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarFetch";
@@ -17,10 +19,14 @@ import OAuth2TokenClient from "../../../../Server/Utils/Workflow/OAuth2TokenClie
 import LlmType from "../../../../Types/LLM/LlmType";
 import {
   LocalHttpServer,
+  PLAIN_CREDENTIALS,
   PROXY_HOST_NAME,
+  RESERVED_CHARACTER_CREDENTIALS,
   approveOnLoopback,
   canListenOn,
   clearOutboundProxyEnvironmentForEachTest,
+  proxyUrlWithCredentials,
+  signedInAs,
   useLocalHttpServers,
 } from "../../TestingUtils/OutboundProxyFixture";
 import { startEachTestOnSelfHostedEgressPolicy } from "../EgressPolicyEnvironment";
@@ -53,11 +59,17 @@ jest.mock("../../../../Server/Utils/Logger");
  * External calendars and MCP servers are read with Node's own HTTP client,
  * which reads no proxy setting, so they never went through one either
  * (#8932). Their agents now go through the proxy as axios decides
- * (DataSourceEgressGuard.createPinnedAgentsForNodeHttp), and they are held
- * to the same four answers here. The one caller that never goes through a
- * proxy is held to that too: a Git server is reached with the proxy off on
- * purpose, dialled directly, at the approved address, whatever the
+ * (DataSourceEgressGuard.createPinnedAgents), and they are held to the same
+ * answers here. The callers that never go through a proxy are held to that
+ * too: a Git server and a Mattermost server are reached with the proxy off
+ * on purpose, dialled directly, at the approved address, whatever the
  * environment says. self-hosted/private-network-access says which is which.
+ *
+ * Every pinned agent goes through the proxy itself, through Node's own
+ * proxy support, with axios's proxy off: axios sent a proxy's user name and
+ * password percent-encoded, so a proxy whose password holds an @, a : or a
+ * % refused every one of these with 407 (#10442). Each caller is held to
+ * signing in with them as the operator set them, over http and https.
  *
  * The proxy and the servers run on this machine (OutboundProxyFixture):
  * the proxy at 127.0.0.1 named "localhost", the target approved at
@@ -193,6 +205,20 @@ const PROXIED_CALLERS: Array<ProxiedCaller> = [
     },
   },
   {
+    name: "a webhook (SafeWebhookRequest: workflow API steps, playbook and notification webhooks)",
+    host: "hooks.example.test",
+    path: "/hook",
+    send: async (origin: string): Promise<unknown> => {
+      return await withLoopbackWebhooksAllowed(async (): Promise<unknown> => {
+        return await SafeWebhookRequest.post(
+          `${origin}/hook`,
+          { via: "proxy" },
+          { validation: { allowPrivateNetworkTargets: true } },
+        );
+      });
+    },
+  },
+  {
     name: "an external calendar (Node's own HTTP client)",
     host: "calendar.example.test",
     path: "/basic.ics",
@@ -223,6 +249,28 @@ const PROXIED_CALLERS: Array<ProxiedCaller> = [
     },
   },
 ];
+
+/*
+ * A webhook reaches this machine only when the private-network allowlist
+ * names loopback exactly, as the SafeWebhookRequest suite has it.
+ */
+async function withLoopbackWebhooksAllowed<T>(
+  send: () => Promise<T>,
+): Promise<T> {
+  const saved: string | undefined =
+    process.env["PRIVATE_NETWORK_WEBHOOK_ALLOWLIST"];
+  process.env["PRIVATE_NETWORK_WEBHOOK_ALLOWLIST"] = "localhost,127.0.0.0/8";
+
+  try {
+    return await send();
+  } finally {
+    if (saved === undefined) {
+      delete process.env["PRIVATE_NETWORK_WEBHOOK_ALLOWLIST"];
+    } else {
+      process.env["PRIVATE_NETWORK_WEBHOOK_ALLOWLIST"] = saved;
+    }
+  }
+}
 
 function targetAddress(): string {
   return canUse127002 ? "127.0.0.2" : "127.0.0.1";
@@ -296,6 +344,66 @@ describe.each(PROXIED_CALLERS)(
       expect(target.requests[0]!.host).toBe(`${caller.host}:${target.port}`);
       expect(proxy.isUntouched).toBe(true);
     });
+
+    test("over http, the proxy is signed in to with its real user name and password, @, : and % in them", async () => {
+      process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        RESERVED_CHARACTER_CREDENTIALS,
+      );
+
+      await caller.send(`http://${caller.host}:${target.port}`);
+
+      expect(proxy.requestCredentials).toEqual([
+        signedInAs(RESERVED_CHARACTER_CREDENTIALS),
+      ]);
+      expect(target.isUntouched).toBe(true);
+    });
+
+    test("over https, the CONNECT is signed in with its real user name and password, @, : and % in them", async () => {
+      process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        RESERVED_CHARACTER_CREDENTIALS,
+      );
+
+      await settle(caller.send(`https://${caller.host}`));
+
+      expect(proxy.connects).toEqual([`${caller.host}:443`]);
+      expect(proxy.connectCredentials).toEqual([
+        signedInAs(RESERVED_CHARACTER_CREDENTIALS),
+      ]);
+      expect(target.isUntouched).toBe(true);
+    });
+
+    test("a user name and password with no character a URL reserves sign in as they always did", async () => {
+      process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        PLAIN_CREDENTIALS,
+      );
+      process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        PLAIN_CREDENTIALS,
+      );
+
+      await caller.send(`http://${caller.host}:${target.port}`);
+      await settle(caller.send(`https://${caller.host}`));
+
+      expect(proxy.requestCredentials).toEqual([signedInAs(PLAIN_CREDENTIALS)]);
+      expect(proxy.connectCredentials).toEqual([signedInAs(PLAIN_CREDENTIALS)]);
+    });
+
+    test("a host in NO_PROXY is dialled directly, its proxy's credentials never sent anywhere", async () => {
+      process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+        proxy.port,
+        RESERVED_CHARACTER_CREDENTIALS,
+      );
+      process.env["NO_PROXY"] = `localhost,${caller.host}`;
+
+      await caller.send(`http://${caller.host}:${target.port}`);
+
+      expect(target.requests).toHaveLength(1);
+      expect(target.requestCredentials).toEqual([""]);
+      expect(proxy.isUntouched).toBe(true);
+    });
   },
 );
 
@@ -307,6 +415,20 @@ interface DirectCaller {
 }
 
 const DIRECT_CALLERS: Array<DirectCaller> = [
+  {
+    name: "a Mattermost server (the proxy is off on purpose)",
+    host: "chat.example.test",
+    path: "/hooks/abc123",
+    send: async (origin: string): Promise<unknown> => {
+      return await withLoopbackWebhooksAllowed(async (): Promise<unknown> => {
+        return await MattermostWebhook.send({
+          webhookUrl: `${origin}/hooks/abc123`,
+          message: { text: "A monitor is down." },
+          timeoutInMs: 5000,
+        });
+      });
+    },
+  },
   {
     name: "a Git server (the proxy is off on purpose)",
     host: "git.example.test",
@@ -331,7 +453,10 @@ describe.each(DIRECT_CALLERS)("$name", (caller: DirectCaller) => {
     });
     answerEveryCaller(target);
     approveOnLoopback({ [caller.host]: [target.host] });
-    process.env["HTTP_PROXY"] = `http://${PROXY_HOST_NAME}:${proxy.port}`;
+    process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
+      proxy.port,
+      RESERVED_CHARACTER_CREDENTIALS,
+    );
     process.env["ALL_PROXY"] = `http://${PROXY_HOST_NAME}:${proxy.port}`;
 
     await caller.send(`http://${caller.host}:${target.port}`);

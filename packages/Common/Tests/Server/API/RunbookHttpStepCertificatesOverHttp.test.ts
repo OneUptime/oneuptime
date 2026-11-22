@@ -76,7 +76,10 @@ import {
  *     writes exactly that;
  *   - a save whose switch is not true or false, or whose CA certificate is
  *     not one or holds a private key, is refused with a 400 that names the
- *     step and says what to send instead, and nothing is written.
+ *     step and says what to send instead, and nothing is written;
+ *   - a CA certificate that is one runbook variable alone (#10441) is kept
+ *     as it was sent, whether or not the variable exists yet, and one that
+ *     names a variable beside other text is refused with a 400.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -282,6 +285,83 @@ describe("a runbook whose HTTP request steps check certificates their own way", 
   });
 });
 
+describe("a runbook whose HTTP request steps keep their CA certificate in a runbook variable", () => {
+  function variableSteps(): Array<Record<string, unknown>> {
+    return [
+      httpStep("billing", {
+        caCertificate: "{{global.variables.INTERNAL_CA}}",
+      }),
+      httpStep("ledger", {
+        caCertificate: "\n  {{local.variables.LAB_CA}}\n",
+      }),
+      // Not used while the switch is on, so not asked to exist either.
+      httpStep("lab-switch", {
+        allowSelfSignedCertificates: true,
+        caCertificate: "{{global.variables.GONE}}",
+      }),
+    ];
+  }
+
+  test("is created with each reference as it was sent, though no such variable exists yet", async () => {
+    const sent: SentRequest = await create(variableSteps());
+
+    expect(sent.status).toBe(200);
+
+    const steps: Array<RunbookStep> = storedSteps();
+
+    expect(configOf(steps, "billing")["caCertificate"]).toBe(
+      "{{global.variables.INTERNAL_CA}}",
+    );
+    expect(configOf(steps, "ledger")["caCertificate"]).toBe(
+      "\n  {{local.variables.LAB_CA}}\n",
+    );
+    expect(configOf(steps, "lab-switch")).toEqual({
+      url: "https://lab-switch.internal.example/health",
+      method: "GET",
+      allowSelfSignedCertificates: true,
+      caCertificate: "{{global.variables.GONE}}",
+    });
+  });
+
+  test("is read back with them", async () => {
+    await create(variableSteps());
+    const id: string = String(runbooks.rows[0]!["_id"]);
+
+    const read: SentRequest = await server.request(
+      "POST",
+      `/api/runbook/${id}/get-item`,
+      { select: { steps: true } },
+    );
+
+    expect(read.status).toBe(200);
+    expect((read.answer as JSONObject)["steps"]).toEqual(variableSteps());
+  });
+
+  test("is updated from a certificate pasted in to the variable that holds it", async () => {
+    await create(stepsSent());
+    const id: string = String(runbooks.rows[0]!["_id"]);
+
+    const sent: SentRequest = await server.request(
+      "PUT",
+      `/api/runbook/${id}`,
+      {
+        data: {
+          steps: [
+            httpStep("private-ca", {
+              caCertificate: "{{global.variables.INTERNAL_CA}}",
+            }),
+          ],
+        },
+      },
+    );
+
+    expect(sent.status).toBe(200);
+    expect(configOf(storedSteps(), "private-ca")["caCertificate"]).toBe(
+      "{{global.variables.INTERNAL_CA}}",
+    );
+  });
+});
+
 describe("a save whose settings a step cannot run with", () => {
   test.each([
     [
@@ -304,6 +384,62 @@ describe("a save whose settings a step cannot run with", () => {
       expect(runbooks.inserts).toEqual([]);
     },
   );
+
+  test.each([
+    [
+      "beside a certificate",
+      (): string => {
+        return `${certificates.caCertificate}\n{{global.variables.INTERNAL_CA}}`;
+      },
+    ],
+    [
+      "beside another variable",
+      (): string => {
+        return "{{global.variables.INTERNAL_CA}} {{local.variables.LAB_CA}}";
+      },
+    ],
+  ])(
+    "is refused on create with a CA certificate that names a variable %s, naming the step, and nothing is written",
+    async (_what: string, caCertificate: () => string) => {
+      const sent: SentRequest = await create([
+        httpStep("billing", { caCertificate: caCertificate() }),
+      ]);
+
+      expect(sent.status).toBe(400);
+      expect(refusalOf(sent)).toBe(
+        `The step "Call billing" ${CA_CERTIFICATE_SAVE_MESSAGES[CaCertificateProblem.VariableAmongText]}`,
+      );
+      expect(runbooks.inserts).toEqual([]);
+    },
+  );
+
+  test("is refused on update with a CA certificate that names a variable beside other text, and the runbook keeps its steps", async () => {
+    await create(stepsSent());
+    const id: string = String(runbooks.rows[0]!["_id"]);
+
+    const sent: SentRequest = await server.request(
+      "PUT",
+      `/api/runbook/${id}`,
+      {
+        data: {
+          steps: [
+            httpStep("private-ca", {
+              caCertificate: "use {{global.variables.INTERNAL_CA}}",
+            }),
+          ],
+        },
+      },
+    );
+
+    expect(sent.status).toBe(400);
+    expect(refusalOf(sent)).toBe(
+      `The step "Call private-ca" ${CA_CERTIFICATE_SAVE_MESSAGES[CaCertificateProblem.VariableAmongText]}`,
+    );
+    expect(runbooks.updates).toEqual([]);
+    expect(configOf(storedSteps(), "private-ca")["caCertificate"]).toBe(
+      certificates.caCertificate,
+    );
+  });
 
   test("is refused on update with a private key as its CA certificate, and the runbook keeps its steps", async () => {
     await create(stepsSent());

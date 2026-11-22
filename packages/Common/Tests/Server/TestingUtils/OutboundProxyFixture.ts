@@ -35,9 +35,66 @@ import net, { AddressInfo } from "net";
  * 127/8 address on loopback), so an agent that answered the proxy's name
  * with the target's address - the bug - dials 127.0.0.2 on the proxy's port
  * and never reaches the proxy on 127.0.0.1.
+ *
+ * Each server also records the user name and password every request and
+ * every CONNECT signed in to it with (Proxy-Authorization), as a proxy reads
+ * them, so a test sees what a proxy that checks them is given (#10442):
+ * proxyUrlWithCredentials writes them into a proxy's URL percent-encoded,
+ * as a URL must write a character it reserves.
  */
 
 export const PROXY_HOST_NAME: string = "localhost";
+
+export interface ProxyCredentials {
+  user: string;
+  password: string;
+}
+
+/*
+ * A user name and password with the characters a URL reserves: "@", ":" and
+ * "%". The user name holds no ":", which Basic authentication cannot carry
+ * in a user name.
+ */
+export const RESERVED_CHARACTER_CREDENTIALS: ProxyCredentials = {
+  user: "ops@oneuptime.test",
+  password: "p@ss:w%rd",
+};
+
+// A user name and password a URL writes as they are.
+export const PLAIN_CREDENTIALS: ProxyCredentials = {
+  user: "oneuptime",
+  password: "s3cret",
+};
+
+/*
+ * An outbound proxy's URL with a user name and password, written as an
+ * operator writes them in HTTPS_PROXY: percent-encoded, as a URL must.
+ */
+export function proxyUrlWithCredentials(
+  port: number,
+  credentials: ProxyCredentials,
+  scheme: string = "http",
+): string {
+  return `${scheme}://${encodeURIComponent(credentials.user)}:${encodeURIComponent(credentials.password)}@${PROXY_HOST_NAME}:${port}`;
+}
+
+// "user:password", as a proxy reads them, that `credentials` sign in with.
+export function signedInAs(credentials: ProxyCredentials): string {
+  return `${credentials.user}:${credentials.password}`;
+}
+
+// A Proxy-Authorization header of Basic authentication, and its credentials.
+const BASIC_AUTHORIZATION: RegExp = /^Basic\s+(\S+)$/i;
+
+/*
+ * The user name and password a Proxy-Authorization header carries, as the
+ * proxy reads them: "user:password", or "" when there is none.
+ */
+export function readProxyCredentials(header: string | undefined): string {
+  const basic: RegExpExecArray | null = BASIC_AUTHORIZATION.exec(header || "");
+
+  return basic ? Buffer.from(basic[1]!, "base64").toString("utf8") : "";
+}
 
 export const NO_PROXY_ENVIRONMENT_VARIABLES: ReadonlyArray<string> = [
   "NO_PROXY",
@@ -64,6 +121,14 @@ export class LocalHttpServer {
   public requests: Array<SeenRequest> = [];
   // What it was asked to tunnel to, as "host:port".
   public connects: Array<string> = [];
+  /*
+   * Who each request, and each CONNECT, signed in as (Proxy-Authorization,
+   * read by readProxyCredentials): "user:password", or "" for no one.
+   */
+  public requestCredentials: Array<string> = [];
+  public connectCredentials: Array<string> = [];
+  // What it answers every CONNECT with: it opens no tunnel.
+  public connectStatusLine: string = "HTTP/1.1 403 Forbidden";
   public handler: LocalHttpHandler = (
     _request: http.IncomingMessage,
     response: http.ServerResponse,
@@ -95,6 +160,9 @@ export class LocalHttpServer {
             host: request.headers["host"] || "",
             body: body,
           });
+          this.requestCredentials.push(
+            readProxyCredentials(request.headers["proxy-authorization"]),
+          );
 
           this.handler(request, response, body);
         });
@@ -105,7 +173,10 @@ export class LocalHttpServer {
       "connect",
       (request: http.IncomingMessage, socket: net.Socket) => {
         this.connects.push(request.url || "");
-        socket.end("HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
+        this.connectCredentials.push(
+          readProxyCredentials(request.headers["proxy-authorization"]),
+        );
+        socket.end(`${this.connectStatusLine}\r\nContent-Length: 0\r\n\r\n`);
       },
     );
   }
