@@ -24,6 +24,7 @@ import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -5460,6 +5461,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Events that read what it hides (#10433).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * The IP Address scrub rules that keep Security Events from naming an
+     * attacker's address, and Hash Instead, which switches one to Hash
+     * (#10396).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleAddressesAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

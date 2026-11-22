@@ -22,10 +22,27 @@ import {
   LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
 } from "Common/Types/Telemetry/ScrubRule";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getLogScrubRuleFormFields } from "../../../Components/Telemetry/ScrubRuleForm";
+import {
+  doesFormRuleHideAddresses,
+  LOG_SCRUB_RULE_FORM_OPTIONS,
+  getLogScrubRuleFormFields,
+} from "../../../Components/Telemetry/ScrubRuleForm";
+import HashInsteadNotice, {
+  HashInsteadFormNote,
+} from "../../../Components/Telemetry/HashInstead/HashInsteadNotice";
+import {
+  ScrubRulesHidingAddressesState,
+  useScrubRulesHidingAddresses,
+} from "../../../Components/Telemetry/HashInstead/UseScrubRulesHidingAddresses";
+import { ScrubRuleHidingAddresses } from "Common/Types/Telemetry/ScrubRuleAddresses";
 import ScrubRulePatternPill from "../../../Components/Telemetry/ScrubRulePatternPill";
 import ScrubRuleReadersPreview, {
   ScrubRuleReadersPreviewRule,
@@ -184,6 +201,28 @@ const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The IP Address rules that keep Security Events from naming an
+   * attacker's address: each says so on its row, with Hash Instead, and the
+   * form says so under its actions (#10396).
+   */
+  const addressRules: ScrubRulesHidingAddressesState =
+    useScrubRulesHidingAddresses();
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+
+  const hidingRuleOf: (
+    item: LogScrubRule,
+  ) => ScrubRuleHidingAddresses | undefined = (
+    item: LogScrubRule,
+  ): ScrubRuleHidingAddresses | undefined => {
+    const id: string = (item._id?.toString() || "").toLowerCase();
+
+    return addressRules.rules.find(
+      (rule: ScrubRuleHidingAddresses): boolean => {
+        return rule.signal === "log" && rule.ruleId === id;
+      },
+    );
+  };
 
   /*
    * One page that starts from what the rule scrubs: the pattern type, its
@@ -208,12 +247,22 @@ const LogScrubRules: FunctionComponent<
           />
         );
       },
+      (values: FormValues<LogScrubRule>): ReactElement | undefined => {
+        return doesFormRuleHideAddresses({
+          options: LOG_SCRUB_RULE_FORM_OPTIONS,
+          values,
+          signalsRead: addressRules.signalsRead,
+        }) ? (
+          <HashInsteadFormNote dataTestId="scrub-rule-form-address-note" />
+        ) : undefined;
+      },
     );
-  }, []);
+  }, [addressRules.signalsRead]);
 
   return (
     <ModelTable<LogScrubRule>
       modelType={LogScrubRule}
+      refreshToggle={refreshToggle}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{
         column: "isEnabled",
@@ -347,6 +396,20 @@ const LogScrubRules: FunctionComponent<
                   <div className="text-xs text-gray-500 mt-0.5">
                     {item.description}
                   </div>
+                )}
+                {hidingRuleOf(item) ? (
+                  <div className="mt-2">
+                    <HashInsteadNotice
+                      rule={hidingRuleOf(item)!}
+                      onSwitched={() => {
+                        addressRules.reload();
+                        setRefreshToggle(Date.now().toString());
+                      }}
+                      dataTestId="scrub-rule-hash-instead"
+                    />
+                  </div>
+                ) : (
+                  <></>
                 )}
               </div>
             );

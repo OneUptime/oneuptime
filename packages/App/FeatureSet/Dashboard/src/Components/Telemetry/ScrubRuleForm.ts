@@ -14,8 +14,10 @@ import {
   ScrubRuleDefaults,
   TRACE_SCRUB_RULE_DEFAULTS,
 } from "Common/Types/Telemetry/ScrubRule";
+import { ScrubRuleAddressSignal } from "Common/Types/Telemetry/ScrubRuleAddresses";
 import { TelemetryFieldSignal } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
+import { isScrubRuleHidingAddresses } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import { PatternProblemReason } from "Common/Utils/LinearRegExp/PatternProblem";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -432,6 +434,62 @@ export type ScrubRuleReadersFooter = (
 ) => ReactElement | undefined;
 
 /*
+ * What a page draws under the rule's action choices: the notice an IP
+ * Address rule that redacts or masks gets in a project where Security
+ * Events reads that kind of record (#10396). The page knows which kinds it
+ * reads, and hands the element in.
+ */
+export type ScrubRuleActionFooter = (
+  values: FormValues<LogScrubRule>,
+) => ReactElement | undefined;
+
+/*
+ * Whether the rule as the form holds it would keep Security Events from
+ * naming the addresses it hides: an IP Address rule that redacts or masks
+ * (left alone, it redacts) a part of the records Security Events reads
+ * the address from (a log's body or attributes, a span's attributes), of a
+ * kind of record Security Events reads (#10396). The same question the
+ * notice on a saved rule asks (Utils/SecurityEvent/ScrubbedAddress).
+ */
+export function doesFormRuleHideAddresses(data: {
+  options: ScrubRuleFormOptions;
+  values: FormValues<LogScrubRule>;
+  signalsRead: ReadonlyArray<ScrubRuleAddressSignal>;
+}): boolean {
+  const formValues: Record<string, unknown> = (data.values || {}) as Record<
+    string,
+    unknown
+  >;
+  const patternType: unknown = normalizeFormValue(formValues["patternType"]);
+  const scrubAction: unknown = normalizeFormValue(formValues["scrubAction"]);
+  const fieldsToScrub: unknown = normalizeFormValue(
+    formValues["fieldsToScrub"],
+  );
+
+  if (
+    patternType !== LogScrubPatternType.IPAddress ||
+    !data.signalsRead.includes(data.options.signal)
+  ) {
+    return false;
+  }
+
+  return isScrubRuleHidingAddresses(
+    {
+      patternType: patternType,
+      scrubAction:
+        typeof scrubAction === "string" && scrubAction
+          ? scrubAction
+          : data.options.defaults.scrubAction,
+      fieldsToScrub:
+        typeof fieldsToScrub === "string" && fieldsToScrub
+          ? fieldsToScrub
+          : data.options.defaults.fieldsToScrub,
+    },
+    data.options.signal,
+  );
+}
+
+/*
  * The fields of both pages' forms. Written once over LogScrubRule: a trace
  * scrub rule has the same columns (TraceScrubRule), so the trace page takes
  * the same list (getTraceScrubRuleFormFields).
@@ -439,9 +497,11 @@ export type ScrubRuleReadersFooter = (
 const getScrubRuleFormFields: (
   options: ScrubRuleFormOptions,
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ) => Array<ModelField<LogScrubRule>> = (
   options: ScrubRuleFormOptions,
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ): Array<ModelField<LogScrubRule>> => {
   const advanced: FormFieldCollapsibleSection<LogScrubRule> =
     getAdvancedFormSection<LogScrubRule>({
@@ -581,6 +641,19 @@ const getScrubRuleFormFields: (
        */
       defaultValue: options.defaults.scrubAction,
       collapsibleSection: advanced,
+      /*
+       * Under the choices: an IP Address rule that redacts or masks, where
+       * Security Events reads the addresses, says what that takes (#10396).
+       */
+      ...(actionFooter
+        ? {
+            getFooterElement: (
+              values: FormValues<LogScrubRule>,
+            ): ReactElement | undefined => {
+              return actionFooter(values);
+            },
+          }
+        : {}),
     },
     {
       field: {
@@ -632,19 +705,28 @@ const getScrubRuleFormFields: (
 
 export const getLogScrubRuleFormFields: (
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ) => Array<ModelField<LogScrubRule>> = (
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ): Array<ModelField<LogScrubRule>> => {
-  return getScrubRuleFormFields(LOG_SCRUB_RULE_FORM_OPTIONS, readersFooter);
+  return getScrubRuleFormFields(
+    LOG_SCRUB_RULE_FORM_OPTIONS,
+    readersFooter,
+    actionFooter,
+  );
 };
 
 export const getTraceScrubRuleFormFields: (
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ) => Array<ModelField<TraceScrubRule>> = (
   readersFooter?: ScrubRuleReadersFooter,
+  actionFooter?: ScrubRuleActionFooter,
 ): Array<ModelField<TraceScrubRule>> => {
   return getScrubRuleFormFields(
     TRACE_SCRUB_RULE_FORM_OPTIONS,
     readersFooter,
+    actionFooter,
   ) as unknown as Array<ModelField<TraceScrubRule>>;
 };
