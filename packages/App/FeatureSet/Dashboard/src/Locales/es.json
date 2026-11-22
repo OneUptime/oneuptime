@@ -25138,6 +25138,7 @@
   "Incident AI settings": "Ajustes de IA de incidentes",
   "No longer a member": "Ya no es miembro",
   "Invitation not accepted yet": "Invitación aún no aceptada",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "Aún no ha aceptado su invitación a este proyecto, así que hasta que lo haga no se avisa a nadie en lugar de la persona ausente.",
   "* - every row, alerting separately": "* - every row, alerting separately",
   "* or a row name": "* or a row name",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.",

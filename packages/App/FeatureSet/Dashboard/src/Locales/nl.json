@@ -25138,6 +25138,7 @@
   "Incident AI settings": "AI-instellingen voor incidenten",
   "No longer a member": "Geen lid meer",
   "Invitation not accepted yet": "Uitnodiging nog niet geaccepteerd",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "Diegene heeft de uitnodiging voor dit project nog niet geaccepteerd, dus tot dan wordt niemand opgeroepen in plaats van de afwezige persoon.",
   "* - every row, alerting separately": "* - every row, alerting separately",
   "* or a row name": "* or a row name",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.",

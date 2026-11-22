@@ -25138,6 +25138,7 @@
   "Incident AI settings": "घटना AI सेटिंग्स",
   "No longer a member": "अब सदस्य नहीं",
   "Invitation not accepted yet": "आमंत्रण अभी स्वीकार नहीं किया गया",
+  "They haven't accepted their invitation to this project yet, so nobody is paged in place of the person away until they do.": "उन्होंने अभी तक इस प्रोजेक्ट का आमंत्रण स्वीकार नहीं किया है, इसलिए तब तक अनुपस्थित व्यक्ति की जगह किसी को पेज नहीं किया जाता।",
   "* - every row, alerting separately": "* - every row, alerting separately",
   "* or a row name": "* or a row name",
   "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.": "2. Every {{pair}} becomes an attribute. Quoted values keep their spaces, and text that is not a pair - such as a syslog header - is skipped.",
