@@ -266,7 +266,7 @@ Når watchdog-varselet ikke har kommet på ti minutter, blir watchdog-monitoren 
 - Hendelsen i kriteriet trenger **Løs hendelse automatisk**, under **Flere felt**.
 - **Field that signals recovery** må være `requestBody.alerts[*].status`, og **Value that means recovered** nøyaktig `resolved`. Sammenligningen skiller mellom store og små bokstaver.
 - Varsler i en varsling utover **Max incidents per request** leses ikke i det hele tatt, så gjenopprettingene deres går også tapt.
-- En gjenoppretting som hoppes over i et utbrudd (se nedenfor), lar hendelsen sin stå åpen for alltid: Alertmanager gjentar utløste varsler, men aldri en gjenoppretting. Løs en slik hendelse manuelt.
+- En gjenoppretting som hoppes over fordi for mange varslinger ventet (se nedenfor), lar hendelsen sin stå åpen for alltid: Alertmanager gjentar utløste varsler, men aldri en gjenoppretting. Løs en slik hendelse manuelt.
 :::
 
 :::details Ingen hendelse åpnes
@@ -285,8 +285,8 @@ En referanse til et felt som varslingen ikke har, blir stående slik den er skre
 Grupper ruten din etter færre etiketter, eller øk `group_interval`, slik at Alertmanager sender relaterte varsler sammen. En lavere **Max incidents per request** begrenser hendelsene fra én varsling, men varsler utover grensen leses ikke, så gjenopprettingene deres går også tapt.
 :::
 
-:::details Varslinger hoppes over under et utbrudd
-Når en nyere forespørsel når en monitor før en tidligere er evaluert, evaluerer OneUptime bare den nyeste, slik at én avsender ikke kan oversvømme en monitor. Den siste varslingen i et utbrudd evalueres alltid, men en tidligere om andre varsler kan hoppes over, fordi Alertmanager sender hver gruppe til den samme URL-en. Øk `group_wait` og `group_interval` for å spre varslingene. På en selvdriftet installasjon setter du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i miljøet til OneUptime-appen for å evaluere hver forespørsel.
+:::details Et utbrudd av varslinger
+En monitor der kriteriet grupperer etter et felt, slik denne veiledningen setter det opp, evaluerer hver varsling den mottar, én om gangen og i den rekkefølgen de kom, så et utbrudd av utløste og løste varsler åpner og løser hendelsen for hvert varsel. Opptil 1 000 varslinger, eller 16 MB av dem, venter på å bli evaluert; utover det hoppes de eldste ventende over, og kortet **Monitor-sammendrag** sier hvor mange. Øk `group_wait` og `group_interval` for å sende færre, større varslinger. En monitor uten gruppering evaluerer bare den nyeste varslingen som venter på den.
 :::
 
 ## Sikkerhet

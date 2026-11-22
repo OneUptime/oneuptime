@@ -12,6 +12,9 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import DataStoreService from "./DataStoreService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
+import OneUptimeDate from "../../Types/Date";
+import logger from "../Utils/Logger";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -130,7 +133,30 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    if (dataStoreId) {
+      await expireOwnersProposedForStore(dataStoreId);
+    }
+
     return createdItem;
+  }
+}
+
+/*
+ * A store that has an owner now no longer needs the owners OneUptime AI
+ * proposed for it (#10374). Never fails the owner's add.
+ */
+export async function expireOwnersProposedForStore(
+  dataStoreId: ObjectID,
+): Promise<void> {
+  try {
+    await DataSecurityAiProposalService.expireWaitingOwnersForStore({
+      dataStoreId,
+      at: OneUptimeDate.getCurrentDate(),
+    });
+  } catch (error) {
+    logger.error(
+      `DataSecurity owners: could not settle the owners proposed for store ${dataStoreId.toString()}: ${error}`,
+    );
   }
 }
 

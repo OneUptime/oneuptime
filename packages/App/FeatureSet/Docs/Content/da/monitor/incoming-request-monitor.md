@@ -388,10 +388,12 @@ En webhook beskriver kun det, der står i den payload, så OneUptime løser aldr
 
 En advarsel, du selv føjer til et kriterium, starter også med **Løs advarsel automatisk** slået fra, så en genoprettelse lader advarslen stå åben, indtil den er slået til. **Auto-resolve each incident when…** viser, hvilke af kriteriets hændelser og advarsler en genoprettelse løser, og nævner hver, den ville lade stå åben, med en knap, der slår den tilhørende indstilling til. Kortet **Monitor-resumé** på monitorens **Oversigt** nævner hver hændelse og advarsel, som en genoprettelse lod stå åben, og hvorfor.
 
+En genopretning løser kun hændelserne og advarslerne fra det kriterium, der læser den: det, hvis **Field that signals recovery** og **Value that means recovered** matcher payloaden. Et andet kriteriums hændelser og advarsler for samme værdi forbliver åbne, og dem fra et kriterium, der lader felterne stå tomme, løses manuelt.
+
 **Max incidents per request** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
 > [!NOTE]
-> Når én monitor modtager anmodninger hurtigere, end OneUptime evaluerer dem, evaluerer OneUptime den nyeste og springer dem imellem over, så en byge af webhooks kan efterlade en aktiv eller en løst advarsel uevalueret. På en selvhostet server får `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø hver anmodning til at blive evalueret for sig.
+> En monitor med et kriterium, der grupperer efter et felt i indholdet, evaluerer hver anmodning, den modtager, én ad gangen og i den rækkefølge, de kom, så en byge af advarsler og genopretninger åbner og løser hver værdis hændelse og advarsel. Op til 1.000 anmodninger, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. En monitor uden gruppering evaluerer kun den nyeste af de anmodninger, der venter på den.
 
 > [!NOTE]
 > Hvis **Field that signals recovery** indeholder `[*]`, men **Open a separate incident for each…** ikke gør, er en anmodning først ovre, når hvert element i det array siger det. Med `requestBody.alerts[*].status` og `resolved` løses en hændelse grupperet efter `requestBody.groupLabels.alertname`, når alle en anmodnings advarsler er løst, og den forbliver åben, så længe én stadig er aktiv.

@@ -266,7 +266,7 @@ When the watchdog alert has not arrived for ten minutes, the watchdog monitor go
 - The criteria's incident needs **Auto Resolve Incident**, under **More fields**.
 - **Field that signals recovery** must be `requestBody.alerts[*].status`, and **Value that means recovered** exactly `resolved`. The comparison is case-sensitive.
 - The alerts of a notification past **Max incidents per request** are not read at all, so their recoveries are missed too.
-- A recovery skipped in a burst (see below) leaves its incident open for good: Alertmanager repeats firing alerts, but never a recovery. Resolve such an incident by hand.
+- A recovery skipped because too many notifications were waiting (see below) leaves its incident open for good: Alertmanager repeats firing alerts, but never a recovery. Resolve such an incident by hand.
 :::
 
 :::details No incident opens at all
@@ -285,8 +285,8 @@ A reference to a field the notification does not have is left as written, braces
 Group your route by fewer labels, or raise `group_interval`, so Alertmanager sends related alerts together. Lowering **Max incidents per request** caps the incidents of one notification, but the alerts past the cap are not read, so their recoveries are missed too.
 :::
 
-:::details Some notifications are skipped in a burst
-When a newer request reaches a monitor before an earlier one is evaluated, OneUptime evaluates only the newer one, so that one sender cannot overwhelm a monitor. The last notification of a burst is always evaluated, but an earlier one about other alerts can be skipped, because Alertmanager sends every group to the same URL. Raise `group_wait` and `group_interval` to space notifications out. On a self-hosted install, set `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` in the OneUptime app's environment to evaluate every request.
+:::details A burst of notifications
+A monitor whose criteria groups by a field, as this guide sets it up, evaluates every notification it receives, one at a time and in the order they arrived, so a burst of firing and resolved alerts opens and resolves each alert's incident. Up to 1,000 notifications, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many. Raise `group_wait` and `group_interval` to send fewer, larger notifications. A monitor without grouping evaluates only the newest notification waiting for it.
 :::
 
 ## Security

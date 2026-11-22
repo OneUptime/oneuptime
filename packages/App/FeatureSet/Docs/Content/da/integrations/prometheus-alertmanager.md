@@ -266,7 +266,7 @@ Når watchdog-advarslen ikke er kommet i ti minutter, går watchdog-monitoren of
 - Kriteriets hændelse skal have **Løs hændelse automatisk**, under **Flere felter**.
 - **Field that signals recovery** skal være `requestBody.alerts[*].status`, og **Value that means recovered** præcis `resolved`. Sammenligningen skelner mellem store og små bogstaver.
 - Advarsler i en notifikation ud over **Max incidents per request** læses slet ikke, så deres genopretninger går også tabt.
-- En genopretning, der springes over i et udbrud (se nedenfor), lader sin hændelse stå åben for altid: Alertmanager gentager udløste advarsler, men aldrig en genopretning. Løs sådan en hændelse manuelt.
+- En genopretning, der springes over, fordi for mange notifikationer ventede (se nedenfor), lader sin hændelse stå åben for altid: Alertmanager gentager udløste advarsler, men aldrig en genopretning. Løs sådan en hændelse manuelt.
 :::
 
 :::details Ingen hændelse åbnes
@@ -285,8 +285,8 @@ En henvisning til et felt, som notifikationen ikke har, bliver stående, som den
 Gruppér din rute efter færre etiketter, eller hæv `group_interval`, så Alertmanager sender relaterede advarsler sammen. En lavere **Max incidents per request** begrænser hændelserne fra én notifikation, men advarsler ud over grænsen læses ikke, så deres genopretninger går også tabt.
 :::
 
-:::details Notifikationer springes over under et udbrud
-Når en nyere anmodning når en monitor, før en tidligere er evalueret, evaluerer OneUptime kun den nyeste, så én afsender ikke kan oversvømme en monitor. Den sidste notifikation i et udbrud evalueres altid, men en tidligere om andre advarsler kan blive sprunget over, fordi Alertmanager sender hver gruppe til den samme URL. Hæv `group_wait` og `group_interval` for at sprede notifikationerne. På en selvhostet installation sætter du `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljø for at evaluere hver anmodning.
+:::details Et udbrud af notifikationer
+En monitor, hvis kriterium grupperer efter et felt, som denne vejledning sætter det op, evaluerer hver notifikation, den modtager, én ad gangen og i den rækkefølge, de kom, så et udbrud af udløste og løste advarsler åbner og løser hver advarsels hændelse. Op til 1.000 notifikationer, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. Hæv `group_wait` og `group_interval` for at sende færre, større notifikationer. En monitor uden gruppering evaluerer kun den nyeste notifikation, der venter på den.
 :::
 
 ## Sikkerhed
