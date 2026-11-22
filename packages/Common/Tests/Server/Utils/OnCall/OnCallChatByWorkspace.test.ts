@@ -299,7 +299,9 @@ describe("how each workspace names a person", () => {
       // As main named her: the address she was invited at (#10175).
       jest
         .spyOn(WorkspaceUtil, "getUserStringForWorkspace")
-        .mockResolvedValue("[ivy@invited.test](https://oneuptime.test/users/ivy) " as never);
+        .mockResolvedValue(
+          "[ivy@invited.test](https://oneuptime.test/users/ivy) " as never,
+        );
       jest
         .spyOn(UserService, "getUserMarkdownString")
         .mockResolvedValue(

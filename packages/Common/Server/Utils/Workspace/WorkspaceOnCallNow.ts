@@ -12,7 +12,9 @@ import DatabaseConfig from "../../DatabaseConfig";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import logger from "../Logger";
 import OnCallChatByWorkspace from "../OnCall/OnCallChatByWorkspace";
-import OnCallChatText, { OnCallNotPagedBecause } from "../OnCall/OnCallChatText";
+import OnCallChatText, {
+  OnCallNotPagedBecause,
+} from "../OnCall/OnCallChatText";
 import ProductBrandingText from "../ProductBrandingText";
 import PendingInviteeProfiles, {
   WithheldProfile,
@@ -168,10 +170,7 @@ export default class WorkspaceOnCallNow {
             schedule.currentUserOnRoster,
             invited,
           ),
-          next: WorkspaceOnCallNow.toPerson(
-            schedule.nextUserOnRoster,
-            invited,
-          ),
+          next: WorkspaceOnCallNow.toPerson(schedule.nextUserOnRoster, invited),
           handoffAt: schedule.rosterHandoffAt
             ? new Date(schedule.rosterHandoffAt)
             : null,
@@ -345,10 +344,7 @@ export default class WorkspaceOnCallNow {
    * says it (OnCallChatText.whyNotPaged) - "the person on call ..." when no
    * name was typed for them.
    */
-  private static getWhyNotPaged(
-    person: Person,
-    isNext: boolean,
-  ): MarkdownText {
+  private static getWhyNotPaged(person: Person, isNext: boolean): MarkdownText {
     const displayName: string = person.invitee?.displayName || "";
 
     return OnCallChatText.whyNotPaged({

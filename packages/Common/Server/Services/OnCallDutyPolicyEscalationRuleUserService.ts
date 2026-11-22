@@ -372,14 +372,16 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
     // Each workspace's line names them as it knows them (issue #7967).
     const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-      await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-        return OnCallChatText.policyChange({
-          emoji: "👨🏻‍💻",
-          isAdded: true,
-          what: mdText`**${await writer.nameOf(addedUserId)}**`,
-          policy: chatPolicy,
-        });
-      });
+      await chat.write(
+        async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+          return OnCallChatText.policyChange({
+            emoji: "👨🏻‍💻",
+            isAdded: true,
+            what: mdText`**${await writer.nameOf(addedUserId)}**`,
+            policy: chatPolicy,
+          });
+        },
+      );
 
     await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
       onCallDutyPolicyId: onCallDutyPolicyId,

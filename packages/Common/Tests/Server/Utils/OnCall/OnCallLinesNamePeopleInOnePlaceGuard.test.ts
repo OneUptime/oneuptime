@@ -84,6 +84,8 @@ const KNOWN_LINE_WRITERS: Array<string> = [
   "packages/Common/Server/Utils/OnCall/OnCallHandoffPosts.ts",
 ];
 
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 function sourceFiles(directory: string): Array<string> {
   const files: Array<string> = [];
 
@@ -96,7 +98,7 @@ function sourceFiles(directory: string): Array<string> {
 
     if (entry.isDirectory()) {
       files.push(...sourceFiles(full));
-    } else if (/\.tsx?$/.test(entry.name)) {
+    } else if (SOURCE_FILE.test(entry.name)) {
       files.push(full);
     }
   }

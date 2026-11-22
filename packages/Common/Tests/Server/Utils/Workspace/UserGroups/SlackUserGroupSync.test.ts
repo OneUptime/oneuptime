@@ -245,9 +245,7 @@ describe("someone only invited to the project is never in the group (#10616)", (
 
     expect(paymentsOnCall.users).toEqual(["U0ANA"]);
     expect(world.slack.calls("users.lookupByEmail")).toEqual([]);
-    expect(JSON.stringify(world.slack.requests)).not.toContain(
-      "ivy@acme.test",
-    );
+    expect(JSON.stringify(world.slack.requests)).not.toContain("ivy@acme.test");
     // Not a person the group could not find: nobody a group may hold.
     expect(state.leftOut).toEqual([]);
   });

@@ -2120,18 +2120,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        * knows them, as a hand-off's does (issue #7967).
        */
       const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-        await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-          return OnCallChatText.overrideChanged({
-            policy: chatPolicy,
-            person: await writer.nameOf(overrideUserId),
-            cover: afterCoverId
-              ? await writer.nameOf(new ObjectID(afterCoverId))
-              : undefined,
-            from: afterStartsAt,
-            until: afterEndsAt,
-            moment: writer.moment,
-          });
-        });
+        await chat.write(
+          async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+            return OnCallChatText.overrideChanged({
+              policy: chatPolicy,
+              person: await writer.nameOf(overrideUserId),
+              cover: afterCoverId
+                ? await writer.nameOf(new ObjectID(afterCoverId))
+                : undefined,
+              from: afterStartsAt,
+              until: afterEndsAt,
+              moment: writer.moment,
+            });
+          },
+        );
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
         onCallDutyPolicyId: onCallDutyPolicyId,
@@ -2316,12 +2318,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
         // Each workspace's line names the person as it knows them (#7967).
         const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-          await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-            return OnCallChatText.overrideRemoved({
-              policy: chatPolicy,
-              person: await writer.nameOf(overrideUserId),
-            });
-          });
+          await chat.write(
+            async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return OnCallChatText.overrideRemoved({
+                policy: chatPolicy,
+                person: await writer.nameOf(overrideUserId),
+              });
+            },
+          );
 
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,

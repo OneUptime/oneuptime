@@ -837,8 +837,9 @@ export default class UserGroupsWorld {
     });
 
     // Every person of the world is a member, but someone only invited.
-    jest.spyOn(ProjectMembership, "getMemberUserIds").mockImplementation(
-      (async (data: {
+    jest
+      .spyOn(ProjectMembership, "getMemberUserIds")
+      .mockImplementation((async (data: {
         userIds: Array<ObjectID | string>;
       }): Promise<Set<string>> => {
         const members: Set<string> = new Set<string>();
@@ -854,8 +855,7 @@ export default class UserGroupsWorld {
         }
 
         return members;
-      }) as never,
-    );
+      }) as never);
 
     jest
       .spyOn(ProductBrandingText, "getProductName")

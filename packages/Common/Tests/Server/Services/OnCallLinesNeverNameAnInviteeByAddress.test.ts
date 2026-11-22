@@ -521,7 +521,8 @@ describe("a person added to an escalation rule", () => {
         mdText`👨🏻‍💻 Added **${named}** to the [On-Call Policy Payments](${POLICY_LINK}) escalation rule **First line** with order **1**.`.toString(),
       );
 
-      const line: string = mdText`👨🏻‍💻 Added **${named}** to on-call policy [Payments](${POLICY_LINK}).`.toString();
+      const line: string =
+        mdText`👨🏻‍💻 Added **${named}** to on-call policy [Payments](${POLICY_LINK}).`.toString();
 
       expect(items[0]!.chatInfoInMarkdown).toBe(line);
       expect(items[0]!.chatInfoByWorkspaceType).toEqual({
@@ -576,7 +577,8 @@ describe("a person taken out of an escalation rule", () => {
         mdText`👨🏻‍💻 Removed **${named}** from the [On-Call Policy Payments](${POLICY_LINK}) for escalation rule First line with order 1.`.toString(),
       );
 
-      const line: string = mdText`👨🏻‍💻 Removed **${named}** from on-call policy [Payments](${POLICY_LINK}).`.toString();
+      const line: string =
+        mdText`👨🏻‍💻 Removed **${named}** from on-call policy [Payments](${POLICY_LINK}).`.toString();
 
       expect(items[0]!.chatInfoInMarkdown).toBe(line);
 
@@ -608,9 +610,9 @@ describe("a person taken out of an escalation rule", () => {
   test("their on-call time log on the rule still ends", async () => {
     await takeOffRule(IVY);
 
-    expect(OnCallDutyPolicyTimeLogService.endTimeLogForUser).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(
+      OnCallDutyPolicyTimeLogService.endTimeLogForUser,
+    ).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -650,7 +652,9 @@ describe("an override", () => {
       expect(items[0]!.feedInfoInMarkdown).toContain(
         mdText`All alerts will be routed to **${named}** from `.toString(),
       );
-      expect(items[0]!.chatInfoByWorkspaceType?.[WorkspaceType.Slack]).toContain(
+      expect(
+        items[0]!.chatInfoByWorkspaceType?.[WorkspaceType.Slack],
+      ).toContain(
         mdText`: ${named} covers for [Ana Lee](${linkOf(ANA)}) from `.toString(),
       );
       expectNothingOfIvysAddress();
@@ -699,7 +703,8 @@ describe("an override", () => {
         mdText`❌ Removed a User Override Rule for user **${named}** for the [On-Call Policy Payments](${POLICY_LINK}). All alerts will be routed back to **${named}**`.toString(),
       );
 
-      const line: string = mdText`❌ Removed an override on [Payments](${POLICY_LINK}): ${named} is paged on their turns again.`.toString();
+      const line: string =
+        mdText`❌ Removed an override on [Payments](${POLICY_LINK}): ${named} is paged on their turns again.`.toString();
 
       expect(items[0]!.chatInfoInMarkdown).toBe(line);
 
@@ -752,9 +757,11 @@ describe("an owner of the policy", () => {
     await addOwner(ANA);
     await removeOwner(ANA);
 
-    expect(items.map((item: FeedItem): string => {
-      return item.feedInfoInMarkdown;
-    })).toEqual([
+    expect(
+      items.map((item: FeedItem): string => {
+        return item.feedInfoInMarkdown;
+      }),
+    ).toEqual([
       `👨🏻‍💻 Added **[Ana Lee](${linkOf(ANA)})** to the [On-Call Policy Payments](${POLICY_LINK}) as the owner.`,
       `👨🏻‍💻 Removed **[Ana Lee](${linkOf(ANA)})** from the [On-Call Policy Payments](${POLICY_LINK}) as the owner.`,
     ]);

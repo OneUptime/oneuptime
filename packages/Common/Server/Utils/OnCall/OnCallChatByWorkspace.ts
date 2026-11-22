@@ -127,9 +127,12 @@ export const ON_CALL_CHAT_INVITEE_UNNAMED: string =
  * Whether somebody a line names is only invited to the project: with the
  * name a line says for them, or not invited. Null when it could not be read.
  */
-type OnCallInviteeStanding = { isInvited: true; name: string } | {
-  isInvited: false;
-} | null;
+type OnCallInviteeStanding =
+  | { isInvited: true; name: string }
+  | {
+      isInvited: false;
+    }
+  | null;
 
 export default class OnCallChatByWorkspace {
   private readonly projectId: ObjectID;
