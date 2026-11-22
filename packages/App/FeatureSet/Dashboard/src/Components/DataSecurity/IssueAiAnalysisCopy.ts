@@ -193,6 +193,9 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   [DataSecurityAiProposalKind.ScrubTelemetry]: translationKey(
     "Scrub It rules for where its data was found",
   ),
+  // Owners for the issue's store, and the rule that keeps stores like it owned (#10374).
+  [DataSecurityAiProposalKind.SetStoreOwners]: translationKey("Store owners"),
+  [DataSecurityAiProposalKind.CreateOwnerRule]: translationKey("Owner rules"),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).
