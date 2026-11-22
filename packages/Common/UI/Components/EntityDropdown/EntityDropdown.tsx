@@ -246,6 +246,12 @@ export interface EntityDropdownProps {
   formatOption?:
     | ((option: DropdownOption, record: BaseModel) => DropdownOption)
     | undefined;
+  /*
+   * Take the focus as it is drawn, with its list closed: a picker that
+   * takes the place of the control that had it (a workspace rule's
+   * condition switched from a policy's name to the policies it names).
+   */
+  autoFocus?: boolean | undefined;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -1664,6 +1670,25 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       : translator.translateText(props.placeholder || "Select...") || "";
   const showSingleSelectedText: boolean =
     !isMulti && !isOpen && selectedOptions.length > 0;
+
+  /*
+   * autoFocus: the focus, once, as the dropdown is drawn - on the search
+   * box, or a single pick's value button - with the list kept closed.
+   */
+  useLayoutEffect(() => {
+    if (!props.autoFocus) {
+      return;
+    }
+
+    if (valueButtonRef.current) {
+      valueButtonRef.current.focus();
+      return;
+    }
+
+    keepMenuClosedOnFocusRef.current = true;
+    inputRef.current?.focus();
+    keepMenuClosedOnFocusRef.current = false;
+  }, []);
 
   useLayoutEffect(() => {
     if (!focusInputAfterClearRef.current || showSingleSelectedText) {

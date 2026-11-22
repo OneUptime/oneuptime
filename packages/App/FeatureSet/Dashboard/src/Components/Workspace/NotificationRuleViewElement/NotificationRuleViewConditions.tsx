@@ -23,9 +23,12 @@ import User from "Common/Models/DatabaseModels/User";
 export interface ComponentProps {
   criteriaFilters: Array<NotificationRuleCondition>;
   filterCondition: FilterCondition;
-  // The monitors the rules hold, by id; undefined while they are read.
+  /*
+   * The monitors, labels, SLOs, policies, people and teams the rules hold,
+   * read by their ids: each undefined until read (#10646, #10689).
+   */
   monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
+  labels?: Array<Label> | undefined;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -42,6 +45,8 @@ export interface ComponentProps {
   users?: Array<User> | undefined;
   teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
+  // Whether they are being read: a value not read yet is a placeholder.
+  isNamingValues?: boolean | undefined;
 }
 
 /*
@@ -114,6 +119,7 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         users={props.users}
         teams={props.teams}
         monitorStatus={props.monitorStatus}
+        isNamingValues={props.isNamingValues}
       />
     );
   };
