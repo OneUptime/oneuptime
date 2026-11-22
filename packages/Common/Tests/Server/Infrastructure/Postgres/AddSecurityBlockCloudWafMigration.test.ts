@@ -127,14 +127,17 @@ describe("AddSecurityBlockCloudWaf migration - identity and registration", () =>
   });
 });
 
+// Columns later migrations add to the table: why a cloud WAF is not enforcing, worded where it is drawn (#10629).
+const LATER_COLUMNS: Array<string> = ["statusReason"];
+
 describe("AddSecurityBlockCloudWaf migration - what it makes", () => {
-  test("the table has every column the model declares, and none it does not", async () => {
+  test("the table has every column the model declares, and none it does not, but those later migrations add", async () => {
     const up: Array<string> = await recordQueries("up");
     const create: string = up.find((text: string): boolean => {
       return text.startsWith(`CREATE TABLE "${TABLE}"`);
     })!;
 
-    expect([...columnsOf(create).keys()].sort()).toEqual(
+    expect([...columnsOf(create).keys(), ...LATER_COLUMNS].sort()).toEqual(
       declaredColumns(SecurityBlockCloudWaf).sort(),
     );
   });
