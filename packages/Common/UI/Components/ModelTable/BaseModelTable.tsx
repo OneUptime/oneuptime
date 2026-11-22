@@ -1,4 +1,11 @@
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
+import { withSearch } from "../EntityDropdown/EntityDropdownQuery";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "../EntityDropdown/EntityDropdownNotFound";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
+import RecordsById from "../../Utils/RecordsById";
 import GlossaryTerm from "../../../Types/Docs/GlossaryTerm";
 import DefinedTerm from "../Glossary/LazyDefinedTerm";
 import { BILLING_ENABLED, getAllEnvVars } from "../../Config";
@@ -79,7 +86,7 @@ import Card, {
 } from "../Card/Card";
 import { getRefreshButton } from "../Card/CardButtons/Refresh";
 import Field from "../Detail/Field";
-import ClassicFilterType from "../Filters/Types/Filter";
+import ClassicFilterType, { EntityFilterSearch } from "../Filters/Types/Filter";
 import FilterData from "../Filters/Types/FilterData";
 import { FormProps, FormSummaryConfig } from "../Forms/BasicForm";
 import {
@@ -1047,6 +1054,78 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
 // No row just brought in by a live read: one set, so a list at rest never redraws for it.
 const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
 
+/*
+ * The trailing `@<prefix>` mention in the search input. A mention is only
+ * recognised when `@` is at the start of the value or follows whitespace,
+ * and only when there is no whitespace after it — matches typical chat
+ * mention semantics.
+ */
+export interface TableLabelMention {
+  hasMention: boolean;
+  prefix: string;
+  atIndex: number;
+}
+
+export const parseTableLabelMention: (value: string) => TableLabelMention = (
+  value: string,
+): TableLabelMention => {
+  const atIndex: number = value.lastIndexOf("@");
+  if (atIndex < 0) {
+    return { hasMention: false, prefix: "", atIndex: -1 };
+  }
+  if (atIndex > 0) {
+    const prev: string = value[atIndex - 1] || "";
+    if (prev !== " " && prev !== "\t") {
+      return { hasMention: false, prefix: "", atIndex: -1 };
+    }
+  }
+  const after: string = value.substring(atIndex + 1);
+  if (after.includes(" ") || after.includes("\t") || after.includes("\n")) {
+    return { hasMention: false, prefix: "", atIndex: -1 };
+  }
+  return { hasMention: true, prefix: after, atIndex };
+};
+
+/*
+ * How many label suggestions "@" draws, and how long it waits for the
+ * typing to stop before it searches (#10646).
+ */
+export const TABLE_LABEL_SUGGESTIONS_SHOWN: number = 8;
+const TABLE_LABEL_SEARCH_DEBOUNCE_MS: number = 250;
+
+/*
+ * The records an entity filter holds, by its values: what each value of
+ * the filter's raw value names - "has any of", "has all of", "has none
+ * of", "is", "is not" - never "is empty".
+ */
+export const getEntityFilterHeldValues: (rawValue: unknown) => Array<string> = (
+  rawValue: unknown,
+): Array<string> => {
+  if (rawValue === undefined || rawValue === null) {
+    return [];
+  }
+
+  const values: Array<unknown> =
+    rawValue instanceof Includes ||
+    rawValue instanceof IncludesAll ||
+    rawValue instanceof IncludesNone ||
+    rawValue instanceof IncludesNoneOrNull
+      ? rawValue.values
+      : Array.isArray(rawValue)
+        ? rawValue
+        : typeof rawValue === "string" || rawValue instanceof ObjectID
+          ? [rawValue]
+          : [];
+
+  return values
+    .map((value: unknown): string => {
+      return value === undefined || value === null ? "" : value.toString();
+    })
+    .filter((value: string): boolean => {
+      return value.trim() !== "";
+    });
+};
+
 // The table whose records a filter lists, for the names they start with.
 const getFilterTableName: (entityType: unknown) => string | null = (
   entityType: unknown,
@@ -1084,6 +1163,208 @@ const toRecordFilterOption: (
     isUserContent:
       option.isUserContent ?? isRecordNameAsWritten(tableName, option.label),
   };
+};
+
+/*
+ * What an entity filter reads of each record it offers or holds: its name
+ * and value, its colour, whether it is archived (a filter lists archived
+ * values too - the records that have one stay findable by it - and marks
+ * them, so a reader can tell why a value is offered here and not in the
+ * forms), what tells records of one name apart (a team's, a label's, an
+ * on-call policy's or a schedule's description and when it was made:
+ * SharedNameOptions, #10064) and the labels it is guarded by.
+ */
+const getEntityFilterSelect: (filter: Filter<any>) => Dictionary<unknown> = (
+  filter: Filter<any>,
+): Dictionary<unknown> => {
+  const select: Dictionary<unknown> = {
+    [filter.filterDropdownField!.label]: true,
+    [filter.filterDropdownField!.value]: true,
+  };
+
+  if (!(filter.filterEntityType?.prototype instanceof BaseModel)) {
+    return select;
+  }
+
+  const filterModel: BaseModel =
+    new (filter.filterEntityType as DatabaseBaseModelType)();
+  const colorColumnName: string | null = filterModel.getFirstColorColumn();
+  const accessControlColumnName: string | null =
+    filterModel.getAccessControlColumn();
+
+  if (colorColumnName) {
+    select[colorColumnName] = true;
+  }
+
+  if (
+    ArchivedValuePicker.isArchivableValueModel(
+      filter.filterEntityType as DatabaseBaseModelType,
+    )
+  ) {
+    select["isArchived"] = true;
+  }
+
+  if (filter.filterDropdownField!.label === "name") {
+    Object.assign(
+      select,
+      getSharedNameSelect(filter.filterEntityType as DatabaseBaseModelType),
+    );
+  }
+
+  if (accessControlColumnName) {
+    select[accessControlColumnName] = {
+      _id: true,
+      name: true,
+      color: true,
+    } as JSONObject;
+  }
+
+  return select;
+};
+
+// One record an entity filter offers or holds, as its option.
+const toEntityFilterOption: (
+  item: BaseModel | AnalyticsBaseModel,
+  filter: Filter<any>,
+) => DropdownOption = (
+  item: BaseModel | AnalyticsBaseModel,
+  filter: Filter<any>,
+): DropdownOption => {
+  const isDatabaseModel: boolean = Boolean(
+    filter.filterEntityType?.prototype instanceof BaseModel,
+  );
+  const filterModel: BaseModel | null = isDatabaseModel
+    ? new (filter.filterEntityType as DatabaseBaseModelType)()
+    : null;
+  const colorColumnName: string | null = filterModel
+    ? filterModel.getFirstColorColumn()
+    : null;
+  const accessControlColumnName: string | null = filterModel
+    ? filterModel.getAccessControlColumn()
+    : null;
+
+  const option: DropdownOption = toRecordFilterOption(
+    {
+      value: item.getColumnValue(filter.filterDropdownField!.value) as string,
+      label: item.getColumnValue(filter.filterDropdownField!.label) as string,
+    },
+    getFilterTableName(filter.filterEntityType),
+  );
+
+  // The filter's dropdown draws the Archived tag beside it.
+  if (
+    isDatabaseModel &&
+    ArchivedValuePicker.isArchivableValueModel(
+      filter.filterEntityType as DatabaseBaseModelType,
+    ) &&
+    item.getColumnValue("isArchived") === true
+  ) {
+    option.isArchived = true;
+  }
+
+  const sharedName: DropdownOption["sharedName"] =
+    isDatabaseModel && filter.filterDropdownField!.label === "name"
+      ? getSharedNameFacts(item as unknown as BaseModel)
+      : undefined;
+
+  if (sharedName) {
+    option.sharedName = sharedName;
+  }
+
+  if (colorColumnName) {
+    const colorValue: Color | string | null = item.getColumnValue(
+      colorColumnName,
+    ) as Color | string | null;
+
+    if (colorValue instanceof Color) {
+      option.color = colorValue;
+    } else if (typeof colorValue === "string" && colorValue.trim().length > 0) {
+      try {
+        option.color = new Color(colorValue);
+      } catch {
+        // ignore invalid colors
+      }
+    }
+  }
+
+  if (accessControlColumnName) {
+    const accessControlValue:
+      | AccessControlModel
+      | Array<AccessControlModel>
+      | null =
+      (item.getColumnValue(accessControlColumnName) as
+        | AccessControlModel
+        | Array<AccessControlModel>
+        | null) || null;
+
+    const accessControlItems: Array<AccessControlModel> = Array.isArray(
+      accessControlValue,
+    )
+      ? accessControlValue
+      : accessControlValue
+        ? [accessControlValue]
+        : [];
+
+    type SimplifiedDropdownLabel = {
+      id?: string;
+      name: string;
+      color?: Color;
+    };
+
+    const dropdownLabels: Array<SimplifiedDropdownLabel> = accessControlItems
+      .map((label: AccessControlModel | null) => {
+        if (!label) {
+          return null;
+        }
+
+        const labelNameRaw: string | null = label.getColumnValue("name") as
+          | string
+          | null;
+
+        if (!labelNameRaw) {
+          return null;
+        }
+
+        const labelName: string = labelNameRaw.toString().trim();
+
+        if (!labelName) {
+          return null;
+        }
+
+        const labelColorValue: Color | null = label.getColumnValue(
+          "color",
+        ) as Color | null;
+
+        const normalizedLabel: SimplifiedDropdownLabel = {
+          name: labelName,
+        };
+
+        const labelId: ObjectID | null = label.id;
+
+        if (labelId) {
+          normalizedLabel.id = labelId.toString();
+        }
+
+        if (labelColorValue) {
+          normalizedLabel.color = labelColorValue;
+        }
+
+        return normalizedLabel;
+      })
+      .filter(
+        (
+          label: SimplifiedDropdownLabel | null,
+        ): label is SimplifiedDropdownLabel => {
+          return label !== null;
+        },
+      );
+
+    if (dropdownLabels.length > 0) {
+      option.labels = dropdownLabels as Array<DropdownOptionLabel>;
+    }
+  }
+
+  return option;
 };
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
@@ -1927,6 +2208,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     color: string;
     // What tells it from another label of its name (#10314).
     sharedName?: SharedNameFacts | undefined;
+    /*
+     * A chip restored from a link whose label no record answers to any
+     * more - deleted since, or out of the reader's reach (#10646): it
+     * still narrows the list, reads "No longer available", and can be
+     * taken out.
+     */
+    isNotFound?: boolean | undefined;
   }
 
   const [availableLabels, setAvailableLabels] = useState<
@@ -1935,7 +2223,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * Restored label chips start as bare IDs — the id is all the query needs, so
    * rows are correct on the very first fetch. The human-readable name/colour
-   * are filled in by the hydration effect below once the label list loads.
+   * are filled in once they are read by their ids, below.
    */
   const [selectedLabels, setSelectedLabels] = useState<
     Array<SearchLabelOption>
@@ -1945,8 +2233,25 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     });
   });
   const [isLabelsLoading, setIsLabelsLoading] = useState<boolean>(false);
-  const [labelsFetched, setLabelsFetched] = useState<boolean>(false);
   const [labelDropdownIndex, setLabelDropdownIndex] = useState<number>(0);
+
+  /*
+   * The list's own reads, as a ModelAPI for the pickers it draws and the
+   * reads by id it makes (#10646): every one goes through
+   * callbacks.getList, so a list the Admin Dashboard draws reads as the
+   * master admin, never the project the browser last opened. One object
+   * for the list's life: a picker searches again when its API changes.
+   */
+  const callbacksRef: MutableRefObject<BaseTableCallbacks<TBaseModel>> =
+    React.useRef<BaseTableCallbacks<TBaseModel>>(props.callbacks);
+  callbacksRef.current = props.callbacks;
+  const tableModelAPI: typeof ModelAPI = useMemo(() => {
+    return {
+      getList: (options: unknown): Promise<unknown> => {
+        return callbacksRef.current.getList(options as never);
+      },
+    } as unknown as typeof ModelAPI;
+  }, []);
 
   /*
    * Only the *ids* affect the query, so effects key off this instead of the
@@ -2036,106 +2341,182 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     });
   }, [labelFilterConfig]);
 
-  // Fetch labels on first search expansion if this resource supports them.
+  /*
+   * A label read for the search: its name, colour and what tells it from
+   * another of its name.
+   */
+  const toSearchLabelOption: (item: unknown) => SearchLabelOption = (
+    item: unknown,
+  ): SearchLabelOption => {
+    const raw: any = item;
+    const colorAny: any = raw["color"];
+    const colorHex: string =
+      (colorAny &&
+        (typeof colorAny === "string"
+          ? colorAny
+          : colorAny.value || (colorAny.toString && colorAny.toString()))) ||
+      "#94a3b8";
+
+    return {
+      id: raw["_id"]?.toString() || "",
+      name: (raw[labelFilterConfig?.labelField || "name"] as string) || "",
+      color: colorHex,
+      sharedName:
+        labelFilterConfig?.labelField === "name"
+          ? getSharedNameFacts(item as BaseModel)
+          : undefined,
+    } as SearchLabelOption;
+  };
+
+  const getSearchLabelSelect: () => any = (): any => {
+    return {
+      _id: true,
+      [labelFilterConfig?.labelField || "name"]: true,
+      color: true,
+      // What tells two labels of one name apart (#10314).
+      ...getSharedNameSelect(labelFilterConfig?.entityType),
+    };
+  };
+
+  /*
+   * The labels "@" suggests, searched on the server as the mention is typed
+   * (#10646): the ones whose name holds what follows the "@", by name, as
+   * many as the list shows past the ones already picked. It read the
+   * first 200 by name once and filtered them here, so a label past them
+   * was never suggested.
+   */
+  const labelMention: TableLabelMention = parseTableLabelMention(searchText);
+  const labelMentionSearch: string | null =
+    labelFilterConfig && isSearchExpanded && labelMention.hasMention
+      ? labelMention.prefix.trim()
+      : null;
+  const selectedLabelCountRef: MutableRefObject<number> =
+    React.useRef<number>(0);
+  selectedLabelCountRef.current = selectedLabels.length;
+
   useEffect(() => {
-    if (!isSearchExpanded || !labelFilterConfig || labelsFetched) {
+    if (labelMentionSearch === null || !labelFilterConfig) {
       return;
     }
+
     let cancelled: boolean = false;
     setIsLabelsLoading(true);
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(
+      async () => {
+        try {
+          const result: ListResult<TBaseModel> =
+            await callbacksRef.current.getList({
+              modelType: labelFilterConfig.entityType,
+              query: withSearch(
+                labelFilterConfig.fetchQuery || {},
+                labelFilterConfig.labelField,
+                labelMentionSearch,
+              ) as any,
+              // The picked ones are left out of what is suggested.
+              limit: Math.min(
+                TABLE_LABEL_SUGGESTIONS_SHOWN + selectedLabelCountRef.current,
+                50,
+              ),
+              skip: 0,
+              select: getSearchLabelSelect(),
+              sort: {
+                [labelFilterConfig.labelField]: SortOrder.Ascending,
+              } as any,
+            });
+
+          if (cancelled) {
+            return;
+          }
+
+          setAvailableLabels(
+            (result.data || [])
+              .map((item: unknown) => {
+                return toSearchLabelOption(item);
+              })
+              .filter((l: SearchLabelOption) => {
+                return l.id && l.name;
+              }),
+          );
+        } catch {
+          // Silently fail — search still works without label suggestions.
+        } finally {
+          if (!cancelled) {
+            setIsLabelsLoading(false);
+          }
+        }
+      },
+      labelMentionSearch === "" ? 0 : TABLE_LABEL_SEARCH_DEBOUNCE_MS,
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [labelMentionSearch, labelFilterConfig]);
+
+  /*
+   * Chips restored from the URL only carry an id. They are read by their
+   * ids (#10646) - never looked for among the first labels by name, where
+   * one past them kept its raw id - so the chip reads "Production". One no
+   * record answers to any more (deleted, or not visible to this user) still
+   * narrows the list, which beats silently dropping a constraint from a
+   * shared link, and reads "No longer available", to take out.
+   */
+  useEffect(() => {
+    if (!labelFilterConfig || restoredLabelIds.length === 0) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
     (async () => {
       try {
-        const result: ListResult<TBaseModel> = await props.callbacks.getList({
+        const records: Array<BaseModel> = await RecordsById.read<BaseModel>({
           modelType: labelFilterConfig.entityType,
-          query: labelFilterConfig.fetchQuery,
-          limit: 200,
-          skip: 0,
-          select: {
-            _id: true,
-            [labelFilterConfig.labelField]: true,
-            color: true,
-            // What tells two labels of one name apart (#10314).
-            ...getSharedNameSelect(labelFilterConfig.entityType),
-          } as any,
-          sort: { [labelFilterConfig.labelField]: SortOrder.Ascending } as any,
+          ids: restoredLabelIds,
+          select: getSearchLabelSelect(),
+          modelAPI: tableModelAPI,
         });
+
         if (cancelled) {
           return;
         }
-        const mapped: Array<SearchLabelOption> = (result.data || [])
-          .map((item: any) => {
-            const raw: any = item;
-            const colorAny: any = raw["color"];
-            const colorHex: string =
-              (colorAny &&
-                (typeof colorAny === "string"
-                  ? colorAny
-                  : colorAny.value ||
-                    (colorAny.toString && colorAny.toString()))) ||
-              "#94a3b8";
-            return {
-              id: raw["_id"]?.toString() || "",
-              name: (raw[labelFilterConfig.labelField] as string) || "",
-              color: colorHex,
-              sharedName:
-                labelFilterConfig.labelField === "name"
-                  ? getSharedNameFacts(item as BaseModel)
-                  : undefined,
-            } as SearchLabelOption;
-          })
-          .filter((l: SearchLabelOption) => {
-            return l.id && l.name;
+
+        const byId: Map<string, BaseModel> = RecordsById.byValue({
+          records: records,
+        });
+        const restored: Set<string> = new Set<string>(
+          RecordsById.getValuesToRead({ ids: restoredLabelIds }),
+        );
+
+        setSelectedLabels((current: Array<SearchLabelOption>) => {
+          return current.map((selected: SearchLabelOption) => {
+            const key: string = selected.id.toLowerCase();
+
+            // A chip picked since, from a suggestion, is named already.
+            if (!restored.has(key) || selected.name !== selected.id) {
+              return selected;
+            }
+
+            const record: BaseModel | undefined = byId.get(key);
+
+            if (!record) {
+              return { ...selected, isNotFound: true };
+            }
+
+            return { ...toSearchLabelOption(record), id: selected.id };
           });
-        setAvailableLabels(mapped);
-        setLabelsFetched(true);
+        });
       } catch {
-        // Silently fail — search still works without label suggestions.
-      } finally {
-        if (!cancelled) {
-          setIsLabelsLoading(false);
-        }
+        // Unread, the chips keep their ids: the filter still applies.
       }
     })();
+
     return () => {
       cancelled = true;
     };
-  }, [isSearchExpanded, labelFilterConfig, labelsFetched]);
-
-  /*
-   * Chips restored from the URL only carry an id. Once the label list lands,
-   * swap in the real name and colour so the chip reads "Production" rather
-   * than a raw ObjectID. Labels that no longer exist (deleted, or not visible
-   * to this user) keep their id — the filter still applies, it just isn't
-   * pretty, which beats silently dropping a constraint from a shared link.
-   */
-  useEffect(() => {
-    if (availableLabels.length === 0 || selectedLabels.length === 0) {
-      return;
-    }
-
-    let didHydrate: boolean = false;
-
-    const hydrated: Array<SearchLabelOption> = selectedLabels.map(
-      (selected: SearchLabelOption) => {
-        const match: SearchLabelOption | undefined = availableLabels.find(
-          (available: SearchLabelOption) => {
-            return available.id === selected.id;
-          },
-        );
-
-        if (!match || match.name === selected.name) {
-          return selected;
-        }
-
-        didHydrate = true;
-        return match;
-      },
-    );
-
-    if (didHydrate) {
-      setSelectedLabels(hydrated);
-    }
-  }, [availableLabels]);
+  }, [labelFilterConfig]);
 
   /*
    * Labels named alike before names were held to one label each (#10314):
@@ -2143,8 +2524,29 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * picked one says it after its name, so two picked twins read as two.
    */
   const searchLabelMarks: Map<string, SharedNameMark> = useMemo(() => {
+    /*
+     * Among every label the search knows: the suggestions, and the chips -
+     * a chip restored from a link is read by its id, not suggested
+     * (#10646).
+     */
+    const known: Map<string, SearchLabelOption> = new Map<
+      string,
+      SearchLabelOption
+    >();
+
+    for (const label of [...availableLabels, ...selectedLabels]) {
+      const before: SearchLabelOption | undefined = known.get(label.id);
+
+      if (
+        !label.isNotFound &&
+        (!before || (!before.sharedName && label.sharedName))
+      ) {
+        known.set(label.id, label);
+      }
+    }
+
     return getSharedNameMarks(
-      availableLabels.map((label: SearchLabelOption) => {
+      Array.from(known.values()).map((label: SearchLabelOption) => {
         return {
           value: label.id,
           label: label.name,
@@ -2153,7 +2555,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }),
       translator,
     );
-  }, [availableLabels, translator]);
+  }, [availableLabels, selectedLabels, translator]);
 
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
@@ -2604,6 +3006,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setIsFilterFetchLoading(true);
 
       const filters: Array<Filter<TBaseModel>> = [...props.filters];
+      // The filters that search the server, by their key.
+      const entitySearchByKey: Map<string, EntityFilterSearch> = new Map<
+        string,
+        EntityFilterSearch
+      >();
 
       try {
         for (const filter of filters) {
@@ -2644,69 +3051,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             continue;
           }
 
+          /*
+           * A filter whose choices are records of the project's database
+           * searches the server as it is typed in (#10646): its picker is
+           * EntityDropdown, 50 by name, within the filter's own query, and
+           * what it holds is named by its ids (heldFilterOptions below). It
+           * read the first 10,000 records unsorted - the newest kept - so an
+           * older one could not be picked, a filter restored from a link
+           * that named one showed blank, and the Admin Dashboard's Project
+           * filter listed every project on the instance.
+           */
+          if (filter.filterEntityType.prototype instanceof BaseModel) {
+            filter.filterDropdownOptions = undefined;
+            entitySearchByKey.set(key.toString(), {
+              modelType: filter.filterEntityType as DatabaseBaseModelType,
+              labelField: filter.filterDropdownField.label,
+              valueField: filter.filterDropdownField.value,
+              query: (filter.filterQuery || {}) as Record<string, unknown>,
+              modelAPI: tableModelAPI,
+              notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
+            });
+            continue;
+          }
+
           const query: Query<TBaseModel> = filter.filterQuery || {};
-
-          let colorColumnName: string | null = null;
-          let accessControlColumnName: string | null = null;
-
-          if (
-            filter.filterEntityType &&
-            filter.filterEntityType.prototype instanceof BaseModel
-          ) {
-            const filterModel: BaseModel =
-              new (filter.filterEntityType as DatabaseBaseModelType)();
-            colorColumnName = filterModel.getFirstColorColumn();
-            accessControlColumnName = filterModel.getAccessControlColumn();
-          }
-
-          const select: Select<TBaseModel> = {
-            [filter.filterDropdownField.label]: true,
-            [filter.filterDropdownField.value]: true,
-          } as Select<TBaseModel>;
-
-          if (colorColumnName) {
-            (select as Dictionary<boolean>)[colorColumnName] = true;
-          }
-
-          /*
-           * A filter lists archived values too - the records that have one
-           * stay findable by it - and marks them, so a reader can tell why
-           * a value is offered here and not in the forms.
-           */
-          const isArchivableFilter: boolean =
-            ArchivedValuePicker.isArchivableValueModel(
-              filter.filterEntityType as DatabaseBaseModelType,
-            );
-
-          if (isArchivableFilter) {
-            (select as Dictionary<boolean>)["isArchived"] = true;
-          }
-
-          /*
-           * A team's, a label's, an on-call policy's or a schedule's
-           * description and when it was made: the filter's dropdown tells
-           * records of one name apart by them (SharedNameOptions, #10064).
-           */
-          const isListedByName: boolean =
-            filter.filterDropdownField.label === "name" &&
-            Boolean(filter.filterEntityType.prototype instanceof BaseModel);
-
-          if (isListedByName) {
-            Object.assign(
-              select,
-              getSharedNameSelect(
-                filter.filterEntityType as DatabaseBaseModelType,
-              ),
-            );
-          }
-
-          if (accessControlColumnName) {
-            (select as Dictionary<JSONObject>)[accessControlColumnName] = {
-              _id: true,
-              name: true,
-              color: true,
-            } as JSONObject;
-          }
 
           const listResult: ListResult<TBaseModel> =
             await props.callbacks.getList({
@@ -2714,139 +3082,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               query: query,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
-              select: select,
+              select: getEntityFilterSelect(filter) as Select<TBaseModel>,
               sort: {},
             });
 
-          filter.filterDropdownOptions = [];
-
-          for (const item of listResult.data) {
-            const option: DropdownOption = toRecordFilterOption(
-              {
-                value: item.getColumnValue(
-                  filter.filterDropdownField.value,
-                ) as string,
-                label: item.getColumnValue(
-                  filter.filterDropdownField.label,
-                ) as string,
-              },
-              filterTableName,
-            );
-
-            // The filter's dropdown draws the Archived tag beside it.
-            if (
-              isArchivableFilter &&
-              item.getColumnValue("isArchived") === true
-            ) {
-              option.isArchived = true;
-            }
-
-            const sharedName: DropdownOption["sharedName"] = isListedByName
-              ? getSharedNameFacts(item as unknown as BaseModel)
-              : undefined;
-
-            if (sharedName) {
-              option.sharedName = sharedName;
-            }
-
-            if (colorColumnName) {
-              const colorValue: Color | string | null = item.getColumnValue(
-                colorColumnName,
-              ) as Color | string | null;
-
-              if (colorValue instanceof Color) {
-                option.color = colorValue;
-              } else if (
-                typeof colorValue === "string" &&
-                colorValue.trim().length > 0
-              ) {
-                try {
-                  option.color = new Color(colorValue);
-                } catch {
-                  // ignore invalid colors
-                }
-              }
-            }
-
-            if (accessControlColumnName) {
-              const accessControlValue:
-                | AccessControlModel
-                | Array<AccessControlModel>
-                | null =
-                (item.getColumnValue(accessControlColumnName) as
-                  | AccessControlModel
-                  | Array<AccessControlModel>
-                  | null) || null;
-
-              const accessControlItems: Array<AccessControlModel> =
-                Array.isArray(accessControlValue)
-                  ? accessControlValue
-                  : accessControlValue
-                    ? [accessControlValue]
-                    : [];
-
-              type SimplifiedDropdownLabel = {
-                id?: string;
-                name: string;
-                color?: Color;
-              };
-
-              const dropdownLabels: Array<SimplifiedDropdownLabel> =
-                accessControlItems
-                  .map((label: AccessControlModel | null) => {
-                    if (!label) {
-                      return null;
-                    }
-
-                    const labelNameRaw: string | null = label.getColumnValue(
-                      "name",
-                    ) as string | null;
-
-                    if (!labelNameRaw) {
-                      return null;
-                    }
-
-                    const labelName: string = labelNameRaw.toString().trim();
-
-                    if (!labelName) {
-                      return null;
-                    }
-
-                    const labelColorValue: Color | null = label.getColumnValue(
-                      "color",
-                    ) as Color | null;
-
-                    const normalizedLabel: SimplifiedDropdownLabel = {
-                      name: labelName,
-                    };
-
-                    const labelId: ObjectID | null = label.id;
-
-                    if (labelId) {
-                      normalizedLabel.id = labelId.toString();
-                    }
-
-                    if (labelColorValue) {
-                      normalizedLabel.color = labelColorValue;
-                    }
-
-                    return normalizedLabel;
-                  })
-                  .filter(
-                    (
-                      label: SimplifiedDropdownLabel | null,
-                    ): label is SimplifiedDropdownLabel => {
-                      return label !== null;
-                    },
-                  );
-
-              if (dropdownLabels.length > 0) {
-                option.labels = dropdownLabels as Array<DropdownOptionLabel>;
-              }
-            }
-
-            filter.filterDropdownOptions.push(option);
-          }
+          filter.filterDropdownOptions = listResult.data.map(
+            (item: TBaseModel): DropdownOption => {
+              return toEntityFilterOption(item, filter);
+            },
+          );
         }
 
         const classicFilters: Array<ClassicFilterType<TBaseModel>> = filters
@@ -2860,6 +3104,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             return {
               title: filter.title,
               filterDropdownOptions: filter.filterDropdownOptions,
+              entitySearch: entitySearchByKey.get(key.toString()),
               key: key,
               type: filter.type,
               jsonKeys: filter.jsonKeys,
@@ -4428,6 +4673,168 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     initialUrlState.filter || props.initialFilterData || {},
   );
 
+  /*
+   * WHAT THE LIST'S ENTITY FILTERS HOLD, NAMED BY THEIR IDS (#10646).
+   *
+   * A filter that searches the server (entitySearch) has no list of every
+   * record to name its values from. What it holds - restored from a link
+   * or a saved view, or just picked - is read by its values, within the
+   * reader's reach, so its chip reads "Owner is Payments", never a raw id
+   * or nothing at all. A value no record answers to any more reads "No
+   * longer available": the filter still applies, as it was saved, until it
+   * is taken out. By filter key, then by value (an id lower-cased).
+   */
+  const [heldFilterOptions, setHeldFilterOptions] = useState<
+    Record<string, Record<string, DropdownOption>>
+  >({});
+  const heldFilterOptionsRef: MutableRefObject<
+    Record<string, Record<string, DropdownOption>>
+  > = React.useRef<Record<string, Record<string, DropdownOption>>>({});
+  heldFilterOptionsRef.current = heldFilterOptions;
+
+  useEffect(() => {
+    type HeldRead = {
+      key: string;
+      filter: Filter<TBaseModel>;
+      search: EntityFilterSearch;
+      values: Array<string>;
+    };
+
+    const reads: Array<HeldRead> = [];
+
+    for (const classic of classicTableFilters) {
+      if (!classic.entitySearch) {
+        continue;
+      }
+
+      const key: string = classic.key.toString();
+      const filter: Filter<TBaseModel> | undefined = props.filters.find(
+        (candidate: Filter<TBaseModel>): boolean => {
+          return getFilterKey(candidate)?.toString() === key;
+        },
+      );
+
+      if (!filter) {
+        continue;
+      }
+
+      const known: Record<string, DropdownOption> =
+        heldFilterOptionsRef.current[key] || {};
+      const isIdColumn: boolean = classic.entitySearch.valueField === "_id";
+      const values: Array<string> = getEntityFilterHeldValues(
+        filterData[classic.key],
+      ).filter((value: string): boolean => {
+        return !known[isIdColumn ? value.toLowerCase() : value];
+      });
+
+      if (values.length > 0) {
+        reads.push({
+          key: key,
+          filter: filter,
+          search: classic.entitySearch,
+          values: values,
+        });
+      }
+    }
+
+    if (reads.length === 0) {
+      return;
+    }
+
+    let cancelled: boolean = false;
+
+    (async () => {
+      const named: Record<string, Record<string, DropdownOption>> = {};
+
+      for (const read of reads) {
+        const isIdColumn: boolean = read.search.valueField === "_id";
+
+        try {
+          const records: Array<BaseModel> = await RecordsById.read<BaseModel>({
+            modelType: read.search.modelType,
+            ids: read.values,
+            column: read.search.valueField,
+            select: getEntityFilterSelect(read.filter) as Select<BaseModel>,
+            modelAPI: tableModelAPI,
+          });
+          const byValue: Map<string, BaseModel> = RecordsById.byValue({
+            records: records,
+            column: read.search.valueField,
+          });
+          const options: Record<string, DropdownOption> = {};
+
+          for (const value of read.values) {
+            const lookup: string = isIdColumn ? value.toLowerCase() : value;
+            const record: BaseModel | undefined = byValue.get(lookup);
+
+            options[lookup] = record
+              ? // The value as the filter holds it, so its picker finds it.
+                { ...toEntityFilterOption(record, read.filter), value: value }
+              : {
+                  value: value,
+                  label: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
+                  isUserContent: false,
+                  isNotFound: true,
+                };
+          }
+
+          named[read.key] = options;
+        } catch {
+          // Unread, the values keep their ids: the filter still applies.
+        }
+      }
+
+      if (cancelled || Object.keys(named).length === 0) {
+        return;
+      }
+
+      setHeldFilterOptions(
+        (
+          current: Record<string, Record<string, DropdownOption>>,
+        ): Record<string, Record<string, DropdownOption>> => {
+          const next: Record<string, Record<string, DropdownOption>> = {
+            ...current,
+          };
+
+          for (const [key, options] of Object.entries(named)) {
+            next[key] = { ...(current[key] || {}), ...options };
+          }
+
+          return next;
+        },
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filterData, classicTableFilters]);
+
+  /*
+   * The filters the list draws: a filter that searches the server offers
+   * the records it holds, named (heldFilterOptions); every other filter
+   * its own options, as before.
+   */
+  const shownClassicTableFilters: Array<ClassicFilterType<TBaseModel>> =
+    useMemo(() => {
+      return classicTableFilters.map(
+        (
+          classic: ClassicFilterType<TBaseModel>,
+        ): ClassicFilterType<TBaseModel> => {
+          if (!classic.entitySearch) {
+            return classic;
+          }
+
+          return {
+            ...classic,
+            filterDropdownOptions: Object.values(
+              heldFilterOptions[classic.key.toString()] || {},
+            ),
+          };
+        },
+      );
+    }, [classicTableFilters, heldFilterOptions]);
+
   type OnFilterChangedFunction = (filterData: FilterData<TBaseModel>) => void;
 
   const onFilterChanged: OnFilterChangedFunction = (
@@ -5300,7 +5707,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               })
             : id;
         }}
-        filters={classicTableFilters}
+        filters={shownClassicTableFilters}
         filterError={tableFilterError}
         isFilterLoading={isFilterFetchLoading}
         showFilterModal={showFilterModal}
@@ -5378,7 +5785,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onFilterRefreshClick={async () => {
           await getFilterDropdownItems();
         }}
-        filters={classicTableFilters}
+        filters={shownClassicTableFilters}
         filterData={filterData}
         filterError={tableFilterError}
         isFilterLoading={isFilterFetchLoading}
@@ -5529,37 +5936,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setIsSearchExpanded(false);
   };
 
-  /*
-   * Find the trailing `@<prefix>` mention in the input. A mention is only
-   * recognised when `@` is at the start of the value or follows whitespace,
-   * and only when there is no whitespace after it — matches typical chat
-   * mention semantics.
-   */
-  type MentionParseResult = {
-    hasMention: boolean;
-    prefix: string;
-    atIndex: number;
-  };
+  type MentionParseResult = TableLabelMention;
 
-  const parseLabelMention: (value: string) => MentionParseResult = (
-    value: string,
-  ): MentionParseResult => {
-    const atIndex: number = value.lastIndexOf("@");
-    if (atIndex < 0) {
-      return { hasMention: false, prefix: "", atIndex: -1 };
-    }
-    if (atIndex > 0) {
-      const prev: string = value[atIndex - 1] || "";
-      if (prev !== " " && prev !== "\t") {
-        return { hasMention: false, prefix: "", atIndex: -1 };
-      }
-    }
-    const after: string = value.substring(atIndex + 1);
-    if (after.includes(" ") || after.includes("\t") || after.includes("\n")) {
-      return { hasMention: false, prefix: "", atIndex: -1 };
-    }
-    return { hasMention: true, prefix: after, atIndex };
-  };
+  const parseLabelMention: (value: string) => MentionParseResult =
+    parseTableLabelMention;
 
   type AddLabelFunction = (label: SearchLabelOption) => void;
 
@@ -5657,7 +6037,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const showLabelDropdown: boolean =
       hasLabelSupport && isSearchFocused && mention.hasMention;
 
-    const lowerPrefix: string = mention.prefix.toLowerCase();
+    /*
+     * The server's suggestions, without the labels picked already. The
+     * search finds a name that holds what is typed; what it answered for
+     * an earlier prefix, while the next one is on its way, is narrowed here
+     * the same way.
+     */
+    const lowerPrefix: string = mention.prefix.trim().toLowerCase();
     const dropdownLabels: Array<SearchLabelOption> = availableLabels
       .filter((l: SearchLabelOption) => {
         return !selectedLabels.find((s: SearchLabelOption) => {
@@ -5666,11 +6052,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       })
       .filter((l: SearchLabelOption) => {
         return (
-          lowerPrefix.length === 0 ||
-          l.name.toLowerCase().startsWith(lowerPrefix)
+          lowerPrefix.length === 0 || l.name.toLowerCase().includes(lowerPrefix)
         );
       })
-      .slice(0, 8);
+      .slice(0, TABLE_LABEL_SUGGESTIONS_SHOWN);
 
     const borderClass: string = isSearchFocused
       ? "border-gray-400 ring-4 ring-gray-100 shadow-sm"
@@ -5722,21 +6107,39 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                */}
               {hasLabelSupport &&
                 selectedLabels.map((label: SearchLabelOption) => {
+                  /*
+                   * A label no record answers to any more says so, in the
+                   * reader's words, muted - never its raw id (#10646).
+                   */
+                  const chipName: string = label.isNotFound
+                    ? tx(ENTITY_DROPDOWN_NOT_FOUND_LABEL)
+                    : label.name;
+
                   return (
                     <span
                       key={label.id}
+                      data-testid="table-search-label-chip"
+                      data-not-found={label.isNotFound ? "true" : undefined}
                       className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
                       title={translator.translateTemplate("Label: {{name}}", {
-                        name: label.name,
+                        name: chipName,
                       })}
                     >
+                      {!label.isNotFound && (
+                        <span
+                          className="h-2 w-2 flex-none rounded-full"
+                          style={{ backgroundColor: label.color }}
+                          aria-hidden="true"
+                        />
+                      )}
                       <span
-                        className="h-2 w-2 flex-none rounded-full"
-                        style={{ backgroundColor: label.color }}
-                        aria-hidden="true"
-                      />
-                      <span className="max-w-[8rem] truncate">
-                        {label.name}
+                        className={`max-w-[8rem] truncate ${
+                          label.isNotFound
+                            ? "font-normal italic text-gray-500"
+                            : ""
+                        }`}
+                      >
+                        {chipName}
                       </span>
                       {searchLabelMarks.get(
                         getSharedNameOptionKey(label.id),
@@ -5763,7 +6166,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                         title={tx("Remove label")}
                         aria-label={translator.translateTemplate(
                           "Remove {{name}}",
-                          { name: label.name },
+                          { name: chipName },
                         )}
                         className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
                       >
@@ -5993,8 +6396,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               </div>
               <div className="max-h-64 overflow-y-auto py-1">
                 {!isLabelsLoading && dropdownLabels.length === 0 && (
-                  <div className="px-3 py-3 text-sm text-gray-500">
-                    {availableLabels.length === 0
+                  <div
+                    className="px-3 py-3 text-sm text-gray-500"
+                    data-testid="table-label-suggestions-empty"
+                  >
+                    {availableLabels.length === 0 && lowerPrefix.length === 0
                       ? tx("No labels available for this resource.")
                       : translator.translateTemplate(
                           'No labels matching "{{prefix}}"',
