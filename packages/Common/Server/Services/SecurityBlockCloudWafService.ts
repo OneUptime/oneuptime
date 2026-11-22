@@ -39,7 +39,6 @@ import {
   getCloudConnectionDefinition,
   isCloudConnectionWafBlocklistOn,
 } from "../../Types/CloudConnection/CloudConnectionCatalog";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -398,19 +397,17 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: null };
     }
 
-    const rows: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    // The rows the update writes, read as OneUptime, and the update held to them.
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         _id: true,
         name: true,
         cloudProvider: true,
         wafId: true,
         ruleDetails: true,
       },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: { isRoot: true },
-    });
+    );
 
     for (const row of rows) {
       if (

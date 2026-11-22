@@ -571,7 +571,7 @@ export default class SecurityBlockCloudWafs {
           });
         } catch (error) {
           throw new BadDataException(
-            `OneUptime could not put its rules back in ${row.name || "the policy"}: ${errorText(error)}`,
+            `OneUptime could not put its rules back in ${row.name || "the policy"}, and changed nothing: ${errorText(error)} Select Put It Back again once that is fixed.`,
           );
         }
       });
@@ -593,7 +593,7 @@ export default class SecurityBlockCloudWafs {
           });
         } catch (error) {
           throw new BadDataException(
-            `OneUptime could not put its rules back in ${row.name || "the policy"}: ${errorText(error)}`,
+            `OneUptime could not put its rules back in ${row.name || "the policy"}, and changed nothing: ${errorText(error)} Select Put It Back again once that is fixed.`,
           );
         }
       });
