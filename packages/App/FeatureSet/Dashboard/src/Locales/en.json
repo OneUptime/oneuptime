@@ -61213,7 +61213,6 @@
   "OPNsense fetches a URL table every hour at most, so OneUptime confirms its blocks only for ten minutes after each fetch. It still blocks them in between.": "OPNsense fetches a URL table every hour at most, so OneUptime confirms its blocks only for ten minutes after each fetch. It still blocks them in between.",
   "OneUptime keeps only its hash, so it is shown now and never again. The steps below hold it until you leave this page.": "OneUptime keeps only its hash, so it is shown now and never again. The steps below hold it until you leave this page.",
   "Only these addresses and ranges may read the feed, one a line. Leave it empty for any address that has the secret.": "Only these addresses and ranges may read the feed, one a line. Leave it empty for any address that has the secret.",
-  "Open Feed": "Open Feed",
   "Other (firewall or proxy)": "Other (firewall or proxy)",
   "Palo Alto holds 30 custom lists at most, and 50,000 addresses in all (150,000 on the PA-3200, PA-5200 and PA-7000 Series).": "Palo Alto holds 30 custom lists at most, and 50,000 addresses in all (150,000 on the PA-3200, PA-5200 and PA-7000 Series).",
   "Paste the feed into your firewall or proxy. The steps follow each maker's own documentation.": "Paste the feed into your firewall or proxy. The steps follow each maker's own documentation.",
@@ -61256,7 +61255,6 @@
   "The feed's secret, and the one before it, stop working at once. Its firewalls keep the list they have and can no longer refresh it.": "The feed's secret, and the one before it, stop working at once. Its firewalls keep the list they have and can no longer refresh it.",
   "The feed's secret, which OneUptime shows only when it is made. Rotate Secret to see a new one.": "The feed's secret, which OneUptime shows only when it is made. Rotate Secret to see a new one.",
   "The firewall or proxy that reads the feed. Its page shows the steps for it.": "The firewall or proxy that reads the feed. Its page shows the steps for it.",
-  "The script keeps one inbound rule, OneUptime blocklist, blocking every address on the list.": "The script keeps one inbound rule, OneUptime blocklist, blocking every address on the list.",
   "The script runs every minute from cron and loads the feed only when the list changed, in one transaction.": "The script runs every minute from cron and loads the feed only when the list changed, in one transaction.",
   "The script runs every minute from cron and, when the list changed, checks the configuration and reloads nginx.": "The script runs every minute from cron and, when the list changed, checks the configuration and reloads nginx.",
   "The script runs every minute from cron, fills new sets when the list changed and swaps them in, so the rules never see a set half full.": "The script runs every minute from cron, fills new sets when the list changed and swaps them in, so the rules never see a set half full.",
@@ -61279,5 +61277,6 @@
   "Your firewall stopped reading {{feed}} {{time}}, so blocks are not enforced there until it reads it again.": "Your firewall stopped reading {{feed}} {{time}}, so blocks are not enforced there until it reads it again.",
   "pfSense fetches a URL table once a day at most: too slow to block an attack while it happens. Use it for long blocks, beside a firewall that fetches every few minutes.": "pfSense fetches a URL table once a day at most: too slow to block an attack while it happens. Use it for long blocks, beside a firewall that fetches every few minutes.",
   "{{time}} from {{address}}": "{{time}} from {{address}}",
-  "{{value}} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.": "{{value}} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24."
+  "{{value}} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.": "{{value}} is not an IP address or a range. Write each as an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.",
+  "The script keeps inbound rules that block every address on the list, 1,000 to a rule: OneUptime blocklist 0, OneUptime blocklist 1 and on.": "The script keeps inbound rules that block every address on the list, 1,000 to a rule: OneUptime blocklist 0, OneUptime blocklist 1 and on."
 }

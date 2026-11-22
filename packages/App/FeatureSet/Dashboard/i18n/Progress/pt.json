@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 60451,
-    "untranslated": 8338
+    "keys": 61238,
+    "untranslated": 8291
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -119,6 +119,7 @@
     "Favicon",
     "Feed",
     "Feedback",
+    "Firewall",
     "Flags",
     "FlashArray",
     "FlashBlade",

@@ -510,7 +510,7 @@ describe("authentication", () => {
       expect(result.headers["content-type"]).toBe("text/plain; charset=utf-8");
     }
 
-    expect(fetches.at(-1)!.authMethod).toBe("Basic");
+    expect(fetches[fetches.length - 1]!.authMethod).toBe("Basic");
   });
 
   test("a bearer token", async () => {
@@ -631,13 +631,13 @@ describe("rotation and revocation", () => {
     expect(
       (await fetchFeed(feedPath(), { headers: bearer(OTHER_SECRET) })).status,
     ).toBe(200);
-    expect(fetches.at(-1)!.usedPreviousSecret).toBe(false);
+    expect(fetches[fetches.length - 1]!.usedPreviousSecret).toBe(false);
 
     // The firewall not yet given the new secret still reads the feed - and the log says it uses the old one.
     expect(
       (await fetchFeed(feedPath(), { headers: bearer(SECRET) })).status,
     ).toBe(200);
-    expect(fetches.at(-1)!.usedPreviousSecret).toBe(true);
+    expect(fetches[fetches.length - 1]!.usedPreviousSecret).toBe(true);
     expect((await fetchFeed(pathSecretPath(SECRET))).status).toBe(200);
 
     now = new Date(
@@ -849,7 +849,7 @@ describe("what is served", () => {
     expect(commented.body).toBe(
       "# OneUptime blocklist until 2026-11-21 11:00 UTC\n35.205.11.131\n# OneUptime blocklist until 2026-11-21 11:00 UTC\n2001:db8::9\n",
     );
-    expect(fetches.at(-1)!.file).toBe("blocklist.txt?comments=1");
+    expect(fetches[fetches.length - 1]!.file).toBe("blocklist.txt?comments=1");
 
     const nft: HttpResult = await fetchFeed(feedPath("nftables.nft"), {
       headers: bearer(SECRET),

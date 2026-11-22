@@ -458,7 +458,7 @@
     "Get Started with Security": "安全性入門",
     "Security Events (SIEM)": "安全性事件(SIEM)",
     "Security Cases and Playbooks (SOAR)": "安全案件與劇本(SOAR)",
-    "Blocklist Feeds for Firewalls and Proxies": "Blocklist Feeds for Firewalls and Proxies",
+    "Blocklist Feeds for Firewalls and Proxies": "適用於防火牆和代理的封鎖清單來源",
     "Entity Risk (Risk-Based Alerting)": "實體風險（基於風險的警示）",
     "Connected Signals": "關聯訊號",
     "Threat Intelligence (STIX/TAXII)": "威脅情資(STIX/TAXII)",

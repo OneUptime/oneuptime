@@ -99,7 +99,7 @@ A block that expires or is lifted is gone from the next fetch, and its chip wait
 
 ## When a firewall stops reading
 
-OneUptime learns how often each feed is fetched. When a feed has not been fetched for three times its usual interval, and at least ten minutes, its status says **Stopped reading**, the **Blocklist** names it above its list, and the project's owners get one email: "Your firewall stopped reading the blocklist feed _feed name_". Until a firewall has fetched a feed twice, OneUptime expects a fetch every five minutes, every hour from OPNsense and every day from pfSense.
+OneUptime learns how often each feed is fetched. When a feed has not been fetched for three times its usual interval, and at least ten minutes, its status says **Stopped reading**, the **Blocklist** names it above its list, and the Project Owners get one email: "Your firewall stopped reading the blocklist feed _feed name_". Until a firewall has fetched a feed twice, OneUptime expects a fetch every five minutes, every hour from OPNsense and every day from pfSense.
 
 The next fetch clears it, and a later stop sends another email. A feed whose secret was revoked never counts as stopped.
 
@@ -185,6 +185,52 @@ See [Alias Types](https://docs.netgate.com/pfsense/en/latest/firewall/aliases-ty
 
 As root, run the commands the feed's page shows once. They make the table `inet oneuptime` with two sets, `blocklist_v4` and `blocklist_v6`, rules in its `input` and `forward` chains that drop traffic from the addresses in them, and the script `/usr/local/sbin/oneuptime-blocklist`, which keeps the secret in `/etc/oneuptime-blocklist`, readable by root only.
 
+```bash
+# Run once, as root.
+install -d -m 700 /etc/oneuptime-blocklist /var/lib/oneuptime-blocklist
+printf 'Authorization: Bearer %s\n' 'YOUR_FEED_SECRET' > /etc/oneuptime-blocklist/auth
+chmod 600 /etc/oneuptime-blocklist/auth
+cat > /usr/local/sbin/oneuptime-blocklist <<'SCRIPT'
+#!/bin/sh
+# Loads the OneUptime blocklist into nftables when it changed.
+set -eu
+URL='https://oneuptime.com/api/blocklist-feed/<feed ID>/nftables.nft'
+STATE=/var/lib/oneuptime-blocklist
+if ! nft list table inet oneuptime >/dev/null 2>&1; then
+  rm -f "$STATE/etag"
+  nft -f - <<'NFT'
+table inet oneuptime {
+  set blocklist_v4 { type ipv4_addr; flags interval; auto-merge; }
+  set blocklist_v6 { type ipv6_addr; flags interval; auto-merge; }
+  chain input {
+    type filter hook input priority filter; policy accept;
+    ip saddr @blocklist_v4 drop
+    ip6 saddr @blocklist_v6 drop
+  }
+  chain forward {
+    type filter hook forward priority filter; policy accept;
+    ip saddr @blocklist_v4 drop
+    ip6 saddr @blocklist_v6 drop
+  }
+}
+NFT
+fi
+TMP=$(mktemp)
+trap 'rm -f "$TMP" "$TMP.h"' EXIT
+ETAG=$(cat "$STATE/etag" 2>/dev/null || true)
+CODE=$(curl --silent --show-error --max-time 60 --header @/etc/oneuptime-blocklist/auth \
+  ${ETAG:+--header "If-None-Match: $ETAG"} \
+  --dump-header "$TMP.h" --output "$TMP" --write-out '%{http_code}' "$URL")
+[ "$CODE" = 304 ] && exit 0
+[ "$CODE" = 200 ] || { echo "oneuptime-blocklist: the feed answered $CODE" >&2; exit 1; }
+nft -f "$TMP"
+sed -n 's/^[Ee][Tt][Aa][Gg]:[[:space:]]*//p' "$TMP.h" | tr -d '\r' > "$STATE/etag"
+SCRIPT
+chmod 700 /usr/local/sbin/oneuptime-blocklist
+echo '* * * * * root flock -n /run/oneuptime-blocklist.lock /usr/local/sbin/oneuptime-blocklist' > /etc/cron.d/oneuptime-blocklist
+/usr/local/sbin/oneuptime-blocklist
+```
+
 The script runs every minute from `/etc/cron.d/oneuptime-blocklist`. It loads `nftables.nft` only when the list changed, in one transaction, so the sets are never half full. See [Sets](https://wiki.nftables.org/wiki-nftables/index.php/Sets).
 
 ### ipset and iptables
@@ -201,6 +247,39 @@ Add the include line to the `server` block of each site to protect, then run the
 server {
     include /etc/nginx/oneuptime-blocklist.conf;
 }
+```
+
+```bash
+# Run once, as root.
+install -d -m 700 /etc/oneuptime-blocklist /var/lib/oneuptime-blocklist
+printf 'Authorization: Bearer %s\n' 'YOUR_FEED_SECRET' > /etc/oneuptime-blocklist/auth
+chmod 600 /etc/oneuptime-blocklist/auth
+touch /etc/nginx/oneuptime-blocklist.conf
+cat > /usr/local/sbin/oneuptime-blocklist <<'SCRIPT'
+#!/bin/sh
+# Writes the OneUptime blocklist for nginx when it changed, and reloads nginx.
+set -eu
+URL='https://oneuptime.com/api/blocklist-feed/<feed ID>/nginx.conf'
+STATE=/var/lib/oneuptime-blocklist
+TMP=$(mktemp)
+trap 'rm -f "$TMP" "$TMP.h"' EXIT
+ETAG=$(cat "$STATE/etag" 2>/dev/null || true)
+CODE=$(curl --silent --show-error --max-time 60 --header @/etc/oneuptime-blocklist/auth \
+  ${ETAG:+--header "If-None-Match: $ETAG"} \
+  --dump-header "$TMP.h" --output "$TMP" --write-out '%{http_code}' "$URL")
+[ "$CODE" = 304 ] && exit 0
+[ "$CODE" = 200 ] || { echo "oneuptime-blocklist: the feed answered $CODE" >&2; exit 1; }
+cp /etc/nginx/oneuptime-blocklist.conf "$STATE/last.conf"
+cp "$TMP" /etc/nginx/oneuptime-blocklist.conf
+if nginx -t -q; then nginx -s reload; else cp "$STATE/last.conf" /etc/nginx/oneuptime-blocklist.conf; exit 1; fi
+sed -n 's/^[Ee][Tt][Aa][Gg]:[[:space:]]*//p' "$TMP.h" | tr -d '\r' > "$STATE/etag"
+SCRIPT
+chmod 700 /usr/local/sbin/oneuptime-blocklist
+echo '* * * * * root flock -n /run/oneuptime-blocklist.lock /usr/local/sbin/oneuptime-blocklist' > /etc/cron.d/oneuptime-blocklist
+/usr/local/sbin/oneuptime-blocklist
+
+# Then add this line to the server block of the site to protect, and reload nginx:
+#   include /etc/nginx/oneuptime-blocklist.conf;
 ```
 
 The script runs every minute from cron. When the list changed, it writes `/etc/nginx/oneuptime-blocklist.conf`, checks the configuration with `nginx -t` and reloads nginx, and puts the previous file back if the check fails.
