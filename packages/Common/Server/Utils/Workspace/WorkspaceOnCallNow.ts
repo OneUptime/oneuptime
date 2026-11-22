@@ -11,7 +11,12 @@ import FeedMarkdown, {
 import DatabaseConfig from "../../DatabaseConfig";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import logger from "../Logger";
+import OnCallChatByWorkspace from "../OnCall/OnCallChatByWorkspace";
+import OnCallChatText, { OnCallNotPagedBecause } from "../OnCall/OnCallChatText";
 import ProductBrandingText from "../ProductBrandingText";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../TeamMember/PendingInviteeProfiles";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
@@ -34,6 +39,19 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
  * OneUptime name the same person. One read, with the asker's own
  * permissions: the schedules they may read, as in OneUptime. Moments read
  * in each reader's own time (WorkspaceMessageTime); names are text.
+ *
+ * Microsoft Teams posts the answer in the conversation it was asked in, a
+ * channel included. So someone only invited to the project (#10412) is
+ * named as every on-call line names them (#10616): by the name typed with
+ * their invitation, else "someone who hasn't joined the project yet" -
+ * never their email address (OnCallChatByWorkspace.getInviteeName). And
+ * nothing pages them until they join, so their turn is said as the gap it
+ * is, in the words the schedule's hand-off said it in (#10586):
+ *
+ *   • Primary: nobody is paged until Fri at 9:00 AM, when Ana Ruiz takes
+ *     over: Ivy is on call but hasn't joined the project yet.
+ *   • Secondary: Simon Lee until Fri at 9:00 AM, then nobody: Ivy is next
+ *     but hasn't joined the project yet.
  */
 
 interface ScheduleRow {
@@ -48,6 +66,11 @@ interface ScheduleRow {
 interface Person {
   id: string;
   name: string;
+  /*
+   * Only invited to the project: nothing pages them until they join. With
+   * the name typed for them, which a line may say - "" for none.
+   */
+  invitee: { displayName: string } | null;
 }
 
 export default class WorkspaceOnCallNow {
@@ -117,9 +140,20 @@ export default class WorkspaceOnCallNow {
 
     const dashboardUrl: URL | null = await WorkspaceOnCallNow.getDashboardUrl();
 
-    const rows: Array<ScheduleRow> = schedules
-      .slice(0, WorkspaceOnCallNow.MAX_SCHEDULES)
-      .map((schedule: OnCallDutyPolicySchedule): ScheduleRow => {
+    const listed: Array<OnCallDutyPolicySchedule> = schedules.slice(
+      0,
+      WorkspaceOnCallNow.MAX_SCHEDULES,
+    );
+
+    // Who of them is only invited: one read for the answer (#10616).
+    const invited: Map<string, WithheldProfile> =
+      await WorkspaceOnCallNow.readInvited({
+        projectId: data.projectId,
+        schedules: listed,
+      });
+
+    const rows: Array<ScheduleRow> = listed.map(
+      (schedule: OnCallDutyPolicySchedule): ScheduleRow => {
         return {
           name: schedule.name?.toString().trim() || "Unnamed schedule",
           link:
@@ -130,8 +164,14 @@ export default class WorkspaceOnCallNow {
                   schedule.id,
                 )
               : null,
-          current: WorkspaceOnCallNow.toPerson(schedule.currentUserOnRoster),
-          next: WorkspaceOnCallNow.toPerson(schedule.nextUserOnRoster),
+          current: WorkspaceOnCallNow.toPerson(
+            schedule.currentUserOnRoster,
+            invited,
+          ),
+          next: WorkspaceOnCallNow.toPerson(
+            schedule.nextUserOnRoster,
+            invited,
+          ),
           handoffAt: schedule.rosterHandoffAt
             ? new Date(schedule.rosterHandoffAt)
             : null,
@@ -139,7 +179,8 @@ export default class WorkspaceOnCallNow {
             ? new Date(schedule.rosterNextStartAt)
             : null,
         };
-      });
+      },
+    );
 
     const schedulesLink: string | null = dashboardUrl
       ? WorkspaceOnCallNow.getSchedulesLink(dashboardUrl, data.projectId)
@@ -197,7 +238,8 @@ export default class WorkspaceOnCallNow {
 
   /*
    * "• Primary: Simon Lee until Fri at 9:00 AM, then Ana Ruiz." - the
-   * schedule's name links to it.
+   * schedule's name links to it. Someone only invited is no one on call:
+   * nobody is paged through the schedule in their turn (#10586).
    */
   private static getRowLine(
     row: ScheduleRow,
@@ -208,6 +250,12 @@ export default class WorkspaceOnCallNow {
       : mdText`${row.name}`;
 
     if (!row.current) {
+      if (row.next && row.nextStartAt && row.next.invitee) {
+        return mdText`- ${schedule}: nobody right now, and nobody will be paged from ${WorkspaceMessageTime.dateAndTime(
+          row.nextStartAt,
+        )} either: ${WorkspaceOnCallNow.getWhyNotPaged(row.next, true)}.`;
+      }
+
       if (row.next && row.nextStartAt) {
         return mdText`- ${schedule}: nobody right now. ${WorkspaceOnCallNow.getPersonMarkdown(
           row.next,
@@ -218,14 +266,32 @@ export default class WorkspaceOnCallNow {
       return mdText`- ${schedule}: nobody right now.`;
     }
 
+    const isNextSomebodyElse: boolean = Boolean(
+      row.next && row.next.id !== row.current.id,
+    );
+
+    if (row.current.invitee) {
+      return WorkspaceOnCallNow.getNobodyPagedLine({
+        row: row,
+        schedule: schedule,
+        // Who takes over then: somebody a page reaches.
+        next:
+          isNextSomebodyElse && !row.next!.invitee
+            ? WorkspaceOnCallNow.getPersonMarkdown(row.next!, readerUserId)
+            : null,
+      });
+    }
+
     const current: MarkdownText = WorkspaceOnCallNow.getPersonMarkdown(
       row.current,
       readerUserId,
     );
 
-    const isNextSomebodyElse: boolean = Boolean(
-      row.next && row.next.id !== row.current.id,
-    );
+    if (row.handoffAt && isNextSomebodyElse && row.next!.invitee) {
+      return mdText`- ${schedule}: ${current} until ${WorkspaceMessageTime.dateAndTime(
+        row.handoffAt,
+      )}, then nobody: ${WorkspaceOnCallNow.getWhyNotPaged(row.next!, true)}.`;
+    }
 
     if (row.handoffAt && isNextSomebodyElse) {
       return mdText`- ${schedule}: ${current} until ${WorkspaceMessageTime.dateAndTime(
@@ -242,6 +308,56 @@ export default class WorkspaceOnCallNow {
     }
 
     return mdText`- ${schedule}: ${current}.`;
+  }
+
+  /*
+   * A turn of someone only invited: "• Primary: nobody is paged until Fri
+   * at 9:00 AM, when Ana Ruiz takes over: Ivy is on call but hasn't joined
+   * the project yet."
+   */
+  private static getNobodyPagedLine(data: {
+    row: ScheduleRow;
+    schedule: MarkdownText;
+    next: MarkdownText | null;
+  }): MarkdownText {
+    const why: MarkdownText = WorkspaceOnCallNow.getWhyNotPaged(
+      data.row.current!,
+      false,
+    );
+
+    if (data.row.handoffAt && data.next) {
+      return mdText`- ${data.schedule}: nobody is paged until ${WorkspaceMessageTime.dateAndTime(
+        data.row.handoffAt,
+      )}, when ${data.next} takes over: ${why}.`;
+    }
+
+    if (data.row.handoffAt) {
+      return mdText`- ${data.schedule}: nobody is paged until ${WorkspaceMessageTime.dateAndTime(
+        data.row.handoffAt,
+      )}: ${why}.`;
+    }
+
+    return mdText`- ${data.schedule}: nobody is paged: ${why}.`;
+  }
+
+  /*
+   * "Ivy is on call but hasn't joined the project yet", as the hand-off
+   * says it (OnCallChatText.whyNotPaged) - "the person on call ..." when no
+   * name was typed for them.
+   */
+  private static getWhyNotPaged(
+    person: Person,
+    isNext: boolean,
+  ): MarkdownText {
+    const displayName: string = person.invitee?.displayName || "";
+
+    return OnCallChatText.whyNotPaged({
+      person: {
+        name: displayName ? mdText`**${displayName}**` : FeedMarkdown.empty(),
+        because: OnCallNotPagedBecause.NotJoinedYet,
+      },
+      isNext: isNext,
+    });
   }
 
   // "**Simon Lee**", or "**Simon Lee** (you)" for the person asking.
@@ -266,7 +382,8 @@ export default class WorkspaceOnCallNow {
     const named: Array<string> = rows
       .slice(0, WorkspaceOnCallNow.MAX_SCHEDULES_IN_NOTIFICATION)
       .map((row: ScheduleRow): string => {
-        return `${row.current ? row.current.name : "nobody"} (${row.name})`;
+        // Someone only invited is paged by nothing: nobody, until they join.
+        return `${row.current && !row.current.invitee ? row.current.name : "nobody"} (${row.name})`;
       });
 
     const more: number = rows.length - named.length;
@@ -278,17 +395,79 @@ export default class WorkspaceOnCallNow {
     return `On call now: ${named.join(", ")}${more > 0 ? ` and ${more} more` : ""}`;
   }
 
-  private static toPerson(user: User | undefined | null): Person | null {
+  /*
+   * A person on a roster, as the answer names them: someone only invited
+   * by the name typed for them, else "someone who hasn't joined the project
+   * yet" - never the address they were invited at, which the asker's own
+   * read shows of them (#10175, #10616); anyone else by their name, else
+   * their address.
+   */
+  private static toPerson(
+    user: User | undefined | null,
+    invited: Map<string, WithheldProfile>,
+  ): Person | null {
     const id: string | undefined = user?.id?.toString();
 
     if (!user || !id) {
       return null;
     }
 
+    const profile: WithheldProfile | undefined =
+      PendingInviteeProfiles.getWithheldProfile({
+        userId: id,
+        withheld: invited,
+      });
+
+    if (profile) {
+      return {
+        id: id,
+        name: OnCallChatByWorkspace.getInviteeName(profile),
+        invitee: {
+          displayName: OnCallChatByWorkspace.getDisplayName(
+            profile.inviteeName,
+          ),
+        },
+      };
+    }
+
     const name: string =
       user.name?.toString().trim() || user.email?.toString().trim() || "";
 
-    return { id: id, name: name || "Someone" };
+    return { id: id, name: name || "Someone", invitee: null };
+  }
+
+  /*
+   * Who of the people on the schedules' rosters is only invited to the
+   * project, in one read. A read that fails is thrown, as the schedules'
+   * own: the answer must not name them by what it cannot tell apart.
+   */
+  private static async readInvited(data: {
+    projectId: ObjectID;
+    schedules: Array<OnCallDutyPolicySchedule>;
+  }): Promise<Map<string, WithheldProfile>> {
+    const userIds: Array<string> = [];
+
+    for (const schedule of data.schedules) {
+      for (const user of [
+        schedule.currentUserOnRoster,
+        schedule.nextUserOnRoster,
+      ]) {
+        const id: string | undefined = user?.id?.toString();
+
+        if (id && !userIds.includes(id)) {
+          userIds.push(id);
+        }
+      }
+    }
+
+    if (userIds.length === 0) {
+      return new Map<string, WithheldProfile>();
+    }
+
+    return await PendingInviteeProfiles.readWithheldProfilesInProject({
+      userIds: userIds,
+      projectId: data.projectId,
+    });
   }
 
   private static async getDashboardUrl(): Promise<URL | null> {
