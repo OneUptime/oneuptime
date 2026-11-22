@@ -2337,9 +2337,10 @@ describe("notification settings", () => {
     }
 
     /*
-     * The two shift reminders, the five security case events, a hunt's
-     * finds and a public note waiting for the person's approval start on by
-     * push too, and they alone.
+     * The two shift reminders, the six security case events (a step that
+     * stopped holding since #10340), a hunt's finds and a public note
+     * waiting for the person's approval start on by push too, and they
+     * alone.
      */
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {

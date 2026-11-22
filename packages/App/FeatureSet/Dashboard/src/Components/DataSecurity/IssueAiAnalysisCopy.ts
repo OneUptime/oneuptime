@@ -84,7 +84,7 @@ export const PUBLIC_BY_DESIGN_QUESTION: string = translationKey(
 );
 
 export const PUBLIC_BY_DESIGN_SENTENCE: string = translationKey(
-  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Turn it off in the store's Settings to undo it.",
+  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Undo it in the store's Settings.",
 );
 
 export const PUBLIC_BY_DESIGN_DONE: string = translationKey(

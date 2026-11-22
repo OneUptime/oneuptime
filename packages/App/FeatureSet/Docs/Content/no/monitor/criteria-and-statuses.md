@@ -31,6 +31,8 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 
 > [!NOTE]
 > En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en målings- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
+>
+> En slik monitor har likevel én status, satt av det første kriteriet som samsvarer. Et kriterium som bare bringer den tilbake til **Standard monitorstatus** og ikke åpner noen hendelse eller noe varsel, venter på vertene som oppfylte et kriterium som setter en annen status: det samsvarer når hver av dem oppfyller det, uansett hva de andre vertene gjør. Inntil da beholder monitoren statusen sin, også når ingen kriterier samsvarer, mens hendelsene og varslene til hver vert fortsatt løses hver for seg.
 
 ## Hva et kriterium inneholder
 

@@ -31,6 +31,8 @@ Un criterio que coincide pero no cambia ningún estado sigue decidiendo la compr
 
 > [!NOTE]
 > Un monitor que abre un incidente o una alerta por host, contenedor, disco o interfaz juzga todos los criterios en cada comprobación, de modo que dos hosts pueden coincidir con dos criterios distintos a la vez. Es un monitor cuya consulta tiene un **Agrupar por**, como un monitor de métricas o de registros, o un criterio que indica `*` para cada disco o interfaz. Un monitor de solicitudes entrantes que agrupa incidentes por un campo de la carga útil sigue deteniéndose en la primera coincidencia.
+>
+> Un monitor así sigue teniendo un solo estado, que fija el primer criterio que coincide. Un criterio que solo lo devuelve a su **Estado de monitor predeterminado**, sin abrir ningún incidente ni alerta, espera a los hosts que cumplieron un criterio que fija otro estado: coincide cuando cada uno de ellos lo cumple, hagan lo que hagan los demás hosts. Hasta entonces el monitor mantiene su estado, aunque no coincida ningún criterio, mientras los incidentes y alertas de cada host se siguen resolviendo por separado.
 
 ## Qué contiene un criterio
 

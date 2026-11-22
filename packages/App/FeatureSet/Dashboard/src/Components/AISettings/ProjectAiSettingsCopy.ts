@@ -843,7 +843,7 @@ export const DATA_SECURITY_AI_SWITCHES: Array<
     column: "enableAutomaticDataSecurityAi",
     title: translationKey("Work on new issues"),
     description: translationKey(
-      "OneUptime AI analyzes each new Critical or High issue and proposes what to change. Out of the box, it asks before every change except one that only hides data, can be undone, and is proven safe.",
+      "OneUptime AI analyzes new Critical and High issues. By default it asks before each change, except undoable, proven-safe ones that only hide data.",
     ),
   },
 ];

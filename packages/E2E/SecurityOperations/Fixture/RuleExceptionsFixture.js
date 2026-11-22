@@ -46,8 +46,62 @@ import {
   DetectionRuleExceptionStatus,
   getDetectionRuleExceptionStatus,
 } from "Common/Types/SecurityEvent/DetectionRuleException";
+import {
+  getSecurityEventRetentionInDays,
+  getSecurityEventsKeptFrom,
+} from "Common/Types/SecurityEvent/SecurityEventRetention";
+import { SigmaCorrelationType } from "Common/Types/SecurityEvent/SigmaCorrelation";
+import SigmaRuleSetParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 
 export const RETROHUNT_SCENARIOS = ["quiet", "noisy", "fail"];
+
+/*
+ * What an answer says of the events the project keeps (#10432), as the
+ * server's getDetectionRetrohuntKept works it out: the project's retention
+ * (the fixture's project keeps the default), where the kept events start
+ * when the period starts before them, and how much of a First seen rule's
+ * history before the period is still kept.
+ */
+function keptOf(data) {
+  const retentionInDays = getSecurityEventRetentionInDays({});
+  const keptFrom = getSecurityEventsKeptFrom({
+    retentionInDays,
+    now: data.endTime,
+  });
+  let firstSeenHistory = null;
+  let definition = null;
+
+  try {
+    definition = SigmaRuleSetParser.parse(data.yaml);
+  } catch {
+    definition = null;
+  }
+
+  if (
+    definition &&
+    definition.kind === "correlation" &&
+    definition.correlation.type === SigmaCorrelationType.NewValue
+  ) {
+    const lookbackInSeconds = definition.correlation.timespanInSeconds;
+    const keptLookbackInSeconds = Math.max(
+      0,
+      Math.min(
+        lookbackInSeconds,
+        Math.floor((data.startTime.getTime() - keptFrom.getTime()) / 1000),
+      ),
+    );
+
+    if (keptLookbackInSeconds < lookbackInSeconds) {
+      firstSeenHistory = { lookbackInSeconds, keptLookbackInSeconds };
+    }
+  }
+
+  return {
+    retentionInDays,
+    keptFrom: data.startTime.getTime() < keptFrom.getTime() ? keptFrom : null,
+    firstSeenHistory,
+  };
+}
 
 export const RETROHUNT_FAIL_MESSAGE =
   'Unsupported Sigma modifier "nosuch" on field "statusName".';
@@ -215,6 +269,7 @@ export function createRuleExceptionsFixture(options) {
       startTime,
       endTime: now,
       periodInHours,
+      ...keptOf({ startTime, endTime: now, yaml }),
       isCorrelation: false,
       windowInMinutes: Number(
         request.evaluationIntervalInMinutes ||
@@ -227,6 +282,9 @@ export function createRuleExceptionsFixture(options) {
       preventedFiredCount: exceptionCount > 0 ? Math.round(12 * scale) : 0,
       hasMoreGroups: false,
       candidateLimit: null,
+      // Every matching event names an address, and nothing was refused (#10415, #10431).
+      uncounted: null,
+      refusedTelemetry: [],
     };
 
     if (yaml.includes("correlation:")) {

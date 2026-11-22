@@ -194,6 +194,10 @@ Sem Group By, o mesmo monitor é um único escalar: a consulta junta todos os ho
 
 Cada alerta por grupo acompanha o seu próprio grupo. Quando o host A volta para baixo do limite, seu alerta se resolve sozinho, e o alerta do host B continua aberto até que o host B se recupere. A recuperação de um grupo nunca fecha o alerta de outro.
 
+### Cada série na visão geral
+
+A **Visão geral** do monitor lista em **Séries** cada série que sua última verificação leu: os rótulos da série, como os alertas dela os nomeiam, seu valor mais recente, os critérios que atende e seu incidente ou alerta aberto. Uma série que mantém o status do monitor mostra **Mantém o status**. Um monitor com muitas séries lista 50 delas, primeiro as que mantêm o status ou atendem a um critério, e diz quantas são.
+
 ### O que cada alerta guarda
 
 Cada alerta ou incidente aberto para um grupo guarda a verificação que o abriu apenas para esse grupo: a série, os pontos e o resumo da avaliação. Nenhuma verificação guardada passa de 256 KB, e os logs de uma que precisou ser reduzida para caber dizem isso.
@@ -207,6 +211,7 @@ Alertas e incidentes abertos antes disso guardavam todos os grupos da avaliaçã
 
 - **Monitores agrupados avaliam todos os critérios.** Assim, faixas de gravidade podem disparar em grupos diferentes ao mesmo tempo: com "Critical: maior que 95" acima de "Warning: maior que 80", um host em 96% abre um alerta crítico enquanto um host em 85% abre um alerta de aviso, na mesma verificação. Um host que ultrapassa as duas faixas ainda recebe exatamente um alerta, o do primeiro critério que corresponde; por isso, **ordene os critérios do mais grave para o menos grave**.
 - **Monitores não agrupados param no primeiro critério que corresponde.** Só esse critério dispara, mais um motivo para colocar o critério de alerta acima do critério saudável: um critério saudável amplo colocado primeiro corresponde em quase todas as verificações e impede que o critério de alerta abaixo dele seja avaliado.
+- **O status de um monitor agrupado volta com as séries que o mudaram.** O monitor tem um único status, definido pelo primeiro critério que corresponde. Um critério que apenas o traz de volta ao seu **Status Padrão do Monitor**, sem abrir alerta nem incidente, espera pelas séries que atenderam a um critério que define outro status, e corresponde quando cada uma delas o atende: um host que nunca chegou perto do limite não traz o monitor de volta. Até lá, o monitor mantém seu status, mesmo quando nenhum critério corresponde, então um critério saudável um pouco abaixo do limite impede que uma série que oscila em torno dele fique trocando o status. O alerta de cada série continua se resolvendo por conta própria.
 
 | Host | Disco usado | Critical (> 95) | Warning (> 80) | Alerta gerado |
 | --- | --- | --- | --- | --- |
