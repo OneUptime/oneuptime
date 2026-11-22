@@ -118,6 +118,9 @@ import EscalationRuleReach, {
   MemberJoin,
 } from "../Utils/OnCall/EscalationRuleReach";
 import OnCallJoinNotices from "../Utils/OnCall/OnCallJoinNotices";
+import OnCallLeaveNotices, {
+  OnCallLeaver,
+} from "../Utils/OnCall/OnCallLeaveNotices";
 import ProjectMembership, {
   ProjectUserPair,
 } from "../Utils/TeamMember/ProjectMembership";
@@ -3404,6 +3407,18 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       );
     }
 
+    /*
+     * Whoever left a team an escalation rule names, and is still a member
+     * of the project, is told once for each on-call policy that pages them
+     * through nothing any more (OnCallLeaveNotices, #10587). After their
+     * access is settled; before this returns, while a team deleted with its
+     * members is still there to read.
+     */
+    await this.tellOnCallPoliciesOfLeavers(
+      onDelete.carryForward as Array<TeamMember>,
+      itemIdsBeforeDelete,
+    );
+
     if (refreshError) {
       throw refreshError;
     }
@@ -3412,16 +3427,14 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   }
 
   /*
-   * A removed member's open on-call time logs for the team they left end
-   * now. Only for the memberships the delete removed (DatabaseService hands
-   * their ids to onDeleteSuccess); called without them, every member read
-   * before the delete counts. Fire and forget, as before: a failure is
-   * logged.
+   * The memberships a delete removed, of those read before it: only the
+   * ones whose ids DatabaseService hands onDeleteSuccess; called without
+   * them, every one read before the delete counts.
    */
-  private endOnCallTimeLogsOfRemovedMembers(
-    members: Array<TeamMember>,
+  private static getRemovedMemberships(
+    members: Array<TeamMember> | null | undefined,
     removedIds: Array<ObjectID> | undefined,
-  ): void {
+  ): Array<TeamMember> {
     const removed: Set<string> | null = removedIds
       ? new Set(
           removedIds.map((id: ObjectID): string => {
@@ -3430,11 +3443,99 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         )
       : null;
 
-    for (const member of members || []) {
-      if (removed && (!member.id || !removed.has(member.id.toString()))) {
+    return (members || []).filter((member: TeamMember): boolean => {
+      return (
+        !removed || Boolean(member.id && removed.has(member.id.toString()))
+      );
+    });
+  }
+
+  /*
+   * Who left teams an escalation rule may name, by project: each person's
+   * accepted memberships the delete removed (an invitation withdrawn paged
+   * nobody). They are told, once for each on-call policy that pages them
+   * through nothing any more, while they are still members of the project
+   * (OnCallLeaveNotices, #10587). What the teams they left were on is read
+   * now - a team deleted with its members takes the rows of the rules that
+   * name it right after them (TeamService.onBeforeDelete) - and the telling
+   * goes on in the background: it never holds up or fails the delete, and
+   * logs what fails.
+   */
+  private async tellOnCallPoliciesOfLeavers(
+    members: Array<TeamMember>,
+    removedIds: Array<ObjectID> | undefined,
+  ): Promise<void> {
+    const byProject: Map<
+      string,
+      { projectId: ObjectID; leavers: Map<string, OnCallLeaver> }
+    > = new Map();
+
+    for (const member of TeamMemberService.getRemovedMemberships(
+      members,
+      removedIds,
+    )) {
+      if (
+        !member.hasAcceptedInvitation ||
+        !member.projectId ||
+        !member.userId ||
+        !member.teamId
+      ) {
         continue;
       }
 
+      const projectKey: string = member.projectId.toString().toLowerCase();
+      const project: {
+        projectId: ObjectID;
+        leavers: Map<string, OnCallLeaver>;
+      } = byProject.get(projectKey) || {
+        projectId: member.projectId,
+        leavers: new Map<string, OnCallLeaver>(),
+      };
+
+      const userKey: string = member.userId.toString().toLowerCase();
+      const leaver: OnCallLeaver = project.leavers.get(userKey) || {
+        userId: member.userId,
+        teamIds: [],
+      };
+
+      leaver.teamIds.push(member.teamId);
+      project.leavers.set(userKey, leaver);
+      byProject.set(projectKey, project);
+    }
+
+    for (const project of byProject.values()) {
+      try {
+        await OnCallLeaveNotices.startTellingLeft({
+          projectId: project.projectId,
+          leavers: [...project.leavers.values()],
+        });
+      } catch (error) {
+        logger.error(
+          error as Error,
+          {
+            projectId: project.projectId.toString(),
+          } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  /*
+   * A removed member's open on-call time logs for the team they left end
+   * now. Only for the memberships the delete removed (DatabaseService hands
+   * their ids to onDeleteSuccess); called without them, every member read
+   * before the delete counts. Fire and forget, as before: a failure is
+   * logged. Their logs on whatever still pages them stay open
+   * (OnCallLeaveNotices): the time logs are kept per path.
+   */
+  private endOnCallTimeLogsOfRemovedMembers(
+    members: Array<TeamMember>,
+    removedIds: Array<ObjectID> | undefined,
+  ): void {
+    for (const member of TeamMemberService.getRemovedMemberships(
+      members,
+      removedIds,
+    )) {
       if (!member.projectId || !member.userId) {
         continue;
       }

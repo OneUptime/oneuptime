@@ -1,6 +1,9 @@
 import DetectionRuleRetrohunt, {
   DetectionRetrohuntCounting,
+  DetectionRetrohuntKept,
   buildSingleRuleRetrohuntStatement,
+  buildUncountedRetrohuntStatement,
+  getDetectionRetrohuntKept,
   getRetrohuntEntityType,
   readDetectionRetrohuntCounting,
   readSingleRuleRetrohuntRows,
@@ -14,6 +17,7 @@ import CorrelationRuleMatcher, {
 import { CORRELATION_TEMPORAL_CANDIDATE_LIMIT } from "../../../../Server/Utils/SecurityEvent/Correlation/CorrelationQueries";
 import ProjectSigmaRules from "../../../../Server/Utils/SecurityEvent/Correlation/ProjectSigmaRules";
 import SecurityWatchlists from "../../../../Server/Utils/SecurityEvent/Watchlists/SecurityWatchlists";
+import SecurityEventRetention from "../../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
@@ -41,8 +45,17 @@ import {
   writeRefusedTelemetryRecord,
 } from "../../../../Utils/SecurityEvent/RefusedTelemetry";
 import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
+import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { getJestSpyOn } from "../../../Spy";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * RETROHUNT: A RULE RUN OVER PAST EVENTS, ON THE SERVER.
@@ -99,6 +112,34 @@ const COUNTING: DetectionRetrohuntCounting = {
   groupByField: "principalUser",
   distinctCountField: "",
 };
+
+const DAY_MS: number = 24 * 60 * 60 * 1000;
+
+const FIRST_SEEN_30_DAYS_YAML: string = `title: AWS activity in a new region
+correlation:
+  type: new_value
+  rules: [cloudtrail_call]
+  group-by: [targetHost]
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+title: CloudTrail call
+name: cloudtrail_call
+detection:
+  selection:
+    productName: AWS CloudTrail
+  condition: selection`;
+
+let readRetention: Spy;
+
+beforeEach(() => {
+  // The 15 days a project keeps its security events unless it changed them.
+  readRetention = getJestSpyOn(
+    SecurityEventRetention,
+    "getRetentionInDays",
+  ).mockResolvedValue(15 as never);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -796,6 +837,248 @@ correlation:
     ).rejects.toThrow();
 
     expect(load).toHaveBeenCalledWith(PROJECT_ID, { excludeRuleId: RULE_ID });
+  });
+});
+
+/*
+ * #10432: a run reads only the events the project still keeps, and says
+ * where they start when its period starts before them - the whole period
+ * is still read, since an event that happened then and arrived late is
+ * kept. A First seen rule says how much of the history before the period
+ * it could see.
+ */
+describe("a run and the events the project keeps", () => {
+  function parse(yaml: string): DetectionRuleDefinition {
+    return SigmaRuleSetParser.parse(yaml);
+  }
+
+  function stubQuery(rows: Array<JSONObject>): Spy {
+    return getJestSpyOn(SecurityEventService, "executeQuery").mockResolvedValue(
+      {
+        json: async (): Promise<JSONObject> => {
+          return { data: rows };
+        },
+      } as never,
+    );
+  }
+
+  const KEPT_BOUND: RegExp = /retentionDate >= \{p\d+:DateTime\}/g;
+
+  test("the single rule's statement reads only kept events, given when", () => {
+    const statement: Statement = buildSingleRuleRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = 'Failure'`,
+      counting: COUNTING,
+      skipped: null,
+      serviceFilter: {},
+      startTime: WEEK_AGO,
+      endTime: NOW,
+      maxGroups: 51,
+      keptAt: NOW,
+    });
+
+    expect((statement.query.match(KEPT_BOUND) || []).length).toBe(1);
+    expect(Object.values(statement.query_params)).toContain(
+      "2026-10-27 12:00:00",
+    );
+  });
+
+  test("without when, it is as it was", () => {
+    const statement: Statement = buildSingleRuleRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = 'Failure'`,
+      counting: COUNTING,
+      skipped: null,
+      serviceFilter: {},
+      startTime: WEEK_AGO,
+      endTime: NOW,
+      maxGroups: 51,
+    });
+
+    expect(statement.query).not.toContain("retentionDate");
+  });
+
+  test("what a rule that counts per value could not count is of kept events too", () => {
+    const statement: Statement | null = buildUncountedRetrohuntStatement({
+      projectId: PROJECT_ID,
+      tableName: "oneuptime.SecurityEvent",
+      ruleWhere: SQL`statusName = 'Failure'`,
+      counting: { ...COUNTING, groupByField: "principalIp" },
+      skipped: null,
+      serviceFilter: {},
+      startTime: WEEK_AGO,
+      endTime: NOW,
+      keptAt: NOW,
+    });
+
+    expect((statement!.query.match(KEPT_BOUND) || []).length).toBe(1);
+  });
+
+  test("a 30-day period in a project keeping 15 days: where the kept events start", () => {
+    const kept: DetectionRetrohuntKept = getDetectionRetrohuntKept({
+      retentionInDays: 15,
+      startTime: new Date(NOW.getTime() - 30 * DAY_MS),
+      endTime: NOW,
+      definition: parse(FAILED_SIGN_IN_YAML),
+    });
+
+    expect(kept).toEqual({
+      retentionInDays: 15,
+      keptFrom: new Date("2026-10-12T12:00:00.000Z"),
+      firstSeenHistory: null,
+    });
+  });
+
+  test("a period the kept events cover: nothing to say of where they start", () => {
+    for (const retentionInDays of [7, 15, 30, 90]) {
+      expect(
+        getDetectionRetrohuntKept({
+          retentionInDays,
+          startTime: WEEK_AGO,
+          endTime: NOW,
+          definition: parse(FAILED_SIGN_IN_YAML),
+        }),
+      ).toEqual({ retentionInDays, keptFrom: null, firstSeenHistory: null });
+    }
+  });
+
+  test("a 30-day First seen rule over the last 7 days, 15 kept: it could see 8 of the 30 days before", () => {
+    expect(
+      getDetectionRetrohuntKept({
+        retentionInDays: 15,
+        startTime: WEEK_AGO,
+        endTime: NOW,
+        definition: parse(FIRST_SEEN_30_DAYS_YAML),
+      }),
+    ).toEqual({
+      retentionInDays: 15,
+      keptFrom: null,
+      firstSeenHistory: {
+        lookbackInSeconds: 30 * 24 * 60 * 60,
+        keptLookbackInSeconds: 8 * 24 * 60 * 60,
+      },
+    });
+  });
+
+  test("over the last 30 days, 15 kept: none of the history is kept", () => {
+    expect(
+      getDetectionRetrohuntKept({
+        retentionInDays: 15,
+        startTime: new Date(NOW.getTime() - 30 * DAY_MS),
+        endTime: NOW,
+        definition: parse(FIRST_SEEN_30_DAYS_YAML),
+      }).firstSeenHistory,
+    ).toEqual({
+      lookbackInSeconds: 30 * 24 * 60 * 60,
+      keptLookbackInSeconds: 0,
+    });
+  });
+
+  test("with the history before the period all kept, a First seen rule says nothing of it", () => {
+    expect(
+      getDetectionRetrohuntKept({
+        retentionInDays: 90,
+        startTime: WEEK_AGO,
+        endTime: NOW,
+        definition: parse(FIRST_SEEN_30_DAYS_YAML),
+      }).firstSeenHistory,
+    ).toBeNull();
+    // A day's period, 14 days of history, 15 days kept: all of it.
+    expect(
+      getDetectionRetrohuntKept({
+        retentionInDays: 15,
+        startTime: new Date(NOW.getTime() - DAY_MS),
+        endTime: NOW,
+        definition: parse(
+          FIRST_SEEN_30_DAYS_YAML.replace("timespan: 30d", "timespan: 14d"),
+        ),
+      }).firstSeenHistory,
+    ).toBeNull();
+  });
+
+  test("a single rule's run over 30 days, 15 kept: the whole period is read, kept events only, and the answer says where they start", async () => {
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+    const query: Spy = stubQuery([]);
+
+    const result: DetectionRetrohuntResult = await DetectionRuleRetrohunt.run({
+      projectId: PROJECT_ID,
+      rule: { id: RULE_ID, sigmaRuleYaml: FAILED_SIGN_IN_YAML },
+      periodInHours: 720,
+      serviceFilter: {},
+      now: NOW,
+    });
+
+    // Read now, as a page reads it: a retention just changed shows.
+    expect(readRetention).toHaveBeenCalledWith(PROJECT_ID, { isFresh: true });
+
+    const statement: Statement = query.mock.calls[0]![0] as Statement;
+    expect((statement.query.match(KEPT_BOUND) || []).length).toBe(1);
+    // The period's own start: an event that happened then and arrived late is kept.
+    expect(Object.values(statement.query_params)).toContain(
+      "2026-09-27 12:00:00.000000000",
+    );
+
+    expect(result.startTime).toEqual(new Date("2026-09-27T12:00:00.000Z"));
+    expect(result.retentionInDays).toBe(15);
+    expect(result.keptFrom).toEqual(new Date("2026-10-12T12:00:00.000Z"));
+    expect(result.firstSeenHistory).toBeNull();
+  });
+
+  test("a First seen rule's run is told what is kept, and says how much history it could see", async () => {
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+    const findMatches: Spy = getJestSpyOn(
+      CorrelationRuleMatcher,
+      "findMatches",
+    ).mockResolvedValue({
+      groups: [],
+      readFrom: WEEK_AGO,
+      candidatesCapped: false,
+    } as never);
+
+    const result: DetectionRetrohuntResult = await DetectionRuleRetrohunt.run({
+      projectId: PROJECT_ID,
+      rule: { id: RULE_ID, sigmaRuleYaml: FIRST_SEEN_30_DAYS_YAML },
+      periodInHours: 168,
+      serviceFilter: {},
+      now: NOW,
+    });
+
+    const input: CorrelationRuleMatchInput = findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.kept).toEqual({ retentionInDays: 15, at: NOW });
+    expect(result.retentionInDays).toBe(15);
+    expect(result.keptFrom).toBeNull();
+    expect(result.firstSeenHistory).toEqual({
+      lookbackInSeconds: 30 * 24 * 60 * 60,
+      keptLookbackInSeconds: 8 * 24 * 60 * 60,
+    });
+  });
+
+  test("with 30 days kept or more, a 30-day run says nothing of what is kept", async () => {
+    readRetention.mockResolvedValue(30 as never);
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
+    stubQuery([]);
+
+    const result: DetectionRetrohuntResult = await DetectionRuleRetrohunt.run({
+      projectId: PROJECT_ID,
+      rule: { id: RULE_ID, sigmaRuleYaml: FAILED_SIGN_IN_YAML },
+      periodInHours: 720,
+      serviceFilter: {},
+      now: NOW,
+    });
+
+    expect(result.retentionInDays).toBe(30);
+    expect(result.keptFrom).toBeNull();
+    expect(result.firstSeenHistory).toBeNull();
   });
 });
 

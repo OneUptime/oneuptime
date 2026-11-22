@@ -18,6 +18,12 @@ import {
  * its runs fire. A correlation is read over the whole period at once, and
  * names the groups it would have matched.
  *
+ * Only the events the project still keeps are read (#10432). A period that
+ * starts before the kept events do says where they start (keptFrom): the
+ * part before holds only events that arrived late, and an answer about it
+ * is never "nothing found". A First seen rule says how much of the history
+ * before the period it could see (firstSeenHistory).
+ *
  * Shared by the server, which runs it (DetectionRuleRetrohunt), and the
  * Dashboard, which asks for it and draws the answer.
  */
@@ -83,10 +89,32 @@ export interface DetectionRetrohuntUncounted {
   hiddenInTracesCount: number;
 }
 
+/*
+ * A First seen rule tells a value is new by the history before the period:
+ * its timespan, and how much of that the project still keeps.
+ */
+export interface DetectionRetrohuntFirstSeenHistory {
+  lookbackInSeconds: number;
+  // 0: none of it is kept, so it could not tell what was new.
+  keptLookbackInSeconds: number;
+}
+
 export interface DetectionRetrohuntResult {
   startTime: Date;
   endTime: Date;
   periodInHours: number;
+  /*
+   * How long the project keeps its security events, and - when the period
+   * starts before them - where the kept events start; null when the period
+   * is all kept. Null retention: an answer from before it was said.
+   */
+  retentionInDays: number | null;
+  keptFrom: Date | null;
+  /*
+   * A First seen rule whose history before the period is not all kept:
+   * how far back it needed, and how far it could see. Null otherwise.
+   */
+  firstSeenHistory: DetectionRetrohuntFirstSeenHistory | null;
   isCorrelation: boolean;
   // How long each counting window is: the rule's interval (a single rule).
   windowInMinutes: number;
@@ -145,17 +173,38 @@ export interface DetectionRetrohuntResult {
   refusedTelemetry: Array<RefusedTelemetry>;
 }
 
-// Firings per day over the period, rounded to one decimal place.
-export function getDetectionRetrohuntFiringsPerDay(
-  result: Pick<DetectionRetrohuntResult, "firedCount" | "periodInHours">,
+/*
+ * The hours of the period its events are kept for: the whole period, or
+ * from where the kept events start - what a rate is worked out over, since
+ * the part before holds only the few events that arrived late.
+ */
+export function getDetectionRetrohuntKeptHours(
+  result: Pick<DetectionRetrohuntResult, "periodInHours"> &
+    Partial<Pick<DetectionRetrohuntResult, "keptFrom" | "endTime">>,
 ): number {
-  const days: number = Math.max(1, result.periodInHours / 24);
+  if (!result.keptFrom || !result.endTime) {
+    return result.periodInHours;
+  }
+
+  const keptHours: number =
+    (result.endTime.getTime() - result.keptFrom.getTime()) / (60 * 60 * 1000);
+
+  return Math.max(0, Math.min(result.periodInHours, keptHours));
+}
+
+// Firings per day over the period's kept events, rounded to one decimal place.
+export function getDetectionRetrohuntFiringsPerDay(
+  result: Pick<DetectionRetrohuntResult, "firedCount" | "periodInHours"> &
+    Partial<Pick<DetectionRetrohuntResult, "keptFrom" | "endTime">>,
+): number {
+  const days: number = Math.max(1, getDetectionRetrohuntKeptHours(result) / 24);
   return Math.round((result.firedCount / days) * 10) / 10;
 }
 
 // Whether the rule would have fired more often than a person can look at.
 export function isDetectionRetrohuntNoisy(
-  result: Pick<DetectionRetrohuntResult, "firedCount" | "periodInHours">,
+  result: Pick<DetectionRetrohuntResult, "firedCount" | "periodInHours"> &
+    Partial<Pick<DetectionRetrohuntResult, "keptFrom" | "endTime">>,
 ): boolean {
   return (
     getDetectionRetrohuntFiringsPerDay(result) >
@@ -223,6 +272,14 @@ export function detectionRetrohuntResultToJSON(
     startTime: dateToJSON(result.startTime),
     endTime: dateToJSON(result.endTime),
     periodInHours: result.periodInHours,
+    retentionInDays: result.retentionInDays,
+    keptFrom: dateToJSON(result.keptFrom),
+    firstSeenHistory: result.firstSeenHistory
+      ? {
+          lookbackInSeconds: result.firstSeenHistory.lookbackInSeconds,
+          keptLookbackInSeconds: result.firstSeenHistory.keptLookbackInSeconds,
+        }
+      : null,
     isCorrelation: result.isCorrelation,
     windowInMinutes: result.windowInMinutes,
     threshold: result.threshold,
@@ -263,6 +320,36 @@ export function detectionRetrohuntResultToJSON(
   };
 }
 
+// A First seen rule's history, as the API sends it: null for none.
+function readFirstSeenHistory(
+  value: JSONValue | undefined,
+): DetectionRetrohuntFirstSeenHistory | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const history: JSONObject = value as JSONObject;
+  const lookbackInSeconds: number = readNumber(history["lookbackInSeconds"]);
+
+  if (lookbackInSeconds <= 0) {
+    return null;
+  }
+
+  return {
+    lookbackInSeconds,
+    keptLookbackInSeconds: Math.max(
+      0,
+      Math.min(lookbackInSeconds, readNumber(history["keptLookbackInSeconds"])),
+    ),
+  };
+}
+
+// A whole number of days, or null for none.
+function readRetentionInDays(value: JSONValue | undefined): number | null {
+  const days: number = readNumber(value);
+  return days > 0 ? days : null;
+}
+
 // The answer as the API sends it, read defensively.
 export function parseDetectionRetrohuntResult(
   json: JSONObject,
@@ -275,6 +362,9 @@ export function parseDetectionRetrohuntResult(
     startTime: readDate(json["startTime"]) || new Date(0),
     endTime: readDate(json["endTime"]) || new Date(0),
     periodInHours: readNumber(json["periodInHours"]),
+    retentionInDays: readRetentionInDays(json["retentionInDays"]),
+    keptFrom: readDate(json["keptFrom"]),
+    firstSeenHistory: readFirstSeenHistory(json["firstSeenHistory"]),
     isCorrelation: json["isCorrelation"] === true,
     windowInMinutes: readNumber(json["windowInMinutes"]),
     threshold: readNullableNumber(json["threshold"]),

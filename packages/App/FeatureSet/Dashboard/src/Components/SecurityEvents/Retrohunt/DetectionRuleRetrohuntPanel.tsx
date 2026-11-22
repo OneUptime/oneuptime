@@ -16,6 +16,12 @@ import {
   TIMES_COLUMN,
 } from "./RetrohuntCopy";
 import AppLink from "../../AppLink/AppLink";
+import {
+  CHANGE_RETENTION,
+  SECURITY_EVENT_RETENTION_TEST_IDS,
+} from "../Retention/SecurityEventRetentionCopy";
+import { getDataRetentionSettingsRoute } from "../Retention/SecurityEventRetentionModel";
+import { formatTimespan } from "../Timespan";
 import { OPEN_SCRUB_RULES } from "../HiddenClientAddressCopy";
 import RefusedTelemetryLines from "../RefusedTelemetry/RefusedTelemetryLines";
 import { RETROHUNT_REFUSED } from "../RefusedTelemetry/RefusedTelemetryCopy";
@@ -26,6 +32,7 @@ import {
   RetrohuntSentence,
   RetrohuntUncounted,
   getRetrohuntExceptionLines,
+  getRetrohuntKeptLines,
   getRetrohuntUncounted,
   getRetrohuntFacts,
   getRetrohuntGroupLabel,
@@ -51,7 +58,11 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  TemplateValues,
+  Translator,
+  composedValue,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
   ResizableColumns,
@@ -88,12 +99,20 @@ export function writeRetrohuntSentence(
   translator: Translator,
   sentence: RetrohuntSentence,
 ): string {
-  const values: Record<string, string | number> = {};
+  const values: TemplateValues = {};
 
   for (const key of Object.keys(sentence.values || {})) {
     const value: string | number = sentence.values![key]!;
     values[key] =
       typeof value === "number" ? translator.formatNumber(value) : value;
+  }
+
+  // A span of time, in the language the sentence comes out in (#10432).
+  for (const key of Object.keys(sentence.spans || {})) {
+    const seconds: number = sentence.spans![key]!;
+    values[key] = composedValue((inSentence: Translator): string => {
+      return formatTimespan(seconds, inSentence);
+    });
   }
 
   if (isPluralSentence(sentence)) {
@@ -285,6 +304,12 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       return writeRetrohuntSentence(translator, sentence);
     },
   );
+  // How far back the events it read go (#10432).
+  const keptLines: Array<string> = getRetrohuntKeptLines(result).map(
+    (sentence: RetrohuntSentence): string => {
+      return writeRetrohuntSentence(translator, sentence);
+    },
+  );
   // What a rule that counts per value could not count (#10415), and why.
   const uncounted: RetrohuntUncounted | null = getRetrohuntUncounted(result);
   const scrubRulesRoute: Route | null = uncounted?.scrubRulesSignal
@@ -312,6 +337,35 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
           {facts.join(" · ")}
         </p>
       </div>
+
+      {keptLines.length > 0 ? (
+        /*
+         * The period, or a First seen rule's history before it, reaches
+         * past the events the project keeps (#10432): how far back this
+         * read, so what it found - or did not - is about that.
+         */
+        <div
+          className="flex items-start gap-1.5 text-sm text-gray-700"
+          data-testid={SECURITY_EVENT_RETENTION_TEST_IDS.retrohuntKept}
+        >
+          <Icon
+            icon={IconProp.Clock}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+          />
+          <span>
+            {keptLines.join(" ")}{" "}
+            <AppLink
+              className="font-medium text-indigo-600 underline hover:text-indigo-500"
+              to={getDataRetentionSettingsRoute()}
+              dataTestId={SECURITY_EVENT_RETENTION_TEST_IDS.changeRetention}
+            >
+              {translator.translateText(CHANGE_RETENTION) || CHANGE_RETENTION}
+            </AppLink>
+          </span>
+        </div>
+      ) : (
+        <></>
+      )}
 
       {props.isStale ? (
         <p

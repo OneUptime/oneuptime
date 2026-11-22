@@ -16,11 +16,13 @@ import {
 } from "../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
   DETECTION_RETROHUNT_MAX_GROUPS,
+  DetectionRetrohuntFirstSeenHistory,
   DetectionRetrohuntGroup,
   DetectionRetrohuntResult,
   DetectionRetrohuntUncounted,
   isDetectionRetrohuntPeriod,
 } from "../../../Types/SecurityEvent/DetectionRetrohunt";
+import { getSecurityEventsKeptFrom } from "../../../Types/SecurityEvent/SecurityEventRetention";
 import { doesDetectionRuleLeaveOutEventsWithNoValue } from "../../../Types/SecurityEvent/DetectionUncountedEvents";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
@@ -28,7 +30,10 @@ import {
   ScrubbedAddressPlace,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import { DetectionRuleExceptionShape } from "../../../Types/SecurityEvent/DetectionRuleException";
-import { DetectionRuleDefinition } from "../../../Types/SecurityEvent/SigmaCorrelation";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelationType,
+} from "../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../Types/SecurityEvent/SigmaRule";
 import SigmaRuleSetParser, {
   sigmaRulesOf,
@@ -54,6 +59,7 @@ import CorrelationRuleMatcher, {
   CorrelationMatchResult,
 } from "./Correlation/CorrelationRuleMatcher";
 import ProjectSigmaRules from "./Correlation/ProjectSigmaRules";
+import SecurityEventRetention from "./SecurityEventRetention";
 import SecurityWatchlists from "./Watchlists/SecurityWatchlists";
 import { assertDetectionReadFits } from "./Watchlists/SecurityWatchlistMatch";
 import DetectionRuleExceptions, {
@@ -96,6 +102,14 @@ import {
  *
  * A correlation is read once over the whole period by its own matcher,
  * with the exceptions in every read.
+ *
+ * Every read is of the events the project still keeps (#10432): an event
+ * past its retention is deleted, whether or not its part is yet. A period
+ * that starts before the kept events do still reads the whole period - an
+ * event that happened then and arrived late is kept, and the late-arrivals
+ * notice opens Run on Past Events on exactly those (#10491) - and the
+ * answer says where the kept events start, so the part before is never
+ * reported as "nothing found".
  */
 
 // What a retrohunt is asked: the rule, as saved or as the form holds it.
@@ -232,6 +246,78 @@ export function readDetectionRetrohuntCounting(
   };
 }
 
+// Only the events still kept at `keptAt`: one past its retention is deleted.
+function appendKeptAt(statement: Statement, keptAt: Date | undefined): void {
+  if (!keptAt) {
+    return;
+  }
+
+  statement.append(
+    SQL` AND retentionDate >= ${{
+      type: TableColumnType.Date,
+      value: keptAt,
+    }}`,
+  );
+}
+
+/*
+ * What the answer says of the events the project keeps (#10432): how long
+ * it keeps them, where they start when the period starts before them, and
+ * - for a First seen rule - how much of the history before the period it
+ * could see.
+ */
+export interface DetectionRetrohuntKept {
+  retentionInDays: number | null;
+  keptFrom: Date | null;
+  firstSeenHistory: DetectionRetrohuntFirstSeenHistory | null;
+}
+
+const NOTHING_SAID_OF_KEPT_EVENTS: DetectionRetrohuntKept = {
+  retentionInDays: null,
+  keptFrom: null,
+  firstSeenHistory: null,
+};
+
+export function getDetectionRetrohuntKept(data: {
+  retentionInDays: number;
+  startTime: Date;
+  endTime: Date;
+  definition: DetectionRuleDefinition;
+}): DetectionRetrohuntKept {
+  const keptFrom: Date = getSecurityEventsKeptFrom({
+    retentionInDays: data.retentionInDays,
+    now: data.endTime,
+  });
+
+  let firstSeenHistory: DetectionRetrohuntFirstSeenHistory | null = null;
+
+  if (
+    data.definition.kind === "correlation" &&
+    data.definition.correlation.type === SigmaCorrelationType.NewValue
+  ) {
+    // The history is the timespan before the period: the part of it still kept.
+    const lookbackInSeconds: number =
+      data.definition.correlation.timespanInSeconds;
+    const keptLookbackInSeconds: number = Math.max(
+      0,
+      Math.min(
+        lookbackInSeconds,
+        Math.floor((data.startTime.getTime() - keptFrom.getTime()) / 1000),
+      ),
+    );
+
+    if (keptLookbackInSeconds < lookbackInSeconds) {
+      firstSeenHistory = { lookbackInSeconds, keptLookbackInSeconds };
+    }
+  }
+
+  return {
+    retentionInDays: data.retentionInDays,
+    keptFrom: data.startTime.getTime() < keptFrom.getTime() ? keptFrom : null,
+    firstSeenHistory,
+  };
+}
+
 /*
  * The single rule's statement (see the top of this file). `skipped` is the
  * condition an event meets when an exception skips it (null: none does).
@@ -246,6 +332,8 @@ export function buildSingleRuleRetrohuntStatement(data: {
   startTime: Date;
   endTime: Date;
   maxGroups: number;
+  // Read only the events still kept at this moment (retentionDate).
+  keptAt?: Date | undefined;
 }): Statement {
   const { counting } = data;
   const groupExpression: Statement | null = counting.groupByField
@@ -320,6 +408,7 @@ export function buildSingleRuleRetrohuntStatement(data: {
   );
   windows.append(data.ruleWhere);
   windows.append(")");
+  appendKeptAt(windows, data.keptAt);
 
   // A rule that counts per value leaves out the events that have none, as its runs do (#10415).
   if (leavesOutEventsWithNoValue(counting)) {
@@ -369,6 +458,8 @@ export function buildUncountedRetrohuntStatement(data: {
   serviceFilter: TelemetryServiceFilter;
   startTime: Date;
   endTime: Date;
+  // Read only the events still kept at this moment (retentionDate).
+  keptAt?: Date | undefined;
 }): Statement | null {
   if (!leavesOutEventsWithNoValue(data.counting)) {
     return null;
@@ -416,6 +507,7 @@ export function buildUncountedRetrohuntStatement(data: {
   statement.append(") AND NOT (");
   statement.append(buildSigmaFieldHasValue(data.counting.groupByField));
   statement.append(")");
+  appendKeptAt(statement, data.keptAt);
   TelemetryReadScopeUtil.appendServiceFilter(statement, data.serviceFilter);
   statement.append(getQuerySettings(INTERACTIVE_READ_TIME_LIMIT));
 
@@ -501,6 +593,8 @@ export function summarizeSingleRuleRetrohunt(data: {
   maxGroups: number;
   // What a rule that counts per value left out (buildUncountedRetrohuntStatement).
   uncounted?: DetectionRetrohuntUncounted | null | undefined;
+  // What it says of the events the project keeps.
+  kept?: DetectionRetrohuntKept | undefined;
 }): DetectionRetrohuntResult {
   const first: SingleRuleRow | undefined = data.rows[0];
 
@@ -516,6 +610,7 @@ export function summarizeSingleRuleRetrohunt(data: {
     startTime: data.startTime,
     endTime: data.endTime,
     periodInHours: data.periodInHours,
+    ...(data.kept || NOTHING_SAID_OF_KEPT_EVENTS),
     isCorrelation: false,
     windowInMinutes: data.counting.windowInMinutes,
     threshold: data.counting.threshold,
@@ -560,6 +655,8 @@ export function summarizeCorrelationRetrohunt(data: {
   periodInHours: number;
   maxGroups: number;
   groupByFields: Array<string>;
+  // What it says of the events the project keeps.
+  kept?: DetectionRetrohuntKept | undefined;
 }): DetectionRetrohuntResult {
   const groups: Array<DetectionMatchGroup> = data.match.groups;
 
@@ -573,6 +670,7 @@ export function summarizeCorrelationRetrohunt(data: {
     startTime: data.startTime,
     endTime: data.endTime,
     periodInHours: data.periodInHours,
+    ...(data.kept || NOTHING_SAID_OF_KEPT_EVENTS),
     isCorrelation: true,
     windowInMinutes: 0,
     threshold: null,
@@ -729,6 +827,18 @@ export default class DetectionRuleRetrohunt {
       -request.periodInHours,
     );
 
+    // How long the project keeps its events, read now: what the answer says of them.
+    const retentionInDays: number =
+      await SecurityEventRetention.getRetentionInDays(request.projectId, {
+        isFresh: true,
+      });
+    const kept: DetectionRetrohuntKept = getDetectionRetrohuntKept({
+      retentionInDays,
+      startTime,
+      endTime,
+      definition,
+    });
+
     // A saved rule's exceptions, as its runs read them; a rule not saved yet has none.
     const exceptions: Array<DetectionRuleExceptionShape> = request.rule.id
       ? await DetectionRuleExceptions.loadForRule({
@@ -758,6 +868,7 @@ export default class DetectionRuleRetrohunt {
             sourceRestriction(request.serviceFilter),
             buildDetectionRuleExceptionsFilter(exceptions),
           ),
+          kept: { retentionInDays, at: endTime },
         });
 
       return {
@@ -769,6 +880,7 @@ export default class DetectionRuleRetrohunt {
           periodInHours: request.periodInHours,
           maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
           groupByFields: definition.correlation.groupBy,
+          kept,
         }),
         refusedTelemetry: await readRefusedTelemetryOverPeriod({
           projectId: request.projectId,
@@ -798,6 +910,7 @@ export default class DetectionRuleRetrohunt {
       endTime,
       // One more than it lists, to tell there are more.
       maxGroups: DETECTION_RETROHUNT_MAX_GROUPS + 1,
+      keptAt: endTime,
     });
 
     assertDetectionReadFits(statement);
@@ -821,6 +934,7 @@ export default class DetectionRuleRetrohunt {
         serviceFilter: request.serviceFilter,
         startTime,
         endTime,
+        keptAt: endTime,
       });
 
     let uncounted: DetectionRetrohuntUncounted | null = null;
@@ -850,6 +964,7 @@ export default class DetectionRuleRetrohunt {
         periodInHours: request.periodInHours,
         maxGroups: DETECTION_RETROHUNT_MAX_GROUPS,
         uncounted,
+        kept,
       }),
       refusedTelemetry: await readRefusedTelemetryOverPeriod({
         projectId: request.projectId,

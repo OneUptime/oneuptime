@@ -8,6 +8,7 @@ import {
   DetectionRetrohuntResult,
   detectionRetrohuntResultToJSON,
   getDetectionRetrohuntFiringsPerDay,
+  getDetectionRetrohuntKeptHours,
   isDetectionRetrohuntNoisy,
   isDetectionRetrohuntPeriod,
   parseDetectionRetrohuntResult,
@@ -29,6 +30,9 @@ function result(
     startTime: new Date("2026-10-20T12:00:00.000Z"),
     endTime: new Date("2026-10-27T12:00:00.000Z"),
     periodInHours: 168,
+    retentionInDays: 15,
+    keptFrom: null,
+    firstSeenHistory: null,
     isCorrelation: false,
     windowInMinutes: 5,
     threshold: 3,
@@ -132,6 +136,66 @@ describe("how busy is too busy", () => {
   });
 });
 
+/*
+ * #10432: a period that starts before the kept events do is busy by the
+ * days it holds events for, not by its whole length - 30 firings over the
+ * 15 days a project keeps are 2 a day, not 1.
+ */
+describe("how busy, by the events kept", () => {
+  const MONTH: Partial<DetectionRetrohuntResult> = {
+    startTime: new Date("2026-09-27T12:00:00.000Z"),
+    endTime: new Date("2026-10-27T12:00:00.000Z"),
+    periodInHours: 720,
+    keptFrom: new Date("2026-10-12T12:00:00.000Z"),
+  };
+
+  test("the hours kept: the whole period, or from where the kept events start", () => {
+    expect(getDetectionRetrohuntKeptHours(result())).toBe(168);
+    expect(getDetectionRetrohuntKeptHours(result(MONTH))).toBe(360);
+  });
+
+  test("never more than the period, never less than nothing", () => {
+    expect(
+      getDetectionRetrohuntKeptHours(
+        result({
+          ...MONTH,
+          keptFrom: new Date("2026-08-01T00:00:00.000Z"),
+        }),
+      ),
+    ).toBe(720);
+    expect(
+      getDetectionRetrohuntKeptHours(
+        result({
+          ...MONTH,
+          keptFrom: new Date("2026-11-01T00:00:00.000Z"),
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  test("firings a day, over the days kept", () => {
+    expect(
+      getDetectionRetrohuntFiringsPerDay(result({ ...MONTH, firedCount: 30 })),
+    ).toBe(2);
+    expect(
+      getDetectionRetrohuntFiringsPerDay(
+        result({ ...MONTH, firedCount: 30, keptFrom: null }),
+      ),
+    ).toBe(1);
+  });
+
+  test("busy by the days kept: 301 over 15 kept days is too many, over 30 it would not be", () => {
+    expect(
+      isDetectionRetrohuntNoisy(result({ ...MONTH, firedCount: 301 })),
+    ).toBe(true);
+    expect(
+      isDetectionRetrohuntNoisy(
+        result({ ...MONTH, firedCount: 301, keptFrom: null }),
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("an answer through JSON", () => {
   test("round-trips whole", () => {
     const answer: DetectionRetrohuntResult = result({
@@ -192,6 +256,9 @@ describe("an answer through JSON", () => {
       startTime: new Date(0),
       endTime: new Date(0),
       periodInHours: 0,
+      retentionInDays: null,
+      keptFrom: null,
+      firstSeenHistory: null,
       isCorrelation: false,
       windowInMinutes: 0,
       threshold: null,
@@ -208,6 +275,77 @@ describe("an answer through JSON", () => {
       uncounted: null,
       refusedTelemetry: [],
     });
+  });
+
+  test("where the kept events start, and a First seen rule's history, travel whole (#10432)", () => {
+    const answer: DetectionRetrohuntResult = result({
+      periodInHours: 720,
+      retentionInDays: 15,
+      keptFrom: new Date("2026-10-12T12:00:00.000Z"),
+      firstSeenHistory: {
+        lookbackInSeconds: 30 * 24 * 60 * 60,
+        keptLookbackInSeconds: 0,
+      },
+    });
+
+    const json: JSONObject = JSON.parse(
+      JSON.stringify(detectionRetrohuntResultToJSON(answer)),
+    );
+
+    expect(json["keptFrom"]).toBe("2026-10-12T12:00:00.000Z");
+    expect(parseDetectionRetrohuntResult(json)).toEqual(answer);
+  });
+
+  test("an answer from before they were said reads as saying nothing of them", () => {
+    const parsed: DetectionRetrohuntResult = parseDetectionRetrohuntResult({
+      periodInHours: 168,
+    });
+
+    expect(parsed.retentionInDays).toBeNull();
+    expect(parsed.keptFrom).toBeNull();
+    expect(parsed.firstSeenHistory).toBeNull();
+  });
+
+  test("odd values of them read as nothing, and a history kept is never longer than asked", () => {
+    for (const value of [null, "15", 0, -3, "lots"]) {
+      expect(
+        parseDetectionRetrohuntResult({ retentionInDays: value as JSONValue })
+          .retentionInDays,
+      ).toBe(value === "15" ? 15 : null);
+    }
+
+    for (const history of [
+      null,
+      "history",
+      [1],
+      { lookbackInSeconds: 0, keptLookbackInSeconds: 0 },
+    ]) {
+      expect(
+        parseDetectionRetrohuntResult({
+          firstSeenHistory: history as JSONValue,
+        }).firstSeenHistory,
+      ).toBeNull();
+    }
+
+    expect(
+      parseDetectionRetrohuntResult({
+        firstSeenHistory: {
+          lookbackInSeconds: 100,
+          keptLookbackInSeconds: 500,
+        },
+      }).firstSeenHistory,
+    ).toEqual({ lookbackInSeconds: 100, keptLookbackInSeconds: 100 });
+    expect(
+      parseDetectionRetrohuntResult({
+        firstSeenHistory: {
+          lookbackInSeconds: 100,
+          keptLookbackInSeconds: -5,
+        },
+      }).firstSeenHistory,
+    ).toEqual({ lookbackInSeconds: 100, keptLookbackInSeconds: 0 });
+    expect(
+      parseDetectionRetrohuntResult({ keptFrom: "not a date" }).keptFrom,
+    ).toBeNull();
   });
 
   test("what a rule that counts per value left out travels whole, and none is no figure (#10415)", () => {
