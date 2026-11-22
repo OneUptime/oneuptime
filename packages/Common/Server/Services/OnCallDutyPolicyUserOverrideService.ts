@@ -1230,11 +1230,18 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           timezones: timezones,
         });
 
+      /*
+       * Every line names the person and their cover through one
+       * OnCallChatByWorkspace: someone only invited by the name typed for
+       * them, never their address (#10616).
+       */
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+      });
+
       const overrideUserMarkdown: MarkdownText =
-        await UserService.getUserMarkdownString({
-          userId: overrideUserId,
-          projectId: projectId!,
-        });
+        await chat.nameIn(null)(overrideUserId);
 
       const policyLink: string = (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -1245,10 +1252,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
       const routeAlertsToUserMarkdown: MarkdownText | undefined =
         routeAlertsToUserId
-          ? await UserService.getUserMarkdownString({
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            })
+          ? await chat.nameIn(null)(routeAlertsToUserId)
           : undefined;
 
       /*
@@ -1270,10 +1274,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        */
       const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
         createdItem.startsAt && createdItem.endsAt
-          ? await new OnCallChatByWorkspace({
-              projectId: projectId,
-              onCallDutyPolicyId: onCallDutyPolicyId,
-            }).write(
+          ? await chat.write(
               async (writer: OnCallChatWriter): Promise<MarkdownText> => {
                 return OnCallChatText.overrideAdded({
                   policy: chatPolicy,
@@ -2046,13 +2047,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         });
       };
 
+      /*
+       * Every line names its people through one OnCallChatByWorkspace:
+       * someone only invited by the name typed for them, never their
+       * address (#10616).
+       */
+      const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+      });
+
       const personMarkdown: (userId: string) => Promise<MarkdownText> = async (
         userId: string,
       ): Promise<MarkdownText> => {
-        return await UserService.getUserMarkdownString({
-          userId: new ObjectID(userId),
-          projectId: projectId,
-        });
+        return await chat.nameIn(null)(new ObjectID(userId));
       };
 
       const from: string = inTimezones(afterStartsAt);
@@ -2112,10 +2120,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
        * knows them, as a hand-off's does (issue #7967).
        */
       const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-        await new OnCallChatByWorkspace({
-          projectId: projectId,
-          onCallDutyPolicyId: onCallDutyPolicyId,
-        }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+        await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
           return OnCallChatText.overrideChanged({
             policy: chatPolicy,
             person: await writer.nameOf(overrideUserId),
@@ -2285,11 +2290,17 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         const deleteByUserId: ObjectID | undefined | null =
           deleteBy.props.userId;
 
+        /*
+         * Every line names the person through one OnCallChatByWorkspace:
+         * someone only invited by the name typed for them, never their
+         * address (#10616).
+         */
+        const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+          projectId: projectId,
+        });
+
         const overrideUserMarkdown: MarkdownText =
-          await UserService.getUserMarkdownString({
-            userId: overrideUserId,
-            projectId: projectId!,
-          });
+          await chat.nameIn(null)(overrideUserId);
 
         const policyLink: string = (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -2305,9 +2316,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
         // Each workspace's line names the person as it knows them (#7967).
         const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-          await new OnCallChatByWorkspace({
-            projectId: projectId,
-          }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+          await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
             return OnCallChatText.overrideRemoved({
               policy: chatPolicy,
               person: await writer.nameOf(overrideUserId),

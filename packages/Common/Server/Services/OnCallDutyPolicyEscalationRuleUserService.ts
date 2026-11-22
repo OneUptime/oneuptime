@@ -338,7 +338,9 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
   /*
    * "Added Ana to ... escalation rule ...": the policy's feed and its
    * channels hear of every row, whoever else names the person - it is a
-   * change to the policy.
+   * change to the policy. Every line names them through one
+   * OnCallChatByWorkspace: someone only invited by the name typed for
+   * them, never their address (#10616).
    */
   private async writeAddedToFeed(data: {
     createdModel: Model;
@@ -347,11 +349,14 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
   }): Promise<void> {
     const { createdModel, projectId, onCallDutyPolicyId } = data;
 
+    const addedUserId: ObjectID = createdModel.user!.id!;
+
+    const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+      projectId: projectId,
+    });
+
     const addedUserMarkdown: MarkdownText =
-      await UserService.getUserMarkdownString({
-        userId: createdModel.user!.id!,
-        projectId: projectId,
-      });
+      await chat.nameIn(null)(addedUserId);
 
     const policyLink: string = (
       await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
@@ -365,13 +370,9 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       link: policyLink,
     });
 
-    const addedUserId: ObjectID = createdModel.user!.id!;
-
     // Each workspace's line names them as it knows them (issue #7967).
     const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-      await new OnCallChatByWorkspace({
-        projectId: projectId,
-      }).write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+      await chat.write(async (writer: OnCallChatWriter): Promise<MarkdownText> => {
         return OnCallChatText.policyChange({
           emoji: "👨🏻‍💻",
           isAdded: true,
@@ -436,82 +437,76 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       const userId: ObjectID | undefined = item.user!.id!;
 
       if (onCallDutyPolicyId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
-          projectId: projectId,
-        });
-
         const onCallDutyPolicyName: string | null =
           item.onCallDutyPolicy?.name || "No name provided";
 
-        if (user && user.name) {
-          const policyLink: string = (
-            await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-              projectId!,
-              onCallDutyPolicyId!,
-            )
-          ).toString();
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId!,
+            onCallDutyPolicyId!,
+          )
+        ).toString();
 
-          const chatPolicy: MarkdownText = OnCallChatText.policy({
-            name: onCallDutyPolicyName || "",
-            link: policyLink,
-          });
+        const chatPolicy: MarkdownText = OnCallChatText.policy({
+          name: onCallDutyPolicyName || "",
+          link: policyLink,
+        });
 
-          // Each workspace's line names them as it knows them (#7967).
-          const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
-            await new OnCallChatByWorkspace({
-              projectId: projectId,
-            }).write(
-              async (writer: OnCallChatWriter): Promise<MarkdownText> => {
-                return OnCallChatText.policyChange({
-                  emoji: "👨🏻‍💻",
-                  isAdded: false,
-                  what: mdText`**${await writer.nameOf(userId)}**`,
-                  policy: chatPolicy,
-                });
-              },
-            );
+        /*
+         * Every line names them through one OnCallChatByWorkspace, as the
+         * add does (#10616): someone only invited by the name typed for
+         * them, never their address. The feed used to name them by their
+         * name with their address after it - for someone only invited, the
+         * address they were invited at - and said nothing at all of a
+         * member with no name.
+         */
+        const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
+          projectId: projectId,
+        });
 
-          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
-            onCallDutyPolicyId: onCallDutyPolicyId,
-            projectId: projectId,
-            /*
-             * A person taken out of an escalation rule: the policy pages
-             * them no more. It was filed as an owner removed, so the
-             * channels whose rules chose owners heard of it, and those that
-             * chose changes to the policy did not.
-             */
-            onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.UserRemoved,
-            displayColor: Red500,
-            feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
-            chatInfoInMarkdown: OnCallChatText.policyChange({
-              emoji: "👨🏻‍💻",
-              isAdded: false,
-              what: mdText`**${user.name.toString()}**`,
-              policy: chatPolicy,
-            }).toString(),
-            chatInfoByWorkspaceType: chatInfoByWorkspaceType,
-            userId: deleteByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-              leadWithAuthor: true,
+        const removedUserMarkdown: MarkdownText =
+          await chat.nameIn(null)(userId);
+
+        // Each workspace's line names them as it knows them (#7967).
+        const chatInfoByWorkspaceType: OnCallChatTextByWorkspaceType =
+          await chat.write(
+            async (writer: OnCallChatWriter): Promise<MarkdownText> => {
+              return OnCallChatText.policyChange({
+                emoji: "👨🏻‍💻",
+                isAdded: false,
+                what: mdText`**${await writer.nameOf(userId)}**`,
+                policy: chatPolicy,
+              });
             },
-          });
-        }
+          );
+
+        await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId,
+          /*
+           * A person taken out of an escalation rule: the policy pages
+           * them no more. It was filed as an owner removed, so the
+           * channels whose rules chose owners heard of it, and those that
+           * chose changes to the policy did not.
+           */
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.UserRemoved,
+          displayColor: Red500,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Removed **${removedUserMarkdown}** from the [On-Call Policy ${onCallDutyPolicyName}](${policyLink}) for escalation rule ${item.onCallDutyPolicyEscalationRule?.name} with order ${item.onCallDutyPolicyEscalationRule?.order}.`.toString(),
+          chatInfoInMarkdown: OnCallChatText.policyChange({
+            emoji: "👨🏻‍💻",
+            isAdded: false,
+            what: mdText`**${removedUserMarkdown}**`,
+            policy: chatPolicy,
+          }).toString(),
+          chatInfoByWorkspaceType: chatInfoByWorkspaceType,
+          userId: deleteByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            leadWithAuthor: true,
+          },
+        });
 
         /*
          * Close the removed user's open on-call time log. This MUST run

@@ -4,9 +4,7 @@ import Model from "../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import OnCallDutyPolicyFeedService from "./OnCallDutyPolicyFeedService";
 import { OnCallDutyPolicyFeedEventType } from "../../Models/DatabaseModels/OnCallDutyPolicyFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
-import User from "../../Models/DatabaseModels/User";
-import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
+import OnCallChatByWorkspace from "../Utils/OnCall/OnCallChatByWorkspace";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DeleteBy from "../Types/Database/DeleteBy";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -15,7 +13,7 @@ import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/E
 import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../Utils/Markdown/FeedMarkdown";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -59,44 +57,36 @@ export class Service extends ProjectReferencesService<Model> {
       const userId: ObjectID | undefined = item.userId;
 
       if (onCallDutyPolicyId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
-          projectId: projectId,
-        });
-
         const onCallDutyPolicyName: string | null =
           await OnCallDutyPolicyService.getOnCallDutyPolicyName({
             onCallDutyPolicyId: onCallDutyPolicyId,
           });
 
-        if (user && user.name) {
-          await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
-            onCallDutyPolicyId: onCallDutyPolicyId,
-            projectId: projectId,
-            onCallDutyPolicyFeedEventType:
-              OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
-            displayColor: Red500,
-            feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
-            userId: deleteByUserId || undefined,
-            workspaceNotification: {
-              sendWorkspaceNotification: true,
-              leadWithAuthor: true,
-            },
-          });
-        }
+        /*
+         * The entry is the channels' line too. It used to name the owner by
+         * their name with their address after it - for someone only
+         * invited, the address they were invited at - and said nothing of
+         * a member with no name. Now it names them as the added entry
+         * does, through OnCallChatByWorkspace (#10616).
+         */
+        const ownerMarkdown: MarkdownText = await new OnCallChatByWorkspace({
+          projectId: projectId,
+        }).nameIn(null)(userId);
+
+        await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+          projectId: projectId,
+          onCallDutyPolicyFeedEventType:
+            OnCallDutyPolicyFeedEventType.OwnerUserRemoved,
+          displayColor: Red500,
+          feedInfoInMarkdown:
+            mdText`👨🏻‍💻 Removed **${ownerMarkdown}** from the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
+          userId: deleteByUserId || undefined,
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            leadWithAuthor: true,
+          },
+        });
       }
     }
 
@@ -124,6 +114,14 @@ export class Service extends ProjectReferencesService<Model> {
         });
 
       if (userId) {
+        /*
+         * The entry is the channels' line too: someone only invited is
+         * named by the name typed for them, never their address (#10616).
+         */
+        const ownerMarkdown: MarkdownText = await new OnCallChatByWorkspace({
+          projectId: projectId,
+        }).nameIn(null)(userId);
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId,
@@ -131,10 +129,7 @@ export class Service extends ProjectReferencesService<Model> {
             OnCallDutyPolicyFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
           feedInfoInMarkdown:
-            mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
-              userId: userId,
-              projectId: projectId,
-            })}** to the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
+            mdText`👨🏻‍💻 Added **${ownerMarkdown}** to the [On-Call Policy ${onCallDutyPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,
