@@ -1069,7 +1069,7 @@ Un cloud scrive moltissimo che nessuno legge. La prima volta che arrivano i log 
 | **OpenStack: health checks** | Un load balancer che chiede a ogni API `/` o `/healthcheck`: una riga ogni pochi secondi, per API, per controller | A un controllo ogni 2 secondi, 43.200 righe al giorno per ogni API su ogni controller. Con i 220-490 byte che queste righe avevano sui nostri cloud di test, sono 10-21 MB al giorno. È aritmetica dalla dimensione di una riga: i nostri cloud di test non hanno un load balancer | Nulla che una persona legga. La stessa riga da una persona appare uguale |
 | **OpenStack: routine notifications** | `metrics.update`, e ogni `*.exists` e `*.usage`. Vedi [Eventi del ciclo di vita](#eventi-del-ciclo-di-vita) | Non misurato: le nostre registrazioni sono troppo brevi per contenerne molte. Cresce con il numero di istanze | Nulla che dica che qualcosa è cambiato. Disattiva questo per conservare ogni notifica |
 
-Questi filtri corrispondono solo a ciò che OneUptime ha letto dai log di un cloud, quindi nient'altro in un progetto viene toccato.
+Questi filtri corrispondono solo a ciò che OneUptime ha letto dai log di un cloud, quindi nient'altro in un progetto viene toccato. Così come OneUptime li ha creati, conservano ogni riga che leggono gli [Eventi di sicurezza](/docs/telemetry/security-events): un accesso, un attacco in una richiesta, un record di audit. Modificane uno, e scarta ciò che corrisponde, come un tuo filtro.
 
 ### Segreti nei log
 

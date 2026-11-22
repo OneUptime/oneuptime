@@ -552,6 +552,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
   },
+  /*
+   * The security stores OneUptime declares (#10398): archived once their
+   * data is gone and restored when it is back, as discovery archives and
+   * restores a store, each with its Timeline line; when they were last
+   * seen, and what they hold as the code says it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DeclaredDataStores.ts": {
+    "DeclaredDataStores.declareStore DataStore": Why.Bookkeeping,
+    "DeclaredDataStores.keep DataStore": Why.Bookkeeping,
+  },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
   },

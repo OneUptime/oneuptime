@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警示（來自端點、身分和雲端偵測）匯入 OneUptime 的安全性事件。在那裡，你可以把它們與日誌、追蹤和指標放在一起搜尋，與其他所有來源進行關聯分析，並為重要的警示呼叫待命人員。OneUptime 透過你建立的 API 用戶端，經由 Falcon Alerts API 讀取它們，從不向 Falcon 寫入任何內容。
+把 [CrowdStrike Falcon](https://www.crowdstrike.com/platform/) 警示（來自端點、身分和雲端偵測）匯入 OneUptime 的安全性事件。在那裡，你可以把它們與日誌、追蹤和指標放在一起搜尋，與其他所有來源進行關聯分析，並為重要的警示呼叫待命人員。OneUptime 透過你建立的 API 用戶端，經由 Falcon Alerts API 讀取它們；只有在你開啟後，才會為封鎖你封鎖的檔案而寫入 Falcon。
 
 :::cards
 - [設定連線](#設定連線): 一個只有一個範圍的 API 用戶端，以及連線的表單。
 - [匯入的內容](#匯入的內容): 每個 Falcon 警示如何成為一個安全性事件。
 - [輪詢的運作方式](#輪詢的運作方式): 每次輪詢讀取的時間窗，以及繁忙的 CID 對它的影響。
+- [使用 CrowdStrike 封鎖檔案](#使用-crowdstrike-封鎖檔案): 讓封鎖清單中的檔案無法在任何主機上執行。
 - [疑難排解](#疑難排解): 每個錯誤的含義，以及需要更改什麼。
 :::
 
@@ -33,7 +34,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 ### 建立 API 用戶端
 
 1. 在 Falcon 控制台中，開啟 **Support and resources → API clients and keys**，然後選擇 **Create API client**。
-2. 為它命名，例如 `OneUptime security events`。在 **API scopes** 下開啟 **Alerts → Read**，其他範圍全部保持關閉：連線從不向 Falcon 寫入任何內容。
+2. 為它命名，例如 `OneUptime security events`。在 **API scopes** 下開啟 **Alerts → Read**，其他範圍全部保持關閉：讀取警示不會向 Falcon 寫入任何內容。封鎖檔案還需要兩項（見 [使用 CrowdStrike 封鎖檔案](#使用-crowdstrike-封鎖檔案)）。
 3. 建立用戶端。Falcon 只會顯示一次它的用戶端 ID、金鑰和基礎 URL。現在就把這三項都複製下來：金鑰以後可以重設，但不會再次顯示。
 
 ### 找到你的 Falcon 雲端
@@ -60,6 +61,7 @@ Falcon 顯示的基礎 URL 會告訴你 CID 所在的雲端。**API clients and 
 | --- | --- |
 | **用戶端 ID** | API 用戶端的 ID，即你建立用戶端時 Falcon 顯示的那個。 |
 | **Falcon 雲端** | CID 所在的雲端：**US-1 (api.crowdstrike.com)**、**US-2 (api.us-2.crowdstrike.com)**、**EU-1 (api.eu-1.crowdstrike.com)** 或 **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**。每個請求都會發往該雲端的 API 主機。 |
+| **使用 CrowdStrike 封鎖檔案** | 新連線上是關閉的。開啟後，它會在每台主機上攔下你專案的封鎖清單中的檔案，並且需要 **IOC Management → Read** 和 **Write**（見 [使用 CrowdStrike 封鎖檔案](#使用-crowdstrike-封鎖檔案)）。 |
 | **用戶端密碼** | API 用戶端的金鑰。它會被加密，API 從不傳回，也不會再次顯示。在連線上用 **更新憑證** 替換它。 |
 
 **輪詢** 步驟還有選用的 **描述**、**輪詢間隔（分鐘）**（`1` 到 `1440` 之間的整數，初始為 `5`），以及初始為開啟的 **已啟用**。未啟用的連線仍然可以被測試，也可以手動輪詢。
@@ -123,6 +125,17 @@ Falcon 的警示查詢無法翻頁超過 10,000 個結果（`limit` 加 `offset`
 - **匯入此時間範圍** 在你確認後匯入最長 7 天的範圍，不會移動游標。已匯入的警示會被跳過。
 - 執行上的 **複製診斷資訊** 會複製它的報告以便提供給支援人員。報告從不包含認證資訊。
 
+## 使用 CrowdStrike 封鎖檔案
+
+在連線上開啟 **使用 CrowdStrike 封鎖檔案**，你專案 [封鎖清單](/docs/telemetry/security-cases#封鎖清單) 中的檔案就會在 Falcon 保護的每台主機上被攔下。每個檔案都會成為其 SHA-256 或 MD5 雜湊的自訂 IOC，來源為 `OneUptime`，動作為 `prevent`，作用於 Windows、Mac 和 Linux 主機，並隨封鎖一起到期。同時要隔離的檔案會被封鎖，Falcon 依主機的防護原則將其隔離。Falcon 無法比對 SHA-1 雜湊，對網域或位址也只會偵測，因此不會收到這些：請使用 [Microsoft Defender](/docs/integrations/microsoft-defender-xdr) 封鎖它們。
+
+新連線上這個開關是關閉的。要開啟它：
+
+1. 在 Falcon 主控台中開啟 **Support and resources → API clients and keys**，編輯 API 用戶端，開啟 **IOC Management → Read** 和 **Write**。
+2. 在連線上開啟 **使用 CrowdStrike 封鎖檔案**，然後按一下 **測試連線**：**Block with CrowdStrike Falcon** 會檢查這兩個範圍，且不變更任何 IOC。
+
+Falcon 拒絕的 IOC 會在封鎖清單中顯示為未生效，並說明原因。OneUptime 只讀取和變更它為這個連線新增的 IOC，絕不動人建立的 IOC。
+
 ## 測試連線
 
 連線所在列中的 **測試連線** 和表單中的 **測試這些設定** 在 API 程序中執行，而不是在背景工作程序中執行，所以即使工作程序出了問題，測試仍然會給出結果。它按順序執行以下檢查：
@@ -133,6 +146,7 @@ Falcon 的警示查詢無法翻頁超過 10,000 個結果（`limit` 加 `offset`
 | **Authenticate with CrowdStrike Falcon** | 在你所在雲端的主機上，用 API 用戶端的 ID 和金鑰呼叫 `POST /oauth2/token` 能傳回權杖。 |
 | **Read alerts from the Falcon Alerts API** | 針對過去 24 小時、只取一個警示（`limit=1`）的警示查詢被接受，這證明了 **Alerts → Read** 範圍。 |
 | **Alerts available to import** | 過去 24 小時和過去 7 天內建立了多少警示。7 天內一個都沒有是警告，而不是失敗：輪詢會在 Falcon 建立新警示時匯入它們。 |
+| **Block with CrowdStrike Falcon** | 僅在開啟 **使用 CrowdStrike 封鎖檔案** 時：API 用戶端擁有 **IOC Management → Read** 和 **Write**。它會說明 OneUptime 在 Falcon 中有多少個自訂 IOC，且不做任何變更。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
 | **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 

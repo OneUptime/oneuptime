@@ -11,7 +11,8 @@ import {
   SECURITY_BLOCK_MESSAGES,
   SecurityBlockAction,
   SecurityBlockDuration,
-  SecurityBlockValue,
+  SecurityBlockIndicatorValue,
+  isSecurityBlockAddressType,
   isSecurityBlockDuration,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { describeSecurityAddressProtection } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
@@ -264,9 +265,14 @@ export default class SecurityPlaybookOneStepRuns {
         value: data.address,
         props: data.props,
       });
-    const read: SecurityBlockValue | null = check.value;
+    const read: SecurityBlockIndicatorValue | null = check.value;
 
-    if (check.problem || !read) {
+    // An address or a range: a domain or a file is blocked on every machine, never from here (#10346).
+    if (
+      check.problem ||
+      !read ||
+      !isSecurityBlockAddressType(read.indicatorType)
+    ) {
       throw new BadDataException(
         check.problem || SECURITY_BLOCK_MESSAGES.notAnAddress,
       );

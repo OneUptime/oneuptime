@@ -9,6 +9,7 @@ import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
   isDataSensitivity,
 } from "../../../Types/DataSecurity/DataSensitivity";
+import { isDeclaredDataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   SecurityEntityType,
   getDataStoreEntityValue,
@@ -213,17 +214,27 @@ export async function syncProjectCriticality(
   let entries: Array<SecurityEntityCriticalityEntry>;
 
   try {
-    stores = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        storeKey: true,
-        sensitivity: true,
-        sensitivityOverride: true,
-      },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: ROOT,
+    /*
+     * Not the stores OneUptime declares (#10398): no Data Security issue
+     * ever names one, so no case weighs its criticality, and an entry for
+     * it would sit in the list doing nothing.
+     */
+    stores = (
+      await DataStoreService.findBy({
+        query: { projectId, isArchived: false },
+        select: {
+          _id: true,
+          kind: true,
+          storeKey: true,
+          sensitivity: true,
+          sensitivityOverride: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: ROOT,
+      })
+    ).filter((store: DataStore): boolean => {
+      return !isDeclaredDataStoreKind(store.kind);
     });
 
     entries = await SecurityEntityCriticalityService.findBy({

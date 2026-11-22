@@ -170,6 +170,7 @@ export default class IncidentFormTarget
   public async validateReferences(data: {
     projectId: ObjectID;
     settings: JSONObject;
+    storedSettings?: JSONObject | undefined;
   }): Promise<void> {
     const read: IncidentFormTargetSettings = readFormTargetSettings({
       targetType: FormTargetType.Incident,
@@ -181,6 +182,13 @@ export default class IncidentFormTarget
       references: getFormTargetSettingReferences({
         targetType: FormTargetType.Incident,
         settings: read,
+      }),
+      heldReferences: getFormTargetSettingReferences({
+        targetType: FormTargetType.Incident,
+        settings: readFormTargetSettings({
+          targetType: FormTargetType.Incident,
+          value: data.storedSettings,
+        }),
       }),
       getService: getReferenceService,
     });

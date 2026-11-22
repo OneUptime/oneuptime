@@ -22,6 +22,10 @@ import { describe, expect, test } from "@jest/globals";
  * Chat lines stay in English in every docs language, as OneUptime posts
  * them. Each line here is written by the product's own OnCallChatText, so a
  * change to what a channel hears fails here until every page quotes it.
+ *
+ * An override can name an invitee as the cover too (#10670): the User
+ * Overrides page quotes what its channels hear then - that nobody is paged
+ * in place of the person away until the cover joins.
  */
 
 const TOMORROW: OnCallMomentText = (): MarkdownText => {
@@ -77,10 +81,26 @@ const NOBODY_ON_CALL: string = OnCallChatText.nobodyOnCall({
   moment: TOMORROW,
 }).toString();
 
+// Ana away, Ivy - who hasn't joined - covering: nobody is paged in Ana's place.
+const MONDAY: Date = new Date("2026-11-23T09:00:00.000Z");
+
+const COVER_NOT_JOINED: string = OnCallChatText.overrideAdded({
+  policy: POLICY,
+  person: mdText`@ana`,
+  cover: mdText`Ivy`,
+  coverNotJoined: { isNamed: true },
+  from: MONDAY,
+  until: AT,
+  moment: (date: Date): MarkdownText => {
+    return date === MONDAY ? mdText`Mon at 9:00 AM` : mdText`Fri at 5:00 PM`;
+  },
+}).toString();
+
 const SLACK: string = "workspace-connections/slack";
 const TEAMS: string = "workspace-connections/microsoft-teams";
 const SCHEDULES: string = "on-call/schedules";
 const NOTIFICATION_SETTINGS: string = "notifications/notification-settings";
+const USER_OVERRIDES: string = "on-call/user-overrides";
 
 describe("the lines the docs quote are the lines the product writes", () => {
   test("in English, word for word", () => {
@@ -95,6 +115,9 @@ describe("the lines the docs quote are the lines the product writes", () => {
     );
     expect(NOBODY_ON_CALL).toBe(
       "⚠️ Nobody is on call for Payments until tomorrow at 5:50 PM, when @bob takes over.",
+    );
+    expect(COVER_NOT_JOINED).toBe(
+      "🔁 Added an override on Payments: Ivy covers for @ana from Mon at 9:00 AM to Fri at 5:00 PM, but Ivy hasn't joined the project yet, so nobody is paged in place of @ana until they do.",
     );
   });
 });
@@ -115,6 +138,12 @@ describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
 
     test("Slack's page quotes the name a line gives an invitee with no name typed", () => {
       expect(readPage(language, SLACK)).toContain(ON_CALL_CHAT_INVITEE_UNNAMED);
+    });
+
+    test("the user overrides page quotes the line of a cover who hasn't joined the project yet, once (#10670)", () => {
+      const page: string = readPage(language, USER_OVERRIDES);
+
+      expect(page.split(COVER_NOT_JOINED).length - 1).toBe(1);
     });
 
     test("the schedules page quotes an invitee's turn, and joining, and names the commands that say so too", () => {
@@ -142,6 +171,20 @@ describe("the English pages say what the product does", () => {
   test("Microsoft Teams: an invitee is named by the name typed with their invitation, never their email address", () => {
     expect(readPage("en", TEAMS)).toContain(
       "Someone invited who has not joined the project yet is named by the name typed with their invitation, never by their email address.",
+    );
+  });
+
+  test("Slack and Microsoft Teams: a member with no name is named by the part of their address before the @ (#10669)", () => {
+    for (const page of [SLACK, TEAMS]) {
+      expect(readPage("en", page)).toContain(
+        "Somebody with no name in OneUptime is named by the part of their email address before the @.",
+      );
+    }
+  });
+
+  test("user overrides: an invitee can cover, and nobody is paged in their place until they join (#10670)", () => {
+    expect(readPage("en", USER_OVERRIDES)).toContain(
+      "Someone invited who has not joined the project yet can be picked under **Who covers?**, but nothing pages them until they accept their invitation, so until then nobody is paged in place of the person away.",
     );
   });
 

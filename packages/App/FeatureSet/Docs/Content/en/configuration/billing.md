@@ -119,6 +119,8 @@ When your bank is still processing a payment, OneUptime says so: some banks take
 
 A day's usage shows up once the day is over, by about 08:00 UTC the next day. Filter by **Product**, **Day** or **Service** to find what grew.
 
+To send less, a [drop filter](/docs/telemetry/drop-filters-and-scrub-rules) throws away the logs and spans you never read before they are stored, and what it drops is not billed. Before you save one, its form says how much of the last day's telemetry it matches, and what it would take from the monitors, dashboards, SLOs and Security Events that read the same records: see [What a filter would take](/docs/telemetry/drop-filters-and-scrub-rules#what-a-filter-would-take).
+
 ## Prepaid balances
 
 SMS, phone calls, WhatsApp and Telegram messages are paid from the project's balance, and OneUptime AI from its AI credits. You add to each one in advance:

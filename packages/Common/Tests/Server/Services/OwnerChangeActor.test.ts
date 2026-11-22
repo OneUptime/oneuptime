@@ -133,11 +133,6 @@ interface OwnerKind {
   // The record's own service, whose names, numbers and links the entry reads.
   recordService: unknown;
   recordMethods: Array<string>;
-  /*
-   * An on-call line: someone only invited is named by the name typed for
-   * them as text, and never by an address (#10616).
-   */
-  isOnCallLine?: boolean | undefined;
 }
 
 const OWNER_KINDS: Array<OwnerKind> = [
@@ -224,7 +219,6 @@ const OWNER_KINDS: Array<OwnerKind> = [
       "getOnCallDutyPolicyLinkInDashboard",
       "getWorkspaceChannelForOnCallDutyPolicy",
     ],
-    isOnCallLine: true,
   },
 ];
 
@@ -380,9 +374,10 @@ describe.each(OWNER_KINDS)("$label", (kind: OwnerKind) => {
   });
 
   /*
-   * An owner can be someone invited to the project who has not accepted:
-   * the project sees only what it invited of them - the name typed for
-   * them, else their address - never their account's own name (#9823).
+   * An owner can be someone invited to the project who has not accepted.
+   * Every kind's entry is its channels' line too, so it names them by the
+   * name typed for them, as text, never by their account's own name (#9823)
+   * nor any address, and no address follows the name (#10668).
    */
   test("someone only invited, added and removed: named by the name typed for them, never their own", async () => {
     jest
@@ -419,29 +414,20 @@ describe.each(OWNER_KINDS)("$label", (kind: OwnerKind) => {
 
     expect(feedCalls).toHaveLength(2);
 
-    if (kind.isOnCallLine) {
-      /*
-       * An on-call line: as text, and never with an address after the
-       * name - the entry is the channels' line too (#10616).
-       */
-      expect(String(feedCalls[0]!["feedInfoInMarkdown"])).toContain(
-        "Added **Deane from Payments** to the",
-      );
-      expect(String(feedCalls[1]!["feedInfoInMarkdown"])).toContain(
-        "Removed **Deane from Payments** from the",
-      );
+    expect(String(feedCalls[0]!["feedInfoInMarkdown"])).toContain(
+      "Added **Deane from Payments** to the",
+    );
+    expect(String(feedCalls[1]!["feedInfoInMarkdown"])).toContain(
+      "Removed **Deane from Payments** from the",
+    );
 
-      for (const call of feedCalls) {
-        expect(String(call["feedInfoInMarkdown"])).not.toContain(
-          "deane@example.com",
-        );
-      }
-    } else {
-      expect(String(feedCalls[0]!["feedInfoInMarkdown"])).toContain(
-        `[Deane from Payments](${DASHBOARD}/${PROJECT_ID.toString()}/users/${DEANE_ID.toString()})`,
+    for (const call of feedCalls) {
+      expect(String(call["feedInfoInMarkdown"])).not.toContain(
+        "deane@example.com",
       );
-      expect(String(feedCalls[1]!["feedInfoInMarkdown"])).toContain(
-        "Removed **Deane from Payments** (deane@example.com)",
+      // As text: a name an inviter typed links to nobody's page.
+      expect(String(call["feedInfoInMarkdown"])).not.toContain(
+        `/users/${DEANE_ID.toString()}`,
       );
     }
 

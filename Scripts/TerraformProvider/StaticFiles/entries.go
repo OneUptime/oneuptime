@@ -75,6 +75,9 @@ const (
 // What a create's answer names the fields it left out with (#10136).
 const fieldsLeftOutHeader = "X-OneUptime-Fields-Left-Out"
 
+// What a write's answer says it does that its caller should know (#10436).
+const writeWarningHeader = "X-OneUptime-Write-Warning"
+
 // HoldsDeclaredEntries says whether a list's state holds only the entries
 // the configuration declares: under Terraform, unless exclusive_lists.
 func (c *Client) HoldsDeclaredEntries() bool {
@@ -429,5 +432,27 @@ func FieldsLeftOutWarning(resp *http.Response, resourceName string) diag.Diagnos
 		fmt.Sprintf("OneUptime created the %s without %s", resourceName, strings.Join(fields, ", ")),
 		fmt.Sprintf("Only OneUptime writes %s, so the new %s has OneUptime's value. A provider older than this OneUptime still sends it: upgrade the provider to the version that matches your OneUptime.", strings.Join(fields, ", "), resourceName),
 	)
+	return diags
+}
+
+// WriteWarnings is what a create's or an update's answer says the write does
+// that someone should know - a drop filter that takes what monitors or
+// Security Events read (#10436) - each line as a warning, or none. OneUptime
+// saves the write either way: a configuration is never refused for it.
+func WriteWarnings(resp *http.Response, resourceName string) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if resp == nil {
+		return diags
+	}
+	for _, value := range resp.Header.Values(writeWarningHeader) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		diags.AddWarning(
+			fmt.Sprintf("OneUptime saved the %s: read what it takes", resourceName),
+			value,
+		)
+	}
 	return diags
 }

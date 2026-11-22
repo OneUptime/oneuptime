@@ -24,6 +24,8 @@ import JSONFunctions from "../../../Types/JSONFunctions";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import ListResult from "../../../Types/BaseDatabase/ListResult";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { getJestSpyOn } from "../../Spy";
 import { jest } from "@jest/globals";
 import { DataSource } from "typeorm";
@@ -438,6 +440,69 @@ export default class PostgresListRouteHarness {
       rows: call[2] as Array<TModel>,
       count: Number((call[3] as { toNumber: () => number }).toNumber()),
     };
+  }
+
+  /*
+   * The dashboard's own reads, through the real list routes (#10646): every
+   * ModelAPI.getList answered by list(), as the member, so a picker's or a
+   * card's read code runs as it runs in the browser - its query, select,
+   * sort and page - against migrated Postgres, and a test pins what the
+   * code asks rather than a copy of it. Restored with the other mocks
+   * (tearDown). The reads are kept, in order, for a test to look at.
+   *
+   * They are answered one at a time, however the code sends them: list()
+   * reads its answer off the one captured Response, so two reads in flight
+   * at once (a page's Promise.all) would each take the other's rows.
+   */
+  public routeModelAPIReads(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+  }): Array<ListRequest> {
+    const reads: Array<ListRequest> = [];
+    let previous: Promise<unknown> = Promise.resolve();
+
+    getJestSpyOn(ModelAPI, "getList").mockImplementation((async (options: {
+      modelType: { new (): BaseModel };
+      query: Dictionary<unknown>;
+      select: Dictionary<unknown>;
+      sort?: Dictionary<unknown> | undefined;
+      limit: number;
+      skip: number;
+    }): Promise<ListResult<BaseModel>> => {
+      const path: string = new options.modelType().crudApiPath!.toString();
+      const request: ListRequest & { userId: ObjectID; projectId: ObjectID } = {
+        path: path,
+        query: options.query,
+        select: options.select,
+        sort: options.sort,
+        limit: options.limit,
+        skip: options.skip,
+        userId: data.userId,
+        projectId: data.projectId,
+      };
+
+      reads.push(request);
+
+      const answered: Promise<ListedPage> = previous.then(() => {
+        return this.list(request);
+      });
+
+      // The next read waits for this one, answered or refused.
+      previous = answered.catch(() => {
+        return undefined;
+      });
+
+      const page: ListedPage = await answered;
+
+      return {
+        data: page.rows,
+        count: page.count,
+        skip: options.skip,
+        limit: options.limit,
+      };
+    }) as never);
+
+    return reads;
   }
 }
 

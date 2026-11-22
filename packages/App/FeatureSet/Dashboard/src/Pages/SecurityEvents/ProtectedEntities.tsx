@@ -8,8 +8,12 @@ import {
   getSecurityEntityIcon,
 } from "Common/Types/SecurityCase/SecurityEntity";
 import {
+  PROTECTED_DOMAIN_PROBLEM,
   PROTECTED_ENTITY_TYPES,
+  PROTECTED_FILE_HASH_PROBLEM,
   normalizeProtectedAddressValue,
+  normalizeProtectedDomainValue,
+  normalizeProtectedFileHashValue,
 } from "Common/Types/SecurityPlaybook/SecurityProtectedEntity";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -36,14 +40,43 @@ export const PROTECTED_ADDRESS_PROBLEM: string =
   SECURITY_BLOCK_SENTENCES.notAnAddress;
 
 /*
- * The users, hosts and addresses playbooks never contain and the blocklist
- * never blocks: a break-glass account, a domain controller, the VPN gateway
- * that every attack on the network names, the office's address. A
+ * What is wrong with an entry's value for its type, in English (the key
+ * the form looks up), or null: an address or range, a domain (or `*.` and
+ * one) or a file's hash must be one (#10346). A user's or a host's name is
+ * any text.
+ */
+export function getProtectedValueProblem(data: {
+  entityType: unknown;
+  value: unknown;
+}): string | null {
+  switch (data.entityType) {
+    case SecurityEntityType.IpAddress:
+      return normalizeProtectedAddressValue(data.value)
+        ? null
+        : PROTECTED_ADDRESS_PROBLEM;
+    case SecurityEntityType.Domain:
+      return normalizeProtectedDomainValue(data.value)
+        ? null
+        : PROTECTED_DOMAIN_PROBLEM;
+    case SecurityEntityType.FileHash:
+      return normalizeProtectedFileHashValue(data.value)
+        ? null
+        : PROTECTED_FILE_HASH_PROBLEM;
+    default:
+      return null;
+  }
+}
+
+/*
+ * The users, hosts, addresses, domains and files playbooks never contain
+ * and the blocklist never blocks: a break-glass account, a domain
+ * controller, the VPN gateway that every attack on the network names, the
+ * office's address, the company's own domains, the installers it ships. A
  * containment step reports a protected target as protected and leaves it
- * alone, an approver cannot pick it, and a block of a protected address is
+ * alone, an approver cannot pick it, and a block of a protected value is
  * refused. One list per project, kept by whoever sets up playbooks - and,
  * under it, what OneUptime protects by itself: the project's own addresses
- * (#10338).
+ * (#10338), and its own domains (#10346).
  */
 const SecurityProtectedEntitiesPage: FunctionComponent<
   PageComponentProps
@@ -67,9 +100,9 @@ const SecurityProtectedEntitiesPage: FunctionComponent<
         cardProps={{
           title: "Protected Entities",
           description:
-            "Users, hosts and IP addresses that playbooks never contain and the blocklist never blocks, such as break-glass accounts, domain controllers and office addresses.",
+            "Users, hosts, addresses, domains and files that playbooks never contain and the blocklist never blocks, such as break-glass accounts, your domains and your builds.",
         }}
-        noItemsMessage="Nothing is protected yet. Add the accounts, hosts and addresses a playbook or a block must never cut off."
+        noItemsMessage="Nothing is protected yet. Add the accounts, hosts, addresses, domains and files a playbook or a block must never cut off."
         createInitialValues={{
           entityType: SecurityEntityType.User,
         }}
@@ -85,7 +118,7 @@ const SecurityProtectedEntitiesPage: FunctionComponent<
             field: { value: true },
             title: "Value",
             description:
-              "A user's sign-in name or a host's name, where * stands for any run of characters, or an IP address or range such as 203.0.113.0/24.",
+              "A sign-in or host name (* for any characters), an IP address or range, a domain (*.example.com for all under it) or a file hash.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "e.g. breakglass@example.com",
@@ -97,18 +130,14 @@ const SecurityProtectedEntitiesPage: FunctionComponent<
                 string,
                 unknown
               >;
+              const problem: string | null = getProtectedValueProblem({
+                entityType: record["entityType"],
+                value: record["value"],
+              });
 
-              if (
-                record["entityType"] !== SecurityEntityType.IpAddress ||
-                normalizeProtectedAddressValue(record["value"])
-              ) {
-                return null;
-              }
-
-              return (
-                translator.translateText(PROTECTED_ADDRESS_PROBLEM) ||
-                PROTECTED_ADDRESS_PROBLEM
-              );
+              return problem
+                ? translator.translateText(problem) || problem
+                : null;
             },
           },
           {

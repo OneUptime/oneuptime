@@ -1,11 +1,12 @@
 # CrowdStrike Falcon
 
-Importa las alertas de [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), de las detecciones de endpoints, identidades y nube, en los eventos de seguridad de OneUptime. Allí las buscas junto a tus logs, trazas y métricas, las correlacionas con todas las demás fuentes y avisas a la guardia de las que importan. OneUptime las lee mediante la Alerts API de Falcon con un cliente de API que tú creas, y nunca escribe en Falcon.
+Importa las alertas de [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), de las detecciones de endpoints, identidades y nube, en los eventos de seguridad de OneUptime. Allí las buscas junto a tus logs, trazas y métricas, las correlacionas con todas las demás fuentes y avisas a la guardia de las que importan. OneUptime las lee mediante la Alerts API de Falcon con un cliente de API que tú creas, y solo escribe en Falcon para bloquear los archivos que bloqueas, una vez que lo activas.
 
 :::cards
 - [Configurar la conexión](#configurar-la-conexión): Un cliente de API con un único ámbito y el formulario de la conexión.
 - [Qué se importa](#qué-se-importa): Cómo cada alerta de Falcon se convierte en un evento de seguridad.
 - [Cómo funciona el sondeo](#cómo-funciona-el-sondeo): La ventana que lee cada sondeo, y lo que le hace un CID con mucha actividad.
+- [Bloquear archivos con CrowdStrike](#bloquear-archivos-con-crowdstrike): Impide que los archivos de tu lista de bloqueo se ejecuten en cada host.
 - [Solución de problemas](#solución-de-problemas): Qué significa cada error y qué cambiar.
 :::
 
@@ -33,7 +34,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 ### Crear un cliente de API
 
 1. En la consola de Falcon, abre **Support and resources → API clients and keys** y selecciona **Create API client**.
-2. Ponle un nombre, por ejemplo `OneUptime security events`. En **API scopes**, activa **Alerts → Read** y deja desactivados todos los demás ámbitos: la conexión nunca escribe en Falcon.
+2. Ponle un nombre, por ejemplo `OneUptime security events`. En **API scopes**, activa **Alerts → Read** y deja desactivados todos los demás ámbitos: leer alertas no escribe nada en Falcon. Bloquear archivos necesita dos más (consulta [Bloquear archivos con CrowdStrike](#bloquear-archivos-con-crowdstrike)).
 3. Crea el cliente. Falcon muestra una sola vez su ID de cliente, su secreto y su URL base. Copia los tres ahora: el secreto se puede restablecer más tarde, pero no se vuelve a mostrar.
 
 ### Encontrar tu nube de Falcon
@@ -60,6 +61,7 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | --- | --- |
 | **ID de cliente** | El ID del cliente de API, tal como lo mostró Falcon al crear el cliente. |
 | **Nube de Falcon** | La nube de tu CID: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** o **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Cada solicitud va al host de API de esa nube. |
+| **Bloquear archivos con CrowdStrike** | Desactivado en una conexión nueva. Activado, detiene los archivos de la lista de bloqueo de tu proyecto en cada host, y necesita **IOC Management → Read** y **Write** (consulta [Bloquear archivos con CrowdStrike](#bloquear-archivos-con-crowdstrike)). |
 | **Secreto del cliente** | El secreto del cliente de API. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado. Una conexión que no está habilitada se puede probar igualmente, y sondear a mano.
@@ -123,6 +125,17 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Las alertas ya importadas se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
+## Bloquear archivos con CrowdStrike
+
+Activa **Bloquear archivos con CrowdStrike** en una conexión, y los archivos de la [lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo) de tu proyecto se detienen en cada host que protege Falcon. Cada archivo se convierte en un IOC personalizado de su hash SHA-256 o MD5, con el origen `OneUptime` y la acción `prevent`, en hosts Windows, Mac y Linux, que caduca cuando caduca el bloqueo. Un archivo que también hay que poner en cuarentena se bloquea, y Falcon lo pone en cuarentena según indique la política de prevención del host. Falcon no reconoce ningún hash SHA-1 y solo detecta un dominio o una dirección, así que no recibe ninguno de ellos: bloquéalos con [Microsoft Defender](/docs/integrations/microsoft-defender-xdr).
+
+El interruptor está desactivado en una conexión nueva. Para activarlo:
+
+1. En la consola de Falcon, abre **Support and resources → API clients and keys**, edita el cliente de API y activa **IOC Management → Read** y **Write**.
+2. En la conexión, activa **Bloquear archivos con CrowdStrike** y haz clic en **Probar conexión**: **Block with CrowdStrike Falcon** comprueba ambos ámbitos, sin cambiar ningún IOC.
+
+Un IOC que Falcon rechaza aparece como no aplicado en la lista de bloqueo, con el motivo. OneUptime solo lee y cambia los IOC que añadió para esta conexión, nunca uno que creó una persona.
+
 ## Probar conexión
 
 **Probar conexión** en la fila de una conexión, y **Probar esta configuración** en el formulario, se ejecutan en el proceso de la API, no en un worker en segundo plano, para que una prueba responda incluso cuando el problema son los workers. Hace estas comprobaciones, en orden:
@@ -133,6 +146,7 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` con el ID y el secreto del cliente de API, en el host de tu nube, devuelve un token. |
 | **Read alerts from the Falcon Alerts API** | Se acepta una consulta de alertas de una sola alerta (`limit=1`) sobre las últimas 24 horas, lo que demuestra el ámbito **Alerts → Read**. |
 | **Alerts available to import** | Cuántas alertas se crearon en las últimas 24 horas y en los últimos 7 días. Ninguna en 7 días es un aviso, no un fallo: el sondeo importa las alertas nuevas a medida que Falcon las crea. |
+| **Block with CrowdStrike Falcon** | Solo con **Bloquear archivos con CrowdStrike** activado: el cliente de API tiene **IOC Management → Read** y **Write**. La comprobación dice cuántos IOC personalizados tiene OneUptime en Falcon, y no cambia ninguno. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | El lado del propio OneUptime: un proceso toma los trabajos de la cola Worker, el trabajo de sondeo se ejecuta cada minuto y el almacén de eventos de seguridad responde. |
 | **Sondeo programado** | Para una conexión guardada: el sondeo está activado, ninguna ejecución está atascada esperando a un worker y los sondeos se ejecutan a tiempo. |
 

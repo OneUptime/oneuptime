@@ -105,4 +105,5 @@ flowchart TB
 - [ダッシュボード ウィジェット](/docs/dashboards/widgets): すべてのウィジェットと、どれを選ぶか。
 - [ダッシュボード 変数とフィルター](/docs/dashboards/variables): サービス、ホスト、顧客ごとに 1 つのダッシュボード。
 - [共有と公開ダッシュボード](/docs/dashboards/sharing): 公開リンク、パスワード、IP 許可リスト、カスタムドメイン。
+- [Grafana と Datadog からのインポート](/docs/dashboards/import): Grafana や Datadog で作ったダッシュボードやアラートルールを取り込みます。
 :::

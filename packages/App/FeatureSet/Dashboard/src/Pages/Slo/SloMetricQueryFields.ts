@@ -2,6 +2,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import type { ListResult as AnalyticsListResult } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -123,7 +124,10 @@ export const SLO_METRIC_UNIT_TEMPLATE: string = translationKey(
   "In {{unit}}, the metric's unit.",
 );
 
-// How many of the project's metrics the picker offers.
+/*
+ * How many of the project's metrics the picker offers as it opens; what is
+ * typed into it is searched on the server (searchSloMetricTypes).
+ */
 export const SLO_METRIC_PICKER_LIMIT: number = 500;
 
 type SloValues = FormValues<ServiceLevelObjective>;
@@ -311,6 +315,83 @@ export const loadSloMetricTypes: () => Promise<
   metricTypesByProject.set(projectId, loading);
 
   return loading;
+};
+
+// How many metrics one search of the picker asks for, by name.
+export const SLO_METRIC_SEARCH_LIMIT: number = 50;
+
+/*
+ * The project's metrics whose name holds what was typed, from the server
+ * (#10646): the picker opens on the first 500 by name (loadSloMetricTypes),
+ * and one Kubernetes cluster sends more metric names than that, so a metric
+ * past them is found as it is typed. Nothing for an empty box, or when
+ * they cannot be read: the picker still takes a typed name.
+ */
+export const searchSloMetricTypes: (
+  text: string,
+) => Promise<Array<MetricType>> = async (
+  text: string,
+): Promise<Array<MetricType>> => {
+  const trimmed: string = text.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  // Imported here, as loadSloMetricTypes does.
+  const modelApi: typeof import("Common/UI/Utils/ModelAPI/ModelAPI") =
+    await import("Common/UI/Utils/ModelAPI/ModelAPI");
+
+  try {
+    const result: { data: Array<MetricType> } =
+      await modelApi.default.getList<MetricType>({
+        modelType: MetricType,
+        query: { name: new Search(trimmed) } as never,
+        limit: SLO_METRIC_SEARCH_LIMIT,
+        skip: 0,
+        select: { name: true, unit: true },
+        sort: { name: SortOrder.Ascending },
+      });
+
+    return result.data || [];
+  } catch {
+    return [];
+  }
+};
+
+/*
+ * The metric of the name the form holds, read by it, when the first 500 do
+ * not have it: its unit, which the form says under a histogram's value.
+ * Null when the project has no such metric yet (one typed before its first
+ * points), or it cannot be read.
+ */
+export const readSloMetricType: (
+  name: string,
+) => Promise<MetricType | null> = async (
+  name: string,
+): Promise<MetricType | null> => {
+  if (!name.trim()) {
+    return null;
+  }
+
+  const modelApi: typeof import("Common/UI/Utils/ModelAPI/ModelAPI") =
+    await import("Common/UI/Utils/ModelAPI/ModelAPI");
+
+  try {
+    const result: { data: Array<MetricType> } =
+      await modelApi.default.getList<MetricType>({
+        modelType: MetricType,
+        query: { name: name } as never,
+        limit: 1,
+        skip: 0,
+        select: { name: true, unit: true },
+        sort: {},
+      });
+
+    return result.data[0] || null;
+  } catch {
+    return null;
+  }
 };
 
 // For tests: forget the metric types read so far.

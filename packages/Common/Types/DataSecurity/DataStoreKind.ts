@@ -4,12 +4,23 @@ import IconProp from "../Icon/IconProp";
  * EVERY KIND OF PLACE DATA SECURITY TREATS AS A DATA STORE.
  *
  * Cloud buckets, databases and warehouses; databases teams run themselves;
- * and the telemetry a project sends OneUptime, which holds whatever its
- * code writes into logs, spans, metrics and prompts. Each kind says where it lives
- * (its provider), what family it belongs to (so checks and pages can speak
- * of "buckets" or "databases"), the cloud inventory type it is discovered
- * from, and whether Data Security can read its content - configuration
- * checks apply to every kind, content scans only where a reader exists.
+ * the telemetry a project sends OneUptime, which holds whatever its code
+ * writes into logs, spans, metrics and prompts; and the records OneUptime
+ * itself keeps for a project's network and information security. Each kind
+ * says where it lives (its provider), what family it belongs to (so checks
+ * and pages can speak of "buckets" or "databases"), the cloud inventory
+ * type it is discovered from, and whether Data Security can read its
+ * content - configuration checks apply to every kind but the declared ones,
+ * content scans only where a reader exists.
+ *
+ * DECLARED STORES (#10398). Security Events' events, the network flows a
+ * project's devices report, and Security Events' address vault (#10395)
+ * hold IP addresses by design: holding them is what they are for. So
+ * nothing scans them and no check applies to them. OneUptime declares
+ * them in the record of processing of every project that has one
+ * (Server/Utils/DataSecurity/DeclaredDataStores, Types/DataSecurity/
+ * DeclaredDataStore), with what they hold, why, for how long and who can
+ * read them.
  */
 export enum DataStoreKind {
   AwsS3Bucket = "AWS S3 Bucket",
@@ -51,6 +62,10 @@ export enum DataStoreKind {
   TelemetrySessionReplays = "Session Replays",
   TelemetryAiConversations = "AI Conversations",
   TelemetryMetrics = "Metrics",
+  // Declared by OneUptime, never scanned (#10398).
+  SecurityEvents = "Security Events",
+  NetworkFlows = "Network Flows",
+  SecurityAddressVault = "Security Address Vault",
 }
 
 export enum DataStoreProvider {
@@ -70,6 +85,8 @@ export enum DataStoreFamily {
   FileSystem = "File system",
   Snapshot = "Snapshot",
   Telemetry = "Telemetry",
+  // What OneUptime keeps for a project's network and information security.
+  SecurityRecords = "Security records",
 }
 
 export interface DataStoreKindInfo {
@@ -80,6 +97,11 @@ export interface DataStoreKindInfo {
   cloudResourceType?: string | undefined;
   // Whether Data Security can read samples of its content.
   contentScannable: boolean;
+  /*
+   * Whether OneUptime declares it, knowing what it holds by design, rather
+   * than finding it: never scanned, no check applies, never an issue.
+   */
+  isDeclared: boolean;
   icon: IconProp;
 }
 
@@ -90,6 +112,7 @@ function kind(
   options: {
     cloudResourceType?: string;
     contentScannable?: boolean;
+    isDeclared?: boolean;
     icon?: IconProp;
   } = {},
 ): DataStoreKindInfo {
@@ -99,6 +122,7 @@ function kind(
     family,
     cloudResourceType: options.cloudResourceType,
     contentScannable: Boolean(options.contentScannable),
+    isDeclared: Boolean(options.isDeclared),
     icon:
       options.icon ||
       (family === DataStoreFamily.ObjectStorage
@@ -225,6 +249,19 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
     contentScannable: true,
     icon: IconProp.ChartBar,
   }),
+  // Declared, never scanned: what they hold is known by design (#10398).
+  kind(K.SecurityEvents, P.OneUptime, F.SecurityRecords, {
+    isDeclared: true,
+    icon: IconProp.ShieldCheck,
+  }),
+  kind(K.NetworkFlows, P.OneUptime, F.SecurityRecords, {
+    isDeclared: true,
+    icon: IconProp.Globe,
+  }),
+  kind(K.SecurityAddressVault, P.OneUptime, F.SecurityRecords, {
+    isDeclared: true,
+    icon: IconProp.Lock,
+  }),
 ];
 
 const KINDS_BY_VALUE: ReadonlyMap<string, DataStoreKindInfo> = new Map(
@@ -260,6 +297,23 @@ export const TELEMETRY_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.TelemetryAiConversations,
   DataStoreKind.TelemetryMetrics,
 ];
+
+/*
+ * The stores OneUptime declares rather than finds (#10398): exactly the
+ * kinds whose info says isDeclared. Every place that reads a project's
+ * stores to check, score, count or propose something leaves them out.
+ */
+export const DECLARED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.SecurityEvents,
+  DataStoreKind.NetworkFlows,
+  DataStoreKind.SecurityAddressVault,
+];
+
+export function isDeclaredDataStoreKind(
+  value: string | undefined | null,
+): boolean {
+  return Boolean(getDataStoreKindInfo(value)?.isDeclared);
+}
 
 /*
  * The kinds of self-managed database a probe samples: the ones its claim

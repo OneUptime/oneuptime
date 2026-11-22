@@ -177,7 +177,7 @@ I Membri della sicurezza, gli Amministratori della sicurezza, gli Amministratori
 
 ## Registro dei trattamenti
 
-L'articolo 30 del GDPR ti chiede di tenere un registro delle tue attività di trattamento. Sicurezza dei dati ne scrive la parte che riguarda dove sono conservati i dati personali: una riga per ogni archivio che contiene dati personali.
+L'articolo 30 del GDPR ti chiede di tenere un registro delle tue attività di trattamento. Sicurezza dei dati ne scrive la parte che riguarda dove sono conservati i dati personali: una riga per ogni archivio che contiene dati personali. È la scheda **Registro dei trattamenti** alla fine di **Sicurezza dei dati → Conformità**, con **Esporta CSV** ed **Esporta JSON**.
 
 | Colonna | Da dove viene |
 | --- | --- |
@@ -185,11 +185,27 @@ L'articolo 30 del GDPR ti chiede di tenere un registro delle tue attività di tr
 | Ambiente | I tag o il nome dell'archivio, oppure ciò che imposti tu |
 | Sensibilità, categorie e tipi di dati | Ciò che hanno trovato le scansioni, oppure la sensibilità che imposti tu |
 | Proprietari | I proprietari dell'archivio, le persone e i membri dei suoi team |
-| Finalità | Ciò che scrivi nella **Finalità** dell'archivio: perché contiene dati personali |
-| Conservazione | Ciò che scrivi nella **Conservazione** dell'archivio: per quanto tempo vi vengono conservati i dati |
+| Finalità | Ciò che scrivi nella **Finalità** dell'archivio: perché contiene dati personali. OneUptime la compila per gli archivi che conserva per la tua sicurezza |
+| Conservazione | Ciò che scrivi nella **Conservazione** dell'archivio: per quanto tempo vi vengono conservati i dati. OneUptime la compila per gli archivi che conserva per la tua sicurezza |
+| Chi può leggere | Chi può leggere un archivio che OneUptime conserva per la tua sicurezza |
 | Framework | I framework che i suoi tipi di dati fanno rientrare nell'ambito |
+| Dichiarato da | OneUptime, per gli archivi che conserva per la tua sicurezza |
 
-Compila **Finalità** e **Conservazione** nelle **Impostazioni** di ogni archivio: sono le due cose che nessuna scansione può sapere. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing`, `/data-security/compliance` e, per una singola risorsa, `/data-security/resource-compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
+Per un archivio trovato da Sicurezza dei dati, compila **Finalità** e **Conservazione** nelle sue **Impostazioni**: nessuna scansione può saperle. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing`, `/data-security/compliance` e, per una singola risorsa, `/data-security/resource-compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
+
+### Archivi che OneUptime conserva per la tua sicurezza
+
+Tre archivi contengono indirizzi IP di proposito, per proteggere la tua rete: **Eventi di sicurezza**, **Network Flows** e **Cassaforte indirizzi di sicurezza**. Il registro elenca ognuno di quelli che ha il tuo progetto. OneUptime li dichiara invece di trovarli: ciò che contengono è noto per progettazione, quindi nessuna scansione li legge, nessun controllo si applica a loro e il fatto che contengano questi indirizzi non è mai un problema, perché è il loro scopo. Portano l'indicazione **Dichiarato da OneUptime** in **Archivi dati**, e la **Panoramica** e i punteggi dei framework li lasciano fuori.
+
+| Archivio | Cosa contiene | Conservazione | Chi può leggerlo |
+| --- | --- | --- | --- |
+| Eventi di sicurezza | Gli indirizzi IP, i nomi utente e gli indirizzi email di chi ha agito e di ciò che ha toccato | La [conservazione della telemetria](/docs/telemetry/data-retention) del tuo progetto, letta ogni volta che si legge il registro, così una modifica vale subito | Proprietari del progetto, Amministratori del progetto, Amministratori della sicurezza, Membri della sicurezza, Visualizzatori della sicurezza e chiunque abbia Read Security Event |
+| Network Flows | Gli indirizzi IP di chi ha comunicato con chi | 30 giorni dopo l'arrivo di un flusso | Chiunque possa leggere i dispositivi di rete |
+| Cassaforte indirizzi di sicurezza | L'indirizzo IP dietro ogni token lasciato da una regola di indirizzo IP che applica l'hash nei log e nelle tracce che legge [Eventi di sicurezza](/docs/telemetry/security-events) | 30 giorni dopo l'ultima volta in cui un indirizzo è stato visto | Solo le scansioni di Eventi di sicurezza, all'interno di OneUptime: nessuna persona, pagina, esportazione, API o strumento di IA |
+
+La finalità di ciascuno è «Sicurezza delle reti e dell'informazione (considerando 49 del GDPR)». Per scrivere una finalità o una conservazione tua, usa **Modifica registro** nelle **Impostazioni** dell'archivio: un campo lasciato vuoto mantiene quello di OneUptime.
+
+Un archivio è elencato finché il tuo progetto ne conserva i dati: la cassaforte, finché una regola di indirizzo IP attiva applica l'hash ai log o alle tracce che legge Eventi di sicurezza, e per altri 31 giorni (vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). Quando i suoi dati non ci sono più, l'archivio viene messo tra quelli archiviati, e torna con la tua finalità e la tua conservazione se tornano i dati.
 
 ## Passaggi successivi
 

@@ -105,4 +105,5 @@ L'obiettivo: una pagina per il servizio di checkout, con la sua latenza, il tass
 - [Widget della dashboard](/docs/dashboards/widgets): Ogni widget, e quale scegliere.
 - [Variabili e filtri della dashboard](/docs/dashboards/variables): Una dashboard per ogni servizio, host o cliente.
 - [Condivisione e dashboard pubbliche](/docs/dashboards/sharing): Link pubblici, password, liste di IP consentiti e domini personalizzati.
+- [Importare da Grafana e Datadog](/docs/dashboards/import): Porta una dashboard, o le regole di avviso, che hai creato in Grafana o Datadog.
 :::

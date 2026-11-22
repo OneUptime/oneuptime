@@ -188,6 +188,9 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<OpenStackCloud> =
     useInfrastructureResources<OpenStackCloud>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepOpenStackMonitor.cloudIdentifier,
       modelType: OpenStackCloud,
       select: {
         _id: true,
@@ -429,6 +432,7 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: OPENSTACK_CLOUD_ONBOARDING.addTitle,
           renderModal: (input: {

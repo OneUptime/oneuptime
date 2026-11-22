@@ -129,7 +129,7 @@ SLO 的規則會發布其錯誤預算策略的變化：在 SLO 進入某個級�
 
 > 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
 
-Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 OneUptime 的人在每一則待命訊息中都以其 Microsoft Teams 名稱顯示，在此之前以其 OneUptime 名稱顯示。已受邀但尚未加入專案的人以邀請時填寫的名稱顯示，絕不會以其電子郵件地址顯示。時間依每位讀者自己的時區顯示。規則的 **更新** 步驟與 Slack 一樣選擇要發布哪些待命訊息，新規則預設使用目前待命人員以及何時無人待命：請參閱 [待命訊息](/docs/workspace-connections/slack#待命訊息)。開啟 **提及接手待命的人員** 後，只要此人已連結 Microsoft Teams 帳戶，訊息就會提及此人，Microsoft Teams 也會通知此人。
+Payments 連結到 OneUptime 中的策略。將 Microsoft Teams 帳戶連結到 OneUptime 的人在每一則待命訊息中都以其 Microsoft Teams 名稱顯示，在此之前以其 OneUptime 名稱顯示。已受邀但尚未加入專案的人以邀請時填寫的名稱顯示，絕不會以其電子郵件地址顯示。在 OneUptime 中沒有名稱的人以其電子郵件地址中 @ 之前的部分顯示。 時間依每位讀者自己的時區顯示。規則的 **更新** 步驟與 Slack 一樣選擇要發布哪些待命訊息，新規則預設使用目前待命人員以及何時無人待命：請參閱 [待命訊息](/docs/workspace-connections/slack#待命訊息)。開啟 **提及接手待命的人員** 後，只要此人已連結 Microsoft Teams 帳戶，訊息就會提及此人，Microsoft Teams 也會通知此人。
 
 ## 測試規則
 

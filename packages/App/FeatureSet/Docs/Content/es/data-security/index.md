@@ -70,9 +70,9 @@ Abre **Seguridad de datos**. Los almacenes aparecen en **Almacenes de datos** a 
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bases de datos que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas |
+| OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas, Eventos de seguridad, Flujos de red, Bóveda de direcciones de seguridad | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas |
 
-Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga.
+Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 Un almacén se archiva, con su historial, cuando su fuente deja de incluirlo, y sus problemas abiertos se resuelven: **Almacenes archivados**, al final del menú de Seguridad de datos, lo conserva. Vuelve por sí solo si su fuente lo vuelve a incluir, y un problema cuya comprobación sigue fallando se vuelve a abrir.
 

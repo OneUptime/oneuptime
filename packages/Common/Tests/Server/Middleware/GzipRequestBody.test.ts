@@ -47,7 +47,9 @@ import GzipRequestBodyMiddleware, {
   isJsonContentType,
 } from "../../../Server/Middleware/GzipRequestBody";
 import {
+  DOCS_REPORT_REQUEST_BODY_LIMIT,
   LARGE_REQUEST_BODY_LIMIT,
+  MCP_OAUTH_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   RequestBodyLimit,
 } from "../../../Server/Utils/RequestBodyLimit";
@@ -56,7 +58,9 @@ import logger from "../../../Server/Utils/Logger";
 import {
   INFLATE_FAILED_TYPE,
   REQUEST_BODY_REFUSAL_MESSAGES,
+  getTooLargeForRouteMessage,
   readRequestBodyRefusal,
+  withAppRequestBodyLimit,
 } from "../../../Server/Utils/RequestBodyRefusal";
 import Exception from "../../../Types/Exception/Exception";
 import {
@@ -86,6 +90,13 @@ const sendErrorResponseMock: JestMock =
 
 function loggerMock(level: "debug" | "warn" | "error"): JestMock {
   return logger[level] as unknown as JestMock;
+}
+
+// The last line logged at debug.
+function lastDebugLine(): string {
+  const calls: Array<Array<unknown>> = loggerMock("debug").mock.calls;
+
+  return String(calls[calls.length - 1]?.[0] ?? "");
 }
 
 /*
@@ -412,9 +423,12 @@ describe("GzipRequestBodyMiddleware - decompression bombs (GHSA-cp58-wc9q-qv53)"
     expect(driver.res.statusCode).toBe(413);
     expect(driver.nextCalls).toHaveLength(0);
     expect(driver.req.body).toBeUndefined();
-    expect(
-      String((driver.res.jsonBody as { message: string }).message),
-    ).toContain("decompressed");
+    // The limit, as a body sent uncompressed is told it (#10672).
+    expect(driver.res.jsonBody).toEqual({
+      error: REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime,
+    });
+    // Which of the two caps it passed is the debug line's to say.
+    expect(lastDebugLine()).toContain("decompressed size reached");
   });
 
   test("the bomb is refused mid-stream, not after the last byte arrives", async () => {
@@ -476,9 +490,10 @@ describe("GzipRequestBodyMiddleware - decompression bombs (GHSA-cp58-wc9q-qv53)"
 
     expect(driver.res.statusCode).toBe(413);
     expect(driver.nextCalls).toHaveLength(0);
-    expect(
-      String((driver.res.jsonBody as { message: string }).message),
-    ).toContain("compressed");
+    expect(driver.res.jsonBody).toEqual({
+      error: REQUEST_BODY_REFUSAL_MESSAGES.tooLargeForOneUptime,
+    });
+    expect(lastDebugLine()).toContain(": compressed size reached");
     expect(driver.req.paused).toBe(true);
   });
 
@@ -947,8 +962,14 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
 
     expect(await inflating.waitForOutcome()).toBe(true);
     expect(inflating.res.statusCode).toBe(413);
+    /*
+     * In the words, and the field, the same body sent uncompressed is
+     * refused in (#10672): it used to say a sentence of its own, under
+     * "message", so a body over a route's limit was answered one way gzipped
+     * and another sent as it is.
+     */
     expect(inflating.res.jsonBody).toEqual({
-      message: `Request body too large. The decompressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+      error: getTooLargeForRouteMessage(ORDINARY_REQUEST_BODY_LIMIT.bytes),
     });
 
     const declared: Driver = new Driver(
@@ -958,8 +979,50 @@ describe("GzipRequestBodyMiddleware - a JSON body's values are counted as it inf
 
     expect(declared.res.statusCode).toBe(413);
     expect(declared.res.jsonBody).toEqual({
-      message: `Request body too large. The compressed body of a gzip-encoded request may not exceed ${ORDINARY_REQUEST_BODY_LIMIT.bytes} bytes.`,
+      error: getTooLargeForRouteMessage(ORDINARY_REQUEST_BODY_LIMIT.bytes),
     });
+  });
+
+  test("the answer is the one expressErrorHandler gives a parser's 413 for the same limit: a large route's, an ordinary one's, a small one's", async () => {
+    for (const limit of [
+      LARGE_REQUEST_BODY_LIMIT,
+      ORDINARY_REQUEST_BODY_LIMIT,
+      MCP_OAUTH_REQUEST_BODY_LIMIT,
+      DOCS_REPORT_REQUEST_BODY_LIMIT,
+    ]) {
+      const inflating: Driver = new Driver(
+        { "content-type": "application/x-www-form-urlencoded" },
+        limit,
+      );
+
+      await inflating.feed([gzip(Buffer.alloc(limit.bytes + 1, 0x61))]);
+      inflating.end();
+
+      expect(await inflating.waitForOutcome()).toBe(true);
+
+      // body-parser's refusal of the same body, as StartServer marks it.
+      let refused: unknown = undefined;
+
+      withAppRequestBodyLimit((err?: unknown): void => {
+        refused = err;
+      }, limit.bytes)(
+        Object.assign(new Error("request entity too large"), {
+          type: "entity.too.large",
+          status: 413,
+          statusCode: 413,
+          expose: true,
+          limit: limit.bytes,
+          length: limit.bytes + 1,
+        }),
+      );
+
+      const parsersAnswer: string | undefined =
+        readRequestBodyRefusal(refused)?.message;
+
+      expect(parsersAnswer).toBeDefined();
+      expect(inflating.res.statusCode).toBe(413);
+      expect(inflating.res.jsonBody).toEqual({ error: parsersAnswer });
+    }
   });
 
   test.each([

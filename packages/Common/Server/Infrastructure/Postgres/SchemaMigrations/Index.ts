@@ -1155,6 +1155,8 @@ import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "./1809187436369-AddDataSecurityIssueAiAnalysis";
 import { AddSecurityBlocklistFeeds1809187440000 } from "./1809187440000-AddSecurityBlocklistFeeds";
+import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
 import { AddDiscoveryScanRunRequested1809187450000 } from "./1809187450000-AddDiscoveryScanRunRequested";
 import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450010-AddDiscoveryScanRunRequestedByUserKey";
 
@@ -2316,6 +2318,8 @@ export default [
   AddSecurityEventConnectionBlocking1809187434300,
   AddDataSecurityIssueAiAnalysis1809187436369,
   AddSecurityBlocklistFeeds1809187440000,
+  AddSecurityBlockReachAndWiderValue1809187440100,
+  AddSecurityBlockValueReachIndex1809187440110,
   AddDiscoveryScanRunRequested1809187450000,
   AddDiscoveryScanRunRequestedByUserKey1809187450010,
 ];

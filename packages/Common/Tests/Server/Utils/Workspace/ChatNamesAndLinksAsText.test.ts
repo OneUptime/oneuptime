@@ -128,14 +128,18 @@ describe("UserService.getUserMarkdownString", () => {
     expect(slack).toContain(`<${PROFILE_URL}|`);
   });
 
-  test("a user without a name is named by their email, escaped the same way", async () => {
+  /*
+   * Never the whole address - a channel is not all the project's people to
+   * read - but the part of it before the "@" (#10669), escaped the same way.
+   */
+  test("a user without a name is named by the part of their email before the @, escaped the same way", async () => {
     const markdown: string = await markdownFor(
       userNamed({ email: "jane_doe+[sre]@example.com" }),
     );
 
-    expect(markdown).toBe(`[jane\\_doe+\\[sre\\]@example.com](${PROFILE_URL})`);
+    expect(markdown).toBe(`[jane\\_doe+\\[sre\\]](${PROFILE_URL})`);
     expect(linksIn(markdown)).toEqual([
-      { href: PROFILE_URL, text: "jane_doe+[sre]@example.com" },
+      { href: PROFILE_URL, text: "jane_doe+[sre]" },
     ]);
   });
 

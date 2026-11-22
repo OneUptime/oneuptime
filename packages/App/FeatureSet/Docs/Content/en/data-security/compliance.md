@@ -177,7 +177,7 @@ Security Members, Security Admins, Project Admins and Project Owners can turn fr
 
 ## Record of processing
 
-GDPR Article 30 asks you to keep a record of your processing activities. Data Security writes the part of it that is about where personal data is kept: one row for each store that holds personal data.
+GDPR Article 30 asks you to keep a record of your processing activities. Data Security writes the part of it that is about where personal data is kept: one row for each store that holds personal data. It is the **Record of Processing** card at the end of **Data Security → Compliance**, with **Export CSV** and **Export JSON**.
 
 | Column | Where it comes from |
 | --- | --- |
@@ -185,11 +185,27 @@ GDPR Article 30 asks you to keep a record of your processing activities. Data Se
 | Environment | The store's tags or name, or what you set |
 | Sensitivity, categories and data types | What the scans found, or the sensitivity you set |
 | Owners | The store's owners, people and the members of its teams |
-| Purpose | What you write in the store's **Purpose**: why it holds personal data |
-| Retention | What you write in the store's **Retention**: how long data is kept in it |
+| Purpose | What you write in the store's **Purpose**: why it holds personal data. OneUptime fills it in for the stores it keeps for your security |
+| Retention | What you write in the store's **Retention**: how long data is kept in it. OneUptime fills it in for the stores it keeps for your security |
+| Who can read | Who can read a store OneUptime keeps for your security |
 | Frameworks | The frameworks its data types bring into scope |
+| Declared by | OneUptime, for the stores it keeps for your security |
 
-Fill in **Purpose** and **Retention** in each store's **Settings**: they are the two things no scan can know. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing`, `/data-security/compliance` and, for one resource, `/data-security/resource-compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
+For a store Data Security found, fill in **Purpose** and **Retention** in its **Settings**: no scan can know them. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing`, `/data-security/compliance` and, for one resource, `/data-security/resource-compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
+
+### Stores OneUptime keeps for your security
+
+Three stores hold IP addresses on purpose, to protect your network: **Security Events**, **Network Flows** and **Security Address Vault**. The record lists each one your project has. OneUptime declares them rather than finding them: what they hold is known by design, so no scan reads them, no check applies to them, and holding these addresses never raises an issue, since it is what they are for. On **Data Stores** they are marked **Declared by OneUptime**, and the **Overview** and the framework scores leave them out.
+
+| Store | What it holds | Retention | Who can read it |
+| --- | --- | --- | --- |
+| Security Events | The IP addresses, user names and email addresses of who acted and what it touched | Your project's [telemetry retention](/docs/telemetry/data-retention), read whenever the record is, so a change shows at once | Project Owners, Project Admins, Security Admins, Security Members, Security Viewers and anyone with Read Security Event |
+| Network Flows | The IP addresses of who talked to whom | 30 days after a flow arrives | Whoever may read network devices |
+| Security Address Vault | The IP address behind each token an IP Address rule that hashes left in the logs and traces [Security Events](/docs/telemetry/security-events) reads | 30 days after an address was last seen | Only Security Events' scans, inside OneUptime: no person, page, export, API or AI tool |
+
+Each one's purpose is "Network and information security (GDPR Recital 49)". To write your own purpose or retention, use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.
+
+A store is listed while your project keeps its data: the vault while an enabled IP Address rule hashes logs or traces Security Events reads, and for 31 days after (see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.
 
 ## Next steps
 

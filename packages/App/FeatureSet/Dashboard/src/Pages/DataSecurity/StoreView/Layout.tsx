@@ -8,6 +8,7 @@ import {
 } from "./DataStoreViewContext";
 import DataStoreViewSideMenu from "./SideMenu";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
+import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -112,16 +113,26 @@ const DataStoreViewLayout: FunctionComponent<
       modelId={dataStoreId}
       modelNameField="name"
       breadcrumbLinks={getDataSecurityBreadcrumbs(path)}
-      sideMenu={<DataStoreViewSideMenu modelId={dataStoreId} />}
+      sideMenu={
+        <DataStoreViewSideMenu modelId={dataStoreId} kind={dataStore?.kind} />
+      }
       refreshToken={readCount}
     >
       {isLoaded ? (
         <>
           {dataStore?.isArchived ? (
-            <Alert
-              type={AlertType.INFO}
-              title="This store is no longer found in its cloud or source. It is kept here with its history, and comes back by itself if it is found again."
-            />
+            isDeclaredDataStoreKind(dataStore.kind) ? (
+              // A store OneUptime declares (#10398) goes once its data does.
+              <Alert
+                type={AlertType.INFO}
+                title="This store no longer holds any of your project's data. It is kept here with its history, and comes back by itself if the data does."
+              />
+            ) : (
+              <Alert
+                type={AlertType.INFO}
+                title="This store is no longer found in its cloud or source. It is kept here with its history, and comes back by itself if it is found again."
+              />
+            )
           ) : (
             <></>
           )}

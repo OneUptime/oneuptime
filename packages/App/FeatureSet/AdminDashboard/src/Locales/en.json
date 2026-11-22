@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "Only pipelines that match conditions",
   "All cloud environments": "All cloud environments",
   "Only cloud environments that match conditions": "Only cloud environments that match conditions",
+  "All issues": "All issues",
+  "Only issues that match conditions": "Only issues that match conditions",
   "Only what matches conditions": "Only what matches conditions",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "Company SMTP server hosted on AWS",

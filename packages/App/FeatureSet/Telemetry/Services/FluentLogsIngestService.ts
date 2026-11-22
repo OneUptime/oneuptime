@@ -48,6 +48,9 @@ import TelemetryFanInWriter, {
 import FluentRecordTimeUtil, {
   FluentRecordTime,
 } from "../Utils/FluentRecordTime";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { measureTelemetryIngestRequest } from "Common/Server/Utils/Telemetry/TelemetryIngestionBudgetHttp";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 class FluentLogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -134,6 +137,24 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         );
       }
 
+      /*
+       * The size the worker shares the batch out at over its teams' and
+       * labels' budgets and the usage metrics (#10102): what the request
+       * path counted, read before the body is reshaped below. Only for a
+       * project that needs it; two set lookups for any other.
+       */
+      const ingestBytes: number | undefined =
+        await TelemetryIngestAttribution.getRequestBytesToShare({
+          projectId: (req as TelemetryRequest).projectId,
+          charge: (req as TelemetryRequest).telemetryIngestionBudgetCharge,
+          measure: () => {
+            return measureTelemetryIngestRequest({
+              req: req,
+              surface: TelemetryIngestSurface.Fluent,
+            });
+          },
+        });
+
       req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
 
       const entries: Array<JSONObject> = this.normalizeLogEntries(req.body);
@@ -142,6 +163,10 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
         throw new BadRequestException(
           "No fluent log entries found in request.",
         );
+      }
+
+      if (ingestBytes !== undefined) {
+        (req as TelemetryRequest).telemetryIngestBytes = ingestBytes;
       }
 
       req.body = {
@@ -219,6 +244,31 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           serviceName,
           projectId,
         });
+
+      /*
+       * Whose logs these are (TelemetryIngestAttribution, #10102): every
+       * entry is the one service's, so it is offered once with all of
+       * them. A used-up budget of its team or a label drops the batch, as
+       * it drops an OTLP resource's records; it is counted all the same.
+       */
+      const attribution: TelemetryIngestAttribution | null =
+        (req as TelemetryRequest).telemetryIngestAttribution || null;
+
+      if (
+        attribution &&
+        !(await attribution.admitResource({
+          primaryEntityId: serviceMetadata.primaryEntityId,
+          primaryEntityType: serviceMetadata.primaryEntityType,
+          name: serviceName,
+          records: entries.length,
+        }))
+      ) {
+        await attribution.settle();
+        logger.debug(
+          `Fluent logs ingest: dropped ${entries.length} entries for project ${projectId.toString()}: a team or label budget of ${serviceName} is used up.`,
+        );
+        return;
+      }
 
       const baseAttributes: Dictionary<AttributeType | Array<AttributeType>> =
         TelemetryUtil.getAttributesForServiceIdAndServiceName({
@@ -390,6 +440,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           logger.error(processingError);
         }
       }
+
+      // The batch's attribution, counted in one round trip (#10102).
+      await attribution?.settle();
 
       await this.submitLogsBuffer(dbLogs, pendingAcks, true);
 

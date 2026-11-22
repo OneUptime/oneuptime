@@ -343,6 +343,7 @@ export class Service extends DatabaseService<Model> {
         targetType,
         fields: createBy.data.fields,
         settings: createBy.data.targetSettings,
+        storedSettings: undefined,
         storedFields: undefined,
         checkFields: true,
         checkSettings: true,
@@ -519,6 +520,11 @@ export class Service extends DatabaseService<Model> {
           targetType,
           fields: changesQuestions || changesTarget ? fields : undefined,
           settings: changesSettings || changesTarget ? settings : undefined,
+          /*
+           * What the form held, on an update that keeps its target: a
+           * record it held and that is gone since is not refused again.
+           */
+          storedSettings: changesTarget ? undefined : form.targetSettings,
           storedFields: changesTarget ? undefined : form.fields,
           checkFields: changesQuestions || changesTarget,
           checkSettings: changesSettings || changesTarget,
@@ -1764,6 +1770,8 @@ export class Service extends DatabaseService<Model> {
     targetType: FormTargetType;
     fields: unknown;
     settings: unknown;
+    // What the form held before an update of the same target.
+    storedSettings?: unknown;
     storedFields: unknown;
     checkFields: boolean;
     checkSettings: boolean;
@@ -1774,6 +1782,8 @@ export class Service extends DatabaseService<Model> {
       await handler.validateReferences({
         projectId: data.projectId,
         settings: data.settings as JSONObject,
+        storedSettings:
+          (data.storedSettings as JSONObject | undefined) || undefined,
       });
     }
 
