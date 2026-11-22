@@ -95,23 +95,26 @@ describe("QueryHelper.notInOrNull, as IncludesNoneOrNull writes it", () => {
 
 describe("QueryUtil.serializeQuery, IncludesNoneOrNull", () => {
   it("on a uuid column: none of the ids, or none at all", () => {
-    const query: Record<string, unknown> = serialize(Monitor, {
-      monitorTemplateId: new IncludesNoneOrNull([
-        TEMPLATE_ID,
-        new ObjectID(OTHER_TEMPLATE_ID),
-      ]),
-    });
-
-    expect(sqlOf(query["monitorTemplateId"], ALIAS)).toBe(
-      `(${ALIAS} NOT IN (:...p) or ${ALIAS} IS NULL)`,
-    );
-    // One list parameter, each id as its text, never in the SQL.
-    expect(boundOf(query["monitorTemplateId"])).toEqual([
+    // ObjectIDs, as a chip sends them, and ids as text, as a link holds them.
+    for (const ids of [
+      [new ObjectID(TEMPLATE_ID), new ObjectID(OTHER_TEMPLATE_ID)],
       [TEMPLATE_ID, OTHER_TEMPLATE_ID],
-    ]);
-    expect(asRaw(query["monitorTemplateId"]).getSql(ALIAS)).not.toContain(
-      TEMPLATE_ID,
-    );
+    ] as Array<Array<ObjectID> | Array<string>>) {
+      const query: Record<string, unknown> = serialize(Monitor, {
+        monitorTemplateId: new IncludesNoneOrNull(ids),
+      });
+
+      expect(sqlOf(query["monitorTemplateId"], ALIAS)).toBe(
+        `(${ALIAS} NOT IN (:...p) or ${ALIAS} IS NULL)`,
+      );
+      // One list parameter, each id as its text, never in the SQL.
+      expect(boundOf(query["monitorTemplateId"])).toEqual([
+        [TEMPLATE_ID, OTHER_TEMPLATE_ID],
+      ]);
+      expect(asRaw(query["monitorTemplateId"]).getSql(ALIAS)).not.toContain(
+        TEMPLATE_ID,
+      );
+    }
   });
 
   it("is written apart from IncludesNone, which keeps no empty column", () => {

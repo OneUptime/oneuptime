@@ -479,17 +479,21 @@ describe("serializeQuery — ids that already worked are unchanged", () => {
 
   // A list's "is not" of several (#10581): the ids checked, the empty kept.
   it("reads IncludesNoneOrNull of ids, ObjectIDs and text alike", () => {
-    const result: Record<string, any> = serialize(Incident, {
-      incidentSeverityId: new IncludesNoneOrNull([
-        new ObjectID(STATE_ID),
-        OTHER_STATE_ID,
-      ]),
-    });
-
-    expect(params(result["incidentSeverityId"])).toEqual([
+    for (const ids of [
+      [new ObjectID(STATE_ID), new ObjectID(OTHER_STATE_ID)],
       [STATE_ID, OTHER_STATE_ID],
-    ]);
-    expect(rawSql(result["incidentSeverityId"], "x")).toContain("or x IS NULL");
+    ] as Array<Array<ObjectID> | Array<string>>) {
+      const result: Record<string, any> = serialize(Incident, {
+        incidentSeverityId: new IncludesNoneOrNull(ids),
+      });
+
+      expect(params(result["incidentSeverityId"])).toEqual([
+        [STATE_ID, OTHER_STATE_ID],
+      ]);
+      expect(rawSql(result["incidentSeverityId"], "x")).toContain(
+        "or x IS NULL",
+      );
+    }
   });
 
   it("still compares ids with GreaterThan and InBetween", () => {

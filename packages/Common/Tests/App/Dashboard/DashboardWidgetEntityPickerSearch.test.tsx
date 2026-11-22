@@ -54,6 +54,11 @@ import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 type ListOptions = Parameters<typeof ModelAPI.getList<BaseModel>>[0];
 
+// What the widget is handed when a pick changes, recorded.
+type OnChangeMock = ReturnType<
+  typeof jest.fn<(value: string | Array<string> | null) => void>
+>;
+
 interface ListCall {
   modelType: unknown;
   query: Record<string, unknown>;
@@ -274,7 +279,7 @@ describe("a Monitor List widget's monitors", () => {
 
   test("picking a monitor hands the widget its id", async () => {
     const id: string = ObjectID.generate().toString();
-    const onChange: jest.Mock<(value: string | Array<string> | null) => void> =
+    const onChange: OnChangeMock =
       jest.fn<(value: string | Array<string> | null) => void>();
 
     fakeServer(() => {
