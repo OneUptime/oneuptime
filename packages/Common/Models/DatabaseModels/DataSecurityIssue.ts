@@ -28,10 +28,7 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
 import ColumnLength from "../../Types/Database/ColumnLength";
-import {
-  DATA_SECURITY_AI_VERDICTS,
-  DataSecurityAiVerdict,
-} from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
+import { DataSecurityAiVerdict } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -815,7 +812,7 @@ export default class DataSecurityIssue extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
-    allowedValues: [...DATA_SECURITY_AI_VERDICTS],
+    allowedValues: Object.values(DataSecurityAiVerdict),
     title: "OneUptime AI Verdict",
     description:
       "OneUptime AI's verdict on the issue: Real, Likely by design, Likely a wrong finding, or Cannot tell. A person decides what to do with it.",

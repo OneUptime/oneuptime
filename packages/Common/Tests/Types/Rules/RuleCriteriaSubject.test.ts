@@ -188,7 +188,17 @@ describe("RULE_CRITERIA_SUBJECT_BY_MODEL", () => {
 
     expect(RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE).toEqual([
       RuleCriteriaSubject.CloudEnvironments,
+      // Data Security → AI's AI rules, about its issues (#10364).
+      RuleCriteriaSubject.DataSecurityIssues,
     ]);
+    // An AI rule names its records by its table: Data Security's passes its own.
+    expect(getRuleCriteriaSubjectForModel("AutoRemediationRule")).toBeNull();
+    expect(
+      resolveRuleCriteriaSubject({
+        modelName: "AutoRemediationRule",
+        subject: RuleCriteriaSubject.DataSecurityIssues,
+      }),
+    ).toBe(RuleCriteriaSubject.DataSecurityIssues);
     // The cloud rules' own records are Cloud's, the model's word.
     expect(getRuleCriteriaSubjectForModel("CloudResourceOwnerRule")).toBe(
       RuleCriteriaSubject.CloudResources,

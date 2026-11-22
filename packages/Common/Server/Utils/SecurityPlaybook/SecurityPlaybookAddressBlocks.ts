@@ -42,6 +42,7 @@ import SecurityBlockService, {
   SecurityBlockOutcomeStatus,
 } from "../../Services/SecurityBlockService";
 import logger from "../Logger";
+import SecurityBlockDestination from "../SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../SecurityBlocklist/SecurityBlockDestinations";
@@ -229,8 +230,19 @@ export default class SecurityPlaybookAddressBlocks {
 
     const found: SecurityBlockDestinationsFound =
       await SecurityBlockDestinations.findForProject(data.projectId);
+    /*
+     * Where an address blocked at the edge is held: never at a destination
+     * on every machine (#10346), which holds only what is blocked
+     * everywhere - Microsoft Defender alone does not enforce this block.
+     */
+    const edgeDestinations: Array<SecurityBlockDestination> =
+      found.destinations.filter(
+        (destination: SecurityBlockDestination): boolean => {
+          return !destination.enforcesOnEveryMachine;
+        },
+      );
     const hasDestinations: boolean =
-      found.destinations.length > 0 || found.failedProviders.length > 0;
+      edgeDestinations.length > 0 || found.failedProviders.length > 0;
     const reason: string | undefined = data.reason?.trim()
       ? data.reason.trim().slice(0, SECURITY_BLOCK_REASON_MAX_LENGTH)
       : undefined;
@@ -305,7 +317,7 @@ export default class SecurityPlaybookAddressBlocks {
       await this.readWhereEnforced({
         projectId: data.projectId,
         blocks: Array.from(made.values()),
-        hasDestinations: found.destinations.length > 0,
+        hasDestinations: edgeDestinations.length > 0,
       });
 
     const notEnforced: Array<string> = [];

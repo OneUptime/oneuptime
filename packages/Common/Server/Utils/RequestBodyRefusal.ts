@@ -53,8 +53,9 @@ import { Socket } from "net";
  * its Content-Type says it is, or names a part in a way multer refuses
  * ("multipart.malformed", 400). Each was an error-level log line, and a
  * malformed body a 500, from any client: Pyroscope, source maps and dSYMs
- * read their multipart bodies before their keys are checked. Each is
- * answered in the error's own words, as it was, and logged at debug.
+ * read their multipart bodies before their keys were checked (they read them
+ * after it since #10673). Each is answered in the error's own words, as it
+ * was, and logged at debug.
  */
 
 /*

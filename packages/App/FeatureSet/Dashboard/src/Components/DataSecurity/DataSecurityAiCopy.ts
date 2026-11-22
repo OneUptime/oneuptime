@@ -263,7 +263,7 @@ export const DATA_SECURITY_AI_AUTONOMY_LABELS: Readonly<
 > = {
   [DataSecurityAiAutonomy.Off]: translationKey("Off"),
   [DataSecurityAiAutonomy.Suggest]: translationKey("Suggest"),
-  [DataSecurityAiAutonomy.WithoutAsking]: translationKey("Without asking"),
+  [DataSecurityAiAutonomy.WithoutAsking]: translationKey("Automatically"),
 };
 
 // Data Security's AI rules (DataSecurityAiRulesTable), and the inbox's Rule column.
@@ -279,11 +279,6 @@ export const DataSecurityAiRulesCopy: {
   fixDescription: string;
   judgeDescription: string;
   matchSection: string;
-  matchDescription: string;
-  checkGroups: string;
-  storeLabels: string;
-  dataCategories: string;
-  services: string;
   servicesDescription: string;
   ruleColumn: string;
   projectDefaults: string;
@@ -309,13 +304,6 @@ export const DataSecurityAiRulesCopy: {
     "Judge what was found, such as whether a finding is real or who owns a store.",
   ),
   matchSection: translationKey("Which Issues"),
-  matchDescription: translationKey(
-    "Leave a condition empty to match every issue.",
-  ),
-  checkGroups: translationKey("Check Groups"),
-  storeLabels: translationKey("Store Labels"),
-  dataCategories: translationKey("Data Categories"),
-  services: translationKey("Services"),
   servicesDescription: translationKey(
     "For a telemetry issue: the service whose telemetry holds the data.",
   ),

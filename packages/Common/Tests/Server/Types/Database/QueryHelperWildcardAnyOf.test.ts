@@ -118,6 +118,12 @@ describe("QueryHelper.wildcardAny", () => {
     expect(() => {
       QueryHelper.wildcardAny(globs);
     }).toThrow(BadDataException);
+    // In a sentence that says what to do next (ErrorMessagesGuard).
+    expect(() => {
+      QueryHelper.wildcardAny(globs);
+    }).toThrow(
+      `A wildcard filter can hold at most ${MAX_WILDCARD_PATTERNS} patterns. Filter by fewer at once.`,
+    );
   });
 });
 

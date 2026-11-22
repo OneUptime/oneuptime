@@ -173,12 +173,43 @@ function optionsOf(rows: Array<BaseModel>): Array<DropdownOption> {
   });
 }
 
-// The words of each value a picker shows as picked.
+/*
+ * The words of each value a picker shows as picked, in the page's order:
+ * a severity's picker (Dropdown), and the labels' (searched on the server,
+ * #10646: an EntityDropdown's chips).
+ */
 function pickedValues(): Array<string> {
-  return screen
-    .getAllByTestId("dropdown-value-label")
-    .map((value: HTMLElement): string => {
-      return (value.textContent || "").trim();
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[data-testid="dropdown-value-label"], [data-testid="entity-dropdown-chip-label"]',
+    ),
+  ).map((value: HTMLElement): string => {
+    return (value.textContent || "").trim();
+  });
+}
+
+/*
+ * Opens a picker that searches the server - the labels' - and reads what
+ * it lists: the project's labels, as the search answers them, but the ones
+ * picked already.
+ */
+async function listingOfSearchedPicker(testId: string): Promise<Array<string>> {
+  getListMock.mockImplementation(async (): Promise<any> => {
+    return { data: labels(), count: 3, skip: 0, limit: 50 };
+  });
+
+  await act(async (): Promise<void> => {
+    fireEvent.focus(screen.getByTestId(testId));
+  });
+
+  const menu: HTMLElement = await screen.findByTestId("entity-dropdown-menu");
+
+  await within(menu).findAllByRole("option");
+
+  return within(menu)
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return (option.textContent || "").trim();
     });
 }
 
@@ -292,10 +323,9 @@ describe("the form, a rule's incident", () => {
   test("offers the labels as their project named them: Network, never Red", async () => {
     renderIncidentForm();
 
-    expect(await listingOfPickerShowing("Database")).toEqual([
-      "Network",
-      "Checkout",
-    ]);
+    expect(
+      await listingOfSearchedPicker("monitor-criteria-incident-labelIds"),
+    ).toEqual(["Network", "Checkout"]);
     expect(screen.queryByText("Red")).not.toBeInTheDocument();
   });
 });
@@ -334,10 +364,9 @@ describe("the form, a rule's alert", () => {
   test("offers the labels as their project named them", async () => {
     renderAlertForm();
 
-    expect(await listingOfPickerShowing("Database")).toEqual([
-      "Network",
-      "Checkout",
-    ]);
+    expect(
+      await listingOfSearchedPicker("monitor-criteria-alert-labelIds"),
+    ).toEqual(["Network", "Checkout"]);
   });
 });
 

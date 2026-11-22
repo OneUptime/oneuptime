@@ -534,6 +534,42 @@ describe("the audit log reader", () => {
     expect(queries).toHaveLength(1);
   });
 
+  /*
+   * #10663: the event is read by every reader of security events, and an
+   * API key's name is Project Owner's, Project Admin's and Read API Key's -
+   * not Security Viewer's. The scan asks the models, so it writes the key's
+   * event without the key's name, keeping its type, its id and who made it.
+   */
+  test("writes an API key's event without the key's name, which the Security tiers may not read", async () => {
+    jest.spyOn(AuditLogService, "executeQuery").mockImplementation((async (
+      statement: Statement,
+    ) => {
+      return statement.query.includes("AS deletes")
+        ? answer([])
+        : answer([RECORD]);
+    }) as never);
+
+    const read: TelemetryWindowRead = await AuditLogSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    const event: NormalizedSecurityEvent = read.events[0]!;
+
+    expect(event.message).toBe("alice@example.com created an API key");
+    expect(event.targetResource).toBe(
+      "API Key: 0192f1a0-0000-7000-8000-00000000a402",
+    );
+    expect(event.attributes["audit.resource_name"]).toBeUndefined();
+    expect(event.attributes["audit.resource_id"]).toBe(
+      "0192f1a0-0000-7000-8000-00000000a402",
+    );
+    expect(event.attributes["audit.resource_type"]).toBe("API Key");
+    expect(event.principalUser).toBe("alice@example.com");
+    expect(JSON.stringify(event)).not.toContain("deploy-bot");
+  });
+
   test("reads each workflow's deletes as that workflow's, and OneUptime's own apart (#10430)", async () => {
     const nightly: string = "0192f1a0-0000-7000-8000-00000000a411";
     const archiver: string = "0192f1a0-0000-7000-8000-00000000a412";

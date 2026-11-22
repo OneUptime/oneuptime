@@ -24,6 +24,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import UserService from "../../../Services/UserService";
 import WorkspaceLiveMessageService from "../../../Services/WorkspaceLiveMessageService";
 import { NotificationFor } from "../../../Services/WorkspaceNotificationRuleService";
+import FeedPersonName from "../../Feed/FeedPersonName";
 import logger, { LogAttributes } from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -311,7 +312,10 @@ export default class ChannelMembersNotAddedNotice {
     const workspaceType: WorkspaceType =
       data.workspaceType || WorkspaceType.Slack;
     const workspaceName: string = getWorkspaceTypeDisplayName(workspaceType);
-    const names: Array<string> = await this.getNames(data.userIds);
+    const names: Array<string> = await this.getNames({
+      projectId: data.projectId,
+      userIds: data.userIds,
+    });
     const productName: string = ProductBrandingText.getProductName();
 
     const missing: MarkdownText =
@@ -386,10 +390,19 @@ export default class ChannelMembersNotAddedNotice {
     return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
   }
 
-  // The people's names, in the order given: name, else email.
-  private static async getNames(
-    userIds: Array<string>,
-  ): Promise<Array<string>> {
+  /*
+   * The people's names, in the order given, as every channel line names a
+   * person (FeedPersonName): by their name, else the part of their address
+   * before the "@" - never the address itself, which the channel's readers,
+   * guests included, are not all the project's people to see (#10669).
+   * Only members are added to a channel, so only members are named here.
+   */
+  private static async getNames(data: {
+    projectId: ObjectID;
+    userIds: Array<string>;
+  }): Promise<Array<string>> {
+    const userIds: Array<string> = data.userIds;
+
     const users: Array<User> = await UserService.findBy({
       query: {
         _id: QueryHelper.any(
@@ -410,6 +423,11 @@ export default class ChannelMembersNotAddedNotice {
       },
     });
 
+    const named: Map<string, string> = await FeedPersonName.readNames({
+      users: users,
+      projectId: data.projectId,
+    });
+
     const names: Array<string> = [];
 
     for (const userId of userIds) {
@@ -421,8 +439,7 @@ export default class ChannelMembersNotAddedNotice {
         continue;
       }
 
-      const name: string =
-        user.name?.toString().trim() || user.email?.toString().trim() || "";
+      const name: string = named.get(userId.toLowerCase()) || "";
 
       if (name) {
         names.push(name);

@@ -303,6 +303,26 @@ describe("a block a destination holds", () => {
     expect(getEnforcedAddressBlocks(evidence)).toHaveLength(1);
   });
 
+  test("held on every machine alone - by Microsoft Defender - is not held at the edge: said as not enforced (#10346)", async () => {
+    blocks.push(makeBlock({ index: 1, value: ADDRESS }));
+    const defender: SecurityBlockEnforcement = makeRow({
+      blockIndex: 1,
+      destination: "Microsoft Defender",
+      state: SecurityBlockEnforcementState.Applied,
+      appliedAt: at(-20),
+      lastConfirmedAt: at(-1),
+    });
+    defender.provider = SecurityBlockDestinationProvider.MicrosoftDefender;
+    rows.push(defender);
+
+    const evidence: Array<AddressBlockEvidence> = await read();
+
+    expect(getEnforcedAddressBlocks(evidence)).toHaveLength(0);
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.isNotEnforced).toBe(true);
+    expect(evidence[0]!.isApplying).toBe(false);
+  });
+
   test("held at two destinations: one piece of evidence each", async () => {
     blocks.push(makeBlock({ index: 1, value: ADDRESS }));
     rows.push(

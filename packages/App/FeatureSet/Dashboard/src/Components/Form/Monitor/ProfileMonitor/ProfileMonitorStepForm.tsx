@@ -1,9 +1,11 @@
+import {
+  TELEMETRY_SERVICE_PICKER,
+  INFRASTRUCTURE_ENTITY_PICKER,
+} from "../TelemetryScopePickers";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
   PROFILE_MONITOR_FUNCTION_MAX_LENGTH,
 } from "Common/Types/Monitor/MonitorStepProfileMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -69,8 +71,6 @@ export interface ComponentProps {
   onMonitorStepProfileMonitorChanged: (
     monitorStepProfileMonitor: MonitorStepProfileMonitor,
   ) => void;
-  telemetryServices: Array<Service>;
-  telemetryEntities?: Array<InventoryItem> | undefined;
 }
 
 // The kind field's value for every kind of profile (no type filter).
@@ -430,14 +430,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
               telemetryServiceIds: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: props.telemetryServices.map(
-              (service: Service): { label: string; value: string } => {
-                return {
-                  label: service.name || "Untitled Service",
-                  value: service.id?.toString() || "",
-                };
-              },
-            ),
+            dropdownModal: TELEMETRY_SERVICE_PICKER,
             title: "Filter by Service",
             description: "Select telemetry services to scope this monitor.",
             hideOptionalLabel: true,
@@ -448,20 +441,7 @@ const ProfileMonitorStepForm: FunctionComponent<ComponentProps> = (
               entityKeys: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: (props.telemetryEntities || []).map(
-              (telemetryEntity: InventoryItem) => {
-                return {
-                  label: `${
-                    telemetryEntity.displayName ||
-                    telemetryEntity.entityKey ||
-                    ""
-                  } (${telemetryEntity.entityType || ""})`,
-                  value: telemetryEntity.entityKey || "",
-                  // What the resource is called in its telemetry: as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: INFRASTRUCTURE_ENTITY_PICKER,
             title: "Filter by Infrastructure Entity",
             description: "Scope to specific infrastructure entities (optional)",
             hideOptionalLabel: true,

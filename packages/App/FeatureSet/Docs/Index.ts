@@ -48,6 +48,7 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import RequestBodyParser from "Common/Server/Middleware/RequestBodyParser";
+import { DOCS_REPORT_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import DocsPlaceholders from "./Utils/Placeholders";
 import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -196,15 +197,16 @@ function renderNotFound(
 
 /*
  * The body of "Was this page helpful?" and of a search that found nothing: a
- * few dozen bytes. One sent uncompressed is parsed by StartServer before
- * this runs, held to the route's limit (RequestBodyLimit); a gzip one
- * StartServer only inflates, under the same limit, and this parses it from
- * those bytes, held to 2 KB as well (RequestBodyParser). body-parser alone
- * read the spent stream again, and answered a valid gzip body 500 (#10643).
+ * few dozen bytes, held to 2 KB (DOCS_REPORT_REQUEST_BODY_LIMIT). StartServer
+ * holds both routes to it before routing (RequestBodyLimit, #10672), whatever
+ * the body's encoding: one sent uncompressed it parses, a gzip one it only
+ * inflates, and this parses it from those bytes (RequestBodyParser), held to
+ * the same 2 KB. body-parser alone read the spent stream again, and answered
+ * a valid gzip body 500 (#10643).
  */
 const readSmallJsonBody: RequestHandler = RequestBodyParser.create(
   ExpressJson,
-  { limit: "2kb" },
+  { limit: DOCS_REPORT_REQUEST_BODY_LIMIT.bytes },
 );
 
 const DocsFeatureSet: FeatureSet = {

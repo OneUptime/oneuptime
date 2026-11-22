@@ -2,6 +2,8 @@ import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Host from "../../../Models/DatabaseModels/Host";
 import KubernetesResource from "../../../Models/DatabaseModels/KubernetesResource";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import NetworkAddressName from "../../../Models/DatabaseModels/NetworkAddressName";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
@@ -314,6 +316,9 @@ const PROTECTION_RECORD_MODELS: Partial<
   [SecurityProtectedAddressSource.NetworkEndpoint]: NetworkEndpoint,
   [SecurityProtectedAddressSource.AddressName]: NetworkAddressName,
   [SecurityProtectedAddressSource.Probe]: Probe,
+  // A domain's (#10346): the monitor that checks it, the status page it serves.
+  [SecurityProtectedAddressSource.Monitor]: Monitor,
+  [SecurityProtectedAddressSource.StatusPage]: StatusPage,
 };
 
 export default class SecurityProtectedAddresses {

@@ -352,9 +352,11 @@ class DataStoreOwnerRuleEngineServiceClass
    * The project's stores a rule matches now, as this engine matches one -
    * for a rule that does not exist yet as for one that does: every store
    * that is not archived, each read once (#10374's preview, and the stores
-   * an approved rule is run on).
+   * an approved rule is run on). One rule's evaluation, so its patterns'
+   * questions share one allowance, as applyRules' do.
    */
   @CaptureSpan()
+  @RuleEvaluation()
   public async getStoresMatchingRule(data: {
     projectId: ObjectID;
     rule: DataStoreOwnerRule;

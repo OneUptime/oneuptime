@@ -1,12 +1,19 @@
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import {
+  PROTECTED_DOMAIN_PROBLEM,
   PROTECTED_ENTITY_TYPES,
+  PROTECTED_FILE_HASH_PROBLEM,
   findProtectingRule,
+  getProtectedEntityTypeFor,
   isProtectedEntityType,
   matchesProtectedAddress,
+  matchesProtectedDomain,
   matchesProtectedEntityPattern,
+  matchesProtectedFileHash,
   normalizeProtectedAddressValue,
+  normalizeProtectedDomainValue,
   normalizeProtectedEntityValue,
+  normalizeProtectedFileHashValue,
 } from "../../../Types/SecurityPlaybook/SecurityProtectedEntity";
 import { describe, expect, test } from "@jest/globals";
 
@@ -109,16 +116,190 @@ describe("findProtectingRule", () => {
     ).toBeUndefined();
   });
 
-  test("protects users, hosts and addresses, the kinds containment acts on, and nothing else", () => {
+  test("protects users, hosts, addresses, domains and files, the kinds containment acts on, and nothing else", () => {
     expect([...PROTECTED_ENTITY_TYPES]).toEqual([
       SecurityEntityType.User,
       SecurityEntityType.Host,
       SecurityEntityType.IpAddress,
+      SecurityEntityType.Domain,
+      SecurityEntityType.FileHash,
     ]);
     expect(isProtectedEntityType(SecurityEntityType.IpAddress)).toBe(true);
     expect(isProtectedEntityType("User")).toBe(true);
-    expect(isProtectedEntityType(SecurityEntityType.Domain)).toBe(false);
+    expect(isProtectedEntityType(SecurityEntityType.Domain)).toBe(true);
+    expect(isProtectedEntityType(SecurityEntityType.FileHash)).toBe(true);
+    // A URL is protected by its host's domain entries.
+    expect(isProtectedEntityType(SecurityEntityType.Url)).toBe(false);
     expect(isProtectedEntityType(SecurityEntityType.DataStore)).toBe(false);
+  });
+});
+
+/*
+ * A protected domain and a protected file (#10346): a name, or `*.` and a
+ * name for every name under it, and a file's hash.
+ */
+describe("protected domains", () => {
+  test("an entry is written as blocks write a domain, `*.` kept", () => {
+    expect(normalizeProtectedDomainValue("Example.COM.")).toBe("example.com");
+    expect(normalizeProtectedDomainValue(" *.Example.com ")).toBe(
+      "*.example.com",
+    );
+    expect(normalizeProtectedDomainValue("bücher.example")).toBe(
+      "xn--bcher-kva.example",
+    );
+    expect(normalizeProtectedDomainValue("ex*ample.com")).toBeNull();
+    expect(normalizeProtectedDomainValue("*example.com")).toBeNull();
+    expect(normalizeProtectedDomainValue("localhost")).toBeNull();
+    expect(normalizeProtectedDomainValue("")).toBeNull();
+    expect(normalizeProtectedDomainValue(5)).toBeNull();
+  });
+
+  test("an exact entry protects its name, and refuses a block of any name above it", () => {
+    expect(matchesProtectedDomain("status.acme.com", "status.acme.com")).toBe(
+      true,
+    );
+    expect(matchesProtectedDomain("status.acme.com", "STATUS.acme.com.")).toBe(
+      true,
+    );
+    // A block of a domain blocks the names under it.
+    expect(matchesProtectedDomain("status.acme.com", "acme.com")).toBe(true);
+    // A name under an exact entry is not the entry.
+    expect(matchesProtectedDomain("acme.com", "evil.acme.com")).toBe(false);
+    expect(matchesProtectedDomain("acme.com", "notacme.com")).toBe(false);
+    expect(matchesProtectedDomain("acme.com", "evil.example")).toBe(false);
+  });
+
+  test("a `*.` entry protects every name under its domain, and the domain itself", () => {
+    expect(matchesProtectedDomain("*.acme.com", "evil.acme.com")).toBe(true);
+    expect(matchesProtectedDomain("*.acme.com", "a.b.acme.com")).toBe(true);
+    expect(matchesProtectedDomain("*.acme.com", "acme.com")).toBe(true);
+    expect(matchesProtectedDomain("*.acme.com", "com")).toBe(false);
+    expect(matchesProtectedDomain("*.acme.com", "notacme.com")).toBe(false);
+  });
+
+  test("a URL is protected by its host", () => {
+    expect(
+      matchesProtectedDomain("status.acme.com", "https://status.acme.com/x"),
+    ).toBe(true);
+    expect(
+      matchesProtectedDomain("acme.com", "https://evil.acme.com/login"),
+    ).toBe(false);
+    expect(
+      matchesProtectedDomain("*.acme.com", "https://evil.acme.com/login"),
+    ).toBe(true);
+    // A URL's block blocks that page alone, never the names above its host.
+    expect(
+      matchesProtectedDomain("status.acme.com", "https://acme.com/login"),
+    ).toBe(false);
+    expect(matchesProtectedDomain("acme.com", "http://198.51.100.7/")).toBe(
+      false,
+    );
+  });
+
+  test("an entry that is no domain protects nothing", () => {
+    expect(matchesProtectedDomain("not a domain", "acme.com")).toBe(false);
+    expect(matchesProtectedDomain("acme.com", "not a domain")).toBe(false);
+  });
+});
+
+describe("protected files", () => {
+  const MD5: string = "44d88612fea8a8f36de82e1278abb02f";
+  const SHA256: string =
+    "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f";
+
+  test("an entry is the file's hash in lower-case hex", () => {
+    expect(normalizeProtectedFileHashValue(MD5.toUpperCase())).toBe(MD5);
+    expect(normalizeProtectedFileHashValue(SHA256)).toBe(SHA256);
+    expect(normalizeProtectedFileHashValue("abc")).toBeNull();
+    expect(normalizeProtectedFileHashValue(undefined)).toBeNull();
+  });
+
+  test("a hash matches its entry whatever its case, and a hash of another kind never", () => {
+    expect(matchesProtectedFileHash(MD5, MD5.toUpperCase())).toBe(true);
+    expect(matchesProtectedFileHash(MD5, SHA256)).toBe(false);
+    expect(matchesProtectedFileHash("not a hash", "not a hash")).toBe(false);
+  });
+
+  test("the entries' refusals are sentences", () => {
+    for (const problem of [
+      PROTECTED_DOMAIN_PROBLEM,
+      PROTECTED_FILE_HASH_PROBLEM,
+    ]) {
+      expect(problem.charAt(0)).toMatch(/[A-Z]/);
+      expect(problem.endsWith(".")).toBe(true);
+    }
+  });
+});
+
+describe("findProtectingRule, for domains, URLs and files", () => {
+  const rules: Array<{ type: SecurityEntityType; value: string }> = [
+    { type: SecurityEntityType.Domain, value: "*.acme.com" },
+    { type: SecurityEntityType.Domain, value: "status.partner.example" },
+    {
+      type: SecurityEntityType.FileHash,
+      value: "44d88612fea8a8f36de82e1278abb02f",
+    },
+    { type: SecurityEntityType.Host, value: "acme.com" },
+  ];
+
+  test("a domain by the domain entries", () => {
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "partner.example",
+        rules,
+      }),
+    ).toEqual(rules[1]);
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Domain,
+        value: "evil.example",
+        rules,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a URL by its host's domain entries, never a host entry of the same text", () => {
+    expect(getProtectedEntityTypeFor(SecurityEntityType.Url)).toBe(
+      SecurityEntityType.Domain,
+    );
+    expect(getProtectedEntityTypeFor(SecurityEntityType.Host)).toBe(
+      SecurityEntityType.Host,
+    );
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Url,
+        value: "https://login.acme.com/reset",
+        rules,
+      }),
+    ).toEqual(rules[0]);
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Url,
+        value: "https://evil.example/",
+        rules,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a file by its hash", () => {
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.FileHash,
+        value: "44D88612FEA8A8F36DE82E1278ABB02F",
+        rules,
+      }),
+    ).toEqual(rules[2]);
+  });
+
+  test("a host still by its own entries", () => {
+    expect(
+      findProtectingRule({
+        type: SecurityEntityType.Host,
+        value: "ACME.com",
+        rules,
+      }),
+    ).toEqual(rules[3]);
   });
 });
 

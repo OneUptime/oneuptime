@@ -1,3 +1,4 @@
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import { describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -8,11 +9,17 @@ import { describe, expect, jest, test } from "@jest/globals";
  * mounts one built for SOURCE_MAP_MAX_FILES_PER_REQUEST, so an operator who
  * lowers that knob narrows what multer will accept on this route.
  *
- * The direction is the whole point: the parse runs BEFORE the route's auth
- * check, so the shared ceiling is the limit an unauthenticated caller is held
- * to across every route that mounts it. A per-route knob that could raise it
- * would widen that surface, so the builder clamps and the route can only
- * narrow.
+ * The direction is the whole point: the shared ceiling is the most any
+ * caller of any route that mounts it can have the process hold in one
+ * request. A per-route knob that could raise it would widen that, so the
+ * builder clamps and the route can only narrow.
+ *
+ * And the parse runs AFTER the route's key check (#10673): the route hands
+ * the multipart middleware to its upload reader
+ * (RequestBodyAfterAuthentication.readUpload), mounted behind
+ * TelemetryIngest, so a request without the right key is refused with
+ * nothing of its body read or parsed. It used to be mounted first, and parse
+ * whatever anyone sent before the key was looked at.
  *
  * The route reads the knob once, at module load, so each case here loads the
  * module afresh inside jest.isolateModules with a different configured value.
@@ -64,6 +71,38 @@ jest.mock("Common/Server/Middleware/TelemetryIngestionDisabled", () => {
     default: {
       middleware: ingestionDisabledMiddleware,
       isDisabled: jest.fn().mockReturnValue(false),
+    },
+  };
+});
+
+/*
+ * The upload reader the route builds, recorded: what it was handed (the
+ * multipart middleware above all), and the handler it gave back, which is
+ * what the route mounts.
+ */
+interface UploadReaderBuild {
+  readers: {
+    limit: unknown;
+    multipart: unknown;
+    json?: boolean | undefined;
+    bytes?: boolean | undefined;
+  };
+  handler: unknown;
+}
+
+const uploadReaderBuilds: Array<UploadReaderBuild> = [];
+
+jest.mock("Common/Server/Middleware/RequestBodyAfterAuthentication", () => {
+  return {
+    __esModule: true,
+    default: {
+      readUpload: (readers: UploadReaderBuild["readers"]): unknown => {
+        const handler: unknown = jest.fn();
+
+        uploadReaderBuilds.push({ readers: readers, handler: handler });
+
+        return handler;
+      },
     },
   };
 });
@@ -187,6 +226,7 @@ const loadRoute: LoadRouteFunction = (
 ): Array<unknown> => {
   mockMaxFilesPerRequest = maxFilesPerRequest;
   multipartMiddlewareBuilds.length = 0;
+  uploadReaderBuilds.length = 0;
   registeredPostHandlers = {};
 
   jest.isolateModules(() => {
@@ -199,20 +239,28 @@ const loadRoute: LoadRouteFunction = (
   return registeredPostHandlers[UPLOAD_ROUTE]!;
 };
 
+// The multipart middleware the route's upload reader was handed.
+const mountedMultipart: () => unknown = (): unknown => {
+  expect(uploadReaderBuilds).toHaveLength(1);
+
+  return uploadReaderBuilds[0]!.readers.multipart;
+};
+
 describe("POST /source-maps/v1/upload multipart mount", () => {
   test("mounts a middleware built from SOURCE_MAP_MAX_FILES_PER_REQUEST rather than the shared default export", () => {
-    const handlers: Array<unknown> = loadRoute(10);
+    loadRoute(10);
 
     expect(multipartMiddlewareBuilds).toHaveLength(1);
     expect(multipartMiddlewareBuilds[0]!.maxFiles).toBe(10);
-    expect(handlers[1]).toBe(multipartMiddlewareBuilds[0]!.middleware);
-    expect(handlers[1]).not.toBe(sharedMultipartMiddleware);
+    expect(mountedMultipart()).toBe(multipartMiddlewareBuilds[0]!.middleware);
+    expect(mountedMultipart()).not.toBe(sharedMultipartMiddleware);
   });
 
   test("a narrowed route mounts the shared default export nowhere in its chain", () => {
     const handlers: Array<unknown> = loadRoute(1);
 
     expect(handlers).not.toContain(sharedMultipartMiddleware);
+    expect(mountedMultipart()).not.toBe(sharedMultipartMiddleware);
   });
 
   test("at the shipped default the knob resolves to the shared instance, so no second multer is built", () => {
@@ -222,7 +270,7 @@ describe("POST /source-maps/v1/upload multipart mount", () => {
      * take effect — but at the default it must not cost a duplicate multer,
      * because every instance buffers uploads in this process's memory.
      */
-    const handlers: Array<unknown> = loadRoute(MAX_MULTIPART_FILES);
+    loadRoute(MAX_MULTIPART_FILES);
 
     expect(multipartMiddlewareBuilds).toHaveLength(1);
     expect(multipartMiddlewareBuilds[0]!.maxFiles).toBe(MAX_MULTIPART_FILES);
@@ -233,18 +281,18 @@ describe("POST /source-maps/v1/upload multipart mount", () => {
      * all. The second says what the builder returned at the default IS the
      * shared instance.
      */
-    expect(handlers[1]).toBe(multipartMiddlewareBuilds[0]!.middleware);
-    expect(handlers[1]).toBe(sharedMultipartMiddleware);
+    expect(mountedMultipart()).toBe(multipartMiddlewareBuilds[0]!.middleware);
+    expect(mountedMultipart()).toBe(sharedMultipartMiddleware);
   });
 
-  test("a knob set above the shared ceiling cannot widen this route's pre-auth parse", () => {
+  test("a knob set above the shared ceiling cannot widen this route's parse", () => {
     /*
      * EnvironmentConfig already clamps the knob, so this is the second of two
-     * clamps. It is the one that holds if the config ever stops clamping: the
-     * parse runs before authentication, so widening it here would widen what an
-     * unauthenticated caller can make the process buffer.
+     * clamps. It is the one that holds if the config ever stops clamping:
+     * widening it here would widen what any caller can make the process
+     * buffer in one request.
      */
-    const handlers: Array<unknown> = loadRoute(MAX_MULTIPART_FILES * 100);
+    loadRoute(MAX_MULTIPART_FILES * 100);
 
     /*
      * The route handed the builder the raw, over-ceiling value — it does no
@@ -256,31 +304,46 @@ describe("POST /source-maps/v1/upload multipart mount", () => {
     expect(multipartMiddlewareBuilds[0]!.maxFiles).toBe(
       MAX_MULTIPART_FILES * 100,
     );
-    expect(handlers[1]).toBe(multipartMiddlewareBuilds[0]!.middleware);
-    expect(handlers[1]).toBe(sharedMultipartMiddleware);
+    expect(mountedMultipart()).toBe(multipartMiddlewareBuilds[0]!.middleware);
+    expect(mountedMultipart()).toBe(sharedMultipartMiddleware);
   });
 
-  test("builds exactly one middleware per module load", () => {
+  test("builds exactly one middleware and one upload reader per module load", () => {
     // Each build constructs a multer instance, so the route hoists the call.
     loadRoute(10);
 
     expect(multipartMiddlewareBuilds).toHaveLength(1);
+    expect(uploadReaderBuilds).toHaveLength(1);
   });
 
-  test("the narrowed parse still sits between the ingestion-disabled gate and the auth check", () => {
+  test("the body is read behind the key check, never before it (#10673)", () => {
     /*
-     * Order is what makes the clamp necessary in the first place: multipart
-     * parsing happens before isAuthorizedServiceMiddleware, so swapping in a
-     * per-route instance must not move it later (which would parse
-     * unauthenticated bodies with different limits than the gate expects) or
-     * earlier than the disabled gate (which would parse for a project that has
-     * ingestion switched off).
+     * Order is the point. The multipart parse used to be mounted second,
+     * before the key check: anyone's 50 MB were read and held by multer
+     * before a missing key was noticed. Now the key check comes first and
+     * the upload reader - which holds the multipart middleware - after it,
+     * so a request without the right key is refused with its body unread.
+     * The ingestion-disabled gate stays first: nothing is read for a server
+     * that takes no telemetry.
      */
     const handlers: Array<unknown> = loadRoute(10);
 
     expect(handlers).toHaveLength(5);
     expect(handlers[0]).toBe(ingestionDisabledMiddleware);
-    expect(handlers[1]).toBe(multipartMiddlewareBuilds[0]!.middleware);
-    expect(handlers[3]).toBe(authMiddleware);
+    // handlers[1] is the route's Bearer mapping, which reads only a header.
+    expect(handlers[2]).toBe(authMiddleware);
+    expect(handlers[3]).toBe(uploadReaderBuilds[0]!.handler);
+    expect(handlers).not.toContain(multipartMiddlewareBuilds[0]!.middleware);
+  });
+
+  test("the upload reader takes a multipart form and JSON, held to a large route's 50 MB", () => {
+    loadRoute(10);
+
+    // A module of the route's own registry (isolateModules): equal, not one.
+    expect(uploadReaderBuilds[0]!.readers.limit).toEqual(
+      LARGE_REQUEST_BODY_LIMIT,
+    );
+    expect(uploadReaderBuilds[0]!.readers.json).toBe(true);
+    expect(uploadReaderBuilds[0]!.readers.bytes).toBeFalsy();
   });
 });

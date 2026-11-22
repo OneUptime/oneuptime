@@ -9,6 +9,9 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallDutyPolicyUserOverrideService from "../../../Server/Services/OnCallDutyPolicyUserOverrideService";
 import UserService from "../../../Server/Services/UserService";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
 import ColumnWriteRefusedException from "../../../Server/Types/Database/Permissions/ColumnWriteRefusedException";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -806,6 +809,167 @@ describe("the line the policy's chat channels get", () => {
       expect(byWorkspace()).toEqual([]);
       expect(WorkspaceUtil.getUserStringForWorkspace).not.toHaveBeenCalled();
     });
+  });
+});
+
+/*
+ * A COVER WHO HAS NOT JOINED THE PROJECT YET (#10670): an edit can make
+ * someone invited who has not accepted the cover - the server takes them,
+ * from the Dashboard, the API, Terraform and the MCP server alike - and
+ * nothing pages them until they join. The feed entry and the channels'
+ * line say the override as it is now, and so that nobody is paged in place
+ * of the person away until then. Through the real update, as a member.
+ */
+describe("a cover who hasn't joined the project yet (#10670)", () => {
+  // Invited to the project, and not joined yet.
+  const IVY: string = "7631aaaa-0000-4000-8000-0000000000c9";
+
+  // The line the first edit posted to the channels.
+  const chatLine: () => string = (): string => {
+    const call: Array<unknown> | undefined = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+    ).mock.calls[0];
+
+    return String(
+      (call?.[0] as { chatInfoInMarkdown?: string } | undefined)
+        ?.chatInfoInMarkdown,
+    );
+  };
+
+  const ivyIsInvited: (inviteeName: string | null) => void = (
+    inviteeName: string | null,
+  ): void => {
+    jest
+      .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+      .mockImplementation(
+        async (data: {
+          userIds: Array<string>;
+        }): Promise<Map<string, WithheldProfile>> => {
+          return new Map<string, WithheldProfile>(
+            data.userIds
+              .filter((userId: string): boolean => {
+                return userId.toLowerCase() === IVY;
+              })
+              .map((userId: string): [string, WithheldProfile] => {
+                return [
+                  userId.toLowerCase(),
+                  {
+                    inviteeName: inviteeName,
+                    inviteeEmail: "ivy@invited.example",
+                  },
+                ];
+              }),
+          );
+        },
+      );
+  };
+
+  test("is taken as the cover, and the lines say nobody is paged in place of the person away until they join", async () => {
+    ivyIsInvited("Ivy");
+
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(IVY) });
+
+    expect(String(stored(UPCOMING, "routeAlertsToUserId")).toLowerCase()).toBe(
+      IVY,
+    );
+
+    const text: string = feedEntries()[0]!.text;
+
+    expect(text).toContain("All alerts will be routed to **Ivy**");
+    expect(text).toContain(
+      "**Ivy** hasn't joined the project yet, so nobody is paged in place of **Jane Doe** until they do.",
+    );
+    expect(text).toContain("Changed: who covers (it was **Bob Lee**).");
+    expect(chatLine()).toBe(
+      "✏️ Changed an override on [Payments](https://oneuptime.example/policy): Ivy covers for Jane Doe from {{DATE(2026-11-14T09:00:00Z, SHORT)}} at {{TIME(2026-11-14T09:00:00Z)}} to {{DATE(2026-11-14T17:00:00Z, SHORT)}} at {{TIME(2026-11-14T17:00:00Z)}}, but Ivy hasn't joined the project yet, so nobody is paged in place of Jane Doe until they do.",
+    );
+  });
+
+  test.each([
+    ["no name typed", null],
+    ["only spaces typed", "   "],
+    ["an address typed as the name", "ivy@invited.example"],
+  ])(
+    "with %s: someone who hasn't joined the project yet, never an address",
+    async (_label: string, inviteeName: string | null) => {
+      ivyIsInvited(inviteeName);
+
+      await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(IVY) });
+
+      const text: string = feedEntries()[0]!.text;
+
+      expect(text).toContain(
+        "All alerts will be routed to **someone who hasn't joined the project yet**",
+      );
+      expect(text).toContain(
+        "Nobody is paged in place of **Jane Doe** until they join the project.",
+      );
+      expect(chatLine()).toContain(
+        ": someone who hasn't joined the project yet covers for Jane Doe from ",
+      );
+      expect(chatLine()).toMatch(
+        /, so nobody is paged in place of Jane Doe until they join\.$/,
+      );
+
+      for (const line of [text, chatLine()]) {
+        expect(line).not.toContain("ivy@invited.example");
+      }
+    },
+  );
+
+  test("an edit of the times alone says it again: the line is the override as it is now", async () => {
+    ivyIsInvited("Ivy");
+
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(IVY) });
+    await edit(UPCOMING, { endsAt: new Date("2026-11-14T18:00:00.000Z") });
+
+    const calls: Array<Array<unknown>> = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+    ).mock.calls;
+
+    expect(calls).toHaveLength(2);
+    expect(
+      (calls[1]![0] as { chatInfoInMarkdown?: string }).chatInfoInMarkdown,
+    ).toContain(
+      ", but Ivy hasn't joined the project yet, so nobody is paged in place of Jane Doe until they do.",
+    );
+  });
+
+  test("a cover who has joined takes over from them: no word of it", async () => {
+    ivyIsInvited("Ivy");
+
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(IVY) });
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(CAROL) });
+
+    const second: { feedInfoInMarkdown: string; chatInfoInMarkdown?: string } =
+      (
+        OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+      ).mock.calls[1]![0] as {
+        feedInfoInMarkdown: string;
+        chatInfoInMarkdown?: string;
+      };
+
+    expect(second.feedInfoInMarkdown).toContain(
+      "Changed: who covers (it was **Ivy**).",
+    );
+    expect(second.feedInfoInMarkdown).not.toContain("hasn't joined");
+    expect(second.chatInfoInMarkdown).not.toContain("hasn't joined");
+  });
+
+  test("taken off for the rotation to cover: no word of it", async () => {
+    ivyIsInvited("Ivy");
+
+    await edit(UPCOMING, { routeAlertsToUserId: new ObjectID(IVY) });
+    await edit(UPCOMING, { routeAlertsToUserId: null });
+
+    const second: { chatInfoInMarkdown?: string } = (
+      OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem as unknown as jest.Mock
+    ).mock.calls[1]![0] as { chatInfoInMarkdown?: string };
+
+    expect(second.chatInfoInMarkdown).toContain(
+      "and their turns go to the next person in the rotation.",
+    );
+    expect(second.chatInfoInMarkdown).not.toContain("hasn't joined");
   });
 });
 

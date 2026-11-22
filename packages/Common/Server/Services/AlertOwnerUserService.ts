@@ -1,4 +1,3 @@
-import User from "../../Models/DatabaseModels/User";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
@@ -9,7 +8,6 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/AlertOwnerUser";
 import UserService from "./UserService";
-import PendingInviteeProfiles from "../Utils/TeamMember/PendingInviteeProfiles";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { Gray500, Red500 } from "../../Types/BrandColors";
@@ -20,7 +18,7 @@ import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import AlertOnCallRulesOnOwnerChange from "../Utils/Alert/AlertOnCallRulesOnOwnerChange";
 
 export class Service extends ProjectReferencesService<Model> {
@@ -105,24 +103,19 @@ export class Service extends ProjectReferencesService<Model> {
       const userId: ObjectID | undefined = item.userId;
 
       if (alertId && userId && projectId) {
-        const user: User | null = await UserService.findOneById({
-          id: userId,
-          select: {
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // Someone only invited is named as the project knows them (#9823).
-        await PendingInviteeProfiles.nameInProject({
-          users: [user],
+        /*
+         * The entry is the channels' line too: the owner is named as the
+         * added entry names them, linked to their page - someone only
+         * invited by the name typed for them, never by an address, and no
+         * address after anybody's name (FeedPersonName, #10668). A member
+         * with no name is no longer taken off without a word.
+         */
+        const owner: MarkdownText = await UserService.getUserMarkdownString({
+          userId: userId,
           projectId: projectId,
         });
 
-        if (user && user.name) {
+        if (!owner.isEmpty()) {
           const alertNumberResult: {
             number: number | null;
             numberWithPrefix: string | null;
@@ -136,7 +129,7 @@ export class Service extends ProjectReferencesService<Model> {
             alertFeedEventType: AlertFeedEventType.OwnerUserRemoved,
             displayColor: Red500,
             feedInfoInMarkdown:
-              mdText`👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) from the [Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`.toString(),
+              mdText`👨🏻‍💻 Removed **${owner}** from the [Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`.toString(),
             userId: deleteByUserId || undefined,
             workspaceNotification: {
               sendWorkspaceNotification: true,
@@ -199,18 +192,17 @@ export class Service extends ProjectReferencesService<Model> {
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
     if (alertId && userId && projectId) {
-      const user: User | null = await UserService.findOneById({
-        id: userId,
-        select: {
-          name: true,
-          email: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      /*
+       * The entry is the channels' line too (FeedPersonName, #10668). A
+       * member with no name used to be added without a word: they are
+       * named by the part of their address before the "@" now.
+       */
+      const owner: MarkdownText = await UserService.getUserMarkdownString({
+        userId: userId,
+        projectId: projectId,
       });
 
-      if (user && user.name) {
+      if (!owner.isEmpty()) {
         const alertNumberResult: {
           number: number | null;
           numberWithPrefix: string | null;
@@ -223,10 +215,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertFeedEventType: AlertFeedEventType.OwnerUserAdded,
           displayColor: Gray500,
           feedInfoInMarkdown:
-            mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
-              userId: userId,
-              projectId: projectId,
-            })}** to the [Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`.toString(),
+            mdText`👨🏻‍💻 Added **${owner}** to the [Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) as the owner.`.toString(),
           userId: createdByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

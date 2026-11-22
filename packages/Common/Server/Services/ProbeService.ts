@@ -636,7 +636,9 @@ export class Service extends ProjectReferencesService<Model> {
     addresses: Array<string>;
   }): Promise<boolean> {
     if (!data.probeId) {
-      throw new BadDataException("probeId is required");
+      throw new BadDataException(
+        "Interface addresses are kept for the probe that reported them: send its probe ID with them.",
+      );
     }
 
     const text: string = ProbeInterfaceAddressesUtil.toText(data.addresses);
