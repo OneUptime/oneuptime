@@ -266,7 +266,7 @@ Quand l'alerte de surveillance n'est pas arrivée depuis dix minutes, le moniteu
 - L'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
 - **Champ qui signale le rétablissement** doit valoir `requestBody.alerts[*].status`, et **Value that means recovered** exactement `resolved`. La comparaison respecte la casse.
 - Les alertes d'une notification au-delà de **Incidents max par requête** ne sont pas lues du tout, leurs rétablissements sont donc perdus aussi.
-- Un rétablissement sauté dans une rafale (voir ci-dessous) laisse son incident ouvert pour de bon : Alertmanager répète les alertes déclenchées, mais jamais un rétablissement. Résolvez un tel incident à la main.
+- Un rétablissement sauté parce que trop de notifications attendaient (voir ci-dessous) laisse son incident ouvert pour de bon : Alertmanager répète les alertes déclenchées, mais jamais un rétablissement. Résolvez un tel incident à la main.
 :::
 
 :::details Aucun incident ne s'ouvre
@@ -285,8 +285,8 @@ Une référence à un champ que la notification n'a pas est laissée telle qu'el
 Regroupez votre route selon moins de labels, ou augmentez `group_interval`, pour qu'Alertmanager envoie les alertes liées ensemble. Baisser **Incidents max par requête** limite les incidents d'une notification, mais les alertes au-delà de la limite ne sont pas lues, leurs rétablissements sont donc perdus aussi.
 :::
 
-:::details Des notifications sont sautées lors d'une rafale
-Quand une requête plus récente atteint un moniteur avant qu'une précédente soit évaluée, OneUptime n'évalue que la plus récente, pour qu'un seul expéditeur ne puisse pas submerger un moniteur. La dernière notification d'une rafale est toujours évaluée, mais une précédente sur d'autres alertes peut être sautée, car Alertmanager envoie chaque groupe à la même URL. Augmentez `group_wait` et `group_interval` pour espacer les notifications. Sur une installation auto-hébergée, réglez `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` dans l'environnement de l'application OneUptime pour évaluer chaque requête.
+:::details Une rafale de notifications
+Un moniteur dont le critère regroupe par un champ, comme ce guide le configure, évalue chaque notification qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes déclenchées et résolues ouvre et résout donc l'incident de chaque alerte. Jusqu'à 1 000 notifications, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Augmentez `group_wait` et `group_interval` pour envoyer moins de notifications, plus grandes. Un moniteur sans regroupement n'évalue que la plus récente notification qui l'attend.
 :::
 
 ## Sécurité

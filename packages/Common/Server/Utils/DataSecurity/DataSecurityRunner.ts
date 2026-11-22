@@ -34,6 +34,7 @@ import { sampleObjectStore } from "./Content/ObjectStoreSampler";
 import { DatabaseConnection, sampleDatabase } from "./Content/DatabaseSampler";
 import { assertDatabaseConnectionAllowed } from "../DataObservability/DatabaseConnectionGuard";
 import DataSecurityDiscovery from "./DataSecurityDiscovery";
+import { queueDataStoreOwnerProposals } from "./DataSecurityJobs";
 import DataSecurityFindingWriter, {
   CustomDataTypeSummary,
   DataSecurityScanKind,
@@ -144,15 +145,19 @@ const MAX_CONTAINERS_PER_ACCOUNT: number = 10;
 
 /*
  * Cloud audit operations that change a store's exposure, encryption or
- * sharing: one of them makes the connection's next read due at once.
+ * sharing: one of them makes the connection's next read due at once. By
+ * the names the activity log records them under: a bucket's public access
+ * block is PutBucketPublicAccessBlock and DeleteBucketPublicAccessBlock in
+ * CloudTrail, not S3's API names PutPublicAccessBlock and
+ * DeletePublicAccessBlock.
  */
 export const POSTURE_CHANGING_OPERATIONS: ReadonlyArray<string> = [
   "s3:PutBucketPolicy",
   "s3:DeleteBucketPolicy",
   "s3:PutBucketAcl",
   "s3:PutObjectAcl",
-  "s3:PutPublicAccessBlock",
-  "s3:DeletePublicAccessBlock",
+  "s3:PutBucketPublicAccessBlock",
+  "s3:DeleteBucketPublicAccessBlock",
   "s3:PutAccountPublicAccessBlock",
   "s3:DeleteAccountPublicAccessBlock",
   "s3:PutBucketEncryption",
@@ -514,6 +519,8 @@ export default class DataSecurityRunner {
         data: scan,
         props: { isRoot: true },
       });
+
+      await this.proposeOwnersAfterFirstRead({ projectId, cloudConnectionId });
     } catch (error) {
       await DataSecurityFindingWriter.recordFailedScan({
         projectId,
@@ -523,6 +530,43 @@ export default class DataSecurityRunner {
         errorMessage:
           error instanceof Error ? error.message : "The read failed.",
       });
+    }
+  }
+
+  /*
+   * A connection read for the first time: OneUptime AI proposes owners for
+   * the stores it found (#10374), under the project's switches and AI
+   * rules (DataStoreOwnerProposalRun). Only the first read that worked
+   * counts. Never fails the read.
+   */
+  private static async proposeOwnersAfterFirstRead(data: {
+    projectId: ObjectID;
+    cloudConnectionId: ObjectID;
+  }): Promise<void> {
+    try {
+      const reads: number = (
+        await DataSecurityScanService.countBy({
+          query: {
+            projectId: data.projectId,
+            cloudConnectionId: data.cloudConnectionId,
+            kind: DataSecurityScanKind.Configuration,
+            status: QueryHelper.any([
+              DataSecurityScanStatus.Succeeded,
+              DataSecurityScanStatus.PartlySucceeded,
+            ]),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (reads === 1) {
+        await queueDataStoreOwnerProposals(data);
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not have OneUptime AI propose owners after connection ${data.cloudConnectionId.toString()}'s first read:`,
+      );
+      logger.error(error);
     }
   }
 

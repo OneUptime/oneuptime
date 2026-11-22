@@ -8,9 +8,13 @@ import DataSecurityRunner, {
 } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import DataSecurityFieldSuggestion from "Common/Server/Utils/AI/DataSecurity/FieldSuggestion";
 import DataSecurityAiEngine from "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
+import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
+import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+  DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
@@ -20,6 +24,7 @@ import {
   queueDataSecurityDiscovery,
   queueDataSecurityEvaluation,
   queueDataSecurityTelemetryScan,
+  queueDataStoreOwnerProposals,
   queueDataStoreScan,
 } from "Common/Server/Utils/DataSecurity/DataSecurityJobs";
 import {
@@ -48,6 +53,10 @@ import ObjectID from "Common/Types/ObjectID";
  *  - When an issue opens, or opens again, have OneUptime AI work on it as
  *    the project's Data Security AI rules say (queued by the evaluation,
  *    one job per issue).
+ *  - Every day, and when a cloud connection is first read (queued by the
+ *    read), have OneUptime AI propose owners for the stores that have
+ *    none (#10374); a few minutes after a store's owners are proposed, the
+ *    owner rules they share.
  *
  * The crons only decide what is due; each piece of work - one project, one
  * store, one connection - is its own queue job, deduplicated by what it is
@@ -135,6 +144,20 @@ RunCron(
   async () => {
     for (const projectId of await DataSecurityRunner.listProjectIds()) {
       await queueDataSecurityEvaluation(projectId);
+    }
+  },
+);
+
+RunCron(
+  "DataSecurity:ProposeStoreOwners",
+  {
+    schedule: EVERY_DAY,
+    runOnStartup: false,
+    timeoutInMS: 10 * 60 * 1000,
+  },
+  async () => {
+    for (const projectId of await DataSecurityRunner.listProjectIds()) {
+      await queueDataStoreOwnerProposals({ projectId });
     }
   },
 );
@@ -255,5 +278,40 @@ JobDictionary.setJobFunction(
 );
 JobDictionary.setTimeoutInMs(
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+  5 * 60 * 1000,
+);
+
+// OneUptime AI's owners for a project's stores that have none (#10374).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await DataStoreOwnerProposalRun.run({
+        projectId,
+        cloudConnectionId: readId(job, "cloudConnectionId") || undefined,
+      });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
+  15 * 60 * 1000,
+);
+
+// The owner rules the project's proposed owners share (#10374).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await DataStoreOwnerRuleProposals.proposeForProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   5 * 60 * 1000,
 );

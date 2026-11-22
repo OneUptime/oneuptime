@@ -105,7 +105,15 @@ describe("the exceptions list's stats route", () => {
     const read: SpyInstance<typeof ExceptionListStatsReader.read> = jest
       .spyOn(ExceptionListStatsReader, "read")
       .mockResolvedValue({
-        items: [{ telemetryExceptionId: E1, affectedUsers: 3, trend }],
+        items: [
+          {
+            telemetryExceptionId: E1,
+            affectedUsers: 3,
+            hiddenUsers: 1,
+            hiddenUserOccurrences: 4,
+            trend,
+          },
+        ],
         bucketSizeInSeconds: 3600,
         startTime: START,
         endTime: END,
@@ -131,7 +139,16 @@ describe("the exceptions list's stats route", () => {
     expect(args.endTime.toISOString()).toBe(END);
     expect(sent).toEqual([
       {
-        stats: [{ telemetryExceptionId: E1, affectedUsers: 3, trend }],
+        // What a scrub rule hid goes with each exception's users (#10435).
+        stats: [
+          {
+            telemetryExceptionId: E1,
+            affectedUsers: 3,
+            hiddenUsers: 1,
+            hiddenUserOccurrences: 4,
+            trend,
+          },
+        ],
         bucketSizeInSeconds: 3600,
         startTime: START,
         endTime: END,

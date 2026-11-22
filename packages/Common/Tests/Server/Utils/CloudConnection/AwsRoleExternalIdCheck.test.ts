@@ -1226,9 +1226,12 @@ describe("the verdict, for every server", () => {
 
     await connector.getCredentials(roleSettings(), callOptions(fake));
 
-    expect(Array.from(shared.keys())).toEqual([
-      `cloud-aws-role-check-${PROJECT}|${CONNECTION}|${ROLE_ARN}`,
-    ]);
+    // The verdicts' own place: a session's key ID is kept in another (OneUptimeAwsSessions).
+    expect(
+      Array.from(shared.keys()).filter((key: string): boolean => {
+        return key.startsWith("cloud-aws-role-check-");
+      }),
+    ).toEqual([`cloud-aws-role-check-${PROJECT}|${CONNECTION}|${ROLE_ARN}`]);
   });
 
   test("a pass one server found is used by every other: the role is checked once, not once per server", async () => {
@@ -1321,9 +1324,13 @@ describe("the verdict, for every server", () => {
 
     expect(checksOf(fake)).toBe(3);
     expect(
-      writes.map((write: SharedWrite): string => {
-        return write.key;
-      }),
+      writes
+        .map((write: SharedWrite): string => {
+          return write.key;
+        })
+        .filter((key: string): boolean => {
+          return key.startsWith("cloud-aws-role-check-");
+        }),
     ).toEqual([sharedKeyOf(), sharedKeyOf({ connectionId: OTHER_CONNECTION })]);
   });
 
@@ -1517,7 +1524,11 @@ describe("the verdict, for every server", () => {
       );
     });
 
-    expect(writes).toEqual([
+    expect(
+      writes.filter((write: SharedWrite): boolean => {
+        return write.key.startsWith("cloud-aws-role-check-");
+      }),
+    ).toEqual([
       {
         key: sharedKeyOf(),
         value: JSON.stringify({

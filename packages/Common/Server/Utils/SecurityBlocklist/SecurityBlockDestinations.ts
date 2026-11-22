@@ -10,6 +10,7 @@ import {
   SecurityBlockHolder,
 } from "../../../Types/SecurityBlocklist/SecurityBlockHolders";
 import logger from "../Logger";
+import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
 import {
   CrowdStrikeBlockDestinationSource,
@@ -24,7 +25,7 @@ import {
  * Each kind of destination is a source here: given a project, it lists the
  * destinations of its kind the project has - one per connection with
  * blocking turned on, say, or one per zone of it. Each provider's issue of
- * #10335 adds its source to SECURITY_BLOCK_DESTINATION_SOURCES as it lands
+ * #10335 adds its source to getSecurityBlockDestinationSources as it lands
  * (Cloudflare #10343, AWS WAF #10344, the feed #10345, Defender and
  * CrowdStrike #10346, Azure WAF #10348, Cloud Armor #10349). Until one has,
  * a project has no destination, and the blocklist says so: its blocks are
@@ -54,30 +55,42 @@ export interface SecurityBlockDestinationsFound {
 /*
  * The kinds of destination OneUptime enforces the blocklist at. Each
  * provider's issue adds its own source here, with its import at the top of
- * this file.
+ * this file. Made on first use, never as this module loads: a source's
+ * module reaches back here through the services it reads, so it is whole
+ * only once every module has loaded.
  */
-export const SECURITY_BLOCK_DESTINATION_SOURCES: ReadonlyArray<SecurityBlockDestinationSource> =
-  [
-    // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
-    MicrosoftDefenderBlockDestinationSource,
-    CrowdStrikeBlockDestinationSource,
-  ];
+export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBlockDestinationSource> {
+  if (!productionSources) {
+    productionSources = [
+      // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
+      new AwsWafBlockDestinationSource(),
+      // Every machine (#10346): Microsoft Defender's indicators and CrowdStrike Falcon's IOCs.
+      MicrosoftDefenderBlockDestinationSource,
+      CrowdStrikeBlockDestinationSource,
+    ];
+  }
+
+  return productionSources;
+}
+
+let productionSources: ReadonlyArray<SecurityBlockDestinationSource> | null =
+  null;
 
 export default class SecurityBlockDestinations {
   /*
    * The sources a process asks, which tests replace (setSourcesForTests):
-   * SECURITY_BLOCK_DESTINATION_SOURCES otherwise.
+   * getSecurityBlockDestinationSources() otherwise.
    */
-  private static sources: ReadonlyArray<SecurityBlockDestinationSource> =
-    SECURITY_BLOCK_DESTINATION_SOURCES;
+  private static sources: ReadonlyArray<SecurityBlockDestinationSource> | null =
+    null;
 
   public static getSources(): ReadonlyArray<SecurityBlockDestinationSource> {
-    return this.sources;
+    return this.sources || getSecurityBlockDestinationSources();
   }
 
   // Whether any kind of destination exists at all: with none, nothing can enforce a block anywhere.
   public static hasSources(): boolean {
-    return this.sources.length > 0;
+    return this.getSources().length > 0;
   }
 
   // For tests: the sources to ask instead, until resetSourcesForTests.
@@ -88,7 +101,7 @@ export default class SecurityBlockDestinations {
   }
 
   public static resetSourcesForTests(): void {
-    this.sources = SECURITY_BLOCK_DESTINATION_SOURCES;
+    this.sources = null;
   }
 
   /*
@@ -151,7 +164,7 @@ export default class SecurityBlockDestinations {
     }> = [];
     const seen: Set<string> = new Set();
 
-    for (const source of this.sources) {
+    for (const source of this.getSources()) {
       try {
         for (const destination of await source.findForProject(projectId)) {
           if (!destination.key || seen.has(destination.key)) {

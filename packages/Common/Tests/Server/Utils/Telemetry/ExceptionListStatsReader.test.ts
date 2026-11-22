@@ -12,6 +12,7 @@ import ExceptionListStatsReader, {
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
 import ExceptionInstanceService from "../../../../Server/Services/ExceptionInstanceService";
 import TelemetryReadAccess from "../../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import { SCRUB_HASH_TOKEN_SQL_PATTERN } from "../../../../Server/Utils/Telemetry/ScrubPlaceholderSql";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../../Server/Utils/Logger";
 import ExceptionInstance from "../../../../Models/AnalyticsModels/ExceptionInstance";
@@ -163,7 +164,7 @@ beforeEach(() => {
     .spyOn(ExceptionInstanceService, "executeQuery")
     .mockImplementation((async (statement: Statement) => {
       statements.push(statement);
-      const isUsers: boolean = statement.query.includes("uniq(userId)");
+      const isUsers: boolean = statement.query.includes(" AS users");
 
       if (isUsers && userRows instanceof Error) {
         throw userRows;
@@ -325,10 +326,35 @@ describe("the two ClickHouse reads", () => {
     );
 
     expect(text).toContain(
-      "SELECT transform(fingerprint, {p0:Array(String)}, {p1:Array(String)}, '') AS grp, uniq(userId) AS users FROM",
+      "SELECT transform(fingerprint, {p0:Array(String)}, {p1:Array(String)}, '') AS grp, uniqIf(userId, NOT (",
     );
     expect(text).toContain("AND userId != ''");
     expect(text).toContain("GROUP BY grp");
+  });
+
+  /*
+   * A user id a scrub rule hid is never a user (#10435): the ids no rule
+   * touched are the users, a Hash rule's tokens are hidden users - one
+   * each - and the occurrences whose id Redact or Mask left are counted as
+   * occurrences, never as the one "[REDACTED]" user they all shared.
+   */
+  test("a user id a scrub rule hid is never counted as a user", () => {
+    const statement: Statement =
+      ExceptionListStatsReader.buildAffectedUsersStatement(query);
+
+    expect(queryText(statement)).toContain(
+      "uniqIf(userId, NOT ((position(userId, {p2:String}) > 0 OR position(userId, {p3:String}) > 0) OR match(userId, {p4:String}))) AS users, uniqIf(userId, (match(userId, {p5:String}) AND NOT (position(userId, {p6:String}) > 0 OR position(userId, {p7:String}) > 0))) AS hiddenUsers, countIf((position(userId, {p8:String}) > 0 OR position(userId, {p9:String}) > 0)) AS hiddenUserOccurrences FROM",
+    );
+    expect(paramValues(statement).slice(2, 10)).toEqual([
+      "[REDACTED]",
+      "***",
+      SCRUB_HASH_TOKEN_SQL_PATTERN,
+      SCRUB_HASH_TOKEN_SQL_PATTERN,
+      "[REDACTED]",
+      "***",
+      "[REDACTED]",
+      "***",
+    ]);
   });
 
   test.each([
@@ -404,6 +430,52 @@ describe("the answer", () => {
 
     expect(stats.items[0]!.trend).toEqual(new Array(24).fill(0));
     expect(stats.items[0]!.affectedUsers).toBe(0);
+    expect(stats.items[0]!.hiddenUsers).toBe(0);
+    expect(stats.items[0]!.hiddenUserOccurrences).toBe(0);
+  });
+
+  test("users a scrub rule hid are said apart: three redacted users are three events with a hidden user, not one user (#10435)", async () => {
+    trendRows = [{ grp: E1, bucket: 0, cnt: 9 }];
+    userRows = [
+      {
+        grp: E1,
+        users: "2",
+        hiddenUsers: "4",
+        hiddenUserOccurrences: "3",
+      },
+      { grp: E2, users: 0, hiddenUsers: 0, hiddenUserOccurrences: 7 },
+    ];
+
+    const stats: ExceptionListStats = await read();
+
+    expect(stats.items[0]).toEqual(
+      expect.objectContaining({
+        affectedUsers: 2,
+        hiddenUsers: 4,
+        hiddenUserOccurrences: 3,
+      }),
+    );
+    expect(stats.items[1]).toEqual(
+      expect.objectContaining({
+        affectedUsers: 0,
+        hiddenUsers: 0,
+        hiddenUserOccurrences: 7,
+      }),
+    );
+  });
+
+  test("a row from before the hidden counts, or with nonsense in them, says nothing was hidden", async () => {
+    userRows = [
+      { grp: E1, users: 3 },
+      { grp: E2, users: 1, hiddenUsers: "lots", hiddenUserOccurrences: -2 },
+    ];
+
+    const stats: ExceptionListStats = await read();
+
+    expect(stats.items[0]!.hiddenUsers).toBe(0);
+    expect(stats.items[0]!.hiddenUserOccurrences).toBe(0);
+    expect(stats.items[1]!.hiddenUsers).toBe(0);
+    expect(stats.items[1]!.hiddenUserOccurrences).toBe(0);
   });
 
   test("users that cannot be counted leave the trends standing, and read as unknown", async () => {

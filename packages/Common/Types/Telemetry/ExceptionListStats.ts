@@ -5,7 +5,9 @@
  * range the list is showing:
  *
  *   - how many distinct users their occurrences happened to (the occurrence's
- *     userId, see Common/Utils/Exceptions/ExceptionUserId);
+ *     userId, see Common/Utils/Exceptions/ExceptionUserId), and - where a
+ *     scrub rule hid the user id - how many users a Hash rule hid and how
+ *     many occurrences Redact or Mask hid the user of (#10435);
  *   - how many occurrences fell in each of EXCEPTION_TREND_BUCKET_COUNT equal
  *     slices of the range, oldest first: the row's small trend chart.
  *
@@ -27,10 +29,23 @@ export const MAX_EXCEPTION_LIST_STATS_IDS: number = 200;
 export interface ExceptionListStatsItem {
   telemetryExceptionId: string;
   /*
-   * Distinct users in the range, or null when that could not be counted -
-   * a reader shows nothing then, rather than a 0 that reads as "nobody".
+   * Distinct users in the range that an occurrence names, or null when that
+   * could not be counted - a reader shows nothing then, rather than a 0
+   * that reads as "nobody". A user id a scrub rule hid is not one of them
+   * (Types/Telemetry/ScrubRule, #10435): see the two counts below.
    */
   affectedUsers: number | null;
+  /*
+   * Distinct users whose id a Hash scrub rule left as its token: one token
+   * per user, so each is counted once, but nobody can name them.
+   */
+  hiddenUsers: number;
+  /*
+   * Occurrences whose user id Redact or Mask left: "[REDACTED]" is everybody
+   * a rule hid, so these can't be counted as users at all, only as
+   * occurrences - never as one user.
+   */
+  hiddenUserOccurrences: number;
   // Occurrences per bar, oldest first: EXCEPTION_TREND_BUCKET_COUNT of them.
   trend: Array<number>;
 }
@@ -117,6 +132,9 @@ function readItem(value: unknown): ExceptionListStatsItem | null {
     telemetryExceptionId: id,
     affectedUsers:
       rawUsers === null || rawUsers === undefined ? null : toCount(rawUsers),
+    // A server from before #10435 sends neither: nothing hidden to say.
+    hiddenUsers: toCount(raw["hiddenUsers"]),
+    hiddenUserOccurrences: toCount(raw["hiddenUserOccurrences"]),
     trend,
   };
 }

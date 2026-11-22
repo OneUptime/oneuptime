@@ -10,6 +10,7 @@ import {
   BlocklistKind,
 } from "../../Components/SecurityEvents/Blocklist/BlocklistKinds";
 import BlocklistKindTable from "../../Components/SecurityEvents/Blocklist/BlocklistKindTable";
+import BlocklistCloudWafs from "../../Components/SecurityEvents/Blocklist/BlocklistCloudWafs";
 import BlocklistNotEnforcedNotice from "../../Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
 import ObjectID from "Common/Types/ObjectID";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -35,6 +36,8 @@ import React, {
  *
  * While nothing enforces the blocklist, the page says so above the tabs,
  * with where to connect what would: a block nothing holds blocks nothing.
+ * Under the list, Cloud WAFs: the AWS WAF web ACLs it is enforced in, each
+ * picked from the project's AWS inventory (#10344).
  */
 const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -103,12 +106,18 @@ const SecurityBlocklistPage: FunctionComponent<PageComponentProps> = (
                 projectId={projectId}
                 kind={kind}
                 onChanged={refresh}
+                pageRefreshCount={refreshCount}
               />
             ),
           };
         })}
         onTabChange={() => {}}
       />
+
+      {/* Where the blocklist is enforced in the project's own clouds (#10344). */}
+      <div className="mt-5">
+        <BlocklistCloudWafs onChanged={refresh} />
+      </div>
     </>
   );
 };

@@ -785,7 +785,11 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
   },
   "check-mass-delete": {
     phase: Confirm,
-    text: "Check who deleted the records, and whether a cleanup explains it.",
+    text: "Check who or which workflow deleted the records, and whether a cleanup explains it.",
+  },
+  "stop-deleting-actor": {
+    phase: Contain,
+    text: "If a workflow or an API key deleted them, turn the workflow off or revoke the key until you know why.",
   },
   "restore-deleted-records": {
     phase: Fix,
@@ -1357,6 +1361,7 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   // Many records deleted at once in OneUptime
   "51a51214-ca6e-43bc-b9ba-abf06cf4a135": [
     "check-mass-delete",
+    "stop-deleting-actor",
     "restore-deleted-records",
   ],
   // Security controls changed in OneUptime

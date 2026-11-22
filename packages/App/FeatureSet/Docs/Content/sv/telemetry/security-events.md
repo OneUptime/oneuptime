@@ -234,6 +234,16 @@ Ett AWS-konto, ett Google Cloud-projekt eller en Azure-prenumeration som är [an
 - Kontots egen läsning ger inget mer: datahändelser, Data Access-loggar och Microsoft Entra ID:s loggar behöver fortfarande **Dina loggar** eller en [anslutning](/docs/integrations/microsoft-entra-id).
 - Varje händelse nämner de molnresurser som dess post gäller med deras egna ID:n - ett ARN, ett Azure-resurs-ID, ett resursnamn från Google Cloud - så den visas på sidan **Säkerhetshändelser** för var och en av dem, och på en serverlös funktions sida så snart dess telemetri anger `cloud.account.id` och `cloud.region`.
 
+### OneUptimes egna sonder i dina nätverksflöden
+
+Slå på **Nätverksflöden** under **Dina OneUptime-data** på **Anslutningar**, så läses de flöden dina nätverksenheter exporterar efter portskanningar, nätverkssvep, trafik med kända skadliga adresser och stora överföringar ut. En sonds eget arbete liknar där en skanning: att avsöka 40 enheter över SNMP når port 161 på 40 värdar var femte minut. Därför läggs trafik från en av OneUptimes egna sonder som är exakt det sonden är inställd att göra åt sidan:
+
+- nätverksenheterna den avsöker, pingade och tillfrågade över SNMP på sin port;
+- intervallet för var och en av dess identifieringar, medan skanningen pågår;
+- värdarna och portarna som dess monitorer kontrollerar.
+
+Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in.
+
 ### Anslut en säkerhetsprodukt
 
 **Anslutningar** hämtar data från en säkerhetsprodukt åt dig och importerar dess nya poster som säkerhetshändelser. En anslutning innehåller produktens inställningar och en krypterad autentiseringsuppgift; en worker hämtar från den med intervallet du anger och hoppar över poster som den redan har importerat.

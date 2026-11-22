@@ -4,6 +4,8 @@ import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../../Models/DatabaseModels/DataStoreFinding";
 import DataStoreFindingService from "../../../../../Server/Services/DataStoreFindingService";
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
+import Service from "../../../../../Models/DatabaseModels/Service";
+import ServiceService from "../../../../../Server/Services/ServiceService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
 import ScrubTelemetryAction, {
   getScrubPlanKey,
@@ -143,6 +145,13 @@ beforeEach(() => {
   marks = [];
 
   jest.spyOn(logger, "error").mockImplementation((): void => {});
+  // The store's service, whose rule each one is and after which it is named (#10433).
+  jest.spyOn(ServiceService, "findOneBy").mockImplementation((async () => {
+    const service: Service = new Service(SERVICE_ID);
+    service.name = "checkout";
+
+    return service;
+  }) as never);
   jest
     .spyOn(IssueFindings, "readCountedTelemetryFindings")
     .mockImplementation(async () => {
@@ -241,12 +250,15 @@ describe("planning the change", () => {
     expect(change.title).toBe(
       "Scrub Email address in attributes.user.email of checkout logs",
     );
-    // The rule's own name, cut where Scrub It cuts it, and what it does.
+    // The rule's own name - what it hides, where and whose - and what it does.
     expect(change.changeMarkdown).toContain(
-      "**Data Security: Email address in attributes.user.e…** (log)",
+      "**Data Security: Email address in log attributes of checkout** (log)",
     );
     expect(change.changeMarkdown).toContain(
       "It redacts every email address in log attribute values from now on.",
+    );
+    expect(change.changeMarkdown).toContain(
+      "It applies to the logs of checkout only",
     );
     expect(change.reasonMarkdown).toContain("120 matched");
     expect(change.proofMarkdown).toContain("The issue's own check decides");

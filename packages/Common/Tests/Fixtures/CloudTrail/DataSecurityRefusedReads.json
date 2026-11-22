@@ -1,0 +1,1415 @@
+{
+  "_source": "Twenty-five refused reads of Data Security's in OneUptime's own session, as CloudTrail records a refused call of an assumed role's session: field for field the shape Stratus Red Team recorded in RecordedRoleSessionRefusals.json, with OneUptime's role, session name, key, buckets and snapshots.",
+  "Records": [
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:14Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "orders-exports",
+        "Host": "orders-exports.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0001=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0001",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0001",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::orders-exports"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "orders-exports.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:15Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "billing-archive",
+        "Host": "billing-archive.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0002=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0002",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0002",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::billing-archive"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "billing-archive.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:16Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "support-attachments",
+        "Host": "support-attachments.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0003=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0003",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0003",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::support-attachments"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "support-attachments.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:17Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "analytics-raw",
+        "Host": "analytics-raw.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0004=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0004",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0004",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::analytics-raw"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "analytics-raw.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:18Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "legal-holds",
+        "Host": "legal-holds.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0005=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0005",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0005",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::legal-holds"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "legal-holds.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:19Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "hr-documents",
+        "Host": "hr-documents.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0006=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0006",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0006",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::hr-documents"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "hr-documents.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:20Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "payments-ledger",
+        "Host": "payments-ledger.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0007=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0007",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0007",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::payments-ledger"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "payments-ledger.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:21Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "invoices-2026",
+        "Host": "invoices-2026.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0008=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0008",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0008",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::invoices-2026"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "invoices-2026.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:22Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "customer-uploads",
+        "Host": "customer-uploads.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0009=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D0009",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f0009",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::customer-uploads"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "customer-uploads.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:23Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "warehouse-staging",
+        "Host": "warehouse-staging.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0010=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000A",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000a",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::warehouse-staging"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "warehouse-staging.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:24Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "audit-trail",
+        "Host": "audit-trail.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0011=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000B",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000b",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::audit-trail"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "audit-trail.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:25Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "ml-training-data",
+        "Host": "ml-training-data.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0012=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000C",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000c",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::ml-training-data"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "ml-training-data.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:26Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "partner-feeds",
+        "Host": "partner-feeds.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0013=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000D",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000d",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::partner-feeds"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "partner-feeds.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:27Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "backups-nightly",
+        "Host": "backups-nightly.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0014=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000E",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000e",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::backups-nightly"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "backups-nightly.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:28Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetBucketOwnershipControls",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "Access Denied",
+      "requestParameters": {
+        "bucketName": "marketing-assets",
+        "Host": "marketing-assets.s3.us-east-1.amazonaws.com",
+        "ownershipControls": ""
+      },
+      "responseElements": null,
+      "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "Q2xvdWRUcmFpbFNhbXBsZQ0015=",
+        "bytesTransferredOut": 243
+      },
+      "requestID": "8C9F4E5B1A2D000F",
+      "eventID": "6e1b2c3d-4f50-4a61-8b72-9c3d4e5f000f",
+      "readOnly": true,
+      "resources": [
+        {
+          "accountId": "111122223333",
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::marketing-assets"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "marketing-assets.s3.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:29Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-10 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0001",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0001",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:30Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-11 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0002",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0002",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:31Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-12 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0003",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0003",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:32Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-13 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0004",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0004",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:33Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-14 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0005",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0005",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:34Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-15 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0006",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0006",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:35Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-16 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0007",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0007",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:36Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-17 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0008",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0008",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:37Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-18 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d0009",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a0009",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    },
+    {
+      "eventVersion": "1.09",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA2ONEUPTIMEROLE01:OneUptime-33333333333343338333333333333333",
+        "arn": "arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333",
+        "accountId": "111122223333",
+        "accessKeyId": "ASIA2ONEUPTIMEXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROA2ONEUPTIMEROLE01",
+            "arn": "arn:aws:iam::111122223333:role/OneUptimeReadOnly-5f3a9c1e",
+            "accountId": "111122223333",
+            "userName": "OneUptimeReadOnly-5f3a9c1e"
+          },
+          "attributes": {
+            "creationDate": "2026-11-20T10:00:58Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2026-11-20T10:01:38Z",
+      "eventSource": "rds.amazonaws.com",
+      "eventName": "DescribeDBSnapshotAttributes",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.24",
+      "userAgent": "OneUptime/10.0.33 (+https://oneuptime.com)",
+      "errorCode": "AccessDenied",
+      "errorMessage": "User: arn:aws:sts::111122223333:assumed-role/OneUptimeReadOnly-5f3a9c1e/OneUptime-33333333333343338333333333333333 is not authorized to perform: rds:DescribeDBSnapshotAttributes on resource: arn:aws:rds:us-east-1:111122223333:snapshot:orders-nightly-2026-11-19 because no identity-based policy allows the rds:DescribeDBSnapshotAttributes action",
+      "requestParameters": null,
+      "responseElements": null,
+      "requestID": "5d2c7f0e-1a2b-4c3d-8e4f-5a6b7c8d000a",
+      "eventID": "7f2c3d4e-5061-4b72-9c83-0d4e5f6a000a",
+      "readOnly": true,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "111122223333",
+      "eventCategory": "Management",
+      "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "rds.us-east-1.amazonaws.com"
+      }
+    }
+  ]
+}

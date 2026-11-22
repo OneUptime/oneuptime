@@ -27,7 +27,11 @@ import ResponseHttp, {
  * finding a user needs User.Read.All (Directory.Read.All covers it),
  * disabling and enabling one User.EnableDisableAccount.All, and signing
  * one out User.RevokeSessions.All - application permissions, with admin
- * consent. Graph refuses to change an administrator's account unless the
+ * consent. A Fix step's check also reads an account's password change and
+ * sessions ($select=lastPasswordChangeDateTime,
+ * signInSessionsValidFromDateTime, User.Read.All) and its MFA methods (GET
+ * {graph}/v1.0/users/{id}/authentication/methods,
+ * UserAuthenticationMethod.Read.All). Graph refuses to change an administrator's account unless the
  * app also holds the Privileged Authentication Administrator role, and the
  * error says so when Graph answers 403. A user already in the state asked
  * for is reported as such, not as a failure.
@@ -48,6 +52,29 @@ const USER_SELECT: string = "id,userPrincipalName,accountEnabled";
 
 export const ENTRA_ID_PRIVILEGED_USER_HINT: string =
   "An administrator's account can be changed only by an app that also holds the Privileged Authentication Administrator role.";
+
+// What reading an account's authentication methods takes (#10347).
+export const ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION: string =
+  "UserAuthenticationMethod.Read.All";
+
+/*
+ * The authentication methods Microsoft Graph lists that are a second
+ * factor (learn.microsoft.com/graph/api/resources/authenticationmethods-
+ * overview): an authenticator app, a security key, Windows Hello, a
+ * software or hardware OATH token, a phone, a platform credential or a
+ * certificate. Not a password, an email address kept for resetting one,
+ * or a Temporary Access Pass.
+ */
+export const ENTRA_ID_MFA_METHOD_TYPES: ReadonlyArray<string> = [
+  "#microsoft.graph.microsoftAuthenticatorAuthenticationMethod",
+  "#microsoft.graph.fido2AuthenticationMethod",
+  "#microsoft.graph.windowsHelloForBusinessAuthenticationMethod",
+  "#microsoft.graph.softwareOathAuthenticationMethod",
+  "#microsoft.graph.hardwareOathAuthenticationMethod",
+  "#microsoft.graph.phoneAuthenticationMethod",
+  "#microsoft.graph.platformCredentialAuthenticationMethod",
+  "#microsoft.graph.x509CertificateAuthenticationMethod",
+];
 
 export default class MicrosoftEntraIdResponseClient {
   private tokenClient: MicrosoftEntraIdClient;
@@ -252,6 +279,88 @@ export default class MicrosoftEntraIdResponseClient {
       typeof value === "string" ? new Date(value) : null;
 
     return validFrom && !Number.isNaN(validFrom.getTime()) ? validFrom : null;
+  }
+
+  /*
+   * When the account's password last changed (lastPasswordChangeDateTime)
+   * and since when its refresh and session tokens are valid
+   * (signInSessionsValidFromDateTime, which revoking them moves to now):
+   * what the Fix step "reset the password" reads back (#10347). Both need
+   * $select; User.Read.All reads them.
+   */
+  public async readCredentialState(user: EntraIdUser): Promise<{
+    passwordChangedAt: Date | null;
+    sessionsValidFrom: Date | null;
+  }> {
+    const step: string = "Microsoft Entra ID password lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}?$select=lastPasswordChangeDateTime,signInSessionsValidFromDateTime`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, "User.Read.All");
+    }
+
+    const body: JSONObject = (result.bodyJson as JSONObject | undefined) || {};
+
+    return {
+      passwordChangedAt: MicrosoftEntraIdResponseClient.readTime(
+        body["lastPasswordChangeDateTime"],
+      ),
+      sessionsValidFrom: MicrosoftEntraIdResponseClient.readTime(
+        body["signInSessionsValidFromDateTime"],
+      ),
+    };
+  }
+
+  /*
+   * The methods the account can do MFA with (GET /users/{id}/
+   * authentication/methods, UserAuthenticationMethod.Read.All): the Fix
+   * step "MFA on the accounts it went after" (#10347). A password, an email
+   * kept for resetting it and a Temporary Access Pass are no second factor.
+   */
+  public async readMfaMethods(user: EntraIdUser): Promise<Array<string>> {
+    const step: string = "Microsoft Entra ID authentication methods lookup";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/authentication/methods`,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(
+        step,
+        result,
+        ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+      );
+    }
+
+    const methods: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "value"
+    ];
+
+    if (!Array.isArray(methods)) {
+      return [];
+    }
+
+    return methods
+      .map((method: unknown): string => {
+        return method && typeof method === "object"
+          ? String((method as JSONObject)["@odata.type"] || "")
+          : "";
+      })
+      .filter((type: string): boolean => {
+        return ENTRA_ID_MFA_METHOD_TYPES.includes(type);
+      });
+  }
+
+  private static readTime(value: unknown): Date | null {
+    const time: Date | null =
+      typeof value === "string" && value ? new Date(value) : null;
+
+    return time && !Number.isNaN(time.getTime()) ? time : null;
   }
 
   public async disableUser(

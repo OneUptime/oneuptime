@@ -21,12 +21,17 @@ import {
   useDataSecurityAiProposalActions,
 } from "../../Components/DataSecurity/DataSecurityAiProposalActions";
 import DataSecurityAiRulesTable from "../../Components/DataSecurity/DataSecurityAiRulesTable";
+import OwnersToReview from "../../Components/DataSecurity/OwnersToReview";
 import { getDataSecurityIssueRoute } from "../../Components/DataSecurity/StoreIssuesTable";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import Route from "Common/Types/API/Route";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { DataSecurityAiProposalStatus } from "Common/Types/DataSecurity/DataSecurityAi";
+import {
+  DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS,
+  DataSecurityAiProposalStatus,
+} from "Common/Types/DataSecurity/DataSecurityAi";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
@@ -46,6 +51,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *
  *   - The switch that has it work on new issues on its own (on for new
  *     projects), under the notice that says when AI is off.
+ *   - Owners to review (#10374), while any wait: owners for stores that
+ *     have none, and the owner rules that keep them owned - approved all
+ *     at once, some, or one changed first (OwnersToReview).
  *   - Waiting for you: what it proposes, riskiest first. Approve opens the
  *     proposal - what will change, why, how it is proven and how to undo
  *     it - and makes the change with the reader's own permissions; Dismiss
@@ -118,12 +126,22 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
         dataTestId={DATA_SECURITY_AI_SWITCHES_TEST_ID}
       />
 
+      <OwnersToReview
+        onChanged={() => {
+          setRefreshToggle(ObjectID.generate().toString());
+        }}
+      />
+
       <ModelTable<DataSecurityAiProposal>
         modelType={DataSecurityAiProposal}
         id={DATA_SECURITY_AI_TABLE_IDS.waiting}
         userPreferencesKey={DATA_SECURITY_AI_TABLE_IDS.waiting}
         name="Data Security AI: Waiting for you"
-        query={{ status: DataSecurityAiProposalStatus.Proposed }}
+        query={{
+          status: DataSecurityAiProposalStatus.Proposed,
+          // Owners wait in Owners to review, above.
+          kind: new IncludesNone([...DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS]),
+        }}
         refreshToggle={refreshToggle}
         isDeleteable={false}
         isEditable={false}

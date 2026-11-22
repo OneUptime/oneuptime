@@ -74,13 +74,15 @@ export const TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED: boolean =
  * Coalesce same-monitor Incoming Request ingest jobs at enqueue time so an
  * external sender hammering one monitor's incoming-request URL cannot fan out
  * into many concurrent monitorResource() calls that contend on the per-monitor
- * Redis lock (the "Acquire mutex ... timeout" storm). A monitor then has at
- * most one job running and one waiting, and that job evaluates the newest
- * request the monitor received; requests superseded in the meantime are not
- * evaluated (see IncomingRequestLatestPayloadStore). On by default; set
- * INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false to disable the BullMQ
- * deduplication on the ingest hot path without a code change, so that every
- * request is evaluated as its own job.
+ * Redis lock (the "Acquire mutex ... timeout" storm). Every request is kept in
+ * its monitor's list (IncomingRequestPendingStore), and the monitor has at
+ * most one job running and one waiting, which works through the list in the
+ * order the requests arrived: every request of a monitor whose criteria group
+ * by a payload field, the newest of any other (ProcessIncomingRequestIngest,
+ * #10582). On by default; set INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false
+ * to disable it on the ingest hot path without a code change, so that every
+ * request is a job of its own - evaluated whenever a worker takes it, in no
+ * particular order.
  */
 export const INCOMING_REQUEST_INGEST_COALESCE_ENABLED: boolean =
   process.env["INCOMING_REQUEST_INGEST_COALESCE_ENABLED"] !== "false";

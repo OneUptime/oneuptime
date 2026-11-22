@@ -40,6 +40,11 @@ export enum DataSecurityAiFeature {
   FixIssue = "FixIssue",
   SuggestFieldTypes = "SuggestFieldTypes",
   AskAi = "AskAi",
+  /*
+   * Owners for the stores that have none, from the evidence of who owns
+   * each - and the owner rules that keep stores like them owned (#10374).
+   */
+  ProposeStoreOwners = "ProposeStoreOwners",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -223,6 +228,34 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       keeps: translationKey("The conversation, for the person who asked."),
       keepsProviderErrors: true,
       modelSource: DataSecurityAiModelSource.Chat,
+    },
+    {
+      feature: DataSecurityAiFeature.ProposeStoreOwners,
+      title: translationKey("Owners for data stores"),
+      startedBy: translationKey(
+        "A store that has no owners: once a day for new stores, and when a cloud connection is first read, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "The store's name, kind, provider, environment and sensitivity, and the names of its data types",
+        ),
+        translationKey(
+          "What points to an owner: its cloud tags, the services that use it, the code owners of the file that declares it and the changes made to it",
+        ),
+        translationKey(
+          "The teams that evidence names, by name, and the people it names as numbered candidates only",
+        ),
+      ],
+      neverSends: [
+        translationKey("A sample of what was found, not even a masked one"),
+        translationKey("A person's name or email address"),
+      ],
+      keeps: translationKey(
+        "Each proposal, in Data Security > AI, until a person approves or dismisses it.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
   ];
 

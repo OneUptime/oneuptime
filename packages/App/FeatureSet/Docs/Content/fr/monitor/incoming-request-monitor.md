@@ -388,10 +388,12 @@ Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne rés
 
 Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Auto-resolve each incident when…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
 
+Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Value that means recovered** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
+
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 
 > [!NOTE]
-> Quand un moniteur reçoit des requêtes plus vite que OneUptime ne les évalue, il évalue la plus récente et saute celles d'entre-deux : une rafale de webhooks peut donc laisser une alerte déclenchée ou résolue sans évaluation. Sur un serveur auto-hébergé, définir `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` dans l'environnement de l'application OneUptime évalue chaque requête séparément.
+> Un moniteur dont un critère regroupe par un champ de la charge utile évalue chaque requête qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes et de rétablissements ouvre et résout donc l'incident et l'alerte de chaque valeur. Jusqu'à 1 000 requêtes, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Un moniteur sans regroupement n'évalue que la plus récente des requêtes qui l'attendent.
 
 > [!NOTE]
 > Si **Champ qui signale le rétablissement** contient `[*]` mais pas **Ouvrir un incident distinct pour chaque…**, une requête n'est rétablie que lorsque chaque élément de ce tableau le dit. Avec `requestBody.alerts[*].status` et `resolved`, un incident regroupé par `requestBody.groupLabels.alertname` se résout dès que chaque alerte d'une requête est résolue, et reste ouvert tant qu'une alerte est encore déclenchée.

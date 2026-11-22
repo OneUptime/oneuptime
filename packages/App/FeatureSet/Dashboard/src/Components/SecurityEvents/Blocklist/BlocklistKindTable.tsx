@@ -101,6 +101,12 @@ export interface ComponentProps {
   kind: BlocklistKind;
   // Told when a block is made, lifted or changed: the page reads what enforces it again.
   onChanged: () => void;
+  /*
+   * How often the page has read what enforces the blocklist again - a
+   * cloud WAF set up or taken down under the tabs (#10344), say: the table
+   * reads its blocks again with it, for where each is enforced.
+   */
+  pageRefreshCount?: number | undefined;
 }
 
 const BlocklistKindTable: FunctionComponent<ComponentProps> = (
@@ -122,6 +128,11 @@ const BlocklistKindTable: FunctionComponent<ComponentProps> = (
 
   const actions: BlocklistActions = useBlocklistActions({ onChanged: refresh });
   const now: Date = OneUptimeDate.getCurrentDate();
+  // The page's count when it keeps one: its own changes reach it through onChanged.
+  const reads: number =
+    props.pageRefreshCount === undefined
+      ? refreshCount
+      : props.pageRefreshCount;
 
   return (
     <>
@@ -150,7 +161,7 @@ const BlocklistKindTable: FunctionComponent<ComponentProps> = (
             state: [SecurityBlockState.Active],
           } as unknown as FilterData<SecurityBlock>
         }
-        refreshToggle={refreshCount > 0 ? String(refreshCount) : ""}
+        refreshToggle={reads > 0 ? String(reads) : ""}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}

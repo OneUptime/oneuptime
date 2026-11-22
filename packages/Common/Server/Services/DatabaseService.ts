@@ -599,6 +599,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     DatabaseService<BaseModel>
   > = new Map();
 
+  /*
+   * Each model's own service - IncidentService for Incident - by the model,
+   * kept as it is built: the first service of a class of its own made for
+   * the model. A plain DatabaseService, as a lookup makes one, is none. See
+   * getServiceOf.
+   */
+  private static readonly servicesOfModels: Map<
+    { new (): BaseModel },
+    DatabaseService<BaseModel>
+  > = new Map();
+
   private _hardDeleteItemByColumnName: string = "";
   public get hardDeleteItemByColumnName(): string {
     return this._hardDeleteItemByColumnName;
@@ -633,6 +644,34 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     this.modelType = modelType;
     this.model = new modelType();
     this.modelName = modelType.name;
+
+    if (
+      new.target !== DatabaseService &&
+      !DatabaseService.servicesOfModels.has(modelType)
+    ) {
+      DatabaseService.servicesOfModels.set(
+        modelType,
+        this as unknown as DatabaseService<BaseModel>,
+      );
+    }
+  }
+
+  /*
+   * The model's own service, which reads its records as its pages and its
+   * API do - its read hooks (a private incident kept to its owners) and the
+   * permission check after them - or null while none has been built: its
+   * module is not loaded yet. The app loads every service it serves as it
+   * starts. Read by what must answer as the record's own read does without
+   * knowing its service (AuditLogReadAccess).
+   */
+  public static getServiceOf<TModel extends BaseModel>(modelType: {
+    new (): TModel;
+  }): DatabaseService<TModel> | null {
+    return (
+      (DatabaseService.servicesOfModels.get(modelType) as
+        | DatabaseService<TModel>
+        | undefined) || null
+    );
   }
 
   public setDoNotAllowDelete(doNotAllowDelete: boolean): void {

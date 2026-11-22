@@ -32,7 +32,7 @@ flowchart TB
 
 - **Sur OneUptime Cloud, le forfait Enterprise.** Avec les autres forfaits, les pages du journal d'audit montrent ce que fait la fonctionnalité et comment l'obtenir.
 - **Quand vous hébergez vous-même, l'Enterprise Edition**, avec une licence qui inclut les journaux d'audit. Voir [Édition Enterprise](/docs/self-hosted/enterprise).
-- **Un rôle qui peut lire le journal d'audit.** Propriétaire du projet, Administrateur du projet, Administrateur des paramètres, ou l'autorisation **Read Audit Log**. Activer la journalisation d'audit et modifier ses paramètres demande un Propriétaire du projet, un Administrateur du projet, ou l'autorisation de modifier le projet.
+- **Un rôle qui peut lire le journal d'audit.** Propriétaire du projet, Administrateur du projet, Administrateur des paramètres, ou l'autorisation **Read Audit Log**. Une entrée n'affiche les valeurs d'un champ que si vous pouvez lire ce champ sur la ressource elle-même, et le nom d'une ressource que si vous pouvez lire la ressource. Activer la journalisation d'audit et modifier ses paramètres demande un Propriétaire du projet, un Administrateur du projet, ou l'autorisation de modifier le projet.
 
 ## Activer la journalisation d'audit
 

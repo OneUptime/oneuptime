@@ -1145,8 +1145,15 @@ import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
 import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
-import { AddSecurityBlockReachAndWiderValue1809187421200 } from "./1809187421200-AddSecurityBlockReachAndWiderValue";
-import { AddSecurityBlockValueReachIndex1809187421210 } from "./1809187421210-AddSecurityBlockValueReachIndex";
+import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
+import { AllowDataSecurityAiProposalsForStoresAndRules1809187429100 } from "./1809187429100-AllowDataSecurityAiProposalsForStoresAndRules";
+import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecurityBlockCloudWaf";
+import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
+import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
+import { AddSecurityBlockReachAndWiderValue1809187433100 } from "./1809187433100-AddSecurityBlockReachAndWiderValue";
+import { AddSecurityBlockValueReachIndex1809187433110 } from "./1809187433110-AddSecurityBlockValueReachIndex";
 
 export default [
   InitialMigration,
@@ -2296,6 +2303,13 @@ export default [
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
   AddDetectionRunMarksAndFiringKeys1809187421130,
   AddDetectionRuleLastFailedAt1809187421140,
-  AddSecurityBlockReachAndWiderValue1809187421200,
-  AddSecurityBlockValueReachIndex1809187421210,
+  AddAIAgentTaskPullRequestSecurityCase1809187421500,
+  AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
+  AddProbeInterfaceIpAddresses1809187429000,
+  AllowDataSecurityAiProposalsForStoresAndRules1809187429100,
+  AddSecurityBlockCloudWaf1809187430000,
+  AddScrubRuleService1809187433000,
+  AddScrubRuleServiceIndexesAndKeys1809187433010,
+  AddSecurityBlockReachAndWiderValue1809187433100,
+  AddSecurityBlockValueReachIndex1809187433110,
 ];

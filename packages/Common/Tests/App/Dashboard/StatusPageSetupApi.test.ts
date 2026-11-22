@@ -17,11 +17,14 @@ import StatusPageSetupApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupApi";
 import {
   NO_STATUS_PAGE_EDIT_REACH,
+  NO_STATUS_PAGE_SETUP_FILTER,
+  STATUS_PAGE_SETUP_PAGE_SIZE,
   StatusPageEditReach,
   StatusPageSetupMonitor,
   StatusPageSetupPage,
   mayEditStatusPage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetup";
+import Search from "../../../Types/BaseDatabase/Search";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
@@ -151,7 +154,10 @@ describe("the monitors listed", () => {
       ]) as never,
     );
 
-    expect(await StatusPageSetupApi.loadMonitors()).toEqual([
+    expect(
+      (await StatusPageSetupApi.searchMonitors(NO_STATUS_PAGE_SETUP_FILTER))
+        .items,
+    ).toEqual([
       {
         id: id(1).toString(),
         name: "API",
@@ -171,6 +177,140 @@ describe("the monitors listed", () => {
     expect(args["modelType"]).toBe(Monitor);
     expect(args["query"]).toEqual({ projectId: PROJECT_ID });
     expect(args["sort"]).toEqual({ name: "ASC" });
+    // A page by name: the server searches the rest (#10580).
+    expect(args["limit"]).toBe(STATUS_PAGE_SETUP_PAGE_SIZE);
+    expect(args["skip"]).toBe(0);
+  });
+
+  /*
+   * #10580: the step read the first 10,000 monitors and searched them in
+   * the browser. A search is the server's now: the name, however its spaces
+   * run, and the label, on top of the project.
+   */
+  test("a search asks the server for the name and the label, and says how many match", async () => {
+    getListSpy.mockResolvedValue({
+      data: [model(Monitor, { _id: id(7).toString(), name: "WB1500KSK02" })],
+      count: 120,
+      skip: 0,
+      limit: STATUS_PAGE_SETUP_PAGE_SIZE,
+    } as never);
+
+    const found: { items: Array<StatusPageSetupMonitor>; count: number } =
+      await StatusPageSetupApi.searchMonitors({
+        search: "  WB1500   KSK ",
+        labelId: id(91).toString(),
+      });
+
+    expect(found.count).toBe(120);
+    expect(
+      found.items.map((monitor: StatusPageSetupMonitor) => {
+        return monitor.name;
+      }),
+    ).toEqual(["WB1500KSK02"]);
+
+    const query: Record<string, unknown> = (
+      getListSpy.mock.calls[0]![0] as unknown as Record<string, unknown>
+    )["query"] as Record<string, unknown>;
+
+    expect(query["projectId"]).toEqual(PROJECT_ID);
+    expect(query["name"]).toBeInstanceOf(Search);
+    expect((query["name"] as Search<string>).toString()).toBe("WB1500 KSK");
+    expect(query["labels"]).toBeInstanceOf(Includes);
+    expect(
+      ((query["labels"] as Includes).values as Array<unknown>).map(
+        (value: unknown): string => {
+          return String(value);
+        },
+      ),
+    ).toEqual([id(91).toString()]);
+  });
+
+  test("monitor groups are searched the same way", async () => {
+    getListSpy.mockResolvedValue(list([]) as never);
+
+    await StatusPageSetupApi.searchMonitorGroups({
+      search: "checkout",
+      labelId: null,
+    });
+
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as unknown as Record<string, unknown>;
+    expect(args["modelType"]).toBe(MonitorGroup);
+    expect(args["limit"]).toBe(STATUS_PAGE_SETUP_PAGE_SIZE);
+    expect((args["query"] as Record<string, unknown>)["name"]).toBeInstanceOf(
+      Search,
+    );
+    expect(
+      (args["query"] as Record<string, unknown>)["labels"],
+    ).toBeUndefined();
+  });
+
+  test("a label that is no id narrows nothing, rather than a search the server refuses", async () => {
+    getListSpy.mockResolvedValue(list([]) as never);
+
+    await StatusPageSetupApi.searchMonitors({
+      search: "",
+      labelId: "not-an-id",
+    });
+
+    expect(
+      (getListSpy.mock.calls[0]![0] as unknown as Record<string, unknown>)[
+        "query"
+      ],
+    ).toEqual({ projectId: PROJECT_ID });
+  });
+
+  test("the monitor handed in is read by its id, wherever its name sorts", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        model(Monitor, { _id: id(7).toString(), name: "WB1500KSK02" }),
+      ]) as never,
+    );
+
+    expect(
+      (await StatusPageSetupApi.loadMonitorsByIds([id(7).toString()])).map(
+        (monitor: StatusPageSetupMonitor): string => {
+          return monitor.id;
+        },
+      ),
+    ).toEqual([id(7).toString()]);
+
+    const query: Record<string, unknown> = (
+      getListSpy.mock.calls[0]![0] as unknown as Record<string, unknown>
+    )["query"] as Record<string, unknown>;
+
+    expect(query["_id"]).toBeInstanceOf(Includes);
+  });
+
+  test("an id handed in that is no id reads nothing", async () => {
+    expect(await StatusPageSetupApi.loadMonitorsByIds(["nope"])).toEqual([]);
+    expect(getListSpy).not.toHaveBeenCalled();
+  });
+
+  test("the labels the list can be narrowed by are the project's, by name", async () => {
+    getListSpy.mockResolvedValue(
+      list([
+        model(Label, {
+          _id: id(91).toString(),
+          name: "production",
+          color: new Color("#ef4444"),
+        }),
+      ]) as never,
+    );
+
+    expect(await StatusPageSetupApi.loadLabels()).toEqual([
+      {
+        id: id(91).toString(),
+        name: "production",
+        color: "#ef4444",
+        sharedName: { kind: SharedNameKind.Label },
+      },
+    ]);
+
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as unknown as Record<string, unknown>;
+    expect(args["modelType"]).toBe(Label);
+    expect(args["query"]).toEqual({ projectId: PROJECT_ID });
   });
 });
 
@@ -538,8 +678,9 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
       ]) as never,
     );
 
-    const monitors: Array<StatusPageSetupMonitor> =
-      await StatusPageSetupApi.loadMonitors();
+    const monitors: Array<StatusPageSetupMonitor> = (
+      await StatusPageSetupApi.searchMonitors(NO_STATUS_PAGE_SETUP_FILTER)
+    ).items;
 
     expect(monitors[0]!.labels).toEqual([
       {
@@ -590,8 +731,9 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
       ]) as never,
     );
 
-    const monitors: Array<StatusPageSetupMonitor> =
-      await StatusPageSetupApi.loadMonitors();
+    const monitors: Array<StatusPageSetupMonitor> = (
+      await StatusPageSetupApi.searchMonitors(NO_STATUS_PAGE_SETUP_FILTER)
+    ).items;
 
     expect(monitors[0]!.labels).toEqual([
       {
@@ -621,7 +763,13 @@ describe("the monitors' labels and the monitor groups (#7147)", () => {
       ]) as never,
     );
 
-    expect(await StatusPageSetupApi.loadMonitorGroups()).toEqual([
+    expect(
+      (
+        await StatusPageSetupApi.searchMonitorGroups(
+          NO_STATUS_PAGE_SETUP_FILTER,
+        )
+      ).items,
+    ).toEqual([
       {
         id: id(5).toString(),
         name: "Checkout",

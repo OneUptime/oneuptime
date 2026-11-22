@@ -512,6 +512,33 @@ export interface CloudInventoryResult {
 }
 
 /*
+ * WHO SIGNED AN AWS CALL, AS CLOUDTRAIL RECORDS IT: the fields of a
+ * record's userIdentity that say which session made the call, and where
+ * the session came from. Each is "" when the record leaves it out.
+ */
+export interface AwsCallerSession {
+  // "AssumedRole" for a role's session, "IAMUser", "Root"...
+  type: string;
+  // A session's is arn:aws:sts::<account>:assumed-role/<role>/<session name>.
+  arn: string;
+  accountId: string;
+  // A session's is <role id>:<session name>.
+  principalId: string;
+  // The key the call was signed with: AWS hands every sign-in a new one (ASIA...).
+  accessKeyId: string;
+  // The role the session was made from: arn:aws:iam::<account>:role/<path/><role>.
+  issuerArn: string;
+  // Set only when the sign-in that made the session set one.
+  sourceIdentity: string;
+  // An AWS service that made the call on the session's behalf.
+  invokedBy: string;
+  // A person of IAM Identity Center the call was made for.
+  onBehalfOf: string;
+  // The web identity provider a session made with AssumeRoleWithWebIdentity came from.
+  webIdentityProvider: string;
+}
+
+/*
  * One change a cloud account's activity log recorded - AWS CloudTrail, the
  * Azure Activity Log, Google Cloud's Admin Activity audit log - or one
  * health event its provider published (CloudChangeRecorder).
@@ -546,6 +573,21 @@ export interface CloudChange {
    * never kept.
    */
   actorIdentity?: string | undefined;
+  /*
+   * AWS only: everything CloudTrail recorded of the session that made the
+   * call - the key it signed with, its role and where it came from - read
+   * to tell the changes OneUptime made in its own session
+   * (OneUptimeAwsSessions, #10428); never shown, never kept.
+   */
+  actorSession?: AwsCallerSession | undefined;
+  /*
+   * AWS only, for a change of who may restore a snapshot
+   * (ModifyDBSnapshotAttribute, ModifyDBClusterSnapshotAttribute): whether
+   * it named accounts to add (requestParameters.valuesToAdd) - true - or
+   * only accounts to remove - false. A yes or no, never which accounts;
+   * undefined when the record does not say (#10428).
+   */
+  grantsAccess?: boolean | undefined;
   /*
    * What it changed, as the cloud names it: an ARN, an ARM id, a full
    * resource name, or a plain id with its type ("sg-0abc", AWS::EC2::SecurityGroup).

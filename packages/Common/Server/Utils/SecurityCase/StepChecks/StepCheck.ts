@@ -23,9 +23,13 @@ import {
   AddressRequestsReading,
 } from "./Evidence/AddressRequests";
 import { AddressFactsReading } from "./Evidence/AddressFacts";
+import { AccountFixReading } from "./Evidence/AccountFixState";
 import { IndicatorBlockReading } from "./Evidence/IndicatorBlocks";
 import { ContainmentStateReading } from "./Evidence/ContainmentState";
+import { FixChangesReading } from "./Evidence/FixChanges";
 import { MonitorsDownReading } from "./Evidence/MonitorsDown";
+import { RouteAttacksReading } from "./Evidence/RouteAttacks";
+import { RouteAttackScope } from "../../../../Utils/SecurityCase/RouteAttackScope";
 
 /*
  * A CHECK OF ONE KIND OF RESPONSE PLAN STEP (#10340): how OneUptime finds
@@ -110,6 +114,28 @@ export interface StepCheckEvidence {
   readMonitorsDown(): Promise<MonitorsDownReading>;
   // What the project knows of an address: its records, threat intel, its signed-in users.
   readAddressFacts(address: string): Promise<AddressFactsReading>;
+  /*
+   * The attack requests to a route over a window, before a change and
+   * after its rollout grace (#10347).
+   */
+  readRouteAttacks(data: {
+    scope: RouteAttackScope;
+    start: Date;
+    end: Date;
+    splitAt: Date | null;
+    settledAt: Date | null;
+  }): Promise<RouteAttacksReading>;
+  // What shipped to the services behind a route since `since`: the case's fixes, their deploys.
+  readFixChanges(data: {
+    serviceIds: Array<string>;
+    since: Date;
+  }): Promise<FixChangesReading>;
+  // An account's password and sessions since `since`, and its MFA, in the identity providers.
+  readAccountCredentials(data: {
+    user: string;
+    since: Date;
+  }): Promise<AccountFixReading>;
+  readAccountMfa(user: string): Promise<AccountFixReading>;
 }
 
 export interface StepCheckContext {
