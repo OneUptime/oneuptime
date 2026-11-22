@@ -15,9 +15,9 @@ import SafeWebhookRequest, {
 } from "Common/Server/Utils/SafeWebhookRequest";
 import { WebhookTargetValidationOptions } from "Common/Server/Utils/SSRFProtection";
 import { TargetTlsOptions } from "Common/Server/Utils/OutboundProxyAgents";
-import { getCaCertificateProblem } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
+import { getCaCertificatePemProblem } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
 import {
-  CaCertificateProblem,
+  CaCertificatePemProblem,
   HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
   HttpStepCertificateSettings,
   getHttpStepCertificateFailureMessage,
@@ -211,9 +211,8 @@ export default class WebhookService {
        * checks it already; this is for a step stored before that check.
        */
       if (certificates?.caCertificate) {
-        const problem: CaCertificateProblem | null = getCaCertificateProblem(
-          certificates.caCertificate,
-        );
+        const problem: CaCertificatePemProblem | null =
+          getCaCertificatePemProblem(certificates.caCertificate);
 
         if (problem) {
           throw new BadDataException(

@@ -16,7 +16,7 @@ import {
   CA_CERTIFICATE_ARGUMENT_ID,
 } from "../../../../../Types/Workflow/Components/ApiCertificates";
 import {
-  CaCertificateProblem,
+  CaCertificatePemProblem,
   HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
   HttpStepCertificateSettings,
   getHttpStepCertificateFailureMessage,
@@ -24,7 +24,7 @@ import {
 } from "../../../../../Types/Runbook/HttpStepCertificates";
 import { getRequestErrorCode } from "../../../../../Utils/RequestErrorCode";
 import { TargetTlsOptions } from "../../../../Utils/OutboundProxyAgents";
-import { getCaCertificateProblem } from "../../../../Utils/Runbook/HttpStepCaCertificate";
+import { getCaCertificatePemProblem } from "../../../../Utils/Runbook/HttpStepCaCertificate";
 import SafeWebhookRequest, {
   WebhookTarget,
 } from "../../../../Utils/SafeWebhookRequest";
@@ -301,7 +301,9 @@ export class ApiComponentUtils {
      * How the step checks the server's certificate (#10440). A CA
      * certificate that is not one is refused before anything is sent: Node
      * takes text that is not a certificate without a word, and the step would
-     * then fail on the certificate it was meant to trust.
+     * then fail on the certificate it was meant to trust. Its value is the
+     * one the workflow filled in, so a reference left in it is text, not a
+     * certificate.
      */
     const certificates: HttpStepCertificateSettings =
       getHttpStepCertificateSettings({
@@ -313,9 +315,8 @@ export class ApiComponentUtils {
       });
 
     if (certificates.caCertificate) {
-      const problem: CaCertificateProblem | null = getCaCertificateProblem(
-        certificates.caCertificate,
-      );
+      const problem: CaCertificatePemProblem | null =
+        getCaCertificatePemProblem(certificates.caCertificate);
 
       if (problem) {
         throw options.onError(

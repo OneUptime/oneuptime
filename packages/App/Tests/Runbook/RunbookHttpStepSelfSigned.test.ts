@@ -2,6 +2,7 @@ import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
   PinnedAgentOptions,
+  TargetTlsOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookVariableResolver, {
   RunbookVariableResolution,
@@ -743,21 +744,20 @@ describe("a CA certificate kept in a runbook variable", () => {
     const asked: Array<TargetTlsOptions | undefined> = [];
     const realCreate: (
       target: PinnedTarget,
-      targetTls?: TargetTlsOptions | undefined,
-    ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
-        DataSourceEgressGuard,
-      );
+      options?: PinnedAgentOptions | undefined,
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
       .mockImplementation(
         (
           target: PinnedTarget,
-          targetTls?: TargetTlsOptions | undefined,
+          options?: PinnedAgentOptions | undefined,
         ): PinnedAgents => {
-          asked.push(targetTls);
-          return realCreate(target, targetTls);
+          asked.push(options?.tls);
+          return realCreate(target, options);
         },
       );
 

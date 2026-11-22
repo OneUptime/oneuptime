@@ -40,8 +40,9 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  CaCertificatePemProblem,
   CaCertificateProblem,
-  getCaCertificateShapeProblem,
+  getCaCertificatePemShapeProblem,
 } from "Common/Types/Runbook/HttpStepCertificates";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -141,7 +142,10 @@ export const ACTION_CATEGORY_HEADINGS: Readonly<
  * Under a Send Webhook step's CA certificate, while it is not one a save
  * takes: the save refuses it, and says the same (SecurityPlaybookStep).
  */
-const PLAYBOOK_CA_CERTIFICATE_PROBLEMS: Record<CaCertificateProblem, string> =
+const PLAYBOOK_CA_CERTIFICATE_PROBLEMS: Record<
+  CaCertificatePemProblem,
+  string
+> =
   {
     [CaCertificateProblem.NotACertificate]: translationKey(
       "Paste a certificate in PEM, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.",
@@ -1053,12 +1057,13 @@ export function getStepSettingsFields(
       },
       // The save refuses what this says, in the same words.
       customValidation: (values: FormValues<JSONObject>): string | null => {
-        const problem: CaCertificateProblem | null =
-          getCaCertificateShapeProblem(
-            typeof values["caCertificate"] === "string"
-              ? (values["caCertificate"] as string)
-              : "",
-          );
+        const text: string =
+          typeof values["caCertificate"] === "string"
+            ? (values["caCertificate"] as string).trim()
+            : "";
+        const problem: CaCertificatePemProblem | null = text
+          ? getCaCertificatePemShapeProblem(text)
+          : null;
 
         if (!problem) {
           return null;

@@ -1,7 +1,8 @@
 import ColumnLength from "../Database/ColumnLength";
 import {
+  CaCertificatePemProblem,
   CaCertificateProblem,
-  getCaCertificateShapeProblem,
+  getCaCertificatePemShapeProblem,
 } from "../Runbook/HttpStepCertificates";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
@@ -288,7 +289,7 @@ function readObject(value: JSONValue | undefined): JSONObject {
  * not ones it can run with, after the step's label.
  */
 export const SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES: Record<
-  CaCertificateProblem,
+  CaCertificatePemProblem,
   string
 > = {
   [CaCertificateProblem.NotACertificate]:
@@ -303,7 +304,8 @@ export const SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES: Record<
  * A Send Webhook step's certificate settings, as a save keeps them: the
  * switch only when exactly true, and anything else but false refused (a
  * "true" written through the API would read as on and is not); the CA
- * certificate trimmed, kept while it is a certificate in PEM. While the
+ * certificate trimmed, kept while it is a certificate in PEM - a playbook
+ * has no variables, so a reference is text, not a certificate. While the
  * switch is on the certificate is not used, so only what must never be kept
  * in a step is refused then: a private key. The server also parses each
  * certificate (SecurityPlaybookService).
@@ -339,8 +341,9 @@ function readWebhookCertificateConfig(
 
   const caCertificate: string =
     typeof rawCaCertificate === "string" ? rawCaCertificate.trim() : "";
-  const problem: CaCertificateProblem | null =
-    getCaCertificateShapeProblem(caCertificate);
+  const problem: CaCertificatePemProblem | null = caCertificate
+    ? getCaCertificatePemShapeProblem(caCertificate)
+    : null;
 
   if (
     problem === CaCertificateProblem.PrivateKey ||

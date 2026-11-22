@@ -46,8 +46,8 @@ import {
   parseSecurityPlaybookSteps,
   readBlockAddressConfig,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { CaCertificateProblem } from "../../Types/Runbook/HttpStepCertificates";
-import { getCaCertificateProblem } from "../Utils/Runbook/HttpStepCaCertificate";
+import { CaCertificatePemProblem } from "../../Types/Runbook/HttpStepCertificates";
+import { getCaCertificatePemProblem } from "../Utils/Runbook/HttpStepCaCertificate";
 import { SecurityBlockDuration } from "../../Types/SecurityBlocklist/SecurityBlock";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { validateSecurityPlaybookStepValues } from "../../Utils/SecurityCase/SecurityPlaybookStepValues";
@@ -98,7 +98,7 @@ export function assertSendWebhookCertificatesParse(
       return;
     }
 
-    const problem: CaCertificateProblem | null = getCaCertificateProblem(
+    const problem: CaCertificatePemProblem | null = getCaCertificatePemProblem(
       config.caCertificate,
     );
 
