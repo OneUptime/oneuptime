@@ -266,6 +266,10 @@ describe("which check reads a step", () => {
     ["contain:user:alice@acme.com", "contain:user"],
     ["contain:host:web-01", "contain:host"],
     ["contain:incident", "contain:incident"],
+    // The Fix steps OneUptime can read back (#10347).
+    ["fix:public-app", "fix:public-app"],
+    ["fix:credentials", "fix:credentials"],
+    ["fix:brute-force", "fix:brute-force"],
   ])("%s is checked by the %s check", (key: string, kind: string) => {
     expect(getStepCheck(key)?.kind).toBe(kind);
   });
@@ -273,7 +277,8 @@ describe("which check reads a step", () => {
   test.each([
     "confirm:take",
     "contain:mark-contained",
-    "fix:public-app",
+    "fix:account-changes",
+    "fix:persistence",
     "close",
   ])(
     "%s is the case's own to say, or a person's: no check reads it",
