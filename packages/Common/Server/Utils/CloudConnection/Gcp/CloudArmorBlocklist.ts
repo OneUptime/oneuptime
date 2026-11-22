@@ -220,6 +220,14 @@ export default class CloudArmorPolicyBlocklist {
       mode: this.mode,
     });
 
+    // Compute answers a quota used up with 403 too (reason quotaExceeded): not a missing permission.
+    if (isWrite && isQuotaError(error)) {
+      return cloudWafReason(CLOUD_WAF_REASONS.quotaUsedUp, {
+        ...this.policyValues(),
+        error: readGoogleError(error),
+      });
+    }
+
     if (status === 403) {
       return cloudWafReason(
         isWrite ? CLOUD_WAF_REASONS.mayNotWrite : CLOUD_WAF_REASONS.mayNotRead,
@@ -235,13 +243,6 @@ export default class CloudArmorPolicyBlocklist {
         CLOUD_WAF_REASONS.policyNotFound,
         this.policyValues(),
       );
-    }
-
-    if (isWrite && isQuotaError(error)) {
-      return cloudWafReason(CLOUD_WAF_REASONS.quotaUsedUp, {
-        ...this.policyValues(),
-        error: readGoogleError(error),
-      });
     }
 
     if (isWrite || error instanceof CloudArmorOperationError) {
@@ -1261,6 +1262,13 @@ export default class CloudArmorPolicyBlocklist {
       );
     }
 
+    const meant: Map<number, CloudArmorRecordedRule> = new Map(
+      (this.record?.rules || []).map(
+        (rule: CloudArmorRecordedRule): [number, CloudArmorRecordedRule] => {
+          return [rule.index, rule];
+        },
+      ),
+    );
     const deleted: Array<CloudArmorRecordedRule> = read.deleted
       .map((rule: CloudArmorRecordedRule): CloudArmorRecordedRule => {
         return {
@@ -1290,6 +1298,7 @@ export default class CloudArmorPolicyBlocklist {
             };
           },
         ),
+        // A rule changed by hand keeps what OneUptime meant it to hold, less what this pass removed.
         ...read.own
           .filter((rule: OwnRule): boolean => {
             return rule.state === CloudArmorOwnRuleState.Changed;
@@ -1298,7 +1307,11 @@ export default class CloudArmorPolicyBlocklist {
             return {
               index: rule.index,
               priority: rule.priority,
-              values: [...rule.values],
+              values: (meant.get(rule.index)?.values || rule.values).filter(
+                (value: string): boolean => {
+                  return !removing.has(getCloudWafValueKey(value));
+                },
+              ),
             };
           }),
         ...deleted,
@@ -1447,15 +1460,19 @@ export default class CloudArmorPolicyBlocklist {
     const stillDeleted: Array<CloudArmorRecordedRule> = [];
 
     for (const rule of read.own) {
-      const values: Array<string> =
-        rule.values.length > 0
-          ? rule.values
-          : recorded.get(rule.index)?.values || [];
-
-      if (
+      const isRestored: boolean =
         rule.state === CloudArmorOwnRuleState.TurnedOff ||
-        rule.state === CloudArmorOwnRuleState.Changed
-      ) {
+        rule.state === CloudArmorOwnRuleState.Changed;
+      const meant: Array<string> | undefined = recorded.get(rule.index)?.values;
+      // What OneUptime last meant it to hold - never what the person left in it.
+      const values: Array<string> =
+        isRestored && meant
+          ? [...meant]
+          : rule.values.length > 0
+            ? rule.values
+            : meant || [];
+
+      if (isRestored) {
         try {
           await this.data.api.patchRule(
             this.data.policy,
@@ -1607,7 +1624,7 @@ export default class CloudArmorPolicyBlocklist {
   > {
     const wanted: Array<string> = getCloudArmorRequiredPermissions({
       region: this.data.policy.region,
-      mode: this.record?.mode || null,
+      mode: this.record?.mode || (await this.readWouldBeMode()),
     });
     const granted: Set<string> = await this.data.api.testPermissions({
       project: this.data.policy.project,
@@ -1617,5 +1634,28 @@ export default class CloudArmorPolicyBlocklist {
     return wanted.map((permission: string) => {
       return { permission, isGranted: granted.has(permission) };
     });
+  }
+
+  /*
+   * The mode a policy not set up yet would be set up in, so its access is
+   * checked for what setting it up takes: address groups need Network
+   * Security's permissions too. Null when the project's tier or the policy
+   * cannot be read yet - the permissions that read them are asked for then.
+   */
+  private async readWouldBeMode(): Promise<CloudArmorBlocklistMode | null> {
+    try {
+      const tier: string = await this.data.api.getProjectTier(
+        this.data.policy.project,
+      );
+      const read: PolicyRead = await this.read();
+
+      return chooseCloudArmorMode({
+        tier,
+        policyType: read.policyType,
+        region: this.data.policy.region,
+      });
+    } catch {
+      return null;
+    }
   }
 }

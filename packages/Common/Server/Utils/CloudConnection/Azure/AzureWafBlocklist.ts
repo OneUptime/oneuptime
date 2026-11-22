@@ -581,12 +581,25 @@ export default class AzureWafPolicyBlocklist {
     return rules;
   }
 
-  // The record after a write: the slots written, and the deleted rules still holding something.
+  /*
+   * The record after a write: the slots written, and the deleted rules
+   * still holding something. A rule changed by hand keeps what OneUptime
+   * meant it to hold - its last record, less what this write removed -
+   * never what the person left in it: Put It Back writes that back.
+   */
   private recordWrite(data: {
     analysis: AzureWafPolicyAnalysis;
     slots: Array<CloudWafValueSlot>;
     deleted: Array<AzureWafRecordedRule>;
+    removing?: Set<string> | undefined;
   }): void {
+    const before: Map<number, AzureWafRecordedRule> = new Map(
+      (this.record?.rules || []).map(
+        (rule: AzureWafRecordedRule): [number, AzureWafRecordedRule] => {
+          return [rule.index, rule];
+        },
+      ),
+    );
     const changed: Map<number, AzureWafOwnRule> = new Map(
       data.analysis.own
         .filter((rule: AzureWafOwnRule): boolean => {
@@ -616,7 +629,11 @@ export default class AzureWafPolicyBlocklist {
             index: rule.index,
             name: rule.name,
             priority: rule.priority,
-            values: [...rule.values],
+            values: (before.get(rule.index)?.values || rule.values).filter(
+              (value: string): boolean => {
+                return !data.removing?.has(getCloudWafValueKey(value));
+              },
+            ),
           };
         }),
       ...data.deleted.filter((rule: AzureWafRecordedRule): boolean => {
@@ -810,13 +827,13 @@ export default class AzureWafPolicyBlocklist {
       }
 
       if (!plan.isChanged && !needsRewrite) {
-        this.recordWrite({ analysis, slots: plan.slots, deleted });
+        this.recordWrite({ analysis, slots: plan.slots, deleted, removing });
         return results;
       }
 
       try {
         await this.write(read, this.buildRules({ analysis, slots: plan.slots }));
-        this.recordWrite({ analysis, slots: plan.slots, deleted });
+        this.recordWrite({ analysis, slots: plan.slots, deleted, removing });
 
         return results;
       } catch (error) {
@@ -901,16 +918,23 @@ export default class AzureWafPolicyBlocklist {
           }
 
           /*
-           * A rule changed past reading (its addresses moved into another
-           * kind of condition) holds what OneUptime last wrote in it.
+           * A rule turned off or changed by hand is written back holding
+           * what OneUptime last meant it to hold - never what the person
+           * left in it, nor a block lifted since.
            */
+          const meant: Array<string> | undefined = recorded.get(
+            rule.index,
+          )?.values;
+
           return {
             index: rule.index,
             priority: rule.priority,
             values:
-              rule.values.length > 0
-                ? [...rule.values]
-                : [...(recorded.get(rule.index)?.values || [])],
+              restore.has(rule.index) && meant
+                ? [...meant]
+                : rule.values.length > 0
+                  ? [...rule.values]
+                  : [...(meant || [])],
             isFrozen: false,
           };
         },
