@@ -319,7 +319,28 @@ export default class CloudflareFakeApi {
       return this.counts(variables);
     }
 
+    const more: DataSourceHttpResponse | null = this.answerMore(
+      recorded,
+      request,
+    );
+
+    if (more) {
+      return more;
+    }
+
     return restError(404, 7003, "Could not route to the requested resource");
+  }
+
+  /*
+   * The routes a fake built on this one answers beside the read routes
+   * (CloudflareBlockingFakeApi: blocking's lists, rules and IP Access
+   * Rules), after the token is checked. Null for a route it does not know.
+   */
+  protected answerMore(
+    _recorded: FakeRequest,
+    _request: DataSourceHttpRequest,
+  ): DataSourceHttpResponse | null {
+    return null;
   }
 
   private tokenStatus(): DataSourceHttpResponse {

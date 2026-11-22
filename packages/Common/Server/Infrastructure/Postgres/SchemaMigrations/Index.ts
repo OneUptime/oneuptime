@@ -1152,6 +1152,7 @@ import { AllowDataSecurityAiProposalsForStoresAndRules1809187429100 } from "./18
 import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecurityBlockCloudWaf";
 import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
 import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
+import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
 
 export default [
   InitialMigration,
@@ -2308,4 +2309,5 @@ export default [
   AddSecurityBlockCloudWaf1809187430000,
   AddScrubRuleService1809187433000,
   AddScrubRuleServiceIndexesAndKeys1809187433010,
+  AddSecurityEventConnectionBlocking1809187434300,
 ];

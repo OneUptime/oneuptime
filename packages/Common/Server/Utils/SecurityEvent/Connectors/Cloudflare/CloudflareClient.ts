@@ -17,10 +17,14 @@ import {
   redactLogValue,
 } from "../../../LogRedaction";
 import { ConnectorTransport } from "../Types";
+import { CLOUDFLARE_CUSTOM_RULES_PHASE } from "../../../../../Types/SecurityBlocklist/CloudflareBlocking";
 
 /*
- * Minimal Cloudflare API client for the Cloudflare connection: it reads,
- * and never writes.
+ * Minimal Cloudflare API client for the Cloudflare connection: the one place
+ * OneUptime calls Cloudflare's API from. The connection reads with it; when
+ * blocking is turned on (#10343) its write calls keep the blocklist's lists,
+ * custom rules and IP Access Rules (CloudflareBlocking), and nothing else
+ * writes to Cloudflare.
  *
  * Two APIs, one token (an API token sent as `Authorization: Bearer`,
  * https://developers.cloudflare.com/fundamentals/api/get-started/create-token/):
@@ -62,6 +66,30 @@ import { ConnectorTransport } from "../Types";
  *
  * Every failure is a CloudflareApiError with a kind the connector words its
  * remediation by, and its message never holds the token.
+ *
+ * Blocking's writes (#10343), with Account Filter Lists Edit, Zone WAF Edit
+ * and Account Firewall Access Rules Edit:
+ *
+ *   GET, POST, DELETE /accounts/{id}/rules/lists[/{list}]: OneUptime's two
+ *     IP lists;
+ *   GET, POST, DELETE /accounts/{id}/rules/lists/{list}/items: a list's
+ *     items. A write is asynchronous: it answers an operation_id, read at
+ *     GET /accounts/{id}/rules/lists/bulk_operations/{operation} until it is
+ *     completed or failed. Cloudflare allows one pending bulk operation per
+ *     account and turns another away: that answer is asked again, as a
+ *     throttle is. PUT .../items, which replaces the whole list, is never
+ *     sent;
+ *   GET /zones/{id}/rulesets/phases/http_request_firewall_custom/entrypoint,
+ *     POST /zones/{id}/rulesets (a 404 above: no entry point yet), and
+ *     POST, PATCH, DELETE /zones/{id}/rulesets/{ruleset}/rules[/{rule}]:
+ *     OneUptime's custom rule in a zone, added on its own, first in the
+ *     phase. PUT .../entrypoint, which replaces every rule, is never sent;
+ *   GET, POST, DELETE /accounts/{id}/firewall/access_rules/rules[/{rule}]:
+ *     IP Access Rules, where lists cannot be used.
+ *
+ * A write is sent once, and asked again only when Cloudflare turned it away
+ * before doing it (a 429, a pending bulk operation); a read, a DELETE and a
+ * PATCH are safe to send again.
  */
 
 export const CLOUDFLARE_API_BASE_URL: string =
@@ -140,6 +168,12 @@ export enum CloudflareFailureKind {
   Unrecognized = "unrecognized",
   // No answer at all: a timeout, a refused connection, the egress guard.
   Unreachable = "unreachable",
+  // What the request names is not there: a list, a ruleset, a rule.
+  NotFound = "not-found",
+  // Another change to the account's lists is still running: one at a time.
+  Busy = "busy",
+  // The plan holds no more: lists, list items or custom rules.
+  LimitReached = "limit-reached",
 }
 
 export class CloudflareApiError extends APIException {
@@ -249,10 +283,96 @@ export interface CloudflareEventCount {
   count: number;
 }
 
+// One of the account's lists (Account Filter Lists).
+export interface CloudflareList {
+  id: string;
+  name: string;
+  description: string;
+  kind: string;
+  numItems: number;
+  numReferencingFilters: number;
+}
+
+// One item of an IP list.
+export interface CloudflareListItem {
+  id: string;
+  ip: string;
+  comment: string;
+}
+
+export type CloudflareBulkOperationStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed";
+
+export interface CloudflareBulkOperation {
+  id: string;
+  status: CloudflareBulkOperationStatus;
+  // Why it failed, for a failed one.
+  error: string;
+}
+
+// One rule of a ruleset, as the Rulesets API answers it.
+export interface CloudflareRule {
+  id: string;
+  ref: string;
+  action: string;
+  expression: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface CloudflareRuleset {
+  id: string;
+  rules: Array<CloudflareRule>;
+}
+
+// A rule as OneUptime writes it.
+export interface CloudflareRuleInput {
+  ref: string;
+  action: string;
+  expression: string;
+  description: string;
+  enabled: boolean;
+}
+
+export interface CloudflareAccessRule {
+  id: string;
+  mode: string;
+  notes: string;
+  target: string;
+  value: string;
+}
+
+export interface CloudflareAccessRulePage {
+  rules: Array<CloudflareAccessRule>;
+  totalCount: number;
+  totalPages: number;
+}
+
+// What a probe of a write permission found.
+export enum CloudflareWriteAccess {
+  Granted = "granted",
+  Missing = "missing",
+}
+
 export const CLOUDFLARE_TOKEN_STEP: string = "Cloudflare API token check";
 export const CLOUDFLARE_ZONES_STEP: string = "Cloudflare zones request";
 export const CLOUDFLARE_ANALYTICS_STEP: string =
   "Cloudflare GraphQL Analytics request";
+export const CLOUDFLARE_LISTS_STEP: string = "Cloudflare lists request";
+export const CLOUDFLARE_LIST_ITEMS_STEP: string =
+  "Cloudflare list items request";
+export const CLOUDFLARE_RULES_STEP: string = "Cloudflare custom rules request";
+export const CLOUDFLARE_ACCESS_RULES_STEP: string =
+  "Cloudflare IP Access Rules request";
+
+// The most items one page of a list reads (the API's own maximum).
+export const CLOUDFLARE_LIST_ITEMS_PER_PAGE: number = 500;
+
+// The most IP Access Rules one page reads.
+export const CLOUDFLARE_ACCESS_RULES_PER_PAGE: number = 500;
 
 const MINUTE_IN_MS: number = 60 * 1000;
 
@@ -341,18 +461,87 @@ function isAuthenticationMessage(message: string): boolean {
   return lower === "unauthorized" || lower.includes("authentication");
 }
 
+// The messages of a REST answer's errors.
+function restErrorMessages(body: unknown): Array<string> {
+  if (!isJsonObject(body) || !Array.isArray(body["errors"])) {
+    return [];
+  }
+
+  const messages: Array<string> = [];
+
+  for (const error of body["errors"] as JSONArray) {
+    const message: string = isJsonObject(error)
+      ? readText(error["message"])
+      : "";
+
+    if (message) {
+      messages.push(message);
+    }
+  }
+
+  return messages;
+}
+
+/*
+ * Cloudflare turned a list write away because another bulk operation of the
+ * account is still pending: one at a time per account. It says so in words
+ * (the API reference documents the limit, not the code), with a 409 or a 400.
+ */
+export function isCloudflareBusyAnswer(
+  response: DataSourceHttpResponse,
+): boolean {
+  if (response.statusCode !== 409 && response.statusCode !== 400) {
+    return false;
+  }
+
+  return restErrorMessages(response.bodyJson).some(
+    (message: string): boolean => {
+      const lower: string = message.toLowerCase();
+
+      return (
+        (lower.includes("pending") ||
+          lower.includes("outstanding") ||
+          lower.includes("in progress")) &&
+        (lower.includes("operation") || lower.includes("bulk"))
+      );
+    },
+  );
+}
+
+// The plan holds no more: a list, an item or a custom rule past its limit.
+function isLimitMessage(message: string): boolean {
+  const lower: string = message.toLowerCase();
+
+  return (
+    !lower.includes("rate limit") &&
+    (lower.includes("exceed") ||
+      lower.includes("maximum number") ||
+      lower.includes("quota") ||
+      lower.includes("limit reached") ||
+      lower.includes("too many lists") ||
+      lower.includes("too many items") ||
+      lower.includes("too many rules"))
+  );
+}
+
 /*
  * Whether an answer may pass, for DataSourceHttpRetry. A 429 is a throttle,
  * and so is a GraphQL answer whose errors say the query budget is spent
  * (asked to wait five minutes, which no run waits out). A 503, a 502 and a
- * 504, and a GraphQL "too many queries in progress", failed for now. Every
- * request the client sends is a read, so each is safe to send again.
+ * 504, and a GraphQL "too many queries in progress", failed for now: a read
+ * is sent again, a write is not (DataSourceHttpRetry). A list write turned
+ * away while another bulk operation of the account is pending did nothing,
+ * so it is a throttle too, sent again after a short wait.
  */
 export function classifyCloudflareAnswer(
   response: DataSourceHttpResponse,
 ): HttpRetryVerdict | null {
   if (response.statusCode === 429) {
     return { reason: HttpRetryReason.Throttled };
+  }
+
+  if (isCloudflareBusyAnswer(response)) {
+    return { reason: HttpRetryReason.Throttled, isUndone: true };
   }
 
   if ([502, 503, 504].includes(response.statusCode)) {
@@ -817,31 +1006,649 @@ export default class CloudflareClient {
   }
 
   private async restGet(url: string, step: string): Promise<JSONObject> {
+    return await this.rest({ method: "GET", url, step });
+  }
+
+  /*
+   * One REST request, answered by the v4 envelope. A GET, a DELETE and a
+   * PATCH are safe to send again; a POST is sent again only when Cloudflare
+   * turned it away before doing it.
+   */
+  private async rest(data: {
+    method: "GET" | "POST" | "PATCH" | "DELETE";
+    url: string;
+    step: string;
+    body?: JSONValue | undefined;
+  }): Promise<JSONObject> {
     const exchange: HttpRetryExchange = await this.send(
       {
-        method: "GET",
-        url,
-        headers: this.headers(),
+        method: data.method,
+        url: data.url,
+        headers:
+          data.body === undefined
+            ? this.headers()
+            : { ...this.headers(), "Content-Type": "application/json" },
+        ...(data.body === undefined ? {} : { body: JSON.stringify(data.body) }),
         timeoutInMs: this.options.requestTimeoutInMs,
       },
-      step,
+      data.step,
+      data.method !== "POST",
     );
     const response: DataSourceHttpResponse = exchange.response;
     const body: unknown = response.bodyJson;
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (!isJsonObject(body)) {
-        throw this.unrecognized(step, body);
+        throw this.unrecognized(data.step, body);
       }
 
       if (body["success"] === false) {
-        throw this.restFailure(step, response, exchange.attempts);
+        throw this.restFailure(data.step, response, exchange.attempts);
       }
 
       return body;
     }
 
-    throw this.restFailure(step, response, exchange.attempts);
+    throw this.restFailure(data.step, response, exchange.attempts);
+  }
+
+  private accountUrl(accountId: string, path: string): string {
+    return `${this.baseUrl}/accounts/${encodeURIComponent(accountId)}${path}`;
+  }
+
+  private zoneUrl(zoneId: string, path: string): string {
+    return `${this.baseUrl}/zones/${encodeURIComponent(zoneId)}${path}`;
+  }
+
+  // ---------- Blocking's lists (#10343) ----------
+
+  // The account's lists, of every kind (Account Filter Lists Read or Edit).
+  public async listLists(accountId: string): Promise<Array<CloudflareList>> {
+    const body: JSONObject = await this.rest({
+      method: "GET",
+      url: this.accountUrl(accountId, "/rules/lists"),
+      step: CLOUDFLARE_LISTS_STEP,
+    });
+    const result: JSONValue | undefined = body["result"];
+
+    if (!Array.isArray(result)) {
+      throw this.unrecognized(CLOUDFLARE_LISTS_STEP, body);
+    }
+
+    return (result as JSONArray)
+      .map(CloudflareClient.readList)
+      .filter((list: CloudflareList | null): list is CloudflareList => {
+        return list !== null;
+      });
+  }
+
+  public async createList(
+    accountId: string,
+    list: { name: string; description: string },
+  ): Promise<CloudflareList> {
+    const body: JSONObject = await this.rest({
+      method: "POST",
+      url: this.accountUrl(accountId, "/rules/lists"),
+      step: CLOUDFLARE_LISTS_STEP,
+      body: { name: list.name, kind: "ip", description: list.description },
+    });
+    const created: CloudflareList | null = CloudflareClient.readList(
+      body["result"] as JSONValue,
+    );
+
+    if (!created) {
+      throw this.unrecognized(CLOUDFLARE_LISTS_STEP, body);
+    }
+
+    return created;
+  }
+
+  // A list no rule refers to any more: Cloudflare keeps one a rule refers to.
+  public async deleteList(accountId: string, listId: string): Promise<void> {
+    await this.rest({
+      method: "DELETE",
+      url: this.accountUrl(
+        accountId,
+        `/rules/lists/${encodeURIComponent(listId)}`,
+      ),
+      step: CLOUDFLARE_LISTS_STEP,
+    });
+  }
+
+  /*
+   * A list's items, page by page after the cursor each answer gives, up to
+   * maxItems: more than that and isTruncated says so.
+   */
+  public async listListItems(data: {
+    accountId: string;
+    listId: string;
+    maxItems: number;
+  }): Promise<{ items: Array<CloudflareListItem>; isTruncated: boolean }> {
+    const items: Array<CloudflareListItem> = [];
+    let cursor: string = "";
+
+    for (;;) {
+      const url: URL = new URL(
+        this.accountUrl(
+          data.accountId,
+          `/rules/lists/${encodeURIComponent(data.listId)}/items`,
+        ),
+      );
+      url.searchParams.set("per_page", String(CLOUDFLARE_LIST_ITEMS_PER_PAGE));
+
+      if (cursor) {
+        url.searchParams.set("cursor", cursor);
+      }
+
+      const body: JSONObject = await this.rest({
+        method: "GET",
+        url: url.toString(),
+        step: CLOUDFLARE_LIST_ITEMS_STEP,
+      });
+      const result: JSONValue | undefined = body["result"];
+
+      if (!Array.isArray(result)) {
+        throw this.unrecognized(CLOUDFLARE_LIST_ITEMS_STEP, body);
+      }
+
+      for (const value of result as JSONArray) {
+        const item: CloudflareListItem | null =
+          CloudflareClient.readListItem(value);
+
+        if (item) {
+          items.push(item);
+        }
+      }
+
+      const info: JSONValue | undefined = body["result_info"];
+      const cursors: JSONValue | undefined = isJsonObject(info)
+        ? info["cursors"]
+        : undefined;
+      const after: string = isJsonObject(cursors)
+        ? readText(cursors["after"])
+        : "";
+
+      if (items.length >= data.maxItems) {
+        return { items: items.slice(0, data.maxItems), isTruncated: true };
+      }
+
+      if (!after || after === cursor || (result as JSONArray).length === 0) {
+        return { items, isTruncated: false };
+      }
+
+      cursor = after;
+    }
+  }
+
+  // Appends items to a list: asynchronous, answered by its operation's id.
+  public async addListItems(data: {
+    accountId: string;
+    listId: string;
+    items: Array<{ ip: string; comment: string }>;
+  }): Promise<string> {
+    const body: JSONObject = await this.rest({
+      method: "POST",
+      url: this.accountUrl(
+        data.accountId,
+        `/rules/lists/${encodeURIComponent(data.listId)}/items`,
+      ),
+      step: CLOUDFLARE_LIST_ITEMS_STEP,
+      body: data.items.map((item: { ip: string; comment: string }) => {
+        return { ip: item.ip, comment: item.comment };
+      }),
+    });
+
+    return this.readOperationId(body, CLOUDFLARE_LIST_ITEMS_STEP);
+  }
+
+  // Removes a list's items by their ids: asynchronous, answered by its operation's id.
+  public async deleteListItems(data: {
+    accountId: string;
+    listId: string;
+    itemIds: Array<string>;
+  }): Promise<string> {
+    const body: JSONObject = await this.rest({
+      method: "DELETE",
+      url: this.accountUrl(
+        data.accountId,
+        `/rules/lists/${encodeURIComponent(data.listId)}/items`,
+      ),
+      step: CLOUDFLARE_LIST_ITEMS_STEP,
+      body: {
+        items: data.itemIds.map((id: string): JSONObject => {
+          return { id };
+        }),
+      },
+    });
+
+    return this.readOperationId(body, CLOUDFLARE_LIST_ITEMS_STEP);
+  }
+
+  public async getBulkOperation(
+    accountId: string,
+    operationId: string,
+  ): Promise<CloudflareBulkOperation> {
+    const body: JSONObject = await this.rest({
+      method: "GET",
+      url: this.accountUrl(
+        accountId,
+        `/rules/lists/bulk_operations/${encodeURIComponent(operationId)}`,
+      ),
+      step: CLOUDFLARE_LIST_ITEMS_STEP,
+    });
+    const result: JSONValue | undefined = body["result"];
+    const status: string = isJsonObject(result)
+      ? readText(result["status"]).toLowerCase()
+      : "";
+
+    if (
+      !isJsonObject(result) ||
+      !["pending", "running", "completed", "failed"].includes(status)
+    ) {
+      throw this.unrecognized(CLOUDFLARE_LIST_ITEMS_STEP, body);
+    }
+
+    return {
+      id: readText(result["id"]) || operationId,
+      status: status as CloudflareBulkOperationStatus,
+      error: this.scrub(redactLogString(readText(result["error"]))),
+    };
+  }
+
+  private readOperationId(body: JSONObject, step: string): string {
+    const result: JSONValue | undefined = body["result"];
+    const operationId: string = isJsonObject(result)
+      ? readText(result["operation_id"])
+      : "";
+
+    if (!operationId) {
+      throw this.unrecognized(step, body);
+    }
+
+    return operationId;
+  }
+
+  // ---------- Blocking's custom rules ----------
+
+  /*
+   * The zone's entry point of the custom rules phase, with its rules (Zone
+   * WAF Read or Edit), or null when the zone has none yet: a 404.
+   */
+  public async getCustomRulesEntrypoint(
+    zoneId: string,
+  ): Promise<CloudflareRuleset | null> {
+    try {
+      const body: JSONObject = await this.rest({
+        method: "GET",
+        url: this.zoneUrl(
+          zoneId,
+          `/rulesets/phases/${CLOUDFLARE_CUSTOM_RULES_PHASE}/entrypoint`,
+        ),
+        step: CLOUDFLARE_RULES_STEP,
+      });
+
+      return this.readRuleset(body);
+    } catch (error) {
+      if (
+        error instanceof CloudflareApiError &&
+        error.kind === CloudflareFailureKind.NotFound
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  // The zone's entry point, made with OneUptime's rules: only where there is none.
+  public async createCustomRulesEntrypoint(
+    zoneId: string,
+    rules: Array<CloudflareRuleInput>,
+  ): Promise<CloudflareRuleset> {
+    const body: JSONObject = await this.rest({
+      method: "POST",
+      url: this.zoneUrl(zoneId, "/rulesets"),
+      step: CLOUDFLARE_RULES_STEP,
+      body: {
+        name: "default",
+        kind: "zone",
+        phase: CLOUDFLARE_CUSTOM_RULES_PHASE,
+        rules: rules.map((rule: CloudflareRuleInput): JSONObject => {
+          return { ...rule };
+        }),
+      },
+    });
+
+    return this.readRuleset(body);
+  }
+
+  // One rule added on its own, first in the phase: the rest stay as they are.
+  public async addCustomRule(data: {
+    zoneId: string;
+    rulesetId: string;
+    rule: CloudflareRuleInput;
+  }): Promise<CloudflareRuleset> {
+    const body: JSONObject = await this.rest({
+      method: "POST",
+      url: this.zoneUrl(
+        data.zoneId,
+        `/rulesets/${encodeURIComponent(data.rulesetId)}/rules`,
+      ),
+      step: CLOUDFLARE_RULES_STEP,
+      body: { ...data.rule, position: { index: 1 } },
+    });
+
+    return this.readRuleset(body);
+  }
+
+  // One rule written again whole, as the API asks: its action, expression, description, ref and whether it is on.
+  public async updateCustomRule(data: {
+    zoneId: string;
+    rulesetId: string;
+    ruleId: string;
+    rule: CloudflareRuleInput;
+  }): Promise<CloudflareRuleset> {
+    const body: JSONObject = await this.rest({
+      method: "PATCH",
+      url: this.zoneUrl(
+        data.zoneId,
+        `/rulesets/${encodeURIComponent(data.rulesetId)}/rules/${encodeURIComponent(data.ruleId)}`,
+      ),
+      step: CLOUDFLARE_RULES_STEP,
+      body: { ...data.rule },
+    });
+
+    return this.readRuleset(body);
+  }
+
+  public async deleteCustomRule(data: {
+    zoneId: string;
+    rulesetId: string;
+    ruleId: string;
+  }): Promise<void> {
+    await this.rest({
+      method: "DELETE",
+      url: this.zoneUrl(
+        data.zoneId,
+        `/rulesets/${encodeURIComponent(data.rulesetId)}/rules/${encodeURIComponent(data.ruleId)}`,
+      ),
+      step: CLOUDFLARE_RULES_STEP,
+    });
+  }
+
+  private readRuleset(body: JSONObject): CloudflareRuleset {
+    const result: JSONValue | undefined = body["result"];
+    const id: string = isJsonObject(result) ? readText(result["id"]) : "";
+
+    if (!isJsonObject(result) || !id) {
+      throw this.unrecognized(CLOUDFLARE_RULES_STEP, body);
+    }
+
+    const rules: Array<CloudflareRule> = [];
+    const values: JSONValue | undefined = result["rules"];
+
+    for (const value of Array.isArray(values) ? (values as JSONArray) : []) {
+      if (!isJsonObject(value)) {
+        continue;
+      }
+
+      rules.push({
+        id: readText(value["id"]),
+        ref: readText(value["ref"]),
+        action: readText(value["action"]),
+        expression: readText(value["expression"]),
+        description: readText(value["description"]),
+        // A rule is on unless it says it is not.
+        enabled: value["enabled"] !== false,
+      });
+    }
+
+    return { id, rules };
+  }
+
+  // ---------- Blocking's IP Access Rules ----------
+
+  /*
+   * One page of the account's IP Access Rules: those whose notes hold
+   * `notes` (case-insensitive) when it is given, of one mode when given.
+   */
+  public async listAccessRules(data: {
+    accountId: string;
+    page: number;
+    perPage: number;
+    notes?: string | undefined;
+    mode?: string | undefined;
+  }): Promise<CloudflareAccessRulePage> {
+    const url: URL = new URL(
+      this.accountUrl(data.accountId, "/firewall/access_rules/rules"),
+    );
+    url.searchParams.set("page", String(Math.max(1, data.page)));
+    url.searchParams.set("per_page", String(data.perPage));
+
+    if (data.notes) {
+      url.searchParams.set("notes", data.notes);
+    }
+
+    if (data.mode) {
+      url.searchParams.set("mode", data.mode);
+    }
+
+    const body: JSONObject = await this.rest({
+      method: "GET",
+      url: url.toString(),
+      step: CLOUDFLARE_ACCESS_RULES_STEP,
+    });
+    const result: JSONValue | undefined = body["result"];
+
+    if (!Array.isArray(result)) {
+      throw this.unrecognized(CLOUDFLARE_ACCESS_RULES_STEP, body);
+    }
+
+    const rules: Array<CloudflareAccessRule> = [];
+
+    for (const value of result as JSONArray) {
+      const rule: CloudflareAccessRule | null =
+        CloudflareClient.readAccessRule(value);
+
+      if (rule) {
+        rules.push(rule);
+      }
+    }
+
+    const info: JSONValue | undefined = body["result_info"];
+    const totalCount: number = isJsonObject(info)
+      ? readCount(info["total_count"]) ?? rules.length
+      : rules.length;
+    const totalPages: number = isJsonObject(info)
+      ? readCount(info["total_pages"]) ??
+        Math.max(1, Math.ceil(totalCount / Math.max(1, data.perPage)))
+      : 1;
+
+    return { rules, totalCount, totalPages };
+  }
+
+  public async createAccessRule(data: {
+    accountId: string;
+    mode: string;
+    target: string;
+    value: string;
+    notes: string;
+  }): Promise<CloudflareAccessRule> {
+    const body: JSONObject = await this.rest({
+      method: "POST",
+      url: this.accountUrl(data.accountId, "/firewall/access_rules/rules"),
+      step: CLOUDFLARE_ACCESS_RULES_STEP,
+      body: {
+        mode: data.mode,
+        configuration: { target: data.target, value: data.value },
+        notes: data.notes,
+      },
+    });
+    const rule: CloudflareAccessRule | null = CloudflareClient.readAccessRule(
+      body["result"] as JSONValue,
+    );
+
+    if (!rule) {
+      throw this.unrecognized(CLOUDFLARE_ACCESS_RULES_STEP, body);
+    }
+
+    return rule;
+  }
+
+  public async deleteAccessRule(
+    accountId: string,
+    ruleId: string,
+  ): Promise<void> {
+    await this.rest({
+      method: "DELETE",
+      url: this.accountUrl(
+        accountId,
+        `/firewall/access_rules/rules/${encodeURIComponent(ruleId)}`,
+      ),
+      step: CLOUDFLARE_ACCESS_RULES_STEP,
+    });
+  }
+
+  // ---------- Whether the token may write ----------
+
+  /*
+   * Whether the token holds a write permission, asked without writing:
+   * Cloudflare refuses a request the token may not make (403) before it
+   * reads what the request asks, and refuses a request it may make, but
+   * that asks for nothing it can do, as malformed (400). So each probe asks
+   * for something no write can come of - a list with no name, a rule with
+   * no expression, an access rule with no address - and reads which of the
+   * two answers. Anything else (a 429, a 5xx, no answer) is thrown: it says
+   * nothing either way, and the caller says it could not tell.
+   */
+  public async probeWriteAccess(
+    probe:
+      | { kind: "lists"; accountId: string }
+      | { kind: "rules"; zoneId: string; rulesetId: string | null }
+      | { kind: "access-rules"; accountId: string },
+  ): Promise<CloudflareWriteAccess> {
+    let url: string;
+    let body: JSONObject;
+    let step: string;
+
+    switch (probe.kind) {
+      case "lists":
+        url = this.accountUrl(probe.accountId, "/rules/lists");
+        body = { name: "", kind: "ip", description: "" };
+        step = CLOUDFLARE_LISTS_STEP;
+        break;
+      case "rules":
+        url = probe.rulesetId
+          ? this.zoneUrl(
+              probe.zoneId,
+              `/rulesets/${encodeURIComponent(probe.rulesetId)}/rules`,
+            )
+          : this.zoneUrl(probe.zoneId, "/rulesets");
+        body = probe.rulesetId
+          ? { action: "block", expression: "", position: { index: 1 } }
+          : {
+              name: "",
+              kind: "zone",
+              phase: CLOUDFLARE_CUSTOM_RULES_PHASE,
+              rules: [{ action: "block", expression: "" }],
+            };
+        step = CLOUDFLARE_RULES_STEP;
+        break;
+      case "access-rules":
+        url = this.accountUrl(probe.accountId, "/firewall/access_rules/rules");
+        body = {
+          mode: "block",
+          configuration: { target: "ip", value: "" },
+          notes: "",
+        };
+        step = CLOUDFLARE_ACCESS_RULES_STEP;
+        break;
+    }
+
+    try {
+      await this.rest({ method: "POST", url, step, body });
+      // Cloudflare took it: the token may write, whatever it made of the request.
+      return CloudflareWriteAccess.Granted;
+    } catch (error) {
+      if (!(error instanceof CloudflareApiError)) {
+        throw error;
+      }
+
+      if (
+        error.kind === CloudflareFailureKind.MissingPermission ||
+        (error.statusCode === 401 && error.codes.includes(10000))
+      ) {
+        return CloudflareWriteAccess.Missing;
+      }
+
+      if (
+        error.kind === CloudflareFailureKind.BadRequest ||
+        error.kind === CloudflareFailureKind.NotFound ||
+        error.kind === CloudflareFailureKind.LimitReached
+      ) {
+        return CloudflareWriteAccess.Granted;
+      }
+
+      throw error;
+    }
+  }
+
+  public static readList(value: JSONValue): CloudflareList | null {
+    if (!isJsonObject(value)) {
+      return null;
+    }
+
+    const id: string = readText(value["id"]);
+    const name: string = readText(value["name"]);
+
+    if (!id || !name) {
+      return null;
+    }
+
+    return {
+      id,
+      name,
+      description: readText(value["description"]),
+      kind: readText(value["kind"]),
+      numItems: readCount(value["num_items"]) ?? 0,
+      numReferencingFilters: readCount(value["num_referencing_filters"]) ?? 0,
+    };
+  }
+
+  public static readListItem(value: JSONValue): CloudflareListItem | null {
+    if (!isJsonObject(value)) {
+      return null;
+    }
+
+    const id: string = readText(value["id"]);
+    const ip: string = readText(value["ip"]);
+
+    if (!id || !ip) {
+      return null;
+    }
+
+    return { id, ip, comment: readText(value["comment"]) };
+  }
+
+  public static readAccessRule(value: JSONValue): CloudflareAccessRule | null {
+    if (!isJsonObject(value)) {
+      return null;
+    }
+
+    const id: string = readText(value["id"]);
+    const configuration: JSONValue | undefined = value["configuration"];
+
+    if (!id || !isJsonObject(configuration)) {
+      return null;
+    }
+
+    return {
+      id,
+      mode: readText(value["mode"]),
+      notes: readText(value["notes"]),
+      target: readText(configuration["target"]),
+      value: readText(configuration["value"]),
+    };
   }
 
   private async graphQl(request: {
@@ -886,6 +1693,7 @@ export default class CloudflareClient {
   private async send(
     request: DataSourceHttpRequest,
     step: string,
+    isSafeToRepeat: boolean = true,
   ): Promise<HttpRetryExchange> {
     try {
       const exchange: HttpRetryExchange = await this.retry.exchange({
@@ -893,7 +1701,7 @@ export default class CloudflareClient {
           this.requestCount += 1;
           return { ...request, acceptAnyStatus: true };
         },
-        isSafeToRepeat: true,
+        isSafeToRepeat,
       });
 
       return exchange;
@@ -954,6 +1762,8 @@ export default class CloudflareClient {
       kind = CloudflareFailureKind.RateLimited;
     } else if (status >= 500) {
       kind = CloudflareFailureKind.Unavailable;
+    } else if (isCloudflareBusyAnswer(response)) {
+      kind = CloudflareFailureKind.Busy;
     } else if (
       status === 401 ||
       codes.some((code: number): boolean => {
@@ -961,8 +1771,12 @@ export default class CloudflareClient {
       })
     ) {
       kind = CloudflareFailureKind.InvalidToken;
-    } else if (status === 403) {
+    } else if (status === 403 && !messages.some(isLimitMessage)) {
       kind = CloudflareFailureKind.MissingPermission;
+    } else if (status === 404) {
+      kind = CloudflareFailureKind.NotFound;
+    } else if (messages.some(isLimitMessage)) {
+      kind = CloudflareFailureKind.LimitReached;
     }
 
     return new CloudflareApiError({
