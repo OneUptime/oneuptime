@@ -151,12 +151,28 @@ export class Service extends ProjectReferencesService<Model> {
         data["acceptedReason"] = null;
         data["acceptedUntil"] = null;
       }
+
+      /*
+       * Why it is not an issue (#10369): kept with that status, and asked
+       * for in the Dashboard's dialog. Through the API it may be left out,
+       * as it could before there was a reason to give.
+       */
+      data["notAnIssueReason"] =
+        status === DataSecurityIssueStatus.NotAnIssue &&
+        typeof data["notAnIssueReason"] === "string" &&
+        data["notAnIssueReason"].trim()
+          ? data["notAnIssueReason"].trim()
+          : null;
     } else if (
       data["acceptedReason"] !== undefined ||
       data["acceptedUntil"] !== undefined
     ) {
       throw new BadDataException(
         "Accept the risk by setting the issue's status to Accepted, with a reason and an expiry date.",
+      );
+    } else if (data["notAnIssueReason"] !== undefined) {
+      throw new BadDataException(
+        "Say an issue is not an issue by setting its status to Not an issue, with the reason.",
       );
     }
 
@@ -275,7 +291,11 @@ export class Service extends ProjectReferencesService<Model> {
               )}**: ${String(data["acceptedReason"] || "")}`
             : status === DataSecurityIssueStatus.Resolved
               ? mdText`Marked resolved. The store is being checked again; the issue opens again if its check still fails.`
-              : mdText`Status changed from **${change.fromStatus || "Open"}** to **${status}**.`
+              : status === DataSecurityIssueStatus.NotAnIssue &&
+                  typeof data["notAnIssueReason"] === "string" &&
+                  data["notAnIssueReason"]
+                ? mdText`Marked not an issue: ${String(data["notAnIssueReason"])}`
+                : mdText`Status changed from **${change.fromStatus || "Open"}** to **${status}**.`
           ).toString(),
           userId,
         });

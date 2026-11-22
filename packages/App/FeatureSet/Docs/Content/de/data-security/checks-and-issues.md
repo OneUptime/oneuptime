@@ -7,6 +7,7 @@ Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen
 - [Jede Prüfung](#jede-prüfung): Alle 34, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem.
+- [Die Analyse von OneUptime AI](#die-analyse-von-oneuptime-ai): Ob ein Problem echt ist, was es gefährdet, was die Korrektur beeinträchtigen würde und der kürzeste Weg zur Behebung.
 - [Hier beheben](#hier-beheben): Eine Exponierung schließen oder einen fehlenden Schutz einschalten, mit einem Klick.
 :::
 
@@ -154,11 +155,26 @@ OneUptime eröffnet, aktualisiert und behebt Probleme, während die Prüfungen l
 | **Offen** | Seine Prüfung schlägt jetzt am Datenspeicher fehl. | Es zählt in der Übersicht, in der Zusammenfassung des Datenspeichers und in der Compliance, bis die Prüfung besteht. |
 | **Behoben** | Seine Prüfung hat bei einem späteren Lauf bestanden, gilt nicht mehr oder wurde ausgeschaltet, oder sein Datenspeicher wurde archiviert. Jemand kann auch **Als behoben markieren** wählen: Der Datenspeicher wird dann sofort erneut geprüft. | Es öffnet sich wieder, wenn die Prüfung erneut fehlschlägt, und das Problem zählt, wie oft es wieder geöffnet wurde. |
 | **Akzeptiert** | Jemand hat **Risiko akzeptieren** gewählt, mit einem **Grund** und einem Datum unter **Akzeptiert bis**, höchstens ein Jahr entfernt. | Es bleibt bis zu diesem Datum geschlossen und öffnet sich dann wieder, wenn die Prüfung noch fehlschlägt. Akzeptieren Sie es dann erneut, wenn der Grund noch gilt. |
-| **Kein Problem** | Jemand hat **Kein Problem** gewählt: Der Fund war falsch. | Es bleibt geschlossen, auch solange die Prüfung fehlschlägt. **Wieder öffnen** öffnet es erneut. |
+| **Kein Problem** | Jemand hat **Kein Problem** gewählt und unter **Grund** gesagt, warum: Der Fund war falsch. | Es bleibt geschlossen, auch solange die Prüfung fehlschlägt, und behält den Grund. **Wieder öffnen** öffnet es erneut. |
 
 Sicherheits-Mitglieder, Sicherheits-Administratoren, Projektadministratoren und Projektinhaber können den Status eines Problems ändern und es mit **Zuweisen** einer Person oder einem Team zuweisen. Jede Änderung wird in die **Zeitachse** des Problems geschrieben: wann es sich geöffnet hat, jede Änderung des Schweregrads, jede Statusänderung und wer sie vorgenommen hat, die angeforderten erneuten Prüfungen und was die Integrationen getan haben.
 
 Ein Problem, das sich wieder öffnet, behält seinen Verlauf. Akzeptierte Risiken werden jeden Tag erneut betrachtet, sodass eines pünktlich abläuft, auch wenn nichts gescannt wurde.
+
+## Die Analyse von OneUptime AI
+
+Solange **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet ist, analysiert OneUptime AI jedes neue oder wieder geöffnete Problem mit dem Schweregrad Kritisch oder Hoch von selbst, bevor es jemand öffnet; Ihre KI-Regeln für Datensicherheit können andere Probleme wählen. Jedes Problem lässt sich auf seiner Seite mit **Problem analysieren** analysieren. Die Analyse eröffnet die **Übersicht** des Problems unter **OneUptime AI-Analyse** und antwortet aus dem, was Datensicherheit weiß:
+
+- ob es echt ist: **Echt**, **Wahrscheinlich absichtlich**, **Wahrscheinlich ein falscher Fund** oder **Nicht feststellbar**, und warum;
+- was es gefährdet: die Daten und etwa wie viele Datensätze, wer sie erreichen kann, Kopien davon in anderen Datenspeichern und die Sicherheitsfälle dazu;
+- was die Korrektur beeinträchtigen würde: die Dienste, die den Datenspeicher nutzen, die Identitäten, die ihren Zugriff in den letzten 90 Tagen genutzt haben, und die Freigaben, die die Korrektur entfernt und die noch etwas nutzt;
+- der kürzeste Weg zur Behebung: was es jetzt eindämmt, der Code, der den Datenspeicher deklariert, und wer es tun sollte.
+
+Jede Zeile nennt die Fakten, auf denen sie beruht; eine Schaltfläche darunter wie **Die 3 Fakten anzeigen, auf denen sie beruht** listet sie auf. Eine Zeile, die auf keinem Fakt beruht, entfällt, eine Einschätzung, deren Grund auf keinem beruht, lautet **Nicht feststellbar**, und ein Datenspeicher mit eingeschränkten Daten ist auf das Wort von OneUptime AI hin nie **Wahrscheinlich absichtlich**. Eine Zeile, die auf etwas beruht, das Sie nicht lesen dürfen, etwa wer den Datenspeicher erreichen kann, wird Ihnen ausgeblendet und sagt das.
+
+OneUptime AI ändert das Problem nie: Status und Schweregrad bleiben bei seiner Prüfung und bei Ihnen. Bei **Wahrscheinlich absichtlich** bietet es **Risiko akzeptieren** mit vorformuliertem Grund an und für einen öffentlichen Datenspeicher **Absichtlich öffentlich**; bei **Wahrscheinlich ein falscher Fund** **Kein Problem** mit vorformuliertem Grund. Nichts ändert sich, bis Sie sich entscheiden.
+
+Die Analyse wird am Problem gespeichert, mit einem Eintrag in seiner **Zeitachse** bei jeder neuen Analyse, in der Sprache, die die meisten Mitglieder Ihres Projekts gewählt haben (**Erneut analysieren** schreibt sie in Ihrer). Sie wird nur neu geschrieben, wenn sich etwas geändert hat, worauf sie beruht; das Öffnen des Problems fragt OneUptime AI also nichts, **Erneut analysieren** fragt trotzdem. **Probleme** filtert und zeigt Probleme nach **Einschätzung von OneUptime AI**. Was sie sendet und nie sendet, steht unter [OneUptime AI in Datensicherheit](/docs/data-security/ai). Mit ausgeschalteter KI gibt es keine Analyse.
 
 ## Hier beheben
 
