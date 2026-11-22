@@ -8,6 +8,7 @@ import FeedMarkdown, {
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Feed/FeedPersonName";
 import type { OwnerNotAdded } from "./OwnerRuleAssignment";
 
 /*
@@ -82,7 +83,8 @@ export default class RuleFeedMarkdown {
    * The owners an owner rule assigned, one bullet each - "- 👤 Ada Lovelace",
    * "- 👥 Platform" - or "- (no named owners)" when none has a name.
    * `withheld` is who of the users is only invited to the project
-   * (readOwnersList): named by the name typed for them, else their address.
+   * (readOwnersList). Each is named as every feed entry names them
+   * (FeedPersonName): never by an address (#10668, #10669).
    */
   public static ownersList(data: {
     users: Array<User>;
@@ -96,7 +98,7 @@ export default class RuleFeedMarkdown {
       [
         ...data.users.map((user: User): MarkdownText => {
           return mdText`👤 ${
-            PendingInviteeProfiles.getNameInProject({
+            FeedPersonName.getName({
               userId: user.id,
               name: user.name,
               email: user.email,
@@ -117,14 +119,17 @@ export default class RuleFeedMarkdown {
    * with why:
    *
    *   - 👤 Ada Lovelace, who is not a member of this project
-   *   - 👤 ada@example.com, who has not accepted the invitation to this project yet
+   *   - 👤 Ada from Payments, who has not accepted the invitation to this project yet
+   *   - 👤 Someone who has not accepted the invitation to this project yet
    *   - 👥 A team that is not one of this project's teams (`<id>`)
    *
    * `users` are the skipped people, read as OneUptime; `withheld` who of
    * them is only invited to the project (readWithheldProfilesInProject). A
-   * person is named as ownersList names an owner: someone only invited by
-   * the name typed for them, else their address, never their account's own
-   * name. Someone who left the project keeps the name the project knew.
+   * person is named as ownersList names an owner (FeedPersonName): someone
+   * only invited by the name typed for them - with none, the bullet says
+   * "Someone" - never by their account's own name or any address (#10668).
+   * Someone who left the project keeps the name the project knew. The rule
+   * itself says who it names, for whoever keeps it.
    * A team that is not the project's is never named - its name is another
    * project's - but its id is: the rule holds it, and it says which of the
    * rule's teams to take out.
@@ -169,30 +174,41 @@ export default class RuleFeedMarkdown {
           owner.id.toString().toLowerCase(),
         );
 
+        const invited: WithheldProfile | undefined =
+          PendingInviteeProfiles.getWithheldProfile({
+            userId: owner.id,
+            withheld: withheld,
+          });
+
+        if (invited) {
+          const typedName: string = FeedPersonName.getDisplayName(
+            invited.inviteeName,
+          );
+
+          return typedName
+            ? mdText`👤 ${typedName}, who has not accepted the invitation to this project yet`
+            : mdText`👤 Someone who has not accepted the invitation to this project yet`;
+        }
+
         const name: string =
-          PendingInviteeProfiles.getNameInProject({
+          FeedPersonName.getName({
             userId: owner.id,
             name: user?.name,
             email: user?.email,
             withheld: withheld,
           }) || "Unknown User";
 
-        return PendingInviteeProfiles.getWithheldProfile({
-          userId: owner.id,
-          withheld: withheld,
-        })
-          ? mdText`👤 ${name}, who has not accepted the invitation to this project yet`
-          : mdText`👤 ${name}, who is not a member of this project`;
+        return mdText`👤 ${name}, who is not a member of this project`;
       }),
     );
   }
 
   /*
    * ownersList, for owners an engine read as OneUptime in `projectId`:
-   * someone only invited to the project is listed as the project knows
-   * them - the name typed for them, else their address - never by their
-   * account's own name, which it does not see until they join (#9823).
-   * One read for them all.
+   * someone only invited to the project is listed by the name typed for
+   * them, never by their account's own name, which it does not see until
+   * they join (#9823), or an address (FeedPersonName). One read for them
+   * all.
    */
   public static async readOwnersList(data: {
     users: Array<User>;

@@ -474,7 +474,7 @@ async function notifyOwnersOfAlert(
   for (const user of delivery.toldEarlier) {
     moreAlertFeedInformationInMarkdown +=
       OwnerNotificationFeedText.notifiedLineMarkdown(
-        OwnerNotificationFeedText.nameAndEmail({
+        OwnerNotificationFeedText.personName({
           name: user.name?.toString(),
           email: user.email?.toString(),
         }),
@@ -595,7 +595,7 @@ async function notifyOwnersOfAlert(
     if (isTold) {
       moreAlertFeedInformationInMarkdown +=
         OwnerNotificationFeedText.notifiedLineMarkdown(
-          OwnerNotificationFeedText.nameAndEmail({
+          OwnerNotificationFeedText.personName({
             name: user.name?.toString(),
             email: user.email?.toString(),
           }),
@@ -616,7 +616,7 @@ async function notifyOwnersOfAlert(
   moreAlertFeedInformationInMarkdown +=
     OwnerNotificationFeedText.reachedByPageMarkdown(
       delivery.leftOut.map((user: User): MarkdownText => {
-        return OwnerNotificationFeedText.nameAndEmail({
+        return OwnerNotificationFeedText.personName({
           name: user.name?.toString(),
           email: user.email?.toString(),
         });

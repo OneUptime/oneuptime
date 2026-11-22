@@ -392,7 +392,7 @@ async function notifyOwnersOfNote(data: {
   for (const user of delivery.toldEarlier) {
     moreAlertFeedInformationInMarkdown +=
       OwnerNotificationFeedText.notifiedLineMarkdown(
-        OwnerNotificationFeedText.nameAndEmail({
+        OwnerNotificationFeedText.personName({
           name: user.name?.toString(),
           email: user.email?.toString(),
         }),
@@ -471,7 +471,7 @@ async function notifyOwnersOfNote(data: {
     if (isTold) {
       moreAlertFeedInformationInMarkdown +=
         OwnerNotificationFeedText.notifiedLineMarkdown(
-          OwnerNotificationFeedText.nameAndEmail({
+          OwnerNotificationFeedText.personName({
             name: user.name?.toString(),
             email: user.email?.toString(),
           }),

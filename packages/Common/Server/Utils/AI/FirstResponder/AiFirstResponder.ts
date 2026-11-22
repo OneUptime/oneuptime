@@ -45,6 +45,7 @@ import IncidentStateTimelineService from "../../../Services/IncidentStateTimelin
 import OnCallDutyPolicyExecutionLogService from "../../../Services/OnCallDutyPolicyExecutionLogService";
 import UserService from "../../../Services/UserService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import FeedPersonName from "../../Feed/FeedPersonName";
 import logger, { LogAttributes } from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AiFirstResponderEligibility from "./AiFirstResponderEligibility";
@@ -514,7 +515,12 @@ export default class AiFirstResponder {
         props: { isRoot: true },
       });
 
-      userName = user?.name?.toString() || user?.email?.toString() || undefined;
+      // Named as every channel line names a member: never by their address.
+      userName =
+        FeedPersonName.getMemberName({
+          name: user?.name,
+          email: user?.email,
+        }) || undefined;
     }
 
     return await this.handOff({

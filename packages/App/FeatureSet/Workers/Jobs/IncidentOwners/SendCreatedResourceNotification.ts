@@ -303,7 +303,7 @@ async function notifyOwnersOfIncident(
   for (const user of delivery.toldEarlier) {
     moreIncidentFeedInformationInMarkdown +=
       OwnerNotificationFeedText.notifiedLineMarkdown(
-        OwnerNotificationFeedText.nameAndEmail({
+        OwnerNotificationFeedText.personName({
           name: user.name?.toString(),
           email: user.email?.toString(),
         }),
@@ -423,7 +423,7 @@ async function notifyOwnersOfIncident(
     if (isTold) {
       moreIncidentFeedInformationInMarkdown +=
         OwnerNotificationFeedText.notifiedLineMarkdown(
-          OwnerNotificationFeedText.nameAndEmail({
+          OwnerNotificationFeedText.personName({
             name: user.name?.toString(),
             email: user.email?.toString(),
           }),
@@ -444,7 +444,7 @@ async function notifyOwnersOfIncident(
   moreIncidentFeedInformationInMarkdown +=
     OwnerNotificationFeedText.reachedByPageMarkdown(
       delivery.leftOut.map((user: User): MarkdownText => {
-        return OwnerNotificationFeedText.nameAndEmail({
+        return OwnerNotificationFeedText.personName({
           name: user.name?.toString(),
           email: user.email?.toString(),
         });

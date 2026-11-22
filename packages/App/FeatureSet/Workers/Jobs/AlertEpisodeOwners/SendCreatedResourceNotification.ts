@@ -195,7 +195,7 @@ RunCron(
 
 // A person, as the episode's feed names them: "Ana Lopez (ana@acme.com)".
 function personMarkdown(user: User): MarkdownText {
-  return OwnerNotificationFeedText.nameAndEmail({
+  return OwnerNotificationFeedText.personName({
     name: user.name?.toString(),
     email: user.email?.toString(),
   });
