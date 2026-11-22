@@ -218,6 +218,7 @@ import {
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import {
   RETROHUNT_SCENARIOS,
@@ -4564,6 +4565,12 @@ const telemetryMentions = createTelemetryMentionsFixture({
  */
 table(SecurityCaseTask);
 table(SecurityCaseEvidence);
+/*
+ * What OneUptime found when it checked a Response Plan step itself (#10340):
+ * the Response Plan card reads a case's checks beside its tasks. The month's
+ * cases have none yet, so each step reads as ticked off or not, as before.
+ */
+table(SecurityCaseStepCheck);
 const caseWork = createCaseWorkFixture({
   insert,
   table,
