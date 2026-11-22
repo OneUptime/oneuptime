@@ -8,11 +8,13 @@ import DictionaryFilterSentence from "../Dictionary/DictionaryFilterSentence";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesAll from "../../../Types/BaseDatabase/IncludesAll";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import EndsWith from "../../../Types/BaseDatabase/EndsWith";
 import NotContains from "../../../Types/BaseDatabase/NotContains";
 import EqualTo from "../../../Types/BaseDatabase/EqualTo";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
@@ -200,7 +202,7 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         value.toString(),
       );
     }
-    if (value instanceof NotEqual) {
+    if (value instanceof NotEqual || value instanceof NotEqualOrNull) {
       return render(
         translationKey("{{field}} does not equal {{value}}"),
         value.toString(),
@@ -642,7 +644,10 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       if (rawValue instanceof IncludesAll) {
         items = rawValue.values as Array<string>;
         matchMode = "all";
-      } else if (rawValue instanceof IncludesNone) {
+      } else if (
+        rawValue instanceof IncludesNone ||
+        rawValue instanceof IncludesNoneOrNull
+      ) {
         items = rawValue.values as Array<string>;
         matchMode = "none";
       } else if (rawValue instanceof Includes) {

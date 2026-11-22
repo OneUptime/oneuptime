@@ -409,6 +409,8 @@ export enum CodeTaskOriginType {
   GitLabMergeRequest = "GitLabMergeRequest",
   // A pull request on Forgejo or Gitea ("#12"): what its production review is of.
   CodeHostPullRequest = "CodeHostPullRequest",
+  // A security case: Fix With AI asked for the fix from it (#10347).
+  SecurityCase = "SecurityCase",
   Unknown = "Unknown",
 }
 

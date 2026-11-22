@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { DashboardPlaylistDashboard } from "Common/Types/Dashboard/DashboardPlaylist";
 import {
   Translator,
@@ -15,6 +16,8 @@ import {
   PlaylistReadableDashboard,
   addPlaylistDashboard,
   formatPlaylistInterval,
+  getAddablePlaylistDashboardsQuery,
+  getNothingToAddText,
   getPlaylistDashboardIds,
   getPlaylistEntries,
   getPlaylistIntervalParts,
@@ -147,6 +150,47 @@ describe("the ids to read", () => {
         entries(CLUSTERS, OVERVIEW, CLUSTERS, OVERVIEW.toUpperCase(), DELETED),
       ),
     ).toEqual([CLUSTERS, OVERVIEW, DELETED]);
+  });
+});
+
+/*
+ * What the field's picker searches the server for (#10580): every live
+ * dashboard of the project not in the list yet, however many it has.
+ */
+describe("the dashboards the picker offers", () => {
+  test("an empty list: every dashboard that is not archived", () => {
+    expect(getAddablePlaylistDashboardsQuery([])).toEqual({
+      isArchived: false,
+    });
+  });
+
+  test("a list: none it holds, each once, archived ones left out", () => {
+    const query: ReturnType<typeof getAddablePlaylistDashboardsQuery> =
+      getAddablePlaylistDashboardsQuery(entries(CLUSTERS, OVERVIEW, CLUSTERS));
+
+    expect(query.isArchived).toBe(false);
+    expect(query._id).toBeInstanceOf(IncludesNone);
+    expect(query._id!.values).toEqual([CLUSTERS, OVERVIEW]);
+  });
+
+  test("an id that is no uuid is left out, so the search is never refused", () => {
+    const query: ReturnType<typeof getAddablePlaylistDashboardsQuery> =
+      getAddablePlaylistDashboardsQuery([
+        { dashboardId: "not-an-id" },
+        { dashboardId: OVERVIEW },
+      ]);
+
+    expect(query._id!.values).toEqual([OVERVIEW]);
+    expect(
+      getAddablePlaylistDashboardsQuery([{ dashboardId: "not-an-id" }]),
+    ).toEqual({ isArchived: false });
+  });
+
+  test("nothing left to add: the project has none yet, or each is in the list", () => {
+    expect(getNothingToAddText([])).toBe("This project has no dashboards yet");
+    expect(getNothingToAddText(entries(OVERVIEW))).toBe(
+      "Every dashboard is in the list",
+    );
   });
 });
 
