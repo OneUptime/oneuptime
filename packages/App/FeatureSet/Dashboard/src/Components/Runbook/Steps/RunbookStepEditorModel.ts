@@ -313,15 +313,21 @@ export const HTTP_ALLOW_SELF_SIGNED_DESCRIPTION: string = translationKey(
 );
 export const HTTP_CA_CERTIFICATE_TITLE: string =
   translationKey("CA certificate");
+/*
+ * What goes in the CA certificate: the certificate pasted in, or one runbook
+ * variable that holds it ({{reference}} is drawn as code), so one CA serves
+ * many steps (#10441).
+ */
 export const HTTP_CA_CERTIFICATE_HELP: string = translationKey(
-  "The step trusts only this certificate (PEM): that of the CA that signed the server's certificate, or the server's own when it is self-signed.",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.",
 );
 export const HTTP_CA_CERTIFICATE_PLACEHOLDER: string =
   "-----BEGIN CERTIFICATE-----";
 
 /*
  * Under the CA certificate, while it is not one a save takes: the server
- * refuses the save, and says the same.
+ * refuses the save, and says the same. One variable alone is taken: its
+ * value is checked when the step runs.
  */
 export const HTTP_CA_CERTIFICATE_PROBLEMS: Record<
   CaCertificateProblem,
@@ -335,6 +341,9 @@ export const HTTP_CA_CERTIFICATE_PROBLEMS: Record<
   ),
   [CaCertificateProblem.TooLong]: translationKey(
     "This is longer than a CA certificate can be. Paste only the certificate of the CA that signed the server's certificate.",
+  ),
+  [CaCertificateProblem.VariableAmongText]: translationKey(
+    "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.",
   ),
 };
 

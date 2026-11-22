@@ -61881,5 +61881,8 @@
   "{{count}} requests were throttled.": "{{count}} begäranden ströps.",
   "{{count}} requests were throttled._one": "{{count}} begäran ströps.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} begäranden ({{size}}) lagrades inte.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte.",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "Steget litar bara på det här certifikatet (PEM): den signerande CA:ns, eller en självsignerad servers eget. Eller spara det i en variabel och skriv {{reference}} här.",
+  "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Här står en variabel bredvid annan text. Skriv bara variabeln som innehåller certifikatet, eller klistra bara in certifikatet.",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Använd en variabel i URL:en, rubrikerna, brödtexten eller CA-certifikatet som {{reference}}. Hemligheter fylls också i och döljs i det som steget sparar."
 }

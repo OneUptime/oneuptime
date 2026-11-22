@@ -1,4 +1,10 @@
 import { HttpRequestStepConfig } from "./RunbookStep";
+import {
+  RunbookVariableReference,
+  RunbookVariableScope,
+  findRunbookVariableReferences,
+  parseSingleRunbookVariableReference,
+} from "./RunbookVariableReference";
 
 /*
  * HOW AN HTTP REQUEST STEP CHECKS THE SERVER'S CERTIFICATE (issue #10277).
@@ -17,6 +23,15 @@ import { HttpRequestStepConfig } from "./RunbookStep";
  *     else: that the server's chain ends there, the dates, and that the
  *     certificate names the URL's host. Someone between OneUptime and the
  *     server who answers in its place is still refused.
+ *
+ *     Or one runbook variable that holds it, and nothing else
+ *     ({{global.variables.INTERNAL_CA}}, #10441): a team whose services all
+ *     use one private CA keeps its certificate once, and changes it once
+ *     when the CA rotates. The step fills it in when it runs, as it does its
+ *     URL, headers and body (Types/Runbook/HttpStepVariables), and checks the
+ *     value as it would a certificate pasted in. A plain variable is enough,
+ *     since a certificate is not a secret; a secret one is hidden in what the
+ *     step records, as every secret the step is given.
  *   - Allow self-signed certificates (allowSelfSignedCertificates): no check
  *     at all. Any certificate is taken, for any host, so anyone on the
  *     network path could read the request, its secrets included, and change
@@ -26,6 +41,8 @@ import { HttpRequestStepConfig } from "./RunbookStep";
  *
  * With both set, the checks are off and the CA certificate is not used, as
  * the editor shows it: it hides the CA certificate while the switch is on.
+ * Nor is a variable it names read then, so one that no longer exists fails
+ * no step that does not use it.
  *
  * Only that step's request is sent so: the agents built for it carry the
  * setting (DataSourceEgressGuard's TargetTlsOptions), never a global agent,
@@ -69,6 +86,33 @@ export function getHttpStepCertificateSettings(
   };
 }
 
+/*
+ * The runbook variable a step's CA certificate names, or null: when what is
+ * written there is one reference and nothing else (white space around it
+ * aside), and the step checks certificates. With the checks off the CA
+ * certificate is not used, so its variable is not read either. A certificate
+ * pasted in, an empty field and a variable written beside other text name
+ * none: the last is refused (CaCertificateProblem.VariableAmongText).
+ */
+export function getHttpStepCaCertificateVariable(
+  config:
+    | Pick<
+        HttpRequestStepConfig,
+        "allowSelfSignedCertificates" | "caCertificate"
+      >
+    | undefined
+    | null,
+): RunbookVariableReference | null {
+  if (
+    getHttpStepCertificateSettings(config).skipsCertificateChecks ||
+    typeof config?.caCertificate !== "string"
+  ) {
+    return null;
+  }
+
+  return parseSingleRunbookVariableReference(config.caCertificate);
+}
+
 // ------------------------------------------------------- the CA certificate
 
 /*
@@ -92,7 +136,23 @@ export enum CaCertificateProblem {
    */
   PrivateKey = "PrivateKey",
   TooLong = "TooLong",
+  /*
+   * A runbook variable written beside other text - a certificate, or a
+   * second variable. The field holds a certificate or one variable, never
+   * both: the step would trust neither as written.
+   */
+  VariableAmongText = "VariableAmongText",
 }
+
+/*
+ * What can be wrong with the certificates a step trusts as it runs, once a
+ * variable its CA certificate names is filled in: a value names no variable
+ * (one is filled in once, never read again).
+ */
+export type CaCertificatePemProblem = Exclude<
+  CaCertificateProblem,
+  CaCertificateProblem.VariableAmongText
+>;
 
 // The certificates of a PEM text, each from its BEGIN line to its END line.
 export function getCaCertificateBlocks(text: string): Array<string> {
@@ -102,10 +162,12 @@ export function getCaCertificateBlocks(text: string): Array<string> {
 }
 
 /*
- * Whether the text has the shape of one or more certificates in PEM, and
- * nothing that must not be kept in a step. Empty text has no problem: the
- * step then trusts the CAs OneUptime trusts. The server also parses each
- * certificate (HttpStepCaCertificate).
+ * Whether what is written in a step's CA certificate is one it can run
+ * with: one or more certificates in PEM, and nothing that must not be kept
+ * in a step - or one runbook variable alone, whose value is checked once it
+ * is filled in (getCaCertificatePemShapeProblem). Empty text has no
+ * problem: the step then trusts the CAs OneUptime trusts. The server also
+ * parses each certificate (HttpStepCaCertificate).
  */
 export function getCaCertificateShapeProblem(
   text: string | undefined | null,
@@ -114,15 +176,46 @@ export function getCaCertificateShapeProblem(
     return null;
   }
 
-  if (PEM_PRIVATE_KEY_LINE.test(text)) {
+  if (parseSingleRunbookVariableReference(text)) {
+    return null;
+  }
+
+  const problem: CaCertificatePemProblem | null =
+    getCaCertificatePemShapeProblem(text);
+
+  // A private key, or a text too long, is that first, whatever it names.
+  if (
+    problem !== CaCertificateProblem.PrivateKey &&
+    problem !== CaCertificateProblem.TooLong &&
+    findRunbookVariableReferences(text).length > 0
+  ) {
+    return CaCertificateProblem.VariableAmongText;
+  }
+
+  return problem;
+}
+
+/*
+ * Whether the certificates a step trusts as it runs - the text pasted in its
+ * CA certificate, or the value of the variable it names - have the shape of
+ * one or more certificates in PEM, and nothing that must not be kept in a
+ * step. Empty text is no certificate: a step that names a variable for its
+ * CA has nothing to trust when the variable is empty.
+ */
+export function getCaCertificatePemShapeProblem(
+  text: string | undefined | null,
+): CaCertificatePemProblem | null {
+  const pem: string = typeof text === "string" ? text : "";
+
+  if (PEM_PRIVATE_KEY_LINE.test(pem)) {
     return CaCertificateProblem.PrivateKey;
   }
 
-  if (text.length > HTTP_STEP_CA_CERTIFICATE_MAX_LENGTH) {
+  if (pem.length > HTTP_STEP_CA_CERTIFICATE_MAX_LENGTH) {
     return CaCertificateProblem.TooLong;
   }
 
-  return getCaCertificateBlocks(text).length > 0
+  return getCaCertificateBlocks(pem).length > 0
     ? null
     : CaCertificateProblem.NotACertificate;
 }
@@ -142,7 +235,47 @@ export const HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES: Record<
     "This step's CA certificate holds a private key, so the request was not sent. Under the step's More fields, paste only the certificate, and keep the key on the server.",
   [CaCertificateProblem.TooLong]:
     "This step's CA certificate is longer than 64 KB, so the request was not sent. Under the step's More fields, paste only the certificate of the CA that signed the server's certificate.",
+  [CaCertificateProblem.VariableAmongText]:
+    "This step's CA certificate names a runbook variable beside other text, so the request was not sent. Under the step's More fields, write only the variable that holds the certificate, or paste only the certificate.",
 };
+
+// A variable as a step's error names it: its name, never its value.
+function quoteVariable(reference: RunbookVariableReference): string {
+  return `the variable "${reference.name}"`;
+}
+
+// Where the variable is changed, as a step's error says it.
+function whereVariableIsKept(reference: RunbookVariableReference): string {
+  return reference.scope === RunbookVariableScope.Local
+    ? "the runbook's Settings → Variables"
+    : "Runbooks → Settings → Global Variables";
+}
+
+/*
+ * Why the step was not sent, as its error says it, when the variable its CA
+ * certificate names holds no certificate it can trust: the variable named,
+ * never its value, and where to change it.
+ */
+export function getHttpStepCaCertificateVariableProblemMessage(data: {
+  problem: CaCertificatePemProblem;
+  reference: RunbookVariableReference;
+}): string {
+  const variable: string = quoteVariable(data.reference);
+  const where: string = `Under ${whereVariableIsKept(data.reference)}, replace its value with`;
+
+  switch (data.problem) {
+    case CaCertificateProblem.NotACertificate:
+      return `This step's CA certificate, ${variable}, is not a certificate in PEM, so the request was not sent. ${where} the CA's certificate, from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----.`;
+    case CaCertificateProblem.PrivateKey:
+      return `This step's CA certificate, ${variable}, holds a private key, so the request was not sent. ${where} only the certificate, and keep the key on the server.`;
+    case CaCertificateProblem.TooLong:
+      return `This step's CA certificate, ${variable}, is longer than 64 KB, so the request was not sent. ${where} only the certificate of the CA that signed the server's certificate.`;
+    default: {
+      const unhandled: never = data.problem;
+      return unhandled;
+    }
+  }
+}
 
 // ------------------------------------------- a certificate the step refused
 
@@ -157,6 +290,13 @@ export const HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE: string =
 
 export const HTTP_STEP_CERTIFICATE_NOT_FROM_STEP_CA_MESSAGE: string =
   "The server's certificate is not signed by the step's CA certificate, so the request was not sent. Under the step's More fields, paste the certificate of the CA that signed it, or the server's own certificate when it is self-signed.";
+
+// The same, when the step's CA certificate is the variable it names.
+export function getHttpStepCertificateNotFromVariableCaMessage(
+  reference: RunbookVariableReference,
+): string {
+  return `The server's certificate is not signed by the step's CA certificate, ${quoteVariable(reference)}, so the request was not sent. Under ${whereVariableIsKept(reference)}, replace its value with the certificate of the CA that signed it, or the server's own certificate when it is self-signed.`;
+}
 
 export const HTTP_STEP_CERTIFICATE_EXPIRED_MESSAGE: string =
   "The server's certificate has expired, so the request was not sent. Renew the certificate on the server, or turn on Allow self-signed certificates under the step's More fields to skip the check.";
@@ -220,12 +360,15 @@ export const UNVERIFIED_CERTIFICATE_CODES: ReadonlyArray<string> = [
  * What the step's error says when the server's certificate was refused with
  * `code`, or null when `code` is no refusal of a certificate (a refused
  * connection, a timeout), which keeps the error it came with. `host` is the
- * host name the step's URL names.
+ * host name the step's URL names; `caCertificateVariable` the variable the
+ * step's CA certificate names, when it names one
+ * (getHttpStepCaCertificateVariable), which is where to change the CA.
  */
 export function getHttpStepCertificateFailureMessage(data: {
   code: string | undefined | null;
   host: string;
   settings: HttpStepCertificateSettings;
+  caCertificateVariable?: RunbookVariableReference | null | undefined;
 }): string | null {
   const code: string = data.code || "";
 
@@ -240,9 +383,15 @@ export function getHttpStepCertificateFailureMessage(data: {
   }
 
   if (UNTRUSTED_CERTIFICATE_CODES.includes(code)) {
-    return data.settings.caCertificate
-      ? HTTP_STEP_CERTIFICATE_NOT_FROM_STEP_CA_MESSAGE
-      : HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE;
+    if (!data.settings.caCertificate) {
+      return HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE;
+    }
+
+    return data.caCertificateVariable
+      ? getHttpStepCertificateNotFromVariableCaMessage(
+          data.caCertificateVariable,
+        )
+      : HTTP_STEP_CERTIFICATE_NOT_FROM_STEP_CA_MESSAGE;
   }
 
   if (code === "CERT_HAS_EXPIRED") {

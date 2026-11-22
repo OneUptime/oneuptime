@@ -61881,5 +61881,8 @@
   "{{count}} requests were throttled.": "خُنق {{count}} من الطلبات.",
   "{{count}} requests were throttled._one": "خُنق {{count}} طلب.",
   "{{size}} in {{count}} requests was not stored.": "لم يُخزَّن {{count}} من الطلبات ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}})."
+  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}}).",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "لا تثق الخطوة إلا بهذه الشهادة (PEM): شهادة جهة CA الموقِّعة، أو شهادة الخادم نفسه إن كانت موقّعة ذاتيًا. أو احفظها في متغير واكتب هنا {{reference}}.",
+  "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "يذكر هذا متغيرًا بجانب نص آخر. اكتب المتغير الذي يحتوي على الشهادة وحده، أو الصق الشهادة وحدها.",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "استخدم متغيرًا في عنوان URL أو الترويسات أو النص أو شهادة CA بالشكل {{reference}}. وتُملأ الأسرار أيضًا، وتُخفى فيما تسجّله الخطوة."
 }

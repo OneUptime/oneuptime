@@ -61881,5 +61881,8 @@
   "{{count}} requests were throttled.": "Se limitaron {{count}} solicitudes.",
   "{{count}} requests were throttled._one": "Se limitó {{count}} solicitud.",
   "{{size}} in {{count}} requests was not stored.": "No se guardaron {{count}} solicitudes ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "No se guardó {{count}} solicitud ({{size}})."
+  "{{size}} in {{count}} requests was not stored._one": "No se guardó {{count}} solicitud ({{size}}).",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "El paso solo confía en este certificado (PEM): el de la CA firmante, o el propio de un servidor autofirmado. O guárdalo en una variable y escribe aquí {{reference}}.",
+  "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Esto nombra una variable junto a otro texto. Escribe solo la variable que contiene el certificado, o pega solo el certificado.",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Usa una variable en la URL, los encabezados, el cuerpo o el certificado de la CA como {{reference}}. Los secretos también se rellenan y se ocultan en lo que registra el paso."
 }

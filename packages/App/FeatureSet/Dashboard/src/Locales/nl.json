@@ -61881,5 +61881,8 @@
   "{{count}} requests were throttled.": "{{count}} verzoeken zijn afgeremd.",
   "{{count}} requests were throttled._one": "{{count}} verzoek is afgeremd.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} verzoeken ({{size}}) zijn niet opgeslagen.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen.",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "De stap vertrouwt alleen dit certificaat (PEM): dat van de ondertekenende CA, of dat van een zelfondertekende server zelf. Of bewaar het in een variabele en schrijf hier {{reference}}.",
+  "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "Hier staat een variabele naast andere tekst. Schrijf alleen de variabele die het certificaat bevat, of plak alleen het certificaat.",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "Gebruik een variabele in de URL, de headers, de body of het CA-certificaat als {{reference}}. Ook geheimen worden ingevuld, en verborgen in wat de stap vastlegt."
 }

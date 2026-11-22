@@ -61881,5 +61881,8 @@
   "{{count}} requests were throttled.": "{{count}} 个请求被限流。",
   "{{count}} requests were throttled._one": "{{count}} 个请求被限流。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 个请求（{{size}}）未被存储。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 个请求（{{size}}）未被存储。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 个请求（{{size}}）未被存储。",
+  "The step trusts only this certificate (PEM): the signing CA's, or a self-signed server's own. Or keep it in a variable and write {{reference}} here.": "此步骤只信任此证书（PEM）：签发服务器证书的 CA 的证书，或自签名服务器自己的证书。也可以把它保存在变量中，并在此处写入 {{reference}}。",
+  "This names a variable beside other text. Write only the variable that holds the certificate, or paste only the certificate.": "这里的变量旁边还有其他文本。只填写保存该证书的变量，或只粘贴证书。",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.": "在 URL、请求头、请求体或 CA 证书中以 {{reference}} 的形式使用变量。密钥也会被填入，并在该步骤记录的内容中隐藏。"
 }

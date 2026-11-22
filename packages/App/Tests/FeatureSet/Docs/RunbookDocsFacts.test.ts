@@ -2367,8 +2367,13 @@ describe("runbook variables", () => {
    */
   it("say an HTTP request step fills in every variable it names, secrets too, and hides them in what it records", () => {
     expect(
-      getHttpStepVariableTexts({ url: "u", headersJson: "h", body: "b" }),
-    ).toEqual(["u", "h", "b"]);
+      getHttpStepVariableTexts({
+        url: "u",
+        headersJson: "h",
+        body: "b",
+        caCertificate: "{{global.variables.INTERNAL_CA}}",
+      }),
+    ).toEqual(["u", "h", "b", "{{global.variables.INTERNAL_CA}}"]);
 
     const httpStep: string = STEP_EXECUTORS.slice(
       STEP_EXECUTORS.indexOf("export async function runHttpStep("),
