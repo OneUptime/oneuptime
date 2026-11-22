@@ -11,6 +11,10 @@ import {
   isRecommendedDetectionRule,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelationStep,
+} from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import {
   SECURITY_TELEMETRY_SOURCES,
@@ -18,9 +22,11 @@ import {
   SecurityTelemetrySourceKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import {
   AuditResourceType,
   AuditScanRecord,
+  MassDeleteRow,
   buildAuditRecordEvent,
   buildMassDeleteEvent,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
@@ -104,7 +110,36 @@ function audit(overrides: Partial<AuditScanRecord>): AuditScanRecord {
     apiKeyId: "",
     apiKeyName: "",
     mcpClientName: "",
+    workflowId: "",
     workflowName: "",
+    workflowRunAs: "",
+    workflowRunAsCustomRoleName: "",
+    workflowRunAsGiverName: "",
+    workflowRunAsGiverApiKeyId: "",
+    ...overrides,
+  };
+}
+
+// One actor's deletes in a window: a member's, unless it says otherwise.
+function massDelete(overrides: Partial<MassDeleteRow>): MassDeleteRow {
+  return {
+    userId: "u1",
+    userName: "",
+    userEmail: "mallory@example.com",
+    userType: "User",
+    apiKeyId: "",
+    apiKeyName: "",
+    mcpClientName: "",
+    workflowId: "",
+    workflowName: "",
+    workflowRunAs: "",
+    workflowRunAsCustomRoleName: "",
+    workflowRunAsGiverName: "",
+    workflowRunAsGiverApiKeyId: "",
+    deletes: 50,
+    sampleResourceTypes: ["Monitor"],
+    firstAt: WINDOW.from,
+    lastAt: WINDOW.to,
     ...overrides,
   };
 }
@@ -187,21 +222,7 @@ const RULE_EVENTS: Array<[string, NormalizedSecurityEvent]> = [
   ],
   [
     "Many records deleted at once in OneUptime",
-    buildMassDeleteEvent(
-      {
-        userId: "u1",
-        userName: "",
-        userEmail: "mallory@example.com",
-        userType: "User",
-        apiKeyId: "",
-        apiKeyName: "",
-        deletes: 50,
-        sampleResourceTypes: ["Monitor"],
-        firstAt: WINDOW.from,
-        lastAt: WINDOW.to,
-      },
-      WINDOW.from,
-    )!,
+    buildMassDeleteEvent(massDelete({}), WINDOW.from)!,
   ],
   [
     "Security controls changed in OneUptime",
@@ -295,6 +316,77 @@ describe("the rule library's rules for your OneUptime data", () => {
         );
       }
     }
+  });
+
+  test("a workflow's deletes fire the mass delete rule, and OneUptime's own fire no rule of the library (#10430)", () => {
+    const rule: SigmaRule = SigmaRuleParser.parse(
+      entryTitled("Many records deleted at once in OneUptime").sigmaRuleYaml,
+    );
+    const workflow: NormalizedSecurityEvent = buildMassDeleteEvent(
+      massDelete({
+        userId: "",
+        userEmail: "",
+        userType: "Workflow",
+        workflowId: "0192f1a0-0000-7000-8000-00000000f001",
+        workflowName: "Nightly Cleanup",
+      }),
+      WINDOW.from,
+    )!;
+
+    expect(workflow.principalUser).toBe(
+      "workflow:0192f1a0-0000-7000-8000-00000000f001",
+    );
+    expect(sigmaRuleMatchesEvent(rule, workflow)).toBe(true);
+
+    // A scheduled cleanup or a SCIM sync: OneUptime's own, which no rule reads.
+    const ownWork: NormalizedSecurityEvent = buildMassDeleteEvent(
+      massDelete({ userId: "", userEmail: "", userType: "System" }),
+      WINDOW.from,
+    )!;
+
+    expect(ownWork.principalUser).toBe("oneuptime");
+
+    // Every rule of the library, and every step of its correlations.
+    const rulesOf: (entry: DetectionRuleLibraryEntry) => Array<SigmaRule> = (
+      entry: DetectionRuleLibraryEntry,
+    ): Array<SigmaRule> => {
+      const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+        entry.sigmaRuleYaml,
+      );
+
+      if (definition.kind === "single") {
+        return [definition.rule];
+      }
+
+      return definition.steps
+        .map((step: SigmaCorrelationStep): SigmaRule | undefined => {
+          return step.rule;
+        })
+        .filter((stepRule: SigmaRule | undefined): stepRule is SigmaRule => {
+          return Boolean(stepRule);
+        });
+    };
+
+    expect(DETECTION_RULE_LIBRARY.length).toBeGreaterThan(20);
+    expect(
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return rulesOf(entry).some((libraryRule: SigmaRule): boolean => {
+            return sigmaRuleMatchesEvent(libraryRule, ownWork);
+          });
+        },
+      ).map((entry: DetectionRuleLibraryEntry): string => {
+        return entry.title;
+      }),
+    ).toEqual([]);
+
+    // A System entry that names a person stays that person's, and fires.
+    expect(
+      sigmaRuleMatchesEvent(
+        rule,
+        buildMassDeleteEvent(massDelete({ userType: "System" }), WINDOW.from)!,
+      ),
+    ).toBe(true);
   });
 
   test("a role taken away is not a role given", () => {
