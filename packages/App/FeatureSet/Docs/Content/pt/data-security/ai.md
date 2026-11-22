@@ -24,7 +24,7 @@ Na página de um problema, o cartão **OneUptime AI** acima de **Como corrigir**
 
 Em **Regras de IA** de **Segurança de dados → IA**, uma regra diz em quais problemas o OneUptime AI trabalha - pela verificação ou grupo de verificações, gravidade, e sensibilidade, tipo, provedor, ambiente, rótulos, categorias de dados e serviço do repositório - e, para cada tipo de trabalho, **Analisar**, **Conter**, **Correção** e **Julgar**, se está em **Desativado**, **Sugerir** (ele propõe e aguarda você) ou **Sem perguntar**. Quando várias regras correspondem a um problema, um tipo de trabalho é executado se alguma delas o liga, e **Sugerir** prevalece sobre **Sem perguntar**. Cada proposta diz qual regra a decidiu. Sem regra, valem os padrões do projeto: analisar problemas críticos e altos, e sugerir todo o resto.
 
-As regras de IA pertencem ao projeto todo, como as de incidentes e alertas: proprietários e administradores do projeto as alteram, assim como qualquer pessoa com as permissões de regras de IA. Os papéis de segurança veem o que o OneUptime AI propôs e fez, mas não as regras.
+As regras de IA pertencem ao projeto todo, como as de incidentes e alertas: Proprietários do projeto e Administradores do projeto as alteram, assim como qualquer pessoa com as permissões de regras de IA. Os papéis de segurança veem o que o OneUptime AI propôs e fez, mas não as regras.
 
 ## O que o OneUptime AI vê
 
