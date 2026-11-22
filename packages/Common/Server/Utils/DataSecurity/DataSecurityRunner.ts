@@ -144,15 +144,19 @@ const MAX_CONTAINERS_PER_ACCOUNT: number = 10;
 
 /*
  * Cloud audit operations that change a store's exposure, encryption or
- * sharing: one of them makes the connection's next read due at once.
+ * sharing: one of them makes the connection's next read due at once. By
+ * the names the activity log records them under: a bucket's public access
+ * block is PutBucketPublicAccessBlock and DeleteBucketPublicAccessBlock in
+ * CloudTrail, not S3's API names PutPublicAccessBlock and
+ * DeletePublicAccessBlock.
  */
 export const POSTURE_CHANGING_OPERATIONS: ReadonlyArray<string> = [
   "s3:PutBucketPolicy",
   "s3:DeleteBucketPolicy",
   "s3:PutBucketAcl",
   "s3:PutObjectAcl",
-  "s3:PutPublicAccessBlock",
-  "s3:DeletePublicAccessBlock",
+  "s3:PutBucketPublicAccessBlock",
+  "s3:DeleteBucketPublicAccessBlock",
   "s3:PutAccountPublicAccessBlock",
   "s3:DeleteAccountPublicAccessBlock",
   "s3:PutBucketEncryption",

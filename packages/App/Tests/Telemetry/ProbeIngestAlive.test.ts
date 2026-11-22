@@ -19,7 +19,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
  * response time to Postgres write latency — a briefly-starved pool made
  * /alive hang past the probe client's timeout and healthy probes were
  * marked Disconnected. The middleware now owns the stamp
- * (fire-and-forget); the handler must do NO database work at all.
+ * (fire-and-forget); the handler must AWAIT no database work at all. The
+ * one write it schedules - the probe's interface addresses (#10429) - is
+ * fire-and-forget too, and pinned below.
  */
 
 jest.mock("Common/Server/Utils/Express", () => {
@@ -66,6 +68,7 @@ jest.mock("Common/Server/Services/ProbeService", () => {
     default: {
       findOneBy: jest.fn(),
       updateLastAlive: jest.fn(),
+      recordInterfaceAddresses: jest.fn(),
     },
   };
 });
@@ -170,9 +173,11 @@ import ProbeAuthorization from "../../FeatureSet/Telemetry/Middleware/ProbeAutho
 const probeService: {
   findOneBy: jest.Mock;
   updateLastAlive: jest.Mock;
+  recordInterfaceAddresses: jest.Mock;
 } = ProbeService as unknown as {
   findOneBy: jest.Mock;
   updateLastAlive: jest.Mock;
+  recordInterfaceAddresses: jest.Mock;
 };
 
 const responseUtil: {
@@ -257,5 +262,114 @@ describe("POST /alive", () => {
     const { next } = await callAliveEndpoint(makeRequest());
 
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A heartbeat lists the addresses on the probe's own network interfaces
+ * (#10429), and OneUptime keeps them on the probe so Security Events knows
+ * the probe's polls and checks in the project's flows. Kept as the liveness
+ * stamp is: scheduled, never awaited, so a slow database never holds the
+ * heartbeat.
+ */
+describe("POST /alive keeps the probe's interface addresses", () => {
+  const probeId: ObjectID = ObjectID.generate();
+
+  function makeRequest(body: Record<string, unknown>): ExpressRequest {
+    return {
+      body: {
+        probeId: probeId.toString(),
+        probeKey: "test-probe-key",
+        ...body,
+      },
+      // Set by the probe-auth middleware: whose request it is.
+      probe: { id: probeId },
+    } as unknown as ExpressRequest;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    probeService.recordInterfaceAddresses.mockImplementation(() => {
+      return Promise.resolve(true);
+    });
+  });
+
+  test("keeps what the heartbeat lists, read as OneUptime keeps it, for the probe that sent it", async () => {
+    await callAliveEndpoint(
+      makeRequest({
+        probeInterfaceAddresses: [
+          "10.0.0.5/24",
+          "fe80::1/64",
+          "127.0.0.1",
+          "2001:db8::5",
+        ],
+      }),
+    );
+
+    expect(probeService.recordInterfaceAddresses).toHaveBeenCalledTimes(1);
+    expect(probeService.recordInterfaceAddresses).toHaveBeenCalledWith({
+      probeId,
+      addresses: ["10.0.0.5", "2001:db8::5"],
+    });
+    expect(responseUtil.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+  });
+
+  test("answers without waiting for the write", async () => {
+    probeService.recordInterfaceAddresses.mockImplementation(() => {
+      return new Promise<never>(() => {
+        // A database that never answers.
+      });
+    });
+
+    const { next } = await callAliveEndpoint(
+      makeRequest({ probeInterfaceAddresses: ["10.0.0.5"] }),
+    );
+
+    expect(responseUtil.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("a write that fails is logged, and the heartbeat still succeeds", async () => {
+    probeService.recordInterfaceAddresses.mockImplementation(() => {
+      return Promise.reject(new Error("pool exhausted"));
+    });
+
+    const { next } = await callAliveEndpoint(
+      makeRequest({ probeInterfaceAddresses: ["10.0.0.5"] }),
+    );
+
+    await new Promise<void>((resolve: () => void) => {
+      setImmediate(resolve);
+    });
+
+    expect(responseUtil.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test("an empty list is kept: the probe has no address worth keeping", async () => {
+    await callAliveEndpoint(makeRequest({ probeInterfaceAddresses: [] }));
+
+    expect(probeService.recordInterfaceAddresses).toHaveBeenCalledWith({
+      probeId,
+      addresses: [],
+    });
+  });
+
+  test("a heartbeat that lists nothing - an older probe's - leaves what is kept", async () => {
+    await callAliveEndpoint(makeRequest({}));
+    await callAliveEndpoint(
+      makeRequest({ probeInterfaceAddresses: "10.0.0.5" }),
+    );
+
+    expect(probeService.recordInterfaceAddresses).not.toHaveBeenCalled();
+    expect(responseUtil.sendEmptySuccessResponse).toHaveBeenCalledTimes(2);
+  });
+
+  test("a request the middleware did not make a probe's keeps nothing", async () => {
+    await callAliveEndpoint({
+      body: { probeInterfaceAddresses: ["10.0.0.5"] },
+    } as unknown as ExpressRequest);
+
+    expect(probeService.recordInterfaceAddresses).not.toHaveBeenCalled();
   });
 });

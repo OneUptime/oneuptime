@@ -224,6 +224,74 @@ export function awsErrorCodeOf(body: string): string {
 }
 
 /*
+ * The words of an AWS error answer: JSON's "message" (or "Message"), or
+ * XML's <Message>. "" when the answer has none.
+ */
+export function awsErrorMessageOf(body: string): string {
+  const text: string = (body || "").trim();
+
+  if (text.startsWith("{")) {
+    try {
+      const parsed: unknown = JSON.parse(text);
+
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return "";
+      }
+
+      const message: unknown =
+        (parsed as JSONObject)["message"] ?? (parsed as JSONObject)["Message"];
+
+      return typeof message === "string" ? message.trim() : "";
+    } catch {
+      return "";
+    }
+  }
+
+  return readXmlTag(text, "Message");
+}
+
+/*
+ * WHY AWS REFUSED A CALL, as its access-denied message says it. AWS words
+ * the policy that refused a call into the message ("Troubleshoot access
+ * denied error messages", IAM User Guide): "because no identity-based
+ * policy allows the s3:GetBucketPolicy action" when nothing the caller's
+ * own role or user holds allows the action, "with an explicit deny in a
+ * resource-based policy" (or "because no resource-based policy allows")
+ * when the resource's own policy - an S3 bucket's - refuses it. S3 says so
+ * within one account or organization, and gives a bare "Access Denied"
+ * across accounts; every other refusal (a service control policy, a
+ * permissions boundary, an explicit deny in the caller's own policy) and a
+ * message that names no policy is Unknown.
+ */
+export enum AwsRefusalCause {
+  // The caller's own policies never allow the action: refused on any resource.
+  NoIdentityPolicyAllows = "no-identity-policy-allows",
+  // The resource's own policy refuses the caller: refused on that resource.
+  ResourcePolicy = "resource-policy",
+  Unknown = "unknown",
+}
+
+export function awsRefusalCauseOf(body: string): AwsRefusalCause {
+  const words: string = awsErrorMessageOf(body)
+    .split(/\s+/)
+    .join(" ")
+    .toLowerCase();
+
+  if (words.includes("because no identity-based policy allows")) {
+    return AwsRefusalCause.NoIdentityPolicyAllows;
+  }
+
+  if (
+    words.includes("with an explicit deny in a resource-based policy") ||
+    words.includes("because no resource-based policy allows")
+  ) {
+    return AwsRefusalCause.ResourcePolicy;
+  }
+
+  return AwsRefusalCause.Unknown;
+}
+
+/*
  * The error code a REST-JSON API (Lambda, EKS, OpenSearch Service) names in
  * its x-amzn-ErrorType header, before any ":" and the URL after it - or ""
  * when it names none.

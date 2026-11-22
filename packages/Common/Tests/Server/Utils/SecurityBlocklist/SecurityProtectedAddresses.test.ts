@@ -102,6 +102,34 @@ function inputsOf(spy: Spy): Array<FindInput> {
 }
 
 /*
+ * The probe reads, each by its query: the project's probes by the address
+ * each checks in from and by the addresses on its own interfaces, and
+ * OneUptime's own probes.
+ */
+function probeReadsOf(spy: Spy): {
+  byCheckIn: FindInput | undefined;
+  byInterface: FindInput | undefined;
+  oneUptimes: FindInput | undefined;
+} {
+  const inputs: Array<FindInput> = inputsOf(spy);
+
+  return {
+    byCheckIn: inputs.find((input: FindInput): boolean => {
+      return (
+        input.query["isGlobalProbe"] === undefined &&
+        input.query["egressIpAddress"] !== undefined
+      );
+    }),
+    byInterface: inputs.find((input: FindInput): boolean => {
+      return input.query["interfaceIpAddresses"] !== undefined;
+    }),
+    oneUptimes: inputs.find((input: FindInput): boolean => {
+      return input.query["isGlobalProbe"] === true;
+    }),
+  };
+}
+
+/*
  * The text a query holds a column to (QueryHelper.search), or null for a
  * column held to any value at all (QueryHelper.notNull).
  */
@@ -187,7 +215,9 @@ function install(records: Records = {}): Reads {
       answer(records.probes, (row: Probe, query: Query): boolean => {
         return (
           Boolean(row.isGlobalProbe) === (query["isGlobalProbe"] === true) &&
-          finds(query["egressIpAddress"], row.egressIpAddress)
+          (query["interfaceIpAddresses"] !== undefined
+            ? finds(query["interfaceIpAddresses"], row.interfaceIpAddresses)
+            : finds(query["egressIpAddress"], row.egressIpAddress))
         );
       }),
     ),
@@ -378,11 +408,18 @@ function probe(data: {
   name: string;
   address: string;
   isGlobal?: boolean;
+  // What its heartbeat listed of its own interfaces, as the column holds it.
+  interfaceAddresses?: string;
 }): Probe {
   const model: Probe = withId(new Probe());
   model.name = data.name;
   model.egressIpAddress = data.address;
   model.isGlobalProbe = Boolean(data.isGlobal);
+
+  if (data.interfaceAddresses !== undefined) {
+    model.interfaceIpAddresses = data.interfaceAddresses;
+  }
+
   return model;
 }
 
@@ -666,15 +703,95 @@ describe("SecurityProtectedAddresses.findProtection", () => {
       unreadSources: [],
     });
 
-    const [own, oneUptimes]: Array<FindInput | undefined> = inputsOf(
-      reads.probes,
-    );
+    const { byCheckIn, byInterface, oneUptimes } = probeReadsOf(reads.probes);
 
-    expect(own?.query["projectId"]).toEqual(PROJECT_ID);
-    expect(searchedText(own?.query["egressIpAddress"])).toBe("35.205.11.131");
+    expect(byCheckIn?.query["projectId"]).toEqual(PROJECT_ID);
+    expect(searchedText(byCheckIn?.query["egressIpAddress"])).toBe(
+      "35.205.11.131",
+    );
+    // Its interfaces' addresses are read by the same text.
+    expect(byInterface?.query["projectId"]).toEqual(PROJECT_ID);
+    expect(searchedText(byInterface?.query["interfaceIpAddresses"])).toBe(
+      "35.205.11.131",
+    );
     expect(oneUptimes?.query["projectId"]).toBeUndefined();
     expect(oneUptimes?.query["isGlobalProbe"]).toBe(true);
     expect(oneUptimes?.props).toEqual(ROOT);
+  });
+
+  /*
+   * A probe polls its LAN from the addresses on its own interfaces
+   * (#10429), which the flows show and the blocklist never blocks: the one
+   * list of OneUptime's own probe addresses, which Security Events reads.
+   */
+  test("a probe of the project's, by an address on its own network interfaces", async () => {
+    const office: Probe = probe({
+      name: "Office probe",
+      address: "35.205.11.131",
+      interfaceAddresses: "198.51.100.40, 2001:db8::40",
+    });
+    install({ probes: [office] });
+
+    await expect(find("198.51.100.40")).resolves.toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.Probe,
+        protectedValue: "198.51.100.40",
+        name: "Office probe",
+        recordId: idOf(office),
+      },
+      unreadSources: [],
+    });
+
+    await expect(find("2001:db8::/48")).resolves.toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.Probe,
+        protectedValue: "2001:db8::40",
+        name: "Office probe",
+        recordId: idOf(office),
+      },
+      unreadSources: [],
+    });
+  });
+
+  test("a probe read by both of its addresses is one probe, each address once", async () => {
+    install({
+      probes: [
+        probe({
+          name: "Office probe",
+          address: "35.205.11.131",
+          interfaceAddresses: "35.205.11.131, 35.205.11.140",
+        }),
+      ],
+    });
+
+    const groups: Array<SecurityProtectedAddressGroup> = await list(
+      reader([Permission.ProjectOwner]),
+    );
+
+    expect(
+      groupOf(groups, SecurityProtectedAddressSource.Probe)?.protections.map(
+        (protection: SecurityAddressProtection): string => {
+          return protection.protectedValue;
+        },
+      ),
+    ).toEqual(["35.205.11.131", "35.205.11.140"]);
+  });
+
+  test("an address that only looks like a probe's is not one", async () => {
+    install({
+      probes: [
+        probe({
+          name: "Office probe",
+          address: "35.205.11.131",
+          interfaceAddresses: "198.51.100.40",
+        }),
+      ],
+    });
+
+    await expect(find("198.51.100.4")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
   });
 
   test("one of OneUptime's probes, which belongs to no project", async () => {
@@ -1654,12 +1771,13 @@ describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
 
     await list(props);
 
-    const [own, oneUptimes]: Array<FindInput | undefined> = inputsOf(
-      reads.probes,
-    );
+    const { byCheckIn, byInterface, oneUptimes } = probeReadsOf(reads.probes);
 
-    expect(own?.props).toBe(props);
-    expect(own?.query["projectId"]).toEqual(PROJECT_ID);
+    for (const own of [byCheckIn, byInterface]) {
+      expect(own?.props).toBe(props);
+      expect(own?.query["projectId"]).toEqual(PROJECT_ID);
+    }
+
     expect(oneUptimes?.props).toEqual(ROOT);
     expect(oneUptimes?.query["isGlobalProbe"]).toBe(true);
 

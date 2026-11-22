@@ -234,6 +234,16 @@ An AWS account, Google Cloud project or Azure subscription [connected under **Cl
 - The account's own read brings nothing more: data events, Data Access logs and Microsoft Entra ID's logs still take **Your logs** or a [connection](/docs/integrations/microsoft-entra-id).
 - Each event names the cloud resources its record is about by their own IDs - an ARN, an Azure resource ID, a Google Cloud resource name - so it shows on each one's **Security Events** page, and on a serverless function's once its telemetry sets `cloud.account.id` and `cloud.region`.
 
+### OneUptime's own probes in your network flows
+
+Turn on **Network flows**, under **Your OneUptime data** on **Connections**, and the flows your network devices export are read for port scans, network sweeps, traffic with known-bad addresses and large transfers out. A probe's own work looks like a scan there: polling 40 devices over SNMP reaches port 161 on 40 hosts every five minutes. So traffic from one of OneUptime's own probes that is exactly what the probe is set to do is set aside:
+
+- the network devices it polls, pinged and asked over SNMP on their port;
+- the range of each of its discovery scans, while the scan runs;
+- the hosts and ports its monitors check.
+
+It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in.
+
 ### Connect a security product
 
 **Connections** polls a security product for you and imports its new records as security events. A connection holds the product's settings and an encrypted credential; a worker polls it on the interval you set and skips records it already imported.

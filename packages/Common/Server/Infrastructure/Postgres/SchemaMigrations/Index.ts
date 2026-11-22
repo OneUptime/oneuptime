@@ -1145,6 +1145,9 @@ import { AddSecurityCaseNextStepCheckIndex1809187390010 } from "./1809187390010-
 import { AddRecordCreatedByAndLastModifiedColumns1809187400000 } from "./1809187400000-AddRecordCreatedByAndLastModifiedColumns";
 import { AddDetectionRunMarksAndFiringKeys1809187421130 } from "./1809187421130-AddDetectionRunMarksAndFiringKeys";
 import { AddDetectionRuleLastFailedAt1809187421140 } from "./1809187421140-AddDetectionRuleLastFailedAt";
+import { AddAIAgentTaskPullRequestSecurityCase1809187421500 } from "./1809187421500-AddAIAgentTaskPullRequestSecurityCase";
+import { AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510 } from "./1809187421510-AddAIAgentTaskPullRequestSecurityCaseIndex";
+import { AddProbeInterfaceIpAddresses1809187429000 } from "./1809187429000-AddProbeInterfaceIpAddresses";
 import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecurityBlockCloudWaf";
 
 export default [
@@ -2295,5 +2298,8 @@ export default [
   AddRecordCreatedByAndLastModifiedColumns1809187400000,
   AddDetectionRunMarksAndFiringKeys1809187421130,
   AddDetectionRuleLastFailedAt1809187421140,
+  AddAIAgentTaskPullRequestSecurityCase1809187421500,
+  AddAIAgentTaskPullRequestSecurityCaseIndex1809187421510,
+  AddProbeInterfaceIpAddresses1809187429000,
   AddSecurityBlockCloudWaf1809187430000,
 ];
