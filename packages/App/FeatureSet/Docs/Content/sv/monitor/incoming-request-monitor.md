@@ -388,10 +388,12 @@ En webhook beskriver bara det som finns i den nyttolasten, så OneUptime löser 
 
 Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Auto-resolve each incident when…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
 
+En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Field that signals recovery** och **Value that means recovered** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
+
 **Max incidents per request** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
 
 > [!NOTE]
-> När en monitor tar emot förfrågningar snabbare än OneUptime utvärderar dem utvärderar OneUptime den nyaste och hoppar över dem däremellan, så en skur av webhooks kan lämna ett aktivt eller ett löst larm outvärderat. På en självhostad server gör `INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false` i OneUptime-appens miljö att varje förfrågan utvärderas för sig.
+> En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
 
 > [!NOTE]
 > Om **Field that signals recovery** innehåller `[*]` men **Open a separate incident for each…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.

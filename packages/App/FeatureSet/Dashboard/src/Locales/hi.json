@@ -61388,5 +61388,8 @@
   "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "OneUptime के अपने प्रोब का जो ट्रैफ़िक ठीक उनकी डिवाइस पोलिंग, डिस्कवरी और मॉनिटर जाँच है, उसे उनका चिह्नित करके अलग रखा जाता है, स्कैन के रूप में रिपोर्ट नहीं किया जाता।",
   "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "पिछले एक दिन में OneUptime के अपने प्रोब का {{count}} स्वीप या स्कैन अलग रखा गया।",
   "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "पिछले एक दिन में OneUptime के अपने प्रोब के {{count}} स्वीप और स्कैन अलग रखे गए।",
-  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "पिछले एक दिन में OneUptime के अपने प्रोब का {{count}} स्वीप या स्कैन अलग रखा गया।"
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "पिछले एक दिन में OneUptime के अपने प्रोब का {{count}} स्वीप या स्कैन अलग रखा गया।",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "किसी अनुरोध का मूल्यांकन {{attempts}} बार विफल होने पर वह छोड़ दिया जाता है। जो घटना या अलर्ट कोई छोड़ा गया अनुरोध खोलता या सुलझाता, वह गायब हो सकता है या अब भी खुला हो सकता है।",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "इस मॉनिटर में जितने अनुरोध रखे जाते हैं, उससे ज़्यादा मूल्यांकन की प्रतीक्षा में थे, इसलिए उनमें से सबसे पुराने छोड़ दिए गए। जो घटना या अलर्ट कोई छोड़ा गया अनुरोध खोलता या सुलझाता, वह गायब हो सकता है या अब भी खुला हो सकता है।",
+  "Requests not evaluated: {{skipped}}": "जिन अनुरोधों का मूल्यांकन नहीं हुआ: {{skipped}}"
 }

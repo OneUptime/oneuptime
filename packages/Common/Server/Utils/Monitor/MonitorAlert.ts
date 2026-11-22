@@ -255,14 +255,22 @@ export default class MonitorAlert {
    * alerts for the given payload-derived fingerprints — and only those —
    * when the criteria that created them has auto-resolve enabled. Mirrors
    * MonitorIncident.resolveSeriesIncidentsByFingerprint; never resolves by
-   * absence (a webhook describes only the keys in its payload), and
+   * absence (a webhook describes only the keys in its payload),
    * `wholeMonitor` resolves a grouped criteria's alert for the whole
-   * monitor in the same pass.
+   * monitor in the same pass, and `fingerprintsByCriteriaId` holds each
+   * criteria to its own recoveries (#10585).
    */
   @CaptureSpan()
   public static async resolveSeriesAlertsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
+    /*
+     * The values each criteria reads recovered, by its id: an alert
+     * resolves only when the criteria that opened it reads its value
+     * recovered. Without it, a value in `fingerprints` resolves an alert of
+     * any criteria - a Logs monitor's groups, which a log resolves.
+     */
+    fingerprintsByCriteriaId?: Dictionary<Array<string>> | undefined;
     rootCause: string;
     // What the evaluation summary says of each alert resolved here.
     resolvedMessage?: string | undefined;
@@ -333,7 +341,12 @@ export default class MonitorAlert {
       }
 
       const isRecoveredValue: boolean = Boolean(
-        fingerprint && fingerprintSet.has(fingerprint),
+        fingerprint &&
+          (input.fingerprintsByCriteriaId
+            ? (
+                input.fingerprintsByCriteriaId[createdCriteriaId] || []
+              ).includes(fingerprint)
+            : fingerprintSet.has(fingerprint)),
       );
       const isRecoveredWholeMonitor: boolean =
         !fingerprint && wholeMonitorCriteriaIds.has(createdCriteriaId);

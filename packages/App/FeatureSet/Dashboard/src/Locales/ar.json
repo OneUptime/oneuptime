@@ -61388,5 +61388,8 @@
   "Traffic from OneUptime's own probes that is exactly their device polling, discovery and monitor checks is labelled as theirs and set aside, not reported as a scan.": "حركة المرور من مسابير OneUptime نفسها التي هي بالضبط استطلاع الأجهزة والاكتشاف وفحوص المراقبات الخاصة بها تُوسَم على أنها لها وتُنحّى جانبًا، ولا يُبلَّغ عنها على أنها فحص.",
   "{{count}} sweep or scan by OneUptime's own probes was set aside in the last day.": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها.",
   "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day.": "عمليات المسح والفحص من مسابير OneUptime نفسها التي نُحّيت جانبًا خلال اليوم الأخير: {{count}}.",
-  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها."
+  "{{count}} sweeps and scans by OneUptime's own probes were set aside in the last day._one": "نُحّي جانبًا خلال اليوم الأخير {{count}} مسح أو فحص من مسابير OneUptime نفسها.",
+  "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "يُتخطى الطلب حين يبلغ عدد محاولات تقييمه الفاشلة {{attempts}}. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "كانت الطلبات المنتظرة للتقييم أكثر مما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "Requests not evaluated: {{skipped}}": "الطلبات غير المقيّمة: {{skipped}}"
 }
