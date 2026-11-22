@@ -75,6 +75,21 @@ const LINE_HELPERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsOnCallMention.ts",
   "packages/Common/Server/Utils/AutoRemediation/RemediationChatMessage.ts",
   "packages/Common/Server/Utils/Notes/SavedChatMessageNote.ts",
+  /*
+   * The Security product's (#10681): who asked for, decided and undid a
+   * playbook step's approval, in its channel posts and direct messages;
+   * whom a playbook step could not email, under its line on the case; the
+   * owners Data Security's AI proposes and adds, in its lines on a store's
+   * and its issues' timelines; and the people OneUptime AI's case triage
+   * reads, which its lines on the case repeat.
+   */
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookApprovalReader.ts",
+  "packages/Common/Server/Utils/Workspace/WorkspaceSecurityPlaybookApprovalMessages.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookDataStoreOwners.ts",
+  "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookNotEmailed.ts",
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/StoreOwnerChanges.ts",
+  "packages/Common/Server/Utils/AI/DataSecurity/Owners/DataStoreOwnerEvidenceReader.ts",
+  "packages/Common/Server/Utils/AI/Security/SecurityCaseAIContextBuilder.ts",
 ];
 
 // The files the guard must find among the writers: one of each kind of line.
