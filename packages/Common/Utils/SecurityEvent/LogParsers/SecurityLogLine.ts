@@ -568,6 +568,20 @@ export interface LogSecurityEventInput {
 }
 
 /*
+ * A host the event names: what the field held, unless it is what a scrub
+ * rule left of an address (#10419) - a FortiGate's hostname, a CloudTrail
+ * call's sourceIPAddress, a device's dvc is an address as often as a name.
+ * That is no host: taken for one, "[REDACTED]" would be one host every
+ * hidden event shares, which the rules that count per host would add up.
+ * The address the record names in its address field says it was hidden.
+ */
+export function readEventHost(value: string | null | undefined): string {
+  const text: string = (value || "").trim();
+
+  return text && readScrubbedAddress(text) ? "" : text;
+}
+
+/*
  * A parser's reading of a line, as the security event it becomes. The
  * vendor and product are the format's (SecurityLogFormat), the class and
  * category OCSF's, and every event carries where it came from: the source
@@ -587,8 +601,8 @@ export function buildLogSecurityEvent(
     "Base Event";
   const logId: string = input.line.logId || "";
 
-  const principalHost: string = (input.principalHost || "").trim();
-  const targetHost: string = (input.targetHost || "").trim();
+  const principalHost: string = readEventHost(input.principalHost);
+  const targetHost: string = readEventHost(input.targetHost);
 
   /*
    * An address a scrub rule hid is no address (#10419): what the rule left
