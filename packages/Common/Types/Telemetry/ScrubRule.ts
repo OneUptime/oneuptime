@@ -347,6 +347,57 @@ export function scrubRegExpFromRanges(data: {
   return new RangesScrubRegExp(data);
 }
 
+/*
+ * THE BUILT-IN PATTERNS' VALUE MATCHERS, WRITTEN ONCE (#10433).
+ *
+ * What an Email, Credit Card, SSN or Phone Number rule finds in a value:
+ * the log and trace engines scrub with these (App/FeatureSet/Telemetry/
+ * Services/LogScrubRuleService.ts, TraceScrubRuleService.ts), and the
+ * lookup of what reads a value a rule would hide asks them of the values a
+ * monitor or a saved view looks for (Utils/Telemetry/ScrubRuleFieldReads) -
+ * one definition, so the answer is what ingest does. Each is used through
+ * scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
+ *
+ * IP Address is not here: its matches are what Data Security's own
+ * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).
+ */
+export const SCRUB_RULE_BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> =
+  {
+    /*
+     * Each part of the address is length-bounded to the sizes RFC 5321
+     * allows (local part 64, domain 253, final label 63), so finding
+     * addresses in a log body or a span attribute stays in line with its
+     * length however long it is - this runs over every ingested record of a
+     * project with an email scrub rule.
+     */
+    [LogScrubPatternType.Email]:
+      /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
+    [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
+    [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
+    [LogScrubPatternType.PhoneNumber]:
+      /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+  };
+
+/*
+ * The attribute-KEY denylist of a Sensitive Attribute Keys rule: matched
+ * against an attribute's key, and the keys inside a list, a map or a JSON
+ * text, case-insensitively; on a hit the whole value is hidden. The engines
+ * keep a copy each (SENSITIVE_KEY_REGEX), which TelemetryScrubCoverage.test
+ * reads from their source and holds to this one.
+ */
+export const SCRUB_RULE_SENSITIVE_KEY_REGEX: RegExp =
+  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+
+// The data type each built-in pattern type finds. Log and trace rules share them.
+export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
+  {
+    [LogScrubPatternType.Email]: "email-address",
+    [LogScrubPatternType.CreditCard]: "credit-card-number",
+    [LogScrubPatternType.SSN]: "us-ssn",
+    [LogScrubPatternType.PhoneNumber]: "phone-number",
+    [LogScrubPatternType.IPAddress]: "ip-address",
+  };
+
 export const LOG_SCRUB_PATTERN_TYPES: ReadonlyArray<string> =
   Object.values(LogScrubPatternType);
 

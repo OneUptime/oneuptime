@@ -3120,10 +3120,36 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       readPackageFile(
         "App/FeatureSet/Telemetry/Services/SessionReplayScrubService.ts",
       ),
-    ).toContain("return await LogScrubRuleService.loadScrubRules(projectId);");
-    expect(page).toContain(
-      "**Session replays are scrubbed too.** Log scrub rules also run over session replay recordings, behind the masking the recorder does in the browser.",
+    ).toContain(
+      "return getScrubRulesOfRecord(\n      await LogScrubRuleService.loadScrubRules(projectId),\n      rumApplicationId,\n    );",
     );
+    // A replay belongs to a RUM application, never a service (#10433).
+    expect(page).toContain(
+      "**Session replays are scrubbed too.** Log scrub rules for every service also run over session replay recordings, behind the masking the recorder does in the browser.",
+    );
+  });
+
+  // Issue #10433: a rule for one service, and what a rule would break.
+  it("says a rule can be for one service, and that the form says what it would break", () => {
+    expect(scrubForm).toContain('title: "Only for one service"');
+    expect(scrubForm).toContain("service: true,");
+    expect(page).toContain(
+      "- **A rule can be for one service.** Under **Advanced**, pick the service in **Only for one service**: the rule scrubs that service's records, and other services' records stay as they are.",
+    );
+    expect(page).toContain(
+      "- **The form says what a rule would change for others.** Before you create a rule, and when you turn one on,",
+    );
+
+    for (const rulesPage of [
+      "Pages/Logs/Settings/ScrubRules.tsx",
+      "Pages/Traces/Settings/ScrubRules.tsx",
+    ]) {
+      const code: string = readDashboardSource(rulesPage);
+
+      expect(code).toContain('title: "Scope"');
+      expect(code).toContain("<ScrubRuleReadersPreview");
+      expect(code).toContain("getRowConfirmation:");
+    }
   });
 
   // Issue #9039: a syslog line's raw copies.

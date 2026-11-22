@@ -1,7 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import AppLink from "../../Components/AppLink/AppLink";
-import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
 import {
   ConfidencePill,
   SensitivityPill,
@@ -18,6 +17,7 @@ import {
   TelemetryStoreOfFindings,
 } from "../../Components/DataSecurity/IssueTelemetryFindings";
 import DropMetricModal from "../../Components/DataSecurity/DropMetricModal";
+import ScrubItModal from "../../Components/DataSecurity/ScrubItModal";
 import {
   DROP_METRIC,
   DROP_NOTICE,
@@ -57,7 +57,7 @@ import {
   TELEMETRY_DATA_STORE_KINDS,
   getDataStoreKindInfo,
 } from "Common/Types/DataSecurity/DataStoreKind";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema, {
@@ -171,8 +171,8 @@ const DataSecurityTelemetryPage: FunctionComponent<
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
   // The finding whose records are open beside the list.
   const [openFinding, setOpenFinding] = useState<DataStoreFinding | null>(null);
-  const [isPanelScrubbing, setIsPanelScrubbing] = useState<boolean>(false);
-  const [panelScrubError, setPanelScrubError] = useState<string>("");
+  // The finding Scrub It's dialog is open on (ScrubItModal, #10433).
+  const [scrubbing, setScrubbing] = useState<DataStoreFinding | null>(null);
   // The finding in a metric's name whose metrics the reader is asked about dropping.
   const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
 
@@ -282,24 +282,20 @@ const DataSecurityTelemetryPage: FunctionComponent<
     );
   };
 
-  // Scrub It on a finding: the rule made, said on the page, the list read again.
-  const scrubFinding: (finding: DataStoreFinding) => Promise<void> = async (
-    finding: DataStoreFinding,
-  ): Promise<void> => {
-    const id: string = finding._id?.toString() || "";
-
-    if (!id) {
-      return;
-    }
-
-    const result: DataSecurityScrubResult = await DataSecurityApi.scrubFinding(
-      new ObjectID(id),
-    );
-
+  /*
+   * Scrub It on a finding: a dialog says what the rule does, whose records
+   * it changes and what reads the data first (#10433), then makes it; the
+   * page says so and reads the list again.
+   */
+  const onScrubbed: (result: DataSecurityScrubResult) => void = (
+    result: DataSecurityScrubResult,
+  ): void => {
     setNotice({
       ruleName: result.scrubRuleName,
       signal: result.signal,
     });
+    setScrubbing(null);
+    setOpenFinding(null);
     setRefreshCount((count: number): number => {
       return count + 1;
     });
@@ -321,7 +317,6 @@ const DataSecurityTelemetryPage: FunctionComponent<
         finding: DataStoreFinding,
         onCompleteAction: VoidFunction,
       ): void => {
-        setPanelScrubError("");
         setOpenFinding(finding);
         onCompleteAction();
       },
@@ -357,17 +352,12 @@ const DataSecurityTelemetryPage: FunctionComponent<
 
         return scrubIt.isAllowed ? undefined : scrubIt.disabledReason;
       },
-      onClick: async (
+      onClick: (
         finding: DataStoreFinding,
         onCompleteAction: VoidFunction,
-        onError: ErrorFunction,
-      ): Promise<void> => {
-        try {
-          await scrubFinding(finding);
-          onCompleteAction();
-        } catch (err) {
-          onError(err as Error);
-        }
+      ): void => {
+        setScrubbing(finding);
+        onCompleteAction();
       },
     });
   }
@@ -490,21 +480,9 @@ const DataSecurityTelemetryPage: FunctionComponent<
           finding={openFinding}
           store={storeOf(openFinding)}
           scrubIt={scrubItOf(openFinding)}
-          isScrubbing={isPanelScrubbing}
-          scrubError={panelScrubError || undefined}
+          isScrubbing={false}
           onScrub={() => {
-            setIsPanelScrubbing(true);
-            setPanelScrubError("");
-            scrubFinding(openFinding)
-              .then(() => {
-                setOpenFinding(null);
-              })
-              .catch((err: unknown) => {
-                setPanelScrubError(API.getFriendlyMessage(err));
-              })
-              .finally(() => {
-                setIsPanelScrubbing(false);
-              });
+            setScrubbing(openFinding);
           }}
           dropMetric={dropMetricOf(openFinding)}
           onDropMetric={() => {
@@ -512,8 +490,19 @@ const DataSecurityTelemetryPage: FunctionComponent<
           }}
           onClose={() => {
             setOpenFinding(null);
-            setPanelScrubError("");
           }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {scrubbing?._id ? (
+        <ScrubItModal
+          findingId={new ObjectID(scrubbing._id.toString())}
+          onClose={() => {
+            setScrubbing(null);
+          }}
+          onScrubbed={onScrubbed}
         />
       ) : (
         <></>

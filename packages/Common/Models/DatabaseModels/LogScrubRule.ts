@@ -1,4 +1,5 @@
 import Project from "./Project";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -371,6 +372,96 @@ export default class LogScrubRule extends BaseModel {
     default: LOG_SCRUB_RULE_DEFAULTS.fieldsToScrub,
   })
   public fieldsToScrub?: string = undefined;
+
+  /*
+   * The service whose logs the rule scrubs (#10433): a rule for one service
+   * scrubs the logs that service sends and no other's, as a metric pipeline
+   * rule for a service does. None for every service and app of the project,
+   * as every rule saved before a rule could name one. A rule goes with its
+   * service when the service is deleted: no log of it is left to scrub.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectLogScrubRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectLogScrubRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectLogScrubRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "serviceId",
+    type: TableColumnType.Entity,
+    modelType: Service,
+    required: false,
+    title: "Service",
+    description:
+      "The service whose logs this rule scrubs. Leave it empty to scrub the logs of every service in the project.",
+  })
+  @ManyToOne(
+    () => {
+      return Service;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "serviceId" })
+  public service?: Service = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectLogScrubRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectLogScrubRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectLogScrubRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Service ID",
+    description:
+      "ID of the service whose logs this rule scrubs: a rule that names a service scrubs only the logs that service sends. Null scrubs the logs of every service in the project.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public serviceId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

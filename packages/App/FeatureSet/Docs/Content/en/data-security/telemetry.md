@@ -1,13 +1,13 @@
 # Sensitive Data in Telemetry
 
-Telemetry holds whatever your code writes: an email address in a log line, a card number in a span attribute, a token in a stack trace, a customer's question in a prompt, a user's IP address in a metric's label. Data Security treats each service's logs, traces, metrics, exceptions and AI conversations, and each RUM application's sessions, as data stores of their own. It samples them every hour, finds sensitive data in them as it does in a bucket, and **Scrub It** turns a finding into a rule that masks that data at ingest from then on.
+Telemetry holds whatever your code writes: an email address in a log line, a card number in a span attribute, a token in a stack trace, a customer's question in a prompt, a user's IP address in a metric's label. Data Security treats each service's logs, traces, metrics, exceptions and AI conversations, and each RUM application's sessions, as data stores of their own. It samples them every hour, finds sensitive data in them as it does in a bucket, and **Scrub It** turns a finding into a rule that hides that data at ingest from then on, in the service it was found in.
 
 There is nothing to set up: each service's telemetry is scanned every hour, unless **Scan Telemetry** is off in the project's settings. To leave one service's logs, traces or another of its signals out, turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.
 
 :::cards
 - [What is read](#what-is-read): The attributes, bodies, messages and prompts of each signal.
 - [How a scan samples](#how-a-scan-samples): The newest records of each service, every hour.
-- [Scrub It](#scrub-it): Mask a finding at ingest, with one click.
+- [Scrub It](#scrub-it): Hide a finding at ingest, in the service it was found in.
 - [Drop This Metric](#drop-this-metric): Stop storing the metrics whose names hold sensitive data.
 - [What counts as scrubbed](#what-counts-as-scrubbed): When a scrub rule already covers a finding.
 :::
@@ -94,14 +94,14 @@ Open the issue - **Where It Was Found** lists each finding behind it - or **Data
 
 ### Press Scrub It
 
-Click **Scrub It**. OneUptime makes a log scrub rule for logs and a RUM application's logs, a trace scrub rule for spans, exceptions and AI calls, on the part of the record the finding is in, and a metric pipeline rule for a metric's attribute.
+Click **Scrub It**. A dialog says what the rule would do before anything is made: whose records it changes, what it does with what it finds, and what reads the values it would hide. Click **Scrub It** in it to make the rule. OneUptime makes a log scrub rule for logs and a RUM application's logs, a trace scrub rule for spans, exceptions and AI calls, on the part of the record the finding is in, and a metric pipeline rule for a metric's attribute.
 
 ### Fix the code too
 
-The rule masks new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
+The rule hides new data before it is stored. Data already stored stays until its retention ends, so fix the code that writes it: the finding names the service and the attribute, and on the issue's page **Show the records it was seen in** shows the log lines, spans, exceptions, sessions or metric data points it was found in, the data highlighted in each (see [Where a telemetry issue's data was found](/docs/data-security/checks-and-issues#where-a-telemetry-issues-data-was-found)).
 :::
 
-The rule is named for what it hides, such as "Data Security: Email address in attributes.user.email", and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is one of these:
+The rule is named for what it hides, such as "Data Security: Email address in log attributes of checkout", and is listed with your other scrub rules (see [Drop Filters & Scrub Rules](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). It is one of these:
 
 | Finding | Rule Scrub It makes |
 | --- | --- |
@@ -109,6 +109,10 @@ The rule is named for what it hides, such as "Data Security: Email address in at
 | A value under a key that looks sensitive, such as `password` or `token` | A **Sensitive Attribute Keys** rule, which redacts the whole value of every such attribute |
 | Any other data type a pattern can find | A **Custom Regex** rule made from the data type's own patterns, which redacts every value of its shape |
 | Any data type in a metric's attribute | A **Redact Attribute** metric pipeline rule for the service, which replaces the attribute's values of the data type's shape with `[REDACTED]`, or every value of the attribute where no pattern finds the data type |
+
+A log or trace rule is for the service the finding was found in: it scrubs that service's logs or spans, and other services' stay as they are, so nothing that reads theirs changes. The scrub rules list's **Scope** column says which service a rule is for. A finding in a RUM application's session replays makes a rule for every service and app of the project, since log rules scrub replays too, and the dialog says so. If the service no longer exists, **Scrub It** says so and makes no rule.
+
+The dialog names, each as a link, the monitors, dashboards with their widgets, saved views, recording rules and SLOs that read the values the rule would hide, and what happens to them: a filter on a hidden value stops matching, and a group by one no longer shows the real values. It also says what [Security Events](/docs/telemetry/security-events) would lose when it reads those records: with IP addresses hidden, its events cannot name the address to block. What you cannot see is counted, never named. The dialog never stops the rule: it says, and you decide. The scrub rule forms show the same before a rule is saved or turned on.
 
 Some findings cannot be scrubbed by a rule, and **Scrub It** says why. A metric's attribute always can be, since its rule can hide every value of the attribute:
 
@@ -139,6 +143,7 @@ A finding is marked scrubbed only when ingest would run an enabled rule over it 
 
 - **The right records.** Log rules cover logs and a RUM application's logs. Trace rules cover spans, exceptions and AI calls: an exception is a copy of its span's exception event, so the rules that scrub events scrub it.
 - **The right part.** The rule's **Fields to Scrub** include the part of the record the finding is in, or the rule leaves them at their default.
+- **The right service.** A log or trace rule for one service covers only that service's findings. A rule for no service covers every service's.
 - **A pattern that finds the type.** A built-in **Pattern Type** finds its own data type: **Email Address** finds email addresses, **Credit Card Number** card numbers, **SSN (Social Security Number)** US Social Security numbers, **Phone Number** phone numbers and **IP Address** IP addresses. **Sensitive Attribute Keys** covers every value under a key that looks sensitive, whatever the value is.
 - **Your own custom patterns never count.** A **Custom Regex** covers a finding only when it is exactly the pattern **Scrub It** makes for its type. A finding keeps only masked samples, which no pattern can be tried on, so OneUptime could not prove that your pattern hides the data, and a finding wrongly called scrubbed is a leak nobody looks at.
 - **A metric's attribute.** A **Redact Attribute** or **Remove Attribute** metric pipeline rule of that attribute's key, for the finding's service or the whole project, covers it when it has no filter, or exactly the filter **Scrub It** makes. A filter you wrote never counts, for the same reason.
