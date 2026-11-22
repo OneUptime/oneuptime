@@ -2617,8 +2617,7 @@ export default class MonitorResourceUtil {
      * Nothing breaches on this check: every criteria that ran matched no
      * series, which is what lets each open record resolve on its own series.
      */
-    const breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>> =
-      {};
+    const breachingSeriesFingerprintsByCriteriaId: Dictionary<Set<string>> = {};
 
     for (const criteriaId of input.response.evaluatedCriteriaIds || []) {
       breachingSeriesFingerprintsByCriteriaId[criteriaId] = new Set<string>();

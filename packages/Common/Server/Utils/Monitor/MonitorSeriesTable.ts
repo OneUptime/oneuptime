@@ -328,9 +328,8 @@ export default class MonitorSeriesTable {
       }
     }
 
-    const view: MetricsViewConfig | undefined = MonitorStep.getMetricsViewConfig(
-      input.monitorStep,
-    );
+    const view: MetricsViewConfig | undefined =
+      MonitorStep.getMetricsViewConfig(input.monitorStep);
 
     if (!alias || !view) {
       return none;
@@ -344,8 +343,9 @@ export default class MonitorSeriesTable {
     const queryIndex: number = queries.findIndex(
       (query: MetricQueryConfigData): boolean => {
         return (
-          MonitorSeriesTable.toAliasKey(query.metricAliasData?.metricVariable) ===
-          wanted
+          MonitorSeriesTable.toAliasKey(
+            query.metricAliasData?.metricVariable,
+          ) === wanted
         );
       },
     );
@@ -355,8 +355,9 @@ export default class MonitorSeriesTable {
         index: queryIndex,
         unit: queries[queryIndex]!.metricAliasData?.legendUnit || undefined,
         metricName:
-          queries[queryIndex]!.metricQueryData?.filterData?.metricName?.toString() ||
-          undefined,
+          queries[
+            queryIndex
+          ]!.metricQueryData?.filterData?.metricName?.toString() || undefined,
       };
     }
 
