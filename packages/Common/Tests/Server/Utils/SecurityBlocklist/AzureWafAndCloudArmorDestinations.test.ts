@@ -436,7 +436,9 @@ describe("Azure WAF", () => {
       notEnforcedAt: [],
     });
     expect(row.status).toBe(SecurityBlockCloudWafStatus.Enforcing);
-    expect(makeDestinations()[0]!.canChallenge).toBe(false);
+    expect(
+      (makeDestinations()[0] as AzureWafBlockDestination).canChallenge,
+    ).toBe(false);
 
     // The customer's rules, as they were.
     expect(
@@ -594,7 +596,9 @@ describe("Cloud Armor", () => {
     }
 
     expect(row.status).toBe(SecurityBlockCloudWafStatus.Enforcing);
-    expect(makeDestinations()[0]!.canChallenge).toBe(false);
+    expect(
+      (makeDestinations()[0] as CloudArmorBlockDestination).canChallenge,
+    ).toBe(false);
   });
 
   test("with Cloud Armor Enterprise, a block lands in the project's address group, held by it", async () => {
