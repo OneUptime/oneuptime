@@ -92,7 +92,7 @@ export const AI_RESULTS_NOT_READABLE_TITLE: string = translationKey(
 );
 
 export const AI_RESULTS_NOT_READABLE_DESCRIPTION: string = translationKey(
-  "These results count incidents, alerts, on-call pages, fixes and Data Security issues, and your role cannot read any of them. A Project Admin can give you access.",
+  "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.",
 );
 
 export const AI_RESULTS_LOAD_ERROR: string = translationKey(

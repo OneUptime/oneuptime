@@ -136,7 +136,7 @@ Le source map vengono conservate per 90 giorni dopo il caricamento, poi eliminat
 ## Sicurezza
 
 - Le map vengono caricate tramite un endpoint autenticato e memorizzate nel vostro progetto OneUptime: non vengono mai scaricate dal vostro sito web, quindi le source map nascoste restano nascoste.
-- Il contenuto grezzo di una map (che include il vostro codice sorgente originale se creata con `sourcesContent`) può essere riletto solo da Proprietari del progetto e Amministratori del progetto, e da chiunque abbia il permesso **Read Telemetry Source Map**. Gli altri membri del team vedono solo i frame risolti e le poche righe di codice attorno a ogni punto di crash delle eccezioni a cui hanno già accesso.
+- Il contenuto grezzo di una map (che include il vostro codice sorgente originale se creata con `sourcesContent`) può essere riletto solo da Proprietari del progetto e Amministratori del progetto, da chiunque abbia Servizi al [livello Amministratore](/docs/permissions/index#livelli-di-prodotto) (`ServiceAdmin`) e da chiunque abbia il permesso **Read Telemetry Source Map**. Gli altri membri del team vedono solo i frame risolti e le poche righe di codice attorno a ogni punto di crash delle eccezioni a cui hanno già accesso.
 - Eliminare un servizio ne elimina le source map.
 
 ## Risoluzione dei problemi
