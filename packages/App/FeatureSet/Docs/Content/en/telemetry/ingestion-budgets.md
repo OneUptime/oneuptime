@@ -6,7 +6,7 @@ An ingestion budget caps how much telemetry a project sends in a day, so one noi
 - [How budgets work](#how-budgets-work): Three levels, counted as telemetry arrives.
 - [Set every project's default budgets](#set-every-projects-default-budgets): In the Admin Dashboard's settings.
 - [Give an ingestion key its own budget](#give-an-ingestion-key-its-own-budget): A share of the project's budget.
-- [Give a team or a label its own budget](#give-a-team-or-a-label-its-own-budget): For the services it owns or is on.
+- [Give a team or a label its own budget](#give-a-team-or-a-label-its-own-budget): For the services, hosts and other resources it owns or is on.
 - [Alert on a budget](#alert-on-a-budget): Before it is used up, and when it is.
 :::
 
@@ -98,7 +98,7 @@ Click **Save Changes**. A key's budget cannot be more than its project's: OneUpt
 
 ## Give a team or a label its own budget
 
-A team's or a label's budget is a share of its project's too, for the services the team owns or the label is on: one team's runaway service stops at its team's budget, while the rest of the project keeps sending, even through the same collector and ingestion key.
+A team's or a label's budget is a share of its project's too, for the services, hosts, clusters and other resources the team owns or the label is on: one team's runaway service or host stops at its team's budget, while the rest of the project keeps sending, even through the same collector and ingestion key.
 
 :::steps
 ### Open the Usage page
@@ -114,8 +114,9 @@ On the **Team and Label Budgets** card, click **Create Budget**. Choose the team
 Click **Create Budget**. A team's or a label's budget cannot be more than its project's: OneUptime refuses it and says the most it can be.
 :::
 
-- **What it counts.** The logs, traces, metrics and profiles that the services the team owns, or the services with the label, send over OpenTelemetry (OTLP). Telemetry of hosts and other resources, security events, and logs from Fluent Bit, Fluentd or syslog count against the project's and the key's budgets only.
-- **Once it is used up, the telemetry is dropped.** The services' telemetry of that signal is dropped until the reset, and the sender is not told: it was answered when the telemetry arrived. What is dropped no longer counts against the project's or the key's budget.
+- **What it counts.** The logs, traces, metrics and profiles of every service, host, cluster and other resource the team owns or the label is on, whether they are sent over OpenTelemetry (OTLP) or, for logs, from Fluent Bit, Fluentd or syslog. Security events count against the project's and the key's budgets only.
+- **Whose a resource is.** A service, a host or another resource is a team's when the team is one of its owners, and a label's when it carries the label: the same owners and labels that decide who may read its telemetry. A change to them counts within a minute.
+- **Once it is used up, the telemetry is dropped.** Their telemetry of that signal is dropped until the reset, and the sender is not told: it was answered when the telemetry arrived. What is dropped no longer counts against the project's or the key's budget.
 - **Who is told.** The Project Owners get an email when the budget passes the warning threshold, and when it is used up.
 - **A daily budget only.** A team or a label has no rate limit.
 - **Every budget counts.** A service's telemetry counts against the budgets of its teams and its labels, and of the key and the project, and whichever is used up first stops it. When the project's budget is lowered below a team's or a label's, it is held to the project's.
