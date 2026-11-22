@@ -3,12 +3,15 @@ import StatusPageSetupApi, {
   mayCreateStatusPage,
 } from "./StatusPageSetupApi";
 import {
+  NOTHING_FOUND,
+  NO_STATUS_PAGE_SETUP_FILTER,
   STATUS_PAGE_NAME_SENTENCE,
   STATUS_PAGE_SETUP,
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_GUIDE_DOCS_PATH,
   STATUS_PAGE_SETUP_EXTRAS,
   StatusPageSetupExtra,
+  StatusPageSetupFound,
   StatusPageSetupMonitor,
   StatusPageSetupMonitorGroup,
   StatusPageSetupPage,
@@ -28,6 +31,7 @@ import {
   getStatusPageSetupProgress,
   isStatusPageNameValid,
   isStatusPageSetupFinished,
+  mergeSetupRecords,
 } from "./StatusPageSetup";
 import StatusPageSetupPicker from "./StatusPageSetupPicker";
 import GuidedSetupFrame, { GuidedSetupFrameStep } from "../GuidedSetupFrame";
@@ -165,8 +169,22 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     null,
   );
   const [shown, setShown] = useState<ShownMonitors>(NOTHING_SHOWN);
+  // The first page of each, by name, and how many the project has (#10580).
   const [monitors, setMonitors] = useState<Array<StatusPageSetupMonitor>>([]);
   const [monitorGroups, setMonitorGroups] = useState<
+    Array<StatusPageSetupMonitorGroup>
+  >([]);
+  const [monitorCount, setMonitorCount] = useState<number>(0);
+  const [monitorGroupCount, setMonitorGroupCount] = useState<number>(0);
+  /*
+   * Every monitor and group the list has shown - its first page, what its
+   * searches found, the one handed in - by name: what is picked is named
+   * and added from these, whichever search showed it.
+   */
+  const [knownMonitors, setKnownMonitors] = useState<
+    Array<StatusPageSetupMonitor>
+  >([]);
+  const [knownGroups, setKnownGroups] = useState<
     Array<StatusPageSetupMonitorGroup>
   >([]);
   /*
@@ -316,30 +334,56 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
        * The monitor groups and the pages to offer are extras: a read that
        * fails leaves the list to the monitors, and step 1 to a new page.
        */
-      const [loadedMonitors, loadedGroups, loadedPages]: [
-        Array<StatusPageSetupMonitor>,
-        Array<StatusPageSetupMonitorGroup>,
+      /*
+       * The first page of each, by name, and how many there are (#10580):
+       * the list searches the server for the rest. The monitor the
+       * website-down setup hands in is read by its id, wherever its name
+       * sorts.
+       */
+      const handedInMonitorId: string | null = Navigation.getQueryStringByName(
+        STATUS_PAGE_SETUP_MONITOR_QUERY,
+      );
+
+      const [foundMonitors, foundGroups, loadedPages, handedIn]: [
+        StatusPageSetupFound<StatusPageSetupMonitor>,
+        StatusPageSetupFound<StatusPageSetupMonitorGroup>,
         Array<StatusPageSetupPage>,
+        Array<StatusPageSetupMonitor>,
       ] = await Promise.all([
-        StatusPageSetupApi.loadMonitors(),
-        StatusPageSetupApi.loadMonitorGroups().catch(() => {
-          return [] as Array<StatusPageSetupMonitorGroup>;
+        StatusPageSetupApi.searchMonitors(NO_STATUS_PAGE_SETUP_FILTER),
+        StatusPageSetupApi.searchMonitorGroups(
+          NO_STATUS_PAGE_SETUP_FILTER,
+        ).catch(() => {
+          return NOTHING_FOUND as StatusPageSetupFound<StatusPageSetupMonitorGroup>;
         }),
         StatusPageSetupApi.loadEditableStatusPages().catch(() => {
           return [] as Array<StatusPageSetupPage>;
         }),
+        handedInMonitorId
+          ? StatusPageSetupApi.loadMonitorsByIds([handedInMonitorId]).catch(
+              () => {
+                return [] as Array<StatusPageSetupMonitor>;
+              },
+            )
+          : Promise.resolve([] as Array<StatusPageSetupMonitor>),
       ]);
 
       if (!isActive) {
         return;
       }
 
+      const loadedMonitors: Array<StatusPageSetupMonitor> = foundMonitors.items;
+
       setRun(nextRun);
       setResources(store.readResources());
       setStatusPage(loadedPage);
       setShown(loadedShown);
       setMonitors(loadedMonitors);
-      setMonitorGroups(loadedGroups);
+      setMonitorGroups(foundGroups.items);
+      setMonitorCount(foundMonitors.count);
+      setMonitorGroupCount(foundGroups.count);
+      setKnownMonitors(mergeSetupRecords(loadedMonitors, handedIn));
+      setKnownGroups(foundGroups.items);
       setExistingPages(loadedPages);
 
       /*
@@ -366,10 +410,8 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       }
       setPicked(
         getMonitorPickedOnOpen({
-          monitorId: Navigation.getQueryStringByName(
-            STATUS_PAGE_SETUP_MONITOR_QUERY,
-          ),
-          monitors: loadedMonitors,
+          monitorId: handedInMonitorId,
+          monitors: mergeSetupRecords(loadedMonitors, handedIn),
         }),
       );
       setOpenStepKey(
@@ -449,14 +491,14 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     : [];
 
   const pickedMonitors: Array<StatusPageSetupMonitor> = getPickedMonitors({
-    monitors: monitors,
+    monitors: knownMonitors,
     picked: picked.filter((monitorId: string): boolean => {
       return !onThePageMonitorIds.includes(monitorId);
     }),
   });
   const pickedMonitorGroups: Array<StatusPageSetupMonitorGroup> =
     getPickedMonitorGroups({
-      monitorGroups: monitorGroups,
+      monitorGroups: knownGroups,
       picked: pickedGroups.filter((groupId: string): boolean => {
         return !onThePageGroupIds.includes(groupId);
       }),
@@ -686,6 +728,27 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
     <StatusPageSetupPicker
       monitors={monitors}
       monitorGroups={monitorGroups}
+      monitorCount={monitorCount}
+      monitorGroupCount={monitorGroupCount}
+      onFound={(found: {
+        monitors: Array<StatusPageSetupMonitor>;
+        monitorGroups: Array<StatusPageSetupMonitorGroup>;
+      }) => {
+        setKnownMonitors(
+          (
+            current: Array<StatusPageSetupMonitor>,
+          ): Array<StatusPageSetupMonitor> => {
+            return mergeSetupRecords(current, found.monitors);
+          },
+        );
+        setKnownGroups(
+          (
+            current: Array<StatusPageSetupMonitorGroup>,
+          ): Array<StatusPageSetupMonitorGroup> => {
+            return mergeSetupRecords(current, found.monitorGroups);
+          },
+        );
+      }}
       picked={picked}
       pickedGroups={pickedGroups}
       onPick={(nextPicked: Array<string>, nextGroups: Array<string>) => {
@@ -830,7 +893,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           </AppLink>
         </div>
       </div>
-    ) : monitors.length + monitorGroups.length === 0 ? (
+    ) : monitorCount + monitorGroupCount === 0 ? (
       <div className="space-y-4" data-testid="guided-setup-no-monitors">
         <p className="text-sm text-gray-700">
           {translator.translateText(STATUS_PAGE_SETUP_COPY.noMonitors)}
@@ -994,11 +1057,12 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         </p>
         <ul className="mt-2 space-y-1">
           {shown.names.map((shownName: string, index: number) => {
-            const monitor: StatusPageSetupMonitor | undefined = monitors.find(
-              (candidate: StatusPageSetupMonitor): boolean => {
-                return candidate.name === shownName;
-              },
-            );
+            const monitor: StatusPageSetupMonitor | undefined =
+              knownMonitors.find(
+                (candidate: StatusPageSetupMonitor): boolean => {
+                  return candidate.name === shownName;
+                },
+              );
 
             return (
               <li

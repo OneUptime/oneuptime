@@ -11,6 +11,7 @@ import {
   SecurityTelemetrySourceKind,
   getSecurityTelemetrySourceDefinition,
   isSecurityTelemetryScannedKind,
+  isSetAsideSecurityTelemetrySignal,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
 import OTelIngestService, {
@@ -160,6 +161,12 @@ export interface SecurityTelemetryScanResult {
   eventsFound: number;
   // Events found, by signal (SecurityTelemetrySignal).
   bySignal: Record<string, number>;
+  /*
+   * Events stored but set aside as OneUptime's own work - its probes'
+   * polling, discovery and checks (#10429; SECURITY_TELEMETRY_SET_ASIDE_
+   * SIGNALS) - by signal: kept so they stay visible, never counted as found.
+   */
+  setAsideBySignal: Record<string, number>;
   windows: number;
   /*
    * The scan had fallen too far behind and skipped ahead: what arrived
@@ -384,6 +391,7 @@ export default class SecurityTelemetryScanner {
       recordsRead: 0,
       eventsFound: 0,
       bySignal: {},
+      setAsideBySignal: {},
       windows: 0,
       skippedBacklog: Boolean(skippedFrom),
       skippedFrom,
@@ -476,16 +484,27 @@ export default class SecurityTelemetryScanner {
             },
           );
 
+          let found: number = 0;
+
           for (const event of stored) {
             const signal: string = String(
               event.attributes[SECURITY_TELEMETRY_SIGNAL_ATTRIBUTE] || "",
             );
+
+            // OneUptime's own work: kept and counted, but never found.
+            if (isSetAsideSecurityTelemetrySignal(signal)) {
+              result.setAsideBySignal[signal] =
+                (result.setAsideBySignal[signal] || 0) + 1;
+              continue;
+            }
+
             result.bySignal[signal] = (result.bySignal[signal] || 0) + 1;
+            found++;
           }
 
-          result.eventsFound += stored.length;
+          result.eventsFound += found;
 
-          if (stored.length > 0) {
+          if (found > 0) {
             lastEventFoundAt = now;
           }
         }

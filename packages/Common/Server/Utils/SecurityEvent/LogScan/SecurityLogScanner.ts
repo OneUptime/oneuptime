@@ -40,6 +40,7 @@ import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
 import OpenStackAuditJoin from "./OpenStackAuditJoin";
+import OneUptimeAwsSessions from "../../CloudConnection/Aws/OneUptimeAwsSessions";
 import SecurityLogCases, {
   LOG_THREATS_PER_SCAN_LIMIT,
   SecurityLogThreatsResult,
@@ -558,6 +559,16 @@ export default class SecurityLogScanner {
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
   }): Promise<SecurityLogStoredEvents> {
+    /*
+     * A CloudTrail call OneUptime's own session made - Data Security's
+     * reads of the account - is marked as OneUptime's own (#10427), so the
+     * rules that should leave it out can.
+     */
+    await OneUptimeAwsSessions.markSecurityEvents({
+      projectId: data.projectId.toString(),
+      events: data.events,
+    });
+
     // An OpenStack event says which project by ID: this names it, as a case will.
     await OpenStackAuditJoin.enrichEvents({
       projectId: data.projectId,

@@ -406,6 +406,91 @@ describe("what a scan stores", () => {
     );
   });
 
+  /*
+   * OneUptime's own probes doing what they are set to do (#10429): their
+   * traffic is stored, so it stays visible, but it is set aside - never a
+   * security event found, and the source never says it found one for it.
+   */
+  test("OneUptime's own probe traffic is stored and counted apart, never as found", async () => {
+    const probeTraffic: (eventUid: string) => NormalizedSecurityEvent = (
+      eventUid: string,
+    ): NormalizedSecurityEvent => {
+      return buildTelemetrySecurityEvent({
+        kind: SecurityTelemetrySourceKind.NetworkFlows,
+        signal: SecurityTelemetrySignal.OneUptimeProbeTraffic,
+        time: new Date("2026-10-27T11:50:00.000Z"),
+        eventUid,
+        classUid: 4001,
+        activityName: "Traffic",
+        statusName: "",
+        severity: OcsfSeverity.Informational,
+        message: "OneUptime's own probe traffic",
+        principalIp: "10.0.0.250",
+        attributes: {},
+      });
+    };
+    const plan: { settleInSeconds: number; windowInSeconds: number } =
+      TELEMETRY_SCAN_PLANS[SecurityTelemetrySourceKind.NetworkFlows];
+    const cursor: string = new Date(
+      NOW.getTime() - plan.settleInSeconds * 1000 - plan.windowInSeconds * 1000,
+    ).toISOString();
+
+    const onlyOwn: Harness = stand({
+      reads: [
+        {
+          events: [probeTraffic("own-1"), probeTraffic("own-2")],
+          recordsRead: 2,
+          pageRows: 0,
+          hasMore: false,
+        },
+      ],
+    });
+
+    const setAside: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.NetworkFlows, cursor),
+      );
+
+    expect(
+      onlyOwn.inserted.map((row: JSONObject): unknown => {
+        return row["eventUid"];
+      }),
+    ).toEqual(["own-1", "own-2"]);
+    expect(setAside.eventsFound).toBe(0);
+    expect(setAside.bySignal).toEqual({});
+    expect(setAside.setAsideBySignal).toEqual({
+      "oneuptime-probe-traffic": 2,
+    });
+    // The source does not say it found a security event.
+    expect(onlyOwn.updates[0]!["lastEventFoundAt"]).toBeUndefined();
+    expect(
+      (onlyOwn.updates[0]!["lastScanResult"] as JSONObject)["setAsideBySignal"],
+    ).toEqual({ "oneuptime-probe-traffic": 2 });
+
+    jest.restoreAllMocks();
+
+    const both: Harness = stand({
+      reads: [
+        {
+          events: [probeTraffic("own-3"), event("scan-1")],
+          recordsRead: 2,
+          pageRows: 0,
+          hasMore: false,
+        },
+      ],
+    });
+
+    const mixed: SecurityTelemetryScanResult =
+      await SecurityTelemetryScanner.scanSource(
+        source(SecurityTelemetrySourceKind.NetworkFlows, cursor),
+      );
+
+    expect(mixed.eventsFound).toBe(1);
+    expect(mixed.bySignal).toEqual({ "port-scan": 1 });
+    expect(mixed.setAsideBySignal).toEqual({ "oneuptime-probe-traffic": 1 });
+    expect(both.updates[0]!["lastEventFoundAt"]).toEqual(NOW);
+  });
+
   test("a window that finds nothing stores nothing, and asks for no service", async () => {
     const harness: Harness = stand({});
     const plan: { settleInSeconds: number; windowInSeconds: number } =

@@ -6,8 +6,9 @@ jest.mock("Common/Server/Utils/VM/VMRunner", () => {
 /*
  * The queue between the endpoint and the worker. Each request is its own
  * job, handed to the real worker as it is queued - as when coalescing is off
- * (INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false). Coalescing is
- * IncomingRequestCoalescedJob.test.ts's.
+ * (INCOMING_REQUEST_INGEST_COALESCE_ENABLED=false). With coalescing, a
+ * grouped monitor evaluates every request in order too (#10582): that is
+ * IncomingRequestEveryRequest.test.ts's.
  */
 jest.mock(
   "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
@@ -402,7 +403,7 @@ async function post(
     },
   );
 
-  // Answered at once; the request is queued after the answer.
+  // Queued, then answered: the job is in the queue by the time of the answer.
   expect(response.status).toBe(200);
 
   for (let attempt: number = 0; jobs.length === before; attempt++) {

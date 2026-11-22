@@ -42,6 +42,13 @@ export interface GoogleWorkspaceUser {
   id: string;
   primaryEmail: string;
   suspended: boolean;
+  /*
+   * Enrolled in 2-Step Verification (isEnrolledIn2Sv, read-only): the Fix
+   * step "MFA on the accounts it went after" reads it back (#10347). The
+   * Directory API says nothing of when a password last changed, so a Fix
+   * step "reset the password" cannot be read back here.
+   */
+  isEnrolledIn2Sv: boolean;
 }
 
 export enum GoogleWorkspaceContainmentOutcome {
@@ -155,6 +162,7 @@ export default class GoogleWorkspaceResponseClient {
           ? record["primaryEmail"]
           : "",
       suspended: record["suspended"] === true,
+      isEnrolledIn2Sv: record["isEnrolledIn2Sv"] === true,
     };
   }
 

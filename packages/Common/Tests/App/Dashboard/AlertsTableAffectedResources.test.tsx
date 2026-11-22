@@ -211,6 +211,7 @@ import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "../../../Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import Color from "../../../Types/Color";
@@ -1122,7 +1123,12 @@ describe("the alerts list's filters", () => {
     ).toEqual([MONITOR_ID, OTHER_MONITOR_ID]);
   });
 
-  test("'is not' leaves those monitors' alerts out, and 'is empty' finds the alerts with no monitor", async () => {
+  /*
+   * An alert with no monitor is not that monitor's either, so "is not"
+   * keeps it (#10581): IncludesNoneOrNull, where IncludesNone (`NOT IN`)
+   * dropped every alert whose monitorId is empty.
+   */
+  test("'is not' leaves those monitors' alerts out and keeps the alerts with no monitor, and 'is empty' finds only those", async () => {
     await renderTable();
 
     const isNot: FacetColumnQuery | null = monitorChipQuery("is_not", [
@@ -1130,7 +1136,8 @@ describe("the alerts list's filters", () => {
     ]);
 
     expect(isNot?.field).toBe("monitorId");
-    expect(isNot?.value).toBeInstanceOf(IncludesNone);
+    expect(isNot?.value).toBeInstanceOf(IncludesNoneOrNull);
+    expect(isNot?.value).not.toBeInstanceOf(IncludesNone);
 
     const isEmpty: FacetColumnQuery | null = monitorChipQuery("is_empty", []);
 
