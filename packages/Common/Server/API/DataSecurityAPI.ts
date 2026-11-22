@@ -107,6 +107,7 @@ import {
   CreatedScrubRule,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
+import { getScrubItImpact } from "../Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -148,7 +149,9 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Scan Now and Check Now on a store, for anyone who may edit it;
  *  - Scrub It on a telemetry finding, for anyone who may create scrub
  *    rules, or metric pipeline rules for a metric's attribute - the rule is
- *    theirs, made under their own permissions;
+ *    theirs, made under their own permissions, and its service's - and what
+ *    it would do first: its action, where it applies, and what reads the
+ *    data it would hide (#10433);
  *  - a telemetry finding's newest records, read now
  *    (TelemetryFindingOccurrences), for anyone who may read its masked
  *    samples and the store's telemetry itself - its logs, traces, metrics,
@@ -530,8 +533,9 @@ export default class DataSecurityAPI extends BaseAPI<
           dataTypeId: finding.dataTypeId!,
           dataTypeName: finding.dataTypeName,
           location: finding.location!,
-          // A metric's rule is its service's.
+          // The rule is its service's: a metric's always was, a log's or a span's since #10433.
           serviceId: finding.dataStore!.serviceId || null,
+          storeKey: finding.dataStore!.storeKey || null,
         });
 
         await DataStoreFindingService.updateColumnsByIdWithoutHooks({
@@ -541,6 +545,36 @@ export default class DataSecurityAPI extends BaseAPI<
         await queueDataSecurityEvaluation(projectId);
 
         return created as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * What Scrub It would do (#10433): the rule it would make - its action,
+     * the parts of the records it scrubs and whose - and what that rule
+     * would take away from what reads the data, before it is made. Asked
+     * by whoever may press Scrub It, and named as they may read it.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+      SCRUB_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const finding: DataStoreFinding =
+          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+
+        return (await getScrubItImpact({
+          projectId,
+          kind: finding.dataStore!.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId!,
+          dataTypeName: finding.dataTypeName,
+          location: finding.location!,
+          serviceId: finding.dataStore!.serviceId || null,
+          storeKey: finding.dataStore!.storeKey || null,
+          props,
+        })) as unknown as JSONObject;
       },
     );
 
@@ -767,7 +801,8 @@ export default class DataSecurityAPI extends BaseAPI<
      * permission - approving a scrub rule takes what creating one takes,
      * undoing it what deleting one takes, dismissing what changing the
      * issue takes - and made with their own props
-     * (DataSecurityAiProposals).
+     * (DataSecurityAiProposals). An owner proposal may be changed first
+     * (#10374): `changes` names the owners the person approves instead.
      */
     this.post(
       DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
@@ -785,6 +820,7 @@ export default class DataSecurityAPI extends BaseAPI<
           proposalId: req.params["id"],
           expectedPlanFingerprint: body["expectedPlanFingerprint"],
           expectedApprovalStep: body["expectedApprovalStep"],
+          changes: body["changes"],
         });
       },
     );
@@ -931,7 +967,8 @@ export default class DataSecurityAPI extends BaseAPI<
           dataTypeName: true,
           location: true,
           dataStoreId: true,
-          dataStore: { kind: true, serviceId: true },
+          // Its key names its service, for a store kept without one (#10433).
+          dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
       });
@@ -946,7 +983,7 @@ export default class DataSecurityAPI extends BaseAPI<
       )
     ) {
       throw new BadDataException(
-        "Scrub It masks telemetry at ingest; this finding is in a data store.",
+        "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
       );
     }
 

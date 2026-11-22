@@ -14,6 +14,11 @@ import {
   PatternWorkLimitError,
 } from "../../Utils/LinearRegExp/PatternProblem";
 import { patternWorkRefusesQuestions } from "../../Utils/LinearRegExp/PatternWork";
+import {
+  SCRUB_HASH_TOKEN_HEX_LENGTH,
+  SCRUB_HASH_TOKEN_PREFIX,
+  SCRUB_HASH_TOKEN_SUFFIX,
+} from "./ScrubHashTokenFormat";
 
 /*
  * WHAT A LOG OR TRACE SCRUB RULE STARTS WITH, AND WHAT MAKES ONE SCRUB
@@ -342,6 +347,57 @@ export function scrubRegExpFromRanges(data: {
   return new RangesScrubRegExp(data);
 }
 
+/*
+ * THE BUILT-IN PATTERNS' VALUE MATCHERS, WRITTEN ONCE (#10433).
+ *
+ * What an Email, Credit Card, SSN or Phone Number rule finds in a value:
+ * the log and trace engines scrub with these (App/FeatureSet/Telemetry/
+ * Services/LogScrubRuleService.ts, TraceScrubRuleService.ts), and the
+ * lookup of what reads a value a rule would hide asks them of the values a
+ * monitor or a saved view looks for (Utils/Telemetry/ScrubRuleFieldReads) -
+ * one definition, so the answer is what ingest does. Each is used through
+ * scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
+ *
+ * IP Address is not here: its matches are what Data Security's own
+ * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).
+ */
+export const SCRUB_RULE_BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> =
+  {
+    /*
+     * Each part of the address is length-bounded to the sizes RFC 5321
+     * allows (local part 64, domain 253, final label 63), so finding
+     * addresses in a log body or a span attribute stays in line with its
+     * length however long it is - this runs over every ingested record of a
+     * project with an email scrub rule.
+     */
+    [LogScrubPatternType.Email]:
+      /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
+    [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
+    [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
+    [LogScrubPatternType.PhoneNumber]:
+      /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+  };
+
+/*
+ * The attribute-KEY denylist of a Sensitive Attribute Keys rule: matched
+ * against an attribute's key, and the keys inside a list, a map or a JSON
+ * text, case-insensitively; on a hit the whole value is hidden. The engines
+ * keep a copy each (SENSITIVE_KEY_REGEX), which TelemetryScrubCoverage.test
+ * reads from their source and holds to this one.
+ */
+export const SCRUB_RULE_SENSITIVE_KEY_REGEX: RegExp =
+  /(password|passwd|pwd|secret|token|api[._-]?key|access[._-]?key|private[._-]?key|client[._-]?secret|authorization|auth[._-]?header|cookie|session[._-]?id|credit[._-]?card|card[._-]?number|ssn|csrf|xsrf)/i;
+
+// The data type each built-in pattern type finds. Log and trace rules share them.
+export const DATA_TYPE_OF_SCRUB_PATTERN_TYPE: Readonly<Record<string, string>> =
+  {
+    [LogScrubPatternType.Email]: "email-address",
+    [LogScrubPatternType.CreditCard]: "credit-card-number",
+    [LogScrubPatternType.SSN]: "us-ssn",
+    [LogScrubPatternType.PhoneNumber]: "phone-number",
+    [LogScrubPatternType.IPAddress]: "ip-address",
+  };
+
 export const LOG_SCRUB_PATTERN_TYPES: ReadonlyArray<string> =
   Object.values(LogScrubPatternType);
 
@@ -565,4 +621,161 @@ export function doesScrubRuleScrubNothing(data: {
   }
 
   return compileScrubRuleCustomRegex(data.customRegex) === null;
+}
+
+/*
+ * WHAT A SCRUB RULE LEFT IN PLACE OF A VALUE (#10435).
+ *
+ * A rule never takes a value away: it leaves something in its place
+ * (Server/Utils/Telemetry/ScrubAction.ts), and whatever reads telemetry
+ * after the rules have run reads that:
+ *
+ *   - Redact leaves "[REDACTED]", the same text for every value it hid;
+ *   - Mask leaves a hint, the hidden characters as stars: an email's
+ *     "j***@***.com", a card's "****-****-****-1234", a custom pattern's
+ *     "a*****z" - the same for every value with the same ends;
+ *   - Hash leaves the project's token for the value, "[HASHED:" and 16 hex
+ *     characters (8 in records stored before #10394): one token per value,
+ *     the same every time (ScrubHashTokenFormat).
+ *
+ * Taken for a value, "[REDACTED]" is one user every redacted user shares:
+ * an exception "affected 1 user", a project's AI spend landed on one
+ * "[REDACTED]" person, and a playbook offered "[REDACTED]" as the user to
+ * suspend. So whatever reads a user id, an email or a team from telemetry
+ * asks one of these first:
+ *
+ *   - isScrubPlaceholder: the value is what a rule left, not the value -
+ *     never a name, a person to charge or an account to act on;
+ *   - isSharedScrubPlaceholder: Redact or Mask left it, so it stands for
+ *     many values at once - not even one to count. A Hash token is not
+ *     shared: it stands for one value, so two tokens are two users, and
+ *     counting distinct users still works with it.
+ *
+ * A value holds what a rule left whether the rule hid all of it or part:
+ * "auth0|[REDACTED]" is every user whose email a rule redacted out of their
+ * id. Redact and Mask outrank Hash: a value that holds "[REDACTED]" beside
+ * a token is no one value.
+ *
+ * Pure, and read in the browser too: a few indexOf calls over the value,
+ * however long it is.
+ */
+export enum ScrubPlaceholderKind {
+  Redacted = "redacted",
+  Masked = "masked",
+  Hashed = "hashed",
+}
+
+/*
+ * What Redact leaves: the engines' own SCRUB_REDACTED_TEXT
+ * (Server/Utils/Telemetry/ScrubAction.ts), written here for the code that
+ * runs in the browser too. ScrubPlaceholder.test.ts fails when they differ.
+ */
+export const SCRUB_REDACTED_PLACEHOLDER: string = "[REDACTED]";
+
+/*
+ * What every mask holds: three stars or more in a row. A mask always hides
+ * at least three characters (Utils/Telemetry/ScrubMask, ScrubAction.mask,
+ * ScrubIpAddress.mask), and no id, email or team name is written so.
+ */
+export const SCRUB_MASK_MARK: string = "***";
+
+// The hex characters of a token made before tokens were keyed (#10394).
+const LEGACY_SCRUB_HASH_TOKEN_HEX_LENGTH: number = 8;
+
+function isLowerHexCode(code: number): boolean {
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 102);
+}
+
+// Whether a token of `hexLength` hex characters starts at `start`.
+function isScrubHashTokenAt(
+  text: string,
+  start: number,
+  hexLength: number,
+): boolean {
+  const hexStart: number = start + SCRUB_HASH_TOKEN_PREFIX.length;
+  const hexEnd: number = hexStart + hexLength;
+
+  if (
+    text.slice(hexEnd, hexEnd + SCRUB_HASH_TOKEN_SUFFIX.length) !==
+    SCRUB_HASH_TOKEN_SUFFIX
+  ) {
+    return false;
+  }
+
+  for (let index: number = hexStart; index < hexEnd; index++) {
+    if (!isLowerHexCode(text.charCodeAt(index))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Whether a text holds a Hash rule's token anywhere in it, in either form.
+function holdsScrubHashToken(text: string): boolean {
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = text.indexOf(SCRUB_HASH_TOKEN_PREFIX, from);
+
+    if (start === -1) {
+      return false;
+    }
+
+    if (
+      isScrubHashTokenAt(text, start, SCRUB_HASH_TOKEN_HEX_LENGTH) ||
+      isScrubHashTokenAt(text, start, LEGACY_SCRUB_HASH_TOKEN_HEX_LENGTH)
+    ) {
+      return true;
+    }
+
+    from = start + 1;
+  }
+}
+
+/*
+ * What a scrub rule left in a value, or null for a value no rule touched
+ * (and for anything that is no text).
+ */
+export function getScrubPlaceholderKind(
+  value: unknown,
+): ScrubPlaceholderKind | null {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+
+  if (value.indexOf(SCRUB_REDACTED_PLACEHOLDER) !== -1) {
+    return ScrubPlaceholderKind.Redacted;
+  }
+
+  if (value.indexOf(SCRUB_MASK_MARK) !== -1) {
+    return ScrubPlaceholderKind.Masked;
+  }
+
+  if (holdsScrubHashToken(value)) {
+    return ScrubPlaceholderKind.Hashed;
+  }
+
+  return null;
+}
+
+/*
+ * Whether a value is what a scrub rule left rather than the value itself:
+ * never a name, a person to charge or an account to act on.
+ */
+export function isScrubPlaceholder(value: unknown): boolean {
+  return getScrubPlaceholderKind(value) !== null;
+}
+
+/*
+ * Whether Redact or Mask left it: one placeholder for many values, which is
+ * no value to count either. A Hash token is not shared.
+ */
+export function isSharedScrubPlaceholder(value: unknown): boolean {
+  const kind: ScrubPlaceholderKind | null = getScrubPlaceholderKind(value);
+
+  return (
+    kind === ScrubPlaceholderKind.Redacted ||
+    kind === ScrubPlaceholderKind.Masked
+  );
 }

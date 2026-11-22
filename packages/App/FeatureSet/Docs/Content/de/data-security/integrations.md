@@ -77,6 +77,10 @@ Regeln legen Eigentümer und Beschriftungen für Sie fest, sobald Datenspeicher 
 
 Eine Regel passt auf einen Datenspeicher über seine Beschriftungen, über ein Muster seines Namens oder seiner Beschreibung oder über **Cloud-Tag-Muster**: ein Muster, das mit jedem Cloud-Tag des Datenspeichers abgeglichen wird, geschrieben als `key=value`. `^team=payments$` passt auf jeden Datenspeicher mit dem Tag `team=payments` und `^env=` auf jeden Datenspeicher mit einem Tag `env`. Ein neuer Datenspeicher erhält die Regeln des Projekts in dem Moment, in dem er gefunden wird, und **Eigentümer benachrichtigen** einer Eigentümerregel sagt, ob die Eigentümer, die sie hinzufügt, benachrichtigt werden. [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules) erklärt, wie jede Regel passt und wann Regeln laufen.
 
+### Eigentümer, die OneUptime AI vorschlägt
+
+Ein Datenspeicher ohne Eigentümer kann sie von OneUptime AI erhalten. Sie liest, was schon auf einen Eigentümer hinweist - die Cloud-Tags des Datenspeichers, die Dienste, die ihn nutzen, die Code-Eigentümer der Datei, die ihn deklariert, und wer ihn geändert oder hinzugefügt hat - und schlägt daraus die eigenen Teams und Personen Ihres Projekts vor. Nichts ändert sich, bis eine Person es unter **Zu prüfende Eigentümer** genehmigt, unter **Datenspeicher** oder **Datensicherheit → KI**, und die hinzugefügten Eigentümer werden benachrichtigt wie jeder Eigentümer. Beruhen die Eigentümer von drei oder mehr Datenspeichern auf einem Tag oder einem Namensanfang, schlägt sie auch die Eigentümerregel vor, die den nächsten solchen Datenspeicher mit Eigentümern versorgt und nach der Genehmigung zu den **Eigentümerregeln** kommt. [OneUptime AI in der Datensicherheit](/docs/data-security/ai) sagt, was sie sendet und wann sie läuft.
+
 ## Workflows
 
 **Datenspeicher** und **Datensicherheitsproblem** sind Workflow-Auslöser, jeweils mit **Beim Erstellen**, **Beim Aktualisieren**, **Beim Erstellen oder Aktualisieren** und **Beim Löschen**. Wählen Sie sie im Panel **Auslöser hinzufügen** unter **OneUptime-Ressourcen**.

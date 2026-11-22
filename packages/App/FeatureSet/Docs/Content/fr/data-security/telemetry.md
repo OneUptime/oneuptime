@@ -1,13 +1,13 @@
 # Données sensibles dans la télémétrie
 
-La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt, l'adresse IP d'un utilisateur dans l'étiquette d'une métrique. Sécurité des données traite les journaux, traces, métriques, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle qui masque ces données à l'ingestion à partir de là.
+La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt, l'adresse IP d'un utilisateur dans l'étiquette d'une métrique. Sécurité des données traite les journaux, traces, métriques, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle qui masque ces données à l'ingestion à partir de là, dans le service où elles ont été trouvées.
 
 Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet. Pour laisser de côté les journaux, les traces ou un autre signal d'un service, désactivez **Analyser le contenu** dans les **Paramètres** de ce magasin de données : dès l'analyse suivante, rien n'en est lu.
 
 :::cards
 - [Ce qui est lu](#ce-qui-est-lu): Les attributs, les corps, les messages et les prompts de chaque signal.
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
-- [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, en un clic.
+- [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, dans le service où elle a été trouvée.
 - [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
@@ -94,14 +94,14 @@ Ouvrez le problème - **Où cela a été trouvé** liste chaque détection qui l
 
 ### Cliquer sur Nettoyer
 
-Cliquez sur **Nettoyer**. OneUptime crée une règle de nettoyage de journaux pour les journaux et les journaux d'une application RUM, une règle de nettoyage de traces pour les spans, les exceptions et les appels d'IA, sur la partie de l'enregistrement où se trouve la détection, et une règle de pipeline de métriques pour l'attribut d'une métrique.
+Cliquez sur **Nettoyer**. Une boîte de dialogue dit ce que ferait la règle avant que quoi que ce soit ne soit créé : les enregistrements qu'elle modifie, ce qu'elle fait de ce qu'elle trouve et ce qui lit les valeurs qu'elle masquerait. Cliquez sur **Nettoyer** dans cette boîte pour créer la règle. OneUptime crée une règle de nettoyage de journaux pour les journaux et les journaux d'une application RUM, une règle de nettoyage de traces pour les spans, les exceptions et les appels d'IA, sur la partie de l'enregistrement où se trouve la détection, et une règle de pipeline de métriques pour l'attribut d'une métrique.
 
 ### Corriger aussi le code
 
 La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut.
 :::
 
-La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in attributes.user.email », et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est l'une de celles-ci :
+La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est l'une de celles-ci :
 
 | Détection | Règle que crée Nettoyer |
 | --- | --- |
@@ -109,6 +109,10 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 | Une valeur sous une clé qui semble sensible, comme `password` ou `token` | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
 | Tout autre type de données qu'un motif peut trouver | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données, qui caviarde chaque valeur de cette forme |
 | Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut ayant la forme du type de données, ou chaque valeur de l'attribut quand aucun motif ne trouve ce type de données |
+
+Une règle de journaux ou de traces vaut pour le service où la détection a été trouvée : elle nettoie les journaux ou les spans de ce service, et ceux des autres services restent tels quels, si bien que rien de ce qui lit les leurs ne change. La colonne **Portée** de la liste des règles de nettoyage indique pour quel service vaut une règle. Une détection dans les enregistrements de session d'une application RUM crée une règle pour tous les services et applications du projet, puisque les règles de journaux nettoient aussi les enregistrements, et la boîte de dialogue le dit. Si le service n'existe plus, **Nettoyer** le dit et ne crée aucune règle.
+
+La boîte de dialogue nomme, chacun sous forme de lien, les moniteurs, les tableaux de bord avec leurs widgets, les vues enregistrées, les règles d'enregistrement et les SLO qui lisent les valeurs que la règle masquerait, et ce qui leur arrive : un filtre sur une valeur masquée ne correspond plus, et un regroupement par celle-ci n'affiche plus les vraies valeurs. Elle dit aussi ce que perdraient les [Événements de sécurité](/docs/telemetry/security-events) qui lisent ces enregistrements : avec les adresses IP masquées, leurs événements ne peuvent pas nommer l'adresse à bloquer. Ce que vous ne pouvez pas voir est compté, jamais nommé. La boîte de dialogue n'empêche jamais la règle : elle le dit, et vous décidez. Les formulaires des règles de nettoyage montrent la même chose avant qu'une règle soit enregistrée ou activée.
 
 Certaines détections ne peuvent pas être nettoyées par une règle, et **Nettoyer** dit pourquoi. L'attribut d'une métrique peut toujours l'être, puisque sa règle peut masquer chaque valeur de l'attribut :
 
@@ -139,6 +143,7 @@ Une détection n'est marquée comme nettoyée que lorsque l'ingestion lui appliq
 
 - **Les bons enregistrements.** Les règles de journaux couvrent les journaux et les journaux d'une application RUM. Les règles de traces couvrent les spans, les exceptions et les appels d'IA : une exception est une copie de l'événement d'exception de son span, donc les règles qui nettoient les événements la nettoient.
 - **La bonne partie.** Les **Champs à nettoyer** de la règle incluent la partie de l'enregistrement où se trouve la détection, ou la règle les laisse à leur valeur par défaut.
+- **Le bon service.** Une règle de journaux ou de traces pour un service ne couvre que les détections de ce service. Une règle sans service couvre celles de tous les services.
 - **Un motif qui trouve le type.** Un **Type de modèle** intégré trouve son propre type de données : **Adresse e-mail** trouve les adresses e-mail, **Numéro de carte de crédit** les numéros de carte, **SSN (numéro de sécurité sociale)** les numéros de sécurité sociale américains, **Numéro de téléphone** les numéros de téléphone et **Adresse IP** les adresses IP. **Clés d'attributs sensibles** couvre chaque valeur sous une clé qui semble sensible, quelle que soit la valeur.
 - **Vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
 - **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison.

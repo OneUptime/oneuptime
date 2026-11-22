@@ -1,15 +1,21 @@
 import Crypto from "../../Utils/Crypto";
 import { CloudProvider } from "../Cloud/CloudPlatform";
+import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 import {
   CloudConnectionAuthMethod,
   CloudConnectionDataSecurityLevel,
   CloudConnectionDataSecurityResponse,
+  CloudConnectionWafBlocklist,
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionDataSecurityLevel,
+  getCloudConnectionWafBlocklist,
   isCloudConnectionDataSecurityResponseOn,
+  isCloudConnectionWafBlocklistOn,
 } from "./CloudConnectionCatalog";
 
 /*
@@ -50,10 +56,11 @@ import {
  * Data Security's access is opt-in, per connection (the dataSecurity
  * setting, CloudConnectionDataSecurityLevel), and added by the same command
  * only when it is asked for - with it off, every command is exactly the
- * one described above. See "DATA SECURITY'S OPT-IN ACCESS" below. So is
- * the one write a command ever grants, on a setting of its own
- * (dataSecurityResponse): closing a data store's exposure. See "DATA
- * SECURITY RESPONSE" below.
+ * one described above. See "DATA SECURITY'S OPT-IN ACCESS" below. So are
+ * the writes a command grants, each on a setting of its own: closing a
+ * data store's exposure (dataSecurityResponse, "DATA SECURITY RESPONSE"
+ * below), and keeping the blocklist's IP sets and rule in AWS WAF
+ * (wafBlocklist, "THE BLOCKLIST IN AWS WAF" below).
  *
  * The dashboard shows these, written from the settings its form holds
  * (getCloudConnectionCommandSettings, read as the server reads them), so
@@ -127,6 +134,12 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
       "ec2:DescribeSubnets",
       "ec2:DescribeSecurityGroups",
       "ec2:DescribeNatGateways",
+      /*
+       * The account's Elastic IPs (#10504), and through them the public
+       * addresses of its NAT gateways: the addresses its own traffic leaves
+       * from, which the blocklist never blocks.
+       */
+      "ec2:DescribeAddresses",
       "autoscaling:DescribeAutoScalingGroups",
       /*
        * Every Describe of Elastic Load Balancing: its load balancers, their
@@ -186,9 +199,17 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
     purpose: "Read what changed: the account's management events",
     actions: ["cloudtrail:LookupEvents"],
   },
+  /*
+   * DescribeEvents and DescribeEventDetails, as one entry: every action it
+   * also grants (DescribeEventTypes, DescribeEventAggregates and the
+   * organization's own, which answer only a management account with
+   * organizational view on) reads AWS Health's events and nothing else.
+   * One entry rather than two kept the access key's user under its 2,048
+   * characters when ec2:DescribeAddresses joined the policy (#10504).
+   */
   {
     purpose: "Read AWS's own health events for the account",
-    actions: ["health:DescribeEvents", "health:DescribeEventDetails"],
+    actions: ["health:DescribeEvent*"],
   },
   /*
    * What the account costs and how to spend less: Cost Explorer's daily
@@ -753,11 +774,182 @@ export function getAwsExternalIdConditionText(externalId: string): string {
  * the project that ran the command last.
  */
 export function getAwsRoleNameForExternalId(externalId: string): string {
-  const suffix: string = externalId.startsWith(EXTERNAL_ID_PREFIX)
+  return `${CLOUD_CONNECTION_READ_ONLY_NAME}-${getAwsExternalIdSuffix(externalId)}`;
+}
+
+/*
+ * What tells one project's resources in an AWS account from another's: the
+ * first eight hexadecimal digits of its external id, as its role's name
+ * carries them ("OneUptimeReadOnly-1a2b3c4d") and its AWS WAF IP sets'
+ * names do ("oneuptime-1a2b3c4d-block-ipv4").
+ */
+export function getAwsExternalIdSuffix(externalId: string): string {
+  return externalId.startsWith(EXTERNAL_ID_PREFIX)
     ? externalId.slice(EXTERNAL_ID_PREFIX.length, EXTERNAL_ID_PREFIX.length + 8)
     : externalId.slice(0, 8);
+}
 
-  return `${CLOUD_CONNECTION_READ_ONLY_NAME}-${suffix}`;
+/*
+ * THE BLOCKLIST IN AWS WAF (#10344): what a connection whose "Block
+ * addresses in AWS WAF" is on may do, on a setting of its own
+ * (wafBlocklist) - the project's blocklist kept in IP sets of OneUptime's
+ * own, and those sets blocked by a rule in the web ACLs picked on the
+ * Blocklist page (Types/CloudConnection/AwsWafBlocklist says what each is
+ * called and how its rule reads).
+ *
+ *   Both choices: a fourth inline policy, OneUptimeWafBlocklist, that lists
+ *     the account's IP sets (wafv2:ListIPSets, which names no resource),
+ *     reads, creates, updates and deletes the project's own IP sets - those
+ *     named oneuptime-<the project's suffix>-, never another project's or
+ *     the customer's - and reads the requests a web ACL's rules sampled
+ *     (wafv2:GetSampledRequests), the evidence a case's block step shows.
+ *   "rule" adds wafv2:UpdateWebACL, which writes a web ACL whole: on the
+ *     web ACLs, and on every IP set, regex pattern set, rule group and
+ *     managed rule set one may reference, since AWS checks the call against
+ *     each resource the web ACL names, the customer's own included.
+ *     OneUptime changes nothing in a web ACL but its own two rules.
+ *   "code" leaves it out: the team adds the rule to the web ACL it keeps in
+ *     Terraform or CloudFormation, and OneUptime reads it back
+ *     (wafv2:GetWebACL, in the read-only policy already).
+ *
+ * The access key's user takes the policy through a group of the project's
+ * own, OneUptimeWafBlocklist-<suffix>: its inline policies are full, and
+ * the user is shared by every project connected with a key.
+ *
+ * "off" adds nothing, so it leaves what an earlier command granted until it
+ * is removed (aws iam delete-role-policy --policy-name
+ * OneUptimeWafBlocklist).
+ */
+export const AWS_WAF_BLOCKLIST_POLICY_NAME: string = "OneUptimeWafBlocklist";
+
+// The project's own group the access key's user takes the policy through.
+export function getAwsWafBlocklistGroupName(externalId: string): string {
+  return `${AWS_WAF_BLOCKLIST_POLICY_NAME}-${getAwsExternalIdSuffix(externalId)}`;
+}
+
+/*
+ * The start of the name of every IP set the project keeps in AWS WAF:
+ * "oneuptime-1a2b3c4d". AWS WAF names allow letters, digits, "_" and "-".
+ */
+export function getAwsWafIpSetNamePrefix(externalId: string): string {
+  return `oneuptime-${getAwsExternalIdSuffix(externalId)}`;
+}
+
+// Listing a scope's IP sets, which AWS checks against no resource.
+export const AWS_WAF_BLOCKLIST_LIST_ACTIONS: Array<string> = [
+  "wafv2:ListIPSets",
+];
+
+// What OneUptime does with its own IP sets.
+export const AWS_WAF_BLOCKLIST_IP_SET_ACTIONS: Array<string> = [
+  "wafv2:GetIPSet",
+  "wafv2:CreateIPSet",
+  "wafv2:UpdateIPSet",
+  "wafv2:DeleteIPSet",
+];
+
+// The requests a web ACL's rules sampled: the evidence a block holds.
+export const AWS_WAF_BLOCKLIST_EVIDENCE_ACTIONS: Array<string> = [
+  "wafv2:GetSampledRequests",
+];
+
+// Only when OneUptime adds its rule itself.
+export const AWS_WAF_BLOCKLIST_RULE_ACTIONS: Array<string> = [
+  "wafv2:UpdateWebACL",
+];
+
+// Every action the blocklist's AWS WAF writes may call, by choice.
+export function getAwsWafBlocklistActions(
+  choice: CloudConnectionWafBlocklist | undefined,
+): Array<string> {
+  if (!isCloudConnectionWafBlocklistOn(choice)) {
+    return [];
+  }
+
+  return [
+    ...AWS_WAF_BLOCKLIST_LIST_ACTIONS,
+    ...AWS_WAF_BLOCKLIST_IP_SET_ACTIONS,
+    ...AWS_WAF_BLOCKLIST_EVIDENCE_ACTIONS,
+    ...(doesCloudConnectionWafBlocklistAddRule(choice)
+      ? AWS_WAF_BLOCKLIST_RULE_ACTIONS
+      : []),
+  ];
+}
+
+// The project's own IP sets, in every Region and scope ("regional", "global").
+export function getAwsWafIpSetResource(externalId: string): string {
+  return `arn:aws:wafv2:*:*:*/ipset/${getAwsWafIpSetNamePrefix(externalId)}-*/*`;
+}
+
+// Any web ACL, for its sampled requests and - "rule" - its update.
+export const AWS_WAF_WEB_ACL_RESOURCE: string =
+  "arn:aws:wafv2:*:*:*/webacl/*/*";
+
+/*
+ * What wafv2:UpdateWebACL is checked against: the web ACL, and everything
+ * a web ACL may reference.
+ */
+export const AWS_WAF_WEB_ACL_UPDATE_RESOURCES: Array<string> = [
+  AWS_WAF_WEB_ACL_RESOURCE,
+  "arn:aws:wafv2:*:*:*/ipset/*/*",
+  "arn:aws:wafv2:*:*:*/regexpatternset/*/*",
+  "arn:aws:wafv2:*:*:*/rulegroup/*/*",
+  "arn:aws:wafv2:*:*:*/managedruleset/*/*",
+];
+
+/*
+ * The blocklist's policy for a choice, or null when it is off: a statement
+ * for each kind of resource, so each action is allowed on what it needs
+ * and no more.
+ */
+export function getAwsWafBlocklistPolicy(
+  choice: CloudConnectionWafBlocklist | undefined,
+  externalId: string,
+): { Version: string; Statement: Array<AwsPolicyStatement> } | null {
+  if (!isCloudConnectionWafBlocklistOn(choice)) {
+    return null;
+  }
+
+  return {
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Effect: "Allow",
+        Action: [...AWS_WAF_BLOCKLIST_LIST_ACTIONS],
+        Resource: "*",
+      },
+      {
+        Effect: "Allow",
+        Action: [...AWS_WAF_BLOCKLIST_IP_SET_ACTIONS],
+        Resource: getAwsWafIpSetResource(externalId),
+      },
+      {
+        Effect: "Allow",
+        Action: [...AWS_WAF_BLOCKLIST_EVIDENCE_ACTIONS],
+        Resource: AWS_WAF_WEB_ACL_RESOURCE,
+      },
+      ...(doesCloudConnectionWafBlocklistAddRule(choice)
+        ? [
+            {
+              Effect: "Allow",
+              Action: [...AWS_WAF_BLOCKLIST_RULE_ACTIONS],
+              Resource: [...AWS_WAF_WEB_ACL_UPDATE_RESOURCES],
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+// The blocklist's policy as the commands write it; "" when it is off.
+export function getAwsWafBlocklistPolicyDocument(
+  choice: CloudConnectionWafBlocklist | undefined,
+  externalId: string,
+): string {
+  const policy: ReturnType<typeof getAwsWafBlocklistPolicy> =
+    getAwsWafBlocklistPolicy(choice, externalId);
+
+  return policy ? JSON.stringify(policy) : "";
 }
 
 /*
@@ -859,6 +1051,8 @@ export function getAwsRoleSetupCommand(data: {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   // The response policy, a third; none unless "block".
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  // The blocklist's AWS WAF policy, a fourth; none unless on.
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
 }): string {
   const role: string = getAwsRoleNameForExternalId(data.externalId);
   const trust: string = getAwsTrustPolicyDocument(data);
@@ -878,6 +1072,11 @@ export function getAwsRoleSetupCommand(data: {
           `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_DATA_SECURITY_RESPONSE_POLICY_NAME} --policy-document '${getAwsDataSecurityResponsePolicyDocument(data.dataSecurityResponse)}'`,
         ]
       : []),
+    ...(isCloudConnectionWafBlocklistOn(data.wafBlocklist)
+      ? [
+          `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} --policy-document '${getAwsWafBlocklistPolicyDocument(data.wafBlocklist, data.externalId)}'`,
+        ]
+      : []),
     `aws iam get-role --role-name "$ROLE" --query Role.Arn --output text`,
   ].join("\n");
 }
@@ -894,11 +1093,15 @@ export function getAwsReadOnlyRoleTemplate(data: {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   // The response policy, a third; none unless "block".
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  // The blocklist's AWS WAF policy, a fourth; none unless on.
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
 }): string {
   const dataSecurity: ReturnType<typeof getAwsDataSecurityPolicy> =
     getAwsDataSecurityPolicy(data.dataSecurity);
   const response: ReturnType<typeof getAwsDataSecurityResponsePolicy> =
     getAwsDataSecurityResponsePolicy(data.dataSecurityResponse);
+  const waf: ReturnType<typeof getAwsWafBlocklistPolicy> =
+    getAwsWafBlocklistPolicy(data.wafBlocklist, data.externalId);
   const reads: string =
     data.dataSecurity === "content"
       ? ", and its data stores' configuration and samples of their content"
@@ -909,12 +1112,24 @@ export function getAwsReadOnlyRoleTemplate(data: {
    * A role that may write does not "only read": it may close a data
    * store's exposures and fix its settings, as Data security response's
    * choice says - its versioning, ownership and point-in-time recovery as
-   * well as its public access and sharing.
+   * well as its public access and sharing - and keep the blocklist's IP
+   * sets in AWS WAF, and its rule in web ACLs when it adds it itself.
    */
-  const verb: string = response ? "reads" : "can only read";
-  const writes: string = response
-    ? "; it may also close a data store's exposures and fix its settings"
-    : "";
+  const mayAlso: Array<string> = [
+    ...(response
+      ? ["close a data store's exposures and fix its settings"]
+      : []),
+    ...(waf
+      ? [
+          doesCloudConnectionWafBlocklistAddRule(data.wafBlocklist)
+            ? "keep OneUptime's IP sets in AWS WAF and its rule in web ACLs"
+            : "keep OneUptime's IP sets in AWS WAF",
+        ]
+      : []),
+  ];
+  const verb: string = mayAlso.length > 0 ? "reads" : "can only read";
+  const writes: string =
+    mayAlso.length > 0 ? `; it may also ${mayAlso.join(", and ")}` : "";
 
   return JSON.stringify({
     AWSTemplateFormatVersion: "2010-09-09",
@@ -946,6 +1161,14 @@ export function getAwsReadOnlyRoleTemplate(data: {
                   },
                 ]
               : []),
+            ...(waf
+              ? [
+                  {
+                    PolicyName: AWS_WAF_BLOCKLIST_POLICY_NAME,
+                    PolicyDocument: waf,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -973,6 +1196,8 @@ export function getAwsOrganizationSetupCommand(data: {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   // The response policy in every account's role; none unless "block".
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  // The blocklist's AWS WAF policy in every account's role; none unless on.
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
 }): string {
   const stackSet: string = getAwsOrganizationStackSetName(data.externalId);
 
@@ -1001,6 +1226,10 @@ export function getAwsAccessKeySetupCommand(
   options: {
     dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
     dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+    // The blocklist's AWS WAF policy, in the project's own group; none unless on.
+    wafBlocklist?: CloudConnectionWafBlocklist | undefined;
+    // The project's external id, which names its IP sets: needed once the blocklist is on.
+    externalId?: string | undefined;
   } = {},
 ): string {
   const user: string = CLOUD_CONNECTION_READ_ONLY_NAME;
@@ -1009,6 +1238,19 @@ export function getAwsAccessKeySetupCommand(
   const responds: boolean = isCloudConnectionDataSecurityResponseOn(
     options.dataSecurityResponse,
   );
+  const blocks: boolean = isCloudConnectionWafBlocklistOn(
+    options.wafBlocklist,
+  );
+
+  if (blocks && !options.externalId) {
+    throw new BadDataException(
+      "The blocklist's AWS WAF policy names the project's IP sets, so the command needs the project's external id.",
+    );
+  }
+
+  const wafGroup: string = blocks
+    ? getAwsWafBlocklistGroupName(options.externalId!)
+    : "";
 
   return [
     `aws iam create-user --user-name ${user} > /dev/null 2>&1 || true`,
@@ -1028,6 +1270,13 @@ export function getAwsAccessKeySetupCommand(
       : []),
     ...(reads || responds
       ? [`aws iam add-user-to-group --user-name ${user} --group-name ${group}`]
+      : []),
+    ...(blocks
+      ? [
+          `aws iam create-group --group-name ${wafGroup} > /dev/null 2>&1 || true`,
+          `aws iam put-group-policy --group-name ${wafGroup} --policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} --policy-document '${getAwsWafBlocklistPolicyDocument(options.wafBlocklist, options.externalId!)}'`,
+          `aws iam add-user-to-group --user-name ${user} --group-name ${wafGroup}`,
+        ]
       : []),
     `aws iam create-access-key --user-name ${user}`,
   ].join("\n");
@@ -1139,13 +1388,16 @@ export interface CloudConnectionCommandContext {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   // Whether playbooks may close an exposure (dataSecurityResponse). Off when absent.
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  // AWS: whether the blocklist may block addresses in AWS WAF (wafBlocklist). Off when absent.
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
 }
 
 /*
  * The command for a cloud and sign-in method, or undefined when it cannot
  * be written yet (an AWS role before this OneUptime's AWS identity is
- * known). An AWS organization is read through roles only: an access key's
- * user cannot sign in to the member accounts' roles.
+ * known, or the blocklist's AWS WAF policy before the project's external
+ * id that names its IP sets is). An AWS organization is read through roles
+ * only: an access key's user cannot sign in to the member accounts' roles.
  */
 export function getCloudConnectionSetupCommand(
   provider: CloudProvider,
@@ -1158,6 +1410,9 @@ export function getCloudConnectionSetupCommand(
     context.dataSecurity || "off";
   const dataSecurityResponse: CloudConnectionDataSecurityResponse =
     context.dataSecurityResponse || "off";
+  const wafBlocklist: CloudConnectionWafBlocklist = getCloudConnectionWafBlocklist(
+    context.wafBlocklist,
+  );
 
   if (provider === CloudProvider.AWS) {
     if (method === CloudConnectionAuthMethod.AwsRole) {
@@ -1170,11 +1425,13 @@ export function getCloudConnectionSetupCommand(
         externalId: string;
         dataSecurity: CloudConnectionDataSecurityLevel;
         dataSecurityResponse: CloudConnectionDataSecurityResponse;
+        wafBlocklist: CloudConnectionWafBlocklist;
       } = {
         trustedPrincipalArn: context.trustedPrincipalArn,
         externalId: context.externalId,
         dataSecurity,
         dataSecurityResponse,
+        wafBlocklist,
       };
 
       return scope === CloudConnectionSetupScope.Organization
@@ -1182,7 +1439,16 @@ export function getCloudConnectionSetupCommand(
         : getAwsRoleSetupCommand(role);
     }
 
-    return getAwsAccessKeySetupCommand({ dataSecurity, dataSecurityResponse });
+    if (isCloudConnectionWafBlocklistOn(wafBlocklist) && !context.externalId) {
+      return undefined;
+    }
+
+    return getAwsAccessKeySetupCommand({
+      dataSecurity,
+      dataSecurityResponse,
+      wafBlocklist,
+      externalId: context.externalId,
+    });
   }
 
   if (provider === CloudProvider.Azure) {
@@ -1197,18 +1463,21 @@ export function getCloudConnectionSetupCommand(
  *
  * A connection's command grants what its settings say OneUptime will use
  * through it: the account or its organization (readScope), what Data
- * Security may read (dataSecurity) and whether it may close an exposure
- * (dataSecurityResponse) - the catalog's fields marked changesSetupCommand.
- * They are read here the way the server reads them (the connectors'
- * readCloudSetting for the scope, DataSecurityRunner's level,
- * DataSecurityResponse's opt-in), so the command a form shows for the
- * settings it is about to save grants exactly what the server will use:
- * no more, no less. Anything else reads as off, and as the one account.
+ * Security may read (dataSecurity), whether it may close an exposure
+ * (dataSecurityResponse) and, for AWS, whether the blocklist may block
+ * addresses in AWS WAF (wafBlocklist) - the catalog's fields marked
+ * changesSetupCommand. They are read here the way the server reads them
+ * (the connectors' readCloudSetting for the scope, DataSecurityRunner's
+ * level, DataSecurityResponse's opt-in, the AWS WAF destinations' choice),
+ * so the command a form shows for the settings it is about to save grants
+ * exactly what the server will use: no more, no less. Anything else reads
+ * as off, and as the one account.
  */
 export interface CloudConnectionCommandSettings {
   scope: CloudConnectionSetupScope;
   dataSecurity: CloudConnectionDataSecurityLevel;
   dataSecurityResponse: CloudConnectionDataSecurityResponse;
+  wafBlocklist: CloudConnectionWafBlocklist;
 }
 
 export function getCloudConnectionCommandSettings(
@@ -1231,6 +1500,9 @@ export function getCloudConnectionCommandSettings(
     )
       ? "block"
       : "off",
+    wafBlocklist: getCloudConnectionWafBlocklist(
+      settings[WAF_BLOCKLIST_FIELD_KEY],
+    ),
   };
 }
 
@@ -1244,7 +1516,11 @@ export function getCloudConnectionCommandSettings(
  *     stores hold (s3:GetObject, Storage Blob Data Reader, Storage Object
  *     Viewer and BigQuery Data Viewer);
  *   - Data security response: Data Security may change a data store's
- *     settings - the only writes a command grants.
+ *     settings;
+ *   - the blocklist's IP sets in AWS WAF: OneUptime may write its own IP
+ *     sets in the account, and read the requests web ACLs sampled;
+ *   - the blocklist's rule: OneUptime may add its rule to the web ACLs
+ *     picked, which writes those web ACLs.
  * A command that takes one is shown with words of its own instead, and a
  * line for each of these (CloudSetupCommand), so nothing beside a command
  * says it grants less than it does. In the order the lines are drawn.
@@ -1252,11 +1528,14 @@ export function getCloudConnectionCommandSettings(
 export enum CloudConnectionAccessExtra {
   ContentSamples = "content-samples",
   DataSecurityResponse = "data-security-response",
+  WafIpSets = "waf-ip-sets",
+  WafRule = "waf-rule",
 }
 
 export function getCloudConnectionAccessExtras(settings: {
   dataSecurity?: CloudConnectionDataSecurityLevel | undefined;
   dataSecurityResponse?: CloudConnectionDataSecurityResponse | undefined;
+  wafBlocklist?: CloudConnectionWafBlocklist | undefined;
 }): Array<CloudConnectionAccessExtra> {
   return [
     ...(settings.dataSecurity === "content"
@@ -1264,6 +1543,12 @@ export function getCloudConnectionAccessExtras(settings: {
       : []),
     ...(isCloudConnectionDataSecurityResponseOn(settings.dataSecurityResponse)
       ? [CloudConnectionAccessExtra.DataSecurityResponse]
+      : []),
+    ...(isCloudConnectionWafBlocklistOn(settings.wafBlocklist)
+      ? [CloudConnectionAccessExtra.WafIpSets]
+      : []),
+    ...(doesCloudConnectionWafBlocklistAddRule(settings.wafBlocklist)
+      ? [CloudConnectionAccessExtra.WafRule]
       : []),
   ];
 }

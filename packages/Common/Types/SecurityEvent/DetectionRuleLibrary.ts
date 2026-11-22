@@ -1670,11 +1670,21 @@ detection:
   condition: selection
 `,
     },
+    /*
+     * OneUptime's own reads are left out (#10427): Data Security reads a
+     * connected account through the connection's role, and every call AWS
+     * refuses it - a role saved before Data Security needed an action, a
+     * bucket that admits only a VPC endpoint - is in the account's
+     * CloudTrail. The events are still kept and searchable, marked as
+     * OneUptime's own (OneUptimeAwsSessions: only a call signed with a key
+     * AWS handed OneUptime itself is). DETECTION_RULE_LIBRARY_UPGRADES upgrades a
+     * project's copy of the rule as it was added before.
+     */
     {
       id: "2917bec0-2331-4e59-bdd4-a81211529156",
       title: "Burst of access-denied API calls",
       description:
-        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do.",
+        "Twenty or more AWS API calls denied for one identity within ten minutes: someone probing what a stolen key can do. OneUptime's own reads of a connected account are left out.",
       category: DetectionRuleLibraryCategory.Cloud,
       dataSource: "AWS CloudTrail events",
       dataKind: DetectionRuleDataKind.AwsCloudTrail,
@@ -1683,7 +1693,7 @@ detection:
       matchCountThreshold: 20,
       sigmaRuleYaml: `title: Burst of access-denied API calls
 id: 2917bec0-2331-4e59-bdd4-a81211529156
-description: Many AWS API calls denied for one identity.
+description: Many AWS API calls denied for one identity, other than OneUptime's own reads.
 level: medium
 tags:
   - attack.discovery
@@ -1694,7 +1704,9 @@ detection:
       - AccessDenied
       - UnauthorizedOperation
       - Client.UnauthorizedOperation
-  condition: selection
+  filter_oneuptime:
+    oneuptime.actor: oneuptime
+  condition: selection and not filter_oneuptime
 `,
     },
 
@@ -2684,7 +2696,7 @@ detection:
       id: "51a51214-ca6e-43bc-b9ba-abf06cf4a135",
       title: "Many records deleted at once in OneUptime",
       description:
-        "One person or API key deleted twenty-five or more records within five minutes: a mistake worth catching, or somebody destroying what they found.",
+        "One person, API key or workflow deleted twenty-five or more records within five minutes: a mistake worth catching, a workflow gone wrong, or somebody destroying what they found.",
       category: DetectionRuleLibraryCategory.Identity,
       dataSource: "OneUptime audit log",
       dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
@@ -2762,6 +2774,12 @@ detection:
      * case is the store's, and the store's risk and criticality count.
      * Only a change that went through counts: a refused one opened nothing.
      */
+    /*
+     * A public access block taken off reads as CloudTrail records it,
+     * DeleteBucketPublicAccessBlock: S3's API name, DeletePublicAccessBlock,
+     * never reached a change event, and the rule never fired on it. Earlier
+     * copies get the fix through DETECTION_RULE_LIBRARY_UPGRADES.
+     */
     {
       id: "7c8121cd-87ff-4e1c-bd5e-b1c3ab130737",
       title: "A sensitive bucket was made public",
@@ -2786,7 +2804,7 @@ detection:
     oneuptime.cloud.operation:
       - s3:PutBucketPolicy
       - s3:PutBucketAcl
-      - s3:DeletePublicAccessBlock
+      - s3:DeleteBucketPublicAccessBlock
     statusName: Success
   condition: selection
 `,

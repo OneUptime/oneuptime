@@ -234,6 +234,16 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 - La lettura dell'account non porta altro: gli eventi di dati, i log Data Access e i log di Microsoft Entra ID richiedono ancora **I tuoi log** o una [connessione](/docs/integrations/microsoft-entra-id).
 - Ogni evento nomina le risorse cloud di cui parla il suo record con i loro ID - un ARN, un ID di risorsa Azure, un nome di risorsa Google Cloud - quindi compare nella pagina **Eventi di sicurezza** di ciascuna, e in quella di una funzione serverless non appena la sua telemetria imposta `cloud.account.id` e `cloud.region`.
 
+### Le sonde di OneUptime nei tuoi flussi di rete
+
+Attiva **Flussi di rete**, in **I tuoi dati OneUptime** su **Connessioni**, e i flussi che i tuoi dispositivi di rete esportano vengono letti per cercare scansioni delle porte, sweep di rete, traffico con indirizzi noti come malevoli e grandi trasferimenti verso l'esterno. Il lavoro di una sonda lì sembra una scansione: interrogare 40 dispositivi via SNMP raggiunge la porta 161 su 40 host ogni cinque minuti. Per questo il traffico di una delle sonde di OneUptime che è esattamente ciò che la sonda è configurata per fare viene messo da parte:
+
+- i dispositivi di rete che interroga, con ping e via SNMP sulla loro porta;
+- l'intervallo di ciascun suo rilevamento, mentre la scansione è in corso;
+- gli host e le porte che i suoi monitor controllano.
+
+Viene conservato come evento informativo, `oneuptime-probe-traffic`, che nomina la sonda, e nessuna regola lo legge. **Flussi di rete** dice quanti ne sono stati messi da parte nell'ultimo giorno, con **Vedili**. Qualsiasi altra cosa dall'indirizzo di una sonda viene contata come il traffico di chiunque, e uno sweep o una scansione oltre il lavoro della sonda viene segnalato, nominando la sonda. Una sonda è riconosciuta dall'indirizzo da cui si collega e dagli indirizzi delle sue interfacce di rete, che elenca ogni volta che si collega.
+
 ### Collegare un prodotto di sicurezza
 
 **Connessioni** interroga per te un prodotto di sicurezza e ne importa i nuovi record come eventi di sicurezza. Una connessione contiene le impostazioni del prodotto e una credenziale cifrata; un worker la interroga all'intervallo che imposti e salta i record già importati.

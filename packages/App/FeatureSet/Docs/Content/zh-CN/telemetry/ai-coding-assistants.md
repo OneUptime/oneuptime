@@ -91,6 +91,7 @@ Copilot 只从其代理功能导出 OpenTelemetry：VS Code 的聊天和代理�
 
 - **每个键也会以 `resource.` 前缀形式读取。** OTLP 摄取会把资源属性存放在该前缀下，因此 `OTEL_RESOURCE_ATTRIBUTES=team.id=platform` 会以 `resource.team.id` 的形式到达。不带前缀的键优先尝试，因此 span 上的值胜过整个进程上的值。
 - **调用有邮箱时，用量标签页显示人员的邮箱，否则显示 ID。** 显示同一邮箱的行会合并，因此一位工程师用两台机器也只占一行。
+- **被清除规则隐藏的人员或团队不会分摊任何用量。** 邮箱被规则隐藏的调用，若规则保留了完整的 ID，则按 ID 显示。否则，无论规则是脱敏、掩码还是哈希处理，用量标签页都将其计入被清除规则隐藏的用量这一行。
 - **只从 AI 调用中读取身份。** `user.id`、`user.email` 和 `team.id` 是浏览器和后端 span 也会携带的通用键；只有已被识别为 AI 调用的 span 才会填入这些列。
 - **不会从日志记录中读取身份。** 这对 Codex 很重要，因为它只在日志上放置 `user.email`。
 - LiteLLM 用两种方式书写这些键：其默认的 `otel` 回调使用 `metadata.` 前缀，而可选的 OpenTelemetry v2 模式（`LITELLM_OTEL_V2=true`）使用 `litellm.` 命名空间。OneUptime 两者都读取，因此标准代理无需额外设置即可工作。

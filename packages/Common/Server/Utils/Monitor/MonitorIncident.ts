@@ -284,11 +284,22 @@ export default class MonitorIncident {
    * grouped criteria opens for the whole monitor, for a request that names
    * no value (IncomingRequestIncidentGrouping.decideForMatchedCriteria),
    * once a request it matches reports its items without a value recovered.
+   *
+   * `fingerprintsByCriteriaId`, when given, holds each criteria to its own
+   * recoveries: an incident resolves only when the criteria that opened it
+   * reads its value recovered (an Incoming Request monitor's recoveries,
+   * #10585).
    */
   @CaptureSpan()
   public static async resolveSeriesIncidentsByFingerprint(input: {
     monitor: Monitor;
     fingerprints: Array<string>;
+    /*
+     * The values each criteria reads recovered, by its id. Without it, a
+     * value in `fingerprints` resolves an incident of any criteria - a Logs
+     * monitor's groups, which a log resolves.
+     */
+    fingerprintsByCriteriaId?: Dictionary<Array<string>> | undefined;
     rootCause: string;
     // What the evaluation summary says of each incident resolved here.
     resolvedMessage?: string | undefined;
@@ -355,7 +366,14 @@ export default class MonitorIncident {
         openIncident.seriesFingerprint || undefined;
 
       const isRecoveredValue: boolean = Boolean(
-        fingerprint && fingerprintSet.has(fingerprint),
+        fingerprint &&
+          (input.fingerprintsByCriteriaId
+            ? (
+                input.fingerprintsByCriteriaId[
+                  openIncident.createdCriteriaId?.toString() || ""
+                ] || []
+              ).includes(fingerprint)
+            : fingerprintSet.has(fingerprint)),
       );
       const isRecoveredWholeMonitor: boolean =
         !fingerprint &&

@@ -23,7 +23,8 @@ import ObjectID from "../../../../Types/ObjectID";
  * never decides whether to ask.
  *
  * Adding a kind of change (#10366's AI-written scrub rules, #10367's pull
- * requests, #10372's verdicts, #10374's owners):
+ * requests, #10372's verdicts, #10374's owners - for a store, or for the
+ * project's stores, with no issue at all):
  *
  *   1. a value in DataSecurityAiProposalKind, with its definition in
  *      DATA_SECURITY_AI_PROPOSAL_KINDS - the work it is and what it changes;
@@ -45,6 +46,11 @@ export interface DataSecurityAiIssueContext {
   // The project's names for its data types (ProjectDataTypeNames).
   dataTypeNamer: DataTypeNamer;
   now: Date;
+  /*
+   * The LLM provider the deciding AI rules pick for the work, "" or none
+   * for the project's own: an action that asks OneUptime AI asks it there.
+   */
+  llmProviderId?: string | undefined;
 }
 
 // A change an action would make, as a proposal shows it.
@@ -128,6 +134,8 @@ export interface DataSecurityAiAction {
   getApproveRefusal(data: {
     props: DatabaseCommonInteractionProps;
     proposal: DataSecurityAiProposal;
+    // What the person changed before approving, read by readChanges.
+    changes?: JSONObject | undefined;
   }): string | null;
 
   // The same for Undo: what taking the change back takes.
@@ -136,12 +144,35 @@ export interface DataSecurityAiAction {
     proposal: DataSecurityAiProposal;
   }): string | null;
 
-  // Make the change, as the actor. Throws, in words a person reads, when it cannot.
+  /*
+   * What a person changed before approving ("change one first", #10374),
+   * read and held to what the change may be - an owner who is one of the
+   * project's - or refused in words. An action without it takes no change:
+   * its proposal is approved as it was proposed.
+   */
+  readChanges?(data: {
+    projectId: ObjectID;
+    proposal: DataSecurityAiProposal;
+    changes: unknown;
+  }): Promise<JSONObject>;
+
+  /*
+   * Make the change, as the actor - with what the person changed first,
+   * when they did. Throws, in words a person reads, when it cannot.
+   */
   apply(data: {
     projectId: ObjectID;
     proposal: DataSecurityAiProposal;
     actor: DataSecurityAiActor;
+    changes?: JSONObject | undefined;
   }): Promise<DataSecurityAiChangeMade>;
+
+  /*
+   * After a change of this kind is proposed: what it shares with others is
+   * looked at once for all of them - a store's owners, the owner rules
+   * several stores' owners rest on (#10374). Never fails the proposal.
+   */
+  onProposed?(data: { projectId: ObjectID }): Promise<void>;
 
   // Take it back, as the actor. Throws when it cannot.
   undo(data: {

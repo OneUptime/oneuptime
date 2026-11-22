@@ -10,6 +10,7 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -534,12 +535,15 @@ describe("what the command is written from", () => {
       scope: CloudConnectionSetupScope.Organization,
       dataSecurity: "content",
       dataSecurityResponse: "block",
+      // AWS's alone, and off on every other cloud (#10344).
+      wafBlocklist: "off",
     });
-    // Nothing picked yet: the one account, both settings off.
+    // Nothing picked yet: the one account, every setting off.
     expect(readFormCommandSettings(GCP, {})).toEqual({
       scope: CloudConnectionSetupScope.Account,
       dataSecurity: "off",
       dataSecurityResponse: "off",
+      wafBlocklist: "off",
     });
   });
 
@@ -591,11 +595,19 @@ describe("what the command is written from", () => {
       scope: CloudConnectionSetupScope.Account,
       dataSecurity: "configuration",
       dataSecurityResponse: "block",
+      wafBlocklist: "off",
     });
+    // Blocking addresses in AWS WAF is kept too: the access key's command grants it.
+    expect(
+      readFormCommandSettings(AWS, {
+        ...values,
+        [configFieldName(WAF_BLOCKLIST_FIELD_KEY)]: "rule",
+      }).wafBlocklist,
+    ).toBe("rule");
     expect(readFormScope(AWS, values)).toBe(CloudConnectionSetupScope.Account);
   });
 
-  test("the first step folds Data Security's two settings under the command; the Credentials step's More fields keeps the rest", () => {
+  test("the first step folds the settings that change the command under it - Data Security's two, and on AWS blocking addresses in AWS WAF; the Credentials step's More fields keeps the rest", () => {
     for (const definition of CloudConnectionCatalog) {
       const command: Array<string> = getCommandSettingFields(definition).map(
         (field: CloudConnectionField): string => {
@@ -618,6 +630,9 @@ describe("what the command is written from", () => {
       expect(command).toEqual([
         DATA_SECURITY_FIELD_KEY,
         DATA_SECURITY_RESPONSE_FIELD_KEY,
+        ...(definition.provider === CloudProvider.AWS
+          ? [WAF_BLOCKLIST_FIELD_KEY]
+          : []),
       ]);
       // Every folded setting in one of the two, none in both, in the catalog's order.
       expect([...credentials, ...command].sort()).toEqual([...folded].sort());

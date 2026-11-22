@@ -240,6 +240,8 @@ export default class DataSecurityAiEngine {
           environment: true,
           sensitivity: true,
           serviceId: true,
+          // Names the store's service when it was kept without one (Scrub It's rule is that service's, #10433).
+          storeKey: true,
           isArchived: true,
           labels: { _id: true },
         },
@@ -318,6 +320,7 @@ export default class DataSecurityAiEngine {
         store,
         dataTypeNamer: dataTypes.namer,
         now,
+        llmProviderId: plan.llmProviderId,
       };
       const entries: Array<DataSecurityAiDecisionEntry> = [];
 

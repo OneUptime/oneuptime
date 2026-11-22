@@ -23,6 +23,7 @@ import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationCon
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
+import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -719,6 +720,7 @@ import SecurityPlaybookService, {
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI";
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
 } from "Common/Server/Services/SecurityBlockEnforcementService";
@@ -4857,6 +4859,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(SecurityBlockEnforcement, SecurityBlockEnforcementService).getRouter(),
     );
 
+    // The cloud WAFs that enforce the blocklist, with their set-up and removal (#10344).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityBlockCloudWafAPI().getRouter(),
+    );
+
     /*
      * Data Security (DSPM): stores and what was found in them, who can
      * reach them, where their data goes, issues, scans, and the project's
@@ -5445,6 +5453,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AiFirstResponderAPI);
+
+    /*
+     * What a scrub rule being written or turned on would take away from the
+     * monitors, dashboards, saved views, recording rules, SLOs and Security
+     * Events that read what it hides (#10433).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a

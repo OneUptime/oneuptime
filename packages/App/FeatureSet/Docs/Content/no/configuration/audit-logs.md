@@ -32,7 +32,7 @@ flowchart TB
 
 - **I OneUptime Cloud: Enterprise-abonnementet.** På andre abonnementer viser revisjonsloggens sider hva funksjonen gjør og hvordan du får den.
 - **Når du selvhoster: Enterprise Edition**, med en lisens som inkluderer revisjonslogger. Se [Enterprise Edition](/docs/self-hosted/enterprise).
-- **En rolle som kan lese revisjonsloggen.** Prosjekteier, Prosjektadministrator, Innstillingsadministrator eller tillatelsen **Read Audit Log**. Å slå på revisjonslogging og endre innstillingene krever en Prosjekteier, en Prosjektadministrator eller tillatelse til å redigere prosjektet.
+- **En rolle som kan lese revisjonsloggen.** Prosjekteier, Prosjektadministrator, Innstillingsadministrator eller tillatelsen **Read Audit Log**. En oppføring viser verdiene i et felt bare hvis du kan lese feltet på selve ressursen, og navnet på en ressurs bare hvis du kan lese ressursen. Å slå på revisjonslogging og endre innstillingene krever en Prosjekteier, en Prosjektadministrator eller tillatelse til å redigere prosjektet.
 
 ## Slå på revisjonslogging
 

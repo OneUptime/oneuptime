@@ -662,9 +662,29 @@ describe("buildSigmaDistinctCountExpression", () => {
   });
 
   test("text column renders bare, same as the plain expression", () => {
-    expect(buildSigmaDistinctCountExpression("principalUser").query).toBe(
-      "principalUser",
+    expect(buildSigmaDistinctCountExpression("principalHost").query).toBe(
+      "principalHost",
     );
+  });
+
+  /*
+   * A user a scrub rule redacted or masked, in an event stored before the
+   * scans named such a user as none (#10435), counts as no user - the
+   * caller's nullIf leaves '' out - never as one "[REDACTED]" account. A
+   * Hash token is one user, so it counts as itself.
+   */
+  test("a user column counts what Redact or Mask left as no user", () => {
+    for (const column of ["principalUser", "targetUser"]) {
+      const statement: Statement = buildSigmaDistinctCountExpression(column);
+
+      expect(statement.query).toBe(
+        `if((position(${column}, {p0:String}) > 0 OR position(${column}, {p1:String}) > 0), '', ${column})`,
+      );
+      expect(Object.values(statement.query_params)).toEqual([
+        "[REDACTED]",
+        "***",
+      ]);
+    }
   });
 
   test("attribute field stays a parameterized attributes[] lookup", () => {

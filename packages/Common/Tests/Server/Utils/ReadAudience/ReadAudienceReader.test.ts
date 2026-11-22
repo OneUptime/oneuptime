@@ -7,7 +7,6 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
-import AuditLog from "../../../../Models/AnalyticsModels/AuditLog";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import ApiKeyPermission from "../../../../Models/DatabaseModels/ApiKeyPermission";
@@ -771,15 +770,13 @@ describe("a run posted only where its subject is read counts only the narrowing 
   });
 
   describe("who reads where a case's triage is posted", () => {
-    test("whoever may read the case, its timeline or the audit log - each list read with its product's levels - and nobody else", () => {
+    test("whoever may read the case or its timeline - each list read with its product's levels - and nobody else: the audit log shows the case's values to them alone (#10642)", () => {
       const readers: Array<string> | null =
         ReadAudienceReader.getSubjectReadingPermissions({
           projectId: PROJECT_ID,
           securityCaseId: CASE_ID,
         });
-      const expected: Set<string> = new Set<string>(
-        (new AuditLog().accessControl?.read || []).map(String),
-      );
+      const expected: Set<string> = new Set<string>();
 
       for (const modelType of [SecurityCase, SecurityCaseFeed]) {
         for (const permission of TablePermission.getTablePermission(
@@ -800,13 +797,17 @@ describe("a run posted only where its subject is read counts only the narrowing 
           Permission.SecurityViewer,
           Permission.ReadSecurityCase,
           Permission.ReadSecurityCaseFeed,
-          Permission.SettingsAdmin,
-          Permission.ReadAuditLog,
         ]),
       );
       // The project-wide roles a narrowed team holds read no case.
       expect(readers).not.toContain(Permission.ProjectMember);
       expect(readers).not.toContain(Permission.Viewer);
+      /*
+       * Nor do the audit log's own readers: it shows them that the case
+       * changed, never the report (AuditLogReadAccess).
+       */
+      expect(readers).not.toContain(Permission.SettingsAdmin);
+      expect(readers).not.toContain(Permission.ReadAuditLog);
     });
 
     test("only a case's readers are known: an incident's, an alert's and an insight's, and a case's with an incident beside it, are not", () => {
@@ -1074,18 +1075,24 @@ describe("a run posted only where its subject is read counts only the narrowing 
       expect((await caseTriageReaders()).ownedOnlyPermissions).toEqual([]);
     });
 
-    test.each([
-      Permission.ReadSecurityCaseFeed,
-      Permission.ReadAuditLog,
-      Permission.SettingsAdmin,
-    ])(
-      "a team that reads the case's timeline or the audit log (%s) reads the triage there: its narrowing counts",
+    test("a team that reads the case's timeline reads the triage there: its narrowing counts", async () => {
+      theProject({
+        teamRows: [
+          { teamId: DEVELOPERS, permission: Permission.ReadSecurityCaseFeed },
+        ],
+      });
+
+      expect((await caseTriageReaders()).ownedOnlyPermissions).toEqual([
+        Permission.ProjectMember,
+      ]);
+    });
+
+    test.each([Permission.ReadAuditLog, Permission.SettingsAdmin])(
+      "a team that reads only the audit log (%s) reads that the case changed, never the triage (#10642): its narrowing does not count",
       async (permission: Permission) => {
         theProject({ teamRows: [{ teamId: DEVELOPERS, permission }] });
 
-        expect((await caseTriageReaders()).ownedOnlyPermissions).toEqual([
-          Permission.ProjectMember,
-        ]);
+        expect((await caseTriageReaders()).ownedOnlyPermissions).toEqual([]);
       },
     );
   });
@@ -1187,11 +1194,28 @@ describe("a run posted only where its subject is read counts only the narrowing 
       expect((await caseTriageReaders()).labelledPermissions).toEqual([]);
     });
 
-    test("a key that reads only the audit log reads the triage's change there: its narrowing counts", async () => {
+    test("a key that reads only the audit log is shown no value of the triage's change there (#10642): its narrowing does not count", async () => {
       theProject({
         developersRows: [],
         keyRows: [
           { apiKeyId: DEPLOY_KEY, permission: Permission.ReadAuditLog },
+          {
+            apiKeyId: DEPLOY_KEY,
+            permission: Permission.ReadService,
+            labelIds: [LABEL],
+          },
+        ],
+      });
+
+      expect((await caseTriageReaders()).labelledPermissions).toEqual([]);
+    });
+
+    test("a key that reads the case and the audit log reads the triage: its narrowing counts", async () => {
+      theProject({
+        developersRows: [],
+        keyRows: [
+          { apiKeyId: DEPLOY_KEY, permission: Permission.ReadAuditLog },
+          { apiKeyId: DEPLOY_KEY, permission: Permission.ReadSecurityCase },
           {
             apiKeyId: DEPLOY_KEY,
             permission: Permission.ReadService,

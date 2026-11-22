@@ -22,7 +22,13 @@ import {
   ExplainEvalCase,
   FieldSuggestionEvalCase,
   FixEvalCase,
+  StoreOwnersEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCase";
+import {
+  DataStoreOwnerCandidate,
+  DataStoreOwnerConfidence,
+  DataStoreOwnerEvidence,
+} from "../../../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import DATA_SECURITY_EVAL_CASES from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCases";
 import { PinnedModelCall } from "../../../../../../Server/Utils/AI/Eval/PinnedModel";
 import {
@@ -133,6 +139,46 @@ function fixAnswer(files: Record<string, string>): string {
 }
 
 // What a right model answers for a case.
+/*
+ * A right owners answer: the first set of owners the case expects, resting
+ * on every piece of evidence that names one of them, as sure as the case
+ * allows, and saying where the evidence disagrees when it does.
+ */
+function goodOwnersAnswer(testCase: StoreOwnersEvalCase): string {
+  const owners: Array<string> = testCase.expect.ownersOneOf[0] || [];
+  const ids: Set<string> = new Set(
+    testCase.candidates
+      .filter((candidate: DataStoreOwnerCandidate): boolean => {
+        return owners.includes(candidate.ref);
+      })
+      .map((candidate: DataStoreOwnerCandidate): string => {
+        return candidate.id.toLowerCase();
+      }),
+  );
+  const restsOn: Array<string> = testCase.evidence
+    .filter((item: DataStoreOwnerEvidence): boolean => {
+      return item.owners.some((owner: { id: string }): boolean => {
+        return ids.has(owner.id.toLowerCase());
+      });
+    })
+    .map((item: DataStoreOwnerEvidence): string => {
+      return item.id;
+    });
+
+  return JSON.stringify({
+    owners,
+    restsOn,
+    confidence: (
+      testCase.expect.atMostConfidence || DataStoreOwnerConfidence.High
+    ).toLowerCase(),
+    reason: owners.length > 0 ? `The evidence names {${owners[0]}}.` : "",
+    disagreement:
+      testCase.expect.disagrees === true
+        ? "Two pieces of evidence name different owners."
+        : "",
+  });
+}
+
 function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
@@ -143,6 +189,8 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodFieldAnswer(testCase);
     case DataSecurityAiFeature.FixIssue:
       return fixAnswer(SOLVED[testCase.id]!);
+    case DataSecurityAiFeature.ProposeStoreOwners:
+      return goodOwnersAnswer(testCase);
   }
 }
 
@@ -308,6 +356,67 @@ describe("scoring", () => {
       );
     },
   );
+
+  test("an owners answer that names someone else, makes one up or is too sure fails, and says why", () => {
+    const ownersCase: (id: string) => StoreOwnersEvalCase = (
+      id: string,
+    ): StoreOwnersEvalCase => {
+      return casesOf<StoreOwnersEvalCase>(
+        DataSecurityAiFeature.ProposeStoreOwners,
+      ).find((testCase: StoreOwnersEvalCase): boolean => {
+        return testCase.id === id;
+      })!;
+    };
+
+    // The person who changed it, where the file's code owners name a team.
+    const codeOwners: StoreOwnersEvalCase = ownersCase(
+      "owners-code-owners-over-who-changed-it",
+    );
+    const changedIt: Array<string> = codeOwners.candidates
+      .map((candidate: DataStoreOwnerCandidate): string => {
+        return candidate.ref;
+      })
+      .filter((ref: string): boolean => {
+        return ref !== "T1";
+      });
+
+    expect(changedIt.length).toBeGreaterThan(0);
+    expect(
+      scoreAnswer(
+        codeOwners,
+        JSON.stringify({
+          ...JSON.parse(goodAnswer(codeOwners)),
+          owners: [changedIt[0]],
+        }),
+      ).passed,
+    ).toBe(false);
+
+    const tagged: StoreOwnersEvalCase = ownersCase(
+      "owners-tag-and-service-disagree",
+    );
+    const right: Record<string, unknown> = JSON.parse(goodAnswer(tagged));
+
+    // An owner no evidence names, and evidence there is not.
+    expect(
+      scoreAnswer(
+        tagged,
+        JSON.stringify({ ...right, owners: ["T99"], restsOn: ["E99"] }),
+      ).notes,
+    ).toEqual(
+      expect.arrayContaining([
+        "named owners the evidence does not: T99",
+        "cited evidence there is not: E99",
+      ]),
+    );
+
+    // Sure where the evidence disagrees, and silent about it.
+    expect(
+      scoreAnswer(
+        tagged,
+        JSON.stringify({ ...right, confidence: "high", disagreement: "" }),
+      ).notes,
+    ).toEqual(expect.arrayContaining(["did not say the evidence disagrees"]));
+  });
 
   test("an explanation that says what the store's name told it to say fails", () => {
     const injected: ExplainEvalCase = casesOf<ExplainEvalCase>(

@@ -11,6 +11,7 @@ import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
 import {
   compileScrubRuleCustomRegex,
+  SCRUB_RULE_BUILT_IN_PATTERNS,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
 } from "Common/Types/Telemetry/ScrubRule";
@@ -29,6 +30,7 @@ import ScrubAction, {
 } from "Common/Server/Utils/Telemetry/ScrubAction";
 import { correlationIdAttributeKeys } from "Common/Utils/Telemetry/CorrelationIdAttributes";
 import { copyOwnValues, readOwnValue } from "Common/Utils/LookupTable";
+import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
 
 interface CompiledRule {
   rule: TraceScrubRule;
@@ -50,28 +52,17 @@ const MAX_CACHED_PROJECTS: number = 10_000;
 const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
   new InMemoryTTLCache<Array<CompiledRule>>(MAX_CACHED_PROJECTS);
 
-// Built-in PII detection patterns — same set as logs.
-const BUILT_IN_PATTERNS: Record<string, RegExp> = {
-  /*
-   * Each part of the address is length-bounded to the sizes RFC 5321 allows
-   * (local part 64, domain 253, final label 63), so finding addresses in a
-   * span body or attribute stays in line with its length however long it is -
-   * this runs over ingested spans for a project with an email scrub rule.
-   */
-  [TraceScrubPatternType.Email]:
-    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
-  [TraceScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-  [TraceScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
-  [TraceScrubPatternType.PhoneNumber]:
-    /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  /*
-   * IP Address is not here: its matches are what Data Security's own
-   * detectors call an IP address - public IPv4 and IPv6 addresses, and
-   * documentation ones - and not private, loopback or link-local ones, so
-   * 169.254.169.254 in a request's URL stays for Security Events to find
-   * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
-   */
-};
+/*
+ * Built-in PII detection patterns — the log engine's, written once in
+ * Common (SCRUB_RULE_BUILT_IN_PATTERNS, #10433). IP Address is not among
+ * them: its matches are what Data Security's own detectors call an IP
+ * address - public IPv4 and IPv6 addresses, and documentation ones - and
+ * not private, loopback or link-local ones, so 169.254.169.254 in a
+ * request's URL stays for Security Events to find
+ * (Common/Utils/Telemetry/ScrubIpAddress, #10393).
+ */
+const BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> =
+  SCRUB_RULE_BUILT_IN_PATTERNS;
 
 /*
  * Attribute-KEY denylist for the SensitiveKeys pattern. Matched
@@ -167,6 +158,8 @@ export class TraceScrubRuleService {
         scrubAction: true,
         fieldsToScrub: true,
         sortOrder: true,
+        // A rule for one service scrubs that service's spans only (#10433).
+        serviceId: true,
       },
       props: {
         isRoot: true,
@@ -496,11 +489,21 @@ export class TraceScrubRuleService {
    * Attribute Keys rule reads the keys of a message written as JSON
    * (`{"error": "declined", "card_number": ...}`), as it does in the Span
    * row's exception.message (#8993).
+   *
+   * `primaryEntityId`: the service of the span it was copied from, whose
+   * rules scrub it as they scrub the span (Types/Telemetry/ScrubRuleScope,
+   * #10433). Left out, only the rules that name no service run.
    */
   public static scrubExceptionContent(
     content: ExceptionContent,
-    compiledRules: Array<CompiledRule>,
+    projectRules: Array<CompiledRule>,
+    primaryEntityId?: unknown,
   ): ExceptionContent {
+    const compiledRules: Array<CompiledRule> = getScrubRulesOfRecord(
+      projectRules,
+      primaryEntityId,
+    );
+
     if (compiledRules.length === 0) {
       return content;
     }
@@ -596,12 +599,21 @@ export class TraceScrubRuleService {
    * exception's copy of an event (scrubExceptionContent) tells no recorder:
    * Security Events reads no exception, and the span's own event has told
    * it already.
+   *
+   * Only the rules that apply to the span's service run: a rule that names
+   * a service scrubs that service's spans alone (Types/Telemetry/
+   * ScrubRuleScope, #10433).
    */
   public static scrubSpan(
     spanRow: JSONObject,
-    compiledRules: Array<CompiledRule>,
+    projectRules: Array<CompiledRule>,
     recorder?: ScrubHashedAddressRecorder | null | undefined,
   ): JSONObject {
+    const compiledRules: Array<CompiledRule> = getScrubRulesOfRecord(
+      projectRules,
+      spanRow["primaryEntityId"],
+    );
+
     if (compiledRules.length === 0) {
       return spanRow;
     }

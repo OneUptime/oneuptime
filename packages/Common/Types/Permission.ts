@@ -6538,7 +6538,7 @@ export class PermissionHelper {
         permission: Permission.ReadAuditLog,
         title: "Read Audit Log",
         description:
-          "This permission can read audit log records of this project.",
+          "This permission can read audit log records of this project, with the values of the fields it may also read on each resource itself.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

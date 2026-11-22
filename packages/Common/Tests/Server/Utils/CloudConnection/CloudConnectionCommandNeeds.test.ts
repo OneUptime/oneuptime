@@ -7,14 +7,19 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  WAF_BLOCKLIST_FIELD_KEY,
+  doesCloudConnectionWafBlocklistAddRule,
   isCloudConnectionDataSecurityResponseOn,
+  isCloudConnectionWafBlocklistOn,
 } from "../../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   AWS_DATA_SECURITY_RESPONSE_ACTIONS,
+  AWS_READ_ONLY_ACTIONS,
   AZURE_DATA_SECURITY_RESPONSE_ACTIONS,
   CloudConnectionCommandSettings,
   CloudConnectionSetupScope,
   GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
+  getAwsWafBlocklistActions,
   getCloudConnectionCommandSettings,
 } from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
@@ -200,6 +205,54 @@ describe("the server reads a connection's settings as its command does", () => {
     }
   });
 
+  test("whether the blocklist may write AWS WAF, and add its rule: as the AWS WAF destinations and the web ACLs' service read it (#10344)", () => {
+    for (const value of VALUES) {
+      const config: JSONObject =
+        value === undefined ? {} : { [WAF_BLOCKLIST_FIELD_KEY]: value };
+      const settings: CloudConnectionCommandSettings =
+        getCloudConnectionCommandSettings(config);
+
+      expect({
+        value,
+        on: settings.wafBlocklist !== "off",
+        rule: settings.wafBlocklist === "rule",
+      }).toEqual({
+        value,
+        on: isCloudConnectionWafBlocklistOn(config[WAF_BLOCKLIST_FIELD_KEY]),
+        rule: doesCloudConnectionWafBlocklistAddRule(
+          config[WAF_BLOCKLIST_FIELD_KEY],
+        ),
+      });
+    }
+
+    // Each reads the connection's own setting, with those checks, and nothing else.
+    for (const [file, check] of [
+      [
+        "Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts",
+        "doesCloudConnectionWafBlocklistAddRule(",
+      ],
+      [
+        "Server/Utils/SecurityBlocklist/SecurityBlockCloudWafs.ts",
+        "doesCloudConnectionWafBlocklistAddRule(",
+      ],
+      [
+        "Server/Services/SecurityBlockCloudWafService.ts",
+        "isCloudConnectionWafBlocklistOn(",
+      ],
+    ] as Array<[string, string]>) {
+      const code: string = source(file);
+
+      expect({ file, decides: code.includes(check) }).toEqual({
+        file,
+        decides: true,
+      });
+      expect({
+        file,
+        readsSetting: code.includes("[WAF_BLOCKLIST_FIELD_KEY]"),
+      }).toEqual({ file, readsSetting: true });
+    }
+  });
+
   test("DataSecurityResponse decides it with that check, of the connection's own setting, wherever it decides", () => {
     const code: string = source(RESPONDERS.shared);
     const decisions: number =
@@ -235,6 +288,47 @@ describe("each responder's writes are what Data security response grants, no mor
     expect(
       unique(quotedStrings(source(RESPONDERS.gcp)).filter(isGcpPermission)),
     ).toEqual(unique(GCP_DATA_SECURITY_RESPONSE_PERMISSIONS));
+  });
+
+  test("AWS WAF (#10344): every action the blocklist's module names is granted - its policy's, or GetWebACL of the read-only one - and every action its policy grants is named", () => {
+    const named: Array<string> = unique(
+      quotedStrings(
+        source("Server/Utils/CloudConnection/Aws/AwsWaf.ts"),
+      ).filter(isAwsAction),
+    );
+    const granted: Array<string> = getAwsWafBlocklistActions("rule");
+
+    for (const action of named) {
+      expect({
+        action,
+        granted:
+          granted.includes(action) || AWS_READ_ONLY_ACTIONS.includes(action),
+      }).toEqual({ action, granted: true });
+    }
+
+    expect(
+      granted.filter((action: string): boolean => {
+        return !named.includes(action);
+      }),
+    ).toEqual([]);
+    // Each call names its own: the IP sets' five, the web ACL's two, the samples'.
+    expect(named).toEqual(
+      unique([
+        "wafv2:ListIPSets",
+        "wafv2:GetIPSet",
+        "wafv2:CreateIPSet",
+        "wafv2:UpdateIPSet",
+        "wafv2:DeleteIPSet",
+        "wafv2:GetWebACL",
+        "wafv2:UpdateWebACL",
+        "wafv2:GetSampledRequests",
+      ]),
+    );
+    // Only "rule" may write a web ACL.
+    expect(getAwsWafBlocklistActions("code")).not.toContain(
+      "wafv2:UpdateWebACL",
+    );
+    expect(getAwsWafBlocklistActions("off")).toEqual([]);
   });
 
   test("the readers of names find them: a call's permission, and not an API's host name or a resource type", () => {
