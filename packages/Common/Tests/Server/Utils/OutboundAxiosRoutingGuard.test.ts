@@ -266,6 +266,43 @@ function sendsWithAxios(code: string): boolean {
 
 const SERVER_FILES: Array<string> = SEARCHED.flatMap(sourceFiles);
 
+const ROUTED_BY_HAND: string = "OutboundProxyAgents.routeAxiosRequest({";
+
+/*
+ * The object literal each routeAxiosRequest({ ... }) in a file is handed,
+ * read to its closing brace.
+ */
+function configsRoutedByHandIn(code: string): Array<string> {
+  const configs: Array<string> = [];
+  let from: number = code.indexOf(ROUTED_BY_HAND);
+
+  while (from !== -1) {
+    const start: number = from + ROUTED_BY_HAND.length - 1;
+    let depth: number = 0;
+    let end: number = start;
+
+    for (; end < code.length; end++) {
+      if (code[end] === "{") {
+        depth++;
+      } else if (code[end] === "}") {
+        depth--;
+
+        if (depth === 0) {
+          break;
+        }
+      }
+    }
+
+    configs.push(code.slice(start, end + 1));
+    from = code.indexOf(ROUTED_BY_HAND, end);
+  }
+
+  return configs;
+}
+
+// A url property, written out or as shorthand.
+const URL_PROPERTY: RegExp = /(^|[{,\s])url\s*[:,}]/;
+
 const SENDERS_FOUND: Array<string> = SERVER_FILES.filter(
   (file: string): boolean => {
     return sendsWithAxios(codeOf(fs.readFileSync(file, "utf8")));
@@ -313,6 +350,39 @@ describe("every server file that sends with axios routes its requests itself", (
         routes: true,
       });
     }
+  });
+
+  /*
+   * The route is decided for the config's URL. A config routed by hand
+   * without one is left to axios (OutboundProxyAgents.routeAxiosRequest),
+   * which signs in to the proxy with its password still percent-encoded.
+   */
+  test("each config routed by hand names its URL, so its route is decided for it", () => {
+    const routingFiles: Array<string> = SERVER_FILES.filter(
+      (file: string): boolean => {
+        return fs.readFileSync(file, "utf8").includes(ROUTED_BY_HAND);
+      },
+    );
+    const withoutUrl: Array<string> = routingFiles.flatMap(
+      (file: string): Array<string> => {
+        return configsRoutedByHandIn(codeOf(fs.readFileSync(file, "utf8")))
+          .filter((config: string): boolean => {
+            return !URL_PROPERTY.test(config);
+          })
+          .map((): string => {
+            return path.relative(REPOSITORY_ROOT, file);
+          });
+      },
+    );
+
+    expect(routingFiles.length).toBeGreaterThan(3);
+    expect({
+      withoutUrl,
+      fix: "Hand routeAxiosRequest the request's url (and baseURL, if it has one) with the rest of its config.",
+    }).toEqual({
+      withoutUrl: [],
+      fix: "Hand routeAxiosRequest the request's url (and baseURL, if it has one) with the rest of its config.",
+    });
   });
 
   test("an axios instance's requests are routed by the interceptor", () => {

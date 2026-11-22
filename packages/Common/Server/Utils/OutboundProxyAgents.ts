@@ -265,6 +265,16 @@ export default class OutboundProxyAgents {
 
     const url: URL | null = OutboundProxyAgents.getRequestUrl(config);
 
+    /*
+     * With no URL to decide for (none given, or none an http request can
+     * go to), the request is left to axios, which still sends it through
+     * the proxy: turning axios's proxy off with no agent to take its place
+     * would send it around the proxy, directly.
+     */
+    if (!url && !hasOwnAgents) {
+      return config;
+    }
+
     config.proxy = false;
 
     if (!url || !OutboundProxyAgents.isProxyConfigured()) {

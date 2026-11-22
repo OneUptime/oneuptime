@@ -242,6 +242,35 @@ describe("the route a request is given", () => {
     expect(direct.proxy).toBe(false);
   });
 
+  test("a request whose URL cannot be read is left to axios, which still sends it through the proxy, never around it", () => {
+    process.env["HTTPS_PROXY"] = "http://proxy.corp.example:3128";
+
+    // A sender that forgot to hand its URL to the route.
+    const noUrl: AxiosRequestConfig = { timeout: 1000 };
+    const notHttp: AxiosRequestConfig = { url: "ftp://files.example.test/a" };
+
+    OutboundProxyAgents.routeAxiosRequest(noUrl);
+    OutboundProxyAgents.routeAxiosRequest(notHttp);
+
+    for (const config of [noUrl, notHttp]) {
+      expect(config.proxy).toBeUndefined();
+      expect(config.httpAgent).toBeUndefined();
+      expect(config.httpsAgent).toBeUndefined();
+      expect(config.beforeRedirect).toBeUndefined();
+    }
+
+    // With agents of its own, they still route it, whatever its URL.
+    const ownAgent: https.Agent = new https.Agent();
+    const withOwnAgent: AxiosRequestConfig = { httpsAgent: ownAgent };
+
+    OutboundProxyAgents.routeAxiosRequest(withOwnAgent);
+
+    expect(withOwnAgent.proxy).toBe(false);
+    expect(withOwnAgent.httpsAgent).toBe(ownAgent);
+
+    ownAgent.destroy();
+  });
+
   test("a NO_PROXY entry is read as axios reads it, CIDR ranges included", () => {
     process.env["HTTPS_PROXY"] = "http://proxy.corp.example:3128";
     process.env["NO_PROXY"] = "10.0.0.0/8,.svc.cluster.local";
