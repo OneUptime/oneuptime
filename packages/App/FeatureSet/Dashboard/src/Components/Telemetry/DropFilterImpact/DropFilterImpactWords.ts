@@ -242,10 +242,10 @@ export const SECURITY_EVENTS_LOSSES: Readonly<
 > = {
   log: {
     [DropFilterImpactAction.Drop]: translationKey(
-      "Its Your logs source finds sign-ins, attacks and firewall records in these logs. Dropped, they raise no events.",
+      "It finds sign-ins, attacks and firewall records in these logs. Dropped, they raise no events.",
     ),
     [DropFilterImpactAction.Sample]: translationKey(
-      "Its Your logs source finds sign-ins, attacks and firewall records in these logs. Kept at {{percent}}%, it sees about {{percent}}% of them.",
+      "It finds sign-ins, attacks and firewall records in these logs. Kept at {{percent}}%, it sees about {{percent}}% of them.",
     ),
   },
   trace: {
@@ -260,7 +260,7 @@ export const SECURITY_EVENTS_LOSSES: Readonly<
 
 // A trace filter, where Your logs reads a request's span for its address.
 export const SECURITY_EVENTS_FOLLOWS_SPANS: string = translationKey(
-  "Its Your logs source also reads the span of the request a line was written in, for the address the request came from. A line in a dropped request loses that address.",
+  "It also reads the span of the request a log line was written in, for the address the request came from: a line in a dropped request loses that address.",
 );
 
 // One of OneUptime's own OpenStack filters, as it made it.
