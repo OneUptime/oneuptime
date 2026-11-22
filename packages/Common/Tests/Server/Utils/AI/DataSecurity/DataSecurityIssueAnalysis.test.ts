@@ -429,10 +429,15 @@ describe("OneUptime AI's own analysis of a new issue", () => {
     expect(blocker).toHaveBeenCalledWith(PROJECT_ID, PROVIDER_ID);
   });
 
-  test.each([
+  test.each<
+    [
+      "provider_missing" | "insufficient_ai_balance",
+      DataSecurityAiDecisionReason,
+    ]
+  >([
     ["provider_missing", DataSecurityAiDecisionReason.NoLlmProvider],
     ["insufficient_ai_balance", DataSecurityAiDecisionReason.NoAiCredits],
-  ] as const)(
+  ])(
     "with %s asks the model nothing, and says why",
     async (
       reason: "provider_missing" | "insufficient_ai_balance",

@@ -10,6 +10,7 @@ import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastruc
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
+import { AddDataSecurityIssueAiAnalysis1809187431369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187431369-AddDataSecurityIssueAiAnalysis";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -174,6 +175,21 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
   // Why OneUptime switched a rule off (#9066), on every rule's table.
   ["DataStoreOwnerRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
   ["DataStoreLabelRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
+  // OneUptime AI's analysis an issue keeps, and why a person said it was not one (#10369).
+  ...[
+    "notAnIssueReason",
+    "aiVerdict",
+    "aiAnalysis",
+    "aiAnalyzedAt",
+    "aiAnalysisInputHash",
+    "aiAnalysisLlmLogId",
+  ].map((column: string): [string, string, MigrationClass] => {
+    return [
+      "DataSecurityIssue",
+      column,
+      AddDataSecurityIssueAiAnalysis1809187431369,
+    ];
+  }),
 ];
 
 function addedLater(table: string): Array<string> {

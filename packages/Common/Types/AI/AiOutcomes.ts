@@ -206,11 +206,11 @@ export interface AiOutcomesWeek {
   dataSecurityChangesMade: number;
   /*
    * Data Security issues OneUptime AI analyzed that week whose verdict what
-   * people decided agreed with, of those decided (#10369). Absent from a
-   * server of the release before.
+   * people decided agreed with, of those decided (#10369). A server of the
+   * release before sends neither: the Dashboard reads them as none.
    */
-  verdictsAgreed?: number | undefined;
-  verdictsDecided?: number | undefined;
+  verdictsAgreed: number;
+  verdictsDecided: number;
 }
 
 /*

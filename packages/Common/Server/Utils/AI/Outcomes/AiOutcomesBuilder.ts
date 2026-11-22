@@ -466,11 +466,11 @@ export default class AiOutcomesBuilder {
       }
 
       if (outcome === "agreed" || outcome === "disagreed") {
-        week.verdictsDecided = (week.verdictsDecided || 0) + 1;
+        week.verdictsDecided++;
       }
 
       if (outcome === "agreed") {
-        week.verdictsAgreed = (week.verdictsAgreed || 0) + 1;
+        week.verdictsAgreed++;
       }
     }
 
@@ -557,6 +557,8 @@ export default class AiOutcomesBuilder {
         rootCausesJudged: 0,
         dataSecurityChangesProven: 0,
         dataSecurityChangesMade: 0,
+        verdictsAgreed: 0,
+        verdictsDecided: 0,
       });
     }
 

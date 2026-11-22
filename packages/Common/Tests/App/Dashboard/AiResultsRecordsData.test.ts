@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   AI_RESULTS_RECORDS_CLICK_HINTS,
   AI_RESULTS_RECORDS_COUNTS,
+  describeRecordDataSecurityIssue,
   describeRecordSubject,
   describeRecordsCount,
   getRecordFacts,
@@ -277,8 +278,7 @@ describe("a Data Security issue a verdict number opens (#10369)", () => {
         {
           id: "15000000-0000-4000-8000-000000000001",
           at: "2026-11-10T09:00:00.000Z",
-          subject: {
-            kind: "dataSecurityIssue",
+          dataSecurityIssue: {
             id: "15000000-0000-4000-8000-000000000001",
             title: "Anyone on the internet can read it",
           },
@@ -288,9 +288,12 @@ describe("a Data Security issue a verdict number opens (#10369)", () => {
       ],
     });
 
-    expect(read?.records[0]?.subject?.kind).toBe("dataSecurityIssue");
-    expect(describeRecordSubject(read!.records[0]!.subject!)).toBe(
-      "Anyone on the internet can read it",
-    );
+    // As every Data Security number's record names its issue (#10364).
+    expect(read?.records[0]?.subject).toBeUndefined();
+    expect(
+      describeRecordDataSecurityIssue(read!.records[0]!.dataSecurityIssue!),
+    ).toBe("Anyone on the internet can read it");
+    expect(read?.records[0]?.issueVerdict).toBe("Real");
+    expect(read?.records[0]?.issueStatus).toBe("Resolved");
   });
 });

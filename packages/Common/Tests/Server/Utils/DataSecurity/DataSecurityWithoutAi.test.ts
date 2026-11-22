@@ -48,7 +48,8 @@ import ts from "typescript";
  *   - the job that emails a store's owners runs DataSecurityOwnerNotice
  *     .send (#10369), which waits for the analysis only while the engine
  *     works on new issues, reads the analysis the issue keeps, and asks no
- *     model (DataSecurityOwnerNotice.test);
+ *     model (DataSecurityOwnerNotice.test; the whole way, from the issue
+ *     opening to the email, DataSecurityNewIssueAnalysis.test);
  *   - an issue that closes, in its service and in the reconciler, has
  *     DataSecurityAiProposals.onIssuesClosed set aside what waits for a
  *     person for it: a write of proposals, never a model's call.

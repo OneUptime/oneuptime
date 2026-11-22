@@ -270,8 +270,8 @@ function parseWeek(value: unknown): AiOutcomesWeek | null {
     ? {
         weekStart,
         ...counts,
-        ...(isCount(verdictsAgreed) ? { verdictsAgreed } : {}),
-        ...(isCount(verdictsDecided) ? { verdictsDecided } : {}),
+        verdictsAgreed: isCount(verdictsAgreed) ? verdictsAgreed : 0,
+        verdictsDecided: isCount(verdictsDecided) ? verdictsDecided : 0,
       }
     : null;
 }
@@ -1799,11 +1799,27 @@ function getVerdictsCard(
               label: VERDICT_FACT_LABELS.likelyWrongFinding,
               value: verdicts.likelyWrongFinding,
             },
+            /*
+             * Beside the bar, what it leaves out opens what it counts too:
+             * the issues it could not tell about, and the ones nobody
+             * decided yet.
+             */
             {
               label: VERDICT_FACT_LABELS.cannotTell,
               value: verdicts.cannotTell,
+              records: {
+                part: AiOutcomesPart.IssueVerdicts,
+                outcome: "cannotTell",
+              },
             },
-            { label: VERDICT_FACT_LABELS.waiting, value: verdicts.waiting },
+            {
+              label: VERDICT_FACT_LABELS.waiting,
+              value: verdicts.waiting,
+              records: {
+                part: AiOutcomesPart.IssueVerdicts,
+                outcome: "waiting",
+              },
+            },
           ]
         : [],
     weekLegend: VERDICTS_WEEK_LEGEND,

@@ -1,7 +1,6 @@
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
-import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
 import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
@@ -1610,7 +1609,9 @@ describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
     expect(
       records.records.map((record: AiOutcomesRecord) => {
         return {
-          kind: record.subject?.kind,
+          // As every Data Security number's record names its issue (#10364).
+          subject: record.subject,
+          issueId: record.dataSecurityIssue?.id === record.id,
           verdict: record.issueVerdict,
           status: record.issueStatus,
         };
@@ -1618,18 +1619,20 @@ describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
     ).toEqual(
       expect.arrayContaining([
         {
-          kind: "dataSecurityIssue",
+          subject: undefined,
+          issueId: true,
           verdict: DataSecurityAiVerdict.Real,
           status: DataSecurityIssueStatus.NotAnIssue,
         },
         {
-          kind: "dataSecurityIssue",
+          subject: undefined,
+          issueId: true,
           verdict: DataSecurityAiVerdict.LikelyByDesign,
           status: DataSecurityIssueStatus.Resolved,
         },
       ]),
     );
-    expect(records.records[0]!.subject?.title).toMatch(
+    expect(records.records[0]!.dataSecurityIssue?.title).toMatch(
       /^A bucket anyone can read/,
     );
   });
