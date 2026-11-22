@@ -52,7 +52,7 @@ import ReadAudiencePermission from "../../../Types/Database/Permissions/ReadAudi
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 import logger from "../../Logger";
-import PendingInviteeProfiles from "../../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../../Feed/FeedPersonName";
 import User from "../../../../Models/DatabaseModels/User";
 import {
   loadSecurityConnectedRecords,
@@ -729,13 +729,17 @@ export default class SecurityCaseAIContextBuilder {
     });
 
     /*
-     * OneUptime AI reads them, and can repeat them to anyone who asks:
-     * someone only invited to the project is named as the project knows
-     * them - the name typed for them, else their address - never by their
-     * account's own name, which it does not see until they join (#9823,
-     * #9934). The reads here are OneUptime's own.
+     * OneUptime AI reads them, and repeats them - in its triage on the
+     * case's timeline, and to anyone who asks - so each is named as every
+     * line names people (FeedPersonName.readNames, #10681): someone only
+     * invited to the project by the name typed with their invitation, else
+     * "someone who hasn't joined the project yet", never by their account's
+     * own name (#9823, #9934); a member by their name, else the part of
+     * their address before the "@". Never an address, which the AI was
+     * handed for every owner with no name. The reads here are OneUptime's
+     * own.
      */
-    await PendingInviteeProfiles.nameInProject({
+    const names: Map<string, string> = await FeedPersonName.readNames({
       users: users.map((owner: HostOwnerUser): User | undefined => {
         return owner.user;
       }),
@@ -750,9 +754,9 @@ export default class SecurityCaseAIContextBuilder {
         .filter(Boolean),
       users: users
         .map((owner: HostOwnerUser): string => {
-          return (
-            owner.user?.name?.toString() || owner.user?.email?.toString() || ""
-          );
+          return owner.user?.id
+            ? names.get(owner.user.id.toString().toLowerCase()) || ""
+            : "";
         })
         .filter(Boolean),
     };
@@ -838,8 +842,13 @@ export default class SecurityCaseAIContextBuilder {
       },
     );
 
-    // Each author as the project knows them, as the host owners are.
-    await PendingInviteeProfiles.nameInProject({
+    /*
+     * Each author as every line names people, as the host owners are: a
+     * name an author's account holds can be an address, which SSO sends as
+     * one (FeedPersonName.readNames, #10681). Whoever wrote a note on the
+     * case is a teammate, which is what an author with no name to say is.
+     */
+    const authors: Map<string, string> = await FeedPersonName.readNames({
       users: notes.map((note: SecurityCaseNote): User | undefined => {
         return note.createdByUser;
       }),
@@ -847,8 +856,12 @@ export default class SecurityCaseAIContextBuilder {
     });
 
     return notes.map((note: SecurityCaseNote): TriageNote => {
+      const author: string | undefined = note.createdByUser?.id
+        ? authors.get(note.createdByUser.id.toString().toLowerCase())
+        : undefined;
+
       return {
-        author: note.createdByUser?.name?.toString() || "A teammate",
+        author: author && author !== FEED_NOBODY_NAMED ? author : "A teammate",
         note: note.note || "",
         postedAt: note.createdAt || undefined,
       };

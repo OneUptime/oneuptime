@@ -64,6 +64,23 @@ export enum SecurityProtectedAddressSource {
   OneUptimeCloud = "OneUptimeCloud",
   // The published ranges of an edge the project has connected (Cloudflare).
   Edge = "Edge",
+  /*
+   * What protects a domain, a URL or a file (#10346), the project's own
+   * list aside (ProtectedEntity), and a cloud resource's DNS name or DNS
+   * zone (CloudResource):
+   */
+  // OneUptime's own host: the Dashboard, its API and what its agents report to.
+  OneUptime = "OneUptime",
+  // An endpoint product's own service: blocking it cuts machines off from it.
+  EndpointProduct = "EndpointProduct",
+  // The host one of the project's monitors checks.
+  Monitor = "Monitor",
+  // One of the project's status pages' own domains.
+  StatusPage = "StatusPage",
+  // A domain the project verified it owns, and every name under it.
+  ProjectDomain = "ProjectDomain",
+  // The hash of an empty file, which every machine holds many of.
+  EmptyFile = "EmptyFile",
 }
 
 // What protects an address: where it comes from, and what it is.
@@ -126,6 +143,24 @@ export const SECURITY_PROTECTED_ADDRESS_SENTENCES: Readonly<
   [SecurityProtectedAddressSource.Edge]: translationKey(
     "{{address}} is one of {{name}}'s addresses, and {{name}} is in front of your app: blocking it would take your site down.",
   ),
+  [SecurityProtectedAddressSource.OneUptime]: translationKey(
+    "{{address}} is OneUptime's own address: blocking it would cut your machines and agents off from OneUptime.",
+  ),
+  [SecurityProtectedAddressSource.EndpointProduct]: translationKey(
+    "{{address}} is {{name}}'s own address: blocking it would cut your machines off from {{name}}.",
+  ),
+  [SecurityProtectedAddressSource.Monitor]: translationKey(
+    "{{address}} is the host your monitor {{name}} checks.",
+  ),
+  [SecurityProtectedAddressSource.StatusPage]: translationKey(
+    "{{address}} is the domain of your status page {{name}}.",
+  ),
+  [SecurityProtectedAddressSource.ProjectDomain]: translationKey(
+    "{{address}} is a domain your project verified it owns.",
+  ),
+  [SecurityProtectedAddressSource.EmptyFile]: translationKey(
+    "{{address}} is the hash of an empty file: blocking it would block every empty file on every machine.",
+  ),
 };
 
 /*
@@ -143,6 +178,11 @@ export const SECURITY_PROTECTED_OWN_ADDRESS: string = translationKey(
   "{{address}} is one of your project's own addresses.",
 );
 
+// The same, of a domain (#10346).
+export const SECURITY_PROTECTED_OWN_DOMAIN: string = translationKey(
+  "{{address}} is one of your project's own domains.",
+);
+
 // The sources that are the project's own records, named only to whoever may read them.
 export const SECURITY_PROTECTED_RECORD_SOURCES: ReadonlyArray<SecurityProtectedAddressSource> =
   [
@@ -154,6 +194,8 @@ export const SECURITY_PROTECTED_RECORD_SOURCES: ReadonlyArray<SecurityProtectedA
     SecurityProtectedAddressSource.NetworkEndpoint,
     SecurityProtectedAddressSource.AddressName,
     SecurityProtectedAddressSource.Probe,
+    SecurityProtectedAddressSource.Monitor,
+    SecurityProtectedAddressSource.StatusPage,
   ];
 
 // Whether a protection names a record the reader was not shown.
@@ -177,6 +219,100 @@ export const SECURITY_PROTECTED_RANGE_HOLDS: string = translationKey(
 export const SECURITY_PROTECTED_INSIDE_RANGE: string = translationKey(
   "{{value}} is inside {{address}}.",
 );
+
+/*
+ * The same of a domain or a URL (#10346): a block of a domain blocks the
+ * names under it (Microsoft Defender's domain indicators do), so a block of
+ * a protected name's parent is refused, and so is a name or a URL under a
+ * protected domain.
+ */
+export const SECURITY_PROTECTED_DOMAIN_HOLDS: string = translationKey(
+  "Blocking {{value}} would also block {{address}}.",
+);
+export const SECURITY_PROTECTED_UNDER_DOMAIN: string = translationKey(
+  "{{value}} is part of {{address}}.",
+);
+
+/*
+ * The domain a value names: a domain itself, or a URL's host when that is
+ * a domain. Null for anything else.
+ */
+// What a domain is written of, once lower-cased, and that a host name holds (an address holds none).
+const DOMAIN_CHARACTERS: RegExp = /^[a-z0-9.-]+$/;
+const A_LETTER: RegExp = /[a-z]/;
+
+function domainOf(value: string): string | null {
+  const text: string = (value || "").trim().toLowerCase();
+
+  if (!text) {
+    return null;
+  }
+
+  const schemeEnd: number = text.indexOf("://");
+
+  if (schemeEnd === -1) {
+    return DOMAIN_CHARACTERS.test(text) && text.includes(".") ? text : null;
+  }
+
+  try {
+    const host: string = new URL(text).hostname;
+
+    return DOMAIN_CHARACTERS.test(host) && A_LETTER.test(host) ? host : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * The sentence before what protects a value, when the two are not the
+ * same: a range that holds a protected address, an address inside a
+ * protected range, a domain that would block a protected one under it, or
+ * a domain or URL under a protected domain. Null when they are the same.
+ */
+export function getSecurityProtectionLead(data: {
+  value: string;
+  protectedValue: string;
+}): string | null {
+  const valueBlock: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+    data.value,
+  );
+  const protectedBlock: NetworkAddressBlock | null =
+    NetworkAddressBlockUtil.parse(data.protectedValue);
+
+  if (valueBlock && protectedBlock) {
+    switch (
+      getSecurityProtectionOverlap({ value: valueBlock, protectedBlock })
+    ) {
+      case SecurityProtectionOverlap.BlockHoldsProtected:
+        return SECURITY_PROTECTED_RANGE_HOLDS;
+      case SecurityProtectionOverlap.BlockInsideProtected:
+        return SECURITY_PROTECTED_INSIDE_RANGE;
+      default:
+        return null;
+    }
+  }
+
+  const blocked: string | null = domainOf(data.value);
+  const protectedDomain: string | null = domainOf(data.protectedValue);
+
+  if (!blocked || !protectedDomain) {
+    return null;
+  }
+
+  const isUrl: boolean = data.value.includes("://");
+
+  if (!isUrl && blocked === protectedDomain) {
+    return null;
+  }
+
+  if (!isUrl && protectedDomain.endsWith(`.${blocked}`)) {
+    return SECURITY_PROTECTED_DOMAIN_HOLDS;
+  }
+
+  return blocked === protectedDomain || blocked.endsWith(`.${protectedDomain}`)
+    ? SECURITY_PROTECTED_UNDER_DOMAIN
+    : null;
+}
 
 // What a block's value has to do with what protects it.
 export enum SecurityProtectionOverlap {
@@ -220,7 +356,9 @@ export function getSecurityProtectionSentence(
   protection: SecurityAddressProtection,
 ): string {
   if (isSecurityProtectionWithheld(protection)) {
-    return SECURITY_PROTECTED_OWN_ADDRESS;
+    return NetworkAddressBlockUtil.parse(protection.protectedValue)
+      ? SECURITY_PROTECTED_OWN_ADDRESS
+      : SECURITY_PROTECTED_OWN_DOMAIN;
   }
 
   if (
@@ -255,24 +393,12 @@ export function describeSecurityAddressProtection(data: {
     values,
   );
 
-  const valueBlock: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
-    data.value,
-  );
-  const protectedBlock: NetworkAddressBlock | null =
-    NetworkAddressBlockUtil.parse(data.protection.protectedValue);
+  const lead: string | null = getSecurityProtectionLead({
+    value: data.value,
+    protectedValue: data.protection.protectedValue,
+  });
 
-  if (!valueBlock || !protectedBlock) {
-    return sentence;
-  }
-
-  switch (getSecurityProtectionOverlap({ value: valueBlock, protectedBlock })) {
-    case SecurityProtectionOverlap.BlockHoldsProtected:
-      return `${fill(SECURITY_PROTECTED_RANGE_HOLDS, values)} ${sentence}`;
-    case SecurityProtectionOverlap.BlockInsideProtected:
-      return `${fill(SECURITY_PROTECTED_INSIDE_RANGE, values)} ${sentence}`;
-    default:
-      return sentence;
-  }
+  return lead ? `${fill(lead, values)} ${sentence}` : sentence;
 }
 
 /*

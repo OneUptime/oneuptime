@@ -3,6 +3,9 @@ import FeedMarkdown, {
   MarkdownValue,
   mdText,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
+import FeedPersonNameRule from "../Feed/FeedPersonNameRule";
 
 /*
  * THE FEED ENTRY THAT SAYS A RECORD'S OWNERS WERE TOLD SOMETHING.
@@ -184,7 +187,7 @@ export default class OwnerNotificationFeedText {
 
   /*
    * One person notified, as a Markdown line of the entry's details: "- Nitin
-   * Kumar (nitin@example.com)" - a list, where the old "Notified:" lines ran
+   * Kumar" - a list, where the old "Notified:" lines ran
    * together into one paragraph. Named for Markdown, as what it returns is
    * appended to the details as it is (FeedAndChatPlainTextEscapedGuard).
    */
@@ -198,10 +201,9 @@ export default class OwnerNotificationFeedText {
    * the last paragraph of the entry's details, after the list of who was
    * notified:
    *
-   *   - Bo Chen (bo@example.com)
+   *   - Bo Chen
    *
-   *   Not notified again, as the on-call page reached them: Ana Lopez
-   *   (ana@example.com).
+   *   Not notified again, as the on-call page reached them: Ana Lopez.
    *
    * A paragraph of its own, after a blank line, so that it is not read as
    * one more person notified. Empty when nobody was left out. Named for
@@ -215,18 +217,27 @@ export default class OwnerNotificationFeedText {
     return mdText`\nNot notified again, as the on-call page reached them: ${FeedMarkdown.join(people)}.\n`.toString();
   }
 
-  // A person as their name and address: "Nitin Kumar (nitin@example.com)".
-  public static nameAndEmail(data: {
-    name: string | undefined;
-    email: string | undefined;
-  }): MarkdownText {
-    const name: string = (data.name || "").trim();
-    const email: string = (data.email || "").trim();
-
-    if (name && email) {
-      return mdText`${name} (${email})`;
-    }
-
-    return mdText`${name || email || "Unknown user"}`;
+  /*
+   * An owner who was told, as every feed entry names a member
+   * (FeedPersonName): "Nitin Kumar", else the part of their address before
+   * the "@" - never the address itself, nor the address after the name: the
+   * feed is read beyond the project, through workflows and the API (#10669).
+   * Only the project's members are told, so only members are named here.
+   */
+  public static personName(
+    person:
+      | {
+          name?: Name | string | null | undefined;
+          email?: Email | string | null | undefined;
+        }
+      | null
+      | undefined,
+  ): MarkdownText {
+    return mdText`${
+      FeedPersonNameRule.getMemberName({
+        name: person?.name,
+        email: person?.email,
+      }) || "Unknown user"
+    }`;
   }
 }

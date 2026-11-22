@@ -137,6 +137,7 @@ const FormSignInView: FunctionComponent<ComponentProps> = (
             </p>
             <Button
               title={t("formSignIn.signIn")}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.PRIMARY}
               onClick={() => {
                 setError(null);
@@ -236,6 +237,7 @@ const FormSignInView: FunctionComponent<ComponentProps> = (
         <div className="mt-5 text-center">
           <Button
             title={t("formSignIn.backToSignIn")}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.LINK}
             onClick={() => {
               setError(null);
@@ -323,6 +325,7 @@ const FormSignInView: FunctionComponent<ComponentProps> = (
           <div className="mt-3 text-center">
             <Button
               title={t("formSignIn.forgotPassword")}
+              isTitleTranslated={true}
               buttonStyle={ButtonStyleType.LINK}
               onClick={() => {
                 setError(null);

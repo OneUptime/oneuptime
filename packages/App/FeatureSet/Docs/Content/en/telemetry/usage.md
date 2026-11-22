@@ -97,7 +97,7 @@ Each point carries these attributes:
 | `resourceName` | Its name when the point was written. |
 
 - **Counted as it arrives.** Each point is the resource's share of what arrived, decompressed, as ingestion budgets count it, so it can read more than the usage rows, which count what was stored.
-- **Sent over OpenTelemetry.** The logs, traces, metrics and profiles sent over OTLP are counted. Security events, session replays and the logs from Fluent Bit, Fluentd or syslog are not.
+- **What is counted.** The logs, traces, metrics and profiles sent over OTLP are counted, and so are the logs from Fluent Bit, Fluentd or syslog. Security events and session replays are not.
 - **Each point is its resource's.** Whoever may read a service's or a resource's telemetry reads its points: a role limited to some labels sees only theirs.
 - **They cost nothing.** These points are not counted against any budget or as usage, and are kept as long as monitor metrics: 30 days unless the instance admin changes it. Metric names that start with `oneuptime.telemetry.usage.` are reserved for them: metrics your applications send under such a name are dropped.
 - **Off by default.** While it is off, nothing is written, and the points already written are kept until they expire.

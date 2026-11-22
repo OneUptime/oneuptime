@@ -148,7 +148,8 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-security/compliance` | Il punteggio e i requisiti di ogni framework |
 | `/data-security/resource-scope` | Gli archivi dati di una risorsa - un cluster Kubernetes, un host Docker o Podman, un database, un servizio o una risorsa cloud - e la risorsa di cui seguono gli interruttori di conformità |
 | `/data-security/resource-compliance` | I framework di una risorsa: i loro punteggi per i suoi archivi, e ciò che è disattivato per essa |
-| `/data-security/record-of-processing` | Il registro dei trattamenti del GDPR, una riga per ogni archivio che contiene dati personali |
+| `/data-security/record-of-processing` | Il registro dei trattamenti del GDPR, una riga per ogni archivio che contiene dati personali. Un archivio che OneUptime conserva per la tua sicurezza ha un oggetto `declared`: la sua finalità e la sua conservazione, e chi può leggerlo |
+| `/data-store/<id>/declared` | Ciò che il registro dice di un archivio che OneUptime conserva per la tua sicurezza: cosa contiene, perché, per quanto tempo e chi può leggerlo |
 | `/data-store/<id>/scan-now` | **Scansiona ora**: campiona subito il contenuto dell'archivio |
 | `/data-store/<id>/check-now` | **Controlla ora**: rilegge la configurazione dell'archivio ed esegue i suoi controlli |
 | `/data-store-finding/<id>/scrub` | **Ripulisci** su un risultato della telemetria |

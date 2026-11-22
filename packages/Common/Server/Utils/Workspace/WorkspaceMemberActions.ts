@@ -1,3 +1,8 @@
+/*
+ * First, before the services below: modules they load read it while this
+ * file is still loading them (WorkspaceEventType says why).
+ */
+import { WorkspaceEventType } from "./WorkspaceEventType";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeStateTimeline from "../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
@@ -100,13 +105,7 @@ import WorkspaceActionAuthorization, {
  */
 
 // The records Slack and Microsoft Teams buttons act on.
-export enum WorkspaceEventType {
-  Incident = "Incident",
-  Alert = "Alert",
-  ScheduledMaintenance = "ScheduledMaintenance",
-  IncidentEpisode = "IncidentEpisode",
-  AlertEpisode = "AlertEpisode",
-}
+export { WorkspaceEventType };
 
 export interface WorkspaceEvent {
   type: WorkspaceEventType;

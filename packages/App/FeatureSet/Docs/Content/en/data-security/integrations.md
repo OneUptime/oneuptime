@@ -148,7 +148,8 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security/compliance` | Every framework's score and requirements |
 | `/data-security/resource-scope` | The data stores of one resource - a Kubernetes cluster, a Docker or Podman host, a database, a service or a cloud resource - and whose compliance switches they follow |
 | `/data-security/resource-compliance` | One resource's frameworks: their scores for its stores, and what is turned off for it |
-| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data |
+| `/data-security/record-of-processing` | The GDPR record of processing, a row for each store that holds personal data. A store OneUptime keeps for your security has a `declared` object: its own purpose and retention, and who can read it |
+| `/data-store/<id>/declared` | What the record says of a store OneUptime keeps for your security: what it holds, why, for how long and who can read it |
 | `/data-store/<id>/scan-now` | **Scan Now**: samples the store's content now |
 | `/data-store/<id>/check-now` | **Check Now**: reads the store's configuration again and runs its checks |
 | `/data-store-finding/<id>/scrub` | **Scrub It** on a telemetry finding |

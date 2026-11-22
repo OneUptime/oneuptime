@@ -65,6 +65,11 @@ import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreReso
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
 import DataSecurityIntegrations from "../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
+import DeclaredDataStores from "../../../Server/Utils/DataSecurity/DeclaredDataStores";
+import PendingInviteeProfiles, {
+  WithheldProfile,
+} from "../../../Server/Utils/TeamMember/PendingInviteeProfiles";
+import SecurityEventRetention from "../../../Server/Utils/SecurityEvent/SecurityEventRetention";
 import {
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
@@ -116,6 +121,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
+  PermissionHelper,
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
@@ -147,6 +153,7 @@ import {
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
+  DataSecurityRecordOfProcessingRow,
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -159,9 +166,18 @@ import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIss
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import DataStoreEnvironment from "../../../Types/DataSecurity/DataStoreEnvironment";
 import {
+  DECLARED_DATA_STORE_KINDS,
   DataStoreKind,
   DataStoreProvider,
 } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DeclaredDataStoreInfo,
+  DeclaredStoreReaders,
+  DeclaredStoreRetentionBasis,
+  getDeclaredDataStore,
+} from "../../../Types/DataSecurity/DeclaredDataStore";
+import NetworkFlow from "../../../Models/AnalyticsModels/NetworkFlow";
+import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
 import {
   afterEach,
@@ -547,6 +563,10 @@ let scrubSpy: jest.SpyInstance;
 let dropSpy: jest.SpyInstance;
 let dropImpactSpy: jest.SpyInstance;
 let ownersSpy: jest.SpyInstance;
+let declareSpy: jest.SpyInstance;
+let withheldSpy: jest.SpyInstance;
+let withheld: Map<string, WithheldProfile>;
+let eventRetentionSpy: jest.SpyInstance;
 /*
  * OneUptime AI's analysis of an issue (#10369): written and read by its own
  * suites (DataSecurityIssueAnalysis, DataSecurityIssueAnalysisReader);
@@ -825,6 +845,25 @@ beforeEach(() => {
   ownersSpy = jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockResolvedValue([]);
+  /*
+   * The record declares OneUptime's own security stores before it is read
+   * (#10398): their own suite holds that (DeclaredDataStores), and here it
+   * declares nothing unless a test says so. The project keeps security
+   * events 15 days.
+   */
+  declareSpy = jest
+    .spyOn(DeclaredDataStores, "declareBeforeRead")
+    .mockResolvedValue(undefined);
+  // Nobody the record names is only invited, unless a test says so (#10697).
+  withheld = new Map();
+  withheldSpy = jest
+    .spyOn(PendingInviteeProfiles, "readWithheldProfilesInProject")
+    .mockImplementation((async () => {
+      return withheld;
+    }) as never);
+  eventRetentionSpy = jest
+    .spyOn(SecurityEventRetention, "getRetentionInDays")
+    .mockResolvedValue(15);
   // A project with no AI context, unless a test writes one.
   jest.spyOn(AiContextReader, "read").mockResolvedValue(null);
   analyzeSpy = jest
@@ -1801,7 +1840,9 @@ describe("What Scrub It would do", () => {
       { id: STORE_ID.toString() },
     );
 
-    expect((result.thrown as Exception).message).toBe("Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.");
+    expect((result.thrown as Exception).message).toBe(
+      "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
+    );
     expect(impactSpy).not.toHaveBeenCalled();
   });
 });
@@ -4754,5 +4795,464 @@ describe("the record of processing", () => {
 
     expect(result.answer).toEqual({ rows: [] });
     expect(ownersSpy).not.toHaveBeenCalled();
+    // Nobody to name: no read of who is only invited.
+    expect(withheldSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * EACH OWNER AS THE PROJECT KNOWS THEM (#10697). A direct owner can be
+   * someone only invited, whose own account's name the project may not see
+   * until they join (#9823): the record names them by the name typed with
+   * their invitation, else the address they were invited at - never their
+   * account's own name. A member is named as ever: their name, else their
+   * address.
+   */
+  test("names an invitee owner by the name typed for them, else the address they were invited at, and a member with no name by their address", async () => {
+    const crm: DataStore = storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    storeOf({
+      name: "payroll",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    // Invited, with a name typed for them; their account has a name of its own.
+    const ada: User = ownerOf(
+      "Ada Lovelace (personal account)",
+      "ada@home.example",
+    );
+    // Invited with no name typed; their account's address moved since.
+    const bea: User = ownerOf("Bea's Own Name", "bea-new@home.example");
+    // A member who never gave a name.
+    const carl: User = ownerOf("", "carl@acme.io");
+
+    withheld = new Map<string, WithheldProfile>([
+      [
+        ada.id!.toString(),
+        { inviteeName: "Ada from Legal", inviteeEmail: "ada@acme.io" },
+      ],
+      [bea.id!.toString(), { inviteeName: null, inviteeEmail: "bea@acme.io" }],
+    ]);
+    ownersSpy.mockImplementation(async (dataStoreId: ObjectID) => {
+      return dataStoreId.toString() === crm.id!.toString()
+        ? [ada, bea, carl]
+        : [carl];
+    });
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(
+      answer.rows.map(
+        (row: DataSecurityRecordOfProcessingRow): Array<string> => {
+          return row.owners;
+        },
+      ),
+    ).toEqual([
+      ["Ada from Legal", "bea@acme.io", "carl@acme.io"],
+      ["carl@acme.io"],
+    ]);
+    expect(JSON.stringify(answer)).not.toContain("personal account");
+    expect(JSON.stringify(answer)).not.toContain("Bea's Own Name");
+    expect(JSON.stringify(answer)).not.toContain("bea-new@home.example");
+
+    // Read once for every owner of the record, each once, in the project.
+    expect(withheldSpy).toHaveBeenCalledTimes(1);
+    expect(withheldSpy.mock.calls[0]![0]).toEqual({
+      userIds: [ada.id!.toString(), bea.id!.toString(), carl.id!.toString()],
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("an owner with neither a name nor an address is left out, not listed blank", async () => {
+    storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    ownersSpy.mockResolvedValue([ownerOf(""), ownerOf("Dana Member")]);
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(answer.rows[0]!.owners).toEqual(["Dana Member"]);
+  });
+
+  /*
+   * THE STORES ONEUPTIME KEEPS FOR THE PROJECT'S SECURITY (#10398): declared
+   * as DeclaredDataStores writes them, never scanned, each with what
+   * OneUptime knows of it filled in until the team writes its own.
+   */
+  function declaredStoreOf(
+    kind: DataStoreKind,
+    columns: { purpose?: string; retention?: string } = {},
+  ): DataStore {
+    const info: DeclaredDataStoreInfo = getDeclaredDataStore(kind)!;
+    const store: DataStore = new DataStore(ObjectID.generate());
+
+    store.name = info.name;
+    store.kind = info.kind;
+    store.storeKey = info.storeKey;
+    store.provider = DataStoreProvider.OneUptime;
+    store.dataCategories = [...info.dataCategories];
+    store.dataTypeIds = [...info.dataTypeIds];
+    store.sensitivity = info.sensitivity;
+
+    if (columns.purpose !== undefined) {
+      store.purpose = columns.purpose;
+    }
+
+    if (columns.retention !== undefined) {
+      store.retention = columns.retention;
+    }
+
+    stores.push(store);
+    return store;
+  }
+
+  function rowNamed(
+    answer: DataSecurityRecordOfProcessingResponse,
+    name: string,
+  ): DataSecurityRecordOfProcessingRow {
+    const row: DataSecurityRecordOfProcessingRow | undefined = answer.rows.find(
+      (candidate: DataSecurityRecordOfProcessingRow) => {
+        return candidate.name === name;
+      },
+    );
+
+    if (!row) {
+      throw new Error(`The record has no row for ${name}.`);
+    }
+
+    return row;
+  }
+
+  test("declares the project's own security stores before it reads its stores", async () => {
+    await call(DATA_SECURITY_API_ROUTES.recordOfProcessing);
+
+    expect(declareSpy).toHaveBeenCalledTimes(1);
+    expect(declareSpy.mock.calls[0]![0]).toEqual(PROJECT_ID);
+    expect(declareSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      storeFindSpy.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a project with security events and network flows lists them, with the purpose and retention filled in", async () => {
+    storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+    const events: DataStore = declaredStoreOf(DataStoreKind.SecurityEvents);
+    const flows: DataStore = declaredStoreOf(DataStoreKind.NetworkFlows);
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(
+      answer.rows.map((row: DataSecurityRecordOfProcessingRow) => {
+        return row.name;
+      }),
+    ).toEqual(["crm-exports", "Security Events", "Network Flows"]);
+
+    expect(rowNamed(answer, "Security Events")).toEqual({
+      dataStoreId: events.id!.toString(),
+      name: "Security Events",
+      kind: DataStoreKind.SecurityEvents,
+      provider: DataStoreProvider.OneUptime,
+      region: "",
+      environment: "",
+      sensitivity: DataSensitivity.Confidential,
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeNames: ["IP address", "Username", "Email address"],
+      owners: [],
+      purpose: "Network and information security (GDPR Recital 49)",
+      retention: "15 days",
+      frameworks: [ComplianceFramework.GDPR, ComplianceFramework.CCPA],
+      declared: {
+        kind: DataStoreKind.SecurityEvents,
+        purpose: "Network and information security (GDPR Recital 49)",
+        retentionInDays: 15,
+        retentionBasis: DeclaredStoreRetentionBasis.SecurityEvents,
+        retentionText: "15 days",
+        isPurposeTheTeams: false,
+        isRetentionTheTeams: false,
+        readers: DeclaredStoreReaders.Roles,
+        readPermissions: [...new SecurityEvent().getReadPermissions()],
+        readerNames: PermissionHelper.getPermissionTitles(
+          new SecurityEvent().getReadPermissions(),
+        ),
+        dataTypeNames: ["IP address", "Username", "Email address"],
+        fields: [
+          "principalIp",
+          "targetIp",
+          "principalUser",
+          "targetUser",
+          "observables",
+        ],
+      },
+    });
+    expect(rowNamed(answer, "Network Flows")).toMatchObject({
+      dataStoreId: flows.id!.toString(),
+      purpose: "Network and information security (GDPR Recital 49)",
+      retention: "30 days",
+      declared: {
+        retentionInDays: 30,
+        readers: DeclaredStoreReaders.Roles,
+        readPermissions: [...new NetworkFlow().getReadPermissions()],
+      },
+    });
+    // A store Data Security found carries no declaration.
+    expect(rowNamed(answer, "crm-exports").declared).toBeUndefined();
+    expect(eventRetentionSpy).toHaveBeenCalledWith(PROJECT_ID, {
+      isFresh: true,
+    });
+  });
+
+  test("the address vault is listed as read only by Security Events' scans, kept 30 days after an address was last seen", async () => {
+    declaredStoreOf(DataStoreKind.SecurityAddressVault);
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(rowNamed(answer, "Security Address Vault")).toMatchObject({
+      dataTypeNames: ["IP address"],
+      purpose: "Network and information security (GDPR Recital 49)",
+      retention: "30 days after an address was last seen",
+      declared: {
+        readers: DeclaredStoreReaders.SecurityEventsScansOnly,
+        readPermissions: [],
+        readerNames: [],
+      },
+    });
+  });
+
+  test("a project with neither lists none of them", async () => {
+    storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+
+    const answer: DataSecurityRecordOfProcessingResponse = (
+      await call(DATA_SECURITY_API_ROUTES.recordOfProcessing)
+    ).answer as unknown as DataSecurityRecordOfProcessingResponse;
+
+    expect(
+      answer.rows.map((row: DataSecurityRecordOfProcessingRow) => {
+        return [row.name, Boolean(row.declared)];
+      }),
+    ).toEqual([["crm-exports", false]]);
+  });
+
+  test("a purpose or a retention the team changed is the one listed, and theirs", async () => {
+    declaredStoreOf(DataStoreKind.SecurityEvents, {
+      purpose: "Detecting and blocking attacks on our web shop",
+      retention: "90 days, then archived",
+    });
+
+    const row: DataSecurityRecordOfProcessingRow = rowNamed(
+      (await call(DATA_SECURITY_API_ROUTES.recordOfProcessing))
+        .answer as unknown as DataSecurityRecordOfProcessingResponse,
+      "Security Events",
+    );
+
+    expect(row.purpose).toBe("Detecting and blocking attacks on our web shop");
+    expect(row.retention).toBe("90 days, then archived");
+    expect(row.declared).toMatchObject({
+      isPurposeTheTeams: true,
+      isRetentionTheTeams: true,
+      // What OneUptime would say stays beside it.
+      purpose: "Network and information security (GDPR Recital 49)",
+      retentionText: "15 days",
+    });
+  });
+
+  test("a retention changed in Settings after the store was declared is the one listed", async () => {
+    declaredStoreOf(DataStoreKind.SecurityEvents);
+    eventRetentionSpy.mockResolvedValue(60);
+
+    const row: DataSecurityRecordOfProcessingRow = rowNamed(
+      (await call(DATA_SECURITY_API_ROUTES.recordOfProcessing))
+        .answer as unknown as DataSecurityRecordOfProcessingResponse,
+      "Security Events",
+    );
+
+    expect(row.retention).toBe("60 days");
+    expect(row.declared?.retentionInDays).toBe(60);
+  });
+
+  test("is answered whatever declaring them did", async () => {
+    declareSpy.mockRestore();
+    jest
+      .spyOn(DeclaredDataStores, "declareProject")
+      .mockRejectedValue(new Error("ClickHouse is restarting") as never);
+    DeclaredDataStores.clearCache();
+    storeOf({
+      name: "crm-exports",
+      dataCategories: [DataCategory.ContactAndIdentity],
+      dataTypeIds: ["email-address"],
+    });
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.recordOfProcessing,
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(
+      (result.answer as unknown as DataSecurityRecordOfProcessingResponse).rows,
+    ).toHaveLength(1);
+  });
+});
+
+describe("a declared store's page", () => {
+  const DECLARED_PATH: string = DATA_SECURITY_API_ROUTES.declaredStore(":id");
+
+  function declaredRow(
+    kind: DataStoreKind,
+    columns: { purpose?: string; retention?: string } = {},
+  ): DataStore {
+    const store: DataStore = new DataStore(STORE_ID);
+    store.kind = kind;
+
+    if (columns.purpose !== undefined) {
+      store.purpose = columns.purpose;
+    }
+
+    if (columns.retention !== undefined) {
+      store.retention = columns.retention;
+    }
+
+    return store;
+  }
+
+  test("is a POST of its own, behind the user middleware and sign-in, and answered while Data Security is off", () => {
+    expect(DECLARED_PATH).toBe("/data-store/:id/declared");
+    expect(
+      withoutRefusals(mockRouter.match("POST", DECLARED_PATH).middlewares),
+    ).toEqual([
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+    ]);
+  });
+
+  test.each(READ)(
+    "answers a caller holding %s with what the record says of the store",
+    async (permission: Permission) => {
+      asCaller([permission]);
+      storeRow = declaredRow(DataStoreKind.NetworkFlows);
+
+      const result: RouteCall = await call(DECLARED_PATH, {
+        id: STORE_ID.toString(),
+      });
+
+      expect(result.thrown).toBeUndefined();
+      expect(result.answer).toMatchObject({
+        purpose: "Network and information security (GDPR Recital 49)",
+        retention: "30 days",
+        declared: {
+          kind: DataStoreKind.NetworkFlows,
+          readers: DeclaredStoreReaders.Roles,
+        },
+      });
+    },
+  );
+
+  test.each([Permission.ProjectMember, Permission.ReadDataStoreFinding])(
+    "refuses a caller holding only %s, before reading anything",
+    async (permission: Permission) => {
+      asCaller([permission]);
+
+      const result: RouteCall = await call(DECLARED_PATH, {
+        id: STORE_ID.toString(),
+      });
+
+      expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+      expect(readsMade()).toBe(0);
+    },
+  );
+
+  test("reads the store as the caller, in the caller's project", async () => {
+    storeRow = declaredRow(DataStoreKind.SecurityEvents, {
+      purpose: "Our own words",
+    });
+
+    const result: RouteCall = await call(DECLARED_PATH, {
+      id: STORE_ID.toString(),
+    });
+
+    expect(result.answer).toMatchObject({
+      purpose: "Our own words",
+      retention: "15 days",
+      declared: { isPurposeTheTeams: true, isRetentionTheTeams: false },
+    });
+
+    const findOne: {
+      query: { _id: ObjectID; projectId: ObjectID };
+      props: { isRoot?: boolean };
+    } = storeFindOneSpy.mock.calls[0]![0] as never;
+
+    expect(findOne.query._id.toString()).toBe(STORE_ID.toString());
+    expect(findOne.query.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(findOne.props.isRoot).toBeFalsy();
+  });
+
+  test("a store a scan found is no declared store, and one that is not there is not found", async () => {
+    storeRow = workerStore();
+
+    const scanned: RouteCall = await call(DECLARED_PATH, {
+      id: STORE_ID.toString(),
+    });
+
+    expect(scanned.thrown).toBeInstanceOf(BadDataException);
+    expect(scanned.answer).toBeUndefined();
+
+    storeRow = null;
+
+    const missing: RouteCall = await call(DECLARED_PATH, {
+      id: STORE_ID.toString(),
+    });
+
+    expect(missing.thrown).toBeInstanceOf(NotFoundException);
+
+    const notAnId: RouteCall = await call(DECLARED_PATH, { id: "not-an-id" });
+
+    expect(notAnId.thrown).toBeInstanceOf(BadDataException);
+  });
+});
+
+describe("the Overview leaves out the stores OneUptime declares", () => {
+  test("counting only what Data Security found and checks", async () => {
+    const found: DataStore = new DataStore(ObjectID.generate());
+    found.kind = DataStoreKind.AwsS3Bucket;
+    found.sensitivity = DataSensitivity.Confidential;
+    found.dataCategories = [DataCategory.ContactAndIdentity];
+    found.configurationReadAt = NOW;
+    stores.push(found);
+
+    for (const kind of DECLARED_DATA_STORE_KINDS) {
+      const declared: DataStore = new DataStore(ObjectID.generate());
+      declared.kind = kind;
+      declared.sensitivity = DataSensitivity.Confidential;
+      declared.dataCategories = [DataCategory.ContactAndIdentity];
+      stores.push(declared);
+    }
+
+    const answer: DataSecurityOverview = (
+      await call(DATA_SECURITY_API_ROUTES.overview)
+    ).answer as unknown as DataSecurityOverview;
+
+    expect(answer.storeCount).toBe(1);
+    expect(answer.evaluatedStoreCount).toBe(1);
+    expect(answer.storesBySensitivity[DataSensitivity.Confidential]).toBe(1);
+    expect(answer.storesByCategory).toEqual([
+      { category: DataCategory.ContactAndIdentity, storeCount: 1 },
+    ]);
   });
 });

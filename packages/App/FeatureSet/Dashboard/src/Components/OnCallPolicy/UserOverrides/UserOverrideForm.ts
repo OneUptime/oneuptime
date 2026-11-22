@@ -27,7 +27,8 @@ import {
   toPeoplePickerIds,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { ReactElement } from "react";
+import React, { ReactElement } from "react";
+import UserOverrideCoverNotJoinedNotice from "./UserOverrideCoverNotJoinedNotice";
 
 /*
  * ADDING AN ON-CALL OVERRIDE ASKS WHO IS AWAY AND WHO COVERS.
@@ -654,6 +655,18 @@ export const getUserOverrideFormFields: <TEntity>(
       // The server's refusal of somebody outside the reader's teams: said here.
       ownsServerError: (message: string): boolean => {
         return UserOverrideTeamAccess.isCoverRefusal(message);
+      },
+      /*
+       * Someone invited who has not joined yet can cover, but nothing pages
+       * them until they do: said under the field once they are picked
+       * (#10670).
+       */
+      getFooterElement: (
+        values: FormValues<TEntity>,
+      ): ReactElement | undefined => {
+        return React.createElement(UserOverrideCoverNotJoinedNotice, {
+          coverUserId: readUserOverridePeople(values).coverUserId,
+        });
       },
     },
     {

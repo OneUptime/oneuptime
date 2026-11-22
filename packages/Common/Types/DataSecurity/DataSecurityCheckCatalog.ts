@@ -1718,12 +1718,20 @@ export function getDataSecurityCheck(
   return CHECKS_BY_ID.get(id);
 }
 
-// Whether a check applies to a store of this kind at all.
+/*
+ * Whether a check applies to a store of this kind at all. None applies to
+ * a store OneUptime declares (#10398): it holds IP addresses because that
+ * is what it is for, so holding them is never an issue.
+ */
 export function checkAppliesToKind(
   check: DataSecurityCheckInfo,
   kind: DataStoreKind,
 ): boolean {
   const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(kind);
+
+  if (info?.isDeclared) {
+    return false;
+  }
 
   if (check.kinds && !check.kinds.includes(kind)) {
     return false;

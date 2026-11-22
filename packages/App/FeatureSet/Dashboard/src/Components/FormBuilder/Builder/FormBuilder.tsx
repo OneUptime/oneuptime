@@ -5,10 +5,12 @@ import {
   FormBrandingValues,
   readFormBrandingValues,
 } from "../Branding/FormBrandingValues";
+import { loadFormCustomFields } from "../FormBuilderData";
 import {
-  loadFormCustomFields,
-  loadFormRecordOptions,
-} from "../FormBuilderData";
+  FormRecordOptionsWanted,
+  getFormRecordOptionsWanted,
+  loadWantedFormRecordOptions,
+} from "../Templates/FormQuestionData";
 import {
   areFormFieldsEqual,
   createPaletteField,
@@ -30,7 +32,6 @@ import QuestionPalette, { PaletteItem } from "./QuestionPalette";
 import Form from "Common/Models/DatabaseModels/Form";
 import {
   FormField,
-  FormFieldSource,
   readFormFields,
   translateFormFieldDefaults,
   validateFormFields,
@@ -39,11 +40,7 @@ import {
   FormCustomFieldDefinition,
   FormRecordOption,
 } from "Common/Types/Form/FormPublic";
-import {
-  FormTargetFieldDefinition,
-  FormTargetOptionsSource,
-  getFormTargetField,
-} from "Common/Types/Form/FormTargetCatalog";
+import { FormTargetOptionsSource } from "Common/Types/Form/FormTargetCatalog";
 import { readFormTargetSettings } from "Common/Types/Form/FormTargetSettings";
 import FormTargetType, {
   readFormTargetType,
@@ -81,6 +78,7 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -161,10 +159,15 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   const [branding, setBranding] = useState<FormBrandingValues>({});
   const [brandingError, setBrandingError] = useState<string>("");
 
-  // Sources whose records are loaded or on their way, so each loads once.
-  const requestedSourcesRef: React.MutableRefObject<
-    Set<FormTargetOptionsSource>
-  > = useRef<Set<FormTargetOptionsSource>>(new Set());
+  /*
+   * The records of each kind loaded or on their way, so each loads once:
+   * the kind whole (isEveryRecord), or the ids read so far.
+   */
+  const requestedRecordsRef: React.MutableRefObject<
+    Map<FormTargetOptionsSource, { isEveryRecord: boolean; ids: Set<string> }>
+  > = useRef<
+    Map<FormTargetOptionsSource, { isEveryRecord: boolean; ids: Set<string> }>
+  >(new Map());
 
   const targetType: FormTargetType = readFormTargetType(form?.targetType);
 
@@ -188,27 +191,86 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   );
   const isReadOnly: boolean = !updateGate.isAllowed;
 
-  // The records a choice can offer, loaded the first time one needs them.
+  /*
+   * The records a choice offers, loaded the first time a question needs
+   * them, as the server reads them for the public page (#10646): the ones
+   * the questions name, by their ids, and a kind whole only where a
+   * question offers every record of it (severities). A question's picker
+   * searches the server itself (QuestionCard); these name what the cards
+   * and the preview show. A record picked since is read when it is picked.
+   */
   const ensureRecordOptions: (
     source: FormTargetOptionsSource,
+    wanted: FormRecordOptionsWanted,
   ) => Promise<void> = async (
     source: FormTargetOptionsSource,
+    wanted: FormRecordOptionsWanted,
   ): Promise<void> => {
-    if (requestedSourcesRef.current.has(source)) {
+    const requested: { isEveryRecord: boolean; ids: Set<string> } =
+      requestedRecordsRef.current.get(source) || {
+        isEveryRecord: false,
+        ids: new Set<string>(),
+      };
+
+    if (requested.isEveryRecord) {
       return;
     }
 
-    requestedSourcesRef.current.add(source);
+    const toRead: FormRecordOptionsWanted = wanted.isEveryRecord
+      ? { isEveryRecord: true, ids: [] }
+      : {
+          isEveryRecord: false,
+          ids: wanted.ids.filter((id: string): boolean => {
+            return !requested.ids.has(id);
+          }),
+        };
+
+    const isFirstRead: boolean = !requestedRecordsRef.current.has(source);
+
+    requestedRecordsRef.current.set(source, {
+      isEveryRecord: toRead.isEveryRecord,
+      ids: new Set<string>([...requested.ids, ...toRead.ids]),
+    });
+
+    if (!toRead.isEveryRecord && toRead.ids.length === 0) {
+      // Nothing to read: the kind is known to have none to name.
+      if (isFirstRead) {
+        setRecordOptions((current: RecordOptions): RecordOptions => {
+          return current[source] ? current : { ...current, [source]: [] };
+        });
+      }
+
+      return;
+    }
 
     try {
       const options: Array<FormRecordOption> =
-        await loadFormRecordOptions(source);
+        await loadWantedFormRecordOptions(source, toRead);
 
       setRecordOptions((current: RecordOptions): RecordOptions => {
-        return { ...current, [source]: options };
+        if (toRead.isEveryRecord) {
+          return { ...current, [source]: options };
+        }
+
+        const known: Array<FormRecordOption> = current[source] || [];
+        const knownIds: Set<string> = new Set<string>(
+          known.map((option: FormRecordOption): string => {
+            return option.id;
+          }),
+        );
+
+        return {
+          ...current,
+          [source]: [
+            ...known,
+            ...options.filter((option: FormRecordOption): boolean => {
+              return !knownIds.has(option.id);
+            }),
+          ],
+        };
       });
     } catch (err) {
-      requestedSourcesRef.current.delete(source);
+      requestedRecordsRef.current.set(source, requested);
       setSaveError(API.getFriendlyMessage(err));
     }
   };
@@ -217,17 +279,11 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
     questions: Array<FormField>,
     target: FormTargetType,
   ) => void = (questions: Array<FormField>, target: FormTargetType): void => {
-    for (const question of questions) {
-      if (question.source !== FormFieldSource.TargetField) {
-        continue;
-      }
-
-      const definition: FormTargetFieldDefinition | undefined =
-        getFormTargetField(target, question.targetField);
-
-      if (definition?.optionsSource) {
-        void ensureRecordOptions(definition.optionsSource);
-      }
+    for (const [source, wanted] of getFormRecordOptionsWanted({
+      targetType: target,
+      fields: questions,
+    })) {
+      void ensureRecordOptions(source, wanted);
     }
   };
 
@@ -277,11 +333,25 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
   };
 
   useAsyncEffect(async () => {
-    requestedSourcesRef.current = new Set();
+    requestedRecordsRef.current = new Map();
     setRecordOptions({});
     setSelectedId(null);
     await load();
   }, [props.formId.toString()]);
+
+  /*
+   * A record a question's picker adds is read by its id once it is picked,
+   * so its card and the preview name it; one read already is not read again.
+   */
+  const wantedRecordsKey: string = JSON.stringify(
+    Array.from(getFormRecordOptionsWanted({ targetType, fields }).entries()),
+  );
+
+  useEffect(() => {
+    if (form) {
+      ensureRecordOptionsForFields(fields, targetType);
+    }
+  }, [wantedRecordsKey]);
 
   const applyChange: (change: FormFieldsChange) => void = (
     change: FormFieldsChange,
@@ -302,9 +372,7 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
       translate: tx,
     })[0] as FormField;
 
-    if (item.kind === "target" && item.definition.optionsSource) {
-      void ensureRecordOptions(item.definition.optionsSource);
-    }
+    ensureRecordOptionsForFields([field], targetType);
 
     applyChange(
       insertFormField({

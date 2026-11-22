@@ -59,6 +59,12 @@ export interface ComponentProps {
   onChange: (value: string) => void;
   isLoading: boolean;
   lastSeenAtByValue: Record<string, Date | undefined>;
+  /*
+   * What is typed into the field, for the hook to ask the server
+   * (UseInfrastructureResources, #10646): a resource past the first 10,000
+   * it read is found as it is typed.
+   */
+  onSearchTextChange?: ((text: string) => void) | undefined;
   addResource?: AddInfrastructureResource | undefined;
   /*
    * After a resource was added from here: read the list again and pick the
@@ -164,6 +170,7 @@ const InfrastructureResourceField: FunctionComponent<ComponentProps> = (
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               props.onChange((value as string) || "");
             }}
+            onSearchTextChange={props.onSearchTextChange}
             placeholder={props.placeholder}
           />
           <div className="flex flex-wrap items-center justify-between gap-x-4">

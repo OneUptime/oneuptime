@@ -17,9 +17,16 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import DataSecurityAiPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/AI";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+  RULE_CRITERIA_SCHEMA_VERSION,
+  RuleCriteriaOperator,
+} from "../../../Types/Rules/RuleCriteria";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   DATA_SECURITY_AI_SWITCHES_TEST_ID,
@@ -584,7 +591,7 @@ describe("Data Security → AI", () => {
       "Production stores",
     );
 
-    expect(card).toHaveTextContent("Analyze: Without asking");
+    expect(card).toHaveTextContent("Analyze: Automatically");
     expect(card).toHaveTextContent("Contain: Suggest");
     expect(card).toHaveTextContent("Fix: Off");
     expect(card).toHaveTextContent("Judge: Suggest");
@@ -635,14 +642,40 @@ describe("Data Security → AI", () => {
     );
 
     const modal: HTMLElement = await screen.findByTestId("modal");
+
+    /*
+     * As every AI rule's form: which issues (one conditions builder, on
+     * every issue until a condition is picked), then what OneUptime AI may
+     * do with them, then the rule's name.
+     */
+    // A rule's form loads its conditions builder before it lays out its fields.
+    await waitFor(
+      () => {
+        expect(modal).toHaveTextContent("All issues");
+      },
+      { timeout: 15000 },
+    );
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.matchSection);
+    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.worksSection);
+    expect(
+      within(modal).queryByPlaceholderText(
+        DataSecurityAiRulesCopy.namePlaceholder,
+      ),
+    ).toBeNull();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByRole("button", { name: "Next" }));
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(modal).getByRole("button", { name: "Next" }));
+    });
+
     const name: HTMLElement = await within(modal).findByPlaceholderText(
       DataSecurityAiRulesCopy.namePlaceholder,
     );
 
     // A rule starts on: its Enabled switch is on the edit form only.
     expect(modal).not.toHaveTextContent("Enable or disable this rule.");
-    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.worksSection);
-    expect(modal).toHaveTextContent(DataSecurityAiRulesCopy.matchSection);
 
     fireEvent.change(name, { target: { value: "Telemetry" } });
 
@@ -668,6 +701,105 @@ describe("Data Security → AI", () => {
     expect(saved[0]!.dataSecurityJudge).toBe(DataSecurityAiAutonomy.Suggest);
     expect(saved[0]!.isEnabled).not.toBe(false);
   });
+
+  /*
+   * Its conditions are built as every AI rule's are, and saved as versioned
+   * conditions - which DataSecurityAiRuleMatch reads over the same columns -
+   * with the old columns left to match nothing.
+   */
+  test("Only issues that match conditions builds a condition, and the rule saves it as one", async () => {
+    const saved: Array<AutoRemediationRule> = [];
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+    jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockImplementation(async (data: unknown): Promise<never> => {
+        const model: AutoRemediationRule = (
+          data as { model: AutoRemediationRule }
+        ).model;
+
+        saved.push(model);
+
+        return {
+          data: Object.assign(new AutoRemediationRule(), {
+            _id: "3c3c3c3c-0000-4000-8000-000000000003",
+            name: model.name,
+          }),
+        } as never;
+      });
+
+    await openPage();
+
+    const card: HTMLElement = await list(
+      DataSecurityAiRulesCopy.title,
+      "Production stores",
+    );
+
+    fireEvent.click(
+      within(card)
+        .getAllByTestId("card-button")
+        .find((button: HTMLElement): boolean => {
+          return (button.textContent || "").includes("Create AI Rule");
+        })!,
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    await user.click(
+      await within(modal).findByRole(
+        "radio",
+        { name: "Only issues that match conditions" },
+        { timeout: 15000 },
+      ),
+    );
+    await user.click(
+      within(modal).getByRole("combobox", { name: "Criteria for condition 1" }),
+    );
+    await user.click(
+      within(await screen.findByRole("listbox")).getByText("Service Name", {
+        exact: true,
+      }),
+    );
+    await user.type(
+      within(modal).getByTestId("rule-criteria-value-0"),
+      "checkout",
+    );
+
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.click(within(modal).getByRole("button", { name: "Next" }));
+    await user.type(
+      await within(modal).findByPlaceholderText(
+        DataSecurityAiRulesCopy.namePlaceholder,
+      ),
+      "Checkout telemetry",
+    );
+    await user.click(
+      within(modal).getByRole("button", { name: "Create AI Rule" }),
+    );
+
+    await waitFor(() => {
+      expect(saved).toHaveLength(1);
+    });
+
+    expect(saved[0]!.triggerEntityType).toBe(
+      AutoRemediationTriggerEntity.DataSecurityIssue,
+    );
+    expect(saved[0]!.criteria).toEqual({
+      schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "serviceNamePattern",
+          operator: RuleCriteriaOperator.Contains,
+          value: "checkout",
+        },
+      ],
+    });
+    // A pod that still reads the old columns matches nothing by them.
+    expect(saved[0]!.serviceNamePattern).toBe(
+      RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+    );
+  }, 60000);
 
   test("a Security Viewer reads what waits, but not the project's AI rules, which take the AI rule permissions", async () => {
     grant([

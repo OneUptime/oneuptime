@@ -1,5 +1,5 @@
+import { TELEMETRY_SERVICE_PICKER } from "../TelemetryScopePickers";
 import MonitorStepSecurityEventsMonitor from "Common/Types/Monitor/MonitorStepSecurityEventsMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -52,7 +52,6 @@ export interface ComponentProps {
   onMonitorStepSecurityEventsMonitorChanged: (
     monitorStepSecurityEventsMonitor: MonitorStepSecurityEventsMonitor,
   ) => void;
-  telemetryServices: Array<Service>;
 }
 
 const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -215,16 +214,7 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
               telemetryServiceIds: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: props.telemetryServices.map(
-              (telemetryService: Service) => {
-                return {
-                  label: telemetryService.name!,
-                  value: telemetryService.id?.toString() || "",
-                  // A service's name is its owner's, drawn as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: TELEMETRY_SERVICE_PICKER,
             title: "Filter by Service",
             description: "Select the telemetry services you want to monitor.",
             hideOptionalLabel: true,

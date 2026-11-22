@@ -105,4 +105,5 @@ Målet: en sida för checkout-tjänsten med dess svarstid, felfrekvens, öppna i
 - [Instrumentpanels-widgetar](/docs/dashboards/widgets): Varje widget, och vilken du ska välja.
 - [Instrumentpanelsvariabler & filter](/docs/dashboards/variables): En instrumentpanel för varje tjänst, värd eller kund.
 - [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing): Offentliga länkar, lösenord, IP-tillåtelselistor och anpassade domäner.
+- [Importera från Grafana och Datadog](/docs/dashboards/import): Ta in en instrumentpanel, eller larmreglerna, du har byggt i Grafana eller Datadog.
 :::

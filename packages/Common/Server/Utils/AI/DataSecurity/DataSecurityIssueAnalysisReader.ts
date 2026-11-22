@@ -592,11 +592,11 @@ export default class DataSecurityIssueAnalysisReader {
         parts.push(mdText`**${title}:** ${line.text}`);
       } else if (hidden && hidden.length > 0) {
         parts.push(
-          mdText`**${title}:** hidden, because it rests on what you may not read: ${hidden
-            .map((source: DataSecurityAnalysisFactSource): string => {
+          mdText`**${title}:** hidden, because it rests on what you may not read: ${FeedMarkdown.join(
+            hidden.map((source: DataSecurityAnalysisFactSource): string => {
               return DATA_SECURITY_ANALYSIS_HIDDEN_SOURCE_TITLES[source];
-            })
-            .join(", ")}.`,
+            }),
+          )}.`,
         );
       }
     }

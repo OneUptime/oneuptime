@@ -631,10 +631,181 @@ describe("FormTargetHelpers.validateSettingReferences", () => {
       projectId: PROJECT_ID,
       subject: "form",
       references: [
-        { modelName: "Labels", id: ID_A, service: LabelService },
-        { modelName: "Labels", id: ID_B, service: LabelService },
+        {
+          modelName: "Labels",
+          id: ID_A,
+          service: LabelService,
+          mustExist: true,
+        },
+        {
+          modelName: "Labels",
+          id: ID_B,
+          service: LabelService,
+          mustExist: true,
+        },
       ],
     });
+  });
+
+  /*
+   * #10646: the settings dialog keeps a record the form held and that was
+   * deleted since - shown "Deleted", to keep or take out - so the save must
+   * not be refused for it. A record the write adds must still be there, and
+   * a held one is still never another project's (mustExist: false reads a
+   * missing id once more by id alone, and refuses one found elsewhere).
+   */
+  test("a record the form already held may be gone since; one the write adds must be there", async () => {
+    const validate: SpyInstance<
+      typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
+    > = jest
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
+      .mockResolvedValue(undefined);
+
+    await FormTargetHelpers.validateSettingReferences({
+      projectId: PROJECT_ID,
+      references: [
+        {
+          title: "Labels",
+          model: FormTargetSettingReferenceModel.Label,
+          ids: [ID_A, ID_B],
+        },
+      ],
+      heldReferences: [
+        {
+          title: "Labels",
+          model: FormTargetSettingReferenceModel.Label,
+          ids: [ID_A.toUpperCase()],
+        },
+      ],
+      getService: getService,
+    });
+
+    expect(validate).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      subject: "form",
+      references: [
+        {
+          modelName: "Labels",
+          id: ID_A,
+          service: LabelService,
+          mustExist: false,
+        },
+        {
+          modelName: "Labels",
+          id: ID_B,
+          service: LabelService,
+          mustExist: true,
+        },
+      ],
+    });
+  });
+
+  test("an id held under another kind of record counts as added", async () => {
+    const validate: SpyInstance<
+      typeof ProjectScopedReferenceValidator.validateReferencesBelongToProject
+    > = jest
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
+      .mockResolvedValue(undefined);
+
+    await FormTargetHelpers.validateSettingReferences({
+      projectId: PROJECT_ID,
+      references: [
+        {
+          title: "Labels",
+          model: FormTargetSettingReferenceModel.Label,
+          ids: [ID_A],
+        },
+      ],
+      heldReferences: [
+        {
+          title: "Monitors",
+          model: FormTargetSettingReferenceModel.Monitor,
+          ids: [ID_A],
+        },
+      ],
+      getService: getService,
+    });
+
+    expect(validate).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      subject: "form",
+      references: [
+        {
+          modelName: "Labels",
+          id: ID_A,
+          service: LabelService,
+          mustExist: true,
+        },
+      ],
+    });
+  });
+
+  test("owners the form already held are not checked again; the ones it adds are", async () => {
+    const members: SpyInstance<
+      typeof TeamMemberService.getProjectMemberUserIds
+    > = jest
+      .spyOn(TeamMemberService, "getProjectMemberUserIds")
+      .mockResolvedValue([]);
+
+    // ID_A held - left the project since; ID_B added - not a member.
+    await expect(
+      FormTargetHelpers.validateSettingReferences({
+        projectId: PROJECT_ID,
+        references: [
+          {
+            title: "Owner Users",
+            model: FormTargetSettingReferenceModel.User,
+            ids: [ID_A, ID_B],
+          },
+        ],
+        heldReferences: [
+          {
+            title: "Owner Users",
+            model: FormTargetSettingReferenceModel.User,
+            ids: [ID_A],
+          },
+        ],
+        getService: getService,
+      }),
+    ).rejects.toThrow(
+      new BadDataException(
+        "Owner Users: every owner must be a member of this project.",
+      ),
+    );
+    expect(members).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userIds: [ID_B],
+    });
+
+    members.mockClear();
+
+    // Every owner held already: nothing to ask.
+    await FormTargetHelpers.validateSettingReferences({
+      projectId: PROJECT_ID,
+      references: [
+        {
+          title: "Owner Users",
+          model: FormTargetSettingReferenceModel.User,
+          ids: [ID_A],
+        },
+      ],
+      heldReferences: [
+        {
+          title: "Owner Users",
+          model: FormTargetSettingReferenceModel.User,
+          ids: [ID_A],
+        },
+      ],
+      getService: getService,
+    });
+
+    expect(members).not.toHaveBeenCalled();
   });
 
   test("passes on the refusal for a record of another project", async () => {

@@ -70,9 +70,9 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques |
+| OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques, Événements de sécurité, Flux réseau, Coffre d'adresses de sécurité | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques |
 
-Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne.
+Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
 
 Un magasin de données est archivé, avec son historique, dès que sa source ne le liste plus, et ses problèmes ouverts sont résolus : **Magasins de données archivés**, à la fin du menu de Sécurité des données, le conserve. Il revient de lui-même si sa source le liste à nouveau, et un problème dont le contrôle échoue toujours s'ouvre à nouveau.
 

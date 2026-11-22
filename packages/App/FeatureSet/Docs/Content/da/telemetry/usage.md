@@ -97,7 +97,7 @@ Hvert punkt har disse attributter:
 | `resourceName` | Dens navn, da punktet blev skrevet. |
 
 - **Talt, efterhånden som det ankommer.** Hvert punkt er ressourcens andel af det, der ankom, dekomprimeret, som indtagelsesbudgetter tæller det, så det kan vise mere end forbrugsrækkerne, som tæller det, der blev gemt.
-- **Sendt over OpenTelemetry.** De protokoller, spor, metrikker og profiler, der sendes over OTLP, tælles. Sikkerhedshændelser, sessionsafspilninger og protokollerne fra Fluent Bit, Fluentd eller syslog gør ikke.
+- **Hvad der tælles.** De protokoller, spor, metrikker og profiler, der sendes over OTLP, tælles, og det gør protokollerne fra Fluent Bit, Fluentd eller syslog også. Sikkerhedshændelser og sessionsafspilninger gør ikke.
 - **Hvert punkt tilhører sin ressource.** Den, der må læse en tjenestes eller en ressources telemetri, læser dens punkter: en rolle, der er begrænset til nogle mærkater, ser kun deres.
 - **De koster intet.** Disse punkter tælles ikke mod noget budget eller som forbrug, og de opbevares lige så længe som monitormetrikker: 30 dage, medmindre instansadministratoren ændrer det. Metriknavne, der starter med `oneuptime.telemetry.usage.`, er reserveret til dem: metrikker, som dine applikationer sender under sådan et navn, kasseres.
 - **Slået fra som standard.** Mens det er slået fra, skrives der intet, og de punkter, der allerede er skrevet, beholdes, til de udløber.

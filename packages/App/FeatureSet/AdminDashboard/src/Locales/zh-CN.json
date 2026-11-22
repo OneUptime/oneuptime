@@ -3013,6 +3013,8 @@
   "Only pipelines that match conditions": "仅符合条件的管道",
   "All cloud environments": "所有云环境",
   "Only cloud environments that match conditions": "仅符合条件的云环境",
+  "All issues": "所有问题",
+  "Only issues that match conditions": "仅符合条件的问题",
   "Only what matches conditions": "仅符合条件的对象",
   "Client Credentials": "Client Credentials",
   "Company SMTP server hosted on AWS": "托管在 AWS 上的公司 SMTP 服务器",

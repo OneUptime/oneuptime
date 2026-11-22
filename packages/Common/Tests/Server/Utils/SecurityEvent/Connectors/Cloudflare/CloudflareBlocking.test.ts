@@ -198,6 +198,16 @@ describe("setting blocking up", () => {
       expect(actionOf(status, action).isInPlace).toBe(true);
     }
 
+    // Two and no more: a file's Block and Quarantine (#10346) is never an address's.
+    expect(
+      api.lists
+        .map((list: FakeList): string => {
+          return list.name;
+        })
+        .sort(),
+    ).toEqual(["oneuptime_block", "oneuptime_challenge"]);
+    expect(status.actions).toHaveLength(2);
+
     // In the zone with rules: each of OneUptime's added on its own, first; the customer's kept, after them.
     const zoneARules: Array<FakeRule> = api.rulesets.get(ZONE_A)!.rules;
     expect(

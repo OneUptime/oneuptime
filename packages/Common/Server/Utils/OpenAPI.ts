@@ -183,16 +183,18 @@ export default class OpenAPIUtil {
           model.tableDescription || `API endpoints for ${singularModelName}`,
         /*
          * The name it had before it was renamed, so the Terraform provider
-         * keeps that name working as a deprecated alias.
+         * keeps that name working as a deprecated alias - or, where another
+         * model's tag has it now, moves a resource's state from it.
          */
         ...(model.formerSingularName
           ? { "x-former-names": [model.formerSingularName] }
           : {}),
         /*
-         * The model the tag is of. Two models can share a singular name - the
-         * subscriber notification template and its link to a status page do
-         * - and a client tells their endpoints apart, and names them
-         * (ClientResourceNames.ts), by it.
+         * The model the tag is of. A client tells a model's endpoints apart,
+         * and names them (ClientResourceNames.ts), by it: two tags had one
+         * name - the subscriber notification template's and its link's to a
+         * status page - until the link got its own (#10664), and no two may
+         * now (ModelNamesAreUnique).
          */
         "x-oneuptime-table": modelName,
         /*
