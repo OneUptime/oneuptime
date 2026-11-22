@@ -63,7 +63,9 @@ import { getAuditLogResourceTypesOfModel } from "../../../Utils/AuditLog/AuditLo
  *     is read as its table's records are: when they read every record of the
  *     table in the project (DatabaseService.readsEveryRecordInProject), or
  *     are its owners or admins and the table's readers name their role, it
- *     is theirs to read; otherwise every field of it is hidden;
+ *     is theirs to read; otherwise every field of it is hidden. Where two
+ *     tables' entries carry its type (a model's former name, #10664), its
+ *     table is the one whose columns hold the fields it recorded;
  *   - a record kept from the reader keeps its type, its id, who changed it,
  *     when, and which fields - and loses its name with its values, so nothing
  *     that names it is read either. A name is shown only where the columns
@@ -222,6 +224,55 @@ function getModelTypesOfResourceType(
   }
 
   return [...(getModelTypesByResourceType().get(resourceType) || [])];
+}
+
+// The fields an entry's changes name, each once: none when they were not read.
+function getChangedFieldsOf(entry: AuditLog): Array<string> {
+  const changes: JSONArray | undefined = entry.changes;
+  const fields: Array<string> = [];
+
+  if (!Array.isArray(changes)) {
+    return fields;
+  }
+
+  for (const change of changes) {
+    const field: unknown =
+      change && typeof change === "object" && !Array.isArray(change)
+        ? (change as JSONObject)["field"]
+        : undefined;
+
+    if (typeof field === "string" && field && !fields.includes(field)) {
+      fields.push(field);
+    }
+  }
+
+  return fields;
+}
+
+/*
+ * Of the tables an entry's type can name, the ones its record can be in, by
+ * the fields it recorded: a table with no column of a field it names never
+ * held its record. Two tables' entries carry "Subscriber Notification
+ * Template" - a template's, and a link's to a status page recorded before
+ * #10664 - and an entry whose record is in neither any longer says which it
+ * was by what it changed: a template's name and body, or the status page
+ * and the template a link joins. One that names no field, or only fields
+ * both tables have, can be either.
+ */
+function getTablesHoldingFieldsOf(
+  tables: Array<TableRead>,
+  entry: AuditLog,
+): Array<TableRead> {
+  const fields: Array<string> = getChangedFieldsOf(entry);
+  const holding: Array<TableRead> = tables.filter(
+    (table: TableRead): boolean => {
+      return fields.every((field: string): boolean => {
+        return table.model.isTableColumn(field);
+      });
+    },
+  );
+
+  return holding.length > 0 ? holding : tables;
 }
 
 // A record id as ids are compared: in lower case, or null for none.
@@ -503,37 +554,44 @@ class ReaderReads {
       };
     }
 
-    // Found in none: read as every record of its table, whichever it is.
+    /*
+     * Found in none: read as every record of its table, whichever it is -
+     * of the tables whose columns hold the fields it recorded.
+     */
+    const candidates: Array<TableRead> =
+      tables.length > 1 ? getTablesHoldingFieldsOf(tables, entry) : tables;
+
     if (
-      !tables.every((table: TableRead): boolean => {
+      !candidates.every((table: TableRead): boolean => {
         return table.readsTable && table.readsEveryRecord;
       })
     ) {
       return NOTHING_SHOWN;
     }
 
-    if (tables.length === 1) {
+    if (candidates.length === 1) {
       return {
         isRecordShown: true,
-        table: tables[0]!,
+        table: candidates[0]!,
         isEveryFieldShown: false,
-        shownColumns: tables[0]!.shownColumns,
+        shownColumns: candidates[0]!.shownColumns,
       };
     }
 
     /*
      * A type two tables' entries carry - "Subscriber Notification Template"
      * on a template's entries and on a link's recorded before #10664 - with
-     * the record in neither: what both show.
+     * the record in neither, and nothing it recorded to tell which: what
+     * both show.
      */
     return {
       isRecordShown: true,
       table: null,
       isEveryFieldShown: false,
       shownColumns: new Set<string>(
-        Array.from(tables[0]!.shownColumns).filter(
+        Array.from(candidates[0]!.shownColumns).filter(
           (column: string): boolean => {
-            return tables.every((table: TableRead): boolean => {
+            return candidates.every((table: TableRead): boolean => {
               return table.shownColumns.has(column);
             });
           },

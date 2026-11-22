@@ -1,10 +1,13 @@
 import "../../TestingUtils/Init";
+import AutoRemediationRuleService from "../../../../Server/Services/AutoRemediationRuleService";
 import CloudBudgetService from "../../../../Server/Services/CloudBudgetService";
 import DataStoreFindingService from "../../../../Server/Services/DataStoreFindingService";
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncomingCallPolicyPhoneNumberService from "../../../../Server/Services/IncomingCallPolicyPhoneNumberService";
 import SecurityCaseService from "../../../../Server/Services/SecurityCaseService";
+import StatusPageSubscriberNotificationTemplateService from "../../../../Server/Services/StatusPageSubscriberNotificationTemplateService";
+import StatusPageSubscriberNotificationTemplateStatusPageService from "../../../../Server/Services/StatusPageSubscriberNotificationTemplateStatusPageService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import WorkflowService from "../../../../Server/Services/WorkflowService";
 import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -18,11 +21,14 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AuditLogExport from "../../../../Models/DatabaseModels/AuditLogExport";
+import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import CloudBudget from "../../../../Models/DatabaseModels/CloudBudget";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncomingCallPolicyPhoneNumber from "../../../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
+import StatusPageSubscriberNotificationTemplate from "../../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
+import StatusPageSubscriberNotificationTemplateStatusPage from "../../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import AuditLogAction from "../../../../Types/AuditLog/AuditLogAction";
@@ -97,6 +103,17 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 const OTHER_INCIDENT_ID: ObjectID = new ObjectID(
   "10642000-0000-4000-8000-0000000000a2",
+);
+// A subscriber notification template, the status page it is on, and the link.
+const TEMPLATE_ID: ObjectID = new ObjectID(
+  "10664000-0000-4000-8000-0000000000e1",
+);
+const STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "10664000-0000-4000-8000-0000000000e2",
+);
+const LINK_ID: ObjectID = new ObjectID("10664000-0000-4000-8000-0000000000e3");
+const AI_RULE_ID: ObjectID = new ObjectID(
+  "10664000-0000-4000-8000-0000000000e4",
 );
 
 interface Row {
@@ -992,6 +1009,270 @@ describe("AuditLogReadAccess", () => {
     });
   });
 
+  /*
+   * A status page's link to a subscriber notification template had the
+   * template's own name until #10664, and every entry it recorded until then
+   * is stored under it: an entry of "Subscriber Notification Template" is
+   * about a template or about a link, and is held to the reader of the table
+   * its record is in. A link's entries are "Status Page Subscriber
+   * Notification Template" since.
+   */
+  describe("a type two tables' entries carry: a template's, and its link's to a status page before #10664", () => {
+    const TEMPLATE_TYPE: string = "Subscriber Notification Template";
+    const LINK_TYPE: string = "Status Page Subscriber Notification Template";
+
+    // Reads templates, and no template's link to a status page.
+    const TEMPLATE_READER: DatabaseCommonInteractionProps = memberWith([
+      { permission: Permission.ReadStatusPageSubscriberNotificationTemplate },
+      { permission: Permission.ReadAuditLog },
+    ]);
+
+    // Reads the links, and no template.
+    const LINK_READER: DatabaseCommonInteractionProps = memberWith([
+      {
+        permission:
+          Permission.ReadStatusPageSubscriberNotificationTemplateStatusPage,
+      },
+      { permission: Permission.ReadAuditLog },
+    ]);
+
+    // A template renamed: under its own name, before #10664 and since.
+    const templateRenamed: () => AuditLog = (): AuditLog => {
+      return entryOf({
+        resourceType: TEMPLATE_TYPE,
+        resourceId: TEMPLATE_ID,
+        resourceName: "Incident created email",
+        action: AuditLogAction.Update,
+        changes: [
+          {
+            field: "templateName",
+            oldValue: "Incident email",
+            newValue: "Incident created email",
+          },
+        ],
+      });
+    };
+
+    /*
+     * A template put on a status page: under the template's name before
+     * #10664, under the link's own since.
+     */
+    const linkMade: (resourceType?: string) => AuditLog = (
+      resourceType: string = TEMPLATE_TYPE,
+    ): AuditLog => {
+      return entryOf({
+        resourceType: resourceType,
+        resourceId: LINK_ID,
+        action: AuditLogAction.Create,
+        changes: [
+          { field: "statusPageId", newValue: STATUS_PAGE_ID.toString() },
+          {
+            field: "statusPageSubscriberNotificationTemplateId",
+            newValue: TEMPLATE_ID.toString(),
+          },
+        ],
+      });
+    };
+
+    test("each is a type of its own now, and the template's name finds both tables", () => {
+      expect(
+        AuditLogReadAccess.getResourceTypeOf(
+          new StatusPageSubscriberNotificationTemplate(),
+        ),
+      ).toBe(TEMPLATE_TYPE);
+      expect(
+        AuditLogReadAccess.getResourceTypeOf(
+          new StatusPageSubscriberNotificationTemplateStatusPage(),
+        ),
+      ).toBe(LINK_TYPE);
+
+      expect(AuditLogReadAccess.getModelTypesOf(LINK_TYPE)).toEqual([
+        StatusPageSubscriberNotificationTemplateStatusPage,
+      ]);
+      expect(AuditLogReadAccess.getModelTypesOf(TEMPLATE_TYPE)).toEqual([
+        StatusPageSubscriberNotificationTemplate,
+        StatusPageSubscriberNotificationTemplateStatusPage,
+      ]);
+    });
+
+    test("a link recorded under the template's name is found among the links, and read by whoever reads them", async () => {
+      const links: Array<FindBy<BaseModel>> = findsOnly(
+        StatusPageSubscriberNotificationTemplateStatusPageService,
+        [LINK_ID],
+      );
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+
+      const [held] = await hold([linkMade()], LINK_READER);
+
+      expectShownAsRecorded(held!, linkMade());
+      expect(links).toHaveLength(1);
+    });
+
+    test("and by no reader of templates alone", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, [
+        LINK_ID,
+      ]);
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+
+      const [held] = await hold([linkMade()], TEMPLATE_READER);
+
+      expectHidden(changeOf(held!, "statusPageId"), "statusPageId");
+      expectHidden(
+        changeOf(held!, "statusPageSubscriberNotificationTemplateId"),
+        "statusPageSubscriberNotificationTemplateId",
+      );
+    });
+
+    test("a template is read by whoever reads templates, and by no reader of links alone", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateService, [TEMPLATE_ID]);
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, []);
+
+      const [shown] = await hold([templateRenamed()], TEMPLATE_READER);
+      expectShownAsRecorded(shown!, templateRenamed());
+
+      const [hidden] = await hold([templateRenamed()], LINK_READER);
+      expect(hidden!.resourceName).toBe(AUDIT_LOG_HIDDEN_VALUE);
+      expectHidden(changeOf(hidden!, "templateName"), "templateName");
+    });
+
+    test("a link recorded since is looked for among the links alone", async () => {
+      const links: Array<FindBy<BaseModel>> = findsOnly(
+        StatusPageSubscriberNotificationTemplateStatusPageService,
+        [LINK_ID],
+      );
+      const templates: Array<FindBy<BaseModel>> = findsOnly(
+        StatusPageSubscriberNotificationTemplateService,
+        [],
+      );
+
+      const [shown] = await hold([linkMade(LINK_TYPE)], LINK_READER);
+      expectShownAsRecorded(shown!, linkMade(LINK_TYPE));
+
+      const [hidden] = await hold([linkMade(LINK_TYPE)], TEMPLATE_READER);
+      expectHidden(changeOf(hidden!, "statusPageId"), "statusPageId");
+
+      expect(links).toHaveLength(1);
+      expect(templates).toHaveLength(0);
+    });
+
+    /*
+     * REGRESSION: a record in neither table any longer was read as what both
+     * tables show - the columns they share - so a deleted link's old entry
+     * hid its status page and its template even from a Project Owner, and a
+     * deleted template's its name. What an entry recorded says which table
+     * it was in: a link puts a template on a status page, and a template
+     * has a name and a body.
+     */
+    test("REGRESSION: a link deleted since, recorded under the template's name, reads as a link's to whoever reads every link", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, []);
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+
+      for (const props of [PROJECT_OWNER, PROJECT_ADMIN]) {
+        const [held] = await hold([linkMade()], props);
+        expectShownAsRecorded(held!, linkMade());
+      }
+    });
+
+    test("REGRESSION: a template deleted since keeps its name and values to whoever reads every template", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, []);
+
+      const [held] = await hold([templateRenamed()], PROJECT_ADMIN);
+
+      expectShownAsRecorded(held!, templateRenamed());
+    });
+
+    test("one deleted since is still no reader's of the other table alone", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, []);
+
+      const [link] = await hold([linkMade()], TEMPLATE_READER);
+      expectHidden(changeOf(link!, "statusPageId"), "statusPageId");
+
+      const [template] = await hold([templateRenamed()], LINK_READER);
+      expect(template!.resourceName).toBe(AUDIT_LOG_HIDDEN_VALUE);
+      expectHidden(changeOf(template!, "templateName"), "templateName");
+    });
+
+    test("one that recorded nothing to tell its table by is read as both tables' records are: its name is hidden, as no table is known to name it", async () => {
+      findsOnly(StatusPageSubscriberNotificationTemplateService, []);
+      findsOnly(StatusPageSubscriberNotificationTemplateStatusPageService, []);
+
+      const nothingTold: () => AuditLog = (): AuditLog => {
+        return entryOf({
+          resourceType: TEMPLATE_TYPE,
+          resourceId: TEMPLATE_ID,
+          resourceName: "Incident created email",
+          action: AuditLogAction.Delete,
+          changes: [],
+        });
+      };
+
+      const [admin] = await hold([nothingTold()], PROJECT_ADMIN);
+      expect(admin!.resourceName).toBe(AUDIT_LOG_HIDDEN_VALUE);
+      expect(admin!.changes).toEqual([]);
+
+      const [reader] = await hold([nothingTold()], TEMPLATE_READER);
+      expect(reader!.resourceName).toBe(AUDIT_LOG_HIDDEN_VALUE);
+    });
+  });
+
+  /*
+   * An AI rule was an "Auto Remediation Rule" until it was renamed, and
+   * every entry recorded until then is stored under that name. They were
+   * read as entries of a kind of record no model has any longer - by the
+   * project's owners and admins alone - and are an AI rule's entries now.
+   */
+  describe("a model renamed: the entries it recorded under the name it had", () => {
+    const ruleChanged: () => AuditLog = (): AuditLog => {
+      return entryOf({
+        resourceType: "Auto Remediation Rule",
+        resourceId: AI_RULE_ID,
+        resourceName: "Restart the payments API",
+        action: AuditLogAction.Update,
+        changes: [
+          {
+            field: "name",
+            oldValue: "Restart the API",
+            newValue: "Restart the payments API",
+          },
+        ],
+      });
+    };
+
+    test("are found in its table, as today's are", () => {
+      expect(AuditLogReadAccess.getModelTypesOf("Auto Remediation Rule")).toEqual(
+        [AutoRemediationRule],
+      );
+      expect(AuditLogReadAccess.getModelTypesOf("AI Rule")).toEqual([
+        AutoRemediationRule,
+      ]);
+    });
+
+    test("REGRESSION: are read by whoever reads AI rules, not by the project's owners and admins alone", async () => {
+      findsOnly(AutoRemediationRuleService, [AI_RULE_ID]);
+
+      const [held] = await hold(
+        [ruleChanged()],
+        memberWith([
+          { permission: Permission.ReadAutoRemediationRule },
+          { permission: Permission.ReadAuditLog },
+        ]),
+      );
+
+      expectShownAsRecorded(held!, ruleChanged());
+    });
+
+    test("and by nobody who may not read them", async () => {
+      findsOnly(AutoRemediationRuleService, []);
+
+      const [held] = await hold([ruleChanged()], SETTINGS_ADMIN);
+
+      expect(held!.resourceName).toBe(AUDIT_LOG_HIDDEN_VALUE);
+      expectHidden(changeOf(held!, "name"), "name");
+    });
+  });
+
   describe("OneUptime itself and a server admin", () => {
     test.each([
       ["OneUptime itself", { isRoot: true } as DatabaseCommonInteractionProps],
@@ -1103,6 +1384,70 @@ describe("AuditLogReadAccess", () => {
       }
     });
 
+    test("and by the name it had before it was renamed, which its older entries carry", () => {
+      const renamed: Array<string> = [];
+
+      for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
+        const model: BaseModel = new modelType();
+
+        if (!model.enableAuditLogOn || !model.formerSingularName) {
+          continue;
+        }
+
+        renamed.push(model.tableName || "");
+        expect({
+          table: model.tableName,
+          found: AuditLogReadAccess.getModelTypesOf(
+            model.formerSingularName,
+          ).includes(modelType),
+        }).toEqual({ table: model.tableName, found: true });
+      }
+
+      expect(renamed).toEqual(
+        expect.arrayContaining([
+          "AutoRemediationRule",
+          "StatusPageSubscriberNotificationTemplateStatusPage",
+        ]),
+      );
+    });
+
+    /*
+     * Two models' entries share a type only where one was renamed from the
+     * other's name (#10664): today's types are each one model's, so an
+     * entry recorded now is looked for in one table.
+     */
+    test("today's types are each one model's", () => {
+      const shared: Array<string> = [];
+
+      for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
+        const model: BaseModel = new modelType();
+        const resourceType: string | null =
+          AuditLogReadAccess.getResourceTypeOf(model);
+
+        if (!model.enableAuditLogOn || !resourceType) {
+          continue;
+        }
+
+        const others: Array<string> = AuditLogReadAccess.getModelTypesOf(
+          resourceType,
+        )
+          .filter((other: DatabaseBaseModelType): boolean => {
+            return (
+              other !== modelType && new other().formerSingularName !== resourceType
+            );
+          })
+          .map((other: DatabaseBaseModelType): string => {
+            return new other().tableName || "";
+          });
+
+        if (others.length > 0) {
+          shared.push(`${resourceType}: ${model.tableName}, ${others.join(", ")}`);
+        }
+      }
+
+      expect(shared).toEqual([]);
+    });
+
     test("the services this suite reads through are each model's own", () => {
       const pairs: Array<[DatabaseBaseModelType, unknown]> = [
         [SecurityCase, SecurityCaseService],
@@ -1112,6 +1457,15 @@ describe("AuditLogReadAccess", () => {
         [IncomingCallPolicyPhoneNumber, IncomingCallPolicyPhoneNumberService],
         [TeamMember, TeamMemberService],
         [Workflow, WorkflowService],
+        [
+          StatusPageSubscriberNotificationTemplate,
+          StatusPageSubscriberNotificationTemplateService,
+        ],
+        [
+          StatusPageSubscriberNotificationTemplateStatusPage,
+          StatusPageSubscriberNotificationTemplateStatusPageService,
+        ],
+        [AutoRemediationRule, AutoRemediationRuleService],
       ];
 
       for (const [modelType, service] of pairs) {
