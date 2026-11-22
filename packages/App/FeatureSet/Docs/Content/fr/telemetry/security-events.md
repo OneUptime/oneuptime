@@ -284,6 +284,17 @@ Chaque événement est stocké avec des champs typés et son payload source :
 
 Les événements stockés avant OneUptime 14.0.84 laissent vides les champs de processus et ne nomment leur processus que par `principalProcess`, le processus qui a agi. Ils ne sont pas complétés après coup : ils gardent ce avec quoi ils ont été stockés jusqu'à la fin de leur rétention.
 
+### Masquée par une règle de nettoyage
+
+Une règle d'adresse IP qui efface ou masque vos journaux ou vos traces cache l'adresse d'où vient une attaque avant que les Événements de sécurité ne les lisent. L'événement est tout de même stocké, sans adresse, et partout où il nommerait l'adresse, il dit qu'une règle de masquage l'a cachée :
+
+- Le champ **IP source**, dans le panneau de l'événement, nomme la règle qui l'a cachée quand c'est possible, sous forme de lien vers les **Règles de masquage** des journaux ou des traces. Le filtre à côté affiche chaque événement dont une règle de masquage a caché l'adresse.
+- **Ce qui s'est passé ensuite** dit que la requête venait d'une adresse cachée par une règle de masquage, et **Campagnes** regroupe ces requêtes sur une ligne à part.
+- Un dossier dont tous les événements ont perdu leur adresse le dit dans son **Plan de réponse** : au lieu de bloquer l'adresse, il vous demande de la trouver dans les journaux de votre répartiteur de charge ou de votre pare-feu et de la bloquer là, avec **Ouvrir les règles de masquage**.
+- La **Vue d'ensemble** nomme la règle qui cache les adresses que lisent les Événements de sécurité, avec **Ouvrir les règles de masquage** aussi.
+
+Une règle qui hache garde l'adresse pour les Événements de sécurité, donc l'événement la nomme, sauf si son jeton a plus de 30 jours ou a été créé avant que les jetons aient une clé : voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles). Pour trouver ces événements, recherchez `@oneuptime.request.client_address_hidden:scrub-rule`. Ce que la règle a laissé à la place de l'adresse, comme `[REDACTED]`, se trouve dans `oneuptime.request.client_address_scrubbed`.
+
 ## Explorer les événements de sécurité
 
 **Événements** est un explorateur de télémétrie comme ceux des journaux et des traces : un graphique des événements de la fenêtre par gravité, une barre latérale de facettes, la liste, et un panneau avec chaque champ et attribut de l'événement que vous ouvrez. La fenêtre, les filtres et la recherche sont tous dans l'URL, donc une vue filtrée se partage et survit à un rechargement.

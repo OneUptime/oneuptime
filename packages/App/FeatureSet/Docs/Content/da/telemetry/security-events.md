@@ -284,6 +284,17 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 
 Hændelser, der blev gemt før OneUptime 14.0.84, lader procesfelterne stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
 
+### Skjult af en rensningsregel
+
+En IP-adresseregel, der sletter eller maskerer dine logs eller traces, skjuler den adresse, et angreb kom fra, før Sikkerhedsbegivenheder læser dem. Begivenheden gemmes alligevel, uden adresse, og overalt, hvor den ville navngive adressen, siger den, at en scrub-regel skjulte den:
+
+- **Kilde-IP** i begivenhedens panel navngiver, når den kan, den regel, der skjulte adressen, som et link til **Scrub-regler** for logs eller traces. Filteret ved siden af viser hver begivenhed, hvis adresse en scrub-regel skjulte.
+- **Hvad der skete bagefter** siger, at forespørgslen kom fra en adresse, som en scrub-regel skjulte, og **Kampagner** samler sådanne forespørgsler i én række for sig.
+- En sag, hvis begivenheder alle mistede deres adresse, siger det i sin **Responsplan**: I stedet for at blokere adressen beder den dig finde den i din load balancers eller firewalls logs og blokere den der, med **Åbn scrub-regler**.
+- **Oversigt** navngiver den regel, der skjuler de adresser, Sikkerhedsbegivenheder læser, også med **Åbn scrub-regler**.
+
+En regel, der hasher, gemmer adressen til Sikkerhedsbegivenheder, så begivenheden navngiver den, medmindre dens token er ældre end 30 dage eller blev lavet, før tokens havde en nøgle: se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data). Søg efter `@oneuptime.request.client_address_hidden:scrub-rule` for at finde disse begivenheder. Det, reglen efterlod i adressens sted, såsom `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`.
+
 ## Udforsk sikkerhedsbegivenheder
 
 **Begivenheder** er en telemetrioversigt ligesom oversigterne for logs og traces: et diagram over vinduets begivenheder efter alvorlighed, en sidebjælke med facetter, listen og et panel med hvert felt og hver attribut i den begivenhed, du åbner. Vinduet, filtrene og søgningen ligger alle i URL'en, så en filtreret visning kan deles og overlever en genindlæsning.

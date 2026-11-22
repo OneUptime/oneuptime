@@ -284,6 +284,17 @@ Elke gebeurtenis wordt opgeslagen met getypeerde velden en de payload van de bro
 
 Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesvelden leeg en noemen hun proces alleen als `principalProcess`, het proces dat handelde. Ze worden achteraf niet aangevuld: ze houden waarmee ze zijn opgeslagen tot hun bewaartermijn afloopt.
 
+### Verborgen door een opschoonregel
+
+Een IP-adresregel die je logs of traces wist of maskeert, verbergt het adres waar een aanval vandaan kwam voordat Beveiligingsgebeurtenissen ze leest. De gebeurtenis wordt toch opgeslagen, zonder adres, en overal waar ze het adres zou noemen, zegt ze dat een scrub-regel het verborg:
+
+- **Bron-IP** in het paneel van de gebeurtenis noemt de regel die het verborg wanneer dat kan, als link naar de **Scrub-regels** van de logs of de traces. Het filter ernaast toont elke gebeurtenis waarvan een scrub-regel het adres verborg.
+- **Wat er daarna gebeurde** zegt dat het verzoek kwam van een adres dat een scrub-regel verborg, en **Campagnes** brengt zulke verzoeken samen in één eigen rij.
+- Een zaak waarvan alle gebeurtenissen hun adres kwijt zijn, zegt dat in haar **Responsplan**: in plaats van het adres te blokkeren, zegt het plan je het te zoeken in de logs van je load balancer of firewall en het daar te blokkeren, met **Scrub-regels openen**.
+- **Overzicht** noemt de regel die de adressen verbergt die Beveiligingsgebeurtenissen leest, ook met **Scrub-regels openen**.
+
+Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de gebeurtenis het noemt, tenzij het token ouder is dan 30 dagen of gemaakt is voordat tokens een sleutel hadden: zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). Zoek `@oneuptime.request.client_address_hidden:scrub-rule` om deze gebeurtenissen te vinden. Wat de regel op de plaats van het adres achterliet, zoals `[REDACTED]`, staat in `oneuptime.request.client_address_scrubbed`.
+
 ## Beveiligingsgebeurtenissen verkennen
 
 **Gebeurtenissen** is een telemetrieverkenner zoals de verkenners voor logs en traces: een grafiek van de gebeurtenissen in het venster per ernst, een zijbalk met facetten, de lijst, en een paneel met elk veld en attribuut van de gebeurtenis die je opent. Het venster, de filters en de zoekopdracht staan allemaal in de URL, zodat een gefilterde weergave te delen is en een vernieuwing overleeft.
