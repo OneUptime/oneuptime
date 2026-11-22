@@ -65,15 +65,19 @@ const HEADERS_TEMPLATE: Dictionary<string> = {
   "X-OTP": "{{monitorSecrets.LoginCode}}",
   Accept: "application/json",
 };
-const BODY_TEMPLATE: JSONObject = {
-  user: "ops",
-  otp: "{{monitorSecrets.LoginCode}}",
+// A body is JSON text, sent as written with its codes filled in (#9737).
+const BODY_TEMPLATE: string =
+  '{"user": "ops", "otp": "{{monitorSecrets.LoginCode}}"}';
+
+const bodyWithCode: (code: string) => string = (code: string): string => {
+  return `{"user": "ops", "otp": "${code}"}`;
 };
 
 interface SentRequest {
   url: string;
   headers: Dictionary<string>;
-  body: JSONObject | undefined;
+  // The bytes of the body sent, as text.
+  body: string | undefined;
   at: number;
 }
 
@@ -106,12 +110,15 @@ function answerWith(
   jest.spyOn(API, "fetch").mockImplementation((async (options: {
     url: URL | string;
     headers: Dictionary<string>;
-    data?: JSONObject;
+    data?: Buffer;
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
     const request: SentRequest = {
       url: options.url.toString(),
       headers: { ...options.headers },
-      body: options.data,
+      body:
+        options.data === undefined
+          ? undefined
+          : Buffer.from(options.data).toString("utf8"),
       at: nowInMs,
     };
 
@@ -134,7 +141,7 @@ async function ping(retry: number): Promise<APIResponse> {
       isOnlineCheckRequest: true,
       requestType: HTTPMethod.POST,
       requestHeaders: { ...HEADERS_TEMPLATE },
-      requestBody: { ...BODY_TEMPLATE },
+      requestBody: BODY_TEMPLATE,
       totpCodes: issuer(),
     },
   );
@@ -180,7 +187,7 @@ describe("an attempt that sends a one-time code", () => {
     expect(sent[0]!.url).toBe(`http://1.1.1.1/verify?otp=${code}`);
     expect(sent[0]!.headers["X-OTP"]).toBe(code);
     expect(sent[0]!.headers["Accept"]).toBe("application/json");
-    expect(sent[0]!.body).toEqual({ user: "ops", otp: code });
+    expect(sent[0]!.body).toBe(bodyWithCode(code));
   });
 
   it("gives each retry a fresh code", async () => {
@@ -204,7 +211,7 @@ describe("an attempt that sends a one-time code", () => {
     expect(first).not.toBe(second);
     expect(sent[0]!.headers["X-OTP"]).toBe(first);
     expect(sent[1]!.headers["X-OTP"]).toBe(second);
-    expect(sent[1]!.body).toEqual({ user: "ops", otp: second });
+    expect(sent[1]!.body).toBe(bodyWithCode(second));
   });
 
   it("waits for the next code before sending when the current one is about to expire", async () => {
@@ -234,7 +241,7 @@ describe("an attempt that sends a one-time code", () => {
 
     expect(response.url.toString()).toBe(URL_TEMPLATE);
     expect(response.requestHeaders).toEqual(HEADERS_TEMPLATE);
-    expect(response.requestBody).toEqual(BODY_TEMPLATE);
+    expect(response.requestBody).toBe(BODY_TEMPLATE);
   });
 
   it("masks a code the response repeats, in its body and its headers", async () => {
