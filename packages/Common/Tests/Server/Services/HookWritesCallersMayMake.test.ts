@@ -6,6 +6,7 @@ import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import ObjectID from "../../../Types/ObjectID";
+import { PACKET_CAPTURE_START_PERMISSIONS } from "../../../Types/PacketCapture/PacketCapturePermissions";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import {
@@ -329,22 +330,26 @@ describe("it would have caught the writes it was written for", () => {
       "RelationIdUtil.stamp(data, FILE_RELATION_KEYS, null);",
     );
 
+    /*
+     * Every starter: who may create a capture. Network's Admin level
+     * (#10289) starts one as Project Admin does, its Member and Viewer do
+     * not (Types/PacketCapture/PacketCapturePermissions).
+     */
+    const starters: Array<Permission> = [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreatePacketCapture,
+      Permission.NetworkAdmin,
+    ];
+
+    expect(starters).toEqual([...PACKET_CAPTURE_START_PERMISSIONS]);
     expect(
       refusalsOf("PacketCaptureService.ts", text).map(
         (refusal: Refusal): [string, Array<Permission>] => {
           return [refusal.key, refusal.refusedFor];
         },
       ),
-    ).toEqual([
-      [
-        "PacketCaptureService.ts#create#fileId",
-        [
-          Permission.ProjectOwner,
-          Permission.ProjectAdmin,
-          Permission.CreatePacketCapture,
-        ],
-      ],
-    ]);
+    ).toEqual([["PacketCaptureService.ts#create#fileId", starters]]);
 
     // The service as it is writes nothing a starter may not.
     expect(

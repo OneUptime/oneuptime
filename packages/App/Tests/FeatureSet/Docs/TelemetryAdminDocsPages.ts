@@ -170,6 +170,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Settings 1 to 5 are retention overrides.",
     "A change applies to new telemetry.",
     "Exceptions follow what they were found in.",
+    // What Security Events reads back to under this retention (issue #10432).
+    "Security events are kept the same way.",
     "A role that changes the project.",
     "For overrides, the Enterprise Edition or the Scale plan.",
     "On a self-hosted installation",

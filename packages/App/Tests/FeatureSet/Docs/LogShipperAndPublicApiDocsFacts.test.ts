@@ -1070,6 +1070,7 @@ describe("the Serilog page", () => {
   });
 
   it("says log and trace exceptions share one fingerprint, so one issue", () => {
+    // Both fingerprint an exception one way: as it arrived (#10434).
     for (const service of [
       "OtelLogsIngestService",
       "OtelTracesIngestService",
@@ -1078,7 +1079,7 @@ describe("the Serilog page", () => {
         service,
         fingerprints: readSource(
           `App/FeatureSet/Telemetry/Services/${service}.ts`,
-        ).includes("ExceptionUtil.getFingerprint({"),
+        ).includes("ExceptionUtil.getOccurrenceFingerprints({"),
       }).toEqual({ service, fingerprints: true });
     }
 

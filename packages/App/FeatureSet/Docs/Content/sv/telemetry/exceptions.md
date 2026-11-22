@@ -218,7 +218,7 @@ Kontrollera vyn först: **Problem** döljer användarfel och förväntade nekand
 :::
 
 :::details Ett fel visas som flera undantag
-Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**.
+Fingeravtrycket omfattar meddelandet och stack trace. När de skiljer sig åt, till exempel när ett meddelande innehåller ett kort tal eller ett namn som ändras vid varje anrop, blir varje variant ett eget undantag. Nya undantag grupperas i stället efter funktionerna i din egen kod, så detta gäller mest undantag som registrerades före; slå ihop två som är samma fel från **Liknande undantag**. En scrub-regel delar inte ett undantag: det grupperas efter vad det sa innan reglerna kördes. Ett undantag från loggar som en regel delade i två i en tidigare version av OneUptime förblir delat; slå ihop de två på samma sätt.
 :::
 
 :::details Ett löst undantag kommer tillbaka hela tiden

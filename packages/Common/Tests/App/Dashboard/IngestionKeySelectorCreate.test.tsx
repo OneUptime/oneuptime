@@ -434,7 +434,7 @@ describe("Creating an ingestion key from a setup guide", () => {
         "Browser key: safe to put in a web page. It can send traces, logs, metrics, session replays and Sentry events, and only from: {{identities}}. An app:// entry lets a React Native app send session replays only, and anyone who has the app can send as it.",
       );
       expect(MOBILE_KEY_CAUTION).toBe(
-        "Mobile key: safe to ship in your app. It can send only traces, logs and metrics, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
+        "Mobile key: safe to ship in your app. It can send only traces, logs, metrics and session replays, all filed under {{service}}, and never from a web page. Anyone who has the app can copy it, so it is rate limited, and you can turn it off at any time.",
       );
       expect(SERVER_KEY_CAUTION).toBe(
         "Server key: keep it secret. It can send every kind of telemetry to this project from anywhere, so put it only in server environment variables and collector settings. Never put it in a web page or a mobile app: use a Browser key in a page and a Mobile key in an app.",

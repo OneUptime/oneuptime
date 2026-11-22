@@ -537,11 +537,12 @@ describe("server-side timing of probe requests", () => {
 });
 
 /*
- * A collection's key, checked before its report is parsed (#10222). A
+ * A collection's key, checked before its report is read (#10222, #10260). A
  * vCenter's or an OpenStack cloud's collection is millions of JSON values,
  * so its key is checked first from the request's headers, then - for an
  * older probe that sends none - from the id and key its report opens with,
- * and only then is the report parsed. Every one of those checks is the same
+ * read off its first few kilobytes before the rest is read, and only then is
+ * the report read whole and parsed. Every one of those checks is the same
  * check a body's key gets: the same lookup, the same refusals.
  */
 describe("a collection's key, before its report is parsed", () => {
@@ -710,7 +711,23 @@ describe("a collection's key, before its report is parsed", () => {
   });
 
   describe("from the id and key its report opens with", () => {
-    test("bytes that open with them are checked before they are parsed, and make the request the probe's", async () => {
+    // The check of a report's opening, as a middleware for run().
+    function fromOpening(opening: Uint8Array): Middleware {
+      return (
+        req: ProbeExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        return ProbeAuthorization.isAuthorizedFromReportOpening({
+          req: req,
+          res: res,
+          next: next,
+          opening: opening,
+        });
+      };
+    }
+
+    test("an opening with them is checked before the rest is read, and makes the request the probe's", async () => {
       const jsonParse: ReturnType<typeof jest.spyOn> = jest.spyOn(
         JSON,
         "parse",
@@ -718,8 +735,8 @@ describe("a collection's key, before its report is parsed", () => {
 
       try {
         const { req, next } = await run(
-          ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
-          { body: reportBytes(probeKey, probeId.toString()) },
+          fromOpening(reportBytes(probeKey, probeId.toString())),
+          {},
         );
 
         expect(next).toHaveBeenCalledWith();
@@ -742,8 +759,8 @@ describe("a collection's key, before its report is parsed", () => {
       probeService.verifyProbeKey.mockResolvedValue(false as never);
 
       const { req, next } = await run(
-        ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
-        { body: reportBytes("an-old-key", probeId.toString()) },
+        fromOpening(reportBytes("an-old-key", probeId.toString())),
+        {},
       );
 
       expect(next).not.toHaveBeenCalled();
@@ -756,11 +773,8 @@ describe("a collection's key, before its report is parsed", () => {
       probe.id = probeId;
 
       const { next } = await run(
-        ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
-        {
-          probe: probe,
-          body: reportBytes("whatever the report says", "someone else"),
-        },
+        fromOpening(reportBytes("whatever the report says", "someone else")),
+        { probe: probe },
       );
 
       expect(next).toHaveBeenCalledWith();
@@ -769,29 +783,40 @@ describe("a collection's key, before its report is parsed", () => {
 
     test.each([
       [
-        "bytes that open with another member",
+        "an opening with another member first",
         Buffer.from('{"status":"Failed","probeKey":"k","probeId":"i"}'),
       ],
-      ["bytes that are no object", Buffer.from("[{},{}]")],
+      ["an opening that is no object", Buffer.from("[{},{}]")],
+      ["an opening nested a thousand deep", Buffer.alloc(4096, "[")],
       [
-        "a body parsed already",
-        { probeKey: probeKey, probeId: probeId.toString() },
+        "an opening cut off inside the key",
+        Buffer.from('{"probeKey":"a-key-that-runs-on'),
       ],
-      ["no body", undefined],
+      ["an empty opening", Buffer.alloc(0)],
     ])(
-      "%s: the request goes on unauthenticated, to be parsed under a large route's limit",
-      async (_what: string, body: unknown) => {
-        const { req, next } = await run(
-          ProbeAuthorization.isAuthorizedFromReportOpeningMiddleware,
-          { body: body },
-        );
+      "%s is refused as a body without a key is, before anything is looked up",
+      async (_what: string, opening: Buffer) => {
+        const { req, next } = await run(fromOpening(opening), {});
 
-        expect(next).toHaveBeenCalledWith();
+        expect(next).not.toHaveBeenCalled();
+        expect(sentError()).toBeInstanceOf(BadDataException);
+        expect(sentError().message).toBe("ProbeId or ProbeKey is missing");
         expect(req.probe).toBeUndefined();
         expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
-        expect(responseUtil.sendErrorResponse).not.toHaveBeenCalled();
       },
     );
+
+    test("a lookup that fails reaches next(err), so the request is answered", async () => {
+      const boom: Error = new Error("pool acquire timeout");
+      probeService.verifyProbeKey.mockRejectedValue(boom as never);
+
+      const { next } = await run(
+        fromOpening(reportBytes(probeKey, probeId.toString())),
+        {},
+      );
+
+      expect(next).toHaveBeenCalledWith(boom);
+    });
   });
 
   describe("once its report is parsed", () => {

@@ -43,6 +43,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * CONTAINING A TELEMETRY ISSUE WITH SCRUB IT (#10364): what the proposal
@@ -134,9 +135,9 @@ const EMAIL_PLAN: ScrubPlan = {
 
 let counted: Array<DataStoreFinding>;
 let coverageRules: Array<ScrubCoverage.CoveringScrubRule>;
-let created: jest.SpiedFunction<typeof ScrubCoverage.createScrubRuleForFinding>;
+let created: SpyInstance<typeof ScrubCoverage.createScrubRuleForFinding>;
 let marks: Array<{ id: string; isScrubbed: unknown }>;
-let evaluations: jest.SpiedFunction<typeof Jobs.queueDataSecurityEvaluation>;
+let evaluations: SpyInstance<typeof Jobs.queueDataSecurityEvaluation>;
 
 beforeEach(() => {
   counted = [];
@@ -561,9 +562,9 @@ describe("making the change", () => {
     jest
       .spyOn(LogScrubRuleService, "findOneById")
       .mockResolvedValue({ id: new ObjectID(MADE_RULE) } as never);
-    const deleted: jest.SpiedFunction<
-      typeof LogScrubRuleService.deleteOneById
-    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
+    const deleted: SpyInstance<typeof LogScrubRuleService.deleteOneById> = jest
+      .spyOn(LogScrubRuleService, "deleteOneById")
+      .mockResolvedValue(1);
 
     await expect(
       ScrubTelemetryAction.apply({
@@ -632,10 +633,10 @@ describe("undoing it", () => {
     jest
       .spyOn(LogScrubRuleService, "findOneById")
       .mockResolvedValue({ id: new ObjectID(MADE_RULE) } as never);
-    const deleted: jest.SpiedFunction<
-      typeof LogScrubRuleService.deleteOneById
-    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
-    const traceDeleted: jest.SpiedFunction<
+    const deleted: SpyInstance<typeof LogScrubRuleService.deleteOneById> = jest
+      .spyOn(LogScrubRuleService, "deleteOneById")
+      .mockResolvedValue(1);
+    const traceDeleted: SpyInstance<
       typeof TraceScrubRuleService.deleteOneById
     > = jest.spyOn(TraceScrubRuleService, "deleteOneById").mockResolvedValue(1);
 
@@ -660,9 +661,9 @@ describe("undoing it", () => {
 
   test("a rule someone deleted since is undone already", async () => {
     jest.spyOn(LogScrubRuleService, "findOneById").mockResolvedValue(null);
-    const deleted: jest.SpiedFunction<
-      typeof LogScrubRuleService.deleteOneById
-    > = jest.spyOn(LogScrubRuleService, "deleteOneById").mockResolvedValue(1);
+    const deleted: SpyInstance<typeof LogScrubRuleService.deleteOneById> = jest
+      .spyOn(LogScrubRuleService, "deleteOneById")
+      .mockResolvedValue(1);
 
     await ScrubTelemetryAction.undo({
       projectId: PROJECT_ID,

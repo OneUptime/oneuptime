@@ -221,7 +221,7 @@ sentry_sdk.init(
 )
 ```
 
-Ettan `1` i slutet av DSN:en krävs av Sentrys SDK:er och läses inte. En webbläsarapps DSN är offentlig, så använd en intagningsnyckel av typen **Webbläsare** där, med webbplatsens ursprung på.
+Ettan `1` i slutet av DSN:en krävs av Sentrys SDK:er och läses inte. En webbläsarapps DSN är offentlig, så använd en intagningsnyckel av typen **Webbläsare** där, med webbplatsens ursprung på. Allt den skickar arkiveras då som RUM-telemetri för den webbläsarappen, aldrig som en backend-tjänst.
 
 ### Vad ett kuvert blir
 

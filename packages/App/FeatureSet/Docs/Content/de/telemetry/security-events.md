@@ -638,6 +638,14 @@ Die Aktion **Monitor erstellen** in der Zeile einer Regel öffnet einen neuen Mo
 
 Sicherheitsereignisse werden pro aufgenommenem GB abgerechnet, wie der Rest Ihrer Telemetrie, und für Ihre Telemetrie-Aufbewahrung behalten: die **Standardaufbewahrung (Tage)** des Projekts unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**, oder eine Aufbewahrung, die am Telemetrie-Dienst festgelegt ist, zu dem sie gehören. Endet die Aufbewahrung eines Ereignisses, wird es gelöscht.
 
+Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die noch aufbewahrten Ereignisse und sagt, wenn es mehr bräuchte:
+
+- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Alarme und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
+- **Auf vergangene Ereignisse anwenden** über einen Zeitraum, der vor den aufbewahrten Ereignissen beginnt, sagt, dass Sicherheitsereignisse 15 Tage lang aufbewahrt werden und es daher 15 Tage zurückgeblickt hat, und was es nicht gefunden hat, gilt nur für diese Tage. Ein Ereignis, das früher geschah, aber verspätet eintraf, bleibt aufbewahrt und wird weiterhin gelesen. Eine Regel vom Typ **Zuerst gesehen** sagt, wie viel der 30 Tage vor dem Zeitraum sie sehen konnte.
+- Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
+
+**Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
+
 ## Fehlerbehebung
 
 :::details Ereignisse erscheinen nicht

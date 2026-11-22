@@ -62,7 +62,7 @@ npm install @opentelemetry/api \
 
 ### 创建遥测文件
 
-创建 `src/telemetry.ts` 。 `browserDetector` 会添加让遥测被归类为 RUM 的 `browser.*` 属性，而 `service.name` 为应用程序命名。
+创建 `src/telemetry.ts` 。 `browserDetector` 会添加 **客户端** 页面列出的 `browser.*` 属性，而 `service.name` 为应用程序命名：浏览器密钥发送的所有内容都会作为 RUM 归入该应用程序。
 
 ```ts title="src/telemetry.ts"
 import {
@@ -88,8 +88,8 @@ const ONEUPTIME_URL = "https://oneuptime.com";
 const ONEUPTIME_TOKEN = "YOUR_TELEMETRY_INGESTION_TOKEN";
 
 /*
- * browserDetector supplies the browser.* attributes. Without them this
- * telemetry is classified as a backend Service, not a RUM application.
+ * browserDetector supplies the browser.* attributes the Clients page
+ * lists. A Browser key files everything it sends as browser RUM.
  * The attributes set last win, so service.name here overrides the
  * "unknown_service" that defaultResource() provides.
  */
@@ -166,11 +166,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | --- | --- |
 | **允许的来源** | 只接受来自这些来源的请求，每个来源都包含协议和端口（如有）。主机可以以一个 `*.` 通配符开头： `https://*.example.com` 涵盖 `example.com` 的所有子域，但不包括 `example.com` 本身。 |
 | **每分钟请求数上限** | 所有使用该密钥的访问者共享的一个上限：除非你自行设置，否则为每分钟 6000 个请求。 |
-| **固定的服务名称** | 对密钥写入的所有数据强制使用 `service.name` ，因此复制品无法将其遥测伪装成你的某个后端服务。 |
+| **固定的服务名称** | 对密钥写入的所有数据强制使用 `service.name` ，因此复制品只能写入这一个应用程序。 |
 | **过期时间** | 过了这个日期，密钥将不再被接受。 |
 | **已启用** | 关闭它可以立即阻止泄露的密钥。 |
 
-Browser 密钥只能写入 OTLP 追踪、日志和指标，以及会话回放和浏览器中 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) 发送的事件；其他所有摄取路由都会拒绝它。这些设置在密钥自己的页面上修改。密钥创建后，密钥类型无法更改。
+Browser 密钥只能写入 OTLP 追踪、日志和指标，以及会话回放和浏览器中 [Sentry SDK](/docs/telemetry/compatible-endpoints#sentry-sdk) 发送的事件；其他所有摄取路由都会拒绝它。它写入的所有内容都会归类为浏览器 RUM，绝不会归类为主机、集群或后端服务：对于资源，它只保留页面对自身的描述，例如 `service.*` 、 `browser.*` 和 `user_agent.*` 属性以及 `oneuptime.label.*` 标签。这些设置在密钥自己的页面上修改。密钥创建后，密钥类型无法更改。
 
 > [!WARNING]
 > 切勿将 **服务器** 密钥放进页面。服务器密钥可以从任何地方写入各种遥测，不做来源检查，因此任何读过你页面的人都能写入你的项目。
@@ -179,7 +179,7 @@ Browser 密钥只能写入 OTLP 追踪、日志和指标，以及会话回放和
 
 `browserDetector` 读取 [UA Client Hints API](https://wicg.github.io/ua-client-hints/) ，而只有 Chromium 浏览器才有这个 API。在 Safari 和 Firefox 上，它会设置 `browser.language` 和 `user_agent.original` ，但不会设置 `browser.platform` 、 `browser.brands` 或 `browser.mobile` 。
 
-这仍然足以将遥测归类为 RUM，因为仅 `browser.language` 就能把批次标记为浏览器 RUM。不过 **客户端** 页面按 `browser.platform` 列出平台，因此 Safari 和 Firefox 的访问不会在那里增加行。
+使用浏览器密钥时，遥测无论如何都会归类为 RUM；使用其他任何密钥时，仅 `browser.language` 就能把批次标记为浏览器 RUM。不过 **客户端** 页面按 `browser.platform` 列出平台，因此 Safari 和 Firefox 的访问不会在那里增加行。
 
 要跳过检测器，或为每个浏览器提供平台，请自行设置这些属性：
 
@@ -402,7 +402,7 @@ metrics.setGlobalMeterProvider(
 );
 ```
 
-用同一个 `resource` 对象来构建它们。资源中缺少 `browser.*` 的日志或指标管道会被归为一个单独的后端服务。
+用同一个 `resource` 对象来构建它们，这样它们的日志和指标也会归入同一个应用程序。
 
 日志管道只发送你的代码写入的记录，所以在每个值得了解的事情发生的地方写一条：
 
@@ -452,7 +452,7 @@ logger.emit({
 :::
 
 :::details 应用出现在服务下，而不是真实用户监控下
-资源没有任何 `browser.*` 属性，因此遥测被归为后端服务。请添加 `browserDetector` ，或按照 [不使用检测器设置 `browser.*`](#不使用检测器设置-browser) 设置这些属性。
+该遥测是用浏览器密钥以外的密钥发送的，且其资源没有任何 `browser.*` 属性，因此被归为后端服务。请使用会把发送的所有内容归为 RUM 的浏览器密钥发送，或添加 `browserDetector` ，或按照 [不使用检测器设置 `browser.*`](#不使用检测器设置-browser) 设置这些属性。
 
 在网络选项卡中查看请求的负载，检查你发送的内容： `resourceSpans[0].resource.attributes` 就是决定归类的列表。已经创建的服务不会变成 RUM 应用程序，因此在 RUM 遥测到达后，请在 **产品 → 服务** 下删除它。
 :::

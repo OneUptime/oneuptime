@@ -4,6 +4,10 @@ import {
   AI_OUTCOMES_UNKNOWN_MODEL,
   AI_OUTCOMES_WEEK_COUNT,
   AiOutcomes,
+  AiOutcomesDataSecurity,
+  AiOutcomesDataSecurityChanges,
+  AiOutcomesDataSecurityKind,
+  AiOutcomesDataSecurityProposals,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
   AiOutcomesModels,
@@ -13,9 +17,11 @@ import {
   AiOutcomesRootCauseOutcome,
   AiOutcomesRootCauses,
   AiOutcomesWeek,
+  getDataSecurityChangesMadeCount,
 } from "../../../../Types/AI/AiOutcomes";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import { DataSecurityAiProposalStatus } from "../../../../Types/DataSecurity/DataSecurityAi";
 import { OnCallPolicyAiHoldOutcome } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 
 /*
@@ -33,8 +39,14 @@ import { OnCallPolicyAiHoldOutcome } from "../../../../Types/OnCallDutyPolicy/On
  * number and its list are one rule. And investigations and the fixes that
  * came from them are counted by the model that wrote the investigation's
  * answer (models, #7762).
+ *
+ * Data Security (#10364) counts a proposal in the week it settled - the
+ * change made, the change that could not be made, the proposal a person
+ * dismissed - and an issue OneUptime AI analyzed once, however often it was
+ * analyzed (AiOutcomesDataSecurity).
  */
 
+const MINUTE_IN_MS: number = 60 * 1000;
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 const WEEK_IN_MS: number = 7 * DAY_IN_MS;
 
@@ -76,6 +88,32 @@ export interface AiOutcomesInvestigationRow {
   subjectKey?: AiOutcomesSubjectKey | undefined;
 }
 
+/*
+ * A proposal OneUptime AI made for a Data Security issue that settled in the
+ * window (#10364): a change made (appliedAt), one that could not be made
+ * (failedAt), or one a person dismissed (dismissedAt).
+ */
+export interface AiOutcomesDataSecurityProposalRow {
+  // When it settled: the moment its week counts it at.
+  settledAt: Date;
+  status: DataSecurityAiProposalStatus | string | undefined;
+  // DataSecurityAiProposalKind, as stored.
+  kind?: string | undefined;
+  // A person approved it (approvedByUserId); one made without asking was not.
+  isApprovedByPerson?: boolean | undefined;
+  // When the issue's own check passed after the change, when it has.
+  verifiedAt?: Date | undefined;
+  dataSecurityIssueId?: string | undefined;
+  // When its issue opened (firstDetectedAt), when the caller may read it.
+  issueOpenedAt?: Date | undefined;
+}
+
+// A time OneUptime AI analyzed a Data Security issue (DataSecurityAiDecision).
+export interface AiOutcomesDataSecurityAnalysisRow {
+  createdAt: Date;
+  dataSecurityIssueId?: string | undefined;
+}
+
 export interface AiOutcomesInput {
   now: Date;
   // Null: the caller may not read the kind; the page leaves it out.
@@ -90,6 +128,22 @@ export interface AiOutcomesInput {
    * model is listed: without it, models is null and the page names none.
    */
   canReadModels?: boolean | undefined;
+  /*
+   * Data Security's settled proposals (#10364). Null, or left out: the
+   * caller may not read them, and the page leaves Data Security out.
+   */
+  dataSecurityProposalRows?:
+    | Array<AiOutcomesDataSecurityProposalRow>
+    | null
+    | undefined;
+  /*
+   * Its analyses. Null, or left out: the caller may not read them, and
+   * issuesAnalyzed is null.
+   */
+  dataSecurityAnalysisRows?:
+    | Array<AiOutcomesDataSecurityAnalysisRow>
+    | null
+    | undefined;
 }
 
 export function getSubjectKey(
@@ -123,6 +177,28 @@ type SourceInvestigationFinder = (
 
 function getModelName(row: AiOutcomesInvestigationRow): string {
   return (row.modelName || "").trim() || AI_OUTCOMES_UNKNOWN_MODEL;
+}
+
+// The middle value, or the mean of the two middle ones; values not empty.
+function getMedian(values: Array<number>): number {
+  const sorted: Array<number> = [...values].sort((a: number, b: number) => {
+    return a - b;
+  });
+  const middle: number = Math.floor(sorted.length / 2);
+
+  return sorted.length % 2 === 1
+    ? sorted[middle]!
+    : (sorted[middle - 1]! + sorted[middle]!) / 2;
+}
+
+function toTime(value: Date | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const time: number = new Date(value).getTime();
+
+  return Number.isFinite(time) ? time : null;
 }
 
 // What went well and what was counted, model by model.
@@ -306,6 +382,54 @@ export default class AiOutcomesBuilder {
     }
   }
 
+  /*
+   * What came of a change OneUptime AI made for a Data Security issue: a
+   * change that stands is proven once the issue's own check passed after
+   * it, and waits for the check until then; one a person took back is
+   * undone, proven before or not. A proposal no change came of (dismissed)
+   * is no change.
+   */
+  public static getDataSecurityChangeOutcome(
+    row: Pick<AiOutcomesDataSecurityProposalRow, "status" | "verifiedAt">,
+  ): keyof AiOutcomesDataSecurityChanges | null {
+    switch (row.status) {
+      case DataSecurityAiProposalStatus.Applied:
+      case DataSecurityAiProposalStatus.AppliedWithoutAsking:
+        return toTime(row.verifiedAt) === null ? "waiting" : "proven";
+      case DataSecurityAiProposalStatus.Undone:
+        return "undone";
+      case DataSecurityAiProposalStatus.Failed:
+        return "failed";
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * What a person did with a proposal that waited for them: dismissed it,
+   * or approved it - and the change was then made or could not be. A change
+   * made without asking waited for nobody.
+   */
+  public static getDataSecurityProposalOutcome(
+    row: Pick<
+      AiOutcomesDataSecurityProposalRow,
+      "status" | "isApprovedByPerson"
+    >,
+  ): keyof AiOutcomesDataSecurityProposals | null {
+    if (row.status === DataSecurityAiProposalStatus.Dismissed) {
+      return "dismissed";
+    }
+
+    if (
+      row.isApprovedByPerson &&
+      this.getDataSecurityChangeOutcome({ status: row.status }) !== null
+    ) {
+      return "approved";
+    }
+
+    return null;
+  }
+
   public static build(input: AiOutcomesInput): AiOutcomes {
     const windowStart: Date = this.getWindowStart(input.now);
     const weeks: Array<AiOutcomesWeek> = [];
@@ -321,6 +445,8 @@ export default class AiOutcomesBuilder {
         fixesChecked: 0,
         rootCausesConfirmed: 0,
         rootCausesJudged: 0,
+        dataSecurityChangesProven: 0,
+        dataSecurityChangesMade: 0,
       });
     }
 
@@ -346,6 +472,13 @@ export default class AiOutcomesBuilder {
         : null,
       rootCauses: input.investigationRows
         ? this.countRootCauses(input.investigationRows, weekOf)
+        : null,
+      dataSecurity: input.dataSecurityProposalRows
+        ? this.countDataSecurity({
+            proposalRows: input.dataSecurityProposalRows,
+            analysisRows: input.dataSecurityAnalysisRows || null,
+            weekOf,
+          })
         : null,
       models: input.canReadModels
         ? this.countModels({
@@ -516,6 +649,163 @@ export default class AiOutcomesBuilder {
     }
 
     return rootCauses;
+  }
+
+  /*
+   * ------------------------------------------------------------------------
+   * Data Security (#10364).
+   * ------------------------------------------------------------------------
+   */
+
+  private static countDataSecurity(data: {
+    proposalRows: Array<AiOutcomesDataSecurityProposalRow>;
+    analysisRows: Array<AiOutcomesDataSecurityAnalysisRow> | null;
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null;
+  }): AiOutcomesDataSecurity {
+    const changes: AiOutcomesDataSecurityChanges = {
+      proven: 0,
+      waiting: 0,
+      undone: 0,
+      failed: 0,
+    };
+    const proposals: AiOutcomesDataSecurityProposals = {
+      approved: 0,
+      dismissed: 0,
+    };
+    const kinds: Map<string, AiOutcomesDataSecurityKind> = new Map();
+    /*
+     * Each issue a proven change was for: when it opened, and when its
+     * check first passed after one.
+     */
+    const checkPassed: Map<string, { openedAt: number; passedAt: number }> =
+      new Map();
+
+    for (const row of data.proposalRows) {
+      const week: AiOutcomesWeek | null = data.weekOf(row.settledAt);
+      const change: keyof AiOutcomesDataSecurityChanges | null =
+        this.getDataSecurityChangeOutcome(row);
+      const proposal: keyof AiOutcomesDataSecurityProposals | null =
+        this.getDataSecurityProposalOutcome(row);
+
+      if (!week || (!change && !proposal)) {
+        continue;
+      }
+
+      const kind: AiOutcomesDataSecurityKind | null = row.kind
+        ? kinds.get(row.kind) || {
+            kind: row.kind,
+            proven: 0,
+            waiting: 0,
+            undone: 0,
+            failed: 0,
+            approved: 0,
+            dismissed: 0,
+          }
+        : null;
+
+      if (kind) {
+        kinds.set(kind.kind, kind);
+      }
+
+      if (proposal) {
+        proposals[proposal]++;
+
+        if (kind) {
+          kind[proposal]++;
+        }
+      }
+
+      if (!change) {
+        continue;
+      }
+
+      changes[change]++;
+
+      if (kind) {
+        kind[change]++;
+      }
+
+      // One it could not make changed nothing: no change of the week.
+      if (change !== "failed") {
+        week.dataSecurityChangesMade++;
+      }
+
+      if (change === "proven") {
+        week.dataSecurityChangesProven++;
+        this.noteCheckPassed(checkPassed, row);
+      }
+    }
+
+    const minutes: Array<number> = Array.from(checkPassed.values()).map(
+      (issue: { openedAt: number; passedAt: number }): number => {
+        return (issue.passedAt - issue.openedAt) / MINUTE_IN_MS;
+      },
+    );
+
+    return {
+      issuesAnalyzed: data.analysisRows
+        ? this.countAnalyzedIssues(data.analysisRows, data.weekOf)
+        : null,
+      changes,
+      proposals,
+      kinds: Array.from(kinds.values()).sort(
+        (a: AiOutcomesDataSecurityKind, b: AiOutcomesDataSecurityKind) => {
+          return (
+            getDataSecurityChangesMadeCount(b) -
+              getDataSecurityChangesMadeCount(a) || a.kind.localeCompare(b.kind)
+          );
+        },
+      ),
+      medianMinutesToCheckPassed:
+        minutes.length > 0 ? Math.round(getMedian(minutes)) : null,
+      issuesCheckPassed: minutes.length,
+    };
+  }
+
+  /*
+   * A proven change's issue: when it opened and when its check passed,
+   * the first time it passed after a change counted here. An issue whose
+   * opening the caller could not read, or that passed before it opened,
+   * says nothing of how long it took.
+   */
+  private static noteCheckPassed(
+    checkPassed: Map<string, { openedAt: number; passedAt: number }>,
+    row: AiOutcomesDataSecurityProposalRow,
+  ): void {
+    const openedAt: number | null = toTime(row.issueOpenedAt);
+    const passedAt: number | null = toTime(row.verifiedAt);
+
+    if (
+      !row.dataSecurityIssueId ||
+      openedAt === null ||
+      passedAt === null ||
+      passedAt < openedAt
+    ) {
+      return;
+    }
+
+    const known: { openedAt: number; passedAt: number } | undefined =
+      checkPassed.get(row.dataSecurityIssueId);
+
+    if (!known || passedAt < known.passedAt) {
+      checkPassed.set(row.dataSecurityIssueId, { openedAt, passedAt });
+    }
+  }
+
+  // The issues analyzed in the window, each once however often it was.
+  private static countAnalyzedIssues(
+    rows: Array<AiOutcomesDataSecurityAnalysisRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): number {
+    const issueIds: Set<string> = new Set();
+
+    for (const row of rows) {
+      if (row.dataSecurityIssueId && weekOf(row.createdAt)) {
+        issueIds.add(row.dataSecurityIssueId);
+      }
+    }
+
+    return issueIds.size;
   }
 
   /*

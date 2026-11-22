@@ -12,7 +12,11 @@ import OnCallDutyPolicyTimeLogService from "Common/Server/Services/OnCallDutyPol
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import UserService from "Common/Server/Services/UserService";
 import logger from "Common/Server/Utils/Logger";
+import EscalationRuleReach, {
+  PolicyReachOfPerson,
+} from "Common/Server/Utils/OnCall/EscalationRuleReach";
 import OnCallHandoffPosts from "Common/Server/Utils/OnCall/OnCallHandoffPosts";
+import ProjectMembership from "Common/Server/Utils/TeamMember/ProjectMembership";
 import URL from "Common/Types/API/URL";
 import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -317,6 +321,23 @@ beforeEach(() => {
     .spyOn(OnCallDutyPolicyTimeLogService, "endTimeLogForUser")
     .mockResolvedValue(undefined as never);
   jest.spyOn(OnCallHandoffPosts, "post").mockResolvedValue(undefined as never);
+
+  /*
+   * Carl, Ana and Bob are members of the project, and nothing on either
+   * policy pages Carl once his shift ends (#10556).
+   */
+  jest
+    .spyOn(ProjectMembership, "getMemberUserIds")
+    .mockImplementation((async (data: { userIds: Array<ObjectID> }) => {
+      return new Set<string>(
+        data.userIds.map((userId: ObjectID): string => {
+          return userId.toString().toLowerCase();
+        }),
+      );
+    }) as never);
+  jest
+    .spyOn(EscalationRuleReach, "readPolicyPathsOfPerson")
+    .mockResolvedValue(new Map() as PolicyReachOfPerson);
 });
 
 afterEach(() => {

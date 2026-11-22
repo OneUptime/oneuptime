@@ -100,6 +100,7 @@ export const AUDIT_LOG_TYPED_VALUE_READINGS: Readonly<
   [ObjectType.EqualTo]: AuditLogTypedValueReading.Json,
   [ObjectType.EqualToOrNull]: AuditLogTypedValueReading.Json,
   [ObjectType.NotEqual]: AuditLogTypedValueReading.Json,
+  [ObjectType.NotEqualOrNull]: AuditLogTypedValueReading.Json,
   [ObjectType.Search]: AuditLogTypedValueReading.Json,
   [ObjectType.MultiSearch]: AuditLogTypedValueReading.Json,
   [ObjectType.GreaterThan]: AuditLogTypedValueReading.Json,

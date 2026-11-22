@@ -567,6 +567,93 @@ describe("what never names a resource", () => {
   });
 });
 
+/*
+ * A RUM client's datapoints name no cloud resource (issue #10539). A
+ * cloud-monitoring receiver names each resource on its datapoints, which a
+ * Browser or Mobile key's resource allowlist leaves as sent, so a key copied
+ * out of a page or an app could otherwise send a datapoint with an
+ * `azuremonitor.resource_id` and have a Cloud Resource added. The rows
+ * still land; discovery is handed none of them.
+ */
+describe("a RUM client's datapoints never name a resource (#10539)", () => {
+  test.each([
+    [
+      "a Browser key's batch, stamped a browser client",
+      [stringAttribute("oneuptime.rum.client.kind", "browser")],
+    ],
+    [
+      "a Mobile key's batch, stamped a mobile client",
+      [stringAttribute("oneuptime.rum.client.kind", "mobile")],
+    ],
+    [
+      "a browser app's batch, by its browser.* attributes",
+      [stringAttribute("browser.language", "en-US")],
+    ],
+  ])(
+    "%s hands discovery nothing",
+    async (_name: string, clientAttributes: Array<OtlpAttribute>) => {
+      const harness: Harness = setup();
+
+      await OtelMetricsIngestService.processMetricsFromQueue(
+        request([
+          {
+            attributes: [
+              stringAttribute("service.name", "storefront-web"),
+              ...clientAttributes,
+            ],
+            metrics: [
+              gauge("azure_percentage_cpu_average", [
+                azureDatapoint(
+                  "Microsoft.Compute/virtualMachines",
+                  "Microsoft.Compute/virtualMachines/vm-forged",
+                  "vm-forged",
+                ),
+              ]),
+              summary("amazonaws.com/AWS/RDS/CPUUtilization", [
+                [
+                  stringAttribute("Namespace", "AWS/RDS"),
+                  kvlistAttribute("Dimensions", [
+                    stringAttribute("DBInstanceIdentifier", "forged-db"),
+                  ]),
+                ],
+              ]),
+            ],
+          },
+        ]),
+      );
+
+      expect(harness.discovered).toEqual([[]]);
+      // Its rows are still the app's telemetry, written as sent.
+      expect(harness.rows).toHaveLength(2);
+    },
+  );
+
+  test("the same datapoints from a cloud-monitoring receiver still name their resources", async () => {
+    const harness: Harness = setup();
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request([
+        {
+          attributes: AZURE_RESOURCE,
+          metrics: [
+            gauge("azure_percentage_cpu_average", [
+              azureDatapoint(
+                "Microsoft.Compute/virtualMachines",
+                "Microsoft.Compute/virtualMachines/vm-real",
+                "vm-real",
+              ),
+            ]),
+          ],
+        },
+      ]),
+    );
+
+    expect(summaryOf(harness.discovered[0]!)).toEqual([
+      `${CloudMonitoringSource.AzureMonitor} Microsoft.Compute/virtualMachines vm-real`,
+    ]);
+  });
+});
+
 describe("resilience", () => {
   test("a failing discovery never fails the batch whose rows already landed", async () => {
     const harness: Harness = setup();

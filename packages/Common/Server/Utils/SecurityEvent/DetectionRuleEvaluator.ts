@@ -42,9 +42,11 @@ import {
 } from "../../../Types/SecurityEvent/SigmaCorrelation";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import CorrelationRuleMatcher, {
+  CorrelationKeptEvents,
   CorrelationMatchResult,
   getCorrelationMatchedEventsStart,
 } from "./Correlation/CorrelationRuleMatcher";
+import SecurityEventRetention from "./SecurityEventRetention";
 import {
   CORRELATION_TEMPORAL_CANDIDATE_LIMIT,
   buildCorrelationEventsRead,
@@ -98,6 +100,10 @@ import {
   describeDetectionOverflow,
   splitDetectionGroups,
 } from "../../../Utils/SecurityEvent/DetectionOverflow";
+import {
+  describeDetectionRetentionNotice,
+  joinDetectionRunNotices,
+} from "../../../Utils/SecurityEvent/DetectionRetentionNotice";
 import Select from "../../Types/Database/Select";
 import SecurityProjectWork, {
   SECURITY_PROJECT_WORK_LEASE_TIMEOUT_IN_MS,
@@ -1184,6 +1190,7 @@ export default class DetectionRuleEvaluator {
 
     await this.recordRealTimeRun(rule, {
       overflowNotice: done.overflowNotice,
+      readNotice: done.readNotice,
       matched: done.result.matchedGroups > 0,
       coveredUntil: handover.arrivedUntil,
     });
@@ -1383,6 +1390,7 @@ export default class DetectionRuleEvaluator {
     if (realTime) {
       await this.recordRealTimeRun(rule, {
         overflowNotice: judgement.overflowNotice,
+        readNotice: judgement.readNotice,
         matched: judgement.result.matchedGroups > 0,
         coveredUntil: read.coveredUntil,
       });
@@ -1795,10 +1803,14 @@ export default class DetectionRuleEvaluator {
         // The run worked: the rule is due on its interval again (#10490).
         lastFailedAt: null as unknown as Date,
         /*
-         * The rule ran; an overflow, or a correlation that had more groups
-         * to check than one run reads, is what its row should say about it.
+         * The rule ran; an overflow, a correlation that had more groups to
+         * check than one run reads, or a window longer than the project
+         * keeps its events (#10432) is what its row should say about it.
          */
-        lastError: (overflowNotice || readNotice) as unknown as string,
+        lastError: joinDetectionRunNotices([
+          overflowNotice,
+          readNotice,
+        ]) as unknown as string,
         ...(data.judgement.result.matchedGroups > 0
           ? { lastMatchAt: data.judgedUntil }
           : {}),
@@ -1814,6 +1826,8 @@ export default class DetectionRuleEvaluator {
     rule: DetectionRule,
     data: {
       overflowNotice: string | null;
+      // What the run's reads said of themselves (a window past the kept events).
+      readNotice?: string | null | undefined;
       matched: boolean;
       coveredUntil: Date;
     },
@@ -1827,7 +1841,10 @@ export default class DetectionRuleEvaluator {
     await DetectionRuleService.updateOneById({
       id: rule.id!,
       data: {
-        lastError: data.overflowNotice as unknown as string,
+        lastError: joinDetectionRunNotices([
+          data.overflowNotice,
+          data.readNotice,
+        ]) as unknown as string,
         ...(data.matched ? { lastMatchAt: data.coveredUntil } : {}),
       },
       props: {
@@ -1873,6 +1890,19 @@ export default class DetectionRuleEvaluator {
     let readNotice: string | null = null;
 
     if (definition.kind === "correlation") {
+      /*
+       * Only the events the project still keeps are read (#10432): a First
+       * seen rule tells a value is new by the history that is kept, and
+       * says how far back that was. When the rule's window is longer than
+       * the retention, its row says so (describeDetectionRetentionNotice).
+       */
+      const kept: CorrelationKeptEvents = {
+        retentionInDays: await SecurityEventRetention.getRetentionInDays(
+          rule.projectId!,
+        ),
+        at: OneUptimeDate.getCurrentDate(),
+      };
+
       const correlationResult: CorrelationMatchResult =
         await CorrelationRuleMatcher.findMatches({
           projectId: rule.projectId!,
@@ -1884,13 +1914,20 @@ export default class DetectionRuleEvaluator {
           maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
           restrictTo: andRestrictions(read.restrictTo, exceptionsFilter),
           arrival: countWindow?.arrival,
+          kept,
         });
 
       matchedGroups = correlationResult.groups;
 
-      if (correlationResult.candidatesCapped) {
-        readNotice = `This run checked the ${CORRELATION_TEMPORAL_CANDIDATE_LIMIT} most recently active groups; the next runs check the rest.`;
-      }
+      readNotice = joinDetectionRunNotices([
+        correlationResult.candidatesCapped
+          ? `This run checked the ${CORRELATION_TEMPORAL_CANDIDATE_LIMIT} most recently active groups; the next runs check the rest.`
+          : null,
+        describeDetectionRetentionNotice({
+          definition,
+          retentionInDays: kept.retentionInDays,
+        }),
+      ]);
     } else {
       matchedGroups = await this.findSingleRuleMatches({
         rule,

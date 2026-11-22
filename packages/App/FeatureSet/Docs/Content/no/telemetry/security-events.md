@@ -638,6 +638,14 @@ Handlingen **Opprett monitor** i raden til en regel åpner en ny monitor som all
 
 Sikkerhetshendelser faktureres per GB som tas inn, som resten av telemetrien din, og oppbevares i telemetriens oppbevaringstid: prosjektets **Standard oppbevaring (dager)**, under **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring**, eller en oppbevaringstid som er angitt på telemetritjenesten de hører til. Når oppbevaringstiden for en hendelse er ute, slettes den.
 
+Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene som fortsatt oppbevares, og sier når det ville trengt flere:
+
+- En **Først sett**-regel med et tidsrom som er lengre enn hendelsene oppbevares, avgjør ut fra de oppbevarte dagene om en verdi er ny: med et tidsrom på 30 dager og 15 dagers oppbevaring sier varslene og sakene dens `First awsRegion in 15 days`, og en verdi som sist ble sett for 20 dager siden, regnes som ny. Raden dens viser **Krever oppmerksomhet**, og **Vis feil** sier hva som må endres. Regelskjemaet og detaljene til en regel i regelbiblioteket sier det før den lagres eller legges til. En telling eller en sekvens med et vindu som er lengre enn hendelsene oppbevares, teller bare dem.
+- **Kjør på tidligere hendelser** over en periode som begynner før de oppbevarte hendelsene, sier at sikkerhetshendelser oppbevares i 15 dager, så den så 15 dager tilbake, og det den ikke fant, gjelder bare de dagene. En hendelse som skjedde tidligere, men kom for sent, er fortsatt oppbevart og leses fortsatt. En **Først sett**-regel sier hvor mye av de 30 dagene før perioden den kunne se.
+- En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
+
+**Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
+
 ## Feilsøking
 
 :::details Hendelsene vises ikke

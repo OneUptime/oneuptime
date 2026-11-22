@@ -19,7 +19,7 @@ flowchart TB
     app["你的移动应用"] --> sdk["OpenTelemetry SDK<br/>带 device.* 属性"]
     sdk -->|"使用移动端密钥<br/>的 OTLP"| oneuptime["OneUptime"]
     oneuptime --> rum["移动端 RUM 应用程序"]
-    replay["React Native<br/>回放 SDK"] -->|"使用 Browser 密钥<br/>的录制"| oneuptime
+    replay["React Native<br/>回放 SDK"] -->|"使用同一个移动端<br/>密钥的录制"| oneuptime
 ```
 
 ## OneUptime 需要什么
@@ -52,7 +52,7 @@ flowchart TB
 | 日志 | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。移动端密钥的复制品只能发送此应用的追踪、日志和指标，全部归入其 **固定的服务名称** 之下，而且绝不能从网页发送。它仍可以在密钥的 **每分钟请求数上限** 以内为此应用发送编造的数据，所以请添加 **过期时间** 日期，并随每次发布轮换密钥。
+> 密钥会随应用一起发布，而应用可以被解包，所以请假定有人会复制它。移动端密钥的复制品只能发送此应用的追踪、日志、指标和会话回放，全部归入其 **固定的服务名称** 之下，而且绝不能从网页发送。它仍可以在密钥的 **每分钟请求数上限** 以内为此应用发送编造的数据，所以请添加 **过期时间** 日期，并随每次发布轮换密钥。
 
 ## 设置你的平台
 
@@ -289,7 +289,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 移动端的会话回放
 
-React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用 **浏览器** 密钥发送，该密钥的 **允许的来源** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用：这是一个独立的密钥，不同于你的 OpenTelemetry SDK 使用的移动端密钥。 [在 React Native 中安装](/docs/telemetry/session-replay#在-react-native-中安装) 会逐步介绍。
+React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。它将原生视图树记录为线框，绝不记录屏幕截图或屏幕上的文字，其录制与 Web 录制在同一个播放器中打开。它使用与 OpenTelemetry SDK 相同的 **移动端** 密钥发送，以密钥的 **固定的服务名称** 作为 `appIdentifier`，因此应用只需附带一个密钥。 **允许的来源** 以 `app://` 加上 Android 应用 ID 或 iOS bundle ID 的形式列出你的应用的 **浏览器** 密钥也可以使用。 [在 React Native 中安装](/docs/telemetry/session-replay#在-react-native-中安装) 会逐步介绍。
 
 原生 Android 和 iOS 应用以及其他平台没有会话录制器：它们的 **会话回放** 页面保持为空，而追踪、日志、指标、异常和 **客户端** 页面照常工作。
 
@@ -298,7 +298,7 @@ React Native 应用可以使用 `@oneuptime/react-native-replay` 录制会话。
 :::details 密钥检查返回 401，或密钥被拒绝
 `401` 表示密钥未知、已撤销、已关闭或已过期：请创建一个移动端密钥，并用它重新构建应用。
 
-Browser 密钥能通过检查，但移动应用的每次导出都会被拒绝，返回 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` 。请使用 **移动端** 密钥。移动端密钥通过 gRPC 或从网页发送时也会以 `422` 被拒绝：请通过 OTLP/HTTP 导出。
+Browser 密钥能通过检查，但移动应用的每次导出都会被拒绝，返回 `422` 和 `This request did not send an Origin header, so it cannot be checked against the allowed origins of this browser ingestion key. Use a mobile ingestion key in a mobile app, and a server ingestion key on a server.` 。请使用 **移动端** 密钥。移动端密钥通过 gRPC 发送、从网页发送，或发送 `appIdentifier` 不是其 **固定的服务名称** 的会话回放时，也会以 `422` 被拒绝：请通过 OTLP/HTTP 导出，并把密钥的固定名称交给回放 SDK。
 :::
 
 :::details 应用出现在服务下，而不是真实用户监控下
