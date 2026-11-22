@@ -63,9 +63,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import NewPasswordRule from "../Utils/NewPasswordRule";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../Utils/TeamMember/PendingInviteeProfiles";
+import FeedPersonName from "../Utils/Feed/FeedPersonName";
 import {
   PASSWORD_RESET_LINK_CANNOT_BE_EMAILED_MESSAGE,
   RESET_PASSWORD_PAGE_ROUTE,
@@ -94,10 +92,7 @@ import { IsNull, MoreThan, UpdateResult } from "typeorm";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
-import FeedMarkdown, {
-  mdText,
-  MarkdownText,
-} from "../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import EmailChangeConfirmation, {
   EMAIL_CHANGE_LINK_EXPIRY_IN_HOURS,
 } from "../Utils/EmailChange/EmailChangeConfirmation";
@@ -381,69 +376,31 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * A person as every feed entry and channel line names them, in Markdown
+   * (FeedPersonName, the one place they are named): a member by their name,
+   * else the part of their address before the "@", linked to their page in
+   * the project; someone only invited to it by the name typed for them,
+   * else "someone who hasn't joined the project yet", as text - never by
+   * their account's own name (#9823) or any address (#10616, #10668,
+   * #10669). A line can be read beyond the project: its channels, and its
+   * feed through workflows and the API. Empty for nobody.
+   *
+   * Callers reach this through non-null assertions on nullable columns (an
+   * on-call timeline row for a coverage gap has no recipient, for example).
+   * Querying with an undefined id is not a harmless no-op - the id key is
+   * dropped from the WHERE clause, so the query degrades into "any user" and
+   * would name an arbitrary person - so none is asked.
+   */
   @CaptureSpan()
   public async getUserMarkdownString(data: {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<MarkdownText> {
-    /*
-     * Callers reach this through non-null assertions on nullable columns (an
-     * on-call timeline row for a coverage gap has no recipient, for example).
-     * Querying with an undefined id is not a harmless no-op — the id key is
-     * dropped from the WHERE clause, so the query degrades into "any user" and
-     * would name an arbitrary person. Fail closed instead.
-     */
-    if (!data.userId) {
-      return FeedMarkdown.empty();
-    }
-
-    const user: Model | null = await this.findOneBy({
-      query: {
-        _id: data.userId,
-      },
-      select: {
-        name: true,
-        email: true,
-      },
-      props: {
-        isRoot: true,
-      },
+    return await FeedPersonName.getMarkdown({
+      userId: data.userId,
+      projectId: data.projectId,
     });
-
-    if (!user) {
-      return FeedMarkdown.empty();
-    }
-
-    /*
-     * Someone only invited to the project is named as the project knows
-     * them - the name typed for them, else their address - never by their
-     * account's own name, which it does not see until they join (#9823).
-     * Whoever acted in the project has joined it, so only the people a line
-     * is about can be named so.
-     */
-    const withheld: Map<string, WithheldProfile> = data.projectId
-      ? await PendingInviteeProfiles.readWithheldProfilesInProject({
-          userIds: [data.userId.toString()],
-          projectId: data.projectId,
-        })
-      : new Map<string, WithheldProfile>();
-
-    /*
-     * A user's name is theirs to set, and it is placed inside the link's own
-     * text in feed items and chat messages, so every Markdown character in it
-     * is escaped: a "]" cannot end the text early and point the rest of the
-     * sentence somewhere else, "![...](...)" is no image, and "<!channel>"
-     * mentions nobody. The name still reads exactly as typed.
-     */
-    const displayName: string =
-      PendingInviteeProfiles.getNameInProject({
-        userId: data.userId,
-        name: user.name,
-        email: user.email,
-        withheld: withheld,
-      }) || "User";
-
-    return mdText`[${displayName}](${(await this.getUserLinkInDashboard(data.projectId, data.userId)).toString()})`;
   }
 
   /*

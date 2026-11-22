@@ -1,4 +1,5 @@
 import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { FEED_INVITEE_UNNAMED } from "../Feed/FeedPersonNameWords";
 
 /*
  * WHAT AN ON-CALL POLICY'S CHANNELS ARE TOLD OF ITS ROSTER, IN ONE LINE.
@@ -42,10 +43,10 @@ export type OnCallMomentText = (date: Date) => MarkdownText;
 /*
  * Who a line names for someone only invited to the project when no name
  * was typed with their invitation, or the name typed holds an address
- * (#10616): never their email address (OnCallChatByWorkspace.getInviteeName).
+ * (#10616): never their email address. Every feed entry and channel line
+ * says the same (FeedPersonName.getInviteeName).
  */
-export const ON_CALL_CHAT_INVITEE_UNNAMED: string =
-  "someone who hasn't joined the project yet";
+export const ON_CALL_CHAT_INVITEE_UNNAMED: string = FEED_INVITEE_UNNAMED;
 
 // Why somebody a schedule's rotation reaches is paged by nothing (#10586).
 export enum OnCallNotPagedBecause {

@@ -11,7 +11,7 @@ import FeedMarkdown, {
 import DatabaseConfig from "../../DatabaseConfig";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import logger from "../Logger";
-import OnCallChatByWorkspace from "../OnCall/OnCallChatByWorkspace";
+import FeedPersonName from "../Feed/FeedPersonName";
 import OnCallChatText, {
   OnCallNotPagedBecause,
 } from "../OnCall/OnCallChatText";
@@ -46,7 +46,7 @@ import WorkspaceMessageTime from "./WorkspaceMessageTime";
  * channel included. So someone only invited to the project (#10412) is
  * named as every on-call line names them (#10616): by the name typed with
  * their invitation, else "someone who hasn't joined the project yet" -
- * never their email address (OnCallChatByWorkspace.getInviteeName). And
+ * never their email address (FeedPersonName.getInviteeName). And
  * nothing pages them until they join, so their turn is said as the gap it
  * is, in the words the schedule's hand-off said it in (#10586):
  *
@@ -396,7 +396,8 @@ export default class WorkspaceOnCallNow {
    * by the name typed for them, else "someone who hasn't joined the project
    * yet" - never the address they were invited at, which the asker's own
    * read shows of them (#10175, #10616); anyone else by their name, else
-   * their address.
+   * the part of their address before the "@" (#10669): a Teams answer is
+   * posted in the conversation, a channel included (FeedPersonName).
    */
   private static toPerson(
     user: User | undefined | null,
@@ -417,17 +418,19 @@ export default class WorkspaceOnCallNow {
     if (profile) {
       return {
         id: id,
-        name: OnCallChatByWorkspace.getInviteeName(profile),
+        name: FeedPersonName.getInviteeName(profile),
         invitee: {
-          displayName: OnCallChatByWorkspace.getDisplayName(
+          displayName: FeedPersonName.getDisplayName(
             profile.inviteeName,
           ),
         },
       };
     }
 
-    const name: string =
-      user.name?.toString().trim() || user.email?.toString().trim() || "";
+    const name: string = FeedPersonName.getMemberName({
+      name: user.name,
+      email: user.email,
+    });
 
     return { id: id, name: name || "Someone", invitee: null };
   }

@@ -16,16 +16,14 @@ import UserService from "../../Services/UserService";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../Services/WorkspaceUserAuthTokenService";
 import logger, { LogAttributes } from "../Logger";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, {
+  FEED_NOBODY_NAMED,
+  FeedPersonStanding,
+} from "../Feed/FeedPersonName";
 import WorkspaceUtil from "../Workspace/Workspace";
 import WorkspaceMentions from "../Workspace/WorkspaceMentions";
 import WorkspaceMessageTime from "../Workspace/WorkspaceMessageTime";
-import {
-  ON_CALL_CHAT_INVITEE_UNNAMED,
-  OnCallMomentText,
-} from "./OnCallChatText";
+import { OnCallMomentText } from "./OnCallChatText";
 
 /*
  * AN ON-CALL LINE, AS EACH CONNECTED WORKSPACE READS IT (issues #7549,
@@ -63,23 +61,23 @@ import {
  * lines name them. It never throws: a line it cannot write for a workspace
  * is left out, and that workspace hears the line with OneUptime's names.
  *
- * SOMEONE ONLY INVITED IS NEVER NAMED BY THEIR EMAIL ADDRESS (#10616). An
- * escalation rule, a schedule's layer, an override or an owner can name
- * someone invited who has not joined the project yet (#10412). A channel
- * can be read by people outside the project - a shared channel, a guest -
- * and so can the policy's feed: its entries are posted to the channels,
- * and workflows and the API take them anywhere. Someone pending has not
- * joined the project, so every on-call line names them by the name typed
- * with their invitation (never their account's own, #9823) and, with no
- * name typed or one that holds an address, as "someone who hasn't joined
- * the project yet" (ON_CALL_CHAT_INVITEE_UNNAMED): the rule a hand-off's
- * coverage gap already followed (#10586). Every on-call line names its
- * people through nameIn - each workspace's line, the line for workspaces
- * with none of their own and the policy's feed (nameIn(null)) alike - so a
- * new line cannot name them any other way (OnCallLinesNamePeopleInOnePlace
- * Guard). Whether someone is only invited is read once per person per
- * change. A member is named as before: by their name, else by the address
- * the project knows them by.
+ * NOBODY IS NAMED BY THEIR EMAIL ADDRESS (#10616, #10669). An escalation
+ * rule, a schedule's layer, an override or an owner can name someone
+ * invited who has not joined the project yet (#10412). A channel can be
+ * read by people outside the project - a shared channel, a guest - and so
+ * can the policy's feed: its entries are posted to the channels, and
+ * workflows and the API take them anywhere. Every on-call line names its
+ * people as every feed entry and channel line of OneUptime does
+ * (FeedPersonName): someone pending by the name typed with their
+ * invitation (never their account's own, #9823), else as "someone who
+ * hasn't joined the project yet"; a member by their name, else by the part
+ * of their address before the "@". The coverage-gap lines keep their own
+ * wording (#10586). Every on-call line names its people through nameIn -
+ * each workspace's line, the line for workspaces with none of their own and
+ * the policy's feed (nameIn(null)) alike - so a new line cannot name them
+ * any other way (OnCallLinesNamePeopleInOnePlaceGuard). Whether someone is
+ * only invited is read once per person per change, for every line and
+ * workspace of it.
  */
 
 // How a person is named in a line.
@@ -115,19 +113,8 @@ export interface OnCallChatLines {
   mentions: OnCallChatMentionsByWorkspaceType;
 }
 
-// Who a line names when OneUptime has no name for them.
-export const ON_CALL_CHAT_NOBODY_NAMED: string = "Somebody";
-
-/*
- * Whether somebody a line names is only invited to the project: with the
- * name a line says for them, or not invited. Null when it could not be read.
- */
-type OnCallInviteeStanding =
-  | { isInvited: true; name: string }
-  | {
-      isInvited: false;
-    }
-  | null;
+// Who a line names when OneUptime has no name for them (FeedPersonName).
+export const ON_CALL_CHAT_NOBODY_NAMED: string = FEED_NOBODY_NAMED;
 
 export default class OnCallChatByWorkspace {
   private readonly projectId: ObjectID;
@@ -138,8 +125,8 @@ export default class OnCallChatByWorkspace {
     string,
     Promise<MarkdownText>
   >();
-  private readonly invitees: Map<string, Promise<OnCallInviteeStanding>> =
-    new Map<string, Promise<OnCallInviteeStanding>>();
+  // Who of the people the change names is only invited, each read once.
+  private readonly people: FeedPersonName;
   private readonly mentions: Map<
     string,
     Promise<WorkspacePayloadMention | null>
@@ -160,6 +147,7 @@ export default class OnCallChatByWorkspace {
     onCallDutyPolicyId?: ObjectID | null | undefined;
   }) {
     this.projectId = data.projectId;
+    this.people = new FeedPersonName({ projectId: data.projectId });
     this.onCallDutyPolicyId = data.onCallDutyPolicyId || null;
     this.timezone =
       data.timezone || !this.onCallDutyPolicyId
@@ -186,8 +174,8 @@ export default class OnCallChatByWorkspace {
    * name, a link to their page - and, with no workspace, how OneUptime
    * names them: in the line for workspaces with no line of their own, and
    * in the policy's feed. Someone only invited is named the same in all of
-   * them: by the name typed for them, else ON_CALL_CHAT_INVITEE_UNNAMED, as
-   * text. Asked once for each person in each workspace.
+   * them: by the name typed for them, else FEED_INVITEE_UNNAMED, as text.
+   * Asked once for each person in each workspace.
    */
   public nameIn(workspaceType: WorkspaceType | null): OnCallNameOf {
     return (userId: ObjectID): Promise<MarkdownText> => {
@@ -333,26 +321,13 @@ export default class OnCallChatByWorkspace {
   }
 
   /*
-   * A name an on-call line may say of somebody it must never name by their
-   * email address: trimmed, and none when it is empty or holds an address -
-   * an inviter can type one as the name (#10586).
+   * Whether somebody the change names is only invited to the project, and
+   * the name its lines say for them (FeedPersonName.getStanding): read once
+   * for every line and workspace of the change. Null when it could not be
+   * read. An override says so of its cover (#10670).
    */
-  public static getDisplayName(name: string | null | undefined): string {
-    const trimmed: string = (name || "").trim();
-
-    return trimmed.includes("@") ? "" : trimmed;
-  }
-
-  /*
-   * How every on-call line names someone only invited to the project
-   * (#10616): the name typed with their invitation, else "someone who
-   * hasn't joined the project yet" - never an address.
-   */
-  public static getInviteeName(profile: WithheldProfile): string {
-    return (
-      OnCallChatByWorkspace.getDisplayName(profile.inviteeName) ||
-      ON_CALL_CHAT_INVITEE_UNNAMED
-    );
+  public getStanding(userId: ObjectID): Promise<FeedPersonStanding> {
+    return this.people.getStanding(userId);
   }
 
   /*
@@ -501,7 +476,12 @@ export default class OnCallChatByWorkspace {
     }
   }
 
-  // A person's name in OneUptime: their name, else their email address.
+  /*
+   * A person's name in OneUptime, for a mention to show: their name, else
+   * the part of their address before the "@" - never the address itself, a
+   * channel's to read (FeedPersonName.getMemberName). Only a member is
+   * mentioned: they connected their account.
+   */
   private async readOneUptimeName(userId: ObjectID): Promise<string> {
     const user: User | null = await UserService.findOneById({
       id: userId,
@@ -514,67 +494,17 @@ export default class OnCallChatByWorkspace {
       },
     });
 
-    return user?.name?.toString() || user?.email?.toString() || "";
-  }
-
-  /*
-   * Whether somebody is only invited to the project, read once for every
-   * line and workspace of the change.
-   */
-  private getInviteeStanding(userId: ObjectID): Promise<OnCallInviteeStanding> {
-    const key: string = userId.toString().toLowerCase();
-    let standing: Promise<OnCallInviteeStanding> | undefined =
-      this.invitees.get(key);
-
-    if (!standing) {
-      standing = this.readInviteeStanding(userId);
-      this.invitees.set(key, standing);
-    }
-
-    return standing;
-  }
-
-  private async readInviteeStanding(
-    userId: ObjectID,
-  ): Promise<OnCallInviteeStanding> {
-    try {
-      const withheld: Map<string, WithheldProfile> =
-        await PendingInviteeProfiles.readWithheldProfilesInProject({
-          userIds: [userId.toString()],
-          projectId: this.projectId,
-        });
-
-      const profile: WithheldProfile | undefined =
-        PendingInviteeProfiles.getWithheldProfile({
-          userId: userId,
-          withheld: withheld,
-        });
-
-      return profile
-        ? {
-            isInvited: true,
-            name: OnCallChatByWorkspace.getInviteeName(profile),
-          }
-        : { isInvited: false };
-    } catch (err) {
-      logger.error(
-        "Could not read whether somebody an on-call line names is only invited to the project; the line names them as Somebody.",
-        { projectId: this.projectId.toString() } as LogAttributes,
-      );
-      logger.error(err, {
-        projectId: this.projectId.toString(),
-      } as LogAttributes);
-
-      return null;
-    }
+    return FeedPersonName.getMemberName({
+      name: user?.name,
+      email: user?.email,
+    });
   }
 
   private async readName(
     workspaceType: WorkspaceType | null,
     userId: ObjectID,
   ): Promise<MarkdownText> {
-    const invitee: OnCallInviteeStanding =
-      await this.getInviteeStanding(userId);
+    const invitee: FeedPersonStanding = await this.getStanding(userId);
 
     // Unread, they may be only invited: no name that could be their address.
     if (!invitee) {
@@ -586,20 +516,20 @@ export default class OnCallChatByWorkspace {
       return mdText`${invitee.name}`;
     }
 
-    const name: string = workspaceType
-      ? (
-          await WorkspaceUtil.getUserStringForWorkspace({
-            userId: userId,
-            projectId: this.projectId,
-            workspaceType: workspaceType,
-          })
-        ).trim()
-      : (
-          await UserService.getUserMarkdownString({
-            userId: userId,
-            projectId: this.projectId,
-          })
-        ).toString();
+    // OneUptime's name: in the feed, and for workspaces with no line of their own.
+    if (!workspaceType) {
+      const name: MarkdownText = await this.people.nameOf(userId);
+
+      return name.isEmpty() ? mdText`${ON_CALL_CHAT_NOBODY_NAMED}` : name;
+    }
+
+    const name: string = (
+      await WorkspaceUtil.getUserStringForWorkspace({
+        userId: userId,
+        projectId: this.projectId,
+        workspaceType: workspaceType,
+      })
+    ).trim();
 
     return name
       ? FeedMarkdown.asMarkdown(name)
