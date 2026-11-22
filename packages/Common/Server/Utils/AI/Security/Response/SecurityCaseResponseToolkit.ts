@@ -113,7 +113,8 @@ import { ResponderIntent } from "./SecurityCaseResponsePlanner";
 export interface ToolkitCase {
   projectId: ObjectID;
   securityCase: SecurityCase;
-  aiRunId: ObjectID;
+  // The look's run; none for a decision a person made on the card.
+  aiRunId?: ObjectID | undefined;
   limits: SecurityCaseAiLimits;
   values: ProjectSecurityCaseValues;
   matches: SecurityCaseMatchesJson | null;
@@ -788,10 +789,10 @@ export default class SecurityCaseResponseToolkit {
       }
 
       case SecurityCaseAiActionKind.MarkStepDone: {
-        await this.tickStep(data, intent.stepKey);
+        await this.tickStep(data, intent.stepKey, intent.stepTitle);
 
         await this.writeFeed(data, {
-          markdown: mdText`🤖 **${getAiName()} marked a step done:** ${this.getStepWords(data, intent.stepKey)}`,
+          markdown: mdText`🤖 **${getAiName()} marked a step done:** ${intent.stepTitle || this.getStepWords(data, intent.stepKey)}`,
           details: this.getCheckDetails(intent),
         });
         break;
@@ -818,6 +819,7 @@ export default class SecurityCaseResponseToolkit {
   private static async tickStep(
     data: ToolkitCase,
     stepKey: string,
+    stepTitle?: string | undefined,
   ): Promise<void> {
     const existing: SecurityCaseTask | null =
       await SecurityCaseTaskService.findOneBy({
@@ -844,7 +846,8 @@ export default class SecurityCaseResponseToolkit {
     const task: SecurityCaseTask = new SecurityCaseTask();
     task.projectId = data.projectId;
     task.securityCaseId = data.securityCase.id!;
-    task.title = this.getStepWords(data, stepKey).slice(0, 500) || stepKey;
+    task.title =
+      (stepTitle || this.getStepWords(data, stepKey)).slice(0, 500) || stepKey;
     task.responseStepKey = stepKey;
     task.isDone = true;
 
@@ -925,7 +928,11 @@ export default class SecurityCaseResponseToolkit {
     const row: SecurityCaseAiAction = new SecurityCaseAiAction();
     row.projectId = data.projectId;
     row.securityCaseId = data.securityCase.id!;
-    row.aiRunId = data.aiRunId;
+
+    if (data.aiRunId) {
+      row.aiRunId = data.aiRunId;
+    }
+
     row.kind = intent.kind;
     row.reason = intent.reason;
     row.stepKey = intent.stepKey.slice(0, 100);
@@ -949,7 +956,23 @@ export default class SecurityCaseResponseToolkit {
       row.detectionRuleId = new ObjectID(intent.detectionRuleId);
     }
 
-    row.evidence = toSecurityCaseAiActionEvidenceJson(this.getEvidence(intent));
+    const step: ResponseStep | undefined = data.stepsByKey.get(intent.stepKey);
+
+    row.evidence = toSecurityCaseAiActionEvidenceJson({
+      ...this.getEvidence(intent),
+      ...(step
+        ? {
+            step: {
+              template:
+                typeof step.text.template === "string"
+                  ? step.text.template
+                  : "",
+              values: step.text.values,
+              ...(step.ruleText ? { ruleText: step.ruleText } : {}),
+            },
+          }
+        : {}),
+    });
 
     if (intent.report) {
       row.report = intent.report;

@@ -33,7 +33,20 @@ export interface SecurityCaseAiTrackRecord {
   held: number;
 }
 
+/*
+ * The Response Plan step a row is about, as the plan words it: its English
+ * key and values, or the rule author's own words - so the card names the
+ * step in the reader's language without building the plan again.
+ */
+export interface SecurityCaseAiActionStepText {
+  template: string;
+  values: Record<string, string>;
+  // The rule author's own words for one of the rule's steps, drawn as written.
+  ruleText?: string | undefined;
+}
+
 export interface SecurityCaseAiActionEvidence {
+  step?: SecurityCaseAiActionStepText | undefined;
   check?:
     | {
         state: SecurityCaseStepCheckState;
@@ -54,6 +67,7 @@ export interface SecurityCaseAiActionEvidence {
 export const SECURITY_CASE_AI_EVIDENCE_MAX_STEP_KEYS: number = 20;
 
 const MAX_ERROR_LENGTH: number = 500;
+const MAX_STEP_VALUE_LENGTH: number = 1000;
 
 function readWholeNumber(value: JSONValue | undefined): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 0
@@ -72,6 +86,40 @@ export function readSecurityCaseAiActionEvidence(
   }
 
   const raw: JSONObject = value as JSONObject;
+  const step: JSONValue | undefined = raw["step"];
+
+  if (step && typeof step === "object" && !Array.isArray(step)) {
+    const template: JSONValue | undefined = (step as JSONObject)["template"];
+    const rawValues: JSONValue | undefined = (step as JSONObject)["values"];
+    const ruleText: JSONValue | undefined = (step as JSONObject)["ruleText"];
+    const values: Record<string, string> = {};
+
+    if (
+      rawValues &&
+      typeof rawValues === "object" &&
+      !Array.isArray(rawValues)
+    ) {
+      for (const [key, entry] of Object.entries(rawValues as JSONObject)) {
+        if (typeof entry === "string") {
+          values[key] = entry.slice(0, MAX_STEP_VALUE_LENGTH);
+        }
+      }
+    }
+
+    if (
+      typeof template === "string" &&
+      (template || typeof ruleText === "string")
+    ) {
+      evidence.step = {
+        template,
+        values,
+        ...(typeof ruleText === "string" && ruleText
+          ? { ruleText: ruleText.slice(0, MAX_STEP_VALUE_LENGTH) }
+          : {}),
+      };
+    }
+  }
+
   const check: JSONValue | undefined = raw["check"];
 
   if (check && typeof check === "object" && !Array.isArray(check)) {

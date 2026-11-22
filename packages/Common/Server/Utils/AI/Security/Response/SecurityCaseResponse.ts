@@ -4,6 +4,7 @@ import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import { InvestigationNotStartedCode } from "../../../../../Types/AI/InvestigationNotStartedReason";
+import { SecurityCaseResponseNotStartedCode } from "../../../../../Types/SecurityCase/SecurityCaseAiWords";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../../Types/Date";
@@ -60,54 +61,13 @@ import SecurityCaseResponseLook from "./SecurityCaseResponseLook";
  * the case to people, saying why: it never stands down quietly.
  */
 
-export type SecurityCaseResponseNotStartedCode =
-  | "ai_disabled"
-  | "response_disabled"
-  | "provider_missing"
-  | "insufficient_ai_balance"
-  | "project_daily_limit_reached"
-  | "already_working"
-  | "case_closed"
-  | "not_triaged"
-  | "inconclusive"
-  | "steering_text"
-  | "highest_priority"
-  | "not_enqueued"
-  | "eligibility_check_failed";
-
 /*
- * What each reason says, for the card and the API. The card words them in
- * the reader's language from the code; these are the English.
+ * Why OneUptime AI does not work a case, and what each reason says: shared
+ * words (Types/SecurityCase/SecurityCaseAiWords), so the card says them in
+ * the reader's language.
  */
-export const SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES: Record<
-  SecurityCaseResponseNotStartedCode,
-  string
-> = {
-  ai_disabled:
-    "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features.",
-  response_disabled:
-    "OneUptime AI does not work security cases in this project. Turn it on in Security Events → AI → Settings.",
-  provider_missing:
-    "No LLM provider is set up for OneUptime AI. Add one in Project Settings → AI → LLM Providers.",
-  insufficient_ai_balance:
-    "The project is out of AI credits. Add credits in Project Settings → AI → AI Credits.",
-  project_daily_limit_reached:
-    "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
-  already_working: "OneUptime AI is already working this case.",
-  case_closed: "This case is closed.",
-  not_triaged:
-    "OneUptime AI has not triaged this case yet. Triage it first, then ask it to respond.",
-  inconclusive:
-    "OneUptime AI's triage could not tell whether this case is real, so a person has to decide.",
-  steering_text:
-    "Some of this case's data reads like instructions to an AI, so OneUptime AI leaves it to a person.",
-  highest_priority:
-    "This case is at your highest priority, so a person works it.",
-  not_enqueued:
-    "OneUptime AI could not start right now. Try again in a few minutes.",
-  eligibility_check_failed:
-    "OneUptime AI could not check whether it can work this case. Try again in a few minutes.",
-};
+export type { SecurityCaseResponseNotStartedCode } from "../../../../../Types/SecurityCase/SecurityCaseAiWords";
+export { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "../../../../../Types/SecurityCase/SecurityCaseAiWords";
 
 export type SecurityCaseResponseStartResult =
   | { started: true; runId: ObjectID }

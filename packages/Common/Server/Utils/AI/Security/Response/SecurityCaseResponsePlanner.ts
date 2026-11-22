@@ -160,6 +160,8 @@ export interface ResponderIntent {
   report?: string | undefined;
   // How often the same action held on cases like this one.
   trackRecord?: SecurityCaseAiTrackRecord | undefined;
+  // The step's words in English, when the plan is not at hand (a decision made on the card).
+  stepTitle?: string | undefined;
 }
 
 // What a look leaves OneUptime AI waiting for.

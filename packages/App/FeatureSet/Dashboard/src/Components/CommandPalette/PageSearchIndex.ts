@@ -2756,6 +2756,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "triage new cases",
               "oneuptime ai security",
               "automatic triage",
+              "automatic response",
+              "ai response",
+              "block on its own",
+            ],
+            settings: [
+              "Work cases end to end",
+              "What OneUptime AI may do on a case",
             ],
           },
         ],

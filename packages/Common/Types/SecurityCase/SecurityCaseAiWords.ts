@@ -151,7 +151,7 @@ export const SECURITY_CASE_AI_ACTION_REASON_SENTENCES: Readonly<
     "This always waits for a person, whatever your settings say.",
   ),
   [SecurityCaseAiActionReason.EdgeNotCleared]: translationKey(
-    "Edge is set to On its own, but no Security Admin has confirmed it yet, so it asks.",
+    "Block addresses is set to On its own, but no Security Admin has confirmed it yet, so it asks.",
   ),
   [SecurityCaseAiActionReason.SettingOff]: translationKey(
     "Your settings leave this to a person.",
@@ -243,3 +243,66 @@ export const SECURITY_CASE_HAND_OFF_SENTENCES: Readonly<
 // The breaker's limit, as its sentence would name it.
 export const SECURITY_CASE_AI_BREAKER_LIMIT: number =
   SECURITY_CASE_AI_ACTIONS_ON_ITS_OWN_PER_HOUR;
+
+/*
+ * WHY ONEUPTIME AI DOES NOT WORK A CASE: the reasons a person's Respond with
+ * AI is turned down, or OneUptime AI does not take up a case after its
+ * triage (Server/Utils/AI/Security/Response/SecurityCaseResponse), and what
+ * each says - on the case's AI card, in the reader's language.
+ */
+export type SecurityCaseResponseNotStartedCode =
+  | "ai_disabled"
+  | "response_disabled"
+  | "provider_missing"
+  | "insufficient_ai_balance"
+  | "project_daily_limit_reached"
+  | "already_working"
+  | "case_closed"
+  | "not_triaged"
+  | "inconclusive"
+  | "steering_text"
+  | "highest_priority"
+  | "not_enqueued"
+  | "eligibility_check_failed";
+
+// What each reason says, for the card and the API.
+export const SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES: Record<
+  SecurityCaseResponseNotStartedCode,
+  string
+> = {
+  ai_disabled: translationKey(
+    "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features.",
+  ),
+  response_disabled: translationKey(
+    "OneUptime AI does not work security cases in this project. Turn it on in Security Events → AI → Settings.",
+  ),
+  provider_missing: translationKey(
+    "No LLM provider is set up for OneUptime AI. Add one in Project Settings → AI → LLM Providers.",
+  ),
+  insufficient_ai_balance: translationKey(
+    "The project is out of AI credits. Add credits in Project Settings → AI → AI Credits.",
+  ),
+  project_daily_limit_reached: translationKey(
+    "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+  ),
+  already_working: translationKey("OneUptime AI is already working this case."),
+  case_closed: translationKey("This case is closed."),
+  not_triaged: translationKey(
+    "OneUptime AI has not triaged this case yet. Triage it first, then ask it to respond.",
+  ),
+  inconclusive: translationKey(
+    "OneUptime AI's triage could not tell whether this case is real, so a person has to decide.",
+  ),
+  steering_text: translationKey(
+    "Some of this case's data reads like instructions to an AI, so OneUptime AI leaves it to a person.",
+  ),
+  highest_priority: translationKey(
+    "This case is at your highest priority, so a person works it.",
+  ),
+  not_enqueued: translationKey(
+    "OneUptime AI could not start right now. Try again in a few minutes.",
+  ),
+  eligibility_check_failed: translationKey(
+    "OneUptime AI could not check whether it can work this case. Try again in a few minutes.",
+  ),
+};

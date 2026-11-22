@@ -780,13 +780,17 @@ export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
  * Security Events → AI → Settings: what OneUptime AI does on its own for
- * security cases. One switch, saved the moment it is flipped: triaging each
- * case a detection opens. On for new projects (ProjectService
- * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps it off until
- * someone turns it on here. A person can ask for a triage on any case's AI
- * card whatever it says.
+ * security cases. Two switches, each saved the moment it is flipped:
+ * triaging each case a detection opens, and working a case its triage reads
+ * as Likely Malicious end to end (#10352) - within what the card under them
+ * allows (SecurityCaseAiLimitsCopy). Both on for new projects (ProjectService
+ * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps them off
+ * until someone turns them on here. A person can ask for a triage, or for
+ * OneUptime AI to work the case, on any case's AI card whatever they say.
  */
-export type SecurityAiSwitchColumn = "enableAutomaticSecurityCaseTriage";
+export type SecurityAiSwitchColumn =
+  | "enableAutomaticSecurityCaseTriage"
+  | "enableAutomaticSecurityCaseResponse";
 
 export const SECURITY_AI_SWITCHES: Array<
   ProjectAiSwitchDefinition<SecurityAiSwitchColumn>
@@ -796,6 +800,13 @@ export const SECURITY_AI_SWITCHES: Array<
     title: translationKey("Triage new cases"),
     description: translationKey(
       "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    ),
+  },
+  {
+    column: "enableAutomaticSecurityCaseResponse",
+    title: translationKey("Work cases end to end"),
+    description: translationKey(
+      "OneUptime AI takes each case its triage reads as Likely Malicious and works it, within what you allow below.",
     ),
   },
 ];
