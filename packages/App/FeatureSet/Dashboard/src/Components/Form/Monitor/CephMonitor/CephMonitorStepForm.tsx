@@ -149,6 +149,9 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   const resources: InfrastructureResources<CephCluster> =
     useInfrastructureResources<CephCluster>({
+      valueField: "name",
+      searchFields: ["name"],
+      heldValue: monitorStepCephMonitor.clusterIdentifier,
       modelType: CephCluster,
       select: {
         _id: true,
@@ -343,6 +346,7 @@ const CephMonitorStepForm: FunctionComponent<ComponentProps> = (
         onChange={changeResource}
         isLoading={resources.isLoading}
         lastSeenAtByValue={resources.lastSeenAtByValue}
+        onSearchTextChange={resources.onSearchTextChange}
         addResource={{
           title: CEPH_CLUSTER_ONBOARDING.addTitle,
           renderModal: (input: {

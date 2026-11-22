@@ -434,6 +434,38 @@ export const getFormTargetSettingReferences: GetFormTargetSettingReferencesFunct
     return references;
   };
 
+// A setting that names records: its key, the kind it names, one or a list.
+export interface FormTargetSettingReferenceKey {
+  key: string;
+  model: FormTargetSettingReferenceModel;
+  kind: "id" | "ids";
+}
+
+export type GetFormTargetSettingReferenceKeysFunction = (
+  targetType: FormTargetType,
+) => Array<FormTargetSettingReferenceKey>;
+
+// The settings of a target that name records, in their order.
+export const getFormTargetSettingReferenceKeys: GetFormTargetSettingReferenceKeysFunction =
+  (targetType: FormTargetType): Array<FormTargetSettingReferenceKey> => {
+    const keys: Array<FormTargetSettingReferenceKey> = [];
+
+    for (const definition of SETTINGS_BY_TARGET[targetType] || []) {
+      if (
+        definition.model &&
+        (definition.kind === "id" || definition.kind === "ids")
+      ) {
+        keys.push({
+          key: definition.key,
+          model: definition.model,
+          kind: definition.kind,
+        });
+      }
+    }
+
+    return keys;
+  };
+
 export type GetFormTargetSettingKeysFunction = (
   targetType: FormTargetType,
 ) => Array<string>;

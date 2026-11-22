@@ -1,8 +1,10 @@
+import {
+  TELEMETRY_SERVICE_PICKER,
+  INFRASTRUCTURE_ENTITY_PICKER,
+} from "../TelemetryScopePickers";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import Service from "Common/Models/DatabaseModels/Service";
-import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import React, { FunctionComponent, ReactElement } from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -46,8 +48,6 @@ export interface ComponentProps {
     monitorStepTraceMonitor: MonitorStepTraceMonitor,
   ) => void;
   attributeKeys: Array<string>;
-  telemetryServices: Array<Service>;
-  telemetryEntities?: Array<InventoryItem> | undefined;
   isLoadingAttributeKeys?: boolean | undefined;
   attributeValueSuggestions?: Record<string, Array<string>> | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
@@ -110,16 +110,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               telemetryServiceIds: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: props.telemetryServices.map(
-              (telemetryService: Service) => {
-                return {
-                  label: telemetryService.name!,
-                  value: telemetryService.id?.toString() || "",
-                  // A service's name is its owner's, drawn as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: TELEMETRY_SERVICE_PICKER,
             title: "Filter by Service",
             description:
               "Only spans from these services. Empty: every service.",
@@ -131,20 +122,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               entityKeys: true,
             },
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownOptions: (props.telemetryEntities || []).map(
-              (telemetryEntity: InventoryItem) => {
-                return {
-                  label: `${
-                    telemetryEntity.displayName ||
-                    telemetryEntity.entityKey ||
-                    ""
-                  } (${telemetryEntity.entityType || ""})`,
-                  value: telemetryEntity.entityKey || "",
-                  // What the resource is called in its telemetry: as written.
-                  isUserContent: true,
-                };
-              },
-            ),
+            dropdownModal: INFRASTRUCTURE_ENTITY_PICKER,
             title: "Filter by Infrastructure Entity",
             description:
               "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.",
