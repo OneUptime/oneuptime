@@ -6,11 +6,13 @@ import AuditLogReadAccess from "../../../../../Server/Utils/AuditLog/AuditLogRea
 import AuditRecordNameReaders from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/AuditRecordNameReaders";
 import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import AllDatabaseModelTypes from "../../../../../Models/DatabaseModels/Index";
-import { DatabaseBaseModelType } from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AuditLogAction from "../../../../../Types/AuditLog/AuditLogAction";
 import Permission from "../../../../../Types/Permission";
 import NormalizedSecurityEvent from "../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
-import { getAuditLogResourceTypeSpellings } from "../../../../../Utils/AuditLog/AuditLogResourceTypes";
+import { getAuditLogResourceTypesOfModel } from "../../../../../Utils/AuditLog/AuditLogResourceTypes";
 import {
   AUDIT_ATTRIBUTES,
   AUDIT_SECURITY_RESOURCE_TYPES,
@@ -80,20 +82,22 @@ const DECIDED: Record<
 
 const ALL_ACTIONS: Array<string> = Object.values(AuditLogAction);
 
-// Every type an audit log entry can be stored under: each model's, in each spelling.
+/*
+ * Every type an audit log entry can be stored under: each model's, in each
+ * spelling, and the name it had before it was renamed, which its older
+ * entries carry (#10664).
+ */
 function everyStoredResourceType(): Array<string> {
   const types: Set<string> = new Set<string>();
 
   for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
-    const resourceType: string | null = AuditLogReadAccess.getResourceTypeOf(
-      new modelType(),
-    );
+    const model: BaseModel = new modelType();
 
-    if (!resourceType) {
+    if (!AuditLogReadAccess.getResourceTypeOf(model)) {
       continue;
     }
 
-    for (const spelling of getAuditLogResourceTypeSpellings(resourceType)) {
+    for (const spelling of getAuditLogResourceTypesOfModel(model)) {
       types.add(spelling);
     }
   }
