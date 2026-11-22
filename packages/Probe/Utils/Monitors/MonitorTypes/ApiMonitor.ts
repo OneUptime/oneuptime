@@ -194,6 +194,22 @@ export default class ApiMonitor {
     };
   }
 
+  /*
+   * A response as a log line writes it: without the request's headers and
+   * body. The server filled the monitor's secrets into both before it
+   * handed the probe the check, and the logger's redaction knows a secret
+   * only by the name of the field that holds it - a token in an
+   * "X-Tenant" header, or a password in a body's "pass", went into the
+   * log as it was (#10735).
+   */
+  private static writeForLog(response: APIResponse): string {
+    return JSON.stringify({
+      ...response,
+      requestHeaders: undefined,
+      requestBody: undefined,
+    });
+  }
+
   public static async ping(
     url: URL,
     options: {
@@ -709,7 +725,7 @@ export default class ApiMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText} Response: ${JSON.stringify(
+        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
           apiResponse,
         )}`,
         EXTERNAL_FAULT,

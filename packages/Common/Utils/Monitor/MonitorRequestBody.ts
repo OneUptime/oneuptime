@@ -5,6 +5,11 @@ import {
 import Dictionary from "../../Types/Dictionary";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import { translationKey } from "../../Types/Translator";
+import {
+  TemplatePlaceholder,
+  findTemplatePlaceholders,
+} from "../TemplatePlaceholders";
+import { getReferencedName } from "./MonitorSecretReferences";
 import JSON5 from "json5";
 
 /*
@@ -34,6 +39,9 @@ import JSON5 from "json5";
  *     server (MonitorStepsValuesUtil). The code editor of the form's field
  *     judges the body with the same check, so its status line and the form
  *     never disagree.
+ *   - fillPlaceholders (the server, as it fills in the monitor's secrets):
+ *     each {{...}} written as its place in the body needs it - escaped
+ *     inside a JSON string, as it is anywhere else (#10735).
  *   - read and isSentAsForm (the probe, as each attempt is sent): what the
  *     request carries, once the server has filled in the monitor's secrets
  *     and the probe its one-time codes - or that it is not JSON, and the
@@ -61,6 +69,53 @@ const FORM_CONTENT_TYPES: ReadonlyArray<string> = [
   "application/x-www-form-urlencoded",
   "multipart/form-data",
 ];
+
+/*
+ * Where a placeholder stands in a body: inside a string, and the quote that
+ * opened it - JSON's ", or the ' JSON5 also reads - or on its own (null).
+ */
+type PlaceholderQuote = '"' | "'" | null;
+
+// What a body's own text is, at a point in it.
+enum BodyTextState {
+  Value = "value",
+  String = "string",
+  LineComment = "line comment",
+  BlockComment = "block comment",
+}
+
+// Built from their code points: written as they are, a tool reads each as a line break.
+const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
+const PARAGRAPH_SEPARATOR: string = String.fromCharCode(0x2029);
+
+const LINE_TERMINATORS: ReadonlyArray<string> = [
+  "\n",
+  "\r",
+  LINE_SEPARATOR,
+  PARAGRAPH_SEPARATOR,
+];
+
+/*
+ * A value as text inside a string opened by `quote`: what JSON.stringify
+ * writes between its quotes - a quote, a backslash and every control
+ * character escaped, anything else as it is - with a single quote escaped
+ * too inside a JSON5 string opened by one. The line and paragraph
+ * separators are escaped as well: JSON reads them either way, and JSON5
+ * warns of one it finds as it is.
+ */
+const escapeForString: (value: string, quote: '"' | "'") => string = (
+  value: string,
+  quote: '"' | "'",
+): string => {
+  const escaped: string = JSON.stringify(value)
+    .slice(1, -1)
+    .split(LINE_SEPARATOR)
+    .join("\\u2028")
+    .split(PARAGRAPH_SEPARATOR)
+    .join("\\u2029");
+
+  return quote === '"' ? escaped : escaped.split("'").join("\\'");
+};
 
 // A body read for sending.
 export type MonitorRequestBodyReading =
@@ -151,6 +206,164 @@ export default class MonitorRequestBody {
     return MonitorRequestBody.getProblem(data.requestBody)
       ? REQUEST_BODY_NOT_JSON_MESSAGE
       : null;
+  }
+
+  /*
+   * A body with its {{...}} placeholders filled in: each one getValue gives
+   * a value for, the rest left as written (#10735).
+   *
+   * A value is text, and where it lands decides how it is written. In a
+   * body that is JSON once its placeholders are filled in (getProblem):
+   *
+   *   - a placeholder inside a string - "password": "{{monitorSecrets.P}}"
+   *     - is written escaped for that string, so a value holding a quote, a
+   *     backslash or a line break stays one string. The server used to
+   *     write every value as it is, so a password ab"c ended the string
+   *     early: the body was no JSON any more, and the check failed without
+   *     sending anything;
+   *   - a placeholder on its own - [{{monitorSecrets.Ids}}] or
+   *     {"count": {{monitorSecrets.Count}}} - is written as it is, as it
+   *     always was: a value 1,2,3 is three numbers in the array, never one
+   *     string.
+   *
+   * A body that is not JSON is written as it is throughout.
+   *
+   * Where a placeholder stands is read from the body as written, never from
+   * a value filled in: a quote one value holds never ends a string for the
+   * next. A one-time code is digits, which read the same either way, so the
+   * probe's per-attempt fill (MonitorSecretTotp's fillTotpCodes) writes the
+   * same bytes this would.
+   */
+  public static fillPlaceholders(data: {
+    body: string;
+    getValue: (placeholder: TemplatePlaceholder) => string | undefined;
+  }): string {
+    const placeholders: Array<TemplatePlaceholder> = findTemplatePlaceholders(
+      data.body,
+    );
+
+    if (placeholders.length === 0) {
+      return data.body;
+    }
+
+    const quotes: Array<PlaceholderQuote> =
+      MonitorRequestBody.getProblem(data.body) === null
+        ? MonitorRequestBody.getPlaceholderQuotes(data.body, placeholders)
+        : placeholders.map((): PlaceholderQuote => {
+            return null;
+          });
+
+    let filled: string = "";
+    let position: number = 0;
+
+    placeholders.forEach((placeholder: TemplatePlaceholder, index: number) => {
+      const value: string | undefined = data.getValue(placeholder);
+      const quote: PlaceholderQuote = quotes[index] ?? null;
+
+      filled += data.body.slice(position, placeholder.start);
+
+      if (value === undefined) {
+        filled += placeholder.text;
+      } else {
+        filled += quote === null ? value : escapeForString(value, quote);
+      }
+
+      position = placeholder.end;
+    });
+
+    return filled + data.body.slice(position);
+  }
+
+  /*
+   * A body with a monitor's secrets filled in, as the server fills them
+   * before it hands the check to a probe: each {{monitorSecrets.NAME}} that
+   * names one of these values, written as fillPlaceholders writes it. A
+   * reference to any other secret - one the monitor may not use, or a
+   * one-time code secret, whose code the probe makes - is left as written.
+   */
+  public static fillSecrets(
+    body: string,
+    values: ReadonlyMap<string, string>,
+  ): string {
+    if (values.size === 0) {
+      return body;
+    }
+
+    return MonitorRequestBody.fillPlaceholders({
+      body: body,
+      getValue: (placeholder: TemplatePlaceholder): string | undefined => {
+        const name: string | null = getReferencedName(placeholder);
+
+        return name === null ? undefined : values.get(name);
+      },
+    });
+  }
+
+  /*
+   * Where each placeholder stands in a JSON or JSON5 body, read from the
+   * body's own text: inside a string and the quote that opened it, or on
+   * its own. A placeholder is a value of its own: it neither opens nor
+   * ends a string. A comment is no string: a quote in one opens nothing.
+   */
+  private static getPlaceholderQuotes(
+    body: string,
+    placeholders: Array<TemplatePlaceholder>,
+  ): Array<PlaceholderQuote> {
+    const quotes: Array<PlaceholderQuote> = [];
+    let state: BodyTextState = BodyTextState.Value;
+    let quote: '"' | "'" = '"';
+    let isEscaped: boolean = false;
+    let position: number = 0;
+
+    for (const placeholder of placeholders) {
+      for (let at: number = position; at < placeholder.start; at++) {
+        const character: string = body[at] as string;
+
+        switch (state) {
+          case BodyTextState.Value:
+            if (character === '"' || character === "'") {
+              state = BodyTextState.String;
+              quote = character;
+              isEscaped = false;
+            } else if (character === "/" && body[at + 1] === "/") {
+              state = BodyTextState.LineComment;
+              at++;
+            } else if (character === "/" && body[at + 1] === "*") {
+              state = BodyTextState.BlockComment;
+              at++;
+            }
+            break;
+          case BodyTextState.String:
+            if (isEscaped) {
+              isEscaped = false;
+            } else if (character === "\\") {
+              isEscaped = true;
+            } else if (character === quote) {
+              state = BodyTextState.Value;
+            }
+            break;
+          case BodyTextState.LineComment:
+            if (LINE_TERMINATORS.includes(character)) {
+              state = BodyTextState.Value;
+            }
+            break;
+          case BodyTextState.BlockComment:
+            if (character === "*" && body[at + 1] === "/") {
+              state = BodyTextState.Value;
+              at++;
+            }
+            break;
+        }
+      }
+
+      quotes.push(state === BodyTextState.String ? quote : null);
+
+      // What is written in its place is whole: it escapes nothing after it.
+      isEscaped = false;
+      position = placeholder.end;
+    }
+
+    return quotes;
   }
 
   /*
