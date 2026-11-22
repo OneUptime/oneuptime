@@ -295,6 +295,16 @@ export default interface Field<TEntity> {
      * before: a field whose values the database keeps whole has none.
      */
     notFoundLabel?: string | undefined;
+    /*
+     * For a field that holds another column than the record's id
+     * (valueField): what else names one record by it, and the columns the
+     * search looks in, and one drawn beside each option's name
+     * (EntityDropdown's heldValueQuery, searchFields and descriptionField).
+     * Unset, as before.
+     */
+    heldValueQuery?: Record<string, unknown> | undefined;
+    searchFields?: Array<string> | undefined;
+    descriptionField?: string | undefined;
   };
   /*
    * Entity dropdowns can bulk-add every entry carrying a label. That is a

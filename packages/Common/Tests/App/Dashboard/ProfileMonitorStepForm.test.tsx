@@ -192,7 +192,6 @@ describe("what the monitor would read now", () => {
         <ProfileMonitorStepForm
           monitorStepProfileMonitor={monitor()}
           onMonitorStepProfileMonitorChanged={() => {}}
-          telemetryServices={[]}
         />,
       );
     });
@@ -243,7 +242,6 @@ describe("what the monitor would read now", () => {
         <ProfileMonitorStepForm
           monitorStepProfileMonitor={monitor()}
           onMonitorStepProfileMonitorChanged={() => {}}
-          telemetryServices={[]}
         />,
       );
     });
@@ -284,7 +282,6 @@ describe("what the monitor would read now", () => {
           <ProfileMonitorStepForm
             monitorStepProfileMonitor={monitor({ profileTypes })}
             onMonitorStepProfileMonitorChanged={() => {}}
-            telemetryServices={[]}
           />,
         );
       });
@@ -326,7 +323,6 @@ describe("short words", () => {
         <ProfileMonitorStepForm
           monitorStepProfileMonitor={monitor()}
           onMonitorStepProfileMonitorChanged={() => {}}
-          telemetryServices={[]}
         />,
       );
     });
