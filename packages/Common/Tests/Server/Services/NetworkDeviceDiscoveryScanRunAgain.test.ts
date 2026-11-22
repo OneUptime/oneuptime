@@ -186,7 +186,10 @@ function isSameValue(left: unknown, right: unknown): boolean {
   return text(left) === text(right);
 }
 
-function connectedProbe(overrides: Partial<Probe> = {}): Probe {
+// What a test changes of the probe: undefined leaves a column empty.
+type ProbeOverrides = { [Key in keyof Probe]?: Probe[Key] | undefined };
+
+function connectedProbe(overrides: ProbeOverrides = {}): Probe {
   const row: Probe = new Probe(PROBE_ID);
   row.name = "Office Probe";
   row.projectId = PROJECT_ID;
