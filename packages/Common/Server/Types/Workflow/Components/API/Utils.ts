@@ -11,6 +11,20 @@ import JSONFunctions from "../../../../../Types/JSONFunctions";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
+import {
+  ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID,
+  CA_CERTIFICATE_ARGUMENT_ID,
+} from "../../../../../Types/Workflow/Components/ApiCertificates";
+import {
+  CaCertificateProblem,
+  HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
+  HttpStepCertificateSettings,
+  getHttpStepCertificateFailureMessage,
+  getHttpStepCertificateSettings,
+} from "../../../../../Types/Runbook/HttpStepCertificates";
+import { getRequestErrorCode } from "../../../../../Utils/RequestErrorCode";
+import { TargetTlsOptions } from "../../../../Utils/OutboundProxyAgents";
+import { getCaCertificateProblem } from "../../../../Utils/Runbook/HttpStepCaCertificate";
 import SafeWebhookRequest, {
   WebhookTarget,
 } from "../../../../Utils/SafeWebhookRequest";
@@ -48,6 +62,12 @@ export interface SanitizedApiArgs {
   errorPort: Port;
   // The step's URL as its check approved it: the only place the request may go.
   target: WebhookTarget;
+  /*
+   * How the step checks the server's certificate: as every request does, by
+   * its CA certificate alone, or not at all (Types/Workflow/Components/
+   * ApiCertificates, #10440).
+   */
+  certificates: HttpStepCertificateSettings;
 }
 
 export class ApiComponentUtils {
@@ -76,7 +96,55 @@ export class ApiComponentUtils {
           : (args["request-body"] as JSONObject | undefined) || undefined,
       headers: args["request-headers"] as Dictionary<string> | undefined,
       maxContentLength: API_COMPONENT_MAX_RESPONSE_BYTES,
+      // This request's alone: never the proxy's connection, nor another's.
+      tls: ApiComponentUtils.getTlsOptions(data.sanitized.certificates),
     });
+  }
+
+  /*
+   * The step's certificate settings as the request's TLS options: none,
+   * which checks the server's certificate as every request does; no check
+   * at all; or its CA certificate alone, the host name and dates still
+   * checked.
+   */
+  public static getTlsOptions(
+    certificates: HttpStepCertificateSettings,
+  ): TargetTlsOptions | undefined {
+    if (certificates.skipsCertificateChecks) {
+      return { rejectUnauthorized: false };
+    }
+
+    if (certificates.caCertificate) {
+      return { ca: certificates.caCertificate };
+    }
+
+    return undefined;
+  }
+
+  /*
+   * The Error a step returns when its request failed: a certificate the
+   * step refused says why and which of its settings would let it through,
+   * the safer first, in the words a Runbook HTTP step uses
+   * (getHttpStepCertificateFailureMessage); anything else says what it did.
+   */
+  public static describeFailure(
+    error: unknown,
+    sanitized: SanitizedApiArgs,
+  ): string {
+    const certificateMessage: string | null =
+      getHttpStepCertificateFailureMessage({
+        code: getRequestErrorCode(error),
+        host: sanitized.target.url.hostname,
+        settings: sanitized.certificates,
+      });
+
+    if (certificateMessage) {
+      return certificateMessage;
+    }
+
+    return error instanceof Error && error.message
+      ? error.message
+      : "Unknown error";
   }
 
   @CaptureSpan()
@@ -229,6 +297,33 @@ export class ApiComponentUtils {
 
     args["url"] = URL.fromString(args["url"] as string);
 
-    return { args, successPort, errorPort, target };
+    /*
+     * How the step checks the server's certificate (#10440). A CA
+     * certificate that is not one is refused before anything is sent: Node
+     * takes text that is not a certificate without a word, and the step would
+     * then fail on the certificate it was meant to trust.
+     */
+    const certificates: HttpStepCertificateSettings =
+      getHttpStepCertificateSettings({
+        allowSelfSignedCertificates:
+          args[ALLOW_SELF_SIGNED_CERTIFICATES_ARGUMENT_ID] === true,
+        ...(typeof args[CA_CERTIFICATE_ARGUMENT_ID] === "string"
+          ? { caCertificate: args[CA_CERTIFICATE_ARGUMENT_ID] as string }
+          : {}),
+      });
+
+    if (certificates.caCertificate) {
+      const problem: CaCertificateProblem | null = getCaCertificateProblem(
+        certificates.caCertificate,
+      );
+
+      if (problem) {
+        throw options.onError(
+          new BadDataException(HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem]),
+        );
+      }
+    }
+
+    return { args, successPort, errorPort, target, certificates };
   }
 }
