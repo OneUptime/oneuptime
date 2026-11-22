@@ -326,7 +326,10 @@ export function renderHaproxySnippet(data: {
  * task as SYSTEM, that keeps inbound rules blocking every address on the
  * list - a rule per 1,000 addresses, each updated in place by its name, the
  * ones no longer needed removed - with the secret in a file of the
- * script's folder, which only SYSTEM and Administrators read.
+ * script's folder, which only SYSTEM and Administrators read. Both are
+ * named by their well-known SIDs (S-1-5-18, S-1-5-32-544), which Windows
+ * resolves in every language: their names are not (Administrators is
+ * Administratoren on German Windows, and NT AUTHORITY is translated too).
  */
 export function renderWindowsFirewallSnippet(data: {
   url: string;
@@ -366,7 +369,7 @@ export function renderWindowsFirewallSnippet(data: {
     "# Run once, in PowerShell as an administrator.",
     `$Dir = ${quoteForPowerShell(SECURITY_BLOCKLIST_WINDOWS_DIR)}`,
     "New-Item -ItemType Directory -Force -Path $Dir | Out-Null",
-    'icacls $Dir /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null',
+    'icacls $Dir /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null',
     `Set-Content -Path (Join-Path $Dir 'token.txt') -Value ${quoteForPowerShell(data.secret)}`,
     "$Script = Join-Path $Dir 'Update-OneUptimeBlocklist.ps1'",
     "@'",
@@ -375,7 +378,8 @@ export function renderWindowsFirewallSnippet(data: {
     '$Action = New-ScheduledTaskAction -Execute \'powershell.exe\' -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$Script`""',
     "$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)",
     "$Settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 5)",
-    `Register-ScheduledTask -TaskName ${quoteForPowerShell(SECURITY_BLOCKLIST_WINDOWS_TASK)} -Action $Action -Trigger $Trigger -Settings $Settings -User 'NT AUTHORITY\\SYSTEM' -RunLevel Highest -Force | Out-Null`,
+    "$Principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest",
+    `Register-ScheduledTask -TaskName ${quoteForPowerShell(SECURITY_BLOCKLIST_WINDOWS_TASK)} -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force | Out-Null`,
     `Start-ScheduledTask -TaskName ${quoteForPowerShell(SECURITY_BLOCKLIST_WINDOWS_TASK)}`,
   ]);
 }

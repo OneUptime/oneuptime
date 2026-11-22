@@ -450,7 +450,7 @@ describe("the scripts a host runs", () => {
 
     for (const line of [
       `Set-Content -Path (Join-Path $Dir 'token.txt') -Value '${SECRET}'`,
-      'icacls $Dir /inheritance:r /grant:r "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null',
+      'icacls $Dir /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null',
       "catch { if ($_.Exception.Response -and $_.Exception.Response.StatusCode.value__ -eq 304) { exit 0 }; throw }",
       // Rules gone while an ETag is kept: the whole list again, never a 304 forever.
       "if (-not (Get-NetFirewallRule -Name ('{0}000' -f $Prefix) -ErrorAction SilentlyContinue)) { Remove-Item -Path $EtagFile -ErrorAction SilentlyContinue }",
@@ -458,7 +458,8 @@ describe("the scripts a host runs", () => {
       "  $Part = $Addresses[$i..([Math]::Min($i + 999, $Addresses.Count - 1))]",
       "  if (Get-NetFirewallRule -Name $Name -ErrorAction SilentlyContinue) { Set-NetFirewallRule -Name $Name -RemoteAddress $Part }",
       "$Trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 1)",
-      "Register-ScheduledTask -TaskName 'OneUptime Blocklist' -Action $Action -Trigger $Trigger -Settings $Settings -User 'NT AUTHORITY\\SYSTEM' -RunLevel Highest -Force | Out-Null",
+      "$Principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest",
+      "Register-ScheduledTask -TaskName 'OneUptime Blocklist' -Action $Action -Trigger $Trigger -Settings $Settings -Principal $Principal -Force | Out-Null",
     ]) {
       expect(snippet.split("\n")).toContain(line);
     }
