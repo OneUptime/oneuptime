@@ -30,6 +30,7 @@ import {
   MAX_TELEMETRY_EVENT_MESSAGE_LENGTH,
   SECURITY_TELEMETRY_SIGNAL_ATTACK,
   buildTelemetrySecurityEvent,
+  cutTelemetryText,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TelemetrySecurityEvent";
 
 /*
@@ -229,5 +230,79 @@ describe("a telemetry source's event", () => {
     expect(event.spanId).toBe("00f067aa0ba902b7");
     expect(event.sessionId).toBe("s-1");
     expect(event.requestOutcome).toBeUndefined();
+  });
+});
+
+/*
+ * A cut never leaves half a character (found by #10663's repair against a
+ * real ClickHouse): a cut between the halves of a surrogate pair left a
+ * lone half, which ClickHouse refuses as JSON - and with it every event of
+ * the insert, so one long prompt or name with an emoji at the cut stopped
+ * a source's events.
+ */
+describe("cutting text", () => {
+  function hasLoneSurrogate(text: string): boolean {
+    for (let index: number = 0; index < text.length; index++) {
+      const code: number = text.charCodeAt(index);
+
+      if (code >= 0xd800 && code <= 0xdbff) {
+        const next: number = text.charCodeAt(index + 1);
+
+        if (!(next >= 0xdc00 && next <= 0xdfff)) {
+          return true;
+        }
+
+        index++;
+      } else if (code >= 0xdc00 && code <= 0xdfff) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  test("never between the halves of an emoji, wherever the cut falls", () => {
+    for (let prefix: number = 0; prefix < 6; prefix++) {
+      const text: string = `${"a".repeat(prefix)}${"🔑".repeat(20)}`;
+
+      for (let limit: number = 2; limit < 24; limit++) {
+        const cut: string = cutTelemetryText(text, limit);
+
+        expect([prefix, limit, hasLoneSurrogate(cut)]).toEqual([
+          prefix,
+          limit,
+          false,
+        ]);
+        expect(cut.length).toBeLessThanOrEqual(limit);
+        expect(cut.endsWith("…")).toBe(true);
+      }
+    }
+  });
+
+  test("text that fits, and text of plain characters, are cut as they always were", () => {
+    expect(cutTelemetryText("short", 10)).toBe("short");
+    expect(cutTelemetryText("abcdefghij", 5)).toBe("abcd…");
+    expect(cutTelemetryText("", 5)).toBe("");
+    expect(cutTelemetryText("🔑🔑", 4)).toBe("🔑🔑");
+  });
+
+  test("an event's message and attributes with emoji at the limit stay whole characters", () => {
+    const event: NormalizedSecurityEvent = buildTelemetrySecurityEvent({
+      kind: SecurityTelemetrySourceKind.Traces,
+      signal: SecurityTelemetrySignal.PromptInjection,
+      time: new Date("2026-11-10T10:00:00.000Z"),
+      eventUid: "trace:emoji",
+      classUid: 6003,
+      activityName: "Read",
+      statusName: "Success",
+      severity: OcsfSeverity.Medium,
+      message: `${"x".repeat(MAX_TELEMETRY_EVENT_MESSAGE_LENGTH - 2)}${"🔑".repeat(5)}`,
+      attributes: {
+        prompt: `${"y".repeat(MAX_TELEMETRY_ATTRIBUTE_LENGTH - 2)}${"🔑".repeat(5)}`,
+      },
+    });
+
+    expect(hasLoneSurrogate(event.message)).toBe(false);
+    expect(hasLoneSurrogate(String(event.attributes["prompt"]))).toBe(false);
   });
 });
