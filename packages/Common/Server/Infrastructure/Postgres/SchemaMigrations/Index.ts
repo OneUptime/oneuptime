@@ -1153,6 +1153,8 @@ import { AddSecurityBlockCloudWaf1809187430000 } from "./1809187430000-AddSecuri
 import { AddScrubRuleService1809187433000 } from "./1809187433000-AddScrubRuleService";
 import { AddScrubRuleServiceIndexesAndKeys1809187433010 } from "./1809187433010-AddScrubRuleServiceIndexesAndKeys";
 import { AddSecurityEventConnectionBlocking1809187434300 } from "./1809187434300-AddSecurityEventConnectionBlocking";
+import { AddSecurityAutomaticResponse1809187435000 } from "./1809187435000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187435010 } from "./1809187435010-AddSecurityAutomaticResponseIndexesAndKeys";
 
 export default [
   InitialMigration,
@@ -2310,4 +2312,6 @@ export default [
   AddScrubRuleService1809187433000,
   AddScrubRuleServiceIndexesAndKeys1809187433010,
   AddSecurityEventConnectionBlocking1809187434300,
+  AddSecurityAutomaticResponse1809187435000,
+  AddSecurityAutomaticResponseIndexesAndKeys1809187435010,
 ];

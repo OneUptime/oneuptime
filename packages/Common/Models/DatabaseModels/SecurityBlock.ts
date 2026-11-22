@@ -1,4 +1,5 @@
 import Project from "./Project";
+import SecurityAutomaticResponsePolicy from "./SecurityAutomaticResponsePolicy";
 import SecurityCase from "./SecurityCase";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import User from "./User";
@@ -444,6 +445,76 @@ export default class SecurityBlock extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public securityPlaybookRunId?: ObjectID = undefined;
+
+  /*
+   * Which automatic response policy made the block (#10350), for every
+   * reader of the block: its name says who blocked it, as a person's name
+   * does for theirs.
+   */
+  @ColumnAccessControl(serverColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "securityAutomaticResponsePolicyId",
+    computed: true,
+    type: TableColumnType.Entity,
+    modelType: SecurityAutomaticResponsePolicy,
+    title: "Automatic Response Policy",
+    description:
+      "The automatic response policy that made the block, if one did.",
+  })
+  @ManyToOne(
+    () => {
+      return SecurityAutomaticResponsePolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "securityAutomaticResponsePolicyId" })
+  public securityAutomaticResponsePolicy?: SecurityAutomaticResponsePolicy =
+    undefined;
+
+  @ColumnAccessControl(serverColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Automatic Response Policy ID",
+    description: "ID of the automatic response policy that made the block.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityAutomaticResponsePolicyId?: ObjectID = undefined;
+
+  /*
+   * A challenge that is held as a block, for the same time, where an edge
+   * cannot challenge (#10350): a firewall feed, Azure WAF, Google Cloud
+   * Armor. An automatic response policy's challenges do; a person's never
+   * do, since they chose a challenge so that nobody is turned away
+   * (Types/SecurityBlocklist/SecurityBlockChallenge).
+   */
+  @ColumnAccessControl(serverColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Blocks Where It Cannot Challenge",
+    description:
+      "For a challenge: whether an edge that cannot challenge holds it as a block for the same time. Set for an automatic response policy's challenges.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public challengeFallsBackToBlock?: boolean = undefined;
 
   @ColumnAccessControl(serverColumnAccess)
   @TableColumn({

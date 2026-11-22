@@ -693,6 +693,44 @@ export default class SecurityCase extends BaseModel {
   })
   public containedAt?: Date = undefined;
 
+  /*
+   * TIME TO BLOCK (#10350): when an automatic response policy's block of
+   * one of the case's addresses first took hold at an edge, and how long
+   * that was after the address's first malicious request. Written once, by
+   * OneUptime, as the block takes hold.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Blocked At",
+    description:
+      "When an automatic response policy's block of one of the case's addresses first took hold at an edge.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public blockedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Time to Block (Seconds)",
+    description:
+      "Seconds from the address's first malicious request to an automatic response policy's block of it taking hold.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public timeToBlockInSeconds?: number = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @Index()
   @TableColumn({
