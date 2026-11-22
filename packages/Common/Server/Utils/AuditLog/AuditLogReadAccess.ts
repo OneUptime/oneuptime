@@ -36,7 +36,7 @@ import HeldPermissionsUtil, {
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { getAuditLogResourceTypeSpellings } from "../../../Utils/AuditLog/AuditLogResourceTypes";
+import { getAuditLogResourceTypesOfModel } from "../../../Utils/AuditLog/AuditLogResourceTypes";
 
 /*
  * WHAT A READER SEES OF AN AUDIT LOG ENTRY: WHAT THEY MAY READ OF THE
@@ -135,7 +135,12 @@ const NOTHING_SHOWN: EntryRead = {
 let modelTypesByResourceType: Map<string, Array<DatabaseBaseModelType>> | null =
   null;
 
-// The models whose name another model has too.
+/*
+ * The models whose entries can be stored under a type another model's are
+ * too: no two models share a name today (ModelNamesAreUnique), but a
+ * status page's subscriber notification template had the template's own
+ * until #10664, and its entries from then still carry it.
+ */
 let modelTypesSharingAName: Set<DatabaseBaseModelType> | null = null;
 
 // The type an entry about one of a model's records is stored under.
@@ -158,13 +163,18 @@ function getModelTypesByResourceType(): Map<
   const map: Map<string, Array<DatabaseBaseModelType>> = new Map();
 
   for (const modelType of AllDatabaseModelTypes as Array<DatabaseBaseModelType>) {
-    const resourceType: string | null = getResourceTypeOf(new modelType());
+    const model: BaseModel = new modelType();
 
-    if (!resourceType) {
+    if (!getResourceTypeOf(model)) {
       continue;
     }
 
-    for (const spelling of getAuditLogResourceTypeSpellings(resourceType)) {
+    /*
+     * By every type its entries can be stored under: the one they are
+     * stored under today, its name on screen, and the name it had before it
+     * was renamed, which its older entries carry.
+     */
+    for (const spelling of getAuditLogResourceTypesOfModel(model)) {
       if (OWN_RESOURCE_TYPES.has(spelling)) {
         continue;
       }
@@ -393,9 +403,9 @@ class ReaderReads {
 
   /*
    * Looks up which of `ids` the reader finds with the table's own read -
-   * unless they read every record of it. A table whose name another one has
-   * is looked in anyway: which of the two a record is in decides its
-   * columns.
+   * unless they read every record of it. A table whose entries can carry a
+   * type another one's do (a former name) is looked in anyway: which of the
+   * two a record is in decides its columns.
    */
   public async findRecords(
     modelType: DatabaseBaseModelType,
@@ -511,7 +521,11 @@ class ReaderReads {
       };
     }
 
-    // A name two tables share, with the record in neither: what both show.
+    /*
+     * A type two tables' entries carry - "Subscriber Notification Template"
+     * on a template's entries and on a link's recorded before #10664 - with
+     * the record in neither: what both show.
+     */
     return {
       isRecordShown: true,
       table: null,
@@ -846,9 +860,11 @@ export default class AuditLogReadAccess {
   /*
    * The models whose records an entry of `resourceType` can be about: the
    * model whose name, as the API and the audit log keep it or as it is
-   * shown, is the type (Common/Utils/ModelApiName) - one, but for a name two
-   * models share. None for a type of the audit log's own, nor for one no
-   * model has (any longer).
+   * shown, is the type (Common/Utils/ModelApiName), or whose name it was
+   * before it was renamed (getAuditLogResourceTypesOfModel) - one, but for
+   * a former name another model has now: "Subscriber Notification Template"
+   * is the template's, and a link's until #10664. None for a type of the
+   * audit log's own, nor for one no model has (any longer).
    */
   public static getModelTypesOf(
     resourceType: string | null | undefined,
