@@ -1,5 +1,6 @@
 import {
   SECURITY_BLOCK_ACTIONS,
+  SECURITY_BLOCK_ADDRESS_ACTIONS,
   SECURITY_BLOCK_ADDRESS_TYPES,
   SECURITY_BLOCK_DURATION_IN_MS,
   SECURITY_BLOCK_EXPIRY_CLOCK_SLACK_IN_MS,
@@ -737,6 +738,11 @@ describe("the kinds of value, action and reach a block has", () => {
     expect(SECURITY_BLOCK_ACTIONS).toContain(
       SecurityBlockAction.BlockAndQuarantine,
     );
+    // An address's actions, the edge's: never a file's Block and Quarantine.
+    expect([...SECURITY_BLOCK_ADDRESS_ACTIONS]).toEqual([
+      SecurityBlockAction.Block,
+      SecurityBlockAction.Challenge,
+    ]);
     expect([...SECURITY_BLOCK_REACHES]).toEqual([
       SecurityBlockReach.Edge,
       SecurityBlockReach.Everywhere,

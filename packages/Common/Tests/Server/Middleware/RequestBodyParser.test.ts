@@ -1,3 +1,4 @@
+import GzipRequestBodyMiddleware from "../../../Server/Middleware/GzipRequestBody";
 import RequestBodyParser, {
   RequestBodyParserOptions,
   parseBodyLimit,
@@ -691,5 +692,392 @@ describe("a body over the limit is not read past it", () => {
     expect(readRequestBodyRefusal(await refused)?.message).toBe(
       REQUEST_BODY_REFUSAL_MESSAGES.cutOff,
     );
+  });
+});
+
+/*
+ * A REQUEST WHOSE BODY WAS READ BEFORE (#10643).
+ *
+ * StartServer reads every gzip body before routing (GzipRequestBody): it
+ * inflates it under the route's limit and leaves the inflated bytes in
+ * req.body, unparsed, its stream read to the end. A route that parses its
+ * own body handed its parser that request, and body-parser, seeing it
+ * unmarked, read the spent stream again through a fresh gunzip: zlib's
+ * "unexpected end of file", a 500 with an error-level log line, for a valid
+ * body. Here such a request is parsed from the bytes kept, as the same body
+ * sent uncompressed would have been, and nothing more is read off it.
+ */
+
+// A request as GzipRequestBody leaves one: read to its end, its bytes kept.
+async function spentRequest(
+  headers: Record<string, string>,
+  kept?: Buffer | Uint8Array | undefined,
+): Promise<StreamRequest> {
+  const req: StreamRequest = streamRequest(headers);
+
+  req.sendEnd();
+  req.resume();
+  await new Promise<void>((resolve: () => void) => {
+    req.once("end", resolve);
+  });
+
+  if (kept !== undefined) {
+    req.body = kept;
+  }
+
+  return req;
+}
+
+// Runs `parser` on a request already in hand, once: what it handed on.
+function parseOnce(
+  parser: RequestHandler,
+  req: StreamRequest,
+): Promise<Outcome> {
+  const res: Answer = { shouldKeepAlive: true, headersSent: false, req: req };
+
+  return new Promise<Outcome>((resolve: (outcome: Outcome) => void) => {
+    parser(
+      req as unknown as ExpressRequest,
+      res as unknown as ExpressResponse,
+      ((err?: unknown): void => {
+        resolve({ error: err, req: req, res: res });
+      }) as NextFunction,
+    );
+  });
+}
+
+// What the client sent: gzip, chunked, as most clients that compress send it.
+const GZIP_JSON_HEADERS: Record<string, string> = {
+  ...JSON_HEADERS,
+  "content-encoding": "gzip",
+};
+
+describe("a body read before, its bytes kept, is parsed from them (#10643)", () => {
+  const document: Record<string, unknown> = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "tools/call",
+    params: { name: "list_monitors", arguments: { query: { name: "API ✓" } } },
+  };
+  const bytes: Buffer = Buffer.from(JSON.stringify(document));
+
+  test("JSON the gzip reader inflated parses to what the same JSON sent uncompressed does", async () => {
+    const uncompressed: Outcome = await run({
+      parser: json,
+      headers: { ...JSON_HEADERS, "content-length": String(bytes.length) },
+      chunks: [bytes],
+    });
+
+    const kept: Outcome = await parseOnce(
+      json,
+      await spentRequest(GZIP_JSON_HEADERS, bytes),
+    );
+
+    expect(kept.error).toBeUndefined();
+    expect(kept.req.body).toEqual(uncompressed.req.body);
+    expect(kept.req.body).toEqual(document);
+    expect(kept.req._body).toBe(true);
+    // Nothing more is read off the request: it was all in.
+    expect(kept.req.taken).toBe(0);
+    expect(kept.res.shouldKeepAlive).toBe(true);
+  });
+
+  test("through the gzip reader itself: inflated there, parsed here, once", async () => {
+    const gzipThenJson: RequestHandler = (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      GzipRequestBodyMiddleware.parseBody(
+        req,
+        res,
+        ((err?: unknown): void => {
+          if (err) {
+            return next(err);
+          }
+
+          json(req, res, next);
+        }) as NextFunction,
+        { bytes: ROUTE_LIMIT, values: 1000, objectsArraysAndStrings: 1000 },
+      );
+    };
+
+    const parses: Array<string> = [];
+    const realParse: typeof JSON.parse = JSON.parse;
+
+    JSON.parse = ((text: string, reviver?: never): unknown => {
+      parses.push(text);
+      return realParse(text, reviver);
+    }) as typeof JSON.parse;
+
+    let outcome: Outcome;
+
+    try {
+      outcome = await run({
+        parser: gzipThenJson,
+        headers: GZIP_JSON_HEADERS,
+        chunks: cut(zlib.gzipSync(bytes), 7),
+      });
+    } finally {
+      JSON.parse = realParse;
+    }
+
+    expect(outcome.error).toBeUndefined();
+    expect(outcome.req.body).toEqual(document);
+    expect(parses).toEqual([bytes.toString()]);
+  });
+
+  test("a form, the raw bytes of a protobuf body and a text, kept, parse as each does sent as it is", async () => {
+    const form: Outcome = await parseOnce(
+      bounded(ExpressUrlEncoded, { extended: false, limit: "64kb" }),
+      await spentRequest(
+        {
+          "content-type": "application/x-www-form-urlencoded",
+          "content-encoding": "gzip",
+        },
+        Buffer.from("grant_type=authorization_code&code=abc&state=%E2%9C%93"),
+      ),
+    );
+
+    expect(form.error).toBeUndefined();
+    expect(form.req.body).toEqual({
+      grant_type: "authorization_code",
+      code: "abc",
+      state: "✓",
+    });
+
+    const protobuf: Buffer = Buffer.from([0x0a, 0x03, 0x41, 0x50, 0x49]);
+    const raw: Outcome = await parseOnce(
+      bounded(ExpressRaw, {
+        type: ["application/x-protobuf"],
+        limit: "1mb",
+      }),
+      await spentRequest(
+        {
+          "content-type": "application/x-protobuf",
+          "content-encoding": "gzip",
+        },
+        protobuf,
+      ),
+    );
+
+    expect(raw.error).toBeUndefined();
+    expect(Buffer.isBuffer(raw.req.body)).toBe(true);
+    expect((raw.req.body as Buffer).equals(protobuf)).toBe(true);
+    expect(raw.req._body).toBe(true);
+
+    const text: Outcome = await parseOnce(
+      bounded(ExpressText, { type: ["text/plain"], limit: "1mb" }),
+      await spentRequest(
+        { "content-type": "text/plain", "content-encoding": "gzip" },
+        Buffer.from("backup done ✓"),
+      ),
+    );
+
+    expect(text.error).toBeUndefined();
+    expect(text.req.body).toBe("backup done ✓");
+  });
+
+  test("a Uint8Array kept is bytes too", async () => {
+    const outcome: Outcome = await parseOnce(
+      json,
+      await spentRequest(GZIP_JSON_HEADERS, new Uint8Array(bytes)),
+    );
+
+    expect(outcome.error).toBeUndefined();
+    expect(outcome.req.body).toEqual(document);
+  });
+
+  test("verify is given the request itself and the bytes as inflated: the raw body kept, the values counted", async () => {
+    const parser: RequestHandler = RequestBodyParser.create(
+      ExpressJson,
+      createJsonBodyParserOptions({
+        bytes: ROUTE_LIMIT,
+        values: 1000,
+        objectsArraysAndStrings: 1000,
+      }),
+    );
+
+    const kept: Outcome = await parseOnce(
+      parser,
+      await spentRequest(GZIP_JSON_HEADERS, bytes),
+    );
+
+    expect(kept.error).toBeUndefined();
+    expect(kept.req.rawBody).toBe(bytes.toString());
+
+    // Counted against the request's own limit, as StartServer counts one.
+    const tooMany: StreamRequest = await spentRequest(
+      GZIP_JSON_HEADERS,
+      Buffer.from(
+        JSON.stringify(
+          Array.from({ length: 50 }, () => {
+            return [1];
+          }),
+        ),
+      ),
+    );
+
+    (tooMany as unknown as OneUptimeRequest).requestBodyLimit = {
+      bytes: ROUTE_LIMIT,
+      values: 10,
+      objectsArraysAndStrings: 10,
+    };
+
+    const refused: Outcome = await parseOnce(parser, tooMany);
+
+    expect(readRequestBodyRefusal(refused.error)?.type).toBe(
+      TOO_MANY_JSON_VALUES_TYPE,
+    );
+    expect(readRequestBodyRefusal(refused.error)?.status).toBe(413);
+  });
+
+  test("bytes of a type the parser does not read are left as they are, for a parser of their type", async () => {
+    const text: Buffer = Buffer.from("backup done");
+    const req: StreamRequest = await spentRequest(
+      { "content-type": "text/plain", "content-encoding": "gzip" },
+      text,
+    );
+
+    const passed: Outcome = await parseOnce(json, req);
+
+    expect(passed.error).toBeUndefined();
+    expect(passed.req.body).toBe(text);
+    expect(passed.req._body).toBeUndefined();
+
+    const read: Outcome = await parseOnce(
+      bounded(ExpressText, { type: ["text/plain"], limit: "1mb" }),
+      req,
+    );
+
+    expect(read.error).toBeUndefined();
+    expect(read.req.body).toBe("backup done");
+    expect(read.req._body).toBe(true);
+  });
+
+  test("parsed once: a parser after it passes over the body it parsed", async () => {
+    const req: StreamRequest = await spentRequest(GZIP_JSON_HEADERS, bytes);
+
+    await parseOnce(json, req);
+
+    const parsed: unknown = req.body;
+    const again: Outcome = await parseOnce(
+      bounded(ExpressJson, { limit: ROUTE_LIMIT }),
+      req,
+    );
+
+    expect(again.error).toBeUndefined();
+    expect(again.req.body).toBe(parsed);
+  });
+
+  test("bytes over the parser's own limit, as inflated, are refused 413, the connection kept: they are all in", async () => {
+    const outcome: Outcome = await parseOnce(
+      bounded(ExpressJson, { limit: "2kb" }),
+      await spentRequest(
+        GZIP_JSON_HEADERS,
+        Buffer.from(JSON.stringify({ comment: "x".repeat(4 * KIB) })),
+      ),
+    );
+
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: "entity.too.large",
+      status: 413,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.tooLarge,
+    });
+    expect(outcome.res.shouldKeepAlive).toBe(true);
+  });
+
+  test("bytes exactly at the parser's limit are parsed", async () => {
+    const atLimit: Buffer = Buffer.from(
+      JSON.stringify({ comment: "x".repeat(2 * KIB - 14) }),
+    );
+
+    expect(atLimit.length).toBe(2 * KIB);
+
+    const outcome: Outcome = await parseOnce(
+      bounded(ExpressJson, { limit: "2kb" }),
+      await spentRequest(GZIP_JSON_HEADERS, atLimit),
+    );
+
+    expect(outcome.error).toBeUndefined();
+  });
+
+  test("kept JSON that does not parse is refused 400; none at all is an empty object, as body-parser reads one", async () => {
+    const broken: Outcome = await parseOnce(
+      json,
+      await spentRequest(GZIP_JSON_HEADERS, Buffer.from('{"jsonrpc":')),
+    );
+
+    expect(readRequestBodyRefusal(broken.error)?.message).toBe(
+      REQUEST_BODY_REFUSAL_MESSAGES.invalidJson,
+    );
+
+    const empty: Outcome = await parseOnce(
+      json,
+      await spentRequest(GZIP_JSON_HEADERS, Buffer.alloc(0)),
+    );
+
+    expect(empty.error).toBeUndefined();
+    expect(empty.req.body).toEqual({});
+  });
+
+  test("kept JSON in a charset no parser reads is refused 415", async () => {
+    const outcome: Outcome = await parseOnce(
+      json,
+      await spentRequest(
+        {
+          "content-type": "application/json; charset=latin1",
+          "content-encoding": "gzip",
+        },
+        bytes,
+      ),
+    );
+
+    expect(readRequestBodyRefusal(outcome.error)?.status).toBe(415);
+  });
+
+  test("a body parsed before into something else is passed over, its bytes unread", async () => {
+    const req: StreamRequest = await spentRequest(GZIP_JSON_HEADERS);
+
+    req.body = { parsed: "before" };
+    req._body = true;
+
+    const outcome: Outcome = await parseOnce(json, req);
+
+    expect(outcome.error).toBeUndefined();
+    expect(outcome.req.body).toEqual({ parsed: "before" });
+  });
+});
+
+describe("a request with nothing left to read (#10643)", () => {
+  test("read whole by something that kept nothing: passed on as it is, never handed to body-parser", async () => {
+    /*
+     * body-parser read such a stream again: "stream is not readable", a
+     * 500, for identity; zlib's "unexpected end of file", a 500, for gzip.
+     */
+    for (const headers of [JSON_HEADERS, GZIP_JSON_HEADERS]) {
+      const req: StreamRequest = await spentRequest(headers);
+
+      const outcome: Outcome = await parseOnce(json, req);
+
+      expect(outcome.error).toBeUndefined();
+      expect(outcome.req.body).toBeUndefined();
+      expect(outcome.req._body).toBeUndefined();
+    }
+  });
+
+  test("its client gone before it was read: refused as cut off, 400, as one gone mid-body is", async () => {
+    const req: StreamRequest = streamRequest(JSON_HEADERS);
+
+    req.destroy();
+    await settle();
+
+    const outcome: Outcome = await parseOnce(json, req);
+
+    expect(readRequestBodyRefusal(outcome.error)).toEqual({
+      type: "request.aborted",
+      status: 400,
+      message: REQUEST_BODY_REFUSAL_MESSAGES.cutOff,
+    });
   });
 });

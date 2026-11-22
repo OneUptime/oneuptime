@@ -14,7 +14,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   - One active block per value and reach, where it was one per value: an
  *     address can be blocked at the edge and, on its own, everywhere. The old
  *     index is dropped here; the new one is built online by
- *     AddSecurityBlockValueReachIndex1809187433110, which runs after it.
+ *     AddSecurityBlockValueReachIndex1809187436410, which runs after it.
  *
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration. TypeORM wrote the change of "value" as DROP
@@ -27,10 +27,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (SchemaMigrationsOnlineDdl allows it for that reason). Same shape as
  * WidenCodeRepositoryOwnerColumns1808995240000.
  */
-export class AddSecurityBlockReachAndWiderValue1809187433100
+export class AddSecurityBlockReachAndWiderValue1809187436400
   implements MigrationInterface
 {
-  public name: string = "AddSecurityBlockReachAndWiderValue1809187433100";
+  public name: string = "AddSecurityBlockReachAndWiderValue1809187436400";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -226,6 +226,11 @@ beforeEach(() => {
   jest
     .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
     .mockResolvedValue(undefined as never);
+  /*
+   * The project has no Cloudflare connection, the one kind of destination
+   * that ships (#10343): nothing enforces its blocklist until a test says.
+   */
+  jest.spyOn(SecurityEventConnectionService, "findBy").mockResolvedValue([]);
   reconcile = jest
     .spyOn(SecurityBlocklistJobs, "queueReconcile")
     .mockResolvedValue(undefined) as unknown as MockedFn;

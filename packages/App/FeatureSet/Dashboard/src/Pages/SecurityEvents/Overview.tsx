@@ -79,6 +79,11 @@ import React, {
 } from "react";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import { NOTHING_DETECTED_BUT_REFUSED } from "../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import { getRefusedTelemetryBetween } from "Common/Utils/SecurityEvent/RefusedTelemetry";
+
+// The days Top Detections and the Detections chart count.
+export const DETECTIONS_WINDOW_IN_DAYS: number = 14;
 
 // Each detection source's color on the detections chart.
 export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
@@ -280,6 +285,18 @@ const SecurityOverviewPage: FunctionComponent<
   };
   // What "Last event 3 days ago" counts from.
   const now: Date = OneUptimeDate.getCurrentDate();
+  /*
+   * Part of the telemetry Security Events reads was refused within Top
+   * Detections' two weeks (#10431): its empty list says so, rather than
+   * that nothing happened.
+   */
+  const isTelemetryRefusedInDetectionsWindow: boolean =
+    getRefusedTelemetryBetween({
+      refusals: status?.refusedTelemetry || [],
+      from: OneUptimeDate.addRemoveDays(now, -DETECTIONS_WINDOW_IN_DAYS),
+      to: now,
+      now,
+    }).length > 0;
   const headlineKind: SecurityHeadlineKind = getSecurityHeadline({
     queue,
     status,
@@ -674,7 +691,11 @@ const SecurityOverviewPage: FunctionComponent<
                 >
                   <RankedBars
                     items={topRules}
-                    emptyText="Nothing was detected in the last 14 days."
+                    emptyText={
+                      isTelemetryRefusedInDetectionsWindow
+                        ? NOTHING_DETECTED_BUT_REFUSED
+                        : "Nothing was detected in the last 14 days."
+                    }
                   />
                 </Card>
                 <Card

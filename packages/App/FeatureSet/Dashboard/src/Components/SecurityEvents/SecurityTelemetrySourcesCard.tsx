@@ -20,7 +20,10 @@ import {
 } from "./SecurityTelemetrySourcesModel";
 import { buildOwnProbeTrafficRoute } from "./SecurityTelemetrySourcesLinks";
 import AppLink from "../AppLink/AppLink";
+import RefusedTelemetryLines from "./RefusedTelemetry/RefusedTelemetryLines";
+import { readSourceRefusedTelemetry } from "./RefusedTelemetry/RefusedTelemetryModel";
 import PageMap from "../../Utils/PageMap";
+import { getRecentRefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
@@ -537,6 +540,28 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                           error={status.error}
                         />
                       </p>
+                    ) : (
+                      <></>
+                    )}
+
+                    {/*
+                     * What an ingestion budget or rate refused of the
+                     * traces in the last day (#10431): the check never saw
+                     * them. The other kinds read nothing a telemetry budget
+                     * refuses.
+                     */}
+                    {isOn && row.kind === SecurityTelemetrySourceKind.Traces ? (
+                      <RefusedTelemetryLines
+                        refusals={getRecentRefusedTelemetry({
+                          refusals: readSourceRefusedTelemetry({
+                            lastScanResult: source?.lastScanResult,
+                          }),
+                          now: OneUptimeDate.getCurrentDate(),
+                        })}
+                        showsSource={false}
+                        showsOpenBudgets={true}
+                        dataTestId={`security-telemetry-source-refused-${row.kind}`}
+                      />
                     ) : (
                       <></>
                     )}

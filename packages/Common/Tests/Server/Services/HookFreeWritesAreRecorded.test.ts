@@ -235,6 +235,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "markFindings DataStoreFinding": Why.FollowOn,
     },
+  /*
+   * OneUptime AI's analysis of an issue (#10369), kept on the issue: its
+   * own note, never the issue's status or severity, and the issue's
+   * timeline says each one written.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts": {
+    "DataSecurityIssueAnalysis.write DataSecurityIssue": Why.Automation,
+  },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,

@@ -6,6 +6,7 @@ import SecurityBlockService from "../../Services/SecurityBlockService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityBlockDestination, {
+  SECURITY_BLOCKLIST_LOCK_NAMESPACE,
   SecurityBlockCapacity,
   SecurityBlockEntry,
   SecurityBlockHeldItem,
@@ -78,13 +79,12 @@ export const SECURITY_BLOCKLIST_LOCK_TIMEOUT_IN_MS: number = 3 * 60 * 1000;
 /*
  * Where a destination's lock is kept: whatever else writes a destination
  * outside a pass - setting up or taking down a cloud WAF
- * (SecurityBlockCloudWafs) - takes the same lock, so it and a pass never
- * write the same provider's lists at once.
+ * (SecurityBlockCloudWafs), taking Cloudflare's lists and rules away - takes
+ * the same lock, so it and a pass never write the same provider's lists at
+ * once. Kept with the destinations (SecurityBlockDestination), and said here
+ * for what reads it from the reconciler.
  */
-export const SECURITY_BLOCKLIST_LOCK_NAMESPACE: string =
-  "SecurityBlocklistReconciler";
-
-const LOCK_NAMESPACE: string = SECURITY_BLOCKLIST_LOCK_NAMESPACE;
+export { SECURITY_BLOCKLIST_LOCK_NAMESPACE };
 
 // The first retry after a failure waits a minute, each after it twice as long, up to half an hour.
 export const SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS: number = 60 * 1000;
@@ -369,16 +369,34 @@ export default class SecurityBlocklistReconciler {
       return 0;
     }
 
-    const projectIds: Array<ObjectID> =
-      await SecurityBlockService.findProjectIdsWithWork({
-        limit: SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
-      });
+    const projectIds: Map<string, ObjectID> = new Map();
 
-    for (const projectId of projectIds) {
+    for (const projectId of await SecurityBlockService.findProjectIdsWithWork({
+      limit: SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
+    })) {
+      projectIds.set(projectId.toString(), projectId);
+    }
+
+    /*
+     * And those whose destinations have work of their own: blocking turned
+     * on with no block yet, a setup to check, a removal to finish.
+     */
+    for (const projectId of await SecurityBlockDestinations.findProjectIdsWithWork(
+      SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
+    )) {
+      projectIds.set(projectId.toString(), projectId);
+    }
+
+    const queued: Array<ObjectID> = Array.from(projectIds.values()).slice(
+      0,
+      SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
+    );
+
+    for (const projectId of queued) {
       await SecurityBlocklistJobs.queueReconcile(projectId);
     }
 
-    return projectIds.length;
+    return queued.length;
   }
 
   /*
@@ -499,6 +517,9 @@ export default class SecurityBlocklistReconciler {
 
     await this.settleGoneDestinations({ found, rows, now });
 
+    // Each kind's work beside its destinations: a Cloudflare connection turned off takes its lists away.
+    await SecurityBlockDestinations.settle(data.projectId, now);
+
     return result;
   }
 
@@ -544,7 +565,8 @@ export default class SecurityBlocklistReconciler {
         ended: endedWithRows,
         rowsByBlock,
         now,
-      })
+      }) &&
+      !destination.hasWorkOfItsOwn?.(now)
     ) {
       return "skipped";
     }
@@ -554,7 +576,7 @@ export default class SecurityBlocklistReconciler {
     try {
       lock = await Semaphore.lock({
         key: destination.lockKey || destination.key,
-        namespace: LOCK_NAMESPACE,
+        namespace: SECURITY_BLOCKLIST_LOCK_NAMESPACE,
         lockTimeout: SECURITY_BLOCKLIST_LOCK_TIMEOUT_IN_MS,
         acquireTimeout: 1000,
         acquireAttemptsLimit: 1,
@@ -644,6 +666,19 @@ export default class SecurityBlocklistReconciler {
 
     let capacity: SecurityBlockCapacity;
     let held: Array<SecurityBlockHeldItem>;
+
+    // Its setup first: made when asked for, checked when due (SecurityBlockDestination.prepare).
+    if (destination.prepare) {
+      try {
+        await destination.prepare();
+      } catch (error) {
+        await this.recordDestinationFailure({
+          ...data,
+          error: `${destination.name} is not ready to hold blocks: ${this.errorText(error)}`,
+        });
+        return "failed";
+      }
+    }
 
     try {
       capacity = await destination.capacity();
@@ -840,25 +875,38 @@ export default class SecurityBlocklistReconciler {
             ? `Its end at ${destination.name} was not moved: ${update.error || `${destination.name} refused it`}`
             : null;
 
-        target = item.isPropagating
+        target = item.notInForceReason
           ? {
-              state: SecurityBlockEnforcementState.Pending,
-              error: updateError,
+              /*
+               * Held, but what enforces it was turned off or deleted at the
+               * provider: not enforced, and why, until someone puts it back.
+               * Nothing to try again: each pass reads it back.
+               */
+              state: SecurityBlockEnforcementState.Failed,
+              error: item.notInForceReason,
               providerRef,
               failedAttempts: 0,
               retryAt: null,
             }
-          : {
-              state: SecurityBlockEnforcementState.Applied,
-              error: updateError,
-              providerRef,
-              appliedAt: row?.appliedAt
-                ? new Date(row.appliedAt)
-                : item.confirmedAt || now,
-              lastConfirmedAt: item.confirmedAt || now,
-              failedAttempts: 0,
-              retryAt: null,
-            };
+          : item.isPropagating
+            ? {
+                state: SecurityBlockEnforcementState.Pending,
+                error: updateError,
+                providerRef,
+                failedAttempts: 0,
+                retryAt: null,
+              }
+            : {
+                state: SecurityBlockEnforcementState.Applied,
+                error: updateError,
+                providerRef,
+                appliedAt: row?.appliedAt
+                  ? new Date(row.appliedAt)
+                  : item.confirmedAt || now,
+                lastConfirmedAt: item.confirmedAt || now,
+                failedAttempts: 0,
+                retryAt: null,
+              };
       } else if (appliedByKey.get(key) && !appliedByKey.get(key)!.isDone) {
         const attempts: number = (row?.failedAttempts || 0) + 1;
 

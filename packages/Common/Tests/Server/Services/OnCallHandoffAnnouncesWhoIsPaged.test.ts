@@ -245,9 +245,11 @@ describe("an invitee reached in the rotation", () => {
     expect(rows[0]!.onCallDutyPolicyFeedEventType).toBe(
       OnCallDutyPolicyFeedEventType.CoverageGapStarted,
     );
+    // The feed names her as the channels do, never by her address (#10616).
     expect(rows[0]!.feedInfoInMarkdown).toContain(
-      `, when **[Bo](https://oneuptime.test/users/${BO.toString()})** takes over: **[ivy@acme.test](https://oneuptime.test/users/${IVY.toString()})** is on call but hasn't joined the project yet.`,
+      `, when **[Bo](https://oneuptime.test/users/${BO.toString()})** takes over: **Ivy** is on call but hasn't joined the project yet.`,
     );
+    expect(rows[0]!.feedInfoInMarkdown).not.toContain("acme.test");
 
     // It was "📞 @ivy@acme.test is now on call for Payments ..., then @bo."
     expect(lines).toEqual([

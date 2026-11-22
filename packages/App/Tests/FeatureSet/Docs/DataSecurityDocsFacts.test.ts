@@ -15,6 +15,7 @@ import {
   cardLines,
   cardTargets,
   comparableFence,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   strayMarkers,
@@ -80,6 +81,10 @@ import {
   getDataSecurityCheck,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  DATA_SECURITY_AI_VERDICT_TITLES,
+  DATA_SECURITY_AI_VERDICTS,
+} from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
 import {
   DATA_SECURITY_AI_ALWAYS_ASKS,
   DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES,
@@ -1525,6 +1530,85 @@ describe("Data Security Checks and Issues", () => {
     expect(modals).toContain('title: "Accepted Until"');
   });
 
+  it("says what OneUptime AI's analysis is as the issue's page and the Issues list name it (#10369)", () => {
+    const analysis: string = section(page, "## OneUptime AI's analysis");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueAiAnalysisCopy.ts",
+    );
+    const list: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Issues.tsx",
+    );
+
+    /*
+     * Its card, its buttons and the action it offers, as the card names
+     * them - each a key of its own, however the formatter wraps it.
+     */
+    const isKey: (name: string) => boolean = (name: string): boolean => {
+      return new RegExp(
+        `translationKey\\(\\s*"${escapeRegExp(name)}",?\\s*\\)`,
+      ).test(copy);
+    };
+
+    for (const name of [
+      "OneUptime AI Analysis",
+      "Analyze Issue",
+      "Analyze Again",
+      "Public By Design",
+      "Nothing changes until you choose.",
+    ]) {
+      expect({ name, isKey: isKey(name) }).toEqual({ name, isKey: true });
+    }
+
+    for (const name of [
+      "OneUptime AI Analysis",
+      "Analyze Issue",
+      "Analyze Again",
+      "Public By Design",
+    ]) {
+      expect(analysis).toContain(`**${name}**`);
+    }
+
+    expect(analysis).toContain("Nothing changes until you choose.");
+    expect(copy).toContain('other: "Show the {{count}} facts it rests on"');
+    expect(analysis).toContain("**Show the 3 facts it rests on**");
+
+    // Every verdict, by the title the card draws.
+    for (const verdict of DATA_SECURITY_AI_VERDICTS) {
+      expect(analysis).toContain(
+        `**${DATA_SECURITY_AI_VERDICT_TITLES[verdict]}**`,
+      );
+    }
+
+    // The Issues list filters and shows issues by it.
+    expect(list).toContain('title: "OneUptime AI Verdict"');
+    expect(analysis).toContain("**OneUptime AI Verdict**");
+
+    // Out of the box, the issues it analyzes on its own.
+    expect([...DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES]).toEqual([
+      SecuritySeverity.Critical,
+      SecuritySeverity.High,
+    ]);
+    expect(analysis).toContain(
+      "each new or reopened Critical or High issue by itself",
+    );
+  });
+
+  it("says Not an Issue asks why, as its dialog asks, and the issue keeps the reason (#10369)", () => {
+    const modals: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueModals.tsx",
+    );
+    const service: string = source(
+      "Common/Server/Services/DataSecurityIssueService.ts",
+    );
+
+    expect(modals).toContain('title="Not an Issue"');
+    expect(modals).toContain('title: "Reason"');
+    expect(service).toContain("notAnIssueReason");
+    expect(page).toContain(
+      "A person chose **Not an Issue** and said why in **Reason**",
+    );
+  });
+
   it("puts check settings where the Dashboard has them", () => {
     const checks: string = source(
       "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Checks.tsx",
@@ -2596,6 +2680,7 @@ describe("Data Security Integrations", () => {
       DATA_SECURITY_API_ROUTES.dropMetricImpact("<id>"),
       DATA_SECURITY_API_ROUTES.dropMetric("<id>"),
       DATA_SECURITY_API_ROUTES.explainIssue("<id>"),
+      DATA_SECURITY_API_ROUTES.issueAnalysis("<id>"),
       DATA_SECURITY_API_ROUTES.fixIssueWithAi("<id>"),
       DATA_SECURITY_API_ROUTES.responseActions("<id>"),
       DATA_SECURITY_API_ROUTES.respond("<id>"),

@@ -13,6 +13,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { Outlet } from "react-router-dom";
 import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
+import SecurityEventsReadBudgetBanners from "../../Components/SecurityEvents/RefusedTelemetry/SecurityEventsReadBudgetBanners";
 import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
@@ -46,6 +47,12 @@ const SecurityEventsLayout: FunctionComponent<
       <TelemetryIngestionBudgetExplorerBanner
         signal={ProductType.SecurityEvents}
       />
+      {/*
+       * And the logs' while Your logs is on, the traces' while the Traces
+       * source is (#10431): a used-up budget there refuses what Security
+       * Events reads.
+       */}
+      <SecurityEventsReadBudgetBanners />
       <Outlet />
     </Page>
   );

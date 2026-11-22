@@ -7,6 +7,7 @@ Sécurité des données exécute 34 contrôles sur chaque magasin de données, e
 - [Chaque contrôle](#chaque-contrôle): Les 34, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
 - [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
+- [L'analyse d'OneUptime AI](#lanalyse-doneuptime-ai): Si un problème est réel, ce qu'il met en danger, ce que la correction casserait et le chemin le plus court vers la correction.
 - [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
 :::
 
@@ -154,11 +155,26 @@ OneUptime ouvre, met à jour et résout les problèmes au fil de l'exécution de
 | **Ouvert** | Son contrôle échoue actuellement sur le magasin de données. | Il compte dans la Vue d'ensemble, dans le résumé du magasin de données et dans la conformité, jusqu'à ce que le contrôle réussisse. |
 | **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
 | **Accepté** | Une personne a choisi **Accepter le risque**, avec un **Motif** et une date dans **Accepté jusqu'au**, au plus un an plus tard. | Il reste fermé jusqu'à cette date, puis s'ouvre à nouveau si le contrôle échoue toujours. Acceptez-le alors de nouveau si le motif tient toujours. |
-| **Pas un problème** | Une personne a choisi **Pas un problème** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue. **Rouvrir** le remet à Ouvert. |
+| **Pas un problème** | Une personne a choisi **Pas un problème** et a dit pourquoi dans **Motif** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue, et conserve le motif. **Rouvrir** le remet à Ouvert. |
 
 Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs du projet et Propriétaires du projet peuvent changer le statut d'un problème, et l'**Attribuer** à une personne ou à une équipe. Chaque modification est écrite dans la **Chronologie** du problème : quand il s'est ouvert, chaque changement de gravité, chaque changement de statut et qui l'a fait, les nouveaux contrôles demandés, et ce qu'ont fait les intégrations.
 
 Un problème qui s'ouvre à nouveau garde son historique. Les risques acceptés sont réexaminés chaque jour, donc une acceptation expire à temps même quand rien n'a été analysé.
+
+## L'analyse d'OneUptime AI
+
+Tant que **Travailler sur les nouveaux problèmes** est activé dans **Sécurité des données → IA**, OneUptime AI analyse de lui-même chaque problème nouveau ou rouvert de gravité Critique ou Élevée, avant que quiconque ne l'ouvre ; vos règles d'IA de Sécurité des données peuvent en choisir d'autres. Tout problème peut être analysé depuis sa page avec **Analyser le problème**. L'analyse ouvre la **Vue d'ensemble** du problème, sous **Analyse d'OneUptime AI**, et répond à partir de ce que la Sécurité des données sait :
+
+- s'il est réel : **Réel**, **Probablement voulu**, **Probablement une fausse détection** ou **Impossible à dire**, et pourquoi ;
+- ce qu'il met en danger : les données et environ combien d'enregistrements, qui peut les atteindre, leurs copies dans d'autres magasins et les dossiers de sécurité qui les concernent ;
+- ce que la correction casserait : les services vus en train d'utiliser le magasin, les identités qui ont utilisé leur accès au cours des 90 derniers jours et les autorisations que la correction supprime et que quelque chose utilise encore ;
+- le chemin le plus court vers la correction : ce qui le contient maintenant, le code qui déclare le magasin et qui devrait s'en charger.
+
+Chaque ligne nomme les faits sur lesquels elle repose, listés sous elle par un bouton tel que **Afficher les 3 faits sur lesquels elle repose**. Une ligne qui ne repose sur aucun fait est écartée, un verdict dont le motif ne repose sur aucun est **Impossible à dire**, et un magasin de données restreintes n'est jamais **Probablement voulu** sur la seule parole d'OneUptime AI. Une ligne qui repose sur quelque chose que vous ne pouvez pas lire, comme qui peut atteindre le magasin, vous est masquée, et le dit.
+
+OneUptime AI ne modifie jamais le problème : son statut et sa gravité restent l'affaire de son contrôle et de vous. Pour **Probablement voulu**, il propose **Accepter le risque** avec le motif rédigé, et **Public par conception** pour un magasin public ; pour **Probablement une fausse détection**, **Pas un problème** avec le motif rédigé. Rien ne change tant que vous n'avez pas choisi.
+
+L'analyse est conservée sur le problème, avec une entrée dans sa **Chronologie** à chaque fois qu'elle est rédigée, dans la langue choisie par la plupart des membres de votre projet (**Analyser à nouveau** la rédige dans la vôtre). Elle n'est rédigée à nouveau que si ce sur quoi elle repose a changé : ouvrir le problème ne demande donc rien à OneUptime AI ; **Analyser à nouveau** le demande quand même. **Problèmes** filtre et affiche les problèmes par **Verdict d'OneUptime AI**. Ce qu'elle envoie, et n'envoie jamais, figure dans [OneUptime AI dans la Sécurité des données](/docs/data-security/ai). Avec l'IA désactivée, il n'y a pas d'analyse.
 
 ## Corriger d'ici
 

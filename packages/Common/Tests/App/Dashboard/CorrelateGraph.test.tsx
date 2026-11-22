@@ -265,6 +265,16 @@ import {
 import CorrelateGraph, {
   getCanvasHeight,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/CorrelateGraph";
+import { NO_EVENTS_BUT_REFUSED } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
+import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
+import ProductType from "../../../Types/MeteredPlan/ProductType";
+import { TelemetryIngestionBudgetScope } from "../../../Types/Telemetry/TelemetryIngestionBudget";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  RefusedTelemetry,
+  RefusedTelemetryKind,
+  writeRefusedTelemetryRecord,
+} from "../../../Utils/SecurityEvent/RefusedTelemetry";
 
 interface EventInput {
   id: string;
@@ -320,7 +330,37 @@ function runQuickSearch(observable: string): void {
   fireEvent.click(screen.getByTestId("security-events-correlate-button"));
 }
 
+/*
+ * What the Your logs source kept of what a budget refused (#10431), read
+ * when a filter finds nothing. Nothing, unless a test says otherwise - and
+ * never over the network.
+ */
+let keptRefusals: Array<RefusedTelemetry> = [];
+// Which source each read was of, by name (a model class does not print).
+let sourceReads: Array<string> = [];
+let sourcesSpy: { mockRestore: () => void } | null = null;
+
 beforeEach(() => {
+  keptRefusals = [];
+  sourceReads = [];
+  sourcesSpy = jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+    options: Record<string, unknown>,
+  ) => {
+    sourceReads.push(
+      options["modelType"] === SecurityLogSource ? "Your logs" : "other",
+    );
+
+    if (options["modelType"] === SecurityLogSource) {
+      const source: SecurityLogSource = new SecurityLogSource();
+      source.lastScanResult = writeRefusedTelemetryRecord({
+        observation: null,
+        refusals: keptRefusals,
+      });
+      return { data: [source], count: 1, skip: 0, limit: 1 };
+    }
+
+    return { data: [], count: 0, skip: 0, limit: 1 };
+  }) as never);
   getListMock.mockReset();
   getListMock.mockResolvedValue(listResult([]));
   setQueryStringMock.mockReset();
@@ -343,6 +383,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  sourcesSpy?.mockRestore();
+  sourcesSpy = null;
 });
 
 describe("CorrelateGraph", () => {
@@ -2657,6 +2699,70 @@ describe("CorrelateGraph no results", () => {
       ).toHaveTextContent(widenLabel);
     },
   );
+
+  // A refusal of the project's logs budget, from and to hours ago (to null: still going on).
+  function keptRefusal(
+    fromHoursAgo: number,
+    toHoursAgo: number | null,
+  ): RefusedTelemetry {
+    return {
+      signal: ProductType.Logs,
+      kind: RefusedTelemetryKind.BudgetUsedUp,
+      scope: TelemetryIngestionBudgetScope.Project,
+      scopeId: "11111111-1111-4111-8111-111111111111",
+      scopeName: "",
+      from: OneUptimeDate.getSomeHoursAgo(fromHoursAgo).toISOString(),
+      to:
+        toHoursAgo === null
+          ? null
+          : OneUptimeDate.getSomeHoursAgo(toHoursAgo).toISOString(),
+      refusedBytes: 52_428_800,
+      refusedRequests: 1200,
+    };
+  }
+
+  test("over a time range whose logs a budget refused, it says events from them are missing (#10431)", async () => {
+    keptRefusals = [keptRefusal(2, null)];
+    mockQueryParams["observable"] = SEARCHED_HOST;
+
+    render(<CorrelateGraph />);
+    await waitForNoResults();
+
+    expect(
+      await screen.findByTestId("correlate-no-results-refused"),
+    ).toHaveTextContent(NO_EVENTS_BUT_REFUSED);
+    // What to try next stays, under it.
+    expect(
+      screen.getByTestId("correlate-no-results-widen"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("correlate-no-results-edit")).toBeInTheDocument();
+  });
+
+  test("a time range nothing was refused in reads as it always did (#10431)", async () => {
+    // Refused ten days ago, for a day: outside the last 24 hours.
+    keptRefusals = [keptRefusal(11 * 24, 10 * 24)];
+    mockQueryParams["observable"] = SEARCHED_HOST;
+
+    render(<CorrelateGraph />);
+    await waitForNoResults();
+    await waitFor(() => {
+      expect(sourceReads).toContain("Your logs");
+    });
+
+    expect(screen.queryByTestId("correlate-no-results-refused")).toBeNull();
+    expect(
+      screen.getByTestId("correlate-no-results-widen"),
+    ).toBeInTheDocument();
+  });
+
+  test("a filter that found events reads nothing of what was refused (#10431)", async () => {
+    keptRefusals = [keptRefusal(2, null)];
+
+    await renderCorrelated();
+
+    expect(sourceReads).toEqual([]);
+    expect(screen.queryByTestId("correlate-no-results-refused")).toBeNull();
+  });
 
   test("there is nothing wider than 30 days", async () => {
     mockQueryParams["observable"] = SEARCHED_HOST;

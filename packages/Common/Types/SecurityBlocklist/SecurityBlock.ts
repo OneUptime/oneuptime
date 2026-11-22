@@ -134,6 +134,19 @@ export const SECURITY_BLOCK_ACTIONS: ReadonlyArray<SecurityBlockAction> = [
   SecurityBlockAction.BlockAndQuarantine,
 ];
 
+/*
+ * What a block of an address does: block it, or challenge it - the edge's
+ * actions. A file's BlockAndQuarantine (#10346) is never an address's, so
+ * a destination that holds addresses only - Cloudflare's lists and rules
+ * (#10343) - sets up nothing for it.
+ */
+export type SecurityBlockAddressAction =
+  | SecurityBlockAction.Block
+  | SecurityBlockAction.Challenge;
+
+export const SECURITY_BLOCK_ADDRESS_ACTIONS: ReadonlyArray<SecurityBlockAddressAction> =
+  [SecurityBlockAction.Block, SecurityBlockAction.Challenge];
+
 export const SECURITY_BLOCK_REACHES: ReadonlyArray<SecurityBlockReach> = [
   SecurityBlockReach.Edge,
   SecurityBlockReach.Everywhere,
