@@ -844,7 +844,10 @@ describe("Add WAF", () => {
         label: "prod-waf (Application Gateway, Production Azure)",
         value: "r-gateway",
       },
-      { label: "prod-lb (Cloud Armor, global, Production GCP)", value: "r-armor" },
+      {
+        label: "prod-lb (Cloud Armor, global, Production GCP)",
+        value: "r-armor",
+      },
     ]);
 
     const note: HTMLElement = screen.getByTestId(CLOUD_WAF_TEST_IDS.addNote);
@@ -1011,9 +1014,9 @@ describe("Add WAF", () => {
     const form: CapturedForm = await openAdd();
 
     // A web ACL is not a policy: no access check to wait for.
-    expect(fieldOf(form, "access").showIf!({ cloudResourceId: RESOURCE_ID })).toBe(
-      false,
-    );
+    expect(
+      fieldOf(form, "access").showIf!({ cloudResourceId: RESOURCE_ID }),
+    ).toBe(false);
 
     await act(async () => {
       await form.onSubmit!({
@@ -1100,7 +1103,8 @@ describe("Add WAF", () => {
         },
       ],
       isGranted: false,
-      command: 'az role assignment create --assignee "app" --role "OneUptime WAF Blocklist"',
+      command:
+        'az role assignment create --assignee "app" --role "OneUptime WAF Blocklist"',
       shell: "azure",
     } as never);
 
@@ -1124,11 +1128,9 @@ describe("Add WAF", () => {
     await act(async () => {
       render(
         <MemoryRouter>
-          {lastForm()
-            .formProps.fields.find((field: CapturedField): boolean => {
-              return Object.keys(field.field)[0] === "access";
-            })!
-            .getCustomElement!({ cloudResourceId: "r-azure" })}
+          {lastForm().formProps.fields.find((field: CapturedField): boolean => {
+            return Object.keys(field.field)[0] === "access";
+          })!.getCustomElement!({ cloudResourceId: "r-azure" })}
         </MemoryRouter>,
       );
     });
@@ -1142,7 +1144,9 @@ describe("Add WAF", () => {
     );
     expect(panel).toHaveTextContent("Granted");
     expect(panel).toHaveTextContent("Missing");
-    expect(screen.getByTestId(CLOUD_WAF_TEST_IDS.accessCommand)).toHaveTextContent(
+    expect(
+      screen.getByTestId(CLOUD_WAF_TEST_IDS.accessCommand),
+    ).toHaveTextContent(
       'az role assignment create --assignee "app" --role "OneUptime WAF Blocklist"',
     );
 
@@ -1262,7 +1266,9 @@ describe("Add WAF", () => {
       "OneUptime could not ask your cloud what the connection may do.",
     );
     expect(panel).toHaveTextContent("Google Cloud did not answer.");
-    expect(screen.getByTestId(CLOUD_WAF_TEST_IDS.accessCheck)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(CLOUD_WAF_TEST_IDS.accessCheck),
+    ).toBeInTheDocument();
     // Never told it may: the dialog keeps waiting.
     expect(checked).not.toHaveBeenCalledWith(
       expect.objectContaining({ isGranted: true }),
@@ -1271,7 +1277,9 @@ describe("Add WAF", () => {
 
   test("a Cloud Armor policy's lines are for Google Cloud Shell", async () => {
     api.checkCloudWafAccess.mockResolvedValue({
-      checks: [{ permission: "compute.securityPolicies.update", isGranted: false }],
+      checks: [
+        { permission: "compute.securityPolicies.update", isGranted: false },
+      ],
       isGranted: false,
       command: "gcloud iam roles create oneuptimeCloudArmorBlocklist",
       shell: "gcp",
@@ -1562,9 +1570,9 @@ describe("Check Again, Put It Back, Client Address and Remove", () => {
     });
 
     expect(confirms[confirms.length - 1]!.title).toBe(LEFT_IN_AZURE_TITLE);
-    expect(screen.getByTestId(CLOUD_WAF_TEST_IDS.leftInCloud)).toHaveTextContent(
-      "Rule OneUptime1a2b3c4dBlock1 in prod-waf",
-    );
+    expect(
+      screen.getByTestId(CLOUD_WAF_TEST_IDS.leftInCloud),
+    ).toHaveTextContent("Rule OneUptime1a2b3c4dBlock1 in prod-waf");
   });
 
   test("a Cloud Armor policy's Remove names its rules by priority and its address groups", async () => {
@@ -1600,7 +1608,9 @@ describe("Check Again, Put It Back, Client Address and Remove", () => {
       await lastForm().onSubmit!({ keepInCloud: true });
     });
 
-    expect(confirms[confirms.length - 1]!.title).toBe(LEFT_IN_CLOUD_ARMOR_TITLE);
+    expect(confirms[confirms.length - 1]!.title).toBe(
+      LEFT_IN_CLOUD_ARMOR_TITLE,
+    );
 
     const left: HTMLElement = screen.getByTestId(
       CLOUD_WAF_TEST_IDS.leftInCloud,

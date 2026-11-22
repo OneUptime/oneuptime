@@ -64,7 +64,9 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 describe("the slot planner", () => {
   test("fills the rules there first, then new ones at the free priorities, lowest first", () => {
     const plan: CloudWafSlotPlan = planCloudWafValueSlots({
-      slots: [{ index: 1, priority: 3, values: ["192.0.2.1"], isFrozen: false }],
+      slots: [
+        { index: 1, priority: 3, values: ["192.0.2.1"], isFrozen: false },
+      ],
       add: ["192.0.2.2", "192.0.2.3", "192.0.2.4"],
       remove: [],
       perSlot: 2,
@@ -74,22 +76,37 @@ describe("the slot planner", () => {
     });
 
     expect(
-      plan.slots.map((slot: { index: number; priority: number; values: Array<string> }) => {
-        return [slot.index, slot.priority, slot.values];
-      }),
+      plan.slots.map(
+        (slot: { index: number; priority: number; values: Array<string> }) => {
+          return [slot.index, slot.priority, slot.values];
+        },
+      ),
     ).toEqual([
       [1, 3, ["192.0.2.1", "192.0.2.2"]],
       [2, 4, ["192.0.2.3", "192.0.2.4"]],
     ]);
-    expect(plan.changed.map((slot: { index: number }) => slot.index)).toEqual([1]);
-    expect(plan.created.map((slot: { index: number }) => slot.index)).toEqual([2]);
+    expect(
+      plan.changed.map((slot: { index: number }) => {
+        return slot.index;
+      }),
+    ).toEqual([1]);
+    expect(
+      plan.created.map((slot: { index: number }) => {
+        return slot.index;
+      }),
+    ).toEqual([2]);
     expect(plan.isChanged).toBe(true);
   });
 
   test("a removed address makes room, an emptied rule goes, and the same address twice is one", () => {
     const plan: CloudWafSlotPlan = planCloudWafValueSlots({
       slots: [
-        { index: 1, priority: 1, values: ["192.0.2.1", "192.0.2.2"], isFrozen: false },
+        {
+          index: 1,
+          priority: 1,
+          values: ["192.0.2.1", "192.0.2.2"],
+          isFrozen: false,
+        },
         { index: 2, priority: 2, values: ["192.0.2.3"], isFrozen: false },
       ],
       add: ["192.0.2.9", "192.0.2.9/32"],
@@ -100,20 +117,37 @@ describe("the slot planner", () => {
     });
 
     expect(plan.slots).toEqual([
-      { index: 1, priority: 1, values: ["192.0.2.1", "192.0.2.9"], isFrozen: false },
+      {
+        index: 1,
+        priority: 1,
+        values: ["192.0.2.1", "192.0.2.9"],
+        isFrozen: false,
+      },
     ]);
-    expect(plan.emptied.map((slot: { index: number }) => slot.index)).toEqual([2]);
-    expect(plan.added.map((addition: { isDone: boolean }) => addition.isDone)).toEqual([
-      true,
-      true,
-    ]);
-    expect(getCloudWafValueKey("192.0.2.9/32")).toBe(getCloudWafValueKey("192.0.2.9"));
+    expect(
+      plan.emptied.map((slot: { index: number }) => {
+        return slot.index;
+      }),
+    ).toEqual([2]);
+    expect(
+      plan.added.map((addition: { isDone: boolean }) => {
+        return addition.isDone;
+      }),
+    ).toEqual([true, true]);
+    expect(getCloudWafValueKey("192.0.2.9/32")).toBe(
+      getCloudWafValueKey("192.0.2.9"),
+    );
   });
 
   test("a frozen rule - turned off by hand - takes nothing new, but lets a lifted address go", () => {
     const plan: CloudWafSlotPlan = planCloudWafValueSlots({
       slots: [
-        { index: 1, priority: 1, values: ["192.0.2.1", "192.0.2.2"], isFrozen: true },
+        {
+          index: 1,
+          priority: 1,
+          values: ["192.0.2.1", "192.0.2.2"],
+          isFrozen: true,
+        },
       ],
       add: ["192.0.2.5"],
       remove: ["192.0.2.2"],
@@ -134,7 +168,9 @@ describe("the slot planner", () => {
 
   test("past the most rules it may take, an address is Full; with no free priority, No Free Priority", () => {
     const full: CloudWafSlotPlan = planCloudWafValueSlots({
-      slots: [{ index: 1, priority: 1, values: ["192.0.2.1"], isFrozen: false }],
+      slots: [
+        { index: 1, priority: 1, values: ["192.0.2.1"], isFrozen: false },
+      ],
       add: ["192.0.2.2"],
       remove: [],
       perSlot: 1,
@@ -193,8 +229,12 @@ describe("the slot planner", () => {
     );
 
     expect(first).toMatch(/^[0-9a-f]{8}$/);
-    expect(getAwsExternalIdForProject("11111111-1111-4111-8111-111111111111")).toContain(first);
-    expect(getCloudWafProjectSuffix("22222222-2222-4222-8222-222222222222")).not.toBe(first);
+    expect(
+      getAwsExternalIdForProject("11111111-1111-4111-8111-111111111111"),
+    ).toContain(first);
+    expect(
+      getCloudWafProjectSuffix("22222222-2222-4222-8222-222222222222"),
+    ).not.toBe(first);
   });
 });
 
@@ -228,27 +268,48 @@ describe("Azure WAF policies", () => {
 
   test("OneUptime's rules are named for the project and numbered; another project's, and the customer's, are not its own", () => {
     expect(getAzureWafRuleName("1a2b3c4d", 3)).toBe("OneUptime1a2b3c4dBlock3");
-    expect(readAzureWafRuleIndex("OneUptime1a2b3c4dBlock3", "1a2b3c4d")).toBe(3);
-    expect(readAzureWafRuleIndex("OneUptime9f8e7d6cBlock3", "1a2b3c4d")).toBeNull();
+    expect(readAzureWafRuleIndex("OneUptime1a2b3c4dBlock3", "1a2b3c4d")).toBe(
+      3,
+    );
+    expect(
+      readAzureWafRuleIndex("OneUptime9f8e7d6cBlock3", "1a2b3c4d"),
+    ).toBeNull();
     expect(readAzureWafRuleIndex("AllowOffice", "1a2b3c4d")).toBeNull();
-    expect(readAzureWafRuleIndex("OneUptime1a2b3c4dBlock0", "1a2b3c4d")).toBeNull();
+    expect(
+      readAzureWafRuleIndex("OneUptime1a2b3c4dBlock0", "1a2b3c4d"),
+    ).toBeNull();
   });
 
   test("an address as each kind takes it: Application Gateway IPv4 alone, a single address bare", () => {
-    expect(toAzureWafAddress(AzureWafPolicyKind.ApplicationGateway, "35.205.11.131/32")).toBe(
-      "35.205.11.131",
+    expect(
+      toAzureWafAddress(
+        AzureWafPolicyKind.ApplicationGateway,
+        "35.205.11.131/32",
+      ),
+    ).toBe("35.205.11.131");
+    expect(
+      toAzureWafAddress(
+        AzureWafPolicyKind.ApplicationGateway,
+        "185.220.101.0/24",
+      ),
+    ).toBe("185.220.101.0/24");
+    expect(
+      toAzureWafAddress(AzureWafPolicyKind.ApplicationGateway, "2001:db8::1"),
+    ).toBeNull();
+    expect(toAzureWafAddress(AzureWafPolicyKind.FrontDoor, "2001:db8::1")).toBe(
+      "2001:db8::1",
     );
-    expect(toAzureWafAddress(AzureWafPolicyKind.ApplicationGateway, "185.220.101.0/24")).toBe(
-      "185.220.101.0/24",
-    );
-    expect(toAzureWafAddress(AzureWafPolicyKind.ApplicationGateway, "2001:db8::1")).toBeNull();
-    expect(toAzureWafAddress(AzureWafPolicyKind.FrontDoor, "2001:db8::1")).toBe("2001:db8::1");
-    expect(toAzureWafAddress(AzureWafPolicyKind.FrontDoor, "example.com")).toBeNull();
+    expect(
+      toAzureWafAddress(AzureWafPolicyKind.FrontDoor, "example.com"),
+    ).toBeNull();
   });
 
   test("which address a rule matches: the address that connected, unless Front Door is told to read X-Forwarded-For", () => {
     expect(
-      getAzureWafMatchVariable(AzureWafPolicyKind.FrontDoor, SecurityBlockClientAddress.SourceIp),
+      getAzureWafMatchVariable(
+        AzureWafPolicyKind.FrontDoor,
+        SecurityBlockClientAddress.SourceIp,
+      ),
     ).toBe("SocketAddr");
     expect(
       getAzureWafMatchVariable(
@@ -272,24 +333,38 @@ describe("Azure WAF policies", () => {
         { name: "c", priority: 20, action: "Log" },
       ]),
     ).toBe(40);
-    expect(getAzureWafPassPriority([{ name: "a", priority: 10, action: "Block" }])).toBeNull();
+    expect(
+      getAzureWafPassPriority([{ name: "a", priority: 10, action: "Block" }]),
+    ).toBeNull();
   });
 
   test("an action is granted by a wildcard and taken away by a not-action", () => {
     const read: string = AZURE_WAF_BLOCKLIST_ACTIONS[0]!;
     const write: string = AZURE_WAF_BLOCKLIST_ACTIONS[1]!;
 
-    expect(isAzureActionPermitted({ action: write, permissions: [{ actions: ["*"], notActions: [] }] })).toBe(true);
     expect(
       isAzureActionPermitted({
         action: write,
-        permissions: [{ actions: ["Microsoft.Network/*"], notActions: ["*/write"] }],
+        permissions: [{ actions: ["*"], notActions: [] }],
+      }),
+    ).toBe(true);
+    expect(
+      isAzureActionPermitted({
+        action: write,
+        permissions: [
+          { actions: ["Microsoft.Network/*"], notActions: ["*/write"] },
+        ],
       }),
     ).toBe(false);
     expect(
-      isAzureActionPermitted({ action: read, permissions: [{ actions: ["*/read"], notActions: [] }] }),
+      isAzureActionPermitted({
+        action: read,
+        permissions: [{ actions: ["*/read"], notActions: [] }],
+      }),
     ).toBe(true);
-    expect(isAzureActionPermitted({ action: write, permissions: [] })).toBe(false);
+    expect(isAzureActionPermitted({ action: write, permissions: [] })).toBe(
+      false,
+    );
   });
 
   test("the setup command makes the role on its scope and assigns it; one policy's lines widen an existing role by its id and roleName and assign it on the policy alone", () => {
@@ -315,10 +390,14 @@ describe("Azure WAF policies", () => {
       policy,
     });
 
-    expect(command).toContain(`SCOPE="/subscriptions/${SUBSCRIPTION.toLowerCase()}"`);
+    expect(command).toContain(
+      `SCOPE="/subscriptions/${SUBSCRIPTION.toLowerCase()}"`,
+    );
     // az role definition update finds a role by its full id, and needs its roleName with it.
     expect(command).toContain("{Id: .id, RoleName: .roleName,");
-    expect(command).toContain("AssignableScopes: ((.assignableScopes + [$scope]) | unique)");
+    expect(command).toContain(
+      "AssignableScopes: ((.assignableScopes + [$scope]) | unique)",
+    );
     expect(command.split("\n").pop()).toBe(
       `az role assignment create --assignee "00001111-aaaa-2222-bbbb-3333cccc4444" --role "OneUptime WAF Blocklist" --scope "${policy.id}" > /dev/null`,
     );
@@ -328,7 +407,11 @@ describe("Azure WAF policies", () => {
 
 describe("Cloud Armor policies", () => {
   test("a policy's name is read from its relative name or its self link, global or regional", () => {
-    expect(parseCloudArmorPolicyId("projects/acme-prod/global/securityPolicies/prod-lb")).toEqual({
+    expect(
+      parseCloudArmorPolicyId(
+        "projects/acme-prod/global/securityPolicies/prod-lb",
+      ),
+    ).toEqual({
       id: "projects/acme-prod/global/securityPolicies/prod-lb",
       project: "acme-prod",
       region: null,
@@ -361,7 +444,9 @@ describe("Cloud Armor policies", () => {
         "1a2b3c4d",
       ),
     ).toBe(true);
-    expect(isAnyOneUptimeCloudArmorRule(getCloudArmorRuleDescription("9f8e7d6c", 1))).toBe(true);
+    expect(
+      isAnyOneUptimeCloudArmorRule(getCloudArmorRuleDescription("9f8e7d6c", 1)),
+    ).toBe(true);
     expect(isAnyOneUptimeCloudArmorRule("Allow the office")).toBe(false);
   });
 
@@ -378,10 +463,17 @@ describe("Cloud Armor policies", () => {
       readCloudArmorRule({
         priority: 3,
         action: "deny(403)",
-        match: { versionedExpr: "SRC_IPS_V1", config: { srcIpRanges: ["192.0.2.1/32"] } },
+        match: {
+          versionedExpr: "SRC_IPS_V1",
+          config: { srcIpRanges: ["192.0.2.1/32"] },
+        },
       }),
     ).toEqual(
-      expect.objectContaining({ attribute: "origin.ip", values: ["192.0.2.1"], isDeny: true }),
+      expect.objectContaining({
+        attribute: "origin.ip",
+        values: ["192.0.2.1"],
+        isDeny: true,
+      }),
     );
     expect(
       readCloudArmorRule({
@@ -419,7 +511,11 @@ describe("Cloud Armor policies", () => {
     ).toBe(1500);
     expect(
       getCloudArmorPassPriority([
-        { priority: 1, action: "allow", description: getCloudArmorRuleDescription("9f8e7d6c", 1) },
+        {
+          priority: 1,
+          action: "allow",
+          description: getCloudArmorRuleDescription("9f8e7d6c", 1),
+        },
         { priority: 2147483647, action: "deny(403)" },
       ]),
     ).toBeNull();
@@ -427,10 +523,18 @@ describe("Cloud Armor policies", () => {
 
   test("address groups for a global backend policy of an Enterprise project, rules for everything else", () => {
     expect(
-      chooseCloudArmorMode({ tier: "CA_ENTERPRISE_PAYGO", policyType: CloudArmorPolicyType.Backend, region: null }),
+      chooseCloudArmorMode({
+        tier: "CA_ENTERPRISE_PAYGO",
+        policyType: CloudArmorPolicyType.Backend,
+        region: null,
+      }),
     ).toBe(CloudArmorBlocklistMode.AddressGroups);
     expect(
-      chooseCloudArmorMode({ tier: "CA_ENTERPRISE_ANNUAL", policyType: CloudArmorPolicyType.Edge, region: null }),
+      chooseCloudArmorMode({
+        tier: "CA_ENTERPRISE_ANNUAL",
+        policyType: CloudArmorPolicyType.Edge,
+        region: null,
+      }),
     ).toBe(CloudArmorBlocklistMode.Rules);
     expect(
       chooseCloudArmorMode({
@@ -440,7 +544,11 @@ describe("Cloud Armor policies", () => {
       }),
     ).toBe(CloudArmorBlocklistMode.Rules);
     expect(
-      chooseCloudArmorMode({ tier: "CA_STANDARD", policyType: CloudArmorPolicyType.Backend, region: null }),
+      chooseCloudArmorMode({
+        tier: "CA_STANDARD",
+        policyType: CloudArmorPolicyType.Backend,
+        region: null,
+      }),
     ).toBe(CloudArmorBlocklistMode.Rules);
     expect(getCloudArmorAddressGroupNames("1a2b3c4d")).toEqual({
       ipv4: "oneuptime-1a2b3c4d-block-ipv4",
@@ -456,8 +564,12 @@ describe("Cloud Armor policies", () => {
     expect(getCloudArmorClientAddresses(CloudArmorPolicyType.Edge)).toEqual([
       SecurityBlockClientAddress.SourceIp,
     ]);
-    expect(isCloudArmorPolicyTypeSupported(CloudArmorPolicyType.Network)).toBe(false);
-    expect(isCloudArmorPolicyTypeSupported(CloudArmorPolicyType.Edge)).toBe(true);
+    expect(isCloudArmorPolicyTypeSupported(CloudArmorPolicyType.Network)).toBe(
+      false,
+    );
+    expect(isCloudArmorPolicyTypeSupported(CloudArmorPolicyType.Edge)).toBe(
+      true,
+    );
   });
 
   test("one policy's lines make the role in its project, or update it, and bind it to the connection's service account", () => {
@@ -465,17 +577,24 @@ describe("Cloud Armor policies", () => {
       "projects/acme-prod/global/securityPolicies/prod-lb",
     )!;
     const command: Array<string> = getCloudArmorPolicyAccessCommand({
-      serviceAccountEmail: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
+      serviceAccountEmail:
+        "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
       policy,
     }).split("\n");
 
     expect(command).toHaveLength(2);
-    expect(command[0]).toContain('gcloud iam roles create oneuptimeCloudArmorBlocklist --project "acme-prod"');
-    expect(command[0]).toContain(' || gcloud iam roles update oneuptimeCloudArmorBlocklist --project "acme-prod"');
+    expect(command[0]).toContain(
+      'gcloud iam roles create oneuptimeCloudArmorBlocklist --project "acme-prod"',
+    );
+    expect(command[0]).toContain(
+      ' || gcloud iam roles update oneuptimeCloudArmorBlocklist --project "acme-prod"',
+    );
     expect(command[1]).toBe(
       'gcloud projects add-iam-policy-binding "acme-prod" --member "serviceAccount:oneuptime-read-only@acme-prod.iam.gserviceaccount.com" --role projects/acme-prod/roles/oneuptimeCloudArmorBlocklist --condition=None > /dev/null',
     );
-    expect(getCloudArmorDestinationName("prod-lb")).toBe("Cloud Armor (prod-lb)");
+    expect(getCloudArmorDestinationName("prod-lb")).toBe(
+      "Cloud Armor (prod-lb)",
+    );
     expect(getCloudArmorConsoleUrl(policy)).toBe(
       "https://console.cloud.google.com/net-security/securitypolicies/details/prod-lb?project=acme-prod",
     );
@@ -504,7 +623,12 @@ describe("a picked WAF's kind", () => {
         wafId: "projects/acme-prod/global/securityPolicies/prod-lb",
       }),
     ).toBe(SecurityBlockCloudWafKind.CloudArmor);
-    expect(getSecurityBlockCloudWafKind({ cloudProvider: CloudProvider.GCP, wafId: "nope" })).toBeNull();
+    expect(
+      getSecurityBlockCloudWafKind({
+        cloudProvider: CloudProvider.GCP,
+        wafId: "nope",
+      }),
+    ).toBeNull();
 
     expect(
       getSecurityBlockCloudWafClientAddresses({

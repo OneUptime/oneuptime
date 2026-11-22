@@ -695,7 +695,9 @@ describe("a connection that enforces the blocklist in AWS WAF", () => {
 describe("a connection that enforces the blocklist in Azure WAF or Cloud Armor", () => {
   let policies: number;
 
-  const azure: (choice: string) => JSONObject = (choice: string): JSONObject => {
+  const azure: (choice: string) => JSONObject = (
+    choice: string,
+  ): JSONObject => {
     return {
       authMethod: CloudConnectionAuthMethod.AzureClientSecret,
       tenantId: TENANT,
@@ -725,7 +727,9 @@ describe("a connection that enforces the blocklist in Azure WAF or Cloud Armor",
     jest
       .spyOn(CloudConnectionService, "findOneById")
       .mockResolvedValue(connection);
-    jest.spyOn(CloudConnectionService, "findBy").mockResolvedValue([connection]);
+    jest
+      .spyOn(CloudConnectionService, "findBy")
+      .mockResolvedValue([connection]);
   }
 
   beforeEach(() => {

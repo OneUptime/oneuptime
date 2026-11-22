@@ -113,10 +113,10 @@ function addresses(count: number): Array<string> {
 
 function ranges(rule: JSONObject | undefined): Array<string> {
   return (
-    ((rule?.["match"] as JSONObject)?.["config"] as JSONObject)?.[
+    (((rule?.["match"] as JSONObject)?.["config"] as JSONObject)?.[
       "srcIpRanges"
-    ] as Array<string>
-  ) || [];
+    ] as Array<string>) || []
+  );
 }
 
 function customerRules(fake: FakeCloudArmor, id: string): Array<JSONObject> {
@@ -253,12 +253,17 @@ describe("rules mode, without Cloud Armor Enterprise", () => {
       clientAddress: SecurityBlockClientAddress.UserIp,
     });
 
-    await keeper.change({ add: ["35.205.11.131", "2001:db8::/32"], remove: [] });
+    await keeper.change({
+      add: ["35.205.11.131", "2001:db8::/32"],
+      remove: [],
+    });
 
     expect(
-      ((fake.ruleAt(FAKE_ARMOR_POLICY_ID, 0)!["match"] as JSONObject)[
-        "expr"
-      ] as JSONObject)["expression"],
+      (
+        (fake.ruleAt(FAKE_ARMOR_POLICY_ID, 0)!["match"] as JSONObject)[
+          "expr"
+        ] as JSONObject
+      )["expression"],
     ).toBe(
       "inIpRange(origin.user_ip, '35.205.11.131/32') || inIpRange(origin.user_ip, '2001:db8::/32')",
     );
@@ -284,7 +289,10 @@ describe("rules mode, without Cloud Armor Enterprise", () => {
       ],
     });
 
-    for (const id of [FAKE_EDGE_ARMOR_POLICY_ID, FAKE_REGIONAL_ARMOR_POLICY_ID]) {
+    for (const id of [
+      FAKE_EDGE_ARMOR_POLICY_ID,
+      FAKE_REGIONAL_ARMOR_POLICY_ID,
+    ]) {
       const keeper: CloudArmorPolicyBlocklist = await setUp({ fake, id });
 
       expect(keeper.getDetails().mode).toBe(CloudArmorBlocklistMode.Rules);
@@ -345,10 +353,12 @@ describe("rules mode, without Cloud Armor Enterprise", () => {
     const fake: FakeCloudArmor = createFakeCloudArmor();
     const keeper: CloudArmorPolicyBlocklist = await setUp({ fake });
 
-    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change({
-      add: addresses(201),
-      remove: [],
-    });
+    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change(
+      {
+        add: addresses(201),
+        remove: [],
+      },
+    );
 
     expect(done(result.added)).toHaveLength(200);
     expect(fillSecurityBlockReason(result.added[200]!.reason!)).toBe(
@@ -382,10 +392,12 @@ describe("rules mode, without Cloud Armor Enterprise", () => {
       ),
     );
 
-    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change({
-      add: ["35.205.11.131"],
-      remove: [],
-    });
+    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change(
+      {
+        add: ["35.205.11.131"],
+        remove: [],
+      },
+    );
 
     expect(fillSecurityBlockReason(result.added[0]!.reason!)).toContain(
       "Google Cloud refused another rule in prod-lb as over a quota",
@@ -400,7 +412,9 @@ describe("rules mode, without Cloud Armor Enterprise", () => {
             code: 403,
             message:
               "Required 'compute.securityPolicies.update' permission for 'projects/acme-prod/global/securityPolicies/prod-lb'",
-            errors: [{ message: "forbidden", domain: "global", reason: "forbidden" }],
+            errors: [
+              { message: "forbidden", domain: "global", reason: "forbidden" },
+            ],
           },
         },
         403,
@@ -522,7 +536,9 @@ describe("address groups mode, with Cloud Armor Enterprise", () => {
     });
     const keeper: CloudArmorPolicyBlocklist = await setUp({ fake });
 
-    expect(keeper.getDetails().mode).toBe(CloudArmorBlocklistMode.AddressGroups);
+    expect(keeper.getDetails().mode).toBe(
+      CloudArmorBlocklistMode.AddressGroups,
+    );
     expect(fake.group(`oneuptime-${SUFFIX}-block-ipv4`)).toEqual({
       name: `oneuptime-${SUFFIX}-block-ipv4`,
       type: "IPV4",
@@ -550,10 +566,12 @@ describe("address groups mode, with Cloud Armor Enterprise", () => {
       },
     });
 
-    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change({
-      add: ["35.205.11.131", "185.220.101.0/24", "2001:db8::1"],
-      remove: [],
-    });
+    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change(
+      {
+        add: ["35.205.11.131", "185.220.101.0/24", "2001:db8::1"],
+        remove: [],
+      },
+    );
 
     expect(done(result.added)).toHaveLength(3);
     expect(fake.group(`oneuptime-${SUFFIX}-block-ipv4`)!.items).toEqual([
@@ -571,9 +589,11 @@ describe("address groups mode, with Cloud Armor Enterprise", () => {
       CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv4 +
         CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv6,
     );
-    expect(state.held.map((item: { holder: string }): string => {
-      return item.holder;
-    })).toEqual([
+    expect(
+      state.held.map((item: { holder: string }): string => {
+        return item.holder;
+      }),
+    ).toEqual([
       `oneuptime-${SUFFIX}-block-ipv4`,
       `oneuptime-${SUFFIX}-block-ipv4`,
       `oneuptime-${SUFFIX}-block-ipv6`,
@@ -654,10 +674,12 @@ describe("address groups mode, with Cloud Armor Enterprise", () => {
       },
     );
 
-    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change({
-      add: ipv6,
-      remove: [],
-    });
+    const result: { added: Array<CloudArmorWriteResult> } = await keeper.change(
+      {
+        add: ipv6,
+        remove: [],
+      },
+    );
 
     const refused: Array<CloudArmorWriteResult> = result.added.filter(
       (item: CloudArmorWriteResult): boolean => {
@@ -665,10 +687,14 @@ describe("address groups mode, with Cloud Armor Enterprise", () => {
       },
     );
 
-    expect(done(result.added)).toHaveLength(CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv6);
-    expect(refused.map((item: CloudArmorWriteResult): string => {
-      return item.value;
-    })).toEqual([ipv6[ipv6.length - 1]]);
+    expect(done(result.added)).toHaveLength(
+      CLOUD_ARMOR_ADDRESS_GROUP_CAPACITY.ipv6,
+    );
+    expect(
+      refused.map((item: CloudArmorWriteResult): string => {
+        return item.value;
+      }),
+    ).toEqual([ipv6[ipv6.length - 1]]);
     expect(fillSecurityBlockReason(refused[0]!.reason!)).toBe(
       `OneUptime's address group oneuptime-${SUFFIX}-block-ipv6 is full: it holds 2,000 ranges, the capacity it was made with.`,
     );
@@ -752,14 +778,16 @@ describe("whether the connection may write the policy", () => {
     ]);
     // Asking writes nothing.
     expect(
-      [...fake.calls(), ...enterprise.calls()].filter((call: string): boolean => {
-        return (
-          call.startsWith("addRule") ||
-          call.startsWith("patchRule") ||
-          call.startsWith("removeRule") ||
-          call.startsWith("create")
-        );
-      }),
+      [...fake.calls(), ...enterprise.calls()].filter(
+        (call: string): boolean => {
+          return (
+            call.startsWith("addRule") ||
+            call.startsWith("patchRule") ||
+            call.startsWith("removeRule") ||
+            call.startsWith("create")
+          );
+        },
+      ),
     ).toEqual([]);
   });
 });

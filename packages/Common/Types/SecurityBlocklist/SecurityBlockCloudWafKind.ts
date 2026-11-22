@@ -45,7 +45,9 @@ export function getSecurityBlockCloudWafKind(data: {
   wafId: string | undefined | null;
 }): SecurityBlockCloudWafKind | null {
   if (data.cloudProvider === CloudProvider.AWS) {
-    return parseAwsWafArn(data.wafId) ? SecurityBlockCloudWafKind.AwsWebAcl : null;
+    return parseAwsWafArn(data.wafId)
+      ? SecurityBlockCloudWafKind.AwsWebAcl
+      : null;
   }
 
   if (data.cloudProvider === CloudProvider.Azure) {

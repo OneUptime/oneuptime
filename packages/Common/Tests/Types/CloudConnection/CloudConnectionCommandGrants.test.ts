@@ -1164,9 +1164,11 @@ describe("every way the form writes a command, with every choice", () => {
       for (const items of Object.values(grant.grants)) {
         for (const item of items) {
           if (
-            ["wafv2:CreateIPSet", "wafv2:UpdateIPSet", "wafv2:DeleteIPSet"].includes(
-              item.split(" ")[0]!,
-            )
+            [
+              "wafv2:CreateIPSet",
+              "wafv2:UpdateIPSet",
+              "wafv2:DeleteIPSet",
+            ].includes(item.split(" ")[0]!)
           ) {
             expect(item).toBe(
               `${item.split(" ")[0]} on ${getAwsWafIpSetResource(EXTERNAL_ID)}`,
@@ -1363,7 +1365,9 @@ describe("the settings a command is written from, as a connection keeps them", (
       },
     );
 
-    expect(withWaf).toContain(`--policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} `);
+    expect(withWaf).toContain(
+      `--policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} `,
+    );
     expect(withWaf).toContain("wafv2:UpdateWebACL");
   });
 });
@@ -1541,7 +1545,9 @@ describe("what the words say a command grants beyond reading is what it grants",
   function isWafPolicyRole(identity: string): boolean {
     return (
       identity === `custom role ${AZURE_WAF_BLOCKLIST_ROLE}` ||
-      identity.startsWith(`custom role ${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID} in `)
+      identity.startsWith(
+        `custom role ${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID} in `,
+      )
     );
   }
 
@@ -1586,7 +1592,9 @@ describe("what the words say a command grants beyond reading is what it grants",
       return (
         isWafPolicyRole(identity) &&
         grant.grants[identity]!.some((permission: string): boolean => {
-          return permission.endsWith("/write") || permission.endsWith(".update");
+          return (
+            permission.endsWith("/write") || permission.endsWith(".update")
+          );
         })
       );
     });

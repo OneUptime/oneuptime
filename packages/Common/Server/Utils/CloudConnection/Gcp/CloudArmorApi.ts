@@ -261,7 +261,10 @@ export default class CloudArmorApi {
     for (;;) {
       this.throwIfFailed(current);
 
-      if (readText(current["status"]) === "DONE" || !readText(current["name"])) {
+      if (
+        readText(current["status"]) === "DONE" ||
+        !readText(current["name"])
+      ) {
         return;
       }
 
@@ -296,7 +299,9 @@ export default class CloudArmorApi {
       const first: JSONObject = readObject(errors[0]);
 
       throw new CloudArmorOperationError(
-        readText(first["message"]) || readText(first["code"]) || "unknown error",
+        readText(first["message"]) ||
+          readText(first["code"]) ||
+          "unknown error",
         readText(first["code"]),
       );
     }
@@ -384,7 +389,9 @@ export default class CloudArmorApi {
       method: "POST",
       url: `${this.groupUrl(data.project, data.location, data.name)}:${data.isAdding ? "addItems" : "removeItems"}`,
       body: { items: data.items },
-      step: data.isAdding ? "address group items add" : "address group items removal",
+      step: data.isAdding
+        ? "address group items add"
+        : "address group items removal",
       api: NETWORK_SECURITY_API,
     });
 

@@ -6,9 +6,7 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import SecurityBlockCloudWafService from "../../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityBlockEnforcementService from "../../../../Server/Services/SecurityBlockEnforcementService";
 import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
-import {
-  setAzureWafCallOptionsForTests,
-} from "../../../../Server/Utils/SecurityBlocklist/AzureWafBlockDestination";
+import { setAzureWafCallOptionsForTests } from "../../../../Server/Utils/SecurityBlocklist/AzureWafBlockDestination";
 import { setCloudArmorCallOptionsForTests } from "../../../../Server/Utils/SecurityBlocklist/CloudArmorBlockDestination";
 import SecurityBlockCloudWafs, {
   SecurityBlockCloudWafAccess,
@@ -145,7 +143,9 @@ function settings(): CloudConnectionSettings {
       };
 }
 
-async function check(row: SecurityBlockCloudWaf): Promise<SecurityBlockCloudWaf> {
+async function check(
+  row: SecurityBlockCloudWaf,
+): Promise<SecurityBlockCloudWaf> {
   return await SecurityBlockCloudWafs.check({
     projectId: PROJECT_ID,
     cloudWafId: new ObjectID(row._id!),
@@ -402,7 +402,9 @@ describe("an Azure WAF policy", () => {
     });
 
     await check(row);
-    expect(rows.get(row._id!)!.status).toBe(SecurityBlockCloudWafStatus.Drifted);
+    expect(rows.get(row._id!)!.status).toBe(
+      SecurityBlockCloudWafStatus.Drifted,
+    );
 
     const back: SecurityBlockCloudWaf = await SecurityBlockCloudWafs.putBack({
       projectId: PROJECT_ID,
@@ -637,7 +639,9 @@ describe("a Cloud Armor policy", () => {
       name: "staging-lb",
     });
 
-    second.ruleDetails = { ...(rows.get(first._id!)!.ruleDetails as JSONObject) };
+    second.ruleDetails = {
+      ...(rows.get(first._id!)!.ruleDetails as JSONObject),
+    };
 
     expect((await remove(first)).leftInCloud).toEqual([]);
     expect(armor.group(`oneuptime-${SUFFIX}-block-ipv4`)).toBeDefined();

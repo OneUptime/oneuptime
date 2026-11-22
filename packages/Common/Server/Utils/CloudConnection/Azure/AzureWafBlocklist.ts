@@ -225,7 +225,10 @@ export default class AzureWafPolicyBlocklist {
             permission: getAzureWafRequiredActions(this.kind)[0]!,
           })
         : status === 404
-          ? cloudWafReason(CLOUD_WAF_REASONS.policyNotFound, this.policyValues())
+          ? cloudWafReason(
+              CLOUD_WAF_REASONS.policyNotFound,
+              this.policyValues(),
+            )
           : cloudWafReason(CLOUD_WAF_REASONS.couldNotRead, {
               ...this.policyValues(),
               error: readAzureError(error),
@@ -246,7 +249,10 @@ export default class AzureWafPolicyBlocklist {
     }
 
     if (status === 404) {
-      return cloudWafReason(CLOUD_WAF_REASONS.policyNotFound, this.policyValues());
+      return cloudWafReason(
+        CLOUD_WAF_REASONS.policyNotFound,
+        this.policyValues(),
+      );
     }
 
     if (status === 409) {
@@ -262,8 +268,7 @@ export default class AzureWafPolicyBlocklist {
 
   // The record, as OneUptime last wrote the policy - or as setup found it.
   public getDetails(): AzureWafRuleDetails {
-    const analysis: AzureWafPolicyAnalysis | undefined =
-      this.cached?.analysis;
+    const analysis: AzureWafPolicyAnalysis | undefined = this.cached?.analysis;
 
     return this.withPolicyFacts(
       this.record || {
@@ -288,8 +293,7 @@ export default class AzureWafPolicyBlocklist {
   }
 
   private withPolicyFacts(details: AzureWafRuleDetails): AzureWafRuleDetails {
-    const analysis: AzureWafPolicyAnalysis | undefined =
-      this.cached?.analysis;
+    const analysis: AzureWafPolicyAnalysis | undefined = this.cached?.analysis;
 
     if (!analysis) {
       return { ...details, isWaitingForPriority: this.isWaitingForPriority };
@@ -350,7 +354,10 @@ export default class AzureWafPolicyBlocklist {
       resourceState === "disabled" ||
       resourceState === "disabling"
     ) {
-      return cloudWafReason(CLOUD_WAF_REASONS.policyTurnedOff, this.policyValues());
+      return cloudWafReason(
+        CLOUD_WAF_REASONS.policyTurnedOff,
+        this.policyValues(),
+      );
     }
 
     if (facts.mode.toLowerCase() === "detection") {
@@ -483,7 +490,8 @@ export default class AzureWafPolicyBlocklist {
     );
     const isStuck: boolean =
       ownRules === 0 && analysis.freePriorities.length === 0;
-    let status: SecurityBlockCloudWafStatus = SecurityBlockCloudWafStatus.Enforcing;
+    let status: SecurityBlockCloudWafStatus =
+      SecurityBlockCloudWafStatus.Enforcing;
     let reason: SecurityBlockReason | null = null;
 
     if (policyReason) {
@@ -560,7 +568,11 @@ export default class AzureWafPolicyBlocklist {
         matchVariable: this.expectedVariable,
       });
 
-      if (live && !isRestored && live.state === AzureWafOwnRuleState.TurnedOff) {
+      if (
+        live &&
+        !isRestored &&
+        live.state === AzureWafOwnRuleState.TurnedOff
+      ) {
         if (this.kind === AzureWafPolicyKind.ApplicationGateway) {
           built["state"] = "Disabled";
         } else {
@@ -573,7 +585,10 @@ export default class AzureWafPolicyBlocklist {
 
     // Changed rules the plan left out (it never plans them) stay as they are.
     for (const rule of data.analysis.own) {
-      if (!written.has(rule.index) && rule.state === AzureWafOwnRuleState.Changed) {
+      if (
+        !written.has(rule.index) &&
+        rule.state === AzureWafOwnRuleState.Changed
+      ) {
         rules.push(rule.json);
       }
     }
@@ -728,7 +743,11 @@ export default class AzureWafPolicyBlocklist {
       };
     };
 
-    for (let attempt: number = 1; attempt <= AZURE_WAF_WRITE_ATTEMPTS; attempt++) {
+    for (
+      let attempt: number = 1;
+      attempt <= AZURE_WAF_WRITE_ATTEMPTS;
+      attempt++
+    ) {
       let read: PolicyRead;
 
       try {
@@ -793,7 +812,9 @@ export default class AzureWafPolicyBlocklist {
       } = {
         added: [
           ...plan.added.map(
-            (addition: CloudWafSlotPlan["added"][number]): AzureWafWriteResult => {
+            (
+              addition: CloudWafSlotPlan["added"][number],
+            ): AzureWafWriteResult => {
               return addition.isDone
                 ? {
                     value: addition.value,
@@ -832,7 +853,10 @@ export default class AzureWafPolicyBlocklist {
       }
 
       try {
-        await this.write(read, this.buildRules({ analysis, slots: plan.slots }));
+        await this.write(
+          read,
+          this.buildRules({ analysis, slots: plan.slots }),
+        );
         this.recordWrite({ analysis, slots: plan.slots, deleted, removing });
 
         return results;
@@ -897,7 +921,11 @@ export default class AzureWafPolicyBlocklist {
    * so (No Free Priority).
    */
   public async putBack(): Promise<AzureWafState> {
-    for (let attempt: number = 1; attempt <= AZURE_WAF_WRITE_ATTEMPTS; attempt++) {
+    for (
+      let attempt: number = 1;
+      attempt <= AZURE_WAF_WRITE_ATTEMPTS;
+      attempt++
+    ) {
       const read: PolicyRead = await this.read(attempt > 1);
       const { analysis } = read;
       const restore: Set<number> = new Set();
@@ -970,7 +998,10 @@ export default class AzureWafPolicyBlocklist {
         },
       );
 
-      if (restore.size === 0 && stillDeleted.length === analysis.deleted.length) {
+      if (
+        restore.size === 0 &&
+        stillDeleted.length === analysis.deleted.length
+      ) {
         this.isWaitingForPriority = stillDeleted.length > 0;
 
         return await this.readState();
@@ -1008,7 +1039,11 @@ export default class AzureWafPolicyBlocklist {
    * policy no longer enforces the blocklist. Returns whether it wrote it.
    */
   public async removeAll(): Promise<boolean> {
-    for (let attempt: number = 1; attempt <= AZURE_WAF_WRITE_ATTEMPTS; attempt++) {
+    for (
+      let attempt: number = 1;
+      attempt <= AZURE_WAF_WRITE_ATTEMPTS;
+      attempt++
+    ) {
       const read: PolicyRead = await this.read(attempt > 1);
 
       if (read.analysis.own.length === 0) {
@@ -1065,10 +1100,11 @@ export default class AzureWafPolicyBlocklist {
         const list: (key: string) => Array<string> = (
           key: string,
         ): Array<string> => {
-          return (Array.isArray(item[key]) ? (item[key] as Array<JSONValue>) : [])
-            .filter((action: JSONValue): action is string => {
-              return typeof action === "string";
-            });
+          return (
+            Array.isArray(item[key]) ? (item[key] as Array<JSONValue>) : []
+          ).filter((action: JSONValue): action is string => {
+            return typeof action === "string";
+          });
         };
 
         return { actions: list("actions"), notActions: list("notActions") };

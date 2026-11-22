@@ -129,7 +129,9 @@ function googleWrite(data: {
 
 const WRITES: Array<[string, () => Array<NormalizedSecurityEvent>]> = [
   ...(["Start", "Success"] as Array<string>).flatMap(
-    (resultType: string): Array<[string, () => Array<NormalizedSecurityEvent>]> => {
+    (
+      resultType: string,
+    ): Array<[string, () => Array<NormalizedSecurityEvent>]> => {
       return [
         [
           `an Application Gateway WAF policy written (${resultType})`,
@@ -165,7 +167,8 @@ const WRITES: Array<[string, () => Array<NormalizedSecurityEvent>]> = [
             return googleWrite({
               serviceName: "compute.googleapis.com",
               methodName: `v1.compute.securityPolicies.${method}`,
-              resourceName: "projects/acme-prod/global/securityPolicies/prod-lb",
+              resourceName:
+                "projects/acme-prod/global/securityPolicies/prod-lb",
               permission: "compute.securityPolicies.update",
             });
           },
@@ -244,21 +247,24 @@ describe("OneUptime's own WAF writes", () => {
     expect(JSON.stringify(rule[0])).toContain("securityPolicies.addRule");
   });
 
-  test.each(WRITES)("%s fires no rule of the library", (_name: string, make: () => Array<NormalizedSecurityEvent>) => {
-    const fired: Array<string> = make().flatMap(
-      (event: NormalizedSecurityEvent): Array<string> => {
-        return RULES.filter(
-          (candidate: { title: string; rule: SigmaRule }): boolean => {
-            return sigmaRuleMatchesEvent(candidate.rule, event);
-          },
-        ).map((candidate: { title: string }): string => {
-          return candidate.title;
-        });
-      },
-    );
+  test.each(WRITES)(
+    "%s fires no rule of the library",
+    (_name: string, make: () => Array<NormalizedSecurityEvent>) => {
+      const fired: Array<string> = make().flatMap(
+        (event: NormalizedSecurityEvent): Array<string> => {
+          return RULES.filter(
+            (candidate: { title: string; rule: SigmaRule }): boolean => {
+              return sigmaRuleMatchesEvent(candidate.rule, event);
+            },
+          ).map((candidate: { title: string }): string => {
+            return candidate.title;
+          });
+        },
+      );
 
-    expect(fired).toEqual([]);
-  });
+      expect(fired).toEqual([]);
+    },
+  );
 
   test("the library is read whole: every entry gives at least one rule, so none is skipped", () => {
     const titles: Set<string> = new Set(

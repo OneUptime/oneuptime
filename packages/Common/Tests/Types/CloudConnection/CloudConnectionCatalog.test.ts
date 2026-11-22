@@ -309,7 +309,9 @@ describe("the catalog", () => {
       expect(policyField!.defaultValue).toBe("off");
       expect(policyField!.authMethods).toBeUndefined();
       expect(policyField!.description.length).toBeLessThanOrEqual(150);
-      expect(policyField!.description).toContain("The command changes with it.");
+      expect(policyField!.description).toContain(
+        "The command changes with it.",
+      );
 
       for (const name of names) {
         expect(policyField!.description).toContain(name);

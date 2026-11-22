@@ -172,7 +172,11 @@ function readObject(value: unknown): JSONObject {
     : {};
 }
 
-function googleError(status: number, message: string, reason?: string): FakeResponse {
+function googleError(
+  status: number,
+  message: string,
+  reason?: string,
+): FakeResponse {
   return json(
     {
       error: {
@@ -285,10 +289,10 @@ export function createFakeCloudArmor(
     return null;
   };
 
-  const compute: (
+  const compute: (request: DataSourceHttpRequest, url: URL) => FakeResponse = (
     request: DataSourceHttpRequest,
     url: URL,
-  ) => FakeResponse = (request: DataSourceHttpRequest, url: URL): FakeResponse => {
+  ): FakeResponse => {
     const path: string = url.pathname;
 
     // The project, for its Cloud Armor tier.
@@ -297,7 +301,11 @@ export function createFakeCloudArmor(
 
       return (
         failed("projects.get") ||
-        json(tier ? { name: FAKE_GCP_PROJECT, cloudArmorTier: tier } : { name: FAKE_GCP_PROJECT })
+        json(
+          tier
+            ? { name: FAKE_GCP_PROJECT, cloudArmorTier: tier }
+            : { name: FAKE_GCP_PROJECT },
+        )
       );
     }
 
@@ -306,14 +314,19 @@ export function createFakeCloudArmor(
       calls.push("operations.wait");
 
       return (
-        failed("operations.wait") || json({ kind: "compute#operation", status: "DONE" })
+        failed("operations.wait") ||
+        json({ kind: "compute#operation", status: "DONE" })
       );
     }
 
     const target: { id: string; method: string } | null = policyOfPath(path);
 
     if (!target) {
-      return googleError(404, `The resource '${path}' was not found`, "notFound");
+      return googleError(
+        404,
+        `The resource '${path}' was not found`,
+        "notFound",
+      );
     }
 
     const policy: JSONObject = policies.get(target.id)!;
@@ -412,12 +425,17 @@ export function createFakeCloudArmor(
       return json(operation(target.id, "removeRule"));
     }
 
-    return googleError(405, `${request.method} ${path} is not a method this fake answers`);
+    return googleError(
+      405,
+      `${request.method} ${path} is not a method this fake answers`,
+    );
   };
 
   const GROUPS_PATH: string = `/v1/projects/${FAKE_GCP_PROJECT}/locations/global/addressGroups`;
 
-  const isNamedByAPolicy: (name: string) => boolean = (name: string): boolean => {
+  const isNamedByAPolicy: (name: string) => boolean = (
+    name: string,
+  ): boolean => {
     return Array.from(policies.values()).some((policy: JSONObject): boolean => {
       return rulesOf(policy).some((rule: JSONObject): boolean => {
         return String(
@@ -430,10 +448,17 @@ export function createFakeCloudArmor(
   const networkSecurity: (
     request: DataSourceHttpRequest,
     url: URL,
-  ) => FakeResponse = (request: DataSourceHttpRequest, url: URL): FakeResponse => {
+  ) => FakeResponse = (
+    request: DataSourceHttpRequest,
+    url: URL,
+  ): FakeResponse => {
     const path: string = decodeURIComponent(url.pathname);
 
-    if (path.startsWith(`/v1/projects/${FAKE_GCP_PROJECT}/locations/global/operations/`)) {
+    if (
+      path.startsWith(
+        `/v1/projects/${FAKE_GCP_PROJECT}/locations/global/operations/`,
+      )
+    ) {
       calls.push("operations.get");
       return json({ name: path.slice(4), done: true });
     }
@@ -449,7 +474,11 @@ export function createFakeCloudArmor(
       }
 
       if (groups.has(name)) {
-        return googleError(409, `Address group ${name} already exists.`, "alreadyExists");
+        return googleError(
+          409,
+          `Address group ${name} already exists.`,
+          "alreadyExists",
+        );
       }
 
       const body: JSONObject = bodyOf(request);
@@ -515,7 +544,10 @@ export function createFakeCloudArmor(
       });
     }
 
-    if (request.method === "POST" && (action === "addItems" || action === "removeItems")) {
+    if (
+      request.method === "POST" &&
+      (action === "addItems" || action === "removeItems")
+    ) {
       calls.push(`${action} ${name}`);
 
       const failure: FakeResponse | null = failed(action);
@@ -528,10 +560,13 @@ export function createFakeCloudArmor(
         return googleError(404, `Address group ${name} not found.`, "notFound");
       }
 
-      const items: Array<string> = (bodyOf(request)["items"] as Array<string>) || [];
+      const items: Array<string> =
+        (bodyOf(request)["items"] as Array<string>) || [];
 
       if (action === "addItems") {
-        const next: Array<string> = Array.from(new Set([...group.items, ...items]));
+        const next: Array<string> = Array.from(
+          new Set([...group.items, ...items]),
+        );
 
         if (next.length > group.capacity) {
           return googleError(
@@ -553,7 +588,10 @@ export function createFakeCloudArmor(
       });
     }
 
-    return googleError(405, `${request.method} ${path} is not a method this fake answers`);
+    return googleError(
+      405,
+      `${request.method} ${path} is not a method this fake answers`,
+    );
   };
 
   const api: FakeProviderApi = createFakeProviderApi([

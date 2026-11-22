@@ -154,7 +154,9 @@ const POLICY_NAME: RegExp = /^[\w.-]{1,128}$/;
  * providers/Microsoft.Network/<type>/<name>, its segments in any case, as
  * Resource Graph lowers them. Null for anything else.
  */
-export function parseAzureWafPolicyId(value: unknown): AzureWafPolicyRef | null {
+export function parseAzureWafPolicyId(
+  value: unknown,
+): AzureWafPolicyRef | null {
   if (typeof value !== "string") {
     return null;
   }
@@ -226,7 +228,10 @@ export function getAzureWafPolicyKind(
 const RULE_NAME: RegExp = /^OneUptime([0-9a-f]{8})Block([1-9]\d{0,2})$/;
 
 // A OneUptime rule's name: OneUptime1a2b3c4dBlock3.
-export function getAzureWafRuleName(projectSuffix: string, index: number): string {
+export function getAzureWafRuleName(
+  projectSuffix: string,
+  index: number,
+): string {
   return `OneUptime${projectSuffix}Block${index}`;
 }
 
@@ -264,7 +269,10 @@ export function toAzureWafAddress(
     return null;
   }
 
-  if (kind === AzureWafPolicyKind.ApplicationGateway && read.block.family !== 4) {
+  if (
+    kind === AzureWafPolicyKind.ApplicationGateway &&
+    read.block.family !== 4
+  ) {
     return null;
   }
 
@@ -449,7 +457,9 @@ export interface AzureWafPolicyFacts {
  * Whether an Application Gateway policy's managed rules are CRS 3.2 or
  * newer, or a Default Rule Set: then a match condition holds 600 ranges.
  */
-export function isAzureApplicationGatewayNewerRuleSet(policy: unknown): boolean {
+export function isAzureApplicationGatewayNewerRuleSet(
+  policy: unknown,
+): boolean {
   const sets: Array<JSONValue> = readList(
     readObject(readObject(readObject(policy)["properties"])["managedRules"])[
       "managedRuleSets"
@@ -537,24 +547,25 @@ export function getAzureWafPassPriority(
  * The properties Azure answers that a write must not send: they are the
  * policy's state and what it is attached to, never its settings.
  */
-const READ_ONLY_PROPERTIES: Readonly<Record<AzureWafPolicyKind, Array<string>>> =
-  {
-    [AzureWafPolicyKind.ApplicationGateway]: [
-      "provisioningState",
-      "resourceState",
-      "applicationGateways",
-      "httpListeners",
-      "pathBasedRules",
-      "applicationGatewayForContainers",
-    ],
-    [AzureWafPolicyKind.FrontDoor]: [
-      "provisioningState",
-      "resourceState",
-      "frontendEndpointLinks",
-      "routingRuleLinks",
-      "securityPolicyLinks",
-    ],
-  };
+const READ_ONLY_PROPERTIES: Readonly<
+  Record<AzureWafPolicyKind, Array<string>>
+> = {
+  [AzureWafPolicyKind.ApplicationGateway]: [
+    "provisioningState",
+    "resourceState",
+    "applicationGateways",
+    "httpListeners",
+    "pathBasedRules",
+    "applicationGatewayForContainers",
+  ],
+  [AzureWafPolicyKind.FrontDoor]: [
+    "provisioningState",
+    "resourceState",
+    "frontendEndpointLinks",
+    "routingRuleLinks",
+    "securityPolicyLinks",
+  ],
+};
 
 /*
  * The policy as it is written back: everything Azure answered - every
@@ -567,7 +578,9 @@ export function buildAzureWafPolicyWrite(data: {
   policy: JSONObject;
   customRules: Array<JSONObject>;
 }): JSONObject {
-  const copy: JSONObject = JSON.parse(JSON.stringify(data.policy)) as JSONObject;
+  const copy: JSONObject = JSON.parse(
+    JSON.stringify(data.policy),
+  ) as JSONObject;
   const properties: JSONObject = readObject(copy["properties"]);
 
   for (const key of READ_ONLY_PROPERTIES[data.kind]) {
@@ -576,7 +589,9 @@ export function buildAzureWafPolicyWrite(data: {
 
   const customRules: Array<JSONObject> = data.customRules.map(
     (rule: JSONObject): JSONObject => {
-      const written: JSONObject = JSON.parse(JSON.stringify(rule)) as JSONObject;
+      const written: JSONObject = JSON.parse(
+        JSON.stringify(rule),
+      ) as JSONObject;
 
       // Each custom rule's own etag is Azure's to set.
       delete written["etag"];
@@ -663,9 +678,7 @@ export function readAzureWafRuleDetails(
   const json: JSONObject = readObject(value);
   const kind: string = readText(json["kind"]);
 
-  if (
-    !(Object.values(AzureWafPolicyKind) as Array<string>).includes(kind)
-  ) {
+  if (!(Object.values(AzureWafPolicyKind) as Array<string>).includes(kind)) {
     return null;
   }
 
@@ -1117,11 +1130,12 @@ export function getAzureWafDestinationName(name: string): string {
 }
 
 // Where a policy is, as its kind's console names it.
-export const AZURE_WAF_KIND_TITLES: Readonly<Record<AzureWafPolicyKind, string>> =
-  {
-    [AzureWafPolicyKind.ApplicationGateway]: "Application Gateway",
-    [AzureWafPolicyKind.FrontDoor]: "Front Door",
-  };
+export const AZURE_WAF_KIND_TITLES: Readonly<
+  Record<AzureWafPolicyKind, string>
+> = {
+  [AzureWafPolicyKind.ApplicationGateway]: "Application Gateway",
+  [AzureWafPolicyKind.FrontDoor]: "Front Door",
+};
 
 // The policy's page in the Azure portal.
 export function getAzureWafPortalUrl(policy: AzureWafPolicyRef): string {
@@ -1129,7 +1143,9 @@ export function getAzureWafPortalUrl(policy: AzureWafPolicyRef): string {
 }
 
 // The values of a rule as blocks write them, deduplicated, the order kept.
-export function uniqueAzureWafValues(values: ReadonlyArray<string>): Array<string> {
+export function uniqueAzureWafValues(
+  values: ReadonlyArray<string>,
+): Array<string> {
   const seen: Set<string> = new Set();
   const unique: Array<string> = [];
 

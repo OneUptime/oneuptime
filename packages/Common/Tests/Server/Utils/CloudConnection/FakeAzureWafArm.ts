@@ -271,7 +271,11 @@ export interface FakeAzureWafArm {
 }
 
 export interface FakeAzureWafArmOptions {
-  policies: Array<{ id: string; kind: "gateway" | "frontDoor"; policy: JSONObject }>;
+  policies: Array<{
+    id: string;
+    kind: "gateway" | "frontDoor";
+    policy: JSONObject;
+  }>;
   // How many reads a Front Door policy reads Updating after a write.
   frontDoorApplyingReads?: number | undefined;
 }
@@ -317,8 +321,10 @@ export function createFakeAzureWafArm(
   > = new Map();
   let nextPutFailure: { status: number; body: JSONObject } | null = null;
   let readFailure: { status: number; body: JSONObject } | null = null;
-  let permissions: Array<{ actions: Array<string>; notActions: Array<string> }> =
-    [{ actions: ["*"], notActions: [] }];
+  let permissions: Array<{
+    actions: Array<string>;
+    notActions: Array<string>;
+  }> = [{ actions: ["*"], notActions: [] }];
 
   for (const item of options.policies) {
     policies.set(item.id.toLowerCase(), {
@@ -391,7 +397,10 @@ export function createFakeAzureWafArm(
     const url: URL = new URL(request.url);
 
     if (url.host === "login.microsoftonline.com") {
-      return answer(200, { access_token: "arm-access-token", expires_in: 3599 });
+      return answer(200, {
+        access_token: "arm-access-token",
+        expires_in: 3599,
+      });
     }
 
     if (url.host !== "management.azure.com") {
@@ -443,8 +452,9 @@ export function createFakeAzureWafArm(
         typeof request.body === "string"
           ? (JSON.parse(request.body) as JSONObject)
           : (readObject(request.body) as JSONObject);
-      const queued: { times: number; change: (policy: JSONObject) => void } | undefined =
-        behind.get(path);
+      const queued:
+        | { times: number; change: (policy: JSONObject) => void }
+        | undefined = behind.get(path);
 
       if (queued && queued.times > 0) {
         queued.times--;

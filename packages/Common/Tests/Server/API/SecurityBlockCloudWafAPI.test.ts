@@ -853,7 +853,9 @@ describe("whether a connection may write a policy, and Put It Back", () => {
 
       expect(refusal).toBeNull();
       expect(
-        (putBack.mock.calls[0]![0] as { projectId: ObjectID }).projectId.toString(),
+        (
+          putBack.mock.calls[0]![0] as { projectId: ObjectID }
+        ).projectId.toString(),
       ).toBe(PROJECT_ID.toString());
       expect(answered()["cloudWaf"]).toEqual({
         _id: PICKED_ID,
@@ -982,7 +984,10 @@ describe("picking an Azure WAF or Cloud Armor policy", () => {
           projectId: PROJECT_ID.toString(),
           name: "Production GCP",
           provider: CloudProvider.GCP,
-          config: { authMethod: "gcp-service-account-key", wafBlocklist: "rule" },
+          config: {
+            authMethod: "gcp-service-account-key",
+            wafBlocklist: "rule",
+          },
           version: 1,
         },
       ],
@@ -1018,9 +1023,13 @@ describe("picking an Azure WAF or Cloud Armor policy", () => {
     const row: StoredRow = wafs.rows[0]!;
 
     expect(row["cloudProvider"]).toBe(CloudProvider.Azure);
-    expect(String(row["wafId"]).toLowerCase()).toBe(FRONT_DOOR_POLICY.toLowerCase());
+    expect(String(row["wafId"]).toLowerCase()).toBe(
+      FRONT_DOOR_POLICY.toLowerCase(),
+    );
     expect(row["name"]).toBe("edgewaf");
-    expect(row["clientAddress"]).toBe(SecurityBlockClientAddress.ForwardedClient);
+    expect(row["clientAddress"]).toBe(
+      SecurityBlockClientAddress.ForwardedClient,
+    );
   });
 
   test("a policy its connection may not write yet is refused, naming what is missing", async () => {
@@ -1065,7 +1074,9 @@ describe("picking an Azure WAF or Cloud Armor policy", () => {
     const row: StoredRow = wafs.rows[0]!;
 
     expect(row["cloudProvider"]).toBe(CloudProvider.GCP);
-    expect(row["wafId"]).toBe("projects/acme-prod/global/securityPolicies/prod-lb");
+    expect(row["wafId"]).toBe(
+      "projects/acme-prod/global/securityPolicies/prod-lb",
+    );
     expect(row["region"]).toBe("global");
     expect(row["clientAddress"]).toBe(SecurityBlockClientAddress.UserIp);
   });
@@ -1080,13 +1091,16 @@ describe("picking an Azure WAF or Cloud Armor policy", () => {
     );
     expect(checkAccess).not.toHaveBeenCalled();
 
-    await call({ method: "post", uri: SECURITY_BLOCK_CLOUD_WAF_CANDIDATES_ROUTE });
+    await call({
+      method: "post",
+      uri: SECURITY_BLOCK_CLOUD_WAF_CANDIDATES_ROUTE,
+    });
 
-    const network: JSONObject = (answered()["candidates"] as Array<JSONObject>).find(
-      (candidate: JSONObject): boolean => {
-        return candidate["name"] === "nlb-edge";
-      },
-    )!;
+    const network: JSONObject = (
+      answered()["candidates"] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["name"] === "nlb-edge";
+    })!;
 
     expect(network["isListed"]).toBe(false);
     expect(network["refusal"]).toBe(

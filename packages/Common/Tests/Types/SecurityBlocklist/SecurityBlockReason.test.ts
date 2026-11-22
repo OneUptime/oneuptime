@@ -24,7 +24,10 @@ import { Translator, createTranslator } from "../../../Types/Translator";
  * English for the text columns, the logs and the API.
  */
 
-function translatorOf(wordings: Record<string, string>, language: string): Translator {
+function translatorOf(
+  wordings: Record<string, string>,
+  language: string,
+): Translator {
   return createTranslator((text: string): string | undefined => {
     return wordings[text];
   }, language);
@@ -34,7 +37,11 @@ describe("a reason", () => {
   test("is worded in English for the text columns, its figures in English digits", () => {
     expect(
       fillSecurityBlockReason(
-        cloudWafReason(CLOUD_WAF_REASONS.full, { policy: "prod-waf" }, { addresses: 6000 }),
+        cloudWafReason(
+          CLOUD_WAF_REASONS.full,
+          { policy: "prod-waf" },
+          { addresses: 6000 },
+        ),
       ),
     ).toBe(
       "prod-waf is full: OneUptime's rules there hold 6,000 addresses, the most it keeps in one policy.",
@@ -48,7 +55,8 @@ describe("a reason", () => {
     )!;
     const german: Translator = translatorOf(
       {
-        [SECURITY_BLOCK_REASON_FRAMES.notApplied]: "Nicht angewendet: {{reason}}",
+        [SECURITY_BLOCK_REASON_FRAMES.notApplied]:
+          "Nicht angewendet: {{reason}}",
         [CLOUD_WAF_REASONS.ipv4Only]:
           "Application Gateway gleicht nur IPv4-Adressen ab und kann {{value}} daher nicht blockieren.",
       },
@@ -64,7 +72,9 @@ describe("a reason", () => {
   });
 
   test("a frame is said only around a sentence: without one, the row's English text is all", () => {
-    expect(frameSecurityBlockReason(SECURITY_BLOCK_REASON_FRAMES.notApplied, null)).toBeNull();
+    expect(
+      frameSecurityBlockReason(SECURITY_BLOCK_REASON_FRAMES.notApplied, null),
+    ).toBeNull();
     expect(
       frameSecurityBlockFailure({
         frame: SECURITY_BLOCK_REASON_FRAMES.couldNotWrite,
@@ -74,7 +84,9 @@ describe("a reason", () => {
     ).toBeNull();
 
     const carried: Error & { reason?: SecurityBlockReason } = new Error("busy");
-    carried.reason = cloudWafReason(CLOUD_WAF_REASONS.busy, { policy: "prod-waf" });
+    carried.reason = cloudWafReason(CLOUD_WAF_REASONS.busy, {
+      policy: "prod-waf",
+    });
 
     expect(
       fillSecurityBlockReason(
@@ -92,31 +104,53 @@ describe("a reason", () => {
   test("survives its JSON column, and anything else read from one is not a reason", () => {
     const reason: SecurityBlockReason = frameSecurityBlockReason(
       SECURITY_BLOCK_REASON_FRAMES.notApplied,
-      cloudWafReason(CLOUD_WAF_REASONS.groupFull, { group: "oneuptime-1a2b3c4d-block-ipv6" }, {
-        capacity: 2000,
-      }),
+      cloudWafReason(
+        CLOUD_WAF_REASONS.groupFull,
+        { group: "oneuptime-1a2b3c4d-block-ipv6" },
+        {
+          capacity: 2000,
+        },
+      ),
     )!;
 
-    expect(readSecurityBlockReason(JSON.parse(JSON.stringify(toSecurityBlockReasonJson(reason))))).toEqual(
-      reason,
-    );
+    expect(
+      readSecurityBlockReason(
+        JSON.parse(JSON.stringify(toSecurityBlockReasonJson(reason))),
+      ),
+    ).toEqual(reason);
 
-    for (const value of [null, "Not applied", [], { values: {} }, { template: "  " }]) {
+    for (const value of [
+      null,
+      "Not applied",
+      [],
+      { values: {} },
+      { template: "  " },
+    ]) {
       expect(readSecurityBlockReason(value)).toBeNull();
     }
 
     // A value is kept to its length; one that is not text is dropped.
     const read: SecurityBlockReason = readSecurityBlockReason({
       template: CLOUD_WAF_REASONS.refused,
-      values: { cloud: "Azure", policy: "prod-waf", error: "x".repeat(5000), extra: 7 },
+      values: {
+        cloud: "Azure",
+        policy: "prod-waf",
+        error: "x".repeat(5000),
+        extra: 7,
+      },
     })!;
 
-    expect(read.values!["error"]).toHaveLength(SECURITY_BLOCK_REASON_VALUE_MAX_LENGTH);
+    expect(read.values!["error"]).toHaveLength(
+      SECURITY_BLOCK_REASON_VALUE_MAX_LENGTH,
+    );
     expect(read.values!["extra"]).toBeUndefined();
   });
 
   test("parts nest only so deep", () => {
-    let nested: Record<string, unknown> = { template: "{{a}}", values: { a: "x" } };
+    let nested: Record<string, unknown> = {
+      template: "{{a}}",
+      values: { a: "x" },
+    };
 
     for (let level: number = 0; level < 6; level++) {
       nested = { template: "{{reason}}", parts: { reason: nested } };
@@ -132,7 +166,13 @@ describe("a reason", () => {
 describe("every cloud WAF sentence", () => {
   test("is a sentence with its placeholders, ending as a sentence ends", () => {
     for (const [name, template] of Object.entries(CLOUD_WAF_REASONS)) {
-      expect({ name, ends: /[.:]$/.test(template.trim()) || template.endsWith("{{error}}") }).toEqual({
+      expect({
+        name,
+        ends:
+          template.trim().endsWith(".") ||
+          template.trim().endsWith(":") ||
+          template.endsWith("{{error}}"),
+      }).toEqual({
         name,
         ends: true,
       });

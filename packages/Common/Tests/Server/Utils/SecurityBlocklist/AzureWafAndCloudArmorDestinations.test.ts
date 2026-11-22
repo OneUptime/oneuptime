@@ -250,9 +250,8 @@ function enforceInCloudArmor(fake: FakeCloudArmor): SecurityBlockCloudWaf {
     wafId: FAKE_ARMOR_POLICY_ID,
     name: "prod-lb",
   });
-  const policy: CloudArmorPolicyRef = parseCloudArmorPolicyId(
-    FAKE_ARMOR_POLICY_ID,
-  )!;
+  const policy: CloudArmorPolicyRef =
+    parseCloudArmorPolicyId(FAKE_ARMOR_POLICY_ID)!;
 
   makeDestinations = (): Array<SecurityBlockDestination> => {
     return [
@@ -427,7 +426,9 @@ describe("Azure WAF", () => {
 
     expect(enforcement.state).toBe(SecurityBlockEnforcementState.Applied);
     expect(enforcement.destinationName).toBe("Azure WAF (prod-waf)");
-    expect(enforcement.provider).toBe(SecurityBlockDestinationProvider.AzureWaf);
+    expect(enforcement.provider).toBe(
+      SecurityBlockDestinationProvider.AzureWaf,
+    );
     expect(enforcement.providerRef).toBe(`OneUptime${SUFFIX}Block1`);
     expect(getSecurityBlockEnforcementSummary([enforcement], at(1))).toEqual({
       isEnforced: true,
@@ -527,7 +528,9 @@ describe("Azure WAF", () => {
       });
 
     expect(
-      ((ours!["matchConditions"] as Array<JSONObject>)[0]!["matchValues"] as Array<string>),
+      (ours!["matchConditions"] as Array<JSONObject>)[0]![
+        "matchValues"
+      ] as Array<string>,
     ).toEqual(["35.205.11.132"]);
   });
 
@@ -543,11 +546,13 @@ describe("Azure WAF", () => {
     await pass(1);
     fake.writeBehind(FAKE_GATEWAY_POLICY_ID, (policy: JSONObject): void => {
       (
-        ((policy["properties"] as JSONObject)["customRules"] as Array<JSONObject>).find(
-          (rule: JSONObject): boolean => {
-            return rule["name"] === `OneUptime${SUFFIX}Block1`;
-          },
-        ) as JSONObject
+        (
+          (policy["properties"] as JSONObject)[
+            "customRules"
+          ] as Array<JSONObject>
+        ).find((rule: JSONObject): boolean => {
+          return rule["name"] === `OneUptime${SUFFIX}Block1`;
+        }) as JSONObject
       )["state"] = "Disabled";
     });
     await pass(2);

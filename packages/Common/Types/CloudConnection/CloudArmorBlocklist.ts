@@ -110,7 +110,10 @@ export function getCloudArmorClientAddresses(
     return [];
   }
 
-  return [SecurityBlockClientAddress.SourceIp, SecurityBlockClientAddress.UserIp];
+  return [
+    SecurityBlockClientAddress.SourceIp,
+    SecurityBlockClientAddress.UserIp,
+  ];
 }
 
 // Whether OneUptime can hold the blocklist in a policy of this type: not a network edge policy.
@@ -208,7 +211,8 @@ export function parseCloudArmorPolicyId(
 // ---------- OneUptime's rules ----------
 
 const OWN_RULE: RegExp = /^OneUptime blocklist ([0-9a-f]{8}) #([1-9]\d{0,3})\b/;
-const OWN_GROUP_RULE: RegExp = /^OneUptime blocklist ([0-9a-f]{8}), address groups\b/;
+const OWN_GROUP_RULE: RegExp =
+  /^OneUptime blocklist ([0-9a-f]{8}), address groups\b/;
 
 // What a OneUptime rule of rules mode says of itself: "OneUptime blocklist 1a2b3c4d #3. ...".
 export function getCloudArmorRuleDescription(
@@ -219,7 +223,9 @@ export function getCloudArmorRuleDescription(
 }
 
 // What the rule of address groups mode says of itself.
-export function getCloudArmorGroupRuleDescription(projectSuffix: string): string {
+export function getCloudArmorGroupRuleDescription(
+  projectSuffix: string,
+): string {
   return `OneUptime blocklist ${projectSuffix}, address groups. Managed by OneUptime: changes here are replaced.`;
 }
 
@@ -245,9 +251,7 @@ export function isCloudArmorGroupRule(
     return false;
   }
 
-  const match: RegExpExecArray | null = OWN_GROUP_RULE.exec(
-    description.trim(),
-  );
+  const match: RegExpExecArray | null = OWN_GROUP_RULE.exec(description.trim());
 
   return Boolean(match && match[1] === projectSuffix);
 }
@@ -425,9 +429,7 @@ export function readCloudArmorRule(value: unknown): CloudArmorRuleRead {
   if (readText(match["versionedExpr"]) === "SRC_IPS_V1") {
     attribute = "origin.ip";
 
-    for (const range of readList(
-      readObject(match["config"])["srcIpRanges"],
-    )) {
+    for (const range of readList(readObject(match["config"])["srcIpRanges"])) {
       const read: SecurityBlockValue | null = readSecurityBlockValue(range);
 
       if (read) {
@@ -448,11 +450,7 @@ export function readCloudArmorRule(value: unknown): CloudArmorRuleRead {
         ? readSecurityBlockValue(parsed[2])
         : null;
 
-      if (
-        !parsed ||
-        !read ||
-        (attribute !== null && attribute !== parsed[1])
-      ) {
+      if (!parsed || !read || (attribute !== null && attribute !== parsed[1])) {
         attribute = null;
         values.length = 0;
         break;
@@ -692,7 +690,11 @@ export function toCloudArmorRuleDetailsJson(
         index: number;
         drift: CloudArmorRuleDrift;
       }): JSONObject => {
-        return { priority: item.priority, index: item.index, drift: item.drift };
+        return {
+          priority: item.priority,
+          index: item.index,
+          drift: item.drift,
+        };
       },
     ),
     freePriorities: [...details.freePriorities],

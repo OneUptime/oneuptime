@@ -136,17 +136,17 @@ function ruleNamed(
 }
 
 function gatewayValues(rule: JSONObject | undefined): Array<string> {
-  const condition: JSONObject = (
-    (rule?.["matchConditions"] as Array<JSONObject>) || []
-  )[0]!;
+  const condition: JSONObject = ((rule?.[
+    "matchConditions"
+  ] as Array<JSONObject>) || [])[0]!;
 
   return (condition?.["matchValues"] as Array<string>) || [];
 }
 
 function frontDoorValues(rule: JSONObject | undefined): Array<string> {
-  const condition: JSONObject = (
-    (rule?.["matchConditions"] as Array<JSONObject>) || []
-  )[0]!;
+  const condition: JSONObject = ((rule?.[
+    "matchConditions"
+  ] as Array<JSONObject>) || [])[0]!;
 
   return (condition?.["matchValue"] as Array<string>) || [];
 }
@@ -439,9 +439,9 @@ describe("adding and removing across rules", () => {
 
     let rules: Array<JSONObject> = fake.customRules(FAKE_GATEWAY_POLICY_ID);
 
-    expect(gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock1"))).toHaveLength(
-      600,
-    );
+    expect(
+      gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock1")),
+    ).toHaveLength(600);
     expect(gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock2"))).toEqual([
       first[600],
     ]);
@@ -458,9 +458,9 @@ describe("adding and removing across rules", () => {
     rules = fake.customRules(FAKE_GATEWAY_POLICY_ID);
 
     expect(fake.puts(FAKE_GATEWAY_POLICY_ID)).toHaveLength(2);
-    expect(gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock1"))).toContain(
-      "35.205.11.131",
-    );
+    expect(
+      gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock1")),
+    ).toContain("35.205.11.131");
     expect(
       gatewayValues(ruleNamed(rules, "OneUptime1a2b3c4dBlock1")),
     ).not.toContain(first[0]);
@@ -476,9 +476,11 @@ describe("adding and removing across rules", () => {
     rules = fake.customRules(FAKE_GATEWAY_POLICY_ID);
 
     expect(ruleNamed(rules, "OneUptime1a2b3c4dBlock2")).toBeUndefined();
-    expect(third.getDetails().rules.map((rule: { index: number }) => {
-      return rule.index;
-    })).toEqual([1]);
+    expect(
+      third.getDetails().rules.map((rule: { index: number }) => {
+        return rule.index;
+      }),
+    ).toEqual([1]);
   });
 
   test("an Application Gateway policy matches IPv4 only: an IPv6 block is refused, saying why, and the rest are written", async () => {
@@ -502,9 +504,14 @@ describe("adding and removing across rules", () => {
     expect(fillSecurityBlockReason(refused[0]!.reason!)).toBe(
       "Application Gateway matches IPv4 addresses only, so it cannot block 2001:db8::1.",
     );
-    expect(gatewayValues(ruleNamed(fake.customRules(FAKE_GATEWAY_POLICY_ID), "OneUptime1a2b3c4dBlock1"))).toEqual([
-      "35.205.11.131",
-    ]);
+    expect(
+      gatewayValues(
+        ruleNamed(
+          fake.customRules(FAKE_GATEWAY_POLICY_ID),
+          "OneUptime1a2b3c4dBlock1",
+        ),
+      ),
+    ).toEqual(["35.205.11.131"]);
   });
 
   test("a Front Door policy holds IPv6 too, matched where the client connected (SocketAddr) unless told to read X-Forwarded-For", async () => {
@@ -525,7 +532,9 @@ describe("adding and removing across rules", () => {
       ),
     ).toEqual(["35.205.11.131", "2001:db8::1"]);
 
-    const rules: Array<JSONObject> = fake.customRules(FAKE_FRONT_DOOR_POLICY_ID);
+    const rules: Array<JSONObject> = fake.customRules(
+      FAKE_FRONT_DOOR_POLICY_ID,
+    );
     const ours: JSONObject = ruleNamed(rules, "OneUptime1a2b3c4dBlock1")!;
 
     expect(ours).toEqual({
@@ -547,9 +556,9 @@ describe("adding and removing across rules", () => {
     // The Front Door rules the customer had, as they were.
     expect(customerRulesOf(rules)).toEqual(
       (
-        (
-          recordedFrontDoorPolicy()["properties"] as JSONObject
-        )["customRules"] as JSONObject
+        (recordedFrontDoorPolicy()["properties"] as JSONObject)[
+          "customRules"
+        ] as JSONObject
       )["rules"] as Array<JSONObject>,
     );
 
@@ -564,10 +573,11 @@ describe("adding and removing across rules", () => {
     expect(await forwarded.rewriteIfNeeded()).toBe(true);
     expect(
       (
-        (ruleNamed(fake.customRules(FAKE_FRONT_DOOR_POLICY_ID), "OneUptime1a2b3c4dBlock1")![
-          "matchConditions"
-        ] as Array<JSONObject>)[0]!
-      )["matchVariable"],
+        ruleNamed(
+          fake.customRules(FAKE_FRONT_DOOR_POLICY_ID),
+          "OneUptime1a2b3c4dBlock1",
+        )!["matchConditions"] as Array<JSONObject>
+      )[0]!["matchVariable"],
     ).toBe("RemoteAddr");
     expect(
       frontDoorValues(
@@ -602,7 +612,9 @@ describe("adding and removing across rules", () => {
     )[0]!["ruleSetVersion"] = "3.1";
 
     const olderFake: FakeAzureWafArm = createFakeAzureWafArm({
-      policies: [{ id: FAKE_GATEWAY_POLICY_ID, kind: "gateway", policy: older }],
+      policies: [
+        { id: FAKE_GATEWAY_POLICY_ID, kind: "gateway", policy: older },
+      ],
     });
 
     expect((await keeperOf({ fake: olderFake }).readState()).capacity).toBe(
@@ -723,7 +735,8 @@ describe("a write that meets someone else's", () => {
         {
           error: {
             code: "AnotherOperationInProgress",
-            message: "Another operation on this or dependent resource is in progress.",
+            message:
+              "Another operation on this or dependent resource is in progress.",
           },
         },
         "Azure is still applying an earlier change to prod-waf. OneUptime writes it again shortly.",
@@ -753,7 +766,10 @@ describe("a write that meets someone else's", () => {
         { add: ["35.205.11.131"], remove: [] },
       );
 
-      expect({ status, sentence: fillSecurityBlockReason(result.added[0]!.reason!) }).toEqual({
+      expect({
+        status,
+        sentence: fillSecurityBlockReason(result.added[0]!.reason!),
+      }).toEqual({
         status,
         sentence,
       });
@@ -820,18 +836,18 @@ describe("a policy that blocks nothing", () => {
     [
       "turned off",
       (policy: JSONObject): void => {
-        (
-          (policy["properties"] as JSONObject)["policySettings"] as JSONObject
-        )["state"] = "Disabled";
+        ((policy["properties"] as JSONObject)["policySettings"] as JSONObject)[
+          "state"
+        ] = "Disabled";
       },
       "prod-waf is turned off in Azure, so it blocks nothing. Turn it on, and its blocks are enforced from the next check.",
     ],
     [
       "in Detection mode",
       (policy: JSONObject): void => {
-        (
-          (policy["properties"] as JSONObject)["policySettings"] as JSONObject
-        )["mode"] = "Detection";
+        ((policy["properties"] as JSONObject)["policySettings"] as JSONObject)[
+          "mode"
+        ] = "Detection";
       },
       "prod-waf is in Detection mode, so Azure WAF only logs the requests OneUptime's rules match. Switch it to Prevention mode, and its blocks are enforced from the next check.",
     ],
@@ -869,7 +885,9 @@ describe("a policy that blocks nothing", () => {
 
       expect(state.status).toBe(SecurityBlockCloudWafStatus.Failed);
       expect(fillSecurityBlockReason(state.reason!)).toBe(sentence);
-      expect(fillSecurityBlockReason(state.held[0]!.notInForce!)).toBe(sentence);
+      expect(fillSecurityBlockReason(state.held[0]!.notInForce!)).toBe(
+        sentence,
+      );
     },
   );
 });
@@ -920,9 +938,11 @@ describe("a rule of OneUptime's changed by hand", () => {
     expect(fillSecurityBlockReason(state.reason!)).toBe(
       "OneUptime's rule OneUptime1a2b3c4dBlock1 in prod-waf was turned off by hand, so the blocks it holds are not enforced. Select Put It Back to turn it on again.",
     );
-    expect(state.held.every((item: { notInForce: unknown }): boolean => {
-      return item.notInForce !== null;
-    })).toBe(true);
+    expect(
+      state.held.every((item: { notInForce: unknown }): boolean => {
+        return item.notInForce !== null;
+      }),
+    ).toBe(true);
 
     // A pass: a block lifted comes out of it, a new one goes to a new rule; it stays off.
     await keeper.change({ add: ["192.0.2.7"], remove: ["45.155.205.233"] });
