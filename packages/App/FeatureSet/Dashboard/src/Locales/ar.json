@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "خُنق {{count}} من الطلبات.",
   "{{count}} requests were throttled._one": "خُنق {{count}} طلب.",
   "{{size}} in {{count}} requests was not stored.": "لم يُخزَّن {{count}} من الطلبات ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}})."
+  "{{size}} in {{count}} requests was not stored._one": "لم يُخزَّن {{count}} طلب ({{size}}).",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "لا توجد أحداث أمنية للنطاق الزمني وعوامل التصفية المحددة، لكن جزءًا من سجلاتك أو تتبعاتك في هذا النطاق رُفض ولم يُفحص قط، لذا تنقص الأحداث التي كانت ستنتج عنه."
 }

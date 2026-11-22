@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} 個請求遭到節流。",
   "{{count}} requests were throttled._one": "{{count}} 個請求遭到節流。",
   "{{size}} in {{count}} requests was not stored.": "{{count}} 個請求（{{size}}）未被儲存。",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} 個請求（{{size}}）未被儲存。"
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} 個請求（{{size}}）未被儲存。",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "所選時間範圍和篩選器內沒有安全事件，但此時間範圍內你的部分日誌或追蹤遭到拒絕，從未被掃描，因此缺少由它們產生的事件。"
 }

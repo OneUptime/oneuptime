@@ -27,7 +27,7 @@ import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource"
 import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, ObjectType } from "../../../Types/JSON";
 import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
@@ -133,6 +133,19 @@ import SecurityEventsReadBudgetBanners, {
 import SecurityEventsNoResults, {
   SECURITY_EVENTS_NO_RESULTS_REFUSED_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsNoResults";
+import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
+import DashboardSecurityEventsFlowComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsFlowComponent";
+import DashboardSecurityEventsListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsListComponent";
+import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
+import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "../../../Types/Time/TimeRange";
+import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import DashboardSecurityEventsFlowComponentUtil from "../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
+import DashboardSecurityEventsListComponentUtil from "../../../Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 
 const NOW: Date = new Date("2026-11-20T15:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -691,6 +704,185 @@ describe("the events list with nothing in its time range", () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId(SECURITY_EVENTS_NO_RESULTS_REFUSED_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("a dashboard's Security Events widgets with nothing in its time range", () => {
+  const DEFAULT_LINE: string =
+    "No security events for the selected time range and filters";
+  const REFUSED_RANGE: RangeStartAndEndDateTime = {
+    range: TimeRange.CUSTOM,
+    startAndEndDate: new InBetween<Date>(
+      new Date("2026-11-20T14:00:00.000Z"),
+      new Date("2026-11-20T15:00:00.000Z"),
+    ),
+  };
+  const UNREFUSED_RANGE: RangeStartAndEndDateTime = {
+    range: TimeRange.CUSTOM,
+    startAndEndDate: new InBetween<Date>(
+      new Date("2026-11-19T10:00:00.000Z"),
+      new Date("2026-11-19T11:00:00.000Z"),
+    ),
+  };
+  const VIEW_CONFIG: DashboardViewConfig = {
+    _type: ObjectType.DashboardViewConfig,
+    components: [],
+    heightInDashboardUnits: 60,
+  };
+
+  type WidgetElement = React.FunctionComponent<
+    DashboardBaseComponentProps & { component: DashboardBaseComponent }
+  >;
+
+  const WIDGETS: Array<{
+    name: string;
+    element: WidgetElement;
+    component: () => DashboardBaseComponent;
+  }> = [
+    {
+      name: "Security Events List",
+      element:
+        DashboardSecurityEventsListComponentElement as unknown as WidgetElement,
+      component: (): DashboardBaseComponent => {
+        return DashboardSecurityEventsListComponentUtil.getDefaultComponent() as unknown as DashboardBaseComponent;
+      },
+    },
+    {
+      name: "Security Events Flow",
+      element:
+        DashboardSecurityEventsFlowComponentElement as unknown as WidgetElement,
+      component: (): DashboardBaseComponent => {
+        return DashboardSecurityEventsFlowComponentUtil.getDefaultComponent() as unknown as DashboardBaseComponent;
+      },
+    },
+  ];
+
+  // Which source each read was of, by name (a model class does not print).
+  let sourceReads: Array<string>;
+
+  // The board's read finds `events`; the Your logs source kept a refusal ongoing since 14:02.
+  function stubReads(events: Array<SecurityEvent>): void {
+    sourceReads = [];
+    jest.spyOn(AnalyticsModelAPI, "getList").mockResolvedValue({
+      data: events,
+      count: events.length,
+      skip: 0,
+      limit: 100,
+    } as never);
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      options: Record<string, unknown>,
+    ) => {
+      sourceReads.push(
+        options["modelType"] === SecurityLogSource ? "Your logs" : "other",
+      );
+
+      if (options["modelType"] === SecurityLogSource) {
+        const value: SecurityLogSource = new SecurityLogSource();
+        value.lastScanResult = keptResult([refusal({})]);
+        return { data: [value], count: 1, skip: 0, limit: 1 };
+      }
+
+      return { data: [], count: 0, skip: 0, limit: 1 };
+    }) as never);
+  }
+
+  async function drawWidget(
+    widget: (typeof WIDGETS)[number],
+    range: RangeStartAndEndDateTime,
+  ): Promise<void> {
+    const Element: WidgetElement = widget.element;
+    const component: DashboardBaseComponent = widget.component();
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <Element
+            componentId={component.componentId}
+            key="refused-widget"
+            isEditMode={false}
+            isSelected={false}
+            onComponentUpdate={(): void => {
+              // Nothing here writes back.
+            }}
+            totalCurrentDashboardWidthInPx={1200}
+            dashboardCanvasTopInPx={0}
+            dashboardCanvasLeftInPx={0}
+            dashboardCanvasWidthInPx={1200}
+            dashboardCanvasHeightInPx={800}
+            dashboardComponentHeightInPx={390}
+            dashboardComponentWidthInPx={480}
+            dashboardViewConfig={VIEW_CONFIG}
+            dashboardStartAndEndDate={range}
+            metricTypes={[]}
+            refreshTick={0}
+            variables={undefined}
+            dashboardId="d0000000-0000-4000-8000-000000010431"
+            component={component}
+          />
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  test.each(WIDGETS)(
+    "the $name says events from a refused time range are missing, never just that there were none",
+    async (widget: (typeof WIDGETS)[number]) => {
+      stubReads([]);
+
+      await drawWidget(widget, REFUSED_RANGE);
+
+      expect(
+        await screen.findByText(Copy.WIDGET_NO_EVENTS_BUT_REFUSED),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(DEFAULT_LINE)).not.toBeInTheDocument();
+    },
+  );
+
+  test.each(WIDGETS)(
+    "the $name over a time range nothing was refused in says only what it always said",
+    async (widget: (typeof WIDGETS)[number]) => {
+      stubReads([]);
+
+      await drawWidget(widget, UNREFUSED_RANGE);
+
+      expect(await screen.findByText(DEFAULT_LINE)).toBeInTheDocument();
+      expect(sourceReads).toContain("Your logs");
+      expect(
+        screen.queryByText(Copy.WIDGET_NO_EVENTS_BUT_REFUSED),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("in German, the line is German", async () => {
+    await i18next.changeLanguage("de");
+    stubReads([]);
+
+    await drawWidget(WIDGETS[0]!, REFUSED_RANGE);
+
+    const german: string | undefined =
+      readDashboardLocale("de")[Copy.WIDGET_NO_EVENTS_BUT_REFUSED];
+
+    expect(german).toBeTruthy();
+    expect(german).not.toBe(Copy.WIDGET_NO_EVENTS_BUT_REFUSED);
+    expect(await screen.findByText(german as string)).toBeInTheDocument();
+  });
+
+  test("a widget that found events reads nothing of what was refused", async () => {
+    const event: SecurityEvent = new SecurityEvent();
+    event._id = new ObjectID("22222222-2222-4222-8222-222222222222");
+    event.time = new Date("2026-11-20T14:30:00.000Z");
+    event.className = "Authentication";
+    event.severityName = OcsfSeverity.High;
+    event.message = "Failed sign-in";
+    stubReads([event]);
+
+    await drawWidget(WIDGETS[0]!, REFUSED_RANGE);
+
+    expect(await screen.findByText("Failed sign-in")).toBeInTheDocument();
+    expect(sourceReads).toEqual([]);
+    expect(
+      screen.queryByText(Copy.WIDGET_NO_EVENTS_BUT_REFUSED),
     ).not.toBeInTheDocument();
   });
 });

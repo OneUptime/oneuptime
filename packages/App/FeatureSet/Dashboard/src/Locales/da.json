@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} anmodninger blev begrænset.",
   "{{count}} requests were throttled._one": "{{count}} anmodning blev begrænset.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} anmodninger ({{size}}) blev ikke gemt.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} anmodning ({{size}}) blev ikke gemt.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Ingen sikkerhedshændelser for det valgte tidsrum og de valgte filtre, men en del af dine logs eller spor i tidsrummet blev afvist og aldrig scannet, så hændelser fra dem mangler."
 }

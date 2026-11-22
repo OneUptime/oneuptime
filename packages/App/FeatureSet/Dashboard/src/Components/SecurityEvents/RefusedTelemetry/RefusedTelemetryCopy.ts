@@ -159,9 +159,17 @@ export const HUNT_RUN_REFUSED: string = translationKey(
   "Some of your logs or traces in this window were refused and never scanned.",
 );
 
-// Under the events list's "No security events", over a time range something was refused in.
+/*
+ * Under "No security events" over a time range something was refused in:
+ * the events list's, and Correlate's.
+ */
 export const NO_EVENTS_BUT_REFUSED: string = translationKey(
   "Some of your logs or traces in this time range were refused and never scanned, so events from them are missing.",
+);
+
+// A dashboard's Security Events widget that found nothing over such a time range: its one line.
+export const WIDGET_NO_EVENTS_BUT_REFUSED: string = translationKey(
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.",
 );
 
 // Above a case's lines.

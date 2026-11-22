@@ -1,13 +1,17 @@
-import { readSourceRefusedTelemetry } from "./RefusedTelemetryModel";
+import {
+  isPeriodRefused,
+  readSourceRefusedTelemetry,
+} from "./RefusedTelemetryModel";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 /*
  * Everything an ingestion budget or rate refused of the telemetry Security
@@ -65,28 +69,71 @@ export async function readProjectRefusedTelemetry(
   ];
 }
 
-// The same, read once when the page opens; empty until it is read.
-export default function useProjectRefusedTelemetry(): Array<RefusedTelemetry> {
+/*
+ * Whether anything was refused between from and to: for a dashboard widget
+ * that read its time range and found nothing, as part of that same read, so
+ * it follows the board's refreshes. False with no project open, or when
+ * nothing could be read.
+ */
+export async function readIsPeriodRefused(data: {
+  from: Date;
+  to: Date;
+}): Promise<boolean> {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  if (!projectId) {
+    return false;
+  }
+
+  return isPeriodRefused({
+    refusals: await readProjectRefusedTelemetry(projectId),
+    from: data.from,
+    to: data.to,
+    now: OneUptimeDate.getCurrentDate(),
+  });
+}
+
+/*
+ * The same, read once - the first time it is wanted, so a page that only
+ * needs it when it found nothing (Correlate) reads nothing otherwise. Empty
+ * until it is read.
+ */
+export default function useProjectRefusedTelemetry(
+  isWanted: boolean = true,
+): Array<RefusedTelemetry> {
   const [refusals, setRefusals] = useState<Array<RefusedTelemetry>>([]);
+  const hasReadRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
 
   useEffect(() => {
-    let isCurrent: boolean = true;
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (projectId) {
-      void readProjectRefusedTelemetry(projectId).then(
-        (read: Array<RefusedTelemetry>) => {
-          if (isCurrent) {
-            setRefusals(read);
-          }
-        },
-      );
-    }
+    isMountedRef.current = true;
 
     return () => {
-      isCurrent = false;
+      isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isWanted || hasReadRef.current) {
+      return;
+    }
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
+    hasReadRef.current = true;
+
+    void readProjectRefusedTelemetry(projectId).then(
+      (read: Array<RefusedTelemetry>) => {
+        if (isMountedRef.current) {
+          setRefusals(read);
+        }
+      },
+    );
+  }, [isWanted]);
 
   return refusals;
 }

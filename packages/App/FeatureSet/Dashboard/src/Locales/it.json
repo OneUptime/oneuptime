@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} richieste sono state limitate.",
   "{{count}} requests were throttled._one": "{{count}} richiesta è stata limitata.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} richieste ({{size}}) non sono state memorizzate.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} richiesta ({{size}}) non è stata memorizzata.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Nessun evento di sicurezza per l'intervallo di tempo e i filtri selezionati, ma parte dei tuoi log o delle tue tracce di quell'intervallo è stata rifiutata e mai analizzata, quindi mancano gli eventi che ne sarebbero derivati."
 }

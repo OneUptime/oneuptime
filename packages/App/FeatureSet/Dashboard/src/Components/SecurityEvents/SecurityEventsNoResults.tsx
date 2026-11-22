@@ -9,16 +9,13 @@ import EmptyState, {
 } from "Common/UI/Components/EmptyState/EmptyState";
 import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import {
-  Translator,
   translatableTerm,
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
-import { NO_EVENTS_BUT_REFUSED } from "./RefusedTelemetry/RefusedTelemetryCopy";
 import { isPeriodRefused } from "./RefusedTelemetry/RefusedTelemetryModel";
+import RefusedTelemetryRangeNote from "./RefusedTelemetry/RefusedTelemetryRangeNote";
 import useProjectRefusedTelemetry from "./RefusedTelemetry/useProjectRefusedTelemetry";
-import Icon from "Common/UI/Components/Icon/Icon";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
@@ -82,7 +79,6 @@ export function getShowTimeRangeButtonTitle(
 const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const latest: Date | undefined = props.latestEventTime;
   const refusals: Array<RefusedTelemetry> = useProjectRefusedTelemetry();
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -92,19 +88,9 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
     to: props.windowEndDate || now,
     now,
   }) ? (
-    <p
-      className="flex items-start justify-center gap-1.5 text-sm text-amber-800"
-      data-testid={SECURITY_EVENTS_NO_RESULTS_REFUSED_ID}
-    >
-      <Icon
-        icon={IconProp.SignalSlash}
-        className="mt-0.5 h-4 w-4 flex-none text-amber-600"
-      />
-      <span className="text-pretty">
-        {translator.translateText(NO_EVENTS_BUT_REFUSED) ||
-          NO_EVENTS_BUT_REFUSED}
-      </span>
-    </p>
+    <RefusedTelemetryRangeNote
+      dataTestId={SECURITY_EVENTS_NO_RESULTS_REFUSED_ID}
+    />
   ) : undefined;
 
   // Their newest event is inside the window, so it is the filters that emptied it.

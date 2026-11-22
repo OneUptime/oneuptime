@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} verzoeken zijn afgeremd.",
   "{{count}} requests were throttled._one": "{{count}} verzoek is afgeremd.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} verzoeken ({{size}}) zijn niet opgeslagen.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} verzoek ({{size}}) is niet opgeslagen.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Geen beveiligingsgebeurtenissen voor de geselecteerde periode en filters, maar een deel van uw logboeken of traces in die periode is geweigerd en nooit gescand, dus gebeurtenissen daaruit ontbreken."
 }

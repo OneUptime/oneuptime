@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} begäranden ströps.",
   "{{count}} requests were throttled._one": "{{count}} begäran ströps.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} begäranden ({{size}}) lagrades inte.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} begäran ({{size}}) lagrades inte.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Inga säkerhetshändelser för valt tidsintervall och filter, men en del av dina loggar eller spår i intervallet avvisades och skannades aldrig, så händelser från dem saknas."
 }

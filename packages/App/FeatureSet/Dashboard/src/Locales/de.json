@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} Anfragen wurden gedrosselt.",
   "{{count}} requests were throttled._one": "{{count}} Anfrage wurde gedrosselt.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} Anfragen mit {{size}} wurden nicht gespeichert.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} Anfrage mit {{size}} wurde nicht gespeichert.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Keine Sicherheitsereignisse für den ausgewählten Zeitraum und die Filter, aber ein Teil Ihrer Protokolle oder Traces darin wurde abgelehnt und nie geprüft, daher fehlen Ereignisse daraus."
 }

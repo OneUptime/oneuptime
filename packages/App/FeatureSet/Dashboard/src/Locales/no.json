@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "{{count}} forespørsler ble strupet.",
   "{{count}} requests were throttled._one": "{{count}} forespørsel ble strupet.",
   "{{size}} in {{count}} requests was not stored.": "{{count}} forespørsler ({{size}}) ble ikke lagret.",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} forespørsel ({{size}}) ble ikke lagret.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Ingen sikkerhetshendelser for valgt tidsrom og filtre, men en del av loggene eller sporene dine i tidsrommet ble avvist og aldri skannet, så hendelser fra dem mangler."
 }

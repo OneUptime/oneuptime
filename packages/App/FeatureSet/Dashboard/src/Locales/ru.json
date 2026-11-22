@@ -61301,5 +61301,6 @@
   "{{count}} requests were throttled.": "Ограничено по скорости запросов: {{count}}.",
   "{{count}} requests were throttled._one": "{{count}} запрос ограничен по скорости.",
   "{{size}} in {{count}} requests was not stored.": "Не сохранено запросов: {{count}} ({{size}}).",
-  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён."
+  "{{size}} in {{count}} requests was not stored._one": "{{count}} запрос ({{size}}) не сохранён.",
+  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.": "Нет событий безопасности за выбранный период с выбранными фильтрами, но часть ваших логов или трассировок за этот период была отклонена и так и не проверена, поэтому событий из них не хватает."
 }
