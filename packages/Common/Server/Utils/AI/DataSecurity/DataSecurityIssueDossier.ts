@@ -5,6 +5,7 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "../../../../Models/DatabaseModels/DataStoreOwnerUser";
+import User from "../../../../Models/DatabaseModels/User";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
@@ -32,6 +33,7 @@ import DataStoreOwnerUserService from "../../../Services/DataStoreOwnerUserServi
 import DataStoreService from "../../../Services/DataStoreService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import DataSecurityResponse from "../../DataSecurity/DataSecurityResponse";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../../Feed/FeedPersonName";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DeclaredCodeOwner, {
@@ -698,6 +700,14 @@ export default class DataSecurityIssueDossier {
   /*
    * The store's owners: the people and teams, by name for the card, and the
    * rows they were read from. A person's email is never read.
+   *
+   * A person is named as every line names people (FeedPersonName.readNames,
+   * #10681): someone only invited by the name typed with their invitation,
+   * else "someone who hasn't joined the project yet" - never by their
+   * account's own name, which the project does not see until they join
+   * (#9823). Who of them is only invited is read once for them all.
+   * Somebody with no name to say - none, or one that holds an address - is
+   * counted, not named.
    */
   public static async readOwners(
     projectId: ObjectID,
@@ -709,7 +719,7 @@ export default class DataSecurityIssueDossier {
     ] = await Promise.all([
       DataStoreOwnerUserService.findBy({
         query: { projectId, dataStoreId },
-        select: { _id: true, user: { name: true } },
+        select: { _id: true, userId: true, user: { name: true } },
         skip: 0,
         limit: MAX_ANALYSIS_OWNER_NAMES * 4,
         props: { isRoot: true },
@@ -722,12 +732,30 @@ export default class DataSecurityIssueDossier {
         props: { isRoot: true },
       }),
     ]);
+    const personNames: Map<string, string> = await FeedPersonName.readNames({
+      users: users.map((owner: DataStoreOwnerUser): User | null => {
+        if (!owner.userId) {
+          return null;
+        }
+
+        const person: User = new User(owner.userId);
+
+        if (owner.user?.name) {
+          person.name = owner.user.name;
+        }
+
+        return person;
+      }),
+      projectId: projectId,
+    });
     const names: Array<string> = [];
 
     for (const owner of users) {
-      const name: string = owner.user?.name?.toString().trim() || "";
+      const name: string = owner.userId
+        ? personNames.get(owner.userId.toString().toLowerCase()) || ""
+        : "";
 
-      if (name && !names.includes(name)) {
+      if (name && name !== FEED_NOBODY_NAMED && !names.includes(name)) {
         names.push(name);
       }
     }
