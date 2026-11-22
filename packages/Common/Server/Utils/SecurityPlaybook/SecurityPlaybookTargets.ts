@@ -26,6 +26,7 @@ import NetworkAddressBlockUtil, {
 import {
   SecurityEntity,
   SecurityEntityType,
+  canActOnSecurityEntity,
   inferSecurityEntityType,
   mergeSecurityEntities,
   readSecurityEntities,
@@ -79,6 +80,13 @@ export interface GroupedDetection {
  * requests did not only claim it (#10416); one of the project's own - a
  * host's, a load balancer's, the edge in front of the app - is Protected,
  * saying what it is.
+ *
+ * Never a value no response can act on (#10430, #10435): what a scrub rule
+ * left of a user, a host or an address ("[REDACTED]", a mask, a Hash token)
+ * or one of OneUptime's own actors ("workflow:<id>", "oneuptime") - not even
+ * when a case stored before that rule holds one (canActOnSecurityEntity). A
+ * "[REDACTED]" offered to Okta is every redacted user at once, and no
+ * identity provider knows a workflow.
  */
 export default class SecurityPlaybookTargets {
   /*
@@ -165,7 +173,12 @@ export default class SecurityPlaybookTargets {
     ): void => {
       const key: string = securityEntityKey(entity);
 
-      if (!key || entity.type !== data.entityType || candidates.has(key)) {
+      if (
+        !key ||
+        entity.type !== data.entityType ||
+        candidates.has(key) ||
+        !canActOnSecurityEntity(entity)
+      ) {
         return;
       }
 
@@ -207,14 +220,22 @@ export default class SecurityPlaybookTargets {
   /*
    * Marks the targets the protected list covers as Protected. Asked again
    * right before a step acts, so an entry added while the step waited for
-   * approval still holds.
+   * approval still holds - and so a target no response can act on, chosen
+   * for a step that waited since before that rule, is left out
+   * (canActOnSecurityEntity).
    */
   public static protect(data: {
     targets: Array<SecurityPlaybookTarget>;
     rules: ReadonlyArray<ProtectedEntityRule>;
   }): Array<SecurityPlaybookTarget> {
-    return data.targets.map(
-      (target: SecurityPlaybookTarget): SecurityPlaybookTarget => {
+    return data.targets
+      .filter((target: SecurityPlaybookTarget): boolean => {
+        return (
+          target.state !== SecurityPlaybookTargetState.Proposed ||
+          canActOnSecurityEntity(target)
+        );
+      })
+      .map((target: SecurityPlaybookTarget): SecurityPlaybookTarget => {
         if (target.state !== SecurityPlaybookTargetState.Proposed) {
           return target;
         }
@@ -232,8 +253,7 @@ export default class SecurityPlaybookTargets {
               protectedBy: rule.value,
             }
           : target;
-      },
-    );
+      });
   }
 
   /*

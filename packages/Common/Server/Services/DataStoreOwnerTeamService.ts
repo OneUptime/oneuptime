@@ -11,6 +11,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import DataStoreService from "./DataStoreService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { expireOwnersProposedForStore } from "./DataStoreOwnerUserService";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -129,6 +130,10 @@ export class Service extends ProjectReferencesService<Model> {
           userId: createdByUserId || undefined,
         });
       }
+    }
+
+    if (dataStoreId) {
+      await expireOwnersProposedForStore(dataStoreId);
     }
 
     return createdItem;

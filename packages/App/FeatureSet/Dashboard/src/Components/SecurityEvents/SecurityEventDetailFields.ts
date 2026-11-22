@@ -13,6 +13,12 @@ import {
   HiddenClientAddress,
   readHiddenClientAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import {
+  SCRUBBED_USER_ATTRIBUTES,
+  ScrubbedUserRole,
+  USER_HIDDEN_BY_SCRUB_RULE,
+  readHiddenEventUser,
+} from "Common/Utils/SecurityEvent/ScrubbedUser";
 
 /*
  * What one security event says, as data.
@@ -50,6 +56,43 @@ export interface SecurityEventDetailField {
    * request, not verified, and never the event's address.
    */
   claimedAddress?: ClaimedClientAddress | undefined;
+  /*
+   * A user a scrub rule redacted or masked (#10435): what Principal User or
+   * Target User says in the user's place, whose filter shows every event
+   * whose user a rule hid.
+   */
+  isHiddenUser?: boolean | undefined;
+}
+
+/*
+ * Principal User or Target User for an event whose user a scrub rule
+ * redacted or masked (#10435): the sentence that says so, which filters
+ * the list to every event whose user of that role a rule hid. Null for an
+ * event that names its user - a Hash rule's token included, which names
+ * one user without saying who - or says nothing of one.
+ */
+export function buildHiddenUserField(
+  event: SecurityEventDetailSource,
+  role: ScrubbedUserRole,
+): SecurityEventDetailField | null {
+  const user: string =
+    role === ScrubbedUserRole.Principal
+      ? text(event.principalUser)
+      : text(event.targetUser);
+
+  if (user || !readHiddenEventUser(event, role)) {
+    return null;
+  }
+
+  return {
+    label:
+      role === ScrubbedUserRole.Principal ? "Principal User" : "Target User",
+    value: HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: true,
+    isHiddenUser: true,
+    facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SCRUBBED_USER_ATTRIBUTES[role].hidden}`,
+    facetValue: USER_HIDDEN_BY_SCRUB_RULE,
+  };
 }
 
 /*
@@ -213,7 +256,8 @@ export function buildSecurityEventOverviewFields(
     { label: "Rule ID", value: text(event.ruleId) },
     { label: "MITRE Tactics", value: joinArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: joinArray(event.mitreTechniques) },
-    {
+    // A scrub rule hid it: said where the user would be (#10435).
+    buildHiddenUserField(event, ScrubbedUserRole.Principal) || {
       label: "Principal User",
       value: text(event.principalUser),
       facetKey: "principalUser",
@@ -254,7 +298,7 @@ export function buildSecurityEventOverviewFields(
       label: "Parent Command Line",
       value: text(event.parentProcessCommandLine),
     },
-    {
+    buildHiddenUserField(event, ScrubbedUserRole.Target) || {
       label: "Target User",
       value: text(event.targetUser),
       facetKey: "targetUser",

@@ -285,13 +285,21 @@ export default class DataSecurityApi {
    * the plan they read (its fingerprint) - a proposal that changed since is
    * not approved.
    */
+  /*
+   * Approves the plan the person was shown (its fingerprint) - or, for an
+   * owner proposal changed first (#10374), the owners they picked instead.
+   */
   public static async approveAiProposal(data: {
     proposalId: ObjectID;
     expectedPlanFingerprint: string;
+    changes?: JSONObject | undefined;
   }): Promise<JSONObject> {
     return await post(
       DATA_SECURITY_API_ROUTES.approveAiProposal(data.proposalId.toString()),
-      { expectedPlanFingerprint: data.expectedPlanFingerprint },
+      {
+        expectedPlanFingerprint: data.expectedPlanFingerprint,
+        ...(data.changes ? { changes: data.changes } : {}),
+      },
     );
   }
 

@@ -110,6 +110,7 @@ const WIDEST_LABEL_LINE: Record<string, number> = {
   "telemetry/cloud-streaming": 24,
   "telemetry/cloud-streaming-azure": 24,
   "telemetry/cloud-streaming-google-cloud": 24,
+  "telemetry/cloud-aws-waf-blocklist": 26,
   "telemetry/cloud-costs": 26,
   "telemetry/cloud-resources": 23,
 };

@@ -944,6 +944,86 @@ describe("SecurityProtectedAddresses.findProtection", () => {
     });
   });
 
+  test("an Elastic IP of the account's, named by its kind and its account (#10504)", async () => {
+    const elasticIp: CloudResource = cloudResource({
+      name: "eipalloc-0web",
+      type: "AWS::EC2::EIP",
+      endpoints: ["52.18.1.9"],
+      properties: { PublicIp: "52.18.1.9", AllocationId: "eipalloc-0web" },
+      account: "Production",
+    });
+    install({ cloudResources: [elasticIp] });
+
+    const check: SecurityProtectionCheck = await find("52.18.1.9");
+
+    expect(check).toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.CloudResource,
+        protectedValue: "52.18.1.9",
+        name: "eipalloc-0web",
+        recordId: idOf(elasticIp),
+        kind: "Elastic IP",
+        where: "Production",
+      },
+      unreadSources: [],
+    });
+    expect(
+      describeSecurityAddressProtection({
+        value: "52.18.1.9",
+        protection: check.protection!,
+      }),
+    ).toBe(
+      "52.18.1.9 is the address of Elastic IP eipalloc-0web in Production.",
+    );
+  });
+
+  test("a NAT gateway's public address - every private subnet's traffic leaves from it - and a range that holds it (#10504)", async () => {
+    const nat: CloudResource = cloudResource({
+      name: "nat-0aaa",
+      type: "AWS::EC2::NatGateway",
+      endpoints: ["34.240.10.20", "34.240.10.21"],
+      properties: {
+        ConnectivityType: "public",
+        AllocationId: "eipalloc-0nat",
+        PublicIps: ["34.240.10.20", "34.240.10.21"],
+      },
+      account: "Production",
+    });
+    install({ cloudResources: [nat] });
+
+    const secondary: SecurityProtectionCheck = await find("34.240.10.21");
+
+    expect(secondary.protection).toEqual({
+      source: SecurityProtectedAddressSource.CloudResource,
+      protectedValue: "34.240.10.21",
+      name: "nat-0aaa",
+      recordId: idOf(nat),
+      kind: "NAT Gateway",
+      where: "Production",
+    });
+    expect(
+      describeSecurityAddressProtection({
+        value: "34.240.10.21",
+        protection: secondary.protection!,
+      }),
+    ).toBe(
+      "34.240.10.21 is the address of NAT Gateway nat-0aaa in Production.",
+    );
+
+    // A range that holds it is refused too, saying which address it holds.
+    const range: SecurityProtectionCheck = await find("34.240.10.0/24");
+
+    expect(range.protection?.protectedValue).toBe("34.240.10.20");
+    expect(
+      describeSecurityAddressProtection({
+        value: "34.240.10.0/24",
+        protection: range.protection!,
+      }),
+    ).toBe(
+      "34.240.10.0/24 holds 34.240.10.20. 34.240.10.20 is the address of NAT Gateway nat-0aaa in Production.",
+    );
+  });
+
   test("a cloud resource's property, where a cloud lists an address", async () => {
     const instance: CloudResource = cloudResource({
       name: "i-0def",

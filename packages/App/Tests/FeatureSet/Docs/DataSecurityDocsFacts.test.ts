@@ -85,6 +85,7 @@ import {
   DATA_SECURITY_AI_DEFAULT_ANALYZED_SEVERITIES,
   DataSecurityAiChangeSafety,
 } from "Common/Types/DataSecurity/DataSecurityAi";
+import { MIN_STORES_FOR_DATA_STORE_OWNER_RULE } from "Common/Types/DataSecurity/DataStoreOwnerProposal";
 import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
@@ -2769,6 +2770,49 @@ describe("Data Security Integrations", () => {
       expect(access).toContain(permission);
     }
     expect(access).not.toContain("Permission.Security");
+  });
+
+  it("says what OneUptime AI proposes for stores with no owners, as the product does (#10374)", () => {
+    const onItsOwn: string = section(english(AI), "## On its own");
+    const owners: string = section(page, "### Owners OneUptime AI proposes");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+    const menu: string = source(
+      "App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts",
+    );
+
+    // The list, its buttons and the pages it is on, by the names they draw.
+    for (const name of ["Owners to review", "Change and Approve"]) {
+      expect(copy).toContain(`translationKey("${name}")`);
+      expect(onItsOwn).toContain(`**${name}**`);
+    }
+    expect(owners).toContain("**Owners to review**");
+    expect(menu).toContain('title: "Data Stores"');
+    expect(onItsOwn).toContain("on this page and on **Data Stores**");
+    expect(owners).toContain("on **Data Stores** or **Data Security → AI**");
+
+    // The check a sensitive store's owners make pass, by its title.
+    expect(
+      DATA_SECURITY_CHECKS.find((check: DataSecurityCheckInfo): boolean => {
+        return check.id === "no-owner";
+      })?.title,
+    ).toBe("Nobody owns this sensitive store");
+    expect(onItsOwn).toContain("**Nobody owns this sensitive store**");
+
+    // An owner changes who is told: it always asks, whatever a rule says.
+    expect([...DATA_SECURITY_AI_ALWAYS_ASKS]).toContain(
+      DataSecurityAiChangeSafety.ChangesWhoIsTold,
+    );
+    expect(onItsOwn).toContain(
+      "Adding an owner changes who is told, so it always waits for you, whatever an AI rule says.",
+    );
+
+    // A rule is proposed for three or more stores that rest on one fact.
+    expect(MIN_STORES_FOR_DATA_STORE_OWNER_RULE).toBe(3);
+    expect(onItsOwn).toContain("When three or more stores' owners rest on");
+    expect(owners).toContain("Where three or more stores' owners rest on");
+    expect(owners).toContain("joins **Owner Rules** once approved");
   });
 
   it("names the AI actions as the API and the Dashboard do", () => {

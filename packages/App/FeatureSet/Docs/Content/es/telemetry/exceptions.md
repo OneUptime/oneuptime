@@ -52,7 +52,7 @@ Vaya a **Productos → Observabilidad → Excepciones**. La insignia de la pesta
 
 Cambie entre **Sin resolver**, **Resuelto**, **Archivado** y **Todos**. El gráfico de encima de la lista muestra cuántas ocurrencias fueron **No controlado** y cuántas **Gestionado** a lo largo del tiempo. Una fila marcada como **Regresión** volvió después de resolverse, y una marcada como **Nuevo** se vio por primera vez en las últimas 24 horas.
 
-Cada fila muestra también a cuántos usuarios afectó la excepción en el intervalo elegido y un pequeño gráfico de sus ocurrencias en ese intervalo. Una ocurrencia nombra a su usuario con el atributo `user.id`, `enduser.id` o `enduser.pseudo.id`, en el evento de la excepción, en su span o registro de log, o en su recurso; las ocurrencias que no nombran a ningún usuario no se cuentan.
+Cada fila muestra también a cuántos usuarios afectó la excepción en el intervalo elegido y un pequeño gráfico de sus ocurrencias en ese intervalo. Una ocurrencia nombra a su usuario con el atributo `user.id`, `enduser.id` o `enduser.pseudo.id`, en el evento de la excepción, en su span o registro de log, o en su recurso; las ocurrencias que no nombran a ningún usuario no se cuentan. Un ID de usuario que ocultó una regla de depuración nunca se cuenta como usuario. Un ID convertido en hash cuenta igualmente una vez, como usuario oculto; las ocurrencias cuyo ID se ocultó o enmascaró cuentan como eventos con un usuario oculto, porque no se pueden distinguir.
 
 ### Elegir qué cuenta como problema
 

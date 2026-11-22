@@ -52,12 +52,16 @@ on:
       - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts
       - packages/Common/Server/Utils/AI/Toolbox/Serializer.ts
       - packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner.ts
+      - packages/Common/Utils/DataSecurity/DataStoreOwnerAnswer.ts
+      - packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi, ProposeStoreOwners. Empty: all of them."
         required: false
         default: ""
       cases:

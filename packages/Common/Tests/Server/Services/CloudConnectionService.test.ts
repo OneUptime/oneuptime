@@ -6,8 +6,14 @@ import { generateKeyPairSync } from "crypto";
 import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
 import ServiceService from "../../../Server/Services/ServiceService";
+import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
-import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { CloudConnectionSettings } from "../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import AwsServerIdentity from "../../../Server/Utils/CloudConnection/Aws/AwsServerIdentity";
@@ -72,6 +78,9 @@ type Hooks = {
     updateBy: UpdateBy<CloudConnection>,
   ) => Promise<OnUpdate<CloudConnection>>;
   onUpdatePermitted: (updateBy: UpdateBy<CloudConnection>) => Promise<void>;
+  onBeforeDelete: (
+    deleteBy: DeleteBy<CloudConnection>,
+  ) => Promise<OnDelete<CloudConnection>>;
 };
 
 const service: Hooks = CloudConnectionService as unknown as Hooks;
@@ -154,6 +163,8 @@ describe("validateSettings", () => {
         // Data Security reads nothing until it is chosen.
         dataSecurity: "off",
         dataSecurityResponse: "off",
+        // Nor does the blocklist write AWS WAF (#10344).
+        wafBlocklist: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
@@ -548,6 +559,131 @@ describe("onBeforeUpdate", () => {
   });
 });
 
+/*
+ * A connection that enforces the blocklist in a web ACL (#10344) keeps its
+ * setting, and stays, until each web ACL is removed from the Blocklist
+ * page - which takes OneUptime's rule out of it. Turned off or deleted
+ * first, the web ACL would go on blocking what OneUptime's IP sets hold,
+ * and a block lifted would no longer reach it.
+ */
+describe("a connection that enforces the blocklist in AWS WAF", () => {
+  let webAcls: number;
+  let counted: jest.SpiedFunction<
+    typeof SecurityBlockCloudWafService.countForConnection
+  >;
+
+  const awsWaf: (choice: string) => JSONObject = (
+    choice: string,
+  ): JSONObject => {
+    return {
+      authMethod: CloudConnectionAuthMethod.AwsAccessKey,
+      accessKeyId: ACCESS_KEY_ID,
+      wafBlocklist: choice,
+    };
+  };
+
+  beforeEach(() => {
+    webAcls = 1;
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockResolvedValue(stored({ config: awsWaf("rule") }));
+    jest
+      .spyOn(CloudConnectionService, "findBy")
+      .mockResolvedValue([stored({ config: awsWaf("rule") })]);
+    counted = jest
+      .spyOn(SecurityBlockCloudWafService, "countForConnection")
+      .mockImplementation(async (): Promise<number> => {
+        return webAcls;
+      });
+  });
+
+  test("turning off Block addresses in AWS WAF is refused while a web ACL uses it, saying to remove the web ACL first", async () => {
+    await expect(
+      service.onBeforeUpdate(updateBy({ config: awsWaf("off") })),
+    ).rejects.toThrow(
+      new BadDataException(
+        "This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then turn off Block addresses in AWS WAF.",
+      ),
+    );
+
+    const asked: { projectId: ObjectID; cloudConnectionId: ObjectID } =
+      counted.mock.calls[0]![0];
+
+    expect(asked.projectId.toString()).toBe(PROJECT.toString());
+    expect(asked.cloudConnectionId.toString()).toBe(CONNECTION.toString());
+  });
+
+  test("with several web ACLs, it says how many", async () => {
+    webAcls = 3;
+
+    await expect(
+      service.onBeforeUpdate(updateBy({ config: awsWaf("off") })),
+    ).rejects.toThrow(
+      "This connection enforces your blocklist in 3 web ACLs. Remove them under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of each, then turn off Block addresses in AWS WAF.",
+    );
+  });
+
+  test("with no web ACL it turns off, or moves to the team's own rule", async () => {
+    webAcls = 0;
+
+    for (const choice of ["off", "code"]) {
+      const saved: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
+        updateBy({ config: awsWaf(choice) }),
+      );
+
+      expect(
+        ((saved.updateBy.data as JSONObject)["config"] as JSONObject)[
+          "wafBlocklist"
+        ],
+      ).toBe(choice);
+    }
+  });
+
+  test("moving from OneUptime's rule to the team's own is refused while a web ACL uses it: its command could no longer take OneUptime's rule out", async () => {
+    await expect(
+      service.onBeforeUpdate(updateBy({ config: awsWaf("code") })),
+    ).rejects.toThrow(
+      'This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then pick "On, and I add the rule in code".',
+    );
+  });
+
+  test("moving from the team's own rule to OneUptime's never asks: it only gains what it may write", async () => {
+    webAcls = 2;
+    jest
+      .spyOn(CloudConnectionService, "findOneById")
+      .mockResolvedValue(stored({ config: awsWaf("code") }));
+
+    const rule: OnUpdate<CloudConnection> = await service.onBeforeUpdate(
+      updateBy({ config: awsWaf("rule") }),
+    );
+
+    expect(
+      ((rule.updateBy.data as JSONObject)["config"] as JSONObject)[
+        "wafBlocklist"
+      ],
+    ).toBe("rule");
+    expect(counted).not.toHaveBeenCalled();
+  });
+
+  test("deleting it is refused while a web ACL uses it; with none, it is deleted", async () => {
+    const deleteBy: DeleteBy<CloudConnection> = {
+      query: { _id: CONNECTION.toString() },
+      props: { isRoot: true, tenantId: PROJECT },
+    } as unknown as DeleteBy<CloudConnection>;
+
+    await expect(service.onBeforeDelete(deleteBy)).rejects.toThrow(
+      "This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then delete this connection.",
+    );
+
+    webAcls = 0;
+
+    await expect(service.onBeforeDelete(deleteBy)).resolves.toEqual({
+      deleteBy,
+      carryForward: null,
+    });
+  });
+});
+
 describe("onUpdatePermitted", () => {
   test("a settings change reads it again at once and finds its resources again, keeping where metrics were read to", async () => {
     jest.spyOn(CloudConnectionService, "findOneById").mockResolvedValue(
@@ -608,6 +744,7 @@ describe("getConnectorSettings", () => {
         resourceCosts: "off",
         dataSecurity: "off",
         dataSecurityResponse: "off",
+        wafBlocklist: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },

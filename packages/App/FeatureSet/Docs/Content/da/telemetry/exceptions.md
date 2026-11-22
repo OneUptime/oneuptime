@@ -52,7 +52,7 @@ Gå til **Produkter → Observabilitet → Undtagelser**. Mærket på fanen **Un
 
 Skift mellem **Uløst**, **Løst**, **Arkiveret** og **Alle**. Diagrammet over listen viser, hvor mange forekomster der var **Ikke håndteret**, og hvor mange der var **Håndteret** over tid. En række markeret **Regression** kom igen, efter at den var løst, og en markeret **Ny** blev set første gang inden for de seneste 24 timer.
 
-Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med.
+Hver række viser også, hvor mange brugere undtagelsen ramte i det valgte tidsrum, og et lille diagram over dens forekomster i tidsrummet. En forekomst angiver sin bruger med attributten `user.id`, `enduser.id` eller `enduser.pseudo.id` på undtagelseshændelsen, dens span eller logpost eller dens ressource; forekomster, der ikke angiver en bruger, tælles ikke med. Et bruger-ID, som en rensningsregel har skjult, tælles aldrig som en bruger. Et hashet ID tælles stadig én gang, som en skjult bruger; forekomster, hvis ID er skjult eller maskeret, tælles som hændelser med en skjult bruger, da de ikke kan skelnes fra hinanden.
 
 ### Vælg, hvad der tæller som et problem
 
