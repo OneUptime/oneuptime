@@ -52,6 +52,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
 | **Liste de blocage** | Playbooks | Les adresses que votre projet bloque, jusqu'à quand, et où chaque blocage est appliqué |
+| **Flux de liste de blocage** | Playbooks | Les URL secrètes depuis lesquelles vos pare-feu et proxies lisent la liste de blocage, et leurs récupérations |
 | **Entités protégées** | Playbooks | Les utilisateurs, les hôtes et les adresses qu'aucun playbook ne confine et qu'aucun blocage ne touche |
 | **Paramètres** | IA | Si OneUptime AI qualifie chaque nouveau dossier |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |

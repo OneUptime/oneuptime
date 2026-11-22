@@ -52,6 +52,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Approvals** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
 | **Blocklist** | Playbooks | The addresses your project blocks, until when, and where each block is enforced |
+| **Blocklist Feeds** | Playbooks | The secret URLs your firewalls and proxies read the blocklist from, and each one's fetches |
 | **Protected Entities** | Playbooks | The users, hosts and addresses no playbook contains and no block touches |
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
