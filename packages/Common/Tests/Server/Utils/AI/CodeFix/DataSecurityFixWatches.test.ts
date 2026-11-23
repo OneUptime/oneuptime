@@ -204,7 +204,9 @@ function watchingLeakFix(overrides: JSONObject = {}): AIAgentTaskPullRequest {
     productionSummary: "still watching",
     deployedAt: DEPLOYED_AT,
     deployedVersion: "2.4.1",
-    productionBaseline: { telemetryLeak: LEAK_BASELINE } as unknown as JSONObject,
+    productionBaseline: {
+      telemetryLeak: LEAK_BASELINE,
+    } as unknown as JSONObject,
     ...overrides,
   });
 }
@@ -264,7 +266,9 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
 
   function decide(
     hours: number,
-    measure: Partial<Parameters<typeof decideTelemetryLeakVerdict>[0]["measure"]>,
+    measure: Partial<
+      Parameters<typeof decideTelemetryLeakVerdict>[0]["measure"]
+    >,
   ): ReturnType<typeof decideTelemetryLeakVerdict> {
     return decideTelemetryLeakVerdict({
       deployedAt: DEPLOYED_AT,
@@ -288,7 +292,9 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
       summary:
         "The scrub rules that contain this leak changed 12 values in version 2.4.1 after it shipped the fix: the code still writes the data.",
     });
-    expect(decide(2, { valuesChanged: 1 }).summary).toContain("changed 1 value in");
+    expect(decide(2, { valuesChanged: 1 }).summary).toContain(
+      "changed 1 value in",
+    );
   });
 
   test("a record of the new version that still holds the data is too", () => {
@@ -318,9 +324,9 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
   });
 
   test("and only over as much traffic as the old version had in the leak's hour", () => {
-    expect(
-      decide(30, { traffic: [{ ...traffic, since: 4000 }] }).status,
-    ).toBe(FixProductionStatus.Watching);
+    expect(decide(30, { traffic: [{ ...traffic, since: 4000 }] }).status).toBe(
+      FixProductionStatus.Watching,
+    );
     expect(decide(25, {})).toEqual({
       status: FixProductionStatus.Verified,
       summary:
@@ -350,9 +356,7 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
   });
 
   test("a version too quiet for a week cannot be told", () => {
-    expect(
-      decide(7 * 24, { traffic: [{ ...traffic, since: 900 }] }),
-    ).toEqual({
+    expect(decide(7 * 24, { traffic: [{ ...traffic, since: 900 }] })).toEqual({
       status: FixProductionStatus.Unverifiable,
       summary:
         "Version 2.4.1 wrote none of the data in the 7 days after it shipped the fix, but sent only 900 logs, fewer than the 4,210 logs the old version sent in the hour the leak was last seen: too little to tell.",
@@ -376,9 +380,7 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
 
 describe("the scrub rule counter, read for a version", () => {
   const since: Date = new Date(DEPLOYED_AT.getTime() + GRACE);
-  const hourOfSince: Date = new Date(
-    Math.floor(since.getTime() / HOUR) * HOUR,
-  );
+  const hourOfSince: Date = new Date(Math.floor(since.getTime() / HOUR) * HOUR);
 
   test("reads the service's rows of the version, and the hour it starts in only for what changed after", () => {
     const rows: Parameters<typeof pickValueCountRows>[0]["rows"] = [
@@ -536,7 +538,9 @@ describe("a fix in infrastructure code, by where its issues stand", () => {
     expect(
       decideStoreConfigurationVerdict({
         mergedAt: MERGED_AT,
-        now: hoursAfterMerge(STORE_CONFIGURATION_FIX_THRESHOLDS.maxWaitDays * 24),
+        now: hoursAfterMerge(
+          STORE_CONFIGURATION_FIX_THRESHOLDS.maxWaitDays * 24,
+        ),
         counts: { applied: 0, open: 1, openAfterADay: 1, notThisFix: 0 },
       }),
     ).toEqual({
@@ -580,11 +584,15 @@ describe("a fix in infrastructure code, by where its issues stand", () => {
       }),
     ).toBe(false);
     expect(
-      isReadADayAfterMerge({ readAt: null, mergedAt: MERGED_AT, now: hoursAfterMerge(25) }),
+      isReadADayAfterMerge({
+        readAt: null,
+        mergedAt: MERGED_AT,
+        now: hoursAfterMerge(25),
+      }),
     ).toBe(false);
-    expect(isADayAfterMerge({ mergedAt: MERGED_AT, now: hoursAfterMerge(23) })).toBe(
-      false,
-    );
+    expect(
+      isADayAfterMerge({ mergedAt: MERGED_AT, now: hoursAfterMerge(23) }),
+    ).toBe(false);
   });
 });
 
@@ -606,19 +614,24 @@ describe("which check follows a merged pull request", () => {
   }
 
   function issueOnStore(kind: DataStoreKind): void {
-    jest
-      .spyOn(DataSecurityIssueService, "findBy")
-      .mockResolvedValue([
-        Object.assign(new DataSecurityIssue(ISSUE_ID), { dataStoreId: STORE_ID }),
-      ] as never);
+    jest.spyOn(DataSecurityIssueService, "findBy").mockResolvedValue([
+      Object.assign(new DataSecurityIssue(ISSUE_ID), {
+        dataStoreId: STORE_ID,
+      }),
+    ] as never);
     jest
       .spyOn(DataStoreService, "findOneBy")
-      .mockResolvedValue(Object.assign(new DataStore(STORE_ID), { kind }) as never);
+      .mockResolvedValue(
+        Object.assign(new DataStore(STORE_ID), { kind }) as never,
+      );
   }
 
   test("a request in Code asked from a telemetry issue is a leak in code; from a bucket's, a store's configuration", async () => {
     jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
-      runOf({ triggeredByDataSecurityIssueId: ISSUE_ID, userId: AUTHOR_ID }) as never,
+      runOf({
+        triggeredByDataSecurityIssueId: ISSUE_ID,
+        userId: AUTHOR_ID,
+      }) as never,
     );
     issueOnStore(DataStoreKind.TelemetryLogs);
 
@@ -657,9 +670,9 @@ describe("which check follows a merged pull request", () => {
     const target: DataSecurityFixTargetRead | null =
       await DataSecurityFixTarget.read(RUN_ID);
 
-    expect(
-      (taskRead.mock.calls[0]![0] as { query: JSONObject }).query,
-    ).toEqual({ _id: TASK_ID.toString(), projectId: PROJECT_ID });
+    expect((taskRead.mock.calls[0]![0] as { query: JSONObject }).query).toEqual(
+      { _id: TASK_ID.toString(), projectId: PROJECT_ID },
+    );
     expect(target?.taskId.toString()).toBe(TASK_ID.toString());
     expect(target?.check).toBe(FixProductionCheck.TelemetryLeak);
   });
@@ -697,9 +710,7 @@ describe("which check follows a merged pull request", () => {
       await DataSecurityFixTarget.read(RUN_ID);
 
     expect(target?.check).toBe(FixProductionCheck.StoreConfiguration);
-    expect(target?.issueIds.map(String)).toEqual(
-      [ISSUE_ID, other].map(String),
-    );
+    expect(target?.issueIds.map(String)).toEqual([ISSUE_ID, other].map(String));
     // Held to the run's project.
     expect(
       (findBy.mock.calls[0]![0] as { query: JSONObject }).query["projectId"],
@@ -707,7 +718,9 @@ describe("which check follows a merged pull request", () => {
   });
 
   test("a task that names no Data Security issue is watched by its recipe, and a read that fails too", async () => {
-    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(runOf({}) as never);
+    jest
+      .spyOn(AIRunService, "findOneById")
+      .mockResolvedValue(runOf({}) as never);
 
     expect(
       await FixProductionCheckPicker.forRun({
@@ -737,13 +750,11 @@ describe("which check follows a merged pull request", () => {
 
 describe("scenario: a code fix of a leak, merged and deployed", () => {
   function rulesExist(): void {
-    jest
-      .spyOn(LogScrubRuleService, "findBy")
-      .mockResolvedValue([
-        Object.assign(new LogScrubRule(RULE_ID), {
-          name: "Data Security: Email address in log attributes of checkout",
-        }),
-      ] as never);
+    jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([
+      Object.assign(new LogScrubRule(RULE_ID), {
+        name: "Data Security: Email address in log attributes of checkout",
+      }),
+    ] as never);
     jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([] as never);
   }
 
@@ -781,7 +792,9 @@ describe("scenario: a code fix of a leak, merged and deployed", () => {
       }),
     ] as never);
     jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([] as never);
-    jest.spyOn(MetricPipelineRuleService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(MetricPipelineRuleService, "findBy")
+      .mockResolvedValue([] as never);
     const counts: jest.SpyInstance = jest
       .spyOn(TelemetryLeakFixReads, "countRecords")
       .mockResolvedValue(4210);
@@ -790,18 +803,19 @@ describe("scenario: a code fix of a leak, merged and deployed", () => {
       .spyOn(TelemetryLeakFixReads, "readValuesChanged")
       .mockResolvedValue({ valuesChanged: 1204, versions: ["2.3.0"] });
 
-    const baseline: TelemetryLeakFixBaseline | ReturnType<
-      typeof decideTelemetryLeakVerdict
-    > = await TelemetryLeakFixWatch.readBaseline({
-      fix: fixOf(FixProductionCheck.TelemetryLeak),
-      target: {
-        check: FixProductionCheck.TelemetryLeak,
-        issueIds: [ISSUE_ID],
-        taskId: TASK_ID,
-      },
-      mergedAt: MERGED_AT,
-      now: hoursAfterMerge(1),
-    });
+    const baseline:
+      | TelemetryLeakFixBaseline
+      | ReturnType<typeof decideTelemetryLeakVerdict> =
+      await TelemetryLeakFixWatch.readBaseline({
+        fix: fixOf(FixProductionCheck.TelemetryLeak),
+        target: {
+          check: FixProductionCheck.TelemetryLeak,
+          issueIds: [ISSUE_ID],
+          taskId: TASK_ID,
+        },
+        mergedAt: MERGED_AT,
+        now: hoursAfterMerge(1),
+      });
 
     expect(baseline).toMatchObject({
       serviceId: SERVICE_ID.toString(),
@@ -846,7 +860,10 @@ describe("scenario: a code fix of a leak, merged and deployed", () => {
       .spyOn(DataSecurityIssueResolutions, "markFixedInCode")
       .mockResolvedValue([ISSUE_ID]);
 
-    await TelemetryLeakFixWatch.verify(watchingLeakFix(), runAt(watchedFor(25)));
+    await TelemetryLeakFixWatch.verify(
+      watchingLeakFix(),
+      runAt(watchedFor(25)),
+    );
 
     expect(lastVerdict()["productionStatus"]).toBe(
       FixProductionStatus.Verified,
@@ -909,7 +926,9 @@ describe("scenario: a code fix of a leak, merged and deployed", () => {
       eventType: DataSecurityIssueFeedEventType.FixRegressed,
     });
     expect(
-      (noted.mock.calls[0]![0] as { markdown: { toString(): string } }).markdown.toString(),
+      (
+        noted.mock.calls[0]![0] as { markdown: { toString(): string } }
+      ).markdown.toString(),
     ).toContain("did not stop the leak");
   });
 
@@ -957,13 +976,17 @@ describe("scenario: a Terraform fix merged and never applied", () => {
       taskId: TASK_ID,
       askedByUserId: AUTHOR_ID,
     });
-    jest.spyOn(DataSecurityIssueService, "findBy").mockImplementation((async () => {
-      return [issueRow];
-    }) as never);
+    jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockImplementation((async () => {
+        return [issueRow];
+      }) as never);
     jest.spyOn(DataStoreService, "findBy").mockImplementation((async () => {
       return [storeRow];
     }) as never);
-    jest.spyOn(DataSecurityIssueResolutions, "noteOnIssues").mockResolvedValue();
+    jest
+      .spyOn(DataSecurityIssueResolutions, "noteOnIssues")
+      .mockResolvedValue();
   });
 
   test("on merge, the store is read again at once and the issue says the fix merged; a day later it is called out, once", async () => {
@@ -1119,7 +1142,8 @@ describe("scenario: the leak comes back after its fix was verified", () => {
         projectId: PROJECT_ID,
         dataStoreId: STORE_ID,
         checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
-        title: getDataSecurityCheck(SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID)!.title,
+        title: getDataSecurityCheck(SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID)!
+          .title,
         status: DataSecurityIssueStatus.Resolved,
         severity: SecuritySeverity.High,
         riskScore: 60,
@@ -1175,7 +1199,9 @@ describe("scenario: the leak comes back after its fix was verified", () => {
       written.mock.calls[0]![0] as { data: JSONObject }
     ).data["resolutionDetails"] as JSONObject;
 
-    expect(readDataSecurityIssueResolutionDetails(details).regression).toMatchObject({
+    expect(
+      readDataSecurityIssueResolutionDetails(details).regression,
+    ).toMatchObject({
       version: "2.5.0",
       fix: { number: 482, version: "2.4.1" },
     });
@@ -1185,9 +1211,9 @@ describe("scenario: the leak comes back after its fix was verified", () => {
     });
 
     // The next evaluation opens it again, naming the version, with the rule still hiding it.
-    jest.spyOn(DataSecurityIssueService, "updateOneById").mockResolvedValue(
-      undefined as never,
-    );
+    jest
+      .spyOn(DataSecurityIssueService, "updateOneById")
+      .mockResolvedValue(undefined as never);
     const feed: jest.SpyInstance = jest.spyOn(
       DataSecurityIssueFeedService,
       "createDataSecurityIssueFeedItem",

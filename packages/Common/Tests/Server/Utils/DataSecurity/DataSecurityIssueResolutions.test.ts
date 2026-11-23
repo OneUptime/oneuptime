@@ -230,7 +230,10 @@ describe("a telemetry issue whose data only a scrub rule hides", () => {
 
     const output: ReconcileStoreOutput = await reconcile({
       checks: [
-        check(SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID, DataSecurityCheckStatus.Pass),
+        check(
+          SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+          DataSecurityCheckStatus.Pass,
+        ),
       ],
       existingIssues: [issue],
       containedCheckIds: new Set([SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID]),
@@ -405,7 +408,10 @@ describe("a leak that came back after its verified fix", () => {
 
     const output: ReconcileStoreOutput = await reconcile({
       checks: [
-        check(SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID, DataSecurityCheckStatus.Pass),
+        check(
+          SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+          DataSecurityCheckStatus.Pass,
+        ),
       ],
       existingIssues: [issue],
       containedCheckIds: new Set([SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID]),
@@ -432,15 +438,20 @@ describe("a leak that came back after its verified fix", () => {
       "Opened again. The leak came back in version 2.5.0, after pull request [#482](https://github.com/acme/checkout/pull/482) fixed it in version 2.4.1. The scrub rule kept after the fix hides it at ingest, so nothing new is stored, but the code writes it again.",
     );
     // Opened again as any issue: its alert and owners hear of it.
-    expect(output.opened.map((opened: { issueId: ObjectID }) => {
-      return opened.issueId;
-    })).toEqual([issue.id]);
+    expect(
+      output.opened.map((opened: { issueId: ObjectID }) => {
+        return opened.issueId;
+      }),
+    ).toEqual([issue.id]);
   });
 
   test("open again and only hidden at ingest, it stays open, counted", async () => {
     const output: ReconcileStoreOutput = await reconcile({
       checks: [
-        check(SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID, DataSecurityCheckStatus.Pass),
+        check(
+          SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+          DataSecurityCheckStatus.Pass,
+        ),
       ],
       existingIssues: [
         issueOf({
@@ -485,7 +496,11 @@ describe("a leak that came back after its verified fix", () => {
   test("a verified fix's check failing again, for another reason, names the pull request", async () => {
     await reconcile({
       checks: [
-        check("public-read", DataSecurityCheckStatus.Fail, SecuritySeverity.High),
+        check(
+          "public-read",
+          DataSecurityCheckStatus.Fail,
+          SecuritySeverity.High,
+        ),
       ],
       existingIssues: [
         issueOf({
@@ -576,7 +591,9 @@ describe("a code fix production proved (Fixed in code)", () => {
     expect(
       (alertSpy.mock.calls[0]![0] as { issues: Array<{ issueId: ObjectID }> })
         .issues,
-    ).toEqual([{ issueId: open.id, why: "its fix was verified in production" }]);
+    ).toEqual([
+      { issueId: open.id, why: "its fix was verified in production" },
+    ]);
     expect(closedSpy.mock.calls[0]![0]).toMatchObject({
       issueIds: [open.id],
       checkPassed: true,
@@ -726,10 +743,12 @@ describe("merged, not applied: told once, to the owners and the author", () => {
       .spyOn(MailService, "sendMail")
       .mockResolvedValue(undefined as never);
 
-    jest.spyOn(DataStoreService, "findBy").mockResolvedValue([
-      Object.assign(new DataStore(STORE_ID), { name: "prod-assets" }),
-      Object.assign(new DataStore(otherStore), { name: "prod-logs" }),
-    ] as never);
+    jest
+      .spyOn(DataStoreService, "findBy")
+      .mockResolvedValue([
+        Object.assign(new DataStore(STORE_ID), { name: "prod-assets" }),
+        Object.assign(new DataStore(otherStore), { name: "prod-logs" }),
+      ] as never);
     jest
       .spyOn(DataSecurityIssueService, "getIssueLinkInDashboard")
       .mockImplementation((async (
@@ -793,7 +812,9 @@ describe("merged, not applied: told once, to the owners and the author", () => {
     expect(sent[0]!.vars.message).not.toContain("prod-logs");
     expect(sent[1]!.vars.message).toContain("prod-assets");
     expect(sent[1]!.vars.message).toContain("prod-logs");
-    expect(sent[1]!.vars.message).toContain("An apply is usually what is missing");
+    expect(sent[1]!.vars.message).toContain(
+      "An apply is usually what is missing",
+    );
 
     // Each issue's timeline says so, and its store's.
     expect(feeds()).toHaveLength(2);
@@ -818,7 +839,9 @@ describe("merged, not applied: told once, to the owners and the author", () => {
   });
 
   test("with nobody to email, the timeline says so", () => {
-    expect(describeNotAppliedLine({ fix: FIX, emailed: 0 }).toString()).toContain(
+    expect(
+      describeNotAppliedLine({ fix: FIX, emailed: 0 }).toString(),
+    ).toContain(
       "Nobody was emailed: the store has no owner, and nobody asked for the pull request.",
     );
   });

@@ -152,7 +152,9 @@ export default class TelemetryLeakFixWatch {
           isOver: Boolean(decideDeployWait({ mergedAt, now: run.now })),
           summary:
             "The telemetry of the issue's service could not be read in the 14 days after the fix merged, so whether the fix stopped the leak cannot be told.",
-          read: (): Promise<TelemetryLeakFixBaseline | FixProductionVerdict> => {
+          read: (): Promise<
+            TelemetryLeakFixBaseline | FixProductionVerdict
+          > => {
             return TelemetryLeakFixWatch.readBaseline({
               fix,
               target,
@@ -282,11 +284,10 @@ export default class TelemetryLeakFixWatch {
     now: Date;
   }): Promise<TelemetryLeakFixBaseline | FixProductionVerdict> {
     const projectId: ObjectID = data.fix.projectId!;
-    const stores: Array<StoreToWatch> =
-      await TelemetryLeakFixWatch.readStores({
-        projectId,
-        issueIds: data.target.issueIds,
-      });
+    const stores: Array<StoreToWatch> = await TelemetryLeakFixWatch.readStores({
+      projectId,
+      issueIds: data.target.issueIds,
+    });
     const first: StoreToWatch | undefined = stores[0];
     const serviceId: string | null = first
       ? getTelemetryStoreOwnerId(first.store)
@@ -714,7 +715,9 @@ export default class TelemetryLeakFixWatch {
     });
   }
 
-  public static issueIdsOf(baseline: TelemetryLeakFixBaseline): Array<ObjectID> {
+  public static issueIdsOf(
+    baseline: TelemetryLeakFixBaseline,
+  ): Array<ObjectID> {
     return baseline.stores.flatMap(
       (store: TelemetryLeakFixStore): Array<ObjectID> => {
         return store.issueIds.map((id: string): ObjectID => {

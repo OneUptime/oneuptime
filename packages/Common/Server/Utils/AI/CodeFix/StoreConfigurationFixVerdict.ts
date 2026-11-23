@@ -1,5 +1,9 @@
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
-import { formatCount, FixProductionVerdict, HOUR_IN_MS } from "./FixProductionVerdict";
+import {
+  formatCount,
+  FixProductionVerdict,
+  HOUR_IN_MS,
+} from "./FixProductionVerdict";
 
 /*
  * WHETHER A FIX IN INFRASTRUCTURE CODE TOOK (#10368) - the pure decisions
@@ -115,7 +119,10 @@ export function decideStoreConfigurationVerdict(data: {
     };
   }
 
-  if (waited >= STORE_CONFIGURATION_FIX_THRESHOLDS.maxWaitDays * 24 * HOUR_IN_MS) {
+  if (
+    waited >=
+    STORE_CONFIGURATION_FIX_THRESHOLDS.maxWaitDays * 24 * HOUR_IN_MS
+  ) {
     return {
       status: FixProductionStatus.Unverifiable,
       summary: `${capitalizeFirst(stores(counts.open))} of ${formatCount(total)} still failed ${counts.open === 1 ? "its" : "their"} check ${STORE_CONFIGURATION_FIX_THRESHOLDS.maxWaitDays} days after the merge: the change was never applied, or did not fix the check.`,

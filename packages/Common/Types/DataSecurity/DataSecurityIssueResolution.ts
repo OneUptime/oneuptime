@@ -220,10 +220,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 // A web address a link can open: only http(s), never javascript: or data:.
+const WEB_ADDRESS: RegExp = /^https?:\/\//i;
+
 export function readResolutionUrl(value: unknown): string | undefined {
   const text: string | undefined = readText(value);
 
-  return text && /^https?:\/\//i.test(text) ? text : undefined;
+  return text && WEB_ADDRESS.test(text) ? text : undefined;
 }
 
 function readFix(value: unknown): DataSecurityIssueResolutionFix | undefined {
@@ -328,9 +330,7 @@ export function readDataSecurityIssueResolutionDetails(
 
   const details: DataSecurityIssueResolutionDetails = {};
   const at: string | undefined = readTime(value["at"]);
-  const fix: DataSecurityIssueResolutionFix | undefined = readFix(
-    value["fix"],
-  );
+  const fix: DataSecurityIssueResolutionFix | undefined = readFix(value["fix"]);
   const scrubRules: Array<DataSecurityIssueResolutionRule> | undefined =
     readRules(value["scrubRules"]);
   const userId: string | undefined = readId(value["userId"]);
@@ -381,9 +381,7 @@ function readRegression(
 
   const regression: DataSecurityIssueRegression = { at };
   const version: string | undefined = readText(value["version"]);
-  const fix: DataSecurityIssueResolutionFix | undefined = readFix(
-    value["fix"],
-  );
+  const fix: DataSecurityIssueResolutionFix | undefined = readFix(value["fix"]);
 
   if (version) {
     regression.version = version;

@@ -26,7 +26,7 @@ import DataSecurityIssueResolution, {
   readDataSecurityIssueResolutionDetails,
   toResolutionDetailsJSON,
 } from "../../../Types/DataSecurity/DataSecurityIssueResolution";
-import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText, mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   describePullRequest,
   describeRegression,
@@ -42,7 +42,6 @@ import {
   RiskScore,
 } from "../../../Types/DataSecurity/DataSecurityRisk";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { ClosedDataSecurityIssue } from "./DataSecurityIssueAlerts";
 import DataSecurityAiProposals from "../AI/DataSecurity/DataSecurityAiProposals";
 
@@ -568,7 +567,11 @@ export default class DataSecurityIssueReconciler {
   private static getResolvedEntry(data: {
     resolution: DataSecurityIssueResolution;
     pending?: DataSecurityIssuePendingResolution | null | undefined;
-  }): { eventType: DataSecurityIssueFeedEventType; color: Color; markdown: string } {
+  }): {
+    eventType: DataSecurityIssueFeedEventType;
+    color: Color;
+    markdown: string;
+  } {
     switch (data.resolution) {
       case DataSecurityIssueResolution.NoLongerChecked:
         return {
@@ -651,8 +654,9 @@ export default class DataSecurityIssueReconciler {
     }
 
     const regression: DataSecurityIssueResolutionDetails["regression"] =
-      readDataSecurityIssueResolutionDetails(issue.resolutionDetails)
-        .regression;
+      readDataSecurityIssueResolutionDetails(
+        issue.resolutionDetails,
+      ).regression;
 
     await DataSecurityIssueService.updateOneById({
       id: issue.id,

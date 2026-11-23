@@ -232,9 +232,7 @@ export default class DataSecurityIssueResolutions {
     const details: DataSecurityIssueResolutionDetails = {
       at: data.verifiedAt.toISOString(),
       fix: data.fix,
-      ...(data.keptRules.length > 0
-        ? { scrubRules: [...data.keptRules] }
-        : {}),
+      ...(data.keptRules.length > 0 ? { scrubRules: [...data.keptRules] } : {}),
     };
     const line: MarkdownText = FeedMarkdown.join(
       [
@@ -472,11 +470,11 @@ export default class DataSecurityIssueResolutions {
         query: {
           projectId: data.projectId,
           _id: new Includes(
-            data.findingIds.slice(0, MAX_FINDINGS_MARKED).map(
-              (id: ObjectID): string => {
+            data.findingIds
+              .slice(0, MAX_FINDINGS_MARKED)
+              .map((id: ObjectID): string => {
                 return id.toString();
-              },
-            ),
+              }),
           ),
         } as never,
         data: { fixedAt: data.fixedAt } as never,
@@ -576,7 +574,8 @@ export default class DataSecurityIssueResolutions {
           dataStoreId: issue.dataStoreId!,
           dataStoreFeedEventType: data.eventType,
           displayColor: data.color,
-          feedInfoInMarkdown: mdText`**${issue.title || "An issue"}**: ${data.markdown}`.toString(),
+          feedInfoInMarkdown:
+            mdText`**${issue.title || "An issue"}**: ${data.markdown}`.toString(),
         });
       }
     } catch (error) {

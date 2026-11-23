@@ -121,8 +121,6 @@ describe("FixProductionCheckHelper.isDataSecurityCheck", () => {
       FixProductionCheck.TelemetryLeak,
       FixProductionCheck.StoreConfiguration,
     ]);
-    expect(FixProductionCheckHelper.isDataSecurityCheck(undefined)).toBe(
-      false,
-    );
+    expect(FixProductionCheckHelper.isDataSecurityCheck(undefined)).toBe(false);
   });
 });

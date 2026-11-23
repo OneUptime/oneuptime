@@ -224,11 +224,9 @@ export default class DataSecurityFixNotAppliedNotice {
 
     await DataSecurityIssueResolutions.noteOnIssues({
       projectId: data.projectId,
-      issueIds: data.issues.map(
-        (issue: { issueId: ObjectID }): ObjectID => {
-          return issue.issueId;
-        },
-      ),
+      issueIds: data.issues.map((issue: { issueId: ObjectID }): ObjectID => {
+        return issue.issueId;
+      }),
       eventType: DataSecurityIssueFeedEventType.FixNotApplied,
       storeEventType: DataStoreFeedEventType.IssueFixNotApplied,
       color: Orange500,

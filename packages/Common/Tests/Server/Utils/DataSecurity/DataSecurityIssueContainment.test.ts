@@ -19,9 +19,7 @@ import { AiOutcomesWeek } from "../../../../Types/AI/AiOutcomes";
 import FixProductionCheck from "../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import { DataSecurityIssueContainment } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
-import {
-  SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
-} from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
+import { SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import DataSecurityIssueResolution from "../../../../Types/DataSecurity/DataSecurityIssueResolution";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
@@ -53,7 +51,7 @@ afterEach(() => {
 
 function stubIssue(data: {
   resolution?: DataSecurityIssueResolution | undefined;
-  resolutionDetails?: object | undefined;
+  resolutionDetails?: Record<string, unknown> | undefined;
 }): void {
   const issue: DataSecurityIssue = Object.assign(
     new DataSecurityIssue(ISSUE_ID),
@@ -64,9 +62,9 @@ function stubIssue(data: {
     },
   );
 
-  jest.spyOn(DataSecurityIssueService, "findOneBy").mockResolvedValue(
-    issue as never,
-  );
+  jest
+    .spyOn(DataSecurityIssueService, "findOneBy")
+    .mockResolvedValue(issue as never);
   jest.spyOn(DataStoreService, "findOneBy").mockResolvedValue(
     Object.assign(new DataStore(STORE_ID), {
       kind: DataStoreKind.TelemetryLogs,
@@ -90,7 +88,9 @@ function stubIssue(data: {
     }),
   ] as never);
   jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([] as never);
-  jest.spyOn(MetricPipelineRuleService, "findBy").mockResolvedValue([] as never);
+  jest
+    .spyOn(MetricPipelineRuleService, "findBy")
+    .mockResolvedValue([] as never);
 }
 
 describe("an issue contained at ingest", () => {
@@ -143,7 +143,9 @@ describe("an issue contained at ingest", () => {
           signal: "log",
           name: "Data Security: Email address in log attributes of checkout",
           valuesChanged: 1204,
-          lastChangedAt: new Date(NOW.getTime() - HOUR + 60 * 1000).toISOString(),
+          lastChangedAt: new Date(
+            NOW.getTime() - HOUR + 60 * 1000,
+          ).toISOString(),
           lastChangedVersion: "2.3.1",
           isKept: false,
         },
@@ -205,7 +207,9 @@ describe("after a verified code fix", () => {
       },
     });
     // Its findings were fixed: none is contained now.
-    jest.spyOn(DataStoreFindingService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(DataStoreFindingService, "findBy")
+      .mockResolvedValue([] as never);
     jest
       .spyOn(ScrubRuleValueCountService, "readValueCounts")
       .mockResolvedValue([

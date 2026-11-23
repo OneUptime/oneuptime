@@ -207,15 +207,12 @@ export default class DataSecurityIssueContainmentReader {
       const coverage: ScrubCoverage = await getScrubCoverage(data.projectId);
 
       for (const finding of contained) {
-        const rule: CoveringScrubRule | null = findCoveringScrubRule(
-          coverage,
-          {
-            kind: store.kind as DataStoreKind,
-            dataTypeId: finding.dataTypeId || "",
-            location: finding.location || "",
-            serviceId,
-          },
-        );
+        const rule: CoveringScrubRule | null = findCoveringScrubRule(coverage, {
+          kind: store.kind as DataStoreKind,
+          dataTypeId: finding.dataTypeId || "",
+          location: finding.location || "",
+          serviceId,
+        });
 
         if (rule && !rules.has(rule.id)) {
           rules.set(rule.id, {
@@ -231,10 +228,12 @@ export default class DataSecurityIssueContainmentReader {
 
     // After a verified code fix: the rules that contained it, kept, while they still exist.
     if (isFixedInCode) {
-      for (const kept of await DataSecurityIssueContainmentReader.readExistingRules({
-        projectId: data.projectId,
-        rules: details.scrubRules || [],
-      })) {
+      for (const kept of await DataSecurityIssueContainmentReader.readExistingRules(
+        {
+          projectId: data.projectId,
+          rules: details.scrubRules || [],
+        },
+      )) {
         rules.set(kept.id, {
           ...(rules.get(kept.id) || {
             id: kept.id,
@@ -251,7 +250,10 @@ export default class DataSecurityIssueContainmentReader {
       projectId: data.projectId,
       serviceId,
       rules: Array.from(rules.values()),
-      since: OneUptimeDate.addRemoveDurationInDays(now, -ISSUE_CONTAINMENT_DAYS),
+      since: OneUptimeDate.addRemoveDurationInDays(
+        now,
+        -ISSUE_CONTAINMENT_DAYS,
+      ),
       fixedAt: isFixedInCode && details.at ? new Date(details.at) : null,
     });
 
@@ -301,7 +303,11 @@ export default class DataSecurityIssueContainmentReader {
 
     return [
       ...logRules.map((rule: LogScrubRule): DataSecurityIssueResolutionRule => {
-        return { id: rule.id!.toString(), signal: "log", name: rule.name || "" };
+        return {
+          id: rule.id!.toString(),
+          signal: "log",
+          name: rule.name || "",
+        };
       }),
       ...traceRules.map(
         (rule: TraceScrubRule): DataSecurityIssueResolutionRule => {
@@ -356,7 +362,9 @@ export default class DataSecurityIssueContainmentReader {
         });
       const lately: Map<string, RuleCounts> = foldRuleCounts({
         rows: rows.filter((row: ScrubRuleValueCountRow): boolean => {
-          return Boolean(row.hour && row.hour.getTime() >= data.since.getTime());
+          return Boolean(
+            row.hour && row.hour.getTime() >= data.since.getTime(),
+          );
         }),
         serviceId: data.serviceId,
       });

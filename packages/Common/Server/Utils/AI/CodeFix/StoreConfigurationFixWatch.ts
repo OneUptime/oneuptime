@@ -286,7 +286,9 @@ export default class StoreConfigurationFixWatch {
 
     const openIssueIds: Array<ObjectID> = issues
       .filter((issue: DataSecurityIssue): boolean => {
-        return Boolean(issue.id) && issue.status === DataSecurityIssueStatus.Open;
+        return (
+          Boolean(issue.id) && issue.status === DataSecurityIssueStatus.Open
+        );
       })
       .map((issue: DataSecurityIssue): ObjectID => {
         return issue.id!;

@@ -194,9 +194,9 @@ describe("the words of a resolution", () => {
         return option.value;
       }),
     ).toEqual([...ALL_DATA_SECURITY_ISSUE_RESOLUTIONS]);
-    expect(getResolutionTone(DataSecurityIssueResolution.ContainedAtIngest)).toBe(
-      ResolutionTone.Contained,
-    );
+    expect(
+      getResolutionTone(DataSecurityIssueResolution.ContainedAtIngest),
+    ).toBe(ResolutionTone.Contained);
     expect(getResolutionTone(DataSecurityIssueResolution.FixedInCode)).toBe(
       ResolutionTone.Fixed,
     );
@@ -267,7 +267,9 @@ describe("the words of a resolution", () => {
       }),
     ).toBe(CAME_BACK_IN_VERSION);
     expect(
-      getCameBackTemplate({ regression: { at: VERIFIED_AT, version: "2.5.0" } }),
+      getCameBackTemplate({
+        regression: { at: VERIFIED_AT, version: "2.5.0" },
+      }),
     ).toBe(CAME_BACK_IN_VERSION_AFTER_FIX);
   });
 
@@ -298,9 +300,7 @@ describe("the words of a resolution", () => {
 
 describe("the issue's page", () => {
   test("a code fix production proved: Fixed in pull request #482, deployed in version 2.4.1, verified - in green", () => {
-    jest
-      .spyOn(DataSecurityApi, "getIssueContainment")
-      .mockResolvedValue(null);
+    jest.spyOn(DataSecurityApi, "getIssueContainment").mockResolvedValue(null);
 
     render(
       <IssueResolution
@@ -316,7 +316,9 @@ describe("the issue's page", () => {
     const panel: HTMLElement = screen.getByTestId(ISSUE_RESOLUTION_TEST_ID);
 
     expect(panel).toHaveAttribute("data-tone", ResolutionTone.Fixed);
-    expect(shown(panel)).toContain("Fixed in pull request #482, deployed in version 2.4.1, verified");
+    expect(shown(panel)).toContain(
+      "Fixed in pull request #482, deployed in version 2.4.1, verified",
+    );
     expect(screen.getByRole("link", { name: "#482" })).toHaveAttribute(
       "href",
       "https://github.com/acme/checkout/pull/482",
@@ -382,7 +384,9 @@ describe("the issue's page", () => {
       />,
     );
 
-    expect(screen.getByText("Contained at ingest, not fixed")).toBeInTheDocument();
+    expect(
+      screen.getByText("Contained at ingest, not fixed"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId("data-security-issue-fix-the-code"),
     ).not.toBeInTheDocument();
@@ -421,9 +425,7 @@ describe("the issue's page", () => {
     );
 
     await waitFor(() => {
-      expect(
-        shown(screen.getByTestId(ISSUE_RESOLUTION_TEST_ID)),
-      ).toContain(
+      expect(shown(screen.getByTestId(ISSUE_RESOLUTION_TEST_ID))).toContain(
         "Email rule contained this leak, and is kept, so a regression is hidden on arrival. It has changed no value since the fix.",
       );
     });

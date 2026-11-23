@@ -22,7 +22,9 @@ import ObjectID from "../../../Types/ObjectID";
  * a server's answer of the wrong shape is never trusted as written.
  */
 
-const ID: string = new ObjectID("8c5a3f30-0000-4000-8000-000000000001").toString();
+const ID: string = new ObjectID(
+  "8c5a3f30-0000-4000-8000-000000000001",
+).toString();
 const NOW: Date = new Date("2026-11-21T14:10:00.000Z");
 
 describe("the resolutions", () => {
@@ -62,12 +64,12 @@ describe("the resolutions", () => {
         DataSecurityIssueResolution.FixedInInfrastructureCode,
       ].sort(),
     );
-    expect(isVerifiedFixResolution(DataSecurityIssueResolution.FixedInCode)).toBe(
-      true,
-    );
-    expect(isVerifiedFixResolution(DataSecurityIssueResolution.CheckPassed)).toBe(
-      false,
-    );
+    expect(
+      isVerifiedFixResolution(DataSecurityIssueResolution.FixedInCode),
+    ).toBe(true);
+    expect(
+      isVerifiedFixResolution(DataSecurityIssueResolution.CheckPassed),
+    ).toBe(false);
   });
 });
 
