@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Nya loggar maskeras<br/>innan de lagras"]
 ```
 
-Ett fynd som en rensningsregel täcker markeras som rensat: det som finns kvar av dessa data är gamla data som väntar på att lagringstiden ska ta slut, inte en läcka som fortfarande pågår. De två telemetrikontrollerna räknar bara det som ingen regel täcker, så deras problem blir löst när varje fynd är rensat (se [Telemetrikontroller](/docs/data-security/checks-and-issues#telemetri)).
+Ett fynd som en rensningsregel täcker markeras som rensat: det som OneUptime lagrar av dessa data är gamla data som väntar på att lagringstiden ska ta slut. Koden skriver dem dock fortfarande, så de två telemetrikontrollerna räknar fyndet som begränsat, inte åtgärdat: deras problem löses som **Begränsat vid inmatning** när varje fynd är rensat, och som **Åtgärdat i koden** först när en kodåtgärds nya version slutar skriva dessa data (se [Vad som händer med ett problem](/docs/data-security/checks-and-issues#vad-som-händer-med-ett-problem)).
 
 ## Vad som läses
 

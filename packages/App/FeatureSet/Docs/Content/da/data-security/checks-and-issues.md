@@ -6,7 +6,7 @@ Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. 
 - [Sådan afgør en kontrol](#sådan-afgør-en-kontrol): Bestået, fejlet eller kan ikke afgøre, og hvor slem en fejl er.
 - [Alle kontroller](#alle-kontroller): Alle 34, med hvad hver enkelt kontrollerer, og hvordan det rettes.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes inden for en alvorlighed.
-- [Hvad der sker med et problem](#hvad-der-sker-med-et-problem): Åben, løst, accepteret, ikke et problem.
+- [Hvad der sker med et problem](#hvad-der-sker-med-et-problem): Åben, løst, accepteret, ikke et problem, hvordan hvert blev løst, og rettelser, der følges helt ud i produktion.
 - [OneUptime AI's analyse](#oneuptime-ais-analyse): Om et problem er reelt, hvad det sætter på spil, hvad rettelsen ville ødelægge og den korteste vej til rettet.
 - [Ret det herfra](#ret-det-herfra): Luk en eksponering, eller slå en manglende beskyttelse til, med ét klik.
 - [Problemer med én årsag](#problemer-med-én-årsag): De problemer, som én fejl skabte, grupperet, og deres årsag rettet én gang.
@@ -154,13 +154,41 @@ OneUptime åbner, opdaterer og løser problemer, efterhånden som kontrollerne k
 | Status | Hvordan det kommer dertil | Hvad der følger |
 | --- | --- | --- |
 | **Åben** | Dets kontrol fejler på datalageret nu. | Det tæller med på oversigten, i datalagerets resumé og i compliance-opgørelsen, indtil kontrollen består. |
-| **Løst** | Dets kontrol bestod ved en senere kørsel, gælder ikke længere eller blev slået fra, eller dets datalager blev arkiveret. Et menneske kan også vælge **Markér som løst**: datalageret kontrolleres så igen med det samme. | Det åbnes igen, hvis kontrollen fejler igen, og problemet tæller, hvor ofte det er blevet genåbnet. |
+| **Løst** | Dets kontrol bestod ved en senere kørsel, gælder ikke længere eller blev slået fra, eller dets datalager blev arkiveret. Et menneske kan også vælge **Markér som løst**: datalageret kontrolleres så igen med det samme. | Det fortæller, hvordan det blev løst (se nedenfor). Det åbnes igen, hvis kontrollen fejler igen, og problemet tæller, hvor ofte det er blevet genåbnet. |
 | **Accepteret** | Et menneske valgte **Accepter risiko** med en **Årsag** og en dato i **Accepteret indtil**, højst et år ude i fremtiden. | Det forbliver lukket indtil den dato og åbnes derefter igen, hvis kontrollen stadig fejler. Acceptér det så igen, hvis begrundelsen stadig holder. |
 | **Ikke et problem** | Et menneske valgte **Ikke et problem** og sagde hvorfor under **Årsag**: fundet var forkert. | Det forbliver lukket, også mens kontrollen fejler, og beholder årsagen. **Genåbn** sætter det tilbage til Åben. |
 
 Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projektejere kan ændre et problems status og tildele det til en person eller et team med **Tildel**. Hver ændring skrives i problemets **Tidslinje**: hvornår det blev åbnet, hver ændring af alvorlighed, hver statusændring og hvem der foretog den, de nye kontroller, der blev bedt om, og hvad integrationerne gjorde.
 
 Et problem, der åbnes igen, beholder sin historik. Accepterede risici gennemgås igen hver dag, så en accept udløber til tiden, også når intet er blevet scannet.
+
+### Hvordan det blev løst
+
+Et løst problem fortæller hvordan, øverst på sin side og i problemlisten, som kan filtreres efter det under **Løsning**:
+
+| Løsning | Hvad det betyder |
+| --- | --- |
+| **Rettet i koden** | En koderettelses pull request blev leveret, og tjenestens nye version skriver ikke længere dataene. Problemet fortæller hvilken og hvornår: "Rettet i pull request #482, udrullet i version 2.4.1, verificeret". |
+| **Rettet i infrastrukturkoden** | En pull request til den Terraform, CloudFormation eller Bicep, der erklærer datalageret, blev flettet, og datalageret bestod sin kontrol, da ændringen var anvendt. |
+| **Rettet herfra** | En responshandling ([Ret det herfra](#ret-det-herfra)) ændrede datalageret, og dets kontrol bestod bagefter. |
+| **Inddæmmet ved modtagelsen** | Hvert fund i et telemetriproblem skjules af en rensningsregel, før det gemmes. Det er ikke en rettelse: koden skriver stadig dataene, til stdout og til alle andre steder, tjenesten sender sin telemetri hen. Problemet siger det med ravgult, sammen med det, reglen har ændret den seneste uge, og tilbyder **Ret koden**. |
+| **Kontrol bestået** | Dets kontrol består, uden at OneUptime har ændret noget. |
+| **Løst af en person** | Nogen valgte **Markér som løst**. Datalageret kontrolleres igen med det samme, og problemet åbnes igen, hvis dets kontrol stadig fejler. |
+| **Kontrolleres ikke længere** | Dets kontrol blev slået fra eller gælder ikke længere for datalageret. |
+| **Datalager arkiveret** | Dets datalager er forsvundet fra sin kilde. |
+
+Oversigten tæller de problemer, der er rettet ved kilden, adskilt fra de lækager, der kun er inddæmmet ved indtagelse, og **I din telemetri** holder et inddæmmet fund synligt, markeret **Renset**, indtil koden holder op med at skrive det.
+
+### Rettelser fulgt helt ud i produktion
+
+En pull request, som OneUptime AI åbnede for et problem (**Ret med AI**, eller én pull request for en [gruppe af problemer](#problemer-med-én-årsag)), har endnu ikke rettet noget, når den flettes. OneUptime følger den, indtil produktionen beviser det:
+
+- **En lækage i koden.** OneUptime venter på en registreret udrulning af tjenesten, der indeholder fletningen, og holder derefter øje med dens nye version. Hvor en rensningsregel skjuler dataene, må reglen ikke ændre nogen værdi i den version; hvor ingen regel gør det, må ingen af versionens poster indeholde dataene de steder, hvor de blev fundet. Den nye version skal også køre en dag og sende mindst lige så mange logs eller spans, som den gamle gjorde i den time, hvor lækagen sidst blev set. Så er problemet **Rettet i koden**. Én ændret værdi, eller én post, der stadig indeholder dataene, betyder, at rettelsen ikke stoppede lækagen, og om en version, der sender for lidt på en uge, kan intet afgøres. Udrulninger matches på deres commit: registrér dem med `oneuptime deploy`, eller send `vcs.ref.head.revision` (se [Udrulninger og ændringer](/docs/telemetry/change-events)).
+- **Et datalagers konfiguration.** Når pull requesten flettes, læses dens datalagre igen med det samme. Hvert problem, hvis kontrol består derefter, er **Rettet i infrastrukturkoden**. Hvis et datalager stadig fejler sin kontrol, når det læses igen en dag efter fletningen, blev rettelsen **flettet, ikke anvendt**: datalagerets ejere og den person, der bad om pull requesten, får en e-mail, én gang, og problemets og datalagerets tidslinjer fortæller det. Det, der mangler, er som regel en apply.
+- **Rensningsreglen bevares.** Efter en verificeret koderettelse bliver den rensningsregel, der inddæmmede lækagen, så en regression skjules, så snart den dukker op. Problemet fortæller, at reglen intet har ændret siden rettelsen, og tilbyder **Fjern regel**.
+- **En regression.** Der holdes fortsat øje med en verificeret rettelse: når en bevaret regel igen ændrer værdier, eller scanningen finder dataene igen, åbnes problemet igen og fortæller, hvilken version der bragte dem tilbage. Det forbliver åbent, indtil det er rettet igen, også mens en regel skjuler dataene.
+
+Hvert trin står på problemets **Tidslinje** og på datalagerets, og AI-resultater tæller de verificerede rettelser efter type (se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig)).
 
 ## OneUptime AI's analyse
 
