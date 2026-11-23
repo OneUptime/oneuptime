@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "created_at": "2022-03-14",
+  "last_updated_at": "2022-05-25",
+  "title": "High severity errors logs are found",
+  "tags": [
+    "integration:foundationdb"
+  ],
+  "description": "FoundationDB logs have a severity field which can indicate different situations. This monitor examines logs where the severity is SevError, indicating that one of the assumptions of the database has been violated.",
+  "definition": {
+    "message": "FoundationDB has logged errors. This indicates that one of the assumptions of the database has been violated; such situations are generally caused by hardware failures.",
+    "name": "FoundationDB Errors Logged",
+    "options": {
+      "aggregation": {
+        "groupBy": [
+          "core_host"
+        ],
+        "metric": "count",
+        "type": "count"
+      },
+      "enable_logs_sample": true,
+      "escalation_message": "",
+      "groupby_simple_monitor": false,
+      "notify_audit": false,
+      "queryConfig": {
+        "indexes": [],
+        "queryIsFailed": false,
+        "queryString": "service:foundationdb @Severity:>=40",
+        "timeRange": {
+          "from": 1628061270003,
+          "live": true,
+          "to": 1628075670003
+        },
+        "track": "logs"
+      },
+      "renotify_interval": 0,
+      "restriction_query": null,
+      "thresholds": {
+        "comparison": ">",
+        "critical": 3,
+        "period": {
+          "digit": 10,
+          "name": "10 minute average",
+          "no_data_timeframe": 20,
+          "seconds": 600,
+          "tense": "last",
+          "text": "10 minutes",
+          "unit": "minutes",
+          "value": "last_10m"
+        },
+        "timeAggregator": "avg",
+        "warning": 1
+      }
+    },
+    "query": "logs(\"service:foundationdb @Severity:>=40\").index(\"*\").rollup(\"count\").by(\"host\").last(\"10m\") > 3",
+    "tags": [
+      "integration:fdb"
+    ],
+    "type": "log alert"
+  }
+}

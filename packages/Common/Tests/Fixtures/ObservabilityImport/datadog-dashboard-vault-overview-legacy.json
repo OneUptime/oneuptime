@@ -1,0 +1,2509 @@
+{
+  "author_name": "Datadog",
+  "title": "Vault - Overview (Legacy)",
+  "description": "## Vault\n\nThis dashboard provides a high-level overview of your Vault clusters so you can monitor its performance and cluster health.\n\n- [Official Vault integration docs](https://docs.datadoghq.com/integrations/vault/)\n- [Monitoring HashiCorp Vault with Datadog](https://www.datadoghq.com/blog/monitor-hashicorp-vault-with-datadog/)\n\nClone this template dashboard to make changes and add your own graph widgets.",
+  "layout_type": "ordered",
+  "is_read_only": true,
+  "notify_list": [],
+  "reflow_type": "fixed",
+  "widgets": [
+    {
+      "id": 0,
+      "definition": {
+        "title": "About Vault",
+        "title_align": "center",
+        "type": "group",
+        "banner_img": "/static/images/integration_dashboard/vault_hero_1.png",
+        "show_title": false,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6856665905714958,
+            "definition": {
+              "type": "note",
+              "content": "## Vault\n\nThis dashboard provides a high-level overview of your Vault clusters so you can monitor its performance and cluster health.\n\nAudit devices is a logging mechanism that keeps detailed logs of all requests and responses to Vault. Audit Devices are not enabled by default and should be enabled to be used in the Cloud SIEM.\n\n",
+              "background_color": "transparent",
+              "font_size": "12",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 3660302701095376,
+            "definition": {
+              "type": "note",
+              "content": "## Useful Links\n\n- [Monitoring Vault with Datadog ↗](https://www.datadoghq.com/blog/vault-monitoring-with-datadog/#collect-and-analyze-all-your-vault-logs)\n- [Hashicorp Vault Auditing Documentation ↗](https://www.vaultproject.io/docs/audit#enabling-disabling-audit-devices)\n- [Datadog Vault Integration Documentation ↗](https://docs.datadoghq.com/integrations/vault)\n- [Datadog Vault Monitoring 3 Blog Part Series ↗](https://www.datadoghq.com/blog/monitor-vault-metrics-and-logs)",
+              "background_color": "transparent",
+              "font_size": "12",
+              "text_align": "left",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 8,
+        "height": 5
+      }
+    },
+    {
+      "id": 1,
+      "definition": {
+        "title": "Overview",
+        "title_align": "center",
+        "type": "group",
+        "background_color": "vivid_blue",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 8654869819698766,
+            "definition": {
+              "title": "Initialized",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "check_status",
+              "check": "vault.initialized",
+              "grouping": "cluster",
+              "group_by": [
+                "$vault_cluster",
+                "$api_url"
+              ],
+              "tags": [
+                "*"
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 3808484313637414,
+            "definition": {
+              "title": "Can connect",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "check_status",
+              "check": "vault.can_connect",
+              "grouping": "cluster",
+              "group_by": [
+                "$api_url"
+              ],
+              "tags": [
+                "*"
+              ]
+            },
+            "layout": {
+              "x": 2,
+              "y": 0,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 4875834698546500,
+            "definition": {
+              "title": "Unsealed",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "check_status",
+              "check": "vault.unsealed",
+              "grouping": "cluster",
+              "group_by": [
+                "$vault_cluster",
+                "$api_url"
+              ],
+              "tags": [
+                "*"
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 2234006812248346,
+            "definition": {
+              "type": "note",
+              "content": "This metric is only available when the connection between the primary and its replica has been lost. Ideally, this value should never exceed zero—the primary and the replica should be in constant communication to ensure the replica is not serving stale data.",
+              "background_color": "blue",
+              "font_size": "12",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 2,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 8,
+        "y": 0,
+        "width": 4,
+        "height": 5
+      }
+    },
+    {
+      "id": 2,
+      "definition": {
+        "title": "Performance",
+        "type": "group",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 1049094212182326,
+            "definition": {
+              "title": "Login requests",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Login request count",
+                      "formula": "query5"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.login_request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query5"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                },
+                {
+                  "formulas": [
+                    {
+                      "alias": "Week Before",
+                      "formula": "week_before(query0)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.login_request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query0"
+                    }
+                  ],
+                  "style": {
+                    "palette": "grey",
+                    "line_type": "dotted",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 7910607609141736,
+            "definition": {
+              "title": "Login request latency",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Login request latency (ms)",
+                      "formula": "ewma_3(diff(query3) / query7)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.login_request.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    },
+                    {
+                      "query": "sum:vault.vault.core.handle.login_request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query7"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 8930787296591998,
+            "definition": {
+              "title": "Request latency",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Request latency",
+                      "formula": "diff(query3) / query7"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.request.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    },
+                    {
+                      "query": "sum:vault.vault.core.handle.request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query7"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "area"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 5360312192322620,
+            "definition": {
+              "title": "Core handle requests",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Core Vault handle requests",
+                      "formula": "query4"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query4"
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                },
+                {
+                  "formulas": [
+                    {
+                      "alias": "Week Before",
+                      "formula": "week_before(query0)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.core.handle.request.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query0"
+                    }
+                  ],
+                  "style": {
+                    "palette": "grey",
+                    "line_type": "dotted",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 9
+      }
+    },
+    {
+      "id": 3,
+      "definition": {
+        "title": "Logging Overview",
+        "type": "group",
+        "background_color": "vivid_purple",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2134188196810948,
+            "definition": {
+              "title": "Log activity by host",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_table",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "cell_display_mode": "bar",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "host",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 100
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 1258160608807844,
+            "definition": {
+              "title": "Log volume by environment",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "horizontal",
+              "legend_columns": [
+                "avg",
+                "max",
+                "value"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Vault logs",
+                      "formula": "query2"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query2",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "env",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ],
+                  "style": {
+                    "palette": "purple",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 4,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 2115911637253564,
+            "definition": {
+              "title": "All logs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "log_stream",
+              "indexes": [],
+              "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster",
+              "sort": {
+                "column": "time",
+                "order": "desc"
+              },
+              "columns": [
+                "host",
+                "service"
+              ],
+              "show_date_column": true,
+              "show_message_column": true,
+              "message_display": "expanded-md"
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 8,
+              "height": 6
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 4,
+        "y": 0,
+        "width": 8,
+        "height": 9
+      }
+    },
+    {
+      "id": 4,
+      "definition": {
+        "title": "Activity",
+        "type": "group",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4254548397052216,
+            "definition": {
+              "title": "Top Vault Requests by IP",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "log_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [
+                      {
+                        "facet": "@request.remote_address",
+                        "sort": {
+                          "order": "desc",
+                          "aggregation": "count"
+                        },
+                        "limit": 25
+                      }
+                    ],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 1776539419867568,
+            "definition": {
+              "title": "Requests by Rare IPs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.remote_address",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "asc"
+                          },
+                          "limit": 100
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 4418354492646266,
+            "definition": {
+              "title": "Top Client Token Accessors",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.client_token_accessor",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 3560343377470418,
+            "definition": {
+              "title": "Requests by mount type",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 50,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 291938895140890,
+            "definition": {
+              "title": "Vault Log Volume",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": []
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2
+            },
+            "layout": {
+              "x": 0,
+              "y": 8,
+              "width": 4,
+              "height": 1
+            }
+          },
+          {
+            "id": 567235502020146,
+            "definition": {
+              "title": "Vault Operations",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "log_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [
+                      {
+                        "facet": "@request.operation",
+                        "sort": {
+                          "order": "desc",
+                          "aggregation": "count"
+                        },
+                        "limit": 10
+                      }
+                    ],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 9,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "width": 4,
+        "height": 12
+      }
+    },
+    {
+      "id": 5,
+      "definition": {
+        "type": "note",
+        "content": "You can gain an even deeper understanding of Vault’s activity by collecting and analyzing logs from your Vault clusters. Vault produces two types of logs: server logs and audit logs. Server logs record all activities that occurred on each server, and they would be the first place you’d look to troubleshoot an error. Log entries include a timestamp, the log level, the log source (e.g., core, storage), and the log message, as shown below:",
+        "background_color": "purple",
+        "font_size": "14",
+        "text_align": "left",
+        "vertical_align": "top",
+        "show_tick": true,
+        "tick_pos": "50%",
+        "tick_edge": "top",
+        "has_padding": true
+      },
+      "layout": {
+        "x": 4,
+        "y": 0,
+        "width": 4,
+        "height": 3
+      }
+    },
+    {
+      "id": 6,
+      "definition": {
+        "title": "Runtime",
+        "type": "group",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 7616603997410384,
+            "definition": {
+              "title": "Garbage collector pause time",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Total garbage collector pause time (ns)",
+                      "formula": "query6"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "query": "avg:vault.vault.runtime.gc.pause_ns.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query6"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 7705172436099530,
+            "definition": {
+              "title": "Memory allocation",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Bytes allocated by Vault process",
+                      "formula": "query2"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "queries": [
+                    {
+                      "query": "max:vault.vault.runtime.alloc.bytes{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query2"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                },
+                {
+                  "formulas": [
+                    {
+                      "alias": "Bytes allocated to Vault",
+                      "formula": "query2"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "max:vault.vault.runtime.sys.bytes{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query2"
+                    }
+                  ],
+                  "style": {
+                    "palette": "orange",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 8,
+        "y": 0,
+        "width": 4,
+        "height": 5
+      }
+    },
+    {
+      "id": 7,
+      "definition": {
+        "title": "Storage Backend",
+        "type": "group",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 6447626950267332,
+            "definition": {
+              "title": "Consul GET duration",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Consul GET duration",
+                      "formula": "diff(query3)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "avg:vault.vault.consul.get.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 8432096213458172,
+            "definition": {
+              "title": "Consul LIST duration",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Consul list duration (ms)",
+                      "formula": "diff(query3)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "avg:vault.vault.consul.list.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 6685472247312078,
+            "definition": {
+              "title": "Consul DELETE duration",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Consul DELETE duration",
+                      "formula": "query3"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "avg:vault.vault.consul.delete.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 7525508033147558,
+            "definition": {
+              "title": "Consul PUT duration",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Consul PUT duration (ms)",
+                      "formula": "diff(query3)"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "avg:vault.vault.consul.put.sum{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}",
+                      "data_source": "metrics",
+                      "name": "query3"
+                    }
+                  ],
+                  "style": {
+                    "palette": "warm",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "line"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 4,
+        "y": 3,
+        "width": 4,
+        "height": 9
+      }
+    },
+    {
+      "id": 8,
+      "definition": {
+        "title": "Token",
+        "type": "group",
+        "background_color": "vivid_green",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2734285897055334,
+            "definition": {
+              "title": "Number of tokens created",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Vault tokens created",
+                      "formula": "query2"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "query": "sum:vault.vault.token.create.count{$vault_cluster,$api_url,$auth.client_token,$request.client_token_accessor,$request.remote_address,$auth.display_name,$request.mount_type,$request.path,$request.operation}.as_count()",
+                      "data_source": "metrics",
+                      "name": "query2"
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 5882554771659276,
+            "definition": {
+              "title": "Token Types Created",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault @request.operation:create $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@auth.token_type",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 5455418732509084,
+            "definition": {
+              "title": "Tokens Greater Than 30 Days",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault @auth.token_ttl:>46080 $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@auth.display_name",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 100
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 2,
+              "y": 2,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 8757546369667726,
+            "definition": {
+              "title": "Token Types Created",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": false,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Token Type",
+                      "formula": "query1"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault @request.operation:create $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@auth.token_type",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ],
+                  "style": {
+                    "palette": "dog_classic",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 8,
+        "y": 5,
+        "width": 4,
+        "height": 7
+      }
+    },
+    {
+      "id": 9,
+      "definition": {
+        "title": "Datadog Security Monitoring",
+        "type": "group",
+        "background_color": "vivid_purple",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 5944879021383970,
+            "definition": {
+              "type": "note",
+              "content": "Datadog Security Monitoring analyzes HashiCorp Vault audit logs to detect threats to your environment in real time. If you aren't currently using  [Datadog Security Monitoring](https://app.datadoghq.com/security), please sign up. ",
+              "background_color": "gray",
+              "font_size": "14",
+              "text_align": "left",
+              "vertical_align": "center",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 1
+            }
+          },
+          {
+            "id": 6255926866858486,
+            "definition": {
+              "title": "CRITICALs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1"
+                    }
+                  ],
+                  "conditional_formats": [
+                    {
+                      "custom_bg_color": "#bc303c",
+                      "comparator": ">",
+                      "palette": "custom_bg",
+                      "value": 0
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "status:critical source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "security_signals",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": []
+                    }
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "custom_links": [
+                {
+                  "link": "/security?query=source:vault status:critical",
+                  "label": "View related Security Signals"
+                }
+              ],
+              "precision": 2
+            },
+            "layout": {
+              "x": 0,
+              "y": 1,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 2600798289917504,
+            "definition": {
+              "title": "HIGHs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "custom_bg_color": "#d33043",
+                      "comparator": ">",
+                      "palette": "custom_bg",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "status:high source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "autoscale": true,
+              "custom_links": [
+                {
+                  "link": "/security?query=source:vault status:high",
+                  "label": "View related Security Signals"
+                }
+              ],
+              "precision": 2
+            },
+            "layout": {
+              "x": 2,
+              "y": 1,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 721282318874290,
+            "definition": {
+              "title": "Security Signals",
+              "type": "toplist",
+              "requests": [
+                {
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [
+                      {
+                        "facet": "@workflow.rule.name",
+                        "sort": {
+                          "order": "desc",
+                          "aggregation": "count"
+                        },
+                        "limit": 10
+                      }
+                    ],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "custom_links": [
+                {
+                  "link": "/security?query=@workflow.rule.name:{{@workflow.rule.name.value}}",
+                  "label": "View related Security Signals"
+                }
+              ]
+            },
+            "layout": {
+              "x": 4,
+              "y": 1,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 7444326215896084,
+            "definition": {
+              "title": "Security Signals by Events",
+              "type": "toplist",
+              "requests": [
+                {
+                  "conditional_formats": [
+                    {
+                      "comparator": ">",
+                      "palette": "white_on_red",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [
+                      {
+                        "facet": "@evt.name",
+                        "sort": {
+                          "order": "desc",
+                          "aggregation": "count"
+                        },
+                        "limit": 10
+                      }
+                    ],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "custom_links": [
+                {
+                  "link": "/security?query=@workflow.rule.name:{{@workflow.rule.name.value}}",
+                  "label": "View related Security Signals"
+                }
+              ]
+            },
+            "layout": {
+              "x": 8,
+              "y": 1,
+              "width": 4,
+              "height": 4
+            }
+          },
+          {
+            "id": 5260559479014138,
+            "definition": {
+              "title": "MEDIUMs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "custom_bg_color": "#e5a21c",
+                      "comparator": ">",
+                      "palette": "custom_bg",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "status:medium source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "autoscale": true,
+              "custom_links": [
+                {
+                  "link": "/security?source:vault status:medium",
+                  "label": "View related Security Signals"
+                }
+              ],
+              "precision": 2
+            },
+            "layout": {
+              "x": 0,
+              "y": 3,
+              "width": 2,
+              "height": 2
+            }
+          },
+          {
+            "id": 6029228368019808,
+            "definition": {
+              "title": "LOWs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "custom_bg_color": "#ffb52b",
+                      "comparator": ">",
+                      "palette": "custom_bg",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "source:vault status:low $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "autoscale": true,
+              "custom_links": [
+                {
+                  "link": "/security?query=source:vault status:low",
+                  "label": "View related Security Signals"
+                }
+              ],
+              "precision": 2
+            },
+            "layout": {
+              "x": 2,
+              "y": 3,
+              "width": 2,
+              "height": 1
+            }
+          },
+          {
+            "id": 8879352798849398,
+            "definition": {
+              "title": "INFOs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_value",
+              "requests": [
+                {
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {
+                      "custom_bg_color": "#84c1e0",
+                      "comparator": ">",
+                      "palette": "custom_bg",
+                      "value": 0
+                    }
+                  ],
+                  "security_query": {
+                    "index": "*",
+                    "search": {
+                      "query": "status:info source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                    },
+                    "group_by": [],
+                    "compute": {
+                      "aggregation": "count"
+                    }
+                  }
+                }
+              ],
+              "autoscale": true,
+              "custom_links": [
+                {
+                  "link": "/security?query=source:vault status:info",
+                  "label": "View related Security Signals"
+                }
+              ],
+              "precision": 2
+            },
+            "layout": {
+              "x": 2,
+              "y": 4,
+              "width": 2,
+              "height": 1
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 26,
+        "width": 12,
+        "height": 6,
+        "is_column_break": true
+      }
+    },
+    {
+      "id": 10,
+      "definition": {
+        "title": "Client Token Activity",
+        "type": "group",
+        "background_color": "vivid_blue",
+        "show_title": true,
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 4622110032256590,
+            "definition": {
+              "type": "note",
+              "content": "Use this section to quickly investigate a vault token by looking up a Token Accessor. A Token Accessor is created and returned with every token that is created. The token accessor value can be used to look up a token's properties, revoke a token, renew a taken, and look up a token's capabilities on a path.\n\nYou can click on a client token in the Top Client Token Accessors widget and click on `Set $request.client_token_accessor`. This will update the widgets in the Client Token Investigator for all information related to the Client Token Accessor that was set in the template variables. \n\nA Client Token Accessor looks like this: `hmac-sha256:97ea0893c72ddf1b9fe3f2f477526ff06e89cceff7a74ea7016d2e3e9b25a804`",
+              "background_color": "blue",
+              "font_size": "12",
+              "text_align": "left",
+              "vertical_align": "top",
+              "show_tick": false,
+              "tick_pos": "50%",
+              "tick_edge": "left",
+              "has_padding": true
+            },
+            "layout": {
+              "x": 0,
+              "y": 0,
+              "width": 9,
+              "height": 2
+            }
+          },
+          {
+            "id": 8258230789541618,
+            "definition": {
+              "title": "Client token by accessor",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.client_token_accessor",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 4
+            }
+          },
+          {
+            "id": 7321836322263742,
+            "definition": {
+              "title": "Client token by IPs",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.remote_address",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "asc"
+                          },
+                          "limit": 100
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 2,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 5092863776380150,
+            "definition": {
+              "title": "Historical activity by accessor",
+              "title_size": "16",
+              "title_align": "left",
+              "show_legend": true,
+              "legend_layout": "auto",
+              "legend_columns": [
+                "avg",
+                "min",
+                "max",
+                "value",
+                "sum"
+              ],
+              "type": "timeseries",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "alias": "Requests by client token accessor",
+                      "formula": "query1"
+                    }
+                  ],
+                  "response_format": "timeseries",
+                  "on_right_yaxis": false,
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": []
+                    }
+                  ],
+                  "style": {
+                    "palette": "cool",
+                    "line_type": "solid",
+                    "line_width": "normal"
+                  },
+                  "display_type": "bars"
+                }
+              ],
+              "yaxis": {
+                "include_zero": true,
+                "scale": "linear",
+                "label": "",
+                "min": "auto",
+                "max": "auto"
+              },
+              "markers": []
+            },
+            "layout": {
+              "x": 4,
+              "y": 2,
+              "width": 5,
+              "height": 2
+            }
+          },
+          {
+            "id": 5099313152151602,
+            "definition": {
+              "title": "Operations by client token",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "query_table",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "cell_display_mode": "bar",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.operation",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 4,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 1645099613316488,
+            "definition": {
+              "title": "Top users by client token accessor ",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@auth.display_name",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 3,
+              "y": 4,
+              "width": 4,
+              "height": 2
+            }
+          },
+          {
+            "id": 7109789718928374,
+            "definition": {
+              "title": "All logs by client token",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "log_stream",
+              "indexes": [
+                "vault"
+              ],
+              "query": "service:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster",
+              "sort": {
+                "column": "time",
+                "order": "desc"
+              },
+              "columns": [
+                "host",
+                "@type",
+                "@request.path"
+              ],
+              "show_date_column": true,
+              "show_message_column": true,
+              "message_display": "inline"
+            },
+            "layout": {
+              "x": 7,
+              "y": 4,
+              "width": 5,
+              "height": 4
+            }
+          },
+          {
+            "id": 4800477545973282,
+            "definition": {
+              "title": "Mount types by client token",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 50,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": []
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 0,
+              "y": 6,
+              "width": 3,
+              "height": 2
+            }
+          },
+          {
+            "id": 3605930163980802,
+            "definition": {
+              "title": "Request paths by client token",
+              "title_size": "16",
+              "title_align": "left",
+              "type": "toplist",
+              "requests": [
+                {
+                  "formulas": [
+                    {
+                      "formula": "query1",
+                      "limit": {
+                        "count": 10,
+                        "order": "desc"
+                      }
+                    }
+                  ],
+                  "response_format": "scalar",
+                  "queries": [
+                    {
+                      "search": {
+                        "query": "source:vault $auth.client_token $request.client_token_accessor $request.remote_address $auth.display_name $request.mount_type $request.path $request.operation $api_url $vault_cluster"
+                      },
+                      "data_source": "logs",
+                      "compute": {
+                        "aggregation": "count"
+                      },
+                      "name": "query1",
+                      "indexes": [
+                        "*"
+                      ],
+                      "group_by": [
+                        {
+                          "facet": "@request.path",
+                          "sort": {
+                            "aggregation": "count",
+                            "order": "desc"
+                          },
+                          "limit": 10
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layout": {
+              "x": 3,
+              "y": 6,
+              "width": 4,
+              "height": 2
+            }
+          }
+        ]
+      },
+      "layout": {
+        "x": 0,
+        "y": 32,
+        "width": 12,
+        "height": 9
+      }
+    }
+  ],
+  "template_variables": [
+    {
+      "name": "vault_cluster",
+      "default": "*",
+      "prefix": "vault_cluster",
+      "available_values": []
+    },
+    {
+      "name": "api_url",
+      "default": "*",
+      "prefix": "api_url",
+      "available_values": []
+    },
+    {
+      "name": "auth.client_token",
+      "default": "*",
+      "prefix": "@auth.client_token",
+      "available_values": []
+    },
+    {
+      "name": "request.client_token_accessor",
+      "default": "*",
+      "prefix": "@request.client_token_accessor",
+      "available_values": []
+    },
+    {
+      "name": "request.remote_address",
+      "default": "*",
+      "prefix": "@request.remote_address",
+      "available_values": []
+    },
+    {
+      "name": "auth.display_name",
+      "default": "*",
+      "prefix": "@auth.display_name",
+      "available_values": []
+    },
+    {
+      "name": "request.mount_type",
+      "default": "*",
+      "prefix": "@request.mount_type",
+      "available_values": []
+    },
+    {
+      "name": "request.path",
+      "default": "*",
+      "prefix": "@request.path",
+      "available_values": []
+    },
+    {
+      "name": "request.operation",
+      "default": "*",
+      "prefix": "@request.operation",
+      "available_values": []
+    }
+  ]
+}

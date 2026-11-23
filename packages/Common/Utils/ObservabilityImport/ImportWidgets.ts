@@ -11,6 +11,7 @@ import DashboardLogChartComponent from "../../Types/Dashboard/DashboardComponent
 import DashboardLogStreamComponent from "../../Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
 import DashboardTextComponent from "../../Types/Dashboard/DashboardComponents/DashboardTextComponent";
 import DataSourceQueryConfig from "../../Types/DataSource/DataSourceQueryConfig";
+import LogSeverity from "../../Types/Log/LogSeverity";
 import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../Types/DataSource/ProjectMetricsDataSource";
 import ObjectID from "../../Types/ObjectID";
 import DashboardDataSourceChartComponentUtil from "../Dashboard/Components/DashboardDataSourceChartComponent";
@@ -227,9 +228,12 @@ export const buildHtmlWidget: (html: string) => DashboardBaseComponent = (
 export const buildLogStreamWidget: (data: {
   title: string;
   filters: LogWidgetFilters;
+  // The one severity it lists (a Datadog search's status).
+  severity?: LogSeverity | undefined;
 }) => DashboardBaseComponent = (data: {
   title: string;
   filters: LogWidgetFilters;
+  severity?: LogSeverity | undefined;
 }): DashboardBaseComponent => {
   const component: DashboardLogStreamComponent =
     DashboardLogStreamComponentUtil.getDefaultComponent();
@@ -237,6 +241,7 @@ export const buildLogStreamWidget: (data: {
   component.arguments = {
     ...component.arguments,
     ...(data.title ? { title: cutText(data.title, TITLE_MAX_LENGTH) } : {}),
+    ...(data.severity ? { severityFilter: data.severity } : {}),
     ...(data.filters.bodyContains
       ? { bodyContains: data.filters.bodyContains }
       : {}),
@@ -251,9 +256,14 @@ export const buildLogStreamWidget: (data: {
 export const buildLogChartWidget: (data: {
   title: string;
   filters: LogWidgetFilters;
+  // The severities it counts (a Datadog search's statuses).
+  severities?: Array<LogSeverity> | undefined;
+  chartType?: DashboardChartType | undefined;
 }) => DashboardBaseComponent = (data: {
   title: string;
   filters: LogWidgetFilters;
+  severities?: Array<LogSeverity> | undefined;
+  chartType?: DashboardChartType | undefined;
 }): DashboardBaseComponent => {
   const component: DashboardLogChartComponent =
     DashboardLogChartComponentUtil.getDefaultComponent();
@@ -267,6 +277,10 @@ export const buildLogChartWidget: (data: {
   component.arguments = {
     ...component.arguments,
     ...(data.title ? { title: cutText(data.title, TITLE_MAX_LENGTH) } : {}),
+    ...(data.chartType ? { chartType: data.chartType } : {}),
+    ...(data.severities && data.severities.length > 0
+      ? { severityFilters: [...data.severities] }
+      : {}),
     ...(data.filters.bodyContains
       ? { bodyContains: data.filters.bodyContains }
       : {}),

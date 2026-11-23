@@ -1,7 +1,10 @@
 import DashboardBaseComponent from "../Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardVariable from "../Dashboard/DashboardVariable";
 import DashboardViewConfig from "../Dashboard/DashboardViewConfig";
+import LogSeverity from "../Log/LogSeverity";
+import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import {
+  AnomalyDetectionSensitivity,
   FilterType,
   EvaluateOverTimeType,
   NoDataPolicy,
@@ -186,8 +189,9 @@ export enum ImportedAlertSeverity {
 }
 
 /*
- * One alert rule or monitor of the source, and the Metrics monitor it
- * becomes: one PromQL step, judged series by series.
+ * One alert rule or monitor of the source, and the monitor it becomes:
+ * most often a Metrics monitor with one PromQL step, judged series by
+ * series (ImportedAlertRuleKind).
  */
 export interface AlertImportItem {
   key: string;
@@ -204,13 +208,69 @@ export interface AlertImportItem {
   isEnabledInSource: boolean;
 }
 
+/*
+ * The monitor an imported rule becomes, by what it reads:
+ *
+ *   - PromQL: a Metrics monitor whose step is one PromQL expression - every
+ *     rule of Prometheus and Grafana, and Datadog's metric monitors,
+ *     forecasts among them (issue #10325);
+ *   - MetricQuery: a Metrics monitor whose step reads one metric with the
+ *     query builder. An anomaly condition compares a metric with its own
+ *     history, which a PromQL expression does not keep (issue #10325);
+ *   - LogCount: a Logs monitor, which counts the logs its filters match in
+ *     its window - Datadog's log monitors (issue #10324).
+ */
+export enum ImportedAlertRuleKind {
+  PromQL = "PromQL",
+  MetricQuery = "MetricQuery",
+  LogCount = "LogCount",
+}
+
+/*
+ * One metric, read the way the monitor form's query builder reads it: by
+ * its stored name, narrowed to exact attribute values, its data points
+ * combined with the aggregation, one series per value of the group-by keys.
+ */
+export interface ImportedMetricQuery {
+  metricName: string;
+  attributes: Record<string, string>;
+  aggregation: MetricsAggregationType;
+  groupByAttributeKeys: Array<string>;
+}
+
+/*
+ * The logs a Logs monitor counts: exact attribute values, text the body
+ * contains, the severities, one count per value of the group-by keys.
+ * `searchText` says the same in the log search's words, for the preview.
+ */
+export interface ImportedLogQuery {
+  attributes: Record<string, string>;
+  bodyContains: string;
+  severityTexts: Array<LogSeverity>;
+  groupByAttributes: Array<string>;
+  searchText: string;
+}
+
 export interface ImportedAlertRule {
-  // The PromQL each check evaluates, without the comparison.
+  // What the monitor reads (ImportedAlertRuleKind); PromQL when left out.
+  kind?: ImportedAlertRuleKind | undefined;
+  // The PromQL each check evaluates, without the comparison; "" for the others.
   promQL: string;
+  // The metric a MetricQuery rule reads.
+  metricQuery?: ImportedMetricQuery | undefined;
+  // The logs a LogCount rule counts.
+  logQuery?: ImportedLogQuery | undefined;
   filterType: FilterType;
+  // The value compared with; not read by the anomaly conditions.
   threshold: number;
   rollingTime: RollingTime;
+  // A LogCount rule's window, in seconds: a Logs monitor counts over one.
+  windowInSeconds?: number | undefined;
   aggregation: EvaluateOverTimeType;
+  // The anomaly conditions' sensitivity (AnomalouslyHigh and the others).
+  anomalySensitivity?: AnomalyDetectionSensitivity | undefined;
+  // How far ahead the forecast conditions look, in hours.
+  forecastHorizonInHours?: number | undefined;
   onNoData: NoDataPolicy;
   severity: ImportedAlertSeverity;
   // What an opened alert or incident is called and says.

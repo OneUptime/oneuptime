@@ -42,9 +42,11 @@ import {
   DatadogConversionOptions,
   DatadogMetricKind,
   DatadogQueryContext,
+  collectDatadogAsCountMetricNames,
   collectDatadogMetricNames,
   convertDatadogQuery,
   mergeDatadogNotes,
+  readDatadogAsCountMetricNames,
   readDatadogMetricNames,
 } from "./DatadogPromQL";
 import {
@@ -52,6 +54,14 @@ import {
   parseDatadogExpression,
 } from "./DatadogQueryParser";
 import { DASHBOARD_PANELS_LEFT_OUT } from "../Grafana/GrafanaDashboard";
+import { toDatadogMetricAttributeKey } from "./DatadogAttributes";
+import {
+  ConvertedLogWidget,
+  LOG_WIDGET_NOT_SUPPORTED,
+  convertDatadogLogChartWidget,
+  convertDatadogLogStreamWidget,
+  isDatadogLogCountWidget,
+} from "./DatadogLogs";
 
 /*
  * A DATADOG DASHBOARD, AS A ONEUPTIME DASHBOARD (issue #7697).
@@ -67,9 +77,15 @@ import { DASHBOARD_PANELS_LEFT_OUT } from "../Grafana/GrafanaDashboard";
  *   image                  Text, as an image
  *   group                  a heading, its widgets after it
  *
+ * and what reads logs as a log widget (DatadogLogs, issue #10324):
+ *
+ *   log_stream, list_stream of logs   Log Stream
+ *   timeseries counting logs          Log Chart
+ *
  * A template variable with a prefix becomes the dashboard's variable on
- * that tag. What reads logs, traces, RUM or events, and widgets OneUptime
- * has no like of, are listed with why.
+ * the attribute that tag is kept in (DatadogAttributes). What reads
+ * traces, RUM or events, and widgets OneUptime has no like of, are listed
+ * with why.
  */
 
 // An address a browser can open: an image's, a link's.
@@ -109,11 +125,12 @@ export const VARIABLE_AVAILABLE_VALUES: string = translationKey(
   "Datadog offers only some values; OneUptime lists every value of {{tag}} in the project's metrics.",
 );
 
-// Datadog's widgets of something other than metrics, and what they read.
+/*
+ * Datadog's widgets of something other than metrics and logs, and what they
+ * read. A stream of logs is a Log Stream (DatadogLogs).
+ */
 const OTHER_DATA_WIDGETS: ReadonlyMap<string, string> = new Map<string, string>(
   [
-    ["log_stream", "logs"],
-    ["list_stream", "logs"],
     ["event_stream", "events"],
     ["event_timeline", "events"],
     ["check_status", "service checks"],
@@ -305,7 +322,8 @@ const newVariable: (data: {
     id: ObjectID.generate().toString(),
     name: data.name,
     type: DashboardVariableType.TelemetryAttribute,
-    attributeKey: data.prefix,
+    // The attribute the tag is kept in: host is the resource's host.name.
+    attributeKey: toDatadogMetricAttributeKey(data.prefix),
   };
 };
 
@@ -586,18 +604,41 @@ const notConverted: (data: {
   };
 };
 
+// A log widget, as a dashboard item: a Log Stream or a Log Chart, or why not.
+const logItem: (data: {
+  base: Pick<DashboardImportItem, "key" | "title" | "sourceType">;
+  converted: ConvertedLogWidget;
+}) => DashboardImportItem = (data: {
+  base: Pick<DashboardImportItem, "key" | "title" | "sourceType">;
+  converted: ConvertedLogWidget;
+}): DashboardImportItem => {
+  if (!data.converted.component) {
+    return notConverted({ ...data.base, reasons: data.converted.notes });
+  }
+
+  return {
+    ...data.base,
+    status: data.converted.status,
+    notes: data.converted.notes,
+    queries: [],
+    component: data.converted.component,
+  };
+};
+
 const convertWidget: (data: {
   flat: FlatWidget;
   key: string;
   prefixes: Map<string, string>;
   queryOverrides: ImportQueryOverrides;
   knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  rateIntervalsInSeconds?: ReadonlyMap<string, number> | undefined;
 }) => DashboardImportItem = (data: {
   flat: FlatWidget;
   key: string;
   prefixes: Map<string, string>;
   queryOverrides: ImportQueryOverrides;
   knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  rateIntervalsInSeconds?: ReadonlyMap<string, number> | undefined;
 }): DashboardImportItem => {
   const definition: ImportObject = data.flat.definition;
   const type: string = textField(definition, "type");
@@ -660,12 +701,56 @@ const convertWidget: (data: {
     };
   }
 
+  // A stream of logs is a Log Stream (issue #10324).
+  if (type === "log_stream" || type === "list_stream") {
+    return logItem({
+      base,
+      converted: convertDatadogLogStreamWidget({
+        definition,
+        title,
+        variablePrefixes: data.prefixes,
+      }),
+    });
+  }
+
   const isWidgetWithQueries: boolean = [
     "timeseries",
     "query_value",
     "toplist",
     "query_table",
   ].includes(type);
+
+  // Log counts over time are a Log Chart; as a value or a list, nothing.
+  if (isWidgetWithQueries && isDatadogLogCountWidget(definition)) {
+    if (type !== "timeseries") {
+      return notConverted({
+        ...base,
+        reasons: [
+          {
+            kind: ImportNoteKind.Reason,
+            text: LOG_WIDGET_NOT_SUPPORTED,
+            values: { type },
+          },
+        ],
+      });
+    }
+
+    return logItem({
+      base,
+      converted: convertDatadogLogChartWidget({
+        definition,
+        title,
+        variablePrefixes: data.prefixes,
+        showsFirstQueryNote: (count: number): ImportNote => {
+          return {
+            kind: ImportNoteKind.Approximation,
+            text: WIDGET_SHOWS_FIRST_QUERY,
+            values: { count: String(count) },
+          };
+        },
+      }),
+    });
+  }
 
   if (!isWidgetWithQueries) {
     // A widget of logs, events or monitors reads no metric to convert.
@@ -727,6 +812,7 @@ const convertWidget: (data: {
       variablePrefixes: data.prefixes,
       namedQueries: series.namedQueries,
       knownMetricKinds: data.knownMetricKinds,
+      rateIntervalsInSeconds: data.rateIntervalsInSeconds,
     };
     const result: ConvertedQuery = convertDatadogQuery({
       query: series.text,
@@ -856,14 +942,37 @@ export const listDatadogDashboardMetricNames: (
   return Array.from(names).sort();
 };
 
+// The metrics the dashboard's widgets read with .as_count().
+export const listDatadogDashboardAsCountMetricNames: (
+  document: ImportObject,
+) => Array<string> = (document: ImportObject): Array<string> => {
+  const names: Set<string> = new Set<string>();
+
+  for (const widget of flattenWidgets(document)) {
+    for (const series of readRequests(widget.definition).series) {
+      for (const name of readDatadogAsCountMetricNames(series.text)) {
+        names.add(name);
+      }
+
+      for (const query of series.namedQueries.values()) {
+        collectDatadogAsCountMetricNames(query, names);
+      }
+    }
+  }
+
+  return Array.from(names).sort();
+};
+
 export interface DatadogDashboardOptions {
   queryOverrides?: ImportQueryOverrides | undefined;
   /*
    * What the project's metrics say each Datadog metric is, by its Datadog
-   * name, when the preview could read it: a gauge or a count is then read
-   * as one, rather than assumed a gauge.
+   * name, when the preview could read it: a gauge, a rate or a count is
+   * then read as one, rather than assumed a gauge.
    */
   knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  // The seconds a rate's point covers, by its Datadog name, where known.
+  rateIntervalsInSeconds?: ReadonlyMap<string, number> | undefined;
 }
 
 export const convertDatadogDashboard: (
@@ -889,6 +998,7 @@ export const convertDatadogDashboard: (
         prefixes: converted.prefixes,
         queryOverrides: options?.queryOverrides || NO_QUERY_OVERRIDES,
         knownMetricKinds: options?.knownMetricKinds,
+        rateIntervalsInSeconds: options?.rateIntervalsInSeconds,
       });
 
       items.push(item);

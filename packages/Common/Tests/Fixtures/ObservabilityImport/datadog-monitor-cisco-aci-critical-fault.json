@@ -1,0 +1,29 @@
+{
+	"version": 2,
+	"created_at": "2025-04-08",
+	"last_updated_at": "2025-04-08",
+	"title": "Cisco ACI critical fault received",
+	"description": "This monitor alerts if a Cisco ACI critical fault is received",
+	"definition": {
+		"name": "[Cisco ACI] critical fault received, {{[@cisco_aci.severity].name}} severity,  code {{[@cisco_aci.code].name}}, dn {{[@cisco_aci.dn].name}}",
+		"type": "log alert",
+		"query": "logs(\"source:cisco-aci @cisco_aci.severity:critical\").index(\"*\").rollup(\"count\").by(\"@cisco_aci.code,@cisco_aci.dn,@cisco_aci.severity\").last(\"5m\") > 0",
+		"message": "{{#is_alert}}\n{{[@cisco_aci.severity].name}} severity,  code {{[@cisco_aci.code].name}}  for dn {{[@cisco_aci.dn].name}}\n\n@example@example.com \n{{/is_alert}}",
+		"tags": [],
+		"options": {
+			"thresholds": {
+				"critical": 0
+			},
+			"enable_logs_sample": true,
+			"notify_audit": false,
+			"on_missing_data": "default",
+			"include_tags": true,
+			"new_group_delay": 60,
+			"avalanche_window": 10,
+			"groupby_simple_monitor": false
+		}
+	},
+	"tags": [
+		"integration:cisco-aci"
+	]
+}

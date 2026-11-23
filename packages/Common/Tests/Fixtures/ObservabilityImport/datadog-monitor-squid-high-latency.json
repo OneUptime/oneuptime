@@ -1,0 +1,35 @@
+{
+    "version": 2,
+    "created_at": "2024-09-12",
+    "last_updated_at": "2024-09-12",
+    "title": "High latency requests",
+    "description": "High latency requests monitored.",
+    "definition": {
+        "id": 153450604,
+        "name": "High latency requests",
+        "type": "log alert",
+        "query": "logs(\"source:squid @duration:>6000000000\").index(\"*\").rollup(\"count\").last(\"5m\") >= 5",
+        "message": "{{#is_warning}}  \nThe requests with long duration exceeded the threshold.  \nThreshold: {{warn_threshold}}\n{{/is_warning}}\n\n{{#is_alert}}  \nThe requests with long duration exceeded the threshold.  \nCurrent requests: {{value}}  \nThreshold: {{threshold}} \n{{/is_alert}}",
+        "tags": [ "squid" ],
+        "options": {
+            "thresholds": {
+                "critical": 5,
+                "warning": 2
+            },
+            "enable_logs_sample": false,
+            "notify_audit": false,
+            "on_missing_data": "default",
+            "include_tags": false,
+            "new_host_delay": 300,
+            "groupby_simple_monitor": false,
+            "silenced": { }
+        },
+        "priority": 4,
+        "restriction_policy": {
+            "bindings": [ ]
+        }
+    },
+    "tags": [
+        "integration:squid"
+    ]
+}

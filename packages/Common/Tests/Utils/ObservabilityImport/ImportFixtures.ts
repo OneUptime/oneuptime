@@ -17,7 +17,11 @@ import zlib from "zlib";
  *     from github.com/prometheus-operator/kube-prometheus (Apache-2.0)
  *   datadog-dashboard-*.json, datadog-monitor-*.json
  *     Datadog's integration assets, from github.com/DataDog/integrations-core
- *     (BSD-3-Clause)
+ *     (BSD-3-Clause): the NGINX, Redis, Postgres and Vault (legacy)
+ *     dashboards; NGINX's and Postgres' anomaly monitors and the Kubernetes
+ *     Cluster Autoscaler's forecast (issue #10325); the Cisco ACI,
+ *     FoundationDB, Squid, iboss, Zscaler Private Access and SNMP log
+ *     monitors (issue #10324)
  *
  * The other files there are written for these tests, in the shapes the
  * tools document: they hold what no public export of a free licence does.
