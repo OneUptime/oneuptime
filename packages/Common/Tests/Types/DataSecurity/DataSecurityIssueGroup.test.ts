@@ -626,6 +626,20 @@ describe("name patterns", () => {
     expect(matchesNamePattern("x.y", "x.*")).toBe(true);
     expect(matchesNamePattern("xay", "x.*")).toBe(false);
   });
+
+  /*
+   * A pattern of many stars against a long name that does not match is the
+   * shape a backtracking engine takes exponential time over; run in linear
+   * time, it answers.
+   */
+  test("a pattern of many stars against a long name answers, and only a real match matches", () => {
+    const name: string = `${"a".repeat(200)}c`;
+
+    expect(matchesNamePattern(name, "*a*a*a*a*a*a*a*a*a*a*b")).toBe(false);
+    expect(matchesNamePattern(name, "*a*a*a*a*a*a*a*a*a*a*c")).toBe(true);
+    expect(matchesNamePattern("a(b)[c]+?", "a(b)[c]+?")).toBe(true);
+    expect(matchesNamePattern("abbc", "a(b)[c]+?")).toBe(false);
+  });
 });
 
 describe("the identity that created a store", () => {

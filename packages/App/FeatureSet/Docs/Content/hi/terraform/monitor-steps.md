@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | वेबसाइट, API | HTTP मेथड: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` या `PATCH`। सेट न होने पर सर्वर `GET` इस्तेमाल करता है। |
 | `request_headers` | map(string) | वेबसाइट, API | भेजने के हेडर: `{ "Accept" = "application/json" }`। |
 | `request_body` | string | API | अनुरोध का बॉडी, टेक्स्ट के रूप में। |
+| `request_body_format` | string | API | `request_body` कैसे भेजा जाता है: `json`, डिफ़ॉल्ट, किसी भी JSON मान के लिए; `text` ऐसी बॉडी के लिए जो ठीक वैसे ही भेजी जाती है जैसी लिखी गई है, जैसे XML या फ़ॉर्म फ़ील्ड। |
 | `do_not_follow_redirects` | bool | वेबसाइट, API | रीडायरेक्ट का पालन करने के बजाय पहले जवाब पर रुकें। |
 | `allow_self_signed_certificates` | bool | वेबसाइट, API | स्व-हस्ताक्षरित TLS प्रमाणपत्र स्वीकार करें। |
 | `tls_client_certificate` | string | वेबसाइट, API | म्यूचुअल TLS के लिए क्लाइंट प्रमाणपत्र: PEM, या `{{monitorSecrets.name}}` संदर्भ। |

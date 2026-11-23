@@ -93,6 +93,14 @@ Un almacén sin propietarios puede recibirlos de la IA de OneUptime. Lee lo que 
 
 Consulta [Desencadenantes de workflows](/docs/workflows/triggers) para ver los campos que pasa cada desencadenante.
 
+## Pull requests
+
+Una fuga es más barata de corregir antes de fusionarse. En un repositorio conectado en **Código** con las revisiones de producción activadas, la revisión de cada pull request tiene una sección **Datos sensibles**, leída de su diff: código que escribe datos personales o un secreto en la telemetría, código de infraestructura que hace público un almacén o desactiva su cifrado, sus copias de seguridad o su registro, y migraciones que añaden columnas para datos personales, contraseñas o datos de tarjetas. Cada punto nombra la comprobación de Seguridad de datos que el cambio no superaría una vez desplegado, y tus propios tipos de datos se leen por sus pistas de nombre, como los leen los escaneos. Consulta [Revisión de producción de pull requests](/docs/ai/ai-agent#revisión-de-producción-de-pull-requests).
+
+Lo que Seguridad de datos sabe hace más precisos esos puntos, en el comentario de un repositorio privado y, en Código, para quien puede leer los hallazgos de Seguridad de datos: dónde la telemetría del servicio contuvo el mismo tipo de dato en los últimos 7 días, la regla de depuración que lo enmascara en la ingesta y el almacén que es un recurso, con su sensibilidad. Un almacén marcado como **Público por diseño** no da ningún punto por ser público. El comentario de un repositorio público solo dice lo que muestra el diff.
+
+**Fugas detectadas antes de la fusión**, en **Ajustes del proyecto → IA → Resultados de IA**, cuenta las fugas que las revisiones detectaron en pull requests, corregidas allí o todavía no, junto a los problemas que los escaneos abrieron sobre las mismas comprobaciones después de desplegarse el código.
+
 ## OneUptime AI
 
 Dos acciones de un problema piden ayuda a OneUptime AI. Ambas envían a OneUptime AI el título y la gravedad del problema, el nombre, el tipo, la región y el ID en la nube del almacén, su sensibilidad y sus tipos de datos, cada uno por su nombre (los tuyos, por el nombre que les diste), la evidencia, por qué importa la comprobación y la corrección para la nube del almacén, y nunca las muestras de un hallazgo. Ambas se ejecutan bajo los interruptores y los límites de OneUptime AI del proyecto. Lo que envía cada una, lo que nunca envía y el modelo en que se ejecuta están en [OneUptime AI en Seguridad de datos](/docs/data-security/ai).

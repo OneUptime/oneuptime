@@ -1,7 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
-import { describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import CappedListServer from "./CappedListServer";
 import NotificationRuleConditionsElement from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleConditions";
 import NotificationRuleViewConditionElement from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewCondition";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
@@ -166,6 +174,43 @@ function lookupProps(): {
       named(new MonitorStatus(), "c4c4c4c4c4c4c4c4c4c4c4c4", "Offline"),
     ],
   };
+}
+
+/*
+ * A condition's monitors, labels and SLOs are searched on the server, and
+ * the ones it holds read by their ids (RecordConditionPicker, #10646,
+ * #10689): ModelAPI answers from the project's records above.
+ */
+beforeEach(() => {
+  const server: CappedListServer = new CappedListServer();
+  const props: ReturnType<typeof lookupProps> = lookupProps();
+  const rows: (
+    records: Array<{ _id?: string; name?: string }>,
+  ) => Array<Record<string, unknown>> = (
+    records: Array<{ _id?: string; name?: string }>,
+  ): Array<Record<string, unknown>> => {
+    return records.map(
+      (record: { _id?: string; name?: string }): Record<string, unknown> => {
+        return { _id: record._id, name: record.name };
+      },
+    );
+  };
+
+  server.add(Monitor, rows(props.monitors));
+  server.add(Label, rows(props.labels));
+  server.add(ServiceLevelObjective, rows(props.serviceLevelObjectives));
+  server.install();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+// A searched picker's options, by name, as they are listed.
+function searchedOptions(): Array<string> {
+  return screen.queryAllByRole("option").map((option: HTMLElement): string => {
+    return (option.textContent || "").trim();
+  });
 }
 
 function renderConditions(eventType: NotificationRuleEventType): {
@@ -722,9 +767,11 @@ describe("The workspace notification rule Conditions editor", () => {
       ).toContain("has any of");
       await openDropdown(2);
 
+      // Searched on the server as the list opens (#10689).
+      await waitFor(() => {
+        expect(searchedOptions()).toEqual(["Payments", "Search"]);
+      });
       expect(screen.queryByText(NO_OPTIONS)).toBeNull();
-      expect(screen.getAllByText("Payments").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Search").length).toBeGreaterThan(0);
     });
 
     test("a chosen label is recorded on the condition by id", async () => {
@@ -1099,7 +1146,10 @@ describe("A security case rule's conditions", () => {
     });
     await openDropdown(2);
 
-    expect(listedOptions()).toEqual(["Payments", "Search"]);
+    // Searched on the server as the list opens (#10689).
+    await waitFor(() => {
+      expect(searchedOptions()).toEqual(["Payments", "Search"]);
+    });
 
     await userEvent.setup().click(screen.getByText("Payments"));
 
@@ -1310,10 +1360,13 @@ describe("An SLO rule's conditions", () => {
     await clickAddCondition();
     await openDropdown(2);
 
-    expect(listedOptions()).toEqual([
-      "Checkout availability",
-      "Search latency",
-    ]);
+    // Searched on the server as the list opens (#10689).
+    await waitFor(() => {
+      expect(searchedOptions()).toEqual([
+        "Checkout availability",
+        "Search latency",
+      ]);
+    });
 
     await userEvent.setup().click(screen.getByText("Search latency"));
 

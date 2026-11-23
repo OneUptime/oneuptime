@@ -1,6 +1,7 @@
 import { bold, boldIn, readRepoFile } from "./InventoryAndApiDocsSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { sectionInLanguage } from "./NetworkDocsLabels";
+import { withoutProductLevels } from "./DocsProductLevels";
 import {
   ADD_DEVICES_ACTION,
   DEVICE_KIND_NAMES,
@@ -22,6 +23,7 @@ import {
   MAX_DEVICES_PER_CONTROLLER_DEVICE_ADD,
 } from "Common/Types/NetworkController/NetworkControllerDeviceAdd";
 import Permission from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { describe, expect, it } from "@jest/globals";
 
@@ -311,9 +313,19 @@ describe("Network Traffic: Add devices, held to the code", () => {
     const update: Array<Permission> =
       new NetworkControllerConnection().getUpdatePermissions();
 
-    expect(update.sort()).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
-    );
+    /*
+     * The Network product's Admin level (#10289) adds them too, as Project
+     * Admin does: the permissions page describes a product's levels once
+     * for every product, its connections and credentials included, as the
+     * other pages leave them to it.
+     */
+    expect(update).toContain(Permission.NetworkAdmin);
+    expect(
+      withoutProductLevels({
+        permissions: update,
+        product: ProductKey.Network,
+      }).sort(),
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin].sort());
     expect(readRepoFile(CONNECTION_API)).toContain(
       "`${basePath}/:connectionId/add-devices`",
     );

@@ -8,6 +8,9 @@ import {
   translatableTerm,
 } from "Common/UI/Utils/TranslateTemplate";
 import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 
 /*
  * WHAT THE API MONITOR FORM'S REQUEST BODY FIELD SAYS UNDER ITS EDITOR
@@ -24,12 +27,22 @@ import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
  * form's Save (MonitorStep.getValidationError), the API and the probe do:
  * no error for an empty body or for one that is JSON once its placeholders
  * are filled in; for any other, the form's sentence for a field that is not
- * JSON, with where it stops being JSON, in the reader's language.
+ * JSON, with where it stops being JSON, in the reader's language. A body
+ * sent as text (#10736) is sent as written, and never has an error.
  */
 export const getRequestBodyFieldError: (
   body: string,
   translator: Translator,
-) => string | null = (body: string, translator: Translator): string | null => {
+  format?: MonitorRequestBodyFormat | undefined,
+) => string | null = (
+  body: string,
+  translator: Translator,
+  format?: MonitorRequestBodyFormat | undefined,
+): string | null => {
+  if (MonitorRequestBodyFormatUtil.isText(format)) {
+    return null;
+  }
+
   const problem: JsonSyntaxCheckResult | null =
     MonitorRequestBody.getProblem(body);
 

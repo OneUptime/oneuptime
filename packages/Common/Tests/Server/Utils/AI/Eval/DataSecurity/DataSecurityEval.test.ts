@@ -13,6 +13,7 @@ import DataSecurityEval, {
   DataSecurityEvalResult,
   DataSecurityEvalSummary,
   FIELD_CASE_PASS_SHARE,
+  pullRequestReviewPoints,
   scoreAnswer,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEval";
 import {
@@ -21,9 +22,12 @@ import {
   DataSecurityEvalCase,
   FieldSuggestionEvalCase,
   FixEvalCase,
+  PullRequestReviewEvalCase,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataSecurityEvalCase";
+import { PULL_REQUEST_LEAK_REVIEW_INSTRUCTIONS } from "../../../../../../Server/Utils/AI/DataSecurity/PullRequestLeakReview";
+import { ProductionReviewLeakJSON } from "../../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { ScrubRuleWriterRuleKind } from "../../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import {
   DataStoreOwnerCandidate,
@@ -327,6 +331,38 @@ function goodScrubRulesAnswer(testCase: ScrubRulesEvalCase): string {
   return JSON.stringify({ rules });
 }
 
+/*
+ * A pull request's right answer: each point kept or left out as the case
+ * says - those it names nothing of kept - each worded, its fix saying what
+ * the case asks of a fix.
+ */
+function goodPullRequestAnswer(testCase: PullRequestReviewEvalCase): string {
+  const points: Array<ProductionReviewLeakJSON> =
+    pullRequestReviewPoints(testCase);
+  const mentions: string = (testCase.expect.fixMentions || [])
+    .map((group: Array<string>): string => {
+      return group[0]!;
+    })
+    .join(", ");
+
+  return JSON.stringify({
+    candidates: points.map((point: ProductionReviewLeakJSON, index: number) => {
+      const keep: boolean | undefined = Object.entries(
+        testCase.expect.keeps,
+      ).find(([subject]: [string, boolean]): boolean => {
+        return subject.toLowerCase() === point.subject.toLowerCase();
+      })?.[1];
+
+      return {
+        id: `L${index + 1}`,
+        keep: keep !== false,
+        text: `The change writes \`${point.subject}\` where it should not.`,
+        fix: `Change it: ${mentions || "leave it out"}.`,
+      };
+    }),
+  });
+}
+
 function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
     case DataSecurityAiFeature.ExplainIssue:
@@ -349,6 +385,8 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return fixAnswer(SOLVED_GROUPS[testCase.id]!);
     case DataSecurityAiFeature.WriteScrubRules:
       return goodScrubRulesAnswer(testCase);
+    case DataSecurityAiFeature.ReviewPullRequests:
+      return goodPullRequestAnswer(testCase);
   }
 }
 
@@ -596,6 +634,83 @@ describe("scoring", () => {
       );
     },
   );
+
+  test("a pull request's answer that keeps what the case drops, or drops what it keeps, fails and says which", () => {
+    const hashed: PullRequestReviewEvalCase =
+      casesOf<PullRequestReviewEvalCase>(
+        DataSecurityAiFeature.ReviewPullRequests,
+      ).find((testCase: PullRequestReviewEvalCase): boolean => {
+        return testCase.id === "pull-request-log-hashed-email";
+      })!;
+    const right: Record<string, unknown> = JSON.parse(
+      goodPullRequestAnswer(hashed),
+    ) as Record<string, unknown>;
+    const flipped: string = JSON.stringify({
+      candidates: (right["candidates"] as Array<Record<string, unknown>>).map(
+        (candidate: Record<string, unknown>) => {
+          return { ...candidate, keep: !candidate["keep"] };
+        },
+      ),
+    });
+
+    expect(scoreAnswer(hashed, flipped)).toMatchObject({ passed: false });
+    expect(scoreAnswer(hashed, flipped).notes.join(" ")).toMatch(/kept/);
+  });
+
+  test("a pull request's answer that drops a point the check fails on keeps it anyway, as the review does", () => {
+    const login: PullRequestReviewEvalCase = casesOf<PullRequestReviewEvalCase>(
+      DataSecurityAiFeature.ReviewPullRequests,
+    ).find((testCase: PullRequestReviewEvalCase): boolean => {
+      return testCase.isFailOn === true;
+    })!;
+    const points: Array<ProductionReviewLeakJSON> =
+      pullRequestReviewPoints(login);
+
+    expect(
+      points.some((point: ProductionReviewLeakJSON): boolean => {
+        return point.failsCheck;
+      }),
+    ).toBe(true);
+
+    const dropsAll: string = JSON.stringify({
+      candidates: points.map(
+        (_point: ProductionReviewLeakJSON, index: number) => {
+          return {
+            id: `L${index + 1}`,
+            keep: false,
+            text: "",
+            fix: "Leave the password out of the log.",
+          };
+        },
+      ),
+    });
+
+    // Kept as the review keeps it: the case's keeps hold.
+    expect(scoreAnswer(login, dropsAll).notes).not.toContain(
+      "dropped password",
+    );
+  });
+
+  test("a pull request's case asks as a review asks: the read's own instructions, its points and their diff", () => {
+    for (const testCase of casesOf<PullRequestReviewEvalCase>(
+      DataSecurityAiFeature.ReviewPullRequests,
+    )) {
+      const call: DataSecurityEvalCall = buildEvalCall(testCase);
+      const sent: string = call.messages
+        .map((message: { content: string }): string => {
+          return message.content;
+        })
+        .join("\n");
+
+      expect(call.messages[0]!.content).toContain(
+        PULL_REQUEST_LEAK_REVIEW_INSTRUCTIONS.slice(0, 60),
+      );
+
+      for (const point of pullRequestReviewPoints(testCase)) {
+        expect(sent).toContain(point.subject);
+      }
+    }
+  });
 
   test("an owners answer that names someone else, makes one up or is too sure fails, and says why", () => {
     const ownersCase: (id: string) => StoreOwnersEvalCase = (

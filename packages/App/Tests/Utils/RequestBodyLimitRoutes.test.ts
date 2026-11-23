@@ -9,6 +9,7 @@ import getRequestBodyLimit, {
   INCOMING_REQUEST_ROUTE_PREFIXES,
   LARGE_REQUEST_BODY_LIMIT,
   MCP_OAUTH_REQUEST_BODY_LIMIT,
+  OPAMP_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
@@ -213,12 +214,16 @@ describe("the paths the App's own clients send large bodies to", () => {
           TELEMETRY_ROUTE_PREFIXES,
           "/pyroscope/push.v1.PusherService/Push",
         ),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/android-agent/v1/log-sessions"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fivetran/v1/webhook/id"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/airbyte/v1/webhook/key"),
       ],
       LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "a host collector's OpAMP messages, read once their key is checked and held to an OpAMP message's 1 MiB (#10770)",
+      under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
+      OPAMP_REQUEST_BODY_LIMIT,
     ],
     [
       "the uploads read once their ingest key is checked (#10673): a profile, source maps, dSYMs",
@@ -529,6 +534,29 @@ describe("the paths the App's own clients send large bodies to", () => {
     expect(mcpRoutes).toContain(
       "{ limit: getRequestBodyLimit(mcpEndpoint).bytes }",
     );
+
+    /*
+     * OpAMP's reader, after the key, reads the limit its route is listed
+     * with (#10770): the message's own 1 MiB, the most its handler takes.
+     */
+    const opamp: string = readSource(
+      "FeatureSet/Telemetry/API/HostCollectorOpAmp.ts",
+    );
+
+    expect(opamp).toContain(
+      "RequestBodyAfterAuthentication.readBody(OPAMP_REQUEST_BODY_LIMIT)",
+    );
+    expect(opamp).toContain(
+      "export const MAX_OPAMP_MESSAGE_BYTES: number = OPAMP_MESSAGE_MAX_BYTES;",
+    );
+    expect(opamp).not.toContain("LARGE_REQUEST_BODY_LIMIT");
+
+    for (const endpoint of ["/telemetry/opamp/v1", "/opamp/v1"]) {
+      expect({ endpoint, limit: getRequestBodyLimit(endpoint) }).toEqual({
+        endpoint,
+        limit: OPAMP_REQUEST_BODY_LIMIT,
+      });
+    }
 
     // The webhook text readers: their routes' 50 MB, as StartServer's.
     const sizeNamed: (file: string, name: string) => number = (

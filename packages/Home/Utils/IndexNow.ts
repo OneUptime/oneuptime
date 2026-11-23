@@ -1,4 +1,5 @@
 import logger from "Common/Server/Utils/Logger";
+import OutboundFetch from "Common/Server/Utils/OutboundFetch";
 
 /*
  * IndexNow (https://www.indexnow.org): a notice to search engines that pages
@@ -95,7 +96,11 @@ export function getIndexNowRequests(
   return requests;
 }
 
-// Sends a request to IndexNow over HTTP, giving up after INDEXNOW_TIMEOUT_IN_MS.
+/*
+ * Sends a request to IndexNow over HTTP, giving up after
+ * INDEXNOW_TIMEOUT_IN_MS: through the outbound proxy, or directly, as every
+ * request of the server goes (OutboundFetch, #10720).
+ */
 export const sendIndexNowRequest: IndexNowSender = async (
   request: IndexNowRequest,
 ): Promise<number> => {
@@ -105,7 +110,7 @@ export const sendIndexNowRequest: IndexNowSender = async (
   }, INDEXNOW_TIMEOUT_IN_MS);
 
   try {
-    const response: Response = await fetch(INDEXNOW_ENDPOINT, {
+    const response: Response = await OutboundFetch.fetch(INDEXNOW_ENDPOINT, {
       method: "POST",
       signal: controller.signal,
       headers: {

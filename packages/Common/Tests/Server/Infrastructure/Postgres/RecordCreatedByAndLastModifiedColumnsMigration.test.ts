@@ -100,6 +100,25 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityBlockCloudWaf",
     migration: "1809187430000-AddSecurityBlockCloudWaf.ts",
   },
+  // A firewall's blocklist feeds and the log of their fetches (#10345).
+  {
+    table: "SecurityBlocklistFeed",
+    migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
+  },
+  {
+    table: "SecurityBlocklistFeedFetch",
+    migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
+  },
+  // What OneUptime AI did on a case it works, one action each (#10352).
+  {
+    table: "SecurityCaseAiAction",
+    migration: "1809187452000-AddSecurityCaseAiResponse.ts",
+  },
+  // The issues one mistake made, as one group (#10370).
+  {
+    table: "DataSecurityIssueGroup",
+    migration: "1809187470370-AddDataSecurityIssueGroups.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

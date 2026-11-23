@@ -1,4 +1,6 @@
+import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
+import { getTableColumns } from "../../../Types/Database/TableColumn";
 import SecurityPlaybookRunService from "../../../Server/Services/SecurityPlaybookRunService";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -172,6 +174,10 @@ describe("a step of OneUptime AI's", () => {
     expect(SECURITY_PLAYBOOK_TRIGGERS).not.toContain(
       SecurityPlaybookTrigger.OneUptimeAi,
     );
+    // The playbook's column takes exactly these, its members written out on the model.
+    expect(
+      getTableColumns(new SecurityPlaybook())["trigger"]?.allowedValues,
+    ).toEqual([...SECURITY_PLAYBOOK_TRIGGERS]);
     expect(isOneUptimeAiRun({ trigger: SecurityPlaybookTrigger.Manual })).toBe(
       false,
     );

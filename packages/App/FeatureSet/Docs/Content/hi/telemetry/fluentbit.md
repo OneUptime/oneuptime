@@ -182,6 +182,31 @@ pipeline:
 
 `listen: 127.0.0.1` सिर्फ़ इसी होस्ट से लॉग लेता है: `http` इनपुट कोई कुंजी नहीं माँगता, इसलिए `listen: 0.0.0.0` के साथ जो कोई भी पोर्ट तक पहुँच सकता है, वह आपकी इंजेशन कुंजी से OneUptime को लॉग भेज सकता है। `http` इनपुट की जगह वे इनपुट लगाएं जिनकी आपको ज़रूरत है — जैसे लॉग फ़ाइलों के लिए `tail` या जर्नल के लिए `systemd` — और हर इनपुट पर दोनों प्रोसेसर और `storage.type: filesystem` बनाए रखें।
 
+## HTTP आउटपुट से भेजें
+
+Fluent Bit का [HTTP आउटपुट](https://docs.fluentbit.io/manual/pipeline/outputs/http) OneUptime के Fluentd एंडपॉइंट पर भी भेज सकता है, जो हर रिकॉर्ड को वैसे ही पढ़ता है जैसा [Fluentd पेज](/docs/telemetry/fluentd) बताता है। `format` को `json_lines` पर सेट करें, जैसा नीचे है, या `json` पर: OneUptime दोनों पढ़ता है, `compress: gzip` से कंप्रेस किए गए हों या नहीं। Fluent Bit का डिफ़ॉल्ट फ़ॉर्मैट, `msgpack`, अस्वीकार किया जाता है।
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: http
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      uri: "/fluentd/logs"
+      format: json_lines
+      # Send each record's time where OneUptime reads it
+      json_date_key: timestamp
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+        - x-oneuptime-service-name YOUR_SERVICE_NAME
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
+```
+
 ## सेल्फ़-होस्टेड OneUptime
 
 `host` को अपने OneUptime इंस्टेंस के होस्ट पर सेट करें। अगर वह HTTPS के बजाय सादे HTTP पर चलता है, तो `port` को भी उस पोर्ट पर सेट करें जिस पर वह सुनता है (आमतौर पर `80`) और `tls` हटा दें:

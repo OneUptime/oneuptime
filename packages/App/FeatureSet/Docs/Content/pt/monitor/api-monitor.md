@@ -55,7 +55,7 @@ O **Nome** é preenchido com o que você informou, como `api.example.com/health`
 
 ### Testá-lo
 
-Em **Alvo do monitor**, escolha o **Tipo de requisição de API** (**GET**, a menos que você o altere). Para adicionar cabeçalhos ou um corpo, abra **Mais campos** e preencha **Cabeçalhos da Requisição** e **Corpo da Requisição (em JSON)**. Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a API respondeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
+Em **Alvo do monitor**, escolha o **Tipo de requisição de API** (**GET**, a menos que você o altere). Para adicionar cabeçalhos ou um corpo, abra **Mais campos** e preencha **Cabeçalhos da Requisição** e **Corpo da Requisição**. Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a API respondeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 
@@ -107,14 +107,15 @@ Estas configurações ficam recolhidas em **Mais campos**. O cabeçalho recolhid
 | Campo | Padrão | O que faz |
 | --- | --- | --- |
 | **Cabeçalhos da Requisição** | Nenhum | Os cabeçalhos a enviar, como pares de nome e valor. Clique em **Adicionar: Cabeçalho da requisição** para cada um. |
-| **Corpo da Requisição (em JSON)** | Nenhum | O corpo a enviar, geralmente com **POST**, **PUT** ou **PATCH**: qualquer valor JSON, como um objeto, um array, uma string ou um número. Ele é enviado como você o escreve, como `application/json`, a menos que você defina um `Content-Type` em **Cabeçalhos da Requisição**. Com `application/x-www-form-urlencoded` ou `multipart/form-data`, um objeto é enviado como campos de formulário. |
+| **Formato do Corpo da Requisição** | **JSON** | Como o corpo é lido. **JSON** aceita qualquer valor JSON, como um objeto, um array, uma string ou um número. **Texto** aceita todo o resto, como XML para um endpoint SOAP, texto simples ou campos de formulário escritos como `a=1&b=2`, e nunca é lido como JSON. |
+| **Corpo da Requisição** | Nenhum | O corpo a enviar, geralmente com **POST**, **PUT** ou **PATCH**. Ele é enviado exatamente como você o escreve: um corpo **JSON** como `application/json`, um corpo **Texto** como `text/plain`, a menos que você defina um `Content-Type` em **Cabeçalhos da Requisição**. Com `application/x-www-form-urlencoded` ou `multipart/form-data`, um objeto **JSON** é enviado como campos de formulário. |
 | **Não seguir redirecionamentos** | Desativado | Avaliar a primeira resposta em vez de seguir os redirecionamentos. Veja [abaixo](#não-seguir-redirecionamentos). |
 | **Permitir certificados autoassinados** | Desativado | Pular a validação do certificado TLS para o próprio nome de host do monitor. |
 | **Usar certificado de cliente (mTLS)** | Desativado | Apresentar um certificado de cliente e uma chave privada. Veja [Certificado de cliente (mTLS)](#certificado-de-cliente-mtls). |
 | **Tempo Limite da Requisição (segundos)** | `60` | Quanto esperar por cada tentativa. O máximo é 60 segundos. |
 | **Tentativas em caso de falha** | Padrão da sonda, geralmente `3` | Quantas vezes repetir uma tentativa que falhou. O máximo é 3. Veja [Novas tentativas e tempos limite](#novas-tentativas-e-tempos-limite). |
 
-Os cabeçalhos e o corpo da requisição podem usar [segredos de monitor](/docs/monitor/monitor-secrets), por exemplo um cabeçalho `Authorization` com o valor `Bearer {{monitorSecrets.ApiKey}}`.
+Os cabeçalhos e o corpo da requisição podem usar [segredos de monitor](/docs/monitor/monitor-secrets), por exemplo um cabeçalho `Authorization` com o valor `Bearer {{monitorSecrets.ApiKey}}`. Em um corpo **JSON**, um segredo entre aspas, como em `{"password": "{{monitorSecrets.Password}}"}`, é escapado para a sua string, então um valor com uma `"`, uma `\` ou uma quebra de linha continua sendo uma só string. Um segredo fora das aspas, como em `[{{monitorSecrets.Ids}}]`, é escrito como está, assim como todo segredo de um corpo **Texto**.
 
 #### Não seguir redirecionamentos
 
@@ -245,7 +246,11 @@ A sonda lê no máximo 512 KiB de uma resposta, e esta é maior. Chame um endpoi
 :::
 
 :::details A verificação falha com "O corpo da requisição não é um JSON válido, então a requisição não foi enviada."
-O corpo não é JSON depois que seus [segredos de monitor](/docs/monitor/monitor-secrets) são preenchidos, então a sonda não enviou a requisição. Corrija o corpo em **Mais campos**, ou o valor de um segredo que ele usa: um valor com um `"` quebra a string JSON em que está.
+O corpo não é JSON depois que seus [segredos de monitor](/docs/monitor/monitor-secrets) são preenchidos, então a sonda não enviou a requisição. Corrija o corpo em **Mais campos**, ou o valor de um segredo fora das aspas, que é escrito como está. Para enviar um corpo que não é JSON, como XML ou campos de formulário, defina **Formato do Corpo da Requisição** como **Texto**.
+:::
+
+:::details A verificação diz que a sonda é antiga demais para enviar o corpo da requisição
+O corpo do monitor é um array JSON, um único valor ou **Texto**, e a sonda personalizada que o verifica executa uma versão anterior ao OneUptime 17.2.0, que envia apenas um objeto JSON, então a verificação não foi executada nela. [Atualize a sonda](/docs/probe/custom-probe#atualizar-uma-sonda) ou verifique o monitor a partir de outra sonda.
 :::
 
 ## Próximos passos

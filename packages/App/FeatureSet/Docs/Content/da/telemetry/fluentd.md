@@ -104,6 +104,8 @@ Tilføj en `<match>`-sektion, der sender poster til OneUptime. Erstat `YOUR_SERV
 
 `json_array true` sender hver chunk i bufferen som ét JSON-array, og `flush_interval 10s` sender bufferen hvert 10. sekund. `chunk_limit_size 900k` holder hver request under 1 MB, det højeste OneUptime tager imod på dette endpoint.
 
+Fluentds egen standard virker også: uden `content_type` og `json_array true` sender Fluentd linjeopdelt JSON, én post pr. linje, og OneUptime læser hver linje som den post, den er, med `compress gzip` eller uden.
+
 `@type file` gemmer de batches, der endnu skal sendes, i den mappe, `path` angiver, så en genstart af Fluentd ikke mister nogen af dem; en buffer i hukommelsen, Fluentds standard, mister det, den rummer. Fluentds bruger skal kunne skrive i mappen: `/var/log/fluent` er fluent-packages, `/var/log/td-agent` td-agents, og `/fluentd/log` er den i imaget `fluent/fluentd`. `total_limit_size 512m` gemmer højst 512 MB der; når den er fuld, tager Fluentd ikke imod flere poster, før en batch er sendt.
 
 `retryable_response_codes 429,502,503,504` sender en batch igen, når OneUptime har travlt (`429`) eller genstarter (`502`, `503`, `504`); uden den smider Fluentd en batch væk ved ethvert svar undtagen `503`. `retry_max_interval 30s` venter højst 30 sekunder mellem forsøgene, og `retry_timeout 72h` smider en batch væk, som stadig ikke kan sendes efter 72 timer. Filteret `record_transformer` tilføjer det tidspunkt, Fluentd gav hver post, som `fluentd_time`: HTTP-outputtet sender kun posten, og OneUptime læser en logs tidspunkt fra den.

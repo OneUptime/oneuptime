@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { InventoryLiveness } from "Common/Types/Telemetry/InventoryLiveness";
@@ -182,12 +182,17 @@ describe("Type facet", () => {
     expect((query as Includes).values).toEqual(values);
   });
 
-  test("is not builds an IncludesNone query", () => {
+  /*
+   * "Is not" keeps the items with no value (#10581): IncludesNoneOrNull is
+   * `NOT IN (...) OR IS NULL`, a class of its own and not a kind of
+   * IncludesNone, as every "is not" chip builds it.
+   */
+  test("is not builds an IncludesNoneOrNull query", () => {
     const values: Array<string> = [EntityType.Host, EntityType.Container];
     const query: unknown = typeFacet.toQueryValue!(values, "is_not");
 
-    expect(query).toBeInstanceOf(IncludesNone);
-    expect((query as IncludesNone).values).toEqual(values);
+    expect(query).toBeInstanceOf(IncludesNoneOrNull);
+    expect((query as IncludesNoneOrNull).values).toEqual(values);
   });
 
   test("an empty or nonsensical value operation constrains nothing", () => {
@@ -247,8 +252,8 @@ describe("Source facet", () => {
 
     expect(included).toBeInstanceOf(Includes);
     expect((included as Includes).values).toEqual(values);
-    expect(excluded).toBeInstanceOf(IncludesNone);
-    expect((excluded as IncludesNone).values).toEqual(values);
+    expect(excluded).toBeInstanceOf(IncludesNoneOrNull);
+    expect((excluded as IncludesNoneOrNull).values).toEqual(values);
   });
 
   test("is a multi-select with no meaningless empty operator", () => {
@@ -313,8 +318,8 @@ describe("Status facet", () => {
       InventoryLiveness.Never,
     ];
     const query: unknown = statusFacet.toQueryValue!(values, "is_not");
-    expect(query).toBeInstanceOf(IncludesNone);
-    expect((query as IncludesNone).values).toEqual(values);
+    expect(query).toBeInstanceOf(IncludesNoneOrNull);
+    expect((query as IncludesNoneOrNull).values).toEqual(values);
   });
 
   test("clearing or supplying a date operator removes the constraint", () => {
@@ -390,7 +395,7 @@ describe("Security Patch Level facet", () => {
     expect(securityPatchFacet.supportedOperators).toEqual(["is", "is_not"]);
   });
 
-  test("is builds an Includes query, is not an IncludesNone one", () => {
+  test("is builds an Includes query, is not an IncludesNoneOrNull one", () => {
     const outOfDate: unknown = securityPatchFacet.toQueryValue!(
       [AndroidSecurityPatchStatus.OutOfDate],
       "is",
@@ -404,7 +409,7 @@ describe("Security Patch Level facet", () => {
       [AndroidSecurityPatchStatus.UpToDate],
       "is_not",
     );
-    expect(notUpToDate).toBeInstanceOf(IncludesNone);
+    expect(notUpToDate).toBeInstanceOf(IncludesNoneOrNull);
   });
 });
 

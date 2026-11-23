@@ -1327,8 +1327,9 @@ describe("Push Notifications, against the server, the chart and the mobile app",
   it("sends through the relay without EXPO_ACCESS_TOKEN, and to Expo with it", () => {
     const service: string = readSource("pushService");
 
+    // The client's other option is the route of each request (#10720).
     expect(service).toContain(
-      "ExpoAccessToken ? { accessToken: ExpoAccessToken } : undefined",
+      "...(ExpoAccessToken ? { accessToken: ExpoAccessToken } : {}),",
     );
     expect(service).toContain("return Boolean(ExpoAccessToken);");
     expect(service).toContain(
