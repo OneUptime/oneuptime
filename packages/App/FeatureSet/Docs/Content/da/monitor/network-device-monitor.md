@@ -67,7 +67,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | Sektion | Sider |
 | --- | --- |
 | **Topologi** | **Enhedstopologi**, **Opdagede enheder**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
-| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Navngivningsregler**, **Ejerregler**, **Etiketregler**, **Linkregler** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Navngivningsregler**, **Ejerregler**, **Etiketregler**, **Linkregler**, **Auditlogs** |
 | **Indstillinger** | **Advarselspolitikker**, **SNMP-loginoplysninger**, **Enhedsroller**, **Lokationstyper**, **Adressenavne**, **Skabeloner til OID-indsamling** |
 | **Avanceret** | **SNMP-walk**, **Arkiverede enheder** |
 

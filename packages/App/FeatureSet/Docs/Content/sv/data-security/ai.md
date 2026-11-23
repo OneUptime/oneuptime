@@ -22,7 +22,7 @@ På ett problems sida visar kortet **OneUptime AI** ovanför **Så åtgärdar du
 
 ### AI-regler
 
-Under **AI-regler** på **Datasäkerhet → AI** säger en regel vilka problem OneUptime AI arbetar med - efter kontroll eller kontrollgrupp, allvarlighetsgrad, och datalagrets känslighet, typ, leverantör, miljö, etiketter, datakategorier och tjänst - och för varje typ av arbete, **Analysera**, **Begränsa**, **Åtgärd** och **Bedöm**, om den är **Av**, **Föreslå** (den föreslår och väntar på dig) eller **Utan att fråga**. När flera regler matchar ett problem körs en typ av arbete om någon av dem slår på den, och **Föreslå** går före **Utan att fråga**. Varje förslag säger vilken regel som avgjorde det. Utan regel gäller projektets standarder: analysera kritiska och höga problem, och föreslå allt annat.
+Under **AI-regler** på **Datasäkerhet → AI** säger en regel vilka problem OneUptime AI arbetar med - efter kontroll eller kontrollgrupp, allvarlighetsgrad, och datalagrets känslighet, typ, leverantör, miljö, etiketter, datakategorier och tjänst - och för varje typ av arbete, **Analysera**, **Begränsa**, **Åtgärd** och **Bedöm**, om den är **Av**, **Föreslå** (den föreslår och väntar på dig) eller **Automatiskt**. När flera regler matchar ett problem körs en typ av arbete om någon av dem slår på den, och **Föreslå** går före **Automatiskt**. Varje förslag säger vilken regel som avgjorde det. Utan regel gäller projektets standarder: analysera kritiska och höga problem, och föreslå allt annat.
 
 AI-regler hör till hela projektet, som AI-reglerna för incidenter och larm: Projektägare och Projektadministratörer ändrar dem, liksom alla som har fått behörigheterna för AI-regler. Säkerhetsrollerna ser vad OneUptime AI föreslog och gjorde, men inte reglerna.
 

@@ -69,7 +69,7 @@ Klikk på en tjeneste for å se forespørslene, feilene og gjennomsnittlig vente
 
 ### Åpne en forbindelse
 
-Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig ventetid. Mellom to tjenester du instrumenterer, har den også en **History** over kall, feil og ventetid.
+Klikk på en pil for å se forespørselsraten, feilraten og gjennomsnittlig ventetid. Mellom to tjenester du instrumenterer, har den også en **Historikk** over kall, feil og ventetid.
 :::
 
 **Tilkoblingsetiketter** skriver et tall på hver pil: **Forespørselshastighet**, **Feilrate** eller **Gjennomsnittlig latens**, eller ingenting før du holder musen over. **Tabell** viser de samme tjenestene med **Forespørsler**, **Feilrate**, **Gj.sn. latens** og **Tilkoblinger**, og **Vis på kartet** tegner én av dem.

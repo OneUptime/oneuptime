@@ -48,6 +48,8 @@ const PRODUCTS_OF_RUN_TYPE: Readonly<
   // The runbook that fits, picked from Runbooks'.
   [AIRunType.RemediationPlan]: [ProductKey.Runbooks],
   [AIRunType.RemediationExecution]: [],
+  // A security case: Security Events, from the case it works.
+  [AIRunType.SecurityCaseResponse]: [],
 };
 
 export const getProductsOfAIRun: (run: AIRunSubject) => Array<ProductKey> = (

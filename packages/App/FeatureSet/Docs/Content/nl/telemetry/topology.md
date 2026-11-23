@@ -69,7 +69,7 @@ Klik op een service voor zijn verzoeken, fouten en gemiddelde latentie in de laa
 
 ### Een verbinding openen
 
-Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde latentie ervan. Tussen twee services die u instrumenteert, heeft ze ook een **History** van aanroepen, fouten en latentie.
+Klik op een pijl voor het aantal verzoeken, het foutpercentage en de gemiddelde latentie ervan. Tussen twee services die u instrumenteert, heeft ze ook een **Geschiedenis** van aanroepen, fouten en latentie.
 :::
 
 **Verbindingslabels** schrijft een waarde op elke pijl: **Aanvraagsnelheid**, **Foutpercentage** of **Gemiddelde latentie**, of niets totdat u erboven zweeft. **Tabel** toont dezelfde services met hun **Aanvragen**, **Foutpercentage**, **Gem. latentie** en **Verbindingen**, en **Op kaart tonen** tekent er één van.

@@ -47,6 +47,7 @@ import {
   SECURITY_CASE_TRIAGE_REPORT_HEADING,
 } from "./SecurityCaseTriagePrompt";
 import ReadAudienceReader from "../../ReadAudience/ReadAudienceReader";
+import SecurityCaseResponse from "./Response/SecurityCaseResponse";
 import ReadAudience from "../../../../Types/BaseDatabase/ReadAudience";
 
 /*
@@ -324,6 +325,20 @@ export default class SecurityCaseTriageRunner {
         onlyPlaybooksThatStayInside: data.isSetupTestCase === true,
       });
     }
+
+    /*
+     * OneUptime AI works a case it read as Likely Malicious, where the
+     * project lets it (#10352), and hands one whose data held text written
+     * to steer an AI to people at once. It is handed the read and whether
+     * such text was found - never the report, which stays with the case's
+     * readers (SubjectReadersOnlyGuard).
+     */
+    await SecurityCaseResponse.startAfterTriage({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      verdict: decision.verdict,
+      isSteeringTextFound: data.scan.found(),
+    });
 
     return decision;
   }

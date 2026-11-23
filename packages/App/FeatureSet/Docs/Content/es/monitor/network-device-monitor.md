@@ -67,7 +67,7 @@ El menú Red mantiene a la vista lo que abres cada día: **Vista general**, **Di
 | Sección | Páginas |
 | --- | --- |
 | **Topología** | **Topología del dispositivo**, **Dispositivos descubiertos**, **Matriz de latencia**, **Enlaces del sitio**, **Enlaces del dispositivo** |
-| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas de nomenclatura**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces** |
+| **Reglas** | **Reglas de importación automática**, **Reglas de asignación de sitios**, **Reglas de nomenclatura**, **Reglas del propietario**, **Reglas de etiquetas**, **Reglas de enlaces**, **Registros de auditoría** |
 | **Ajustes** | **Políticas de alertas**, **Credenciales SNMP**, **Roles de dispositivo**, **Tipos de sitio**, **Nombres de dirección**, **Plantillas de recopilación de OID** |
 | **Avanzado** | **Recorrido SNMP**, **Dispositivos archivados** |
 

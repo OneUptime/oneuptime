@@ -69,6 +69,7 @@ export const EXCEPTION_SUMMARY_TEST_IDS: {
   buttons: string;
   morePlace: string;
   facts: string;
+  recordLine: string;
 } = {
   header: "exception-summary",
   top: "exception-summary-top",
@@ -79,6 +80,7 @@ export const EXCEPTION_SUMMARY_TEST_IDS: {
   buttons: "exception-summary-buttons",
   morePlace: "exception-summary-more-place",
   facts: "exception-summary-facts",
+  recordLine: "exception-summary-record-line",
 };
 
 export interface ExceptionSummaryStatus {
@@ -164,6 +166,12 @@ export interface ComponentProps {
    * out, the header has no Assignee fact.
    */
   assignee?: ReactElement | undefined;
+  /*
+   * The exception's line - its ID, who created it and who last modified it
+   * (RecordActivityLine, #10461) - at the summary's foot, under the facts.
+   * The Overview hands it; the summary over the other sections has none.
+   */
+  recordLine?: ReactElement | undefined;
 }
 
 const ExceptionSummary: FunctionComponent<ComponentProps> = (
@@ -530,6 +538,17 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
           );
         })}
       </dl>
+
+      {props.recordLine ? (
+        <div
+          className="border-t border-gray-100 px-4 py-3 sm:px-5"
+          data-testid={EXCEPTION_SUMMARY_TEST_IDS.recordLine}
+        >
+          {props.recordLine}
+        </div>
+      ) : (
+        <></>
+      )}
     </section>
   );
 };

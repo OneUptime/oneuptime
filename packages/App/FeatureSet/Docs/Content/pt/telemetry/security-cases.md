@@ -159,7 +159,7 @@ Todos que podem ver um caso veem o que o OneUptime encontrou. Ninguém edita iss
 
 ### Bloquear um endereço a partir de um caso
 
-Um endereço público de que o caso trata tem uma etapa própria no **Plano de resposta**. Enquanto um destino aplica sua lista de bloqueio, como Cloudflare, AWS WAF ou um firewall que lê uma lista, a etapa o nomeia, como em "Bloquear 35.205.11.131 em Cloudflare." **Bloquear por 24 horas** bloqueia o endereço ali, e o menu ao lado tem **Desafio em vez disso**, **Bloquear por 7 dias** e **Bloquear até a revogação**, que só um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode escolher. Pessoas passam em um desafio; scripts e clientes de API, não. Na página **Entidades** do caso, **Bloquear…** em um endereço faz o mesmo e pergunta por quanto tempo.
+Um endereço público de que o caso trata tem uma etapa própria no **Plano de resposta**. Enquanto um destino aplica sua lista de bloqueio, como Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) ou um firewall que lê uma lista, a etapa o nomeia, como em "Bloquear 35.205.11.131 em Cloudflare." **Bloquear por 24 horas** bloqueia o endereço ali, e o menu ao lado tem **Desafio em vez disso**, **Bloquear por 7 dias** e **Bloquear até a revogação**, que só um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode escolher. Pessoas passam em um desafio; scripts e clientes de API, não. Na página **Entidades** do caso, **Bloquear…** em um endereço faz o mesmo e pergunta por quanto tempo.
 
 - Um bloqueio passa pelo mecanismo de playbooks, como o bloqueio de um playbook: fica guardado na página **Playbooks** do caso, na **Linha do tempo** dele e no registro de auditoria. Ele aguarda a aprovação de outra pessoa, a menos que você seja Administrador de segurança, Administrador do projeto ou Proprietário do projeto.
 - Ele é recusado, com o motivo, para um endereço que as requisições do caso apenas alegavam, para um dos seus próprios endereços ou um protegido, e para um que um bloqueio já cobre.
@@ -253,7 +253,7 @@ Um Administrador de segurança gerencia os campos personalizados e os modelos de
 
 ## Notificações
 
-O OneUptime avisa as pessoas sobre seis coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
+O OneUptime avisa as pessoas sobre sete coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
 
 | Notificação | Quem é avisado | Por padrão |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ O OneUptime avisa as pessoas sobre seis coisas em um caso. Ninguém precisa conf
 | Meta de resposta de caso de segurança | As pessoas que cuidam do caso: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando ninguém cuida dele, as pessoas avisadas sobre casos novos na prioridade dele | E-mail e push |
 | Tarefa de caso de segurança atribuída a mim | A pessoa que recebe uma tarefa do caso, a menos que a tenha pegado ela mesma | E-mail e push |
 | Etapa de caso de segurança deixou de se sustentar | As pessoas que cuidam do caso, quando uma etapa que o OneUptime viu concluída deixa de se sustentar: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando ninguém cuida dele, as pessoas avisadas sobre casos novos na prioridade dele | E-mail e push |
+| O OneUptime AI entregou um caso de segurança às pessoas | As pessoas que cuidam do caso, quando o OneUptime AI para de trabalhar nele e diz por quê: a pessoa a quem ele está atribuído e os membros da equipe dele. Quando ninguém cuida dele, as pessoas avisadas sobre casos novos na prioridade dele | E-mail e push |
 
 - Só são avisadas sobre um caso as pessoas que podem vê-lo: Proprietários do projeto, Administradores do projeto e os papéis Administrador de segurança, Membro de segurança e Visualizador de segurança. Um papel limitado a alguns rótulos só é avisado sobre os casos com esses rótulos.
 - Ninguém é avisado sobre o que fez: a pessoa que abre um caso manualmente, o atribui ou inicia uma execução não é notificada disso.
 - Cada pessoa fica sabendo de um caso uma vez só. Um caso que abre como Medium e depois sobe para Crítico chega, quando sobe, às pessoas que escolheram High ou Crítico, e não de novo às que escolheram Medium, que já souberam dele quando ele abriu.
 - O ataque de teste de **Enviar um ataque de teste** abre um caso que não notifica ninguém.
-- Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup). O mesmo vale para uma meta de resposta prestes a ser perdida, ou perdida, e para uma etapa que deixou de se sustentar.
+- Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup). O mesmo vale para uma meta de resposta prestes a ser perdida, ou perdida, para uma etapa que deixou de se sustentar e para um caso que o OneUptime AI entregou às pessoas.
 - A **Linha do tempo** do caso diz quem foi avisado, e quando.
 
 ### Escolha sobre o que você é avisado
@@ -303,7 +304,7 @@ Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segur
 
 Cada notificação, exceto a de uma tarefa, é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **Alto** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
 
-A etapa **Atualizações** de uma regra escolhe quais destes avisos ela publica: **Novos casos e aumentos de prioridade**, **Atribuições**, **Aprovações pendentes** e **Metas de resposta**, uma caixa cada em **Escolher atualizações**. **Somente atualizações importantes** publica todos menos as atribuições, para um canal que só deve saber do que alguém precisa resolver. Uma regra salva antes da etapa, e uma regra nova, publica todos os avisos.
+A etapa **Atualizações** de uma regra escolhe quais destes avisos ela publica: **Novos casos e aumentos de prioridade**, **Atribuições**, **Aprovações pendentes**, **Metas de resposta** e **Entregue às pessoas pelo OneUptime AI**, uma caixa cada em **Escolher atualizações**. **Somente atualizações importantes** publica todos menos as atribuições, para um canal que só deve saber do que alguém precisa resolver. Uma regra salva antes da etapa, e uma regra nova, publica todos os avisos.
 
 ## Playbooks
 

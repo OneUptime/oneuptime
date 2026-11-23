@@ -159,7 +159,7 @@ Iedereen die een zaak kan zien, ziet wat OneUptime vond. Niemand bewerkt het: wi
 
 ### Een adres blokkeren vanuit een zaak
 
-Een openbaar adres waar de zaak over gaat, heeft een eigen stap in het **Responsplan**. Zolang een bestemming je blokkeerlijst toepast, zoals Cloudflare, AWS WAF of een firewall die een lijst leest, noemt de stap die, zoals in "35.205.11.131 blokkeren bij Cloudflare." **24 uur blokkeren** blokkeert het adres daar, en het menu ernaast bevat **In plaats daarvan challenge**, **7 dagen blokkeren** en **Blokkeren tot opheffing**, die alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan kiezen. Mensen doorstaan een challenge, scripts en API-clients niet. Op de pagina **Entiteiten** van de zaak doet **Blokkeren…** bij een adres hetzelfde, en vraagt hoe lang.
+Een openbaar adres waar de zaak over gaat, heeft een eigen stap in het **Responsplan**. Zolang een bestemming je blokkeerlijst toepast, zoals Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) of een firewall die een lijst leest, noemt de stap die, zoals in "35.205.11.131 blokkeren bij Cloudflare." **24 uur blokkeren** blokkeert het adres daar, en het menu ernaast bevat **In plaats daarvan challenge**, **7 dagen blokkeren** en **Blokkeren tot opheffing**, die alleen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar kan kiezen. Mensen doorstaan een challenge, scripts en API-clients niet. Op de pagina **Entiteiten** van de zaak doet **Blokkeren…** bij een adres hetzelfde, en vraagt hoe lang.
 
 - Een blokkering loopt via de playbook-engine, zoals de blokkering van een playbook: ze wordt bewaard op de pagina **Playbooks** van de zaak, op de **Tijdlijn** ervan en in het auditlogboek. Ze wacht op goedkeuring van iemand anders, tenzij je Beveiligingsbeheerder, Projectbeheerder of Projecteigenaar bent.
 - Ze wordt geweigerd, met de reden, voor een adres dat de aanvragen van de zaak alleen opgaven, voor een van je eigen adressen of een beschermd adres, en voor een adres dat al onder een blokkering valt.
@@ -253,7 +253,7 @@ Een Beveiligingsbeheerder beheert de aangepaste velden en notitiesjablonen, en e
 
 ## Meldingen
 
-OneUptime brengt mensen op de hoogte van zes dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
+OneUptime brengt mensen op de hoogte van zeven dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
 
 | Melding | Wie het hoort | Standaard |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime brengt mensen op de hoogte van zes dingen op een zaak. Niemand hoeft i
 | Reactiedoel van een beveiligingszaak | De mensen die aan de zaak werken: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
 | Aan mij toegewezen taak van een beveiligingszaak | De persoon die een taak van de zaak krijgt, tenzij die hem zelf nam | E-mail en push |
 | Stap van een beveiligingszaak houdt geen stand meer | De mensen die aan de zaak werken, wanneer een stap die OneUptime afgerond zag geen stand meer houdt: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
+| OneUptime AI heeft een beveiligingszaak aan mensen overgedragen | De mensen die aan de zaak werken, wanneer OneUptime AI stopt met het behandelen ervan en zegt waarom: de persoon aan wie ze is toegewezen en de leden van haar team. Werkt niemand eraan, dan de mensen die over nieuwe zaken met haar prioriteit horen | E-mail en push |
 
 - Alleen mensen die de zaak kunnen zien, horen erover: Projecteigenaren, Projectbeheerders en de rollen Beveiligingsbeheerder, Beveiligingslid en Beveiligingskijker. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
 - Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
 - Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
 - De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
-- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist, en voor een stap die geen stand meer houdt.
+- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist, voor een stap die geen stand meer houdt en voor een zaak die OneUptime AI aan mensen heeft overgedragen.
 - De **Tijdlijn** van de zaak laat zien wie het hoorde, en wanneer.
 
 ### Kiezen wat je hoort
@@ -303,7 +304,7 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveil
 
 Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
 
-De stap **Updates** van een regel kiest welke van deze meldingen hij plaatst: **Nieuwe zaken en verhoogde prioriteiten**, **Toewijzingen**, **Benodigde goedkeuringen** en **Reactiedoelen**, elk een vakje onder **Updates kiezen**. **Alleen belangrijke updates** plaatst ze allemaal behalve de toewijzingen, voor een kanaal dat alleen moet horen waar iemand iets mee moet. Een regel die vóór de stap is opgeslagen, en een nieuwe regel, plaatst elke melding.
+De stap **Updates** van een regel kiest welke van deze meldingen hij plaatst: **Nieuwe zaken en verhoogde prioriteiten**, **Toewijzingen**, **Benodigde goedkeuringen**, **Reactiedoelen** en **Door OneUptime AI aan mensen overgedragen**, elk een vakje onder **Updates kiezen**. **Alleen belangrijke updates** plaatst ze allemaal behalve de toewijzingen, voor een kanaal dat alleen moet horen waar iemand iets mee moet. Een regel die vóór de stap is opgeslagen, en een nieuwe regel, plaatst elke melding.
 
 ## Playbooks
 

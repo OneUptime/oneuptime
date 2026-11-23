@@ -207,6 +207,8 @@ export default class SecurityPlaybookAddressBlocks {
     config: BlockAddressConfig;
     targets: Array<SecurityPlaybookTarget>;
     personId?: ObjectID | undefined;
+    // Who made it, when not a person or a playbook: OneUptime AI (#10352).
+    source?: SecurityBlockSource | undefined;
   }): Promise<PlaybookStepOutcome> {
     const definition: SecurityPlaybookActionDefinition =
       getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)!;
@@ -264,9 +266,11 @@ export default class SecurityPlaybookAddressBlocks {
           duration: data.config.duration,
           reason,
           securityCaseId: data.securityCaseId,
-          source: data.personId
-            ? SecurityBlockSource.Person
-            : SecurityBlockSource.Playbook,
+          source:
+            data.source ||
+            (data.personId
+              ? SecurityBlockSource.Person
+              : SecurityBlockSource.Playbook),
           securityPlaybookRunId: data.runId,
           props,
         });
