@@ -56,7 +56,7 @@ O relatório conta o que foi criado e não trazido, e lista cada item com um lin
 | --- | --- | --- |
 | Monitors | Monitores | De um backup, cada monitor vira um monitor do mesmo tipo, com o mesmo endereço, intervalo, tempo limite e códigos de status que contam como disponível. Da página de métricas, cada um é trazido com uma verificação a cada cinco minutos: confira cada um após a importação. |
 
-- **Monitores HTTP(S) e de palavra-chave** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo JSON, com a palavra-chave onde ela deve estar.
+- **Monitores HTTP(S) e de palavra-chave** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo, com a palavra-chave onde ela deve estar.
 - **Monitores de consulta JSON** viram monitores de API, sem a consulta: adicione-a como critério no OneUptime.
 - **Monitores de ping, de porta e DNS** viram monitores de ping, de porta e DNS.
 - **Monitores push** viram monitores de requisições recebidas, que caem quando nenhuma requisição chega durante o intervalo e suas novas tentativas. Cada um tem um novo endereço no OneUptime.

@@ -9,6 +9,8 @@ import PortMonitor, { PortMonitorResponse } from "./MonitorTypes/PortMonitor";
 import SSLMonitor, { SslResponse } from "./MonitorTypes/SslMonitor";
 import SyntheticMonitor from "./MonitorTypes/SyntheticMonitor";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
+import MonitorLogUrl from "./MonitorLogUrl";
 import WebsiteMonitor, {
   ProbeWebsiteResponse,
 } from "./MonitorTypes/WebsiteMonitor";
@@ -335,14 +337,68 @@ export default class MonitorUtil {
        * an array until the slowest monitor in the worker's batch finishes.
        */
       logger.debug("Probed monitor step:");
-      logger.debug(result);
+      logger.debug(this.writeResultForLog(result, monitorStep));
     }
+  }
+
+  /*
+   * The URLs a step's check is sent to, as the server handed it over: the
+   * monitor's secrets filled in (#10785).
+   */
+  public static getStepUrls(monitorStep: MonitorStep): Array<string> {
+    const urls: Array<string> = [];
+    const destination: unknown = monitorStep.data?.monitorDestination;
+
+    if (destination instanceof URL) {
+      urls.push(destination.toString());
+    }
+
+    const statusPageUrl: unknown =
+      monitorStep.data?.externalStatusPageMonitor?.statusPageUrl;
+
+    if (typeof statusPageUrl === "string" && statusPageUrl) {
+      urls.push(statusPageUrl);
+    }
+
+    return urls;
+  }
+
+  /*
+   * A step's result as the debug log writes it (#10782, #10785): its
+   * destination, when that is a URL, by its scheme, host and port - the
+   * server filled the monitor's secrets into it - and every URL in what it
+   * reports the same way. The result reported is not changed.
+   */
+  public static writeResultForLog(
+    result: ProbeMonitorResponse | null,
+    monitorStep: MonitorStep,
+  ): ProbeMonitorResponse | JSONObject | null {
+    if (!result) {
+      return result;
+    }
+
+    const written: ProbeMonitorResponse = MonitorUrlInText.writeProbeResponse(
+      result,
+      this.getStepUrls(monitorStep),
+    );
+
+    if (!(written.monitorDestination instanceof URL)) {
+      return written;
+    }
+
+    return {
+      ...written,
+      monitorDestination: MonitorLogUrl.write(written.monitorDestination),
+    } as unknown as JSONObject;
   }
 
   /*
    * The result of a step whose check threw: offline, the error its cause,
    * so it is recorded and judged like any failed check - a monitor's
    * (probeMonitorInternal) and a test's (probeMonitorTestInternal) alike.
+   * The error may name the step's URL, which the server filled the
+   * monitor's secrets into (a URL that is no URL is quoted whole): the
+   * cause and the log name it by its scheme, host and port (#10785).
    */
   private static getStepThrewResult(data: {
     what: string;
@@ -352,10 +408,12 @@ export default class MonitorUtil {
     projectId: ObjectID;
     error: unknown;
   }): ProbeMonitorResponse {
+    const stepUrls: Array<string> = this.getStepUrls(data.monitorStep);
+
     logger.error(
       `${data.what} ${data.monitorId?.toString()} (${data.monitorType}) step ${data.monitorStep.id?.toString()} threw while probing:`,
     );
-    logger.error(data.error);
+    logger.error(MonitorUtil.withUrlsWritten(data.error, stepUrls));
 
     return {
       monitorStepId: data.monitorStep.id,
@@ -363,9 +421,39 @@ export default class MonitorUtil {
       monitorId: data.monitorId,
       probeId: ProbeUtil.getProbeId(),
       isOnline: false,
-      failureCause: API.getFriendlyErrorMessage(data.error as Error),
+      failureCause: MonitorUrlInText.writeUrls(
+        API.getFriendlyErrorMessage(data.error as Error),
+        stepUrls,
+      ),
       monitoredAt: OneUptimeDate.getCurrentDate(),
     };
+  }
+
+  /*
+   * An error for the log, every URL in its message and stack written by
+   * its scheme, host and port: the error itself, so the log still reads
+   * it as an error, of the class it was thrown as.
+   */
+  private static withUrlsWritten(
+    error: unknown,
+    urls: ReadonlyArray<string>,
+  ): unknown {
+    if (!(error instanceof Error)) {
+      return MonitorLogUrl.scrub(String(error), urls);
+    }
+
+    try {
+      error.message = MonitorLogUrl.scrub(error.message, urls);
+
+      if (typeof error.stack === "string") {
+        error.stack = MonitorLogUrl.scrub(error.stack, urls);
+      }
+
+      return error;
+    } catch {
+      // A message that cannot be written to: its text, written so.
+      return MonitorLogUrl.scrub(String(error), urls);
+    }
   }
 
   public static isHeadRequest(monitorStep: MonitorStep): boolean {

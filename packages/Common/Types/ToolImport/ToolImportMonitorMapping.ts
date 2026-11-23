@@ -1,4 +1,5 @@
 import HTTPMethod from "../API/HTTPMethod";
+import MonitorRequestBodyFormat from "../Monitor/MonitorRequestBodyFormat";
 import MonitorType from "../Monitor/MonitorType";
 import {
   makeToolImportNote,
@@ -6,10 +7,12 @@ import {
   ToolImportNoteCode,
 } from "./ToolImportNote";
 import {
-  readJsonBody,
+  namesContentType,
+  readRequestBody,
   splitRequestHeaders,
   TOOL_IMPORT_MAX_TIMEOUT_SECONDS,
   ToolImportHeaderSplit,
+  ToolImportRequestBody,
   toMonitoringInterval,
 } from "./ToolImportMonitorRules";
 import {
@@ -29,8 +32,11 @@ import {
  *  - A plain GET (or HEAD) with no headers and no body is a Website
  *    monitor; anything more - another method, headers, a body, or an
  *    answer read as JSON - is an API monitor, which sends them.
- *  - Headers that may hold a secret are left out and named; a body is sent
- *    only when it is a JSON object, the only body an API monitor sends.
+ *  - Headers that may hold a secret are left out and named. A body is sent
+ *    as JSON when it is JSON, and otherwise as the tool sends it, as text
+ *    byte for byte (#10787): XML, form fields, plain text. A form the tool
+ *    sends under a form's Content-Type is sent under it too, so it stays a
+ *    form.
  *  - Passwords are never copied: a check that signs in says so.
  *  - The interval and timeout OneUptime cannot match exactly are said.
  */
@@ -50,6 +56,17 @@ export interface HttpCheckInput {
   method?: string | undefined;
   headers?: Array<HttpCheckHeader> | undefined;
   body?: string | undefined;
+  /*
+   * The tool sends the body as written, whatever it holds, never as JSON
+   * (Uptime Kuma's form and XML bodies): it is kept as text, byte for byte.
+   */
+  isBodySentAsWritten?: boolean | undefined;
+  /*
+   * The Content-Type the tool sends the body under when the check's own
+   * headers name none - a form's, XML's: the monitor names it too, so a
+   * form stays a form.
+   */
+  bodyContentType?: string | undefined;
   followRedirects?: boolean | undefined;
   timeoutSeconds?: number | undefined;
   intervalSeconds?: number | undefined;
@@ -105,19 +122,20 @@ export function toHttpMonitor(input: HttpCheckInput): ImportedMonitor {
     notes.push(makeToolImportNote(ToolImportNoteCode.MonitorSignInLeftOut));
   }
 
-  let body: string | undefined = undefined;
+  /*
+   * The body, as the API monitor sends what the tool sends: JSON when it
+   * is, the tool's text byte for byte when it is not. A GET or a HEAD
+   * sends none.
+   */
+  const body: ToolImportRequestBody | null =
+    method !== HTTPMethod.GET && method !== HTTPMethod.HEAD
+      ? readRequestBody(input.body, {
+          isSentAsWritten: input.isBodySentAsWritten,
+        })
+      : null;
 
-  if (
-    input.body &&
-    input.body.trim() &&
-    method !== HTTPMethod.GET &&
-    method !== HTTPMethod.HEAD
-  ) {
-    body = readJsonBody(input.body) || undefined;
-
-    if (!body) {
-      notes.push(makeToolImportNote(ToolImportNoteCode.MonitorBodyLeftOut));
-    }
+  if (body && input.bodyContentType && !namesContentType(headers.kept)) {
+    headers.kept["Content-Type"] = input.bodyContentType;
   }
 
   const hasHeaders: boolean = Object.keys(headers.kept).length > 0;
@@ -158,7 +176,11 @@ export function toHttpMonitor(input: HttpCheckInput): ImportedMonitor {
     }
 
     if (body) {
-      monitor.requestBody = body;
+      monitor.requestBody = body.body;
+
+      if (body.isText) {
+        monitor.requestBodyFormat = MonitorRequestBodyFormat.Text;
+      }
     }
   }
 

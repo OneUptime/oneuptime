@@ -71,7 +71,7 @@ flowchart TB
 
 ### نشانی وب‌سایت
 
-صفحه‌ای که بررسی می‌شود، به‌صورت یک نشانی کامل همراه با طرح آن: `https://example.com`، `https://example.com/pricing` یا `http://example.com:8080/health`. می‌توانید یک [راز مانیتور](/docs/monitor/monitor-secrets) را به‌صورت `{{monitorSecrets.NAME}}` در نشانی بگذارید، برای نمونه یک توکن در رشتهٔ پرس‌وجو.
+صفحه‌ای که بررسی می‌شود، به‌صورت یک نشانی کامل همراه با طرح آن: `https://example.com`، `https://example.com/pricing` یا `http://example.com:8080/health`. می‌توانید یک [راز مانیتور](/docs/monitor/monitor-secrets) را به‌صورت `{{monitorSecrets.NAME}}` در نشانی بگذارید، برای نمونه یک توکن در رشتهٔ پرس‌وجو. خطای بررسیِ ناموفق، نشانی را فقط با طرح، میزبان و درگاه آن نام می‌برد، مثل `https://example.com`، پس راز هرگز نشان داده نمی‌شود.
 
 ### جای‌نگهدارهای پویای نشانی
 

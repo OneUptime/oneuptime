@@ -71,7 +71,7 @@ Mantenha ou altere as **Sondas** e o **Intervalo de monitoramento** (começa em 
 
 ### URL do site
 
-A página a verificar, como URL completa com o esquema: `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`, por exemplo um token na string de consulta.
+A página a verificar, como URL completa com o esquema: `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`, por exemplo um token na string de consulta. O erro de uma verificação que falhou cita a URL apenas pelo esquema, host e porta, como `https://example.com`, então o segredo nunca aparece.
 
 ### Marcadores dinâmicos na URL
 

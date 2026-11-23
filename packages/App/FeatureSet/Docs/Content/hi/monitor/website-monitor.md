@@ -71,7 +71,7 @@ flowchart TB
 
 ### वेबसाइट URL
 
-जांचने वाला पेज, स्कीम सहित पूरे URL के रूप में: `https://example.com`, `https://example.com/pricing` या `http://example.com:8080/health`। आप URL में `{{monitorSecrets.NAME}}` के रूप में कोई [मॉनिटर रहस्य](/docs/monitor/monitor-secrets) रख सकते हैं, जैसे क्वेरी स्ट्रिंग में कोई टोकन।
+जांचने वाला पेज, स्कीम सहित पूरे URL के रूप में: `https://example.com`, `https://example.com/pricing` या `http://example.com:8080/health`। आप URL में `{{monitorSecrets.NAME}}` के रूप में कोई [मॉनिटर रहस्य](/docs/monitor/monitor-secrets) रख सकते हैं, जैसे क्वेरी स्ट्रिंग में कोई टोकन। विफल जांच की त्रुटि URL को सिर्फ़ उसकी स्कीम, होस्ट और पोर्ट से बताती है, जैसे `https://example.com`, इसलिए रहस्य कभी नहीं दिखता।
 
 ### डायनामिक URL प्लेसहोल्डर
 

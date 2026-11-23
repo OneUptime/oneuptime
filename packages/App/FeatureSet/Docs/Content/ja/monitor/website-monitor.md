@@ -71,7 +71,7 @@ flowchart TB
 
 ### ウェブサイト URL
 
-チェックするページを、スキームを含む完全な URL で指定します。`https://example.com`、`https://example.com/pricing`、`http://example.com:8080/health` などです。URL には `{{monitorSecrets.NAME}}` として [モニターシークレット](/docs/monitor/monitor-secrets) を入れられます。たとえばクエリ文字列のトークンです。
+チェックするページを、スキームを含む完全な URL で指定します。`https://example.com`、`https://example.com/pricing`、`http://example.com:8080/health` などです。URL には `{{monitorSecrets.NAME}}` として [モニターシークレット](/docs/monitor/monitor-secrets) を入れられます。たとえばクエリ文字列のトークンです。チェックが失敗したときのエラーには、`https://example.com` のように URL のスキーム、ホスト、ポートだけが示されるため、シークレットが表示されることはありません。
 
 ### 動的な URL プレースホルダー
 

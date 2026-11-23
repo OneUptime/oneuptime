@@ -70,7 +70,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 
 ### API-URL
 
-Slutpunkten som anropas, som fullständig URL med schema, som `https://api.example.com/v1/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`.
+Slutpunkten som anropas, som fullständig URL med schema, som `https://api.example.com/v1/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`. Felet från en misslyckad kontroll nämner bara URL:ens schema, värd och port, som `https://api.example.com`, så hemligheten visas aldrig.
 
 ### Dynamiska URL-platshållare
 
@@ -251,7 +251,7 @@ Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor
 :::
 
 :::details Kontrollen säger att sonden är för gammal för att skicka kroppen
-Monitorns kropp är en JSON-array, ett enda värde eller **Text**, och den anpassade sonden som kontrollerar den kör en version äldre än OneUptime 17.2.0, som bara skickar ett JSON-objekt, så kontrollen kördes inte på den. [Uppdatera sonden](/docs/probe/custom-probe#uppdatera-en-sond) eller kontrollera monitorn från en annan sond.
+Monitorns kropp är en JSON-array, ett enda värde eller **Text**, och den anpassade sonden som kontrollerar den kör en äldre version, som bara skickar ett JSON-objekt, så kontrollen kördes inte på den. Monitorns formulär och sondens sida nämner en sådan sond. [Uppdatera sonden](/docs/probe/custom-probe#uppdatera-en-sond) till den senaste versionen eller kontrollera monitorn från en annan sond.
 :::
 
 ## Nästa steg

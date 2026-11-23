@@ -70,7 +70,7 @@ Behold eller ret **Sonder** og **Overvågningsinterval** (det starter på **Hver
 
 ### API-URL
 
-Det endpoint, der kaldes, som fuld URL med skema, som `https://api.example.com/v1/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`.
+Det endpoint, der kaldes, som fuld URL med skema, som `https://api.example.com/v1/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`. Fejlen fra et mislykket tjek nævner kun URL'ens skema, vært og port, som `https://api.example.com`, så hemmeligheden vises aldrig.
 
 ### Dynamiske URL-pladsholdere
 
@@ -251,7 +251,7 @@ Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monito
 :::
 
 :::details Tjekket siger, at sonden er for gammel til at sende brødteksten
-Monitorens brødtekst er et JSON-array, en enkelt værdi eller **Tekst**, og den brugerdefinerede sonde, der tjekker den, kører en udgivelse ældre end OneUptime 17.2.0, som kun sender et JSON-objekt, så tjekket blev ikke kørt på den. [Opdater sonden](/docs/probe/custom-probe#opdater-en-sonde), eller tjek monitoren fra en anden sonde.
+Monitorens brødtekst er et JSON-array, en enkelt værdi eller **Tekst**, og den brugerdefinerede sonde, der tjekker den, kører en ældre udgivelse, som kun sender et JSON-objekt, så tjekket blev ikke kørt på den. Monitorens formular og sondens side nævner en sådan sonde. [Opdater sonden](/docs/probe/custom-probe#opdater-en-sonde) til den nyeste udgivelse, eller tjek monitoren fra en anden sonde.
 :::
 
 ## Næste skridt

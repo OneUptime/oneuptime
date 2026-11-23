@@ -70,7 +70,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 ### API URL
 
-The endpoint to call, as a full URL with its scheme, such as `https://api.example.com/v1/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`.
+The endpoint to call, as a full URL with its scheme, such as `https://api.example.com/v1/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`. A failed check's error names the URL by its scheme, host and port alone, such as `https://api.example.com`, so the secret is never shown.
 
 ### Dynamic URL placeholders
 
@@ -251,7 +251,7 @@ The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) a
 :::
 
 :::details The check says the probe is too old to send the request body
-The monitor's body is a JSON array, a single value or **Text**, and the custom probe that checks it runs a release older than OneUptime 17.2.0, which sends only a JSON object, so the check did not run on it. [Update the probe](/docs/probe/custom-probe#update-a-probe), or check the monitor from another probe.
+The monitor's body is a JSON array, a single value or **Text**, and the custom probe that checks it runs an older release, which sends only a JSON object, so the check did not run on it. The monitor's form and the probe's page name such a probe. [Update the probe](/docs/probe/custom-probe#update-a-probe) to the latest release, or check the monitor from another probe.
 :::
 
 ## Next steps

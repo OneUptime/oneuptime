@@ -70,7 +70,7 @@ Conserve o cambie las **Sondas** y el **Intervalo de monitoreo** (empieza en **C
 
 ### URL de API
 
-El endpoint al que se llama, como URL completa con su esquema, como `https://api.example.com/v1/health`. Puede poner un [secreto de monitor](/docs/monitor/monitor-secrets) en la URL como `{{monitorSecrets.NAME}}`.
+El endpoint al que se llama, como URL completa con su esquema, como `https://api.example.com/v1/health`. Puede poner un [secreto de monitor](/docs/monitor/monitor-secrets) en la URL como `{{monitorSecrets.NAME}}`. El error de una comprobación fallida nombra la URL solo por su esquema, su host y su puerto, como `https://api.example.com`, así que el secreto nunca se muestra.
 
 ### Marcadores de URL dinámicos
 
@@ -251,7 +251,7 @@ El cuerpo no es JSON una vez rellenados sus [secretos de monitor](/docs/monitor/
 :::
 
 :::details La comprobación dice que la sonda es demasiado antigua para enviar el cuerpo de la solicitud
-El cuerpo del monitor es un array JSON, un único valor o **Texto**, y la sonda personalizada que lo comprueba ejecuta una versión anterior a OneUptime 17.2.0, que solo envía un objeto JSON, así que la comprobación no se ejecutó en ella. [Actualice la sonda](/docs/probe/custom-probe#actualizar-una-sonda) o compruebe el monitor desde otra sonda.
+El cuerpo del monitor es un array JSON, un único valor o **Texto**, y la sonda personalizada que lo comprueba ejecuta una versión más antigua, que solo envía un objeto JSON, así que la comprobación no se ejecutó en ella. El formulario del monitor y la página de la sonda nombran una sonda así. [Actualice la sonda](/docs/probe/custom-probe#actualizar-una-sonda) a la última versión o compruebe el monitor desde otra sonda.
 :::
 
 ## Próximos pasos

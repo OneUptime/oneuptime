@@ -71,7 +71,7 @@ Gardez ou changez les **Sondes** et l'**Intervalle de surveillance** (il commenc
 
 ### URL du site web
 
-La page à vérifier, sous forme d'URL complète avec son schéma : `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`, par exemple un jeton dans la chaîne de requête.
+La page à vérifier, sous forme d'URL complète avec son schéma : `https://example.com`, `https://example.com/pricing` ou `http://example.com:8080/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`, par exemple un jeton dans la chaîne de requête. L'erreur d'une vérification échouée ne nomme l'URL que par son schéma, son hôte et son port, comme `https://example.com`, si bien que le secret n'est jamais affiché.
 
 ### Espaces réservés d'URL dynamiques
 

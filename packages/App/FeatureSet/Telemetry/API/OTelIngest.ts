@@ -6,14 +6,15 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import OpenTelemetryRequestMiddleware from "../Middleware/OtelRequestMiddleware";
 /*
  * OneUptime's own ingest metrics (telemetry.ingest.request.*), shared with
- * the compatible endpoints. Stacked below parseBody, so the payload size is
- * read from the body it read, and before the ingestion-key guard, so auth
- * failures still get counted as "rejected".
+ * the compatible endpoints. Stacked before the ingestion-key guard, so auth
+ * failures still get counted as "rejected"; the payload size is recorded
+ * once the guard has read the body (readOtlpBody).
  */
 import { ingestMetricsMiddleware } from "../Middleware/IngestRequestMetrics";
 import OtelTracesIngestService from "../Services/OtelTracesIngestService";
@@ -34,13 +35,24 @@ const router: ExpressRouter = Express.getRouter();
  *
  */
 
+/*
+ * An export's body, read once its ingest key is right (#10814), as the rest
+ * of telemetry's batches are (#10702): nothing of it is read for a request
+ * without the right key, where up to 50 MiB of it was buffered, for anyone.
+ * Read between the key and the ingestion budget, which measures it in
+ * Refuse mode, as it was read before: raw, held to its cap, a coding the
+ * worker cannot undo refused 415 (OpenTelemetryRequestMiddleware
+ * .readBodyAfterKey).
+ */
+const readOtlpBody: RequestHandler =
+  OpenTelemetryRequestMiddleware.readBodyAfterKey;
+
 router.post(
   "/otlp/v1/traces",
   TelemetryIngestionDisabled.middleware,
-  OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("traces"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelTraces),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelTraces, readOtlpBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -53,10 +65,9 @@ router.post(
 router.post(
   "/otlp/v1/metrics",
   TelemetryIngestionDisabled.middleware,
-  OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("metrics"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelMetrics),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelMetrics, readOtlpBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -69,10 +80,9 @@ router.post(
 router.post(
   "/otlp/v1/logs",
   TelemetryIngestionDisabled.middleware,
-  OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("logs"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs, readOtlpBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -85,10 +95,9 @@ router.post(
 router.post(
   "/otlp/v1/profiles",
   TelemetryIngestionDisabled.middleware,
-  OpenTelemetryRequestMiddleware.parseBody,
   ingestMetricsMiddleware("profiles"),
   OpenTelemetryRequestMiddleware.getProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelProfiles),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.OtelProfiles, readOtlpBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

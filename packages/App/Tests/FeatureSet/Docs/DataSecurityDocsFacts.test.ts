@@ -92,6 +92,7 @@ import {
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -2463,11 +2464,14 @@ describe("Data Security Compliance", () => {
     expect(stores[1]?.[2]).toBe(
       `${NETWORK_FLOW_RETENTION_IN_DAYS} days after a flow arrives`,
     );
+    // The record keeps the figure on its word's line; the table writes a space.
     expect(stores[2]?.[2]).toBe(
       getDeclaredRetentionText({
         basis: DeclaredStoreRetentionBasis.AddressVault,
         retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
-      }),
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
     );
 
     // Who can read: the tables' own readers, or nobody but Security Events' scans.
