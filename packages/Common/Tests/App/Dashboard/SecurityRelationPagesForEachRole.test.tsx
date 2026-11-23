@@ -459,6 +459,10 @@ describe("Data Security > Scans, for each reader of scans", () => {
       cloudConnection: { name: true, config: true },
     };
 
+    /*
+     * Cloud's product levels read a connection's configuration as the roles
+     * they follow do (#10289), so the refusal names them last.
+     */
     for (const reader of [...SECURITY_TIERS_AND_OWNERS.slice(2), SCAN_READER]) {
       expect(
         serverCheckOf(DataSecurityScan, withConfig, reader.permissions),

@@ -341,6 +341,7 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
       makeOutcomes({
         dataSecurity: makeDataSecurity(),
         issueVerdicts: makeIssueVerdicts(),
+        leaks: { fixed: 6, open: 2, foundAfter: 4 },
       }),
     )) {
       for (const breakdown of card.breakdowns as Array<AiResultsBreakdown>) {
@@ -396,6 +397,10 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
         "cannotTell",
         "waiting",
       ],
+      // Caught and fixed, caught and still open, found after (#10376).
+      [AiOutcomesPart.Leaks]: [
+        ...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.Leaks],
+      ],
     });
     expect([...opened[AiOutcomesPart.IssueVerdicts]!].sort()).toEqual(
       [...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.IssueVerdicts]].sort(),
@@ -406,6 +411,7 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
     const outcomes: AiOutcomes = makeOutcomes({
       dataSecurity: makeDataSecurity(),
       issueVerdicts: makeIssueVerdicts(),
+      leaks: { fixed: 6, open: 2, foundAfter: 4 },
     });
     const counts: Record<AiOutcomesPart, Record<string, number>> = {
       [AiOutcomesPart.Pages]: outcomes.pages as unknown as Record<
@@ -429,6 +435,10 @@ describe("each part of a breakdown names the records it opens (#7768)", () => {
         .proposals as unknown as Record<string, number>,
       [AiOutcomesPart.IssueVerdicts]:
         outcomes.issueVerdicts as unknown as Record<string, number>,
+      [AiOutcomesPart.Leaks]: outcomes.leaks as unknown as Record<
+        string,
+        number
+      >,
     };
 
     for (const card of getAiResultsCards(outcomes)) {

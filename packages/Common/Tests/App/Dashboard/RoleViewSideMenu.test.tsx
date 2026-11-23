@@ -101,13 +101,17 @@ describe("a custom role's own menu", () => {
       ]);
     });
 
-    test("Custom Role holds the role's own page, by its address", async () => {
+    test("Custom Role holds the role's own pages, by their addresses: its Overview, then its Audit Logs", async () => {
       await renderRoleMenu();
 
       expect(linksIn("Custom Role")).toEqual([
         {
           title: "Overview",
           href: `/dashboard/${PROJECT_ID}/teams/roles/${ROLE_ID}`,
+        },
+        {
+          title: "Audit Logs",
+          href: `/dashboard/${PROJECT_ID}/teams/roles/${ROLE_ID}/audit-logs`,
         },
       ]);
     });
@@ -166,7 +170,7 @@ describe("a custom role's own menu", () => {
     test("every entry has an icon, and the Developer pages keep theirs", async () => {
       await renderRoleMenu();
 
-      expect(iconCountIn("Custom Role")).toBe(1);
+      expect(iconCountIn("Custom Role")).toBe(2);
       expect(iconCountIn(DEVELOPER_DOCS_SECTION_TITLE)).toBe(
         DEVELOPER_DOCS_PAGES.length,
       );

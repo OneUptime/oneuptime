@@ -137,12 +137,14 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     /*
      * The check a production review adds on GitHub: its name and titles,
      * written by the server in English (ProductionReviewRunner,
-     * ProductionReviewComposer).
+     * ProductionReviewComposer) - the one it fails with on a leak, and the
+     * commit status's on GitLab, Forgejo and Gitea, included (#10376).
      */
     [CODE_PAGE]: [
       "OneUptime production review",
       "Something in production is worth a look",
       "Nothing in production runs through these changes",
+      "Sensitive data in these changes fails this check",
     ],
     // The heading a review writes its production findings under, on GitHub.
     [GITHUB_APP]: ["Production context"],

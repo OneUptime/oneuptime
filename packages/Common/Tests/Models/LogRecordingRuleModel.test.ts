@@ -101,8 +101,6 @@ describe("LogRecordingRule", () => {
         "createdByUser",
         "createdByUserId",
         "definition",
-        "deletedByUser",
-        "deletedByUserId",
         "description",
         "isEnabled",
         "name",
