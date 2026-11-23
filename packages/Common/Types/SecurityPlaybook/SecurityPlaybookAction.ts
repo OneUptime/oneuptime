@@ -503,7 +503,7 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
       type: SecurityPlaybookActionType.FixWithAi,
       title: "Fix the code with AI",
       description:
-        "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it.",
+        "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share.",
       category: SecurityPlaybookActionCategory.Automate,
       icon: IconProp.Sparkles,
       isDisruptive: false,

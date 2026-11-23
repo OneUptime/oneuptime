@@ -12,6 +12,8 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeFixTaskContext, {
+  getInfrastructureFixTaskContext,
+  InfrastructureFixTaskContext,
   CodeHostPullRequestTaskContext,
   getCodeHostPullRequestTaskContext,
   getGitHubTaskContext,
@@ -405,6 +407,23 @@ export default class CodeTaskOrigin {
             )
           : "",
         recordId: run.triggeredByAlertId.toString(),
+      };
+    }
+
+    /*
+     * The fix of a group of Data Security issues' cause (#10370): the
+     * cause names it, and the group is where its issues are.
+     */
+    const infrastructureFix: InfrastructureFixTaskContext | null =
+      getInfrastructureFixTaskContext(data.taskContext?.infrastructureFix);
+
+    if (infrastructureFix) {
+      return {
+        type: CodeTaskOriginType.DataSecurityIssueGroup,
+        label: CodeTaskOrigin.shorten(
+          infrastructureFix.cause || infrastructureFix.title,
+        ),
+        recordId: infrastructureFix.groupId,
       };
     }
 

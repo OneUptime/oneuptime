@@ -114,7 +114,7 @@ Klikk på **Opprett Budsjett** på kortet **Team- og etikettbudsjetter**. Velg t
 Klikk på **Opprett Budsjett**. Budsjettet til et team eller en etikett kan ikke være større enn prosjektets: OneUptime avviser det og sier hvor stort det kan være som mest.
 :::
 
-- **Hva det teller.** Loggene, sporene, målingene og profilene fra hver tjeneste, vert, klynge og annen ressurs teamet eier, eller som har etiketten, enten de sendes over OpenTelemetry (OTLP) eller, for logger, fra Fluent Bit, Fluentd eller syslog. Sikkerhetshendelser telles bare mot prosjektets og nøkkelens budsjetter.
+- **Hva det teller.** Loggene, sporene, målingene og profilene fra hver tjeneste, vert, klynge og annen ressurs teamet eier, eller som har etiketten, enten de sendes over OpenTelemetry (OTLP) eller, for logger, fra Fluent Bit, Fluentd eller syslog, inkludert syslog som nettverksenheter sender til en sonde. Sikkerhetshendelser telles bare mot prosjektets og nøkkelens budsjetter.
 - **Hvem en ressurs tilhører.** En tjeneste, en vert eller en annen ressurs tilhører et team når teamet er blant eierne, og en etikett når den har etiketten: de samme eierne og etikettene som avgjør hvem som kan lese telemetrien dens. En endring i dem telles innen et minutt.
 - **Når det er brukt opp, forkastes telemetrien.** Telemetrien deres for det signalet forkastes til tilbakestillingen, og avsenderen får ikke beskjed: den fikk svaret sitt da telemetrien kom inn. Det som forkastes, telles ikke lenger mot prosjektets eller nøkkelens budsjett.
 - **Hvem som får beskjed.** Prosjekteiere får en e-post når budsjettet passerer advarselsterskelen, og når det er brukt opp.
@@ -135,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Andre HTTP-avsendere får JSON.** Fluent Bit, Fluentd, syslog og de andre HTTP-endepunktene får `error`, `message` og `resetsAt`, og fra en hastighetsgrense også `retryAfterSeconds`.
-- **MQTT og strømmer fra skyleverandører kan ikke få beskjed.** Telemetri som kommer inn over MQTT eller fra en skyleverandørs strøm, forkastes når budsjettet er brukt opp. Ingen hastighetsgrense gjelder for den: den kunne ikke sendes på nytt.
+- **MQTT, strømmer fra skyleverandører og sonder kan ikke få beskjed.** Telemetri som kommer inn over MQTT eller fra en skyleverandørs strøm, forkastes når budsjettet er brukt opp, og det samme gjelder syslog som nettverksenheter sender til en sonde: loggene fra hver enhet telles mot budsjettet til enhetens eget prosjekt. Ingen hastighetsgrense gjelder for den: den kunne ikke sendes på nytt.
 - **Det kan heller ikke tjenestene til et team eller en etikett.** Når budsjettet til et team eller en etikett er brukt opp, tas telemetrien deres imot og forkastes deretter: se [Gi et team eller en etikett et eget budsjett](#gi-et-team-eller-en-etikett-et-eget-budsjett).
 - **Avvisninger telles.** Det et oppbrukt budsjett avviser eller forkaster, telles som forkastet, og hver forespørsel en hastighetsgrense avviser, som strupet: se [Se dagens forbruk og forkastede data](#se-dagens-forbruk-og-forkastede-data).
 

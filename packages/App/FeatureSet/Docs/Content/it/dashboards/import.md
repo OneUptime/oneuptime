@@ -76,7 +76,7 @@ Non vengono convertite le regole di registrazione, le regole di avviso sui log, 
 
 ## Convertire una query con OneUptime AI
 
-Una query che nessuna regola converte mostra **Convert with OneUptime AI**, che richiede l'IA attiva per il progetto. Solo quella query, con i nomi delle variabili della dashboard, va al provider di IA del tuo progetto. La risposta viene verificata come qualsiasi query e ti viene mostrata: scegli **Use This Query** per usarla. Non viene creato nulla finché non crei la dashboard o i monitor.
+Una query che nessuna regola converte mostra **Convert with OneUptime AI**, che richiede l'IA attiva per il progetto. Solo quella query, con i nomi delle variabili della dashboard, va al [provider LLM](/docs/ai/llm-provider) del tuo progetto. La risposta viene verificata come qualsiasi query e ti viene mostrata: scegli **Use This Query** per usarla. Non viene creato nulla finché non crei la dashboard o i monitor.
 
 ## Passaggi successivi
 

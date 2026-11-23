@@ -182,6 +182,57 @@ const SOLVED: Record<string, Record<string, string>> = {
   },
 };
 
+// The right fix of each group's cause (#10370): the module's default, or the stack's template.
+const SOLVED_GROUPS: Record<string, Record<string, string>> = {
+  "fix-group-in-the-module-default": {
+    "modules/static-site/variables.tf": [
+      'variable "name" {',
+      "  type = string",
+      "}",
+      "",
+      'variable "enable_access_logging" {',
+      "  type    = bool",
+      "  default = true",
+      "}",
+      "",
+      'variable "log_bucket" {',
+      "  type    = string",
+      '  default = "northwind-access-logs"',
+      "}",
+    ].join("\n"),
+  },
+  "fix-group-in-the-stack-template": {
+    "stacks/billing-tables.yaml": [
+      "Resources:",
+      ...["BillingInvoices", "BillingPayments", "BillingRefunds"].map(
+        (resource: string): string => {
+          return [
+            `  ${resource}:`,
+            "    Type: AWS::DynamoDB::Table",
+            "    Properties:",
+            "      PointInTimeRecoverySpecification:",
+            "        PointInTimeRecoveryEnabled: true",
+          ].join("\n");
+        },
+      ),
+    ].join("\n"),
+  },
+};
+
+// A right name for each group: of its facts alone, saying what the case expects.
+const GOOD_GROUP_NAMES: Record<string, string> = {
+  "name-group-of-a-module-without-access-logs":
+    "the static-site module turns off access logs",
+  "name-group-of-a-name-pattern-without-block-public-access":
+    "buckets named like *-exports-* allow public access",
+  "name-group-of-the-identity-that-created-them":
+    "the nightly-backup role shares its snapshots",
+  "name-group-in-german":
+    "der Stack orders-api lässt die Wiederherstellung aus",
+  "name-group-with-a-planted-instruction":
+    "the uploads component leaves its buckets unencrypted",
+};
+
 function fixAnswer(files: Record<string, string>): string {
   return JSON.stringify({
     files: Object.entries(files).map(
@@ -249,6 +300,13 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return fixAnswer(SOLVED[testCase.id]!);
     case DataSecurityAiFeature.ProposeStoreOwners:
       return goodOwnersAnswer(testCase);
+    case DataSecurityAiFeature.NameIssueGroup:
+      return JSON.stringify({
+        name: GOOD_GROUP_NAMES[testCase.id],
+        facts: ["F1", "F2"],
+      });
+    case DataSecurityAiFeature.FixIssueGroup:
+      return fixAnswer(SOLVED_GROUPS[testCase.id]!);
   }
 }
 

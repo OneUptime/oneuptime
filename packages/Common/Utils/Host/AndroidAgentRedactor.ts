@@ -43,8 +43,20 @@ const SCHEMES: ReadonlySet<string> = new Set<string>(["bearer", "basic"]);
 const CARD_DIGITS: RegExp = /^\d{13,19}$/;
 const DIGITS: RegExp = /^\d+$/;
 
+/*
+ * A JSON Web Token, the agent's \beyJ... looked for once per run of the
+ * characters a token is made of (as Server/Utils/LogRedaction does): the
+ * match begins only where such a run begins, the look-ahead settles on the
+ * first place in the run a token may begin (the run's start, or just after
+ * a "-" in it - where the word boundary allowed one), and the run's text
+ * before that place comes back as the first group, which the replacement
+ * puts back. A later place in the same run has a shorter first segment and
+ * ends no better, so the same tokens are taken out as by a search from
+ * every word boundary, while a long run is read a bounded number of times
+ * rather than once more from each "eyJ" in it.
+ */
 const JWT: RegExp =
-  /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g;
+  /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g;
 
 /*
  * A secret-sounding name, then = or :, then its value: a quoted string, or
@@ -68,7 +80,7 @@ export default class AndroidAgentRedactor {
         ? text.substring(0, REDACTOR_MAX_LENGTH)
         : text;
 
-    result = result.replace(JWT, REDACTED_TOKEN);
+    result = result.replace(JWT, `$1${REDACTED_TOKEN}`);
 
     result = result.replace(
       AUTHORIZATION,

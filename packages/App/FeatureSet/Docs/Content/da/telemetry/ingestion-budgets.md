@@ -114,7 +114,7 @@ Klik på **Opret Budget** på kortet **Team- og mærkatbudgetter**. Vælg teamet
 Klik på **Opret Budget**. Et teams eller en mærkats budget kan ikke være større end dets projekts: OneUptime afviser det og siger, hvor stort det højst kan være.
 :::
 
-- **Hvad det tæller.** Protokollerne, sporene, metrikkerne og profilerne fra hver tjeneste, vært, klynge og anden ressource, teamet ejer, eller som har mærkaten, uanset om de sendes over OpenTelemetry (OTLP) eller, for protokoller, fra Fluent Bit, Fluentd eller syslog. Sikkerhedshændelser tæller kun mod projektets og nøglens budgetter.
+- **Hvad det tæller.** Protokollerne, sporene, metrikkerne og profilerne fra hver tjeneste, vært, klynge og anden ressource, teamet ejer, eller som har mærkaten, uanset om de sendes over OpenTelemetry (OTLP) eller, for protokoller, fra Fluent Bit, Fluentd eller syslog, herunder den syslog, netværksenheder sender til en sonde. Sikkerhedshændelser tæller kun mod projektets og nøglens budgetter.
 - **Hvis en ressource er.** En tjeneste, en vært eller en anden ressource hører til et team, når teamet er blandt dens ejere, og til en mærkat, når den har mærkaten: de samme ejere og mærkater, som afgør, hvem der må læse dens telemetri. En ændring af dem tæller inden for et minut.
 - **Når det er brugt op, kasseres telemetrien.** Deres telemetri for det signal kasseres indtil nulstillingen, og afsenderen får ikke besked: den fik sit svar, da telemetrien ankom. Det, der kasseres, tæller ikke længere mod projektets eller nøglens budget.
 - **Hvem der får besked.** Projektejere får en e-mail, når budgettet passerer advarselstærsklen, og når det er brugt op.
@@ -135,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Andre HTTP-afsendere får JSON.** Fluent Bit, Fluentd, syslog og de andre HTTP-endpoints får `error`, `message` og `resetsAt`, og fra en hastighedsgrænse også `retryAfterSeconds`.
-- **MQTT og cloudstreams kan ikke få besked.** Telemetri, der ankommer over MQTT eller fra en cloududbyders stream, kasseres, når dens budget er brugt op. Ingen hastighedsgrænse gælder for den: den kunne ikke sendes igen.
+- **MQTT, cloudstreams og sonder kan ikke få besked.** Telemetri, der ankommer over MQTT eller fra en cloududbyders stream, kasseres, når dens budget er brugt op, og det samme gælder den syslog, netværksenheder sender til en sonde: hver enheds protokoller tæller mod dens eget projekts budget. Ingen hastighedsgrænse gælder for den: den kunne ikke sendes igen.
 - **Det kan et teams eller en mærkats tjenester heller ikke.** Når et teams eller en mærkats budget er brugt op, modtages deres telemetri og kasseres derefter: se [Giv et team eller en mærkat dets eget budget](#giv-et-team-eller-en-mærkat-dets-eget-budget).
 - **Afvisninger tælles.** Det, et opbrugt budget afviser eller kasserer, tælles som kasseret, og hver anmodning, en hastighedsgrænse afviser, som begrænset: se [Se dagens forbrug og kasserede data](#se-dagens-forbrug-og-kasserede-data).
 

@@ -1472,9 +1472,12 @@ describe("the Fluentd page", () => {
       "rewrite ^/fluentd/logs(.*)$ /fluentd/v1/logs$1 break;",
     );
     expect(routesOf(FluentAPI)["/fluentd/v1/logs"]).toEqual(["POST"]);
+    // With its body reader, once the key is right (#10702).
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
-    ).toContain("TelemetryIngest.forSurface(TelemetryIngestSurface.Fluent)");
+    ).toContain(
+      "TelemetryIngest.forSurface(TelemetryIngestSurface.Fluent, readFluentBody)",
+    );
 
     const outputs: Array<DocsFence> = codeBlockTitled(FLUENTD, "fluentd.conf");
 
@@ -2148,9 +2151,12 @@ describe("the Syslog page", () => {
     expect(blocks[0]).toContain("proxy_pass");
     expect(blocks[0]).not.toContain("rewrite");
     expect(routesOf(SyslogAPI)["/syslog/v1/logs"]).toEqual(["POST"]);
+    // With its body reader, once the key is right (#10702).
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Syslog.ts")),
-    ).toContain("TelemetryIngest.forSurface(TelemetryIngestSurface.Syslog)");
+    ).toContain(
+      "TelemetryIngest.forSurface(TelemetryIngestSurface.Syslog, readSyslogBody)",
+    );
     expect(englishPage(SYSLOG)).toContain(
       "POST https://oneuptime.com/syslog/v1/logs",
     );

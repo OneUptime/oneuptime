@@ -459,6 +459,7 @@ import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
 import DataSecurityFlowService from "./DataSecurityFlowService";
 import DataSecurityIssueService from "./DataSecurityIssueService";
 import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityIssueGroupService from "./DataSecurityIssueGroupService";
 import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
 import DataSecurityAiDecisionService from "./DataSecurityAiDecisionService";
 import DataSecurityScanService from "./DataSecurityScanService";
@@ -1080,6 +1081,7 @@ const services: Array<BaseService> = [
   DataSecurityFlowService,
   DataSecurityIssueService,
   DataSecurityIssueFeedService,
+  DataSecurityIssueGroupService,
   DataSecurityAiProposalService,
   DataSecurityAiDecisionService,
   DataSecurityScanService,

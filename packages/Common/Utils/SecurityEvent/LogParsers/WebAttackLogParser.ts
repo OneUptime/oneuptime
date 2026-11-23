@@ -31,8 +31,8 @@ import {
   buildLogSecurityEvent,
   cutText,
   readAttribute,
-  readIpAddress,
-  readRemoteIpAddress,
+  readIpAddressOnly,
+  readRemoteIpAddressOnly,
   readWord,
 } from "./SecurityLogLine";
 
@@ -275,7 +275,7 @@ type ClientField = Pick<AccessLogRequest, "clientIp" | "scrubbedClient">;
  * as the address alone, as an access log's first word always was.
  */
 function readClientField(value: string): ClientField {
-  const clientIp: string = readIpAddress(value) || readAddressText(value);
+  const clientIp: string = readIpAddressOnly(value) || readAddressText(value);
 
   if (clientIp) {
     return { clientIp };
@@ -714,8 +714,10 @@ function isLabelCharacter(character: string | undefined): boolean {
 /*
  * An address as a line writes it, without what is around it: the port of
  * "203.0.113.7:51234", the brackets and port of "[2001:db8::7]:443", the
- * full stop that ends a sentence. Read as the client's (readRemoteIpAddress:
- * never this machine's own, an IPv4 address written as IPv6 read as IPv4).
+ * full stop that ends a sentence. Read as the client's
+ * (readRemoteIpAddressOnly: never this machine's own, an IPv4 address
+ * written as IPv6 read as IPv4). What a scrub rule left is told apart where
+ * it is read (readClientAddressReading), never taken for an address here.
  */
 export function readAddressToken(token: string): string {
   let address: string = token;
@@ -735,7 +737,7 @@ export function readAddressToken(token: string): string {
     address = address.slice(0, -1);
   }
 
-  return readRemoteIpAddress(address);
+  return readRemoteIpAddressOnly(address);
 }
 
 // The address that follows the label at `labelEnd` of a lowercased text, else "".

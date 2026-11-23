@@ -138,11 +138,28 @@ describe("readRequestBodyRefusal", () => {
       "utf8",
     );
 
-    // The JSON, form and protobuf parsers: each takes its route's bytes.
+    /*
+     * The JSON, form and protobuf parsers, StartServer's and a route's after
+     * its key (AppBodyParsers, #10702): each takes its route's bytes.
+     */
+    const parsers: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Middleware",
+        "AppBodyParsers.ts",
+      ),
+      "utf8",
+    );
+
     expect(startServer).not.toMatch(/limit:\s*"[^"]+"/);
-    expect(
-      Array.from(startServer.matchAll(/limit: limit\.bytes/g)),
-    ).toHaveLength(3);
+    expect(parsers).not.toMatch(/limit:\s*"[^"]+"/);
+    expect(Array.from(parsers.matchAll(/limit: limit\.bytes/g))).toHaveLength(
+      3,
+    );
     expect(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime).toContain(
       "the 50 MB OneUptime takes in one request",
     );
@@ -163,8 +180,9 @@ describe("readRequestBodyRefusal", () => {
     expect(refusal).toEqual({
       type: "entity.too.large",
       status: 413,
+      // The figure held to its unit, so no line ends with "1" (#8720).
       message:
-        "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.",
+        "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.",
     });
     expect(meetsErrorMessageRule(refusal!.message)).toBe(true);
     // Shown as it is: not the proxy's kind, whose words send an admin to a proxy.
@@ -193,12 +211,13 @@ describe("readRequestBodyRefusal", () => {
     ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLarge);
   });
 
+  // Each figure held to its unit by a no-break space.
   test.each([
-    [1024 * 1024, "1 MB"],
-    [50 * 1024 * 1024, "50 MB"],
-    [1.5 * 1024 * 1024, "1.5 MB"],
-    [512 * 1024, "512 KB"],
-    [100, "1 KB"],
+    [1024 * 1024, "1 MB"],
+    [50 * 1024 * 1024, "50 MB"],
+    [1.5 * 1024 * 1024, "1.5 MB"],
+    [512 * 1024, "512 KB"],
+    [100, "1 KB"],
   ])("a limit of %d bytes is said as %s", (bytes: number, said: string) => {
     expect(describeBodyLimit(bytes)).toBe(said);
   });

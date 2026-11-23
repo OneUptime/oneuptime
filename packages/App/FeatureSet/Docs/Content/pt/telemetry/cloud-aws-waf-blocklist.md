@@ -40,7 +40,7 @@ Em **Mais campos**, defina **Bloquear endereços no AWS WAF** como **Ativado, e 
 O comando que o formulário mostra agora concede os conjuntos de IPs, e a regra quando o OneUptime a adiciona. Execute-o no AWS CloudShell e depois salve a conexão.
 
 ### Adicionar as ACLs da web
-Abra **Eventos de segurança → Playbooks → Lista de bloqueio**. Em **WAFs de nuvem**, clique em **Adicionar ACL da web**, escolha uma ACL da web e de onde ela lê o endereço do cliente, e adicione-a. O OneUptime a configura na hora, e o **Status** dela mostra **Aplicada** quando a regra dela bloqueia os conjuntos.
+Abra **Eventos de segurança → Playbooks → Lista de bloqueio**. Em **WAFs de nuvem**, clique em **Adicionar WAF**, escolha uma ACL da web e, em **Mais campos**, de onde ela lê o endereço do cliente, e adicione-a. O OneUptime a configura na hora, e o **Status** dela mostra **Aplicada** quando a regra dela bloqueia os conjuntos.
 :::
 
 As ACLs da web vêm do inventário da conexão: uma que o OneUptime ainda não leu aparece após a próxima leitura. Enquanto uma ACL da web aplica a lista de bloqueio, a configuração da conexão dela não pode ser desativada nem passar de o OneUptime adicionar a regra para você adicioná-la em código, e a conexão não pode ser excluída: remova primeiro a ACL da web, para que o OneUptime retire a regra dele.
@@ -102,7 +102,7 @@ Em **Eventos de segurança → Playbooks → Lista de bloqueio**, clique em **Re
 Edite a conexão, defina **Bloquear endereços no AWS WAF** como **Desativado** e salve. A configuração pode ser desativada assim que nenhuma ACL da web da conexão aplica a lista de bloqueio.
 :::
 
-Quando o OneUptime não puder mais gravar na ACL da web, marque **Remover apenas do OneUptime** na caixa de diálogo **Remover ACL da web**. O OneUptime remove a ACL da web da lista de bloqueio e nomeia as regras e os conjuntos de IPs que deixou no AWS WAF: eles continuam bloqueando o que contêm até que você os exclua lá. Uma regra sua que ainda referencia um conjunto também o mantém: o OneUptime o esvazia e o nomeia.
+Quando o OneUptime não puder mais gravar na ACL da web, marque **Remover apenas do OneUptime** na caixa de diálogo **Remover WAF**. O OneUptime remove a ACL da web da lista de bloqueio e nomeia as regras e os conjuntos de IPs que deixou no AWS WAF: eles continuam bloqueando o que contêm até que você os exclua lá. Uma regra sua que ainda referencia um conjunto também o mantém: o OneUptime o esvazia e o nomeia.
 
 ## Solução de problemas
 

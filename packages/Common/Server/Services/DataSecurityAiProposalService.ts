@@ -342,6 +342,49 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
 
     return result.affected || 0;
   }
+
+  /*
+   * A group of issues one mistake made that no longer needs its fix
+   * proposed (#10370) - a person fixed it from the Issues list, or none of
+   * its issues is open: what still waits for it expires, of the kinds
+   * given, or of every kind.
+   */
+  @CaptureSpan()
+  public async expireWaitingForGroup(data: {
+    dataSecurityIssueGroupId: ObjectID;
+    kinds?: ReadonlyArray<DataSecurityAiProposalKind> | undefined;
+    at: Date;
+  }): Promise<number> {
+    if (data.kinds && data.kinds.length === 0) {
+      return 0;
+    }
+
+    let queryBuilder: UpdateQueryBuilder<DataSecurityAiProposal> =
+      this.getRepository()
+        .createQueryBuilder()
+        .update(DataSecurityAiProposal)
+        .set({
+          status: DataSecurityAiProposalStatus.Expired,
+          expiredAt: data.at,
+        } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+        .where('"dataSecurityIssueGroupId" = :groupId', {
+          groupId: data.dataSecurityIssueGroupId.toString(),
+        })
+        .andWhere('"status" = :status', {
+          status: DataSecurityAiProposalStatus.Proposed,
+        })
+        .andWhere('"deletedAt" IS NULL');
+
+    if (data.kinds) {
+      queryBuilder = queryBuilder.andWhere('"kind" IN (:...kinds)', {
+        kinds: [...data.kinds],
+      });
+    }
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
 }
 
 export default new Service();

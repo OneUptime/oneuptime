@@ -97,7 +97,7 @@ Chaque point porte ces attributs :
 | `resourceName` | Son nom au moment où le point a été écrit. |
 
 - **Comptée à son arrivée.** Chaque point est la part de la ressource dans ce qui est arrivé, décompressé, comme le comptent les budgets d'ingestion, il peut donc indiquer plus que les lignes d'utilisation, qui comptent ce qui a été stocké.
-- **Ce qui est compté.** Les journaux, traces, métriques et profils envoyés par OTLP sont comptés, ainsi que les journaux de Fluent Bit, Fluentd ou syslog. Les événements de sécurité et les relectures de session ne le sont pas.
+- **Ce qui est compté.** Les journaux, traces, métriques et profils envoyés par OTLP sont comptés, ainsi que les journaux de Fluent Bit, Fluentd ou syslog, y compris le syslog que les équipements réseau envoient à une sonde. Les événements de sécurité et les relectures de session ne le sont pas.
 - **Chaque point appartient à sa ressource.** Quiconque peut lire la télémétrie d'un service ou d'une ressource lit ses points : un rôle limité à certaines étiquettes ne voit que les leurs.
 - **Ils ne coûtent rien.** Ces points ne sont comptés sur aucun budget ni comme utilisation, et sont conservés aussi longtemps que les métriques de moniteur : 30 jours, sauf si l'administrateur de l'instance le change. Les noms de métriques qui commencent par `oneuptime.telemetry.usage.` leur sont réservés : les métriques que vos applications envoient sous un tel nom sont abandonnées.
 - **Désactivé par défaut.** Tant qu'il est désactivé, rien n'est écrit, et les points déjà écrits sont conservés jusqu'à leur expiration.

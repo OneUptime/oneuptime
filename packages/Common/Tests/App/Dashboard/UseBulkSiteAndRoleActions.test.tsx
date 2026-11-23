@@ -611,7 +611,10 @@ describe.each(CASES)("bulk $name actions", (relation: RelationCase) => {
       });
 
       expect(writtenIds()).toEqual([deviceId(2)]);
-      expect(lastSnapshot().failedMessages).toEqual(["Item ID not found"]);
+      // A sentence that says what to do next (#10188).
+      expect(lastSnapshot().failedMessages).toEqual([
+        "This row has no ID, so it could not be changed. Reload the page and try again.",
+      ]);
     });
 
     test("an empty pick writes nothing and closes the dialog", async () => {

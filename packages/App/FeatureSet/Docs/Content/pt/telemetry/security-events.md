@@ -290,11 +290,12 @@ Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de pro
 Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o endereço de onde veio um ataque antes que Eventos de segurança os leia. O evento é guardado mesmo assim, sem endereço, e onde quer que fosse nomear o endereço, diz que uma regra de mascaramento o ocultou:
 
 - **IP de origem**, no painel do evento, nomeia a regra que o ocultou quando pode, como um link para as **Regras de mascaramento** dos logs ou dos traces. O filtro ao lado mostra cada evento cujo endereço foi ocultado por uma regra de mascaramento.
+- **IP de destino** diz o mesmo quando uma regra ocultou para onde foi uma conexão: o destino de um firewall, ou para onde dados foram enviados. O filtro ao lado mostra cada evento cujo endereço de destino foi ocultado por uma regra de mascaramento.
 - **O que aconteceu depois** diz que a requisição veio de um endereço ocultado por uma regra de mascaramento, e **Campanhas** agrupa essas requisições numa linha própria.
 - Um caso cujos eventos perderam todos o endereço diz isso no seu **Plano de resposta**: em vez de bloquear o endereço, ele pede que você o encontre nos logs do seu balanceador de carga ou firewall e o bloqueie lá, com **Abrir regras de mascaramento**.
 - **Visão geral** nomeia a regra que oculta os endereços que Eventos de segurança lê, também com **Abrir regras de mascaramento**.
 
-Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`.
+Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`. Para um destino, pesquise `@oneuptime.target_address_hidden:scrub-rule`.
 
 ## Explorar os eventos de segurança
 
