@@ -361,7 +361,10 @@ export default class RecordOfProcessingDossier {
       query: {
         projectId: data.projectId,
         sourceDataStoreId: data.store.id!,
-        kind: new Includes([RECORD_FLOW_KINDS.uses, RECORD_FLOW_KINDS.aiProvider]),
+        kind: new Includes([
+          RECORD_FLOW_KINDS.uses,
+          RECORD_FLOW_KINDS.aiProvider,
+        ]),
       },
       select,
       sort: { callCount: SortOrder.Descending },

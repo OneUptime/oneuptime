@@ -44,7 +44,7 @@ import {
   RecordFieldValue,
   RecordFieldView,
   RecordFlowInput,
-  RecordLegalBasis,
+  DECLARED_STORE_LEGAL_BASIS,
   RecordTransfers,
   StoreRecordDrafts,
 } from "../../../Types/DataSecurity/RecordOfProcessing";
@@ -143,9 +143,16 @@ export const RECORD_ROW_STORE_SELECT: {
   impactAssessment: true,
 };
 
-// What OneUptime fills in of the stores it keeps for the project's security (#10398).
-export const DECLARED_STORE_LEGAL_BASIS: RecordLegalBasis =
-  RecordLegalBasis.LegitimateInterests;
+// Said when one store's row is asked for, and it holds no personal data.
+export const NOT_IN_THE_RECORD_MESSAGE: string =
+  "This data store holds no personal data, so it is not in the record of processing.";
+
+interface RecordFlags {
+  isAiEnabled: boolean;
+  isAutomaticAiOn: boolean;
+  canEdit: boolean;
+  canDraft: boolean;
+}
 
 function idOf(value: { toString: () => string } | null | undefined): string {
   return value ? value.toString().toLowerCase() : "";
@@ -418,7 +425,9 @@ export default class RecordOfProcessingReader {
   /*
    * The record as the reader may read it - every store with personal data
    * they may read, or one of them (dataStoreId), whose row then carries
-   * the facts its drafts rest on. A store they may not read is not found.
+   * the facts its drafts rest on. A store they may not read is not found;
+   * one with no personal data has no row - its Settings keep the plain
+   * purpose and retention.
    */
   public static async read(data: {
     projectId: ObjectID;
@@ -467,17 +476,18 @@ export default class RecordOfProcessingReader {
         );
       },
     );
+    const flags: RecordFlags = await this.readFlags({
+      projectId: data.projectId,
+      props: data.props,
+    });
 
-    if (data.dataStoreId && recorded.length === 0) {
-      throw new NotFoundException(
-        "This data store holds no personal data, so it is not in the record of processing.",
-      );
+    if (recorded.length === 0) {
+      return { rows: [], counts: countRecordRows([]), ...flags };
     }
 
-    const [flows, retention, project, dataTypeNamer]: [
+    const [flows, retention, dataTypeNamer]: [
       Array<RecordFlowInput>,
       Map<string, StoreRetention>,
-      Project | null,
       DataTypeNamer,
     ] = await Promise.all([
       this.readFlows(data.projectId),
@@ -500,11 +510,6 @@ export default class RecordOfProcessingReader {
             };
           },
         ),
-      }),
-      ProjectService.findOneById({
-        id: data.projectId,
-        select: { _id: true, enableAi: true, enableAutomaticDataSecurityAi: true },
-        props: { isRoot: true },
       }),
       /*
        * What an auditor reads each data type as: the project's own by the
@@ -586,6 +591,23 @@ export default class RecordOfProcessingReader {
       );
     }
 
+    return { rows, counts: countRecordRows(rows), ...flags };
+  }
+
+  // Whether OneUptime AI may draft, and whether the reader may change the record.
+  private static async readFlags(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<RecordFlags> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        enableAi: true,
+        enableAutomaticDataSecurityAi: true,
+      },
+      props: { isRoot: true },
+    });
     const isAiEnabled: boolean = project?.enableAi !== false;
     const canEdit: boolean =
       data.props.isRoot === true ||
@@ -595,8 +617,6 @@ export default class RecordOfProcessingReader {
       });
 
     return {
-      rows,
-      counts: countRecordRows(rows),
       isAiEnabled,
       isAutomaticAiOn:
         isAiEnabled && project?.enableAutomaticDataSecurityAi === true,
@@ -611,9 +631,15 @@ export default class RecordOfProcessingReader {
     props: DatabaseCommonInteractionProps;
     dataStoreId: ObjectID;
   }): Promise<DataSecurityRecordOfProcessingRow> {
-    const record: DataSecurityRecordOfProcessingResponse = await this.read(data);
+    const record: DataSecurityRecordOfProcessingResponse =
+      await this.read(data);
+    const row: DataSecurityRecordOfProcessingRow | undefined = record.rows[0];
 
-    return record.rows[0]!;
+    if (!row) {
+      throw new NotFoundException(NOT_IN_THE_RECORD_MESSAGE);
+    }
+
+    return row;
   }
 
   // The project's flows a record reads: what its recipients and transfers are worked out from.

@@ -66,3 +66,25 @@ export function getStoreViewRoute(dataStoreId: ObjectID | string): Route {
     { modelId: new ObjectID(dataStoreId.toString()) },
   );
 }
+
+/*
+ * Compliance's paperwork (#10375): Review Drafts - at one store first, from
+ * its link - and a framework's audit evidence.
+ */
+export function getReviewDraftsRoute(
+  dataStoreId?: ObjectID | string | undefined,
+): Route {
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.DATA_SECURITY_REVIEW_DRAFTS] as Route,
+  );
+
+  return dataStoreId
+    ? route.addQueryParams({ store: dataStoreId.toString() })
+    : route;
+}
+
+export function getAuditEvidenceRoute(framework: string): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.DATA_SECURITY_AUDIT_EVIDENCE] as Route,
+  ).addQueryParams({ framework: encodeURIComponent(framework) });
+}

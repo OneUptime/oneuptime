@@ -322,13 +322,14 @@ export default class ImpactAssessmentDrafter {
       dataStoreId: data.dataStoreId,
       dataStoreFeedEventType: DataStoreFeedEventType.AiProposed,
       displayColor: Purple500,
-      feedInfoInMarkdown: mdText`OneUptime AI drafted this store's data protection impact assessment, for you to review and edit: **${(
-        Object.keys(drafted) as Array<ImpactAssessmentPart>
-      )
-        .map((part: ImpactAssessmentPart): string => {
-          return IMPACT_ASSESSMENT_PART_TITLES[part];
-        })
-        .join(", ")}**.`.toString(),
+      feedInfoInMarkdown:
+        mdText`OneUptime AI drafted this store's data protection impact assessment, for you to review and edit: **${(
+          Object.keys(drafted) as Array<ImpactAssessmentPart>
+        )
+          .map((part: ImpactAssessmentPart): string => {
+            return IMPACT_ASSESSMENT_PART_TITLES[part];
+          })
+          .join(", ")}**.`.toString(),
       userId: data.props.userId || undefined,
     });
 

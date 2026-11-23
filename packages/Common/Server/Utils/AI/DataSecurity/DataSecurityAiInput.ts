@@ -2733,6 +2733,9 @@ export function buildFixIssueGroupRequest(data: {
  * person is never named - not an owner, not who accepted a risk.
  */
 
+// A country, as ISO 3166-1 alpha-2 writes it: what a store's subjectCountries hold.
+const COUNTRY_CODE: RegExp = /^[A-Za-z]{2}$/;
+
 // The most of each kind of fact a store's record is drafted from.
 export const MAX_RECORD_SERVICES: number = 10;
 export const MAX_RECORD_HOSTS: number = 15;
@@ -2948,7 +2951,7 @@ export function recordFacts(data: {
       .filter(Boolean),
     subjectCountries: (store.subjectCountries || [])
       .filter((country: string): boolean => {
-        return /^[A-Za-z]{2}$/.test(country);
+        return COUNTRY_CODE.test(country);
       })
       .map((country: string): string => {
         return country.toUpperCase();
@@ -3471,39 +3474,37 @@ export function auditEvidenceFacts(data: {
         },
       );
 
-    entry.turnedOff
-      .slice(0, MAX_EVIDENCE_TURNED_OFF)
-      .forEach(
-        (
-          off: {
-            id: string;
-            resourceName: string;
-            resourceKind: string;
-            reason: string;
-            isWholeFramework: boolean;
-          },
-          index: number,
-        ) => {
-          list.add({
-            key: `${prefix}off:${off.id}`,
-            kind: ComplianceFactKind.TurnedOff,
-            resource: customerText(
-              off.resourceName,
-              MAX_ISSUE_VALUE_LENGTH,
-              `${entry.requirement}.turnedOff[${index}].resource`,
-              marks,
-            ),
-            resourceKind: off.resourceKind,
-            reason: customerText(
-              off.reason,
-              MAX_COMPLIANCE_TEXT_LENGTH,
-              `${entry.requirement}.turnedOff[${index}].reason`,
-              marks,
-            ),
-            isWholeFramework: off.isWholeFramework,
-          });
+    entry.turnedOff.slice(0, MAX_EVIDENCE_TURNED_OFF).forEach(
+      (
+        off: {
+          id: string;
+          resourceName: string;
+          resourceKind: string;
+          reason: string;
+          isWholeFramework: boolean;
         },
-      );
+        index: number,
+      ) => {
+        list.add({
+          key: `${prefix}off:${off.id}`,
+          kind: ComplianceFactKind.TurnedOff,
+          resource: customerText(
+            off.resourceName,
+            MAX_ISSUE_VALUE_LENGTH,
+            `${entry.requirement}.turnedOff[${index}].resource`,
+            marks,
+          ),
+          resourceKind: off.resourceKind,
+          reason: customerText(
+            off.reason,
+            MAX_COMPLIANCE_TEXT_LENGTH,
+            `${entry.requirement}.turnedOff[${index}].reason`,
+            marks,
+          ),
+          isWholeFramework: off.isWholeFramework,
+        });
+      },
+    );
   }
 
   return { facts: list.facts, data: list.data, marks };

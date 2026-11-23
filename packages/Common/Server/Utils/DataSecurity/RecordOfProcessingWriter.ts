@@ -109,7 +109,9 @@ export default class RecordOfProcessingWriter {
       drafts,
       facts: drafts.facts,
       shownDraftedAt:
-        typeof data.shownDraftedAt === "string" ? data.shownDraftedAt : undefined,
+        typeof data.shownDraftedAt === "string"
+          ? data.shownDraftedAt
+          : undefined,
       written: data.written,
       userId: data.props.userId?.toString(),
       now: data.now || OneUptimeDate.getCurrentDate(),

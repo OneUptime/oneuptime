@@ -273,7 +273,9 @@ describe("a declared store's Settings", () => {
     expect(
       screen.getByText("Network and information security (GDPR Recital 49)"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Filled in by OneUptime")).toBeInTheDocument();
+    // Its purpose, and its legal basis (#10375): legitimate interests until the team picks one.
+    expect(screen.getAllByText("Filled in by OneUptime")).toHaveLength(2);
+    expect(screen.getByText("Legitimate interests")).toBeInTheDocument();
     expect(screen.getByText("15 days")).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -323,6 +325,11 @@ describe("a declared store's Settings", () => {
     };
     const asked: SpyInstance<typeof DataSecurityApi.getDeclaredStore> =
       jest.spyOn(DataSecurityApi, "getDeclaredStore");
+
+    // It holds no personal data: its record card is the plain one (#10375).
+    jest
+      .spyOn(DataSecurityApi, "getRecordOfProcessing")
+      .mockResolvedValue({ rows: [] });
 
     await renderInStore(
       <DataStoreSettings

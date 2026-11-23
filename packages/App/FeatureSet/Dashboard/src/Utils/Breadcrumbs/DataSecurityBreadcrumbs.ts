@@ -103,6 +103,16 @@ export function getDataSecurityBreadcrumbs(
       "Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT,
+      [
+        "Project",
+        "Data Security",
+        "Data Stores",
+        "View Data Store",
+        "Impact Assessment",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS,
       [
         "Project",
@@ -178,6 +188,19 @@ export function getDataSecurityBreadcrumbs(
       "Project",
       "Data Security",
       "Compliance",
+    ]),
+    // The record of processing's drafts and a framework's evidence (#10375).
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_REVIEW_DRAFTS, [
+      "Project",
+      "Data Security",
+      "Compliance",
+      "Review Drafts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_AUDIT_EVIDENCE, [
+      "Project",
+      "Data Security",
+      "Compliance",
+      "Audit Evidence",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_AI, [
       "Project",

@@ -79,12 +79,18 @@ export const MAX_RECORD_DRAFT_REASON_LENGTH: number = 300;
 
 function idsShape(): StrictList<StrictText> {
   return StrictAnswer.list(
-    StrictAnswer.text({ maxLength: 10, isOneLine: true, whenTooLong: "refuse" }),
+    StrictAnswer.text({
+      maxLength: 10,
+      isOneLine: true,
+      whenTooLong: "refuse",
+    }),
     { maxItems: 30 },
   );
 }
 
-function textFieldShape(maxLength: number): StrictOptional<
+function textFieldShape(
+  maxLength: number,
+): StrictOptional<
   StrictNullable<
     StrictObject<{ text: StrictText; facts: StrictList<StrictText> }>
   >
@@ -285,7 +291,9 @@ export function holdRecordDraftToFacts(data: {
         ids: raw.facts,
       });
       const reason: string | null =
-        factKeys.length > 0 ? holdReason(raw.reason, data.facts, factKeys) : null;
+        factKeys.length > 0
+          ? holdReason(raw.reason, data.facts, factKeys)
+          : null;
 
       if (reason) {
         drafts[field] = draft(raw.value, reason, factKeys);

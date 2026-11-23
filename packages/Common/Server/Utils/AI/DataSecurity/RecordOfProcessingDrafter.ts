@@ -206,7 +206,8 @@ export default class RecordOfProcessingDrafter {
     dataTypeNamer?: DataTypeNamer | undefined;
     now?: Date | undefined;
   }): Promise<RecordDraftOutcome> {
-    const byPerson: boolean = data.feature === DataSecurityAiFeature.DraftRecordOnRequest;
+    const byPerson: boolean =
+      data.feature === DataSecurityAiFeature.DraftRecordOnRequest;
 
     try {
       return await this.draft({ ...data, byPerson });

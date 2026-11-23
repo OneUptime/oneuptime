@@ -4,6 +4,7 @@ import {
   DataSecurityMenuItem,
   DataSecurityMenuSection,
 } from "../../Utils/DataSecurityNavigation";
+import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -85,21 +86,24 @@ const DataSecuritySideMenu: FunctionComponent = (): ReactElement => {
         items: section.items.map(
           (item: DataSecurityMenuItem): SideMenuItemProps => {
             const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
-            // A page under the entry keeps it lit: an identity's, under Access.
-            const activeRoute: Route | undefined = item.activePage
-              ? RouteUtil.populateRouteParams(
-                  RouteMap[item.activePage] as Route,
-                )
-              : undefined;
+            /*
+             * A page under the entry keeps it lit: an identity's, under
+             * Access; Review Drafts and Audit Evidence, under Compliance.
+             */
+            const activeRoute: Route | undefined = (item.activePages || [])
+              .map((page: PageMap): Route => {
+                return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+              })
+              .find((route: Route): boolean => {
+                return Navigation.isOnThisPage(route);
+              });
 
             return {
               link: {
                 title: item.title,
                 to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
               },
-              ...(activeRoute && Navigation.isOnThisPage(activeRoute)
-                ? { activeRoute }
-                : {}),
+              ...(activeRoute ? { activeRoute } : {}),
               icon: item.icon,
               ...(count
                 ? {

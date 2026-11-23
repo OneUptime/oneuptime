@@ -60,6 +60,23 @@ import DataSecurityComplianceSettingService from "../../../Server/Services/DataS
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import ServiceService from "../../../Server/Services/ServiceService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
+import RecordOfProcessingReader from "../../../Server/Utils/DataSecurity/RecordOfProcessingReader";
+import RecordOfProcessingWriter from "../../../Server/Utils/DataSecurity/RecordOfProcessingWriter";
+import StoreTelemetryRetention from "../../../Server/Utils/DataSecurity/StoreTelemetryRetention";
+import RecordOfProcessingDrafter from "../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
+import ImpactAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import AuditEvidenceDrafter from "../../../Server/Utils/AI/DataSecurity/AuditEvidenceDrafter";
+import { DataSecurityAiFeature } from "../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  RecordField,
+  RecordFieldAction,
+  RecordFieldStatus,
+  RecordLegalBasis,
+  RecordTransfersUnknownReason,
+} from "../../../Types/DataSecurity/RecordOfProcessing";
+import { ImpactAssessmentPart } from "../../../Types/DataSecurity/ImpactAssessment";
 import DataSecurityComplianceSetting from "../../../Models/DatabaseModels/DataSecurityComplianceSetting";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -160,6 +177,8 @@ import {
   DataSecurityOverview,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
+  ImpactAssessmentStatus,
+  RecordRowState,
   DataSecurityResourceComplianceFramework,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -755,6 +774,22 @@ beforeEach(() => {
   storeUpdateSpy = jest
     .spyOn(DataStoreService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+
+  /*
+   * What the record of processing reads besides its stores (#10375): the
+   * project's flows, its telemetry retention, and its OneUptime AI
+   * switches - none of them here.
+   */
+  jest.spyOn(RecordOfProcessingReader, "readFlows").mockResolvedValue([]);
+  jest
+    .spyOn(StoreTelemetryRetention, "readForStores")
+    .mockResolvedValue(new Map());
+  jest.spyOn(ProjectService, "findOneById").mockImplementation((async () => {
+    const project: Project = new Project(PROJECT_ID);
+    project.enableAi = true;
+    project.enableAutomaticDataSecurityAi = false;
+    return project;
+  }) as never);
   settingRow = null;
   settingFindOneSpy = jest
     .spyOn(DataSecuritySettingService, "findOneBy")
@@ -4793,6 +4828,39 @@ describe("the record of processing", () => {
         ComplianceFramework.CCPA,
         ComplianceFramework.PCIDSS,
       ],
+      // The rest of what Article 30 asks (#10375): nobody wrote a basis or the people yet.
+      legalBasis: "",
+      dataSubjects: [],
+      fields: [
+        {
+          field: RecordField.Purpose,
+          status: RecordFieldStatus.Written,
+          value: "Customer support exports",
+        },
+        {
+          field: RecordField.Retention,
+          status: RecordFieldStatus.Written,
+          value: "90 days",
+        },
+        {
+          field: RecordField.LegalBasis,
+          status: RecordFieldStatus.Empty,
+          value: "",
+        },
+        {
+          field: RecordField.People,
+          status: RecordFieldStatus.Empty,
+          value: [],
+        },
+      ],
+      recipients: [],
+      transfers: [],
+      transfersUnknownBecause: RecordTransfersUnknownReason.NoSubjectCountries,
+      state: RecordRowState.Incomplete,
+      impactAssessment: {
+        status: ImpactAssessmentStatus.NotNeeded,
+        triggers: [],
+      },
     });
     expect(answer.rows[1]).toMatchObject({
       dataStoreId: nhs.id!.toString(),
@@ -4865,7 +4933,14 @@ describe("the record of processing", () => {
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
     );
 
-    expect(result.answer).toEqual({ rows: [] });
+    expect(result.answer).toEqual({
+      rows: [],
+      counts: { toReview: 0, complete: 0, incomplete: 0 },
+      isAiEnabled: true,
+      isAutomaticAiOn: false,
+      canEdit: true,
+      canDraft: true,
+    });
     expect(ownersSpy).not.toHaveBeenCalled();
     // Nobody to name: no read of who is only invited.
     expect(withheldSpy).not.toHaveBeenCalled();
@@ -5067,6 +5142,39 @@ describe("the record of processing", () => {
           "targetUser",
           "observables",
         ],
+      },
+      // Legitimate interests until the team picks a basis (#10375).
+      legalBasis: RecordLegalBasis.LegitimateInterests,
+      dataSubjects: [],
+      fields: [
+        {
+          field: RecordField.Purpose,
+          status: RecordFieldStatus.FilledIn,
+          value: "Network and information security (GDPR Recital 49)",
+        },
+        {
+          field: RecordField.Retention,
+          status: RecordFieldStatus.FilledIn,
+          value: "15 days",
+        },
+        {
+          field: RecordField.LegalBasis,
+          status: RecordFieldStatus.FilledIn,
+          value: RecordLegalBasis.LegitimateInterests,
+        },
+        {
+          field: RecordField.People,
+          status: RecordFieldStatus.Empty,
+          value: [],
+        },
+      ],
+      recipients: [],
+      transfers: [],
+      transfersUnknownBecause: RecordTransfersUnknownReason.NoSubjectCountries,
+      state: RecordRowState.Declared,
+      impactAssessment: {
+        status: ImpactAssessmentStatus.NotNeeded,
+        triggers: [],
       },
     });
     expect(rowNamed(answer, "Network Flows")).toMatchObject({
@@ -5327,4 +5435,280 @@ describe("the Overview leaves out the stores OneUptime declares", () => {
       { category: DataCategory.ContactAndIdentity, storeCount: 1 },
     ]);
   });
+});
+
+/*
+ * THE COMPLIANCE PAPERWORK'S ROUTES (#10375): who may answer a field of a
+ * store's record, ask OneUptime AI for its drafts, read and draft a store's
+ * impact assessment and a framework's audit evidence - each refused before
+ * anything is read or asked, and each handed the caller's own props.
+ */
+describe("the compliance paperwork's routes", () => {
+  const OPERATE_REFUSED: Array<Permission> = [
+    Permission.ReadDataStore,
+    Permission.SecurityViewer,
+    Permission.ProjectMember,
+    Permission.ReadDataSecurityIssue,
+  ];
+  const PAPERWORK_ROUTES: Array<RouteCase> = [
+    {
+      name: "a field of the record",
+      path: DATA_SECURITY_API_ROUTES.recordField(":id"),
+      allowed: OPERATE,
+      refused: OPERATE_REFUSED,
+      body: { field: RecordField.Purpose, action: RecordFieldAction.Confirm },
+    },
+    {
+      name: "a store's record drafts",
+      path: DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      allowed: OPERATE,
+      refused: OPERATE_REFUSED,
+    },
+    {
+      name: "a store's impact assessment",
+      path: DATA_SECURITY_API_ROUTES.impactAssessment(":id"),
+      allowed: EXPLAIN,
+      // Its risks are its issues: a store's reader alone does not read them.
+      refused: [
+        Permission.ProjectMember,
+        Permission.ReadDataStore,
+        Permission.Viewer,
+      ],
+    },
+    {
+      name: "drafting a store's impact assessment",
+      path: DATA_SECURITY_API_ROUTES.draftImpactAssessment(":id"),
+      allowed: OPERATE,
+      refused: OPERATE_REFUSED,
+    },
+    {
+      name: "editing a part of a store's impact assessment",
+      path: DATA_SECURITY_API_ROUTES.editImpactAssessment(":id"),
+      allowed: OPERATE,
+      refused: OPERATE_REFUSED,
+      body: { part: ImpactAssessmentPart.Risks, markdown: "Our own words." },
+    },
+    {
+      name: "a framework's audit evidence",
+      path: DATA_SECURITY_API_ROUTES.auditEvidence,
+      allowed: EXPLAIN,
+      refused: [Permission.ProjectMember, Permission.ReadDataStore],
+      body: { framework: ComplianceFramework.SOC2, periodInDays: 90 },
+    },
+    {
+      name: "drafting a framework's audit evidence",
+      path: DATA_SECURITY_API_ROUTES.draftAuditEvidence,
+      allowed: FIX,
+      refused: [
+        Permission.SecurityViewer,
+        Permission.ReadDataSecurityIssue,
+        Permission.EditDataStore,
+      ],
+      body: { framework: ComplianceFramework.SOC2, periodInDays: 90 },
+    },
+    {
+      name: "editing a framework's audit evidence",
+      path: DATA_SECURITY_API_ROUTES.editAuditEvidence,
+      allowed: FIX,
+      refused: [
+        Permission.SecurityViewer,
+        Permission.ReadDataSecurityIssue,
+        Permission.EditDataStore,
+      ],
+      body: {
+        framework: ComplianceFramework.SOC2,
+        periodInDays: 90,
+        requirement: "A1.2",
+        text: "Our own words.",
+      },
+    },
+  ];
+
+  let helperSpies: Array<jest.SpyInstance>;
+
+  beforeEach(() => {
+    const row: DataSecurityRecordOfProcessingRow = {
+      dataStoreId: STORE_ID.toString(),
+    } as DataSecurityRecordOfProcessingRow;
+
+    helperSpies = [
+      jest
+        .spyOn(RecordOfProcessingWriter, "applyFieldAction")
+        .mockResolvedValue({ row }),
+      jest.spyOn(RecordOfProcessingReader, "readRow").mockResolvedValue(row),
+      jest.spyOn(RecordOfProcessingDrafter, "draftStore").mockResolvedValue({
+        drafted: true,
+        draftedFields: [RecordField.Purpose],
+        proposedFields: [],
+      }),
+      jest
+        .spyOn(ImpactAssessmentDrafter, "read")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ImpactAssessmentDrafter, "draftForPerson")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ImpactAssessmentDrafter, "editPart")
+        .mockResolvedValue({} as never),
+      jest.spyOn(AuditEvidenceDrafter, "read").mockResolvedValue({} as never),
+      jest
+        .spyOn(AuditEvidenceDrafter, "draftForPerson")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(AuditEvidenceDrafter, "editParagraph")
+        .mockResolvedValue({} as never),
+    ];
+  });
+
+  function helpersCalled(): number {
+    return helperSpies.reduce((sum: number, spy: jest.SpyInstance) => {
+      return sum + spy.mock.calls.length;
+    }, 0);
+  }
+
+  test.each(
+    PAPERWORK_ROUTES.flatMap(
+      (route: RouteCase): Array<[string, Permission, RouteCase]> => {
+        return route.allowed.map(
+          (permission: Permission): [string, Permission, RouteCase] => {
+            return [route.name, permission, route];
+          },
+        );
+      },
+    ),
+  )(
+    "%s answers a caller holding %s, with their own props",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeUndefined();
+      expect(result.answer).toBeDefined();
+
+      const called: Array<jest.SpyInstance> = helperSpies.filter(
+        (spy: jest.SpyInstance): boolean => {
+          return spy.mock.calls.length > 0;
+        },
+      );
+
+      expect(called.length).toBeGreaterThan(0);
+
+      for (const spy of called) {
+        const argument: { props?: { userId?: ObjectID } } = spy.mock
+          .calls[0]![0] as { props?: { userId?: ObjectID } };
+
+        // The drafter writes as OneUptime AI; every read and write a person asks is theirs.
+        if (spy !== helperSpies[2]) {
+          expect(argument.props?.userId?.toString()).toBe(USER_ID.toString());
+        }
+      }
+    },
+  );
+
+  test.each(
+    PAPERWORK_ROUTES.flatMap(
+      (route: RouteCase): Array<[string, Permission, RouteCase]> => {
+        return route.refused.map(
+          (permission: Permission): [string, Permission, RouteCase] => {
+            return [route.name, permission, route];
+          },
+        );
+      },
+    ),
+  )(
+    "%s refuses a caller holding only %s, before reading or asking anything",
+    async (_name: string, permission: Permission, route: RouteCase) => {
+      asCaller([permission]);
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrown as Exception).message).toBe(PERMISSION_MESSAGE);
+      expect(helpersCalled()).toBe(0);
+      expect(readsMade()).toBe(0);
+      expect(aiSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(PAPERWORK_ROUTES)(
+    "$name refuses an anonymous caller",
+    async (route: RouteCase) => {
+      propsSpy.mockResolvedValue({});
+
+      const result: RouteCall = await call(
+        route.path,
+        paramsFor(route),
+        bodyFor(route),
+      );
+
+      expect(result.thrown).toBeInstanceOf(NotAuthenticatedException);
+      expect(helpersCalled()).toBe(0);
+    },
+  );
+
+  test("a store's drafts are asked for only after the caller's own read of it, on request", async () => {
+    await call(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      { id: STORE_ID.toString() },
+      { force: true },
+    );
+
+    const readRow: jest.SpyInstance = helperSpies[1]!;
+    const draftStore: jest.SpyInstance = helperSpies[2]!;
+
+    expect(readRow.mock.invocationCallOrder[0]!).toBeLessThan(
+      draftStore.mock.invocationCallOrder[0]!,
+    );
+    expect(draftStore.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      dataStoreId: STORE_ID,
+      feature: DataSecurityAiFeature.DraftRecordOnRequest,
+      userId: USER_ID,
+      force: true,
+    });
+  });
+
+  test.each([
+    [
+      "a field it does not know",
+      DATA_SECURITY_API_ROUTES.recordField(":id"),
+      { field: "favouriteColour", action: RecordFieldAction.Confirm },
+    ],
+    [
+      "a press it does not know",
+      DATA_SECURITY_API_ROUTES.recordField(":id"),
+      { field: RecordField.Purpose, action: "Overwrite" },
+    ],
+    [
+      "a part the assessment does not have",
+      DATA_SECURITY_API_ROUTES.editImpactAssessment(":id"),
+      { part: "summary", markdown: "Words" },
+    ],
+    [
+      "a framework it does not report on",
+      DATA_SECURITY_API_ROUTES.auditEvidence,
+      { framework: "Made Up 9000", periodInDays: 90 },
+    ],
+  ])(
+    "refuses %s, writing nothing",
+    async (_name: string, path: string, body: JSONObject) => {
+      const result: RouteCall = await call(
+        path,
+        { id: STORE_ID.toString() },
+        body,
+      );
+
+      expect(result.thrown).toBeInstanceOf(BadDataException);
+      expect(helpersCalled()).toBe(0);
+    },
+  );
 });

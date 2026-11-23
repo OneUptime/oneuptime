@@ -283,7 +283,8 @@ export function scoreImpactAssessment(
   testCase: ImpactAssessmentEvalCase,
   answer: string,
 ): PaperworkEvalScore {
-  const read: ImpactAssessmentAnswer | null = readImpactAssessmentAnswer(answer);
+  const read: ImpactAssessmentAnswer | null =
+    readImpactAssessmentAnswer(answer);
 
   if (!read) {
     return { passed: false, notes: ["not the answer asked for"] };
@@ -345,7 +346,11 @@ export function auditEvidenceCall(
       frameworkName: COMPLIANCE_FRAMEWORK_INFO[testCase.framework].fullName,
       periodInDays: testCase.periodInDays,
       requirements: testCase.requirements.map(
-        (requirement: { requirement: string; title: string; status: string }) => {
+        (requirement: {
+          requirement: string;
+          title: string;
+          status: string;
+        }) => {
           return {
             requirement: requirement.requirement,
             title: requirement.title,

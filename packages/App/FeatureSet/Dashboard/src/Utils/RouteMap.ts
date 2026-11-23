@@ -1122,6 +1122,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE]: `stores/${RouteParams.ModelID}/timeline`,
   [PageMap.DATA_SECURITY_STORE_VIEW_OWNERS]: `stores/${RouteParams.ModelID}/owners`,
   [PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT]: `stores/${RouteParams.ModelID}/impact-assessment`,
   [PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]: `stores/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_SECURITY_STORE_VIEW_DELETE]: `stores/${RouteParams.ModelID}/delete`,
   [PageMap.DATA_SECURITY_ISSUES]: "issues",
@@ -1136,6 +1137,8 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_ACCESS]: "access",
   [PageMap.DATA_SECURITY_IDENTITY_VIEW]: `access/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_COMPLIANCE]: "compliance",
+  [PageMap.DATA_SECURITY_REVIEW_DRAFTS]: "compliance/review-drafts",
+  [PageMap.DATA_SECURITY_AUDIT_EVIDENCE]: "compliance/audit-evidence",
   [PageMap.DATA_SECURITY_SCANS]: "scans",
   [PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES]: "settings/data-types",
   [PageMap.DATA_SECURITY_SETTINGS_CHECKS]: "settings/checks",
@@ -8990,6 +8993,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT]
+    }`,
+  ),
+
   [PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS]
@@ -9065,6 +9074,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_COMPLIANCE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_COMPLIANCE]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_REVIEW_DRAFTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_REVIEW_DRAFTS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_AUDIT_EVIDENCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_AUDIT_EVIDENCE]
     }`,
   ),
 

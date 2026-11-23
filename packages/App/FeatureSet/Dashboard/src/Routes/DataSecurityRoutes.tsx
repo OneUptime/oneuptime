@@ -21,6 +21,8 @@ import DataSecurityDataFlowsPage from "../Pages/DataSecurity/DataFlows";
 import DataSecurityAccessPage from "../Pages/DataSecurity/Access";
 import DataSecurityIdentityViewPage from "../Pages/DataSecurity/IdentityView";
 import DataSecurityCompliancePage from "../Pages/DataSecurity/Compliance";
+import DataSecurityReviewDraftsPage from "../Pages/DataSecurity/ReviewDrafts";
+import DataSecurityAuditEvidencePage from "../Pages/DataSecurity/AuditEvidence";
 import DataSecurityAiPage from "../Pages/DataSecurity/AI";
 import DataSecurityScansPage from "../Pages/DataSecurity/Scans";
 import DataSecurityDocumentationPage from "../Pages/DataSecurity/Documentation";
@@ -40,6 +42,7 @@ import DataStoreScansPage from "../Pages/DataSecurity/StoreView/Scans";
 import DataStoreTimelinePage from "../Pages/DataSecurity/StoreView/Timeline";
 import DataStoreOwnersPage from "../Pages/DataSecurity/StoreView/Owners";
 import DataStoreSettingsPage from "../Pages/DataSecurity/StoreView/Settings";
+import DataStoreImpactAssessmentPage from "../Pages/DataSecurity/StoreView/ImpactAssessment";
 import DataStoreDeletePage from "../Pages/DataSecurity/StoreView/Delete";
 import DataStoreAuditLogsPage from "../Pages/DataSecurity/StoreView/AuditLogs";
 import DataSecurityIssueOverviewPage from "../Pages/DataSecurity/IssueView/Overview";
@@ -158,6 +161,30 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
             <DataSecurityCompliancePage
               {...props}
               pageRoute={RouteMap[PageMap.DATA_SECURITY_COMPLIANCE] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DataSecurityRoutePath[PageMap.DATA_SECURITY_REVIEW_DRAFTS] || ""
+          }
+          element={
+            <DataSecurityReviewDraftsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.DATA_SECURITY_REVIEW_DRAFTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            DataSecurityRoutePath[PageMap.DATA_SECURITY_AUDIT_EVIDENCE] || ""
+          }
+          element={
+            <DataSecurityAuditEvidencePage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_SECURITY_AUDIT_EVIDENCE] as Route
+              }
             />
           }
         />
@@ -444,6 +471,21 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT,
+          )}
+          element={
+            <DataStoreImpactAssessmentPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT
+                ] as Route
               }
             />
           }

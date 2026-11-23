@@ -236,7 +236,10 @@ export default class StoreTelemetryRetention {
       await Promise.all([
         serviceIds.length > 0
           ? ServiceService.findBy({
-              query: { projectId: data.projectId, _id: new Includes(serviceIds) },
+              query: {
+                projectId: data.projectId,
+                _id: new Includes(serviceIds),
+              },
               select: {
                 _id: true,
                 telemetryRetentionConfig: true,

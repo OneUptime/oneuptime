@@ -73,6 +73,14 @@ export const RECORD_LEGAL_BASES: ReadonlyArray<RecordLegalBasis> = [
   RecordLegalBasis.LegitimateInterests,
 ];
 
+/*
+ * The basis the record gives a store OneUptime keeps for the project's
+ * security (#10398) until the team picks its own: legitimate interests, as
+ * GDPR Recital 49 says of network and information security.
+ */
+export const DECLARED_STORE_LEGAL_BASIS: RecordLegalBasis =
+  RecordLegalBasis.LegitimateInterests;
+
 export function isRecordLegalBasis(value: unknown): value is RecordLegalBasis {
   return (
     typeof value === "string" &&
@@ -204,23 +212,24 @@ export const RECORD_PEOPLE_TITLES: Readonly<Record<RecordPeople, string>> = {
   [RecordPeople.Public]: translationKey("Members of the public"),
 };
 
-// Who each category is, for OneUptime AI and the picker's hint.
-export const RECORD_PEOPLE_DESCRIPTIONS: Readonly<Record<RecordPeople, string>> =
-  {
-    [RecordPeople.Customers]: "People who buy from the organization.",
-    [RecordPeople.Users]: "People who use its product or service.",
-    [RecordPeople.Prospects]: "Leads and people it markets to.",
-    [RecordPeople.WebsiteVisitors]: "People who visit its websites.",
-    [RecordPeople.Employees]: "Its staff, past and present.",
-    [RecordPeople.JobApplicants]: "People who apply to work there.",
-    [RecordPeople.Contractors]: "Freelancers and contractors who work for it.",
-    [RecordPeople.BusinessContacts]:
-      "People at its suppliers, partners and business customers.",
-    [RecordPeople.Patients]: "People it gives care or health services to.",
-    [RecordPeople.Students]: "People it teaches.",
-    [RecordPeople.Children]: "People under 16.",
-    [RecordPeople.Public]: "Anyone else.",
-  };
+// Who each category is, in English: what OneUptime AI is told of it.
+export const RECORD_PEOPLE_DESCRIPTIONS: Readonly<
+  Record<RecordPeople, string>
+> = {
+  [RecordPeople.Customers]: "People who buy from the organization.",
+  [RecordPeople.Users]: "People who use its product or service.",
+  [RecordPeople.Prospects]: "Leads and people it markets to.",
+  [RecordPeople.WebsiteVisitors]: "People who visit its websites.",
+  [RecordPeople.Employees]: "Its staff, past and present.",
+  [RecordPeople.JobApplicants]: "People who apply to work there.",
+  [RecordPeople.Contractors]: "Freelancers and contractors who work for it.",
+  [RecordPeople.BusinessContacts]:
+    "People at its suppliers, partners and business customers.",
+  [RecordPeople.Patients]: "People it gives care or health services to.",
+  [RecordPeople.Students]: "People it teaches.",
+  [RecordPeople.Children]: "People under 16.",
+  [RecordPeople.Public]: "Anyone else.",
+};
 
 // The fields of a store's record people answer for: each named by its DataStore column.
 export enum RecordField {
@@ -672,7 +681,9 @@ export enum RecordFieldAction {
   KeepConfirmed = "KeepConfirmed",
 }
 
-export function isRecordFieldAction(value: unknown): value is RecordFieldAction {
+export function isRecordFieldAction(
+  value: unknown,
+): value is RecordFieldAction {
   return (
     typeof value === "string" &&
     (Object.values(RecordFieldAction) as Array<string>).includes(value)
@@ -1331,33 +1342,34 @@ export enum RecordDraftSkip {
 }
 
 // What a person is told when a draft they asked for drafted nothing.
-export const RECORD_DRAFT_SKIP_TEXTS: Readonly<Record<RecordDraftSkip, string>> =
-  {
-    [RecordDraftSkip.NotPersonalData]: translationKey(
-      "This store holds no personal data, so it is not in the record of processing.",
-    ),
-    [RecordDraftSkip.Declared]: translationKey(
-      "OneUptime fills in this store's record itself.",
-    ),
-    [RecordDraftSkip.NothingToDraft]: translationKey(
-      "Nothing to draft: every field is answered or drafted, and nothing it rests on changed.",
-    ),
-    [RecordDraftSkip.NothingHeld]: translationKey(
-      "OneUptime AI found nothing in what the scans know of this store to draft from. Write the fields yourself.",
-    ),
-    [RecordDraftSkip.NoLlmProvider]: translationKey(
-      "No LLM provider is set up for this project.",
-    ),
-    [RecordDraftSkip.NoAiCredits]: translationKey(
-      "This project has no AI credits left.",
-    ),
-    [RecordDraftSkip.AiDailyLimitReached]: translationKey(
-      "This project reached its AI limit for today.",
-    ),
-    [RecordDraftSkip.Failed]: translationKey(
-      "OneUptime AI could not draft this store's record. Try again in a moment.",
-    ),
-  };
+export const RECORD_DRAFT_SKIP_TEXTS: Readonly<
+  Record<RecordDraftSkip, string>
+> = {
+  [RecordDraftSkip.NotPersonalData]: translationKey(
+    "This store holds no personal data, so it is not in the record of processing.",
+  ),
+  [RecordDraftSkip.Declared]: translationKey(
+    "OneUptime fills in this store's record itself.",
+  ),
+  [RecordDraftSkip.NothingToDraft]: translationKey(
+    "Nothing to draft: every field is answered or drafted, and nothing it rests on changed.",
+  ),
+  [RecordDraftSkip.NothingHeld]: translationKey(
+    "OneUptime AI found nothing in what the scans know of this store to draft from. Write the fields yourself.",
+  ),
+  [RecordDraftSkip.NoLlmProvider]: translationKey(
+    "No LLM provider is set up for this project.",
+  ),
+  [RecordDraftSkip.NoAiCredits]: translationKey(
+    "This project has no AI credits left.",
+  ),
+  [RecordDraftSkip.AiDailyLimitReached]: translationKey(
+    "This project reached its AI limit for today.",
+  ),
+  [RecordDraftSkip.Failed]: translationKey(
+    "OneUptime AI could not draft this store's record. Try again in a moment.",
+  ),
+};
 
 /*
  * ---------------------------------------------------------------------------

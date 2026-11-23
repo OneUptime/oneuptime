@@ -342,7 +342,8 @@ export default class AuditEvidenceDrafter {
       data.framework,
       data.periodInDays,
     );
-    const previous: FrameworkAuditEvidence | null = project.entries[key] || null;
+    const previous: FrameworkAuditEvidence | null =
+      project.entries[key] || null;
     const next: FrameworkAuditEvidence | null = data.change(previous);
 
     if (!next) {

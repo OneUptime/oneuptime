@@ -434,7 +434,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.DraftRecordOnRequest,
       title: translationKey("Record of processing drafts on request"),
       startedBy: translationKey(
-        "A person, on Review Drafts, for a store's empty fields.",
+        "A person, on Review Drafts or a store's Settings, for its empty fields.",
       ),
       runsOnItsOwn: false,
       sends: RECORD_DRAFT_SENDS,

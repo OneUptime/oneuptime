@@ -96,7 +96,8 @@ interface FactBase<Kind extends ComplianceFactKind> {
   kind: Kind;
 }
 
-export interface StoreHoldsFact extends FactBase<ComplianceFactKind.StoreHolds> {
+export interface StoreHoldsFact
+  extends FactBase<ComplianceFactKind.StoreHolds> {
   // By the project's names for them, never an id.
   dataTypes: Array<string>;
   categories: Array<string>;
@@ -131,7 +132,8 @@ export interface LocationFact extends FactBase<ComplianceFactKind.Location> {
   subjectCountries: Array<string>;
 }
 
-export interface ServiceUseFact extends FactBase<ComplianceFactKind.ServiceUse> {
+export interface ServiceUseFact
+  extends FactBase<ComplianceFactKind.ServiceUse> {
   service: string;
   // What the service is for, in its team's words.
   description?: string | undefined;
@@ -144,7 +146,8 @@ export interface ExternalHostFact
   via: string;
 }
 
-export interface AiProviderFact extends FactBase<ComplianceFactKind.AiProvider> {
+export interface AiProviderFact
+  extends FactBase<ComplianceFactKind.AiProvider> {
   provider: string;
   // The service whose calls reach it.
   via?: string | undefined;
@@ -196,7 +199,8 @@ export interface ExposureFact extends FactBase<ComplianceFactKind.Exposure> {
   publicReason?: string | undefined;
 }
 
-export interface EncryptionFact extends FactBase<ComplianceFactKind.Encryption> {
+export interface EncryptionFact
+  extends FactBase<ComplianceFactKind.Encryption> {
   encryptedAtRest?: boolean | undefined;
   customerManagedKey?: boolean | undefined;
   encryptionInTransitEnforced?: boolean | undefined;
@@ -217,7 +221,8 @@ export interface OpenIssueFact extends FactBase<ComplianceFactKind.OpenIssue> {
   severity: string;
 }
 
-export interface FixedIssueFact extends FactBase<ComplianceFactKind.FixedIssue> {
+export interface FixedIssueFact
+  extends FactBase<ComplianceFactKind.FixedIssue> {
   title: string;
   checkId: string;
   fixed: ComplianceRecency;
@@ -242,7 +247,8 @@ export interface RequirementScopeFact
   requirement: string;
 }
 
-export interface CheckStateFact extends FactBase<ComplianceFactKind.CheckState> {
+export interface CheckStateFact
+  extends FactBase<ComplianceFactKind.CheckState> {
   // How many checks are evidence for the requirement.
   checks: number;
   // The ones an open issue fails on a store in scope, by title.
@@ -349,7 +355,9 @@ export const COMPLIANCE_FACT_KIND_TITLES: Readonly<
   [ComplianceFactKind.AiProvider]: translationKey("AI provider"),
   [ComplianceFactKind.Copy]: translationKey("Copy"),
   [ComplianceFactKind.Backups]: translationKey("Backups"),
-  [ComplianceFactKind.TelemetryRetention]: translationKey("Telemetry retention"),
+  [ComplianceFactKind.TelemetryRetention]: translationKey(
+    "Telemetry retention",
+  ),
   [ComplianceFactKind.DeclaredCode]: translationKey("Declared in code"),
   [ComplianceFactKind.Exposure]: translationKey("Exposure"),
   [ComplianceFactKind.Encryption]: translationKey("Encryption"),
@@ -452,7 +460,8 @@ function isEnumValue<T extends string>(
   value: unknown,
 ): value is T {
   return (
-    typeof value === "string" && (values as ReadonlyArray<string>).includes(value)
+    typeof value === "string" &&
+    (values as ReadonlyArray<string>).includes(value)
   );
 }
 
@@ -469,7 +478,11 @@ export function readComplianceFact(value: unknown): ComplianceFact | null {
   const key: string = text(value["key"]);
   const kind: unknown = value["kind"];
 
-  if (!FACT_ID_PATTERN.test(id) || !key || !isEnumValue(COMPLIANCE_FACT_KINDS, kind)) {
+  if (
+    !FACT_ID_PATTERN.test(id) ||
+    !key ||
+    !isEnumValue(COMPLIANCE_FACT_KINDS, kind)
+  ) {
     return null;
   }
 
@@ -889,13 +902,19 @@ export function holdTextToFacts(data: {
 
   const cleaned: string = withoutFactIds(
     data.isOneLine === false
-      ? data.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim()
+      ? data.text
+          .replace(/[ \t]+/g, " ")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim()
       : data.text.replace(/\s+/g, " ").trim(),
   ).trim();
   const characters: Array<string> = Array.from(cleaned);
   const text: string =
     characters.length > data.maxLength
-      ? `${characters.slice(0, data.maxLength - 1).join("").trim()}…`
+      ? `${characters
+          .slice(0, data.maxLength - 1)
+          .join("")
+          .trim()}…`
       : cleaned;
 
   if (Array.from(text).length < (data.minLength ?? 8)) {
@@ -1022,7 +1041,11 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       }${fact.publicReason ? ` (${fact.publicReason})` : ""}`;
     case ComplianceFactKind.Encryption:
       return list([
-        yesNo(fact.encryptedAtRest, "Encrypted at rest", "Not encrypted at rest"),
+        yesNo(
+          fact.encryptedAtRest,
+          "Encrypted at rest",
+          "Not encrypted at rest",
+        ),
         yesNo(
           fact.customerManagedKey,
           "with a customer-managed key",
@@ -1073,7 +1096,9 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       }`;
     case ComplianceFactKind.TurnedOff:
       return `Turned off ${
-        fact.isWholeFramework ? "for the whole framework" : "for this requirement"
+        fact.isWholeFramework
+          ? "for the whole framework"
+          : "for this requirement"
       } on ${fact.resource} (${fact.resourceKind})${
         fact.reason ? `: "${fact.reason}"` : ""
       }`;

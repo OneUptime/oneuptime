@@ -14,7 +14,10 @@ import ComplianceFrameworkTile, {
   getFailingRequirementCount,
 } from "../../Components/DataSecurity/ComplianceFrameworkTile";
 import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
-import { getIssueListRoute } from "../../Components/DataSecurity/IssueListRoute";
+import {
+  getAuditEvidenceRoute,
+  getIssueListRoute,
+} from "../../Components/DataSecurity/IssueListRoute";
 import RecordOfProcessingCard from "../../Components/DataSecurity/RecordOfProcessingCard";
 import { ComplianceTurnedOffList } from "../../Components/ResourceDataSecurity/ComplianceTurnedOffNote";
 import { getTurnedOffEntries } from "../../Components/ResourceDataSecurity/ResourceComplianceModel";
@@ -42,6 +45,7 @@ import TableEmptyState, {
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   PluralTemplate,
   Translator,
@@ -67,7 +71,8 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  *
  * Picking a framework lists every requirement with where it stands and
  * the open issues behind it - a link to Issues, narrowed to its checks -
- * and exports the framework's report as CSV or JSON for an auditor.
+ * opens its audit evidence (#10375), and exports the framework's report
+ * as CSV or JSON for an auditor.
  *
  * Under them, the GDPR record of processing: every store that holds
  * personal data, the ones OneUptime keeps for the project's security
@@ -389,12 +394,24 @@ const DataSecurityCompliancePage: FunctionComponent<
             translator.translateText(framework.fullName) || framework.fullName
           }
           description={translator.translateText(scope) || scope}
-          // The CSV in sight, the JSON in the header's ⋯.
+          /*
+           * Its audit evidence in sight (#10375) - what an auditor reads
+           * under each requirement - and the report's CSV and JSON in the
+           * header's ⋯.
+           */
           buttons={getTableHeaderButtons([
+            {
+              title: "Audit Evidence",
+              icon: IconProp.DocumentText,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                Navigation.navigate(getAuditEvidenceRoute(framework.framework));
+              },
+            },
             {
               title: "Export CSV",
               icon: IconProp.Download,
-              buttonStyle: ButtonStyleType.NORMAL,
+              buttonStyle: ButtonStyleType.OUTLINE,
               onClick: () => {
                 downloadFrameworkReportCsv(framework);
               },

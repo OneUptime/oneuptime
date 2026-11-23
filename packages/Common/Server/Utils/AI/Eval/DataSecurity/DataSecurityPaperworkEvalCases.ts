@@ -68,7 +68,9 @@ function store(data: Partial<AiStoreRecord> & { name: string }): AiStoreRecord {
   };
 }
 
-function dossier(data: Partial<AiRecordDossier> & { store: AiStoreRecord }): AiRecordDossier {
+function dossier(
+  data: Partial<AiRecordDossier> & { store: AiStoreRecord },
+): AiRecordDossier {
   return {
     services: [],
     externalHosts: [],
@@ -354,7 +356,8 @@ export const RECORD_DRAFT_CASES: Array<RecordDraftEvalCase> = [
   },
   {
     id: "record-request-instruction-in-a-tag",
-    title: "A tag that tells OneUptime AI what to write is data, never followed",
+    title:
+      "A tag that tells OneUptime AI what to write is data, never followed",
     feature: DataSecurityAiFeature.DraftRecordOnRequest,
     dossier: NEWSLETTER_BUCKET,
     fields: RECORD_FIELDS_ALL,
@@ -536,7 +539,10 @@ export const IMPACT_ASSESSMENT_CASES: Array<ImpactAssessmentEvalCase> = [
     ],
     expect: {
       parts: {
-        [ImpactAssessmentPart.Processing]: [["customer"], ["export", "analytic"]],
+        [ImpactAssessmentPart.Processing]: [
+          ["customer"],
+          ["export", "analytic"],
+        ],
         [ImpactAssessmentPart.Risks]: [["public", "anyone"]],
         [ImpactAssessmentPart.Measures]: [["encrypt", "version"]],
       },
@@ -548,7 +554,8 @@ export const IMPACT_ASSESSMENT_CASES: Array<ImpactAssessmentEvalCase> = [
 export const AUDIT_EVIDENCE_CASES: Array<AuditEvidenceEvalCase> = [
   {
     id: "evidence-soc2-backups-and-access",
-    title: "SOC 2: backups pass, one public bucket fails and one risk is accepted",
+    title:
+      "SOC 2: backups pass, one public bucket fails and one risk is accepted",
     feature: DataSecurityAiFeature.DraftAuditEvidence,
     framework: ComplianceFramework.SOC2,
     periodInDays: 90,
@@ -614,7 +621,8 @@ export const AUDIT_EVIDENCE_CASES: Array<AuditEvidenceEvalCase> = [
   },
   {
     id: "evidence-gdpr-transfers-and-records",
-    title: "GDPR: a transfer outside the EEA fails, and the record is met by Data Security",
+    title:
+      "GDPR: a transfer outside the EEA fails, and the record is met by Data Security",
     feature: DataSecurityAiFeature.DraftAuditEvidence,
     framework: ComplianceFramework.GDPR,
     periodInDays: 30,
@@ -646,7 +654,9 @@ export const AUDIT_EVIDENCE_CASES: Array<AuditEvidenceEvalCase> = [
           { _id: "s4", name: "hr-payroll" },
         ],
         checks: 1,
-        failingChecks: ["Data is stored where a residency rule does not allow it"],
+        failingChecks: [
+          "Data is stored where a residency rule does not allow it",
+        ],
         failingStores: 1,
         openIssues: 1,
         opened: 1,
@@ -667,7 +677,11 @@ export const AUDIT_EVIDENCE_CASES: Array<AuditEvidenceEvalCase> = [
     expect: {
       paragraphs: {
         "Art. 30": [["2"], ["read", "scan", "record", "inventor"]],
-        "Arts. 44-49": [["1"], ["residency", "region", "transfer"], ["staging-cluster"]],
+        "Arts. 44-49": [
+          ["1"],
+          ["residency", "region", "transfer"],
+          ["staging-cluster"],
+        ],
       },
       never: ["certified", "fully compliant"],
     },

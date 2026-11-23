@@ -3947,6 +3947,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Settings",
       },
       {
+        page: PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT,
+        section: "Settings",
+        title: "Impact Assessment",
+      },
+      {
         page: PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS,
         section: "Advanced",
         title: "Audit Logs",

@@ -129,7 +129,9 @@ export function buildRequirementEvidence(data: {
   );
   const issues: Array<EvidenceIssueInput> = data.issues.filter(
     (issue: EvidenceIssueInput): boolean => {
-      return covered.has(issue.storeId.toLowerCase()) && checkIds.has(issue.checkId);
+      return (
+        covered.has(issue.storeId.toLowerCase()) && checkIds.has(issue.checkId)
+      );
     },
   );
   const open: Array<EvidenceIssueInput> = issues.filter(
@@ -258,7 +260,9 @@ export function buildEvidenceIssueHistory(data: {
       );
     })
     .sort((a: EvidenceIssueInput, b: EvidenceIssueInput): number => {
-      return (timeOf(b.firstDetectedAt) || 0) - (timeOf(a.firstDetectedAt) || 0);
+      return (
+        (timeOf(b.firstDetectedAt) || 0) - (timeOf(a.firstDetectedAt) || 0)
+      );
     })
     .slice(0, MAX_EVIDENCE_HISTORY)
     .map((issue: EvidenceIssueInput): DataSecurityEvidenceIssue => {
@@ -346,9 +350,8 @@ export default class AuditEvidenceReader {
     );
     const settings: Array<ComplianceScopeSetting> =
       await ResourceDataSecurity.readProjectSettings(data.projectId);
-    const scoped: Array<ScopedStore> = await ResourceDataSecurity.toScopedStores(
-      stores,
-    );
+    const scoped: Array<ScopedStore> =
+      await ResourceDataSecurity.toScopedStores(stores);
     const exclusions: ComplianceScopeExclusions = getComplianceScopeExclusions(
       data.framework,
       scoped.map((store: ScopedStore): ComplianceScopeStore => {

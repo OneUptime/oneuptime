@@ -176,7 +176,9 @@ export const IMPACT_ASSESSMENT_PART_TITLES: Readonly<
   [ImpactAssessmentPart.Necessity]: translationKey(
     "Necessity and Proportionality",
   ),
-  [ImpactAssessmentPart.Risks]: translationKey("Risks to the People It Is About"),
+  [ImpactAssessmentPart.Risks]: translationKey(
+    "Risks to the People It Is About",
+  ),
   [ImpactAssessmentPart.Measures]: translationKey(
     "Measures That Address the Risks",
   ),
@@ -306,7 +308,10 @@ function readSection(
     return null;
   }
 
-  const markdown: string = readText(value["markdown"], MAX_EDITED_SECTION_LENGTH);
+  const markdown: string = readText(
+    value["markdown"],
+    MAX_EDITED_SECTION_LENGTH,
+  );
   const source: unknown = value["source"];
 
   if (!markdown.trim()) {
@@ -371,9 +376,9 @@ export function readStoreImpactAssessment(
           (trigger: unknown): trigger is ImpactAssessmentTrigger => {
             return (
               typeof trigger === "string" &&
-              (Object.values(ImpactAssessmentTrigger) as Array<string>).includes(
-                trigger,
-              )
+              (
+                Object.values(ImpactAssessmentTrigger) as Array<string>
+              ).includes(trigger)
             );
           },
         )
@@ -394,6 +399,9 @@ export function toStoreImpactAssessmentJson(
  * HTML, no image and no link - a link's words stay. Whatever a model, or a
  * person, writes is cleaned the same way.
  */
+// A Markdown heading line: the document draws each part's heading itself.
+const MARKDOWN_HEADING: RegExp = /^\s{0,3}#{1,6}\s/;
+
 export function cleanSectionMarkdown(markdown: string): string {
   return markdown
     .replace(/\r\n?/g, "\n")
@@ -402,7 +410,7 @@ export function cleanSectionMarkdown(markdown: string): string {
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .split("\n")
     .filter((line: string): boolean => {
-      return !/^\s{0,3}#{1,6}\s/.test(line);
+      return !MARKDOWN_HEADING.test(line);
     })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")

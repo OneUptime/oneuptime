@@ -162,7 +162,7 @@ describe("the record's CSV", () => {
 
   test("has a column for who can read a store, and one for who declares it", () => {
     expect(lines([])[0]).toBe(
-      "Data Store,Kind,Provider,Region,Environment,Sensitivity,Data Categories,Data Types,Owners,Purpose,Retention,Who Can Read,Frameworks,Declared By",
+      "Data Store,Kind,Provider,Region,Environment,Sensitivity,Data Categories,Data Types,Owners,Purpose,Retention,Who Can Read,Frameworks,Declared By,Legal Basis,People It Is About,Recipients,Transfers,Impact Assessment,Waiting for Review",
     );
   });
 
