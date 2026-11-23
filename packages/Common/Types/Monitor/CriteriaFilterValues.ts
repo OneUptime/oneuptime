@@ -325,6 +325,29 @@ const withValueRead: <T extends string>(data: {
   return read && read !== written ? { ...options, [data.key]: read } : options;
 };
 
+// A number written as its digits: "30", "99.5".
+const DIGITS: RegExp = /^\d+(\.\d+)?$/;
+
+/*
+ * `options` with the number at `key` read as a number when it is written as
+ * its digits, as an API caller or a YAML file may write it (#10355): a count
+ * compared with "30" is stored as 30, which the Terraform provider and the
+ * Dashboard read back. Anything else stays as written, for the window's own
+ * check to refuse.
+ */
+const withNumberRead: (data: { options: unknown; key: string }) => unknown = (
+  data: { options: unknown; key: string },
+): unknown => {
+  const options: JSONObject | undefined = asObject(data.options);
+  const written: unknown = options?.[data.key];
+
+  if (!options || typeof written !== "string" || !DIGITS.test(written.trim())) {
+    return data.options;
+  }
+
+  return { ...options, [data.key]: Number(written.trim()) };
+};
+
 export default class CriteriaFilterValues {
   public static readFilterType(value: unknown): FilterType | null {
     return readValue(FILTER_TYPES, value);
@@ -403,7 +426,7 @@ export default class CriteriaFilterValues {
     }
 
     if (asObject(written["evaluateOverTimeOptions"])) {
-      read["evaluateOverTimeOptions"] = withValueRead({
+      const options: unknown = withValueRead({
         options: withValueRead({
           options: withValueRead({
             options: written["evaluateOverTimeOptions"],
@@ -416,6 +439,12 @@ export default class CriteriaFilterValues {
         // How a counted window's number is compared: "more than" 30.
         key: "countFilterType",
         set: FILTER_TYPES,
+      });
+
+      // The count it is compared with, and a percentile, as numbers.
+      read["evaluateOverTimeOptions"] = withNumberRead({
+        options: withNumberRead({ options: options, key: "countValue" }),
+        key: "percentile",
       }) as JSONObject;
     }
 

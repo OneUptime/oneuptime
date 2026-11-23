@@ -261,6 +261,46 @@ describe("CriteriaFilterValues: the new window values written another way", () =
     });
   });
 
+  test("a count and a percentile written as their digits are read as numbers, anything else as written", () => {
+    const read: (options: JSONObject) => unknown = (
+      options: JSONObject,
+    ): unknown => {
+      return CriteriaFilterValues.readFilter({
+        checkOn: "Response Time (in ms)",
+        filterType: "Greater Than",
+        value: 300,
+        evaluateOverTimeOptions: options,
+      })["evaluateOverTimeOptions"];
+    };
+
+    expect(
+      read({
+        timeValueInMinutes: 60,
+        evaluateOverTimeType: "Count",
+        countValue: " 30 ",
+      }),
+    ).toEqual({
+      timeValueInMinutes: 60,
+      evaluateOverTimeType: EvaluateOverTimeType.Count,
+      countValue: 30,
+    });
+    expect(
+      read({ evaluateOverTimeType: "Percentile", percentile: "99.5" }),
+    ).toEqual({
+      evaluateOverTimeType: EvaluateOverTimeType.Percentile,
+      percentile: 99.5,
+    });
+    // Left for the window's own check to refuse.
+    expect(read({ countValue: "lots", percentile: "-5" })).toEqual({
+      countValue: "lots",
+      percentile: "-5",
+    });
+    // The minutes keep the form they were saved in.
+    expect(read({ timeValueInMinutes: "5" })).toEqual({
+      timeValueInMinutes: "5",
+    });
+  });
+
   test("a count's comparison that means none is refused, naming where it is", () => {
     expect(
       CriteriaFilterValues.getUnreadableErrors({
