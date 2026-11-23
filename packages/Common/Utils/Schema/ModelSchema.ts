@@ -437,7 +437,8 @@ export class ModelSchema extends BaseSchema {
       return null;
     }
 
-    let schema: ZodTypes.ZodTypeAny | undefined = RECORD_ACTOR_SCHEMAS.get(name);
+    let schema: ZodTypes.ZodTypeAny | undefined =
+      RECORD_ACTOR_SCHEMAS.get(name);
 
     if (!schema) {
       schema = this.annotateColumn({

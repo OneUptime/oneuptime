@@ -192,10 +192,8 @@ describe("which tables", () => {
 });
 
 describe("up", () => {
-  test("runs outside a transaction, so each table and \"User\" are held for one statement alone", () => {
-    expect(new DropDeletedByUserColumns1809187480000().transaction).toBe(
-      false,
-    );
+  test('runs outside a transaction, so each table and "User" are held for one statement alone', () => {
+    expect(new DropDeletedByUserColumns1809187480000().transaction).toBe(false);
   });
 
   test("drops each table's key and column in one statement, as the generator wrote them", async () => {
@@ -213,8 +211,9 @@ describe("up", () => {
 
     for (const statement of statements) {
       expect(statement.match(/ALTER TABLE/g)).toHaveLength(1);
-      expect(statement.match(/DROP COLUMN IF EXISTS "deletedByUserId"/g))
-        .toHaveLength(1);
+      expect(
+        statement.match(/DROP COLUMN IF EXISTS "deletedByUserId"/g),
+      ).toHaveLength(1);
       expect(statement).not.toMatch(/ADD |VALIDATE|INDEX|CASCADE/);
     }
   });
@@ -303,7 +302,7 @@ describe("down", () => {
     expect(statements).toHaveLength(563 + 561);
   });
 
-  test("each column nullable, with its key to \"User\" set to null when the person goes", async () => {
+  test('each column nullable, with its key to "User" set to null when the person goes', async () => {
     const { runner, statements } = recordQueries();
 
     await new DropDeletedByUserColumns1809187480000().down(runner);

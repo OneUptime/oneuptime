@@ -161,9 +161,9 @@ describe("the shared schemas", () => {
   });
 
   test("the person who last modified it is a user, as the provider names users", () => {
-    expect(schemas["RecordLastModifiedByUserId"]!["x-oneuptime-relation"]).toEqual(
-      { tag: "User", tableName: "User" },
-    );
+    expect(
+      schemas["RecordLastModifiedByUserId"]!["x-oneuptime-relation"],
+    ).toEqual({ tag: "User", tableName: "User" });
   });
 });
 
@@ -264,7 +264,8 @@ describe("every resource whose readers may read who created a record", () => {
 
 describe("a read-only field's description", () => {
   test("is its own words, with no permissions sentence; a writable one keeps its permissions", () => {
-    const monitor: Record<string, JSONObject> = propertiesOf("MonitorReadSchema");
+    const monitor: Record<string, JSONObject> =
+      propertiesOf("MonitorReadSchema");
 
     expect(monitor["createdAt"]!["readOnly"]).toBe(true);
     expect(monitor["createdAt"]!["description"]).toBe(
@@ -399,8 +400,10 @@ describe("the Terraform provider generated from the spec", () => {
       for (const key of getCrossplaneConnectionSecretKeys(modelType)) {
         expect([
           model.tableName,
-          [...SCALAR_COLUMNS, ...SCALAR_COLUMNS.map(toTerraformSnakeCase)]
-            .includes(key),
+          [
+            ...SCALAR_COLUMNS,
+            ...SCALAR_COLUMNS.map(toTerraformSnakeCase),
+          ].includes(key),
         ]).toEqual([model.tableName, false]);
       }
 

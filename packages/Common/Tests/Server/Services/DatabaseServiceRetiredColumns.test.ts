@@ -189,7 +189,10 @@ describe("a read that names who deleted a record", () => {
   test("a count by an empty one counts what the rest of the query names", async () => {
     let asked: JSONObject | undefined = undefined;
 
-    getJestSpyOn(ModelPermission, "checkReadQueryPermission").mockImplementation(
+    getJestSpyOn(
+      ModelPermission,
+      "checkReadQueryPermission",
+    ).mockImplementation(
       async (_modelType: unknown, query: unknown): Promise<never> => {
         asked = { ...(query as JSONObject) };
         throw new Stop();

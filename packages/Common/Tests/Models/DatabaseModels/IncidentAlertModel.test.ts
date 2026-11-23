@@ -293,16 +293,17 @@ describe("IncidentAlert table permissions", () => {
    * that still sends one is not refused for it. Who deleted a link is no
    * column at all: a link is deleted outright (#10469).
    */
-  test.each(["createdByUser", "createdByUserId"])("nobody can set %s", (
-    column: string,
-  ) => {
-    const model: IncidentAlert = new IncidentAlert();
+  test.each(["createdByUser", "createdByUserId"])(
+    "nobody can set %s",
+    (column: string) => {
+      const model: IncidentAlert = new IncidentAlert();
 
-    expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
-    expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
-    expect(model.getTableColumnMetadata(column).computed).toBe(true);
-    expect(UserAttribution.getColumns(model)).toContain(column);
-  });
+      expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
+      expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
+      expect(model.getTableColumnMetadata(column).computed).toBe(true);
+      expect(UserAttribution.getColumns(model)).toContain(column);
+    },
+  );
 });
 
 describe("IncidentAlert columns", () => {
@@ -356,14 +357,11 @@ describe("IncidentAlert columns", () => {
     },
   );
 
-  test.each(["createdByUserId"])(
-    "%s is optional",
-    (column: string) => {
-      expect(Boolean(model().getTableColumnMetadata(column).required)).toBe(
-        false,
-      );
-    },
-  );
+  test.each(["createdByUserId"])("%s is optional", (column: string) => {
+    expect(Boolean(model().getTableColumnMetadata(column).required)).toBe(
+      false,
+    );
+  });
 
   interface RelationCase {
     relation: string;

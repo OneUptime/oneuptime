@@ -219,7 +219,7 @@ describePostgres("DropDeletedByUserColumns1809187480000 (Postgres)", () => {
     }
   });
 
-  test("the tables start as the migrations made them: the column, and a key to \"User\" that sets it to null", async () => {
+  test('the tables start as the migrations made them: the column, and a key to "User" that sets it to null', async () => {
     expect(await withTheColumn()).toEqual([...TABLES].sort());
     expect(await keys()).toEqual(
       KEYED.map((table: string): string => {
@@ -240,7 +240,7 @@ describePostgres("DropDeletedByUserColumns1809187480000 (Postgres)", () => {
     ).toEqual(["n", "n"]);
   });
 
-  test('up() drops each table\'s key and column, keeps its rows, and "User" loses the keys\' triggers', async () => {
+  test("up() drops each table's key and column, keeps its rows, and \"User\" loses the keys' triggers", async () => {
     const altered: Array<string> = await up();
 
     expect(altered).toHaveLength(TABLES.length);

@@ -86,9 +86,7 @@ describe("the retired columns", () => {
     expect(RetiredColumns.isRetired(monitor, "createdByUserId")).toBe(false);
     expect(RetiredColumns.isRetired(monitor, "deletedAt")).toBe(false);
     expect(RetiredColumns.isRetired(monitor, "somethingElse")).toBe(false);
-    expect(RetiredColumns.isRetired(declaresIt, "deletedByUserId")).toBe(
-      false,
-    );
+    expect(RetiredColumns.isRetired(declaresIt, "deletedByUserId")).toBe(false);
   });
 });
 
@@ -195,13 +193,16 @@ describe("a query's condition, read as the column empty on every record", () => 
     ["false", false],
   ];
 
-  test.each(HOLDS)("%s holds for every record", (_name: string, condition) => {
-    expect(RetiredColumns.holdsForEmpty(condition)).toBe(true);
-  });
+  test.each(HOLDS)(
+    "%s holds for every record",
+    (_name: string, condition: unknown) => {
+      expect(RetiredColumns.holdsForEmpty(condition)).toBe(true);
+    },
+  );
 
   test.each(HOLDS_FOR_NONE)(
     "%s holds for none",
-    (_name: string, condition) => {
+    (_name: string, condition: unknown) => {
       expect(RetiredColumns.holdsForEmpty(condition)).toBe(false);
     },
   );
@@ -222,9 +223,7 @@ describe("a query's condition, read as the column empty on every record", () => 
       ]);
       expect([
         name,
-        RetiredColumns.holdsForEmpty(
-          JSONFunctions.deserializeValue(json),
-        ),
+        RetiredColumns.holdsForEmpty(JSONFunctions.deserializeValue(json)),
       ]).toEqual([name, RetiredColumns.holdsForEmpty(condition)]);
     }
   });
@@ -252,7 +251,7 @@ describe("a query that names one", () => {
     for (const condition of [AN_ID, new EqualTo(AN_ID), new NotNull()]) {
       const read: RetiredColumnsQuery<JSONObject> = RetiredColumns.readQuery(
         monitor,
-        { name: "API", deletedByUserId: condition as JSONObject },
+        { name: "API", deletedByUserId: condition as unknown as JSONObject },
       );
 
       expect(read.matchesNothing).toBe(true);
@@ -310,7 +309,7 @@ describe("a query or a sort through a relation that names one", () => {
     for (const condition of [AN_ID, new EqualTo(AN_ID), new NotNull()]) {
       expect(
         RetiredColumns.readQuery(monitor, {
-          project: { deletedByUserId: condition as JSONObject },
+          project: { deletedByUserId: condition as unknown as JSONObject },
         }).matchesNothing,
       ).toBe(true);
     }

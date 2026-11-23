@@ -100,162 +100,172 @@ const CONDITIONS: Array<[string, unknown]> = [
   ["InBetween", new InBetween(AN_ID, AN_ID)],
 ];
 
-describePostgres("a retired column, read as Postgres reads an empty one", () => {
-  let database: DataSource;
-  let service: DatabaseService<Label>;
-  const projectId: ObjectID = ObjectID.generate();
+describePostgres(
+  "a retired column, read as Postgres reads an empty one",
+  () => {
+    let database: DataSource;
+    let service: DatabaseService<Label>;
+    const projectId: ObjectID = ObjectID.generate();
 
-  const table: () => string = (): string => {
-    return `"${SCHEMA}"."${database.getMetadata(Label).tableName}"`;
-  };
+    const table: () => string = (): string => {
+      return `"${SCHEMA}"."${database.getMetadata(Label).tableName}"`;
+    };
 
-  beforeAll(async () => {
-    database = new DataSource({
-      type: "postgres",
-      host: process.env["RETIRED_COLUMNS_TEST_DATABASE_HOST"] || "localhost",
-      port: Number(process.env["RETIRED_COLUMNS_TEST_DATABASE_PORT"] || "5400"),
-      username: process.env["DATABASE_USERNAME"] || "postgres",
-      password: process.env["DATABASE_PASSWORD"] || "password",
-      database:
-        process.env["RETIRED_COLUMNS_TEST_DATABASE_NAME"] ||
-        process.env["DATABASE_NAME"] ||
-        "oneuptimedb",
-      entities: Entities,
-      schema: SCHEMA,
-      synchronize: false,
-      extra: { options: `-c search_path=${SCHEMA}` },
-    });
-    await database.initialize();
-    await database.query(`CREATE SCHEMA "${SCHEMA}"`);
+    beforeAll(async () => {
+      database = new DataSource({
+        type: "postgres",
+        host: process.env["RETIRED_COLUMNS_TEST_DATABASE_HOST"] || "localhost",
+        port: Number(
+          process.env["RETIRED_COLUMNS_TEST_DATABASE_PORT"] || "5400",
+        ),
+        username: process.env["DATABASE_USERNAME"] || "postgres",
+        password: process.env["DATABASE_PASSWORD"] || "password",
+        database:
+          process.env["RETIRED_COLUMNS_TEST_DATABASE_NAME"] ||
+          process.env["DATABASE_NAME"] ||
+          "oneuptimedb",
+        entities: Entities,
+        schema: SCHEMA,
+        synchronize: false,
+        extra: { options: `-c search_path=${SCHEMA}` },
+      });
+      await database.initialize();
+      await database.query(`CREATE SCHEMA "${SCHEMA}"`);
 
-    // The model's own columns, as TypeORM types them, with no keys.
-    const metadata: EntityMetadata = database.getMetadata(Label);
-    const columns: Map<string, string> = new Map<string, string>();
+      // The model's own columns, as TypeORM types them, with no keys.
+      const metadata: EntityMetadata = database.getMetadata(Label);
+      const columns: Map<string, string> = new Map<string, string>();
 
-    for (const column of metadata.columns as Array<ColumnMetadata>) {
-      if (columns.has(column.databaseName)) {
-        continue;
+      for (const column of metadata.columns as Array<ColumnMetadata>) {
+        if (columns.has(column.databaseName)) {
+          continue;
+        }
+
+        let definition: string = database.driver.normalizeType(column);
+
+        if (column.isPrimary) {
+          definition += " PRIMARY KEY";
+        } else if (column.isCreateDate || column.isUpdateDate) {
+          definition += " NOT NULL DEFAULT now()";
+        } else if (column.isVersion) {
+          definition += " NOT NULL DEFAULT 1";
+        }
+
+        columns.set(column.databaseName, definition);
       }
 
-      let definition: string = database.driver.normalizeType(column);
-
-      if (column.isPrimary) {
-        definition += " PRIMARY KEY";
-      } else if (column.isCreateDate || column.isUpdateDate) {
-        definition += " NOT NULL DEFAULT now()";
-      } else if (column.isVersion) {
-        definition += " NOT NULL DEFAULT 1";
-      }
-
-      columns.set(column.databaseName, definition);
-    }
-
-    await database.query(
-      `CREATE TABLE ${table()} (${Array.from(columns.entries())
-        .map(([name, definition]: [string, string]): string => {
-          return `"${name}" ${definition}`;
-        })
-        .join(", ")})`,
-    );
-
-    for (const name of ["API", "Web"]) {
       await database.query(
-        `INSERT INTO ${table()} ("_id", "projectId", "name") VALUES ($1, $2, $3)`,
-        [ObjectID.generate().toString(), projectId.toString(), name],
+        `CREATE TABLE ${table()} (${Array.from(columns.entries())
+          .map(([name, definition]: [string, string]): string => {
+            return `"${name}" ${definition}`;
+          })
+          .join(", ")})`,
       );
-    }
-  }, 120_000);
 
-  afterAll(async () => {
-    if (database?.isInitialized) {
-      await database.query(`DROP SCHEMA IF EXISTS "${SCHEMA}" CASCADE`);
-      await database.destroy();
-    }
-  });
+      for (const name of ["API", "Web"]) {
+        await database.query(
+          `INSERT INTO ${table()} ("_id", "projectId", "name") VALUES ($1, $2, $3)`,
+          [ObjectID.generate().toString(), projectId.toString(), name],
+        );
+      }
+    }, 120_000);
 
-  beforeEach(() => {
-    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
-    jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
-
-    service = new DatabaseService<Label>(Label);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  // How many of the two rows a condition on the empty column matches.
-  async function matched(condition: unknown): Promise<number> {
-    return await database.getRepository(Label).count({
-      where: QueryUtil.serializeQuery(Label, {
-        [EMPTY_COLUMN]: condition,
-      } as never) as never,
+    afterAll(async () => {
+      if (database?.isInitialized) {
+        await database.query(`DROP SCHEMA IF EXISTS "${SCHEMA}" CASCADE`);
+        await database.destroy();
+      }
     });
-  }
 
-  test("the premise: the column is a uuid, and empty on both rows", async () => {
-    const rows: Array<{ type: string; empty: number }> = await database.query(
-      `SELECT (SELECT data_type FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3) AS "type", (SELECT COUNT(*)::int FROM ${table()} WHERE "${EMPTY_COLUMN}" IS NULL) AS "empty"`,
-      [SCHEMA, database.getMetadata(Label).tableName, EMPTY_COLUMN],
+    beforeEach(() => {
+      jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
+      jest
+        .spyOn(PostgresAppInstance, "getDataSource")
+        .mockReturnValue(database);
+
+      service = new DatabaseService<Label>(Label);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    // How many of the two rows a condition on the empty column matches.
+    async function matched(condition: unknown): Promise<number> {
+      return await database.getRepository(Label).count({
+        where: QueryUtil.serializeQuery(Label, {
+          [EMPTY_COLUMN]: condition,
+        } as never) as never,
+      });
+    }
+
+    test("the premise: the column is a uuid, and empty on both rows", async () => {
+      const rows: Array<{ type: string; empty: number }> = await database.query(
+        `SELECT (SELECT data_type FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3) AS "type", (SELECT COUNT(*)::int FROM ${table()} WHERE "${EMPTY_COLUMN}" IS NULL) AS "empty"`,
+        [SCHEMA, database.getMetadata(Label).tableName, EMPTY_COLUMN],
+      );
+
+      expect(rows[0]).toEqual({ type: "uuid", empty: 2 });
+    });
+
+    test.each(CONDITIONS)(
+      "%s: the rule says what Postgres says of an empty column",
+      async (_name: string, condition: unknown) => {
+        const count: number = await matched(condition);
+
+        // Every row or none: the column is the same on each.
+        expect([0, 2]).toContain(count);
+        expect(RetiredColumns.holdsForEmpty(condition)).toBe(count === 2);
+      },
     );
 
-    expect(rows[0]).toEqual({ type: "uuid", empty: 2 });
-  });
+    test("a read that names who deleted a record, as an old client sends it, reads as it did", async () => {
+      const props: { isRoot: true } = { isRoot: true };
 
-  test.each(CONDITIONS)(
-    "%s: the rule says what Postgres says of an empty column",
-    async (_name: string, condition: unknown) => {
-      const count: number = await matched(condition);
+      const all: Array<Label> = await service.findBy({
+        query: { projectId: projectId, deletedByUserId: new IsNull() } as never,
+        select: { name: true, deletedByUserId: true } as never,
+        sort: {
+          deletedByUserId: SortOrder.Ascending,
+          name: SortOrder.Ascending,
+        } as never,
+        skip: 0,
+        limit: 10,
+        props: props,
+      });
 
-      // Every row or none: the column is the same on each.
-      expect([0, 2]).toContain(count);
-      expect(RetiredColumns.holdsForEmpty(condition)).toBe(count === 2);
-    },
-  );
+      expect(
+        all.map((label: Label): string => {
+          return label.name || "";
+        }),
+      ).toEqual(["API", "Web"]);
 
-  test("a read that names who deleted a record, as an old client sends it, reads as it did", async () => {
-    const props: { isRoot: true } = { isRoot: true };
+      const none: Array<Label> = await service.findBy({
+        query: { projectId: projectId, deletedByUserId: AN_ID } as never,
+        select: { name: true } as never,
+        skip: 0,
+        limit: 10,
+        props: props,
+      });
 
-    const all: Array<Label> = await service.findBy({
-      query: { projectId: projectId, deletedByUserId: new IsNull() } as never,
-      select: { name: true, deletedByUserId: true } as never,
-      sort: { deletedByUserId: SortOrder.Ascending, name: SortOrder.Ascending } as never,
-      skip: 0,
-      limit: 10,
-      props: props,
+      expect(none).toEqual([]);
+
+      expect(
+        (
+          await service.countBy({
+            query: { projectId: projectId, deletedByUserId: null } as never,
+            props: props,
+          })
+        ).toNumber(),
+      ).toBe(2);
+      expect(
+        (
+          await service.countBy({
+            query: { deletedByUser: { name: "Alex" } } as never,
+            props: props,
+          })
+        ).toNumber(),
+      ).toBe(0);
     });
-
-    expect(
-      all.map((label: Label): string => {
-        return label.name || "";
-      }),
-    ).toEqual(["API", "Web"]);
-
-    const none: Array<Label> = await service.findBy({
-      query: { projectId: projectId, deletedByUserId: AN_ID } as never,
-      select: { name: true } as never,
-      skip: 0,
-      limit: 10,
-      props: props,
-    });
-
-    expect(none).toEqual([]);
-
-    expect(
-      (
-        await service.countBy({
-          query: { projectId: projectId, deletedByUserId: null } as never,
-          props: props,
-        })
-      ).toNumber(),
-    ).toBe(2);
-    expect(
-      (
-        await service.countBy({
-          query: { deletedByUser: { name: "Alex" } } as never,
-          props: props,
-        })
-      ).toNumber(),
-    ).toBe(0);
-  });
-});
+  },
+);

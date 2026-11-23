@@ -67,9 +67,10 @@ describe("BaseAPI and the columns every record had", () => {
       }),
     } as unknown as ExpressResponse;
 
-    getJestSpyOn(CommonAPI, "getDatabaseCommonInteractionProps").mockResolvedValue(
-      { isRoot: true },
-    );
+    getJestSpyOn(
+      CommonAPI,
+      "getDatabaseCommonInteractionProps",
+    ).mockResolvedValue({ isRoot: true });
     getJestSpyOn(api, "assertProductIsOn").mockResolvedValue(undefined);
   });
 
@@ -89,7 +90,11 @@ describe("BaseAPI and the columns every record had", () => {
     await api.getList(
       request({
         query: {},
-        select: { name: true, deletedByUserId: true, deletedByUser: { name: true } },
+        select: {
+          name: true,
+          deletedByUserId: true,
+          deletedByUser: { name: true },
+        },
       }),
       response,
     );
@@ -126,7 +131,10 @@ describe("BaseAPI and the columns every record had", () => {
     getJestSpyOn(service, "findOneById").mockResolvedValue(monitor);
 
     await api.getItem(
-      request({ select: { name: true, deletedByUserId: true } }, { id: RECORD_ID }),
+      request(
+        { select: { name: true, deletedByUserId: true } },
+        { id: RECORD_ID },
+      ),
       response,
     );
 
@@ -140,9 +148,10 @@ describe("BaseAPI and the columns every record had", () => {
   });
 
   it("tells a create that sent one it was left out, and creates the record without it", async () => {
-    const create: jest.SpyInstance = getJestSpyOn(service, "create").mockResolvedValue(
-      new Monitor(),
-    );
+    const create: jest.SpyInstance = getJestSpyOn(
+      service,
+      "create",
+    ).mockResolvedValue(new Monitor());
 
     await api.createItem(
       request({

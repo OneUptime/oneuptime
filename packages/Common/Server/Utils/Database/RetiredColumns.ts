@@ -79,9 +79,9 @@ const HOLDS_FOR_EMPTY_TYPES: ReadonlyArray<string> = [
  */
 export interface ModelWithColumns {
   hasColumn(columnName: string): boolean;
-  getTableColumnMetadata?(columnName: string):
-    | { modelType?: (new () => ModelWithColumns) | undefined }
-    | undefined;
+  getTableColumnMetadata?(
+    columnName: string,
+  ): { modelType?: (new () => ModelWithColumns) | undefined } | undefined;
 }
 
 // A query with the retired columns read: what is left to ask, and whether anything can match.
@@ -223,7 +223,10 @@ export default class RetiredColumns {
     model: ModelWithColumns,
     value: unknown,
   ): Array<[string, ModelWithColumns]> {
-    if (!RetiredColumns.isObjectOfFields(value) || !model.getTableColumnMetadata) {
+    if (
+      !RetiredColumns.isObjectOfFields(value) ||
+      !model.getTableColumnMetadata
+    ) {
       return [];
     }
 
@@ -326,12 +329,16 @@ export default class RetiredColumns {
     return answer;
   }
 
-  private static isObjectOfFields(value: unknown): value is object {
+  private static isObjectOfFields(
+    value: unknown,
+  ): value is Record<string, unknown> {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
   }
 
   // An object of fields that is no operator, id or date: a relation's fields.
-  private static isPlainObject(value: unknown): value is object {
+  private static isPlainObject(
+    value: unknown,
+  ): value is Record<string, unknown> {
     if (!RetiredColumns.isObjectOfFields(value)) {
       return false;
     }

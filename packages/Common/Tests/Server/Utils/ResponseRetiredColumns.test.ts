@@ -21,7 +21,11 @@ describe("the records an answer sends", () => {
 
   beforeEach(() => {
     sent = undefined;
-    request = { headers: {}, query: {}, socket: {} } as unknown as ExpressRequest;
+    request = {
+      headers: {},
+      query: {},
+      socket: {},
+    } as unknown as ExpressRequest;
     response = {
       status: (): ExpressResponse => {
         return response;
@@ -83,9 +87,15 @@ describe("the records an answer sends", () => {
   });
 
   test("one record answers them as null too, beside its own fields", () => {
-    ResponseUtil.sendEntityResponse(request, response, monitor("API"), Monitor, {
-      retiredColumns: ["deletedByUserId"],
-    });
+    ResponseUtil.sendEntityResponse(
+      request,
+      response,
+      monitor("API"),
+      Monitor,
+      {
+        retiredColumns: ["deletedByUserId"],
+      },
+    );
 
     expect(sent).toEqual(
       expect.objectContaining({ name: "API", deletedByUserId: null }),
