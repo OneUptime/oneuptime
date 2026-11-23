@@ -279,6 +279,7 @@ describe("the pure view-model", () => {
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+      "../../Utils/NetworkDiscovery/DiscoveryScanRun",
       "./SentenceSeparator",
     ]);
     // A data check's refusals (#7530), said in the reader's words the same way.
@@ -318,6 +319,34 @@ describe("the pure view-model", () => {
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Translator",
     ]);
+    /*
+     * A discovery scan's Run Again refusals (#10698), with the scan's
+     * statuses they name, which import nothing.
+     */
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanRun.ts",
+        ),
+      ),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
+      "./DiscoveryScanStatus",
+    ]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanStatus.ts",
+        ),
+      ),
+    ).toEqual([]);
     /*
      * The sentence joiner is a module of its own, which imports nothing
      * (SentenceSeparator): joined through DeleteConsequences, the error
