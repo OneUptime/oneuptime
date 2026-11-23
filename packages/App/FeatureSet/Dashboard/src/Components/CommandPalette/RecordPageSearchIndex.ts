@@ -3652,6 +3652,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Scheduled Maintenance",
       },
       {
+        page: PageMap.NETWORK_SITE_VIEW_OWNERS,
+        section: "Manage",
+        title: "Owners",
+      },
+      {
         page: PageMap.NETWORK_SITE_VIEW_SETTINGS,
         section: "Manage",
         title: "Settings",
