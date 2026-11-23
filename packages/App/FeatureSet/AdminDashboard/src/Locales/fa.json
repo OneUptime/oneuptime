@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "پراب این اسکن به OneUptime متصل نیست، پس اسکن اکنون نمی‌تواند اجرا شود. پراب را راه‌اندازی کنید، یا در ویرایش پراب دیگری انتخاب کنید.",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "پراب این اسکن دیگر وجود ندارد، پس اسکن نمی‌تواند اجرا شود. در ویرایش پراب دیگری انتخاب کنید.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "پراب این اسکن، {{probe}}، به OneUptime متصل نیست، پس اسکن اکنون نمی‌تواند اجرا شود. پراب را راه‌اندازی کنید، یا در ویرایش پراب دیگری انتخاب کنید.",
-  "You may not edit this project's discovery scans, so you cannot run one.": "اجازه ویرایش اسکن‌های کشف این پروژه را ندارید، پس نمی‌توانید اسکنی اجرا کنید."
+  "You may not edit this project's discovery scans, so you cannot run one.": "اجازه ویرایش اسکن‌های کشف این پروژه را ندارید، پس نمی‌توانید اسکنی اجرا کنید.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{shown}} از {{total}} نشان داده می‌شود. برای محدود کردن فهرست تایپ کنید."
 }

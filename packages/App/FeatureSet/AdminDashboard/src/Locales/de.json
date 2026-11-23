@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Die Sonde dieses Scans ist nicht mit OneUptime verbunden, daher kann der Scan jetzt nicht ausgeführt werden. Starten Sie die Sonde, oder wählen Sie unter „Bearbeiten“ eine andere Sonde.",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Die Sonde dieses Scans existiert nicht mehr, daher kann der Scan nicht ausgeführt werden. Wählen Sie unter „Bearbeiten“ eine andere Sonde.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Die Sonde dieses Scans, {{probe}}, ist nicht mit OneUptime verbunden, daher kann der Scan jetzt nicht ausgeführt werden. Starten Sie die Sonde, oder wählen Sie unter „Bearbeiten“ eine andere Sonde.",
-  "You may not edit this project's discovery scans, so you cannot run one.": "Sie dürfen die Erkennungsscans dieses Projekts nicht bearbeiten und können daher keinen ausführen."
+  "You may not edit this project's discovery scans, so you cannot run one.": "Sie dürfen die Erkennungsscans dieses Projekts nicht bearbeiten und können daher keinen ausführen.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{shown}} von {{total}} angezeigt. Weitertippen, um die Liste einzugrenzen."
 }

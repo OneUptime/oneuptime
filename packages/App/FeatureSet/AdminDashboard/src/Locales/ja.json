@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "このスキャンのプローブが OneUptime に接続されていないため、今はスキャンを実行できません。プローブを起動するか、「編集」で別のプローブを選択してください。",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "このスキャンのプローブはもう存在しないため、スキャンを実行できません。「編集」で別のプローブを選択してください。",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "このスキャンのプローブ {{probe}} が OneUptime に接続されていないため、今はスキャンを実行できません。プローブを起動するか、「編集」で別のプローブを選択してください。",
-  "You may not edit this project's discovery scans, so you cannot run one.": "このプロジェクトの検出スキャンを編集する権限がないため、スキャンを実行できません。"
+  "You may not edit this project's discovery scans, so you cannot run one.": "このプロジェクトの検出スキャンを編集する権限がないため、スキャンを実行できません。",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "{{total}} 件中 {{shown}} 件を表示しています。入力すると一覧を絞り込めます。"
 }

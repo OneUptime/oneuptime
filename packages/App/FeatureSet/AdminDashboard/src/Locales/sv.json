@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Den här skanningens sond är inte ansluten till OneUptime, så skanningen kan inte köras nu. Starta sonden, eller välj en annan sond under Redigera.",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Den här skanningens sond finns inte längre, så skanningen kan inte köras. Välj en annan sond under Redigera.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Den här skanningens sond, {{probe}}, är inte ansluten till OneUptime, så skanningen kan inte köras nu. Starta sonden, eller välj en annan sond under Redigera.",
-  "You may not edit this project's discovery scans, so you cannot run one.": "Du får inte redigera det här projektets identifieringsskanningar, så du kan inte köra någon."
+  "You may not edit this project's discovery scans, so you cannot run one.": "Du får inte redigera det här projektets identifieringsskanningar, så du kan inte köra någon.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "Visar {{shown}} av {{total}}. Skriv för att begränsa listan."
 }

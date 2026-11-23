@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此扫描的探测器未连接到 OneUptime，因此现在无法运行扫描。请启动该探测器，或在“编辑”中选择其他探测器。",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此扫描的探测器已不存在，因此无法运行扫描。请在“编辑”中选择其他探测器。",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此扫描的探测器 {{probe}} 未连接到 OneUptime，因此现在无法运行扫描。请启动该探测器，或在“编辑”中选择其他探测器。",
-  "You may not edit this project's discovery scans, so you cannot run one.": "你无权编辑此项目的发现扫描，因此无法运行扫描。"
+  "You may not edit this project's discovery scans, so you cannot run one.": "你无权编辑此项目的发现扫描，因此无法运行扫描。",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "显示 {{total}} 个中的 {{shown}} 个。输入内容可缩小列表范围。"
 }

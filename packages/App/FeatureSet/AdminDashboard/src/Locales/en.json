@@ -4493,5 +4493,6 @@
   "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.",
   "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.",
   "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.",
-  "You may not edit this project's discovery scans, so you cannot run one.": "You may not edit this project's discovery scans, so you cannot run one."
+  "You may not edit this project's discovery scans, so you cannot run one.": "You may not edit this project's discovery scans, so you cannot run one.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "Showing {{shown}} of {{total}}. Type to narrow the list."
 }
