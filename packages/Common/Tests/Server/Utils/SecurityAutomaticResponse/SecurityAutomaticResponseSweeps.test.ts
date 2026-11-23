@@ -93,8 +93,13 @@ let compareAndSets: Array<{
 let alreadyStamped: boolean;
 let timeline: Array<string>;
 
+// Overrides may say a column is empty: no block made yet, say.
 function makeAction(
-  overrides: Partial<SecurityAutomaticResponseAction> = {},
+  overrides: {
+    [Column in keyof SecurityAutomaticResponseAction]?:
+      | SecurityAutomaticResponseAction[Column]
+      | undefined;
+  } = {},
 ): SecurityAutomaticResponseAction {
   const action: SecurityAutomaticResponseAction =
     new SecurityAutomaticResponseAction(ACTION_ID);

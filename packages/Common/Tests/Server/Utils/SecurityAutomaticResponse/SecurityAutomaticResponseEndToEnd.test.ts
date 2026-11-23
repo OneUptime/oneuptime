@@ -425,9 +425,9 @@ beforeEach(() => {
       detection.securityCaseId = CASE_ID;
       detection.title = signal.title;
       detection.source = signal.source;
-      detection.detectionRuleId = signal.detectionRuleId;
+      detection.detectionRuleId = signal.detectionRuleId!;
       detection.mitreTechniques = signal.mitreTechniques;
-      detection.groupValue = signal.groupValue;
+      detection.groupValue = signal.groupValue!;
       detection.firstSeenAt = now;
       // What the case keeps of the requests: each one's time and address, and how far each got.
       detection.matchedEvents = {

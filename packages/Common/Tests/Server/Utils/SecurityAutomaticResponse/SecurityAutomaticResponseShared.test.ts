@@ -477,7 +477,7 @@ describe("the ready policies' rules, in real time", () => {
     expect(turnedRealTime).toEqual([scheduled.id!.toString()]);
     expect(
       created.map((rule: DetectionRule): string => {
-        return rule.name;
+        return rule.name || "";
       }),
     ).toEqual([entries[2]!.title]);
     expect(created[0]!.isRealTime).toBe(true);

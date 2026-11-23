@@ -230,7 +230,7 @@ beforeEach(() => {
     });
   jest
     .spyOn(SecurityAutomaticResponseActionService, "countBy")
-    .mockImplementation(async (data: { query: JSONObject }) => {
+    .mockImplementation((async (data: { query: JSONObject }) => {
       const query: JSONObject = data.query;
       const count: number =
         query["pagedAt"] !== undefined
@@ -244,7 +244,7 @@ beforeEach(() => {
           return count;
         },
       } as never;
-    });
+    }) as never);
   jest
     .spyOn(SecurityAutomaticResponseActionService, "create")
     .mockImplementation(
@@ -259,9 +259,9 @@ beforeEach(() => {
     );
   jest
     .spyOn(SecurityAutomaticResponseActionService, "updateOneById")
-    .mockImplementation(async (data: { id: ObjectID; data: JSONObject }) => {
+    .mockImplementation((async (data: { id: ObjectID; data: JSONObject }) => {
       updated.push({ id: data.id, data: data.data });
-    });
+    }) as never);
   jest.spyOn(SecurityBlockService, "check").mockImplementation(async () => {
     return check;
   });
