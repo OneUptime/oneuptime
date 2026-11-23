@@ -70,10 +70,11 @@ const serverColumnAccess: {
 };
 
 /*
- * The block an action made, read through the action: by the roles that
- * read blocks too. A playbook reader reads which block it was
- * (securityBlockId), not the address, state and end the block holds, which
- * follow the block's own read (#10310).
+ * The block an action made, read through the action: by a Project Owner or
+ * Admin alone, who read every block. Every other reader of an action reads
+ * which block it was (securityBlockId), and the block's address, state and
+ * end through the block's own read (#10310) - the Blocklist and the case
+ * name the policy that made it.
  */
 const blockRelationAccess: {
   create: Array<Permission>;
@@ -81,9 +82,7 @@ const blockRelationAccess: {
   update: Array<Permission>;
 } = {
   create: [],
-  read: readPermissions.filter((permission: Permission): boolean => {
-    return permission !== Permission.ReadSecurityPlaybook;
-  }),
+  read: [Permission.ProjectOwner, Permission.ProjectAdmin],
   update: [],
 };
 
