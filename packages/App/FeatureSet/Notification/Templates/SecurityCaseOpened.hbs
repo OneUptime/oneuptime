@@ -17,7 +17,18 @@
 
 {{> InfoBlock plainInfo=leadSentence }}
 
+{{!--
+  A case OneUptime AI responded first to (#10353, SecurityCaseAiHold): why
+  people are told now, and what it already did - OneUptime's own sentences
+  around the case's values, double stashed like every other value.
+--}}
 {{> DetailBoxStart this }}
+{{#if aiHoldReason}}
+{{> DetailBoxField title="Why now: " plainText=aiHoldReason }}
+{{/if}}
+{{#if aiHoldDone}}
+{{> DetailBoxField title="Already done: " plainText=aiHoldDone }}
+{{/if}}
 {{> DetailBoxField title="Case: " plainText=caseTitle }}
 {{> DetailBoxField title="Priority: " plainText=casePriority color=priorityColor textColor=priorityTextColor }}
 {{> DetailBoxField title="Status: " plainText=caseStatus }}

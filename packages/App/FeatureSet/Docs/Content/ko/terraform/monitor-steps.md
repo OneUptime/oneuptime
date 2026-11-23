@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | 웹사이트, API | HTTP 메서드: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` 또는 `PATCH`. 설정하지 않으면 서버가 `GET`을 씁니다. |
 | `request_headers` | map(string) | 웹사이트, API | 보낼 헤더: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | 텍스트로 쓴 요청 본문. |
+| `request_body_format` | string | API | `request_body`를 보내는 방식입니다. `json`(기본값)은 어떤 JSON 값이든, `text`는 XML이나 양식 필드처럼 작성한 그대로 보내는 본문입니다. |
 | `do_not_follow_redirects` | bool | 웹사이트, API | 리디렉션을 따라가지 않고 첫 응답에서 멈춥니다. |
 | `allow_self_signed_certificates` | bool | 웹사이트, API | 자체 서명된 TLS 인증서를 허용합니다. |
 | `tls_client_certificate` | string | 웹사이트, API | 상호 TLS용 클라이언트 인증서: PEM 또는 `{{monitorSecrets.name}}` 참조. |
@@ -287,7 +288,7 @@ criteria = [
 
 필터에는 `check_on`(무엇을 볼지), `filter_type`(어떻게 비교할지), `value`(무엇과 비교할지, 문자열로 씁니다. `True`와 `False` 같은 참·거짓 확인에서는 뺍니다)가 있습니다.
 
-필터는 최신 확인 대신 시간 범위를 판정할 수도 있습니다. `evaluate_over_time = true`를 설정하고, `evaluate_over_time_minutes`에 시간 범위의 길이를, `evaluate_over_time_type`에 시간 범위를 읽는 방식을 지정하세요: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values`, `Any Value`.
+필터는 최신 확인 대신 시간 범위를 판정할 수도 있습니다. `evaluate_over_time = true`를 설정하고, `evaluate_over_time_minutes`에 시간 범위의 길이를, `evaluate_over_time_type`에 시간 범위를 읽는 방식을 지정하세요: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes`. `Percentile` 유형은 `evaluate_over_time_percentile` 속성의 백분위수를 필터의 값과 비교합니다(설정하지 않으면 95). `Count`, `Percentage`, `Status Changes` 유형은 프로브별로 조건을 충족한 기간 내 확인의 수, 그 비율(%), 또는 조건 충족과 미충족 사이에서 바뀐 횟수를 세고, 그 수를 `evaluate_over_time_count_filter_type` 속성이 정한 대로 `evaluate_over_time_count_value` 속성과 비교합니다(설정하지 않으면 `Greater Than` 0).
 
 `All Values`는 시간 범위의 모든 확인이 규칙을 위반했다는 뜻이므로, 시간 범위가 데이터로 채워져야 일치합니다. 방금 만든 모니터는 첫 확인에서 일치하는 대신 시간 범위가 채워지기를 기다립니다. 시간 범위는 모니터의 `monitoring_interval`의 두 배 이상으로 하세요. 그렇지 않으면 시간 범위에 확인이 하나만 들어가고, "모든 값"이 "아무 값"과 같은 뜻이 됩니다. `Any Value`는 규칙을 위반한 확인 하나에 일치하며, 이는 의도된 동작입니다.
 

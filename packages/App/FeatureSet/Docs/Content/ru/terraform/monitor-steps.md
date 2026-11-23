@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | Веб-сайт, API | HTTP-метод: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` или `PATCH`. Если он не задан, сервер использует `GET`. |
 | `request_headers` | map(string) | Веб-сайт, API | Заголовки для отправки: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Тело запроса в виде текста. |
+| `request_body_format` | string | API | Как отправляется `request_body`: `json`, по умолчанию, для любого значения JSON; `text` для тела запроса, которое отправляется точно так, как написано, например XML или поля формы. |
 | `do_not_follow_redirects` | bool | Веб-сайт, API | Остановиться на первом ответе вместо перехода по перенаправлениям. |
 | `allow_self_signed_certificates` | bool | Веб-сайт, API | Принимать самоподписанный сертификат TLS. |
 | `tls_client_certificate` | string | Веб-сайт, API | Клиентский сертификат для взаимного TLS: PEM или ссылка `{{monitorSecrets.name}}`. |
@@ -287,7 +288,7 @@ criteria = [
 
 У фильтра есть `check_on` (на что смотреть), `filter_type` (как сравнивать) и `value` (с чем сравнивать, в виде строки; не указывайте его для проверок «истина или ложь», таких как `True` и `False`).
 
-Фильтр также может оценивать окно времени вместо последней проверки: задайте `evaluate_over_time = true`, длину окна в `evaluate_over_time_minutes` и в `evaluate_over_time_type` — как читается окно: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` или `Any Value`.
+Фильтр также может оценивать окно времени вместо последней проверки: задайте `evaluate_over_time = true`, длину окна в `evaluate_over_time_minutes` и в `evaluate_over_time_type` — как читается окно: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` или `Status Changes`. `Percentile` сравнивает перцентиль из `evaluate_over_time_percentile` со значением фильтра (95, если не задано). `Count`, `Percentage` и `Status Changes` считают для каждого зонда проверки окна, соответствовавшие условию, их долю в процентах или число переходов между соответствием и несоответствием и сравнивают это число с `evaluate_over_time_count_value` так, как задаёт `evaluate_over_time_count_filter_type` (`Greater Than` 0, если не задано).
 
 `All Values` означает, что каждая проверка в окне нарушила правило, поэтому он совпадает только тогда, когда окно покрыто данными: только что созданный монитор ждёт, пока окно заполнится, вместо того чтобы совпасть на первой проверке. Задайте окно не меньше двух `monitoring_interval` монитора; иначе в окне одна проверка, и «все значения» означает то же, что «любое значение». `Any Value` совпадает на одной нарушающей проверке, так задумано.
 

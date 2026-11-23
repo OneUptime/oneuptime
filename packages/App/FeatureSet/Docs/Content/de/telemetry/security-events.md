@@ -51,6 +51,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |
 | **Genehmigungen** | Playbooks | Die Playbook-Schritte, die darauf warten, dass jemand sie genehmigt oder ablehnt |
 | **Ausführungen** | Playbooks | Was jedes Playbook getan hat, Schritt für Schritt |
+| **Automatische Reaktion** | Playbooks | Die Richtlinien, die eine angreifende Adresse bei der Erkennung mit einer Challenge belegen oder sperren, jede mit ihrem Testlauf und ihren Leitplanken |
 | **Sperrliste** | Playbooks | Die Adressen, die Ihr Projekt sperrt, bis wann, und wo jede Sperre durchgesetzt wird |
 | **Sperrlisten-Feeds** | Playbooks | Die geheimen URLs, von denen Ihre Firewalls und Proxys die Sperrliste lesen, und ihre Abrufe |
 | **Geschützte Entitäten** | Playbooks | Die Benutzer, Hosts und Adressen, die kein Playbook eindämmt und keine Sperre berührt |

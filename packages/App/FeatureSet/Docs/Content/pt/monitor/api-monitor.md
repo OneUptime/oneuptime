@@ -55,7 +55,7 @@ O **Nome** é preenchido com o que você informou, como `api.example.com/health`
 
 ### Testá-lo
 
-Em **Alvo do monitor**, escolha o **Tipo de requisição de API** (**GET**, a menos que você o altere). Para adicionar cabeçalhos ou um corpo, abra **Mais campos** e preencha **Cabeçalhos da Requisição** e **Corpo da Requisição (em JSON)**. Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a API respondeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
+Em **Alvo do monitor**, escolha o **Tipo de requisição de API** (**GET**, a menos que você o altere). Para adicionar cabeçalhos ou um corpo, abra **Mais campos** e preencha **Cabeçalhos da Requisição** e **Corpo da Requisição**. Clique em **Testar monitor**: o teste começa em uma sonda que verifica o monitor. Se quiser, escolha outra em **Selecionar Sonda** e depois clique em **Executar teste**. **Resultado do Teste do Monitor** mostra o que a API respondeu. Ele também diz qual critério a resposta atende e o que viria a seguir: o status, o incidente ou alerta, e quem é avisado.
 
 ### Revisar os critérios
 
@@ -70,7 +70,7 @@ Mantenha ou altere as **Sondas** e o **Intervalo de monitoramento** (começa em 
 
 ### URL da API
 
-O endpoint a chamar, como URL completa com o esquema, como `https://api.example.com/v1/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`.
+O endpoint a chamar, como URL completa com o esquema, como `https://api.example.com/v1/health`. Você pode colocar um [segredo de monitor](/docs/monitor/monitor-secrets) na URL como `{{monitorSecrets.NAME}}`. O erro de uma verificação que falhou cita a URL apenas pelo esquema, host e porta, como `https://api.example.com`, então o segredo nunca aparece.
 
 ### Marcadores dinâmicos na URL
 
@@ -107,14 +107,15 @@ Estas configurações ficam recolhidas em **Mais campos**. O cabeçalho recolhid
 | Campo | Padrão | O que faz |
 | --- | --- | --- |
 | **Cabeçalhos da Requisição** | Nenhum | Os cabeçalhos a enviar, como pares de nome e valor. Clique em **Adicionar: Cabeçalho da requisição** para cada um. |
-| **Corpo da Requisição (em JSON)** | Nenhum | O corpo a enviar, geralmente com **POST**, **PUT** ou **PATCH**: qualquer valor JSON, como um objeto, um array, uma string ou um número. Ele é enviado como você o escreve, como `application/json`, a menos que você defina um `Content-Type` em **Cabeçalhos da Requisição**. Com `application/x-www-form-urlencoded` ou `multipart/form-data`, um objeto é enviado como campos de formulário. |
+| **Formato do Corpo da Requisição** | **JSON** | Como o corpo é lido. **JSON** aceita qualquer valor JSON, como um objeto, um array, uma string ou um número. **Texto** aceita todo o resto, como XML para um endpoint SOAP, texto simples ou campos de formulário escritos como `a=1&b=2`, e nunca é lido como JSON. |
+| **Corpo da Requisição** | Nenhum | O corpo a enviar, geralmente com **POST**, **PUT** ou **PATCH**. Ele é enviado exatamente como você o escreve: um corpo **JSON** como `application/json`, um corpo **Texto** como `text/plain`, a menos que você defina um `Content-Type` em **Cabeçalhos da Requisição**. Com `application/x-www-form-urlencoded` ou `multipart/form-data`, um objeto **JSON** é enviado como campos de formulário. |
 | **Não seguir redirecionamentos** | Desativado | Avaliar a primeira resposta em vez de seguir os redirecionamentos. Veja [abaixo](#não-seguir-redirecionamentos). |
 | **Permitir certificados autoassinados** | Desativado | Pular a validação do certificado TLS para o próprio nome de host do monitor. |
 | **Usar certificado de cliente (mTLS)** | Desativado | Apresentar um certificado de cliente e uma chave privada. Veja [Certificado de cliente (mTLS)](#certificado-de-cliente-mtls). |
 | **Tempo Limite da Requisição (segundos)** | `60` | Quanto esperar por cada tentativa. O máximo é 60 segundos. |
 | **Tentativas em caso de falha** | Padrão da sonda, geralmente `3` | Quantas vezes repetir uma tentativa que falhou. O máximo é 3. Veja [Novas tentativas e tempos limite](#novas-tentativas-e-tempos-limite). |
 
-Os cabeçalhos e o corpo da requisição podem usar [segredos de monitor](/docs/monitor/monitor-secrets), por exemplo um cabeçalho `Authorization` com o valor `Bearer {{monitorSecrets.ApiKey}}`.
+Os cabeçalhos e o corpo da requisição podem usar [segredos de monitor](/docs/monitor/monitor-secrets), por exemplo um cabeçalho `Authorization` com o valor `Bearer {{monitorSecrets.ApiKey}}`. Em um corpo **JSON**, um segredo entre aspas, como em `{"password": "{{monitorSecrets.Password}}"}`, é escapado para a sua string, então um valor com uma `"`, uma `\` ou uma quebra de linha continua sendo uma só string. Um segredo fora das aspas, como em `[{{monitorSecrets.Ids}}]`, é escrito como está, assim como todo segredo de um corpo **Texto**.
 
 #### Não seguir redirecionamentos
 
@@ -193,17 +194,18 @@ Os monitores criados antes de o OneUptime mudar esses padrões mantêm os crité
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Cabeçalho da resposta**, **Valor do cabeçalho da resposta**, **Expressão JavaScript** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de um filtro, oferecida para **Online**, **Código de status da resposta**, **Tempo de resposta (em ms)**, **Corpo da Resposta**, **Cabeçalho da resposta**, **Valor do cabeçalho da resposta**, **Expressão JavaScript** e **Tempo limite da requisição esgotado**. Ative-a para avaliar uma janela de verificações anteriores em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
-| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, na janela, atende à condição. Somente filtros numéricos. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Percentil** | Esse valor, na janela, atende à condição, como o tempo de resposta p95. Somente filtros numéricos. |
 | **Todos os valores** | Cada verificação na janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
+| **Contagem**, **Porcentagem**, **Mudanças de status** | Quantas verificações atenderam à condição, a proporção delas ou quantas vezes passaram de atendê-la para não atendê-la é comparado com o número definido abaixo. |
 
 A opção **Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
-Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Tempo limite da requisição esgotado**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **Todos os valores**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
+Um corpo, um cabeçalho, um valor de cabeçalho ou uma expressão não é um número que o OneUptime registre, por isso, para esses filtros e para **Tempo limite da requisição esgotado**, ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. Também pode contá-lo com **Contagem**, **Porcentagem** ou **Mudanças de status**. É assim que um monitor atravessa uma reinicialização. Um app que está iniciando pode responder `200` com uma página provisória como `Application starting...`; com **Todos os valores**, um filtro **Corpo da Resposta** que procura o título do app só deixa o monitor offline quando a página provisória durou a janela inteira.
 
 Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 
@@ -245,7 +247,11 @@ A sonda lê no máximo 512 KiB de uma resposta, e esta é maior. Chame um endpoi
 :::
 
 :::details A verificação falha com "O corpo da requisição não é um JSON válido, então a requisição não foi enviada."
-O corpo não é JSON depois que seus [segredos de monitor](/docs/monitor/monitor-secrets) são preenchidos, então a sonda não enviou a requisição. Corrija o corpo em **Mais campos**, ou o valor de um segredo que ele usa: um valor com um `"` quebra a string JSON em que está.
+O corpo não é JSON depois que seus [segredos de monitor](/docs/monitor/monitor-secrets) são preenchidos, então a sonda não enviou a requisição. Corrija o corpo em **Mais campos**, ou o valor de um segredo fora das aspas, que é escrito como está. Para enviar um corpo que não é JSON, como XML ou campos de formulário, defina **Formato do Corpo da Requisição** como **Texto**.
+:::
+
+:::details A verificação diz que a sonda é antiga demais para enviar o corpo da requisição
+O corpo do monitor é um array JSON, um único valor ou **Texto**, e a sonda personalizada que o verifica executa uma versão mais antiga, que envia apenas um objeto JSON, então a verificação não foi executada nela. O formulário do monitor e a página da sonda apontam uma sonda assim. [Atualize a sonda](/docs/probe/custom-probe#atualizar-uma-sonda) para a versão mais recente ou verifique o monitor a partir de outra sonda.
 :::
 
 ## Próximos passos

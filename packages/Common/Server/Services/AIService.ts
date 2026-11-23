@@ -257,6 +257,19 @@ export const AI_DATA_SECURITY_SCRUB_RULES_FEATURE: string =
   "AI Data Security Scrub Rules";
 
 /*
+ * The LlmLog feature name for OneUptime AI's read of the Sensitive data
+ * section of a pull request's production review (PullRequestLeakReview,
+ * #10376): one constrained call per
+ * review whose rules found sensitive data in the change, started by every
+ * push to a pull request of a repository with Production Review on - so
+ * storm-shaped, with no human in the loop. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not: the diff it reads is the
+ * repository's, and the AI Logs are every Project Member's to read.
+ */
+export const AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE: string =
+  "AI Data Security Pull Request Review";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -431,6 +444,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * (ScrubRuleWriter, #10366): one constrained call per issue it contains.
    */
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  /*
+   * The Sensitive data section of a pull request's production review
+   * (PullRequestLeakReview): one constrained call per review
+   * whose rules found something, and every push can start one.
+   */
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

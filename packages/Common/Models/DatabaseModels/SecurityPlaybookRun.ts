@@ -1,4 +1,5 @@
 import Project from "./Project";
+import SecurityAutomaticResponsePolicy from "./SecurityAutomaticResponsePolicy";
 import SecurityCase from "./SecurityCase";
 import SecurityPlaybook from "./SecurityPlaybook";
 import User from "./User";
@@ -291,7 +292,7 @@ export default class SecurityPlaybookRun extends BaseModel {
     relationReaders: RelationReaders.ColumnReaders,
     title: "Trigger",
     description:
-      "What started the run: Case Opened, Detection Added, or Manual for a person.",
+      "What started the run: Case Opened, Detection Added, Manual for a person, or Automatic Response for an automatic response policy's block.",
   })
   @Column({
     nullable: true,
@@ -336,6 +337,53 @@ export default class SecurityPlaybookRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByUserId?: ObjectID = undefined;
+
+  /*
+   * The automatic response policy that started the run (#10350): its block
+   * is a one-step run of the engine, as a person's block from a case is,
+   * with nobody's approval to wait for because the project turned the
+   * policy on.
+   */
+  @ColumnAccessControl(engineColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "securityAutomaticResponsePolicyId",
+    computed: true,
+    type: TableColumnType.Entity,
+    modelType: SecurityAutomaticResponsePolicy,
+    title: "Automatic Response Policy",
+    description:
+      "The automatic response policy that started the run, for a block a policy made.",
+  })
+  @ManyToOne(
+    () => {
+      return SecurityAutomaticResponsePolicy;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "securityAutomaticResponsePolicyId" })
+  public securityAutomaticResponsePolicy?: SecurityAutomaticResponsePolicy =
+    undefined;
+
+  @ColumnAccessControl(engineColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Automatic Response Policy ID",
+    description: "ID of the automatic response policy that started the run.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public securityAutomaticResponsePolicyId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -507,47 +555,4 @@ export default class SecurityPlaybookRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: runs are not deleted.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: runs are not deleted.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

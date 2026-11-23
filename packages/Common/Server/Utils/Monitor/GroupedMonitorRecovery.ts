@@ -66,11 +66,25 @@ import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerpr
  * the monitor was not checked for a week - a recovery criteria matches on any
  * series, as it did before this rule.
  *
- * EXTENDING IT
+ * A CRITERIA'S OWN RECOVERY CONDITION (#10355)
  *
- * judge() is the one place a series is let go (isLetGo): a criteria with a
- * recovery condition of its own would let its series go when they meet that
- * condition, next to the recovery criteria here.
+ * A criteria can say when it recovers (MonitorCriteriaInstance
+ * .recoveryFilters): "below 300 ms for 10 minutes". Until a series behind
+ * the status meets the recovery condition of the criteria that holds it,
+ * that criteria keeps matching it (CriteriaRecovery), so it stays behind
+ * the status. A series that meets it is let go in judge(), next to one that
+ * meets a recovery criteria (recoveredSeries).
+ *
+ * A MONITOR THAT DOES NOT JUDGE SERIES ON ITS OWN (#10743)
+ *
+ * The margin holds there too, with the monitor as its one series, and
+ * nothing to remember: its status says whether a problem criteria is behind
+ * it. When no criteria matches a check, a monitor whose status a problem
+ * criteria set keeps it while its step has a recovery criteria, until that
+ * criteria matches (judgeWholeMonitor). A problem criteria with a recovery
+ * condition of its own is not waited for here: its own condition said it
+ * recovered. Without a recovery criteria, the monitor goes to its default
+ * status as it always has.
  */
 
 export enum GroupedCriteriaRole {
@@ -120,6 +134,16 @@ export interface GroupedRecoveryJudgement {
   seriesBehindStatus: Array<string>;
 }
 
+/*
+ * Whether a monitor that judges no series on its own keeps its status on a
+ * check no criteria matched (judgeWholeMonitor), and the recovery criteria
+ * it waits for, in criteria order.
+ */
+export interface WholeMonitorRecoveryJudgement {
+  isStatusKept: boolean;
+  recoveryCriteriaIds: Array<string>;
+}
+
 export default class GroupedMonitorRecovery {
   /*
    * What a criteria is to this rule, read off the criteria alone. A criteria
@@ -155,6 +179,67 @@ export default class GroupedMonitorRecovery {
   }
 
   /*
+   * A monitor that does not judge series on its own, on a check no criteria
+   * matched (#10743): whether it keeps its status rather than go to its
+   * default one, and the recovery criteria it waits for. It keeps it while
+   * its status is one a problem criteria of the step sets - one without a
+   * recovery condition of its own - and the step has a recovery criteria to
+   * bring it back. Pure: the monitor's statuses and the step's criteria are
+   * all it reads.
+   */
+  public static judgeWholeMonitor(input: {
+    criteriaInstances: Array<MonitorCriteriaInstance>;
+    defaultMonitorStatusId: ObjectID | undefined;
+    currentMonitorStatusId: ObjectID | undefined;
+  }): WholeMonitorRecoveryJudgement {
+    const notKept: WholeMonitorRecoveryJudgement = {
+      isStatusKept: false,
+      recoveryCriteriaIds: [],
+    };
+
+    if (
+      !input.defaultMonitorStatusId ||
+      !input.currentMonitorStatusId ||
+      input.currentMonitorStatusId.toString() ===
+        input.defaultMonitorStatusId.toString()
+    ) {
+      return notKept;
+    }
+
+    const recoveryCriteriaIds: Array<string> = [];
+    let isStatusOfAProblemCriteria: boolean = false;
+
+    for (const criteriaInstance of input.criteriaInstances) {
+      const role: GroupedCriteriaRole = GroupedMonitorRecovery.getRole({
+        criteriaInstance: criteriaInstance,
+        defaultMonitorStatusId: input.defaultMonitorStatusId,
+      });
+
+      if (role === GroupedCriteriaRole.Recovery && criteriaInstance.data?.id) {
+        recoveryCriteriaIds.push(criteriaInstance.data.id.toString());
+      }
+
+      if (
+        role === GroupedCriteriaRole.Problem &&
+        criteriaInstance.data?.monitorStatusId?.toString() ===
+          input.currentMonitorStatusId.toString() &&
+        !MonitorCriteriaInstance.hasRecoveryCondition(criteriaInstance.data)
+      ) {
+        isStatusOfAProblemCriteria = true;
+      }
+    }
+
+    if (!isStatusOfAProblemCriteria || recoveryCriteriaIds.length === 0) {
+      return notKept;
+    }
+
+    return {
+      isStatusKept: true,
+      recoveryCriteriaIds: recoveryCriteriaIds,
+    };
+  }
+
+  /*
    * A fingerprint that names a series. The whole monitor, which a criteria
    * that judges it as a whole matches as an entity of its own, is none: that
    * criteria's own verdict is its recovery.
@@ -177,6 +262,12 @@ export default class GroupedMonitorRecovery {
     // The series that met a problem criteria on this check.
     problemSeries: ReadonlySet<string>;
     recoveryCriteria: Array<RecoveryCriteriaCheck>;
+    /*
+     * The series that met the recovery condition of the problem criteria
+     * that held them, on this check (#10355): let go like a series that
+     * met a recovery criteria.
+     */
+    recoveredSeries?: ReadonlySet<string> | undefined;
   }): GroupedRecoveryJudgement {
     const before: Array<string> = Array.from(input.seriesBehindStatus).filter(
       (fingerprint: string): boolean => {
@@ -207,7 +298,12 @@ export default class GroupedMonitorRecovery {
       for (const fingerprint of recovery.judgedSeries) {
         judged.add(fingerprint);
 
-        if (behind.has(fingerprint) && !recovery.metSeries.has(fingerprint)) {
+        if (
+          behind.has(fingerprint) &&
+          !recovery.metSeries.has(fingerprint) &&
+          // Its own criteria's recovery condition let it go already.
+          !input.recoveredSeries?.has(fingerprint)
+        ) {
           waiting.push(fingerprint);
         }
       }
@@ -221,11 +317,24 @@ export default class GroupedMonitorRecovery {
       }
     }
 
-    // A series is let go once it meets a recovery criteria, or is gone.
+    for (const fingerprint of input.recoveredSeries || []) {
+      if (GroupedMonitorRecovery.isSeries(fingerprint)) {
+        judged.add(fingerprint);
+      }
+    }
+
+    /*
+     * A series is let go once it meets a recovery criteria, or the recovery
+     * condition of the criteria that held it, or is gone.
+     */
     const isLetGo: (fingerprint: string) => boolean = (
       fingerprint: string,
     ): boolean => {
-      return met.has(fingerprint) || !judged.has(fingerprint);
+      return (
+        met.has(fingerprint) ||
+        Boolean(input.recoveredSeries?.has(fingerprint)) ||
+        !judged.has(fingerprint)
+      );
     };
 
     const problemSet: Set<string> = new Set<string>(problems);

@@ -351,8 +351,6 @@ function editor(monitorType: MonitorType): ReactElement {
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         allMonitorSteps={new MonitorSteps()}
         probes={[]}

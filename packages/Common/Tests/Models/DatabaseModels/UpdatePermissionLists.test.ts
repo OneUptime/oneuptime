@@ -643,8 +643,6 @@ describe("a relation and its ID column", () => {
     ["Monitor", "currentMonitorStatus"],
     ["OnCallDutyPolicySchedule", "currentUserOnRoster"],
     ["OnCallDutyPolicySchedule", "nextUserOnRoster"],
-    ["TeamPermission", "deletedByUser"],
-    ["ApiKeyPermission", "deletedByUser"],
     ["DataMigration", "createdByUser"],
     ["StatusPageAnnouncementTemplate", "createdByUser"],
     ["StatusPageSubscriberNotificationTemplate", "createdByUser"],
@@ -660,12 +658,10 @@ describe("a relation and its ID column", () => {
     },
   );
 
-  test("nobody names the person on an on-call roster, or who deleted a row, when making it", () => {
+  test("nobody names the person on an on-call roster when making it", () => {
     for (const [tableName, relation] of [
       ["OnCallDutyPolicySchedule", "currentUserOnRoster"],
       ["OnCallDutyPolicySchedule", "nextUserOnRoster"],
-      ["TeamPermission", "deletedByUser"],
-      ["ApiKeyPermission", "deletedByUser"],
     ]) {
       expect(findRelation(tableName!, relation!).relationCreateList).toEqual(
         [],

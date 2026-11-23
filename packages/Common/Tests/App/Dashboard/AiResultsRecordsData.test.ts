@@ -171,6 +171,8 @@ describe("the dialog's words", () => {
       [AiOutcomesPart.DataSecurityChanges]: "Show the issues",
       [AiOutcomesPart.DataSecurityProposals]: "Show the issues",
       [AiOutcomesPart.IssueVerdicts]: "Show the issues",
+      // A leak number opens the pull requests and the issues it counts (#10376).
+      [AiOutcomesPart.Leaks]: "Show the pull requests and issues",
     });
   });
 

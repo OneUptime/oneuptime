@@ -1,4 +1,8 @@
-import CriteriaFilterUiUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import CriteriaFilterUiUtil, {
+  COUNTED_WINDOW_FIELDS,
+  PERCENTILE_FIELD_DESCRIPTION,
+  PERCENTILE_FIELD_TITLE,
+} from "../../../Utils/Form/Monitor/CriteriaFilter";
 import { CRITERIA_FILTER_BOX_CLASS_NAME } from "./CriteriaEditorLayout";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -59,7 +63,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -252,15 +256,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
     NoDataPolicy.Ignore;
 
   const evalOverTimeDropdownOptions: Array<DropdownOption> =
-    CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+    CriteriaFilterUiUtil.getEvaluateOverTimeTypeOptions(
       criteriaFilter,
       props.monitorType,
-    ).map((item: EvaluateOverTimeType) => {
-      return {
-        value: item,
-        label: item,
-      };
-    });
+    );
 
   /*
    * A true/false filter (Is Online and the like) saved with an aggregate is
@@ -277,9 +276,45 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
       );
     });
 
-  const metricAggregationOptions: Array<DropdownOption> = [
-    ...evalOverTimeDropdownOptions,
-  ]; // evalOverTimeDropdownOptions and metricAggregationOptions are same
+  /*
+   * A metric criteria reduces its series' data points with the six it always
+   * had: its query's own aggregation reads percentiles, and its window is
+   * its query's, so counting checks is no choice of its.
+   */
+  const metricAggregationOptions: Array<DropdownOption> =
+    CriteriaFilterUtil.getMetricAggregationTypes().map(
+      (item: EvaluateOverTimeType): DropdownOption => {
+        return {
+          value: item,
+          label: item,
+        };
+      },
+    );
+
+  /*
+   * The window type the server judges with (#10355): what the number under
+   * the Evaluate dropdown counts, or the percentile it reads.
+   */
+  const effectiveOverTimeType: EvaluateOverTimeType | undefined =
+    CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+      criteriaFilter,
+      props.monitorType,
+    );
+
+  const countedWindowField:
+    | { title: string; description: string; unit: string }
+    | undefined = effectiveOverTimeType
+    ? COUNTED_WINDOW_FIELDS[effectiveOverTimeType]
+    : undefined;
+
+  const countComparison: { filterType: FilterType; value: number } =
+    CriteriaFilterUtil.getCountComparison(criteriaFilter);
+
+  const countComparisonOptions: Array<DropdownOption> =
+    CriteriaFilterUiUtil.getCountComparisonOptions();
+
+  const percentileOptions: Array<DropdownOption> =
+    CriteriaFilterUiUtil.getPercentileOptions();
 
   const metricAggregationValue: DropdownOption | undefined =
     metricAggregationOptions.find((i: DropdownOption) => {
@@ -1414,27 +1449,144 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                         value: DropdownValue | Array<DropdownValue> | null,
                       ) => {
                         props.onChange?.(
-                          CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                          CriteriaFilterUiUtil.setEvaluateOverTimeType({
                             criteriaFilter: criteriaFilter,
-                            change: {
-                              evaluateOverTimeType:
-                                value?.toString() as EvaluateOverTimeType,
-                            },
+                            evaluateOverTimeType:
+                              value?.toString() as EvaluateOverTimeType,
                           }),
                         );
                       }}
                     />
                   </div>
 
+                  {/*
+                   * A count of the window's checks (#10355): how many must
+                   * match, what share of them, or how often they changed -
+                   * "Greater Than 30 checks". Shown only for a count, so the
+                   * window of an average or of every check stays as it was.
+                   */}
+                  {countedWindowField && (
+                    <div
+                      className="mt-1"
+                      data-testid="criteria-filter-over-time-count"
+                    >
+                      <FieldLabelElement
+                        title={countedWindowField.title}
+                        description={countedWindowField.description}
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="min-w-[12rem] flex-1">
+                          <FilterDropdown
+                            value={countComparisonOptions.find(
+                              (option: DropdownOption): boolean => {
+                                return (
+                                  option.value === countComparison.filterType
+                                );
+                              },
+                            )}
+                            options={countComparisonOptions}
+                            /*
+                             * Named by the row, as its number box is: the
+                             * filter's own Filter Condition sits above.
+                             */
+                            ariaLabel={countedWindowField.title}
+                            isClearable={false}
+                            onChange={(
+                              value:
+                                | DropdownValue
+                                | Array<DropdownValue>
+                                | null,
+                            ) => {
+                              props.onChange?.(
+                                CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                                  criteriaFilter: criteriaFilter,
+                                  change: {
+                                    countFilterType:
+                                      value?.toString() as FilterType,
+                                  },
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="w-28">
+                          <Input
+                            type={InputType.NUMBER}
+                            dataTestId="criteria-filter-over-time-count-value"
+                            ariaLabel={countedWindowField.title}
+                            value={String(countComparison.value)}
+                            onChange={(value: string) => {
+                              const count: number = Number(value);
+
+                              props.onChange?.(
+                                CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                                  criteriaFilter: criteriaFilter,
+                                  change: {
+                                    // A number, as the API and Terraform send it.
+                                    countValue:
+                                      value.trim() !== "" &&
+                                      Number.isFinite(count)
+                                        ? count
+                                        : 0,
+                                  },
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {translator.translateText(countedWindowField.unit) ||
+                            countedWindowField.unit}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {effectiveOverTimeType ===
+                    EvaluateOverTimeType.Percentile && (
+                    <div
+                      className="mt-1"
+                      data-testid="criteria-filter-over-time-percentile"
+                    >
+                      <FieldLabelElement
+                        title={PERCENTILE_FIELD_TITLE}
+                        description={PERCENTILE_FIELD_DESCRIPTION}
+                      />
+                      <FilterDropdown
+                        value={percentileOptions.find(
+                          (option: DropdownOption): boolean => {
+                            return (
+                              option.value ===
+                              CriteriaFilterUtil.getPercentile(criteriaFilter)
+                            );
+                          },
+                        )}
+                        options={percentileOptions}
+                        ariaLabel={PERCENTILE_FIELD_TITLE}
+                        isClearable={false}
+                        onChange={(
+                          value: DropdownValue | Array<DropdownValue> | null,
+                        ) => {
+                          props.onChange?.(
+                            CriteriaFilterUiUtil.setEvaluateOverTimeOption({
+                              criteriaFilter: criteriaFilter,
+                              change: { percentile: Number(value) },
+                            }),
+                          );
+                        }}
+                      />
+                    </div>
+                  )}
+
                   <div className="mt-1">
                     <FieldLabelElement
-                      title="For the last (in minutes)"
+                      title="For the last"
                       description="Make it longer than the monitoring interval, so the window holds several checks."
                     />
                     <FilterDropdown
                       value={evaluateOverTimeMinutesValue}
                       options={CriteriaFilterUiUtil.getEvaluateOverTimeMinutesOptions()}
-                      ariaLabel="For the last (in minutes)"
+                      ariaLabel="For the last"
                       isClearable={false}
                       onChange={(
                         value: DropdownValue | Array<DropdownValue> | null,
@@ -1494,6 +1646,23 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                       }}
                     />
                   </div>
+
+                  {/*
+                   * The filter as one sentence, as the criteria list will say
+                   * it: "Check if "Is Online" is false on more than 30 checks
+                   * in the past 8 hours". What the choices above add up to,
+                   * read as they are made.
+                   */}
+                  <p
+                    className="mt-2 text-sm text-gray-500"
+                    data-testid="criteria-filter-over-time-sentence"
+                  >
+                    {CriteriaFilterUiUtil.translateFilterToText(
+                      criteriaFilter,
+                      props.monitorType,
+                      translator,
+                    )}
+                  </p>
                 </div>
               ) : (
                 <></>

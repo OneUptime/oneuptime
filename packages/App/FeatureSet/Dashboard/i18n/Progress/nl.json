@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62240,
+    "keys": 62857,
     "untranslated": 8322
   },
   "sameAsEnglish": [
@@ -369,6 +369,7 @@
     "Payload",
     "Pebibytes",
     "Peer",
+    "Percentage",
     "Persistent volume claims",
     "Persistent volumes",
     "Petabytes",
@@ -460,6 +461,7 @@
     "SSH",
     "Samples",
     "Scan",
+    "Scanners",
     "Scans",
     "ScheduledMaintenance",
     "Schema",
@@ -504,6 +506,7 @@
     "Switch",
     "Switches",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

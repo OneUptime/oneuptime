@@ -400,7 +400,7 @@ describe("one read per table, however many fields and rows name its records", ()
             newValue: ALICE,
           },
           {
-            field: "deletedByUserId",
+            field: "archivedByUserId",
             oldValue: null,
             newValue: INVITED,
           },
@@ -657,7 +657,7 @@ describe("what is never looked up, or never named", () => {
           action: AuditLogAction.Create,
           changes: [
             { field: "createdByUserId", oldValue: null, newValue: ALICE },
-            { field: "deletedByUserId", oldValue: null, newValue: INVITED },
+            { field: "archivedByUserId", oldValue: null, newValue: INVITED },
           ],
         }),
         props: PROJECT_ADMIN,
@@ -667,7 +667,7 @@ describe("what is never looked up, or never named", () => {
       state: AuditLogRelatedRecordState.Named,
       name: "Alice Liddell",
     });
-    expect(stateOf(records, "deletedByUserId", INVITED)).toEqual({
+    expect(stateOf(records, "archivedByUserId", INVITED)).toEqual({
       state: AuditLogRelatedRecordState.Named,
       name: "Bob (contractor)",
     });

@@ -55,7 +55,7 @@ Ange slutpunktens fullständiga URL under **API-URL**, som `https://api.example.
 
 ### Testa den
 
-Välj **API-begärantyp** under **Monitor-mål** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp (i JSON)**. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
+Välj **API-begärantyp** under **Monitor-mål** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp**. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 
@@ -70,7 +70,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 
 ### API-URL
 
-Slutpunkten som anropas, som fullständig URL med schema, som `https://api.example.com/v1/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`.
+Slutpunkten som anropas, som fullständig URL med schema, som `https://api.example.com/v1/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`. Felet från en misslyckad kontroll nämner bara URL:ens schema, värd och port, som `https://api.example.com`, så hemligheten visas aldrig.
 
 ### Dynamiska URL-platshållare
 
@@ -107,14 +107,15 @@ De här inställningarna är hopfällda under **Fler fält**. Den hopfällda rub
 | Fält | Standard | Vad det gör |
 | --- | --- | --- |
 | **Begärandehuvuden** | Inga | Huvuden som skickas, som par av namn och värde. Klicka på **Lägg till Begärandehuvud** för vart och ett. |
-| **Begärandekropp (i JSON)** | Ingen | Kroppen som skickas, oftast med **POST**, **PUT** eller **PATCH**: vilket JSON-värde som helst, till exempel ett objekt, en array, en sträng eller ett tal. Den skickas som du skriver den, som `application/json`, om du inte anger en `Content-Type` under **Begärandehuvuden**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` skickas ett objekt som formulärfält. |
+| **Format för begärandekropp** | **JSON** | Hur kroppen läses. **JSON** tar vilket JSON-värde som helst, till exempel ett objekt, en array, en sträng eller ett tal. **Text** tar allt annat, till exempel XML för en SOAP-slutpunkt, vanlig text eller formulärfält skrivna som `a=1&b=2`, och läses aldrig som JSON. |
+| **Begärandekropp** | Ingen | Kroppen som skickas, oftast med **POST**, **PUT** eller **PATCH**. Den skickas exakt som du skriver den: i formatet **JSON** som `application/json`, i formatet **Text** som `text/plain`, om du inte anger en `Content-Type` under **Begärandehuvuden**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` skickas ett objekt i formatet **JSON** som formulärfält. |
 | **Följ inte omdirigeringar** | Av | Bedöm det första svaret i stället för att följa omdirigeringar. Se [nedan](#följ-inte-omdirigeringar). |
 | **Tillåt självsignerade certifikat** | Av | Hoppa över valideringen av TLS-certifikatet för monitorns eget värdnamn. |
 | **Använd klientcertifikat (mTLS)** | Av | Visa upp ett klientcertifikat och en privat nyckel. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
 | **Begärandetimeout (sekunder)** | `60` | Hur länge varje försök får vänta. Maxvärdet är 60 sekunder. |
 | **Återförsök vid misslyckande** | Sondens standard, oftast `3` | Hur många gånger ett misslyckat försök görs om. Maxvärdet är 3. Se [Återförsök och tidsgränser](#återförsök-och-tidsgränser). |
 
-Begärandehuvuden och begärandekroppen kan använda [övervakningshemligheter](/docs/monitor/monitor-secrets), till exempel ett huvud `Authorization` med värdet `Bearer {{monitorSecrets.ApiKey}}`.
+Begärandehuvuden och begärandekroppen kan använda [övervakningshemligheter](/docs/monitor/monitor-secrets), till exempel ett huvud `Authorization` med värdet `Bearer {{monitorSecrets.ApiKey}}`. I en kropp i formatet **JSON** escapas en hemlighet inom citattecken, som i `{"password": "{{monitorSecrets.Password}}"}`, för sin sträng, så att ett värde med ett `"`, ett `\` eller en radbrytning förblir en enda sträng. En hemlighet utanför citattecken, som i `[{{monitorSecrets.Ids}}]`, fylls i som den är, och det gör varje hemlighet i en kropp i formatet **Text** också.
 
 #### Följ inte omdirigeringar
 
@@ -193,17 +194,18 @@ Monitorer som skapades innan OneUptime ändrade dessa standarder behåller de kr
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Statuskod för svar**, **Svarstid (i ms)**, **Svarstext**, **Svarshuvud**, **Värde för svarshuvud**, **JavaScript-uttryck** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Statuskod för svar**, **Svarstid (i ms)**, **Svarstext**, **Svarshuvud**, **Värde för svarshuvud**, **JavaScript-uttryck** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 minuter till 24 timmar under **Under de senaste**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Percentil** | Det värdet över fönstret uppfyller villkoret, till exempel p95-svarstiden. Bara numeriska filter. |
 | **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
 | **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Antal**, **Procentandel**, **Statusbyten** | Hur många kontroller som uppfyllde villkoret, deras andel eller hur ofta de växlade mellan att uppfylla det och inte, jämförs med talet som anges under. |
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
-En body, en header, ett headervärde eller ett uttryck är inte ett tal som OneUptime registrerar. För de filtren och för **Är begärandetimeout** registrerar OneUptime därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**. Så tar sig en monitor igenom en omstart. En app som startar kan svara `200` med en tillfällig sida som `Application starting...`; med **Alla värden** sätter ett filter **Svarstext** som letar efter appens titel monitorn offline först när den tillfälliga sidan har varat hela fönstret.
+En body, en header, ett headervärde eller ett uttryck är inte ett tal som OneUptime registrerar. För de filtren och för **Är begärandetimeout** registrerar OneUptime därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**. Eller så räknar OneUptime den med **Antal**, **Procentandel** eller **Statusbyten**. Så tar sig en monitor igenom en omstart. En app som startar kan svara `200` med en tillfällig sida som `Application starting...`; med **Alla värden** sätter ett filter **Svarstext** som letar efter appens titel monitorn offline först när den tillfälliga sidan har varat hela fönstret.
 
 Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 
@@ -245,7 +247,11 @@ Sonden läser högst 512 KiB av ett svar, och det här är större. Anropa en sl
 :::
 
 :::details Kontrollen misslyckas med "Begärandetexten är inte giltig JSON, så begäran skickades inte."
-Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor-secrets) har fyllts i, så sonden skickade inte begäran. Rätta kroppen under **Fler fält**, eller värdet av en hemlighet som den använder: ett värde med ett `"` i bryter JSON-strängen som det står i.
+Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor-secrets) har fyllts i, så sonden skickade inte begäran. Rätta kroppen under **Fler fält**, eller värdet av en hemlighet utanför citattecken i den, som fylls i som den är. För att skicka en kropp som inte är JSON, till exempel XML eller formulärfält, sätter du **Format för begärandekropp** till **Text**.
+:::
+
+:::details Kontrollen säger att sonden är för gammal för att skicka kroppen
+Monitorns kropp är en JSON-array, ett enda värde eller **Text**, och den anpassade sonden som kontrollerar den kör en äldre version, som bara skickar ett JSON-objekt, så kontrollen kördes inte på den. Monitorns formulär och sondens sida nämner en sådan sond. [Uppdatera sonden](/docs/probe/custom-probe#uppdatera-en-sond) till den senaste versionen eller kontrollera monitorn från en annan sond.
 :::
 
 ## Nästa steg

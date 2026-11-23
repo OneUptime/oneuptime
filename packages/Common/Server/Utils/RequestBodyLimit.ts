@@ -136,6 +136,28 @@ export const DOCS_REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = heldBySize(
   2 * KIB,
 );
 
+/*
+ * The most an OpAMP AgentToServer may be (#10770). OneUptime's installers
+ * do not ask for the collector's component list, and OneUptime turns off
+ * the collector's report of the config it runs, so a message is a few
+ * kilobytes - tens when a supervisor sends its own merge of the config
+ * files, as it does when it starts; this leaves room for a long error
+ * message. The ingress lets more than this through
+ * (Nginx/default.conf.template), so the 413 is the App's.
+ */
+export const OPAMP_MESSAGE_MAX_BYTES: number = MIB;
+
+/*
+ * OpAMP's body, read once the host's key is right, held to the message's
+ * own size (protobuf has no JSON values to count). Its route's reader held
+ * it to a large route's 50 MB, and the handler then refused anything over
+ * 1 MiB: a key holder could have 50 MB read, or inflated, a request, each
+ * refused at 1 MiB.
+ */
+export const OPAMP_REQUEST_BODY_LIMIT: RequestBodyLimit = heldBySize(
+  OPAMP_MESSAGE_MAX_BYTES,
+);
+
 export interface RequestBodyRoute {
   /*
    * The paths, as the App receives them: "/" between segments, a ":name"
@@ -208,12 +230,17 @@ const createAndUpdate: (crudPath: string) => Array<string> = (
 };
 
 /*
- * The telemetry routes StartServer reads the body of: the rest of the
- * telemetry router (OTLP, session replay, the compatible endpoints, the
- * Vercel log drain, the cloud streams, the uploads and the batches below)
- * reads its own.
+ * The security events collectors, SIEMs and SOAR playbooks send, read once
+ * their ingest key is checked (#10795), as the batches below are: each
+ * sends its key in a header (x-oneuptime-token), and the route reads the
+ * body after it with StartServer's own parsers. StartServer reads no
+ * telemetry route's body now: OTLP, session replay, the compatible
+ * endpoints, the Vercel log drain and the cloud streams read their own, and
+ * the rest read theirs once their key is right.
  */
-const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = ["/security-events/*"];
+const SECURITY_EVENTS_INGEST_PATHS: ReadonlyArray<string> = [
+  "/security-events/v1/ingest",
+];
 
 /*
  * The batches collectors, agents and CI send, read once their ingest key is
@@ -225,8 +252,9 @@ const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = ["/security-events/*"];
  *
  *   - in a header, x-oneuptime-token: Fluentd's HTTP output and Fluent Bit's
  *     (headers), rsyslog's omhttp and syslog-ng's HTTP destination, the
- *     Kubernetes agent's cost poller, the host collector's OpAMP supervisor,
- *     the Android agent, the OneUptime CLI's dbt upload;
+ *     Kubernetes agent's cost poller, the Android agent, the OneUptime CLI's
+ *     dbt upload - and the host collector's OpAMP supervisor, whose message
+ *     is held to its own limit (TELEMETRY_OPAMP_PATHS, below);
  *   - as Authorization: Bearer, which the route hands on as that header:
  *     OpenLineage clients (api_key), Pyroscope's push (or Basic);
  *   - in the URL: Airbyte's webhook carries the key itself, Fivetran's names
@@ -242,7 +270,6 @@ const TELEMETRY_KEYED_INGEST_PATHS: ReadonlyArray<string> = [
   "/openlineage/api/v1/lineage",
   "/dbt/v1/artifacts",
   "/android-agent/v1/log-sessions",
-  "/opamp/v1",
   // Pyroscope's push.v1 protobuf; its /ingest is an upload, above.
   "/pyroscope/push.v1.PusherService/Push",
   "/fivetran/v1/webhook/:ingestionKeyId",
@@ -262,6 +289,15 @@ const TELEMETRY_UPLOAD_PATHS: ReadonlyArray<string> = [
   "/source-maps/v1/upload",
   "/dsyms/v1/upload",
 ];
+
+/*
+ * The host collector's OpAMP messages (#10770), read once their ingest key
+ * is checked, as the batches above are, but held to an OpAMP message's own
+ * size (SMALL_REQUEST_BODY_ROUTES): /telemetry/opamp/v1, where the
+ * installers point the supervisor, and /opamp/v1 at the root, where hosts
+ * installed before still ask (HOST_COLLECTOR_OPAMP_ROUTE).
+ */
+const TELEMETRY_OPAMP_PATHS: ReadonlyArray<string> = ["/opamp/v1"];
 
 export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
   {
@@ -327,10 +363,11 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
       "Whatever a system sends to an incoming request monitor (nginx sends /heartbeat here too). Bodies of up to 50 MB are documented as accepted.",
   },
   {
-    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
+    paths: under(TELEMETRY_ROUTE_PREFIXES, SECURITY_EVENTS_INGEST_PATHS),
     limit: LARGE_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
     reason:
-      "Batches of security events that collectors and SIEMs send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+      "Batches of security events that collectors, SIEMs and SOAR playbooks send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each. Each sends its ingest key in a header, which is checked before a byte of the body is read: a request without the right key is refused with its body unread.",
   },
   {
     paths: ["/workflow/*", "/api/huntress/webhook/*"],
@@ -403,15 +440,18 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
 ];
 
 /*
- * THE ROUTES THAT TAKE LESS THAN AN ORDINARY ONE (#10672). Each holds its
- * body to a limit of its own, which StartServer holds it to before routing
- * as it holds every route to its limit: a body sent as it is past the limit
- * is refused unread (its Content-Length, or at the chunk that passes it), a
- * gzip one as it is sent or inflates past it, each answered alike. The
- * route's own parser held only a gzip body to it - StartServer had parsed an
- * uncompressed one at the ordinary 1 MB and 100,000 values first - so the
- * same 100 KB form was refused gzipped and parsed sent as it is.
- * REQUEST_BODY_MAX_BYTES does not raise these: they are no ordinary routes.
+ * THE ROUTES THAT TAKE NO MORE THAN AN ORDINARY ONE, EACH HELD TO A LIMIT
+ * OF ITS OWN (#10672, #10770). StartServer holds the MCP OAuth endpoints and
+ * the docs' reports to theirs before routing, as it holds every route to its
+ * limit, and OpAMP's reader holds a host's message to its own once the
+ * host's key is right (readsBodyAfterAuthentication). Either way a body sent
+ * as it is past the limit is refused unread (its Content-Length, or at the
+ * chunk that passes it), a gzip one as it is sent or inflates past it, each
+ * answered alike. The MCP and docs routes' own parsers held only a gzip body
+ * to it - StartServer had parsed an uncompressed one at the ordinary 1 MB
+ * and 100,000 values first - so the same 100 KB form was refused gzipped and
+ * parsed sent as it is. REQUEST_BODY_MAX_BYTES does not raise these: they
+ * are no ordinary routes.
  */
 export const SMALL_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
   {
@@ -425,6 +465,13 @@ export const SMALL_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
     limit: DOCS_REPORT_REQUEST_BODY_LIMIT,
     reason:
       'The docs\' "Was this page helpful?" and "found nothing" reports are a few dozen bytes each, from any reader of the docs.',
+  },
+  {
+    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_OPAMP_PATHS),
+    limit: OPAMP_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
+    reason:
+      "The host collector's OpAMP supervisor posts a message of a few kilobytes, and never more than 1 MiB, gzip-compressed or not, with its ingest key in a header, which is checked before a byte of the body is read: a request without the right key is refused with its body unread, and one over 1 MiB with no more of it read.",
   },
 ];
 

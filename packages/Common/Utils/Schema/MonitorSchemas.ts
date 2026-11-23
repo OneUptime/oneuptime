@@ -64,6 +64,11 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     timeValueInMinutes: Zod.number().optional(),
     evaluateOverTimeType: Zod.string().optional(),
     onNoDataPolicy: Zod.string().optional(),
+    // Percentile: which one, above 0 and below 100 (95 when unset).
+    percentile: Zod.number().optional(),
+    // Count, Percentage and Status Changes: "Greater Than" 30.
+    countFilterType: Zod.string().optional(),
+    countValue: Zod.number().optional(),
   }).optional(),
 });
 
@@ -132,6 +137,18 @@ export function getMonitorCriteriaInstanceSchema(): ZodSchema {
       isEnabled: Zod.boolean().optional(),
       incidentGrouping: IncidentGroupingConfigSchema.optional(),
       openForEveryEmail: Zod.boolean().optional(),
+      /*
+       * When the criteria recovers, when that is not simply "its filters
+       * stop matching" (#10355): filters like `filters`, All or Any of them.
+       */
+      recoveryFilters: Zod.array(CriteriaFilterSchema).optional(),
+      recoveryFilterCondition: Zod.any().optional(),
+      /*
+       * The days and times the criteria is judged in (a RestrictionTimes
+       * object, as an on-call rule's working hours), and their time zone.
+       */
+      activeHours: Zod.any().optional(),
+      activeHoursTimezone: Zod.string().optional(),
     }).openapi({
       type: "object",
       example: {
@@ -207,6 +224,8 @@ export function getMonitorStepSchema(): ZodSchema {
       requestType: Zod.any(),
       requestHeaders: Zod.any().optional(),
       requestBody: Zod.string().optional(),
+      // How the body is sent (#10736): JSON when left out, or text as written.
+      requestBodyFormat: Zod.enum(["json", "text"]).optional(),
       doNotFollowRedirects: Zod.boolean().optional(),
       allowSelfSignedCertificates: Zod.boolean().optional(),
       tlsClientCertificate: Zod.string().optional(),

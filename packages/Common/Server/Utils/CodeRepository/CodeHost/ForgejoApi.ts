@@ -983,6 +983,33 @@ export default class ForgejoApi {
     return ForgejoApi.readComment(answer.json);
   }
 
+  /*
+   * A commit's status: a production review's, on a pull request's head,
+   * when its repository asks the review to fail on a leak of sensitive
+   * data (#10376) - what a branch's required status checks read. Written
+   * again for the same context replaces it. Needs write access to the
+   * repository.
+   */
+  public async setCommitStatus(data: {
+    owner: string;
+    name: string;
+    sha: string;
+    state: "success" | "failure";
+    context: string;
+    description: string;
+    targetUrl: string;
+  }): Promise<void> {
+    await this.client.postJson(
+      `${ForgejoApi.repositoryPath(data.owner, data.name)}/statuses/${encodeURIComponent(data.sha)}`,
+      {
+        state: data.state,
+        context: data.context.slice(0, 255),
+        description: data.description.slice(0, 255),
+        target_url: data.targetUrl,
+      },
+    );
+  }
+
   // A comment OneUptime wrote, edited in place.
   public async updateIssueComment(data: {
     owner: string;

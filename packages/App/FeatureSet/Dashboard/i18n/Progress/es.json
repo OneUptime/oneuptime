@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62240,
+    "keys": 62857,
     "untranslated": 2306
   },
   "sameAsEnglish": [
@@ -433,6 +433,7 @@
     "Swapped",
     "Switch",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

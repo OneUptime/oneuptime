@@ -253,7 +253,7 @@ OneUptime 的 [私有网络访问设置](/docs/self-hosted/private-network-acces
 
 ### 出站访问和 IP 限制
 
-允许 OneUptime 应用进行 DNS 解析和出站 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的身份验证和频道端点，以及为会话提供的连接器服务 URL。商业云的后备连接器是 `https://smba.trafficmanager.net/teams/`；会话的服务 URL 可能不同。请遵循 [Microsoft 的防火墙指南](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，并在测试期间检查被阻止的流量；这不是一份完整的主机名列表。 在[美国政府云](#美国政府云)中，这些是该云自己的主机。
+允许 OneUptime 应用进行 DNS 解析和出站 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的身份验证和频道端点，以及为会话提供的连接器服务 URL。商业云的后备连接器是 `https://smba.trafficmanager.net/teams/`；会话的服务 URL 可能不同。请遵循 [Microsoft 的防火墙指南](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，并在测试期间检查被阻止的流量；这不是一份完整的主机名列表。 在[美国政府云](#美国政府云)中，这些是该云自己的主机。在出站代理之后，机器人也和服务器的其他部分一样，经代理访问上述所有地址，`NO_PROXY` 中的主机除外：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
 
 Microsoft 不支持为 Bot Framework 入站流量使用固定的 IP 允许列表，因为其源地址会变化。Teams 客户端的媒体 IP 范围并不描述机器人 Webhook 的来源。请保持 Bot Framework 身份验证处于启用状态，而不是把源 IP 当作身份证明。
 

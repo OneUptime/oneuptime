@@ -55,7 +55,7 @@ Le **Nom** se remplit à partir de ce que vous avez saisi, par exemple `api.exam
 
 ### Le tester
 
-Sous **Cible du moniteur**, choisissez le **Type de requête API** (**GET** sauf si vous le changez). Pour ajouter des en-têtes ou un corps, ouvrez **Plus de champs** et renseignez **En-têtes de la requête** et **Corps de la requête (en JSON)**. Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que l'API a répondu. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
+Sous **Cible du moniteur**, choisissez le **Type de requête API** (**GET** sauf si vous le changez). Pour ajouter des en-têtes ou un corps, ouvrez **Plus de champs** et renseignez **En-têtes de la requête** et **Corps de la requête**. Cliquez sur **Tester le moniteur** : le test démarre sur une sonde qui vérifie le moniteur. Choisissez-en une autre sous **Sélectionner la sonde** si vous le souhaitez, puis cliquez sur **Exécuter le test**. **Résultat du test du moniteur** montre ce que l'API a répondu. Il dit aussi à quel critère la réponse correspond et ce qui s'ensuivrait : le statut, l'incident ou l'alerte, et qui est prévenu.
 
 ### Passer en revue les critères
 
@@ -70,7 +70,7 @@ Gardez ou changez les **Sondes** et l'**Intervalle de surveillance** (il commenc
 
 ### URL de l'API
 
-Le point de terminaison à appeler, sous forme d'URL complète avec son schéma, comme `https://api.example.com/v1/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`.
+Le point de terminaison à appeler, sous forme d'URL complète avec son schéma, comme `https://api.example.com/v1/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`. L'erreur d'une vérification échouée ne nomme l'URL que par son schéma, son hôte et son port, comme `https://api.example.com`, si bien que le secret n'est jamais affiché.
 
 ### Espaces réservés d'URL dynamiques
 
@@ -107,14 +107,15 @@ Ces réglages sont repliés sous **Plus de champs**. L'en-tête replié les nomm
 | Champ | Par défaut | Ce qu'il fait |
 | --- | --- | --- |
 | **En-têtes de la requête** | Aucun | Les en-têtes à envoyer, sous forme de paires nom et valeur. Cliquez sur **Ajouter : En-tête de la requête** pour chacun. |
-| **Corps de la requête (en JSON)** | Aucun | Le corps à envoyer, généralement avec **POST**, **PUT** ou **PATCH** : n'importe quelle valeur JSON, comme un objet, un tableau, une chaîne ou un nombre. Il est envoyé tel que vous l'écrivez, en `application/json`, sauf si vous définissez un `Content-Type` dans **En-têtes de la requête**. Avec `application/x-www-form-urlencoded` ou `multipart/form-data`, un objet est envoyé sous forme de champs de formulaire. |
+| **Format du corps de la requête** | **JSON** | Comment le corps est lu. **JSON** accepte n'importe quelle valeur JSON, comme un objet, un tableau, une chaîne ou un nombre. **Texte** accepte tout le reste, comme du XML pour un point de terminaison SOAP, du texte brut ou des champs de formulaire écrits sous la forme `a=1&b=2`, et n'est jamais lu comme du JSON. |
+| **Corps de la requête** | Aucun | Le corps à envoyer, généralement avec **POST**, **PUT** ou **PATCH**. Il est envoyé exactement tel que vous l'écrivez : un corps **JSON** en `application/json`, un corps **Texte** en `text/plain`, sauf si vous définissez un `Content-Type` dans **En-têtes de la requête**. Avec `application/x-www-form-urlencoded` ou `multipart/form-data`, un objet **JSON** est envoyé sous forme de champs de formulaire. |
 | **Ne pas suivre les redirections** | Désactivé | Juger la première réponse au lieu de suivre les redirections. Voir [ci-dessous](#ne-pas-suivre-les-redirections). |
 | **Autoriser les certificats auto-signés** | Désactivé | Ignorer la validation du certificat TLS pour le nom d'hôte du moniteur lui-même. |
 | **Utiliser un certificat client (mTLS)** | Désactivé | Présenter un certificat client et une clé privée. Voir [Certificat client (mTLS)](#certificat-client-mtls). |
 | **Délai d'expiration de la requête (secondes)** | `60` | Combien de temps attendre chaque tentative. Le maximum est de 60 secondes. |
 | **Tentatives en cas d'échec** | Valeur par défaut de la sonde, généralement `3` | Combien de fois retenter une tentative échouée. Le maximum est 3. Voir [Nouvelles tentatives et délais](#nouvelles-tentatives-et-délais). |
 
-Les en-têtes et le corps de la requête peuvent utiliser des [secrets de moniteur](/docs/monitor/monitor-secrets), par exemple un en-tête `Authorization` avec la valeur `Bearer {{monitorSecrets.ApiKey}}`.
+Les en-têtes et le corps de la requête peuvent utiliser des [secrets de moniteur](/docs/monitor/monitor-secrets), par exemple un en-tête `Authorization` avec la valeur `Bearer {{monitorSecrets.ApiKey}}`. Dans un corps **JSON**, un secret entre guillemets, comme dans `{"password": "{{monitorSecrets.Password}}"}`, est échappé pour sa chaîne, de sorte qu'une valeur contenant un `"`, un `\` ou un saut de ligne reste une seule chaîne. Un secret hors des guillemets, comme dans `[{{monitorSecrets.Ids}}]`, est écrit tel quel, tout comme chaque secret d'un corps **Texte**.
 
 #### Ne pas suivre les redirections
 
@@ -193,17 +194,18 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 minutes à 24 heures, sous **Pour les dernières**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Centile** | Cette valeur, sur la fenêtre, remplit la condition, comme le temps de réponse p95. Filtres numériques seulement. |
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Comptage**, **Pourcentage**, **Changements d'état** | Le nombre de vérifications qui ont rempli la condition, leur part, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, est comparé au nombre défini en dessous. |
 
 L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
+Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. OneUptime peut aussi le compter avec **Comptage**, **Pourcentage** ou **Changements d'état**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 
@@ -245,7 +247,11 @@ La sonde lit au plus 512 Kio d'une réponse, et celle-ci est plus grande. Appele
 :::
 
 :::details La vérification échoue avec « Le corps de la requête n'est pas un JSON valide, la requête n'a donc pas été envoyée. »
-Le corps n'est pas du JSON une fois ses [secrets de moniteur](/docs/monitor/monitor-secrets) insérés, donc la sonde n'a pas envoyé la requête. Corrigez le corps dans **Plus de champs**, ou la valeur d'un secret qu'il utilise : une valeur qui contient un `"` casse la chaîne JSON où elle se trouve.
+Le corps n'est pas du JSON une fois ses [secrets de moniteur](/docs/monitor/monitor-secrets) insérés, donc la sonde n'a pas envoyé la requête. Corrigez le corps dans **Plus de champs**, ou la valeur d'un secret placé hors des guillemets, qui est écrit tel quel. Pour envoyer un corps qui n'est pas du JSON, comme du XML ou des champs de formulaire, réglez **Format du corps de la requête** sur **Texte**.
+:::
+
+:::details La vérification indique que la sonde est trop ancienne pour envoyer le corps de la requête
+Le corps du moniteur est un tableau JSON, une valeur unique ou du **Texte**, et la sonde personnalisée qui le vérifie exécute une version plus ancienne, qui n'envoie qu'un objet JSON, donc la vérification n'a pas été exécutée sur elle. Le formulaire du moniteur et la page de la sonde nomment une telle sonde. [Mettez à jour la sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde) vers la dernière version, ou vérifiez le moniteur depuis une autre sonde.
 :::
 
 ## Étapes suivantes

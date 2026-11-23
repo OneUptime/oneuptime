@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 62240,
-    "untranslated": 8274
+    "keys": 62857,
+    "untranslated": 8275
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -151,6 +151,7 @@
     "Slug",
     "StatusPage",
     "Stripe Payments API",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

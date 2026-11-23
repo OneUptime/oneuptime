@@ -118,7 +118,6 @@ const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const CONNECTION_ID: string = "22222222-2222-4222-8222-222222222222";
 const SECOND_CONNECTION_ID: string = "33333333-3333-4333-8333-333333333333";
 const USER_ID: string = "44444444-4444-4444-8444-444444444444";
-const DELETER_ID: string = "55555555-5555-4555-8555-555555555555";
 const RUN_ID: string = "66666666-6666-4666-8666-666666666666";
 
 const CIPHERTEXT: string = "U2FsdGVkX1+legacyServiceAccountCiphertext==";
@@ -292,7 +291,6 @@ function legacyConnection(
     cursor: "2026-09-14T10:00:00.000Z",
     lastError: null,
     createdByUserId: USER_ID,
-    deletedByUserId: null,
     ...overrides,
   };
 }
@@ -638,10 +636,15 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
         "cursor",
         "lastError",
         "createdByUserId",
-        "deletedByUserId",
       ]) {
         expect(read[0]!.sql).toContain(`"${column}"`);
       }
+
+      /*
+       * Nothing ever wrote who deleted a connection, and a security event
+       * connection no longer has the column (#10469).
+       */
+      expect(read[0]!.sql).not.toContain("deletedByUserId");
     });
   });
 
@@ -650,7 +653,6 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
       database.connections = [
         legacyConnection({
           lastError: "Google SecOps alerts fetch failed with HTTP 500.",
-          deletedByUserId: DELETER_ID,
         }),
       ];
 
@@ -693,7 +695,7 @@ describe("MoveGoogleSecOpsConnectionsToSecurityEventConnections", () => {
         "Google SecOps alerts fetch failed with HTTP 500.",
       );
       expect(created.createdByUserId?.toString()).toBe(USER_ID);
-      expect(created.deletedByUserId?.toString()).toBe(DELETER_ID);
+      expect(Object.keys(created)).not.toContain("deletedByUserId");
       expect(created.lastPollResult).toEqual(
         transformLegacyLastPollResult(
           legacyPollResult(),

@@ -87,6 +87,8 @@ export interface ComponentProps {
    * null until it is read.
    */
   isWorkingCases: boolean | null;
+  // A row was saved: the page's other cards read what changed (#10353).
+  onSaved?: (() => void) | undefined;
 }
 
 type ProjectColumns = Record<string, unknown>;
@@ -241,6 +243,7 @@ const SecurityCaseAiLimitsCard: FunctionComponent<ComponentProps> = (
                   onSaved={() => {
                     // The server stamps (or unstamps) On its own: read who and when.
                     void read({ isFirstRead: false });
+                    props.onSaved?.();
                   }}
                 />
               </div>

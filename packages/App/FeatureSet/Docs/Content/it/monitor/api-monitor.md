@@ -55,7 +55,7 @@ Il **Nome** si compila con ciò che avete inserito, ad esempio `api.example.com/
 
 ### Testarlo
 
-In **Destinazione del monitor**, scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della richiesta (in JSON)**. Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
+In **Destinazione del monitor**, scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della Richiesta**. Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 
@@ -70,7 +70,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 
 ### URL API
 
-L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`.
+L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`. L'errore di un controllo non riuscito indica l'URL solo con schema, host e porta, come `https://api.example.com`, quindi il segreto non viene mai mostrato.
 
 ### Segnaposto dinamici nell'URL
 
@@ -107,14 +107,15 @@ Queste impostazioni sono ripiegate sotto **Altri campi**. L'intestazione ripiega
 | Campo | Predefinito | Cosa fa |
 | --- | --- | --- |
 | **Intestazioni della richiesta** | Nessuna | Le intestazioni da inviare, come coppie nome e valore. Fate clic su **Aggiungi: Intestazione della richiesta** per ciascuna. |
-| **Corpo della richiesta (in JSON)** | Nessuno | Il corpo da inviare, di solito con **POST**, **PUT** o **PATCH**: qualsiasi valore JSON, come un oggetto, un array, una stringa o un numero. Viene inviato così come lo scrivete, come `application/json`, a meno che non impostiate un `Content-Type` in **Intestazioni della richiesta**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un oggetto viene inviato come campi di un modulo. |
+| **Formato del Corpo della Richiesta** | **JSON** | Come viene letto il corpo. **JSON** accetta qualsiasi valore JSON, come un oggetto, un array, una stringa o un numero. **Testo** accetta tutto il resto, come XML per un endpoint SOAP, testo semplice o campi di un modulo scritti come `a=1&b=2`, e non viene mai letto come JSON. |
+| **Corpo della Richiesta** | Nessuno | Il corpo da inviare, di solito con **POST**, **PUT** o **PATCH**. Viene inviato esattamente come lo scrivete: un corpo **JSON** come `application/json`, un corpo **Testo** come `text/plain`, a meno che non impostiate un `Content-Type` in **Intestazioni della richiesta**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un oggetto **JSON** viene inviato come campi di un modulo. |
 | **Non seguire i reindirizzamenti** | Disattivato | Valutare la prima risposta invece di seguire i reindirizzamenti. Vedete [sotto](#non-seguire-i-reindirizzamenti). |
 | **Consenti certificati autofirmati** | Disattivato | Saltare la convalida del certificato TLS per il nome host del monitor stesso. |
 | **Usa certificato client (mTLS)** | Disattivato | Presentare un certificato client e una chiave privata. Vedete [Certificato client (mTLS)](#certificato-client-mtls). |
 | **Timeout della richiesta (secondi)** | `60` | Quanto attendere ogni tentativo. Il massimo è 60 secondi. |
 | **Tentativi in caso di errore** | Il predefinito della sonda, di solito `3` | Quante volte ritentare un tentativo fallito. Il massimo è 3. Vedete [Nuovi tentativi e timeout](#nuovi-tentativi-e-timeout). |
 
-Le intestazioni e il corpo della richiesta possono usare [segreti del monitor](/docs/monitor/monitor-secrets), per esempio un'intestazione `Authorization` con il valore `Bearer {{monitorSecrets.ApiKey}}`.
+Le intestazioni e il corpo della richiesta possono usare [segreti del monitor](/docs/monitor/monitor-secrets), per esempio un'intestazione `Authorization` con il valore `Bearer {{monitorSecrets.ApiKey}}`. In un corpo **JSON**, un segreto tra virgolette, come in `{"password": "{{monitorSecrets.Password}}"}`, viene sottoposto a escape per la sua stringa, così un valore con un `"`, una `\` o un a capo resta una sola stringa. Un segreto fuori dalle virgolette, come in `[{{monitorSecrets.Ids}}]`, viene scritto così com'è, come ogni segreto di un corpo **Testo**.
 
 #### Non seguire i reindirizzamenti
 
@@ -193,17 +194,18 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
-| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, sulla finestra, soddisfa la condizione. Solo filtri numerici. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo**, **Percentile** | Quel valore, sulla finestra, soddisfa la condizione, come il tempo di risposta p95. Solo filtri numerici. |
 | **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
+| **Conteggio**, **Percentuale**, **Cambi di stato** | Quanti controlli hanno soddisfatto la condizione, la loro quota o quante volte sono passati dal soddisfarla al non soddisfarla viene confrontato con il numero impostato sotto. |
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
-Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
+Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. Può anche contarla con **Conteggio**, **Percentuale** o **Cambi di stato**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
 
 Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che contenga più controlli: un monitor controllato ogni 5 minuti ha un solo controllo in qualsiasi finestra di 5 minuti.
 
@@ -245,7 +247,11 @@ La sonda legge al massimo 512 KiB di una risposta, e questa è più grande. Chia
 :::
 
 :::details Il controllo fallisce con «Il corpo della richiesta non è un JSON valido, quindi la richiesta non è stata inviata.»
-Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monitor/monitor-secrets), quindi la sonda non ha inviato la richiesta. Correggete il corpo in **Altri campi**, o il valore di un segreto che usa: un valore che contiene un `"` spezza la stringa JSON in cui si trova.
+Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monitor/monitor-secrets), quindi la sonda non ha inviato la richiesta. Correggete il corpo in **Altri campi**, o il valore di un segreto fuori dalle virgolette, che viene scritto così com'è. Per inviare un corpo che non è JSON, come XML o campi di un modulo, impostate **Formato del Corpo della Richiesta** su **Testo**.
+:::
+
+:::details Il controllo dice che la sonda è troppo vecchia per inviare il corpo della richiesta
+Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione più vecchia, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. Il modulo del monitor e la pagina della sonda indicano una sonda del genere. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) all'ultima versione oppure controllate il monitor da un'altra sonda.
 :::
 
 ## Passaggi successivi

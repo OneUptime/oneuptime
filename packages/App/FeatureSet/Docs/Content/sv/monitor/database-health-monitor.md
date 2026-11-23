@@ -377,7 +377,7 @@ Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför 
 
 Trösklar är heltal. Skriv `90`, inte `90.5` — procent och sekunder jämförs som heltal.
 
-**Databasen är online** och **Databasmätvärde** kan kontrolleras över tid: kryssa i **Utvärdera dessa kriterier över en tidsperiod**, välj sedan under **Utvärdera** hur värdena ska bedömas (till exempel **Alla värden**) och fyll i **Under de senaste (i minuter)**. Över tid avgör filtrets inställning **Om ingen data** vad ett saknat värde betyder; låt den stå på **Ignore**, så att en saknad behörighet fortfarande inte kan larma någon.
+**Databasen är online** och **Databasmätvärde** kan kontrolleras över tid: kryssa i **Utvärdera dessa kriterier över en tidsperiod**, välj sedan under **Utvärdera** hur värdena ska bedömas (till exempel **Alla värden**) och fyll i **Under de senaste**. Över tid avgör filtrets inställning **Om ingen data** vad ett saknat värde betyder; låt den stå på **Ignore**, så att en saknad behörighet fortfarande inte kan larma någon.
 
 ### Variabler för JavaScript-uttryck
 

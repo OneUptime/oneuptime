@@ -165,6 +165,7 @@ Chaque élément de `monitor_steps` est une chose à vérifier :
 | `request_type` | string | Site web, API | La méthode HTTP : `GET`, `POST`, `PUT`, `DELETE`, `HEAD` ou `PATCH`. Le serveur utilise `GET` quand elle n'est pas renseignée. |
 | `request_headers` | map(string) | Site web, API | Les en-têtes à envoyer : `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Le corps de la requête, sous forme de texte. |
+| `request_body_format` | string | API | Comment `request_body` est envoyé : `json`, par défaut, pour n'importe quelle valeur JSON ; `text` pour un corps envoyé exactement tel qu'il est écrit, comme du XML ou des champs de formulaire. |
 | `do_not_follow_redirects` | bool | Site web, API | S'arrêter à la première réponse au lieu de suivre les redirections. |
 | `allow_self_signed_certificates` | bool | Site web, API | Accepter un certificat TLS auto-signé. |
 | `tls_client_certificate` | string | Site web, API | Un certificat client pour le TLS mutuel : PEM, ou une référence `{{monitorSecrets.name}}`. |
@@ -287,7 +288,7 @@ criteria = [
 
 Un filtre a `check_on` (ce qu'il regarde), `filter_type` (comment il compare) et `value` (avec quoi il compare, sous forme de chaîne ; laissez-la de côté pour les vérifications vrai-ou-faux comme `True` et `False`).
 
-Un filtre peut aussi juger une fenêtre de temps au lieu de la dernière vérification : renseignez `evaluate_over_time = true`, la durée de la fenêtre dans `evaluate_over_time_minutes`, et dans `evaluate_over_time_type` la façon de lire la fenêtre : `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` ou `Any Value`.
+Un filtre peut aussi juger une fenêtre de temps au lieu de la dernière vérification : renseignez `evaluate_over_time = true`, la durée de la fenêtre dans `evaluate_over_time_minutes`, et dans `evaluate_over_time_type` la façon de lire la fenêtre : `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` ou `Status Changes`. `Percentile` compare le centile indiqué dans `evaluate_over_time_percentile` à la valeur du filtre (95 par défaut). `Count`, `Percentage` et `Status Changes` comptent, par sonde, les vérifications de la fenêtre qui ont rempli la condition, leur part en pourcentage, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, et comparent ce nombre à `evaluate_over_time_count_value` comme l'indique `evaluate_over_time_count_filter_type` (`Greater Than` 0 par défaut).
 
 `All Values` signifie que chaque vérification de la fenêtre a enfreint la règle : il ne correspond donc qu'une fois la fenêtre couverte par des données. Un moniteur qui vient d'être créé attend que sa fenêtre se remplisse au lieu de correspondre dès sa première vérification. Donnez-lui une fenêtre d'au moins deux fois le `monitoring_interval` du moniteur ; sinon, la fenêtre contient une seule vérification, et « toutes les valeurs » veut dire la même chose que « n'importe quelle valeur ». `Any Value` correspond, à dessein, dès une vérification qui enfreint la règle.
 

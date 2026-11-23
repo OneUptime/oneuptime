@@ -366,7 +366,7 @@
       },
       "es": {
         "width": 576,
-        "height": 950
+        "height": 973
       },
       "fa": {
         "width": 576,
@@ -374,7 +374,7 @@
       },
       "fr": {
         "width": 576,
-        "height": 950
+        "height": 973
       },
       "hi": {
         "width": 576,
@@ -382,7 +382,7 @@
       },
       "it": {
         "width": 576,
-        "height": 928
+        "height": 973
       },
       "ja": {
         "width": 576,
@@ -394,7 +394,7 @@
       },
       "nl": {
         "width": 576,
-        "height": 950
+        "height": 973
       },
       "no": {
         "width": 576,
@@ -402,11 +402,11 @@
       },
       "pt": {
         "width": 576,
-        "height": 950
+        "height": 973
       },
       "ru": {
         "width": 576,
-        "height": 950
+        "height": 973
       },
       "sv": {
         "width": 576,
@@ -423,72 +423,72 @@
     },
     "incident-resolve": {
       "da": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "de": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 295
       },
       "en": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "es": {
-        "width": 888,
-        "height": 307
+        "width": 876,
+        "height": 295
       },
       "fa": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "fr": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 295
       },
       "hi": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "it": {
-        "width": 888,
-        "height": 307
+        "width": 876,
+        "height": 295
       },
       "ja": {
-        "width": 888,
-        "height": 311
+        "width": 876,
+        "height": 299
       },
       "ko": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "nl": {
-        "width": 888,
-        "height": 291
+        "width": 876,
+        "height": 279
       },
       "no": {
-        "width": 888,
-        "height": 311
+        "width": 876,
+        "height": 299
       },
       "pt": {
-        "width": 888,
-        "height": 307
+        "width": 876,
+        "height": 295
       },
       "ru": {
-        "width": 888,
-        "height": 307
+        "width": 876,
+        "height": 295
       },
       "sv": {
-        "width": 888,
-        "height": 311
+        "width": 876,
+        "height": 299
       },
       "zh-CN": {
-        "width": 888,
-        "height": 311
+        "width": 876,
+        "height": 299
       },
       "zh-TW": {
-        "width": 888,
-        "height": 311
+        "width": 876,
+        "height": 299
       }
     },
     "ingestion-keys": {
@@ -913,72 +913,72 @@
     },
     "paging-test": {
       "da": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "de": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "en": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "es": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "fa": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "fr": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "hi": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "it": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ja": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ko": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "nl": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "no": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "pt": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ru": {
-        "width": 780,
-        "height": 210
+        "width": 784,
+        "height": 227
       },
       "sv": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "zh-CN": {
-        "width": 780,
-        "height": 170
+        "width": 784,
+        "height": 187
       },
       "zh-TW": {
-        "width": 780,
-        "height": 170
+        "width": 784,
+        "height": 187
       }
     },
     "paging-who-else": {
@@ -1403,72 +1403,72 @@
     },
     "website-down-test": {
       "da": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "de": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "en": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "es": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "fa": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "fr": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "hi": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "it": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ja": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ko": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "nl": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "no": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "pt": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "ru": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "sv": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "zh-CN": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       },
       "zh-TW": {
-        "width": 780,
-        "height": 190
+        "width": 784,
+        "height": 207
       }
     },
     "website-down-who": {
@@ -1489,16 +1489,16 @@
         "height": 314
       },
       "fa": {
-        "width": 780,
-        "height": 294
+        "width": 784,
+        "height": 331
       },
       "fr": {
         "width": 780,
         "height": 314
       },
       "hi": {
-        "width": 780,
-        "height": 294
+        "width": 784,
+        "height": 311
       },
       "it": {
         "width": 780,
@@ -1533,12 +1533,12 @@
         "height": 314
       },
       "zh-CN": {
-        "width": 780,
-        "height": 274
+        "width": 784,
+        "height": 291
       },
       "zh-TW": {
-        "width": 780,
-        "height": 274
+        "width": 784,
+        "height": 291
       }
     }
   }

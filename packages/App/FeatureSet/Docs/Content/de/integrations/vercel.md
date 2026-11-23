@@ -188,7 +188,7 @@ Derselbe eigene Drain funktioniert auch mit OneUptime Cloud, mit `oneuptime.com`
 Vercel zeigt die Antwort von OneUptime auf die Zustellungen des Drains:
 
 - `403` mit `x-vercel-signature` in der Meldung: Vercel hat die Zustellung nicht mit dem Schlüssel signiert, den es sendet. Prüfen Sie bei einem eigenen Drain dessen Header `x-oneuptime-token` und setzen Sie sein Signaturgeheimnis auf denselben Schlüssel.
-- `401`: OneUptime kennt kein Projekt mit dem Schlüssel, den der Drain sendet: Er wurde gelöscht oder an beiden Stellen falsch eingegeben. Nutzen Sie einen Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**.
+- `401`: OneUptime kennt kein Projekt mit dem Schlüssel, den der Drain sendet: Er wurde gelöscht oder falsch eingegeben. Nutzen Sie einen Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**.
 - `422`: Der Schlüssel wurde ausgeschaltet. Schalten Sie ihn auf derselben Seite wieder ein oder nutzen Sie einen anderen.
 :::
 

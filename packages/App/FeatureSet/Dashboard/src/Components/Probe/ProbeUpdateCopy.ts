@@ -1,6 +1,5 @@
 import { ProbeFeature } from "Common/Types/Probe/ProbeReportedVersion";
 import { translationKey } from "Common/Types/Translator";
-import { ONE_TIME_CODE_PROBES_COPY } from "../Monitor/OneTimeCodeProbes";
 
 /*
  * THE WORDS THAT SAY A CUSTOM PROBE IS OLDER THAN THE ONEUPTIME IT REPORTS
@@ -24,10 +23,19 @@ export const PROBE_UPDATE_COPY: {
 
 /*
  * What a probe cannot do until it is updated, a sentence for each feature
- * it is too old for (ProbeReportedVersionUtil.getMissedFeatures). A new
- * ProbeFeature needs its sentence here.
+ * it is too old for (ProbeReportedVersionUtil.getMissedFeatures), under its
+ * version on its page. None names a release: the probe's page says to
+ * update it, and links how. A new ProbeFeature needs its sentence here, and
+ * its list's in the monitor forms (Monitor/ProbesTooOld).
  */
 export const PROBE_MISSED_FEATURE_COPY: Readonly<Record<ProbeFeature, string>> =
   {
-    [ProbeFeature.OneTimeCodes]: ONE_TIME_CODE_PROBES_COPY.probeTooOld,
+    // The one-time codes of one-time code secrets (#9759).
+    [ProbeFeature.OneTimeCodes]: translationKey(
+      "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.",
+    ),
+    // An array, a single value or text as an API monitor's body (#10737).
+    [ProbeFeature.AnyRequestBody]: translationKey(
+      "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.",
+    ),
   };

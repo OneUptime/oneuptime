@@ -71,7 +71,7 @@ Filteret **Tilkoblede sonder** passer for en monitor som overvåker flere sonder
 
 ### Vente lenger før en hendelse
 
-En sonde er først frakoblet etter tre minutter med stillhet, så en rask omstart åpner ingenting. For å vente lenger krysser du av for **Evaluer disse kriteriene over en tidsperiode** under filteret, velger **Alle verdier** under **Evaluer** og et vindu under **For de siste (i minutter)**. Med fem minutter må en sonde være frakoblet i fem minutter til før hendelsen erklæres.
+En sonde er først frakoblet etter tre minutter med stillhet, så en rask omstart åpner ingenting. For å vente lenger krysser du av for **Evaluer disse kriteriene over en tidsperiode** under filteret, velger **Alle verdier** under **Evaluer** og et vindu under **For de siste**. Med fem minutter må en sonde være frakoblet i fem minutter til før hendelsen erklæres.
 
 ## Målinger
 

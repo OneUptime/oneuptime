@@ -124,7 +124,9 @@ export enum ProbeFailureCause {
   /*
    * A step that needs a one-time code, withheld from a custom probe too old
    * to make one (issue #9759): OneUptime writes it as the probe's result,
-   * since the probe would have sent {{monitorSecrets.NAME}} as written.
+   * since the probe would have sent {{monitorSecrets.NAME}} as written. It
+   * says to update the probe to the latest release, never which: see
+   * ProbeCapability, "why no sentence names it".
    */
   ProbeTooOldForOneTimeCodes = "ProbeTooOldForOneTimeCodes",
 
@@ -134,6 +136,24 @@ export enum ProbeFailureCause {
    * (Common/Utils/Monitor/MonitorRequestBody).
    */
   RequestBodyNotJson = "RequestBodyNotJson",
+
+  /*
+   * An API step whose request body is a JSON array, a single value or
+   * text, withheld from a custom probe too old to send one (issue #10737):
+   * OneUptime writes it as the probe's result, since the probe would have
+   * failed it with "Expected JSONObject, but got JSONArray". Named no
+   * release, as the one above.
+   */
+  ProbeTooOldForRequestBody = "ProbeTooOldForRequestBody",
+
+  /*
+   * The two above as OneUptime wrote them before, naming a release that
+   * was not the one (17.0.1, never released; 17.2.0, which does not send
+   * such a body). Never written any more: read, so a result kept from
+   * then still reads in the reader's language.
+   */
+  ProbeTooOldForOneTimeCodesNamingRelease = "ProbeTooOldForOneTimeCodesNamingRelease",
+  ProbeTooOldForRequestBodyNamingRelease = "ProbeTooOldForRequestBodyNamingRelease",
 }
 
 /*
@@ -303,11 +323,23 @@ export const PROBE_FAILURE_CAUSES: Readonly<Record<ProbeFailureCause, string>> =
     ),
 
     [ProbeFailureCause.ProbeTooOldForOneTimeCodes]: translationKey(
-      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.",
     ),
 
     [ProbeFailureCause.RequestBodyNotJson]: translationKey(
       "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.",
+    ),
+
+    [ProbeFailureCause.ProbeTooOldForRequestBody]: translationKey(
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.",
+    ),
+
+    [ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease]: translationKey(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+    ),
+
+    [ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease]: translationKey(
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.",
     ),
   };
 
@@ -336,7 +368,7 @@ export interface ProbeFailureCauseValues {
   output?: string | undefined;
   monitorId?: string | undefined;
   clause?: string | undefined;
-  // The first release that does what the check needs.
+  // A release, in the wordings kept from before (…NamingRelease).
   version?: string | undefined;
 }
 
@@ -703,6 +735,9 @@ const READING_ORDER: ReadonlyArray<ProbeFailureCause> = [
   ProbeFailureCause.PingNoEchoReply,
   ProbeFailureCause.ProbeTooOldForOneTimeCodes,
   ProbeFailureCause.RequestBodyNotJson,
+  ProbeFailureCause.ProbeTooOldForRequestBody,
+  ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease,
+  ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease,
   ...PROBE_SIDE_CAUSES,
   ...CLAUSES,
 ];

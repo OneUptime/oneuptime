@@ -165,6 +165,7 @@ Ogni elemento di `monitor_steps` è una cosa da controllare:
 | `request_type` | string | Sito web, API | Il metodo HTTP: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` o `PATCH`. Il server usa `GET` se non è impostato. |
 | `request_headers` | map(string) | Sito web, API | Le intestazioni da inviare: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Il corpo della richiesta, come testo. |
+| `request_body_format` | string | API | Come viene inviato `request_body`: `json`, il predefinito, per qualsiasi valore JSON; `text` per un corpo inviato esattamente come è scritto, come XML o campi di un modulo. |
 | `do_not_follow_redirects` | bool | Sito web, API | Fermarsi alla prima risposta invece di seguire i reindirizzamenti. |
 | `allow_self_signed_certificates` | bool | Sito web, API | Accettare un certificato TLS autofirmato. |
 | `tls_client_certificate` | string | Sito web, API | Un certificato client per il TLS reciproco: PEM, oppure un riferimento `{{monitorSecrets.name}}`. |
@@ -287,7 +288,7 @@ criteria = [
 
 Un filtro ha `check_on` (cosa guarda), `filter_type` (come confronta) e `value` (con cosa confronta, come stringa; lascialo fuori per i controlli vero-o-falso come `True` e `False`).
 
-Un filtro può anche giudicare una finestra di tempo invece dell'ultimo controllo: imposta `evaluate_over_time = true`, la durata della finestra in `evaluate_over_time_minutes` e, in `evaluate_over_time_type`, come si legge la finestra: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` o `Any Value`.
+Un filtro può anche giudicare una finestra di tempo invece dell'ultimo controllo: imposta `evaluate_over_time = true`, la durata della finestra in `evaluate_over_time_minutes` e, in `evaluate_over_time_type`, come si legge la finestra: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` o `Status Changes`. `Percentile` confronta il percentile indicato in `evaluate_over_time_percentile` con il valore del filtro (95 se non impostato). `Count`, `Percentage` e `Status Changes` contano, per sonda, i controlli della finestra che hanno soddisfatto la condizione, la loro quota in percentuale o quante volte sono passati dal soddisfarla al non soddisfarla, e confrontano quel numero con `evaluate_over_time_count_value` come indica `evaluate_over_time_count_filter_type` (`Greater Than` 0 se non impostato).
 
 `All Values` significa che ogni controllo nella finestra ha violato la regola, quindi corrisponde solo quando la finestra è coperta di dati: un monitor appena creato aspetta che la sua finestra si riempia invece di corrispondere al primo controllo. Dagli una finestra di almeno il doppio del `monitoring_interval` del monitor; altrimenti la finestra contiene un solo controllo, e «tutti i valori» significa lo stesso di «un valore qualsiasi». `Any Value` corrisponde, per scelta, a un solo controllo che viola la regola.
 

@@ -33,6 +33,11 @@ import {
   CLOUD_RESOURCE_SUMMED_ROW_CAPTION,
 } from "../../../FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudMonitoredResourceScope";
 import {
+  SECURITY_EVENTS_MENU,
+  SecurityEventsMenuItem,
+  SecurityEventsMenuSection,
+} from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import {
   CLOUD_ACCOUNTS,
   CLOUD_AWS_ECS,
   CLOUD_AZURE_CONTAINER_APPS,
@@ -135,8 +140,15 @@ const INVENTORY_REGISTRY: string =
 /*
  * The products a Dashboard path on these pages starts at, with the menu
  * that path goes through and the navbar key the product's title comes from.
+ * A menu is its side menu's file, read the way the menu is built, or, for a
+ * product whose menu is data, its sections as the side menu draws them.
  */
-const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
+interface ProductMenu {
+  menu: string | Array<MenuSection>;
+  titleKey: string;
+}
+
+const PRODUCT_MENUS: Record<string, ProductMenu> = {
   "App Platforms": {
     menu: APP_PLATFORMS_SIDE_MENU,
     titleKey: "appPlatformsTitle",
@@ -145,6 +157,25 @@ const PRODUCT_MENUS: Record<string, { menu: string; titleKey: string }> = {
   "Project Settings": {
     menu: SETTINGS_SIDE_MENU,
     titleKey: "projectSettingsTitle",
+  },
+  /*
+   * The AWS WAF page (#10578) sends its reader to the Blocklist, under
+   * Security Events → Playbooks. Security Events' menu is the data
+   * SECURITY_EVENTS_MENU (Utils/SecurityEventsNavigation) its side menu
+   * draws, so the path is held to that.
+   */
+  "Security Events": {
+    menu: SECURITY_EVENTS_MENU.map(
+      (section: SecurityEventsMenuSection): MenuSection => {
+        return {
+          title: section.title,
+          items: section.items.map((item: SecurityEventsMenuItem): string => {
+            return item.title;
+          }),
+        };
+      },
+    ),
+    titleKey: "securityEventsTitle",
   },
 };
 
@@ -244,9 +275,11 @@ function menuSections(relativePath: string): Array<MenuSection> {
  * section and one of its items ("Cloud → Settings → Label Rules").
  */
 function isMenuPath(product: string, rest: Array<string>): boolean {
-  const sections: Array<MenuSection> = menuSections(
-    (PRODUCT_MENUS[product] as { menu: string }).menu,
-  );
+  const menu: string | Array<MenuSection> = (
+    PRODUCT_MENUS[product] as ProductMenu
+  ).menu;
+  const sections: Array<MenuSection> =
+    typeof menu === "string" ? menuSections(menu) : menu;
 
   if (rest.length === 1) {
     return sections.some((section: MenuSection): boolean => {

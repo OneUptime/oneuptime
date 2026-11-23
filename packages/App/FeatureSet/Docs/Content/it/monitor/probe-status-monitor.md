@@ -71,7 +71,7 @@ Il filtro **Sonde connesse** è adatto a un monitor che sorveglia più sonde e p
 
 ### Aspettare di più prima di un incidente
 
-Una sonda è disconnessa solo dopo tre minuti di silenzio, quindi un rapido riavvio non apre nulla. Per aspettare di più, spunta **Valuta questo criterio su un periodo di tempo** sotto il filtro, scegli **Tutti i valori** in **Valuta** e una finestra in **Per gli ultimi (in minuti)**. Con cinque minuti, una sonda deve restare disconnessa per altri cinque minuti prima che l'incidente venga dichiarato.
+Una sonda è disconnessa solo dopo tre minuti di silenzio, quindi un rapido riavvio non apre nulla. Per aspettare di più, spunta **Valuta questo criterio su un periodo di tempo** sotto il filtro, scegli **Tutti i valori** in **Valuta** e una finestra in **Nell'ultimo periodo di**. Con cinque minuti, una sonda deve restare disconnessa per altri cinque minuti prima che l'incidente venga dichiarato.
 
 ## Metriche
 

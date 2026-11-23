@@ -55,7 +55,7 @@ Angiv endpointets fulde URL under **API-URL**, som `https://api.example.com/heal
 
 ### Test den
 
-Vælg **API-anmodningstype** under **Monitor-mål** (**GET**, medmindre du ændrer den). For at tilføje headere eller en brødtekst åbner du **Flere felter** og udfylder **Anmodningsheadere** og **Anmodningstekst (i JSON)**. Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
+Vælg **API-anmodningstype** under **Monitor-mål** (**GET**, medmindre du ændrer den). For at tilføje headere eller en brødtekst åbner du **Flere felter** og udfylder **Anmodningsheadere** og **Anmodningsbrødtekst**. Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 
@@ -70,7 +70,7 @@ Behold eller ret **Sonder** og **Overvågningsinterval** (det starter på **Hver
 
 ### API-URL
 
-Det endpoint, der kaldes, som fuld URL med skema, som `https://api.example.com/v1/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`.
+Det endpoint, der kaldes, som fuld URL med skema, som `https://api.example.com/v1/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`. Fejlen fra et mislykket tjek nævner kun URL'ens skema, vært og port, som `https://api.example.com`, så hemmeligheden vises aldrig.
 
 ### Dynamiske URL-pladsholdere
 
@@ -107,14 +107,15 @@ Disse indstillinger er foldet sammen under **Flere felter**. Den sammenfoldede o
 | Felt | Standard | Hvad det gør |
 | --- | --- | --- |
 | **Anmodningsheadere** | Ingen | Headere, der sendes, som par af navn og værdi. Klik på **Tilføj Anmodningsheader** for hver af dem. |
-| **Anmodningstekst (i JSON)** | Ingen | Brødteksten, der sendes, som regel med **POST**, **PUT** eller **PATCH**: en hvilken som helst JSON-værdi, for eksempel et objekt, et array, en streng eller et tal. Den sendes, som du skriver den, som `application/json`, medmindre du angiver en `Content-Type` under **Anmodningsheadere**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt som formularfelter. |
+| **Format for anmodningsbrødtekst** | **JSON** | Hvordan brødteksten læses. **JSON** tager en hvilken som helst JSON-værdi, for eksempel et objekt, et array, en streng eller et tal. **Tekst** tager alt andet, for eksempel XML til et SOAP-endpoint, almindelig tekst eller formularfelter skrevet som `a=1&b=2`, og læses aldrig som JSON. |
+| **Anmodningsbrødtekst** | Ingen | Brødteksten, der sendes, som regel med **POST**, **PUT** eller **PATCH**. Den sendes præcis, som du skriver den: i formatet **JSON** som `application/json`, i formatet **Tekst** som `text/plain`, medmindre du angiver en `Content-Type` under **Anmodningsheadere**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt i formatet **JSON** som formularfelter. |
 | **Følg ikke omdirigeringer** | Fra | Bedøm det første svar i stedet for at følge omdirigeringer. Se [nedenfor](#følg-ikke-omdirigeringer). |
 | **Tillad selvsignerede certifikater** | Fra | Spring valideringen af TLS-certifikatet over for monitorens eget værtsnavn. |
 | **Brug klientcertifikat (mTLS)** | Fra | Præsentér et klientcertifikat og en privat nøgle. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
 | **Anmodningstimeout (sekunder)** | `60` | Hvor længe der ventes på hvert forsøg. Maksimum er 60 sekunder. |
 | **Genforsøg ved fejl** | Sondens standard, som regel `3` | Hvor mange gange et mislykket forsøg gentages. Maksimum er 3. Se [Genforsøg og timeouts](#genforsøg-og-timeouts). |
 
-Anmodningsheadere og anmodningens brødtekst kan bruge [monitorhemmeligheder](/docs/monitor/monitor-secrets), for eksempel en header `Authorization` med værdien `Bearer {{monitorSecrets.ApiKey}}`.
+Anmodningsheadere og anmodningens brødtekst kan bruge [monitorhemmeligheder](/docs/monitor/monitor-secrets), for eksempel en header `Authorization` med værdien `Bearer {{monitorSecrets.ApiKey}}`. I en brødtekst i formatet **JSON** escapes en hemmelighed i anførselstegn, som i `{"password": "{{monitorSecrets.Password}}"}`, for sin streng, så en værdi med et `"`, et `\` eller et linjeskift forbliver én streng. En hemmelighed uden for anførselstegn, som i `[{{monitorSecrets.Ids}}]`, sættes ind, som den er, og det gør enhver hemmelighed i en brødtekst i formatet **Tekst** også.
 
 #### Følg ikke omdirigeringer
 
@@ -193,17 +194,18 @@ Monitorer, der blev oprettet, før OneUptime ændrede disse standarder, beholder
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Er online**, **Svarstatuskode**, **Svartid (i ms)**, **Svarets brødtekst**, **Svar-header**, **Svar-headerværdi**, **JavaScript-udtryk** og **Timeout for anmodning**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 til 60 minutter under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **Er online**, **Svarstatuskode**, **Svartid (i ms)**, **Svarets brødtekst**, **Svar-header**, **Svar-headerværdi**, **JavaScript-udtryk** og **Timeout for anmodning**. Slå det til for at bedømme et vindue af tidligere tjek i stedet for kun det seneste: vælg en aggregering under **Evaluér** og et vindue fra 2 minutter til 24 timer under **For de seneste**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun numeriske filtre. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi**, **Percentil** | Den værdi over vinduet opfylder betingelsen, for eksempel p95-svartiden. Kun numeriske filtre. |
 | **Alle værdier** | Hvert tjek i vinduet opfylder betingelsen. |
 | **Vilkårlig værdi** | Mindst ét tjek i vinduet opfylder betingelsen. |
+| **Antal**, **Procentdel**, **Statusskift** | Hvor mange kontroller der opfyldte betingelsen, deres andel, eller hvor ofte de skiftede mellem at opfylde den og ikke at opfylde den, sammenlignes med tallet, der er angivet nedenunder. |
 
 **Alle værdier** matcher først, når vinduet virkelig er dækket af data. En monitor, der lige er oprettet, eller en, hvis tjek ikke længere er blevet registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen for "sig det med det samme, når et enkelt tjek overskrider grænsen" og udløses stadig med det samme.
 
-En body, en header, en headerværdi eller et udtryk er ikke et tal, OneUptime registrerer. For de filtre og for **Timeout for anmodning** registrerer OneUptime derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **Alle værdier** eller **Vilkårlig værdi**. Sådan kommer en monitor igennem en genstart. En app, der er ved at starte, svarer måske `200` med en midlertidig side som `Application starting...`; med **Alle værdier** sætter et filter **Svarets brødtekst**, der leder efter appens titel, først monitoren offline, når den midlertidige side har varet hele vinduet.
+En body, en header, en headerværdi eller et udtryk er ikke et tal, OneUptime registrerer. For de filtre og for **Timeout for anmodning** registrerer OneUptime derfor, om filteret passede ved hvert tjek, og bedømmer vinduet ud fra den registrering med **Alle værdier** eller **Vilkårlig værdi**. Eller OneUptime tæller den med **Antal**, **Procentdel** eller **Statusskift**. Sådan kommer en monitor igennem en genstart. En app, der er ved at starte, svarer måske `200` med en midlertidig side som `Application starting...`; med **Alle værdier** sætter et filter **Svarets brødtekst**, der leder efter appens titel, først monitoren offline, når den midlertidige side har varet hele vinduet.
 
 Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: en monitor, der tjekkes hvert 5. minut, har kun ét tjek i et vindue på 5 minutter.
 
@@ -245,7 +247,11 @@ Sonden læser højst 512 KiB af et svar, og dette er større. Kald et endpoint, 
 :::
 
 :::details Tjekket fejler med "Anmodningsteksten er ikke gyldig JSON, så anmodningen blev ikke sendt."
-Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monitor-secrets) er sat ind, så sonden sendte ikke anmodningen. Ret brødteksten under **Flere felter**, eller værdien af en hemmelighed, den bruger: en værdi med et `"` i ødelægger den JSON-streng, den står i.
+Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monitor-secrets) er sat ind, så sonden sendte ikke anmodningen. Ret brødteksten under **Flere felter**, eller værdien af en hemmelighed uden for anførselstegn i den, som sættes ind, som den er. For at sende en brødtekst, der ikke er JSON, for eksempel XML eller formularfelter, skal du sætte **Format for anmodningsbrødtekst** til **Tekst**.
+:::
+
+:::details Tjekket siger, at sonden er for gammel til at sende brødteksten
+Monitorens brødtekst er et JSON-array, en enkelt værdi eller **Tekst**, og den brugerdefinerede sonde, der tjekker den, kører en ældre udgivelse, som kun sender et JSON-objekt, så tjekket blev ikke kørt på den. Monitorens formular og sondens side nævner en sådan sonde. [Opdater sonden](/docs/probe/custom-probe#opdater-en-sonde) til den nyeste udgivelse, eller tjek monitoren fra en anden sonde.
 :::
 
 ## Næste skridt

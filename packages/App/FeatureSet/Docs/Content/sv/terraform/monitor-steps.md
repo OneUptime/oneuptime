@@ -165,6 +165,7 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 | `request_type` | string | Webbplats, API | HTTP-metoden: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` eller `PATCH`. Servern använder `GET` när den inte är angiven. |
 | `request_headers` | map(string) | Webbplats, API | Headrar som ska skickas: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Begärans body, som text. |
+| `request_body_format` | string | API | Hur `request_body` skickas: `json`, standard, för vilket JSON-värde som helst; `text` för en kropp som skickas exakt som den är skriven, till exempel XML eller formulärfält. |
 | `do_not_follow_redirects` | bool | Webbplats, API | Stanna vid det första svaret i stället för att följa omdirigeringar. |
 | `allow_self_signed_certificates` | bool | Webbplats, API | Godta ett självsignerat TLS-certifikat. |
 | `tls_client_certificate` | string | Webbplats, API | Ett klientcertifikat för ömsesidig TLS: PEM, eller en hänvisning `{{monitorSecrets.name}}`. |
@@ -287,7 +288,7 @@ criteria = [
 
 Ett filter har `check_on` (vad det tittar på), `filter_type` (hur det jämför) och `value` (vad det jämför med, som en sträng; utelämna det för sant-eller-falskt-kontroller som `True` och `False`).
 
-Ett filter kan också bedöma ett tidsfönster i stället för den senaste kontrollen: ange `evaluate_over_time = true`, fönstrets längd i `evaluate_over_time_minutes` och i `evaluate_over_time_type` hur fönstret läses: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` eller `Any Value`.
+Ett filter kan också bedöma ett tidsfönster i stället för den senaste kontrollen: ange `evaluate_over_time = true`, fönstrets längd i `evaluate_over_time_minutes` och i `evaluate_over_time_type` hur fönstret läses: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` eller `Status Changes`. `Percentile` jämför percentilen i `evaluate_over_time_percentile` med filtrets värde (95 om den inte anges). `Count`, `Percentage` och `Status Changes` räknar per sond fönstrets kontroller som uppfyllde villkoret, deras andel i procent, eller hur ofta de växlade mellan att uppfylla det och inte, och jämför talet med `evaluate_over_time_count_value` som `evaluate_over_time_count_filter_type` anger (`Greater Than` 0 om den inte anges).
 
 `All Values` betyder att varje kontroll i fönstret bröt mot regeln, så det stämmer först när fönstret är täckt av data: en monitor som just har skapats väntar på att fönstret fylls i stället för att stämma vid sin första kontroll. Ge den ett fönster på minst dubbla monitorns `monitoring_interval`; annars rymmer fönstret en kontroll, och "alla värden" betyder samma sak som "vilket värde som helst". `Any Value` stämmer med avsikt vid en kontroll som bryter mot regeln.
 

@@ -50,6 +50,9 @@ export interface LogsViewerToolbarProps {
   showResetZoom?: boolean | undefined;
   onCreateSavedView?: (() => void) | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
+  // Every saved view the host has, and its search of them (#10646).
+  savedViewCount?: number | undefined;
+  onSavedViewSearch?: ((text: string) => void) | undefined;
   selectedSavedViewId?: string | null | undefined;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
   onClearSavedView?: (() => void) | undefined;
@@ -264,6 +267,8 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
             onEdit={props.onEditSavedView}
             onDelete={props.onDeleteSavedView}
             onUpdateCurrent={props.onUpdateCurrentSavedView}
+            totalCount={props.savedViewCount}
+            onSearchTextChange={props.onSavedViewSearch}
           />
         )}
 

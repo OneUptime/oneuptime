@@ -2,7 +2,8 @@ import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
 import MonitorUtil from "../../Utils/Monitor";
-import TotpProbeGate, { ItemForProbeKind } from "../../Utils/TotpProbeGate";
+import ProbeStepGate, { ItemForProbeKind } from "../../Utils/ProbeStepGate";
+import PROBE_STEP_NEEDS from "../../Utils/ProbeStepNeeds";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -349,16 +350,18 @@ router.post(
       );
 
       /*
-       * A step that needs a one-time code goes only to a probe that makes
-       * one; an older custom probe's is failed, as its own result, with a
-       * sentence saying to update the probe (TotpProbeGate, #9759).
+       * A step that needs a one-time code, or a request body only a newer
+       * probe sends, goes only to a probe that declares it can; an older
+       * custom probe's is failed, as its own result, with a sentence saying
+       * to update the probe (ProbeStepGate, #9759, #10737).
        */
       monitorsWithSecretPopulated =
-        await TotpProbeGate.keepStepsFromProbesTooOld({
+        await ProbeStepGate.keepStepsFromProbesTooOld({
           items: monitorsWithSecretPopulated,
           probeId: probeId,
           requestBody: data,
           kind: ItemForProbeKind.Monitor,
+          needs: PROBE_STEP_NEEDS,
         });
 
       /*
@@ -546,13 +549,14 @@ router.post(
         monitorTestsWithSecretsPopulatePromises,
       );
 
-      // As for monitors: a test's step that needs a one-time code too (#9759).
+      // As for monitors: a test's step a probe cannot run too (#9759, #10737).
       monitorTestsWithSecretPopulated =
-        await TotpProbeGate.keepStepsFromProbesTooOld({
+        await ProbeStepGate.keepStepsFromProbesTooOld({
           items: monitorTestsWithSecretPopulated,
           probeId: probeId,
           requestBody: data,
           kind: ItemForProbeKind.MonitorTest,
+          needs: PROBE_STEP_NEEDS,
         });
 
       // A count, never the tests: they now hold the secrets' values.

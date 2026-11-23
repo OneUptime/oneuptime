@@ -118,13 +118,14 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção sob um filtro, oferecida para **DNS online** e **Tempo de resposta do DNS (em ms)**. Ative-a para julgar uma janela de verificações passadas em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção sob um filtro, oferecida para **DNS online** e **Tempo de resposta do DNS (em ms)**. Ative-a para julgar uma janela de verificações passadas em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**.
 
 | Agregação | Corresponde quando |
 | --- | --- |
-| **Média**, **Soma**, **Valor máximo**, **Valor mínimo** | Esse valor, na janela, atende à condição. Só **Tempo de resposta do DNS (em ms)**. |
+| **Média**, **Soma**, **Valor máximo**, **Valor mínimo**, **Percentil** | Esse valor, na janela, atende à condição, como o tempo de resposta p95. Só **Tempo de resposta do DNS (em ms)**. |
 | **Todos os valores** | Toda verificação da janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação da janela atende à condição. |
+| **Contagem**, **Porcentagem**, **Mudanças de status** | Quantas verificações atenderam à condição, a proporção delas ou quantas vezes passaram de atendê-la para não atendê-la é comparado com o número definido abaixo. |
 
 A opção **Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
 

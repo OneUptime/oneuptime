@@ -162,8 +162,6 @@ const SHARED_COLUMNS: Array<string> = [
   "isEnabled",
   "pastDays",
   "futureDays",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 function feedSpecs(): Array<[string, FeedSpec]> {

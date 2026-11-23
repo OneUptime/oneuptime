@@ -55,7 +55,7 @@ De **Naam** wordt ingevuld met wat u invulde, zoals `api.example.com/health`. Ho
 
 ### Hem testen
 
-Kies onder **Monitordoel** het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Aanvraagtekst (in JSON)** in. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
+Kies onder **Monitordoel** het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Verzoeklichaam** in. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 
@@ -70,7 +70,7 @@ Houd of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **Elke
 
 ### API-URL
 
-Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`.
+Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`. De fout van een mislukte controle noemt de URL alleen met schema, host en poort, zoals `https://api.example.com`, dus het geheim wordt nooit getoond.
 
 ### Dynamische URL-plaatshouders
 
@@ -107,14 +107,15 @@ Deze instellingen zijn ingeklapt onder **Meer velden**. De ingeklapte kop noemt 
 | Veld | Standaard | Wat het doet |
 | --- | --- | --- |
 | **Aanvraagheaders** | Geen | Headers die worden verzonden, als paren van naam en waarde. Klik voor elke header op **Aanvraagheader toevoegen**. |
-| **Aanvraagtekst (in JSON)** | Geen | De body die wordt verzonden, meestal met **POST**, **PUT** of **PATCH**: elke JSON-waarde, zoals een object, een array, een tekenreeks of een getal. Hij wordt verzonden zoals u hem schrijft, als `application/json`, tenzij u een `Content-Type` instelt bij **Aanvraagheaders**. Met `application/x-www-form-urlencoded` of `multipart/form-data` wordt een object als formuliervelden verzonden. |
+| **Formaat van het verzoeklichaam** | **JSON** | Hoe de body wordt gelezen. **JSON** neemt elke JSON-waarde, zoals een object, een array, een tekenreeks of een getal. **Tekst** neemt al het andere, zoals XML voor een SOAP-endpoint, platte tekst of formuliervelden geschreven als `a=1&b=2`, en wordt nooit als JSON gelezen. |
+| **Verzoeklichaam** | Geen | De body die wordt verzonden, meestal met **POST**, **PUT** of **PATCH**. Hij wordt precies zo verzonden als u hem schrijft: in de vorm **JSON** als `application/json`, in de vorm **Tekst** als `text/plain`, tenzij u een `Content-Type` instelt bij **Aanvraagheaders**. Met `application/x-www-form-urlencoded` of `multipart/form-data` wordt een object in de vorm **JSON** als formuliervelden verzonden. |
 | **Omleidingen niet volgen** | Uit | Het eerste antwoord beoordelen in plaats van omleidingen te volgen. Zie [hieronder](#omleidingen-niet-volgen). |
 | **Zelfondertekende certificaten toestaan** | Uit | De validatie van het TLS-certificaat overslaan voor de eigen hostnaam van de monitor. |
 | **Clientcertificaat gebruiken (mTLS)** | Uit | Een clientcertificaat en een privésleutel aanbieden. Zie [Clientcertificaat (mTLS)](#clientcertificaat-mtls). |
 | **Aanvraagtime-out (seconden)** | `60` | Hoe lang er op elke poging wordt gewacht. Het maximum is 60 seconden. |
 | **Nieuwe pogingen bij mislukking** | Standaard van de sonde, meestal `3` | Hoe vaak een mislukte poging opnieuw wordt geprobeerd. Het maximum is 3. Zie [Nieuwe pogingen en time-outs](#nieuwe-pogingen-en-time-outs). |
 
-Aanvraagheaders en de aanvraagbody kunnen [monitorgeheimen](/docs/monitor/monitor-secrets) gebruiken, bijvoorbeeld een header `Authorization` met de waarde `Bearer {{monitorSecrets.ApiKey}}`.
+Aanvraagheaders en de aanvraagbody kunnen [monitorgeheimen](/docs/monitor/monitor-secrets) gebruiken, bijvoorbeeld een header `Authorization` met de waarde `Bearer {{monitorSecrets.ApiKey}}`. In een body in de vorm **JSON** wordt een geheim tussen aanhalingstekens, zoals in `{"password": "{{monitorSecrets.Password}}"}`, ge-escapet voor zijn tekenreeks, zodat een waarde met een `"`, een `\` of een regeleinde één tekenreeks blijft. Een geheim buiten aanhalingstekens, zoals in `[{{monitorSecrets.Ids}}]`, wordt ingevuld zoals het is, net als elk geheim in een body in de vorm **Tekst**.
 
 #### Omleidingen niet volgen
 
@@ -193,17 +194,18 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Percentiel** | Dat getal, over het venster, aan de voorwaarde voldoet, zoals de p95-reactietijd. Alleen numerieke filters. |
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Of het telt dat met **Aantal**, **Percentage** of **Statuswijzigingen**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -245,7 +247,11 @@ De sonde leest hoogstens 512 KiB van een antwoord, en dit antwoord is groter. Ro
 :::
 
 :::details De controle mislukt met "De body van het verzoek is geen geldige JSON, dus het verzoek is niet verstuurd."
-De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) erin zijn ingevuld, dus de sonde heeft het verzoek niet verstuurd. Corrigeer de body bij **Meer velden**, of de waarde van een geheim dat erin wordt gebruikt: een waarde met een `"` erin breekt de JSON-tekenreeks waarin die staat.
+De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) erin zijn ingevuld, dus de sonde heeft het verzoek niet verstuurd. Corrigeer de body bij **Meer velden**, of de waarde van een geheim buiten aanhalingstekens erin, dat wordt ingevuld zoals het is. Om een body te versturen die geen JSON is, zoals XML of formuliervelden, zet u **Formaat van het verzoeklichaam** op **Tekst**.
+:::
+
+:::details De controle meldt dat de sonde te oud is om de body te versturen
+De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een oudere release, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. Het formulier van de monitor en de pagina van de sonde noemen zo'n sonde. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) naar de nieuwste release of controleer de monitor vanaf een andere sonde.
 :::
 
 ## Volgende stappen
