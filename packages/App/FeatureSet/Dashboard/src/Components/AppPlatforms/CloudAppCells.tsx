@@ -356,9 +356,10 @@ export const CloudAppPlatformSignalsSummary: FunctionComponent<
   const service: string = signals.service || APP_PLATFORM_SIGNALS_SOURCE;
   // An App Service site's, or slot's, says what a site's numbers are.
   const hint: string = signals.isAppService
-    ? translator.translateText(APP_PLATFORM_SIGNALS_HINT)
+    ? translator.translateText(APP_PLATFORM_SIGNALS_HINT) ||
+      APP_PLATFORM_SIGNALS_HINT
     : translator.translateTemplate(APP_PLATFORM_SIGNALS_SERVICE_HINT, {
-        service,
+        service: translator.translateText(service) || service,
       });
   const hasRate: boolean = signals.serverErrorRatePercent !== null;
 
