@@ -117,6 +117,22 @@ export function getRecordHoldingAddress(
   );
 }
 
+/*
+ * The values a threat intel feed may list the address under. A feed's
+ * indicators are kept trimmed and in lower case as the feed wrote them, an
+ * IPv6 one most often compressed, while a case keeps it written out, so it
+ * is looked for in each of its spellings, in lower case (#10744).
+ */
+export function getThreatIntelAddressValues(address: string): Array<string> {
+  return Array.from(
+    new Set(
+      getAddressRequestSpellings(address).map((spelling: string): string => {
+        return spelling.trim().toLowerCase();
+      }),
+    ),
+  );
+}
+
 export default class AddressFacts {
   // Throws when any of them cannot be read: what is not known is not a fact.
   public static async read(data: {
@@ -137,7 +153,7 @@ export default class AddressFacts {
       }),
       ThreatIntelIndicatorService.findActiveIndicatorsByValues({
         projectId: data.projectId,
-        values: [data.address.trim().toLowerCase()],
+        values: getThreatIntelAddressValues(data.address),
         now: data.now,
       }),
       readAnalyticsRows(
