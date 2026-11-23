@@ -134,7 +134,12 @@ export default class ProjectUser {
               email: true,
             },
           },
-          sort: { createdAt: SortOrder.Ascending },
+          /*
+           * By the order they were made, and by id among memberships made
+           * at the same moment (a team added in one go): pages read by a
+           * time alone could leave one out between two of them.
+           */
+          sort: { createdAt: SortOrder.Ascending, _id: SortOrder.Ascending },
         },
       );
 

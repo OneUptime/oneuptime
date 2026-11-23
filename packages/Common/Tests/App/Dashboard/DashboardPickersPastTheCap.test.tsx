@@ -155,7 +155,11 @@ describe("the project's users", () => {
     ).toEqual([0, LIMIT_PER_PROJECT]);
 
     for (const read of reads) {
-      expect(read.sort).toEqual({ createdAt: SortOrder.Ascending });
+      // In the order they were made, by id among those made at once.
+      expect(read.sort).toEqual({
+        createdAt: SortOrder.Ascending,
+        _id: SortOrder.Ascending,
+      });
       expect(read.limit).toBe(LIMIT_PER_PROJECT);
     }
   });
