@@ -360,6 +360,13 @@ interface OpenBlock {
   resource: { type: string; label: string } | null;
 }
 
+/*
+ * The deepest blocks a line's context names. A pull request's author
+ * writes the text: a line of a thousand "{", a thousand times, is counted
+ * past this depth, never kept, so every line's context stays this short.
+ */
+const MAX_BLOCK_DEPTH: number = 32;
+
 // A block's opening line's name - what is before its "{" - as a key.
 function blockNameOf(header: string): string {
   let name: string = header.trim();
@@ -516,19 +523,38 @@ function readBraces(text: string): {
 function readBraceContexts(lines: Array<PatchLine>): Array<LineContext> {
   const contexts: Array<LineContext> = [];
   let stack: Array<OpenBlock> = [];
+  // The blocks open past MAX_BLOCK_DEPTH: counted, not kept.
+  let deeper: number = 0;
   let hunk: number = -1;
+
+  const open: (block: OpenBlock) => void = (block: OpenBlock): void => {
+    if (stack.length < MAX_BLOCK_DEPTH) {
+      stack.push(block);
+    } else {
+      deeper++;
+    }
+  };
+
+  const close: () => void = (): void => {
+    if (deeper > 0) {
+      deeper--;
+    } else {
+      stack.pop();
+    }
+  };
 
   for (const line of lines) {
     if (line.hunk !== hunk) {
       hunk = line.hunk;
       stack = [];
+      deeper = 0;
     }
 
     const braces: { leadingCloses: number; opens: number; closes: number } =
       readBraces(line.text);
 
-    for (let close: number = 0; close < braces.leadingCloses; close++) {
-      stack.pop();
+    for (let count: number = 0; count < braces.leadingCloses; count++) {
+      close();
     }
 
     let resource: { type: string; label: string } | null = null;
@@ -554,19 +580,19 @@ function readBraceContexts(lines: Array<PatchLine>): Array<LineContext> {
     if (braces.opens > 0) {
       const header: string = line.text.slice(0, line.text.indexOf("{"));
 
-      stack.push({
+      open({
         name: blockNameOf(header),
         resource: readResourceHeader(header),
       });
 
-      for (let open: number = 1; open < braces.opens; open++) {
-        stack.push({ name: "", resource: null });
+      for (let count: number = 1; count < braces.opens; count++) {
+        open({ name: "", resource: null });
       }
     }
 
     // What the line opened and closed again ("{ ... }") stays closed.
-    for (let close: number = 0; close < braces.closes; close++) {
-      stack.pop();
+    for (let count: number = 0; count < braces.closes; count++) {
+      close();
     }
   }
 
@@ -666,10 +692,13 @@ function readYamlContexts(lines: Array<PatchLine>): Array<LineContext> {
     ) {
       const isListItem: boolean = text.charAt(indent) === "-";
 
-      stack.push({
-        indent: isListItem ? indent + 2 : indent,
-        name: setting.normalizedKey,
-      });
+      // Deeper than MAX_BLOCK_DEPTH, a line is read in the deepest kept.
+      if (stack.length < MAX_BLOCK_DEPTH) {
+        stack.push({
+          indent: isListItem ? indent + 2 : indent,
+          name: setting.normalizedKey,
+        });
+      }
     }
   }
 
@@ -1483,6 +1512,13 @@ function isLiteralName(value: string): boolean {
   );
 }
 
+// Whether a setting's value is written as a string: in quotes.
+function isQuoted(rawValue: string): boolean {
+  const first: string = trimRawValue(rawValue).charAt(0);
+
+  return first === '"' || first === "'" || first === "`";
+}
+
 // A reference to another resource of the file: aws_s3_bucket.assets.id.
 function readReference(value: string): { type: string; label: string } | null {
   const parts: Array<string> = value.split(".");
@@ -1545,19 +1581,33 @@ export function findInfrastructureLeaks(data: {
     }
 
     const blockId: string = `${line.hunk}\u0000${context.blockKey}`;
-    settingsByBlock.set(blockId, [
-      ...(settingsByBlock.get(blockId) || []),
-      setting,
-    ]);
-    settingsByHunk.set(line.hunk, [
-      ...(settingsByHunk.get(line.hunk) || []),
-      setting,
-    ]);
+    const blockSettings: Array<InfrastructureSetting> | undefined =
+      settingsByBlock.get(blockId);
+    const hunkSettings: Array<InfrastructureSetting> | undefined =
+      settingsByHunk.get(line.hunk);
 
+    if (blockSettings) {
+      blockSettings.push(setting);
+    } else {
+      settingsByBlock.set(blockId, [setting]);
+    }
+
+    if (hunkSettings) {
+      hunkSettings.push(setting);
+    } else {
+      settingsByHunk.set(line.hunk, [setting]);
+    }
+
+    /*
+     * A name the resource is known by: a literal - quoted, in every
+     * language but YAML, whose strings need no quotes. Unquoted in
+     * Terraform it is a reference (aws_s3_bucket.assets.id), read below.
+     */
     if (
       context.resourceType &&
       NAME_KEYS.has(setting.normalizedKey) &&
-      isLiteralName(setting.value)
+      isLiteralName(setting.value) &&
+      (isYaml || isQuoted(setting.rawValue))
     ) {
       const resourceId: string = `${context.resourceType}.${context.resourceLabel}`;
       const names: Set<string> =

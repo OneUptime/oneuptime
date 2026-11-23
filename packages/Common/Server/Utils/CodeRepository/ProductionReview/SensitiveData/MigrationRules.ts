@@ -174,10 +174,21 @@ const LINE_PATTERNS: ReadonlyArray<{
   pattern: RegExp;
   read: (match: RegExpMatchArray) => NewColumn | null;
 }> = [
-  // Rails: add_column :customers, :ssn, :string
+  // Alembic: op.add_column("customers", sa.Column("ssn", ...))
   {
     pattern:
-      /\badd_column\s{0,10}\(?\s{0,10}:?["']?(\w{1,120})["']?\s{0,10},\s{0,10}:?["']?(\w{1,120})/,
+      /\bop\.add_column\(\s{0,10}["'](\w{1,120})["']\s{0,10},\s{0,10}(?:sa\.|sqlalchemy\.)?Column\(\s{0,10}["'](\w{1,120})["']/,
+    read: (match: RegExpMatchArray): NewColumn => {
+      return { table: match[1]!, column: match[2]! };
+    },
+  },
+  /*
+   * Rails: add_column :customers, :ssn, :string - the column a name of its
+   * own, so Alembic's `sa.Column(` is never read as a column `sa`.
+   */
+  {
+    pattern:
+      /\badd_column\s{0,10}\(?\s{0,10}:?["']?(\w{1,120})["']?\s{0,10},\s{0,10}:?["']?(\w{1,120})["']?\s{0,10}(?:,|\)|$)/,
     read: (match: RegExpMatchArray): NewColumn => {
       return { table: match[1]!, column: match[2]! };
     },

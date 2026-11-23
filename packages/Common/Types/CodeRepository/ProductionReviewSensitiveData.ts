@@ -1,3 +1,4 @@
+import { getDataSecurityCheck } from "../DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../DataSecurity/DataSensitivity";
 import SecuritySeverity from "../SecuritySeverity";
 
@@ -387,8 +388,9 @@ export class ProductionReviewSensitiveDataUtil {
 
   /*
    * The section as a reader who may not read Data Security's findings reads
-   * it: every point without what production knows of it. The same section
-   * when no point has any.
+   * it: every point without what production knows of it - and with the
+   * severity its own sensitivity gives it, where a known store's gave it
+   * another. The same section when no point has any.
    */
   public static withoutProduction(
     section: ProductionReviewSensitiveDataJSON,
@@ -408,9 +410,19 @@ export class ProductionReviewSensitiveDataUtil {
       ...section,
       points: points.map(
         (point: ProductionReviewLeakJSON): ProductionReviewLeakJSON => {
-          const { production: _production, ...rest } = point;
+          const { production, ...rest } = point;
 
-          return rest;
+          if (!production?.store) {
+            return rest;
+          }
+
+          return {
+            ...rest,
+            severity:
+              getDataSecurityCheck(point.checkId)?.severityBySensitivity[
+                point.sensitivity
+              ] || point.severity,
+          };
         },
       ),
     };

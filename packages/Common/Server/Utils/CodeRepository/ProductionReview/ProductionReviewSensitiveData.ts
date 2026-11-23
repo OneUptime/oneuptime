@@ -559,7 +559,7 @@ export default class ProductionReviewSensitiveData {
 
     return toLeakPoint({
       candidate,
-      sensitivity,
+      knownSensitivity: sensitivity,
       isBlocking,
       isFailOn: data.isFailOn,
       occurrences: data.occurrences,

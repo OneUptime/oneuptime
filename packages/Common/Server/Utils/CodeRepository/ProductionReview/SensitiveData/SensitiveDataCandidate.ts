@@ -122,22 +122,27 @@ function normalizedText(text: string): string {
 
 /*
  * A candidate as the point a review keeps: its key - the nth candidate of
- * the same key in the review is told apart by `occurrences` - the
- * sensitivity and whether it can fail the check as what the project knows
- * decided them (the rule's own when it knows nothing), whether it fails
- * the check, and what production knows of it, set apart.
+ * the same key in the review is told apart by `occurrences` - its
+ * sensitivity as the diff shows it, its severity and whether it can fail
+ * the check as what the project knows decided them (the rule's own when it
+ * knows nothing), whether it fails the check, and what production knows of
+ * it, set apart. A point's own sensitivity is the diff's alone, so a reader
+ * shown the point without production (a public repository's comment,
+ * OneUptime AI) learns nothing of a store from it.
  */
 export function toLeakPoint(data: {
   candidate: SensitiveDataCandidate;
-  sensitivity?: DataSensitivity | undefined;
+  // The sensitivity a known store gives it: its severity's.
+  knownSensitivity?: DataSensitivity | undefined;
   isBlocking?: boolean | undefined;
   isFailOn: boolean;
   occurrences: Map<string, number>;
   production?: ProductionReviewLeakProductionJSON | undefined;
 }): ProductionReviewLeakJSON {
   const candidate: SensitiveDataCandidate = data.candidate;
-  const sensitivity: DataSensitivity =
-    data.sensitivity || candidate.sensitivity;
+  const sensitivity: DataSensitivity = candidate.sensitivity;
+  const severitySensitivity: DataSensitivity =
+    data.knownSensitivity || sensitivity;
   const isBlocking: boolean =
     data.isBlocking !== undefined ? data.isBlocking : candidate.isBlocking;
   const baseKey: string = keyOf(candidate, 0);
@@ -164,7 +169,7 @@ export function toLeakPoint(data: {
       return type.name;
     }),
     sensitivity,
-    severity: severityOf(candidate.checkId, sensitivity),
+    severity: severityOf(candidate.checkId, severitySensitivity),
     isBlocking,
     failsCheck: data.isFailOn && isBlocking,
     text: candidate.text.slice(0, SENSITIVE_DATA_LIMITS.maxTextLength),
