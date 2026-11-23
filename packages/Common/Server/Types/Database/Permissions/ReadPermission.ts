@@ -72,6 +72,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "AIRun.codeTaskId",
     // The code task a postmortem's action item became: an AIRun, which carries no labels.
     "IncidentPostmortemActionItem.codeTaskId",
+    // The code task that opens a Data Security issue group's pull request (#10370): an AIRun too.
+    "DataSecurityIssueGroup.codeTaskId",
     "SecurityCase.aiSuggestedPlaybookId",
     "AuditLogExport.cursorEntryId",
     "OnCallDutyPolicyExecutionLog.testPageSeverityId",
