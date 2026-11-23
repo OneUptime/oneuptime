@@ -37,6 +37,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
+import MonitorEvaluationTime from "Common/Utils/Monitor/MonitorEvaluationTime";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import MonitorLogSummaryUtil, {
   INCOMING_EMAIL_NO_SUBJECT_LABEL,
@@ -56,6 +57,16 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { getMonitorLogsEmptyState } from "./MonitorLogsEmptyState";
+
+function getEvaluationSummary(
+  log: MonitorLog,
+): MonitorEvaluationSummary | undefined {
+  return (
+    log.logBody as unknown as {
+      evaluationSummary?: MonitorEvaluationSummary | undefined;
+    }
+  )?.evaluationSummary;
+}
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -514,6 +525,53 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ]
             : []),
           {
+            id: "check-duration",
+            field: {
+              logBody: true,
+            },
+            title: "Check Duration",
+            type: FieldType.Text,
+            // The JSON log body does not provide a sortable duration.
+            disableSort: true,
+            disableCsvExport: true,
+            hideBelowLargeScreen: true,
+            foldInto: "time",
+            showTitleWhenFolded: true,
+            getElement: (item: MonitorLog): ReactElement => {
+              const summary: MonitorEvaluationSummary | undefined =
+                getEvaluationSummary(item);
+              const durationInMs: number | undefined = summary?.durationInMs;
+
+              if (
+                typeof durationInMs !== "number" ||
+                !Number.isFinite(durationInMs) ||
+                durationInMs < 0
+              ) {
+                return <TableEmptyValue />;
+              }
+
+              const duration: string = MonitorEvaluationTime.formatDuration(
+                translator,
+                durationInMs,
+              );
+
+              if (MonitorEvaluationTime.isSlow(summary)) {
+                return (
+                  <Pill
+                    text={translator.translateTemplate("{{duration}} (slow)", {
+                      duration,
+                    })}
+                    isUserContent={true}
+                    tone={PillTone.Warning}
+                    icon={IconProp.Alert}
+                  />
+                );
+              }
+
+              return <span className="text-sm text-gray-700">{duration}</span>;
+            },
+          },
+          {
             field: {
               logBody: true,
             },
@@ -526,11 +584,8 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
              */
             wrapContent: true,
             getElement: (item: MonitorLog): ReactElement => {
-              const evaluationSummary: MonitorEvaluationSummary | undefined = (
-                item.logBody as unknown as {
-                  evaluationSummary?: MonitorEvaluationSummary | undefined;
-                }
-              )?.evaluationSummary;
+              const evaluationSummary: MonitorEvaluationSummary | undefined =
+                getEvaluationSummary(item);
 
               if (!evaluationSummary) {
                 return (

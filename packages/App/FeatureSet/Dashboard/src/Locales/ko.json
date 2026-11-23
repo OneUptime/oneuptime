@@ -446,6 +446,7 @@
   "Subscribers": "구독자",
   "Monitor Status": "모니터 상태",
   "Monitor Groups": "모니터 그룹",
+  "Check Duration": "확인 소요 시간",
   "Monitoring Logs": "모니터링 로그",
   "Log Settings": "로그 설정",
   "Metric Settings": "메트릭 설정",

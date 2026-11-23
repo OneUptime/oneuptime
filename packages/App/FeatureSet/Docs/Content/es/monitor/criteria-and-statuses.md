@@ -204,6 +204,8 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 
 El resumen de evaluación de cada comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor y, para la última comprobación, en su **Vista general**, indica cuándo se evaluó la comprobación, cuánto tardó su evaluación y, en un monitor que juzga cada host, contenedor o grupo por separado, cuántas series evaluó. El tiempo va desde que OneUptime empezó a leer los datos que la comprobación juzga hasta que escribió su registro: la lectura de los datos, la evaluación de los criterios y la apertura de incidentes y alertas.
 
+En **Registros de monitoreo**, la columna **Duración de la comprobación** muestra cuánto tardó cada comprobación y marca las comprobaciones lentas. Un guion indica que no se registró su duración.
+
 Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Demasiado es más de una décima parte del tiempo entre las comprobaciones del monitor, nunca menos de 5 segundos y nunca más de un minuto:
 
 | Monitor comprobado | Avisa a partir de |

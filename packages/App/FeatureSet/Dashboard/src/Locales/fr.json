@@ -446,6 +446,7 @@
   "Subscribers": "Abonnés",
   "Monitor Status": "Statut du moniteur",
   "Monitor Groups": "Groupes de moniteurs",
+  "Check Duration": "Durée de la vérification",
   "Monitoring Logs": "Journaux de surveillance",
   "Log Settings": "Paramètres des journaux",
   "Metric Settings": "Paramètres des métriques",

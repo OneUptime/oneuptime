@@ -204,6 +204,8 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 
 O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
 
+Nos **Registros de monitoramento**, a coluna **Duração da verificação** mostra quanto tempo levou cada verificação e marca as verificações lentas. Um traço indica que a duração da verificação não foi registrada.
+
 Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
 
 | Monitor verificado | Avisa após |

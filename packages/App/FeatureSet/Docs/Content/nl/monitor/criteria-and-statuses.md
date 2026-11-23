@@ -204,6 +204,8 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 
 De evaluatiesamenvatting van elke controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor en voor de laatste controle op zijn **Overzicht**, zegt wanneer de controle is geëvalueerd, hoe lang de evaluatie duurde en, bij een monitor die elke host, container of groep afzonderlijk beoordeelt, hoeveel reeksen er zijn beoordeeld. De tijd loopt vanaf het moment dat OneUptime de gegevens van de controle begon te lezen tot het het logboek van de controle schreef: het lezen van de gegevens, het beoordelen van de criteria en het openen van incidenten en waarschuwingen.
 
+In **Monitoringlogboeken** toont de kolom **Duur van de controle** hoe lang elke controle duurde en markeert ze trage controles. Een streepje betekent dat de duur niet is vastgelegd.
+
 Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u. Te lang is meer dan een tiende van de tijd tussen de controles van de monitor, nooit minder dan 5 seconden en nooit meer dan een minuut:
 
 | Monitor gecontroleerd | Waarschuwt na |
