@@ -89,7 +89,14 @@ describe("MetricService.summarizeMonitorChecks", () => {
     // Grouped, counted and ordered in the database: one row a probe.
     expect(query).toContain("GROUP BY g0");
     expect(query).toContain("count() AS checkCount");
-    expect(query).toContain("toUInt8(value !=");
+    /*
+     * The value column is Nullable; each check's state is read as a
+     * value, or arraySum refuses it on ClickHouse (26.7: "array
+     * aggregation function cannot be performed on type Nullable").
+     */
+    expect(query).toContain("toUInt8(assumeNotNull(value) !=");
+    expect(query).not.toContain("toUInt8(value ");
+    expect(query).toContain("AND isNotNull(value)");
     expect(query).toContain(
       "arraySum(arrayMap((a, b) -> a != b, arrayPopBack(states), arrayPopFront(states))) AS changeCount",
     );
@@ -129,7 +136,9 @@ describe("MetricService.summarizeMonitorChecks", () => {
     async (comparison: "gt" | "gte" | "lt" | "lte" | "eq" | "ne", operator: string) => {
       await summarize({ condition: { comparison: comparison, threshold: 300 } });
 
-      expect(statements[0]!.query).toContain(`toUInt8(value ${operator} {`);
+      expect(statements[0]!.query).toContain(
+        `toUInt8(assumeNotNull(value) ${operator} {`,
+      );
       expect(statements[0]!.query).not.toContain("300");
       expect(Object.values(statements[0]!.query_params)).toContain(300);
     },

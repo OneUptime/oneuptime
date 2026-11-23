@@ -3360,8 +3360,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     const groupKeys: Array<string> = data.groupByAttributeKeys.slice(0, 4);
 
     // Whether a row meets the condition, as 1 or 0.
+    /*
+     * Whether a check met the condition, 1 or 0. The value column is
+     * Nullable, and so would each check's state be, which arraySum refuses
+     * ("array aggregation function cannot be performed on type Nullable"):
+     * the WHERE below keeps only checks with a value, so it is read as one.
+     */
     const conditionStatement: () => Statement = (): Statement => {
-      return SQL`toUInt8(value `
+      return SQL`toUInt8(assumeNotNull(value) `
         .append(operator)
         .append(
           SQL` ${{
