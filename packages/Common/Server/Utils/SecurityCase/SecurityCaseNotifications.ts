@@ -128,6 +128,35 @@ import {
   isSecurityCaseHandOffReason,
 } from "../../../Types/SecurityCase/SecurityCaseAi";
 import { SECURITY_CASE_HAND_OFF_SENTENCES } from "../../../Types/SecurityCase/SecurityCaseAiWords";
+import {
+  SecurityCaseAiHoldOutcome,
+  isSecurityCaseAiHoldAlerting,
+  isSecurityCaseAiHoldHandedOff,
+} from "../../../Types/SecurityCase/SecurityCaseAiHold";
+import { readSecurityCaseAiActionEvidence } from "../../../Types/SecurityCase/SecurityCaseAiActionEvidence";
+import SecurityCaseAiAction from "../../../Models/DatabaseModels/SecurityCaseAiAction";
+import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import {
+  RESPONSE_STEP_KINDS,
+  isResponseStepOfKind,
+} from "../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
+import SecurityBlockService from "../../Services/SecurityBlockService";
+import SecurityCaseAiActionService from "../../Services/SecurityCaseAiActionService";
+import SecurityBlockDestination from "../SecurityBlocklist/SecurityBlockDestination";
+import SecurityBlockDestinations from "../SecurityBlocklist/SecurityBlockDestinations";
+import {
+  SecurityCaseAiHoldAction,
+  SecurityCaseAiHoldBlock,
+  buildAiHoldAlertMarkdown,
+  buildAiHoldResolvedLines,
+  buildAiHoldResolvedMarkdown,
+  describeAiHoldAsked,
+  describeAiHoldDone,
+  describeAiHoldDoneLine,
+  describeAiHoldEnd,
+  getHeldMinutes,
+} from "./SecurityCaseAiHoldWords";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -204,6 +233,21 @@ const NEW_CASE_WINDOW_MS: number = 60 * 60 * 1000;
 
 // At most this many entities are named in a message; the rest are counted.
 const ENTITY_NAME_LIMIT: number = 10;
+
+// What a held case's summary or notice reads of what was done on it (#10353).
+const AI_HOLD_ACTIONS_READ_LIMIT: number = 200;
+const AI_HOLD_BLOCKS_READ_LIMIT: number = 20;
+const AI_HOLD_CHECKS_READ_LIMIT: number = 100;
+
+export interface SecurityCaseAiHoldWork {
+  // OneUptime AI's log of the case, oldest first.
+  actions: Array<SecurityCaseAiHoldAction>;
+  // The blocks the case made, and where the project's blocklist is enforced.
+  blocks: Array<SecurityCaseAiHoldBlock>;
+  destinations: Array<string>;
+  // OneUptime saw every request from the case's addresses turned away.
+  isNothingThrough: boolean;
+}
 
 export enum SecurityCaseNotificationKind {
   PriorityReached = "PriorityReached",
@@ -389,17 +433,30 @@ export function isSetupTestCase(
 /*
  * What people are told when a case opens at their priority, or rises to it:
  * new when nobody was told about it before and it opened within the hour,
- * risen otherwise.
+ * risen otherwise. A case OneUptime AI responded first to (#10353) says why
+ * people are told now and what OneUptime AI already did (aiHold), and is
+ * never held back in a rollup: it waited already.
  */
 export function buildPriorityReachedMessage(data: {
   facts: SecurityCaseMessageFacts;
   isNew: boolean;
   minimum: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">;
+  aiHold?:
+    | {
+        // Why people are told now (SecurityCaseAiHoldWords.describeAiHoldEnd).
+        reason: string;
+        // What OneUptime AI already did, a line each.
+        done: Array<string>;
+      }
+    | undefined;
 }): SecurityCaseMessage {
   const { facts, isNew } = data;
   const headline: string = isNew
     ? `New ${facts.priority} security case ${facts.number}`
     : `Security case ${facts.number} is now ${facts.priority}`;
+  const doneLine: string = data.aiHold
+    ? describeAiHoldDoneLine(data.aiHold.done)
+    : "";
 
   return {
     eventType:
@@ -411,23 +468,33 @@ export function buildPriorityReachedMessage(data: {
     emailVars: {
       ...getCaseEmailVars(facts),
       emailTitle: `Security Case ${facts.number}: ${facts.title}`,
-      leadSentence: isNew
-        ? `A new ${facts.priority} security case opened in ${facts.projectName}. Nobody may be on it yet.`
-        : `This security case in ${facts.projectName} is now ${facts.priority}.`,
+      leadSentence: data.aiHold
+        ? `A new ${facts.priority} security case opened in ${facts.projectName}. ${data.aiHold.reason}`
+        : isNew
+          ? `A new ${facts.priority} security case opened in ${facts.projectName}. Nobody may be on it yet.`
+          : `This security case in ${facts.projectName} is now ${facts.priority}.`,
       reasonSentence: `You can see this project's security cases, and you are told about cases at your chosen priority: ${describePriorityChoice(data.minimum)}. Change it in User Settings > Notification Settings.`,
+      ...(data.aiHold ? { aiHoldReason: data.aiHold.reason } : {}),
+      ...(doneLine ? { aiHoldDone: doneLine } : {}),
     },
     smsText: buildNotificationSms(
-      isNew
-        ? `New ${facts.priority} security case ${facts.number}: ${facts.title}.`
-        : `Security case ${facts.number} is now ${facts.priority}: ${facts.title}.`,
+      data.aiHold
+        ? `New ${facts.priority} security case ${facts.number}: ${facts.title}. ${data.aiHold.reason}`
+        : isNew
+          ? `New ${facts.priority} security case ${facts.number}: ${facts.title}.`
+          : `Security case ${facts.number} is now ${facts.priority}: ${facts.title}.`,
     ),
-    callText: `This is a message from OneUptime. ${headline}: ${facts.title}. Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    callText: data.aiHold
+      ? `This is a message from OneUptime. ${headline}: ${facts.title}. ${data.aiHold.reason} Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`
+      : `This is a message from OneUptime. ${headline}: ${facts.title}. Open OneUptime to look into it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
     pushTitle: headline,
-    pushBody: `${facts.title} (${facts.projectName})`,
+    pushBody: data.aiHold
+      ? `${facts.title}: ${data.aiHold.reason}`
+      : `${facts.title} (${facts.projectName})`,
     pushType: "security-case-opened",
     requireInteraction: facts.isCritical,
-    // A Critical case is never held back in an email rollup.
-    forceImmediate: facts.isCritical,
+    // A Critical case is never held back in an email rollup, nor one that waited for OneUptime AI.
+    forceImmediate: facts.isCritical || Boolean(data.aiHold),
   };
 }
 
@@ -1049,6 +1116,32 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * OneUptime AI's hold of a new case's alerts ended (SecurityCaseAiHold,
+   * #10353): what it held is sent now, as the hold's end calls for
+   * (notifyPriorityReached reads how it ended) - at once, since it waited
+   * already. `actorUserId` ended it - pressed Page now, took the case - and
+   * is not told.
+   */
+  @CaptureSpan()
+  public static async aiHoldEnded(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.PriorityReached,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        ...(data.actorUserId
+          ? { actorUserId: data.actorUserId.toString() }
+          : {}),
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -1199,8 +1292,25 @@ export default class SecurityCaseNotifications {
       return [];
     }
 
+    // Held while OneUptime AI responds first (#10353): its end tells people, or does not.
+    if (securityCase.aiHoldOutcome === SecurityCaseAiHoldOutcome.Holding) {
+      return [];
+    }
+
     const values: ProjectSecurityCaseValues =
       await SecurityCaseValues.getForProject(data.projectId);
+
+    // Its hold ended, and nobody was told about the case yet: as the end calls for.
+    if (
+      securityCase.aiHoldOutcome &&
+      !securityCase.notifiedSecurityCasePriorityId
+    ) {
+      return await this.notifyAiHoldEnded({
+        securityCase,
+        values,
+        actorUserId: data.actorUserId,
+      });
+    }
 
     const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
       values.priorities,
@@ -1385,6 +1495,415 @@ export default class SecurityCaseNotifications {
     });
 
     return notified;
+  }
+
+  // ---------- A case OneUptime AI responded first to ----------
+
+  /*
+   * ONEUPTIME AI'S HOLD OF A NEW CASE ENDED (#10353): the notice people were
+   * held from, as the end calls for. Claimed as a rise is - one
+   * compare-and-set from nobody told - so the notice queued when the case
+   * opened and the one the hold's end queued send it once between them.
+   *
+   *   - Resolved, nobody alerted: the case's channels get one summary of
+   *     what was done, and no person is told.
+   *   - A person took the case: they have it, and nobody else is told. The
+   *     channels hear of the new case, and that a person took it.
+   *   - People alerted: those told about cases at its priority get the new
+   *     case's notice, saying why now and what OneUptime AI already did.
+   *     When OneUptime AI handed the case over, the people on the case who
+   *     are not among them get its hand-off notice, as SecurityCaseHandOff
+   *     tells them of a case it did not hold. The channels get the new case
+   *     with the same why - those that post OneUptime AI's hand-offs too,
+   *     for a hand-off.
+   *
+   * Nobody is told about what they did themselves: whoever pressed Page now
+   * or took the case.
+   */
+  private static async notifyAiHoldEnded(data: {
+    securityCase: SecurityCase;
+    values: ProjectSecurityCaseValues;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const { securityCase, values } = data;
+    const projectId: ObjectID = securityCase.projectId!;
+    const securityCaseId: ObjectID = securityCase.id!;
+    const outcome: SecurityCaseAiHoldOutcome =
+      securityCase.aiHoldOutcome as SecurityCaseAiHoldOutcome;
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      securityCase.securityCasePriorityId,
+    );
+
+    if (!priority?.id) {
+      return [];
+    }
+
+    const isClaimed: boolean =
+      await SecurityCaseService.compareAndSetColumnsByIdWithoutHooks({
+        id: securityCaseId,
+        data: {
+          notifiedSecurityCasePriorityId: priority.id,
+        },
+        expectedData: {
+          notifiedSecurityCasePriorityId: null as unknown as ObjectID,
+        },
+        skipUpdateDateColumn: true,
+      });
+
+    if (!isClaimed) {
+      return [];
+    }
+
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const work: SecurityCaseAiHoldWork = await this.readAiHoldWork({
+      projectId,
+      securityCaseId,
+      isResolved: outcome === SecurityCaseAiHoldOutcome.Resolved,
+    });
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+    const priorityName: string = priority.name || "";
+    const isClosed: boolean = SecurityCaseStatuses.isClosed(
+      values.statuses,
+      securityCase.securityCaseStatusId,
+    );
+
+    if (outcome === SecurityCaseAiHoldOutcome.Resolved) {
+      const until: Date | undefined = isClosed
+        ? securityCase.closedAt
+        : securityCase.containedAt;
+      const lines: { headline: string; facts: Array<string> } =
+        buildAiHoldResolvedLines({
+          aiName,
+          caseNumber: facts.number,
+          isWorkedByAi: Boolean(securityCase.aiTookCaseAt),
+          isClosed,
+          tookMs:
+            until && securityCase.createdAt
+              ? new Date(until).getTime() -
+                new Date(securityCase.createdAt).getTime()
+              : null,
+          blocks: work.blocks,
+          destinations: work.destinations,
+          actions: work.actions,
+          isNothingThrough: work.isNothingThrough,
+        });
+
+      await this.postToChannels({
+        facts,
+        updateKind: NotificationRuleUpdateKind.PriorityReached,
+        markdown: buildChannelMarkdown({
+          headline: buildAiHoldResolvedMarkdown(lines),
+          facts,
+        }),
+        notificationText: lines.headline,
+      });
+
+      return [];
+    }
+
+    const personName: string | undefined = securityCase.aiHoldEndedByUserId
+      ? await this.getActorName(securityCase.aiHoldEndedByUserId)
+      : undefined;
+    const reason: string = describeAiHoldEnd({
+      outcome,
+      aiName,
+      handOffReason: securityCase.aiHandOffReason || null,
+      asked: describeAiHoldAsked(work.actions),
+      aiVerdict: securityCase.aiVerdict || null,
+      heldMinutes: getHeldMinutes({
+        openedAt: securityCase.createdAt,
+        endedAt: securityCase.aiHoldEndedAt,
+      }),
+      priorityName,
+      personName,
+    });
+    const done: Array<string> = describeAiHoldDone(work.actions);
+    const notificationText: string = `New ${priorityName} security case ${facts.number}: ${facts.title}`;
+
+    if (outcome === SecurityCaseAiHoldOutcome.TakenByPerson) {
+      await this.postToChannels({
+        facts,
+        updateKind: NotificationRuleUpdateKind.PriorityReached,
+        markdown: buildChannelMarkdown({
+          headline: mdText`🛡️ **New ${priorityName} security case.** ${reason}`,
+          facts,
+        }),
+        notificationText,
+      });
+
+      return [];
+    }
+
+    if (!isSecurityCaseAiHoldAlerting(outcome) || isClosed) {
+      return [];
+    }
+
+    const isHandedOff: boolean = isSecurityCaseAiHoldHandedOff(outcome);
+    const notToTell: Array<string> = [
+      data.actorUserId,
+      securityCase.aiHoldEndedByUserId,
+    ]
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      })
+      .map((id: ObjectID): string => {
+        return id.toString();
+      });
+    const isToBeTold: (person: SecurityCaseRecipient) => boolean = (
+      person: SecurityCaseRecipient,
+    ): boolean => {
+      return !notToTell.includes(person.userId.toString());
+    };
+
+    const watchers: {
+      people: Array<SecurityCaseRecipient>;
+      minimums: Map<string, SecurityCasePriority>;
+    } = await this.getPriorityWatchers({
+      projectId,
+      priorityId: securityCase.securityCasePriorityId,
+      priorities: values.priorities,
+    });
+    const defaultMinimum: SecurityCasePriority | null =
+      readSecurityCaseNotificationMinimum(values.priorities, null);
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients: await this.whoCanRead({
+        projectId,
+        securityCaseId,
+        people: watchers.people.filter(isToBeTold),
+      }),
+      message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        const minimum: SecurityCasePriority | null =
+          watchers.minimums.get(recipient.userId.toString()) || defaultMinimum;
+
+        return buildPriorityReachedMessage({
+          facts,
+          isNew: true,
+          minimum: minimum
+            ? getChosenPriorityChoice({
+                priorities: values.priorities,
+                minimum,
+              })
+            : {
+                name: priorityName,
+                kind: SecurityCaseNotificationChoiceKind.AndAbove,
+              },
+          aiHold: { reason, done },
+        });
+      },
+    });
+
+    let toldOnCase: Array<SecurityCaseRecipient> = [];
+
+    if (isHandedOff) {
+      const watcherIds: Set<string> = new Set<string>(
+        watchers.people.map((person: SecurityCaseRecipient): string => {
+          return person.userId.toString();
+        }),
+      );
+
+      toldOnCase = await this.sendToPeople({
+        facts,
+        recipients: await this.whoCanRead({
+          projectId,
+          securityCaseId,
+          people: (await this.getPeopleOnCase(securityCase)).filter(
+            (person: SecurityCaseRecipient): boolean => {
+              return (
+                isToBeTold(person) && !watcherIds.has(person.userId.toString())
+              );
+            },
+          ),
+        }),
+        message: (): SecurityCaseMessage => {
+          return buildAiHandedOffMessage({ facts, reason, isOnCase: true });
+        },
+      });
+    }
+
+    await this.recordInFeed({
+      facts,
+      notified: [...notified, ...toldOnCase],
+      feedInfo: mdText`🔔 Notified ${people(notified.length + toldOnCase.length)} of this new **${priorityName}** case, which ${aiName} held while it responded first.`,
+      displayColor: Yellow500,
+    });
+
+    await this.postToChannels({
+      facts,
+      updateKind: isHandedOff
+        ? [
+            NotificationRuleUpdateKind.PriorityReached,
+            NotificationRuleUpdateKind.AI,
+          ]
+        : NotificationRuleUpdateKind.PriorityReached,
+      markdown: buildChannelMarkdown({
+        headline: buildAiHoldAlertMarkdown({ priorityName, reason, done }),
+        facts,
+      }),
+      notificationText,
+    });
+
+    return [...notified, ...toldOnCase];
+  }
+
+  /*
+   * What was done on a held case, for its summary or its notice: OneUptime
+   * AI's log of the case, and - for a summary - the blocks the case made,
+   * where the project's blocklist is enforced, and whether OneUptime saw
+   * every request from the case's addresses turned away. OneUptime's own
+   * records only: never the triage's report (SubjectReadersOnlyGuard).
+   * Never throws: what cannot be read is left out, and people are still
+   * told.
+   */
+  private static async readAiHoldWork(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    isResolved: boolean;
+  }): Promise<SecurityCaseAiHoldWork> {
+    const work: SecurityCaseAiHoldWork = {
+      actions: [],
+      blocks: [],
+      destinations: [],
+      isNothingThrough: false,
+    };
+
+    try {
+      const rows: Array<SecurityCaseAiAction> =
+        await SecurityCaseAiActionService.findBy({
+          query: {
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: {
+            _id: true,
+            kind: true,
+            status: true,
+            target: true,
+            evidence: true,
+          },
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: AI_HOLD_ACTIONS_READ_LIMIT,
+          props: { isRoot: true },
+        });
+
+      work.actions = rows
+        .filter((row: SecurityCaseAiAction): boolean => {
+          return Boolean(row.kind && row.status);
+        })
+        .map((row: SecurityCaseAiAction): SecurityCaseAiHoldAction => {
+          return {
+            kind: row.kind!,
+            status: row.status!,
+            target: row.target || undefined,
+            verdict:
+              readSecurityCaseAiActionEvidence(row.evidence).verdict ||
+              undefined,
+          };
+        });
+
+      if (!data.isResolved) {
+        return work;
+      }
+
+      const blocks: Array<SecurityBlock> = await SecurityBlockService.findBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+        },
+        select: { _id: true, value: true, createdAt: true, expiresAt: true },
+        sort: { createdAt: SortOrder.Ascending },
+        skip: 0,
+        limit: AI_HOLD_BLOCKS_READ_LIMIT,
+        props: { isRoot: true },
+      });
+
+      work.blocks = blocks
+        .filter((block: SecurityBlock): boolean => {
+          return Boolean(block.value);
+        })
+        .map((block: SecurityBlock): SecurityCaseAiHoldBlock => {
+          return {
+            value: block.value!,
+            createdAt: block.createdAt ? new Date(block.createdAt) : undefined,
+            expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
+          };
+        });
+
+      if (work.blocks.length > 0) {
+        work.destinations = (
+          await SecurityBlockDestinations.findForProject(data.projectId)
+        ).destinations.map((destination: SecurityBlockDestination): string => {
+          return destination.name;
+        });
+      }
+
+      const checks: Array<SecurityCaseStepCheck> =
+        await SecurityCaseStepCheckService.findBy({
+          query: {
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: { _id: true, stepKey: true, state: true },
+          skip: 0,
+          limit: AI_HOLD_CHECKS_READ_LIMIT,
+          props: { isRoot: true },
+        });
+      const requests: Array<SecurityCaseStepCheck> = checks.filter(
+        (check: SecurityCaseStepCheck): boolean => {
+          return isResponseStepOfKind(
+            check.stepKey || "",
+            RESPONSE_STEP_KINDS.requests,
+          );
+        },
+      );
+
+      work.isNothingThrough =
+        requests.length > 0 &&
+        requests.every((check: SecurityCaseStepCheck): boolean => {
+          return check.state === SecurityCaseStepCheckState.Verified;
+        });
+    } catch (error) {
+      logger.error(
+        `SecurityCaseNotifications: could not read what was done on held case ${data.securityCaseId.toString()}:`,
+      );
+      logger.error(error);
+    }
+
+    return work;
+  }
+
+  // The people on the case: its team's members, and its assignee.
+  private static async getPeopleOnCase(
+    securityCase: SecurityCase,
+  ): Promise<Array<SecurityCaseRecipient>> {
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId && securityCase.projectId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          securityCase.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    return onCase;
   }
 
   // ---------- A case assigned ----------
@@ -2167,26 +2686,8 @@ export default class SecurityCaseNotifications {
       securityCase,
       values,
     );
-    const onCase: Array<SecurityCaseRecipient> = [];
-
-    if (securityCase.assignedToTeamId) {
-      onCase.push(
-        ...(await this.getTeamMembers(
-          data.projectId,
-          securityCase.assignedToTeamId,
-        )),
-      );
-    }
-
-    if (securityCase.assignedToUserId) {
-      const assignee: SecurityCaseRecipient | null = await this.getUser(
-        securityCase.assignedToUserId,
-      );
-
-      if (assignee) {
-        onCase.push(assignee);
-      }
-    }
+    const onCase: Array<SecurityCaseRecipient> =
+      await this.getPeopleOnCase(securityCase);
 
     const isOnCase: boolean = onCase.length > 0;
     const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
@@ -2730,6 +3231,13 @@ export default class SecurityCaseNotifications {
         containDueAt: true,
         acknowledgeMissedAt: true,
         containMissedAt: true,
+        // OneUptime AI responding first to it (#10353), and its work.
+        aiHoldOutcome: true,
+        aiHoldEndedAt: true,
+        aiHoldEndedByUserId: true,
+        aiHandOffReason: true,
+        aiVerdict: true,
+        aiTookCaseAt: true,
       },
       props: {
         isRoot: true,
@@ -2962,8 +3470,12 @@ export default class SecurityCaseNotifications {
    */
   private static async postToChannels(data: {
     facts: SecurityCaseMessageFacts;
-    // Which notice it is, for the rules that choose theirs.
-    updateKind: NotificationRuleUpdateKind;
+    /*
+     * Which notice it is, for the rules that choose theirs: a held case's
+     * hand-off is a new case and OneUptime AI's hand-off at once, posted
+     * where either is wanted.
+     */
+    updateKind: NotificationRuleUpdateKind | Array<NotificationRuleUpdateKind>;
     markdown: MarkdownText;
     notificationText: string;
   }): Promise<void> {
@@ -2977,7 +3489,9 @@ export default class SecurityCaseNotifications {
         notificationText: data.notificationText,
         workspaceNotification: {
           sendWorkspaceNotification: true,
-          updateKinds: [data.updateKind],
+          updateKinds: Array.isArray(data.updateKind)
+            ? data.updateKind
+            : [data.updateKind],
         },
       });
     } catch (error) {

@@ -58,6 +58,7 @@ import {
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import { SecurityCaseAiResponseState } from "../../Types/SecurityCase/SecurityCaseAi";
+import { SecurityCaseAiHoldOutcome } from "../../Types/SecurityCase/SecurityCaseAiHold";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses, {
@@ -158,6 +159,8 @@ interface CaseStateBeforeUpdate {
   // Where OneUptime AI stood on the case, and when it closed it (#10352).
   aiResponseState: SecurityCaseAiResponseState | undefined;
   aiClosedAt: Date | undefined;
+  // Whether OneUptime AI was responding first to it (#10353).
+  aiHoldOutcome: SecurityCaseAiHoldOutcome | undefined;
 }
 
 /*
@@ -168,6 +171,15 @@ function loadSecurityCaseResponseEvents(): typeof import("../Utils/AI/Security/R
   // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
   return require("../Utils/AI/Security/Response/SecurityCaseResponseEvents")
     .default;
+}
+
+/*
+ * OneUptime AI responding first to a case (#10353): loaded when it is
+ * needed, since its module reads this service.
+ */
+function loadSecurityCaseAiHold(): typeof import("../Utils/SecurityCase/SecurityCaseAiHold").default {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../Utils/SecurityCase/SecurityCaseAiHold").default;
 }
 
 // The case columns its response targets are read from, as a hook reads them.
@@ -518,6 +530,17 @@ export class Service extends ProjectReferencesService<Model> {
       createdItem.projectId &&
       !isSetupTestCase(createdItem)
     ) {
+      /*
+       * Whether OneUptime AI responds first to the case (#10353), decided
+       * before anybody is told: a held case's notice waits for it. Never
+       * throws.
+       */
+      await loadSecurityCaseAiHold().onCaseOpened({
+        projectId: createdItem.projectId,
+        securityCaseId: createdItem.id,
+        isOpenedByDetection: openedByDetection,
+      });
+
       await SecurityCaseNotifications.caseReachedPriority({
         projectId: createdItem.projectId,
         securityCaseId: createdItem.id,
@@ -606,6 +629,7 @@ export class Service extends ProjectReferencesService<Model> {
         groupingKey: true,
         aiResponseState: true,
         aiClosedAt: true,
+        aiHoldOutcome: true,
         ...TARGET_SELECT,
       },
     );
@@ -644,6 +668,7 @@ export class Service extends ProjectReferencesService<Model> {
         groupingKey: row.groupingKey,
         aiResponseState: row.aiResponseState,
         aiClosedAt: row.aiClosedAt,
+        aiHoldOutcome: row.aiHoldOutcome,
       });
     }
 
@@ -981,6 +1006,41 @@ export class Service extends ProjectReferencesService<Model> {
       await this.updateColumnsByIdWithoutHooks({
         id: caseId,
         data: stamps as unknown as PartialEntity<Model>,
+      });
+    }
+
+    /*
+     * A case OneUptime AI holds while it responds first (#10353): a person
+     * who assigned it to somebody or moved its status on has it, and
+     * nobody else is alerted; a rise, or a case contained or closed some
+     * other way, is reviewed now (SecurityCaseAiHold). A playbook, OneUptime
+     * AI and its checks are no person.
+     */
+    if (old.aiHoldOutcome === SecurityCaseAiHoldOutcome.Holding) {
+      const isPersonsChange: boolean = Boolean(
+        userId &&
+          !playbookName &&
+          input.byOneUptimeAi !== true &&
+          input.byStepChecks !== true,
+      );
+
+      await loadSecurityCaseAiHold().onCaseChanged({
+        projectId,
+        securityCaseId: caseId,
+        byUserId: isPersonsChange ? userId : undefined,
+        isAssignedToPerson: Boolean(
+          userChanged && data["assignedToUserId"],
+        ),
+        isStatusChanged: Boolean(newStatusId && newStatusId !== old.statusId),
+        isPriorityRaised: Boolean(
+          newPriorityId &&
+            newPriorityId !== old.priorityId &&
+            SecurityCasePriorities.isMoreUrgent(
+              values.priorities,
+              newPriorityId,
+              old.priorityId,
+            ),
+        ),
       });
     }
   }

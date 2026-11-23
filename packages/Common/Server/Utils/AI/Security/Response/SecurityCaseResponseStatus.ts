@@ -18,6 +18,7 @@ import ProjectService from "../../../../Services/ProjectService";
 import SecurityCaseAiActionService from "../../../../Services/SecurityCaseAiActionService";
 import SecurityCaseService from "../../../../Services/SecurityCaseService";
 import UserService from "../../../../Services/UserService";
+import FeedPersonName from "../../../Feed/FeedPersonName";
 import SecurityCaseResponse, {
   SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES,
   SecurityCaseResponseNotStartedCode,
@@ -75,6 +76,11 @@ export default class SecurityCaseResponseStatus {
           aiClosedAt: true,
           createdAt: true,
           lastDetectedAt: true,
+          // OneUptime AI responding first to it (#10353).
+          aiHoldOutcome: true,
+          aiHoldUntil: true,
+          aiHoldEndedAt: true,
+          aiHoldEndedByUserId: true,
         },
         props: { isRoot: true },
       }),
@@ -129,7 +135,9 @@ export default class SecurityCaseResponseStatus {
     ]);
 
     const limits: SecurityCaseAiLimits = readSecurityCaseAiLimits(project);
-    const names: Map<string, string> = await this.readNames(rows);
+    const names: Map<string, string> = await this.readNames(data.projectId, rows, [
+      securityCase?.aiHoldEndedByUserId?.toString() || "",
+    ]);
 
     let notStarted: SecurityCaseResponseNotStartedCode | null =
       await SecurityCaseResponse.getNotStartedReason({
@@ -175,6 +183,25 @@ export default class SecurityCaseResponseStatus {
         ? {
             code: notStarted,
             message: SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES[notStarted],
+          }
+        : null,
+      /*
+       * OneUptime AI responding first to the case (#10353): holding, and
+       * until when; then how it ended, when, and who ended it - or null for
+       * a case never held.
+       */
+      hold: securityCase?.aiHoldOutcome
+        ? {
+            outcome: securityCase.aiHoldOutcome,
+            until: securityCase.aiHoldUntil
+              ? new Date(securityCase.aiHoldUntil).toISOString()
+              : null,
+            endedAt: securityCase.aiHoldEndedAt
+              ? new Date(securityCase.aiHoldEndedAt).toISOString()
+              : null,
+            endedByName: securityCase.aiHoldEndedByUserId
+              ? names.get(securityCase.aiHoldEndedByUserId.toString()) || null
+              : null,
           }
         : null,
     };
@@ -234,18 +261,22 @@ export default class SecurityCaseResponseStatus {
 
   // The names of the people who decided or undid one of OneUptime AI's actions.
   private static async readNames(
+    projectId: ObjectID,
     rows: Array<SecurityCaseAiAction>,
+    // Others to name too: who ended OneUptime AI's hold of the case.
+    others: Array<string> = [],
   ): Promise<Map<string, string>> {
     const ids: Array<string> = Array.from(
       new Set(
-        rows
-          .flatMap((row: SecurityCaseAiAction): Array<string> => {
+        [
+          ...rows.flatMap((row: SecurityCaseAiAction): Array<string> => {
             return [
               row.decidedByUserId?.toString() || "",
               row.undoneByUserId?.toString() || "",
             ];
-          })
-          .filter(Boolean),
+          }),
+          ...others,
+        ].filter(Boolean),
       ),
     );
     const names: Map<string, string> = new Map();
@@ -262,10 +293,20 @@ export default class SecurityCaseResponseStatus {
       props: { isRoot: true },
     });
 
+    /*
+     * Named as every Security line names a person (FeedPersonName, #10705):
+     * a member by their name, else the part of their address before the
+     * "@" - never the address itself.
+     */
+    const named: Map<string, string> = await FeedPersonName.readNames({
+      users,
+      projectId,
+    });
+
     for (const user of users) {
       names.set(
         user.id!.toString(),
-        user.name?.toString() || user.email?.toString() || "",
+        named.get(user.id!.toString().toLowerCase()) || "",
       );
     }
 
