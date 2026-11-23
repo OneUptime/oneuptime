@@ -289,9 +289,9 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
 
     /*
      * Bytes are no events (#10795): a gzip body of no JSON type, or
-     * protobuf, which the route hands on as they are. Refused as the same
-     * body uncompressed is, which no parser reads. Its numbered keys made
-     * it one event of its bytes, stored as { type: "Buffer", data: [...] }.
+     * protobuf, which the route hands on as they are. Refused as plain
+     * text is, which no parser reads. Their numbered keys made them one
+     * event of their bytes, stored as { type: "Buffer", data: [...] }.
      */
     if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
       return [];
