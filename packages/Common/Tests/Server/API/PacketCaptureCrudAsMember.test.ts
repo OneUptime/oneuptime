@@ -298,14 +298,17 @@ async function callRoute(
     body: data.body || {},
   } as unknown as ExpressRequest;
   const next: MockedFn = jest.fn();
+  /*
+   * The answer's headers are set on it: a create that left out a field only
+   * OneUptime writes names it in one (Types/API/FieldsLeftOut, #10136).
+   */
+  const res: ExpressResponse = {
+    setHeader: jest.fn(),
+  } as unknown as ExpressResponse;
 
   await mockRouter
     .match(method, route)
-    .handlerFunction(
-      req,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+    .handlerFunction(req, res, next as unknown as NextFunction);
 
   return { error: next.mock.calls[0]?.[0] as Error | undefined };
 }
