@@ -15,6 +15,9 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
+import OutboundFetch, {
+  OutboundProxyRefusal,
+} from "Common/Server/Utils/OutboundFetch";
 import RetryAfter from "Common/Utils/RetryAfter";
 
 interface GraphErrorBody {
@@ -395,7 +398,11 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
 
     let response: Response;
     try {
-      response = await fetch(endpoint.toString(), {
+      /*
+       * Through the server's outbound proxy, or directly, as every request
+       * of the server goes (OutboundFetch, #10720).
+       */
+      response = await OutboundFetch.fetch(endpoint.toString(), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -405,6 +412,25 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
         signal: controller.signal,
       });
     } catch (error) {
+      /*
+       * The outbound proxy refused it, or its setting cannot be used: said
+       * as such, never naming the proxy. Only a proxy that failed itself is
+       * worth another try.
+       */
+      if (error instanceof OutboundProxyRefusal) {
+        throw new GraphSendException(
+          `Microsoft Graph could not be reached. ${error.message}`,
+          { isRetryable: error.isRetryable },
+        );
+      }
+
+      if (error instanceof BadDataException) {
+        throw new GraphSendException(
+          `Microsoft Graph could not be reached. ${error.message}`,
+          { isRetryable: false },
+        );
+      }
+
       // Timeouts and network errors are transient — worth retrying.
       if (error instanceof Error && error.name === "AbortError") {
         throw new GraphSendException(

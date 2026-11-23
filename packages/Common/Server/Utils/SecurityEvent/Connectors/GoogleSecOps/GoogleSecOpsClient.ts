@@ -6,6 +6,7 @@ import APIException from "../../../../../Types/Exception/ApiException";
 import { JSONArray, JSONObject, JSONValue } from "../../../../../Types/JSON";
 import logger from "../../../Logger";
 import { redactLogString, redactLogValue } from "../../../LogRedaction";
+import OutboundFetch from "../../../OutboundFetch";
 import { describeGoogleSignInFailure } from "../../../LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken";
 
 /*
@@ -326,8 +327,13 @@ export default class GoogleSecOpsClient {
     this.credentials = GoogleSecOpsClient.parseServiceAccountJson(
       data.serviceAccountJson,
     );
+    /*
+     * Node's fetch through the server's outbound proxy, or directly, as
+     * every request of the server goes (OutboundFetch, #10720).
+     */
     this.fetchImplementation =
-      data.fetchImplementation || (fetch as unknown as FetchLike);
+      data.fetchImplementation ||
+      (OutboundFetch.fetch as unknown as FetchLike);
     this.requestTimeoutInMs =
       typeof data.requestTimeoutInMs === "number" &&
       Number.isFinite(data.requestTimeoutInMs) &&
