@@ -164,6 +164,10 @@ jest.mock(
     ) as typeof React;
     return {
       __esModule: true,
+      // The id of a widget's box, which the page scrolls to once one is added.
+      getDashboardWidgetBoxId: (id: string): string => {
+        return `dashboard-component-${id}`;
+      },
       default: (props: {
         variables?: Array<DashboardVariable> | undefined;
       }) => {

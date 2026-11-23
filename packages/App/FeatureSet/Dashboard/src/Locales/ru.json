@@ -60170,7 +60170,7 @@
   "The query returns a range vector or text, which this cannot draw or compare.": "The query returns a range vector or text, which this cannot draw or compare.",
   "The query's tags {{scope}} combine OR across different tags, which a PromQL selector cannot.": "The query's tags {{scope}} combine OR across different tags, which a PromQL selector cannot.",
   "The query's {{stage}} stage is left out: a log widget filters on labels and text only.": "The query's {{stage}} stage is left out: a log widget filters on labels and text only.",
-  "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.": "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.",
+  "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.": "Единица значений на оси значений и во всплывающей подсказке. Известные единицы также масштабируют значения: «Bytes» — 1,5 МБ, «ms» — 2,4 с, «%» — 99,9 %.",
   "The variable ${{name}} takes a whole tag, so the query reads every value, as Datadog does on *.": "The variable ${{name}} takes a whole tag, so the query reads every value, as Datadog does on *.",
   "These are alert rules. Import them from Monitors, with Import Alerts.": "These are alert rules. Import them from Monitors, with Import Alerts.",
   "These sites move under the site you pick, with every site below them, and count toward its health.": "Эти площадки переходят под выбранную площадку вместе со всеми площадками под ними и учитываются в её работоспособности.",

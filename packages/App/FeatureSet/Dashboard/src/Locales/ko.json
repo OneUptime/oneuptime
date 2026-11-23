@@ -60170,7 +60170,7 @@
   "The query returns a range vector or text, which this cannot draw or compare.": "The query returns a range vector or text, which this cannot draw or compare.",
   "The query's tags {{scope}} combine OR across different tags, which a PromQL selector cannot.": "The query's tags {{scope}} combine OR across different tags, which a PromQL selector cannot.",
   "The query's {{stage}} stage is left out: a log widget filters on labels and text only.": "The query's {{stage}} stage is left out: a log widget filters on labels and text only.",
-  "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.": "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.",
+  "The values' unit, on the value axis and in the tooltip. Known units also scale it — \"Bytes\" reads as 1.5 MB, \"ms\" as 2.4 sec, \"%\" as 99.9%.": "값의 단위로, 값 축과 툴팁에 표시됩니다. 알려진 단위는 값도 환산합니다('Bytes'는 1.5 MB, 'ms'는 2.4초, '%'는 99.9%).",
   "The variable ${{name}} takes a whole tag, so the query reads every value, as Datadog does on *.": "The variable ${{name}} takes a whole tag, so the query reads every value, as Datadog does on *.",
   "These are alert rules. Import them from Monitors, with Import Alerts.": "These are alert rules. Import them from Monitors, with Import Alerts.",
   "These sites move under the site you pick, with every site below them, and count toward its health.": "이 사이트들은 그 아래의 모든 사이트와 함께 선택한 사이트 아래로 옮겨지고, 그 사이트의 상태에 포함됩니다.",
