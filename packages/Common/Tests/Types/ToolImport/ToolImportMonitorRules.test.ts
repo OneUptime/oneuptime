@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
+import MonitorRequestBodyFormat from "../../../Types/Monitor/MonitorRequestBodyFormat";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import {
   certificateMonitorName,
@@ -12,11 +13,14 @@ import {
 } from "../../../Types/ToolImport/ToolImportMonitorMapping";
 import {
   DEFAULT_ACCEPTED_STATUS_CODES,
+  FORM_BODY_CONTENT_TYPE,
   invertStatusCodeRanges,
   isDefaultStatusCodeRanges,
   isSecretHeader,
   mergeStatusCodeRanges,
+  namesContentType,
   readJsonBody,
+  readRequestBody,
   readStatusCodeRanges,
   splitRequestHeaders,
   TOOL_IMPORT_DEFAULT_MONITORING_INTERVAL,
@@ -24,7 +28,10 @@ import {
   TOOL_IMPORT_MONITORING_INTERVALS,
   toHeartbeatMinutes,
   toMonitoringInterval,
+  writeFormFields,
+  XML_BODY_CONTENT_TYPE,
 } from "../../../Types/ToolImport/ToolImportMonitorRules";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import {
   makeToolImportNote,
   ToolImportNote,
@@ -268,7 +275,7 @@ describe("headers and body a check sends", () => {
     expect(readJsonBody("null")).toBe("null");
   });
 
-  test("a body that is not JSON is not sent", () => {
+  test("a body that is not JSON is not read as JSON: it is sent as text (#10787)", () => {
     expect(readJsonBody("a=1&b=2")).toBeNull();
     expect(readJsonBody("<ping/>")).toBeNull();
     expect(readJsonBody('{"a": 1,}')).toBeNull();
@@ -277,6 +284,51 @@ describe("headers and body a check sends", () => {
     // Only text is a body: a value that is not a string is not read.
     expect(readJsonBody(42)).toBeNull();
     expect(readJsonBody(undefined)).toBeNull();
+  });
+
+  test("headers name a Content-Type in any case", () => {
+    expect(namesContentType({ "Content-Type": "text/xml" })).toBe(true);
+    expect(namesContentType({ " content-TYPE ": "a" })).toBe(true);
+    expect(namesContentType({ "X-Content-Type-Options": "nosniff" })).toBe(
+      false,
+    );
+    expect(namesContentType({})).toBe(false);
+  });
+
+  test("form fields held as names and values are written as a form sends them", () => {
+    expect(writeFormFields({ user: "ops", remember: 1, debug: true })).toBe(
+      "user=ops&remember=1&debug=true",
+    );
+    expect(
+      writeFormFields([
+        { key: "q", value: "a b&c=d" },
+        { name: "lang", value: "日本" },
+        { key: "empty", value: null },
+      ]),
+    ).toBe("q=a+b%26c%3Dd&lang=%E6%97%A5%E6%9C%AC&empty=");
+    // Read back as the server reads a form, each field is what it was.
+    expect(
+      Object.fromEntries(
+        new URLSearchParams(
+          writeFormFields({ q: "a b&c=d", "x y": "1+1" }) as string,
+        ),
+      ),
+    ).toEqual({ q: "a b&c=d", "x y": "1+1" });
+  });
+
+  test("form fields that are not names and plain values are not a form", () => {
+    expect(writeFormFields({ nested: { a: 1 } })).toBeNull();
+    expect(writeFormFields({ list: [1, 2] })).toBeNull();
+    expect(writeFormFields([{ value: "no name" }])).toBeNull();
+    expect(writeFormFields(["a=1"])).toBeNull();
+    expect(writeFormFields({})).toBeNull();
+    expect(writeFormFields([])).toBeNull();
+    expect(writeFormFields("a=1")).toBeNull();
+    expect(writeFormFields(null)).toBeNull();
+    // An object's machinery is never a field.
+    expect(
+      writeFormFields(JSON.parse('{"__proto__": "x", "a": "1"}')),
+    ).toBeNull();
   });
 });
 
@@ -355,32 +407,183 @@ describe("what a web check becomes", () => {
     expect(codes(monitor.notes)).toEqual([]);
   });
 
-  test("a body that is not JSON is left out and said, and a GET sends none", () => {
-    expect(
-      codes(
-        toHttpMonitor({
-          sourceId: "3",
-          name: "Form",
-          sourceType: "http",
-          url: "https://example.com/form",
-          method: "POST",
-          body: "a=1&b=2",
-          isPaused: false,
-        }).notes,
-      ),
-    ).toEqual([ToolImportNoteCode.MonitorBodyLeftOut]);
+  test.each([
+    [
+      "XML for a SOAP endpoint",
+      '<?xml version="1.0"?>\n<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><Ping/></soap:Body></soap:Envelope>',
+    ],
+    ["plain text", "ping\n"],
+    ["form fields", "a=1&b=2"],
+    ["JSON5, which is no JSON", "{a: 1, /* note */ b: [2,],}"],
+    ["text that only starts like JSON", '{"a": 1} trailing'],
+  ])(
+    "a body that is not JSON comes over as text, byte for byte, and nothing is said (#10787): %s",
+    (_what: string, body: string) => {
+      const monitor: ImportedMonitor = toHttpMonitor({
+        sourceId: "3",
+        name: "Form",
+        sourceType: "http",
+        url: "https://example.com/form",
+        method: "POST",
+        body: body,
+        isPaused: false,
+      });
 
-    const get: ImportedMonitor = toHttpMonitor({
-      sourceId: "4",
-      name: "Get",
+      expect(monitor.monitorType).toBe(MonitorType.API);
+      expect(monitor.requestBody).toBe(body);
+      expect(monitor.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+      expect(codes(monitor.notes)).toEqual([]);
+      // Its headers are the tool's: none named here, none added.
+      expect(monitor.requestHeaders).toBeUndefined();
+    },
+  );
+
+  test("a JSON body is still JSON, the format unsaid, as every monitor's was", () => {
+    const monitor: ImportedMonitor = toHttpMonitor({
+      sourceId: "3",
+      name: "Orders",
       sourceType: "http",
-      url: "https://example.com",
-      body: '{"ignored": true}',
+      url: "https://example.com/orders",
+      method: "PUT",
+      body: '{"ping": true}',
       isPaused: false,
     });
 
-    expect(get.monitorType).toBe(MonitorType.Website);
-    expect(get.requestBody).toBeUndefined();
+    expect(monitor.requestBody).toBe('{"ping":true}');
+    expect(monitor.requestBodyFormat).toBeUndefined();
+  });
+
+  test("a form the tool sends under a form's Content-Type stays a form, as written", () => {
+    const monitor: ImportedMonitor = toHttpMonitor({
+      sourceId: "6",
+      name: "Sign-in form",
+      sourceType: "http",
+      url: "https://example.com/login",
+      method: "POST",
+      headers: [
+        {
+          name: "Content-Type",
+          value: "application/x-www-form-urlencoded",
+        },
+      ],
+      body: "user=ops&remember=1",
+      isPaused: false,
+    });
+
+    expect(monitor.requestBody).toBe("user=ops&remember=1");
+    expect(monitor.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+    expect(monitor.requestHeaders).toEqual({
+      "Content-Type": "application/x-www-form-urlencoded",
+    });
+  });
+
+  test("a body the tool sends as written, under a Content-Type of its own, keeps both", () => {
+    // Uptime Kuma's form body: never read as JSON, however it reads.
+    const form: ImportedMonitor = toHttpMonitor({
+      sourceId: "7",
+      name: "Form",
+      sourceType: "http",
+      url: "https://example.com/form",
+      method: "POST",
+      body: '{"looks": "like JSON"}',
+      isBodySentAsWritten: true,
+      bodyContentType: FORM_BODY_CONTENT_TYPE,
+      isPaused: false,
+    });
+
+    expect(form.requestBody).toBe('{"looks": "like JSON"}');
+    expect(form.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+    expect(form.requestHeaders).toEqual({
+      "Content-Type": "application/x-www-form-urlencoded",
+    });
+
+    // The check's own Content-Type, in any case, is the one sent.
+    const xml: ImportedMonitor = toHttpMonitor({
+      sourceId: "8",
+      name: "SOAP",
+      sourceType: "http",
+      url: "https://example.com/soap",
+      method: "POST",
+      headers: [{ name: "content-type", value: "application/soap+xml" }],
+      body: "<Ping/>",
+      isBodySentAsWritten: true,
+      bodyContentType: XML_BODY_CONTENT_TYPE,
+      isPaused: false,
+    });
+
+    expect(xml.requestHeaders).toEqual({
+      "content-type": "application/soap+xml",
+    });
+  });
+
+  test("a GET or a HEAD sends no body, and names no Content-Type for one", () => {
+    for (const method of ["GET", "HEAD"]) {
+      const monitor: ImportedMonitor = toHttpMonitor({
+        sourceId: "4",
+        name: "Get",
+        sourceType: "http",
+        url: "https://example.com",
+        method: method,
+        body: "a=1",
+        bodyContentType: FORM_BODY_CONTENT_TYPE,
+        isPaused: false,
+      });
+
+      expect(monitor.monitorType).toBe(MonitorType.Website);
+      expect(monitor.requestBody).toBeUndefined();
+      expect(monitor.requestBodyFormat).toBeUndefined();
+      expect(monitor.requestHeaders).toBeUndefined();
+    }
+  });
+
+  test("a body that is only space is no body", () => {
+    expect(readRequestBody("  \n ")).toBeNull();
+    expect(readRequestBody("")).toBeNull();
+    expect(readRequestBody(undefined)).toBeNull();
+    expect(readRequestBody(42)).toBeNull();
+    expect(readRequestBody("<a/>")).toEqual({ body: "<a/>", isText: true });
+    expect(readRequestBody(" [1, 2] ")).toEqual({ body: "[1,2]", isText: false });
+    expect(readRequestBody("[1, 2]", { isSentAsWritten: true })).toEqual({
+      body: "[1, 2]",
+      isText: true,
+    });
+  });
+
+  test("200 seeded-random bodies come over as the API monitor sends them: JSON as JSON, the rest byte for byte", () => {
+    const random: SeededRandom = seededRandom(10787);
+    const alphabet: string = 'ab=&<>/{}[]":,0123 é日\n\t\\';
+
+    for (let round: number = 0; round < 200; round++) {
+      let body: string = "";
+
+      for (let index: number = 0; index < 1 + random(40); index++) {
+        body += alphabet.charAt(random(alphabet.length));
+      }
+
+      const monitor: ImportedMonitor = toHttpMonitor({
+        sourceId: String(round),
+        name: "Random",
+        sourceType: "http",
+        url: "https://example.com",
+        method: "POST",
+        body: body,
+        isPaused: false,
+      });
+      const json: string | null = readJsonBody(body);
+
+      expect({ round, body: monitor.requestBody }).toEqual({
+        round,
+        body: body.trim() ? (json ?? body) : undefined,
+      });
+      expect({ round, format: monitor.requestBodyFormat }).toEqual({
+        round,
+        format:
+          body.trim() && json === null
+            ? MonitorRequestBodyFormat.Text
+            : undefined,
+      });
+      expect(codes(monitor.notes)).toEqual([]);
+    }
   });
 
   test("a check that signs in says so, a paused one too, with the pace and wait it keeps", () => {

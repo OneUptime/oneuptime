@@ -343,11 +343,11 @@ export function splitRequestHeaders(
 }
 
 /*
- * A request body as an API monitor sends it: any JSON value - an object,
- * an array or a single value (MonitorRequestBody, #9737) - written back
- * compactly. Null for anything else (a form's fields, plain text, XML):
- * OneUptime's API monitors send JSON. Arrays and single values were left
- * out too, while the probe could send only an object.
+ * A request body as an API monitor sends it as JSON: any JSON value - an
+ * object, an array or a single value (MonitorRequestBody, #9737) - written
+ * back compactly. Null for anything else - a form's fields, plain text,
+ * XML - which an API monitor sends as text, byte for byte (#10787,
+ * readRequestBody).
  */
 export function readJsonBody(text: unknown): string | null {
   if (typeof text !== "string" || !text.trim()) {
@@ -359,6 +359,108 @@ export function readJsonBody(text: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+// The Content-Types a tool sends a body that is not JSON under (#10787).
+export const FORM_BODY_CONTENT_TYPE: string =
+  "application/x-www-form-urlencoded";
+export const XML_BODY_CONTENT_TYPE: string = "text/xml; charset=utf-8";
+
+// A request body as the API monitor sends what the tool sends.
+export interface ToolImportRequestBody {
+  body: string;
+  // JSON is the step's default, and goes unsaid; text is said.
+  isText: boolean;
+}
+
+/*
+ * The body a tool's check sends, as an API monitor sends it (#10787): JSON
+ * when it is JSON - unless the tool sends it as written whatever it holds
+ * (`isSentAsWritten`: Uptime Kuma's form and XML bodies) - and otherwise
+ * the text as the tool has it, byte for byte, so XML, form fields and
+ * plain text arrive as the tool sent them. Null for no body: none, or
+ * nothing but space.
+ */
+export function readRequestBody(
+  text: unknown,
+  options?: { isSentAsWritten?: boolean | undefined },
+): ToolImportRequestBody | null {
+  if (typeof text !== "string" || !text.trim()) {
+    return null;
+  }
+
+  const json: string | null = options?.isSentAsWritten
+    ? null
+    : readJsonBody(text);
+
+  return json === null ? { body: text, isText: true } : { body: json, isText: false };
+}
+
+// Whether headers name a Content-Type, in any case.
+export function namesContentType(headers: Dictionary<string>): boolean {
+  return Object.keys(headers).some((name: string): boolean => {
+    return name.trim().toLowerCase() === "content-type";
+  });
+}
+
+/*
+ * Form fields a tool holds as names and values - an object, or a list of
+ * { key | name, value } - written as a form sends them: a=1&b=2. Null when
+ * a value is not text, a number or a boolean, which no form field is.
+ */
+export function writeFormFields(fields: unknown): string | null {
+  const pairs: Array<[string, string]> = [];
+
+  const add: (name: unknown, value: unknown) => boolean = (
+    name: unknown,
+    value: unknown,
+  ): boolean => {
+    if (typeof name !== "string" || !name) {
+      return false;
+    }
+
+    if (value === null || value === undefined) {
+      pairs.push([name, ""]);
+      return true;
+    }
+
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    ) {
+      return false;
+    }
+
+    pairs.push([name, String(value)]);
+    return true;
+  };
+
+  if (Array.isArray(fields)) {
+    for (const field of fields) {
+      const record: Record<string, unknown> =
+        field && typeof field === "object" && !Array.isArray(field)
+          ? (field as Record<string, unknown>)
+          : {};
+
+      if (!add(record["key"] ?? record["name"], record["value"])) {
+        return null;
+      }
+    }
+  } else if (fields && typeof fields === "object") {
+    for (const name of Object.keys(fields as Record<string, unknown>)) {
+      if (
+        OBJECT_KEYS.includes(name) ||
+        !add(name, (fields as Record<string, unknown>)[name])
+      ) {
+        return null;
+      }
+    }
+  } else {
+    return null;
+  }
+
+  return pairs.length > 0 ? new URLSearchParams(pairs).toString() : null;
 }
 
 /*

@@ -9,6 +9,7 @@ import UptimeKumaAdapter, {
 import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import DnsRecordType from "../../../../Types/Monitor/DnsMonitor/DnsRecordType";
+import MonitorRequestBodyFormat from "../../../../Types/Monitor/MonitorRequestBodyFormat";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import {
   TOOL_IMPORT_MAX_RECORDS_PER_KIND,
@@ -172,6 +173,77 @@ describe("UptimeKumaAdapter: a backup", () => {
         timeout: 90,
       }),
     ]);
+  });
+
+  test("a body comes over as Uptime Kuma sends it: JSON as JSON, a form and XML as written, under their Content-Type (#10787)", () => {
+    const base: Record<string, unknown> = {
+      type: "http",
+      url: "https://api.example.com/submit",
+      method: "POST",
+      active: true,
+      interval: 60,
+      retryInterval: 60,
+      maxretries: 0,
+      timeout: 48,
+      upsideDown: false,
+      maxredirects: 10,
+      accepted_statuscodes: ["200-299"],
+      headers: null,
+      tags: [],
+      notificationIDList: {},
+    };
+    const snapshot: ToolImportSnapshot = readFile(
+      kumaBackupText([
+        { ...base, id: 101, name: "Form", body: "user=ops&remember=1", httpBodyEncoding: "form" },
+        { ...base, id: 102, name: "SOAP", body: "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>", httpBodyEncoding: "xml" },
+        // Its own Content-Type is the one Uptime Kuma sends: its headers win.
+        {
+          ...base,
+          id: 103,
+          name: "SOAP 1.2",
+          body: "<Ping/>",
+          httpBodyEncoding: "XML",
+          headers: JSON.stringify({ "content-type": "application/soap+xml" }),
+        },
+        // A form that reads as JSON is still sent as written.
+        { ...base, id: 104, name: "Form of JSON", body: '{"a": 1}', httpBodyEncoding: "form" },
+        { ...base, id: 105, name: "JSON", body: '{"a": 1}', httpBodyEncoding: "json" },
+        { ...base, id: 106, name: "Unset", body: "[1, 2]", httpBodyEncoding: null },
+        // An encoding Uptime Kuma does not know: read as any body is.
+        { ...base, id: 107, name: "Other", body: "plain", httpBodyEncoding: "constructor" },
+      ]),
+    );
+
+    expect(monitorOf(snapshot, "101")).toMatchObject({
+      monitorType: MonitorType.API,
+      requestBody: "user=ops&remember=1",
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+      requestHeaders: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    expect(monitorOf(snapshot, "102")).toMatchObject({
+      requestBody: "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>",
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+      requestHeaders: { "Content-Type": "text/xml; charset=utf-8" },
+    });
+    expect(monitorOf(snapshot, "103").requestHeaders).toEqual({
+      "content-type": "application/soap+xml",
+    });
+    expect(monitorOf(snapshot, "104")).toMatchObject({
+      requestBody: '{"a": 1}',
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+    });
+    expect(monitorOf(snapshot, "105").requestBody).toBe('{"a":1}');
+    expect(monitorOf(snapshot, "105").requestBodyFormat).toBeUndefined();
+    expect(monitorOf(snapshot, "106").requestBody).toBe("[1,2]");
+    expect(monitorOf(snapshot, "107")).toMatchObject({
+      requestBody: "plain",
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+    });
+    expect(monitorOf(snapshot, "107").requestHeaders).toBeUndefined();
+
+    for (const sourceId of ["101", "102", "103", "104", "105", "106", "107"]) {
+      expect(monitorOf(snapshot, sourceId).notes).toEqual([]);
+    }
   });
 
   test("keyword monitors look for the word, or for it missing; a JSON query is an API monitor without its query", () => {
