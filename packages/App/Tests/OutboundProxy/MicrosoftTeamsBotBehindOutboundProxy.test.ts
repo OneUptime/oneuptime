@@ -10,6 +10,7 @@ import {
 } from "Common/Server/Utils/Workspace/MicrosoftTeams/Botbuilder";
 import OutboundFetch from "Common/Server/Utils/OutboundFetch";
 import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import logger from "Common/Server/Utils/Logger";
 import {
   ACCESS_TOKEN,
   BOT_CONNECTOR_HOST,
@@ -698,6 +699,62 @@ describe("a message from Teams, when the proxy refuses", () => {
  * its adapter until this change. The same message, through the same proxy,
  * never reaches it.
  */
+/*
+ * The SDK's pipeline parses the proxy setting whenever it makes a client,
+ * and a value that is no URL used to fail there with Node's own error,
+ * whose input is the whole value, password included.
+ */
+describe("a message from Teams, when the proxy setting is no URL", () => {
+  test("the bot refuses the setting itself, answering Teams with a 500 and logging no password", async () => {
+    const errors: Array<string> = captureConsoleErrors();
+    const response: RecordingResponse = new RecordingResponse();
+
+    jest.mocked(logger.error).mockClear();
+    process.env["HTTPS_PROXY"] =
+      `http://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@[proxy.internal:3128`;
+
+    await MicrosoftTeamsUtil.processBotActivity(
+      request(
+        teamsMessage(),
+        signChannelToken({
+          key: createSigningKey("oneuptime-test-key"),
+          audience: APP_ID,
+          serviceUrl: SERVICE_URL,
+        }),
+      ),
+      response as unknown as ExpressResponse,
+    );
+
+    expect(response.statusCode).toBe(500);
+
+    const logged: Array<string> = [
+      ...errors,
+      ...jest
+        .mocked(logger.error)
+        .mock.calls.map((call: Array<unknown>): string => {
+          return call
+            .map((part: unknown): string => {
+              return part instanceof Error
+                ? `${part.message} ${JSON.stringify(part)}`
+                : String(part);
+            })
+            .join(" ");
+        }),
+    ];
+
+    expect(logged.join("\n")).toContain(
+      "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
+    );
+
+    for (const line of logged) {
+      expect(line).not.toContain(
+        encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password),
+      );
+      expect(line).not.toContain("proxy.internal");
+    }
+  });
+});
+
 describe("the SDK's own stacks, as the bot used them before", () => {
   test("fetch the keys around the proxy, so the message fails its token check", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();

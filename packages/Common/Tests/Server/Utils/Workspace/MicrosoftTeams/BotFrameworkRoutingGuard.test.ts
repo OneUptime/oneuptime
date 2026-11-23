@@ -84,6 +84,8 @@ const HOOKS: Record<string, Array<string>> = {
     "await BotFrameworkRouting.getTeamDetails(",
   ],
   [ROUTING]: [
+    // A proxy setting the SDK's pipeline cannot read, refused naming no password.
+    "BotFrameworkRouting.refuseProxySettingThePipelineCannotRead();",
     "BotFrameworkOpenIdMetadata.routeEveryDocument();",
     "new BotFrameworkCredentialsFactory(options),",
     "BotFrameworkRouting.getConnectorClientOptions(),",

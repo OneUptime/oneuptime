@@ -225,3 +225,90 @@ describe("@azure/core-rest-pipeline's own proxy policy, beside the bot's HttpCli
     );
   });
 });
+
+/*
+ * The policy parses the proxy setting whenever the SDK makes a client, so a
+ * value that is no URL fails there, before the bot's HttpClient is asked,
+ * with Node's own error, whose input is the whole value, password included
+ * (CloudAdapter writes it to the log). BotFrameworkRouting refuses a value
+ * like that itself, first, in words that name no password.
+ */
+describe("a proxy setting the pipeline cannot read", () => {
+  const UNREADABLE: string = `http://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@[proxy.internal:3128`;
+
+  test("fails the SDK's own client as it is made, with the whole value, password and all", () => {
+    process.env["HTTPS_PROXY"] = UNREADABLE;
+
+    let thrown: unknown = undefined;
+
+    try {
+      sdksConnector(`https://${BOT_CONNECTOR_HOST}/teams/`);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect((thrown as { code?: unknown }).code).toBe("ERR_INVALID_URL");
+    expect((thrown as { input?: unknown }).input).toBe(UNREADABLE);
+  });
+
+  test("is refused by the bot's authentication before the SDK reads it, naming no password", () => {
+    process.env["HTTPS_PROXY"] = UNREADABLE;
+
+    let thrown: unknown = undefined;
+
+    try {
+      BotFrameworkRouting.createAuthentication({});
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect((thrown as Error).message).toBe(
+      "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
+    );
+
+    // Nothing it carries holds the value: not its message, not a field.
+    const carried: string = [
+      (thrown as Error).message,
+      ...Object.values(thrown as Record<string, unknown>).map(
+        (value: unknown): string => {
+          return String(value);
+        },
+      ),
+    ].join(" ");
+
+    expect(carried).not.toContain(
+      encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password),
+    );
+    expect(carried).not.toContain("proxy.internal");
+  });
+
+  test.each([
+    ["ALL_PROXY, when HTTPS_PROXY is not set", "ALL_PROXY"],
+    ["HTTP_PROXY, when neither is", "HTTP_PROXY"],
+    ["https_proxy, in lower case", "https_proxy"],
+  ])(
+    "reads the setting the pipeline reads: %s",
+    (_name: string, variable: string) => {
+      process.env[variable] = UNREADABLE;
+
+      expect(() => {
+        BotFrameworkRouting.createAuthentication({});
+      }).toThrow("is not a URL.");
+    },
+  );
+
+  test("leaves alone a setting the pipeline never reads: HTTP_PROXY behind a readable HTTPS_PROXY", () => {
+    process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
+      3128,
+      RESERVED_CHARACTER_CREDENTIALS,
+    );
+    process.env["HTTP_PROXY"] = UNREADABLE;
+
+    expect(() => {
+      BotFrameworkRouting.createAuthentication({});
+    }).not.toThrow();
+    expect(() => {
+      sdksConnector(`https://${BOT_CONNECTOR_HOST}/teams/`);
+    }).not.toThrow();
+  });
+});

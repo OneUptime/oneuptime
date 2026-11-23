@@ -1,3 +1,4 @@
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import BotConnectorHttpClient from "./BotConnectorHttpClient";
 import BotFrameworkOpenIdMetadata from "./BotFrameworkOpenIdMetadata";
 import BotFrameworkCredentialsFactory from "./BotFrameworkTokenRequests";
@@ -47,6 +48,18 @@ import {
  *
  * With no proxy set at all, every request goes directly, as it did.
  */
+
+/*
+ * The proxy settings @azure/core-rest-pipeline's proxy policy reads for
+ * itself whenever the SDK makes a connector client, in this order, each in
+ * upper case first: the first one set is the one it reads.
+ */
+const PIPELINE_PROXY_VARIABLES: Array<string> = [
+  "HTTPS_PROXY",
+  "ALL_PROXY",
+  "HTTP_PROXY",
+];
+
 export default class BotFrameworkRouting {
   private static httpClient: BotConnectorHttpClient | null = null;
 
@@ -58,6 +71,7 @@ export default class BotFrameworkRouting {
   public static createAuthentication(
     options: ConfigurationBotFrameworkAuthenticationOptions,
   ): ConfigurationBotFrameworkAuthentication {
+    BotFrameworkRouting.refuseProxySettingThePipelineCannotRead();
     BotFrameworkOpenIdMetadata.routeEveryDocument();
 
     return new ConfigurationBotFrameworkAuthentication(
@@ -69,6 +83,36 @@ export default class BotFrameworkRouting {
       undefined,
       BotFrameworkRouting.getConnectorClientOptions(),
     );
+  }
+
+  /*
+   * The SDK's pipeline parses its proxy setting whenever it makes a
+   * client. The agent it makes of it is never used - BotConnectorHttpClient
+   * sends every request on the route's - but a value that is no URL fails
+   * the client before anything is sent, with Node's own error, whose input
+   * is the whole value, password included, and CloudAdapter writes that to
+   * the log. So a value like that is refused here first, in
+   * OutboundProxyAgents' words, which name no password.
+   */
+  private static refuseProxySettingThePipelineCannotRead(): void {
+    for (const name of PIPELINE_PROXY_VARIABLES) {
+      const value: string | undefined =
+        process.env[name] || process.env[name.toLowerCase()];
+
+      if (!value) {
+        continue;
+      }
+
+      try {
+        new URL(value);
+      } catch {
+        throw new BadDataException(
+          "The outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not a URL.",
+        );
+      }
+
+      return;
+    }
   }
 
   // What every connector client of the bot is made with: its HttpClient.
