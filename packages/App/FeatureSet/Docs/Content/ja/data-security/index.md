@@ -70,9 +70,9 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 自分で運用するデータベース | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
+| OneUptime | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス、セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫 | ログ、トレース、例外、セッションリプレイ、AI の会話、メトリクス |
 
-すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。
+すべてのデータストアに、その種類に当てはまるチェックが行われます。コンテンツをサンプリングできないデータストアもチェックされます: 公開されたバケットや暗号化されていないデータベースは、何を保持していても問題だからです。セキュリティイベント、ネットワークフロー、セキュリティアドレス保管庫は、OneUptime がセキュリティのために保持する独自のデータストアです: 宣言されたもので、スキャンもチェックもされません ( [OneUptime がセキュリティのために保持するデータストア](/docs/data-security/compliance#oneuptime-がセキュリティのために保持するデータストア) を参照)。
 
 ソースに載らなくなったデータストアは、履歴とともにアーカイブされ、そのオープンの問題は解決済みになります: データセキュリティのメニューの最後にある **アーカイブ済みのデータストア** に残ります。ソースに再び載ると、自動で戻ってきて、チェックがまだ不合格の問題は再びオープンになります。
 

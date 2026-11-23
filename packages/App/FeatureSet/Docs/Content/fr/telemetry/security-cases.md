@@ -159,7 +159,7 @@ Toute personne qui peut voir un dossier voit ce que OneUptime a constaté. Perso
 
 ### Bloquer une adresse depuis un dossier
 
-Une adresse publique sur laquelle porte le dossier a sa propre étape dans le **Plan de réponse**. Tant qu'une destination applique votre liste de blocage, comme Cloudflare, AWS WAF ou un pare-feu qui lit une liste, l'étape la nomme, comme dans « Bloquer 35.205.11.131 sur Cloudflare. » **Bloquer 24 heures** y bloque l'adresse, et le menu à côté propose **Défi à la place**, **Bloquer 7 jours** et **Bloquer jusqu'à sa levée**, que seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut choisir. Les personnes réussissent un défi ; les scripts et les clients API, non. Sur la page **Entités** du dossier, **Bloquer…** sur une adresse fait de même, et demande pour combien de temps.
+Une adresse publique sur laquelle porte le dossier a sa propre étape dans le **Plan de réponse**. Tant qu'une destination applique votre liste de blocage, comme Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) ou un pare-feu qui lit une liste, l'étape la nomme, comme dans « Bloquer 35.205.11.131 sur Cloudflare. » **Bloquer 24 heures** y bloque l'adresse, et le menu à côté propose **Défi à la place**, **Bloquer 7 jours** et **Bloquer jusqu'à sa levée**, que seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut choisir. Les personnes réussissent un défi ; les scripts et les clients API, non. Sur la page **Entités** du dossier, **Bloquer…** sur une adresse fait de même, et demande pour combien de temps.
 
 - Un blocage passe par le moteur de playbooks, comme le blocage d'un playbook : il est conservé sur la page **Playbooks** du dossier, dans sa **Chronologie** et dans le journal d'audit. Il attend l'approbation d'une autre personne, sauf si vous êtes Administrateur de la sécurité, Administrateur du projet ou Propriétaire du projet.
 - Il est refusé, avec la raison, pour une adresse que les requêtes du dossier n'ont fait que revendiquer, pour l'une de vos propres adresses ou une adresse protégée, et pour une adresse qu'un blocage couvre déjà.
@@ -253,7 +253,7 @@ Un Administrateur de la sécurité gère les champs personnalisés et les modèl
 
 ## Notifications
 
-OneUptime prévient les personnes concernées de six choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
+OneUptime prévient les personnes concernées de sept choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
 
 | Notification | Qui est prévenu | Par défaut |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime prévient les personnes concernées de six choses sur un dossier. Pers
 | Objectif de réponse d'un dossier de sécurité | Les personnes qui s'occupent du dossier : la personne à qui il est attribué et les membres de son équipe. Quand personne ne s'en occupe, les personnes prévenues des nouveaux dossiers de sa priorité | Par e-mail et par push |
 | Tâche d'un dossier de sécurité qui m'est attribuée | La personne à qui une tâche du dossier est confiée, sauf si elle l'a prise elle-même | Par e-mail et par push |
 | Étape d'un dossier de sécurité qui ne tient plus | Les personnes qui s'occupent du dossier, quand une étape que OneUptime a vue faite ne tient plus : la personne à qui il est attribué et les membres de son équipe. Quand personne ne s'en occupe, les personnes prévenues des nouveaux dossiers à sa priorité | Par e-mail et par push |
+| OneUptime AI a confié un dossier de sécurité à des personnes | Les personnes qui s'occupent du dossier, quand OneUptime AI cesse de le traiter et dit pourquoi : la personne à qui il est attribué et les membres de son équipe. Quand personne ne s'en occupe, les personnes prévenues des nouveaux dossiers à sa priorité | Par e-mail et par push |
 
 - Seules les personnes qui peuvent voir le dossier en sont prévenues : Propriétaire du projet, Administrateur du projet, et les rôles Administrateur de la sécurité, Membre de la sécurité et Lecteur de la sécurité. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
 - Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
 - Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
 - L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
-- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup). De même pour un objectif de réponse sur le point d'être manqué, ou manqué, et pour une étape qui ne tient plus.
+- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup). De même pour un objectif de réponse sur le point d'être manqué, ou manqué, pour une étape qui ne tient plus, et pour un dossier que OneUptime AI a confié à des personnes.
 - La **Chronologie** du dossier indique qui a été prévenu, et quand.
 
 ### Choisir ce dont vous êtes prévenu
@@ -303,7 +304,7 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 
 Chaque notification, sauf celle d'une tâche, est publiée dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
 
-L'étape **Mises à jour** d'une règle choisit lesquelles de ces notifications elle publie : **Nouveaux dossiers et hausses de priorité**, **Attributions**, **Approbations demandées** et **Objectifs de réponse**, une case chacune sous **Choisir les mises à jour**. **Mises à jour clés uniquement** les publie toutes sauf les attributions, pour un canal qui ne doit entendre que ce sur quoi quelqu'un doit agir. Une règle enregistrée avant l'étape, comme une nouvelle règle, publie toutes les notifications.
+L'étape **Mises à jour** d'une règle choisit lesquelles de ces notifications elle publie : **Nouveaux dossiers et hausses de priorité**, **Attributions**, **Approbations demandées**, **Objectifs de réponse** et **Dossiers confiés à des personnes par OneUptime AI**, une case chacune sous **Choisir les mises à jour**. **Mises à jour clés uniquement** les publie toutes sauf les attributions, pour un canal qui ne doit entendre que ce sur quoi quelqu'un doit agir. Une règle enregistrée avant l'étape, comme une nouvelle règle, publie toutes les notifications.
 
 ## Playbooks
 
@@ -392,6 +393,10 @@ Une étape peut attendre jusqu'à cinq résultats : choisissez chacun dans **Ex�
 ### Arrêter l'exécution
 
 **Arrêter l'exécution**, sous **Contrôle du déroulement**, met fin à l'exécution là où elle en est, comme réussie : les étapes suivantes sont sautées, chacune indiquant où l'exécution s'est arrêtée, et l'exécution réussit. Avec **Exécuter cette étape**, elle ne s'arrête qu'après un résultat : s'arrêter quand le renseignement sur les menaces n'a rien trouvé de connu comme malveillant, et sinon laisser s'exécuter les étapes de confinement en dessous. Ce que vous écrivez dans **Raison de l'arrêt** est indiqué dans la chronologie du dossier quand l'exécution s'arrête là. Elle n'a rien à approuver et n'échoue jamais : elle n'a donc ni **Approbation requise** ni **Continuer en cas d'échec**, et aucune étape ne peut l'attendre. Une étape d'arrêt qui s'exécute toujours termine chaque exécution : elle ne peut donc être que la dernière étape.
+
+### Envoyer un webhook
+
+**Envoyer un webhook** envoie le dossier en JSON à son **URL du webhook**, signé pour que le destinataire puisse vérifier qu'il vient de OneUptime. Un destinataire dont le certificat est auto-signé, ou signé par votre propre AC, est refusé tant que l'étape ne lui fait pas confiance : rien n'est envoyé, et l'étape échoue en disant quoi changer. Sous **Plus de champs**, collez le certificat qui l'a signé dans **Certificat de l'AC** : celui de l'AC, ou celui du destinataire lui-même s'il est auto-signé. L'étape vérifie alors le certificat du destinataire par rapport à lui, nom d'hôte et dates de validité compris, si bien qu'un serveur qui se fait seulement passer pour le destinataire est toujours refusé. N'activez **Autoriser les certificats auto-signés** que si vous ne pouvez pas en coller un : l'étape ne vérifie alors aucun certificat, si bien que toute personne sur le chemin réseau pourrait lire le dossier et modifier la réponse. Les deux sont désactivés par défaut, et l'un comme l'autre ne s'applique qu'à la requête de cette étape, jamais à une autre étape, à une autre requête de OneUptime ni à la connexion à un proxy sortant. Un destinataire doté d'un tel certificat se trouve généralement sur votre propre réseau, qu'un playbook n'atteint que si un administrateur auto-hébergé autorise les adresses de réseau privé pour les webhooks : voir [Webhooks et flux de travail](/docs/self-hosted/private-network-access#webhooks-et-flux-de-travail).
 
 ### Répondre avec OneUptime
 

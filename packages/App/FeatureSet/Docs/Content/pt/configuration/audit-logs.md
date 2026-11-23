@@ -78,6 +78,8 @@ Um recurso sem nome próprio recebe o nome do que o nomeia no OneUptime: uma exc
 
 Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recursos também têm a própria página **Registros de auditoria**, em uma seção recolhida do menu lateral deles, como **Avançado**. Ela lista só as entradas daquele recurso, junto com as do que pertence a ele: a página de um SLO mostra também as regras e os proprietários dele.
 
+As regras de um produto também têm uma página própria, no fim da seção do menu que as lista: **Registros de auditoria** em uma seção **Regras**, como **Incidentes → Regras → Registros de auditoria**, e **Registros de auditoria das regras** em uma seção **Configurações** que reúne regras de proprietário e de rótulos, como **Hosts → Configurações → Registros de auditoria das regras**. Ela lista todas as regras desse produto, incluindo as excluídas. As regras de runbook são um único tipo de regra para alertas, incidentes e eventos de manutenção, por isso o histórico delas fica em **Runbooks → Configurações → Registros de auditoria das regras**.
+
 ## O que é registrado
 
 Tudo o que as pessoas criam, alteram ou excluem em um projeto é registrado: monitores, incidentes, alertas, páginas de status, fluxos de trabalho e seus passos, filas, painéis, políticas de plantão, equipes e quem está nelas, chaves de API e cada configuração. **Tipo de recurso** diz do que trata uma entrada, por exemplo `Monitor`, `Workflow` ou `Queue`.

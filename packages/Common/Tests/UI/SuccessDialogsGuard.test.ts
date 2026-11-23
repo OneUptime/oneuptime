@@ -166,6 +166,12 @@ const NOTICES: Record<string, NoticeEntry> = {
     { count: 1, why: WHY.error },
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityCase/useSecurityCaseListActions.tsx":
     { count: 1, why: WHY.error },
+  /*
+   * What a web ACL's removal left in AWS WAF (#10344): it keeps blocking
+   * until the person deletes it there. Removing with nothing left is a toast.
+   */
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCloudWafs.tsx":
+    { count: 1, why: WHY.report },
   "packages/App/FeatureSet/Dashboard/src/Components/Sso/ProjectOidcProviders.tsx":
     { count: 1, why: WHY.copy },
   // A dashboard's identity provider values, to copy into the provider (#10250).

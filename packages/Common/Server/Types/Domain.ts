@@ -78,6 +78,8 @@ export default class Domain extends DomainCommon {
           useNodeHttpAdapter: true,
           httpAgent,
           httpsAgent,
+          // The agents go through the outbound proxy themselves.
+          disableProxy: true,
           // The URL the guard checked, whose host the agents dial.
           dispatchUrl: url.href,
         },

@@ -159,7 +159,7 @@ Chiunque possa vedere un caso vede ciò che OneUptime ha trovato. Nessuno lo mod
 
 ### Bloccare un indirizzo da un caso
 
-Un indirizzo pubblico di cui tratta il caso ha un passaggio tutto suo nel **Piano di risposta**. Finché una destinazione applica la tua blocklist, come Cloudflare, AWS WAF o un firewall che legge un elenco, il passaggio la nomina, come in "Blocca 35.205.11.131 su Cloudflare." **Blocca per 24 ore** blocca lì l'indirizzo, e il menu accanto contiene **Verifica invece**, **Blocca per 7 giorni** e **Blocca fino alla revoca**, che solo un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto può scegliere. Le persone superano una verifica, script e client API no. Nella pagina **Entità** del caso, **Blocca…** su un indirizzo fa lo stesso e chiede per quanto tempo.
+Un indirizzo pubblico di cui tratta il caso ha un passaggio tutto suo nel **Piano di risposta**. Finché una destinazione applica la tua blocklist, come Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) o un firewall che legge un elenco, il passaggio la nomina, come in "Blocca 35.205.11.131 su Cloudflare." **Blocca per 24 ore** blocca lì l'indirizzo, e il menu accanto contiene **Verifica invece**, **Blocca per 7 giorni** e **Blocca fino alla revoca**, che solo un Amministratore della sicurezza, un Amministratore del progetto o un Proprietario del progetto può scegliere. Le persone superano una verifica, script e client API no. Nella pagina **Entità** del caso, **Blocca…** su un indirizzo fa lo stesso e chiede per quanto tempo.
 
 - Un blocco passa dal motore dei playbook, come il blocco di un playbook: resta nella pagina **Playbook** del caso, nella sua **Cronologia** e nel log di audit. Attende l'approvazione di un'altra persona, a meno che tu non sia Amministratore della sicurezza, Amministratore del progetto o Proprietario del progetto.
 - Viene rifiutato, spiegando perché, per un indirizzo che le richieste del caso si limitavano a dichiarare, per uno dei tuoi indirizzi o uno protetto, e per uno che un blocco copre già.
@@ -253,7 +253,7 @@ Un Amministratore della sicurezza gestisce i campi personalizzati e i modelli di
 
 ## Notifiche
 
-OneUptime avvisa le persone di sei cose su un caso. Nessuno deve configurare nulla: un progetto che ha solo fatto clic su **Attiva quanto consigliato** viene avvisato dei suoi casi con priorità Alta e Critica via email e push.
+OneUptime avvisa le persone di sette cose su un caso. Nessuno deve configurare nulla: un progetto che ha solo fatto clic su **Attiva quanto consigliato** viene avvisato dei suoi casi con priorità Alta e Critica via email e push.
 
 | Notifica | Chi viene avvisato | Per impostazione predefinita |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime avvisa le persone di sei cose su un caso. Nessuno deve configurare nul
 | Obiettivo di risposta di un caso di sicurezza | Le persone che si occupano del caso: la persona a cui è assegnato e i membri del suo team. Se nessuno se ne occupa, le persone avvisate dei nuovi casi della sua priorità | Email e push |
 | Attività di un caso di sicurezza assegnata a me | La persona a cui viene affidata un'attività del caso, a meno che non l'abbia presa da sé | Email e push |
 | Passaggio di un caso di sicurezza che non regge più | Le persone che si occupano del caso, quando un passaggio che OneUptime ha visto fatto non regge più: la persona a cui è assegnato e i membri del suo team. Se nessuno se ne occupa, le persone avvisate dei nuovi casi con la sua priorità | Email e push |
+| OneUptime AI ha affidato un caso di sicurezza alle persone | Le persone che si occupano del caso, quando OneUptime AI smette di gestirlo e dice perché: la persona a cui è assegnato e i membri del suo team. Se nessuno se ne occupa, le persone avvisate dei nuovi casi con la sua priorità | Email e push |
 
 - Vengono avvisate solo le persone che possono vedere il caso: Proprietario del progetto, Amministratore del progetto e i ruoli Amministratore della sicurezza, Membro della sicurezza e Visualizzatore della sicurezza. Un ruolo limitato ad alcune etichette viene avvisato solo dei casi con quelle etichette.
 - Nessuno viene avvisato di ciò che ha fatto: chi apre un caso a mano, lo assegna o avvia un'esecuzione non riceve una notifica al riguardo.
 - Ogni persona viene avvisata di un caso una sola volta. Un caso che si apre con priorità Medium e poi sale a Critico raggiunge, quando sale, le persone che hanno scelto Alta e Critica o Solo Critica, e non di nuovo quelle che hanno scelto Media e superiori, già avvisate quando si è aperto.
 - L'attacco di prova di **Invia un attacco di prova** apre un caso che non avvisa nessuno.
-- Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup). Lo stesso vale per un obiettivo di risposta che sta per essere mancato, o è stato mancato, e per un passaggio che non regge più.
+- Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup). Lo stesso vale per un obiettivo di risposta che sta per essere mancato, o è stato mancato, per un passaggio che non regge più e per un caso che OneUptime AI ha affidato alle persone.
 - La **Cronologia** del caso indica chi è stato avvisato, e quando.
 
 ### Scegliere di cosa essere avvisati
@@ -303,7 +304,7 @@ Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sic
 
 Ogni notifica, tranne quella di un'attività, viene pubblicata nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **Alto** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
 
-Il passaggio **Aggiornamenti** di una regola sceglie quali di queste notifiche pubblica: **Nuovi casi e aumenti di priorità**, **Assegnazioni**, **Approvazioni richieste** e **Obiettivi di risposta**, una casella ciascuna sotto **Scegli gli aggiornamenti**. **Solo aggiornamenti chiave** le pubblica tutte tranne le assegnazioni, per un canale che deve sentire solo ciò su cui qualcuno deve agire. Una regola salvata prima del passaggio, come una nuova regola, pubblica ogni notifica.
+Il passaggio **Aggiornamenti** di una regola sceglie quali di queste notifiche pubblica: **Nuovi casi e aumenti di priorità**, **Assegnazioni**, **Approvazioni richieste**, **Obiettivi di risposta** e **Casi affidati alle persone da OneUptime AI**, una casella ciascuna sotto **Scegli gli aggiornamenti**. **Solo aggiornamenti chiave** le pubblica tutte tranne le assegnazioni, per un canale che deve sentire solo ciò su cui qualcuno deve agire. Una regola salvata prima del passaggio, come una nuova regola, pubblica ogni notifica.
 
 ## Playbook
 
@@ -392,6 +393,10 @@ Un passo può attendere fino a cinque risultati: scegli ciascuno in **Esegui que
 ### Fermare l'esecuzione
 
 **Ferma l'esecuzione**, in **Controllo del flusso**, termina l'esecuzione dove si trova, come completata: i passi successivi vengono saltati, ciascuno dicendo dove l'esecuzione si è fermata, e l'esecuzione riesce. Con **Esegui questo passaggio**, si ferma solo dopo un risultato: fermarsi quando la threat intel non ha trovato nulla di noto come dannoso, e altrimenti lasciare che vengano eseguiti i passi di contenimento sotto di esso. Ciò che scrivi in **Motivo dell'arresto** viene indicato nella cronologia del caso quando l'esecuzione si ferma lì. Non ha nulla da approvare e non fallisce mai, quindi non ha né **Richiede approvazione** né **Continua se fallisce**, e nessun passo può attenderlo. Uno che viene sempre eseguito termina ogni esecuzione, quindi può essere solo l'ultimo passo.
+
+### Inviare un webhook
+
+**Invia un webhook** invia il caso come JSON al suo **URL del webhook**, firmato perché il destinatario possa verificare che arriva da OneUptime. Un destinatario il cui certificato è autofirmato, o firmato dalla tua CA, viene rifiutato finché il passo non se ne fida: non viene inviato nulla, e il passo fallisce dicendo cosa cambiare. Apri **Altri campi** e incolla il certificato che lo ha firmato in **Certificato della CA**: quello della CA, o quello del destinatario stesso se è autofirmato. Il passo controlla allora il certificato del destinatario con esso, nome host e date di validità compresi, quindi un server che si spaccia soltanto per il destinatario viene comunque rifiutato. Attiva **Consenti certificati autofirmati** solo se non puoi incollarne uno: il passo allora non controlla alcun certificato, quindi chiunque sul percorso di rete potrebbe leggere il caso e modificare la risposta. Entrambi sono disattivati per impostazione predefinita, e l'uno e l'altro valgono solo per la richiesta di questo passo, mai per un altro passo, un'altra richiesta di OneUptime o la connessione a un proxy in uscita. Un destinatario con un certificato del genere di solito è sulla tua rete, che un playbook raggiunge solo quando un amministratore self-hosted consente gli indirizzi di rete privata per i webhook: vedi [Webhook e flussi di lavoro](/docs/self-hosted/private-network-access#webhook-e-flussi-di-lavoro).
 
 ### Rispondere con OneUptime
 

@@ -123,6 +123,8 @@ const TRIGGER_DESCRIPTIONS: Readonly<Record<string, string>> = {
   "Detection Added": "Started on its own for a new detection",
   "Triaged as Likely Malicious":
     "Started on its own when OneUptime AI read the case as likely malicious",
+  // A step OneUptime AI asks about while it works the case (#10352).
+  "OneUptime AI": "Started on its own by OneUptime AI, which is working the case",
 };
 
 export interface PlaybookTarget {

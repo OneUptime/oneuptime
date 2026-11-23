@@ -107,7 +107,7 @@ Disse indstillinger er foldet sammen under **Flere felter**. Den sammenfoldede o
 | Felt | Standard | Hvad det gør |
 | --- | --- | --- |
 | **Anmodningsheadere** | Ingen | Headere, der sendes, som par af navn og værdi. Klik på **Tilføj Anmodningsheader** for hver af dem. |
-| **Anmodningstekst (i JSON)** | Ingen | Et JSON-objekt, der sendes som brødtekst, som regel med **POST**, **PUT** eller **PATCH**. Det skal være gyldig JSON. |
+| **Anmodningstekst (i JSON)** | Ingen | Brødteksten, der sendes, som regel med **POST**, **PUT** eller **PATCH**: en hvilken som helst JSON-værdi, for eksempel et objekt, et array, en streng eller et tal. Den sendes, som du skriver den, som `application/json`, medmindre du angiver en `Content-Type` under **Anmodningsheadere**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt som formularfelter. |
 | **Følg ikke omdirigeringer** | Fra | Bedøm det første svar i stedet for at følge omdirigeringer. Se [nedenfor](#følg-ikke-omdirigeringer). |
 | **Tillad selvsignerede certifikater** | Fra | Spring valideringen af TLS-certifikatet over for monitorens eget værtsnavn. |
 | **Brug klientcertifikat (mTLS)** | Fra | Præsentér et klientcertifikat og en privat nøgle. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
@@ -242,6 +242,10 @@ API'et omdirigerede en anmodning med en brødtekst, eller med en anden metode en
 
 :::details Tjekket fejler med "Remote response exceeded the allowed size."
 Sonden læser højst 512 KiB af et svar, og dette er større. Kald et endpoint, der returnerer mindre, for eksempel med en mindre sidestørrelse.
+:::
+
+:::details Tjekket fejler med "Anmodningsteksten er ikke gyldig JSON, så anmodningen blev ikke sendt."
+Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monitor-secrets) er sat ind, så sonden sendte ikke anmodningen. Ret brødteksten under **Flere felter**, eller værdien af en hemmelighed, den bruger: en værdi med et `"` i ødelægger den JSON-streng, den står i.
 :::
 
 ## Næste skridt

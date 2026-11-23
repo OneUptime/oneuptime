@@ -159,7 +159,7 @@ Alle, der kan se en sag, ser, hvad OneUptime fandt. Ingen redigerer det: den, de
 
 ### Bloker en adresse fra en sag
 
-En offentlig adresse, som sagen handler om, har sit eget trin i **Responsplan**. Så længe en destination håndhæver din blokeringsliste, f.eks. Cloudflare, AWS WAF eller en firewall, der læser en liste, nævner trinnet den, som i "Blokér 35.205.11.131 hos Cloudflare." **Blokér i 24 timer** blokerer adressen dér, og menuen ved siden af rummer **Udfordr i stedet**, **Blokér i 7 dage** og **Blokér, indtil den ophæves**, som kun en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer kan vælge. Mennesker består en udfordring, scripts og API-klienter gør ikke. På sagens side **Entiteter** gør **Blokér…** ved en adresse det samme og spørger hvor længe.
+En offentlig adresse, som sagen handler om, har sit eget trin i **Responsplan**. Så længe en destination håndhæver din blokeringsliste, f.eks. Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) eller en firewall, der læser en liste, nævner trinnet den, som i "Blokér 35.205.11.131 hos Cloudflare." **Blokér i 24 timer** blokerer adressen dér, og menuen ved siden af rummer **Udfordr i stedet**, **Blokér i 7 dage** og **Blokér, indtil den ophæves**, som kun en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer kan vælge. Mennesker består en udfordring, scripts og API-klienter gør ikke. På sagens side **Entiteter** gør **Blokér…** ved en adresse det samme og spørger hvor længe.
 
 - En blokering går gennem playbook-motoren, som en playbooks blokering gør: den gemmes på sagens side **Playbooks**, på dens **Tidslinje** og i auditloggen. Den venter på en andens godkendelse, medmindre du er Sikkerhedsadministrator, Projektadministrator eller Projektejer.
 - Den afvises med en begrundelse for en adresse, som sagens anmodninger kun angav, for en af dine egne eller en beskyttet adresse og for en, som en blokering allerede dækker.
@@ -253,7 +253,7 @@ En Sikkerhedsadministrator administrerer de brugerdefinerede felter og noteskabe
 
 ## Notifikationer
 
-OneUptime giver folk besked om seks ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
+OneUptime giver folk besked om syv ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
 
 | Notifikation | Hvem får besked | Som standard |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime giver folk besked om seks ting på en sag. Ingen behøver at sætte no
 | Responsmål for sikkerhedssag | De personer, der er på sagen: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
 | Opgave i sikkerhedssag tildelt mig | Den person, en opgave på sagen gives til, medmindre vedkommende selv tog den | E-mail og push |
 | Trin i sikkerhedssag holder ikke længere | De personer, der er på sagen, når et trin, OneUptime så udført, ikke længere holder: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
+| OneUptime AI overdrog en sikkerhedssag til personer | De personer, der er på sagen, når OneUptime AI holder op med at arbejde med den og siger hvorfor: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
 
 - Kun personer, der kan se sagen, får besked om den: Projektejere, Projektadministratorer og rollerne Sikkerhedsadministrator, Sikkerhedsmedlem og Sikkerhedsseer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
 - Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
 - Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
 - Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
-- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet, og et trin, der ikke længere holder.
+- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet, et trin, der ikke længere holder, og en sag, som OneUptime AI har overdraget til personer.
 - Sagens **Tidslinje** viser, hvem der fik besked, og hvornår.
 
 ### Vælg, hvad du får besked om
@@ -303,7 +304,7 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Sikkerheds
 
 Alle notifikationer undtagen en opgaves slås op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
 
-En regels trin **Opdateringer** vælger, hvilke af disse meddelelser den slår op: **Nye sager og hævede prioriteter**, **Tildelinger**, **Ventende godkendelser** og **Responsmål**, ét flueben hver under **Vælg opdateringer**. **Kun vigtige opdateringer** slår dem alle op undtagen tildelingerne, til en kanal, der kun skal høre det, nogen skal handle på. En regel gemt før trinnet, og en ny regel, slår alle meddelelser op.
+En regels trin **Opdateringer** vælger, hvilke af disse meddelelser den slår op: **Nye sager og hævede prioriteter**, **Tildelinger**, **Ventende godkendelser**, **Responsmål** og **Overdraget til personer af OneUptime AI**, ét flueben hver under **Vælg opdateringer**. **Kun vigtige opdateringer** slår dem alle op undtagen tildelingerne, til en kanal, der kun skal høre det, nogen skal handle på. En regel gemt før trinnet, og en ny regel, slår alle meddelelser op.
 
 ## Playbooks
 
@@ -392,6 +393,10 @@ Et trin kan vente på op til fem resultater: Vælg hvert af dem i **Kør dette t
 ### Stop kørslen
 
 **Stop kørslen**, under **Flowstyring**, afslutter kørslen, hvor den er, som udført: Trinnene efter det springes over, og hvert af dem fortæller, hvor kørslen stoppede, og kørslen lykkes. Med **Kør dette trin** stopper det kun efter et resultat: stop, når trusselsinformationen ikke fandt noget kendt ondsindet, og lad ellers inddæmningstrinnene under det køre. Det, du skriver i **Grund til stop**, nævnes på sagens tidslinje, når kørslen stopper der. Det har intet at godkende og mislykkes aldrig, så det har hverken **Kræver godkendelse** eller **Fortsæt, hvis det mislykkes**, og intet trin kan vente på det. Et, der altid kører, afslutter hver kørsel og kan derfor kun være det sidste trin.
+
+### Send en webhook
+
+**Send en webhook** sender sagen som JSON til trinnets **Webhook-URL**, signeret, så modtageren kan kontrollere, at den kom fra OneUptime. En modtager, hvis certifikat den selv har signeret, eller som din egen CA har signeret, afvises, indtil trinnet stoler på den: intet sendes, og trinnet mislykkes og siger, hvad der skal ændres. Indsæt under **Flere felter** det certifikat, der har signeret det, i **CA-certifikat**: CA'ens, eller modtagerens eget, når det er selvsigneret. Trinnet kontrollerer så modtagerens certifikat mod det, værtsnavn og gyldighedsdatoer inklusive, så en server, der kun udgiver sig for at være modtageren, stadig afvises. Slå kun **Tillad selvsignerede certifikater** til, når du ikke kan indsætte et: trinnet kontrollerer så slet intet certifikat, så alle på netværksstien kan læse sagen og ændre svaret. Begge er slået fra som standard, og begge gælder kun for dette trins anmodning, aldrig for et andet trin, en anden anmodning fra OneUptime eller forbindelsen til en udgående proxy. En modtager med sådan et certifikat er som regel på dit eget netværk, og en playbook når det kun, hvis en administrator af en selvhostet installation tillader private netværksadresser for webhooks: se [Webhooks og arbejdsgange](/docs/self-hosted/private-network-access#webhooks-og-arbejdsgange).
 
 ### Reaktion gennem OneUptime
 

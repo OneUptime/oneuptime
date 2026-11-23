@@ -46,6 +46,7 @@ import useProjectRefusedTelemetry from "../../../Components/SecurityEvents/Refus
 import { getRefusedTelemetryWhileCaseOpen } from "../../../Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryModel";
 import { RefusedTelemetry } from "Common/Utils/SecurityEvent/RefusedTelemetry";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
@@ -191,6 +192,10 @@ const SecurityCaseOverviewPage: FunctionComponent<
         columns={4}
         isLaidOutByOwnWidth={true}
         ariaLabel="Case figures"
+        footer={
+          // Who opened the case and who last changed it (#10461).
+          <RecordActivityLine modelType={SecurityCase} recordId={view.caseId} />
+        }
       >
         <EventStatTile
           variant="segment"

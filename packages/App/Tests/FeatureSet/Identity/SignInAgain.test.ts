@@ -15,7 +15,9 @@
  *     back as its InResponseTo, in the signed assertion; its AuthnInstant
  *     says when the provider authenticated the person;
  *   - OpenID Connect: the authorization request carries prompt=login and
- *     max_age=0; the verified ID token's auth_time says when;
+ *     max_age=0 (prompt=login alone to Microsoft Entra ID, #10529); the
+ *     verified ID token's auth_time says when, read with a minute either
+ *     way for the two clocks;
  *   - a provider that reused its session (Okta with Honor Force
  *     Authentication off, Google, which takes no prompt=login) is refused as
  *     one, and one that does not say (Microsoft Entra ID without the
@@ -34,6 +36,8 @@ import SSOUtil, {
   VerifiedSamlResponse,
 } from "../../../FeatureSet/Identity/Utils/SSO";
 import OIDCUtil, {
+  ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS,
+  MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES,
   OidcCallbackResult,
 } from "../../../FeatureSet/Identity/Utils/OIDC";
 import { SamlServiceProvider } from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
@@ -681,6 +685,322 @@ describe("an OpenID Connect Sign In Again asks the provider to authenticate the 
       }
     });
   });
+
+  /*
+   * Microsoft Entra ID as a project's or the server's OpenID Connect
+   * provider (#10529): prompt=login alone. Microsoft documents prompt=login
+   * and no max_age, and two reports on Microsoft Q&A found max_age=0
+   * brought an ID token that had already expired; OneUptime judges
+   * auth_time itself, so max_age adds nothing there. Fixed from
+   * Microsoft's docs and those reports: no live tenant was asked.
+   */
+  describe("through Microsoft Entra ID", () => {
+    const TENANT_ID: string = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+
+    function entraClient(
+      issuer: string,
+      authorizationEndpoint: string,
+    ): Client {
+      const entra: Issuer<Client> = new Issuer({
+        issuer: issuer,
+        authorization_endpoint: authorizationEndpoint,
+        token_endpoint: authorizationEndpoint.replace(/authorize$/, "token"),
+        jwks_uri:
+          "https://login.microsoftonline.com/common/discovery/v2.0/keys",
+      });
+
+      return new entra.Client({
+        client_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        client_secret: "a-client-secret",
+        redirect_uris: [REDIRECT_URI],
+        response_types: ["code"],
+      });
+    }
+
+    function entraParams(
+      issuer: string,
+      authorizationEndpoint: string,
+      isSignInAgain?: boolean,
+    ): URLSearchParams {
+      const url: URL = OIDCUtil.generateAuthorizationUrl({
+        client: entraClient(issuer, authorizationEndpoint),
+        scopes: "openid email profile",
+        state: "state-abc",
+        nonce: "nonce-xyz",
+        codeChallenge: "challenge",
+        ...(isSignInAgain === undefined
+          ? {}
+          : { isSignInAgain: isSignInAgain }),
+      });
+
+      return new URLSearchParams(url.toString().split("?")[1] || "");
+    }
+
+    /*
+     * Each cloud's issuer and authorization endpoint as its own discovery
+     * documents name them, v2.0 and v1.0 (read from Microsoft on
+     * 2026-11-22), with a tenant's id for {tenantid}.
+     */
+    const CLOUDS: Array<[string, string, string]> = [
+      [
+        "the global service's v2.0 endpoint",
+        `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize`,
+      ],
+      [
+        "the global service's multi-tenant endpoint",
+        "https://login.microsoftonline.com/{tenantid}/v2.0",
+        "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+      ],
+      [
+        "the global service's v1.0 endpoint",
+        `https://sts.windows.net/${TENANT_ID}/`,
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/authorize`,
+      ],
+      [
+        "Entra ID for US Government's v2.0 endpoint",
+        `https://login.microsoftonline.us/${TENANT_ID}/v2.0`,
+        `https://login.microsoftonline.us/${TENANT_ID}/oauth2/v2.0/authorize`,
+      ],
+      [
+        "Entra ID for US Government's v1.0 endpoint",
+        `https://sts.windows.net/${TENANT_ID}/`,
+        `https://login.microsoftonline.us/${TENANT_ID}/oauth2/authorize`,
+      ],
+      [
+        "Entra ID operated by 21Vianet's v2.0 endpoint",
+        `https://login.partner.microsoftonline.cn/${TENANT_ID}/v2.0`,
+        `https://login.partner.microsoftonline.cn/${TENANT_ID}/oauth2/v2.0/authorize`,
+      ],
+      [
+        "Entra ID operated by 21Vianet's v1.0 endpoint",
+        `https://sts.chinacloudapi.cn/${TENANT_ID}/`,
+        `https://login.partner.microsoftonline.cn/${TENANT_ID}/oauth2/authorize`,
+      ],
+      [
+        "Entra ID operated by 21Vianet's older host",
+        `https://login.partner.microsoftonline.cn/${TENANT_ID}/v2.0`,
+        `https://login.chinacloudapi.cn/${TENANT_ID}/oauth2/v2.0/authorize`,
+      ],
+    ];
+
+    test.each(CLOUDS)(
+      "Sign In Again sends %s prompt=login alone: no max_age",
+      (_cloud: string, issuer: string, authorizationEndpoint: string) => {
+        const params: URLSearchParams = entraParams(
+          issuer,
+          authorizationEndpoint,
+          true,
+        );
+
+        expect(params.getAll("prompt")).toEqual(["login"]);
+        expect(params.has("max_age")).toBe(false);
+        // Nor Google's claims request: Entra ID adds auth_time as an optional claim.
+        expect(params.has("claims")).toBe(false);
+        expect(params.get("state")).toBe("state-abc");
+        expect(params.get("nonce")).toBe("nonce-xyz");
+        expect(params.get("code_challenge_method")).toBe("S256");
+      },
+    );
+
+    test.each(CLOUDS)(
+      "any other sign-in through %s asks as it always did",
+      (_cloud: string, issuer: string, authorizationEndpoint: string) => {
+        for (const params of [
+          entraParams(issuer, authorizationEndpoint),
+          entraParams(issuer, authorizationEndpoint, false),
+        ]) {
+          expect(params.has("prompt")).toBe(false);
+          expect(params.has("max_age")).toBe(false);
+        }
+      },
+    );
+
+    test("every Microsoft identity platform host is Entra ID, as its issuer or as where the person is sent, in any case", () => {
+      const notMicrosoft: string = "https://idp.example.com/oauth2/authorize";
+
+      for (const hostname of MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES) {
+        for (const [issuer, authorizationEndpoint] of [
+          [`https://${hostname}/${TENANT_ID}/v2.0`, notMicrosoft],
+          [`https://${hostname.toUpperCase()}/${TENANT_ID}/`, notMicrosoft],
+          [`${hostname}/${TENANT_ID}`, notMicrosoft],
+          [
+            "https://idp.example.com",
+            `https://${hostname}/${TENANT_ID}/oauth2/v2.0/authorize`,
+          ],
+        ] as Array<[string, string]>) {
+          expect({
+            issuer,
+            authorizationEndpoint,
+            isEntraId: OIDCUtil.isMicrosoftEntraId(
+              entraClient(issuer, authorizationEndpoint),
+            ),
+            maxAge: entraParams(issuer, authorizationEndpoint, true).get(
+              "max_age",
+            ),
+          }).toEqual({
+            issuer,
+            authorizationEndpoint,
+            isEntraId: true,
+            maxAge: null,
+          });
+        }
+      }
+    });
+
+    test("names every host of Microsoft's national clouds page and of its instance discovery, and nothing else", () => {
+      expect([...MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES].sort()).toEqual(
+        [
+          // "Microsoft Entra authentication & national clouds".
+          "login.microsoftonline.com",
+          "login.microsoftonline.us",
+          "login.partner.microsoftonline.cn",
+          // The aliases Microsoft's instance discovery gives each cloud.
+          "login.windows.net",
+          "login.microsoft.com",
+          "sts.windows.net",
+          "login.usgovcloudapi.net",
+          "login-us.microsoftonline.com",
+          "login.chinacloudapi.cn",
+          "login.microsoftonline.de",
+          // 21Vianet's v1.0 issuer.
+          "sts.chinacloudapi.cn",
+        ].sort(),
+      );
+    });
+
+    test("a provider whose address only looks like Microsoft's is asked for max_age=0, as any other", () => {
+      for (const [issuer, authorizationEndpoint] of [
+        [
+          "https://login.microsoftonline.com.evil.example/x/v2.0",
+          "https://login.microsoftonline.com.evil.example/x/oauth2/v2.0/authorize",
+        ],
+        [
+          "https://evil.example/login.microsoftonline.com/v2.0",
+          "https://evil.example/authorize?host=login.microsoftonline.com",
+        ],
+        [
+          "https://notlogin.microsoftonline.com/x/v2.0",
+          "https://notlogin.microsoftonline.com/x/oauth2/v2.0/authorize",
+        ],
+        [
+          "https://login.microsoftonline.community/x/v2.0",
+          "https://login.microsoftonline.community/x/oauth2/v2.0/authorize",
+        ],
+        [
+          "https://login-microsoftonline.com/x/v2.0",
+          "https://login-microsoftonline.com/x/oauth2/v2.0/authorize",
+        ],
+        ["not a URL at all", "https://idp.example.com/authorize"],
+      ] as Array<[string, string]>) {
+        expect({
+          issuer,
+          maxAge: entraParams(issuer, authorizationEndpoint, true).get(
+            "max_age",
+          ),
+          prompt: entraParams(issuer, authorizationEndpoint, true).get(
+            "prompt",
+          ),
+        }).toEqual({ issuer, maxAge: "0", prompt: "login" });
+      }
+    });
+
+    /*
+     * Their hosts are a tenant's own (contoso.ciamlogin.com,
+     * contoso.b2clogin.com) or a custom domain, and neither is reported to
+     * answer max_age=0 so: they are asked as any other provider. A token
+     * cut short anyway is still read inside the minute the two clocks are
+     * allowed (ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS).
+     */
+    test("Entra External ID and Azure AD B2C, on a tenant's own host, keep max_age=0", () => {
+      for (const [issuer, authorizationEndpoint] of [
+        [
+          `https://${TENANT_ID}.ciamlogin.com/${TENANT_ID}/v2.0`,
+          "https://contoso.ciamlogin.com/contoso.onmicrosoft.com/oauth2/v2.0/authorize",
+        ],
+        [
+          `https://contoso.b2clogin.com/${TENANT_ID}/v2.0/`,
+          "https://contoso.b2clogin.com/contoso.onmicrosoft.com/b2c_1_signin/oauth2/v2.0/authorize",
+        ],
+      ] as Array<[string, string]>) {
+        expect({
+          issuer,
+          maxAge: entraParams(issuer, authorizationEndpoint, true).get(
+            "max_age",
+          ),
+        }).toEqual({ issuer, maxAge: "0" });
+      }
+    });
+
+    test("Okta, Keycloak, Auth0 and Google are still asked for max_age=0", () => {
+      for (const [issuer, authorizationEndpoint] of [
+        [
+          "https://dev-12345678.okta.com/oauth2/default",
+          "https://dev-12345678.okta.com/oauth2/default/v1/authorize",
+        ],
+        [
+          "https://keycloak.example.com/realms/acme",
+          "https://keycloak.example.com/realms/acme/protocol/openid-connect/auth",
+        ],
+        ["https://acme.eu.auth0.com/", "https://acme.eu.auth0.com/authorize"],
+        [
+          "https://accounts.google.com",
+          "https://accounts.google.com/o/oauth2/v2/auth",
+        ],
+      ] as Array<[string, string]>) {
+        expect({
+          issuer,
+          maxAge: entraParams(issuer, authorizationEndpoint, true).get(
+            "max_age",
+          ),
+          prompt: entraParams(issuer, authorizationEndpoint, true).get(
+            "prompt",
+          ),
+        }).toEqual({ issuer, maxAge: "0", prompt: "login" });
+      }
+    });
+
+    /*
+     * The client the sign-in routes make (createClient), from a discovery
+     * document that names Entra ID's issuer, as Entra ID's does: what the
+     * project's and the server's OpenID Connect routes send.
+     */
+    test("a provider discovered as Entra ID is sent prompt=login alone", async () => {
+      const idp: TestIdp = await startTestIdp({
+        clientId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        issuerOverride: `https://login.microsoftonline.com/${TENANT_ID}/v2.0`,
+      });
+
+      try {
+        const client: Client = await OIDCUtil.createClient({
+          discoveryURL: URL.fromString(idp.issuerUrl),
+          clientId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          clientSecret: "a-client-secret",
+          redirectUri: URL.fromString(REDIRECT_URI),
+          scopes: "openid email profile",
+        });
+
+        const params: URLSearchParams = new URLSearchParams(
+          OIDCUtil.generateAuthorizationUrl({
+            client: client,
+            scopes: "openid email profile",
+            state: "state-abc",
+            nonce: "nonce-xyz",
+            codeChallenge: "challenge",
+            isSignInAgain: true,
+          })
+            .toString()
+            .split("?")[1] || "",
+        );
+
+        expect(OIDCUtil.isMicrosoftEntraId(client)).toBe(true);
+        expect(params.getAll("prompt")).toEqual(["login"]);
+        expect(params.has("max_age")).toBe(false);
+      } finally {
+        await idp.close();
+      }
+    });
+  });
 });
 
 describe("what an OpenID Connect ID token proves", () => {
@@ -703,9 +1023,13 @@ describe("what an OpenID Connect ID token proves", () => {
   /*
    * Signs the person in through a real provider on a loopback socket, whose
    * ID token carries `claims`, and judges it as the callback does: sent
-   * there by Sign In Again thirty seconds ago.
+   * there by Sign In Again thirty seconds ago. `withClient` sees the client
+   * the routes make (createClient) before the callback uses it.
    */
-  async function outcomeOf(claims: JSONObject): Promise<{
+  async function outcomeOf(
+    claims: JSONObject,
+    withClient?: (client: Client) => void,
+  ): Promise<{
     outcome: SessionSignInAgain | undefined;
     result: OidcCallbackResult;
     now: Date;
@@ -725,6 +1049,7 @@ describe("what an OpenID Connect ID token proves", () => {
     });
     removeEgressGuardHook(client);
     removeEgressGuardHook(client.issuer);
+    withClient?.(client);
 
     const state: string = OIDCUtil.generateState();
     const result: OidcCallbackResult = await OIDCUtil.exchangeCodeAndValidate({
@@ -807,6 +1132,131 @@ describe("what an OpenID Connect ID token proves", () => {
     });
 
     expect(outcome).toEqual({ reauthenticatedAt: new Date(authTime * 1000) });
+  });
+
+  /*
+   * THE ID TOKEN max_age=0 WAS REPORTED TO BRING (#10529). Microsoft Q&A
+   * quotes one: iat and nbf 297 seconds before auth_time, exp 3 seconds
+   * after it, received a second after exp. Sign In Again sends Entra ID
+   * no max_age now, so it should not send one; one that comes anyway - from
+   * Entra ID, or a provider that cuts a token short the same way - is read
+   * with the minute either way the two clocks are allowed, as Sign in with
+   * Microsoft reads its own, and judged by its auth_time, never its iat.
+   */
+  describe("an ID token shaped like the one max_age=0 was reported to bring", () => {
+    const ENTRA_CLAIMS: JSONObject = {
+      oid: "00000000-0000-0000-66f3-3332eca7ea81",
+      tid: "9188040d-6c67-4c5b-b112-36a304b66dad",
+      ver: "2.0",
+      name: "Abe Lincoln",
+      email: "abe.lincoln@contoso.com",
+    };
+
+    // The report's shape, its auth_time `secondsBefore` the callback reads it.
+    const reportedShape: (authTime: number) => JSONObject = (
+      authTime: number,
+    ): JSONObject => {
+      return {
+        ...ENTRA_CLAIMS,
+        iat: authTime - 297,
+        nbf: authTime - 297,
+        exp: authTime + 3,
+        auth_time: authTime,
+      };
+    };
+
+    test("read a second after its exp, as the report read it, still signs the person in, and confirms them from auth_time", async () => {
+      const authTime: number = secondsAgo(4);
+      const { outcome, result } = await outcomeOf(reportedShape(authTime));
+
+      expect(result.email.toString()).toBe("abe.lincoln@contoso.com");
+      expect(result.rawClaims["exp"]).toBe(authTime + 3);
+      expect(outcome).toEqual({ reauthenticatedAt: new Date(authTime * 1000) });
+    });
+
+    test("openid-client's own tolerance, no second, failed the whole sign-in with that token", async () => {
+      await expect(
+        outcomeOf(reportedShape(secondsAgo(4)), (client: Client) => {
+          client[custom.clock_tolerance] = 0;
+        }),
+      ).rejects.toThrow(/JWT expired/);
+    });
+
+    test("the client the sign-in routes make allows the two clocks a minute, as Sign In Again allows them", async () => {
+      let tolerance: number | null = null;
+
+      await outcomeOf(reportedShape(secondsAgo(4)), (client: Client) => {
+        tolerance = client[custom.clock_tolerance];
+      });
+
+      expect(tolerance).toBe(ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS);
+      expect(ID_TOKEN_CLOCK_TOLERANCE_IN_SECONDS).toBe(
+        SIGN_IN_AGAIN_CLOCK_SKEW_IN_SECONDS,
+      );
+    });
+
+    test("read more than a minute after its exp, it is refused: an ID token that old is not this sign-in's", async () => {
+      await expect(outcomeOf(reportedShape(secondsAgo(64)))).rejects.toThrow(
+        /JWT expired/,
+      );
+    });
+
+    test("a provider clock half a minute ahead still signs the person in, and confirms them from now, never from a time to come", async () => {
+      const ahead: number = secondsAgo(-30);
+      const { outcome, now } = await outcomeOf({
+        ...ENTRA_CLAIMS,
+        iat: ahead,
+        nbf: ahead,
+        exp: ahead + 3600,
+        auth_time: ahead,
+      });
+
+      expect(outcome).toEqual({ reauthenticatedAt: now });
+    });
+
+    test("one not valid for another minute and a half is refused", async () => {
+      const ahead: number = secondsAgo(-90);
+
+      await expect(
+        outcomeOf({
+          ...ENTRA_CLAIMS,
+          iat: ahead,
+          nbf: ahead,
+          exp: ahead + 3600,
+          auth_time: ahead,
+        }),
+      ).rejects.toThrow(/JWT not active yet/);
+    });
+
+    /*
+     * prompt=login alone holds Entra ID to nothing OneUptime trusts: an
+     * auth_time from before Sign In Again sent the person is still a
+     * session it reused, however freshly the token was issued.
+     */
+    test("Entra ID, sent prompt=login alone, answering with its session from ten minutes before: refused as a reused session", async () => {
+      const { outcome, result } = await outcomeOf({
+        ...ENTRA_CLAIMS,
+        iat: secondsAgo(300),
+        nbf: secondsAgo(300),
+        exp: secondsAgo(-3600),
+        auth_time: secondsAgo(600),
+      });
+
+      // Signed in all the same: Entra ID vouched for them.
+      expect(result.email.toString()).toBe("abe.lincoln@contoso.com");
+      expect(outcome).toEqual({ refusal: SignInAgainRefusal.ReusedSession });
+    });
+
+    test("nor does its iat stand in for an auth_time it leaves out", async () => {
+      const { outcome } = await outcomeOf({
+        ...ENTRA_CLAIMS,
+        iat: secondsAgo(2),
+        nbf: secondsAgo(2),
+        exp: secondsAgo(-3600),
+      });
+
+      expect(outcome).toEqual({ refusal: SignInAgainRefusal.NoSignInTime });
+    });
   });
 
   test("an auth_time of no second since the epoch is no time", async () => {

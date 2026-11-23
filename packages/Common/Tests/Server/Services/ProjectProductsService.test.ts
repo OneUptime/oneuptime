@@ -46,7 +46,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 
 import { DATA_OBSERVABILITY_KINDS } from "../../../Server/Utils/DataObservability/DataObservabilityEngines";
 import { OBJECT_STORE_KINDS } from "../../../Types/DataObservability/StoragePaths";
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DECLARED_DATA_STORE_KINDS,
+  DataStoreKind,
+} from "../../../Types/DataSecurity/DataStoreKind";
 import ProjectProductsService, {
   CHOOSE_PRODUCTS_PERMISSIONS,
   PRODUCT_RECORD_MODELS,
@@ -368,10 +371,21 @@ describe("the products each product counts", () => {
     expect(DATA_OBSERVABILITY_KINDS).not.toContain(DataStoreKind.AwsS3Bucket);
   });
 
-  test("Data Security counts every data store, none archived", () => {
+  test("Data Security counts every data store, none archived, but the ones OneUptime declares", () => {
     expect(getUsageStatement()).toContain(
-      `(EXISTS (SELECT 1 FROM "DataStore" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false))) AS "${ProductKey.DataSecurity}"`,
+      `(EXISTS (SELECT 1 FROM "DataStore" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false AND "kind" NOT IN ('Security Events', 'Network Flows', 'Security Address Vault')))) AS "${ProductKey.DataSecurity}"`,
     );
+
+    // Every kind OneUptime declares (#10398) is left out, and only those.
+    for (const kind of DECLARED_DATA_STORE_KINDS) {
+      expect(
+        PRODUCT_USAGE_RECORDS[ProductKey.DataSecurity]![0]!.where,
+      ).toContain(`'${kind}'`);
+    }
+
+    expect(
+      PRODUCT_USAGE_RECORDS[ProductKey.DataSecurity]![0]!.where,
+    ).not.toContain(`'${DataStoreKind.TelemetryLogs}'`);
   });
 
   test("Security Events counts a source it reads that is on: a connection, your logs, your other data", () => {

@@ -66,6 +66,12 @@ import {
   getSecurityCaseEventEvidenceName,
   readSecurityCaseEventReferences,
 } from "Common/Types/SecurityCase/SecurityCaseEventEvidence";
+import { DETECTION_LATE_EVENT_WINDOW_IN_MINUTES } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import {
+  SECURITY_EVENT_ARRIVAL_QUERY_KEY,
+  floorToSecond,
+  readSecurityEventArrivalRange,
+} from "Common/Types/SecurityEvent/SecurityEventArrival";
 import {
   SECURITY_HUNT_RUN_ERRORS,
   SecurityHuntSchedule,
@@ -170,9 +176,42 @@ function conditionMatches(actual, condition) {
   return asText(actual) === String(condition);
 }
 
+/*
+ * Whether a read of what arrived counts an event (#10488), by the condition
+ * the server compiles the read's synthetic key to
+ * (Server/Utils/SecurityEvent/DetectionArrivalRead): it reached OneUptime
+ * after the range's start and by its end, within a day of when it happened.
+ * The month's events arrived as they happened unless they say when they
+ * arrived (createdAt); a range that does not read as one matches nothing.
+ */
+function arrivedInRange(event, value) {
+  const range = readSecurityEventArrivalRange(value);
+
+  if (!range) {
+    return false;
+  }
+
+  const arrivedAt = floorToSecond(
+    new Date(event.createdAt || event.time),
+  ).getTime();
+  const happenedAt = new Date(event.time).getTime();
+
+  return (
+    arrivedAt > range.arrivedAfter.getTime() &&
+    arrivedAt <= range.arrivedUntil.getTime() &&
+    happenedAt >= arrivedAt - DETECTION_LATE_EVENT_WINDOW_IN_MINUTES * 60 * 1000
+  );
+}
+
 export function eventMatches(event, query) {
   for (const [key, condition] of Object.entries(query || {})) {
     if (key === "projectId") {
+      continue;
+    }
+    if (key === SECURITY_EVENT_ARRIVAL_QUERY_KEY) {
+      if (!arrivedInRange(event, condition)) {
+        return false;
+      }
       continue;
     }
     if (key === "attributes") {

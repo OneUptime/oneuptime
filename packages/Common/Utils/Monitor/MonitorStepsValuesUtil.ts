@@ -6,6 +6,7 @@ import MonitorStep from "../../Types/Monitor/MonitorStep";
 import MonitorStepRollingTime from "../../Types/Monitor/MonitorStepRollingTime";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitorRequestBody from "./MonitorRequestBody";
 
 /*
  * A monitor's (or template's) steps written with a value its checks cannot
@@ -24,6 +25,11 @@ import MonitorType from "../../Types/Monitor/MonitorType";
  * (MonitorStep.fromJSON, MonitorCriteriaInstance.fromJSON) stores it as
  * the one it means. One that means none is refused, with the values it
  * can take (MonitorStepRollingTime, CriteriaFilterValues).
+ *
+ * An API monitor's request body is refused the same way when it is not
+ * JSON, whatever its {{...}} placeholders hold: the probe could not send it,
+ * and every check would fail (MonitorRequestBody, #9737). Any JSON value is
+ * one - an object, an array or a single value - as the monitor form says.
  */
 export default class MonitorStepsValuesUtil {
   /*
@@ -60,6 +66,16 @@ export default class MonitorStepsValuesUtil {
 
       if (rollingTimeError) {
         return rollingTimeError;
+      }
+
+      const requestBodyError: string | null =
+        MonitorRequestBody.getUnreadableError({
+          monitorType: data.monitorType,
+          requestBody: step?.data?.requestBody,
+        });
+
+      if (requestBodyError) {
+        return requestBodyError;
       }
 
       const criteriaInstances: Array<MonitorCriteriaInstance> =

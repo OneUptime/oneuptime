@@ -1069,7 +1069,7 @@ A cloud writes a great deal nobody reads. The first time a project's OpenStack l
 | **OpenStack: health checks** | A load balancer asking each API for `/` or `/healthcheck`: a line every few seconds, per API, per controller | At one check every 2 seconds, 43,200 lines a day for each API on each controller. At the 220 to 490 bytes these lines were on our test clouds, that's 10 to 21 MB a day. This is arithmetic from the size of a line: our test clouds have no load balancer | Nothing a person reads. The same line from a person looks the same |
 | **OpenStack: routine notifications** | `metrics.update`, and every `*.exists` and `*.usage`. See [Lifecycle events](#lifecycle-events) | Not measured: our recordings are too short to hold many. It grows with the number of instances | Nothing that says anything changed. Turn this off to keep every notification |
 
-These filters match only what OneUptime read from a cloud's logs, so nothing else in a project is touched.
+These filters match only what OneUptime read from a cloud's logs, so nothing else in a project is touched. As OneUptime made them, they keep every line [Security Events](/docs/telemetry/security-events) reads: a sign-in, an attack in a request, an audit record. Change one, and it drops what it matches, like a filter of your own.
 
 ### Secrets in logs
 

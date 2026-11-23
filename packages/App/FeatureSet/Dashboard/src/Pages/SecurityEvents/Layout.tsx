@@ -9,11 +9,17 @@ import PageComponentProps from "../PageComponentProps";
 import SecurityEventsSideMenu from "./SideMenu";
 import Page from "Common/UI/Components/Page/Page";
 import Navigation from "Common/UI/Utils/Navigation";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import { Outlet } from "react-router-dom";
-import { TelemetryIngestionBudgetExplorerBanner } from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
+import {
+  TelemetryIngestionBudgetExplorerBanner,
+  fetchProjectTelemetryIngestionBudgetStatus,
+} from "../../Components/TelemetryIngestionBudget/ProjectTelemetryIngestionBudget";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
-import SecurityEventsReadBudgetBanners from "../../Components/SecurityEvents/RefusedTelemetry/SecurityEventsReadBudgetBanners";
+import { TelemetryIngestionBudgetStatus } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import SecurityEventsReadBudgetBanners, {
+  shareOneBudgetsRead,
+} from "../../Components/SecurityEvents/RefusedTelemetry/SecurityEventsReadBudgetBanners";
 import ProductAboutButton from "../../Components/ProductOnboarding/ProductAboutButton";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
@@ -29,6 +35,15 @@ const SecurityEventsLayout: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
+
+  /*
+   * One read of the project's budgets for every banner over the page: its
+   * own budget's and those of the logs and traces it reads (#10431).
+   */
+  const readBudgets: () => Promise<TelemetryIngestionBudgetStatus> =
+    useMemo((): (() => Promise<TelemetryIngestionBudgetStatus>) => {
+      return shareOneBudgetsRead(fetchProjectTelemetryIngestionBudgetStatus);
+    }, []);
 
   return (
     <Page
@@ -46,13 +61,14 @@ const SecurityEventsLayout: FunctionComponent<
       {/* Only while today's Security Events budget is past its warning or used up. */}
       <TelemetryIngestionBudgetExplorerBanner
         signal={ProductType.SecurityEvents}
+        fetchStatus={readBudgets}
       />
       {/*
        * And the logs' while Your logs is on, the traces' while the Traces
        * source is (#10431): a used-up budget there refuses what Security
        * Events reads.
        */}
-      <SecurityEventsReadBudgetBanners />
+      <SecurityEventsReadBudgetBanners fetchStatus={readBudgets} />
       <Outlet />
     </Page>
   );

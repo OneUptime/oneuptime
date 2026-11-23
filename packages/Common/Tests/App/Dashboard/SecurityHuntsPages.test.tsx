@@ -263,6 +263,7 @@ import SecurityHuntRun from "../../../Models/DatabaseModels/SecurityHuntRun";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
+import RecordActorType from "../../../Types/Database/RecordActor";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Email from "../../../Types/Email";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -1445,6 +1446,65 @@ describe("a hunt's page", () => {
     expect(
       await screen.findByText("The server is unavailable."),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Who saved the hunt and who last changed it (#10461): its line, under
+   * what its header says, and above the notice of a changed search, which
+   * stays right over the search bar it was made in.
+   */
+  test("its header says who saved the hunt and who last changed it", async () => {
+    jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
+    stored = hunt({
+      createdAt: new Date(Date.now() - 48 * HOUR),
+      createdByActorType: RecordActorType.User,
+      createdByUser: person(MAYA, "Maya Chen"),
+      lastModifiedAt: new Date(Date.now() - 2 * HOUR),
+      lastModifiedByActorType: RecordActorType.User,
+      lastModifiedByUser: person(MAYA, "Maya Chen"),
+    });
+
+    await renderHunt();
+
+    const header: HTMLElement = screen.getByTestId(HUNTS_TEST_IDS.header);
+
+    expect(
+      await within(header).findByTestId("detail-created-by"),
+    ).toHaveTextContent("Created by Maya Chen");
+    expect(
+      within(header).getByTestId("detail-last-modified-by"),
+    ).toHaveTextContent("Last modified by Maya Chen");
+    expect(within(header).getAllByTestId("detail-record-line")).toHaveLength(1);
+    // Read by the hunt's own ID, for those columns alone.
+    expect(ModelAPI.getItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: SecurityHunt,
+        id: new ObjectID(HUNT_ID),
+        select: expect.objectContaining({
+          createdAt: true,
+          createdByActorType: true,
+          lastModifiedAt: true,
+          lastModifiedByActorType: true,
+        }),
+      }),
+    );
+  });
+
+  test("the hunt's line stays above the notice of a changed search", async () => {
+    await renderHunt();
+
+    fireEvent.click(screen.getByTestId("viewer-change-search"));
+
+    const notice: HTMLElement = await screen.findByTestId(
+      HUNTS_TEST_IDS.changed,
+    );
+    const line: HTMLElement = within(
+      screen.getByTestId(HUNTS_TEST_IDS.header),
+    ).getByTestId("detail-record-line");
+
+    expect(
+      line.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

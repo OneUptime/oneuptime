@@ -14,6 +14,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { WorkflowRoute } from "../../../ServiceRoute";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Protocol from "../../../Types/API/Protocol";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -90,8 +91,11 @@ import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCaseNoteService from "../../Services/SecurityCaseNoteService";
 import SecurityCaseTaskService from "../../Services/SecurityCaseTaskService";
 import SecurityCaseService, {
+  SECURITY_CASE_AI_ACTOR_KEY,
   SECURITY_CASE_PLAYBOOK_NAME_KEY,
 } from "../../Services/SecurityCaseService";
+import ProductBrandingText from "../ProductBrandingText";
+import { SecurityBlockSource } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityEventConnectionService from "../../Services/SecurityEventConnectionService";
 import SecurityEventService, {
   ObservableActivity,
@@ -152,6 +156,11 @@ export interface PlaybookStepContext {
    * Blocklist page is.
    */
   isOneStepRun?: boolean | undefined;
+  /*
+   * A step OneUptime AI ran while working the case (#10352): a change of the
+   * case reads as OneUptime AI's, and a block it makes is OneUptime AI's.
+   */
+  isOneUptimeAi?: boolean | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -326,9 +335,11 @@ export default class SecurityPlaybookActions {
     await SecurityCaseService.updateOneById({
       id: context.securityCase.id!,
       data: data,
-      miscDataProps: {
-        [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
-      },
+      miscDataProps: context.isOneUptimeAi
+        ? { [SECURITY_CASE_AI_ACTOR_KEY]: true }
+        : {
+            [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
+          },
       props: ROOT,
     });
   }
@@ -1063,7 +1074,10 @@ export default class SecurityPlaybookActions {
         projectId: context.projectId,
         securityCase: context.securityCase,
         incidentSeverityId: severities[0]!.id!,
-        playbookName: context.playbookName,
+        playbookName: context.isOneUptimeAi ? undefined : context.playbookName,
+        aiName: context.isOneUptimeAi
+          ? `${ProductBrandingText.getProductName()} AI`
+          : undefined,
       });
 
     return succeeded(mdText`Declared incident **${result.incidentNumber}**.`, {
@@ -1114,6 +1128,8 @@ export default class SecurityPlaybookActions {
     securityCase: SecurityCase;
     incidentSeverityId: ObjectID;
     playbookName?: string | undefined;
+    // OneUptime AI declares it, working the case (#10352): its name.
+    aiName?: string | undefined;
     userId?: ObjectID | undefined;
     /*
      * The person declaring it from the case's page. The incident is created
@@ -1224,6 +1240,7 @@ export default class SecurityPlaybookActions {
         incidentNumber,
         incidentUrl: incidentUrl.toString(),
         playbookName: data.playbookName,
+        aiName: data.aiName,
       }).toString(),
       eventType: SecurityCaseFeedEventType.IncidentDeclared,
       userId: data.userId,
@@ -1254,17 +1271,43 @@ export default class SecurityPlaybookActions {
     );
     const payload: JSONObject = await this.getCasePayload(context);
 
-    // WebhookService refuses private and internal addresses and signs the body.
+    /*
+     * WebhookService refuses private and internal addresses and signs the
+     * body. The receiver's certificate is checked as the step says: as every
+     * request checks one, by the step's CA certificate alone, or not at all
+     * (#10440) - for this request alone.
+     */
     const response: unknown = await WebhookService.sendWebhook(
       {
         url: config.url,
         eventType: "security.case.playbook",
         payload,
+        certificates: {
+          allowSelfSignedCertificates:
+            config.allowSelfSignedCertificates === true,
+          ...(config.caCertificate
+            ? { caCertificate: config.caCertificate }
+            : {}),
+        },
       },
       {
         projectId: context.projectId,
       },
     );
+
+    if (response instanceof HTTPErrorResponse) {
+      /*
+       * What the sender found, when it says: a certificate it refused says
+       * which of the step's settings would let it through.
+       */
+      const reason: string = (response.message || "").trim();
+
+      return failed(
+        reason && reason !== "Server Error."
+          ? `The webhook could not be sent to ${config.url}: ${reason}`
+          : `The webhook could not be sent to ${config.url}.`,
+      );
+    }
 
     if (
       response &&
@@ -1438,7 +1481,9 @@ export default class SecurityPlaybookActions {
       return await SecurityPlaybookAddressBlocks.lift({
         projectId: context.projectId,
         targets,
-        reason: `Lifted by playbook ${context.playbookName}.`,
+        reason: context.isOneUptimeAi
+          ? `Lifted by ${ProductBrandingText.getProductName()} AI, closing the case.`
+          : `Lifted by playbook ${context.playbookName}.`,
       });
     }
 
@@ -1453,6 +1498,10 @@ export default class SecurityPlaybookActions {
         context.isOneStepRun && context.triggeredByUserId
           ? context.triggeredByUserId
           : undefined,
+      // OneUptime AI's own block, working the case (#10352).
+      ...(context.isOneUptimeAi
+        ? { source: SecurityBlockSource.OneUptimeAi }
+        : {}),
     });
   }
 

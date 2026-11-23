@@ -285,6 +285,17 @@ Jedes Ereignis wird mit typisierten Feldern und seinem Quell-Payload gespeichert
 
 Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfelder leer und nennen ihren Prozess nur als `principalProcess`, den handelnden Prozess. Sie werden nicht nachträglich ergänzt: Sie behalten, womit sie gespeichert wurden, bis ihre Aufbewahrung endet.
 
+### Von einer Bereinigungsregel verborgen
+
+Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
+
+- **Quell-IP** im Panel des Ereignisses nennt, wenn möglich, die Regel, die sie verborgen hat, als Link zu den **Scrub-Regeln** der Logs oder Traces. Der Filter daneben zeigt jedes Ereignis, dessen Adresse eine Scrub-Regel verborgen hat.
+- **Was danach geschah** sagt, dass die Anfrage von einer Adresse kam, die eine Scrub-Regel verborgen hat, und **Kampagnen** fasst solche Anfragen in einer eigenen Zeile zusammen.
+- Ein Fall, dessen Ereignisse alle ihre Adresse verloren haben, sagt das in seinem **Reaktionsplan**: Statt die Adresse zu sperren, fordert er Sie auf, sie in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen und dort zu sperren, mit **Scrub-Regeln öffnen**.
+- Die **Übersicht** nennt die Regel, die die Adressen verbirgt, die Sicherheitsereignisse liest, ebenfalls mit **Scrub-Regeln öffnen**.
+
+Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`.
+
 ## Sicherheitsereignisse erkunden
 
 **Ereignisse** ist ein Telemetrie-Explorer wie die Explorer für Logs und Traces: ein Diagramm der Ereignisse des Zeitfensters nach Schweregrad, eine Seitenleiste mit Facetten, die Liste und ein Panel mit jedem Feld und Attribut des Ereignisses, das Sie öffnen. Zeitfenster, Filter und Suche stehen alle in der URL, sodass sich eine gefilterte Ansicht teilen lässt und ein Neuladen übersteht.
@@ -651,7 +662,7 @@ Sicherheitsereignisse werden pro aufgenommenem GB abgerechnet, wie der Rest Ihre
 
 Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die noch aufbewahrten Ereignisse und sagt, wenn es mehr bräuchte:
 
-- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Alarme und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
+- Eine Regel vom Typ **Zuerst gesehen**, deren Zeitspanne länger ist, als Ereignisse aufbewahrt werden, erkennt einen neuen Wert an den aufbewahrten Tagen: Mit einer Zeitspanne von 30 Tagen und 15 aufbewahrten Tagen sagen ihre Warnungen und Fälle `First awsRegion in 15 days`, und ein Wert, der zuletzt vor 20 Tagen gesehen wurde, gilt als neu. Ihre Zeile zeigt **Erfordert Aufmerksamkeit**, und **Fehler anzeigen** sagt, was zu ändern ist. Das Regelformular und die Details einer Regel in der Regelbibliothek sagen es, bevor sie gespeichert oder hinzugefügt wird. Eine Zählung oder eine Sequenz, deren Fenster länger ist, als Ereignisse aufbewahrt werden, zählt nur diese.
 - **Auf vergangene Ereignisse anwenden** über einen Zeitraum, der vor den aufbewahrten Ereignissen beginnt, sagt, dass Sicherheitsereignisse 15 Tage lang aufbewahrt werden und es daher 15 Tage zurückgeblickt hat, und was es nicht gefunden hat, gilt nur für diese Tage. Ein Ereignis, das früher geschah, aber verspätet eintraf, bleibt aufbewahrt und wird weiterhin gelesen. Eine Regel vom Typ **Zuerst gesehen** sagt, wie viel der 30 Tage vor dem Zeitraum sie sehen konnte.
 - Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
 

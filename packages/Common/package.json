@@ -8,7 +8,8 @@
   },
   "main": "index.js",
   "browser": {
-    "./Types/Monitor/MonitorStepsColumnTransformer.ts": "./Types/Monitor/MonitorStepsColumnTransformer.browser.ts"
+    "./Types/Monitor/MonitorStepsColumnTransformer.ts": "./Types/Monitor/MonitorStepsColumnTransformer.browser.ts",
+    "./Utils/OutboundRequestRouting.ts": "./Utils/OutboundRequestRouting.browser.ts"
   },
   "scripts": {
     "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --max-old-space-size=4096 node_modules/.bin/jest ./Tests --forceExit --maxWorkers=2",

@@ -107,7 +107,7 @@ Diese Einstellungen sind unter **Weitere Felder** eingeklappt. Die eingeklappte 
 | Feld | Standard | Was es tut |
 | --- | --- | --- |
 | **Anfrage-Header** | Keine | Header, die gesendet werden, als Paare aus Name und Wert. Klicken Sie für jeden auf **Anfrage-Header hinzufügen**. |
-| **Anfrage-Body (in JSON)** | Keiner | Ein JSON-Objekt, das als Body gesendet wird, meist mit **POST**, **PUT** oder **PATCH**. Es muss gültiges JSON sein. |
+| **Anfrage-Body (in JSON)** | Keiner | Der Body, der gesendet wird, meist mit **POST**, **PUT** oder **PATCH**: ein beliebiger JSON-Wert, etwa ein Objekt, ein Array, eine Zeichenkette oder eine Zahl. Er wird so gesendet, wie Sie ihn schreiben, als `application/json`, sofern Sie keinen `Content-Type` unter **Anfrage-Header** setzen. Mit `application/x-www-form-urlencoded` oder `multipart/form-data` wird ein Objekt als Formularfelder gesendet. |
 | **Weiterleitungen nicht folgen** | Aus | Die erste Antwort beurteilen, statt Weiterleitungen zu folgen. Siehe [unten](#weiterleitungen-nicht-folgen). |
 | **Selbstsignierte Zertifikate zulassen** | Aus | Die Prüfung des TLS-Zertifikats für den eigenen Hostnamen des Monitors überspringen. |
 | **Client-Zertifikat verwenden (mTLS)** | Aus | Ein Client-Zertifikat und einen privaten Schlüssel vorlegen. Siehe [Client-Zertifikat (mTLS)](#client-zertifikat-mtls). |
@@ -242,6 +242,10 @@ Die API hat eine Anfrage mit einem Body oder mit einer anderen Methode als `GET`
 
 :::details Die Prüfung schlägt fehl mit „Remote response exceeded the allowed size.“
 Die Sonde liest höchstens 512 KiB einer Antwort, und diese ist größer. Rufen Sie einen Endpunkt auf, der weniger zurückgibt, zum Beispiel mit einer kleineren Seitengröße.
+:::
+
+:::details Die Prüfung schlägt fehl mit „Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet.“
+Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) eingesetzt sind, daher hat die Sonde die Anfrage nicht gesendet. Korrigieren Sie den Body unter **Weitere Felder** oder den Wert eines Geheimnisses, das er verwendet: Ein Wert mit einem `"` darin bricht die JSON-Zeichenkette, in der er steht.
 :::
 
 ## Nächste Schritte

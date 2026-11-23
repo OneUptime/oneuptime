@@ -54,7 +54,7 @@ When you join a project, these events start on, by email. Everything else starts
 | **Status Pages** | **My public note approved or rejected**, and by push too: **Public note waiting for my approval** | **Status page created**, **Status page announcement posted**, **Added as status page owner** |
 | **Scheduled Maintenance** | **Maintenance reminder** | **Maintenance event created**, **Maintenance state changed**, **Maintenance note posted**, **Added as maintenance owner** |
 | **On-Call** | **You go on-call**, **You are up next on-call**, **You go off-call**, **Added to on-call policy**, **Removed from on-call policy**, **Missed call**, **Added as on-call policy owner**, **Added as on-call schedule owner**, **Added as incoming call policy owner**, and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned** | None |
-| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Hunt found security events** | None |
+| **Security** | **Added as data store owner**, and by push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval**, **Security case response target**, **Security case task assigned to me**, **Security case step stopped holding**, **OneUptime AI handed a security case to people**, **Hunt found security events** | None |
 
 > [!IMPORTANT]
 > **Monitor status changed** starts off. To hear when a monitor you own goes down or comes back, switch it on, on the **Monitoring** tab.

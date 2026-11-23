@@ -50,6 +50,8 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../../Utils/Markdown/FeedMarkdown";
 import {
+  aiStepRunFailedMarkdown,
+  aiStepRunMarkdown,
   approvalRequestedMarkdown,
   oneStepRunFailedMarkdown,
   oneStepRunMarkdown,
@@ -60,6 +62,9 @@ import {
   playbookStoppedMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { readOneStepRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
+import { isOneUptimeAiRun } from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import ProductBrandingText from "../ProductBrandingText";
+import SecurityCaseResponseNudge from "../AI/Security/Response/SecurityCaseResponseNudge";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import SecurityCaseStepChecks from "../SecurityCase/StepChecks/SecurityCaseStepChecks";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
@@ -188,6 +193,7 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched: true,
         startedAt: true,
         triggeredByUserId: true,
+        trigger: true,
       },
       props: {
         isRoot: true,
@@ -289,7 +295,14 @@ export default class SecurityPlaybookEngine {
      * timeline says what its step did, not that a playbook started and
      * finished around it.
      */
-    const isOneStepRun: boolean = readOneStepRun(run) !== null;
+    /*
+     * A run OneUptime AI started while working the case (#10352): one step,
+     * no playbook, as a person's one-step run - its timeline says what its
+     * step did, as OneUptime AI's.
+     */
+    const isOneUptimeAi: boolean = isOneUptimeAiRun(run);
+    const isOneStepRun: boolean = readOneStepRun(run) !== null || isOneUptimeAi;
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
 
     if (!run.startedAt) {
       await SecurityPlaybookRunService.updateColumnsByIdWithoutHooks({
@@ -553,6 +566,7 @@ export default class SecurityPlaybookEngine {
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
           isOneStepRun,
+          isOneUptimeAi,
         });
       } catch (error) {
         outcome = {
@@ -618,14 +632,16 @@ export default class SecurityPlaybookEngine {
         await SecurityCaseFeedService.createSecurityCaseFeedItem({
           projectId,
           securityCaseId,
-          feedInfoInMarkdown: (isOneStepRun
-            ? oneStepRunMarkdown({ summary: outcome.summary })
-            : playbookStepMarkdown({
-                playbookName,
-                stepNumber,
-                stepTitle,
-                summary: outcome.summary,
-              })
+          feedInfoInMarkdown: (isOneUptimeAi
+            ? aiStepRunMarkdown({ aiName, summary: outcome.summary })
+            : isOneStepRun
+              ? oneStepRunMarkdown({ summary: outcome.summary })
+              : playbookStepMarkdown({
+                  playbookName,
+                  stepNumber,
+                  stepTitle,
+                  summary: outcome.summary,
+                })
           ).toString(),
           moreInformationInMarkdown: outcome.detailsInMarkdown?.toString(),
           eventType:
@@ -645,16 +661,19 @@ export default class SecurityPlaybookEngine {
           runId,
           status: SecurityPlaybookRunStatus.Failed,
           errorMessage: `Step ${stepNumber} (${stepTitle}) failed: ${outcome.error || "no reason was given."}`,
+          aiCase: isOneUptimeAi ? { projectId, securityCaseId } : undefined,
           feed: {
             projectId,
             securityCaseId,
-            markdown: isOneStepRun
-              ? oneStepRunFailedMarkdown({ stepTitle })
-              : playbookFailedMarkdown({
-                  playbookName,
-                  stepNumber,
-                  stepTitle,
-                }),
+            markdown: isOneUptimeAi
+              ? aiStepRunFailedMarkdown({ aiName, stepTitle })
+              : isOneStepRun
+                ? oneStepRunFailedMarkdown({ stepTitle })
+                : playbookFailedMarkdown({
+                    playbookName,
+                    stepNumber,
+                    stepTitle,
+                  }),
             detailsInMarkdown: outcome.error
               ? FeedMarkdown.multilineText(outcome.error)
               : undefined,
@@ -669,6 +688,7 @@ export default class SecurityPlaybookEngine {
       await this.finishRun({
         runId,
         status: SecurityPlaybookRunStatus.Succeeded,
+        aiCase: isOneUptimeAi ? { projectId, securityCaseId } : undefined,
       });
       return;
     }
@@ -787,6 +807,8 @@ export default class SecurityPlaybookEngine {
           detailsInMarkdown?: MarkdownText | undefined;
         }
       | undefined;
+    // A run OneUptime AI started while working this case (#10352).
+    aiCase?: { projectId: ObjectID; securityCaseId: ObjectID } | undefined;
   }): Promise<void> {
     const errorMessage: string | undefined = clampStepResultText(
       data.errorMessage || undefined,
@@ -808,6 +830,14 @@ export default class SecurityPlaybookEngine {
           status: SecurityPlaybookRunStatus.Running,
         },
       });
+
+    /*
+     * One of OneUptime AI's own steps finished (#10352): it looks at the
+     * case again, and reads how the step went.
+     */
+    if (finished && data.aiCase) {
+      await SecurityCaseResponseNudge.lookNow(data.aiCase);
+    }
 
     if (!finished || !data.feed) {
       return;

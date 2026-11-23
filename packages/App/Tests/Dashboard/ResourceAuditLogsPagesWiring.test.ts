@@ -126,6 +126,57 @@ const FAMILY_AUDIT_LOG_PAGES: Record<string, string> = {
    */
   [path.join("Pages", "Alerts", "Settings", "AlertRulesAuditLogs.tsx")]:
     "the project's alert rules",
+  /*
+   * Every other product's rules (#10462), the same way: one page at the end
+   * of the menu section that lists them. Runbook rules are one kind for
+   * Alerts, Incidents and Scheduled Maintenance, and their history is
+   * Runbooks' page. ProductRulesAuditLogsWiring holds each to its product's
+   * kinds of rule.
+   */
+  [path.join("Pages", "Incidents", "Settings", "IncidentRulesAuditLogs.tsx")]:
+    "the project's incident and incident episode rules",
+  [path.join("Pages", "Monitor", "Settings", "MonitorRulesAuditLogs.tsx")]:
+    "the project's monitor rules",
+  [path.join(
+    "Pages",
+    "ScheduledMaintenanceEvents",
+    "Settings",
+    "ScheduledMaintenanceRulesAuditLogs.tsx",
+  )]: "the project's scheduled maintenance rules",
+  [path.join(
+    "Pages",
+    "StatusPages",
+    "Settings",
+    "StatusPageRulesAuditLogs.tsx",
+  )]: "the project's status page rules",
+  [path.join("Pages", "Service", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's service rules",
+  [path.join("Pages", "Host", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's host rules",
+  [path.join("Pages", "Kubernetes", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Kubernetes cluster rules",
+  [path.join("Pages", "Docker", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Docker host rules",
+  [path.join("Pages", "DockerSwarm", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Docker Swarm cluster rules",
+  [path.join("Pages", "Podman", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Podman host rules",
+  [path.join("Pages", "Proxmox", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Proxmox cluster rules",
+  [path.join("Pages", "OpenStack", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's OpenStack cloud rules",
+  [path.join("Pages", "VMware", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's vCenter rules",
+  [path.join("Pages", "Ceph", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's Ceph cluster rules",
+  [path.join("Pages", "StorageArray", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's storage array rules",
+  [path.join("Pages", "NetworkDevice", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's network device and site rules",
+  [path.join("Pages", "IoT", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's IoT fleet rules",
+  [path.join("Pages", "Runbook", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's runbook rules, for alerts, incidents and maintenance events alike",
 };
 
 /*

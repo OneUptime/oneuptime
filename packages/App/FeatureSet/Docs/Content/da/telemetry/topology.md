@@ -69,7 +69,7 @@ Klik på en tjeneste for at se dens anmodninger, fejl og gennemsnitlige latensti
 
 ### Åbn en forbindelse
 
-Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latenstid. Mellem to tjenester, du instrumenterer, har den også en **History** over kald, fejl og latenstid.
+Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latenstid. Mellem to tjenester, du instrumenterer, har den også en **Historik** over kald, fejl og latenstid.
 :::
 
 **Forbindelsesetiketter** skriver et tal på hver pil: **Anmodningshastighed**, **Fejlrate** eller **Gennemsnitlig latens**, eller intet, før du holder musen over. **Tabel** viser de samme tjenester med deres **Anmodninger**, **Fejlrate**, **Gns. latens** og **Forbindelser**, og **Vis på kortet** tegner en af dem.

@@ -33,13 +33,12 @@ import {
   redactHttpStepSecrets,
 } from "Common/Types/Runbook/HttpStepVariables";
 import {
-  CaCertificateProblem,
-  HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
   HttpStepCertificateSettings,
+  getHttpStepCaCertificateVariable,
   getHttpStepCertificateFailureMessage,
   getHttpStepCertificateSettings,
 } from "Common/Types/Runbook/HttpStepCertificates";
-import { getCaCertificateProblem } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
+import { getHttpStepCaCertificateRunRefusal } from "Common/Server/Utils/Runbook/HttpStepCaCertificate";
 import { getSshHostKeyProblem } from "Common/Types/Runbook/SshHostKey";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
@@ -55,6 +54,7 @@ import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
+import ProxyTunnelRefusal from "Common/Utils/ProxyTunnelRefusal";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import GlobalRunnerChoice from "Common/Server/Utils/Runner/GlobalRunnerChoice";
 import {
@@ -455,13 +455,14 @@ export const HTTP_STEP_VARIABLES_UNREAD_MESSAGE: string =
 
 /*
  * An HTTP request step: OneUptime sends the request itself, from its own
- * servers, with the runbook variables its URL, headers and body name filled
- * in (Common/Types/Runbook/HttpStepVariables) - a secret too, since no
- * Runner is involved. What it records - the response's status, headers and
- * body, or the error - has every secret it was given hidden. The server's
- * certificate is checked as the step says: as every request's, against the
- * step's own CA certificate, or not at all, for this request alone
- * (Common/Types/Runbook/HttpStepCertificates).
+ * servers, with the runbook variables its URL, headers, body and CA
+ * certificate name filled in (Common/Types/Runbook/HttpStepVariables) - a
+ * secret too, since no Runner is involved. What it records - the
+ * response's status, headers and body, or the error - has every secret it
+ * was given hidden. The server's certificate is checked as the step says:
+ * as every request's, against the step's own CA certificate - pasted in,
+ * or the value of the variable it names - or not at all, for this request
+ * alone (Common/Types/Runbook/HttpStepCertificates).
  */
 export async function runHttpStep(
   step: RunbookStep,
@@ -566,26 +567,30 @@ export async function runHttpStep(
   /*
    * How the server's certificate is checked: as every request's, against
    * the step's own CA certificate, or not at all
-   * (Common/Types/Runbook/HttpStepCertificates). A CA certificate a save
-   * would refuse is refused here too, before anything is sent: Node takes
-   * text that is not a certificate without a word, and the step would fail
-   * on the certificate it was meant to trust.
+   * (Common/Types/Runbook/HttpStepCertificates) - read from the step as it
+   * is sent, so a CA certificate that names a variable is the variable's
+   * value. A CA certificate a save would refuse, or a variable that holds no
+   * certificate, is refused here, before anything is sent: Node takes text
+   * that is not a certificate without a word, and the step would fail on
+   * the certificate it was meant to trust.
    */
   const certificates: HttpStepCertificateSettings =
-    getHttpStepCertificateSettings(storedConfig);
+    getHttpStepCertificateSettings(config);
+  const caCertificateVariable: RunbookVariableReference | null =
+    getHttpStepCaCertificateVariable(storedConfig);
 
-  if (certificates.caCertificate) {
-    const problem: CaCertificateProblem | null = getCaCertificateProblem(
-      certificates.caCertificate,
-    );
+  const caCertificateRefusal: string | null =
+    getHttpStepCaCertificateRunRefusal({
+      settings: certificates,
+      variable: caCertificateVariable,
+    });
 
-    if (problem) {
-      return {
-        success: false,
-        output: "",
-        errorMessage: HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[problem],
-      };
-    }
+  if (caCertificateRefusal) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: redact(caCertificateRefusal),
+    };
   }
 
   // The URL as the guard approved it, once it has: what an error names.
@@ -618,14 +623,16 @@ export async function runHttpStep(
      * connection to the target, and the agents are this request's alone.
      */
     const { url, httpAgent, httpsAgent } =
-      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(
         config.url || "",
         {
           targetLabel: "Runbook HTTP step",
         },
         {
-          rejectUnauthorized: !certificates.skipsCertificateChecks,
-          ca: certificates.caCertificate,
+          tls: {
+            rejectUnauthorized: !certificates.skipsCertificateChecks,
+            ca: certificates.caCertificate,
+          },
         },
       );
 
@@ -701,6 +708,7 @@ export async function runHttpStep(
           code,
           host: target.hostname,
           settings: certificates,
+          caCertificateVariable,
         })
       : null;
 
@@ -747,14 +755,13 @@ function getErrorCode(err: unknown): string | undefined {
     : undefined;
 }
 
-// What an outbound proxy answered a tunnel it would not open with.
-const PROXY_TUNNEL_ANSWER: RegExp = /: (HTTP\/\d(?:\.\d)? \d{3}[^\r\n]*)$/;
-
 /*
  * What an HTTPS request step says when the outbound proxy would not open a
  * tunnel to the target: that the proxy refused, not the target, and what
- * the proxy answered. Node's own message names the proxy's address, which
- * is the operator's and not the step's: it is left out.
+ * the proxy answered - a 407 being the proxy not taking OneUptime's user name
+ * and password - in the words every request uses (ProxyTunnelRefusal).
+ * Node's own message names the proxy's address, which is the operator's and
+ * not the step's: it is left out.
  */
 export function getHttpStepProxyTunnelMessage(data: {
   target: URL;
@@ -762,14 +769,11 @@ export function getHttpStepProxyTunnelMessage(data: {
 }): string {
   const port: string =
     data.target.port || (data.target.protocol === "https:" ? "443" : "80");
-  const answer: string | undefined = PROXY_TUNNEL_ANSWER.exec(
-    data.nodeMessage || "",
-  )?.[1];
-  const destination: string = `${data.target.hostname}:${port}`;
 
-  return answer
-    ? `The outbound proxy did not open a connection to ${destination}: it answered ${answer}. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`
-    : `The outbound proxy did not open a connection to ${destination}, so the request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.`;
+  return ProxyTunnelRefusal.word({
+    destination: `${data.target.hostname}:${port}`,
+    answer: ProxyTunnelRefusal.getAnswer(data.nodeMessage),
+  });
 }
 
 export async function runBashStep(

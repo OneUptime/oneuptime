@@ -32,6 +32,7 @@ import LlmProviderService from "../../../../../Server/Services/LlmProviderServic
 import MailService from "../../../../../Server/Services/MailService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
+import TeamMemberService from "../../../../../Server/Services/TeamMemberService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
 import DataSecurityAiActions from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiActions";
 import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
@@ -384,11 +385,16 @@ beforeEach(() => {
     .spyOn(DataSecurityIssueFeedService, "createDataSecurityIssueFeedItem")
     .mockResolvedValue(undefined);
 
-  // The owners, and each one's permissions in the project.
+  // The owners, both members of the project, and each one's permissions in it.
   jest
     .spyOn(DataSecurityIntegrations, "getOwnerUsers")
     .mockImplementation(async (): Promise<Array<User>> => {
       return [alice, bob];
+    });
+  jest
+    .spyOn(TeamMemberService, "filterUsersToProjectMembers")
+    .mockImplementation(async (data: { users: Array<User> }) => {
+      return data.users;
     });
   jest
     .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")

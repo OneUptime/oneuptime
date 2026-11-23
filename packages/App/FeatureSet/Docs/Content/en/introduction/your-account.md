@@ -167,9 +167,9 @@ Signing in again counts only when your identity provider says you signed in afte
 | Provider | What OneUptime asks for | When it does not confirm |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`, and when you signed in (`AuthnInstant`) | Have the provider honor the request, such as with Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |
+| OpenID Connect | `prompt=login` and `max_age=0` (Microsoft Entra ID: `prompt=login` alone), and when you signed in (`auth_time`) | Have the provider send `auth_time`. In Microsoft Entra ID, add it to the ID token as an optional claim. |
 | Google | When you signed in (`auth_time`). Google cannot be asked to have you sign in again. | Turn on Session age claims for the server's Google sign-in app, which must be published and verified. |
-| Microsoft | `prompt=login` and `max_age=0`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |
+| Microsoft | `prompt=login`, and when you signed in (`auth_time`) | Add `auth_time` to the ID token of the server's Microsoft sign-in app as an optional claim. |
 | Vercel | Nothing: Vercel cannot be asked to have you sign in again, and does not say when you signed in. | It never confirms. Choose **Sign In Another Way** and sign in with a link emailed to you, or set a password with **Forgot password?** and confirm with it. |
 
 What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
