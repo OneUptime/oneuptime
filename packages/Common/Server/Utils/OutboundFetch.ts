@@ -115,6 +115,50 @@ export class OutboundProxyRefusal extends Error {
   public get isRetryable(): boolean {
     return this.statusCode >= 500;
   }
+
+  // "host:port", where a request to `url` was going, as a refusal names it.
+  public static destinationOf(url: URL): string {
+    return `${url.hostname}:${url.port || (url.protocol === "https:" ? "443" : "80")}`;
+  }
+
+  /*
+   * Node's own refusal of a tunnel (ERR_PROXY_TUNNEL), from an agent
+   * OutboundProxyAgents built, as the proxy's refusal of a request to
+   * `destination` ("host:port"), for a client that sends on those agents
+   * and words refusals as this does (the Teams bot's token requests and
+   * replies, issue #10763). Node's words name the proxy: "Failed to
+   * establish tunnel to <host>:443 via http://proxy.internal:3128/:
+   * HTTP/1.1 403 Forbidden". Null for any other error, and for a tunnel
+   * Node says no answer for (one that timed out, or ended), whose words
+   * name no proxy.
+   */
+  public static fromTunnelError(
+    error: unknown,
+    destination: string,
+  ): OutboundProxyRefusal | null {
+    const value: { code?: unknown; message?: unknown } =
+      error && typeof error === "object"
+        ? (error as { code?: unknown; message?: unknown })
+        : {};
+
+    if (
+      value.code !== PROXY_TUNNEL_ERROR_CODE ||
+      typeof value.message !== "string"
+    ) {
+      return null;
+    }
+
+    const statusCode: number | null = ProxyTunnelRefusal.getStatusCode(
+      value.message,
+    );
+
+    return statusCode === null
+      ? null
+      : new OutboundProxyRefusal({
+          destination: destination,
+          statusCode: statusCode,
+        });
+  }
 }
 
 /*
@@ -207,17 +251,12 @@ class RoutingDispatcher {
     if (proxy) {
       RoutingDispatcher.rewordRefusals({
         handler: handler,
-        destination: RoutingDispatcher.destinationOf(origin),
+        destination: OutboundProxyRefusal.destinationOf(origin),
         outcome: outcome,
       });
     }
 
     return this.routeThrough(proxy).dispatch(options, handler);
-  }
-
-  // "host:port", as a refusal names where a request was going.
-  private static destinationOf(origin: URL): string {
-    return `${origin.hostname}:${origin.port || (origin.protocol === "https:" ? "443" : "80")}`;
   }
 
   /*
