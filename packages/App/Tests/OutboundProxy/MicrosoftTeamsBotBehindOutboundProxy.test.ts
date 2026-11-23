@@ -52,6 +52,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -107,6 +108,17 @@ const MICROSOFT_HOSTS: Array<string> = [
 
 clearOutboundProxyEnvironmentForEachTest();
 useDefaultCaRestored();
+
+/*
+ * Microsoft's names are never looked up here: a request that went around
+ * the proxy would ask DNS for them, and is refused at once, so no test
+ * reaches the real service, even with the routing broken.
+ */
+let lookups: Array<string> = [];
+
+beforeEach(() => {
+  lookups = watchLookups(MICROSOFT_HOSTS);
+});
 
 const selfSignedHttps: ReturnType<typeof useSelfSignedHttps> =
   useSelfSignedHttps();
@@ -350,7 +362,6 @@ describe("the bot's own adapter is made of the routed stacks", () => {
 describe("a message from Teams, through the proxy", () => {
   test("its token is checked against the Bot Framework's keys fetched through the proxy, and the reply, with its token, goes through it too", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
     const response: RecordingResponse = new RecordingResponse();
     const handled: Array<string> = [];
 
@@ -425,7 +436,6 @@ describe("a message from Teams, through the proxy", () => {
 
   test("through the bot's own entry for Teams' posts (processBotActivity): a signed message is taken, its keys fetched through the proxy", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
     const response: RecordingResponse = new RecordingResponse();
 
     useProxy(microsoft.proxy.port);
@@ -492,7 +502,6 @@ describe("a message from Teams, through the proxy", () => {
 
   test("a proactive message gets its token and is sent through the proxy", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
 
     useProxy(microsoft.proxy.port);
 
@@ -542,7 +551,6 @@ describe("a message from Teams, through the proxy", () => {
 describe("a message from Teams, when the proxy is not the way", () => {
   test("a host in NO_PROXY is fetched directly: the proxy is never asked for the keys", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
     const response: RecordingResponse = new RecordingResponse();
 
     captureConsoleErrors();
@@ -572,7 +580,6 @@ describe("a message from Teams, when the proxy is not the way", () => {
 
   test("with no proxy set at all, the keys are fetched directly, as they always were", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
     const response: RecordingResponse = new RecordingResponse();
 
     captureConsoleErrors();
@@ -694,7 +701,6 @@ describe("a message from Teams, when the proxy refuses", () => {
 describe("the SDK's own stacks, as the bot used them before", () => {
   test("fetch the keys around the proxy, so the message fails its token check", async () => {
     const microsoft: StandInMicrosoft = await startMicrosoft();
-    const lookups: Array<string> = watchLookups(MICROSOFT_HOSTS);
     const response: RecordingResponse = new RecordingResponse();
     let handled: boolean = false;
 

@@ -49,6 +49,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -103,6 +104,17 @@ const GOVERNMENT_SETTINGS: Record<string, string> = {
 
 clearOutboundProxyEnvironmentForEachTest();
 useDefaultCaRestored();
+
+/*
+ * Microsoft's names are never looked up here: a request that went around
+ * the proxy would ask DNS for them, and is refused at once, so no test
+ * reaches the real service, even with the routing broken.
+ */
+let lookups: Array<string> = [];
+
+beforeEach(() => {
+  lookups = watchLookups([ENTRA_HOST, GOVERNMENT_ENTRA_HOST]);
+});
 
 const serve: (options?: {
   host?: string | undefined;
@@ -513,7 +525,6 @@ describe("the credentials the bot sends with", () => {
       scope: string,
     ) => {
       const entra: StandInEntra = await entraBehindProxy(host);
-      const lookups: Array<string> = watchLookups([host]);
       const credentials: MsalAppCredentials = await credentialsFor(settings);
 
       expect(credentials.oAuthEndpoint).toBe(
@@ -617,7 +628,6 @@ describe("the credentials the bot sends with", () => {
 
   test("a host in NO_PROXY is asked directly: the proxy never is", async () => {
     const entra: StandInEntra = await entraBehindProxy(ENTRA_HOST);
-    const lookups: Array<string> = watchLookups([ENTRA_HOST]);
 
     process.env["NO_PROXY"] = ENTRA_HOST;
 
@@ -631,7 +641,6 @@ describe("the credentials the bot sends with", () => {
 
   test("with no proxy set at all, the token is asked for directly, as it always was", async () => {
     const entra: StandInEntra = await entraBehindProxy(ENTRA_HOST);
-    const lookups: Array<string> = watchLookups([ENTRA_HOST]);
 
     delete process.env["HTTPS_PROXY"];
 
@@ -682,7 +691,6 @@ describe("the credentials the bot sends with", () => {
 
   test("the SDK's own credentials, as the bot used them before, ask for the token around the proxy", async () => {
     const entra: StandInEntra = await entraBehindProxy(ENTRA_HOST);
-    const lookups: Array<string> = watchLookups([ENTRA_HOST]);
     const theSdks: ServiceClientCredentials =
       await new ConfigurationServiceClientCredentialFactory(
         COMMERCIAL_SETTINGS,

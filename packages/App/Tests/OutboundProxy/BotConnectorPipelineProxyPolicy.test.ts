@@ -17,8 +17,16 @@ import {
   proxyUrlWithCredentials,
   signedInAs,
   useLocalHttpServers,
+  watchLookups,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 jest.mock("Common/Server/Utils/Logger");
 
@@ -49,6 +57,15 @@ jest.mock("Common/Server/Utils/Logger");
  */
 
 clearOutboundProxyEnvironmentForEachTest();
+
+/*
+ * Microsoft's names are never looked up here: a request that went around
+ * the proxy would ask DNS for them, and is refused at once, so no test
+ * reaches the real service, even with the routing broken.
+ */
+beforeEach(() => {
+  watchLookups([BOT_CONNECTOR_HOST]);
+});
 
 const serve: (options?: {
   host?: string | undefined;

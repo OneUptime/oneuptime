@@ -28,9 +28,17 @@ import {
   proxyUrlWithCredentials,
   signedInAs,
   useLocalHttpServers,
+  watchLookups,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import { OpenIdMetadata } from "Common/node_modules/botframework-connector/lib/auth/openIdMetadata";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import crypto from "crypto";
 import http from "http";
 
@@ -58,6 +66,15 @@ jest.mock("Common/Server/Utils/Logger");
 
 clearOutboundProxyEnvironmentForEachTest();
 
+/*
+ * Microsoft's names are never looked up here: a request that went around
+ * the proxy would ask DNS for them, and is refused at once, so no test
+ * reaches the real service, even with the routing broken.
+ */
+beforeEach(() => {
+  watchLookups(MICROSOFT_HOSTS);
+});
+
 const serve: (options?: {
   host?: string | undefined;
   port?: number | undefined;
@@ -65,6 +82,14 @@ const serve: (options?: {
 }) => Promise<LocalHttpServer> = useLocalHttpServers();
 
 const UNRESOLVED_HOST: string = "login.botframework.test";
+
+// The hosts of the documents the SDK reads its keys from, in either cloud.
+const MICROSOFT_HOSTS: Array<string> = [
+  "login.botframework.com",
+  "login.microsoftonline.com",
+  "login.botframework.azure.us",
+  "login.microsoftonline.us",
+];
 
 afterEach(async () => {
   BotFrameworkOpenIdMetadata.getSdkCache().clear();

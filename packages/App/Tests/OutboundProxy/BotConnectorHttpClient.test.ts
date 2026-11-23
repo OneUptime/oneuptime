@@ -43,6 +43,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -80,6 +81,17 @@ const CONVERSATION_ID: string = "a:conversation";
 
 clearOutboundProxyEnvironmentForEachTest();
 useDefaultCaRestored();
+
+/*
+ * Microsoft's names are never looked up here: a request that went around
+ * the proxy would ask DNS for them, and is refused at once, so no test
+ * reaches the real service, even with the routing broken.
+ */
+let lookups: Array<string> = [];
+
+beforeEach(() => {
+  lookups = watchLookups([BOT_CONNECTOR_HOST]);
+});
 
 const serve: (options?: {
   host?: string | undefined;
@@ -209,7 +221,6 @@ describe("through the outbound proxy", () => {
       },
       credentials: signedInAs(RESERVED_CHARACTER_CREDENTIALS),
     });
-    const lookups: Array<string> = watchLookups([BOT_CONNECTOR_HOST]);
 
     process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
       proxy.port,
