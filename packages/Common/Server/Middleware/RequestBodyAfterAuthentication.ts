@@ -7,9 +7,10 @@ import {
   RequestHandler,
   headerValueToString,
 } from "../Utils/Express";
-import RequestBodyJson from "../Utils/RequestBodyJson";
+import RequestBodyJson, { isNdjsonContentType } from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import { withAppRequestBodyLimit } from "../Utils/RequestBodyRefusal";
+import AppBodyParsers, { keepRawBody } from "./AppBodyParsers";
 import GzipRequestBodyMiddleware, {
   isJsonContentType,
 } from "./GzipRequestBody";
@@ -39,6 +40,12 @@ import RequestBodyParser from "./RequestBodyParser";
  *   - readUpload reads an upload (#10673) - a Pyroscope profile, source maps,
  *     dSYMs - in each of the forms its route takes: a multipart form, JSON,
  *     or the bytes themselves.
+ *   - readBody reads it as StartServer reads every other route's before
+ *     routing (AppBodyParsers, #10702): JSON and forms parsed, protobuf and
+ *     a gzip body as their bytes, anything else left unread. The telemetry
+ *     that collectors, agents and CI send - Fluent Bit and Fluentd, syslog,
+ *     Pyroscope's push and the rest - is read this way once its key is
+ *     right, and its handler gets the very body it got before.
  *
  * A body something already read - StartServer's parsers, a test's - is left
  * as it is: a stream is read once.
@@ -93,6 +100,28 @@ export const createJsonParseFailedError: (cause: unknown) => Error = (
 
 // A body parsed, or the error it is refused with.
 export type ParsedRequestBody = { body: unknown } | { error: Error };
+
+// How readBody reads what StartServer's own parsers leave as bytes, or unread.
+export interface ReadBodyOptions {
+  // A gzip JSON body parsed too, for a route that takes JSON alone.
+  parseGzipJson?: boolean | undefined;
+  /*
+   * Newline-delimited JSON read as its values a line at a time, and a text
+   * body as its bytes: for a route that takes records a line at a time.
+   */
+  readLines?: boolean | undefined;
+}
+
+// Whether a Content-Type is a text type (text/plain, text/csv...), in any case.
+export const isTextContentType: (contentType: string | undefined) => boolean = (
+  contentType: string | undefined,
+): boolean => {
+  if (!contentType) {
+    return false;
+  }
+
+  return contentType.split(";")[0]!.trim().toLowerCase().startsWith("text/");
+};
 
 // What an upload's route takes (readUpload).
 export interface UploadBodyReaders {
@@ -244,6 +273,197 @@ export default class RequestBodyAfterAuthentication {
         return next();
       }) as NextFunction);
     };
+  }
+
+  /*
+   * A BODY READ ONCE ITS CALLER'S KEY IS CHECKED, AS STARTSERVER READS ONE
+   * BEFORE ROUTING (#10702), held to `limit` as it is sent and once it
+   * inflates:
+   *
+   *   - JSON parsed, its values counted first, its text kept as rawBody
+   *     (what an ingestion budget measures, and a signature is checked over);
+   *   - a form parsed, its text kept as rawBody and rawFormUrlEncodedBody;
+   *   - protobuf kept as its bytes, in req.body;
+   *   - a gzip body inflated and kept as its bytes, whatever its type, a
+   *     JSON one's values counted as it inflates (GzipRequestBody);
+   *   - any other body left unread, as StartServer left it: the route finds
+   *     no body, and the connection is closed once it answers
+   *     (UnreadRequestBody).
+   *
+   * `parseGzipJson`, for a route that takes JSON alone: a gzip JSON body is
+   * parsed too, once inflated, as the same body sent uncompressed is - its
+   * values counted first, its inflated text kept as rawBody, refused 400
+   * when it is no JSON. StartServer hands every route a gzip JSON body as
+   * its bytes, which such a route read as no body at all.
+   *
+   * `readLines`, for a route that takes records a line at a time (#10769):
+   *
+   *   - newline-delimited JSON (application/x-ndjson, application/jsonl:
+   *     NDJSON_CONTENT_TYPES) is read as its values, a line at a time, each
+   *     counted before it is parsed (RequestBodyJson.parseLines), and its
+   *     text kept as rawBody, so an ingestion budget measures what was sent.
+   *     No parser StartServer runs reads that type: sent as it is, it was
+   *     left unread, and the route found no body;
+   *   - a text body (text/*) is read as its bytes, as a gzip one is already.
+   *
+   * Either way the same, sent as it is or gzip-compressed (or deflate).
+   *
+   * For a route whose key is in its headers or its path, checked before
+   * this runs (TelemetryIngest.forSurface takes it, to read the body between
+   * the key and the ingestion budget). A request refused before it - no
+   * key, a wrong one - has nothing of its body read, inflated or parsed:
+   * UnreadRequestBody closes the connection once the refusal is sent, which
+   * the client still reads.
+   */
+  public static readBody(
+    limit: RequestBodyLimit,
+    options?: ReadBodyOptions | undefined,
+  ): RequestHandler {
+    const parseGzipJson: boolean = Boolean(options?.parseGzipJson);
+    const readLines: boolean = Boolean(options?.readLines);
+
+    return (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      if (RequestBodyAfterAuthentication.isRead(req)) {
+        return next();
+      }
+
+      AppBodyParsers.read(
+        req,
+        res,
+        ((err?: unknown): void => {
+          if (err) {
+            return next(err);
+          }
+
+          AppBodyParsers.readForm(
+            req,
+            res,
+            ((formErr?: unknown): void => {
+              if (formErr) {
+                return next(formErr);
+              }
+
+              const contentType: string | undefined = headerValueToString(
+                req.headers["content-type"],
+              );
+
+              if (
+                readLines &&
+                (isNdjsonContentType(contentType) ||
+                  isTextContentType(contentType))
+              ) {
+                return RequestBodyAfterAuthentication.readLineBody(
+                  req,
+                  res,
+                  next,
+                  limit,
+                );
+              }
+
+              if (!parseGzipJson) {
+                return next();
+              }
+
+              return next(
+                RequestBodyAfterAuthentication.parseInflatedJson(req, limit),
+              );
+            }) as NextFunction,
+            limit,
+          );
+        }) as NextFunction,
+        limit,
+      );
+    };
+  }
+
+  /*
+   * A body of lines (readBody's readLines): its bytes - a gzip body's,
+   * inflated already, or read now, held to `limit` - and, for
+   * newline-delimited JSON, the values of its lines in their place.
+   */
+  private static readLineBody(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+    limit: RequestBodyLimit,
+  ): void {
+    RequestBodyAfterAuthentication.readBytes(limit)(req, res, ((
+      err?: unknown,
+    ): void => {
+      if (err) {
+        return next(err);
+      }
+
+      const body: unknown = (req as { body?: unknown }).body;
+
+      if (
+        !(Buffer.isBuffer(body) || body instanceof Uint8Array) ||
+        !isNdjsonContentType(headerValueToString(req.headers["content-type"]))
+      ) {
+        return next();
+      }
+
+      const bytes: Buffer = Buffer.isBuffer(body)
+        ? body
+        : Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+
+      let values: Array<unknown>;
+
+      try {
+        values = RequestBodyJson.parseLines(bytes, limit);
+      } catch (parseErr) {
+        return next(parseErr);
+      }
+
+      keepRawBody(req as OneUptimeRequest, bytes, ["rawBody"]);
+      (req as { body?: unknown }).body = values;
+
+      return next();
+    }) as NextFunction);
+  }
+
+  /*
+   * A gzip JSON body readBody left as its inflated bytes, parsed in place
+   * (parseJson) and its text kept as rawBody, as StartServer's JSON parser
+   * keeps it. Answers the error it is refused with, or nothing. Any other
+   * body - parsed already, protobuf, of no JSON type - is left as it is.
+   */
+  private static parseInflatedJson(
+    req: ExpressRequest,
+    limit: RequestBodyLimit,
+  ): Error | undefined {
+    const body: unknown = (req as { body?: unknown }).body;
+
+    if (
+      !(Buffer.isBuffer(body) || body instanceof Uint8Array) ||
+      !isJsonContentType(headerValueToString(req.headers["content-type"]))
+    ) {
+      return undefined;
+    }
+
+    const parsed: ParsedRequestBody = RequestBodyAfterAuthentication.parseJson(
+      req,
+      limit,
+    );
+
+    if ("error" in parsed) {
+      return parsed.error;
+    }
+
+    keepRawBody(
+      req as OneUptimeRequest,
+      Buffer.isBuffer(body)
+        ? body
+        : Buffer.from(body.buffer, body.byteOffset, body.byteLength),
+      ["rawBody"],
+    );
+    (req as { body?: unknown }).body = parsed.body;
+
+    return undefined;
   }
 
   /*

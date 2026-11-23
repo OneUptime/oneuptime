@@ -357,6 +357,12 @@ const REQUEST_BODY_NOT_JSON: string = writeProbeFailureCause(
   ProbeFailureCause.RequestBodyNotJson,
 );
 
+// #10737: an API step whose body only a newer probe sends, kept from an older one.
+const TOO_OLD_FOR_REQUEST_BODY: string = writeProbeFailureCause(
+  ProbeFailureCause.ProbeTooOldForRequestBody,
+  { version: "17.2.0" },
+);
+
 const EVERY_STORED: ReadonlyArray<string> = [
   ...AS_WRITTEN_BY_HAND.map((entry: { english: string }): string => {
     return entry.english;
@@ -370,6 +376,7 @@ const EVERY_STORED: ReadonlyArray<string> = [
   SERVER_RETURNED,
   TOO_OLD_FOR_ONE_TIME_CODES,
   REQUEST_BODY_NOT_JSON,
+  TOO_OLD_FOR_REQUEST_BODY,
 ];
 
 describe("the probe writes every cause from the table, byte for byte as it did by hand", () => {
@@ -1057,6 +1064,28 @@ describe("the other causes the checks write (#8656)", () => {
     ).toBe(
       "Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet. Korrigieren Sie den Anfragetext oder den Wert eines Monitor-Geheimnisses, das er verwendet.",
     );
+  });
+
+  test("an API step whose body this probe is too old to send, kept from it (#10737)", () => {
+    expect(TOO_OLD_FOR_REQUEST_BODY).toBe(
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime 17.2.0 or later.",
+    );
+    expect(readProbeFailureCause(TOO_OLD_FOR_REQUEST_BODY)).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForRequestBody,
+      values: { version: "17.2.0" },
+    });
+    // A release holds no space: anything else in its place is not the sentence.
+    expect(
+      readProbeFailureCause(
+        "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime the next release or later.",
+      ),
+    ).toBeNull();
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: TOO_OLD_FOR_REQUEST_BODY,
+      }),
+    ).toContain("17.2.0");
   });
 
   test("an attempt the server answered with an error", () => {

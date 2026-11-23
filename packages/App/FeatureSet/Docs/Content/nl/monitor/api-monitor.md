@@ -55,7 +55,7 @@ De **Naam** wordt ingevuld met wat u invulde, zoals `api.example.com/health`. Ho
 
 ### Hem testen
 
-Kies onder **Monitordoel** het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Aanvraagtekst (in JSON)** in. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
+Kies onder **Monitordoel** het **API-verzoektype** (**GET**, tenzij u het wijzigt). Om headers of een body toe te voegen, opent u **Meer velden** en vult u **Aanvraagheaders** en **Verzoeklichaam** in. Klik op **Monitor testen**: de test begint op een sonde die de monitor controleert. Kies desgewenst een andere onder **Selecteer sonde** en klik dan op **Test uitvoeren**. **Testresultaat van monitor** toont wat de API antwoordde. Het zegt ook aan welk criterium het antwoord voldoet en wat er zou volgen: de status, het incident of de waarschuwing, en wie bericht krijgt.
 
 ### De criteria nakijken
 
@@ -107,14 +107,15 @@ Deze instellingen zijn ingeklapt onder **Meer velden**. De ingeklapte kop noemt 
 | Veld | Standaard | Wat het doet |
 | --- | --- | --- |
 | **Aanvraagheaders** | Geen | Headers die worden verzonden, als paren van naam en waarde. Klik voor elke header op **Aanvraagheader toevoegen**. |
-| **Aanvraagtekst (in JSON)** | Geen | De body die wordt verzonden, meestal met **POST**, **PUT** of **PATCH**: elke JSON-waarde, zoals een object, een array, een tekenreeks of een getal. Hij wordt verzonden zoals u hem schrijft, als `application/json`, tenzij u een `Content-Type` instelt bij **Aanvraagheaders**. Met `application/x-www-form-urlencoded` of `multipart/form-data` wordt een object als formuliervelden verzonden. |
+| **Formaat van het verzoeklichaam** | **JSON** | Hoe de body wordt gelezen. **JSON** neemt elke JSON-waarde, zoals een object, een array, een tekenreeks of een getal. **Tekst** neemt al het andere, zoals XML voor een SOAP-endpoint, platte tekst of formuliervelden geschreven als `a=1&b=2`, en wordt nooit als JSON gelezen. |
+| **Verzoeklichaam** | Geen | De body die wordt verzonden, meestal met **POST**, **PUT** of **PATCH**. Hij wordt precies zo verzonden als u hem schrijft: in de vorm **JSON** als `application/json`, in de vorm **Tekst** als `text/plain`, tenzij u een `Content-Type` instelt bij **Aanvraagheaders**. Met `application/x-www-form-urlencoded` of `multipart/form-data` wordt een object in de vorm **JSON** als formuliervelden verzonden. |
 | **Omleidingen niet volgen** | Uit | Het eerste antwoord beoordelen in plaats van omleidingen te volgen. Zie [hieronder](#omleidingen-niet-volgen). |
 | **Zelfondertekende certificaten toestaan** | Uit | De validatie van het TLS-certificaat overslaan voor de eigen hostnaam van de monitor. |
 | **Clientcertificaat gebruiken (mTLS)** | Uit | Een clientcertificaat en een privésleutel aanbieden. Zie [Clientcertificaat (mTLS)](#clientcertificaat-mtls). |
 | **Aanvraagtime-out (seconden)** | `60` | Hoe lang er op elke poging wordt gewacht. Het maximum is 60 seconden. |
 | **Nieuwe pogingen bij mislukking** | Standaard van de sonde, meestal `3` | Hoe vaak een mislukte poging opnieuw wordt geprobeerd. Het maximum is 3. Zie [Nieuwe pogingen en time-outs](#nieuwe-pogingen-en-time-outs). |
 
-Aanvraagheaders en de aanvraagbody kunnen [monitorgeheimen](/docs/monitor/monitor-secrets) gebruiken, bijvoorbeeld een header `Authorization` met de waarde `Bearer {{monitorSecrets.ApiKey}}`.
+Aanvraagheaders en de aanvraagbody kunnen [monitorgeheimen](/docs/monitor/monitor-secrets) gebruiken, bijvoorbeeld een header `Authorization` met de waarde `Bearer {{monitorSecrets.ApiKey}}`. In een body in de vorm **JSON** wordt een geheim tussen aanhalingstekens, zoals in `{"password": "{{monitorSecrets.Password}}"}`, ge-escapet voor zijn tekenreeks, zodat een waarde met een `"`, een `\` of een regeleinde één tekenreeks blijft. Een geheim buiten aanhalingstekens, zoals in `[{{monitorSecrets.Ids}}]`, wordt ingevuld zoals het is, net als elk geheim in een body in de vorm **Tekst**.
 
 #### Omleidingen niet volgen
 
@@ -246,7 +247,11 @@ De sonde leest hoogstens 512 KiB van een antwoord, en dit antwoord is groter. Ro
 :::
 
 :::details De controle mislukt met "De body van het verzoek is geen geldige JSON, dus het verzoek is niet verstuurd."
-De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) erin zijn ingevuld, dus de sonde heeft het verzoek niet verstuurd. Corrigeer de body bij **Meer velden**, of de waarde van een geheim dat erin wordt gebruikt: een waarde met een `"` erin breekt de JSON-tekenreeks waarin die staat.
+De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) erin zijn ingevuld, dus de sonde heeft het verzoek niet verstuurd. Corrigeer de body bij **Meer velden**, of de waarde van een geheim buiten aanhalingstekens erin, dat wordt ingevuld zoals het is. Om een body te versturen die geen JSON is, zoals XML of formuliervelden, zet u **Formaat van het verzoeklichaam** op **Tekst**.
+:::
+
+:::details De controle meldt dat de sonde te oud is om de body te versturen
+De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een release ouder dan OneUptime 17.2.0, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) of controleer de monitor vanaf een andere sonde.
 :::
 
 ## Volgende stappen

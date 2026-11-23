@@ -1876,6 +1876,89 @@ const asOptional: AsOptionalFunction = (
   return { ...field, isRequired: false };
 };
 
+type KeepOfferedChoicesFunction = (
+  field: PublicFormField,
+  answer: unknown,
+) => unknown;
+
+/*
+ * A template's multi-select answer, kept to the entries its question still
+ * offers (#10692). A template that answered Affected Monitors with
+ * "WB1500KSK02, WB1500KSK03" lost both once WB1500KSK03 was deleted: one
+ * choice the question no longer offered refused the whole answer, so the
+ * page, the Templates page and Duplicate Form all dropped WB1500KSK02 with
+ * it. The entries still offered are kept, in the template's order; with
+ * none left the answer is empty, and left out as one. Any other answer, and
+ * a list its question would refuse unread (longer than it could have
+ * choices, or holding a list or an object), is handed on as it is.
+ */
+const keepOfferedChoices: KeepOfferedChoicesFunction = (
+  field: PublicFormField,
+  answer: unknown,
+): unknown => {
+  if (
+    field.type !== PublicFormFieldType.MultiSelectDropdown ||
+    !Array.isArray(answer) ||
+    answer.length > getMaxChoices(field) ||
+    answer.some((entry: unknown): boolean => {
+      return entry !== null && typeof entry === "object";
+    })
+  ) {
+    return answer;
+  }
+
+  return answer.filter((entry: unknown): boolean => {
+    return (
+      findOption(
+        field,
+        typeof entry === "string" ? cleanScalarAnswer(entry) : entry,
+      ) !== undefined
+    );
+  });
+};
+
+type WithHeldChoicesFunction = (
+  field: PublicFormField,
+  heldAnswer: unknown,
+) => PublicFormField;
+
+/*
+ * A multi-select question, offering besides its own options every entry a
+ * template's answer to it already held: what the template held is not
+ * judged again on a write that changes the answer (#10692), so a record it
+ * held and that is deleted since - or a choice since taken off the
+ * question - never blocks adding another. What the write adds is judged as
+ * always. Any other question, or a held answer that is not a list, is
+ * handed on as it is.
+ */
+const withHeldChoices: WithHeldChoicesFunction = (
+  field: PublicFormField,
+  heldAnswer: unknown,
+): PublicFormField => {
+  if (
+    field.type !== PublicFormFieldType.MultiSelectDropdown ||
+    !Array.isArray(heldAnswer)
+  ) {
+    return field;
+  }
+
+  const options: Array<PublicFormFieldOption> = [...(field.options || [])];
+
+  for (const entry of heldAnswer) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+
+    const value: string = cleanScalarAnswer(entry);
+
+    if (value && !findOption({ ...field, options: options }, value)) {
+      options.push({ value: value, label: value });
+    }
+  }
+
+  return { ...field, options: options };
+};
+
 export type GetFormTemplateAnswersFunction = (data: {
   template: { answers?: JSONObject | null | undefined } | null | undefined;
   // The questions to read the template's answers to.
@@ -1887,7 +1970,9 @@ export type GetFormTemplateAnswersFunction = (data: {
  * submission's answer to it would be - but none required. An answer the
  * question would refuse (an option it no longer offers, a record since
  * deleted, text since made too long for it) is left out, as is an answer to
- * a question not listed. Never throws.
+ * a question not listed. A multi-select answer keeps the entries its
+ * question still offers, and is left out only when none is left
+ * (keepOfferedChoices). Never throws.
  */
 export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
   template: { answers?: JSONObject | null | undefined } | null | undefined;
@@ -1908,7 +1993,7 @@ export const getFormTemplateAnswers: GetFormTemplateAnswersFunction = (data: {
 
     const result: FormAnswerValidationResult = validateFormAnswer({
       field: asOptional(field),
-      answer: stored[field.id],
+      answer: keepOfferedChoices(field, stored[field.id]),
     });
 
     if (result.isValid && result.value !== undefined) {
@@ -1961,7 +2046,9 @@ export type ValidateFormTemplateAnswersFunction = (data: {
  * removed or changed since must not keep an admin from saving another
  * template, or moving one. Such an answer or setting is never used
  * (getFormTemplateAnswers, buildPublicForm), and the next save of its own
- * template through the editor drops it.
+ * template through the editor drops it. Of a multi-select answer that
+ * changed, only the entries the write adds are judged: one the template
+ * held, and that is deleted since, is never used either (#10692).
  */
 export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
   (data: {
@@ -2023,8 +2110,16 @@ export const validateFormTemplateAnswers: ValidateFormTemplateAnswersFunction =
             continue;
           }
 
+          /*
+           * A multi-select's entries the template already held are not
+           * judged again, only the ones the write adds (withHeldChoices).
+           */
           const result: FormAnswerValidationResult = validateFormAnswer({
-            field: asOptional(field),
+            field: asOptional(
+              heldTemplate && hasOwn(heldTemplate.answers, key)
+                ? withHeldChoices(field, heldTemplate.answers[key])
+                : field,
+            ),
             answer: template.answers[key],
           });
 

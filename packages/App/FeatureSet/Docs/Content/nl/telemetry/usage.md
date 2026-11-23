@@ -97,7 +97,7 @@ Elk punt heeft deze attributen:
 | `resourceName` | De naam toen het punt werd geschreven. |
 
 - **Geteld bij binnenkomst.** Elk punt is het deel van de resource in wat er binnenkwam, gedecomprimeerd, zoals ingestiebudgetten het tellen, dus het kan meer aangeven dan de gebruiksrijen, die tellen wat is opgeslagen.
-- **Wat wordt geteld.** De logboeken, traces, metrieken en profielen die via OTLP worden verstuurd, worden geteld, en ook de logboeken van Fluent Bit, Fluentd of syslog. Beveiligingsgebeurtenissen en sessieherhalingen niet.
+- **Wat wordt geteld.** De logboeken, traces, metrieken en profielen die via OTLP worden verstuurd, worden geteld, en ook de logboeken van Fluent Bit, Fluentd of syslog, inclusief de syslog die netwerkapparaten naar een sonde sturen. Beveiligingsgebeurtenissen en sessieherhalingen niet.
 - **Elk punt hoort bij zijn resource.** Wie de telemetrie van een service of resource mag lezen, leest de punten ervan: een rol die tot enkele labels is beperkt, ziet alleen die van hen.
 - **Ze kosten niets.** Deze punten tellen niet mee voor een budget of als gebruik, en worden net zo lang bewaard als monitormetrieken: 30 dagen, tenzij de instantiebeheerder dat wijzigt. Metrieknamen die beginnen met `oneuptime.telemetry.usage.` zijn voor hen gereserveerd: metrieken die uw applicaties onder zo'n naam versturen, worden verworpen.
 - **Standaard uit.** Zolang het uit staat, wordt er niets geschreven, en de punten die al zijn geschreven, blijven tot ze verlopen.

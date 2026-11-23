@@ -219,6 +219,8 @@ const REDIS_LIMITS: Array<string> = [
 const FIXED_KEY_LIMITS: Record<string, string> = {
   "packages/Common/Server/Middleware/AutoRemediationRoundRateLimit.ts":
     "reads of an AI fix's round and presses of Try again, per signed-in user (#6525)",
+  "packages/Common/Server/Middleware/CompatibleQueryRateLimit.ts":
+    "queries to the Prometheus- and Loki-compatible query APIs, per project and API, a minute at a time (#7700): what a project's dashboards read with its keys",
 };
 
 /*

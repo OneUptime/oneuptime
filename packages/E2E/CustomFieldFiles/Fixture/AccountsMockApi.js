@@ -131,6 +131,18 @@ const answer = async (options, apiPath) => {
     return ok({ currentVersion: "1.0.0", latestVersion: "1.0.0" });
   }
 
+  /*
+   * Whether the form asks its visitors to sign in (#10249), the page's
+   * first question (Accounts/src/Utils/FormSignIn): this one does not, so
+   * the page reads the form and shows it to anyone with its link.
+   */
+  if (
+    apiPath === `/api/form/public/${FORM_KEY}/sign-in-state` &&
+    options.method === "GET"
+  ) {
+    return ok({ requireSignIn: false });
+  }
+
   if (apiPath === `/api/form/public/${FORM_KEY}`) {
     return ok(FORM);
   }

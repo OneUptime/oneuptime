@@ -49,6 +49,29 @@ export enum DataSecurityAiFeature {
    * each - and the owner rules that keep stores like them owned (#10374).
    */
   ProposeStoreOwners = "ProposeStoreOwners",
+  /*
+   * A name for a group of issues one mistake made (#10370), from the facts
+   * its stores share: "the static-site module turns off access logs".
+   */
+  NameIssueGroup = "NameIssueGroup",
+  /*
+   * The pull request that fixes a group's cause once, in the module or
+   * file that declares its stores (#10370): a task in Code.
+   */
+  FixIssueGroup = "FixIssueGroup",
+  /*
+   * The scrub rules for telemetry findings no rule of Scrub It's can hide:
+   * a pattern or the attributes to hide, from the data type, its place,
+   * the names around it and the shapes of its values - each proven on the
+   * records the finding was seen in before it is offered (#10366).
+   */
+  WriteScrubRules = "WriteScrubRules",
+  /*
+   * The Sensitive data section of a pull request's production review
+   * (#10376): OneUptime AI words, orders and drops what the rules found the
+   * change writes to telemetry, does to a store or adds a column for.
+   */
+  ReviewPullRequests = "ReviewPullRequests",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -65,6 +88,11 @@ export enum DataSecurityAiModelSource {
   CodeAgent = "CodeAgent",
   // Ask AI's: the provider picked in the chat, else the project's default.
   Chat = "Chat",
+  /*
+   * A production review's: the provider the repository picks for its
+   * production reviews, else the project's default, else the server's.
+   */
+  ProductionReview = "ProductionReview",
 }
 
 export interface DataSecurityAiFeatureInfo {
@@ -269,6 +297,114 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.NameIssueGroup,
+      title: translationKey("Names for issues with one cause"),
+      startedBy: translationKey(
+        "A group of issues one mistake made, when it forms or what its stores share changes, while Work on new issues is on.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "What the group's stores share: the module, stack or tag that made them, the identity that created them, or their name pattern",
+        ),
+        translationKey(
+          "The check they fail, how many issues the group holds, the kind of store and the code that declares them",
+        ),
+      ],
+      neverSends: [
+        translationKey("The name of any one store in the group"),
+        translationKey("A sample of what was found, not even a masked one"),
+      ],
+      keeps: translationKey(
+        "The group's name, beside the facts it was written from. Its issues are never changed.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.FixIssueGroup,
+      title: translationKey("Fix the cause"),
+      startedBy: translationKey(
+        "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey(
+          "The check the group's issues fail, what their stores share, and the module or files that declare them, as a request to the coding agent",
+        ),
+        translationKey(
+          "Each store the pull request fixes: its name, kind, region and cloud ID, and its issue",
+        ),
+        translationKey(
+          "The repository's own code, which the coding agent reads to make the change",
+        ),
+      ],
+      neverSends: [
+        translationKey("A sample of what was found, not even a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "The task and its one pull request, under Code, which each of the group's issues keeps.",
+      ),
+      keepsProviderErrors: true,
+      modelSource: DataSecurityAiModelSource.CodeAgent,
+    },
+    {
+      feature: DataSecurityAiFeature.WriteScrubRules,
+      title: translationKey("Scrub rules for what Scrub It cannot cover"),
+      startedBy: translationKey(
+        "A telemetry issue OneUptime AI contains, for the data no rule of Scrub It's can hide, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "Each finding's data type, its category and whether it is found by its values or by a field's name",
+        ),
+        translationKey(
+          "Where it sits: the attribute or the log body, and the names of the attributes beside it",
+        ),
+        translationKey(
+          "The shapes of its values, such as AA-9999 for the value AB-1234, and how many values were read",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of the field, nor a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "Each rule it wrote, proven on the records the finding was seen in, in Data Security > AI until a person approves or dismisses it - or made on its own, as your AI rules allow.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.ReviewPullRequests,
+      title: translationKey("Sensitive data in pull requests"),
+      startedBy: translationKey(
+        "A pull request's production review, when its rules find sensitive data in the change: written to telemetry, a store left open, or a new column.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "What the rules found in the pull request's diff: the file and line, the name written, the kind of data it names and the check it would fail",
+        ),
+        translationKey(
+          "The diff of those files and the pull request's title, with what looks like a secret, an email address or an IP address left out",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "What production holds: where your telemetry held the data, a store's name or what a store holds",
+        ),
+        translationKey("A sample of what was found, not even a masked one"),
+      ],
+      keeps: translationKey(
+        "The points, on the pull request's production review in Code and in its comment.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProductionReview,
     },
   ];
 

@@ -61,6 +61,8 @@ const READERS: Record<string, Classification> = {
       // A task's page: every turn it reads, before anything is made of it.
       "await CodeTaskPresenter.keepReviewsForReader({ projectId: data.projectId, runs: [...turns, ...turnsNotShown, ...(linked ? [linked.turn] : [])],",
       "await ProductionReviewReadFilter.readReadableIncidentIds({",
+      // What production knows of a review's sensitive data, held to Data Security's readers (#10376).
+      "await ProductionReviewReadFilter.canReadDataSecurity({",
       "ProductionReviewReadFilter.keepOutcome(",
       // A review's row says what AI last said: the review's own sentence, kept.
       "lastReply: review?.summary || taskOutcomes?.lastReply,",
@@ -74,6 +76,9 @@ const READERS: Record<string, Classification> = {
         "await IncidentService.findBy({",
         "props: data.props,",
         "ProductionReviewUtil.keepReadableIncidents(",
+        // Data Security's findings asked as the reader, and the rule held to it.
+        "await DataStoreFindingService.findBy({",
+        "ProductionReviewUtil.keepReadableSensitiveData(",
       ],
     },
   "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts":

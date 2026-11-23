@@ -434,7 +434,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "string",
         required: false,
         description:
-          "The HTTP request body. Used for API monitors with POST, PUT, or PATCH methods. Typically a JSON string.",
+          'The HTTP request body, as text. Used for API monitors with POST, PUT, or PATCH methods. Any JSON value - an object, an array or a single value - or, when requestBodyFormat is "text", any text.',
+      },
+      {
+        name: "requestBodyFormat",
+        type: 'string ("json" | "text")',
+        required: false,
+        description:
+          'How an API monitor sends requestBody. "json", the default when left out, sends any JSON value as written. "text" sends the body exactly as written and never reads it as JSON - XML, plain text or form fields such as a=1&b=2 - under the Content-Type in requestHeaders, or text/plain.',
       },
       {
         name: "doNotFollowRedirects",

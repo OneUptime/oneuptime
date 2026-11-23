@@ -72,26 +72,40 @@ jest.mock("Common/UI/Utils/API/API", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/UI/Utils/API/API",
   ) as Record<string, unknown>;
-  const actualDefault: Record<string, unknown> = actual["default"] as Record<
-    string,
-    unknown
-  >;
-
-  return {
+  const mocked: Record<string, unknown> = {
     __esModule: true,
     ...actual,
-    default: new Proxy(actualDefault, {
-      get: (target: Record<string, unknown>, property: string): unknown => {
-        if (property === "fetch") {
-          return (...args: Array<unknown>): unknown => {
-            return licenseFetchMock(...args);
-          };
-        }
-
-        return target[property];
-      },
-    }),
   };
+  let client: Record<string, unknown> | undefined;
+
+  /*
+   * The client is built when it is first read, not here: API.ts imports
+   * Reauthentication, which imports API.ts back (#10155), so the actual
+   * module asks for this mock again while it is still loading, before its
+   * default export exists. Everything reads the client after both loaded.
+   */
+  Object.defineProperty(mocked, "default", {
+    enumerable: true,
+    get: (): Record<string, unknown> => {
+      if (!client) {
+        client = new Proxy(actual["default"] as Record<string, unknown>, {
+          get: (target: Record<string, unknown>, property: string): unknown => {
+            if (property === "fetch") {
+              return (...args: Array<unknown>): unknown => {
+                return licenseFetchMock(...args);
+              };
+            }
+
+            return target[property];
+          },
+        });
+      }
+
+      return client;
+    },
+  });
+
+  return mocked;
 });
 
 const getItemMock: jest.Mock = jest.fn();

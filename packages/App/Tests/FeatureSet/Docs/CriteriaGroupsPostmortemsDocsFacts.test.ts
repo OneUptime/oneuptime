@@ -942,7 +942,11 @@ describe("how criteria decide", () => {
       "\n  }\n",
     );
 
-    // Grouped by attributes, or written in PromQL (#7712, #10163).
+    /*
+     * A metric-backed step is judged series by series when it is grouped
+     * by attributes or written in PromQL, every series of whose expression
+     * is its own (#7712): MonitorStepPromQL.test.ts holds both answers.
+     */
     expect(perSeries).toContain(
       "return MonitorStep.isJudgedPerSeries(input.monitorStep);",
     );
@@ -983,7 +987,7 @@ describe("how criteria decide", () => {
       "> A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once.",
     );
     expect(criteriaPage).toContain(
-      "That is a monitor whose query has a **Group By** or is written in PromQL, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
+      "That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. So is a Metrics monitor that watches a PromQL expression: each series the expression returns is judged on its own. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.",
     );
   });
 

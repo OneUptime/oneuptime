@@ -225,6 +225,8 @@ import TracePipelines from "../../../../App/FeatureSet/Dashboard/src/Pages/Trace
 import TraceScrubRules from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/Settings/ScrubRules";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ScrubRulePatternPill from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRulePatternPill";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
+import ScrubRuleValueCountsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleCounts/ScrubRuleValueCountsApi";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
 import { Blue500 } from "../../../Types/BrandColors";
@@ -319,6 +321,20 @@ beforeEach(() => {
     return Promise.resolve({ data: saved });
   }) as never);
   getItemMock.mockReset();
+  /*
+   * What the scrub rules pages read beside their rules: the IP Address rules
+   * hiding addresses from Security Events (#10396), and what each rule
+   * changed (#10366). None, and nothing counted.
+   */
+  jest
+    .spyOn(ScrubRuleAddressesApi, "getRulesHidingAddresses")
+    .mockResolvedValue({ isChecked: true, signalsRead: [], rules: [] });
+  jest.spyOn(ScrubRuleValueCountsApi, "getCounts").mockResolvedValue({
+    since: new Date().toISOString(),
+    days: 7,
+    isChecked: true,
+    rules: [],
+  });
 });
 
 afterEach(() => {
@@ -643,6 +659,8 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
       }),
     ).toEqual([
       "Public IPv4 and IPv6 addresses, not private, loopback or link-local ones.",
+      // Named Attributes says what it hides too (#10366).
+      "Hides the whole value of the attributes you name, whatever it holds.",
     ]);
   });
 

@@ -24,6 +24,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import { getUniqueName } from "Common/UI/Components/Forms/Utils/UniqueName";
 import {
@@ -362,9 +363,13 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
               { threshold: translator.formatNumber(rule.threshold) },
             )}
           </span>
-          <span aria-hidden="true">·</span>
+          <span aria-hidden="true">
+            <InlineSeparator markOnly />
+          </span>
           <span>{translator.translateText(rule.rollingTime)}</span>
-          <span aria-hidden="true">·</span>
+          <span aria-hidden="true">
+            <InlineSeparator markOnly />
+          </span>
           <span>{translator.translateText(rule.aggregation)}</span>
           <Pill
             text={
@@ -407,6 +412,7 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
             ariaLabel={translator.translateTemplate("Import {{name}}", {
               name: names.get(item.key) || item.name,
             })}
+            isAriaLabelTranslated={true}
             dataTestId="import-rule-toggle"
             onChange={(value: boolean) => {
               const next: Set<string> = new Set<string>(unticked);

@@ -354,6 +354,38 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/DropGreenlockTablesPostgres.test.ts --forceExit
 
+      # #10469: who deleted a record goes from every table - each table's key
+      # to "User" and column in one statement, outside a transaction, so a
+      # stopped run is finished by the next, and behind a reader of "User" a
+      # statement waits only its lock_timeout and leaves its table as it was.
+      # In a schema of its own.
+      - name: Test dropping the Deleted by User columns on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DROP_DELETED_BY_USER_COLUMNS_TESTS: "true"
+          DROP_DELETED_BY_USER_COLUMNS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DROP_DELETED_BY_USER_COLUMNS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DROP_DELETED_BY_USER_COLUMNS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/DropDeletedByUserColumnsPostgres.test.ts --forceExit
+
+      # #10469: a request that still names who deleted a record is read as
+      # Postgres reads a column empty on every record, operator by operator,
+      # through the real query compiler and service. In a schema of its own.
+      - name: Test requests that name the retired columns on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RETIRED_COLUMNS_TESTS: "true"
+          RETIRED_COLUMNS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RETIRED_COLUMNS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RETIRED_COLUMNS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Database/RetiredColumnsPostgres.test.ts --forceExit
+
       # Deleting the resolved incidents and alerts a project no longer keeps
       # (issue #6903): the real statements, hard deletes and cascades - what
       # goes, what stays (not resolved, resolved lately, a completed
@@ -5065,7 +5097,12 @@ jobs:
       # rule's monitors condition, searched and named by id the same way;
       # a telemetry step's services and inventory items, by name or key;
       # a monitor's on-call policies, an OpenStack cloud's projects, an
-      # infrastructure monitor's host and a metric query's metric.
+      # infrastructure monitor's host and a metric query's metric. #10689:
+      # a workspace rule's labels, SLOs and policies conditions searched,
+      # a policy name's words, and what the shown rules hold - owners'
+      # teams and people, who joins a channel - named by their ids; the
+      # project's people paged past their first 10,000 memberships, and
+      # labels searched as they are typed.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5083,6 +5120,8 @@ jobs:
           Tests/Server/API/StatusPageSetupSearchPostgres.test.ts
           Tests/Server/API/FormPickerSearchPostgres.test.ts
           Tests/Server/API/WorkspaceRuleMonitorSearchPostgres.test.ts
+          Tests/Server/API/WorkspaceRuleRecordSearchPostgres.test.ts
+          Tests/Server/API/ProjectPeopleAndLabelSearchPostgres.test.ts
           Tests/Server/API/TelemetryStepScopeSearchPostgres.test.ts
           Tests/Server/API/MonitorAndCloudPickerSearchPostgres.test.ts
           --forceExit

@@ -439,29 +439,25 @@ describe("Scrub It's own rule, through ingest", () => {
     jest
       .spyOn(MetricPipelineRuleService, "findBy")
       .mockResolvedValue([] as never);
-    jest
-      .spyOn(ServiceService, "findOneBy")
-      .mockImplementation((async (
-        findOneBy: FindOneBy<Service>,
-      ): Promise<Service | null> => {
-        const id: string = String(
-          (findOneBy.query as Record<string, unknown>)["_id"],
-        );
-        const service: Service = new Service(new ObjectID(id));
-        service.name = id === CHECKOUT_ID ? "checkout" : "payments";
+    jest.spyOn(ServiceService, "findOneBy").mockImplementation((async (
+      findOneBy: FindOneBy<Service>,
+    ): Promise<Service | null> => {
+      const id: string = String(
+        (findOneBy.query as Record<string, unknown>)["_id"],
+      );
+      const service: Service = new Service(new ObjectID(id));
+      service.name = id === CHECKOUT_ID ? "checkout" : "payments";
 
-        return service;
-      }) as never);
-    jest
-      .spyOn(CommonLogScrubRuleService, "create")
-      .mockImplementation((async (
-        createBy: CreateBy<LogScrubRule>,
-      ): Promise<LogScrubRule> => {
-        made = createBy.data;
-        made._id = ObjectID.generate().toString();
+      return service;
+    }) as never);
+    jest.spyOn(CommonLogScrubRuleService, "create").mockImplementation((async (
+      createBy: CreateBy<LogScrubRule>,
+    ): Promise<LogScrubRule> => {
+      made = createBy.data;
+      made._id = ObjectID.generate().toString();
 
-        return made;
-      }) as never);
+      return made;
+    }) as never);
 
     await createScrubRuleForFinding({
       projectId: PROJECT_ID,
@@ -478,8 +474,9 @@ describe("Scrub It's own rule, through ingest", () => {
 
     const rows: Record<string, JSONObject> = await ingestLogs();
 
+    // Personal data is masked, as a finding's samples are (#10366): the address is gone.
     expect((rows["checkout"]!["attributes"] as JSONObject)["user.email"]).toBe(
-      "[REDACTED]",
+      "a***@***.com",
     );
     expect((rows["payments"]!["attributes"] as JSONObject)["user.email"]).toBe(
       EMAIL,

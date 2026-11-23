@@ -322,8 +322,9 @@ describe("what a read hands back is bounded", () => {
 
     expect(thrown).toBeInstanceOf(PromQLError);
     expect((thrown as PromQLError).errorType).toBe(PromQLErrorType.Execution);
+    // The figure held to its unit by a no-break space.
     expect((thrown as PromQLError).message).toBe(
-      "the logs this query reads are more than 64 MB. Ask for fewer lines (a lower limit), a shorter time range, or add label matchers or line filters.",
+      "the logs this query reads are more than 64 MB. Ask for fewer lines (a lower limit), a shorter time range, or add label matchers or line filters.",
     );
   });
 

@@ -73,6 +73,7 @@ export default class MonitorStepsValuesUtil {
         MonitorRequestBody.getUnreadableError({
           monitorType: data.monitorType,
           requestBody: step?.data?.requestBody,
+          requestBodyFormat: step?.data?.requestBodyFormat,
         });
 
       if (requestBodyError) {

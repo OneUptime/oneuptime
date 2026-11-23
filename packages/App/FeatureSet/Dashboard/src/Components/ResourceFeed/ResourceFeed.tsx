@@ -1,4 +1,4 @@
-import React, { ReactElement, useCallback } from "react";
+import React, { ReactElement, useCallback, useRef } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -71,6 +71,18 @@ export interface ComponentProps<TFeedModel extends ResourceFeedModel> {
    * events still look like every other feed's.
    */
   getKind?: GetResourceFeedKindFunction | undefined;
+  /*
+   * Columns of the feed's own an entry's element reads - an issue's entry
+   * the proposal it is about, for its Undo (#10366).
+   */
+  moreSelect?: Record<string, true> | undefined;
+  /*
+   * What an entry draws under its words, such as an Undo for a change
+   * OneUptime AI made: `refresh` reads the feed again after it.
+   */
+  getElement?:
+    | ((feed: TFeedModel, refresh: () => void) => ReactElement | undefined)
+    | undefined;
 }
 
 export type GetResourceFeedKindFunction = (
@@ -164,9 +176,12 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
 ) => ReactElement = <TFeedModel extends ResourceFeedModel>(
   props: ComponentProps<TFeedModel>,
 ): ReactElement => {
-  type GetFeedItem = (feed: TFeedModel) => FeedItemProps;
+  type GetFeedItem = (feed: TFeedModel, refresh: () => void) => FeedItemProps;
 
-  const getFeedItem: GetFeedItem = (feed: TFeedModel): FeedItemProps => {
+  const getFeedItem: GetFeedItem = (
+    feed: TFeedModel,
+    refresh: () => void,
+  ): FeedItemProps => {
     const eventType: string =
       ((feed as unknown as Record<string, unknown>)[
         props.eventTypeColumn
@@ -176,10 +191,14 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       eventType: eventType,
       getKind: props.getKind,
     });
+    const element: ReactElement | undefined = props.getElement
+      ? props.getElement(feed, refresh)
+      : undefined;
 
     return {
       key: feed.id!.toString(),
       textInMarkdown: feed.feedInfoInMarkdown || "",
+      ...(element ? { element } : {}),
       moreTextInMarkdown: feed.moreInformationInMarkdown || "",
       user: feed.user,
       itemDateTime: feed.postedAt || feed.createdAt!,
@@ -204,6 +223,10 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
       });
     },
     [props.getKind],
+  );
+
+  const refreshFeed: React.MutableRefObject<() => void> = useRef<() => void>(
+    (): void => {},
   );
 
   const feedOptions: UseFeedOptionsResult = useFeedOptions({
@@ -243,6 +266,7 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
           },
           [props.eventTypeColumn]: true,
           postedAt: true,
+          ...(props.moreSelect || {}),
         } as unknown as Select<TFeedModel>,
         skip: 0,
         sort: {
@@ -253,10 +277,15 @@ const ResourceFeed: <TFeedModel extends ResourceFeedModel>(
     },
     mapItems: (feeds: Array<TFeedModel>): Array<FeedItemProps> => {
       return feeds.map((feed: TFeedModel) => {
-        return getFeedItem(feed);
+        return getFeedItem(feed, (): void => {
+          refreshFeed.current();
+        });
       });
     },
   });
+
+  // The feed's own refresh, for an entry's element to call once it is made.
+  refreshFeed.current = feed.refresh;
 
   return (
     <FeedCard

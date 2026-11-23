@@ -235,7 +235,7 @@ describe("the settings that stayed on the Criteria step are said there", () => {
         "API Request Type",
         "More fields",
         "Request Headers",
-        "Request Body (in JSON)",
+        "Request Body",
       ],
     },
     { page: "monitor/ntp-monitor", labels: ["More fields", "Port"] },

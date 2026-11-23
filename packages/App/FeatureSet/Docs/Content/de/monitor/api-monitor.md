@@ -55,7 +55,7 @@ Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `api.example.com/health`.
 
 ### Ihn testen
 
-Wählen Sie unter **Monitor-Ziel** den **API-Anfragetyp** (**GET**, sofern Sie ihn nicht ändern). Um Header oder einen Body hinzuzufügen, öffnen Sie **Weitere Felder** und füllen Sie **Anfrage-Header** und **Anfrage-Body (in JSON)** aus. Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die API geantwortet hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
+Wählen Sie unter **Monitor-Ziel** den **API-Anfragetyp** (**GET**, sofern Sie ihn nicht ändern). Um Header oder einen Body hinzuzufügen, öffnen Sie **Weitere Felder** und füllen Sie **Anfrage-Header** und **Anfragetext** aus. Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die API geantwortet hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 
@@ -107,14 +107,15 @@ Diese Einstellungen sind unter **Weitere Felder** eingeklappt. Die eingeklappte 
 | Feld | Standard | Was es tut |
 | --- | --- | --- |
 | **Anfrage-Header** | Keine | Header, die gesendet werden, als Paare aus Name und Wert. Klicken Sie für jeden auf **Anfrage-Header hinzufügen**. |
-| **Anfrage-Body (in JSON)** | Keiner | Der Body, der gesendet wird, meist mit **POST**, **PUT** oder **PATCH**: ein beliebiger JSON-Wert, etwa ein Objekt, ein Array, eine Zeichenkette oder eine Zahl. Er wird so gesendet, wie Sie ihn schreiben, als `application/json`, sofern Sie keinen `Content-Type` unter **Anfrage-Header** setzen. Mit `application/x-www-form-urlencoded` oder `multipart/form-data` wird ein Objekt als Formularfelder gesendet. |
+| **Format des Anfragetexts** | **JSON** | Wie der Anfragetext gelesen wird. **JSON** nimmt einen beliebigen JSON-Wert, etwa ein Objekt, ein Array, eine Zeichenkette oder eine Zahl. **Text** nimmt alles andere, etwa XML für einen SOAP-Endpunkt, reinen Text oder Formularfelder, geschrieben als `a=1&b=2`, und wird nie als JSON gelesen. |
+| **Anfragetext** | Keiner | Der Body, der gesendet wird, meist mit **POST**, **PUT** oder **PATCH**. Er wird genau so gesendet, wie Sie ihn schreiben: im Format **JSON** als `application/json`, im Format **Text** als `text/plain`, sofern Sie keinen `Content-Type` unter **Anfrage-Header** setzen. Mit `application/x-www-form-urlencoded` oder `multipart/form-data` wird ein Objekt im Format **JSON** als Formularfelder gesendet. |
 | **Weiterleitungen nicht folgen** | Aus | Die erste Antwort beurteilen, statt Weiterleitungen zu folgen. Siehe [unten](#weiterleitungen-nicht-folgen). |
 | **Selbstsignierte Zertifikate zulassen** | Aus | Die Prüfung des TLS-Zertifikats für den eigenen Hostnamen des Monitors überspringen. |
 | **Client-Zertifikat verwenden (mTLS)** | Aus | Ein Client-Zertifikat und einen privaten Schlüssel vorlegen. Siehe [Client-Zertifikat (mTLS)](#client-zertifikat-mtls). |
 | **Anfrage-Zeitlimit (Sekunden)** | `60` | Wie lange auf jeden Versuch gewartet wird. Das Maximum sind 60 Sekunden. |
 | **Wiederholungen bei Fehlschlag** | Standard der Sonde, meist `3` | Wie oft ein fehlgeschlagener Versuch wiederholt wird. Das Maximum ist 3. Siehe [Wiederholungen und Zeitlimits](#wiederholungen-und-zeitlimits). |
 
-Anfrage-Header und der Anfrage-Body können [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) verwenden, zum Beispiel einen Header `Authorization` mit dem Wert `Bearer {{monitorSecrets.ApiKey}}`.
+Anfrage-Header und der Anfrage-Body können [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) verwenden, zum Beispiel einen Header `Authorization` mit dem Wert `Bearer {{monitorSecrets.ApiKey}}`. In einem Body im Format **JSON** wird ein Geheimnis in Anführungszeichen, wie in `{"password": "{{monitorSecrets.Password}}"}`, für seine Zeichenkette maskiert, sodass ein Wert mit einem `"`, einem `\` oder einem Zeilenumbruch eine Zeichenkette bleibt. Ein Geheimnis außerhalb von Anführungszeichen, wie in `[{{monitorSecrets.Ids}}]`, wird so eingesetzt, wie es ist, ebenso jedes Geheimnis in einem Body im Format **Text**.
 
 #### Weiterleitungen nicht folgen
 
@@ -246,7 +247,11 @@ Die Sonde liest höchstens 512 KiB einer Antwort, und diese ist größer. Rufen 
 :::
 
 :::details Die Prüfung schlägt fehl mit „Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet.“
-Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) eingesetzt sind, daher hat die Sonde die Anfrage nicht gesendet. Korrigieren Sie den Body unter **Weitere Felder** oder den Wert eines Geheimnisses, das er verwendet: Ein Wert mit einem `"` darin bricht die JSON-Zeichenkette, in der er steht.
+Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) eingesetzt sind, daher hat die Sonde die Anfrage nicht gesendet. Korrigieren Sie den Body unter **Weitere Felder** oder den Wert eines Geheimnisses außerhalb von Anführungszeichen darin, das so eingesetzt wird, wie es ist. Um einen Body zu senden, der kein JSON ist, etwa XML oder Formularfelder, stellen Sie **Format des Anfragetexts** auf **Text**.
+:::
+
+:::details Die Prüfung meldet, dass die Sonde zu alt ist, um den Anfragetext zu senden
+Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem Release vor OneUptime 17.2.0, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) oder prüfen Sie den Monitor von einer anderen Sonde aus.
 :::
 
 ## Nächste Schritte

@@ -97,7 +97,7 @@ Jeder Punkt trägt diese Attribute:
 | `resourceName` | Ihr Name, als der Punkt geschrieben wurde. |
 
 - **Gezählt beim Eintreffen.** Jeder Punkt ist der Anteil der Ressource an dem, was eintraf, dekomprimiert, so wie Ingestion-Budgets es zählen, und kann daher mehr zeigen als die Nutzungszeilen, die zählen, was gespeichert wurde.
-- **Was gezählt wird.** Gezählt werden die Protokolle, Traces, Metriken und Profile, die über OTLP gesendet werden, und ebenso die Protokolle von Fluent Bit, Fluentd oder Syslog. Sicherheitsereignisse und Sitzungswiedergaben nicht.
+- **Was gezählt wird.** Gezählt werden die Protokolle, Traces, Metriken und Profile, die über OTLP gesendet werden, und ebenso die Protokolle von Fluent Bit, Fluentd oder Syslog, einschließlich des Syslogs, das Netzwerkgeräte an eine Sonde senden. Sicherheitsereignisse und Sitzungswiedergaben nicht.
 - **Jeder Punkt gehört seiner Ressource.** Wer die Telemetrie eines Dienstes oder einer Ressource lesen darf, liest ihre Punkte: Eine auf einige Beschriftungen beschränkte Rolle sieht nur deren Punkte.
 - **Sie kosten nichts.** Diese Punkte werden auf kein Budget angerechnet und nicht als Nutzung gezählt, und sie werden so lange aufbewahrt wie Monitor-Metriken: 30 Tage, sofern der Instanzadministrator das nicht ändert. Metriknamen, die mit `oneuptime.telemetry.usage.` beginnen, sind ihnen vorbehalten: Metriken, die Ihre Anwendungen unter einem solchen Namen senden, werden verworfen.
 - **Standardmäßig aus.** Solange die Option aus ist, wird nichts geschrieben, und bereits geschriebene Punkte bleiben, bis sie ablaufen.

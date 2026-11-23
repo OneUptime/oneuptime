@@ -59,6 +59,13 @@ import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
 import logger from "Common/Server/Utils/Logger";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import TelemetryIngestionBudget, {
+  TelemetryIngestionBudgetAdmission,
+  TelemetryIngestionBudgetAdmissionMode,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestionBudget";
+import { TelemetryIngestBodySize } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
 
 /*
  * THE SYSLOG A PROBE FORWARDS, MADE INTO LOGS.
@@ -161,6 +168,31 @@ export interface ProbeSyslogIngestResult {
   malformed: number;
   // Rows a drop filter discarded.
   droppedByFilter: number;
+  /*
+   * Logs dropped because a budget had no room for them (#10716): their
+   * project's daily logs budget, or a team's or a label's of their device.
+   */
+  droppedByBudget: number;
+}
+
+// One log to write: a message, the project it is for, and whose it is.
+interface ProbeSyslogTarget {
+  read: ReadProbeSyslogMessage;
+  normalized: NormalizedSyslogMessage;
+  projectId: ObjectID;
+  device: SyslogDevice | null;
+  relay: SyslogDevice | null;
+  matchedBy: SyslogDeviceMatchKind | null;
+  // What it counts against its project's logs budget (getCountedBytes).
+  bytes: number;
+}
+
+// What a project's share of a batch was decided (admitProjects).
+interface ProbeSyslogProjectBudget {
+  // false: its daily logs budget is used up, and its share is dropped.
+  isAdmitted: boolean;
+  // Its teams', labels' and usage's, or null when it needs none.
+  attribution: TelemetryIngestAttribution | null;
 }
 
 function parseDateOrDefault(value: unknown, fallback: Date): Date {
@@ -194,11 +226,14 @@ export default class ProbeSyslogIngestService {
       droppedUnmatched: 0,
       malformed: 0,
       droppedByFilter: 0,
+      droppedByBudget: 0,
     };
 
     const serviceCache: Dictionary<TelemetryServiceMetadata> = {};
     const processingContextCache: Dictionary<LogProcessingContext> = {};
     const dbLogs: Array<JSONObject> = [];
+    // The logs to write, in the order their messages came: one per device.
+    const targets: Array<ProbeSyslogTarget> = [];
 
     let probe: FlowProbe | null = null;
 
@@ -224,6 +259,7 @@ export default class ProbeSyslogIngestService {
      */
     const eventLoopBudget: EventLoopBudget = new EventLoopBudget();
 
+    // Each message, read, and found whose it is.
     for (const rawMessage of rawMessages) {
       if (eventLoopBudget.isSpent()) {
         await eventLoopBudget.handBack();
@@ -256,6 +292,9 @@ export default class ProbeSyslogIngestService {
             headerHostname: normalized.headerHostname,
           });
 
+        const bytes: number =
+          ProbeSyslogIngestService.getCountedBytes(syslogMessage);
+
         if (attribution.devices.length === 0) {
           if (!attribution.unmatchedProjectId) {
             result.droppedUnmatched++;
@@ -272,25 +311,15 @@ export default class ProbeSyslogIngestService {
             continue;
           }
 
-          const row: JSONObject | null =
-            await ProbeSyslogIngestService.buildLogRow({
-              read: read,
-              normalized: normalized,
-              probeId: probeId,
-              projectId: attribution.unmatchedProjectId,
-              device: null,
-              relay: null,
-              matchedBy: null,
-              serviceCache: serviceCache,
-              processingContextCache: processingContextCache,
-            });
-
-          if (row) {
-            dbLogs.push(row);
-            result.keptUnmatched++;
-          } else {
-            result.droppedByFilter++;
-          }
+          targets.push({
+            read: read,
+            normalized: normalized,
+            projectId: attribution.unmatchedProjectId,
+            device: null,
+            relay: null,
+            matchedBy: null,
+            bytes: bytes,
+          });
 
           continue;
         }
@@ -313,29 +342,102 @@ export default class ProbeSyslogIngestService {
                 )
               : normalized;
 
-          const row: JSONObject | null =
-            await ProbeSyslogIngestService.buildLogRow({
-              read: read,
-              normalized: normalizedForDevice,
-              probeId: probeId,
-              projectId: target.device.projectId,
-              device: target.device,
-              relay: target.relay,
-              matchedBy: target.matchedBy,
-              serviceCache: serviceCache,
-              processingContextCache: processingContextCache,
-            });
-
-          if (row) {
-            dbLogs.push(row);
-          } else {
-            result.droppedByFilter++;
-          }
+          targets.push({
+            read: read,
+            normalized: normalizedForDevice,
+            projectId: target.device.projectId,
+            device: target.device,
+            relay: target.relay,
+            matchedBy: target.matchedBy,
+            bytes: bytes,
+          });
         }
       } catch (processingError) {
         logger.error("Probe syslog ingest: error processing message:");
         logger.error(processingError);
       }
+    }
+
+    // Each project's share of the batch, against its budgets (#10716).
+    const budgets: Map<string, ProbeSyslogProjectBudget> =
+      await ProbeSyslogIngestService.admitProjects(targets);
+
+    // The logs each project has room for.
+    for (const target of targets) {
+      if (eventLoopBudget.isSpent()) {
+        await eventLoopBudget.handBack();
+      }
+
+      try {
+        const budget: ProbeSyslogProjectBudget | undefined = budgets.get(
+          target.projectId.toString(),
+        );
+
+        if (budget && !budget.isAdmitted) {
+          result.droppedByBudget++;
+          continue;
+        }
+
+        const serviceName: string = target.device?.name || DEFAULT_SERVICE_NAME;
+        const serviceMetadata: TelemetryServiceMetadata =
+          await ProbeSyslogIngestService.getServiceMetadata({
+            projectId: target.projectId,
+            serviceName: serviceName,
+            serviceCache: serviceCache,
+          });
+
+        /*
+         * Whose log this is (TelemetryIngestAttribution): offered with its
+         * device's service, message by message - a service already offered
+         * adds the message to its count, as syslog's lines are. A used-up
+         * budget of its team or a label drops it; the rest of the batch is
+         * stored.
+         */
+        if (
+          budget?.attribution &&
+          !(await budget.attribution.admitResource({
+            primaryEntityId: serviceMetadata.primaryEntityId,
+            primaryEntityType: serviceMetadata.primaryEntityType,
+            name: serviceName,
+            records: 1,
+          }))
+        ) {
+          result.droppedByBudget++;
+          continue;
+        }
+
+        const row: JSONObject | null =
+          await ProbeSyslogIngestService.buildLogRow({
+            read: target.read,
+            normalized: target.normalized,
+            probeId: probeId,
+            projectId: target.projectId,
+            device: target.device,
+            relay: target.relay,
+            matchedBy: target.matchedBy,
+            serviceCache: serviceCache,
+            processingContextCache: processingContextCache,
+          });
+
+        if (!row) {
+          result.droppedByFilter++;
+          continue;
+        }
+
+        dbLogs.push(row);
+
+        if (!target.device) {
+          result.keptUnmatched++;
+        }
+      } catch (processingError) {
+        logger.error("Probe syslog ingest: error processing message:");
+        logger.error(processingError);
+      }
+    }
+
+    // Each project's attribution, counted in one round trip, before its logs are stored.
+    for (const budget of budgets.values()) {
+      await budget.attribution?.settle();
     }
 
     if (dbLogs.length > 0) {
@@ -356,10 +458,118 @@ export default class ProbeSyslogIngestService {
     result.written = dbLogs.length;
 
     logger.debug(
-      `Probe syslog ingest: wrote ${result.written} log(s) for probe ${probeId.toString()} (${result.keptUnmatched} from addresses that are no device yet, ${result.droppedUnmatched} dropped with no project to keep them, ${result.malformed} malformed, ${result.droppedByFilter} dropped by a filter).`,
+      `Probe syslog ingest: wrote ${result.written} log(s) for probe ${probeId.toString()} (${result.keptUnmatched} from addresses that are no device yet, ${result.droppedUnmatched} dropped with no project to keep them, ${result.malformed} malformed, ${result.droppedByFilter} dropped by a filter, ${result.droppedByBudget} dropped by a used-up budget).`,
     );
 
     return result;
+  }
+
+  /*
+   * What a forwarded message counts against its project's logs budget: the
+   * line as the device sent it (raw), or - from a probe older than raw - its
+   * text. A message for several devices counts in each one's project: each
+   * stores a log of it.
+   */
+  public static getCountedBytes(message: SyslogMessage): number {
+    return Buffer.byteLength(message.raw || message.message || "", "utf8");
+  }
+
+  /*
+   * EACH PROJECT'S SHARE OF A PROBE'S BATCH, AGAINST ITS BUDGETS (#10716).
+   *
+   * The probe forwards what a network hears, for devices of any number of
+   * projects, so a batch is decided project by project: each project's share
+   * - the lines of its devices, and those from no device kept for the
+   * probe's project - against its daily logs budget, as every other log is
+   * counted. In Drop mode, as MQTT and the cloud streams are
+   * (TelemetryQueueService.admitToTelemetryIngestionBudget): a probe cannot
+   * usefully be refused, so a project over its budget has its share dropped,
+   * and counted as dropped, and no per-second rate applies. No ingestion key
+   * sent it, so only the project's budget counts it.
+   *
+   * Then its attribution (TelemetryIngestAttribution): the teams' and labels'
+   * budgets of the devices' services, and the usage metrics. What a team's or
+   * a label's budget drops is taken back off the project's day, as it is for
+   * every log.
+   *
+   * A project with no budget in force and no team or label budget or usage
+   * metrics costs a few lookups in in-process caches, and nothing is read
+   * from Valkey. Never throws: a budget that cannot be read admits its
+   * share, uncounted.
+   */
+  private static async admitProjects(
+    targets: Array<ProbeSyslogTarget>,
+  ): Promise<Map<string, ProbeSyslogProjectBudget>> {
+    const shares: Map<string, { projectId: ObjectID; bytes: number }> =
+      new Map();
+
+    for (const target of targets) {
+      const key: string = target.projectId.toString();
+      const share: { projectId: ObjectID; bytes: number } = shares.get(key) || {
+        projectId: target.projectId,
+        bytes: 0,
+      };
+
+      share.bytes += target.bytes;
+      shares.set(key, share);
+    }
+
+    const budgets: Map<string, ProbeSyslogProjectBudget> = new Map();
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    for (const [key, share] of shares) {
+      const admission: TelemetryIngestionBudgetAdmission =
+        await TelemetryIngestionBudget.admit({
+          projectId: share.projectId,
+          signal: ProductType.Logs,
+          ingestionKeyPolicy: null,
+          mode: TelemetryIngestionBudgetAdmissionMode.Drop,
+          measure: (): TelemetryIngestBodySize => {
+            return { bytes: share.bytes, isExact: true };
+          },
+          now: now,
+        });
+
+      if (admission.refusal) {
+        budgets.set(key, { isAdmitted: false, attribution: null });
+        continue;
+      }
+
+      budgets.set(key, {
+        isAdmitted: true,
+        attribution: await TelemetryIngestAttribution.forBatch({
+          projectId: share.projectId,
+          signal: ProductType.Logs,
+          bytes: share.bytes,
+          receivedAt: now,
+          gateCharge: admission.charge
+            ? TelemetryIngestionBudget.toJobCharge(admission.charge)
+            : null,
+          now: now,
+        }),
+      });
+    }
+
+    return budgets;
+  }
+
+  // The telemetry service a device's logs are filed under, once a batch.
+  private static async getServiceMetadata(data: {
+    projectId: ObjectID;
+    serviceName: string;
+    serviceCache: Dictionary<TelemetryServiceMetadata>;
+  }): Promise<TelemetryServiceMetadata> {
+    const serviceCacheKey: string = `${data.projectId.toString()}:${data.serviceName}`;
+
+    if (!data.serviceCache[serviceCacheKey]) {
+      data.serviceCache[serviceCacheKey] =
+        await OTelIngestService.telemetryServiceFromName({
+          serviceName: data.serviceName,
+          projectId: data.projectId,
+        });
+    }
+
+    return data.serviceCache[serviceCacheKey]!;
   }
 
   /*
@@ -560,18 +770,13 @@ export default class ProbeSyslogIngestService {
     const read: ReadProbeSyslogMessage = data.read;
     const projectId: ObjectID = data.projectId;
     const serviceName: string = data.device?.name || DEFAULT_SERVICE_NAME;
-    const serviceCacheKey: string = `${projectId.toString()}:${serviceName}`;
-
-    if (!data.serviceCache[serviceCacheKey]) {
-      data.serviceCache[serviceCacheKey] =
-        await OTelIngestService.telemetryServiceFromName({
-          serviceName: serviceName,
-          projectId: projectId,
-        });
-    }
 
     const serviceMetadata: TelemetryServiceMetadata =
-      data.serviceCache[serviceCacheKey]!;
+      await ProbeSyslogIngestService.getServiceMetadata({
+        projectId: projectId,
+        serviceName: serviceName,
+        serviceCache: data.serviceCache,
+      });
 
     /*
      * A line without a priority says nothing about its severity itself;

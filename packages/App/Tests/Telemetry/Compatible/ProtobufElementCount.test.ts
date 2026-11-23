@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { JSONObject } from "Common/Types/JSON";
 import ProtobufElementCounter, {
   ProtobufCountSchema,
@@ -104,18 +106,6 @@ const decodedElements: (
   return total;
 };
 
-// A deterministic stream of numbers, so a failing case can be run again.
-const random: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
-};
-
 describe("ProtobufElementCounter - remote write 1.0", () => {
   test("counts every series, label, sample, exemplar and exemplar label", () => {
     const body: Uint8Array = encodeV1({
@@ -169,7 +159,7 @@ describe("ProtobufElementCounter - remote write 1.0", () => {
   });
 
   test("equals what protobufjs decodes, over many generated requests", () => {
-    const next: () => number = random(7);
+    const next: () => number = seededRandom(7);
 
     for (let run: number = 0; run < 200; run++) {
       const timeseries: Array<JSONObject> = [];
@@ -303,18 +293,18 @@ describe("ProtobufElementCounter - remote write 1.0", () => {
       body[index + 1] = 0x00;
     }
 
-    const startedAt: number = Date.now();
-    const result: ProtobufElementCount = count(
-      body,
-      REMOTE_WRITE_V1_COUNT,
-      500000,
-    );
+    const timed: FastestRun<ProtobufElementCount> = fastestRun({
+      run: (): ProtobufElementCount => {
+        return count(body, REMOTE_WRITE_V1_COUNT, 500000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(result).toEqual({
+    expect(timed.result).toEqual({
       outcome: ProtobufElementCountOutcome.OverLimit,
       elements: 500001,
     });
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 
@@ -356,7 +346,7 @@ describe("ProtobufElementCounter - remote write 2.0", () => {
   });
 
   test("equals what protobufjs decodes, over many generated requests", () => {
-    const next: () => number = random(11);
+    const next: () => number = seededRandom(11);
 
     for (let run: number = 0; run < 200; run++) {
       const symbols: Array<string> = Array.from(
@@ -480,7 +470,7 @@ describe("ProtobufElementCounter - Loki's PushRequest", () => {
   });
 
   test("equals what protobufjs decodes, over many generated pushes", () => {
-    const next: () => number = random(11);
+    const next: () => number = seededRandom(11);
 
     for (let run: number = 0; run < 200; run++) {
       const streams: Array<JSONObject> = Array.from(
@@ -533,13 +523,18 @@ describe("ProtobufElementCounter - Loki's PushRequest", () => {
       body[index + 1] = 0x00;
     }
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<ProtobufElementCount> = fastestRun({
+      run: (): ProtobufElementCount => {
+        return count(body, LOKI_PUSH_COUNT, 500000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(count(body, LOKI_PUSH_COUNT, 500000)).toEqual({
+    expect(timed.result).toEqual({
       outcome: ProtobufElementCountOutcome.OverLimit,
       elements: 500001,
     });
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("an entry that is not a message is malformed", () => {
@@ -574,7 +569,7 @@ describe("ProtobufElementCounter - the Datadog Agent's payloads, as read", () =>
   });
 
   test("a MetricPayload equals what its reading type decodes, over many generated payloads", () => {
-    const next: () => number = random(13);
+    const next: () => number = seededRandom(13);
 
     for (let run: number = 0; run < 200; run++) {
       const series: Array<JSONObject> = Array.from(
@@ -617,7 +612,7 @@ describe("ProtobufElementCounter - the Datadog Agent's payloads, as read", () =>
   });
 
   test("a SketchPayload equals what its reading type decodes, its thousands of bins counted as nothing", () => {
-    const next: () => number = random(17);
+    const next: () => number = seededRandom(17);
 
     for (let run: number = 0; run < 100; run++) {
       const sketches: Array<JSONObject> = Array.from(

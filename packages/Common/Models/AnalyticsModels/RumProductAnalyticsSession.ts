@@ -7,6 +7,8 @@ import AnalyticsTableColumn, {
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import Permission from "../../Types/Permission";
+import ProductKey from "../../Types/Product/ProductKey";
+import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import RumApplication from "../DatabaseModels/RumApplication";
 import {
@@ -130,15 +132,21 @@ export const PRODUCT_ANALYTICS_SESSION_TTL: string = `toStartOfMonth(startTime) 
 /*
  * Reading product analytics is listing sessions: the same permissions as
  * Session Replay's session list and Users page (RumSession's table read
- * ACL), checked by the routes, which are this table's only reader.
+ * ACL), checked by the routes, which are this table's only reader. With
+ * the RUM product's levels as the session list and the routes take them
+ * (Types/Product/ProductLevels, #10289): RUM Admin, as Project Admin.
  */
-export const PRODUCT_ANALYTICS_READ_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.TelemetryAdmin,
-  Permission.ReadRumSessionReplay,
-  Permission.ReadRumSessionReplayPayload,
-];
+export const PRODUCT_ANALYTICS_READ_PERMISSIONS: Array<Permission> =
+  withProductLevelsOf({
+    products: [ProductKey.Rum],
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.ReadRumSessionReplay,
+      Permission.ReadRumSessionReplayPayload,
+    ],
+  });
 
 const accessControl: {
   read: Array<Permission>;

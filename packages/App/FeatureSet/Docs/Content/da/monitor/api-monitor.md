@@ -55,7 +55,7 @@ Angiv endpointets fulde URL under **API-URL**, som `https://api.example.com/heal
 
 ### Test den
 
-Vælg **API-anmodningstype** under **Monitor-mål** (**GET**, medmindre du ændrer den). For at tilføje headere eller en brødtekst åbner du **Flere felter** og udfylder **Anmodningsheadere** og **Anmodningstekst (i JSON)**. Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
+Vælg **API-anmodningstype** under **Monitor-mål** (**GET**, medmindre du ændrer den). For at tilføje headere eller en brødtekst åbner du **Flere felter** og udfylder **Anmodningsheadere** og **Anmodningsbrødtekst**. Klik på **Test monitor**: testen starter på en sonde, der tjekker monitoren. Vælg en anden under **Vælg sonde**, hvis du vil, og klik så på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede. Det fortæller også, hvilket kriterium svaret opfylder, og hvad der ville følge: status, hændelsen eller advarslen, og hvem der får besked.
 
 ### Gennemgå kriterierne
 
@@ -107,14 +107,15 @@ Disse indstillinger er foldet sammen under **Flere felter**. Den sammenfoldede o
 | Felt | Standard | Hvad det gør |
 | --- | --- | --- |
 | **Anmodningsheadere** | Ingen | Headere, der sendes, som par af navn og værdi. Klik på **Tilføj Anmodningsheader** for hver af dem. |
-| **Anmodningstekst (i JSON)** | Ingen | Brødteksten, der sendes, som regel med **POST**, **PUT** eller **PATCH**: en hvilken som helst JSON-værdi, for eksempel et objekt, et array, en streng eller et tal. Den sendes, som du skriver den, som `application/json`, medmindre du angiver en `Content-Type` under **Anmodningsheadere**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt som formularfelter. |
+| **Format for anmodningsbrødtekst** | **JSON** | Hvordan brødteksten læses. **JSON** tager en hvilken som helst JSON-værdi, for eksempel et objekt, et array, en streng eller et tal. **Tekst** tager alt andet, for eksempel XML til et SOAP-endpoint, almindelig tekst eller formularfelter skrevet som `a=1&b=2`, og læses aldrig som JSON. |
+| **Anmodningsbrødtekst** | Ingen | Brødteksten, der sendes, som regel med **POST**, **PUT** eller **PATCH**. Den sendes præcis, som du skriver den: i formatet **JSON** som `application/json`, i formatet **Tekst** som `text/plain`, medmindre du angiver en `Content-Type` under **Anmodningsheadere**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` sendes et objekt i formatet **JSON** som formularfelter. |
 | **Følg ikke omdirigeringer** | Fra | Bedøm det første svar i stedet for at følge omdirigeringer. Se [nedenfor](#følg-ikke-omdirigeringer). |
 | **Tillad selvsignerede certifikater** | Fra | Spring valideringen af TLS-certifikatet over for monitorens eget værtsnavn. |
 | **Brug klientcertifikat (mTLS)** | Fra | Præsentér et klientcertifikat og en privat nøgle. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
 | **Anmodningstimeout (sekunder)** | `60` | Hvor længe der ventes på hvert forsøg. Maksimum er 60 sekunder. |
 | **Genforsøg ved fejl** | Sondens standard, som regel `3` | Hvor mange gange et mislykket forsøg gentages. Maksimum er 3. Se [Genforsøg og timeouts](#genforsøg-og-timeouts). |
 
-Anmodningsheadere og anmodningens brødtekst kan bruge [monitorhemmeligheder](/docs/monitor/monitor-secrets), for eksempel en header `Authorization` med værdien `Bearer {{monitorSecrets.ApiKey}}`.
+Anmodningsheadere og anmodningens brødtekst kan bruge [monitorhemmeligheder](/docs/monitor/monitor-secrets), for eksempel en header `Authorization` med værdien `Bearer {{monitorSecrets.ApiKey}}`. I en brødtekst i formatet **JSON** escapes en hemmelighed i anførselstegn, som i `{"password": "{{monitorSecrets.Password}}"}`, for sin streng, så en værdi med et `"`, et `\` eller et linjeskift forbliver én streng. En hemmelighed uden for anførselstegn, som i `[{{monitorSecrets.Ids}}]`, sættes ind, som den er, og det gør enhver hemmelighed i en brødtekst i formatet **Tekst** også.
 
 #### Følg ikke omdirigeringer
 
@@ -246,7 +247,11 @@ Sonden læser højst 512 KiB af et svar, og dette er større. Kald et endpoint, 
 :::
 
 :::details Tjekket fejler med "Anmodningsteksten er ikke gyldig JSON, så anmodningen blev ikke sendt."
-Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monitor-secrets) er sat ind, så sonden sendte ikke anmodningen. Ret brødteksten under **Flere felter**, eller værdien af en hemmelighed, den bruger: en værdi med et `"` i ødelægger den JSON-streng, den står i.
+Brødteksten er ikke JSON, når dens [monitorhemmeligheder](/docs/monitor/monitor-secrets) er sat ind, så sonden sendte ikke anmodningen. Ret brødteksten under **Flere felter**, eller værdien af en hemmelighed uden for anførselstegn i den, som sættes ind, som den er. For at sende en brødtekst, der ikke er JSON, for eksempel XML eller formularfelter, skal du sætte **Format for anmodningsbrødtekst** til **Tekst**.
+:::
+
+:::details Tjekket siger, at sonden er for gammel til at sende brødteksten
+Monitorens brødtekst er et JSON-array, en enkelt værdi eller **Tekst**, og den brugerdefinerede sonde, der tjekker den, kører en udgivelse ældre end OneUptime 17.2.0, som kun sender et JSON-objekt, så tjekket blev ikke kørt på den. [Opdater sonden](/docs/probe/custom-probe#opdater-en-sonde), eller tjek monitoren fra en anden sonde.
 :::
 
 ## Næste skridt

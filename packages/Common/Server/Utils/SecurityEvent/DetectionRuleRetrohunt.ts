@@ -27,7 +27,10 @@ import { doesDetectionRuleLeaveOutEventsWithNoValue } from "../../../Types/Secur
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  ScrubbedAddressMarkerKeys,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import {
   SCRUBBED_USER_ATTRIBUTES,
@@ -453,8 +456,9 @@ export function buildSingleRuleRetrohuntStatement(data: {
  * The marker a scrub rule leaves on an event whose value of a group field it
  * hid: the key that says so and its value, and the key that says where,
  * with the value that means a span. A rule grouped by a user reads the
- * user's marker (ScrubbedUser, #10435); any other the client address's
- * (ScrubbedAddress, #10397).
+ * user's marker (ScrubbedUser, #10435); one grouped by targetIp the
+ * destination's (#10419); any other the client address's (ScrubbedAddress,
+ * #10397).
  *
  * `storedIn` is the user's own column, for an event stored before the scans
  * set the marker: it still holds Redact's "[REDACTED]" or a mask, which say
@@ -487,6 +491,20 @@ export function getHiddenValueMarker(groupByField: string): HiddenValueMarker {
       inKey: keys.in,
       inTracesValue: "trace",
       storedIn: field,
+    };
+  }
+
+  // A destination a scrub rule hid has its own marker (#10419).
+  if (field === "targetIp") {
+    const keys: ScrubbedAddressMarkerKeys =
+      SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Target];
+
+    return {
+      hiddenKey: keys.hidden,
+      hiddenValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+      inKey: keys.scrubbedIn,
+      inTracesValue: ScrubbedAddressPlace.SpanAttributes,
+      storedIn: null,
     };
   }
 

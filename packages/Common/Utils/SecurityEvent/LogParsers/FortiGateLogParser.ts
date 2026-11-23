@@ -9,6 +9,7 @@ import {
   SecurityLogLine,
   buildLogSecurityEvent,
   cutText,
+  pickAddress,
   readIpAddress,
   readPort,
   readRemoteIpAddress,
@@ -479,10 +480,12 @@ export default class FortiGateLogParser {
           pair("status").toLowerCase() === "failed" ||
           pair("status").toLowerCase() === "failure" ||
           holdsAny(said, FAILED_WORDS);
-        const ip: string =
-          sourceIp ||
-          readRemoteIpAddress(pair("remip")) ||
-          uiAddress(pair("ui"));
+        // An address wins wherever it is read, over one a scrub rule hid (#10419).
+        const ip: string = pickAddress([
+          sourceIp,
+          readRemoteIpAddress(pair("remip")),
+          uiAddress(pair("ui")),
+        ]);
         const what: string = pair("logdesc") || "Sign-in";
 
         return buildLogSecurityEvent({

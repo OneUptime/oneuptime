@@ -95,6 +95,8 @@ const LEFT_OUT_ENUMS: Readonly<Record<string, string>> = {
  * the enum stays one for the columns that take all of it.
  */
 const DELIBERATE_SUBSETS: Readonly<Record<string, string>> = {
+  "SecurityPlaybook.trigger":
+    "a playbook runs when a case opens, a detection joins it, OneUptime AI triages it as likely malicious, or by hand (SECURITY_PLAYBOOK_TRIGGERS); OneUptime AI's own step runs (#10352) say OneUptimeAi, which is never a playbook's trigger, so no playbook can be set to run as OneUptime AI",
   "AutoRemediationRule.dataSecurityAnalyze":
     "an analysis changes nothing, so there is nothing to approve: OneUptime AI's analysis of a Data Security issue is Off or WithoutAsking, never Suggest (DATA_SECURITY_AI_WORK_AUTONOMIES), while the rule's other kinds of work take all three answers of the same DataSecurityAiAutonomy",
 };

@@ -55,7 +55,7 @@ The **Name** fills in from what you entered, such as `api.example.com/health`. K
 
 ### Test it
 
-Under **Monitor Target**, pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body (in JSON)**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the API answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
+Under **Monitor Target**, pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the API answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 
@@ -107,14 +107,15 @@ These settings are folded under **More fields**. The folded header lists them an
 | Field | Default | What it does |
 | --- | --- | --- |
 | **Request Headers** | None | Headers to send, as name and value pairs. Click **Add Request Header** for each one. |
-| **Request Body (in JSON)** | None | The body to send, usually with **POST**, **PUT** or **PATCH**: any JSON value, such as an object, an array, a string or a number. It is sent as you write it, as `application/json` unless you set a `Content-Type` in **Request Headers**. With `application/x-www-form-urlencoded` or `multipart/form-data`, an object is sent as form fields. |
+| **Request Body Format** | **JSON** | How the body is read. **JSON** takes any JSON value, such as an object, an array, a string or a number. **Text** takes anything else, such as XML for a SOAP endpoint, plain text, or form fields written as `a=1&b=2`, and is never read as JSON. |
+| **Request Body** | None | The body to send, usually with **POST**, **PUT** or **PATCH**. It is sent exactly as you write it: a **JSON** body as `application/json`, a **Text** body as `text/plain`, unless you set a `Content-Type` in **Request Headers**. With `application/x-www-form-urlencoded` or `multipart/form-data`, a **JSON** object is sent as form fields. |
 | **Do not follow redirects** | Off | Judge the first response instead of following redirects. See [below](#do-not-follow-redirects). |
 | **Allow self-signed certificates** | Off | Skip TLS certificate validation for the monitor's own host name. |
 | **Use client certificate (mTLS)** | Off | Present a client certificate and private key. See [Client certificate (mTLS)](#client-certificate-mtls). |
 | **Request Timeout (seconds)** | `60` | How long to wait for each attempt. The maximum is 60 seconds. |
 | **Retries on Failure** | Probe default, usually `3` | How many times to retry a failed attempt. The maximum is 3. See [Retries and timeouts](#retries-and-timeouts). |
 
-Request headers and the request body can use [monitor secrets](/docs/monitor/monitor-secrets), for example a header `Authorization` with the value `Bearer {{monitorSecrets.ApiKey}}`.
+Request headers and the request body can use [monitor secrets](/docs/monitor/monitor-secrets), for example a header `Authorization` with the value `Bearer {{monitorSecrets.ApiKey}}`. In a **JSON** body, a secret inside quotes, as in `{"password": "{{monitorSecrets.Password}}"}`, is escaped for its string, so a value with a `"`, a `\` or a line break stays one string. A secret outside quotes, as in `[{{monitorSecrets.Ids}}]`, is written as it is, and so is every secret in a **Text** body.
 
 #### Do Not Follow Redirects
 
@@ -246,7 +247,11 @@ The probe reads at most 512 KiB of a response, and this one is larger. Call an e
 :::
 
 :::details The check fails with "The request body is not valid JSON, so the request was not sent."
-The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) are filled in, so the probe did not send the request. Correct the body under **More fields**, or the value of a secret it uses: a value with a `"` in it breaks the JSON string it stands in.
+The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) are filled in, so the probe did not send the request. Correct the body under **More fields**, or the value of a secret outside quotes in it, which is written as it is. To send a body that is not JSON, such as XML or form fields, set **Request Body Format** to **Text**.
+:::
+
+:::details The check says the probe is too old to send the request body
+The monitor's body is a JSON array, a single value or **Text**, and the custom probe that checks it runs a release older than OneUptime 17.2.0, which sends only a JSON object, so the check did not run on it. [Update the probe](/docs/probe/custom-probe#update-a-probe), or check the monitor from another probe.
 :::
 
 ## Next steps

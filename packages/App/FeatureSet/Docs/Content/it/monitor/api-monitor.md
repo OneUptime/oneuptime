@@ -55,7 +55,7 @@ Il **Nome** si compila con ciò che avete inserito, ad esempio `api.example.com/
 
 ### Testarlo
 
-In **Destinazione del monitor**, scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della richiesta (in JSON)**. Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
+In **Destinazione del monitor**, scegliete il **Tipo di richiesta API** (**GET** se non lo cambiate). Per aggiungere intestazioni o un corpo, aprite **Altri campi** e compilate **Intestazioni della richiesta** e **Corpo della Richiesta**. Fate clic su **Testa il monitor**: il test parte da una sonda che controlla il monitor. Se volete, sceglietene un'altra in **Seleziona sonda**, poi fate clic su **Esegui test**. **Risultato del test del monitor** mostra cosa ha risposto l'API. Dice anche quale criterio soddisfa la risposta e cosa ne seguirebbe: lo stato, l'incidente o l'avviso, e chi viene avvisato.
 
 ### Rivedere i criteri
 
@@ -107,14 +107,15 @@ Queste impostazioni sono ripiegate sotto **Altri campi**. L'intestazione ripiega
 | Campo | Predefinito | Cosa fa |
 | --- | --- | --- |
 | **Intestazioni della richiesta** | Nessuna | Le intestazioni da inviare, come coppie nome e valore. Fate clic su **Aggiungi: Intestazione della richiesta** per ciascuna. |
-| **Corpo della richiesta (in JSON)** | Nessuno | Il corpo da inviare, di solito con **POST**, **PUT** o **PATCH**: qualsiasi valore JSON, come un oggetto, un array, una stringa o un numero. Viene inviato così come lo scrivete, come `application/json`, a meno che non impostiate un `Content-Type` in **Intestazioni della richiesta**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un oggetto viene inviato come campi di un modulo. |
+| **Formato del Corpo della Richiesta** | **JSON** | Come viene letto il corpo. **JSON** accetta qualsiasi valore JSON, come un oggetto, un array, una stringa o un numero. **Testo** accetta tutto il resto, come XML per un endpoint SOAP, testo semplice o campi di un modulo scritti come `a=1&b=2`, e non viene mai letto come JSON. |
+| **Corpo della Richiesta** | Nessuno | Il corpo da inviare, di solito con **POST**, **PUT** o **PATCH**. Viene inviato esattamente come lo scrivete: un corpo **JSON** come `application/json`, un corpo **Testo** come `text/plain`, a meno che non impostiate un `Content-Type` in **Intestazioni della richiesta**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un oggetto **JSON** viene inviato come campi di un modulo. |
 | **Non seguire i reindirizzamenti** | Disattivato | Valutare la prima risposta invece di seguire i reindirizzamenti. Vedete [sotto](#non-seguire-i-reindirizzamenti). |
 | **Consenti certificati autofirmati** | Disattivato | Saltare la convalida del certificato TLS per il nome host del monitor stesso. |
 | **Usa certificato client (mTLS)** | Disattivato | Presentare un certificato client e una chiave privata. Vedete [Certificato client (mTLS)](#certificato-client-mtls). |
 | **Timeout della richiesta (secondi)** | `60` | Quanto attendere ogni tentativo. Il massimo è 60 secondi. |
 | **Tentativi in caso di errore** | Il predefinito della sonda, di solito `3` | Quante volte ritentare un tentativo fallito. Il massimo è 3. Vedete [Nuovi tentativi e timeout](#nuovi-tentativi-e-timeout). |
 
-Le intestazioni e il corpo della richiesta possono usare [segreti del monitor](/docs/monitor/monitor-secrets), per esempio un'intestazione `Authorization` con il valore `Bearer {{monitorSecrets.ApiKey}}`.
+Le intestazioni e il corpo della richiesta possono usare [segreti del monitor](/docs/monitor/monitor-secrets), per esempio un'intestazione `Authorization` con il valore `Bearer {{monitorSecrets.ApiKey}}`. In un corpo **JSON**, un segreto tra virgolette, come in `{"password": "{{monitorSecrets.Password}}"}`, viene sottoposto a escape per la sua stringa, così un valore con un `"`, una `\` o un a capo resta una sola stringa. Un segreto fuori dalle virgolette, come in `[{{monitorSecrets.Ids}}]`, viene scritto così com'è, come ogni segreto di un corpo **Testo**.
 
 #### Non seguire i reindirizzamenti
 
@@ -246,7 +247,11 @@ La sonda legge al massimo 512 KiB di una risposta, e questa è più grande. Chia
 :::
 
 :::details Il controllo fallisce con «Il corpo della richiesta non è un JSON valido, quindi la richiesta non è stata inviata.»
-Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monitor/monitor-secrets), quindi la sonda non ha inviato la richiesta. Correggete il corpo in **Altri campi**, o il valore di un segreto che usa: un valore che contiene un `"` spezza la stringa JSON in cui si trova.
+Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monitor/monitor-secrets), quindi la sonda non ha inviato la richiesta. Correggete il corpo in **Altri campi**, o il valore di un segreto fuori dalle virgolette, che viene scritto così com'è. Per inviare un corpo che non è JSON, come XML o campi di un modulo, impostate **Formato del Corpo della Richiesta** su **Testo**.
+:::
+
+:::details Il controllo dice che la sonda è troppo vecchia per inviare il corpo della richiesta
+Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione precedente a OneUptime 17.2.0, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) oppure controllate il monitor da un'altra sonda.
 :::
 
 ## Passaggi successivi

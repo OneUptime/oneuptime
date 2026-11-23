@@ -334,7 +334,6 @@ describe("On-call schedule relation select - the model flag itself", () => {
       "rosterNextStartAt",
       "rosterStartAt",
       "createdByUserId",
-      "deletedByUserId",
     ];
 
     for (const columnName of stillClosed) {

@@ -25,12 +25,18 @@ import GitHubUtil, { GitHubInstallationToken } from "./GitHub";
  * GitHub refuses on every review.
  */
 
-// GitHub's conclusions a review's check uses: it never fails a pull request.
+/*
+ * GitHub's conclusions a review's check uses. It fails a pull request only
+ * when its repository asks it to: the change leaks sensitive data the
+ * repository fails its check on (#10376).
+ */
 export enum GitHubCheckConclusion {
   // Production has nothing to say about the change.
   Success = "success",
   // Something in production is worth a look, or the review is elsewhere.
   Neutral = "neutral",
+  // The change leaks sensitive data, and the repository fails its check on it.
+  Failure = "failure",
 }
 
 export interface GitHubCheckRunContent {

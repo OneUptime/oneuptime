@@ -147,6 +147,8 @@ const PRESENTERS: Record<string, string> = {
  */
 const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts",
+  // Derives, under a label of its own, the key a Sign In Again SAML request's ID is signed with.
+  "packages/App/FeatureSet/Identity/Utils/SignInAgain.ts",
   "packages/App/FeatureSet/Identity/Utils/VerificationEmailResendToken.ts",
   "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts",
   // Derives, under a label of its own, the key a code file version's fingerprint is made with.
@@ -161,6 +163,8 @@ const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts",
   // Derives, under a label of its own, the key a wrong incoming request secret's digest is made with.
   "packages/Common/Server/Utils/RateLimit/WrongIncomingRequestSecretLimit.ts",
+  // Signs an invitation's project SSO sign-in link: its own purpose first, the fields joined by colons.
+  "packages/Common/Server/Utils/TeamMember/InvitationSsoSignInLink.ts",
   "packages/Common/Server/Utils/TokenSigningKey.ts",
   // Derives, under a label of its own, the key Mattermost button contexts are signed with.
   "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActionContext.ts",

@@ -1330,12 +1330,20 @@ test("an Add devices that went wrong says so on the row: devices it could not ad
   const failed: Locator = deviceAddLine(page, "failed-devices");
   await expect(failed).toHaveAttribute("data-tone", "act");
   await expect(failed).toContainText("2 devices could not be added:");
+  // One line a reason, and under it how many devices it kept out, by name.
+  const reasons: Locator = failed
+    .getByTestId("meraki-connection-device-add-failures")
+    .locator("li");
+  await expect(reasons).toHaveCount(2);
   await expect(
-    failed.getByTestId("meraki-connection-device-add-failures").locator("li"),
+    reasons.getByTestId("meraki-connection-device-add-failure-reason"),
   ).toHaveText([
-    "LDS-MS120-02: Another network device has this name.",
-    "BRS-MR36-05: Your plan allows 250 network devices.",
+    "Another network device has this name.",
+    "Your plan allows 250 network devices.",
   ]);
+  await expect(
+    reasons.getByTestId("meraki-connection-device-add-failure-devices"),
+  ).toHaveText(["1 device: LDS-MS120-02", "1 device: BRS-MR36-05"]);
   // The read's count is from before the devices were added: not offered.
   await expect(deviceAddLine(page, "not-added")).toHaveCount(0);
   await expectNoSidewaysScroll(page, { tolerance: 1 });

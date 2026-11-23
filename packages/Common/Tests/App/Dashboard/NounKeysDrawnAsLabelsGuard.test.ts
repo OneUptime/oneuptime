@@ -349,6 +349,10 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       "A rule's resourceSingular and resourcePlural, in Run Rule Now's sentences.",
   },
+  "packages/Common/Types/Workflow/Templates.ts": {
+    inEnglish:
+      "What a Dynamics 365 case's description calls each kind of affected resource (RESOURCE_NOUNS in the create-case script a workflow template writes): English words the script puts into the case, never translated.",
+  },
   "packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts": {
     inEnglish: "A security case feed's English markdown.",
   },

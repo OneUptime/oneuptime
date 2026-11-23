@@ -55,7 +55,7 @@ El **Nombre** se rellena con lo que introdujo, por ejemplo `api.example.com/heal
 
 ### Probarlo
 
-En **Destino del monitor**, elija el **Tipo de solicitud de API** (**GET** salvo que lo cambie). Para añadir encabezados o un cuerpo, abra **Más campos** y rellene **Encabezados de la solicitud** y **Cuerpo de la solicitud (en JSON)**. Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que respondió la API. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
+En **Destino del monitor**, elija el **Tipo de solicitud de API** (**GET** salvo que lo cambie). Para añadir encabezados o un cuerpo, abra **Más campos** y rellene **Encabezados de la solicitud** y **Cuerpo de la solicitud**. Haga clic en **Probar monitor**: la prueba empieza en una sonda que comprueba el monitor. Si quiere, elija otra en **Seleccionar sonda** y luego haga clic en **Ejecutar prueba**. **Resultado de la prueba del monitor** muestra lo que respondió la API. También dice qué criterio cumple la respuesta y qué vendría después: el estado, el incidente o la alerta, y a quién se avisa.
 
 ### Revisar los criterios
 
@@ -107,14 +107,15 @@ Estos ajustes están plegados en **Más campos**. El encabezado plegado los enum
 | Campo | Predeterminado | Qué hace |
 | --- | --- | --- |
 | **Encabezados de la solicitud** | Ninguno | Los encabezados que se envían, como pares de nombre y valor. Haga clic en **Añadir Encabezado de la solicitud** para cada uno. |
-| **Cuerpo de la solicitud (en JSON)** | Ninguno | El cuerpo que se envía, normalmente con **POST**, **PUT** o **PATCH**: cualquier valor JSON, como un objeto, un array, una cadena o un número. Se envía tal como lo escribe, como `application/json`, salvo que defina un `Content-Type` en **Encabezados de la solicitud**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un objeto se envía como campos de formulario. |
+| **Formato del cuerpo de la solicitud** | **JSON** | Cómo se lee el cuerpo. **JSON** acepta cualquier valor JSON, como un objeto, un array, una cadena o un número. **Texto** acepta todo lo demás, como XML para un endpoint SOAP, texto sin formato o campos de formulario escritos como `a=1&b=2`, y nunca se lee como JSON. |
+| **Cuerpo de la solicitud** | Ninguno | El cuerpo que se envía, normalmente con **POST**, **PUT** o **PATCH**. Se envía exactamente como lo escribe: un cuerpo **JSON** como `application/json` y un cuerpo **Texto** como `text/plain`, salvo que defina un `Content-Type` en **Encabezados de la solicitud**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un objeto **JSON** se envía como campos de formulario. |
 | **No seguir redirecciones** | Desactivado | Juzgar la primera respuesta en lugar de seguir las redirecciones. Consulte [más abajo](#no-seguir-redirecciones). |
 | **Permitir certificados autofirmados** | Desactivado | Omitir la validación del certificado TLS para el propio nombre de host del monitor. |
 | **Usar certificado de cliente (mTLS)** | Desactivado | Presentar un certificado de cliente y una clave privada. Consulte [Certificado de cliente (mTLS)](#certificado-de-cliente-mtls). |
 | **Tiempo de espera de la solicitud (segundos)** | `60` | Cuánto esperar cada intento. El máximo es de 60 segundos. |
 | **Reintentos en caso de fallo** | El predeterminado de la sonda, normalmente `3` | Cuántas veces reintentar un intento fallido. El máximo es 3. Consulte [Reintentos y tiempos de espera](#reintentos-y-tiempos-de-espera). |
 
-Los encabezados y el cuerpo de la solicitud pueden usar [secretos de monitor](/docs/monitor/monitor-secrets), por ejemplo un encabezado `Authorization` con el valor `Bearer {{monitorSecrets.ApiKey}}`.
+Los encabezados y el cuerpo de la solicitud pueden usar [secretos de monitor](/docs/monitor/monitor-secrets), por ejemplo un encabezado `Authorization` con el valor `Bearer {{monitorSecrets.ApiKey}}`. En un cuerpo **JSON**, un secreto entre comillas, como en `{"password": "{{monitorSecrets.Password}}"}`, se escapa para su cadena, así que un valor con un `"`, una `\` o un salto de línea sigue siendo una sola cadena. Un secreto fuera de las comillas, como en `[{{monitorSecrets.Ids}}]`, se escribe tal cual, igual que cualquier secreto de un cuerpo **Texto**.
 
 #### No seguir redirecciones
 
@@ -246,7 +247,11 @@ La sonda lee como máximo 512 KiB de una respuesta, y esta es más grande. Llame
 :::
 
 :::details La comprobación falla con «El cuerpo de la solicitud no es un JSON válido, así que la solicitud no se envió.»
-El cuerpo no es JSON una vez rellenados sus [secretos de monitor](/docs/monitor/monitor-secrets), así que la sonda no envió la solicitud. Corrija el cuerpo en **Más campos**, o el valor de un secreto que use: un valor con un `"` rompe la cadena JSON en la que está.
+El cuerpo no es JSON una vez rellenados sus [secretos de monitor](/docs/monitor/monitor-secrets), así que la sonda no envió la solicitud. Corrija el cuerpo en **Más campos**, o el valor de un secreto fuera de las comillas, que se escribe tal cual. Para enviar un cuerpo que no sea JSON, como XML o campos de formulario, ponga **Formato del cuerpo de la solicitud** en **Texto**.
+:::
+
+:::details La comprobación dice que la sonda es demasiado antigua para enviar el cuerpo de la solicitud
+El cuerpo del monitor es un array JSON, un único valor o **Texto**, y la sonda personalizada que lo comprueba ejecuta una versión anterior a OneUptime 17.2.0, que solo envía un objeto JSON, así que la comprobación no se ejecutó en ella. [Actualice la sonda](/docs/probe/custom-probe#actualizar-una-sonda) o compruebe el monitor desde otra sonda.
 :::
 
 ## Próximos pasos

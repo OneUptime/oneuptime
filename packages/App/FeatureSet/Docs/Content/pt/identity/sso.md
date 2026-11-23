@@ -381,6 +381,8 @@ Uma conta pode pertencer a muitas organizações, então você só pode limpar a
 - alguém apenas convidado para o seu projeto, que ainda não entrou nele;
 - os administradores mestres, e você: altere as suas no seu **Perfil do usuário**.
 
+Para limpar uma só pessoa, abra **Usuários**: a linha de cada pessoa que você pode limpar diz **Configurações de login salvas**, e **Limpar configurações de login** no menu dela limpa só as dessa pessoa, pela mesma regra, depois de uma pergunta que lista o que será removido.
+
 Cada pessoa cujas configurações são limpas recebe um e-mail com o que foi removido e avisando que agora entra com SSO, e os registros de auditoria dos seus projetos registram a limpeza como sua. Só um **Proprietário do projeto** pode limpar, conectado ao painel: nunca com uma chave de API.
 
 ## Desligar ou excluir um provedor

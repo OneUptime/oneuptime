@@ -55,7 +55,7 @@ Ange slutpunktens fullständiga URL under **API-URL**, som `https://api.example.
 
 ### Testa den
 
-Välj **API-begärantyp** under **Monitor-mål** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp (i JSON)**. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
+Välj **API-begärantyp** under **Monitor-mål** (**GET** om du inte ändrar den). För att lägga till huvuden eller en kropp öppnar du **Fler fält** och fyller i **Begärandehuvuden** och **Begärandekropp**. Klicka på **Testa monitor**: testet börjar på en sond som kontrollerar monitorn. Välj en annan under **Välj sond** om du vill, och klicka sedan på **Kör test**. **Resultat av övervakningstest** visar vad API:et svarade. Det säger också vilket kriterium svaret uppfyller och vad som skulle följa: statusen, incidenten eller larmet, och vem som får besked.
 
 ### Gå igenom kriterierna
 
@@ -107,14 +107,15 @@ De här inställningarna är hopfällda under **Fler fält**. Den hopfällda rub
 | Fält | Standard | Vad det gör |
 | --- | --- | --- |
 | **Begärandehuvuden** | Inga | Huvuden som skickas, som par av namn och värde. Klicka på **Lägg till Begärandehuvud** för vart och ett. |
-| **Begärandekropp (i JSON)** | Ingen | Kroppen som skickas, oftast med **POST**, **PUT** eller **PATCH**: vilket JSON-värde som helst, till exempel ett objekt, en array, en sträng eller ett tal. Den skickas som du skriver den, som `application/json`, om du inte anger en `Content-Type` under **Begärandehuvuden**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` skickas ett objekt som formulärfält. |
+| **Format för begärandekropp** | **JSON** | Hur kroppen läses. **JSON** tar vilket JSON-värde som helst, till exempel ett objekt, en array, en sträng eller ett tal. **Text** tar allt annat, till exempel XML för en SOAP-slutpunkt, vanlig text eller formulärfält skrivna som `a=1&b=2`, och läses aldrig som JSON. |
+| **Begärandekropp** | Ingen | Kroppen som skickas, oftast med **POST**, **PUT** eller **PATCH**. Den skickas exakt som du skriver den: i formatet **JSON** som `application/json`, i formatet **Text** som `text/plain`, om du inte anger en `Content-Type` under **Begärandehuvuden**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` skickas ett objekt i formatet **JSON** som formulärfält. |
 | **Följ inte omdirigeringar** | Av | Bedöm det första svaret i stället för att följa omdirigeringar. Se [nedan](#följ-inte-omdirigeringar). |
 | **Tillåt självsignerade certifikat** | Av | Hoppa över valideringen av TLS-certifikatet för monitorns eget värdnamn. |
 | **Använd klientcertifikat (mTLS)** | Av | Visa upp ett klientcertifikat och en privat nyckel. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
 | **Begärandetimeout (sekunder)** | `60` | Hur länge varje försök får vänta. Maxvärdet är 60 sekunder. |
 | **Återförsök vid misslyckande** | Sondens standard, oftast `3` | Hur många gånger ett misslyckat försök görs om. Maxvärdet är 3. Se [Återförsök och tidsgränser](#återförsök-och-tidsgränser). |
 
-Begärandehuvuden och begärandekroppen kan använda [övervakningshemligheter](/docs/monitor/monitor-secrets), till exempel ett huvud `Authorization` med värdet `Bearer {{monitorSecrets.ApiKey}}`.
+Begärandehuvuden och begärandekroppen kan använda [övervakningshemligheter](/docs/monitor/monitor-secrets), till exempel ett huvud `Authorization` med värdet `Bearer {{monitorSecrets.ApiKey}}`. I en kropp i formatet **JSON** escapas en hemlighet inom citattecken, som i `{"password": "{{monitorSecrets.Password}}"}`, för sin sträng, så att ett värde med ett `"`, ett `\` eller en radbrytning förblir en enda sträng. En hemlighet utanför citattecken, som i `[{{monitorSecrets.Ids}}]`, fylls i som den är, och det gör varje hemlighet i en kropp i formatet **Text** också.
 
 #### Följ inte omdirigeringar
 
@@ -246,7 +247,11 @@ Sonden läser högst 512 KiB av ett svar, och det här är större. Anropa en sl
 :::
 
 :::details Kontrollen misslyckas med "Begärandetexten är inte giltig JSON, så begäran skickades inte."
-Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor-secrets) har fyllts i, så sonden skickade inte begäran. Rätta kroppen under **Fler fält**, eller värdet av en hemlighet som den använder: ett värde med ett `"` i bryter JSON-strängen som det står i.
+Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor-secrets) har fyllts i, så sonden skickade inte begäran. Rätta kroppen under **Fler fält**, eller värdet av en hemlighet utanför citattecken i den, som fylls i som den är. För att skicka en kropp som inte är JSON, till exempel XML eller formulärfält, sätter du **Format för begärandekropp** till **Text**.
+:::
+
+:::details Kontrollen säger att sonden är för gammal för att skicka kroppen
+Monitorns kropp är en JSON-array, ett enda värde eller **Text**, och den anpassade sonden som kontrollerar den kör en version äldre än OneUptime 17.2.0, som bara skickar ett JSON-objekt, så kontrollen kördes inte på den. [Uppdatera sonden](/docs/probe/custom-probe#uppdatera-en-sond) eller kontrollera monitorn från en annan sond.
 :::
 
 ## Nästa steg

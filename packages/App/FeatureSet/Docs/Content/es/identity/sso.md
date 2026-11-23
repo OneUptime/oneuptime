@@ -381,6 +381,8 @@ Una cuenta puede pertenecer a muchas organizaciones, así que solo puedes borrar
 - alguien solo invitado a tu proyecto, que aún no se ha unido a él;
 - los administradores maestros, y tú: cambia los tuyos en tu **Perfil de usuario**.
 
+Para borrar a una sola persona, abra **Usuarios**: la fila de cada persona que puede borrar dice **Configuración de inicio de sesión guardada**, y **Borrar configuración de inicio de sesión** en su menú borra solo la de esa persona, con la misma regla, tras una pregunta que enumera lo que se elimina.
+
 Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API.
 
 ## Desactivar o eliminar un proveedor

@@ -126,8 +126,6 @@ function ControlledDestination(props: {
         setValue(changed);
       }}
       eventType={NotificationRuleEventType.Incident}
-      monitors={[]}
-      labels={[]}
       alertStates={[]}
       alertSeverities={[]}
       incidentSeverities={[]}

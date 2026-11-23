@@ -9,6 +9,7 @@ Sécurité des données exécute 34 contrôles sur chaque magasin de données, e
 - [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
 - [L'analyse d'OneUptime AI](#lanalyse-doneuptime-ai): Si un problème est réel, ce qu'il met en danger, ce que la correction casserait et le chemin le plus court vers la correction.
 - [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
+- [Problèmes d'une même cause](#problèmes-dune-même-cause): Les problèmes qu'une même erreur a causés, regroupés, et leur cause corrigée une seule fois.
 :::
 
 ## Comment un contrôle décide
@@ -194,6 +195,36 @@ Un problème ouvert qu'une seule modification des paramètres d'un magasin de do
 Il demande d'abord confirmation, en indiquant ce qui change, ce qui cesse de fonctionner et ce que cela coûte. Il modifie les paramètres du magasin de données, jamais ses données, et ne modifie rien de ce qui est déjà comme il faut. Un magasin de données marqué **Public par conception** n'est jamais bloqué.
 
 Il agit via la connexion cloud du magasin de données, donc la connexion doit avoir **Réponse de sécurité des données** activé et sa commande de configuration exécutée à nouveau (voir [Configurer la Sécurité des données](/docs/data-security/setup#laisser-sécurité-des-données-fermer-une-exposition)). D'ici là, le panneau indique ce qu'il faut activer. Le magasin de données est contrôlé à nouveau juste après, et le problème se résout de lui-même dès que son contrôle réussit. La **Chronologie** du problème et la **Chronologie** du magasin de données indiquent ce qui a été fait, et par qui.
+
+## Problèmes d'une même cause
+
+Un module Terraform qui désactive les journaux d'accès crée quarante buckets avec quarante problèmes. La sécurité des données rassemble les problèmes qu'une même erreur a causés, pour que leur cause soit corrigée une seule fois.
+
+**Regrouper par cause** dans **Problèmes** affiche chaque groupe au-dessus de la liste : « 40 problèmes, une seule cause : le module static-site », ce que son contrôle trouve, combien sont corrigés et combien restent. Ses magasins de données se déplient en dessous, chacun menant à son problème, et les filtres de la liste les réduisent comme ils réduisent les lignes. Les problèmes sans groupe sont listés sous les groupes. Le regroupement s'active dès qu'un groupe compte cinq problèmes, et votre navigateur garde votre choix.
+
+Ce sont des faits qui forment un groupe, jamais OneUptime AI. Les problèmes d'un même contrôle, sur des magasins de données d'un même cloud, forment un groupe quand leurs magasins partagent l'un de ces faits, du plus fort au plus faible :
+
+| Fait | Où il est lu |
+| --- | --- |
+| Le code qui les déclare | Un fichier d'un dépôt connecté nommé d'après le module ou la stack que nomment leurs balises |
+| Leur stack | La balise propre à la stack CloudFormation, ou une balise qui nomme une stack |
+| Une balise | Une balise qui nomme le module, la stack ou le composant qui les a créés, comme `module` ou `component` |
+| Qui les a créés | L'identité qui les a créés d'après le journal des changements du cloud, pour les magasins dont les balises ne nomment rien de ce qui les a créés |
+| Un modèle de nom | Une partie de leurs noms que peu d'autres magasins ont, comme `static-site-*` |
+
+Un groupe compte au moins deux problèmes, un problème appartient à un groupe au plus, et un problème reste dans son groupe tant que son magasin de données partage le fait du groupe. Tant que **Travailler sur les nouveaux problèmes** est activé dans **Sécurité des données → IA**, OneUptime AI nomme chaque groupe à partir de ses faits, comme « le module static-site désactive les journaux d'accès », et un nom qui dit quelque chose que ses faits ne disent pas n'est pas gardé. Sinon, un groupe porte le nom de son fait.
+
+**Corriger la cause** sur un groupe dit ce qu'il change, ce qu'il laisse de côté et pourquoi, avant que rien ne change :
+
+- **Une seule pull request**, pour les magasins de données déclarés en code : OneUptime AI modifie le module ou le fichier qui les déclare, dans le dépôt que vous confirmez, plutôt que chaque magasin. La pull request liste chaque magasin et chaque problème qu'elle corrige, et apparaît sous **Code** et dans la **Chronologie** de chaque problème. Elle demande ce que demande **Corriger avec l'IA** : l'autorisation de modifier les problèmes de sécurité des données, et un dépôt où OneUptime AI peut travailler.
+- **Une seule approbation**, pour les magasins de données créés dans la console : le changement que fait [Corriger d'ici](#corriger-dici), sur chacun d'eux via sa connexion cloud. Elle demande l'autorisation de modifier les magasins de données.
+- **Laissés de côté** : un magasin marqué **Public par conception** n'est jamais bloqué. Un magasin dont l'analyse dit que la correction retirerait un accès que quelque chose utilise encore attend que vous cochiez **Le corriger quand même**. Un magasin qu'aucune connexion cloud ne laisse modifier par la sécurité des données est laissé à sa console, avec la raison.
+
+Quand un groupe a les deux sortes de magasins, un seul clic fait les deux parties, et chacune peut être laissée de côté. Chaque problème se résout de lui-même dès que son contrôle réussit, et le groupe dit combien il en reste jusqu'à ce qu'il n'en reste aucun. Un groupe dont tous les problèmes sont corrigés reste dans la liste pendant sept jours.
+
+OneUptime AI propose la correction de chaque groupe comme le disent vos règles d'IA de sécurité des données : sans règle, la pull request vous attend dans **Sécurité des données → IA**, et une règle dont la **Correction** est **Sans demander** l'ouvre d'elle-même. Un changement via les connexions cloud vous attend toujours. Sur un dossier de sécurité des données, l'étape **Fix the code with AI** d'un playbook demande la pull request du groupe du dossier. Un problème d'un groupe le dit sous **Analyse d'OneUptime AI**, avec **Corriger la cause**.
+
+Seules les personnes qui lisent les problèmes de sécurité des données de tout le projet voient les groupes : un groupe nomme des magasins de données qu'une lecture limitée à des étiquettes ne peut pas atteindre.
 
 ## Où les données d'un problème de télémétrie ont été trouvées
 

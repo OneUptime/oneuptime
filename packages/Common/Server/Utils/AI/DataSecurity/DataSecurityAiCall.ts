@@ -5,6 +5,9 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
 } from "../../../Services/AIService";
@@ -72,12 +75,26 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   get [DataSecurityAiFeature.ProposeStoreOwners](): string {
     return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;
   },
+  get [DataSecurityAiFeature.NameIssueGroup](): string {
+    return AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE;
+  },
+  get [DataSecurityAiFeature.WriteScrubRules](): string {
+    return AI_DATA_SECURITY_SCRUB_RULES_FEATURE;
+  },
+  get [DataSecurityAiFeature.ReviewPullRequests](): string {
+    return AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE;
+  },
 };
 
 export interface DataSecurityAiCallRequest {
   projectId: ObjectID;
   // The person who asked, when a person did.
   userId?: ObjectID | undefined;
+  /*
+   * The AI run the call is part of, when it is one's: a pull request's
+   * production review (#10376). Its AI Logs row then names the run.
+   */
+  aiRunId?: ObjectID | undefined;
   prompt: DataSecurityAiPrompt;
   maxTokens: number;
   temperature?: number | undefined;
@@ -124,6 +141,7 @@ export default class DataSecurityAiCall {
     return await AIService.executeWithLogging({
       projectId: request.projectId,
       userId: request.userId,
+      aiRunId: request.aiRunId,
       feature: label,
       llmProviderId: choice.llmProviderId,
       storeContentPreviews: false,

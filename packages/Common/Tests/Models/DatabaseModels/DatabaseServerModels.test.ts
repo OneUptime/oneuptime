@@ -291,8 +291,6 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "archivedAt",
   "archivedByUser",
   "archivedByUserId",
-  "deletedByUser",
-  "deletedByUserId",
   // Written by the resource AI access service after each AI command.
   "aiAccessLastVerifiedAt",
   "aiAccessLastError",
@@ -1201,12 +1199,13 @@ describe("Databases (DatabaseServer) models", () => {
     );
 
     /*
-     * Who created, archived or deleted it is OneUptime's to say
-     * (UserAttribution): read as declared, written by no request, and
-     * computed, so DatabaseService's own stamps pass the column check while
-     * a value a request sends is taken out before the hooks run.
+     * Who created or archived it is OneUptime's to say (UserAttribution):
+     * read as declared, written by no request, and computed, so
+     * DatabaseService's own stamps pass the column check while a value a
+     * request sends is taken out before the hooks run. Who deleted it is
+     * no column at all: a database is deleted outright (#10469).
      */
-    test("who created, archived or deleted it is written by no request", () => {
+    test("who created or archived it is written by no request", () => {
       const columns: Array<string> = UserAttribution.getColumns(model);
 
       expect(columns).toEqual(
@@ -1215,10 +1214,9 @@ describe("Databases (DatabaseServer) models", () => {
           "createdByUserId",
           "archivedByUser",
           "archivedByUserId",
-          "deletedByUser",
-          "deletedByUserId",
         ]),
       );
+      expect(columns).not.toContain("deletedByUserId");
 
       for (const column of columns) {
         const accessControl: ColumnAccessControl = columnAccess(model, column);
@@ -1569,8 +1567,6 @@ describe("Databases (DatabaseServer) models", () => {
         "lastMatchedAt",
         "createdByUser",
         "createdByUserId",
-        "deletedByUser",
-        "deletedByUserId",
       ]) {
         expect(columns).toContain(column);
       }
@@ -1658,8 +1654,6 @@ describe("Databases (DatabaseServer) models", () => {
         "lastMatchedAt",
         "createdByUser",
         "createdByUserId",
-        "deletedByUser",
-        "deletedByUserId",
       ]) {
         expect({ column, create: columnAccess(model, column).create }).toEqual({
           column,

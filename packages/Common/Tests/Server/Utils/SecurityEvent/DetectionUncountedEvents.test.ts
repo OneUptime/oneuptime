@@ -588,6 +588,14 @@ describe("a user a scrub rule hid (#10435)", () => {
       inTracesValue: "span-attributes",
       storedIn: null,
     });
+    // A destination a rule hid has its own marker (#10419).
+    expect(getHiddenValueMarker(" targetIp ")).toEqual({
+      hiddenKey: "oneuptime.target_address_hidden",
+      hiddenValue: "scrub-rule",
+      inKey: "oneuptime.target_address_scrubbed_in",
+      inTracesValue: "span-attributes",
+      storedIn: null,
+    });
   });
 
   test("the library's rules that count per user leave out the events with no user", () => {

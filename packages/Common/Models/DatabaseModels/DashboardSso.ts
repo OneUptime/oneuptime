@@ -67,7 +67,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Dashboard SSO",
   pluralName: "Dashboard SSO",
   icon: IconProp.Lock,
-  tableDescription: "Configure SAML single sign-on for a dashboard that asks its visitors to sign in",
+  tableDescription:
+    "Configure SAML single sign-on for a dashboard that asks its visitors to sign in",
 })
 @OwnedThrough("dashboardId", Dashboard)
 @Entity({
@@ -162,8 +163,7 @@ export default class DashboardSSO extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Dashboard,
     title: "Dashboard",
-    description:
-      "Relation to the dashboard this provider signs people in to.",
+    description: "Relation to the dashboard this provider signs people in to.",
   })
   @ManyToOne(
     () => {
@@ -509,63 +509,6 @@ export default class DashboardSSO extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-
-      Permission.ReadDashboardSSO,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-
-      Permission.ReadDashboardSSO,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

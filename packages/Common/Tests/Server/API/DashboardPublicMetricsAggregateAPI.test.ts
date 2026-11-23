@@ -2836,6 +2836,40 @@ describe("DashboardAPI public metrics-aggregate", () => {
         });
       });
 
+      /*
+       * #10691: the drawn metrics are read by their names. The route read
+       * the project's first 10,000 metric types by name and kept the drawn
+       * ones, so a drawn metric that sorts past them came with no unit and
+       * no counter semantics.
+       */
+      it("reads the drawn metrics by their names, wherever they sort among the project's", async () => {
+        dashboard.dashboardViewConfig = WIDGET_SHAPES[0]!.store([
+          buildWidget(DashboardComponentType.Chart, SPEC),
+          buildWidget(DashboardComponentType.Value, {
+            ...SPEC,
+            metricName: CHARTED_METRIC_NAME,
+          }),
+        ]) as DashboardViewConfig;
+
+        const findBy: jest.SpiedFunction<typeof MetricTypeService.findBy> = jest
+          .spyOn(MetricTypeService, "findBy")
+          .mockResolvedValue([]);
+
+        await callMetricTypes();
+
+        const query: JSONObject = (
+          findBy.mock.calls[0]![0] as unknown as { query: JSONObject }
+        ).query;
+
+        expect(query["projectId"]).toEqual(dashboard.projectId);
+        expect(query["name"]).toBeInstanceOf(Includes);
+        expect(
+          [
+            ...((query["name"] as unknown as Includes).values as Array<string>),
+          ].sort(),
+        ).toEqual([CHARTED_METRIC_NAME, WIDGET_METRIC].sort());
+      });
+
       describe.each(WIDGET_SHAPES)("stored $name", (shape: WidgetShape) => {
         describe.each(METRIC_WIDGET_TYPES)(
           "a %s widget",

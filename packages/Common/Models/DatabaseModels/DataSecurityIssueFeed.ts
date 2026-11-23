@@ -301,6 +301,26 @@ export default class DataSecurityIssueFeed extends BaseModel {
   })
   public postedAt?: Date = undefined;
 
+  /*
+   * The OneUptime AI proposal an entry is about (#10366): a change it made
+   * without asking draws its Undo on the entry itself. None for every other
+   * entry. Kept as an id, not a relation: the entry outlives nothing it
+   * names, and the proposal is read with its own permissions.
+   */
+  @ColumnAccessControl(columnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "OneUptime AI Proposal ID",
+    description:
+      "The OneUptime AI proposal this entry is about, when it is about one: a change made without asking offers its Undo here.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataSecurityAiProposalId?: ObjectID = undefined;
+
   @ColumnAccessControl(columnAccess)
   @TableColumn({
     manyToOneRelationColumn: "createdByUserId",
@@ -335,39 +355,4 @@ export default class DataSecurityIssueFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

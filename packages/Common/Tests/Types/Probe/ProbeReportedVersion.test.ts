@@ -300,6 +300,10 @@ describe("the features a probe has from some release on", () => {
     expect(PROBE_FEATURE_FIRST_RELEASES[ProbeFeature.OneTimeCodes]).toBe(
       FIRST_PROBE_VERSION_WITH_TOTP_CODES,
     );
+    // An array, a single value or text as an API monitor's body (#10737).
+    expect(PROBE_FEATURE_FIRST_RELEASES[ProbeFeature.AnyRequestBody]).toBe(
+      "17.2.0",
+    );
     // Both came in one change: a probe says its release from 17.0.1 on.
     expect(FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE).toBe(
       FIRST_PROBE_VERSION_WITH_TOTP_CODES,
@@ -365,16 +369,31 @@ describe("the features a probe has from some release on", () => {
         reportedVersion: null,
         lastAlive: CONNECTED_AT,
       }),
-    ).toEqual([ProbeFeature.OneTimeCodes]);
+    ).toEqual([ProbeFeature.OneTimeCodes, ProbeFeature.AnyRequestBody]);
     expect(
       ProbeReportedVersionUtil.getMissedFeatures({
         reportedVersion: "16.0.0",
         lastAlive: CONNECTED_AT,
       }),
-    ).toEqual([ProbeFeature.OneTimeCodes]);
+    ).toEqual([ProbeFeature.OneTimeCodes, ProbeFeature.AnyRequestBody]);
+
+    // It makes one-time codes, and sends only an object as a body (#10737).
+    for (const reportedVersion of ["17.0.1", "17.1.0", "17.1.4"]) {
+      expect([
+        reportedVersion,
+        ProbeReportedVersionUtil.getMissedFeatures({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ]).toEqual([reportedVersion, [ProbeFeature.AnyRequestBody]]);
+    }
 
     for (const probe of [
-      { reportedVersion: "17.0.1", lastAlive: CONNECTED_AT },
+      { reportedVersion: "17.2.0", lastAlive: CONNECTED_AT },
+      { reportedVersion: "17.2.0-test", lastAlive: CONNECTED_AT },
+      { reportedVersion: "18.0.0", lastAlive: CONNECTED_AT },
+      // A test build of an older release cannot be told.
+      { reportedVersion: "17.1.0-test", lastAlive: CONNECTED_AT },
       { reportedVersion: "17.0.0-test", lastAlive: CONNECTED_AT },
       { reportedVersion: "unknown", lastAlive: CONNECTED_AT },
       { reportedVersion: null, lastAlive: null },

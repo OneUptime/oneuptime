@@ -123,9 +123,12 @@ const RUN_ID: ObjectID = new ObjectID("10362000-0000-4000-8000-0000000000f1");
 const PERMISSION_MESSAGE: string =
   "You do not have permission to do this in Data Security.";
 
-// What the permission layer answers a read of the repositories by a role that may read none.
+/*
+ * What the permission layer answers a read of the repositories by a role
+ * that may read none: Code's levels (#10289) among who may.
+ */
 const READ_REPOSITORY_REFUSED_MESSAGE: string =
-  "You do not have permissions to read Code Repository. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Code Repository";
+  "You do not have permissions to read Code Repository. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Code Repository, Code Admin, Code Member, Code Viewer";
 
 interface World {
   enableAi: boolean;

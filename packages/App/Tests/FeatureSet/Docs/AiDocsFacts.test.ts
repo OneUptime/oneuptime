@@ -82,6 +82,14 @@ import {
   ProductionReviewSection,
   ProductionReviewUtil,
 } from "Common/Types/CodeRepository/ProductionReview";
+import {
+  NOT_SENSITIVE_MARKER,
+  SENSITIVE_DATA_LIMITS,
+  SensitiveDataLeakKind,
+  SensitiveDataPosting,
+} from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
+import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
+import SecuritySeverity from "Common/Types/SecuritySeverity";
 import LlmType from "Common/Types/LLM/LlmType";
 import {
   CodeRepositoryRunnerChoiceKind,
@@ -2953,6 +2961,10 @@ describe("Production review of pull requests", () => {
     expect(rowStartingWith(reads, bold("Data"))[1]).toContain(
       "migrations and dbt models",
     );
+    // The Sensitive data section reads the diff, not production (#10376).
+    expect(rowStartingWith(reads, bold("Sensitive data"))[1]).toContain(
+      "The change itself, read from its diff before it merges",
+    );
     expect(Object.values(ProductionReviewSection).sort()).toEqual(
       [
         "Data",
@@ -2961,6 +2973,7 @@ describe("Production review of pull requests", () => {
         "Incidents",
         "Operations",
         "Profiles",
+        "SensitiveData",
         "Services",
       ].sort(),
     );
@@ -2979,8 +2992,48 @@ describe("Production review of pull requests", () => {
     expect(section).toContain(
       `It runs only while AI is on for the project, at most ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerPullRequestPerDay} times a day for a pull request and ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerRepositoryPerDay} for a repository`,
     );
+    // No comment only when neither production nor the diff's sensitive data says anything.
+    const quiet: Parameters<typeof ProductionReviewUtil.hasSignal>[0] = {
+      exceptions: [],
+      operations: [],
+      hotFunctions: [],
+      incidents: { total: 0, open: 0, items: [] },
+      suspectDeploys: [],
+    };
+
+    expect(ProductionReviewUtil.hasSignal(quiet)).toBe(false);
+    expect(
+      ProductionReviewUtil.hasSignal({
+        ...quiet,
+        sensitiveData: {
+          points: [
+            {
+              key: "a1b2c3d4e5f60718",
+              kind: SensitiveDataLeakKind.Telemetry,
+              checkId: "sensitive-data-in-telemetry",
+              path: "src/signup.ts",
+              line: 12,
+              subject: "email",
+              dataTypeIds: ["email-address"],
+              dataTypeNames: ["Email address"],
+              sensitivity: DataSensitivity.Confidential,
+              severity: SecuritySeverity.Medium,
+              isBlocking: false,
+              failsCheck: false,
+              text: "Writes an email address to a log: `email`.",
+              fix: "Leave `email` out.",
+              isAiWorded: false,
+            },
+          ],
+          moreCount: 0,
+          droppedCount: 0,
+          isFailOn: false,
+          isAiRead: false,
+        },
+      }),
+    ).toBe(true);
     expect(section).toContain(
-      "When production shows nothing about the change, OneUptime posts no comment.",
+      "When production shows nothing about the change and its diff holds no sensitive data, OneUptime posts no comment.",
     );
   });
 
@@ -3017,8 +3070,51 @@ describe("Production review of pull requests", () => {
     expect(copy).toContain(
       'title: translationKey("The review, even on a public repository"),',
     );
+    /*
+     * The Sensitive data section (#10376): on a public repository, or one
+     * whose visibility is unknown, only what the diff shows, whatever the
+     * repository chose - and nothing at all with only a link.
+     */
+    for (const content of [
+      undefined,
+      ProductionReviewPullRequestContent.ReviewEvenIfPublic,
+    ]) {
+      expect(
+        ProductionReviewUtil.getSensitiveDataPosting({
+          content,
+          isPublic: true,
+        }),
+      ).toBe(SensitiveDataPosting.DiffOnly);
+      expect(
+        ProductionReviewUtil.getSensitiveDataPosting({
+          content,
+          isPublic: null,
+        }),
+      ).toBe(SensitiveDataPosting.DiffOnly);
+      expect(
+        ProductionReviewUtil.getSensitiveDataPosting({
+          content,
+          isPublic: false,
+        }),
+      ).toBe(SensitiveDataPosting.Full);
+    }
+    for (const isPublic of [true, false]) {
+      expect(
+        ProductionReviewUtil.getSensitiveDataPosting({
+          content: ProductionReviewPullRequestContent.Link,
+          isPublic,
+        }),
+      ).toBe(SensitiveDataPosting.None);
+    }
+
     expect(section).toContain(
-      `${bold("Production Review Comment")}, under ${bold("More settings")} on the repository's ${bold("Settings")} page, can post ${bold("Only a link to the review")} everywhere, or ${bold("The review, even on a public repository")}.`,
+      "there the comment links to the review in OneUptime, which only the project's members can open, under its Sensitive data section, which says only what the diff shows.",
+    );
+    expect(section).toContain(
+      `${bold("Production Review Comment")}, under ${bold("More settings")} on the repository's ${bold("Settings")} page, can post ${bold("Only a link to the review")} everywhere, with no Sensitive data section, or ${bold("The review, even on a public repository")}.`,
+    );
+    expect(section).toContain(
+      `a public repository's comment says only what the diff shows, even with ${bold("The review, even on a public repository")}, and ${bold("Only a link to the review")} posts no Sensitive data section at all.`,
     );
   });
 
@@ -3135,10 +3231,11 @@ describe("Production review of pull requests", () => {
 
   /*
    * On GitHub a review adds a check to the pull request's commit
-   * (GitHubCheckRuns): never failing - neutral or success - and only with
-   * the App's Checks permission to write.
+   * (GitHubCheckRuns): neutral or success, failing only on a leak in a
+   * repository that asked it to (#10376) - and only with the App's Checks
+   * permission to write.
    */
-  it("adds a check on GitHub that never fails a pull request, with the Checks permission to write", () => {
+  it("adds a check on GitHub that fails a pull request only on a leak the repository asked it to fail on, with the Checks permission to write", () => {
     const checkRuns: string = flat(
       readRepoFile(
         "Common/Server/Utils/CodeRepository/GitHub/GitHubCheckRuns.ts",
@@ -3155,11 +3252,16 @@ describe("Production review of pull requests", () => {
       ),
     );
 
-    // Its only conclusions: success and neutral, never a failure.
+    // Its conclusions: success and neutral, and a failure only on a leak.
     expect(checkRuns).toContain(
-      'export enum GitHubCheckConclusion { // Production has nothing to say about the change. Success = "success", // Something in production is worth a look, or the review is elsewhere. Neutral = "neutral", }',
+      'export enum GitHubCheckConclusion { // Production has nothing to say about the change. Success = "success", // Something in production is worth a look, or the review is elsewhere. Neutral = "neutral", // The change leaks sensitive data, and the repository fails its check on it. Failure = "failure", }',
     );
-    expect(checkRuns).not.toContain('"failure"');
+    expect(composer).toContain(
+      "if (ProductionReviewSensitiveDataUtil.failsCheck(report.sensitiveData)) { return { conclusion: GitHubCheckConclusion.Failure,",
+    );
+    expect(
+      composer.split("conclusion: GitHubCheckConclusion.Failure").length - 1,
+    ).toBe(1);
     expect(checkRuns).toContain(
       'permissions: { checks: "write", metadata: "read" }',
     );
@@ -3169,11 +3271,206 @@ describe("Production review of pull requests", () => {
       'worthALook: "Something in production is worth a look", nothingFound: "Nothing in production runs through these changes",',
     );
     expect(section).toContain(
-      `On GitHub, each review also adds a check to the pull request's latest commit, ${bold("OneUptime production review")}, titled ${bold("Something in production is worth a look")} or, when production shows nothing, ${bold("Nothing in production runs through these changes")}, with the review or its link. It never fails a pull request: it ends neutral or successful, so no branch rule waits on it.`,
+      `On GitHub, each review also adds a check to the pull request's latest commit, ${bold("OneUptime production review")}, titled ${bold("Something in production is worth a look")} or, when production shows nothing, ${bold("Nothing in production runs through these changes")}, with the review or its link; a review with sensitive data says so in its title. It fails a pull request only on a leak, in a repository that asks it to; otherwise it ends neutral or successful, so no branch rule waits on it.`,
     );
     expect(section).toContain(
       `It needs the GitHub App's ${bold("Checks")} permission with ${bold("Read & write")} (see [Set the permissions](/docs/self-hosted/github-integration#set-the-permissions)); without it, the comment is all a review posts.`,
     );
+  });
+
+  /*
+   * The Sensitive data section (#10376): found by OneUptime's own rules in
+   * the lines a pull request adds, worded by OneUptime AI that may never
+   * add a point nor drop one that fails the check, sharpened by what
+   * production knows only where that may be read, and failing the check
+   * only behind the repository's own switch, off by default.
+   */
+  describe("its Sensitive data section", () => {
+    const SUBSECTION: string = "### Sensitive data in a pull request";
+    const sensitive: string = flat(englishSection(CODE_PAGE, SUBSECTION));
+    const kinds: Array<Array<string>> = tableWithHeader(
+      englishSection(CODE_PAGE, SUBSECTION),
+      "The change",
+    );
+
+    it("reads the three kinds of change the rules find, in the lines the pull request adds", () => {
+      const rules: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataRules.ts",
+        ),
+      );
+      const infrastructure: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/InfrastructureRules.ts",
+        ),
+      );
+
+      expect(Object.values(SensitiveDataLeakKind).sort()).toEqual(
+        ["Infrastructure", "Migration", "Telemetry"].sort(),
+      );
+      expect(
+        kinds.map((row: Array<string>): string => {
+          return row[0]!;
+        }),
+      ).toEqual([
+        "Code that writes telemetry",
+        "Terraform, CloudFormation, Bicep, ARM, Kubernetes, Pulumi or CDK",
+        "A migration or a model",
+      ]);
+
+      for (const kind of [
+        "Terraform",
+        "CloudFormation",
+        "Bicep",
+        "Arm",
+        "Kubernetes",
+        "Pulumi",
+        "Cdk",
+      ]) {
+        expect(infrastructure).toContain(`${kind} = "`);
+      }
+
+      // Tests, fixtures and generated code: infrastructure only; vendored code: nothing.
+      expect(rules).toContain("isVendoredPath(");
+      expect(rules).toContain("isTestPath(");
+      expect(rules).toContain("isGeneratedPath(");
+      expect(sensitive).toContain(
+        "Tests, fixtures and generated code are read for their infrastructure only, and vendored code not at all.",
+      );
+
+      // The marker an author writes on a line that is no leak.
+      expect(NOT_SENSITIVE_MARKER).toBe("oneuptime:not-sensitive");
+      expect(codeIn(sensitive)).toContain(NOT_SENSITIVE_MARKER);
+    });
+
+    it("lists as many points as the comment does, and suggests each one-line change on GitHub once", () => {
+      const runner: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+        ),
+      );
+
+      expect(SENSITIVE_DATA_LIMITS.maxPointsInComment).toBe(5);
+      expect(sensitive).toContain(
+        `The comment lists the first ${SENSITIVE_DATA_LIMITS.maxPointsInComment} and links to the rest in OneUptime.`,
+      );
+      // Once per point: the keys a review already suggested are remembered.
+      expect(runner).toContain("return !posted.includes(point.key);");
+      expect(sensitive).toContain(
+        "On GitHub, each point whose change fixes one line is also posted on that line, once, as a suggestion its author can commit.",
+      );
+    });
+
+    it("has OneUptime AI word the points, never add one or drop one that fails the check, and never read production", () => {
+      const read: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/AI/DataSecurity/PullRequestLeakReview.ts",
+        ),
+      );
+      const runner: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+        ),
+      );
+
+      expect(read).toContain("DataSecurityAiCall.ask(");
+      expect(runner).toContain("data.update.aiReadsToday = readsToday + 1;");
+      expect(sensitive).toContain(
+        "It never adds a point no rule found, and never leaves out one that fails the check.",
+      );
+      expect(sensitive).toContain(
+        "and never what production holds (see [OneUptime AI in Data Security](/docs/data-security/ai)).",
+      );
+      expect(sensitive).toContain(
+        `It reads with the same LLM provider as ${bold("What to watch")}, within the same daily reads: a review that reads both is one read.`,
+      );
+    });
+
+    it("says what production knows only where it may be read", () => {
+      expect(SENSITIVE_DATA_LIMITS.heldBeforeDays).toBe(7);
+      expect(sensitive).toContain(
+        `where the service's telemetry held the same kind of data in the last ${SENSITIVE_DATA_LIMITS.heldBeforeDays} days`,
+      );
+      expect(
+        ProductionReviewUtil.getSensitiveDataPosting({
+          content: undefined,
+          isPublic: false,
+        }),
+      ).toBe(SensitiveDataPosting.Full);
+      expect(sensitive).toContain(
+        "That is said only in a private repository's comment, and in Code only to those who may read Data Security's findings",
+      );
+      expect(sensitive).toContain(
+        `A store marked ${bold("Public By Design")} makes no point for being public.`,
+      );
+    });
+
+    it("fails the check only behind the repository's switch, off by default, and sets a commit status elsewhere only while it is on", () => {
+      const copy: string = flat(
+        dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+      );
+      const settings: string = flat(
+        dashboardSource("Pages/Code/Repository/Settings.tsx"),
+      );
+      const model: string = flat(
+        readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts"),
+      );
+      const runner: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+        ),
+      );
+      const composer: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts",
+        ),
+      );
+
+      expect(copy).toContain(
+        'failOnLeakCardTitle: translationKey("Sensitive Data Check"),',
+      );
+      expect(copy).toContain(
+        'failOnLeakSwitchTitle: translationKey("Fail the Check on a Leak"),',
+      );
+      expect(
+        isUnderMoreSettings(
+          settings,
+          'column="isProductionReviewFailOnLeakEnabled"',
+        ),
+      ).toBe(true);
+      // Off until a repository turns it on: no default, read as "=== true".
+      expect(model).toContain(
+        "public isProductionReviewFailOnLeakEnabled?: boolean = undefined;",
+      );
+      expect(runner).toContain(
+        "data.repository.isProductionReviewFailOnLeakEnabled !== true ||",
+      );
+      expect(composer).toContain(
+        'sensitiveDataFails: "Sensitive data in these changes fails this check",',
+      );
+      expect(sensitive).toContain(
+        `A leak leaves the check neutral, unless the repository turns on ${bold("Fail the Check on a Leak")}, under ${bold("Sensitive Data Check")} in ${bold("More settings")} on its ${bold("Settings")} page; it is off by default.`,
+      );
+      expect(sensitive).toContain(
+        `While it is on, the check fails, titled ${bold("Sensitive data in these changes fails this check")}`,
+      );
+      expect(sensitive).toContain(
+        `GitLab, Forgejo and Gitea have no checks: while the switch is on, a review there sets a commit status, ${bold("OneUptime production review")}, success or failed, which a branch rule can require.`,
+      );
+    });
+
+    it("counts each leak on AI Results, under the card's own name", () => {
+      const results: string = flat(
+        dashboardSource("Components/AI/Results/AiResultsData.ts"),
+      );
+
+      expect(results).toContain(
+        'translationKey( "Leaks Caught Before Merge", )',
+      );
+      expect(sensitive).toContain(
+        `on ${bold("Leaks Caught Before Merge")} in ${bold("Project Settings → AI → AI Results")}`,
+      );
+    });
   });
 
   it("is on for repositories connected from now on, and off for those connected before it", () => {

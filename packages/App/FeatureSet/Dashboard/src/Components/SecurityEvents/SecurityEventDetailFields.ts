@@ -11,7 +11,10 @@ import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEven
 import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   HiddenClientAddress,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  ScrubbedAddressRole,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
   SCRUBBED_USER_ATTRIBUTES,
@@ -48,9 +51,11 @@ export interface SecurityEventDetailField {
   isValueTranslated?: boolean | undefined;
   /*
    * The client address a scrub rule hid (#10397): what Principal IP says in
-   * the address's place, with the rule that hid it.
+   * the address's place, with the rule that hid it - or the destination's,
+   * on Target IP (#10419), as hiddenAddressRole says.
    */
   hiddenAddress?: HiddenClientAddress | undefined;
+  hiddenAddressRole?: ScrubbedAddressRole | undefined;
   /*
    * An address the request only claimed (#10416): said as claimed by the
    * request, not verified, and never the event's address.
@@ -190,7 +195,36 @@ export function buildHiddenPrincipalIpField(
     value: HIDDEN_BY_A_SCRUB_RULE,
     isValueTranslated: true,
     hiddenAddress,
+    hiddenAddressRole: ScrubbedAddressRole.Principal,
     facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden}`,
+    facetValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
+  };
+}
+
+/*
+ * Target IP for an event whose destination a scrub rule hid (#10419): a
+ * firewall's connection, an outbound transfer. The same sentence, with the
+ * rule that hid it, filtering the list to every event whose destination a
+ * scrub rule hid. Null for an event that names its destination, or says
+ * nothing of one.
+ */
+export function buildHiddenTargetIpField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const hiddenAddress: HiddenClientAddress | null =
+    readHiddenTargetAddress(event);
+
+  if (!hiddenAddress) {
+    return null;
+  }
+
+  return {
+    label: "Target IP",
+    value: HIDDEN_BY_A_SCRUB_RULE,
+    isValueTranslated: true,
+    hiddenAddress,
+    hiddenAddressRole: ScrubbedAddressRole.Target,
+    facetKey: `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Target].hidden}`,
     facetValue: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   };
 }
@@ -308,7 +342,12 @@ export function buildSecurityEventOverviewFields(
       value: text(event.targetHost),
       facetKey: "targetHost",
     },
-    { label: "Target IP", value: text(event.targetIp), facetKey: "targetIp" },
+    // A scrub rule hid it: said where the destination would be (#10419).
+    buildHiddenTargetIpField(event) || {
+      label: "Target IP",
+      value: text(event.targetIp),
+      facetKey: "targetIp",
+    },
     {
       /*
        * The column is non-nullable with a 0 default, so 0 means "the source

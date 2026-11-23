@@ -212,7 +212,9 @@ test.describe("First run: a brand-new project", () => {
     await expect(tiles).not.toContainText("Budgets healthy");
 
     // Home is one page with no side menu (#6857).
-    await expect(page.locator('[aria-label="Pages in this section"]')).toHaveCount(0);
+    await expect(
+      page.locator('[aria-label="Pages in this section"]'),
+    ).toHaveCount(0);
 
     /*
      * The address of Home's old copy of the list forwards to the Monitors
