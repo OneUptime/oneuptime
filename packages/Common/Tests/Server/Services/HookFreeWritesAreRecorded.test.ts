@@ -482,13 +482,18 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseLook.ts":
     {
-      "SecurityCaseResponseLook.look SecurityCase": Why.Bookkeeping,
+      "SecurityCaseResponseLook.setWhereItStands SecurityCase": Why.Bookkeeping,
       "SecurityCaseResponseLook.writeClosingReport SecurityCase":
         Why.Automation,
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseNudge.ts":
     {
       "SecurityCaseResponseNudge.lookNow SecurityCase": Why.Bookkeeping,
+    },
+  // A closed case OneUptime AI is done with while Security Events is off (#10816).
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseProductOff.ts":
+    {
+      "SecurityCaseResponseProductOff.stopCase SecurityCase": Why.Bookkeeping,
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseToolkit.ts":
     {
