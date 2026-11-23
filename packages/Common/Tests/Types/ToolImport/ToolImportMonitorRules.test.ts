@@ -542,7 +542,10 @@ describe("what a web check becomes", () => {
     expect(readRequestBody(undefined)).toBeNull();
     expect(readRequestBody(42)).toBeNull();
     expect(readRequestBody("<a/>")).toEqual({ body: "<a/>", isText: true });
-    expect(readRequestBody(" [1, 2] ")).toEqual({ body: "[1,2]", isText: false });
+    expect(readRequestBody(" [1, 2] ")).toEqual({
+      body: "[1,2]",
+      isText: false,
+    });
     expect(readRequestBody("[1, 2]", { isSentAsWritten: true })).toEqual({
       body: "[1, 2]",
       isText: true,
@@ -573,7 +576,7 @@ describe("what a web check becomes", () => {
 
       expect({ round, body: monitor.requestBody }).toEqual({
         round,
-        body: body.trim() ? (json ?? body) : undefined,
+        body: body.trim() ? json ?? body : undefined,
       });
       expect({ round, format: monitor.requestBodyFormat }).toEqual({
         round,

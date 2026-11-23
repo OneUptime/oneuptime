@@ -558,7 +558,10 @@ export default class ExternalStatusPageMonitorUtil {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: false,
-        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(config, err),
+        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(
+          config,
+          err,
+        ),
       });
 
       if (
@@ -632,7 +635,10 @@ export default class ExternalStatusPageMonitorUtil {
         componentStatuses: [],
         activeIncidentCount: 0,
         responseTimeInMs: responseTimeInMs,
-        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(config, err),
+        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(
+          config,
+          err,
+        ),
         // The provider that read a page which would not let the probe in.
         provider:
           err instanceof ExternalStatusPageRefusedException

@@ -610,9 +610,9 @@ describe("what the probe reports and logs of a step", () => {
     const url: string = withSecrets(serverUrl, "/health");
     const posted: Array<ProbeMonitorResponse> = capturePosts();
 
-    jest.spyOn(ApiMonitor, "ping").mockRejectedValue(
-      new Error(`URL ${url} is not in valid format.`),
-    );
+    jest
+      .spyOn(ApiMonitor, "ping")
+      .mockRejectedValue(new Error(`URL ${url} is not in valid format.`));
 
     await MonitorUtil.probeMonitor(monitorOf(apiStep(url)));
 

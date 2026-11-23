@@ -334,10 +334,9 @@ export const PROBE_FAILURE_CAUSES: Readonly<Record<ProbeFailureCause, string>> =
       "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.",
     ),
 
-    [ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease]:
-      translationKey(
-        "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
-      ),
+    [ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease]: translationKey(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime {{version}} or later.",
+    ),
 
     [ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease]: translationKey(
       "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.",

@@ -407,11 +407,7 @@ describe("the monitor forms: a request body only a newer probe sends (#10788)", 
     ["a secret alone, as written", "{{monitorSecrets.Payload}}", undefined],
     ["XML sent as text", "<ping>1</ping>", MonitorRequestBodyFormat.Text],
     ["form fields sent as text", "a=1&b=2", MonitorRequestBodyFormat.Text],
-    [
-      "an object sent as text",
-      '{"ping": true}',
-      MonitorRequestBodyFormat.Text,
-    ],
+    ["an object sent as text", '{"ping": true}', MonitorRequestBodyFormat.Text],
   ])(
     "name the probes too old to send %s, and how to update one",
     async (
@@ -607,7 +603,10 @@ describe("the monitor forms: who reads what", () => {
   });
 
   test("on a monitor that exists, read the probes switched on to check it", async () => {
-    monitorProbes = [monitorProbe(OLD_PROBE_ID), monitorProbe(CURRENT_PROBE_ID)];
+    monitorProbes = [
+      monitorProbe(OLD_PROBE_ID),
+      monitorProbe(CURRENT_PROBE_ID),
+    ];
 
     await draw(
       <ProbesTooOldWarning
@@ -618,9 +617,7 @@ describe("the monitor forms: who reads what", () => {
       />,
     );
 
-    expect(listedProbes(ProbeFeature.AnyRequestBody)).toEqual([
-      "Office probe",
-    ]);
+    expect(listedProbes(ProbeFeature.AnyRequestBody)).toEqual(["Office probe"]);
 
     const read: ListRead | undefined = listCalls.find(
       (call: ListRead): boolean => {
@@ -772,12 +769,7 @@ describe("getProbesTooOldFor", () => {
             lastAlive: CONNECTED_AT,
           }),
         ],
-        probeIds: [
-          CODES_PROBE_ID,
-          GLOBAL_PROBE_ID,
-          OLD_PROBE_ID,
-          OLD_PROBE_ID,
-        ],
+        probeIds: [CODES_PROBE_ID, GLOBAL_PROBE_ID, OLD_PROBE_ID, OLD_PROBE_ID],
         feature: ProbeFeature.OneTimeCodes,
       }),
     ).toEqual([

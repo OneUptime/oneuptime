@@ -393,7 +393,9 @@ export function readRequestBody(
     ? null
     : readJsonBody(text);
 
-  return json === null ? { body: text, isText: true } : { body: json, isText: false };
+  return json === null
+    ? { body: text, isText: true }
+    : { body: json, isText: false };
 }
 
 // Whether headers name a Content-Type, in any case.

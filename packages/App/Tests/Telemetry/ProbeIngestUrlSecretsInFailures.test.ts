@@ -65,6 +65,7 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import { RequestFailedPhase } from "Common/Types/Probe/RequestFailedDetails";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -162,9 +163,7 @@ beforeEach(() => {
 
 describe("an older probe's failed check, as the server takes it in", () => {
   it("is judged with every URL in what it reports by its scheme, host and port", async () => {
-    await processProbeFromQueue(
-      job("probe-response", olderProbesReport()),
-    );
+    await processProbeFromQueue(job("probe-response", olderProbesReport()));
 
     expect(monitorResource).toHaveBeenCalledTimes(1);
 
@@ -177,7 +176,11 @@ describe("an older probe's failed check, as the server takes it in", () => {
     expect(judged.failureCause).toBe(
       "Request failed to https://api.example.com. socket hang up",
     );
-    expect(judged.probeAttempts?.map((item) => item.failureCause)).toEqual([
+    expect(
+      judged.probeAttempts?.map((item: ProbeAttempt): string | undefined => {
+        return item.failureCause;
+      }),
+    ).toEqual([
       "Request failed to https://api.example.com. socket hang up",
       "Request failed to https://api.example.com. socket hang up",
     ]);

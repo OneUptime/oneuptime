@@ -1071,12 +1071,12 @@ describe("the other causes the checks write (#8656)", () => {
       cause: ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease,
       values: { version: "17.0.1" },
     });
-    expect(readProbeFailureCause(TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE)).toEqual(
-      {
-        cause: ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease,
-        values: { version: "17.2.0" },
-      },
-    );
+    expect(
+      readProbeFailureCause(TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE),
+    ).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease,
+      values: { version: "17.2.0" },
+    });
     expect(
       wordProbeFailureCause({
         translator: dashboardTranslator("de"),

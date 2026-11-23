@@ -194,8 +194,20 @@ describe("UptimeKumaAdapter: a backup", () => {
     };
     const snapshot: ToolImportSnapshot = readFile(
       kumaBackupText([
-        { ...base, id: 101, name: "Form", body: "user=ops&remember=1", httpBodyEncoding: "form" },
-        { ...base, id: 102, name: "SOAP", body: "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>", httpBodyEncoding: "xml" },
+        {
+          ...base,
+          id: 101,
+          name: "Form",
+          body: "user=ops&remember=1",
+          httpBodyEncoding: "form",
+        },
+        {
+          ...base,
+          id: 102,
+          name: "SOAP",
+          body: "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>",
+          httpBodyEncoding: "xml",
+        },
         // Its own Content-Type is the one Uptime Kuma sends: its headers win.
         {
           ...base,
@@ -206,11 +218,35 @@ describe("UptimeKumaAdapter: a backup", () => {
           headers: JSON.stringify({ "content-type": "application/soap+xml" }),
         },
         // A form that reads as JSON is still sent as written.
-        { ...base, id: 104, name: "Form of JSON", body: '{"a": 1}', httpBodyEncoding: "form" },
-        { ...base, id: 105, name: "JSON", body: '{"a": 1}', httpBodyEncoding: "json" },
-        { ...base, id: 106, name: "Unset", body: "[1, 2]", httpBodyEncoding: null },
+        {
+          ...base,
+          id: 104,
+          name: "Form of JSON",
+          body: '{"a": 1}',
+          httpBodyEncoding: "form",
+        },
+        {
+          ...base,
+          id: 105,
+          name: "JSON",
+          body: '{"a": 1}',
+          httpBodyEncoding: "json",
+        },
+        {
+          ...base,
+          id: 106,
+          name: "Unset",
+          body: "[1, 2]",
+          httpBodyEncoding: null,
+        },
         // An encoding Uptime Kuma does not know: read as any body is.
-        { ...base, id: 107, name: "Other", body: "plain", httpBodyEncoding: "constructor" },
+        {
+          ...base,
+          id: 107,
+          name: "Other",
+          body: "plain",
+          httpBodyEncoding: "constructor",
+        },
       ]),
     );
 
@@ -221,7 +257,8 @@ describe("UptimeKumaAdapter: a backup", () => {
       requestHeaders: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     expect(monitorOf(snapshot, "102")).toMatchObject({
-      requestBody: "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>",
+      requestBody:
+        "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>",
       requestBodyFormat: MonitorRequestBodyFormat.Text,
       requestHeaders: { "Content-Type": "text/xml; charset=utf-8" },
     });

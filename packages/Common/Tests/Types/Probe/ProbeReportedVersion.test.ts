@@ -355,7 +355,11 @@ describe("the features a probe has from some release on", () => {
   );
 
   test.each([
-    ["its first release", FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY, ProbeFeatureSupport.Supported],
+    [
+      "its first release",
+      FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+      ProbeFeatureSupport.Supported,
+    ],
     ["a later minor release", "17.3.0", ProbeFeatureSupport.Supported],
     ["a later major release", "18.0.0", ProbeFeatureSupport.Supported],
     [

@@ -14,8 +14,8 @@ import { ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE } from "../../../FeatureSet/Telemetr
  * language:
  *
  *   - a failed check's error names the URL by its scheme, host and port,
- *     as MonitorUrlInText writes it, in the API Monitor and Monitor Secrets
- *     pages;
+ *     as MonitorUrlInText writes it, in the API Monitor, Website Monitor
+ *     and Monitor Secrets pages;
  *   - the request body only a newer probe sends names no release - the
  *     first that sends one is the release after 17.2.0, not known until it
  *     is cut - and nor does the check's sentence; one-time codes name the
@@ -60,7 +60,9 @@ describe("the release a custom probe needs", () => {
       ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE,
     ]) {
       expect(message).not.toMatch(/\d+\.\d+\.\d+/);
-      expect(message).toContain("Update the probe to the latest OneUptime release.");
+      expect(message).toContain(
+        "Update the probe to the latest OneUptime release.",
+      );
     }
   });
 

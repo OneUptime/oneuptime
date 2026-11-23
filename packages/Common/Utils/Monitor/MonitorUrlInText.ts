@@ -249,11 +249,10 @@ export default class MonitorUrlInText {
     }
 
     if (response.requestFailedDetails) {
-      written.requestFailedDetails =
-        MonitorUrlInText.writeRequestFailedDetails(
-          response.requestFailedDetails,
-          sent,
-        );
+      written.requestFailedDetails = MonitorUrlInText.writeRequestFailedDetails(
+        response.requestFailedDetails,
+        sent,
+      );
     }
 
     const externalStatusPage: ExternalStatusPageMonitorResponse | undefined =
