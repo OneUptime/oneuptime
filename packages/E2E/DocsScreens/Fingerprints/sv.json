@@ -232,8 +232,8 @@
       "button: Skicka ett testlarm till mig",
       "button: Hoppa över testet"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: Testa den här policyn",
       "button: Hoppa över testet"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: Lös",
+      "button: Tilldela Incidentansvarig från Maya Chen på nytt",
       "button: Lägg till Lägg till ägare",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"

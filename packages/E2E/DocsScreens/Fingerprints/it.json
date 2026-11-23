@@ -232,8 +232,8 @@
       "button: Inviami una chiamata di test",
       "button: Salta il test"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: Testa questa policy",
       "button: Salta il test"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -652,7 +652,7 @@
       "Feed dell'incidente",
       "Tutto ciò che è successo a questo incidente: cambi di stato, note, proprietari e ogni notifica inviata.",
       "Azioni",
-      "lunedì 14 settembre 2026",
+      "Lunedì 14 settembre 2026",
       "Oggi",
       "BST",
       "19:12",
@@ -687,7 +687,7 @@
       "heading: Feed dell'incidente",
       "button: Azioni",
       "button: Altre opzioni",
-      "heading: lunedì 14 settembre 2026",
+      "heading: Lunedì 14 settembre 2026",
       "link: Incident #1042",
       "link: Incident #1042",
       "link: Incident #1042",
@@ -697,7 +697,7 @@
       "link: Orders DB connection pool"
     ],
     "width": 576,
-    "height": 927
+    "height": 972
   },
   "incident-resolve": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: Risolvi",
+      "button: Riassegna Comandante dell'incidente da Maya Chen",
       "button: Aggiungi Aggiungi proprietari",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"
