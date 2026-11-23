@@ -20,15 +20,15 @@
 export enum CodeRepositorySetting {
   GitHubCommands = "github-commands",
   ProductionReview = "production-review",
+  Runner = "runner",
+  PullRequests = "pull-requests",
+  TriggerLabel = "trigger-label",
+  ProductionReviewComment = "production-review-comment",
   /*
    * Whether a production review's check fails on a leak of sensitive data
    * (#10376): neutral until it is turned on.
    */
   ProductionReviewFailOnLeak = "production-review-fail-on-leak",
-  Runner = "runner",
-  PullRequests = "pull-requests",
-  TriggerLabel = "trigger-label",
-  ProductionReviewComment = "production-review-comment",
   // The LLM provider OneUptime AI reads pull requests with in its reviews.
   ProductionReviewLlmProvider = "production-review-llm-provider",
   // Only on a repository whose operator set build and test commands.

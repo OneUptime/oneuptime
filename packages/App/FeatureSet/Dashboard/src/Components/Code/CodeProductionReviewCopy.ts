@@ -790,7 +790,7 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
   failOnLeakCardTitle: translationKey("Sensitive Data Check"),
   failOnLeakSwitchTitle: translationKey("Fail the Check on a Leak"),
   failOnLeakSwitchDescription: translationKey(
-    "Fail a pull request's check when it writes secrets or Restricted data to telemetry, makes a sensitive store public, or stores plain passwords or card security codes.",
+    "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.",
   ),
   contentCardTitle: translationKey("Production Review Comment"),
   contentCardDescription: translationKey(
@@ -1228,7 +1228,7 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
     "What a production review posts on a merge request.",
   ),
   [PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription]: translationKey(
-    "Fail a merge request's check when it writes secrets or Restricted data to telemetry, makes a sensitive store public, or stores plain passwords or card security codes.",
+    "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.",
   ),
   [PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES[
     SensitiveDataAiNoteCode.DailyLimit

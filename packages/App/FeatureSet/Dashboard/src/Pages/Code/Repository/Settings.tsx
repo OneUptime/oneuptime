@@ -506,37 +506,6 @@ const CodeRepositorySettings: FunctionComponent<
         )}
 
         {/*
-         * One switch, saved the moment it is flipped: whether a production
-         * review's check fails on a leak of sensitive data (#10376). Unset
-         * - every repository, until someone turns it on - reads as off: the
-         * check stays neutral, as the server reads it.
-         */}
-        {repositorySettings.includes(
-          CodeRepositorySetting.ProductionReviewFailOnLeak,
-        ) ? (
-          <ModelSwitchCard<CodeRepository>
-            modelType={CodeRepository}
-            modelId={modelId}
-            column="isProductionReviewFailOnLeakEnabled"
-            cardId={CodeRepositorySetting.ProductionReviewFailOnLeak}
-            cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle}
-            title={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchTitle}
-            getDescription={(): string => {
-              return inReviewHostWords(
-                PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription,
-                provider,
-              );
-            }}
-            onChange={(isOn: boolean): void => {
-              remember({ isProductionReviewFailOnLeakEnabled: isOn });
-            }}
-            dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID}
-          />
-        ) : (
-          <></>
-        )}
-
-        {/*
          * Where AI works in the repository: the one Runner picker, with the
          * project's default Runner first - the Global Runner while there is
          * none - stored as no pick (empty), so the repository follows the
@@ -1056,6 +1025,37 @@ const CodeRepositorySettings: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * One switch, saved the moment it is flipped: whether a production
+         * review's check fails on a leak of sensitive data (#10376). Unset
+         * - every repository, until someone turns it on - reads as off: the
+         * check stays neutral, as the server reads it.
+         */}
+        {repositorySettings.includes(
+          CodeRepositorySetting.ProductionReviewFailOnLeak,
+        ) ? (
+          <ModelSwitchCard<CodeRepository>
+            modelType={CodeRepository}
+            modelId={modelId}
+            column="isProductionReviewFailOnLeakEnabled"
+            cardId={CodeRepositorySetting.ProductionReviewFailOnLeak}
+            cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle}
+            title={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchTitle}
+            getDescription={(): string => {
+              return inReviewHostWords(
+                PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription,
+                provider,
+              );
+            }}
+            onChange={(isOn: boolean): void => {
+              remember({ isProductionReviewFailOnLeakEnabled: isOn });
+            }}
+            dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID}
           />
         ) : (
           <></>

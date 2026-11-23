@@ -103,11 +103,12 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
   [
     CodeRepositorySetting.GitHubCommands,
     CodeRepositorySetting.ProductionReview,
-    CodeRepositorySetting.ProductionReviewFailOnLeak,
     CodeRepositorySetting.Runner,
     CodeRepositorySetting.PullRequests,
     CodeRepositorySetting.TriggerLabel,
     CodeRepositorySetting.ProductionReviewComment,
+    // With the review's other options: never in sight before More settings.
+    CodeRepositorySetting.ProductionReviewFailOnLeak,
     CodeRepositorySetting.ProductionReviewLlmProvider,
     CodeRepositorySetting.Commands,
   ];
@@ -546,18 +547,6 @@ export function getRepositoryMoreSettingsItems(
       title: PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle,
       isOn: repository?.isProductionReviewEnabled,
     }),
-    /*
-     * Off is this switch's default: set, with "On", only once a repository
-     * asks its check to fail on a leak.
-     */
-    {
-      key: CodeRepositorySetting.ProductionReviewFailOnLeak,
-      title: PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle,
-      isSet: repository?.isProductionReviewFailOnLeakEnabled === true,
-      ...(repository?.isProductionReviewFailOnLeakEnabled === true
-        ? { value: FOLDED_SECTION_ON, translateValue: true }
-        : {}),
-    },
     getRepositoryRunnerItem(
       {
         runnerId: repository?.runnerId,
@@ -606,6 +595,18 @@ export function getRepositoryMoreSettingsItems(
             value: PRODUCTION_REVIEW_CONTENT_COPY[reviewContent].title,
             translateValue: true,
           }
+        : {}),
+    },
+    /*
+     * Off is this switch's default: set, with "On", only once a repository
+     * asks its check to fail on a leak (#10376).
+     */
+    {
+      key: CodeRepositorySetting.ProductionReviewFailOnLeak,
+      title: PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle,
+      isSet: repository?.isProductionReviewFailOnLeakEnabled === true,
+      ...(repository?.isProductionReviewFailOnLeakEnabled === true
+        ? { value: FOLDED_SECTION_ON, translateValue: true }
         : {}),
     },
     getProductionReviewLlmProviderItem(
