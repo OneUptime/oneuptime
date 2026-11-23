@@ -1014,7 +1014,10 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
   }) => {
     await open(page, PATHS["ordersInside"]!);
 
-    const orderNumbers: Locator = findingNote(page, "public.orders.order_number");
+    const orderNumbers: Locator = findingNote(
+      page,
+      "public.orders.order_number",
+    );
     const verdict: Locator = orderNumbers.getByTestId(
       "data-store-finding-ai-verdict",
     );
@@ -1074,9 +1077,9 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
   test("on the dark theme", async ({ page }: { page: Page }) => {
     await open(page, PATHS["ordersInside"]!, { theme: "dark" });
 
-    await expect(
-      findingNote(page, "public.orders.order_number"),
-    ).toContainText("Not sensitive");
+    await expect(findingNote(page, "public.orders.order_number")).toContainText(
+      "Not sensitive",
+    );
     await page.waitForLoadState("networkidle");
     await screenshot(page, "inside-verdicts-dark-1280");
   });
@@ -1101,7 +1104,9 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
     await expect(reason).toHaveValue(
       "Shop order numbers that pass the Luhn check by chance, as on our other stores.",
     );
-    await reason.fill("Shop order numbers, not cards: they pass Luhn by chance.");
+    await reason.fill(
+      "Shop order numbers, not cards: they pass Luhn by chance.",
+    );
     await reasonDialog
       .getByRole("button", { name: "Mark as Not Sensitive" })
       .click();
@@ -1118,9 +1123,7 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
     await screenshot(page, "apply-to-similar-1280");
 
     // The refunds' column on this store is judged on its own.
-    await similar
-      .getByRole("checkbox", { name: /orders-db/ })
-      .uncheck();
+    await similar.getByRole("checkbox", { name: /orders-db/ }).uncheck();
     await expect(similar).toContainText("9 of 10 ticked");
     await similar
       .getByRole("button", { name: "Mark 9 as Not Sensitive" })

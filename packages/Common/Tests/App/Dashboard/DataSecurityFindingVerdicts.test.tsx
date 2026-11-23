@@ -244,7 +244,9 @@ describe("OneUptime AI's verdict, across a finding's row", () => {
     expect(await screen.findByText("orders-eu")).toBeInTheDocument();
     // A store the reader may not read is not named.
     expect(screen.getByText("Another store")).toBeInTheDocument();
-    expect(screen.getByText("Order references from the old shop.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Order references from the old shop."),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Marked not sensitive")).toHaveLength(2);
     expect(screen.getAllByText("Same field name")).toHaveLength(2);
     expect(storeReads).toHaveBeenCalledTimes(1);
@@ -300,7 +302,10 @@ describe("OneUptime AI's verdict, across a finding's row", () => {
       { isSuppressed: true },
       { isConfirmed: true },
     ] as Array<Partial<DataStoreFinding>>) {
-      const finding: DataStoreFinding = waitingFinding(verdictRecord(), decided);
+      const finding: DataStoreFinding = waitingFinding(
+        verdictRecord(),
+        decided,
+      );
 
       expect(getShownVerdict(finding)).toBeNull();
       expect(getFindingRowNote(finding)).toBeNull();
@@ -424,13 +429,11 @@ describe("Apply to Similar Findings", () => {
   test("lists each finding like it, each ticked, and applies the decision to the ticked ones only", async () => {
     const applied: Array<DataSecurityApplyToSimilarResult> = [];
     const apply: SpyInstance<typeof DataSecurityApi.applyToSimilarFindings> =
-      jest
-        .spyOn(DataSecurityApi, "applyToSimilarFindings")
-        .mockResolvedValue({
-          decision: DataStoreFindingDecision.NotSensitive,
-          applied: 2,
-          skipped: 0,
-        });
+      jest.spyOn(DataSecurityApi, "applyToSimilarFindings").mockResolvedValue({
+        decision: DataStoreFindingDecision.NotSensitive,
+        applied: 2,
+        skipped: 0,
+      });
     const findings: Array<DataSecuritySimilarFinding> = [
       similarFinding(0, {
         isSameStore: true,
@@ -461,7 +464,9 @@ describe("Apply to Similar Findings", () => {
     expect(within(list).getByText("3 of 3 ticked")).toBeInTheDocument();
     expect(within(list).getByText("This store")).toBeInTheDocument();
     expect(within(list).getByText("Not sensitive")).toBeInTheDocument();
-    expect(within(list).getByText("public.refunds.order_number")).toBeInTheDocument();
+    expect(
+      within(list).getByText("public.refunds.order_number"),
+    ).toBeInTheDocument();
 
     for (const finding of findings) {
       expect(
@@ -548,7 +553,9 @@ describe("Apply to Similar Findings", () => {
     );
 
     expect(
-      await screen.findByText(/You may not change the findings of these stores/),
+      await screen.findByText(
+        /You may not change the findings of these stores/,
+      ),
     ).toBeInTheDocument();
     expect(applied).toHaveLength(0);
   });
@@ -591,18 +598,16 @@ describe("a person's decision, then the findings like it", () => {
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue(undefined as never);
 
-    jest
-      .spyOn(DataSecurityApi, "getSimilarFindings")
-      .mockResolvedValue(
-        similarList(
-          DataStoreFindingDecision.NotSensitive,
-          Array.from({ length: 9 }, (_value: unknown, index: number) => {
-            return similarFinding(index, {
-              findingId: `10372000-0000-4000-8000-00000000030${index}`,
-            });
-          }),
-        ),
-      );
+    jest.spyOn(DataSecurityApi, "getSimilarFindings").mockResolvedValue(
+      similarList(
+        DataStoreFindingDecision.NotSensitive,
+        Array.from({ length: 9 }, (_value: unknown, index: number) => {
+          return similarFinding(index, {
+            findingId: `10372000-0000-4000-8000-00000000030${index}`,
+          });
+        }),
+      ),
+    );
     jest.spyOn(DataSecurityApi, "applyToSimilarFindings").mockResolvedValue({
       decision: DataStoreFindingDecision.NotSensitive,
       applied: 9,

@@ -1369,7 +1369,9 @@ describe("Sensitive Data Types", () => {
       "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
     );
 
-    expect(copy).toContain('title: translationKey("Apply to Similar Findings")');
+    expect(copy).toContain(
+      'title: translationKey("Apply to Similar Findings")',
+    );
     expect(similar).toContain("**Apply to Similar Findings**");
     expect(copy).toContain('notNow: translationKey("Not Now")');
     expect(similar).toContain("**Not Now**");
