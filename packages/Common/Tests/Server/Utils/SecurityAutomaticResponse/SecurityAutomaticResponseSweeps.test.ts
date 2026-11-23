@@ -13,6 +13,9 @@ import SecurityCaseService from "../../../../Server/Services/SecurityCaseService
 import SecurityPlaybookRunService from "../../../../Server/Services/SecurityPlaybookRunService";
 import SecurityPlaybookRun from "../../../../Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityAutomaticResponseDoubt from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseDoubt";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityAutomaticResponseRecorder, {
   getTimeToBlockInSeconds,
@@ -673,6 +676,75 @@ describe("the trial run's end", () => {
     expect(told[0]!.messageInMarkdown).toContain(
       "None had signed-in users, and none were yours.",
     );
+  });
+
+  /*
+   * While Security Events is switched off, no policy decides, so a trial
+   * run has nothing to count (#10816): none finishes, and its week stands
+   * still - each sweep that finds the product off ends every running trial
+   * a sweep later, compare-and-set on its end.
+   */
+  test("stands still while Security Events is switched off: none finishes, and each running trial ends a minute later", async () => {
+    const running: SecurityAutomaticResponsePolicy =
+      new SecurityAutomaticResponsePolicy(POLICY_ID);
+    running.mode = SecurityAutomaticResponseMode.TrialRun;
+    running.trialEndsAt = new Date("2026-11-22T10:00:00.000Z");
+
+    jest
+      .spyOn(ServerProducts, "getOffReasonOfServerWork")
+      .mockImplementation((async (product: ProductKey) => {
+        return product === ProductKey.SecurityEvents
+          ? ServerProductOffReason.SwitchedOff
+          : null;
+      }) as never);
+    let dueReads: number = 0;
+    jest
+      .spyOn(SecurityAutomaticResponsePolicyService, "findTrialsDue")
+      .mockImplementation(async () => {
+        dueReads++;
+        return [running];
+      });
+    jest
+      .spyOn(SecurityAutomaticResponsePolicyService, "findBy")
+      .mockImplementation((async (data: { query: JSONObject }) => {
+        expect(data.query["mode"]).toBe(SecurityAutomaticResponseMode.TrialRun);
+        return [running];
+      }) as never);
+    jest
+      .spyOn(
+        SecurityAutomaticResponsePolicyService,
+        "compareAndSetColumnsByIdWithoutHooks",
+      )
+      .mockImplementation((async (data: {
+        data: JSONObject;
+        expectedData: JSONObject;
+      }) => {
+        compareAndSets.push({
+          table: "Policy",
+          data: data.data,
+          expected: data.expectedData,
+        });
+        return true;
+      }) as never);
+
+    expect(
+      await SecurityAutomaticResponseTrial.finishDueTrials(
+        new Date("2026-11-22T10:01:00.000Z"),
+      ),
+    ).toBe(0);
+
+    expect(dueReads).toBe(0);
+    expect(told).toHaveLength(0);
+    expect(compareAndSets).toEqual([
+      {
+        table: "Policy",
+        data: { trialEndsAt: new Date("2026-11-22T10:01:00.000Z") },
+        expected: {
+          trialEndsAt: new Date("2026-11-22T10:00:00.000Z"),
+          mode: SecurityAutomaticResponseMode.TrialRun,
+        },
+      },
+    ]);
   });
 
   test("says what the guardrails spared, and what it would have lifted", () => {

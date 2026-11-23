@@ -82,6 +82,8 @@ import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import SecurityPlaybookRunService, {
   UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES,
 } from "../../Services/SecurityPlaybookRunService";
+import ProductKey from "../../../Types/Product/ProductKey";
+import ServerProducts from "../ServerProducts/ServerProducts";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -385,6 +387,11 @@ export default class SecurityAutomaticResponse {
         return 0;
       }
 
+      // Security Events switched off: no policy acts, nor counts a trial run.
+      if (await this.isSecurityEventsOff()) {
+        return 0;
+      }
+
       const policies: Array<SecurityAutomaticResponsePolicy> =
         await this.getActivePolicies(data.projectId);
 
@@ -476,6 +483,14 @@ export default class SecurityAutomaticResponse {
   ): Promise<SecurityAutomaticResponseDecision | null> {
     const projectId: ObjectID = new ObjectID(job.projectId);
 
+    /*
+     * Switched off since the detection was screened: nothing is decided -
+     * no block, and nothing a trial run would count.
+     */
+    if (await this.isSecurityEventsOff()) {
+      return null;
+    }
+
     const mutex: SemaphoreMutex = await Semaphore.lock({
       key: projectId.toString(),
       namespace: "SecurityAutomaticResponse",
@@ -494,6 +509,19 @@ export default class SecurityAutomaticResponse {
         );
       }
     }
+  }
+
+  /*
+   * Whether Security Events is switched off on this server (#10816): then
+   * no policy acts - nothing is screened or decided, no block is made and
+   * no trial run counts what it would have done - as OneUptime's other own
+   * work stops for a product that is off (ServerProducts, #9489). What a
+   * policy blocked before keeps its end; undo on doubt keeps lifting.
+   */
+  private static async isSecurityEventsOff(): Promise<boolean> {
+    return Boolean(
+      await ServerProducts.getOffReasonOfServerWork(ProductKey.SecurityEvents),
+    );
   }
 
   /*

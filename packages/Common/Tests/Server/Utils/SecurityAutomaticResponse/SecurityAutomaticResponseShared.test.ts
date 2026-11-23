@@ -19,6 +19,9 @@ import {
   sortSecurityAutomaticResponsePolicies,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
 import { SecurityBlockDestinationProvider } from "../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityAutomaticResponseRules, {
   SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES,
@@ -108,6 +111,17 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// Security Events switched off on this server, every other product on (#10816).
+function switchSecurityEventsOff(): void {
+  jest
+    .spyOn(ServerProducts, "getOffReasonOfServerWork")
+    .mockImplementation((async (product: ProductKey) => {
+      return product === ProductKey.SecurityEvents
+        ? ServerProductOffReason.SwitchedOff
+        : null;
+    }) as never);
+}
+
 describe("the screen, as detections are recorded", () => {
   let queued: Array<{ jobId: string; name: string; data: JSONObject }>;
   let policyReads: number;
@@ -156,6 +170,19 @@ describe("the screen, as detections are recorded", () => {
         `^security-automatic-response-${policies[0]!.id!.toString()}-35\\.205\\.11\\.131-\\d+$`,
       ),
     );
+  });
+
+  test("queues nothing while Security Events is switched off, nor reads a policy", async () => {
+    switchSecurityEventsOff();
+
+    expect(
+      await SecurityAutomaticResponse.screen({
+        projectId: PROJECT_ID,
+        detections: [recorded()],
+      }),
+    ).toBe(0);
+    expect(queued).toHaveLength(0);
+    expect(policyReads).toBe(0);
   });
 
   test("leaves what only the job can read - outcomes so far, the feeds - to the job", async () => {

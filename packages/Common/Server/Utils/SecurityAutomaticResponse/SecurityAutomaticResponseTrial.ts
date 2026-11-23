@@ -1,4 +1,5 @@
 import SecurityAutomaticResponsePolicy from "../../../Models/DatabaseModels/SecurityAutomaticResponsePolicy";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -22,6 +23,19 @@ import SecurityAutomaticResponsePolicyService from "../../Services/SecurityAutom
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityAutomaticResponseOwners from "./SecurityAutomaticResponseOwners";
+import ProductKey from "../../../Types/Product/ProductKey";
+import ServerProducts from "../ServerProducts/ServerProducts";
+
+/*
+ * How often the trial sweep runs (AutomaticResponseSweeps: every minute),
+ * and so how much later a running trial ends for each sweep that finds
+ * Security Events switched off.
+ */
+export const SECURITY_AUTOMATIC_RESPONSE_TRIAL_SWEEP_INTERVAL_MS: number =
+  60 * 1000;
+
+// The running trials one paused sweep moves at a time, page by page.
+const PAUSE_PAGE_SIZE: number = 500;
 
 /*
  * WHERE A POLICY'S TRIAL RUN STANDS (#10350), for code beside the policies
@@ -192,6 +206,20 @@ export default class SecurityAutomaticResponseTrial {
   @CaptureSpan()
   public static async finishDueTrials(now?: Date): Promise<number> {
     const at: Date = now || OneUptimeDate.getCurrentDate();
+
+    /*
+     * While Security Events is switched off, no policy decides, so a trial
+     * run has nothing to count (#10816): its week stands still - each
+     * sweep that finds it off ends every running trial one sweep later -
+     * and none finishes, so its summary is a week of the project's traffic.
+     */
+    if (
+      await ServerProducts.getOffReasonOfServerWork(ProductKey.SecurityEvents)
+    ) {
+      await this.pauseRunningTrials();
+      return 0;
+    }
+
     const due: Array<SecurityAutomaticResponsePolicy> =
       await SecurityAutomaticResponsePolicyService.findTrialsDue({
         now: at,
@@ -265,6 +293,67 @@ export default class SecurityAutomaticResponseTrial {
     }
 
     return finished;
+  }
+
+  /*
+   * Every running trial ends one sweep later, compare-and-set on its end so
+   * two sweeps never move it twice for one minute. How many moved.
+   */
+  private static async pauseRunningTrials(): Promise<number> {
+    let moved: number = 0;
+
+    for (let skip: number = 0; ; skip += PAUSE_PAGE_SIZE) {
+      const running: Array<SecurityAutomaticResponsePolicy> =
+        await SecurityAutomaticResponsePolicyService.findBy({
+          query: {
+            mode: SecurityAutomaticResponseMode.TrialRun,
+            trialFinishedAt: QueryHelper.isNull(),
+          },
+          select: { _id: true, trialEndsAt: true },
+          sort: { createdAt: SortOrder.Ascending },
+          skip,
+          limit: PAUSE_PAGE_SIZE,
+          props: { isRoot: true },
+        });
+
+      for (const policy of running) {
+        if (!policy.id || !policy.trialEndsAt) {
+          continue;
+        }
+
+        const endsAt: Date = new Date(policy.trialEndsAt);
+
+        try {
+          if (
+            await SecurityAutomaticResponsePolicyService.compareAndSetColumnsByIdWithoutHooks(
+              {
+                id: policy.id,
+                data: {
+                  trialEndsAt: new Date(
+                    endsAt.getTime() +
+                      SECURITY_AUTOMATIC_RESPONSE_TRIAL_SWEEP_INTERVAL_MS,
+                  ),
+                },
+                expectedData: {
+                  trialEndsAt: endsAt,
+                  mode: SecurityAutomaticResponseMode.TrialRun,
+                },
+              },
+            )
+          ) {
+            moved++;
+          }
+        } catch (error) {
+          logger.warn(
+            `SecurityAutomaticResponseTrial: could not hold policy ${policy.id.toString()}'s trial run while Security Events is off: ${String(error)}`,
+          );
+        }
+      }
+
+      if (running.length < PAUSE_PAGE_SIZE) {
+        return moved;
+      }
+    }
   }
 
   /*

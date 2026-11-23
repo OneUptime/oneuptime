@@ -22,6 +22,9 @@ import SecurityAutomaticResponse, {
   getFirstRequestAt,
   readSecurityAutomaticResponseJobData,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityRepeatOffenders from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import SecuritySignedInAddresses, {
@@ -332,6 +335,52 @@ afterEach(() => {
 async function decide(): Promise<SecurityAutomaticResponseDecision | null> {
   return await SecurityAutomaticResponse.decide(JOB);
 }
+
+// Security Events switched off on this server, every other product on (#10816).
+function switchSecurityEventsOff(): void {
+  jest
+    .spyOn(ServerProducts, "getOffReasonOfServerWork")
+    .mockImplementation((async (product: ProductKey) => {
+      return product === ProductKey.SecurityEvents
+        ? ServerProductOffReason.SwitchedOff
+        : null;
+    }) as never);
+}
+
+/*
+ * Security Events switched off after the detection was screened (#10816):
+ * the decision is not made - no block, no run, and nothing a trial run
+ * would count - for a policy that is on or in its trial run alike.
+ */
+describe("while Security Events is switched off", () => {
+  test("a policy that is on blocks nothing, and one in its trial run counts nothing", async () => {
+    switchSecurityEventsOff();
+
+    expect(await decide()).toBeNull();
+
+    policy = makePolicy({ mode: SecurityAutomaticResponseMode.TrialRun });
+    expect(await decide()).toBeNull();
+
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(0);
+    expect(startedRuns).toHaveLength(0);
+    expect(timeline).toHaveLength(0);
+  });
+
+  test("once it is on again, the same detection is decided as before", async () => {
+    switchSecurityEventsOff();
+    expect(await decide()).toBeNull();
+
+    jest
+      .mocked(ServerProducts.getOffReasonOfServerWork)
+      .mockResolvedValue(null);
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+    expect(startedRuns).toHaveLength(1);
+  });
+});
 
 describe("a policy that is on", () => {
   test("challenges a scanner through the playbook engine: a one-step run of the policy's", async () => {

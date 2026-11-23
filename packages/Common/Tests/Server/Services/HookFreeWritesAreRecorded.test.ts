@@ -706,6 +706,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "SecurityAutomaticResponseTrial.finishDueTrials SecurityAutomaticResponsePolicy":
         Why.Automation,
+      // A running trial's week standing still while Security Events is off (#10816).
+      "SecurityAutomaticResponseTrial.pauseRunningTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
     },
   // Where a web ACL stands, as AWS WAF answers OneUptime's check of it (#10344).
   "packages/Common/Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts": {
