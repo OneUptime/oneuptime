@@ -48,6 +48,7 @@ Datasäkerhet läser själv dina data, i sina skanningar, och sparar ingenting a
 | **Namn på problem med en orsak** | Det gruppens datalager har gemensamt: modulen, stacken eller taggen som skapade dem, identiteten som skapade dem eller deras namnmönster; kontrollen de inte klarar, hur många problem gruppen har, typen av datalager och koden som deklarerar dem. Aldrig namnet på ett enskilt datalager i gruppen | Ja: en grupp problem som ett enda fel orsakade startar det, när gruppen bildas eller det dess datalager har gemensamt ändras, medan **Arbeta med nya problem** är påslaget |
 | **Åtgärda orsaken** | Kontrollen som gruppens problem inte klarar, det deras datalager har gemensamt och modulen eller filerna som deklarerar dem, som en begäran till kodagenten; varje datalager som pull requesten åtgärdar: dess namn, typ, region och moln-ID samt dess problem; kodagenten läser sedan lagringsplatsens egen kod för att göra ändringen | Nej: en person ber om det, från en grupp under **Problem** eller genom att godkänna förslaget från OneUptime AI, i en lagringsplats som personen får ändra i **Kod**; eller en säkerhetsplaybooks steg **Fix the code with AI**. En regel vars **Åtgärd** är **Utan att fråga** öppnar den av sig själv |
 | **Rensningsregler för det som Rensa inte kan täcka** | Varje fynds datatyp, dess kategori och om den hittas via sina värden eller via ett fälts namn; var den finns, attributet eller loggtexten, och namnen på attributen bredvid; formerna på dess värden, till exempel `AA-9999` för värdet `AB-1234`, och hur många värden som lästes | Ja: Ett telemetriproblem som OneUptime AI begränsar startar den, för de data som ingen regel från Rensa kan dölja, medan **Arbeta med nya problem** är påslaget |
+| **Känsliga data i pull requests** | Det som reglerna hittade i pull requestens diff: filen och raden, det skrivna namnet, den typ av data det nämner och den kontroll det skulle misslyckas med; diffen av de filerna och pull requestens titel, utan det som ser ut som en hemlighet, en e-postadress eller en IP-adress; aldrig det som produktionen innehåller: var din telemetri innehöll datan, ett datalagers namn eller vad ett datalager innehåller, och inte heller ett prov på det som hittades, inte ens ett maskerat | Ja: En pull requests [produktionsgranskning](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests) startar den, när dess regler hittar känsliga data i ändringen |
 
 **Förklara med AI** och **Fråga AI** läser också först ditt teams [AI-kontext](/docs/ai/ai-context), när det finns en: anteckningarna som ditt team har skrivit åt OneUptime AI om era system. **Analys av nya problem** läser den också.
 
@@ -65,7 +66,7 @@ Varje anrops rad i **Projektinställningar → AI → AI-loggar** säger vilken 
 
 När ett anrop misslyckas sparar Förklara med AI och fältförslagen inte ett ord av leverantörens fel, som kan citera det som skickades. Kodagenten bakom Åtgärda med AI och Åtgärda orsaken samt chatten i Fråga AI sparar fortfarande ett misslyckat anrops leverantörsfel i dess rad.
 
-Ägarförslagen sparar samma sak som Förklara med AI: Raderna för deras anrop nämner funktionen, modellen, tokens och kostnaden, aldrig vad som skickades eller svarades, och inte ett ord av ett misslyckat anrops fel. Det gör även rensningsreglerna som OneUptime AI skriver, och varje regel som den skrev körs på posterna där dessa data sågs innan den föreslås eller skapas.
+Ägarförslagen sparar samma sak som Förklara med AI: Raderna för deras anrop nämner funktionen, modellen, tokens och kostnaden, aldrig vad som skickades eller svarades, och inte ett ord av ett misslyckat anrops fel. Det gör även rensningsreglerna som OneUptime AI skriver, och varje regel som den skrev körs på posterna där dessa data sågs innan den föreslås eller skapas. Detsamma gäller läsningarna av en pull requests känsliga data, vars punkter sparas på dess produktionsgranskning, i Kod och i dess kommentar.
 
 ## Se det själv
 
@@ -83,6 +84,7 @@ Varje AI-funktion i Datasäkerhet körs på den modell som ditt projekt valde:
 - **Förklara med AI** och fältförslagen körs på den leverantör som en AI-regel väljer för arbetet, annars på ditt projekts standard-LLM-leverantör, annars på serverns egen.
 - Kodagenten i **Åtgärda med AI** körs på den leverantör som en AI-regel väljer, annars på en av ditt projekts egna leverantörer, annars på serverns egen.
 - **Fråga AI** körs på den leverantör som valts i chatten, annars på ditt projekts standard.
+- Läsningen av en pull requests känsliga data körs på den leverantör som repositoriet väljer för sina produktionsgranskningar, annars på projektets standard-LLM-leverantör, annars på serverns egen.
 
 En självhostad modell kör dem alla: Ollama, vLLM eller valfri OpenAI-kompatibel slutpunkt som du lägger till under **Projektinställningar → AI → LLM-leverantörer**. På en server utan nätverksåtkomst är den vLLM som följer med Helm-diagrammet serverns egen leverantör, så ingenting lämnar servern.
 
@@ -94,7 +96,7 @@ Med **Aktivera AI** avstängt under **Projektinställningar → AI → AI-funkti
 
 Varje AI-funktion i Datasäkerhet mäts på en fast uppsättning påhittade fall, byggda så som funktionen bygger sin indata och bedömda efter vad ett rätt svar säger: en förklaring som nämner åtgärden och inte upprepar något som ett datalagers namn sa åt den att säga, rätt datatyp för varje fält, en åtgärd som ändrar det som kontrollen behöver och inget annat, och ett svar utifrån det som Fråga AI läste. Fallen körs mot en fastlåst modell varje natt, vid varje ändring av en AI-prompt i Datasäkerhet och före varje release, som kräver att varje funktion når sin tröskel.
 
-Ägarförslagen bedöms på om de nämner den ägare som bevisen pekar på, väljer ingen när de inte pekar på någon, och är osäkra där bevisen går isär. Rensningsreglerna körs på påhittade värden för varje plats, som modellen aldrig ser, och bedöms på om de döljer varje värde som innehåller dessa data och inget av de andra, och på om de inte skriver någon regel för en plats som ingen regel passar för.
+Ägarförslagen bedöms på om de nämner den ägare som bevisen pekar på, väljer ingen när de inte pekar på någon, och är osäkra där bevisen går isär. Rensningsreglerna körs på påhittade värden för varje plats, som modellen aldrig ser, och bedöms på om de döljer varje värde som innehåller dessa data och inget av de andra, och på om de inte skriver någon regel för en plats som ingen regel passar för. Läsningarna av pull requests bedöms på om de behåller varje punkt som är en läcka, utelämnar det som inte är det, och skriver en rättning som säger vad som ska ändras.
 
 För att mäta din egen modell på samma fall kör du utvärderingen från en utcheckning av OneUptime, med din modells nyckel, om den behöver en, i `AI_EVAL_LLM_API_KEY`:
 

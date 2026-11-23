@@ -67,6 +67,16 @@ import {
 import DeclaredCodeOwner from "../../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
 import { DataStoreOwnerDirectory } from "../../../../../Utils/DataSecurity/DataStoreOwnerEvidence";
 import DataSecurityIssueAnalysis from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
+import PullRequestLeakReview from "../../../../../Server/Utils/AI/DataSecurity/PullRequestLeakReview";
+import { CodeHostChangedFile } from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostTypes";
+import ProductionReviewSensitiveData from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData";
+import * as TelemetryScrubCoverage from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataJSON,
+} from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import LogScrubField from "../../../../../Types/Log/LogScrubField";
+import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
@@ -225,6 +235,11 @@ function useIssueGroupTables(): void {
     }),
   ]);
 }
+
+// The service whose telemetry the store of logs is (#10376).
+const CHECKOUT_SERVICE_ID: string = "10365000-0000-4000-8000-0000000000e9";
+// What production knows that a pull request's diff does not: never sent.
+const SCRUB_RULE_NAME: string = "PLANTED-SCRUB-RULE mask checkout emails";
 
 // An analysis of an issue, as OneUptime AI answers one (#10369).
 const ANALYSIS_ANSWER: string = JSON.stringify({
@@ -912,6 +927,138 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * A pull request's sensitive data (#10376), as a production review reads
+   * it: the section from the diff and what production knows - the bucket
+   * the Terraform names, where the service's logs held emails, the scrub
+   * rule that masks them - then OneUptime AI's read of the section.
+   */
+  [DataSecurityAiFeature.ReviewPullRequests]: async (): Promise<string> => {
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID),
+      storeRow(TELEMETRY_STORE_ID, {
+        name: "checkout · Logs",
+        // DataStoreKind.TelemetryLogs: the service's own logs.
+        kind: "Logs",
+        provider: "oneuptime",
+        serviceId: CHECKOUT_SERVICE_ID,
+      }),
+    ]);
+    jest.spyOn(TelemetryScrubCoverage, "getScrubCoverage").mockResolvedValue({
+      rules: [
+        {
+          id: "10365000-0000-4000-8000-0000000000e8",
+          name: SCRUB_RULE_NAME,
+          signal: "log",
+          patternType: LogScrubPatternType.Email,
+          fieldsToScrub: LogScrubField.Both,
+        },
+      ],
+    } as never);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        candidates: [
+          { id: "L1", keep: true, text: "", fix: "" },
+          { id: "L2", keep: true, text: "", fix: "" },
+        ],
+      }),
+      usage: { promptTokens: 700, completionTokens: 40, totalTokens: 740 },
+    });
+
+    const files: Array<CodeHostChangedFile> = [
+      {
+        filename: "services/checkout/src/signup.ts",
+        status: "modified",
+        additions: 1,
+        deletions: 0,
+        patch: [
+          "@@ -10,2 +10,3 @@",
+          " export async function signup(customer: Customer): Promise<void> {",
+          '+  logger.info("signup", { email: customer.email });',
+          "   await customers.create(customer);",
+        ].join("\n"),
+      },
+      {
+        filename: "infra/exports.tf",
+        status: "added",
+        additions: 4,
+        deletions: 0,
+        patch: [
+          "@@ -0,0 +1,4 @@",
+          '+resource "aws_s3_bucket_acl" "exports" {',
+          '+  bucket = "acme-card-exports"',
+          '+  acl    = "public-read"',
+          "+}",
+        ].join("\n"),
+      },
+    ];
+
+    const section: ProductionReviewSensitiveDataJSON =
+      await ProductionReviewSensitiveData.find({
+        projectId: PROJECT_ID,
+        files,
+        services: [
+          {
+            id: CHECKOUT_SERVICE_ID,
+            name: "checkout",
+            method: "stack-trace",
+            evidence: "",
+            pathInRepository: null,
+          },
+        ],
+        isFailOn: true,
+        now: new Date(),
+      });
+
+    // What production knows is on the section, for the comment and the page.
+    expect(
+      section.points.map((point: ProductionReviewLeakJSON) => {
+        return point.production;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          store: expect.objectContaining({ name: "acme-card-exports" }),
+        }),
+        expect.objectContaining({
+          heldBefore: [
+            expect.objectContaining({ location: "attributes.user.email" }),
+          ],
+          maskedAtIngestBy: SCRUB_RULE_NAME,
+        }),
+      ]),
+    );
+
+    await PullRequestLeakReview.read({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      pullRequestTitle: "Export cards for finance",
+      section,
+      files: files.map((file: CodeHostChangedFile) => {
+        return { path: file.filename, patch: file.patch };
+      }),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    const sent: string = sentToTheModel();
+
+    // None of it reaches the model: only the diff and the rules' points.
+    for (const knownOnlyByProduction of [
+      "checkout · Logs",
+      "attributes.user.email",
+      SCRUB_RULE_NAME,
+      "Card number",
+      "Restricted",
+    ]) {
+      expect({
+        knownOnlyByProduction,
+        sent: sent.includes(knownOnlyByProduction),
+      }).toEqual({ knownOnlyByProduction, sent: false });
+    }
+
+    return sent;
+  },
   [DataSecurityAiFeature.AskAi]: async (): Promise<string> => {
     const ctx: ToolContext = { projectId: PROJECT_ID, props: { isRoot: true } };
     const results: Array<ToolExecutionResult> = [
@@ -989,6 +1136,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "Email address",
     "http.route",
     "aaaaa@aaaaaaa.aaa",
+  ],
+  // The diff's own words: the line it writes, the bucket it opens.
+  [DataSecurityAiFeature.ReviewPullRequests]: [
+    "customer.email",
+    "acme-card-exports",
+    "public-read",
   ],
 };
 

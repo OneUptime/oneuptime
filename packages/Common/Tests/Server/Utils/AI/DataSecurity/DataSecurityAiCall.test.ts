@@ -3,6 +3,7 @@ import AIService, {
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
@@ -281,6 +282,9 @@ describe("what every Data Security call keeps", () => {
       // OneUptime AI's scrub rules for what Scrub It cannot cover (#10366): autonomous, so budgeted.
       [DataSecurityAiFeature.WriteScrubRules]:
         AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+      // Its read of a pull request's sensitive data (#10376): autonomous, so budgeted.
+      [DataSecurityAiFeature.ReviewPullRequests]:
+        AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
     });
   });
 
@@ -465,6 +469,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.CodeAgent,
       // Scrub rules for what Scrub It cannot cover (#10366): the same one call.
       DataSecurityAiModelSource.ProjectProvider,
+      // A pull request's sensitive data: the repository's pick for its reviews.
+      DataSecurityAiModelSource.ProductionReview,
     ]);
   });
 });
