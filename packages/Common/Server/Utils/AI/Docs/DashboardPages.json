@@ -4815,13 +4815,27 @@
       "automatic response",
       "ai response",
       "block on its own",
-      "what oneuptime ai may do"
+      "what oneuptime ai may do",
+      "respond first",
+      "hold new cases",
+      "wait before paging",
+      "page now"
     ],
     "path": "/dashboard/:projectId/security-events/ai/settings",
     "kind": "page"
   },
   {
     "title": "Work cases end to end",
+    "where": [
+      "Security Events",
+      "AI",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "setting"
+  },
+  {
+    "title": "Let OneUptime AI respond first",
     "where": [
       "Security Events",
       "AI",
