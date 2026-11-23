@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | 网站、API | HTTP 方法：`GET`、`POST`、`PUT`、`DELETE`、`HEAD` 或 `PATCH`。未设置时服务器使用 `GET`。 |
 | `request_headers` | map(string) | 网站、API | 要发送的请求头：`{ "Accept" = "application/json" }`。 |
 | `request_body` | string | API | 文本形式的请求体。 |
+| `request_body_format` | string | API | `request_body` 的发送方式：`json`（默认）用于任意 JSON 值；`text` 用于按原样发送的正文，例如 XML 或表单字段。 |
 | `do_not_follow_redirects` | bool | 网站、API | 在第一个响应处停止，而不是跟随重定向。 |
 | `allow_self_signed_certificates` | bool | 网站、API | 接受自签名的 TLS 证书。 |
 | `tls_client_certificate` | string | 网站、API | 用于双向 TLS 的客户端证书：PEM，或 `{{monitorSecrets.name}}` 引用。 |

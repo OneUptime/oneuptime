@@ -165,6 +165,7 @@ Chaque élément de `monitor_steps` est une chose à vérifier :
 | `request_type` | string | Site web, API | La méthode HTTP : `GET`, `POST`, `PUT`, `DELETE`, `HEAD` ou `PATCH`. Le serveur utilise `GET` quand elle n'est pas renseignée. |
 | `request_headers` | map(string) | Site web, API | Les en-têtes à envoyer : `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Le corps de la requête, sous forme de texte. |
+| `request_body_format` | string | API | Comment `request_body` est envoyé : `json`, par défaut, pour n'importe quelle valeur JSON ; `text` pour un corps envoyé exactement tel qu'il est écrit, comme du XML ou des champs de formulaire. |
 | `do_not_follow_redirects` | bool | Site web, API | S'arrêter à la première réponse au lieu de suivre les redirections. |
 | `allow_self_signed_certificates` | bool | Site web, API | Accepter un certificat TLS auto-signé. |
 | `tls_client_certificate` | string | Site web, API | Un certificat client pour le TLS mutuel : PEM, ou une référence `{{monitorSecrets.name}}`. |
