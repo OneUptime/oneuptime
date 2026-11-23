@@ -241,6 +241,14 @@ export interface RunEvaluationOptions {
    * criteria were before #10108, or in slices that hand it back.
    */
   slowCriteria?: { ms: number; inOneBlock: boolean } | undefined;
+  /*
+   * How long each Postgres call waits for its answer, in milliseconds: a
+   * round trip to the database. Left out, an answer takes one turn of the
+   * event loop, as it does in the equivalence and lock tests. The benchmark
+   * sets it to show what an evaluation that opens records for many series
+   * spends waiting on Postgres (#10315).
+   */
+  postgresLatencyMs?: number | undefined;
 }
 
 function hashOf(value: unknown): string {
@@ -653,7 +661,11 @@ function modelNameOf(service: unknown): string {
   return modelType?.name || "Unknown";
 }
 
-export function installFleetStubs(fleet: GroupedMetricFleet): InstalledStubs {
+export function installFleetStubs(
+  fleet: GroupedMetricFleet,
+  options: { postgresLatencyMs?: number | undefined } = {},
+): InstalledStubs {
+  const postgresLatencyMs: number = options.postgresLatencyMs || 0;
   const restorers: Array<() => void> = [];
   const store: FakeValkey = new FakeValkey();
   const postgresCalls: Map<string, number> = new Map();
@@ -824,7 +836,12 @@ export function installFleetStubs(fleet: GroupedMetricFleet): InstalledStubs {
       ): Promise<unknown> {
         const key: string = `${modelNameOf(this)}.${method}`;
         postgresCalls.set(key, (postgresCalls.get(key) || 0) + 1);
-        await nextTurn();
+
+        if (postgresLatencyMs > 0) {
+          await sleep(postgresLatencyMs);
+        } else {
+          await nextTurn();
+        }
 
         const handler: StoreHandler | undefined = handlers.get(key);
 
@@ -1355,7 +1372,9 @@ export async function runFleetEvaluation(
   options: RunEvaluationOptions,
 ): Promise<EvaluationRun> {
   const fleet: GroupedMetricFleet = options.fleet;
-  const stubs: InstalledStubs = installFleetStubs(fleet);
+  const stubs: InstalledStubs = installFleetStubs(fleet, {
+    postgresLatencyMs: options.postgresLatencyMs,
+  });
   const tracker: StallTracker = new StallTracker();
   const phaseRestorers: Array<() => void> = [];
   markPhases({ tracker: tracker, restorers: phaseRestorers });
