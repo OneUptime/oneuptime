@@ -557,17 +557,19 @@ describe("readLines: newline-delimited JSON is read as its values, and text as i
           expect({
             encoding: encoding.how,
             chunked,
-            ...answerOf(sent),
+            answer: answerOf(sent),
           }).toEqual({
             encoding: encoding.how,
             chunked,
-            status: 200,
-            json: {
-              kind: "array",
-              body: RECORD_LINES,
-              rawBody: NDJSON.toString("utf8"),
-              rawFormUrlEncodedBody: null,
-              limit: LIMIT.bytes,
+            answer: {
+              status: 200,
+              json: {
+                kind: "array",
+                body: RECORD_LINES,
+                rawBody: NDJSON.toString("utf8"),
+                rawFormUrlEncodedBody: null,
+                limit: LIMIT.bytes,
+              },
             },
           });
         }
