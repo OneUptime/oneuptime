@@ -8,6 +8,7 @@ Il n'y a rien à configurer : la télémétrie de chaque service est analysée t
 - [Ce qui est lu](#ce-qui-est-lu): Les attributs, les corps, les messages et les prompts de chaque signal.
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
 - [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, dans le service où elle a été trouvée.
+- [Confiné de lui-même](#confiné-de-lui-même): Un secret masqué sans que personne n'appuie sur quoi que ce soit, là où c'est prouvé sûr.
 - [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
@@ -101,14 +102,23 @@ Cliquez sur **Nettoyer**. Une boîte de dialogue dit ce que ferait la règle ava
 La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut.
 :::
 
-La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est l'une de celles-ci :
+La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », ou « Data Security: Password or secret in db.password of checkout » pour une règle qui nomme son attribut, et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est la règle la plus étroite qui masque les données de la détection, la première de celles-ci qui convient :
 
 | Détection | Règle que crée Nettoyer |
 | --- | --- |
-| Adresse e-mail, numéro de carte, numéro de sécurité sociale américain, numéro de téléphone ou adresse IP | Le motif intégré de ce type. Les numéros de carte, les numéros de sécurité sociale et les numéros de téléphone sont masqués, le reste est caviardé. |
-| Une valeur sous une clé qui semble sensible, comme `password` ou `token` | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
-| Tout autre type de données qu'un motif peut trouver | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données, qui caviarde chaque valeur de cette forme |
+| Adresse e-mail, numéro de carte, numéro de sécurité sociale américain, numéro de téléphone ou adresse IP | Le motif intégré de ce type, masqué. Une adresse IP est caviardée, ou hachée là où les [Événements de sécurité](/docs/telemetry/security-events) lisent ces enregistrements, pour qu'ils puissent toujours nommer l'adresse à bloquer. |
+| Tout autre type de données qu'un motif trouve à lui seul, comme un jeton GitHub | Une règle **Regex personnalisée** construite à partir des motifs propres au type de données. Un secret est caviardé. |
+| L'un de vos propres types de données, avec un motif | Ce motif, uniquement dans l'attribut où il a été trouvé |
+| Un type de données qui se distingue par les mots qui l'entourent, comme un numéro de routage bancaire | Sa forme, uniquement dans l'attribut où il a été trouvé |
+| Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name`, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
+| Une valeur sous une clé qui semble sensible, là où rien de plus étroit ne la masque | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
 | Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut ayant la forme du type de données, ou chaque valeur de l'attribut quand aucun motif ne trouve ce type de données |
+
+### Prouvée sur les enregistrements de la détection
+
+Avant que la boîte de dialogue ne dise ce que ferait la règle, OneUptime exécute chaque règle qu'il pourrait créer sur les enregistrements où la détection a été vue, et sur les enregistrements les plus récents de son service qui ont une valeur à cet emplacement, avec le code même qu'exécute l'ingestion, et demande au scanner ce qui reste. La première règle qui masque les données dans chaque valeur qui les contenait, et qui modifie au plus 5 sur 100 des autres valeurs à cet endroit, est la bonne. La boîte de dialogue dit sur combien d'enregistrements elle a été exécutée, combien de valeurs contenaient les données et combien d'autres elle a modifiées. Un motif qui en modifierait davantage n'est jamais proposé : c'est la règle qui nomme l'attribut qui l'est, en disant ce qu'elle modifie d'autre.
+
+La preuve est conservée avec la règle, et la liste des règles de nettoyage affiche **Prouvé** sur sa ligne jusqu'à ce que la règle soit modifiée. Là où il ne reste aucun enregistrement sur lequel exécuter une règle, comme pour une exception ou une relecture de session, ou pour des enregistrements au-delà de leur conservation, la règle est créée telle qu'elle est prévue, et la boîte de dialogue le dit.
 
 Une règle de journaux ou de traces vaut pour le service où la détection a été trouvée : elle nettoie les journaux ou les spans de ce service, et ceux des autres services restent tels quels, si bien que rien de ce qui lit les leurs ne change. La colonne **Portée** de la liste des règles de nettoyage indique pour quel service vaut une règle. Une détection dans les enregistrements de session d'une application RUM crée une règle pour tous les services et applications du projet, puisque les règles de journaux nettoient aussi les enregistrements, et la boîte de dialogue le dit. Si le service n'existe plus, **Nettoyer** le dit et ne crée aucune règle.
 
@@ -116,14 +126,35 @@ La boîte de dialogue nomme, chacun sous forme de lien, les moniteurs, les table
 
 Certaines détections ne peuvent pas être nettoyées par une règle, et **Nettoyer** dit pourquoi. L'attribut d'une métrique peut toujours l'être, puisque sa règle peut masquer chaque valeur de l'attribut :
 
-- Un type de données trouvé d'après les seuls noms de champs, comme le nom d'une personne : aucun motif ne peut le trouver. Renommez l'attribut avec une clé que masque une règle de clés sensibles, ou cessez de l'envoyer.
-- Un type de données qui ne se distingue des autres valeurs que par les mots qui l'entourent, comme un numéro de routage bancaire : une règle masquerait bien plus que ce type de données.
+- Un type de données trouvé d'après les seuls noms de champs dans le corps d'un journal, comme le nom d'une personne : aucune règle ne peut le distinguer du reste du message. Envoyez-le sous forme d'attribut, que masque une règle **Attributs nommés**, ou cessez de l'envoyer.
+- Chaque règle essayée masquait bien plus que les données : chacune a été exécutée sur les enregistrements où elles ont été vues, et modifiait trop d'autres valeurs. Cessez de les envoyer dans le code qui les écrit.
 - Un marquage de document : masquer le mot ne masquerait pas le document.
-- L'un de vos propres types de données : ajoutez vous-même une règle de nettoyage personnalisée avec son motif.
 - Les détails propres d'une session (`sessions.*`) : l'ingestion des relectures de session n'applique aucune règle de nettoyage.
 - Le nom d'une métrique (`name`) : c'est le code qui crée la métrique qui le définit, et une règle de pipeline ne peut que renommer une métrique en entier. Renommez la métrique, et envoyez plutôt ce qui varie dans son nom sous forme d'attribut. D'ici là, **Abandonner cette métrique** peut cesser de stocker ces métriques.
 
 **Nettoyer** crée la règle en votre nom, avec vos propres autorisations : les Propriétaires du projet et les Administrateurs du projet peuvent l'utiliser, tout comme une équipe autorisée à créer des règles de nettoyage de journaux, des règles de nettoyage de traces pour les spans, les exceptions et les appels d'IA, et des règles de pipeline de métriques pour les métriques.
+
+## Confiné de lui-même
+
+Tant qu'OneUptime AI travaille sur les problèmes de Sécurité des données (voir [OneUptime AI dans Sécurité des données](/docs/data-security/ai)), un problème de télémétrie est confiné sans que personne n'appuie sur quoi que ce soit, là où c'est prouvé sûr. Pour chaque emplacement que compte le problème, OneUptime AI prévoit la règle que créerait **Nettoyer**, prouvée de la même façon, et ne la crée de lui-même que si toutes ces conditions sont réunies :
+
+- **Les données sont un secret**, comme un mot de passe, un jeton ou une clé.
+- **La règle est prouvée** sur les enregistrements où les données ont été vues : elle a masqué les données dans chaque valeur qui les contenait.
+- **Elle ne change rien d'autre à cet endroit** : aucune des autres valeurs à son emplacement.
+- **Rien ne lit ce qu'elle masque** : aucun moniteur, tableau de bord, vue enregistrée, règle d'enregistrement ou SLO, et rien dont les Événements de sécurité ont besoin.
+- **Elle vaut pour le service** où les données ont été vues.
+
+Tout le reste est proposé à la place, dans **Sécurité des données → IA** et sur la page du problème, en disant comment la règle a été prouvée et ce qui lit ce qu'elle masquerait : des données personnelles, une règle dont quelque chose lit les valeurs, une règle qui modifie d'autres valeurs, une règle pour laquelle il ne restait aucun enregistrement sur lequel l'exécuter, une règle pour tous les services, la règle de pipeline d'une métrique, et tout emplacement dont une personne a annulé ou ignoré la règle précédente. Une règle IA de Sécurité des données qui met **Confinement** sur **Automatiquement** pour un problème permet aussi à OneUptime AI de masquer de lui-même des données personnelles prouvées. Aucune règle ne permet à une modification qui n'est pas prouvée sûre de s'exécuter d'elle-même.
+
+Là où aucune des règles de **Nettoyer** ne peut masquer les données, comme pour l'un de vos propres types de données sans motif, OneUptime AI en écrit une : un motif pour les données, ou l'attribut à masquer en entier. On lui indique le type de données, où il se trouve, les noms des attributs voisins et les formes des valeurs, comme `AA-9999` pour `AB-1234`, jamais une valeur, et ce qu'il écrit est prouvé sur les enregistrements comme toute autre règle avant d'être proposé ou créé.
+
+Une modification qu'OneUptime AI a faite de lui-même :
+
+- **Figure dans la chronologie du problème**, avec les règles qu'il a créées, la façon dont chacune a été prouvée, et **Annuler**, qui les supprime. **Sécurité des données → IA** a le même **Annuler**. Un emplacement dont vous annulez la règle n'est plus jamais confiné de lui-même : OneUptime AI le propose à la place.
+- **Est envoyée par e-mail** aux propriétaires du magasin de données et aux propriétaires du service.
+- **Dit de renouveler un secret.** Masquer un secret n'arrête que les nouvelles copies : le secret fonctionne toujours, et les enregistrements stockés avant la règle le gardent jusqu'à la fin de leur conservation. La chronologie et l'e-mail disent où il a été vu.
+
+Les nouvelles détections dans un service dont le problème est déjà ouvert sont confinées de la même façon, dès que l'analyse horaire les trouve.
 
 ## Abandonner cette métrique
 
@@ -145,7 +176,9 @@ Une détection n'est marquée comme nettoyée que lorsque l'ingestion lui appliq
 - **La bonne partie.** Les **Champs à nettoyer** de la règle incluent la partie de l'enregistrement où se trouve la détection, ou la règle les laisse à leur valeur par défaut.
 - **Le bon service.** Une règle de journaux ou de traces pour un service ne couvre que les détections de ce service. Une règle sans service couvre celles de tous les services.
 - **Un motif qui trouve le type.** Un **Type de modèle** intégré trouve son propre type de données : **Adresse e-mail** trouve les adresses e-mail, **Numéro de carte de crédit** les numéros de carte, **SSN (numéro de sécurité sociale)** les numéros de sécurité sociale américains, **Numéro de téléphone** les numéros de téléphone et **Adresse IP** les adresses IP. **Clés d'attributs sensibles** couvre chaque valeur sous une clé qui semble sensible, quelle que soit la valeur.
-- **Vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
+- **Une règle prouvée sur les enregistrements de la détection.** Une règle qu'OneUptime a créée et prouvée sur les enregistrements où une détection a été vue couvre cette détection, quel que soit son motif, tant qu'elle reste la règle qui a été prouvée : modifiez son motif, ses attributs, son action, ses champs ou son service, et elle ne la couvre plus.
+- **Une règle d'attributs nommés** couvre une détection dans un attribut qu'elle nomme, ou dans un attribut imbriqué sous celui-ci.
+- **Sinon, vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** que vous avez écrite ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
 - **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison.
 - **Le nom d'une métrique.** Une règle de pipeline de métriques **Supprimer** pour le service de la détection ou pour tout le projet la couvre quand elle a exactement le filtre que crée **Abandonner cette métrique**, ou aucun filtre, auquel cas elle ne stocke aucune des métriques du service. Une telle règle sans filtre couvre toutes les détections dans ces métriques.
 

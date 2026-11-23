@@ -6,10 +6,10 @@ import ProductKey, { PRODUCT_KEYS } from "../../../Types/Product/ProductKey";
 import { PRODUCT_OF_TABLE } from "../../../Types/Product/ProductOfTable";
 import {
   PRODUCT_RECORD_TABLES,
-  TABLES_OF_NO_PRODUCT,
   getOffProductOfRecordTable,
   getProductsOfRecordTable,
 } from "../../../Types/Product/ProductRecordTables";
+import { TABLES_OF_NO_PRODUCT } from "../../../Types/Product/TablesOfNoProduct";
 import { isSwitchableProduct } from "../../../Types/Product/ServerProducts";
 import { describe, expect, test } from "@jest/globals";
 

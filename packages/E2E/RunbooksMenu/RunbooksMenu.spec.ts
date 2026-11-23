@@ -125,12 +125,17 @@ async function open(
  * The laptop menu, by the name it gives itself: "Pages in this section",
  * or what the reader's language calls it.
  */
-function desktopMenu(page: Page, name: string = "Pages in this section"): Locator {
+function desktopMenu(
+  page: Page,
+  name: string = "Pages in this section",
+): Locator {
   return page.locator(`aside[role='navigation'][aria-label='${name}']`);
 }
 
 function phoneMenu(page: Page): Locator {
-  return page.locator("div[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "div[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 // A section's toggle, by its heading's text (CSS draws it in capitals).

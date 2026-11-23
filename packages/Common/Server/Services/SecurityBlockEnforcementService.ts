@@ -28,6 +28,7 @@ const ENFORCEMENT_SELECT: {
   lastConfirmedAt: true;
   providerRef: true;
   error: true;
+  errorReason: true;
   failedAttempts: true;
   retryAt: true;
 } = {
@@ -43,6 +44,7 @@ const ENFORCEMENT_SELECT: {
   lastConfirmedAt: true,
   providerRef: true,
   error: true,
+  errorReason: true,
   failedAttempts: true,
   retryAt: true,
 };

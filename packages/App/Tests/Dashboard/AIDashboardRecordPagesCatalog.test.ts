@@ -204,13 +204,14 @@ describe("Ask AI's catalog of a record's own pages", () => {
 
     for (const kind of AI_DASHBOARD_RECORD_KINDS) {
       for (const page of kind.pages) {
-        expect({ page: page.path, isRoute: templates.has(routeOf(page)) }).toEqual(
-          { page: page.path, isRoute: true },
-        );
+        expect({
+          page: page.path,
+          isRoute: templates.has(routeOf(page)),
+        }).toEqual({ page: page.path, isRoute: true });
         expect(paramsOf(routeOf(page))).toEqual([":projectId", ":id"]);
-        expect(isDashboardRouteTemplate(page.path, { recordId: RECORD_ID })).toBe(
-          true,
-        );
+        expect(
+          isDashboardRouteTemplate(page.path, { recordId: RECORD_ID }),
+        ).toBe(true);
         // Without a record to fill it with, the Dashboard opens none of them.
         expect(isDashboardRouteTemplate(page.path)).toBe(false);
       }
@@ -369,17 +370,20 @@ describe("finding a record's page by the name people give it", () => {
       "Custom Domains",
       "/dashboard/:projectId/forms/:id/custom-domains",
     ],
-  ])("%s: \"%s\" is %s", (kind: AskAiRecordKind, query: string, route) => {
-    expect(
-      routeOf(
-        DashboardRecordPageFinder.find({ kind, query, limit: 1 })[0] || {
-          title: "",
-          section: "",
-          path: "",
-        },
-      ),
-    ).toBe(route);
-  });
+  ])(
+    '%s: "%s" is %s',
+    (kind: AskAiRecordKind, query: string, route: string) => {
+      expect(
+        routeOf(
+          DashboardRecordPageFinder.find({ kind, query, limit: 1 })[0] || {
+            title: "",
+            section: "",
+            path: "",
+          },
+        ),
+      ).toBe(route);
+    },
+  );
 
   test("no query is the record's first page, its overview", () => {
     expect(

@@ -7,7 +7,9 @@ import {
   SecurityLogLine,
   buildLogSecurityEvent,
   cutText,
+  pickAddress,
   readIpAddress,
+  readIpAddressOnly,
   readPort,
   readRemoteIpAddress,
 } from "./SecurityLogLine";
@@ -288,6 +290,7 @@ function wordAfter(text: string, marker: string): string {
 
 export interface AsaEndpoint {
   interface: string;
+  // The address, or what a scrub rule left in its place (readIpAddress, #10419).
   ip: string;
   port: number;
 }
@@ -613,7 +616,12 @@ export default class CiscoAsaLogParser {
             attributes[`asa.${key}_interface`] = endpoint.interface;
           }
 
-          if (endpoint.ip) {
+          /*
+           * The address as the ASA wrote it, when the line names one: what
+           * a scrub rule left is no address to match on, and the event says
+           * it was hidden instead (#10419).
+           */
+          if (readIpAddressOnly(endpoint.ip)) {
             attributes[`asa.${key}_ip`] = endpoint.ip;
           }
 
@@ -661,8 +669,11 @@ export default class CiscoAsaLogParser {
             wordAfter(text, "adds host ") ||
             "",
         );
-        const attacker: string =
-          readRemoteIpAddress(from.ip) || (isTargeted ? "" : named);
+        // An address wins wherever it is read, over one a scrub rule hid.
+        const attacker: string = pickAddress([
+          readRemoteIpAddress(from.ip),
+          isTargeted ? "" : named,
+        ]);
         const target: AsaEndpoint =
           to.ip || !isTargeted ? to : { interface: "", ip: named, port: 0 };
         const name: string = isIps

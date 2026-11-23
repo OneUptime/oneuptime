@@ -93,6 +93,15 @@ jest.mock(
         getListOrder: jest.fn().mockImplementation(() => {
           return null;
         }),
+        /*
+         * BaseAPI's updateItem asks every model for its lists of related
+         * records, whose entries an update may add and take off one at a
+         * time (Server/Utils/Database/ListEntries). This table has no
+         * columns, so it has no lists, and an update writes its data whole.
+         */
+        getTableColumns: jest.fn().mockImplementation(() => {
+          return { columns: [] };
+        }),
       };
     });
   },

@@ -277,6 +277,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
   // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
   [NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION]:
     RollupCategory.SecurityCases,
+  // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+  [NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION]:
+    RollupCategory.SecurityCases,
 
   /*
    * Scheduled hunts. A category of their own: twenty hunts that run on the

@@ -1390,7 +1390,8 @@ describe("the labels the probe check pages name exist where the pages say", () =
     for (const label of [
       "API Request Type",
       "Request Headers",
-      "Request Body (in JSON)",
+      "Request Body Format",
+      "Request Body",
       "Do not follow redirects",
       "Allow self-signed certificates",
       "Use client certificate (mTLS)",

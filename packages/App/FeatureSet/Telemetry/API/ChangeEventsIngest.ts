@@ -12,6 +12,8 @@ import Express, {
   RequestHandler,
 } from "Common/Server/Utils/Express";
 import ChangeEventsIngestService from "../Services/ChangeEventsIngestService";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -33,12 +35,25 @@ const setChangeEventsProductType: RequestHandler = (
  * Deploy/config-change markers posted by CI/CD. Same ingestion-key auth
  * as the rest of telemetry; synchronous 2xx/4xx so pipeline steps get a
  * definitive answer.
+ *
+ * The body is read once the key is right (#10702): StartServer leaves it
+ * unread (RequestBodyLimit), and nothing of it is read or parsed for a
+ * request without the right key, which CI sends in a header. JSON, held to
+ * 50 MB and 1,000,000 values, gzip-compressed or not.
  */
+const readChangeEventsBody: RequestHandler =
+  RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, {
+    parseGzipJson: true,
+  });
+
 router.post(
   "/change-events/v1/ingest",
   TelemetryIngestionDisabled.middleware,
   setChangeEventsProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.ChangeEvents),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.ChangeEvents,
+    readChangeEventsBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

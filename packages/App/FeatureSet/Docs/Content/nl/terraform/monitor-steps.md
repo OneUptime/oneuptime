@@ -165,6 +165,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `request_type` | string | Website, API | De HTTP-methode: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` of `PATCH`. De server gebruikt `GET` als hij niet is ingesteld. |
 | `request_headers` | map(string) | Website, API | Headers om mee te sturen: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | De body van het verzoek, als tekst. |
+| `request_body_format` | string | API | Hoe `request_body` wordt verzonden: `json`, de standaard, voor elke JSON-waarde; `text` voor een body die precies zo wordt verzonden als hij is geschreven, zoals XML of formuliervelden. |
 | `do_not_follow_redirects` | bool | Website, API | Stoppen bij het eerste antwoord in plaats van omleidingen te volgen. |
 | `allow_self_signed_certificates` | bool | Website, API | Een zelfondertekend TLS-certificaat accepteren. |
 | `tls_client_certificate` | string | Website, API | Een clientcertificaat voor wederzijdse TLS: PEM, of een verwijzing `{{monitorSecrets.name}}`. |

@@ -8,7 +8,9 @@ import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
  * The Android agent's redaction, as OneUptime runs it over what it sends to
  * a device (a log session's note, #9966). Every case is one of the agent's
  * own (agents/AndroidAgent RedactorTest.kt), with the same answer: a text
- * reads the same on the device whichever of the two redacted it.
+ * reads the same on the device whichever of the two redacted it. Only the
+ * token's own block at the end is ours: it holds the JavaScript form of the
+ * agent's token pattern, read once per run, to the tokens the agent's finds.
  */
 
 function redact(text: string | null | undefined): string {
@@ -150,5 +152,37 @@ describe("its bounds", () => {
 
     expect(redact(text)).toBe("Call [email] about [card number]");
     expect(redact(text)).toBe("Call [email] about [card number]");
+  });
+});
+
+describe("a token, looked for once per run of its characters", () => {
+  const jwt: string =
+    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+  test("is taken out where the agent's word boundary lets one start, and only there", () => {
+    // After a "-" in a run: the run's text before it stays.
+    expect(redact(`trace-${jwt}`)).toBe("trace-[token]");
+    expect(redact(`req a-b-${jwt}.more`)).toBe("req a-b-[token].more");
+    // Glued to a word, no token starts: the agent keeps it too.
+    expect(redact(`x${jwt}`)).toBe(`x${jwt}`);
+  });
+
+  test("a long run of a token's characters costs time in proportion to its length", () => {
+    // Read once more from each "eyJ", these took seconds (TokenPatternsGuard).
+    const texts: Array<string> = [
+      "-eyJ-".repeat(40_000),
+      "eyJab-".repeat(40_000),
+      "eyJ".repeat(80_000),
+    ];
+    const redacted: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return texts.map(redact);
+      },
+      limitInMs: 5_000,
+    });
+
+    // No token is whole in any of them.
+    expect(redacted.result).toEqual(texts);
+    expect(redacted.inMs).toBeLessThan(5_000);
   });
 });

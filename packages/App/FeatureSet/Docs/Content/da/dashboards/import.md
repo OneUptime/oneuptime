@@ -76,7 +76,7 @@ Optageregler, alarmregler over logs, Datadog-widgets, der læser logs, traces el
 
 ## Omdan en forespørgsel med OneUptime AI
 
-En forespørgsel, som ingen regel omdanner, viser **Convert with OneUptime AI**, som kræver, at AI er slået til for projektet. Kun den forespørgsel, med navnene på dashboardets variabler, sendes til dit projekts AI-udbyder. Svaret kontrolleres som enhver forespørgsel og vises for dig: vælg **Use This Query** for at bruge det. Intet oprettes, før du opretter dashboardet eller monitorerne.
+En forespørgsel, som ingen regel omdanner, viser **Convert with OneUptime AI**, som kræver, at AI er slået til for projektet. Kun den forespørgsel, med navnene på dashboardets variabler, sendes til dit projekts [LLM-udbyder](/docs/ai/llm-provider). Svaret kontrolleres som enhver forespørgsel og vises for dig: vælg **Use This Query** for at bruge det. Intet oprettes, før du opretter dashboardet eller monitorerne.
 
 ## Næste skridt
 

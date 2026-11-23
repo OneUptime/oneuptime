@@ -9,6 +9,7 @@ import {
   readStepCheckEvidence,
 } from "../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import { isSecurityCaseStepCheckState } from "../../../Types/SecurityCase/SecurityCaseStepCheckState";
+import { isSecurityCaseAiResponseActive } from "../../../Types/SecurityCase/SecurityCaseAi";
 import {
   ResponsePlaybook,
   ResponseStep,
@@ -82,6 +83,24 @@ export function readResponseStepChecks(
   }
 
   return read;
+}
+
+/*
+ * Whether somebody has taken the case on - the plan's first step: a person
+ * it is assigned to, or OneUptime AI working it (#10352,
+ * SecurityCase.aiTookCaseAt). Handed back to people, a case OneUptime AI
+ * took is untaken again: somebody has to pick it up.
+ */
+export function isSecurityCaseTaken(securityCase: {
+  assignedToUserId?: unknown;
+  aiTookCaseAt?: unknown;
+  aiResponseState?: unknown;
+}): boolean {
+  return (
+    Boolean(securityCase.assignedToUserId) ||
+    (Boolean(securityCase.aiTookCaseAt) &&
+      isSecurityCaseAiResponseActive(securityCase.aiResponseState))
+  );
 }
 
 // The case's tasks a step was made from: the ones that keep their step.

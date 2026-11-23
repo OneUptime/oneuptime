@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | 웹사이트, API | HTTP 메서드: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` 또는 `PATCH`. 설정하지 않으면 서버가 `GET`을 씁니다. |
 | `request_headers` | map(string) | 웹사이트, API | 보낼 헤더: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | 텍스트로 쓴 요청 본문. |
+| `request_body_format` | string | API | `request_body`를 보내는 방식입니다. `json`(기본값)은 어떤 JSON 값이든, `text`는 XML이나 양식 필드처럼 작성한 그대로 보내는 본문입니다. |
 | `do_not_follow_redirects` | bool | 웹사이트, API | 리디렉션을 따라가지 않고 첫 응답에서 멈춥니다. |
 | `allow_self_signed_certificates` | bool | 웹사이트, API | 자체 서명된 TLS 인증서를 허용합니다. |
 | `tls_client_certificate` | string | 웹사이트, API | 상호 TLS용 클라이언트 인증서: PEM 또는 `{{monitorSecrets.name}}` 참조. |

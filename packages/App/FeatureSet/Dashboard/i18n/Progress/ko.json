@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61841,
-    "untranslated": 8050
+    "keys": 62240,
+    "untranslated": 8049
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -194,6 +194,7 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF",
     "WAF ID",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",

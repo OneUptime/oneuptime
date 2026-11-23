@@ -1,10 +1,13 @@
 # OneUptime AI i sikkerhet
 
-OneUptime AI leser hver sikkerhetssak slik en analytiker ville gjort: sakens deteksjoner, hendelser, entiteter og trusseletterretning, og vertene og personene rundt den. Den sier hva som skjedde og om det ser ekte ut, foreslår en prioritet og en playbook, og viser til bevisene bak hver påstand. Den endrer ingenting på egen hånd: en person fastsetter konklusjonen og prioriteten, og kjører playbooken. Den skriver også utkast til deteksjonsregler ut fra én setning, og svarer i Ask AI på spørsmålene dine om sikkerhetsdataene dine.
+OneUptime AI leser hver sikkerhetssak slik en analytiker ville gjort: sakens deteksjoner, hendelser, entiteter og trusseletterretning, og vertene og personene rundt den. Den sier hva som skjedde og om det ser ekte ut, foreslår en prioritet og en playbook, og viser til bevisene bak hver påstand. Når du tillater det, arbeider den deretter med saken fra start til slutt: den overtar saken, begrenser trusselen, sjekker at det den gjorde holder, får koden rettet og lukker saken med en rapport. Den utfører hver type trinn på egen hånd, spør en person først eller overlater det til en person, slik du stiller det inn, og den utfører hvert trinn gjennom den samme playbook-motoren som personer bruker, slik at hvert trinn står på sakens tidslinje som OneUptime AI sitt og kan angres. Den skriver også utkast til deteksjonsregler ut fra én setning, og svarer i Ask AI på spørsmålene dine om sikkerhetsdataene dine.
 
 :::cards
 - [Vurder en sak](#vurder-en-sak): Hva OneUptime AI leser, hva den konkluderer, og hva den aldri gjør.
 - [Vurder nye saker automatisk](#vurder-nye-saker-automatisk): Hver sak en deteksjon åpner, vurdert så snart den åpnes.
+- [Arbeid med en sak fra start til slutt](#arbeid-med-en-sak-fra-start-til-slutt): Begrens, sjekk, rett og lukk, med en person som godkjenner det du velger.
+- [Hva OneUptime AI får gjøre på en sak](#hva-oneuptime-ai-får-gjøre-på-en-sak): Av, Spør først eller På egen hånd, for hver type trinn.
+- [Når den overleverer en sak til personer](#når-den-overleverer-en-sak-til-personer): Hvorfor den stopper, og hvem som får vite det.
 - [Kjør en playbook etter en vurdering](#kjør-en-playbook-etter-en-vurdering): Reager på en sak som leses som Sannsynligvis ondsinnet.
 - [Skriv et utkast til en deteksjonsregel](#skriv-et-utkast-til-en-deteksjonsregel): Beskriv hva som skal fanges, og les Sigma-regelen.
 - [Ask AI på sikkerhetssidene](#ask-ai-på-sikkerhetssidene): Spørsmål om saker og hendelser, med vanlige ord.
@@ -12,16 +15,18 @@ OneUptime AI leser hver sikkerhetssak slik en analytiker ville gjort: sakens det
 
 ## Slik fungerer det
 
-```mermaid title="Fra en ny sak til en persons avgjørelse"
+```mermaid title="Fra en ny sak til en lukket sak"
 flowchart TB
     open["En deteksjon<br/>åpner en sak"] --> triage["OneUptime AI<br/>leser saken"]
     triage --> read["En vurdering, en<br/>prioritet og en<br/>playbook, med<br/>bevis"]
-    read --> person["En person fastsetter<br/>konklusjon og<br/>prioritet"]
-    read -->|"Sannsynligvis<br/>ondsinnet"| playbook["Playbooks med<br/>KI-utløseren kjører"]
-    playbook --> approval["Inndemmingen<br/>venter på<br/>godkjenning"]
+    read -->|"Sannsynligvis<br/>ondsinnet"| work["OneUptime AI<br/>arbeider med saken"]
+    work --> step["Hvert trinn utført,<br/>spurt først eller<br/>overlatt til<br/>personer"]
+    step --> check["OneUptime sjekker<br/>at det holder"]
+    check --> close["Lukket med<br/>en rapport"]
+    step -.->|"Usikker"| people["Overlevert<br/>til personer"]
 ```
 
-En vurdering leser bare. Den kjører på prosjektets egen KI: **Aktiver AI**, prosjektets LLM-leverandør, AI-kredittene og de daglige KI-grensene.
+En vurdering leser bare. Når OneUptime AI arbeider med en sak, handler den innenfor det du tillater, og overleverer saken til personer så snart den er usikker. Begge deler kjører på prosjektets egen KI: **Aktiver AI**, prosjektets LLM-leverandør, AI-kredittene og de daglige KI-grensene.
 
 ## Før du begynner
 
@@ -76,17 +81,116 @@ Hver liste over saker viser vurderingen ved siden av tittelen på hver sak, og f
 
 ### Hva den aldri gjør
 
-En vurdering endrer ingenting på saken: verken status, prioritet, ansvarlig, konklusjon eller notater. Den kjører ingen playbook og demmer ikke inn noen. En playbook den foreslår, kjører når en person kjører den, eller via utløseren nedenfor.
+En vurdering endrer ingenting på saken: verken status, prioritet, ansvarlig, konklusjon eller notater. Den kjører ingen playbook og demmer ikke inn noen. En playbook den foreslår, kjører når en person kjører den, eller via utløseren nedenfor. Å handle på saken er OneUptime AI som arbeider med den, og det er en egen innstilling: se [Arbeid med en sak fra start til slutt](#arbeid-med-en-sak-fra-start-til-slutt).
 
 ### Tekst skrevet for å styre en KI
 
-Hendelser, varsler og verdier for entiteter kommer utenfra prosjektet, og en angriper kan skrive dem. OneUptime AI leser alle som data, aldri som instruksjoner. Når noe av sakens data leser som instruksjoner til en KI, sier kortet det først, en vurdering Sannsynligvis ufarlig eller Sannsynligvis falsk positiv blir Uavklart, og den vurderingen starter ingen playbook.
+Hendelser, varsler og verdier for entiteter kommer utenfra prosjektet, og en angriper kan skrive dem. OneUptime AI leser alle som data, aldri som instruksjoner. Når noe av sakens data leser som instruksjoner til en KI, sier kortet det først, en vurdering Sannsynligvis ufarlig eller Sannsynligvis falsk positiv blir Uavklart, den vurderingen starter ingen playbook, og OneUptime AI arbeider ikke med saken: den overleverer den til personer.
 
 ## Vurder nye saker automatisk
 
 Åpne **Produkter → Sikkerhetshendelser → KI → Innstillinger** og slå på **Vurder nye saker**: da blir hver sak en deteksjon åpner, vurdert så snart den åpnes. Bryteren lagrer så snart du slår den om. Prosjekteier og Prosjektadministrator kan endre den.
 
 Nye prosjekter starter med den slått på; et prosjekt som ble opprettet før, har den slått av til noen slår den på. En sak som er åpnet for hånd, og saken fra testangrepet i **Send et testangrep**, blir vurdert når noen klikker på **Vurder med KI**.
+
+## Arbeid med en sak fra start til slutt
+
+Slå på **Arbeid med saker fra start til slutt** på samme side: da overtar OneUptime AI hver sak som vurderingen leser som Sannsynligvis ondsinnet, og arbeider med den innenfor det du tillater under **Hva OneUptime AI får gjøre på en sak**. Nye prosjekter starter med den slått på; et prosjekt som ble opprettet før, har den slått av til noen slår den på. Prosjekteier og Prosjektadministrator kan endre den.
+
+Mens den er slått på, kan en person også starte den på én sak: **Reager med KI**, på sakens kort **OneUptime AI**, arbeider med en sak som vurderingen fra OneUptime AI leste som Sannsynligvis ondsinnet, Sannsynligvis ufarlig eller Sannsynligvis falsk positiv. Den tilbys ikke på en sak der vurderingen var Uavklart, der dataene leser som instruksjoner til en KI, eller som har din høyeste prioritet: de sakene er en persons. Det krever en rolle som kan arbeide med sikkerhetssaker.
+
+### Hva den gjør
+
+OneUptime AI arbeider seg gjennom sakens **Responsplan**, det mest presserende først: **Bekreft at det er ekte**, **Begrens det**, **Rett det som gjorde det mulig** og **Lukk saken**. Hvert trinn blir utført, spurt om hos en person først eller overlatt til en person, slik raden i **Hva OneUptime AI får gjøre på en sak** for den typen sier.
+
+| Trinn | Hva OneUptime AI gjør |
+| --- | --- |
+| Overta saken | Overtar den og hever prioriteten til den vurderingen foreslo. Den senker aldri en prioritet, og en sak den hever til din høyeste prioritet, går til personer |
+| Utelukk en falsk positiv | Merker det som utført bare når OneUptimes egne fakta ikke etterlater tvil: adressen er ikke en av dine, og ingen har logget på fra den. Ellers overlater den trinnet til en person |
+| Blokker adressen | Blokkerer den i 24 timer via [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) din og venter så på OneUptimes sjekk av at blokkeringen holder. Hvis ingenting håndhever blokkeringslisten din, overlater den trinnet til en person |
+| Suspender brukeren, begrens verten | Kjører trinnet i en av playbookene dine som gjør det, via identitetsleverandøren din eller EDR. Uten en slik playbook overlater den trinnet til en person |
+| Erklær en hendelse | Spør alltid først: en hendelse varsler personer |
+| Flytt saken til Begrenset | Når OneUptime har verifisert hvert trinn som begrenser trusselen |
+| Rett ruten et angrep nådde | Lar «Fiks med AI» åpne en pull-forespørsel. En person slår den sammen. Den lukker saken når OneUptime verifiserer rettingen i produksjon, spør en person når rettingen bare ser utført ut, og fortsetter å arbeide med saken så lenge rettingen ikke holder |
+| Slå på MFA, gå gjennom kontoens endringer | Overlatt til en person: ingen produkter forteller OneUptime om de holder |
+| Lukk saken | Når alle andre trinn er utført og sakens deteksjon har vært stille i 24 timer, som True Positive, med en [avslutningsrapport](#avslutningsrapporten) |
+
+Et trinn som sakens deteksjonsregel selv legger til, og alt OneUptime ikke har noen måte å gjøre på, for eksempel å blokkere et domene i DNS-filteret ditt, overlates til en person, med begrunnelse.
+
+Hvert trinn OneUptime AI utfører, går gjennom playbook-motoren, som en kjøring av ett trinn på sakens side **Playbooks** med **OneUptime AI** som utløser. Dermed venter det på godkjenning, lar beskyttede entiteter være i fred, vises på sakens tidslinje, lagres i revisjonsloggen og kan angres, på samme måte som et trinn hvem som helst kjører, og tidslinjen sier at det var OneUptime AI sitt. Et trinn den spør om, venter på en persons godkjenning, på saken, på sakens side **Playbooks** eller med ett trykk i Slack eller Microsoft Teams.
+
+### Loggen på saken
+
+Under vurderingen sier kortet **OneUptime AI** hvordan OneUptime AI arbeider med saken, under **Arbeidet med saken**:
+
+| Kortet sier | Hva det betyr |
+| --- | --- |
+| **OneUptime AI arbeider ikke med denne saken** | **Reager med KI** overtar den. |
+| **Arbeider med denne saken** | OneUptime AI arbeider seg gjennom planen. **Overta** stopper den, og saken er din. |
+| **Venter på en person** | Den har bedt noen om å godkjenne et trinn, og fortsetter så snart noen svarer. |
+| **Overlevert til personer** | Den stoppet, og sier hvorfor. |
+| **Saken er lukket** | Den lukket saken, eller en person gjorde det. Dens **Avslutningsrapport** står over trinnene. |
+
+Under den står hvert trinn den utførte, spurte om eller overlot, det nyeste først, hvert med begrunnelse: **Utført på egen hånd: innstillingene dine tillater det.**, **Innstillingene dine lar dette vente på en persons godkjenning.**, **OneUptime har ingen måte å utføre dette trinnet på, så en person gjør det.** Et trinn den spurte om, har **Godkjenn** og **Avslå**; et trinn den utførte, lenker til kjøringen, der det kan angres. Et trinn OneUptime sjekker, sier hva sjekken fant, og et trinn den har utført før på saker fra samme regel, sier hvor ofte det holdt: «Det holdt i 14 av 15 lignende saker.»
+
+### En sak den leser som ufarlig eller falsk positiv
+
+**Reager med KI** på en sak som vurderingen leste som Sannsynligvis ufarlig eller Sannsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, slik **Lukk saken** tillater. Når den er lukket, opphever OneUptime AI blokkeringene saken laget, slik **Lukk saken** også tillater, og tilbyr sakens regel et unntak for verdien som utløste den. Unntaket venter alltid på en person: **Godkjenn** legger det til, på dine vegne.
+
+## Hva OneUptime AI får gjøre på en sak
+
+Under **Hva OneUptime AI får gjøre på en sak**, på **Produkter → Sikkerhetshendelser → KI → Innstillinger**, har hver type trinn sin egen rad, som lagres så snart du velger:
+
+- **Av**: OneUptime AI overlater dette til en person og sier det på saken.
+- **Spør først**: den spør en person, med bevisene, og utfører trinnet så snart noen godkjenner.
+- **På egen hånd**: den gjør det uten å spørre og sier det på sakens tidslinje.
+
+| Rad | Dekker | Nye prosjekter starter på |
+| --- | --- | --- |
+| **Arbeid med saken** | Å overta saken, heve prioriteten, merke trinn som utført med bevisene deres, flytte den til Begrenset | På egen hånd |
+| **Blokker adresser** | Å blokkere sakens adresse ved kanten i 24 timer | Spør først |
+| **Begrens kontoer** | Å suspendere sakens bruker eller avslutte brukerens økter | Spør først |
+| **Begrens verter** | Å begrense eller isolere sakens vert | Spør først |
+| **Rett koden** | Å la «Fiks med AI» åpne en pull-forespørsel for ruten et angrep nådde | På egen hånd |
+| **Lukk saken** | Å lukke saken med avslutningsrapporten, og oppheve sakens blokkeringer når den er lukket som ufarlig | Spør først |
+
+Innstillingene gjelder mens **Arbeid med saker fra start til slutt** er slått på, og kortet sier det mens den er slått av. Prosjekteier og Prosjektadministrator kan endre dem.
+
+Å sette **Blokker adresser**, **Begrens kontoer** eller **Begrens verter** til **På egen hånd** krever myndigheten til en Sikkerhetsadministrator, som Prosjekteiere og Prosjektadministratorer også har, og OneUptime lagrer hvem som gjorde det og når, slik det gjør for et playbook-trinn der godkjenningen er slått av. **Blokker adresser** spør først: **Bekreft og slå på** er en Sikkerhetsadministrators bekreftelse, og raden sier deretter når den ble gitt. Til en Sikkerhetsadministrator bekrefter det, spør OneUptime AI før den blokkerer.
+
+Uansett hva radene sier, gjør OneUptime AI følgende:
+
+- handler aldri på en beskyttet bruker, vert eller adresse: den overleverer saken til personer;
+- utfører høyst 10 handlinger på egen hånd i timen, på tvers av alle sakene dine, og overleverer deretter neste sak til personer;
+- blokkerer i høyst 24 timer;
+- slår aldri sammen kode: en person slår sammen hver pull-forespørsel;
+- spør alltid før den erklærer en hendelse eller legger til et regelunntak;
+- arbeider med en sak én kjøring om gangen, og en server som starter på nytt, mister aldri en kjøring som handler.
+
+## Når den overleverer en sak til personer
+
+OneUptime AI trekker seg aldri stille tilbake. Den overleverer saken til personer, og sier hvorfor på kortet og tidslinjen, når:
+
+- noe av sakens data leser som instruksjoner til en KI;
+- saken har din høyeste prioritet;
+- det neste trinn handler på, er beskyttet;
+- den har handlet på egen hånd så ofte som den får i løpet av en time;
+- KI er slått av for prosjektet eller for sikkerhetssaker, det ikke finnes noen LLM-leverandør, eller prosjektet er tomt for AI-kreditter eller har nådd sin daglige KI-grense;
+- vurderingen ikke kunne avgjøre om saken er ekte;
+- et trinn den utførte, ikke holder, et trinn den startet, ikke ble fullført, eller en person avslo eller angret et trinn den utførte;
+- den ikke kan avgjøre hva den skal gjøre videre, eller alt som gjenstår på saken, må gjøres av en person.
+
+Personene på saken får vite det med en gang, eller, når ingen er på saken, personene som varsles om saker med den prioriteten: **OneUptime AI overleverte en sikkerhetssak til personer**, under **Brukerinnstillinger → Varslingsinnstillinger**. En varslingsregel for arbeidsområdet for sikkerhetssaker legger det ut i sin Slack- eller Microsoft Teams-kanal under **Overlevert til personer av OneUptime AI**. **Overta** overleverer saken uten å varsle noen, siden personen som trykket på den, har saken.
+
+**Reager med KI** ber OneUptime AI om å arbeide med saken igjen, fra der saken står.
+
+## Avslutningsrapporten
+
+Når OneUptime AI lukker en sak, eller ber en person om å gjøre det, skriver den en avslutningsrapport ut fra det saken inneholder, ikke ut fra vurderingens ord: hva som skjedde, konsekvensene, hva som ble gjort, hva som ble rettet og hva man bør følge med på. Rapporten er sakens avslutningsnotat, den står på tidslinjen, og kortet viser den under **Avslutningsrapport**. Med **Lukk saken** på **Spør først** venter saken på at en person godkjenner lukkingen, med rapporten til å lese først.
+
+## Slik måles den
+
+**Produkter → Sikkerhetshendelser → Oversikt** viser hvordan OneUptime AI har arbeidet med sakene de siste 30 dagene, så snart den har arbeidet med eller spurt om en: **Løst av OneUptime AI**, av sakene den arbeidet med; **Tid til begrensning med KI** og **Tid til lukking med KI**, hver ved siden av tiden uten den; og **Forespurte godkjenninger**, hvor raskt personer svarte og hvor mange av trinnene dens personer angret.
 
 ## Kjør en playbook etter en vurdering
 
@@ -116,12 +220,20 @@ Når en sak erklærer en hendelse, leser også hendelsens KI-undersøkelse saken
 
 En vurdering er arbeid for OneUptime AI, som undersøkelsen av en hendelse. På OneUptime Cloud betales den med prosjektets AI-kreditter, og den teller med i prosjektets egne daglige KI-grenser (**Daglige grenser**, under **Prosjektinnstillinger → KI → AI-funksjoner**). De daglige grensene for hendelser og varsler gjelder ikke. En sak har én vurdering om gangen, og AI-loggene (**Prosjektinnstillinger → KI → AI-logger**) viser kallene.
 
-Når prosjektet er tomt for AI-kreditter eller har nådd en daglig KI-grense, blir nye saker ikke vurdert: kortet sier hvorfor, og **Vurder med KI** virker igjen så snart det er lagt til kreditter, eller grensen nullstilles.
+Når prosjektet er tomt for AI-kreditter eller har nådd en daglig KI-grense, blir nye saker ikke vurdert: kortet sier hvorfor, og **Vurder med KI** virker igjen så snart det er lagt til kreditter, eller grensen nullstilles. Når OneUptime AI arbeider med en sak, leser den sakens egen plan og egne sjekker i stedet for å spørre LLM-en, og den stopper ved de samme grensene: den overleverer saken til personer og sier hvorfor.
 
 ## Feilsøking
 
 :::details En ny sak ble ikke vurdert
 Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter → Sikkerhetshendelser → KI → Innstillinger**. En sak som er åpnet for hånd, og testangrepets sak blir bare vurdert når noen ber om det. Åpne saken: når noe hindrer en vurdering, sier kortet hva, og hvor det kan rettes.
+:::
+
+:::details OneUptime AI arbeidet ikke med en sak
+Sjekk at **Arbeid med saker fra start til slutt** er slått på under **Produkter → Sikkerhetshendelser → KI → Innstillinger**. Den tar bare opp en sak på egen hånd når vurderingen leser den som Sannsynligvis ondsinnet. Åpne saken: under **Arbeidet med saken** sier kortet hvorfor den ikke arbeider med den, og **Reager med KI** ber den om å gjøre det.
+:::
+
+:::details Den spør før den blokkerer, selv om Blokker adresser er På egen hånd
+**På egen hånd** for **Blokker adresser** gjelder først når en Sikkerhetsadministrator har bekreftet det: raden sier når, eller at ingen har gjort det ennå. En adresse som er beskyttet, eller en av dine egne, blir aldri blokkert: OneUptime AI overleverer saken til personer. Så lenge ingenting håndhever blokkeringslisten din, overlater den trinnet til en person.
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense

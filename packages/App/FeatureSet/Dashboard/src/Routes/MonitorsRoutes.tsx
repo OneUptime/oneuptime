@@ -70,6 +70,7 @@ import MonitorSettingsLabelRules from "../Pages/Monitor/Settings/MonitorLabelRul
 import MonitorSettingsProbes from "../Pages/Monitor/Settings/MonitorProbes";
 
 import MonitorSettingsProbeView from "../Pages/Monitor/Settings/MonitorProbeView";
+import MonitorRulesAuditLogs from "../Pages/Monitor/Settings/MonitorRulesAuditLogs";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import MonitorOwnerRule from "Common/Models/DatabaseModels/MonitorOwnerRule";
 import MonitorModel from "Common/Models/DatabaseModels/Monitor";
@@ -337,6 +338,20 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorSettingsLabelRules
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_LABEL_RULES] as Route}
+          />
+        }
+      />
+
+      <PageRoute
+        path={
+          MonitorsRoutePath[PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS] || ""
+        }
+        element={
+          <MonitorRulesAuditLogs
+            {...props}
+            pageRoute={
+              RouteMap[PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS] as Route
+            }
           />
         }
       />

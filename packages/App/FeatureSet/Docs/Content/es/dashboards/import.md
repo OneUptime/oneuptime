@@ -76,7 +76,7 @@ No se convierten las reglas de grabación, las reglas de alerta sobre registros,
 
 ## Convertir una consulta con OneUptime AI
 
-Una consulta que ninguna regla convierte muestra **Convert with OneUptime AI**, que necesita la IA activada en el proyecto. Solo esa consulta, con los nombres de las variables del panel, se envía al proveedor de IA de tu proyecto. Su respuesta se comprueba como cualquier consulta y se te muestra: elige **Use This Query** para usarla. No se crea nada hasta que creas el panel o los monitores.
+Una consulta que ninguna regla convierte muestra **Convert with OneUptime AI**, que necesita la IA activada en el proyecto. Solo esa consulta, con los nombres de las variables del panel, se envía al [proveedor de LLM](/docs/ai/llm-provider) de tu proyecto. Su respuesta se comprueba como cualquier consulta y se te muestra: elige **Use This Query** para usarla. No se crea nada hasta que creas el panel o los monitores.
 
 ## Próximos pasos
 

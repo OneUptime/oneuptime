@@ -237,7 +237,7 @@ O valor de cada atributo de Group By é uma [variável de modelo](/docs/monitor/
 - **Todos os critérios são avaliados**, como em um monitor de métricas agrupado, então grupos diferentes podem atender a critérios diferentes ao mesmo tempo. Um grupo que atende a dois critérios ainda recebe um só alerta, o do primeiro; por isso, ordene os critérios do mais grave para o menos grave.
 - **Um grupo só existe se registrou algo na janela de tempo.** Por isso, os critérios **Igual a 0** e **Menor que** só disparam para grupos que registraram pelo menos uma vez; para alertar quando os logs param de chegar por completo, use um monitor sem Group By.
 - **A detecção de anomalias** (**Anomalamente alto**, **Anomalamente baixo**, **Anômalo**) não é avaliada por grupo (sua linha de base cobre o monitor inteiro), então esses filtros nunca correspondem em um monitor agrupado.
-- O status do monitor segue o primeiro critério que qualquer grupo atende. Quando nenhum grupo atende a nenhum critério, o monitor volta ao seu status padrão.
+- O status do monitor segue o primeiro critério que qualquer grupo atende. Um critério que apenas traz o monitor de volta ao seu status padrão, sem abrir alerta nem incidente, espera pelos grupos que atenderam a um critério que define outro status, até que cada um deles o atenda ou não registre nada na janela de tempo. Quando nenhum grupo atende a nenhum critério e nenhum é esperado, o monitor volta ao seu status padrão.
 
 ## Solução de problemas
 

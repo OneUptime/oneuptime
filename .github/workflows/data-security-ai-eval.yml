@@ -57,12 +57,18 @@ on:
       - packages/Common/Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner.ts
       - packages/Common/Utils/DataSecurity/DataStoreOwnerAnswer.ts
       - packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming.ts
+      - packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ScrubRuleWriter.ts
+      - packages/Common/Types/DataSecurity/ScrubRuleWriterPlace.ts
+      - packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi, ProposeStoreOwners. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules. Empty: all of them."
         required: false
         default: ""
       cases:

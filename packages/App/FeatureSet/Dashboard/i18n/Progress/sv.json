@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61841,
-    "untranslated": 8298
+    "keys": 62240,
+    "untranslated": 8297
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -368,6 +368,7 @@
     "Version {{number}}",
     "Version {{version}}",
     "Vital",
+    "WAF",
     "Webhook",
     "Webhooks",
     "[\".customer-name\", \"#invoice-total\"]",

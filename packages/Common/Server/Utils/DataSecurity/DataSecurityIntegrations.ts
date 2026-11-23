@@ -53,6 +53,8 @@ import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetecti
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { dataStoreEntityValue } from "../../../Types/DataSecurity/DataStoreKey";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
+import { isTelemetryFindingCheck } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -162,6 +164,9 @@ const OCSF_SEVERITY: Readonly<Record<SecuritySeverity, OcsfSeverity>> = {
 
 // The most owners one store's notice is sent to.
 const MAX_NOTIFIED_OWNERS: number = 50;
+
+// The most open issues of one store worked on again when new findings come.
+const MAX_REWORKED_ISSUES: number = 20;
 
 /*
  * The most of an alert's or an incident's title: their title holds 500
@@ -383,6 +388,51 @@ export default class DataSecurityIntegrations {
       if (!isHeld) {
         await this.notifyOwners(projectId, storeIssues, true);
       }
+    }
+  }
+
+  /*
+   * New findings on a store: each of its telemetry issues that is open
+   * already is worked on again by OneUptime AI (#10366), so a secret that
+   * starts showing up in another attribute of a service is contained as
+   * one in an issue that just opened would be. Only while OneUptime AI
+   * works on issues on its own; one job per issue, however many scans.
+   */
+  public static async onNewTelemetryFindings(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+  }): Promise<void> {
+    try {
+      if (!(await this.isAutomaticAiOn(data.projectId))) {
+        return;
+      }
+
+      const issues: Array<DataSecurityIssue> =
+        await DataSecurityIssueService.findBy({
+          query: {
+            projectId: data.projectId,
+            dataStoreId: data.dataStoreId,
+            status: DataSecurityIssueStatus.Open,
+          },
+          select: { _id: true, checkId: true },
+          skip: 0,
+          limit: MAX_REWORKED_ISSUES,
+          props: { isRoot: true },
+        });
+
+      for (const issue of issues) {
+        if (issue.id && isTelemetryFindingCheck(issue.checkId)) {
+          await queueDataSecurityAiEvaluation({
+            projectId: data.projectId,
+            dataSecurityIssueId: issue.id,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not have OneUptime AI work again on the telemetry issues of store ${data.dataStoreId.toString()}:`,
+      );
+      logger.error(error);
     }
   }
 

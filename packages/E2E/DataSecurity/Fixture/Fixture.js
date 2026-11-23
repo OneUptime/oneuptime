@@ -256,11 +256,16 @@ const fixture = {
     data: dataSet,
     fail: isFailing ? "reads" : "",
     ai: isAiOn ? "on" : "",
+    groups: ["on", "before"].includes(params.get("groups"))
+      ? params.get("groups")
+      : "",
   },
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
   apiRequests: [],
+  // Each press of a group's fix (#10370), with what it asked.
+  groupFixes: [],
   updates: [],
   creates: [],
   unhandled: [],
@@ -1841,6 +1846,540 @@ if (dataSet === "empty") {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Issues with one cause (#10370): ?groups=on
+ * ---------------------------------------------------------------------------
+ *
+ * Three groups of issues one mistake made, as the grouping keeps them:
+ *
+ *   - forty S3 buckets the static-site Terraform module made, access
+ *     logging off on all of them (six fixed already): one pull request to
+ *     the module, in acme/infra;
+ *   - twelve public buckets the export-job role made in the console - the
+ *     customer-exports bucket among them - one marked Public By Design and
+ *     one whose analysis says the fix would break what reads it: one
+ *     approval, through the cloud connection;
+ *   - five DynamoDB tables of the billing-tables CloudFormation stack
+ *     without point-in-time recovery, two fixed, its pull request open.
+ *
+ * With ?ai=on OneUptime AI named each from its facts.
+ *
+ * ?groups=before is the same stores and issues before any group was kept:
+ * every issue a row of the list, as Issues was before #10370.
+ */
+const hasIssueGroupStores =
+  ["on", "before"].includes(params.get("groups")) && dataSet !== "empty";
+const hasIssueGroups = params.get("groups") === "on" && dataSet !== "empty";
+
+// The group an issue is in: none before the grouping kept one.
+function inGroup(groupId) {
+  return hasIssueGroups
+    ? { dataSecurityIssueGroupId: new ObjectID(groupId) }
+    : {};
+}
+
+const GROUP = {
+  module: uuid("1c000000", 1),
+  exports: uuid("1c000000", 2),
+  stack: uuid("1c000000", 3),
+};
+const INFRA_REPOSITORY_ID = uuid("1c100000", 1);
+const BILLING_TASK_ID = uuid("1c200000", 1);
+const MODULE_TASK_ID = uuid("1c200000", 2);
+
+const STATIC_SITES = [
+  "marketing",
+  "docs",
+  "blog",
+  "careers",
+  "status",
+  "help-center",
+  "partners",
+  "investors",
+  "press",
+  "events",
+  "academy",
+  "community",
+  "developers",
+  "brand",
+  "legal",
+  "privacy",
+  "security",
+  "trust",
+  "pricing",
+  "store",
+  "gift-cards",
+  "rewards",
+  "loyalty",
+  "support",
+  "learn",
+  "webinars",
+  "podcast",
+  "newsroom",
+  "jobs",
+  "labs",
+  "research",
+  "design-system",
+  "api-reference",
+  "changelog",
+  "roadmap",
+  "forum",
+  "knowledge-base",
+  "promotions",
+  "launch",
+  "holiday",
+];
+
+// What each group's fix is, once a press asked for it.
+const groupFixes = new Map();
+
+function groupStore(number, data) {
+  return {
+    _id: ID.store(number),
+    projectId,
+    description: "",
+    provider: "aws",
+    discoveredFrom: "Cloud inventory",
+    cloudAccountNumber: "123456789012",
+    environment: DataStoreEnvironment.Production,
+    dataTypeIds: [],
+    dataCategories: [],
+    posture: { readAt: ago(2 * HOUR).toISOString(), encryptedAtRest: true },
+    estimatedRecords: 4000,
+    isPublicByDesign: false,
+    isAiData: false,
+    isContentScanEnabled: true,
+    configurationReadAt: ago(2 * HOUR),
+    findingCount: 0,
+    isArchived: false,
+    firstSeenAt: ago(60 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
+    ...data,
+  };
+}
+
+function addIssueGroups() {
+  // The static-site module's buckets.
+  STATIC_SITES.forEach((site, index) => {
+    const number = 300 + index;
+    table(DataStore).push(
+      groupStore(number, {
+        name: `acme-${site}-site`,
+        kind: DataStoreKind.AwsS3Bucket,
+        family: "Object storage",
+        providerResourceId: `arn:aws:s3:::acme-${site}-site`,
+        region: index % 3 === 0 ? "us-east-1" : "eu-west-1",
+        sensitivity: DataSensitivity.Internal,
+        exposure: DataStoreExposure.Private,
+        cloudTags: {
+          module: "static-site",
+          "managed-by": "terraform",
+          team: "web",
+        },
+        posture: {
+          readAt: ago(2 * HOUR).toISOString(),
+          encryptedAtRest: true,
+          accessLogging: index < 6,
+        },
+      }),
+    );
+    table(DataSecurityIssue).push(
+      issue(500 + index, {
+        dataStoreId: ID.store(number),
+        checkId: "access-not-logged",
+        evidence: `Server access logging is off on acme-${site}-site.`,
+        severity:
+          index % 4 === 0 ? SecuritySeverity.Medium : SecuritySeverity.Low,
+        firstDetectedAt: ago((2 + (index % 5)) * DAY),
+        lastDetectedAt: ago(2 * HOUR),
+        ...inGroup(GROUP.module),
+        // The first six were fixed by hand, before the group's pull request.
+        ...(index < 6
+          ? {
+              status: DataSecurityIssueStatus.Resolved,
+              resolvedAt: ago((1 + index) * DAY),
+            }
+          : {}),
+      }),
+    );
+  });
+
+  // The export-job role's buckets, made in the console - the customer-exports bucket among them.
+  for (let index = 1; index <= 11; index++) {
+    const number = 360 + index;
+    const name = `acme-exports-${String(index).padStart(2, "0")}`;
+    table(DataStore).push(
+      groupStore(number, {
+        name,
+        kind: DataStoreKind.AwsS3Bucket,
+        family: "Object storage",
+        providerResourceId: `arn:aws:s3:::${name}`,
+        region: "eu-west-1",
+        cloudConnectionId: new ObjectID(ID.connection(1)),
+        sensitivity: DataSensitivity.Confidential,
+        exposure: DataStoreExposure.Public,
+        dataTypeIds: ["email-address"],
+        dataCategories: [DataCategory.ContactAndIdentity],
+        estimatedRecords: 20000 * index,
+        // The press kit is meant to be public.
+        isPublicByDesign: index === 11,
+      }),
+    );
+    table(DataSecurityIssue).push(
+      issue(560 + index, {
+        dataStoreId: ID.store(number),
+        checkId: "public-read",
+        evidence: `The bucket policy of ${name} grants s3:GetObject to Principal "*".`,
+        severity: SecuritySeverity.Critical,
+        dataTypeIds: ["email-address"],
+        firstDetectedAt: ago(index * HOUR + DAY),
+        lastDetectedAt: ago(2 * HOUR),
+        ...inGroup(GROUP.exports),
+      }),
+    );
+  }
+  Object.assign(
+    table(DataSecurityIssue).find((row) => {
+      return row._id === ID.issue(1);
+    }),
+    inGroup(GROUP.exports),
+  );
+
+  // The billing-tables stack's tables.
+  ["invoices", "payments", "refunds", "credits", "ledgers"].forEach(
+    (table_, index) => {
+      const number = 380 + index;
+      table(DataStore).push(
+        groupStore(number, {
+          name: `billing-${table_}`,
+          kind: DataStoreKind.AwsDynamoDbTable,
+          family: "Key-value",
+          providerResourceId: `arn:aws:dynamodb:eu-west-1:123456789012:table/billing-${table_}`,
+          region: "eu-west-1",
+          sensitivity: DataSensitivity.Restricted,
+          exposure: DataStoreExposure.Private,
+          cloudTags: { "aws:cloudformation:stack-name": "billing-tables" },
+        }),
+      );
+      table(DataSecurityIssue).push(
+        issue(580 + index, {
+          dataStoreId: ID.store(number),
+          checkId: "no-point-in-time-recovery",
+          evidence: `Point-in-time recovery is off on billing-${table_}.`,
+          severity: SecuritySeverity.High,
+          firstDetectedAt: ago(9 * DAY),
+          lastDetectedAt: ago(2 * HOUR),
+          ...inGroup(GROUP.stack),
+          ...(index < 2
+            ? {
+                status: DataSecurityIssueStatus.Resolved,
+                resolvedAt: ago((index + 1) * HOUR),
+              }
+            : {}),
+        }),
+      );
+    },
+  );
+}
+
+if (hasIssueGroupStores) {
+  addIssueGroups();
+}
+
+const GROUP_FACTS = {
+  [GROUP.module]: {
+    cause: "DeclaredCode",
+    checkId: "access-not-logged",
+    tag: ["module", "static-site"],
+    tagRole: "Module",
+    code: {
+      repositoryId: INFRA_REPOSITORY_ID,
+      repositoryName: "acme/infra",
+      paths: ["modules/static-site/main.tf", "modules/static-site/logging.tf"],
+      codeKind: "Terraform",
+      reason: "has-named-file",
+    },
+    storeKind: DataStoreKind.AwsS3Bucket,
+    provider: "aws",
+    accountNumber: "123456789012",
+    managedAsCode: "Terraform",
+  },
+  [GROUP.exports]: {
+    cause: "Creator",
+    checkId: "public-read",
+    creator: "role/export-job",
+    storeKind: DataStoreKind.AwsS3Bucket,
+    provider: "aws",
+    region: "eu-west-1",
+    accountNumber: "123456789012",
+  },
+  [GROUP.stack]: {
+    cause: "Stack",
+    checkId: "no-point-in-time-recovery",
+    stackName: "billing-tables",
+    storeKind: DataStoreKind.AwsDynamoDbTable,
+    provider: "aws",
+    region: "eu-west-1",
+    accountNumber: "123456789012",
+    managedAsCode: 'CloudFormation stack "billing-tables"',
+  },
+};
+
+// OneUptime AI's names, held to the facts, while the project's AI is on.
+const GROUP_NAMES = {
+  [GROUP.module]: "the static-site module turns off access logs",
+  [GROUP.exports]: "the export-job role makes its buckets public",
+  [GROUP.stack]: "the billing-tables stack leaves recovery off",
+};
+
+function groupMembers(groupId) {
+  return table(DataSecurityIssue).filter((row) => {
+    return String(row.dataSecurityIssueGroupId || "") === groupId;
+  });
+}
+
+function groupFixState(groupId) {
+  if (groupId === GROUP.stack) {
+    return {
+      taskId: BILLING_TASK_ID,
+      state: "opened",
+      repositoryName: "acme/infra",
+      pullRequestUrl: "https://github.com/acme/infra/pull/482",
+      pullRequestNumber: 482,
+    };
+  }
+  return groupFixes.get(groupId);
+}
+
+function issueGroupJson(groupId) {
+  const members = groupMembers(groupId);
+  const open = members.filter((row) => {
+    return row.status === DataSecurityIssueStatus.Open;
+  });
+  const fixed = members.filter((row) => {
+    return row.status === DataSecurityIssueStatus.Resolved;
+  });
+  const fix = groupFixState(groupId);
+  return {
+    groupId,
+    checkId: GROUP_FACTS[groupId].checkId,
+    cause: GROUP_FACTS[groupId].cause,
+    facts: GROUP_FACTS[groupId],
+    ...(isAiOn ? { name: GROUP_NAMES[groupId] } : {}),
+    issueCount: members.length,
+    openIssueCount: open.length,
+    fixedIssueCount: fixed.length,
+    ...(fix ? { fix } : {}),
+  };
+}
+
+function issueGroups(body) {
+  if (!hasIssueGroups) {
+    return { groups: [], largestGroupSize: 0 };
+  }
+  const asked = Array.isArray(body.groupIds) ? body.groupIds : null;
+  const groups = Object.values(GROUP)
+    .filter((groupId) => {
+      return !asked || asked.includes(groupId);
+    })
+    .map(issueGroupJson)
+    .sort((left, right) => {
+      return right.openIssueCount - left.openIssueCount;
+    });
+  return {
+    groups,
+    largestGroupSize: groups.reduce((largest, group) => {
+      return Math.max(largest, group.issueCount);
+    }, 0),
+  };
+}
+
+function fixStore(row) {
+  const store = storeById(row.dataStoreId);
+  return {
+    issueId: row._id,
+    dataStoreId: store._id,
+    name: store.name,
+    kind: store.kind,
+    region: store.region,
+  };
+}
+
+const VIEWER_PULL_REQUEST_REFUSAL =
+  "Asking OneUptime AI for this pull request takes permission to change Data Security issues.";
+const VIEWER_CLOUD_REFUSAL =
+  "Changing these stores through their cloud connections takes permission to edit data stores.";
+
+// What a group's fix would do now, for the reader.
+function issueGroupFixPlan(groupId) {
+  const open = groupMembers(groupId).filter((row) => {
+    return row.status === DataSecurityIssueStatus.Open;
+  });
+  const plan = {
+    groupId,
+    checkId: GROUP_FACTS[groupId].checkId,
+    leftOut: [],
+    planFingerprint: `fingerprint-${groupId.slice(-4)}`,
+  };
+  if (groupId === GROUP.module || groupId === GROUP.stack) {
+    const facts = GROUP_FACTS[groupId];
+    const fix = groupFixState(groupId);
+    plan.pullRequest = {
+      stores: open.map(fixStore),
+      codeKind: groupId === GROUP.module ? "Terraform" : "CloudFormation",
+      ...(facts.code
+        ? {
+            location: {
+              repositoryId: facts.code.repositoryId,
+              repositoryName: facts.code.repositoryName,
+              paths: facts.code.paths,
+            },
+          }
+        : {}),
+      candidates:
+        role === "viewer"
+          ? []
+          : [
+              {
+                repositoryId: INFRA_REPOSITORY_ID,
+                name: "infra",
+                fullName: "acme/infra",
+                reason: "has-named-file",
+                matchedPaths: facts.code
+                  ? facts.code.paths
+                  : ["stacks/billing-tables.yaml"],
+                isBest: true,
+                canAsk: true,
+              },
+              {
+                repositoryId: uuid("1c100000", 2),
+                name: "platform",
+                fullName: "acme/platform",
+                reason: "has-code-of-kind",
+                matchedPaths: [],
+                isBest: false,
+                canAsk: true,
+              },
+            ],
+      ...(role === "viewer" ? { refusal: VIEWER_PULL_REQUEST_REFUSAL } : {}),
+      ...(fix ? { existing: fix } : {}),
+    };
+    return plan;
+  }
+
+  // The export-job role's buckets: one approval, leaving out what it must.
+  const included = [];
+  for (const row of open) {
+    const store = storeById(row.dataStoreId);
+    if (store.isPublicByDesign) {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "PublicByDesign",
+        canInclude: false,
+      });
+      continue;
+    }
+    if (store.name === "acme-exports-07") {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "FixWouldBreak",
+        canInclude: true,
+        breaks: ["role/partner-reporting"],
+      });
+      continue;
+    }
+    if (!isResponseOn) {
+      plan.leftOut.push({
+        ...fixStore(row),
+        part: "Cloud",
+        reason: "ResponseOff",
+        canInclude: false,
+        cloudConnectionId: ID.connection(1),
+      });
+      continue;
+    }
+    included.push(fixStore(row));
+  }
+  if (included.length > 0) {
+    plan.cloud = {
+      action: "Block public access",
+      stores: included,
+      ...(role === "viewer" ? { refusal: VIEWER_CLOUD_REFUSAL } : {}),
+    };
+  }
+  return plan;
+}
+
+// A press of a group's fix: the pull request asked for, or the stores changed.
+function fixIssueGroup(groupId, body) {
+  const plan = issueGroupFixPlan(groupId);
+  const parts = Array.isArray(body.parts) ? body.parts : [];
+  const result = { leftOut: plan.leftOut.length };
+  if (parts.includes("PullRequest") && plan.pullRequest) {
+    if (plan.pullRequest.refusal) {
+      result.pullRequest = { message: plan.pullRequest.refusal };
+    } else if (plan.pullRequest.existing) {
+      result.pullRequest = {
+        message:
+          "This group's pull request is open already: review it in Code.",
+        aiRunId: plan.pullRequest.existing.taskId,
+        wasAlreadyAsked: true,
+      };
+    } else {
+      groupFixes.set(groupId, {
+        taskId: MODULE_TASK_ID,
+        state: "writing",
+        repositoryName: "acme/infra",
+      });
+      result.pullRequest = {
+        message:
+          "OneUptime AI is working on one pull request for the cause. It will appear under Code, and on each of the group's issues.",
+        aiRunId: MODULE_TASK_ID,
+      };
+    }
+  }
+  if (parts.includes("Cloud") && plan.cloud) {
+    const ticked = Array.isArray(body.includeDataStoreIds)
+      ? body.includeDataStoreIds
+      : [];
+    result.cloud = plan.cloud.refusal
+      ? {
+          action: plan.cloud.action,
+          changed: 0,
+          unchanged: 0,
+          failed: [],
+          refusal: plan.cloud.refusal,
+        }
+      : {
+          action: plan.cloud.action,
+          changed:
+            plan.cloud.stores.length +
+            plan.leftOut.filter((store) => {
+              return store.canInclude && ticked.includes(store.dataStoreId);
+            }).length,
+          unchanged: 0,
+          failed: [],
+        };
+  }
+  fixture.groupFixes.push({ groupId, body });
+  return result;
+}
+
+// The group an issue's analysis points at.
+function issueGroupOf(issueId) {
+  const row = table(DataSecurityIssue).find((candidate) => {
+    return candidate._id === issueId;
+  });
+  const groupId =
+    row && row.dataSecurityIssueGroupId
+      ? String(row.dataSecurityIssueGroupId)
+      : "";
+  return hasIssueGroups && groupId ? issueGroupJson(groupId) : null;
+}
+
+/*
  * Each store's open issues, their count, worst severity and highest risk, as
  * the evaluator keeps them on the store: an accepted issue does not count.
  */
@@ -2571,6 +3110,10 @@ const ROUTE = {
   approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
   dismissAiProposal: DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
   undoAiProposal: DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+  // Issues with one cause (#10370).
+  issueGroups: DATA_SECURITY_API_ROUTES.issueGroups,
+  issueGroupFixPlan: DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
+  fixIssueGroup: DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
 };
 
 // What Data Security → AI's notice reads: AI is on, with a provider to use.
@@ -2668,7 +3211,13 @@ async function handleApi(method, options) {
   // OneUptime AI's analysis the issue keeps, read with no model call (#10369).
   const analysisOf = idOf(ROUTE.issueAnalysis, pathname);
   if (method === "POST" && analysisOf) {
-    return new HTTPResponse(200, { analysis: issueAnalysis(analysisOf) }, {});
+    const analysis = issueAnalysis(analysisOf);
+    // An analysis points at the group of issues its issue is one of (#10370).
+    return new HTTPResponse(
+      200,
+      { analysis, group: analysis ? issueGroupOf(analysisOf) : null },
+      {},
+    );
   }
 
   /*
@@ -2679,7 +3228,11 @@ async function handleApi(method, options) {
   const explainOf = idOf(ROUTE.explain, pathname);
   if (method === "POST" && explainOf) {
     const analysis = issueAnalysis(explainOf);
-    return new HTTPResponse(200, { markdown: "", analysis, isNew: false }, {});
+    return new HTTPResponse(
+      200,
+      { markdown: "", analysis, isNew: false, group: issueGroupOf(explainOf) },
+      {},
+    );
   }
 
   const occurrencesOf = idOf(ROUTE.occurrences, pathname);
@@ -2705,6 +3258,21 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, scrub(scrubOf), {});
+  }
+
+  // Issues with one cause (#10370): the groups, a group's fix, and a press of it.
+  if (method === "POST" && pathname.endsWith(ROUTE.issueGroups)) {
+    return new HTTPResponse(200, issueGroups(body), {});
+  }
+
+  const planOf = idOf(ROUTE.issueGroupFixPlan, pathname);
+  if (method === "POST" && planOf) {
+    return new HTTPResponse(200, issueGroupFixPlan(planOf), {});
+  }
+
+  const fixOf = idOf(ROUTE.fixIssueGroup, pathname);
+  if (method === "POST" && fixOf) {
+    return new HTTPResponse(200, fixIssueGroup(fixOf, body), {});
   }
 
   if (method === "POST" && pathname.endsWith("/ai-chat/providers")) {

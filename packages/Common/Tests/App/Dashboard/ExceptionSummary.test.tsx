@@ -673,4 +673,46 @@ describe("ExceptionSummary", () => {
       screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.message),
     ).not.toHaveClass("line-clamp-3");
   });
+
+  /*
+   * The exception's line - its ID, who created it and who last modified it
+   * (#10461) - at the summary's foot: the Overview hands it.
+   */
+  test("ends with the line it is handed, under its facts, in the header's own paddings", () => {
+    renderSummary({
+      exception: exceptionWith(),
+      recordLine: <span data-testid="record-line">ID 1a2b3c4d</span>,
+    });
+
+    const header: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.header,
+    );
+    const foot: HTMLElement = screen.getByTestId(
+      EXCEPTION_SUMMARY_TEST_IDS.recordLine,
+    );
+
+    expect(header.lastElementChild).toBe(foot);
+    expect(
+      screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.facts).nextElementSibling,
+    ).toBe(foot);
+    expect(foot).toContainElement(screen.getByTestId("record-line"));
+    expect(foot).toHaveClass(
+      "border-t",
+      "border-gray-100",
+      "px-4",
+      "py-3",
+      "sm:px-5",
+    );
+  });
+
+  test("draws no foot when it is handed no line: the summary over the other sections", () => {
+    renderSummary({ exception: exceptionWith() });
+
+    expect(
+      screen.queryByTestId(EXCEPTION_SUMMARY_TEST_IDS.recordLine),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.header).lastElementChild,
+    ).toBe(screen.getByTestId(EXCEPTION_SUMMARY_TEST_IDS.facts));
+  });
 });

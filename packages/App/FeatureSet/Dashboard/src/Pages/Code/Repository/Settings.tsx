@@ -420,6 +420,12 @@ const CodeRepositorySettings: FunctionComponent<
               },
               title: "Description",
             },
+            {
+              // The repository's line: its ID, who connected it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
           modelId: modelId,
         }}

@@ -107,7 +107,7 @@ describe("UserNotificationSettingService security case defaults", () => {
     jest.restoreAllMocks();
   });
 
-  test("writes the six events with email and push on, as root", async () => {
+  test("writes the seven events with email and push on, as root", async () => {
     await UserNotificationSettingService.addSecurityCaseNotificationSettings(
       USER_ID,
       PROJECT_ID,
@@ -123,6 +123,8 @@ describe("UserNotificationSettingService security case defaults", () => {
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
       // A step of a case the person is on that stopped holding (#10340).
       NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+      // A case OneUptime AI was working, handed to people (#10352).
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
     ]);
     expect([...SECURITY_CASE_NOTIFICATION_EVENT_TYPES]).toEqual(
       Array.from(store.keys()),
@@ -161,8 +163,8 @@ describe("UserNotificationSettingService security case defaults", () => {
       PROJECT_ID,
     );
 
-    // Every event but the one the member had, once: five.
-    expect(UserNotificationSettingService.create).toHaveBeenCalledTimes(5);
+    // Every event but the one the member had, once: six.
+    expect(UserNotificationSettingService.create).toHaveBeenCalledTimes(6);
     expect(
       store.get(
         NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,

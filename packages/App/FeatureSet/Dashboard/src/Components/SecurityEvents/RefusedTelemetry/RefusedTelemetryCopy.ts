@@ -169,7 +169,7 @@ export const NO_EVENTS_BUT_REFUSED: string = translationKey(
 
 // A dashboard's Security Events widget that found nothing over such a time range: its one line.
 export const WIDGET_NO_EVENTS_BUT_REFUSED: string = translationKey(
-  "No security events for the selected time range and filters, but some of your logs or traces in it were refused and never scanned, so events from them are missing.",
+  "No security events for the selected time range and filters, but some logs or traces in it were refused and never scanned: their events are missing.",
 );
 
 // Above a case's lines.

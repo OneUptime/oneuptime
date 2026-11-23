@@ -31,6 +31,8 @@ Een criterium dat overeenkomt maar geen status wijzigt, beslist de controle toch
 
 > [!NOTE]
 > Een monitor die per host, container, schijf of interface een eigen incident of waarschuwing opent, beoordeelt bij elke controle alle criteria, zodat twee hosts tegelijk met twee verschillende criteria kunnen overeenkomen. Dat is een monitor waarvan de query een **Groeperen op** heeft, zoals een metriek- of logmonitor, of een criterium dat `*` noemt voor elke schijf of interface. Een monitor voor inkomende verzoeken die incidenten groepeert op een payloadveld, stopt toch bij de eerste overeenkomst.
+>
+> Zo'n monitor heeft toch één status, bepaald door het eerste criterium dat overeenkomt. Een criterium dat hem alleen terugbrengt naar zijn **Standaard monitorstatus** en geen incident of waarschuwing opent, wacht op de hosts die voldeden aan een criterium dat een andere status zet: het komt overeen zodra elk van hen eraan voldoet, wat de andere hosts ook doen. Tot dan behoudt de monitor zijn status, ook als geen criterium overeenkomt, terwijl de incidenten en waarschuwingen van elke host nog steeds elk apart worden opgelost.
 
 ## Wat een criterium bevat
 

@@ -9,6 +9,7 @@ import {
   TRACE_SCRUB_PATTERN_TYPES,
 } from "../../Types/Telemetry/ScrubRule";
 import {
+  normalizeScrubRuleKeys,
   ScrubRuleValidationOptions,
   validateScrubRuleCreate,
   validateScrubRuleUpdate,
@@ -43,6 +44,8 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    // The attributes it names, as a list (#10366).
+    normalizeScrubRuleKeys(createBy.data);
     validateScrubRuleCreate(createBy.data, VALIDATION_OPTIONS);
 
     return { createBy, carryForward: null };
@@ -57,6 +60,13 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdateUniqueCheck(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    /*
+     * The attributes an update names, as a list (#10366): here, not in
+     * onBeforeUpdate, which runs before the permission checks and is the
+     * base's alone (it checks the service a rule names is the project's).
+     */
+    normalizeScrubRuleKeys(updateBy.data as { attributeKeys?: unknown });
+
     await validateScrubRuleUpdate<Model>({
       updateBy: updateBy,
       findRowsAndHoldUpdateToThem: async (

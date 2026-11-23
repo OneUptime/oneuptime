@@ -24,6 +24,8 @@ import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
+import ScrubRuleValueCountsAPI from "Common/Server/API/ScrubRuleValueCountsAPI";
 import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
 import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
@@ -714,6 +716,9 @@ import SecurityCaseNoteService, {
 import SecurityCaseTaskService, {
   Service as SecurityCaseTaskServiceType,
 } from "Common/Server/Services/SecurityCaseTaskService";
+import SecurityCaseStepCheckService, {
+  Service as SecurityCaseStepCheckServiceType,
+} from "Common/Server/Services/SecurityCaseStepCheckService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1980,6 +1985,7 @@ import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -4818,6 +4824,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * What OneUptime found when it checked a case's Response Plan steps
+     * (#10340): read by the case's own readers, for the Response Plan card.
+     * Its lists let nobody create, change or delete one: only the step
+     * checks write them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStepCheck, SecurityCaseStepCheckServiceType>(
+        SecurityCaseStepCheck,
+        SecurityCaseStepCheckService,
+      ).getRouter(),
+    );
+
     // A case's evidence, and the route its files download through.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5490,6 +5510,19 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Events that read what it hides (#10433).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * The IP Address scrub rules that keep Security Events from naming an
+     * attacker's address, and Hash Instead, which switches one to Hash
+     * (#10396).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleAddressesAPI);
+
+    /*
+     * How many values each scrub rule changed in the last week, by service
+     * and version, for the scrub rule lists (#10366).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleValueCountsAPI);
 
     /*
      * What a drop or sample filter being written or turned on would take

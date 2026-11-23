@@ -155,7 +155,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           },
         });
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
+      /*
+       * A gzip body that is no JSON (Fluentd's x-ndjson, plain lines) is its
+       * inflated bytes: read as its lines (normalizeLogEntries). It went
+       * through toJSON, which a Buffer has too - { type: "Buffer", data:
+       * [...] }, stored as one log of its bytes as numbers.
+       */
+      if (
+        req.body?.toJSON &&
+        !Buffer.isBuffer(req.body) &&
+        !(req.body instanceof Uint8Array)
+      ) {
+        req.body = req.body.toJSON();
+      }
 
       const entries: Array<JSONObject> = this.normalizeLogEntries(req.body);
 

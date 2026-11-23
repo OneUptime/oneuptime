@@ -1,4 +1,5 @@
 import ResourceFeed from "../ResourceFeed/ResourceFeed";
+import IssueFeedProposalUndo from "./IssueFeedProposalUndo";
 import { getDataSecurityIssueFeedKind } from "./IssueFeedKind";
 import DataSecurityIssueFeed, {
   DataSecurityIssueFeedEventType,
@@ -30,6 +31,30 @@ const IssueFeed: FunctionComponent<ComponentProps> = (
       description="Everything that happened to this issue: when it opened, status and severity changes, who was told, and what OneUptime AI said."
       noItemsMessage="Nothing has happened on this issue yet."
       getKind={getDataSecurityIssueFeedKind}
+      moreSelect={{ dataSecurityAiProposalId: true }}
+      /*
+       * A change OneUptime AI made - on its own, or approved - is undone
+       * from its own entry (#10366), as from Data Security > AI.
+       */
+      getElement={(
+        feed: DataSecurityIssueFeed,
+        refresh: () => void,
+      ): ReactElement | undefined => {
+        if (
+          feed.dataSecurityIssueFeedEventType !==
+            DataSecurityIssueFeedEventType.AiChangeMade ||
+          !feed.dataSecurityAiProposalId
+        ) {
+          return undefined;
+        }
+
+        return (
+          <IssueFeedProposalUndo
+            proposalId={feed.dataSecurityAiProposalId}
+            onUndone={refresh}
+          />
+        );
+      }}
     />
   );
 };

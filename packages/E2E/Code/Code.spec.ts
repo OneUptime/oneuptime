@@ -4837,6 +4837,15 @@ test.describe("a task of more than 200 turns", () => {
       "Log the subscriptions handler's errors at warn, with the request's id.",
     );
 
+    /*
+     * The page above the line drawn: the first turn's reply is Markdown,
+     * drawn once its chunk has loaded (LazyMarkdownViewer) in place of two
+     * shorter grey lines, and the line moves down as it is. Scrolled to
+     * before that, the line - and turn 2 after it - ended up under the
+     * window.
+     */
+    await expect(turnReplies(page).first()).toContainText("Done for payments:");
+
     // Pressed from the keyboard, where the reader scrolled to it.
     await notShown.scrollIntoViewIfNeeded();
     await show.focus();

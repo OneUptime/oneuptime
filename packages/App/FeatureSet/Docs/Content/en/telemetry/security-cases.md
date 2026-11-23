@@ -159,7 +159,7 @@ Everyone who can see a case sees what OneUptime found. Nobody edits it: a person
 
 ### Block an address from a case
 
-A public address the case is about has a step of its own in the **Response Plan**. While a destination enforces your blocklist, such as Cloudflare, AWS WAF or a firewall that reads a list, the step names it, as in "Block 35.205.11.131 at Cloudflare." **Block for 24 Hours** blocks the address there, and the menu beside it holds **Challenge Instead**, **Block for 7 Days** and **Block Until Lifted**, which only a Security Admin, a Project Admin or a Project Owner can choose. People pass a challenge; scripts and API clients do not. On the case's **Entities** page, an address's **Block…** does the same, and asks how long.
+A public address the case is about has a step of its own in the **Response Plan**. While a destination enforces your blocklist, such as Cloudflare, [AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist) or a firewall that reads a list, the step names it, as in "Block 35.205.11.131 at Cloudflare." **Block for 24 Hours** blocks the address there, and the menu beside it holds **Challenge Instead**, **Block for 7 Days** and **Block Until Lifted**, which only a Security Admin, a Project Admin or a Project Owner can choose. People pass a challenge; scripts and API clients do not. On the case's **Entities** page, an address's **Block…** does the same, and asks how long.
 
 - A block goes through the playbook engine, as a playbook's block does: it is kept on the case's **Playbooks** page, its **Timeline** and the audit log. It waits for someone else's approval, unless you are a Security Admin, a Project Admin or a Project Owner.
 - It is refused, saying why, for an address the case's requests only claimed, one of your own or a protected one, and one a block already covers.
@@ -253,7 +253,7 @@ A Security Admin manages the custom fields and note templates, and a Security Me
 
 ## Notifications
 
-OneUptime tells people about six things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
+OneUptime tells people about seven things on a case. Nobody has to set anything up: a project that only clicked **Turn on recommended** hears about its High and Critical cases by email and push.
 
 | Notification | Who is told | By default |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime tells people about six things on a case. Nobody has to set anything up
 | Security case response target | The people on the case: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 | Security case task assigned to me | The person a task on the case is handed to, unless they took it themselves | Email and push |
 | Security case step stopped holding | The people on the case, when a step OneUptime saw done stops holding: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
+| OneUptime AI handed a security case to people | The people on the case, when OneUptime AI stops working it and says why: the person it is assigned to and the members of its team. When nobody is on it, the people told about new cases at its priority | Email and push |
 
 - Only people who can see the case are told about it: Project Owners, Project Admins, and the Security Admin, Security Member and Security Viewer roles. A role limited to some labels is told only about the cases with those labels.
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
-- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, and a step that stopped holding.
+- A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, a step that stopped holding, and a case OneUptime AI handed to people.
 - The case's **Timeline** says who was told, and when.
 
 ### Choose what you are told
@@ -303,7 +304,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 
 Each notification but a task's is posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
 
-A rule's **Updates** step picks which of these notices it posts: **New and raised cases**, **Assignments**, **Approvals needed** and **Response targets**, one box each under **Choose updates**. **Key updates only** posts every one but the assignments, for a channel that should hear only what someone has to act on. A rule saved before the step, and a new rule, posts every notice.
+A rule's **Updates** step picks which of these notices it posts: **New and raised cases**, **Assignments**, **Approvals needed**, **Response targets** and **Handed to people by OneUptime AI**, one box each under **Choose updates**. **Key updates only** posts every one but the assignments, for a channel that should hear only what someone has to act on. A rule saved before the step, and a new rule, posts every notice.
 
 ## Playbooks
 
@@ -404,7 +405,7 @@ Four steps act through the rest of OneUptime rather than a connected product:
 - **Run a runbook** starts one of your [runbooks](/docs/runbooks/index) with the case as its inputs, which a Bash step reads as environment variables (see [Call the webhook](/docs/runbooks/triggers#call-the-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` and `ONEUPTIME_INPUT_HOST` are the address, user and host the case is about, chosen by the same rule as a Contain step, and empty when it is about none. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` and `ONEUPTIME_INPUT_HOSTS` list every one the case names, as JSON, and `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` and `ONEUPTIME_INPUT_CASE_URL` say which case it is. A protected user or host is never among them. The runbook's run says it was started by **Security playbook**, for the case.
 - **Preserve the evidence** keeps the latest event of each of the case's detections, up to 100, on its **Evidence** page as it is now, and the session replays of the requests behind the case past their retention, and writes a note on the case that links each request's trace, each replay and each exception. Logs and traces cannot be kept longer than the project keeps telemetry, so export what you need before then.
 - **Post a status page announcement** posts what you wrote, as you wrote it, on the status pages you choose. Nothing from the case is added to it. Its subscribers are told only when **Notify Subscribers** is on.
-- **Fix the code with AI** asks OneUptime AI for a pull request that fixes each exception the case's requests threw, up to three. It needs OneUptime AI on, a repository that holds the code connected through the GitHub App, and a runner. Without them the step is skipped and says what is missing. Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step).
+- **Fix the code with AI** asks OneUptime AI for a pull request that fixes each exception the case's requests threw, up to three. It needs OneUptime AI on, a repository that holds the code connected through the GitHub App, and a runner. Without them the step is skipped and says what is missing. Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step). On a Data Security case whose issues one mistake made, it asks for the one pull request that fixes their cause instead, and leaves the stores made in the console for a person to approve (see [Issues with one cause](/docs/data-security/checks-and-issues#issues-with-one-cause)).
 
 ### Containment
 
@@ -461,7 +462,7 @@ The undo steps act on the users or hosts the case is about, like the steps they 
 
 Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app. A block that would meet one is refused, saying what the address is, and **Protected Entities** lists them under **Protected Automatically**. Nor are its own domains blocked: OneUptime's, Microsoft Defender's and CrowdStrike Falcon's, the hosts your monitors check, your status pages' and verified domains, and your cloud resources' DNS names and zones, nor the hash of an empty file. A block of one is refused the same way. When OneUptime cannot tell whether an address, a domain or a file is protected, it does not block it.
 
-**Enforced At** shows each place a block is enforced, and whether it holds there. A firewall or a proxy enforces it by reading a [blocklist feed](/docs/telemetry/blocklist-feeds), a secret URL it fetches every few minutes. AWS WAF enforces it in the web ACLs you pick, once you turn it on for an AWS cloud connection: [Block Addresses in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case. A block of a case's address is on its **Response Plan** too, where **Lift** ends it, and **Block Address** on a row of **Campaigns** blocks that campaign's address.
+**Enforced At** shows each place a block is enforced, and whether it holds there. A firewall or a proxy enforces it by reading a [blocklist feed](/docs/telemetry/blocklist-feeds), a secret URL it fetches every few minutes. AWS WAF enforces it in the web ACLs you pick, once you turn it on for an AWS cloud connection: [Block Addresses in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). Azure WAF and Cloud Armor enforce it in the policies you pick, once you turn it on for an Azure or Google Cloud connection: [Block Addresses in Azure WAF](/docs/telemetry/cloud-azure-waf-blocklist) and [Block Addresses in Cloud Armor](/docs/telemetry/cloud-armor-blocklist). While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case. A block of a case's address is on its **Response Plan** too, where **Lift** ends it, and **Block Address** on a row of **Campaigns** blocks that campaign's address.
 
 ### Messages
 
