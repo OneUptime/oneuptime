@@ -14,8 +14,6 @@ import {
   DELETED_BY_USER_TABLES,
   DeletedByUserTable,
   DropDeletedByUserColumns1809187480000,
-  getAddDeletedByUserColumnStatement,
-  getAddDeletedByUserForeignKeyStatement,
   getDropDeletedByUserStatement,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
 
@@ -91,6 +89,15 @@ const MODEL_TABLES: Set<string> = new Set<string>(
       return table.name || (table.target as { name: string }).name || "";
     }),
 );
+
+// What down() puts back for a table, as the generator wrote it.
+function addColumnOf(entry: DeletedByUserTable): string {
+  return `ALTER TABLE "${entry.table}" ADD "deletedByUserId" uuid`;
+}
+
+function addKeyOf(entry: DeletedByUserTable): string {
+  return `ALTER TABLE "${entry.table}" ADD CONSTRAINT "${entry.foreignKey}" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`;
+}
 
 function entryOf(table: string): DeletedByUserTable {
   const entry: DeletedByUserTable | undefined = DELETED_BY_USER_TABLES.find(
@@ -286,37 +293,33 @@ describe("down", () => {
     ].reverse();
 
     expect(statements).toEqual([
-      ...reversed.map((entry: DeletedByUserTable): string => {
-        return getAddDeletedByUserColumnStatement(entry);
-      }),
+      ...reversed.map(addColumnOf),
       ...reversed
         .filter((entry: DeletedByUserTable): boolean => {
           return entry.foreignKey !== null;
         })
-        .map((entry: DeletedByUserTable): string => {
-          return getAddDeletedByUserForeignKeyStatement({
-            table: entry.table,
-            foreignKey: entry.foreignKey!,
-          });
-        }),
+        .map(addKeyOf),
     ]);
     expect(statements).toHaveLength(563 + 561);
   });
 
-  test("each column nullable, with its key to \"User\" set to null when the person goes", () => {
-    const monitor: DeletedByUserTable = entryOf("Monitor");
+  test("each column nullable, with its key to \"User\" set to null when the person goes", async () => {
+    const { runner, statements } = recordQueries();
 
-    expect(getAddDeletedByUserColumnStatement(monitor)).toBe(
+    await new DropDeletedByUserColumns1809187480000().down(runner);
+
+    expect(statements).toContain(
       'ALTER TABLE "Monitor" ADD "deletedByUserId" uuid',
     );
-    expect(
-      getAddDeletedByUserForeignKeyStatement({
-        table: monitor.table,
-        foreignKey: monitor.foreignKey!,
-      }),
-    ).toBe(
-      `ALTER TABLE "Monitor" ADD CONSTRAINT "${monitor.foreignKey}" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+    expect(statements).toContain(
+      `ALTER TABLE "Monitor" ADD CONSTRAINT "${entryOf("Monitor").foreignKey}" FOREIGN KEY ("deletedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
     );
+    // The two global sign-in links never had a key, and are given none.
+    expect(
+      statements.filter((statement: string): boolean => {
+        return statement.startsWith('ALTER TABLE "GlobalSSOProject"');
+      }),
+    ).toEqual(['ALTER TABLE "GlobalSSOProject" ADD "deletedByUserId" uuid']);
   });
 });
 

@@ -624,20 +624,6 @@ export const getDropDeletedByUserStatement: (
   ].join(", ")}`;
 };
 
-// And back, as the generator writes it: the column, then its key.
-export const getAddDeletedByUserColumnStatement: (
-  entry: DeletedByUserTable,
-) => string = (entry: DeletedByUserTable): string => {
-  return `ALTER TABLE "${entry.table}" ADD "${DELETED_BY_USER_ID_COLUMN}" uuid`;
-};
-
-export const getAddDeletedByUserForeignKeyStatement: (data: {
-  table: string;
-  foreignKey: string;
-}) => string = (data: { table: string; foreignKey: string }): string => {
-  return `ALTER TABLE "${data.table}" ADD CONSTRAINT "${data.foreignKey}" FOREIGN KEY ("${DELETED_BY_USER_ID_COLUMN}") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`;
-};
-
 export class DropDeletedByUserColumns1809187480000
   implements MigrationInterface
 {
@@ -659,23 +645,25 @@ export class DropDeletedByUserColumns1809187480000
     }
   }
 
-  // In the generator's order: every column, last table first, then every key.
+  /*
+   * As the generator wrote it: every column, last table first, then every
+   * key - a nullable column, and a key to "User" that sets it to null.
+   */
   public async down(queryRunner: QueryRunner): Promise<void> {
     const tables: Array<DeletedByUserTable> = [
       ...DELETED_BY_USER_TABLES,
     ].reverse();
 
     for (const entry of tables) {
-      await queryRunner.query(getAddDeletedByUserColumnStatement(entry));
+      await queryRunner.query(
+        `ALTER TABLE "${entry.table}" ADD "${DELETED_BY_USER_ID_COLUMN}" uuid`,
+      );
     }
 
     for (const entry of tables) {
       if (entry.foreignKey) {
         await queryRunner.query(
-          getAddDeletedByUserForeignKeyStatement({
-            table: entry.table,
-            foreignKey: entry.foreignKey,
-          }),
+          `ALTER TABLE "${entry.table}" ADD CONSTRAINT "${entry.foreignKey}" FOREIGN KEY ("${DELETED_BY_USER_ID_COLUMN}") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
         );
       }
     }
