@@ -269,6 +269,7 @@ OneUptime tells people about seven things on a case. Nobody has to set anything 
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
+- With **Let OneUptime AI respond first** on, a new case below the priority it holds waits for OneUptime AI: people hear of it only once OneUptime AI needs them, at once and with why. See [Let OneUptime AI respond first](/docs/telemetry/security-ai#let-oneuptime-ai-respond-first).
 - A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, a step that stopped holding, and a case OneUptime AI handed to people.
 - The case's **Timeline** says who was told, and when.
 
@@ -490,6 +491,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Queued | Waiting for a worker |
 | Running | Running its steps |
 | Waiting for Approval | Held before a step that needs approval |
+| Waiting for OneUptime AI | Held before a **Page on-call** step while [OneUptime AI responds first](/docs/telemetry/security-ai#let-oneuptime-ai-respond-first) to its case |
 | Succeeded | Every step ran or was skipped, or a **Stop the run** step ended it |
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |

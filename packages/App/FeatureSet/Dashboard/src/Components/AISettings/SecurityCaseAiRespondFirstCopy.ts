@@ -58,14 +58,14 @@ export const SecurityCaseAiRespondFirstCopy: {
     "If OneUptime AI has not resolved a case by then, everyone it held the case from is alerted.",
   ),
   holdMinutes: {
-    one: translationKey("{{count}} minute"),
-    other: translationKey("{{count}} minutes"),
+    one: "{{count}} minute",
+    other: "{{count}} minutes",
   },
   neverHeld: translationKey(
     "Never held: your highest priority, several cases opening within minutes, a case whose data tries to steer an AI, and a case about an address, user or host OneUptime AI resolved in the last 24 hours. Response target alerts are never held.",
   ),
   asksFirstHint: translationKey(
-    "OneUptime AI asks before it blocks or contains anything, so it alerts people as soon as it asks. Let it block addresses on its own to contain scanners with nobody woken.",
+    "OneUptime AI asks before it blocks or contains anything, so it alerts people as soon as it asks. Let it block addresses on its own to contain scanners without waking anyone.",
   ),
 };
 

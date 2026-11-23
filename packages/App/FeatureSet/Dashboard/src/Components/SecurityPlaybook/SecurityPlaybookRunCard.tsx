@@ -342,7 +342,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
               data-testid="security-playbook-run-waiting-for-ai"
             >
               {translator.translateText(
-                "This run waits at its Page On-Call step while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.",
+                "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.",
               )}
             </p>
           ) : (

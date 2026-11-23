@@ -295,8 +295,8 @@ export function getHoldEndedMarkdown(data: {
   switch (data.outcome) {
     case SecurityCaseAiHoldOutcome.Resolved:
       return data.isClosed
-        ? mdText`✅ **Nobody had to be alerted.** The case was closed while ${ai} responded first. Its channels get one summary, and the Page On-Call steps that waited are skipped.`
-        : mdText`✅ **Nobody had to be alerted.** The case was contained, every step checked, while ${ai} responded first. Its channels get one summary, and the Page On-Call steps that waited are skipped.`;
+        ? mdText`✅ **Nobody had to be alerted.** The case was closed while ${ai} responded first. Its channels get one summary, and the playbook steps waiting to page on-call are skipped.`
+        : mdText`✅ **Nobody had to be alerted.** The case was contained, every step checked, while ${ai} responded first. Its channels get one summary, and the playbook steps waiting to page on-call are skipped.`;
     case SecurityCaseAiHoldOutcome.NeedsApproval:
       return mdText`🔔 **People were alerted.** ${ai} asked a person to approve a step. ${sent}`;
     case SecurityCaseAiHoldOutcome.HandedOff:
@@ -320,7 +320,7 @@ export function getHoldEndedMarkdown(data: {
     case SecurityCaseAiHoldOutcome.RoseInPriority:
       return mdText`🔔 **People were alerted.** The case rose to a priority that alerts people at once. ${sent}`;
     case SecurityCaseAiHoldOutcome.TakenByPerson:
-      return mdText`🙋 **A person took the case.** Nobody else was alerted, and the Page On-Call steps that waited are skipped.`;
+      return mdText`🙋 **A person took the case.** Nobody else was alerted, and the playbook steps waiting to page on-call are skipped.`;
     default:
       return mdText`${ai} is working the case before anyone is alerted.`;
   }

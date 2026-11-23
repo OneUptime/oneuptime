@@ -58,6 +58,19 @@ import { SECURITY_CASE_AI_ACTION_REASON_SENTENCES } from "Common/Types/SecurityC
 import { SecurityBlockDuration } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import {
+  SECURITY_CASE_AI_HOLD_ATTACK_CASE_COUNT,
+  SECURITY_CASE_AI_HOLD_ATTACK_WINDOW_IN_MINUTES,
+  SECURITY_CASE_AI_HOLD_MINUTES_CHOICES,
+  SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT,
+  SECURITY_CASE_AI_HOLD_QUIET_SKIPS,
+  SECURITY_CASE_AI_HOLD_RECURRENCE_ENTITY_TYPES,
+  SECURITY_CASE_AI_HOLD_RECURRENCE_WINDOW_IN_HOURS,
+  SecurityCaseAiHoldSkip,
+} from "Common/Types/SecurityCase/SecurityCaseAiHold";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import { EVERY_MONDAY_MORNING } from "Common/Utils/CronTime";
+import { SecurityCaseAiRespondFirstCopy } from "../../../FeatureSet/Dashboard/src/Components/AISettings/SecurityCaseAiRespondFirstCopy";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -758,5 +771,157 @@ describe("OneUptime AI in Security docs", () => {
       expect(bar).toContain(`translator.translateText("${label}")`);
       expect(section).toContain(`**${label}**`);
     }
+  });
+
+  // ---------- Let OneUptime AI respond first (#10353) ----------
+
+  it("turns responding first on where the card has it, in the card's words, off to start, for Project Owner and Project Admin", () => {
+    const section: string = flat(sectionOf("Let OneUptime AI respond first"));
+    const [triage, work] = SECURITY_AI_SWITCHES as [
+      ProjectAiSwitchDefinition<string>,
+      ProjectAiSwitchDefinition<string>,
+    ];
+    const projectService: string = source(
+      "Common/Server/Services/ProjectService.ts",
+    );
+    const defaults: string = projectService.slice(
+      projectService.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+    );
+
+    expect(section).toContain(
+      `Under **${SecurityCaseAiRespondFirstCopy.cardTitle}**, on **Products → Security Events → AI → Settings**, turn on **${SecurityCaseAiRespondFirstCopy.switchTitle}**:`,
+    );
+    expect(section).toContain(
+      `It is offered while **${triage.title}** and **${work.title}** are on.`,
+    );
+
+    // Off for every project, a new one too.
+    expect(
+      new Project().getTableColumnMetadata("enableSecurityCaseAiRespondsFirst")
+        .defaultValue,
+    ).toBe(false);
+    expect(defaults.slice(0, defaults.indexOf("];"))).not.toContain(
+      '"enableSecurityCaseAiRespondsFirst"',
+    );
+    expect(section).toContain(
+      "It starts off and saves as you change it. Project Owner and Project Admin can change it.",
+    );
+
+    for (const column of [
+      "enableSecurityCaseAiRespondsFirst",
+      "securityCaseAiHoldBelowPriorityId",
+      "securityCaseAiHoldMinutes",
+    ]) {
+      expect({
+        column,
+        update: new Project().getColumnAccessControlFor(column)?.update,
+      }).toEqual({
+        column,
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+      });
+    }
+  });
+
+  it("names its two choices as the card draws them, with the hold times it offers and where each starts", () => {
+    const section: string = flat(sectionOf("Let OneUptime AI respond first"));
+    const choices: Array<number> = [...SECURITY_CASE_AI_HOLD_MINUTES_CHOICES];
+    const last: number = choices.pop() as number;
+
+    expect(section).toContain(
+      `- **${SecurityCaseAiRespondFirstCopy.thresholdTitle}**: the priority a case must be below to be held. It is High until you pick another.`,
+    );
+    // The priority a project has not picked: the built-in High.
+    expect(
+      flat(source("Common/Utils/SecurityCase/SecurityCaseAiHoldPriorities.ts")),
+    ).toContain(
+      "return SecurityCasePriorities.getPriorityOfLevel( data.priorities, SecurityCasePriorityLevel.High, );",
+    );
+
+    expect(section).toContain(
+      `- **${SecurityCaseAiRespondFirstCopy.holdTitle}**: how long a case is held at most, ${choices.join(", ")} or ${last} minutes. It starts at ${SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT} minutes.`,
+    );
+    expect(
+      new Project().getTableColumnMetadata("securityCaseAiHoldMinutes")
+        .defaultValue,
+    ).toBe(SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT);
+  });
+
+  it("names the held case's notice, its button and the run that waits as the Dashboard draws them", () => {
+    const section: string = flat(sectionOf("Let OneUptime AI respond first"));
+    const notice: string = flat(
+      source(`${DASHBOARD}/Components/AI/AiHoldNotice.tsx`),
+    );
+    const caseNotice: string = source(
+      `${DASHBOARD}/Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice.tsx`,
+    );
+
+    expect(notice).toContain(
+      'AI_HOLD_NOTICE_TITLE: string = translationKey( "OneUptime AI is on it", );',
+    );
+    expect(notice).toContain(
+      'PAGE_NOW_TITLE: string = translationKey("Page now");',
+    );
+    expect(caseNotice).toContain("title={AI_HOLD_NOTICE_TITLE}");
+    expect(caseNotice).toContain("title: PAGE_NOW_TITLE,");
+    expect(section).toContain(
+      "The case says **OneUptime AI is on it**, with when people are alerted, and **Page now** alerts them at once.",
+    );
+    expect(SecurityPlaybookRunStatus.WaitingForOneUptimeAi).toBe(
+      "Waiting for OneUptime AI",
+    );
+    expect(section).toContain(
+      "A playbook run whose page waits is **Waiting for OneUptime AI**.",
+    );
+  });
+
+  it("says what is never held, with the numbers the code holds to", () => {
+    const section: string = flat(sectionOf("Let OneUptime AI respond first"));
+
+    expect(section).toContain(
+      `- ${SECURITY_CASE_AI_HOLD_ATTACK_CASE_COUNT} other cases opened in the ${SECURITY_CASE_AI_HOLD_ATTACK_WINDOW_IN_MINUTES} minutes before it, which looks like an active attack: the cases held then go to people too;`,
+    );
+    expect(SECURITY_CASE_AI_HOLD_RECURRENCE_ENTITY_TYPES).toEqual([
+      SecurityEntityType.IpAddress,
+      SecurityEntityType.User,
+      SecurityEntityType.Host,
+    ]);
+    expect(section).toContain(
+      `- it is about an address, user or host of a case OneUptime AI resolved in the last ${SECURITY_CASE_AI_HOLD_RECURRENCE_WINDOW_IN_HOURS} hours, since what it did did not hold;`,
+    );
+
+    // What the timeline says nothing of: the page names each.
+    expect([...SECURITY_CASE_AI_HOLD_QUIET_SKIPS].sort()).toEqual(
+      [
+        SecurityCaseAiHoldSkip.NotOn,
+        SecurityCaseAiHoldSkip.SetupTest,
+        SecurityCaseAiHoldSkip.NotOpenedByDetection,
+        SecurityCaseAiHoldSkip.AtOrAboveThreshold,
+        SecurityCaseAiHoldSkip.HighestPriority,
+      ].sort(),
+    );
+    expect(section).toContain(
+      "The case's timeline says why it was not held, except for a case at or above the priority you picked, a case a person opened and the test attack's case.",
+    );
+  });
+
+  it("says who gets the weekly email, and when: the digest's own permissions and schedule", () => {
+    const section: string = flat(sectionOf("The weekly email"));
+    const digest: string = flat(
+      source("Common/Server/Utils/SecurityCase/SecurityCaseAiWeeklyDigest.ts"),
+    );
+    const job: string = source(
+      "App/FeatureSet/Workers/Jobs/SecurityCases/SendAiWeeklyDigest.ts",
+    );
+
+    expect(digest).toContain(
+      "SECURITY_CASE_AI_DIGEST_PERMISSIONS: ReadonlyArray<Permission> = [ Permission.ProjectOwner, Permission.SecurityAdmin, ];",
+    );
+    expect(job).toContain("schedule: EVERY_MONDAY_MORNING,");
+    // Minute, hour, day of month, month, day of the week: 1 is Monday.
+    expect(EVERY_MONDAY_MORNING.split(" ")[4]).toBe("1");
+    expect(section).toContain(
+      "Every Monday, Project Owners and Security Admins who can read security cases get one email",
+    );
+    expect(section).toContain("A week OneUptime AI did nothing sends no email.");
   });
 });
