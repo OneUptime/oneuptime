@@ -41,6 +41,14 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../Types/Database/AccessControl/OwnerOnlyColumn";
 import { isAccountDateColumn } from "../../Types/Database/AccessControl/AccountDateColumns";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
+import {
+  CREATED_BY_ACTOR_ID_COLUMN,
+  CREATED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_AT_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_ID_COLUMN,
+  LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN,
+  LAST_MODIFIED_BY_USER_ID_COLUMN,
+} from "../../Types/Database/RecordActor";
 
 export type ModelSchemaType = ZodSchema;
 
@@ -190,6 +198,36 @@ const RELATION_SORT_FIELDS: Map<string, Array<string>> = new Map();
 
 // What a related record is called by, after the column its model declares.
 const NAME_FIELDS: ReadonlyArray<string> = ["name", "title"];
+
+/*
+ * WHAT CREATED A RECORD AND WHO LAST MODIFIED IT, DESCRIBED ONCE (#10527).
+ *
+ * Every record keeps them, on the base model (Types/Database/RecordActor,
+ * #10290). Written on each resource the way a column is, with its words and
+ * its permissions on each, they were the same six descriptions over a
+ * thousand times, 4.4 MB of the spec. So each is a schema of its own,
+ * published once by these names, and a resource's model and read schemas
+ * refer to it (getRecordActorSchema): `"lastModifiedAt": {"$ref":
+ * "#/components/schemas/RecordLastModifiedAt"}`. Read only, as only
+ * OneUptime writes them. Who may read them is the record's own readers who
+ * may read who created it (DatabaseBaseModel.getColumnAccessControlForAllColumns),
+ * as the API reference says on each resource.
+ *
+ * The relation over the person, lastModifiedByUser, is a relation like
+ * createdByUser: no field of a record's schema, and in its sort schema as
+ * the person's fields, by reference already.
+ */
+export const RECORD_ACTOR_SCHEMA_NAMES: Readonly<Record<string, string>> = {
+  [CREATED_BY_ACTOR_TYPE_COLUMN]: "RecordCreatedByActorType",
+  [CREATED_BY_ACTOR_ID_COLUMN]: "RecordCreatedByActorId",
+  [LAST_MODIFIED_AT_COLUMN]: "RecordLastModifiedAt",
+  [LAST_MODIFIED_BY_ACTOR_TYPE_COLUMN]: "RecordLastModifiedByActorType",
+  [LAST_MODIFIED_BY_ACTOR_ID_COLUMN]: "RecordLastModifiedByActorId",
+  [LAST_MODIFIED_BY_USER_ID_COLUMN]: "RecordLastModifiedByUserId",
+};
+
+// Each built once, by its name in RECORD_ACTOR_SCHEMA_NAMES.
+const RECORD_ACTOR_SCHEMAS: Map<string, ZodTypes.ZodTypeAny> = new Map();
 
 const EXAMPLE_ID: string = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -381,6 +419,62 @@ export class ModelSchema extends BaseSchema {
     };
   }
 
+  /*
+   * The shared schema of a column that says what created a record or who
+   * last modified it (RECORD_ACTOR_SCHEMA_NAMES), or null for any other
+   * column: the column's type, its own words once, read only, under the
+   * name the spec publishes it by. Built from the base model's column the
+   * first time it is asked for, so every resource refers to the same one.
+   */
+  public static getRecordActorSchema(data: {
+    key: string;
+    column: TableColumnMetadata;
+    relation?: ModelRelationReference | undefined;
+  }): ZodTypes.ZodTypeAny | null {
+    const name: string | undefined = RECORD_ACTOR_SCHEMA_NAMES[data.key];
+
+    if (!name || data.column.type === TableColumnType.Entity) {
+      return null;
+    }
+
+    let schema: ZodTypes.ZodTypeAny | undefined = RECORD_ACTOR_SCHEMAS.get(name);
+
+    if (!schema) {
+      schema = this.annotateColumn({
+        zodType: this.getZodTypeForColumn(data.column, "read"),
+        description: data.column.description || data.column.title || "",
+        relation: data.relation,
+      }).openapi(name);
+
+      RECORD_ACTOR_SCHEMAS.set(name, schema);
+    }
+
+    return schema;
+  }
+
+  /*
+   * A column's description in a record's schema: its own words, then who
+   * may create, read and update it - unless only OneUptime writes it. A
+   * read-only field says so (readOnly), and "Create: [No access], Update:
+   * [No access]" on each of them said it again, on 11,397 fields and 3.4 MB
+   * of the spec (#10527). Who may read a record says who may read its
+   * fields; the API reference lists each field's readers.
+   */
+  private static describeColumn(
+    model: DatabaseBaseModel,
+    key: string,
+    column: TableColumnMetadata,
+  ): string {
+    const words: string = column.description || column.title || "";
+
+    return ModelSchema.describeColumnWithPermissions(
+      words,
+      ModelSchema.isWrittenOnlyByOneUptime(column)
+        ? ""
+        : this.getColumnPermissionsDescription(model, key),
+    );
+  }
+
   public static getModelSchema(data: {
     modelType: new () => DatabaseBaseModel;
   }): ModelSchemaType {
@@ -422,6 +516,20 @@ export class ModelSchema extends BaseSchema {
           continue;
         }
       }
+
+      // Described once, for every resource (getRecordActorSchema).
+      const recordActorSchema: ZodTypes.ZodTypeAny | null =
+        this.getRecordActorSchema({
+          key: key,
+          column: column,
+          relation: relations[key],
+        });
+
+      if (recordActorSchema) {
+        shape[key] = recordActorSchema.optional();
+        continue;
+      }
+
       let zodType: ZodTypes.ZodTypeAny;
 
       if (column.type === TableColumnType.ObjectID) {
@@ -701,26 +809,10 @@ export class ModelSchema extends BaseSchema {
         zodType = zodType.optional();
       }
 
-      // add title and description to the schema
-      let finalDescription: string = "";
-
-      // Add column description first if it exists
-      if (column.description) {
-        finalDescription = column.description;
-      } else if (column.title) {
-        finalDescription = column.title;
-      }
-
-      // The column's description, then who may read and write it.
-      finalDescription = ModelSchema.describeColumnWithPermissions(
-        finalDescription,
-        this.getColumnPermissionsDescription(model, key),
-      );
-
-      // Set the final combined description
+      // The column's words, then who may write and read it (describeColumn).
       zodType = this.annotateColumn({
         zodType: zodType,
-        description: finalDescription,
+        description: this.describeColumn(model, key, column),
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
         serverOwned: column.serverOwned,
@@ -1775,6 +1867,25 @@ export class ModelSchema extends BaseSchema {
         }
       }
 
+      // Described once, for every resource (getRecordActorSchema).
+      if (
+        data.schemaType === "read" &&
+        !data.disableOpenApiSchema &&
+        !isShownOnceHere
+      ) {
+        const recordActorSchema: ZodTypes.ZodTypeAny | null =
+          this.getRecordActorSchema({
+            key: key,
+            column: column,
+            relation: relations[key],
+          });
+
+        if (recordActorSchema) {
+          shape[key] = recordActorSchema.optional();
+          continue;
+        }
+      }
+
       let zodType: ZodTypes.ZodTypeAny = isShownOnceHere
         ? this.getShownOnceZodType(column)
         : this.getZodTypeForColumn(
@@ -1814,26 +1925,10 @@ export class ModelSchema extends BaseSchema {
         zodType = zodType.optional();
       }
 
-      // Add title and description to the schema
-      let finalDescription: string = "";
-
-      // Add column description first if it exists
-      if (column.description) {
-        finalDescription = column.description;
-      } else if (column.title) {
-        finalDescription = column.title;
-      }
-
-      // The column's description, then who may read and write it.
-      finalDescription = ModelSchema.describeColumnWithPermissions(
-        finalDescription,
-        this.getColumnPermissionsDescription(model, key),
-      );
-
-      // Set the final combined description
+      // The column's words, then who may write and read it (describeColumn).
       zodType = this.annotateColumn({
         zodType: zodType,
-        description: finalDescription,
+        description: this.describeColumn(model, key, column),
         relation: relations[key],
         changesOnlyWith: column.changesOnlyWith,
         serverOwned: column.serverOwned,
