@@ -281,11 +281,18 @@ export const isArgumentShown: IsArgumentShownFunction = (
     return true;
   }
 
-  const other: unknown = values ? values[rule.argumentId] : undefined;
+  const value: unknown = values ? values[rule.argumentId] : undefined;
 
-  if (other === undefined || other === null || other === "") {
+  if (value === undefined || value === null || value === "") {
     return Boolean(rule.includesEmpty);
   }
+
+  /*
+   * A switch (True or False) is read as the word it is stored as: an API
+   * step's CA certificate is shown while Allow self-signed certificates is
+   * "false" (#10440).
+   */
+  const other: unknown = typeof value === "boolean" ? String(value) : value;
 
   if (typeof other !== "string") {
     return false;

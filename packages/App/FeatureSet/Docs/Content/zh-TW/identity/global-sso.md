@@ -106,7 +106,7 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 
 ## 重新登入以確認是您本人
 
-只透過全域提供者登入的人，在變更登入方式或刪除帳戶之前，用 **重新登入** 確認是本人：OneUptime 會把此人送回提供者，SAML 帶上 `ForceAuthn="true"`，OpenID Connect 帶上 `prompt=login` 和 `max_age=0`，並且只有當提供者在 `AuthnInstant` 或 `auth_time` 中告知此人在那一刻或之後登入時才算數。新增、變更或刪除全域提供者時，會先要求您[確認是本人](/docs/introduction/your-account#確認是你本人)。
+只透過全域提供者登入的人，在變更登入方式或刪除帳戶之前，用 **重新登入** 確認是本人：OneUptime 會把此人送回提供者，SAML 帶上 `ForceAuthn="true"`，OpenID Connect 帶上 `prompt=login` 和 `max_age=0`（對 Microsoft Entra ID 只帶上 `prompt=login`），並且只有當提供者在 `AuthnInstant` 或 `auth_time` 中告知此人在那一刻或之後登入時才算數。新增、變更或刪除全域提供者時，會先要求您[確認是本人](/docs/introduction/your-account#確認是你本人)。
 
 在 Okta、Microsoft Entra ID、Keycloak 與 Google Workspace 中要設定什麼，請見 [SSO](/docs/identity/sso#重新登入以確認是您本人) 頁面。
 

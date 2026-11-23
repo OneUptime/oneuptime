@@ -14,6 +14,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import { WorkflowRoute } from "../../../ServiceRoute";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Protocol from "../../../Types/API/Protocol";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
@@ -90,8 +91,11 @@ import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCaseNoteService from "../../Services/SecurityCaseNoteService";
 import SecurityCaseTaskService from "../../Services/SecurityCaseTaskService";
 import SecurityCaseService, {
+  SECURITY_CASE_AI_ACTOR_KEY,
   SECURITY_CASE_PLAYBOOK_NAME_KEY,
 } from "../../Services/SecurityCaseService";
+import ProductBrandingText from "../ProductBrandingText";
+import { SecurityBlockSource } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityEventConnectionService from "../../Services/SecurityEventConnectionService";
 import SecurityEventService, {
   ObservableActivity,
@@ -102,7 +106,6 @@ import TeamService from "../../Services/TeamService";
 import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../Services/ThreatIntelIndicatorService";
-import UserService from "../../Services/UserService";
 import WebhookService from "../../Services/WebhookService";
 import WorkflowService from "../../Services/WorkflowService";
 import Markdown, { MarkdownContentType } from "../../Types/Markdown";
@@ -118,9 +121,12 @@ import SecurityPlaybookAddressBlocks from "./SecurityPlaybookAddressBlocks";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
 import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
 import SecurityPlaybookDataStoreResponse from "./SecurityPlaybookDataStoreResponse";
+import SecurityPlaybookNotEmailed, {
+  NotEmailed,
+} from "./SecurityPlaybookNotEmailed";
 import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
-import PendingInviteeProfiles from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../Feed/FeedPersonName";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import { AiAffectedResourceRef } from "../../../Types/AI/AiAffectedResources";
@@ -150,6 +156,11 @@ export interface PlaybookStepContext {
    * Blocklist page is.
    */
   isOneStepRun?: boolean | undefined;
+  /*
+   * A step OneUptime AI ran while working the case (#10352): a change of the
+   * case reads as OneUptime AI's, and a block it makes is OneUptime AI's.
+   */
+  isOneUptimeAi?: boolean | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -324,9 +335,11 @@ export default class SecurityPlaybookActions {
     await SecurityCaseService.updateOneById({
       id: context.securityCase.id!,
       data: data,
-      miscDataProps: {
-        [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
-      },
+      miscDataProps: context.isOneUptimeAi
+        ? { [SECURITY_CASE_AI_ACTOR_KEY]: true }
+        : {
+            [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
+          },
       props: ROOT,
     });
   }
@@ -567,18 +580,6 @@ export default class SecurityPlaybookActions {
         )[0]
       : undefined;
 
-    /*
-     * The case's timeline names them as the project knows them: someone
-     * only invited by the name typed for them, else their address - never
-     * their account's own name, which it does not see until they join
-     * (#9823, #9934). A step can hand tasks to someone only invited: the
-     * people pickers offer them.
-     */
-    await PendingInviteeProfiles.nameInProject({
-      users: [assignee],
-      projectId: context.projectId,
-    });
-
     for (const title of toAdd) {
       const task: SecurityCaseTask = new SecurityCaseTask();
       task.projectId = context.projectId;
@@ -596,8 +597,26 @@ export default class SecurityPlaybookActions {
     const added: MarkdownText = mdText`Added ${String(toAdd.length)} task${toAdd.length === 1 ? "" : "s"}`;
 
     if (assignee) {
+      /*
+       * The step's line on the case's timeline names them as every feed
+       * entry names people (FeedPersonName, #10681). A step can hand tasks
+       * to someone only invited - the people pickers offer them - who is
+       * named by the name typed with their invitation, else "someone who
+       * hasn't joined the project yet", never by their account's own name
+       * (#9823, #9934); a member by their name, else the part of their
+       * address before the "@". Never an address. They were read already,
+       * name and address, so only whether they are invited is read.
+       */
+      const names: Map<string, string> = await FeedPersonName.readNames({
+        users: [assignee],
+        projectId: context.projectId,
+      });
+      const assigneeName: string | undefined = assignee.id
+        ? names.get(assignee.id.toString().toLowerCase())
+        : undefined;
+
       return succeeded(
-        mdText`${added} for **${assignee.name?.toString() || assignee.email?.toString() || ""}**.`,
+        mdText`${added} for **${assigneeName || FEED_NOBODY_NAMED}**.`,
         { hasWrittenOwnFeed: true },
       );
     }
@@ -808,7 +827,7 @@ export default class SecurityPlaybookActions {
     );
     const subject: string = `[${values.number}] ${values.title}`;
 
-    const notSent: Array<string> = [];
+    const notEmailed: Array<NotEmailed> = [];
 
     for (const user of people.values()) {
       try {
@@ -830,9 +849,15 @@ export default class SecurityPlaybookActions {
           },
         );
       } catch (error) {
-        notSent.push(`${user.email?.toString()}: ${errorMessage(error)}`);
+        notEmailed.push({ user: user, reason: errorMessage(error) });
       }
     }
+
+    // Who could not be emailed, by name: the step's list, and its error.
+    const notSent: Array<string> = await SecurityPlaybookNotEmailed.describe({
+      projectId: context.projectId,
+      notEmailed: notEmailed,
+    });
 
     const sent: number = people.size - notSent.length;
 
@@ -1049,7 +1074,10 @@ export default class SecurityPlaybookActions {
         projectId: context.projectId,
         securityCase: context.securityCase,
         incidentSeverityId: severities[0]!.id!,
-        playbookName: context.playbookName,
+        playbookName: context.isOneUptimeAi ? undefined : context.playbookName,
+        aiName: context.isOneUptimeAi
+          ? `${ProductBrandingText.getProductName()} AI`
+          : undefined,
       });
 
     return succeeded(mdText`Declared incident **${result.incidentNumber}**.`, {
@@ -1100,6 +1128,8 @@ export default class SecurityPlaybookActions {
     securityCase: SecurityCase;
     incidentSeverityId: ObjectID;
     playbookName?: string | undefined;
+    // OneUptime AI declares it, working the case (#10352): its name.
+    aiName?: string | undefined;
     userId?: ObjectID | undefined;
     /*
      * The person declaring it from the case's page. The incident is created
@@ -1210,6 +1240,7 @@ export default class SecurityPlaybookActions {
         incidentNumber,
         incidentUrl: incidentUrl.toString(),
         playbookName: data.playbookName,
+        aiName: data.aiName,
       }).toString(),
       eventType: SecurityCaseFeedEventType.IncidentDeclared,
       userId: data.userId,
@@ -1240,17 +1271,43 @@ export default class SecurityPlaybookActions {
     );
     const payload: JSONObject = await this.getCasePayload(context);
 
-    // WebhookService refuses private and internal addresses and signs the body.
+    /*
+     * WebhookService refuses private and internal addresses and signs the
+     * body. The receiver's certificate is checked as the step says: as every
+     * request checks one, by the step's CA certificate alone, or not at all
+     * (#10440) - for this request alone.
+     */
     const response: unknown = await WebhookService.sendWebhook(
       {
         url: config.url,
         eventType: "security.case.playbook",
         payload,
+        certificates: {
+          allowSelfSignedCertificates:
+            config.allowSelfSignedCertificates === true,
+          ...(config.caCertificate
+            ? { caCertificate: config.caCertificate }
+            : {}),
+        },
       },
       {
         projectId: context.projectId,
       },
     );
+
+    if (response instanceof HTTPErrorResponse) {
+      /*
+       * What the sender found, when it says: a certificate it refused says
+       * which of the step's settings would let it through.
+       */
+      const reason: string = (response.message || "").trim();
+
+      return failed(
+        reason && reason !== "Server Error."
+          ? `The webhook could not be sent to ${config.url}: ${reason}`
+          : `The webhook could not be sent to ${config.url}.`,
+      );
+    }
 
     if (
       response &&
@@ -1424,7 +1481,9 @@ export default class SecurityPlaybookActions {
       return await SecurityPlaybookAddressBlocks.lift({
         projectId: context.projectId,
         targets,
-        reason: `Lifted by playbook ${context.playbookName}.`,
+        reason: context.isOneUptimeAi
+          ? `Lifted by ${ProductBrandingText.getProductName()} AI, closing the case.`
+          : `Lifted by playbook ${context.playbookName}.`,
       });
     }
 
@@ -1439,6 +1498,10 @@ export default class SecurityPlaybookActions {
         context.isOneStepRun && context.triggeredByUserId
           ? context.triggeredByUserId
           : undefined,
+      // OneUptime AI's own block, working the case (#10352).
+      ...(context.isOneUptimeAi
+        ? { source: SecurityBlockSource.OneUptimeAi }
+        : {}),
     });
   }
 
@@ -1497,24 +1560,22 @@ export default class SecurityPlaybookActions {
     let assignee: string = "Unassigned";
 
     if (securityCase.assignedToUserId) {
-      const user: User | null = await UserService.findOneById({
-        id: securityCase.assignedToUserId,
-        select: { name: true, email: true },
-        props: ROOT,
-      });
-
       /*
-       * {{assignee}} goes into notes, emails, channel posts, incidents and
-       * pages the project's people read: someone the case is assigned to
-       * but who has only been invited is named as the project knows them,
-       * by the name typed for them, else their address (#9934).
+       * {{case.assignee}} goes into notes, emails, channel posts, the alert
+       * a page opens and runbooks, as does the summary a message without a
+       * template of its own sends: the person is named as every feed entry
+       * and channel line names people (FeedPersonName, #10681). Someone the
+       * case is assigned to who has only been invited by the name typed
+       * with their invitation, else "someone who hasn't joined the project
+       * yet", never by their account's own name (#9934); a member by their
+       * name, else the part of their address before the "@". Never an
+       * address.
        */
-      await PendingInviteeProfiles.nameInProject({
-        users: [user],
-        projectId: context.projectId,
-      });
-
-      assignee = user?.name?.toString() || user?.email?.toString() || assignee;
+      assignee =
+        (await FeedPersonName.getText({
+          userId: securityCase.assignedToUserId,
+          projectId: context.projectId,
+        })) || assignee;
     } else if (securityCase.assignedToTeamId) {
       const team: Team | null = await TeamService.findOneById({
         id: securityCase.assignedToTeamId,

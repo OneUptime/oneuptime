@@ -137,6 +137,10 @@ const SETTINGS: string = readCommonSource(
 const QUEUE: string = readAppSource(
   "FeatureSet/Telemetry/Services/Queue/TelemetryQueueService.ts",
 );
+// The syslog a probe forwards (#10716), which never reaches the queue.
+const PROBE_SYSLOG: string = readAppSource(
+  "FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+);
 // Team and label budgets (#6386): the Usage page's table, and where they count.
 const TEAM_LABEL_TABLE: string = readDashboardSource(
   "Components/TelemetryIngestionBudget/TeamLabelBudgetsTable.tsx",
@@ -146,6 +150,13 @@ const PROCESS_TELEMETRY: string = readAppSource(
 );
 const ATTRIBUTION_COUNTER: string = readCommonSource(
   "Server/Utils/Telemetry/TelemetryIngestAttributionCounter.ts",
+);
+// Whose a resource is (#10101): the settings the worker reads, and the read scope.
+const ATTRIBUTION_SETTINGS: string = readCommonSource(
+  "Server/Utils/Telemetry/TelemetryIngestAttributionSettings.ts",
+);
+const READ_SCOPE: string = readCommonSource(
+  "Server/Types/AnalyticsDatabase/ModelPermission.ts",
 );
 
 // Code with no whitespace, so a check holds however prettier wraps it.
@@ -515,7 +526,7 @@ describe("a team's or a label's budget", () => {
     );
   });
 
-  test("counts the OTLP logs, traces, metrics and profiles of the services it owns or is on, and nothing else", () => {
+  test("counts the logs, traces, metrics and profiles of every resource it owns or is on, over OTLP and from Fluent Bit, Fluentd and syslog", () => {
     expect([...TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SIGNALS]).toEqual([
       ProductType.Logs,
       ProductType.Traces,
@@ -523,8 +534,8 @@ describe("a team's or a label's budget", () => {
       ProductType.Profiles,
     ]);
 
-    // The worker attributes the OTLP jobs, and only those.
-    for (const type of ["Logs", "Traces", "Metrics", "Profiles"]) {
+    // The worker's case for each kind of job, up to the next one.
+    const caseOf: (type: string) => string = (type: string): string => {
       const at: number = PROCESS_TELEMETRY.indexOf(
         `case TelemetryType.${type}: {`,
       );
@@ -533,34 +544,77 @@ describe("a team's or a label's budget", () => {
         at + 1,
       );
 
+      expect({ type, found: at > 0 }).toEqual({ type, found: true });
+
+      return PROCESS_TELEMETRY.slice(at, next);
+    };
+
+    // The worker attributes the OTLP jobs, and Fluent's and syslog's (#10102).
+    for (const [type, attributedBy] of [
+      ["Logs", "resolveAttributedOtelRequest"],
+      ["Traces", "resolveAttributedOtelRequest"],
+      ["Metrics", "resolveAttributedOtelRequest"],
+      ["Profiles", "resolveAttributedOtelRequest"],
+      ["Syslog", "resolveAttributedRequestBody"],
+      ["FluentLogs", "resolveAttributedRequestBody"],
+    ] as Array<[string, string]>) {
       expect({
         type,
-        attributed: PROCESS_TELEMETRY.slice(at, next).includes(
-          "resolveAttributedOtelRequest",
-        ),
+        attributed: caseOf(type).includes(attributedBy),
       }).toEqual({ type, attributed: true });
     }
 
-    for (const type of ["Syslog", "FluentLogs", "SecurityEvents"]) {
-      const at: number = PROCESS_TELEMETRY.indexOf(
-        `case TelemetryType.${type}: {`,
-      );
-      const next: number = PROCESS_TELEMETRY.indexOf(
-        "case TelemetryType.",
-        at + 1,
-      );
+    // Security events are not: the project's and the key's budgets only.
+    expect(caseOf("SecurityEvents").includes("Attribution")).toBe(false);
 
-      expect({
-        type,
-        attributed: PROCESS_TELEMETRY.slice(at, next).includes("Attribution"),
-      }).toEqual({ type, attributed: false });
-    }
+    /*
+     * Every kind of resource telemetry is filed under (#10101): the owner
+     * table registry's telemetry-owning kinds, read for their owner teams
+     * and their labels.
+     */
+    expect(compact(ATTRIBUTION_SETTINGS)).toContain(
+      compact("return Boolean(entry.canOwnTelemetry);"),
+    );
+    expect(compact(ATTRIBUTION_SETTINGS)).toContain(
+      compact("kind.ownerTeamService.findAllBy("),
+    );
+    expect(compact(ATTRIBUTION_SETTINGS)).toContain(
+      compact("query: { projectId: projectId, labels: labelIds }"),
+    );
+
+    // #10716: the syslog a probe forwards, offered by each device's service.
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("await TelemetryIngestAttribution.forBatch({"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("budget.attribution.admitResource({"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("await budget.attribution?.settle();"),
+    );
 
     expect(ENGLISH).toContain(
-      "The logs, traces, metrics and profiles that the services the team owns, or the services with the label, send over OpenTelemetry (OTLP).",
+      "The logs, traces, metrics and profiles of every service, host, cluster and other resource the team owns or the label is on, whether they are sent over OpenTelemetry (OTLP) or, for logs, from Fluent Bit, Fluentd or syslog, including the syslog network devices send to a probe.",
     );
     expect(ENGLISH).toContain(
-      "security events, and logs from Fluent Bit, Fluentd or syslog count against the project's and the key's budgets only.",
+      "Security events count against the project's and the key's budgets only.",
+    );
+  });
+
+  test("decides whose a resource is by its owners and its labels, as the telemetry read scope does, within a minute", () => {
+    // The kinds the read scope works owners and labels out over, by the same flag.
+    expect(compact(READ_SCOPE)).toContain(
+      compact(": Boolean(entry.canOwnTelemetry);"),
+    );
+    // Read again once a minute on every server.
+    expect(compact(ATTRIBUTION_SETTINGS)).toContain(
+      compact(
+        "export const TELEMETRY_INGEST_ATTRIBUTION_SETTINGS_TTL_MS: number = 60 * 1000;",
+      ),
+    );
+
+    expect(ENGLISH).toContain(
+      "- **Whose a resource is.** A service, a host or another resource is a team's when the team is one of its owners, and a label's when it carries the label: the same owners and labels that decide who may read its telemetry. A change to them counts within a minute.",
     );
   });
 
@@ -676,10 +730,20 @@ describe("what senders see", () => {
     expect(ENGLISH).toContain(`\`\`\`text\n${LOGS_DAILY_REFUSAL}\n\`\`\``);
   });
 
-  test("MQTT and the cloud streams are dropped, not refused", () => {
+  test("MQTT, the cloud streams and a probe's syslog are dropped, not refused, each device's against its own project", () => {
     expect(QUEUE).toContain("mode: TelemetryIngestionBudgetAdmissionMode.Drop");
+    // #10716: a probe's batch, project by project, in Drop mode, with no key.
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("mode: TelemetryIngestionBudgetAdmissionMode.Drop,"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("ingestionKeyPolicy: null,"),
+    );
+    expect(compact(PROBE_SYSLOG)).toContain(
+      compact("const key: string = target.projectId.toString();"),
+    );
     expect(ENGLISH).toContain(
-      "Telemetry that arrives over MQTT or from a cloud provider's stream is dropped once its budget is used up.",
+      "- **MQTT, cloud streams and probes cannot be told.** Telemetry that arrives over MQTT or from a cloud provider's stream is dropped once its budget is used up, and so is the syslog network devices send to a probe: each device's logs count against its own project's budget. No rate limit applies to it: it could not be sent again.",
     );
   });
 });
@@ -808,17 +872,25 @@ describe("where today's usage and drops are shown", () => {
   });
 
   test("the banner is above each explorer's data", () => {
-    for (const [layout, signal] of [
-      ["Pages/Logs/Layout.tsx", "Logs"],
-      ["Pages/Traces/Layout.tsx", "Traces"],
-      ["Pages/Metrics/Layout.tsx", "Metrics"],
-      ["Pages/Profiles/Layout.tsx", "Profiles"],
-      ["Pages/SecurityEvents/Layout.tsx", "SecurityEvents"],
-    ] as Array<[string, string]>) {
+    for (const [layout, signal, props] of [
+      ["Pages/Logs/Layout.tsx", "Logs", ""],
+      ["Pages/Traces/Layout.tsx", "Traces", ""],
+      ["Pages/Metrics/Layout.tsx", "Metrics", ""],
+      ["Pages/Profiles/Layout.tsx", "Profiles", ""],
+      /*
+       * Its banner shares the page's one read of today's budgets with the
+       * banners of the logs and traces Security Events reads (#10431).
+       */
+      [
+        "Pages/SecurityEvents/Layout.tsx",
+        "SecurityEvents",
+        " fetchStatus={readBudgets}",
+      ],
+    ] as Array<[string, string, string]>) {
       const source: string = compact(readDashboardSource(layout));
       const banner: number = source.indexOf(
         compact(
-          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}} />`,
+          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}}${props} />`,
         ),
       );
 

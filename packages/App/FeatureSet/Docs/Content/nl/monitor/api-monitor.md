@@ -107,7 +107,7 @@ Deze instellingen zijn ingeklapt onder **Meer velden**. De ingeklapte kop noemt 
 | Veld | Standaard | Wat het doet |
 | --- | --- | --- |
 | **Aanvraagheaders** | Geen | Headers die worden verzonden, als paren van naam en waarde. Klik voor elke header op **Aanvraagheader toevoegen**. |
-| **Aanvraagtekst (in JSON)** | Geen | Een JSON-object dat als body wordt verzonden, meestal met **POST**, **PUT** of **PATCH**. Het moet geldige JSON zijn. |
+| **Aanvraagtekst (in JSON)** | Geen | De body die wordt verzonden, meestal met **POST**, **PUT** of **PATCH**: elke JSON-waarde, zoals een object, een array, een tekenreeks of een getal. Hij wordt verzonden zoals u hem schrijft, als `application/json`, tenzij u een `Content-Type` instelt bij **Aanvraagheaders**. Met `application/x-www-form-urlencoded` of `multipart/form-data` wordt een object als formuliervelden verzonden. |
 | **Omleidingen niet volgen** | Uit | Het eerste antwoord beoordelen in plaats van omleidingen te volgen. Zie [hieronder](#omleidingen-niet-volgen). |
 | **Zelfondertekende certificaten toestaan** | Uit | De validatie van het TLS-certificaat overslaan voor de eigen hostnaam van de monitor. |
 | **Clientcertificaat gebruiken (mTLS)** | Uit | Een clientcertificaat en een privésleutel aanbieden. Zie [Clientcertificaat (mTLS)](#clientcertificaat-mtls). |
@@ -242,6 +242,10 @@ De API leidde een aanvraag met een body, of met een andere methode dan `GET` of 
 
 :::details De controle mislukt met "Remote response exceeded the allowed size."
 De sonde leest hoogstens 512 KiB van een antwoord, en dit antwoord is groter. Roep een endpoint aan dat minder teruggeeft, bijvoorbeeld met een kleinere paginagrootte.
+:::
+
+:::details De controle mislukt met "De body van het verzoek is geen geldige JSON, dus het verzoek is niet verstuurd."
+De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) erin zijn ingevuld, dus de sonde heeft het verzoek niet verstuurd. Corrigeer de body bij **Meer velden**, of de waarde van een geheim dat erin wordt gebruikt: een waarde met een `"` erin breekt de JSON-tekenreeks waarin die staat.
 :::
 
 ## Volgende stappen

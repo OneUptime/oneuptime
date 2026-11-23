@@ -38,6 +38,15 @@ export const DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB: string =
   "DataSecurity:ProposeStoreOwners";
 export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
   "DataSecurity:ProposeOwnerRules";
+export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
+  "DataSecurity:GroupIssues";
+
+/*
+ * How long the grouping waits after an evaluation: a connection's read
+ * evaluates the project, then its scans do again, and one look after them
+ * groups what all of them opened.
+ */
+export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
 
 /*
  * How long the owner rules wait after a store's owners are proposed: a
@@ -301,6 +310,24 @@ export async function queueDataStoreOwnerRuleProposals(
     payload: { projectId: projectId.toString() },
     description: `OneUptime AI's owner rules for project ${projectId.toString()}`,
     delayInMs: OWNER_RULES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Groups a project's issues by what made them (#10370): queued by each
+ * evaluation, a little after it, so the issues one mistake made are one
+ * group, and the group counts them as they resolve
+ * (Utils/DataSecurity/DataSecurityIssueGrouper).
+ */
+export async function queueDataSecurityIssueGrouping(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_GROUP_ISSUES_JOB,
+    key: `data-security-group-issues-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `the grouping of the issues of project ${projectId.toString()}`,
+    delayInMs: GROUP_ISSUES_DELAY_IN_MS,
   });
 }
 

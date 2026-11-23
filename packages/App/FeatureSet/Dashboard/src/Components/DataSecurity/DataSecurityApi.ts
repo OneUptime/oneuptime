@@ -18,6 +18,7 @@ import {
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
   DataSecurityOverview,
+  DataSecurityDeclaredStoreResponse,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
@@ -38,6 +39,15 @@ import {
   readMetricOutputReaders,
 } from "Common/Types/Metrics/MetricOutputReaders";
 import { readDataSecurityIssueAnalysisView } from "Common/Types/DataSecurity/DataSecurityIssueAnalysis";
+import {
+  DataSecurityIssueGroupJSON,
+  DataSecurityIssueGroupsJSON,
+} from "Common/Types/DataSecurity/DataSecurityIssueGroup";
+import {
+  DataSecurityIssueGroupFixPart,
+  DataSecurityIssueGroupFixPlanJSON,
+  DataSecurityIssueGroupFixResultJSON,
+} from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -96,6 +106,19 @@ function readIds(value: JSONValue | undefined): Array<string> {
   }
 
   return ids;
+}
+
+// The group an analysis points at (#10370), when the answer holds one.
+function readIssueGroup(
+  value: JSONValue | undefined,
+): DataSecurityIssueGroupJSON | null {
+  return value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as JSONObject)["groupId"] === "string" &&
+    typeof (value as JSONObject)["issueCount"] === "number"
+    ? (value as unknown as DataSecurityIssueGroupJSON)
+    : null;
 }
 
 /*
@@ -193,6 +216,19 @@ export default class DataSecurityApi {
     return (await post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
     )) as unknown as DataSecurityRecordOfProcessingResponse;
+  }
+
+  /*
+   * What the record says of one of the stores OneUptime keeps for the
+   * project's security (#10398): what it holds, why, for how long and who
+   * can read it.
+   */
+  public static async getDeclaredStore(
+    dataStoreId: ObjectID,
+  ): Promise<DataSecurityDeclaredStoreResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.declaredStore(dataStoreId.toString()),
+    )) as unknown as DataSecurityDeclaredStoreResponse;
   }
 
   public static async scanNow(dataStoreId: ObjectID): Promise<void> {
@@ -499,6 +535,7 @@ export default class DataSecurityApi {
         typeof answer["markdown"] === "string" ? answer["markdown"] : "",
       analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
       isNew: answer["isNew"] === true,
+      group: readIssueGroup(answer["group"]),
     };
   }
 
@@ -512,6 +549,7 @@ export default class DataSecurityApi {
 
     return {
       analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
+      group: readIssueGroup(answer["group"]),
     };
   }
 
@@ -563,5 +601,72 @@ export default class DataSecurityApi {
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId.toString()),
       codeRepositoryId ? { codeRepositoryId: codeRepositoryId.toString() } : {},
     )) as unknown as DataSecurityFixResult;
+  }
+
+  /*
+   * The project's groups of issues one mistake made (#10370), for the
+   * Issues list's Group by cause: none for a reader whose read of issues is
+   * held to labels.
+   */
+  public static async getIssueGroups(
+    data: { groupIds?: Array<string> | undefined } = {},
+  ): Promise<DataSecurityIssueGroupsJSON> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueGroups,
+      data.groupIds && data.groupIds.length > 0
+        ? { groupIds: data.groupIds }
+        : {},
+    );
+
+    return {
+      groups: Array.isArray(answer["groups"])
+        ? (answer["groups"] as unknown as Array<DataSecurityIssueGroupJSON>)
+        : [],
+      largestGroupSize:
+        typeof answer["largestGroupSize"] === "number"
+          ? answer["largestGroupSize"]
+          : 0,
+    };
+  }
+
+  // What a group's fix would do now, for the reader: its parts, and what each leaves out.
+  public static async getIssueGroupFixPlan(
+    groupId: string,
+  ): Promise<DataSecurityIssueGroupFixPlanJSON> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueGroupFixPlan(groupId),
+    );
+
+    return {
+      ...(answer as unknown as DataSecurityIssueGroupFixPlanJSON),
+      leftOut: Array.isArray(answer["leftOut"])
+        ? (answer[
+            "leftOut"
+          ] as unknown as DataSecurityIssueGroupFixPlanJSON["leftOut"])
+        : [],
+    };
+  }
+
+  /*
+   * The group's fix, with one press: the parts the person chose, on the
+   * plan they were shown - refused when it changed since.
+   */
+  public static async fixIssueGroup(data: {
+    groupId: string;
+    parts: Array<DataSecurityIssueGroupFixPart>;
+    planFingerprint: string;
+    codeRepositoryId?: string | undefined;
+    includeDataStoreIds?: Array<string> | undefined;
+  }): Promise<DataSecurityIssueGroupFixResultJSON> {
+    return (await post(DATA_SECURITY_API_ROUTES.fixIssueGroup(data.groupId), {
+      parts: data.parts,
+      expectedPlanFingerprint: data.planFingerprint,
+      ...(data.codeRepositoryId
+        ? { codeRepositoryId: data.codeRepositoryId }
+        : {}),
+      ...(data.includeDataStoreIds && data.includeDataStoreIds.length > 0
+        ? { includeDataStoreIds: data.includeDataStoreIds }
+        : {}),
+    })) as unknown as DataSecurityIssueGroupFixResultJSON;
   }
 }

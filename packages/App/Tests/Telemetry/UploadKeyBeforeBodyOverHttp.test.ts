@@ -550,10 +550,13 @@ describe("the routes", () => {
       }
     }
 
-    // Pyroscope's push.v1 route is read as before: it is no upload.
+    /*
+     * Pyroscope's push.v1 route is no upload, and is read once its key is
+     * right too (#10702): IngestKeyBeforeBodyOverHttp drives it.
+     */
     expect(
       readsBodyAfterAuthentication("/pyroscope/push.v1.PusherService/Push"),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 

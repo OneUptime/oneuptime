@@ -25,13 +25,16 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 /*
  * A TEAM'S OR A LABEL'S INGESTION BUDGET INSIDE A PROJECT (issue #6386).
  *
- * The most logs, traces, metrics and profiles the services one team owns -
- * or the services that carry one label - may send in a budget day. One
+ * The most logs, traces, metrics and profiles the services, hosts and other
+ * resources one team owns - or that carry one label - may send in a budget
+ * day (#10101). One
  * row per team or label: exactly one of teamId and labelId is set
  * (TelemetryIngestionTeamLabelBudgetService refuses anything else).
  *
  * Counted in the telemetry worker, once each batch's resources are filed
- * under their services (TelemetryIngestAttribution): the request path never
+ * under their services, hosts and the like (TelemetryIngestAttribution),
+ * whether they came over OTLP or from Fluent Bit, Fluentd or syslog
+ * (#10102): the request path never
  * decodes a body, so it cannot tell whose telemetry a request carries.
  * Once one is used up, that team's or label's telemetry of the signal is
  * dropped until the budget resets, and no longer counts against the
@@ -89,7 +92,7 @@ const TARGET_COLUMN_ACCESS: BaseColumnAccessControl = {
   pluralName: "Team and Label Budgets",
   icon: IconProp.Signal,
   tableDescription:
-    "Daily ingestion budgets for the telemetry of the services a team owns, or that carry a label.",
+    "Daily ingestion budgets for the telemetry of the services, hosts and other resources a team owns, or that carry a label.",
 })
 @Index(["projectId", "teamId"], { unique: true })
 @Index(["projectId", "labelId"], { unique: true })
@@ -149,7 +152,7 @@ export default class TelemetryIngestionTeamLabelBudget extends BaseModel {
     modelType: Team,
     title: "Team",
     description:
-      "The team whose services the budget is for: every service the team owns. Empty for a label's budget.",
+      "The team the budget is for: every service, host and other resource the team owns. Empty for a label's budget.",
     example: "a1b2c3d4-e5f6-7890-ab12-cd34ef567890",
   })
   @ManyToOne(
@@ -173,7 +176,7 @@ export default class TelemetryIngestionTeamLabelBudget extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Team ID",
     description:
-      "ID of the team whose services the budget is for. Empty for a label's budget.",
+      "ID of the team the budget is for: every service, host and other resource it owns. Empty for a label's budget.",
     example: "a1b2c3d4-e5f6-7890-ab12-cd34ef567890",
   })
   @Column({
@@ -190,7 +193,7 @@ export default class TelemetryIngestionTeamLabelBudget extends BaseModel {
     modelType: Label,
     title: "Label",
     description:
-      "The label whose services the budget is for: every service that carries it. Empty for a team's budget.",
+      "The label the budget is for: every service, host and other resource that carries it. Empty for a team's budget.",
     example: "b2c3d4e5-f6a7-8901-bc23-de45fa678901",
   })
   @ManyToOne(
@@ -214,7 +217,7 @@ export default class TelemetryIngestionTeamLabelBudget extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Label ID",
     description:
-      "ID of the label whose services the budget is for. Empty for a team's budget.",
+      "ID of the label the budget is for: every service, host and other resource that carries it. Empty for a team's budget.",
     example: "b2c3d4e5-f6a7-8901-bc23-de45fa678901",
   })
   @Column({

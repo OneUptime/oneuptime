@@ -27,9 +27,7 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../Feed/FeedPersonName";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
@@ -124,6 +122,12 @@ import WorkspaceSecurityPlaybookApproval, {
   SecurityPlaybookApprovalMessage,
 } from "../Workspace/WorkspaceSecurityPlaybookApproval";
 import WorkspaceSecurityPlaybookApprovalMessages from "../Workspace/WorkspaceSecurityPlaybookApprovalMessages";
+import ProductBrandingText from "../ProductBrandingText";
+import {
+  SecurityCaseHandOffReason,
+  isSecurityCaseHandOffReason,
+} from "../../../Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_HAND_OFF_SENTENCES } from "../../../Types/SecurityCase/SecurityCaseAiWords";
 
 /*
  * TELLING PEOPLE ABOUT SECURITY CASES.
@@ -208,12 +212,20 @@ export enum SecurityCaseNotificationKind {
   TargetAlert = "TargetAlert",
   TaskAssigned = "TaskAssigned",
   StepRegressed = "StepRegressed",
+  // OneUptime AI handed the case to people (#10352).
+  AiHandedOff = "AiHandedOff",
 }
 
 export interface SecurityCaseRecipient {
   userId: ObjectID;
-  name: string;
-  email: string;
+  /*
+   * Their account as OneUptime read it - its name and address - under their
+   * id: what a line names them by, through FeedPersonName (#10681). Never
+   * placed in a line or message itself: it holds their address, and a
+   * case's feed, its channels and its emails to the people on it are read
+   * by others.
+   */
+  account: User;
   // Their own time zone, for a due time written in an email.
   timezone?: Timezone | undefined;
 }
@@ -354,6 +366,8 @@ export function describeRunTrigger(
       return "Automatically, for a new detection";
     case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
       return "Automatically, when AI triage read the case as Likely Malicious";
+    case SecurityPlaybookTrigger.OneUptimeAi:
+      return "By OneUptime AI, which is working the case";
     default:
       return "By hand";
   }
@@ -763,6 +777,45 @@ export function buildStepRegressedMessage(data: {
   };
 }
 
+/*
+ * What the people on a case - or, with nobody on it, those told about cases
+ * at its priority - are told when OneUptime AI hands it to them (#10352):
+ * that it did, and why, in OneUptime's own words.
+ */
+export function buildAiHandedOffMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  reason: string;
+  isOnCase: boolean;
+}): SecurityCaseMessage {
+  const { facts } = data;
+  const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
+    subject: `[${facts.number}] ${aiName} handed this case to people`,
+    templateType: EmailTemplateType.SecurityCaseAiHandedOff,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `${aiName} handed ${facts.number} to people`,
+      leadSentence: `${aiName} was working this ${facts.priority} security case, and now a person has to.`,
+      reasonSentence: data.isOnCase
+        ? "You are on this case. Change these emails in User Settings > Notification Settings."
+        : "Nobody is on this case, and you are told about cases at its priority. Change these emails in User Settings > Notification Settings.",
+      handOffReason: data.reason,
+    },
+    smsText: buildNotificationSms(
+      `Security case ${facts.number}: ${aiName} handed it to people. ${data.reason}`,
+    ),
+    callText: `This is a message from OneUptime. ${aiName} handed security case ${facts.number}, priority ${facts.priority}, to people. ${data.reason} To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `${aiName} handed ${facts.number} to people`,
+    pushBody: data.reason,
+    pushType: "security-case-ai-handed-off",
+    requireInteraction: facts.isCritical,
+    forceImmediate: true,
+  };
+}
+
 // The case's own rows of its emails.
 function getCaseEmailVars(facts: SecurityCaseMessageFacts): Dictionary<string> {
   return {
@@ -975,6 +1028,27 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * OneUptime AI handed the case to people, and why (SecurityCaseHandOff,
+   * #10352). Never held back.
+   */
+  @CaptureSpan()
+  public static async aiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.AiHandedOff,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        reason: data.reason,
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -1088,6 +1162,18 @@ export default class SecurityCaseNotifications {
             securityCaseId,
             stepKey,
             stepTitle: readText(data, "stepTitle") || "",
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.AiHandedOff: {
+        const reason: string | undefined = readText(data, "reason");
+
+        if (isSecurityCaseHandOffReason(reason)) {
+          await this.notifyAiHandedOff({
+            projectId,
+            securityCaseId,
+            reason,
           });
         }
         return;
@@ -1346,7 +1432,7 @@ export default class SecurityCaseNotifications {
     const assignedBy: string | undefined = data.playbookName
       ? `Playbook ${data.playbookName}`
       : data.actorUserId
-        ? (await this.getUser(data.actorUserId))?.name
+        ? await this.getActorName(data.actorUserId)
         : undefined;
 
     const byUserId: Map<
@@ -1467,7 +1553,7 @@ export default class SecurityCaseNotifications {
     );
     const playbookName: string = run.playbookName || "Playbook";
     const startedBy: string = run.triggeredByUserId
-      ? (await this.getUser(run.triggeredByUserId))?.name || "By hand"
+      ? (await this.getActorName(run.triggeredByUserId)) || "By hand"
       : describeRunTrigger(run.trigger);
     // For a step that acts on users or hosts: the ones it would act on.
     const targets: Array<string> = (
@@ -2005,7 +2091,7 @@ export default class SecurityCaseNotifications {
 
     const facts: SecurityCaseMessageFacts = await this.getFacts(securityCase);
     const assignedBy: string | undefined = data.actorUserId
-      ? (await this.getUser(data.actorUserId))?.name
+      ? await this.getActorName(data.actorUserId)
       : undefined;
     const taskTitle: string = task.title || "A task";
 
@@ -2153,6 +2239,99 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
+  /*
+   * OneUptime AI handed the case to people (#10352): the people on the case
+   * - its assignee and its team - or, when nobody is, those told about
+   * cases at its priority, as they chose to be told; and the channels the
+   * project's Security Case rules post OneUptime AI's updates to. Only while
+   * the case is still handed over: a case somebody has picked up since is
+   * not news.
+   */
+  @CaptureSpan()
+  public static async notifyAiHandedOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    reason: SecurityCaseHandOffReason;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId) {
+      onCase.push(
+        ...(await this.getTeamMembers(
+          data.projectId,
+          securityCase.assignedToTeamId,
+        )),
+      );
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        onCase.push(assignee);
+      }
+    }
+
+    const isOnCase: boolean = onCase.length > 0;
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: isOnCase
+        ? onCase
+        : (
+            await this.getPriorityWatchers({
+              projectId: data.projectId,
+              priorityId: securityCase.securityCasePriorityId,
+              priorities: values.priorities,
+            })
+          ).people,
+    });
+    const reason: string = SECURITY_CASE_HAND_OFF_SENTENCES[data.reason];
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (): SecurityCaseMessage => {
+        return buildAiHandedOffMessage({ facts, reason, isOnCase });
+      },
+    });
+
+    const aiName: string = `${ProductBrandingText.getProductName()} AI`;
+
+    await this.postToChannels({
+      facts,
+      updateKind: NotificationRuleUpdateKind.AI,
+      markdown: buildChannelMarkdown({
+        facts,
+        headline: mdText`🙋 **${aiName} handed this case to people.** ${reason}`,
+      }),
+      notificationText: `${aiName} handed ${facts.number} to people`,
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} that ${aiName} handed this case to people.`,
+      displayColor: Yellow500,
+    });
+
+    return notified;
+  }
+
   // ---------- Who ----------
 
   /*
@@ -2274,10 +2453,20 @@ export default class SecurityCaseNotifications {
       return null;
     }
 
+    // Under the id it was read by: a membership's user carries none of its own.
+    const account: User = new User(userId);
+
+    if (user?.name) {
+      account.name = user.name;
+    }
+
+    if (user?.email) {
+      account.email = user.email;
+    }
+
     return {
       userId,
-      name: user?.name?.toString() || user?.email?.toString() || "",
-      email: user?.email?.toString() || "",
+      account,
       ...(user?.timezone ? { timezone: user.timezone } : {}),
     };
   }
@@ -2372,38 +2561,47 @@ export default class SecurityCaseNotifications {
   }
 
   /*
-   * Whom a case is assigned to, as the project names them: someone only
-   * invited to it by the name typed for them, else their address - never
-   * their account's own name, which it does not see until they join
-   * (#9823). Empty for a person who is gone.
+   * Who did something to a case - assigned it, handed somebody a task,
+   * started a playbook by hand - as a message about it names them: a person
+   * who acted is a member, named by their name, else the part of their
+   * address before the "@" (FeedPersonName.getMemberName, #10681). Never
+   * their address: an approval's email goes to every approver. Undefined
+   * for somebody who is gone.
+   */
+  private static async getActorName(
+    userId: ObjectID,
+  ): Promise<string | undefined> {
+    const actor: SecurityCaseRecipient | null = await this.getUser(userId);
+
+    if (!actor) {
+      return undefined;
+    }
+
+    return (
+      FeedPersonName.getMemberName({
+        name: actor.account.name,
+        email: actor.account.email,
+      }) || undefined
+    );
+  }
+
+  /*
+   * Whom a case is assigned to, as every message about it names them - its
+   * channels' posts, and the emails to everybody told about it
+   * (FeedPersonName, #10681): someone only invited by the name typed with
+   * their invitation, else "someone who hasn't joined the project yet",
+   * never by their account's own name (#9823); a member by their name, else
+   * the part of their address before the "@". Never an address. Empty for a
+   * person who is gone.
    */
   private static async getAssigneeName(data: {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<string> {
-    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
-
-    if (!user) {
-      return "";
-    }
-
-    const withheld: Map<string, WithheldProfile> =
-      await PendingInviteeProfiles.readWithheldProfilesInProject({
-        userIds: [data.userId.toString()],
-        projectId: data.projectId,
-      });
-
-    return PendingInviteeProfiles.getWithheldProfile({
+    return await FeedPersonName.getText({
       userId: data.userId,
-      withheld: withheld,
-    })
-      ? PendingInviteeProfiles.getNameInProject({
-          userId: data.userId,
-          name: null,
-          email: user.email,
-          withheld: withheld,
-        })
-      : user.name;
+      projectId: data.projectId,
+    });
   }
 
   private static async getTeamName(teamId: ObjectID): Promise<string> {
@@ -2717,7 +2915,14 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
-  // The case's feed says who was told; nothing when nobody was.
+  /*
+   * The case's feed says who was told, one name each, as every feed entry
+   * names people (FeedPersonName.readNames, #10681): a member by their name,
+   * else the part of their address before the "@" - never their address,
+   * which the list put after every name ("Ana Lee (ana@acme.com)"), and
+   * the feed is read through the API and workflows. Who of them is only
+   * invited is read once for them all. Nothing when nobody was told.
+   */
   private static async recordInFeed(data: {
     facts: SecurityCaseMessageFacts;
     notified: Array<SecurityCaseRecipient>;
@@ -2728,15 +2933,20 @@ export default class SecurityCaseNotifications {
       return;
     }
 
+    const names: Map<string, string> = await FeedPersonName.readNames({
+      users: data.notified.map((recipient: SecurityCaseRecipient): User => {
+        return recipient.account;
+      }),
+      projectId: data.facts.projectId,
+    });
+
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: data.facts.projectId,
       securityCaseId: data.facts.caseId,
       feedInfoInMarkdown: data.feedInfo.toString(),
       moreInformationInMarkdown: FeedMarkdown.bulletList(
         data.notified.map((recipient: SecurityCaseRecipient): MarkdownText => {
-          return recipient.email && recipient.name !== recipient.email
-            ? mdText`${recipient.name} (${recipient.email})`
-            : mdText`${recipient.name || recipient.email}`;
+          return mdText`${names.get(recipient.userId.toString().toLowerCase()) || FEED_NOBODY_NAMED}`;
         }),
       ).toString(),
       eventType: SecurityCaseFeedEventType.Notification,

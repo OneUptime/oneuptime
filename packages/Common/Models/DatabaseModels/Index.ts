@@ -207,6 +207,7 @@ import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityCaseTask from "./SecurityCaseTask";
 import SecurityCaseStepCheck from "./SecurityCaseStepCheck";
+import SecurityCaseAiAction from "./SecurityCaseAiAction";
 import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
@@ -227,6 +228,7 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataSecurityAiProposal from "./DataSecurityAiProposal";
 import DataSecurityAiDecision from "./DataSecurityAiDecision";
 import DataSecurityScan from "./DataSecurityScan";
@@ -736,6 +738,7 @@ const AllModelTypes: Array<{
   SecurityCaseNote,
   SecurityCaseTask,
   SecurityCaseStepCheck,
+  SecurityCaseAiAction,
   SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
@@ -758,6 +761,7 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityIssueGroup,
   DataSecurityAiProposal,
   DataSecurityAiDecision,
   DataSecurityScan,

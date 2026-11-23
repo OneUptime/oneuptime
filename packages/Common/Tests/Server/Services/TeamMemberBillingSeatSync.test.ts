@@ -13,6 +13,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService, {
   MEMBERSHIPS_OF_PERSON_STATEMENT,
   PEOPLE_IN_PROJECT_STATEMENT,
+  TeamMemberCreateCarryForward,
 } from "../../../Server/Services/TeamMemberService";
 import TeamPermissionService from "../../../Server/Services/TeamPermissionService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -108,6 +109,24 @@ function rateLimitError(): Error {
     statusCode: 429,
     type: "StripeRateLimitError",
   });
+}
+
+/*
+ * What onBeforeCreate hands the rest of a membership's create (#10180): the
+ * invitation it planned, the address's count and the project's window for
+ * the person, given back if the create fails before onCreateSuccess starts
+ * the email. OneUptime's own create of a membership for a person picked by
+ * id, as these suites make it, emails nobody (getInviteeToEmailById), so it
+ * plans nothing - and still hands that on, never null: onCreateSuccess and
+ * onCreateError read it either way.
+ */
+function nothingToSend(): TeamMemberCreateCarryForward {
+  return {
+    invitation: null,
+    invitationPermit: null,
+    invitationWindow: null,
+    isSending: false,
+  };
 }
 
 let project: Project;
@@ -780,8 +799,70 @@ describe("completed membership writes during a billing outage", () => {
 
     await expect(callHook("onBeforeCreate", invitation())).resolves.toEqual({
       createBy: expect.any(Object),
-      carryForward: null,
+      carryForward: nothingToSend(),
     });
+  });
+
+  test("onCreateSuccess syncs the seats with the carry-forward onBeforeCreate handed on, then starts its invitation last", async () => {
+    const startSpy: jest.SpyInstance = jest.spyOn(
+      TeamMemberService,
+      "startPlannedInvitation",
+    );
+    const onCreate: OnCreate<TeamMember> = (await callHook(
+      "onBeforeCreate",
+      invitation(),
+    )) as OnCreate<TeamMember>;
+    const carryForward: TeamMemberCreateCarryForward =
+      onCreate.carryForward as TeamMemberCreateCarryForward;
+
+    expect(carryForward).toEqual(nothingToSend());
+
+    const saved: TeamMember = member();
+
+    await expect(callHook("onCreateSuccess", onCreate, saved)).resolves.toBe(
+      saved,
+    );
+    await TeamMemberService.whenInvitationsSent();
+
+    // The seats were synced with the provider, then acknowledged.
+    expect(billingSpy).toHaveBeenCalledWith(SUBSCRIPTION_ID, 4);
+    expect(project.paymentProviderSubscriptionSeats).toBe(4);
+
+    // The invitation it planned started after the seats, with that carry-forward.
+    expect(startSpy).toHaveBeenCalledTimes(1);
+    expect(startSpy).toHaveBeenCalledWith(onCreate, saved);
+    expect(billingSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      startSpy.mock.invocationCallOrder[0]!,
+    );
+    expect(carryForward.isSending).toBe(true);
+  });
+
+  test("a provider 429 in onCreateSuccess still starts the invitation onBeforeCreate planned: the membership is made", async () => {
+    billingSpy.mockRejectedValue(rateLimitError());
+    const startSpy: jest.SpyInstance = jest.spyOn(
+      TeamMemberService,
+      "startPlannedInvitation",
+    );
+    const onCreate: OnCreate<TeamMember> = (await callHook(
+      "onBeforeCreate",
+      invitation(),
+    )) as OnCreate<TeamMember>;
+    const saved: TeamMember = member();
+
+    await expect(callHook("onCreateSuccess", onCreate, saved)).resolves.toBe(
+      saved,
+    );
+    await TeamMemberService.whenInvitationsSent();
+
+    // The sync was tried and left the count uncertain, for the scheduled retry.
+    expect(billingSpy).toHaveBeenCalledWith(SUBSCRIPTION_ID, 4);
+    expect(project.paymentProviderSubscriptionSeats).toBeNull();
+
+    // And the create's invitation went on regardless: nothing is given back after.
+    expect(startSpy).toHaveBeenCalledWith(onCreate, saved);
+    expect(
+      (onCreate.carryForward as TeamMemberCreateCarryForward).isSending,
+    ).toBe(true);
   });
 
   test("enforces the free-plan limit from persisted members when billing seats are missing", async () => {
@@ -802,7 +883,7 @@ describe("completed membership writes during a billing outage", () => {
 
     await expect(callHook("onBeforeCreate", createBy)).resolves.toEqual({
       createBy,
-      carryForward: null,
+      carryForward: nothingToSend(),
     });
   });
 });

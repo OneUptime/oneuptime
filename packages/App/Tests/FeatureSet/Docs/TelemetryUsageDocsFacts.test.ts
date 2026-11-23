@@ -88,6 +88,14 @@ const USAGE_METRICS_SWITCH: string = readDashboardSource(
 const USAGE_METRICS_SWEEP: string = readCommonSource(
   "Server/Utils/Telemetry/TelemetryUsageMetrics.ts",
 );
+// What the usage metrics count: the jobs the telemetry worker attributes.
+const PROCESS_TELEMETRY: string = fs.readFileSync(
+  path.resolve(
+    __dirname,
+    "../../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts",
+  ),
+  "utf8",
+);
 
 interface NavLink {
   title: string;
@@ -649,6 +657,65 @@ describe("usage as a metric", () => {
     );
     expect(ENGLISH).toContain(
       `\`${ServiceType.OpenTelemetry}\` for a service, \`${ServiceType.Host}\` for a host`,
+    );
+  });
+
+  test("counts what is sent over OTLP and the logs from Fluent Bit, Fluentd and syslog, and not security events or session replays", () => {
+    // The worker's case for each kind of job, up to the next one.
+    const caseOf: (type: string) => string = (type: string): string => {
+      const at: number = PROCESS_TELEMETRY.indexOf(
+        `case TelemetryType.${type}:`,
+      );
+      const next: number = PROCESS_TELEMETRY.indexOf(
+        "case TelemetryType.",
+        at + 1,
+      );
+
+      expect({ type, found: at > 0 }).toEqual({ type, found: true });
+
+      return PROCESS_TELEMETRY.slice(at, next);
+    };
+
+    for (const [type, attributedBy] of [
+      ["Logs", "resolveAttributedOtelRequest"],
+      ["Traces", "resolveAttributedOtelRequest"],
+      ["Metrics", "resolveAttributedOtelRequest"],
+      ["Profiles", "resolveAttributedOtelRequest"],
+      // #10102: Fluent Bit's, Fluentd's and syslog's logs too.
+      ["Syslog", "resolveAttributedRequestBody"],
+      ["FluentLogs", "resolveAttributedRequestBody"],
+    ] as Array<[string, string]>) {
+      expect({
+        type,
+        counted: caseOf(type).includes(attributedBy),
+      }).toEqual({ type, counted: true });
+    }
+
+    for (const type of ["SecurityEvents", "SessionReplay"]) {
+      expect({
+        type,
+        counted: caseOf(type).includes("Attribution"),
+      }).toEqual({ type, counted: false });
+    }
+
+    // #10716: and the syslog a probe forwards, each device's in its project.
+    const probeSyslog: string = fs
+      .readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, "");
+
+    expect(probeSyslog).toContain(
+      "attribution:awaitTelemetryIngestAttribution.forBatch({",
+    );
+    expect(probeSyslog).toContain("awaitbudget.attribution?.settle();");
+
+    expect(ENGLISH).toContain(
+      "- **What is counted.** The logs, traces, metrics and profiles sent over OTLP are counted, and so are the logs from Fluent Bit, Fluentd or syslog, including the syslog network devices send to a probe. Security events and session replays are not.",
     );
   });
 

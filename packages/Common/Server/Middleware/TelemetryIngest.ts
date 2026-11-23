@@ -27,10 +27,11 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  RequestHandler,
   headerValueToString,
 } from "../../Server/Utils/Express";
 import TelemetryIngestionKeyService from "../../Server/Services/TelemetryIngestionKeyService";
-import Response from "../Utils/Response";
+import Response, { ErrorResponseOptions } from "../Utils/Response";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
@@ -63,6 +64,9 @@ import {
   getMobileKeySurfaceRefusalMessage,
 } from "../Utils/Telemetry/TelemetryIngestionKeyGuard";
 import type TelemetryIngestAttribution from "../Utils/Telemetry/TelemetryIngestAttribution";
+import TelemetryIngestUnknownKeyRefusals, {
+  UnknownIngestionKeyRefusal,
+} from "../Utils/Telemetry/TelemetryIngestUnknownKeyRefusals";
 
 export interface TelemetryRequest extends ExpressRequest {
   projectId: ObjectID; // Project ID
@@ -109,8 +113,10 @@ export interface TelemetryRequest extends ExpressRequest {
    * The size an ingestion budget counts this request at, set where it is
    * not the size of the body the worker reads back: an OTLP/gRPC export's
    * protobuf size, which the worker - holding the export as JSON - cannot
-   * measure. The worker shares it out over the batch's resources
-   * (TelemetryIngestAttribution, #6355, #6386).
+   * measure, or a Fluent or syslog request's, whose handler reshapes the
+   * body before it is queued (TelemetryIngestAttribution
+   * .getRequestBytesToShare, #10102). The worker shares it out over the
+   * batch's resources (TelemetryIngestAttribution, #6355, #6386).
    */
   telemetryIngestBytes?: number | undefined;
 
@@ -131,6 +137,18 @@ export interface TelemetryRequest extends ExpressRequest {
  * PublicDashboardRateLimit and the limiter itself.
  */
 const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * How every refusal here is answered: as a refusal of what the client sent,
+ * logged at debug rather than error (Response.sendErrorResponse, #10703).
+ * They come from clients - most of them before anyone is known - and each
+ * keeps sending: a missing or unknown key is counted per process
+ * (TelemetryIngestUnknownKeyRefusals), the rest against their key
+ * (TelemetryIngestRefusalRecorder), and the rate limit logs its first
+ * rejection in a window. An error-level line each was a flood the client
+ * paid nothing for.
+ */
+const CLIENT_REFUSAL: ErrorResponseOptions = { isClientRefusal: true };
 
 /*
  * Readable name used when a legacy call site did not name its surface. See
@@ -401,16 +419,33 @@ export default class TelemetryIngest {
    * open a span when the route table is built at boot, once, and never again
    * per request. Passing the surface as an argument keeps exactly one
    * decorated frame, on the function that actually handles a request.
+   *
+   * `readBody` is for a route whose body StartServer leaves unread
+   * (RequestBodyLimit's readsBodyAfterAuthentication, #10702): the route's
+   * reader (RequestBodyAfterAuthentication.readBody), run once the key is
+   * known to be right and within its rate, and before the ingestion budget
+   * - which measures the body in Refuse mode, to count exactly what it
+   * admits and what it refuses. A request without the right key has
+   * nothing of its body read, inflated or parsed: its refusal is sent and
+   * the connection closed under the rest (UnreadRequestBody), which the
+   * client still reads.
    */
   public static forSurface(
     surface: TelemetryIngestSurface,
+    readBody?: RequestHandler | undefined,
   ): TelemetryIngestMiddlewareFunction {
     return (
       req: ExpressRequest,
       res: ExpressResponse,
       next: NextFunction,
     ): Promise<void> => {
-      return TelemetryIngest.authorizeIngestRequest(surface, req, res, next);
+      return TelemetryIngest.authorizeIngestRequest(
+        surface,
+        req,
+        res,
+        next,
+        readBody,
+      );
     };
   }
 
@@ -447,6 +482,7 @@ export default class TelemetryIngest {
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
+    readBody?: RequestHandler | undefined,
   ): Promise<void> {
     try {
       // check header.
@@ -470,10 +506,21 @@ export default class TelemetryIngest {
       }
 
       if (!oneuptimeToken) {
-        logger.error(
+        /*
+         * At debug, and counted (#10703): this comes from anyone, before
+         * anyone is known, and a client that sends no key wrote one
+         * error-level line a request, at no cost to itself. The count is
+         * logged at warn at most once a minute, by surface
+         * (TelemetryIngestUnknownKeyRefusals).
+         */
+        logger.debug(
           "Missing header: x-oneuptime-token",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Missing,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate: the OTLP spec classifies it as
@@ -493,6 +540,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Missing ingestion token. Send your OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -512,12 +560,17 @@ export default class TelemetryIngest {
          * The token value itself is deliberately NOT logged: ingestion
          * keys are secrets, and a mistyped-but-nearly-valid token in a
          * log line is a credential leak. The request attributes give
-         * operators enough to correlate with the sender.
+         * operators enough to correlate with the sender. At debug, and
+         * counted, as a missing token is (#10703).
          */
-        logger.error(
+        logger.debug(
           "Invalid service token.",
           getLogAttributesFromRequest(req as any),
         );
+        TelemetryIngestUnknownKeyRefusals.record({
+          refusal: UnknownIngestionKeyRefusal.Unknown,
+          surface: surface,
+        });
 
         /*
          * 401 is deliberate (see the missing-token branch above): a
@@ -530,6 +583,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "Invalid ingestion token. Send a valid OneUptime telemetry ingestion key in the x-oneuptime-token header.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -557,6 +611,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             "This telemetry ingestion key has been disabled.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -586,6 +641,7 @@ export default class TelemetryIngest {
           new NotAuthenticatedException(
             "This telemetry ingestion key expired.",
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -630,6 +686,7 @@ export default class TelemetryIngest {
             new NotAuthorizedException(
               `A browser ingestion key cannot be used for ${readableSurfaceName}. Use a server ingestion key.`,
             ),
+            CLIENT_REFUSAL,
           );
         }
 
@@ -647,6 +704,7 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(originRefusalMessage),
+            CLIENT_REFUSAL,
           );
         }
       }
@@ -677,6 +735,7 @@ export default class TelemetryIngest {
             req,
             res,
             new NotAuthorizedException(mobileRefusalMessage),
+            CLIENT_REFUSAL,
           );
         }
       }
@@ -707,6 +766,7 @@ export default class TelemetryIngest {
           new NotAuthorizedException(
             getPinnedKeyRegistrationRefusalMessage(surface),
           ),
+          CLIENT_REFUSAL,
         );
       }
 
@@ -766,6 +826,7 @@ export default class TelemetryIngest {
             new TooManyRequestsException(
               "Too many telemetry requests for this ingestion key. Please retry later.",
             ),
+            CLIENT_REFUSAL,
           );
         }
 
@@ -799,6 +860,25 @@ export default class TelemetryIngest {
               "TelemetryIngest: ingestion key rate limit counter unavailable, admitting telemetry unthrottled",
             );
           }
+        }
+      }
+
+      /*
+       * The body, now that its sender is known (#10702): read here, after
+       * every check of the key and its rate, and before the budget, which
+       * measures it. A refused read (over the route's limit, a gzip body
+       * that does not inflate) is answered by the error handler, as
+       * StartServer's was.
+       */
+      if (readBody) {
+        const readError: unknown = await TelemetryIngest.readBodyAfterKey(
+          readBody,
+          req,
+          res,
+        );
+
+        if (readError) {
+          return next(readError);
         }
       }
 
@@ -906,6 +986,27 @@ export default class TelemetryIngest {
 
       return next(err);
     }
+  }
+
+  /*
+   * Run a route's body reader and resolve with what it passed on: nothing
+   * once the body is read, or the error it was refused with. Never
+   * rejects: a reader that throws is refused with what it threw.
+   */
+  private static readBodyAfterKey(
+    readBody: RequestHandler,
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<unknown> {
+    return new Promise<unknown>((resolve: (err: unknown) => void): void => {
+      try {
+        readBody(req, res, ((err?: unknown): void => {
+          resolve(err);
+        }) as NextFunction);
+      } catch (err) {
+        resolve(err);
+      }
+    });
   }
 
   /*

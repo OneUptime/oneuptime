@@ -167,9 +167,9 @@ flowchart TB
 | 공급자 | OneUptime이 요청하는 것 | 확인되지 않을 때 |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`와 로그인한 시각(`AuthnInstant`) | Okta의 Honor Force Authentication처럼 공급자가 요청을 따르도록 설정하세요. |
-| OpenID Connect | `prompt=login`과 `max_age=0`, 그리고 로그인한 시각(`auth_time`) | 공급자가 `auth_time`을 보내도록 설정하세요. Microsoft Entra ID에서는 ID 토큰에 선택적 클레임으로 추가하세요. |
+| OpenID Connect | `prompt=login`과 `max_age=0`(Microsoft Entra ID에는 `prompt=login`만), 그리고 로그인한 시각(`auth_time`) | 공급자가 `auth_time`을 보내도록 설정하세요. Microsoft Entra ID에서는 ID 토큰에 선택적 클레임으로 추가하세요. |
 | Google | 로그인한 시각(`auth_time`). Google에는 다시 로그인하도록 요청할 수 없습니다. | 서버의 Google 로그인 앱에서 Session age claims를 켜세요. 앱은 게시되고 인증되어 있어야 합니다. |
-| Microsoft | `prompt=login`과 `max_age=0`, 그리고 로그인한 시각(`auth_time`) | 서버의 Microsoft 로그인 앱 ID 토큰에 `auth_time`을 선택적 클레임으로 추가하세요. |
+| Microsoft | `prompt=login`, 그리고 로그인한 시각(`auth_time`) | 서버의 Microsoft 로그인 앱 ID 토큰에 `auth_time`을 선택적 클레임으로 추가하세요. |
 | Vercel | 없음: Vercel에 다시 로그인하도록 요청할 수 없고, Vercel은 로그인한 시간을 알려 주지 않습니다. | 본인 확인이 되지 않습니다. **다른 방법으로 로그인**을 선택해 이메일로 받은 링크로 로그인하거나, **비밀번호를 잊으셨나요?**에서 비밀번호를 설정해 그 비밀번호로 확인하세요. |
 
 Okta, Microsoft Entra ID, Keycloak, Google Workspace에서 무엇을 설정할지는 [SSO](/docs/identity/sso#본인-확인을-위해-다시-로그인하기) 페이지에 있습니다.

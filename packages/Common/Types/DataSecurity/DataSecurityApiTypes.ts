@@ -7,8 +7,13 @@ import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import { DataSecurityIssueAnalysisView } from "./DataSecurityIssueAnalysis";
+import type { DataSecurityIssueGroupJSON } from "./DataSecurityIssueGroup";
 import DataSensitivity from "./DataSensitivity";
 import { DataStoreResourceKind } from "./DataStoreResource";
+import {
+  DeclaredStoreReaders,
+  DeclaredStoreRetentionBasis,
+} from "./DeclaredDataStore";
 
 /*
  * WHAT DATA SECURITY'S OWN API ROUTES ANSWER.
@@ -27,6 +32,7 @@ export const DATA_SECURITY_API_ROUTES: {
   resourceScope: string;
   resourceCompliance: string;
   recordOfProcessing: string;
+  declaredStore: (dataStoreId: string) => string;
   scanNow: (dataStoreId: string) => string;
   checkNow: (dataStoreId: string) => string;
   scrubFinding: (findingId: string) => string;
@@ -43,6 +49,9 @@ export const DATA_SECURITY_API_ROUTES: {
   dismissAiProposal: (proposalId: string) => string;
   undoAiProposal: (proposalId: string) => string;
   aiInput: string;
+  issueGroups: string;
+  issueGroupFixPlan: (groupId: string) => string;
+  fixIssueGroup: (groupId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -51,6 +60,14 @@ export const DATA_SECURITY_API_ROUTES: {
   // How a resource's own stores stand against each framework: { kind, id }.
   resourceCompliance: "/data-security/resource-compliance",
   recordOfProcessing: "/data-security/record-of-processing",
+  /*
+   * What OneUptime declares of one of the stores it keeps for a project's
+   * security (#10398): what it holds, why, for how long and who can read
+   * it, as the record of processing says them.
+   */
+  declaredStore: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/declared`;
+  },
   scanNow: (dataStoreId: string): string => {
     return `/data-store/${dataStoreId}/scan-now`;
   },
@@ -127,6 +144,19 @@ export const DATA_SECURITY_API_ROUTES: {
    * would send. { withExample?, issueId? }.
    */
   aiInput: "/data-security/ai-input",
+  /*
+   * Issues one mistake made (#10370): the project's groups, for a reader
+   * of its issues across the whole project, { groupIds? }; what a group's
+   * fix would do now, for the reader; and the fix itself,
+   * { codeRepositoryId?, includeDataStoreIds?, parts?, expectedPlanFingerprint? }.
+   */
+  issueGroups: "/data-security/issue-groups",
+  issueGroupFixPlan: (groupId: string): string => {
+    return `/data-security-issue-group/${groupId}/fix-plan`;
+  },
+  fixIssueGroup: (groupId: string): string => {
+    return `/data-security-issue-group/${groupId}/fix`;
+  },
 };
 
 export interface DataSecurityOverviewIssue {
@@ -263,6 +293,35 @@ export interface DataSecurityResourceComplianceResponse {
   frameworks: Array<DataSecurityResourceComplianceFramework>;
 }
 
+/*
+ * WHAT ONEUPTIME DECLARES OF A STORE IT KEEPS FOR A PROJECT'S SECURITY
+ * (#10398, Types/DataSecurity/DeclaredDataStore): its own purpose and
+ * retention, worked out when asked so a retention changed since the store
+ * was declared is the one said, whether the team changed either, and who
+ * can read the store.
+ */
+export interface DataSecurityDeclaredStore {
+  kind: string;
+  // OneUptime's purpose, in English (DECLARED_STORE_PURPOSE).
+  purpose: string;
+  // OneUptime's retention, and what it counts from.
+  retentionInDays: number;
+  retentionBasis: DeclaredStoreRetentionBasis;
+  // OneUptime's retention in English: "15 days".
+  retentionText: string;
+  // Whether the store's Purpose and Retention are the team's own words.
+  isPurposeTheTeams: boolean;
+  isRetentionTheTeams: boolean;
+  readers: DeclaredStoreReaders;
+  // The permissions that read it (Permission values), when people can.
+  readPermissions: Array<string>;
+  // Those permissions' names, in English, for the exports.
+  readerNames: Array<string>;
+  // What it holds, by data type name, and the columns that hold them.
+  dataTypeNames: Array<string>;
+  fields: Array<string>;
+}
+
 export interface DataSecurityRecordOfProcessingRow {
   dataStoreId: string;
   name: string;
@@ -274,13 +333,24 @@ export interface DataSecurityRecordOfProcessingRow {
   dataCategories: Array<DataCategory>;
   dataTypeNames: Array<string>;
   owners: Array<string>;
+  // The team's words, or for a declared store OneUptime's until they change it.
   purpose: string;
   retention: string;
   frameworks: Array<ComplianceFramework>;
+  // Set on the stores OneUptime declares, and only on them.
+  declared?: DataSecurityDeclaredStore | undefined;
 }
 
 export interface DataSecurityRecordOfProcessingResponse {
   rows: Array<DataSecurityRecordOfProcessingRow>;
+}
+
+// A declared store's page: what the record says of it.
+export interface DataSecurityDeclaredStoreResponse {
+  declared: DataSecurityDeclaredStore;
+  // The store's Purpose and Retention as the record says them.
+  purpose: string;
+  retention: string;
 }
 
 /*
@@ -571,6 +641,12 @@ export interface DataSecurityExplainResult {
   analysis?: DataSecurityIssueAnalysisView | null | undefined;
   // A model call was made for it now: there was none, its input changed, or it was asked for again.
   isNew?: boolean | undefined;
+  /*
+   * The group of issues one mistake made that the issue is one of (#10370),
+   * for a reader of issues across the whole project: its cause is fixed
+   * once, for all of them.
+   */
+  group?: DataSecurityIssueGroupJSON | null | undefined;
 }
 
 /*
@@ -579,6 +655,8 @@ export interface DataSecurityExplainResult {
  */
 export interface DataSecurityIssueAnalysisResult {
   analysis: DataSecurityIssueAnalysisView | null;
+  // The issue's group (#10370), as DataSecurityExplainResult says it.
+  group?: DataSecurityIssueGroupJSON | null | undefined;
 }
 
 // A repository the person may ask OneUptime AI to work in (#10362).

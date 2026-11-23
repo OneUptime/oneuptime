@@ -247,6 +247,7 @@ const PLAYLIST_COMPONENTS_DIR: string = `${DASHBOARD_COMPONENTS_DIR}/Playlist`;
 const PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayer.tsx`;
 const PLAYLIST_PLAYER_BAR: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayerBar.tsx`;
 const PLAYLIST_DASHBOARDS_FIELD: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistDashboardsField.tsx`;
+const PLAYLIST_DASHBOARDS: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistDashboards.ts`;
 const USE_PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/UsePlaylistPlayer.ts`;
 const ATTRIBUTE_SERVICE: string =
   "Common/Server/Services/TelemetryAttributeService.ts";
@@ -3900,17 +3901,29 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
     const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
 
     /*
-     * The picker's name, handed to Dropdown in English: Dropdown looks it
-     * up in the reader's language, once (#7790), so the page neither looks
-     * it up first nor says it is translated already.
+     * The picker's name. The picker is an EntityDropdown since #10580, which
+     * finds every dashboard by name, and EntityDropdown draws its aria-label
+     * as it is given, so the field looks the name up in the reader's
+     * language itself, once.
      */
-    expect(field).toContain('ariaLabel="Add a dashboard"');
+    expect(field).toContain("<EntityDropdown");
+    expect(field).toContain(
+      'ariaLabel={translator.translateText("Add a dashboard") || ""}',
+    );
     expect(field).not.toContain("isAriaLabelTranslated");
     expect(createSection).toContain(
       `pick each one from ${bold("Add a dashboard")}`,
     );
-    // The picker's options: not archived, and not in the list yet.
-    expect(field).toContain("!dashboard.isArchived &&");
+    /*
+     * The picker's options, as it asks the API for them: not archived, and
+     * not in the list yet.
+     */
+    const addable: string = readSource(PLAYLIST_DASHBOARDS);
+    expect(field).toContain(
+      "query={getAddablePlaylistDashboardsQuery(dashboards)}",
+    );
+    expect(addable).toContain("isArchived: false,");
+    expect(addable).toContain("_id: new IncludesNone(ids)");
     expect(createSection).toContain("Archived dashboards are not offered.");
   });
 

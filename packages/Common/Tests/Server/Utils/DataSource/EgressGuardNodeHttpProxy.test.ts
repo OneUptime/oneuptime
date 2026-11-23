@@ -40,7 +40,7 @@ jest.mock("../../../../Server/Utils/Logger");
  * builds their agents to go through the proxy exactly as axios would
  * (OutboundProxy.getProxyFor):
  *
- *   - createPinnedAgentsForNodeHttp, for a request to one checked URL
+ *   - createPinnedAgents, for a request to one checked URL
  *     (calendars, MCP servers): a CONNECT tunnel for https, naming the
  *     host, the whole URL to the proxy for http; directly, at the approved
  *     address, when NO_PROXY names the host or no proxy is set;
@@ -159,7 +159,7 @@ function pinnedTo(url: string, address: string): PinnedAgents {
     { address: address, family: net.isIP(address) },
   ];
 
-  return DataSourceEgressGuard.createPinnedAgentsForNodeHttp({
+  return DataSourceEgressGuard.createPinnedAgents({
     url: new URL(url),
     addresses: addresses,
   });
@@ -170,7 +170,7 @@ function destroy(agents: PinnedAgents): void {
   agents.httpsAgent.destroy();
 }
 
-describe("createPinnedAgentsForNodeHttp, for a request to one checked URL", () => {
+describe("createPinnedAgents, for a request to one checked URL", () => {
   test("over http, a proxy named by host name is sent the whole URL, and its credentials", async () => {
     const proxy: LocalHttpServer = await serve({ name: "proxy" });
     process.env["HTTP_PROXY"] =
@@ -238,7 +238,7 @@ describe("createPinnedAgentsForNodeHttp, for a request to one checked URL", () =
     );
 
     const pinned: { url: URL } & PinnedAgents =
-      await DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(
         "http://calendar.example.test/team.ics",
         { blockPrivateAddresses: true },
       );

@@ -1,6 +1,6 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt.
+Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
@@ -9,6 +9,7 @@ Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
 - [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
 - [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
+- [Problemen met één oorzaak](#problemen-met-één-oorzaak): De problemen die één fout veroorzaakte, gegroepeerd, en hun oorzaak één keer opgelost.
 :::
 
 ## Hoe een controle beslist
@@ -194,6 +195,36 @@ Een openstaand probleem dat één wijziging aan de instellingen van een opslag o
 Het vraagt eerst om bevestiging, en zegt wat er verandert, wat ophoudt te werken en wat het kost. Het wijzigt de instellingen van de opslag, nooit de gegevens, en wijzigt niets wat al is zoals het hoort. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd.
 
 Het handelt via de cloudkoppeling van de opslag, dus de koppeling moet **Gegevensbeveiligingsrespons** aan hebben staan en de installatieopdracht moet opnieuw zijn uitgevoerd (zie [Gegevensbeveiliging instellen](/docs/data-security/setup#gegevensbeveiliging-een-blootstelling-laten-sluiten)). Tot dan zegt het paneel wat je moet aanzetten. De opslag wordt direct daarna opnieuw gecontroleerd, en het probleem lost zichzelf op zodra de controle slaagt. De **Tijdlijn** van het probleem en de **Tijdlijn** van de opslag zeggen wat er is gedaan, en wie het deed.
+
+## Problemen met één oorzaak
+
+Eén Terraform-module die toegangslogboeken uitzet, maakt veertig buckets met veertig problemen. Gegevensbeveiliging brengt de problemen die één fout veroorzaakte samen, zodat hun oorzaak één keer wordt opgelost.
+
+**Groeperen op oorzaak** onder **Problemen** toont elke groep boven de lijst: '40 problemen, één oorzaak: de module static-site', wat de controle ervan vindt, hoeveel er zijn opgelost en hoeveel er over zijn. De gegevensopslag ervan klapt eronder uit, elk met een link naar het probleem, en de filters van de lijst beperken ze zoals ze de rijen beperken. De problemen zonder groep staan onder de groepen. De groepering staat aan zodra een groep vijf problemen bevat, en uw browser onthoudt uw keuze.
+
+Feiten vormen een groep, nooit OneUptime AI. Problemen van één controle, op gegevensopslag van één cloud, vormen een groep wanneer hun opslag een van deze feiten deelt, de sterkste eerst:
+
+| Feit | Waar het wordt gelezen |
+| --- | --- |
+| De code die ze declareert | Een bestand in een gekoppelde repository dat is genoemd naar de module of stack die hun tags noemen |
+| Hun stack | De eigen tag van de CloudFormation-stack, of een tag die een stack noemt |
+| Een tag | Een tag die de module, de stack of het onderdeel noemt dat ze maakte, zoals `module` of `component` |
+| Wie ze aanmaakte | De identiteit die ze volgens het wijzigingslogboek van de cloud aanmaakte, voor opslag waarvan de tags niets noemen dat ze maakte |
+| Een naampatroon | Een deel van hun namen dat weinig andere opslag heeft, zoals `static-site-*` |
+
+Een groep bevat minstens twee problemen, een probleem zit in hoogstens één groep, en een probleem blijft in zijn groep zolang zijn opslag het feit van de groep deelt. Zolang **Aan nieuwe problemen werken** aan staat onder **Gegevensbeveiliging → AI**, geeft OneUptime AI elke groep een naam uit haar feiten, zoals 'de module static-site zet toegangslogboeken uit', en een naam die iets zegt wat de feiten niet zeggen, wordt niet bewaard. Anders krijgt een groep de naam van haar feit.
+
+**Oorzaak oplossen** bij een groep zegt wat het wijzigt, wat het weglaat en waarom, voordat er iets verandert:
+
+- **Eén pull request**, voor de gegevensopslag die als code is gedeclareerd: OneUptime AI wijzigt de module of het bestand dat ze declareert, in de repository die u bevestigt, in plaats van elke opslag apart. De pull request noemt elke opslag en elk probleem dat hij oplost, en verschijnt onder **Code** en op de **Tijdlijn** van elk probleem. Hij vraagt wat **Oplossen met AI** vraagt: toestemming om gegevensbeveiligingsproblemen te wijzigen, en een repository waarin OneUptime AI mag werken.
+- **Eén goedkeuring**, voor de gegevensopslag die in de console is gemaakt: de wijziging die [Hier oplossen](#hier-oplossen) maakt, op elk ervan via de cloudkoppeling. Ze vraagt toestemming om gegevensopslag te bewerken.
+- **Weggelaten**: opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd. Opslag waarvan de analyse zegt dat het herstel toegang wegneemt die iets nog gebruikt, wacht tot u **Toch oplossen** aanvinkt. Opslag die geen cloudkoppeling door gegevensbeveiliging laat wijzigen, blijft aan de console ervan over, met de reden.
+
+Heeft een groep beide soorten opslag, dan doet één klik beide delen, en elk deel kan worden weggelaten. Elk probleem lost zichzelf op zodra de controle ervan slaagt, en de groep zegt hoeveel er over zijn tot er geen meer is. Een groep waarvan alle problemen zijn opgelost, blijft zeven dagen in de lijst.
+
+OneUptime AI stelt het herstel van elke groep voor zoals uw AI-regels voor gegevensbeveiliging zeggen: zonder regels wacht de pull request op u onder **Gegevensbeveiliging → AI**, en een regel waarvan **Herstel** **Zonder te vragen** is, opent hem zelf. Een wijziging via de cloudkoppelingen wacht altijd op u. Bij een gegevensbeveiligingszaak vraagt de stap **Fix the code with AI** van een playbook om de pull request van de groep van de zaak. Een probleem in een groep zegt dat onder **OneUptime AI-analyse**, met **Oorzaak oplossen**.
+
+Alleen wie gegevensbeveiligingsproblemen in het hele project leest, ziet groepen: een groep noemt opslag die een leestoegang die tot labels is beperkt niet mag bereiken.
 
 ## Waar de gegevens van een telemetrieprobleem zijn gevonden
 

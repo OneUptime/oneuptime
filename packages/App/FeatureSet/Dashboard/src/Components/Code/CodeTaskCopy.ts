@@ -123,6 +123,9 @@ export const CODE_TASK_RECIPE_LABELS: Record<string, string> = {
   [CodeFixTaskType.GitHubPullRequestProductionReview]:
     translationKey("Production Review"),
   [CodeFixTaskType.CodeRequest]: translationKey("Request"),
+  [CodeFixTaskType.FixInfrastructureCode]: translationKey(
+    "Fix Infrastructure Code",
+  ),
 };
 
 export function getRecipeLabel(recipe: string | undefined): string {
@@ -179,6 +182,10 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.SecurityCase]: translationKey(
     "OneUptime started this task from security case {{label}}",
   ),
+  // The fix of Data Security issues one mistake made (#10370): their cause.
+  [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
+    "Started to fix the cause of Data Security issues: {{label}}",
+  ),
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 
@@ -203,6 +210,9 @@ export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
   ),
   [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
   [CodeTaskOriginType.SecurityCase]: translationKey("Security Case"),
+  [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
+    "Data Security Issues",
+  ),
   [CodeTaskOriginType.Unknown]: "",
 };
 

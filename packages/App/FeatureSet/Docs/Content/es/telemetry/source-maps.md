@@ -136,7 +136,7 @@ Los source maps se conservan 90 días tras la subida y después se eliminan auto
 ## Seguridad
 
 - Los maps se suben por un endpoint autenticado y se guardan en su proyecto de OneUptime: nunca se descargan de su sitio web, así que los source maps ocultos siguen ocultos.
-- El contenido bruto de un map (que incluye su código fuente original si se construyó con `sourcesContent`) solo pueden volver a leerlo los Propietarios del proyecto y Administradores del proyecto, y quien tenga el permiso **Read Telemetry Source Map**. Los demás miembros del equipo solo ven los frames resueltos y las pocas líneas de código alrededor de cada punto de fallo de las excepciones a las que ya tienen acceso.
+- El contenido bruto de un map (que incluye su código fuente original si se construyó con `sourcesContent`) solo pueden volver a leerlo los Propietarios del proyecto y Administradores del proyecto, quien tenga Servicios en el [nivel Administrador](/docs/permissions/index#niveles-de-producto) (`ServiceAdmin`) y quien tenga el permiso **Read Telemetry Source Map**. Los demás miembros del equipo solo ven los frames resueltos y las pocas líneas de código alrededor de cada punto de fallo de las excepciones a las que ya tienen acceso.
 - Al eliminar un servicio se eliminan sus source maps.
 
 ## Solución de problemas

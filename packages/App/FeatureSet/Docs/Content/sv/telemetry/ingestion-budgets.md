@@ -6,7 +6,7 @@ En intagningsbudget begränsar hur mycket telemetri ett projekt skickar under en
 - [Så fungerar budgetar](#så-fungerar-budgetar): Tre nivåer, räknade när telemetrin kommer in.
 - [Ange standardbudgetar för alla projekt](#ange-standardbudgetar-för-alla-projekt): I inställningarna i Admin Dashboard.
 - [Ge en intagningsnyckel en egen budget](#ge-en-intagningsnyckel-en-egen-budget): En del av projektets budget.
-- [Ge ett team eller en etikett en egen budget](#ge-ett-team-eller-en-etikett-en-egen-budget): För de tjänster som teamet äger eller som har etiketten.
+- [Ge ett team eller en etikett en egen budget](#ge-ett-team-eller-en-etikett-en-egen-budget): För de tjänster, värdar och andra resurser som teamet äger eller som har etiketten.
 - [Larma på en budget](#larma-på-en-budget): Innan den är förbrukad, och när den är det.
 :::
 
@@ -98,7 +98,7 @@ Klicka på **Spara ändringar**. En nyckels budget kan inte vara större än pro
 
 ## Ge ett team eller en etikett en egen budget
 
-Ett teams eller en etiketts budget är också en del av dess projekts, för de tjänster som teamet äger eller som har etiketten: ett teams skenande tjänst stoppas vid teamets budget, medan resten av projektet fortsätter att skicka, även genom samma collector och samma intagningsnyckel.
+Ett teams eller en etiketts budget är också en del av dess projekts, för de tjänster, värdar, kluster och andra resurser som teamet äger eller som har etiketten: ett teams skenande tjänst eller värd stoppas vid teamets budget, medan resten av projektet fortsätter att skicka, även genom samma collector och samma intagningsnyckel.
 
 :::steps
 ### Öppna sidan Användning
@@ -114,8 +114,9 @@ På kortet **Team- och etikettbudgetar** klickar du på **Skapa Budget**. Välj 
 Klicka på **Skapa Budget**. Ett teams eller en etiketts budget kan inte vara större än dess projekts: OneUptime avvisar den och anger hur stor den högst kan vara.
 :::
 
-- **Vad den räknar.** De loggar, spår, mätvärden och profiler som teamets tjänster, eller tjänsterna med etiketten, skickar över OpenTelemetry (OTLP). Telemetri från värdar och andra resurser, säkerhetshändelser och loggar från Fluent Bit, Fluentd eller syslog räknas bara mot projektets och nyckelns budgetar.
-- **När den är förbrukad kasseras telemetrin.** Tjänsternas telemetri för den signalen kasseras till återställningen, och avsändaren får inget besked: den fick sitt svar när telemetrin kom in. Det som kasseras räknas inte längre mot projektets eller nyckelns budget.
+- **Vad den räknar.** Loggarna, spåren, mätvärdena och profilerna från varje tjänst, värd, kluster och annan resurs som teamet äger eller som har etiketten, oavsett om de skickas över OpenTelemetry (OTLP) eller, för loggar, från Fluent Bit, Fluentd eller syslog, inklusive den syslog som nätverksenheter skickar till en sond. Säkerhetshändelser räknas bara mot projektets och nyckelns budgetar.
+- **Vems en resurs är.** En tjänst, en värd eller en annan resurs hör till ett team när teamet är en av dess ägare, och till en etikett när den har etiketten: samma ägare och etiketter som avgör vem som får läsa dess telemetri. En ändring av dem räknas inom en minut.
+- **När den är förbrukad kasseras telemetrin.** Deras telemetri för den signalen kasseras till återställningen, och avsändaren får inget besked: den fick sitt svar när telemetrin kom in. Det som kasseras räknas inte längre mot projektets eller nyckelns budget.
 - **Vem som får besked.** Projektägare får ett e-postmeddelande när budgeten passerar varningströskeln, och när den är förbrukad.
 - **Bara en daglig budget.** Ett team eller en etikett har ingen hastighetsgräns.
 - **Varje budget räknas.** En tjänsts telemetri räknas mot budgetarna för dess team och dess etiketter, och för nyckeln och projektet, och den som först är förbrukad stoppar den. När projektets budget sänks under ett teams eller en etiketts begränsas den till projektets.
@@ -134,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Andra HTTP-avsändare får JSON.** Fluent Bit, Fluentd, syslog och övriga HTTP-endpoints får `error`, `message` och `resetsAt`, och `retryAfterSeconds` vid en hastighetsgräns.
-- **MQTT och molnströmmar får inget besked.** Telemetri som kommer in över MQTT eller från en molnleverantörs ström kasseras när dess budget är förbrukad. Ingen hastighetsgräns gäller för den: den skulle inte kunna skickas igen.
+- **MQTT, molnströmmar och sonder får inget besked.** Telemetri som kommer in över MQTT eller från en molnleverantörs ström kasseras när dess budget är förbrukad, och så gör även den syslog som nätverksenheter skickar till en sond: varje enhets loggar räknas mot dess eget projekts budget. Ingen hastighetsgräns gäller för den: den skulle inte kunna skickas igen.
 - **Det får inte heller ett teams eller en etiketts tjänster.** När ett teams eller en etiketts budget är förbrukad tas deras telemetri emot och kasseras sedan: se [Ge ett team eller en etikett en egen budget](#ge-ett-team-eller-en-etikett-en-egen-budget).
 - **Avvisningar räknas.** Det som en förbrukad budget avvisar eller kasserar räknas som kasserat, och varje begäran som en hastighetsgräns avvisar räknas som strypt: se [Se dagens användning och kasserad telemetri](#se-dagens-användning-och-kasserad-telemetri).
 

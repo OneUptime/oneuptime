@@ -120,7 +120,8 @@ export default class ApiPost extends ComponentCode {
 
       return Promise.resolve({
         returnValues: {
-          error: (err as Error).message || "Unknown error",
+          // A refused certificate says which setting would let it through.
+          error: ApiComponentUtils.describeFailure(err, result),
         },
         executePort: result.errorPort,
       });

@@ -105,4 +105,5 @@ The goal: one page for the checkout service, with its latency, its error rate, i
 - [Dashboard Widgets](/docs/dashboards/widgets): Every widget, and which one to pick.
 - [Dashboard Variables & Filters](/docs/dashboards/variables): One dashboard for every service, host or customer.
 - [Sharing & Public Dashboards](/docs/dashboards/sharing): Public links, passwords, IP allowlists and custom domains.
+- [Import from Grafana and Datadog](/docs/dashboards/import): Bring in a dashboard, or the alert rules, you built in Grafana or Datadog.
 :::

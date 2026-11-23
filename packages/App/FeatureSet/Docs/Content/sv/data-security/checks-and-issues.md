@@ -1,6 +1,6 @@
 # Kontroller och problem i Datasäkerhet
 
-Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid.
+Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll läser det som är känt om ett datalager - hur det är konfigurerat, vad som har hittats i det, vem som kan nå det, var det finns - och godkänns, underkänns eller kan inte avgöra. En kontroll som underkänns öppnar ett problem på det datalagret, och problemet stängs av sig självt när kontrollen godkänns. Den här sidan listar varje kontroll, hur ett problems allvarlighetsgrad och riskpoäng räknas fram och vad som händer med ett problem under dess livstid. Säkerhetshändelser, Network Flows och säkerhetsadressvalvet är OneUptimes egna, sparade för din säkerhet: angivna, aldrig skannade eller kontrollerade (se [Datalager som OneUptime sparar för din säkerhet](/docs/data-security/compliance#datalager-som-oneuptime-sparar-för-din-säkerhet)).
 
 :::cards
 - [Hur en kontroll avgör](#hur-en-kontroll-avgör): Godkänd, underkänd eller kan inte avgöra, och hur allvarligt ett underkännande är.
@@ -9,6 +9,7 @@ Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll
 - [Vad som händer med ett problem](#vad-som-händer-med-ett-problem): Öppet, löst, accepterat, inte ett problem.
 - [OneUptime AI:s analys](#oneuptime-ais-analys): Om ett problem är verkligt, vad det sätter på spel, vad åtgärden skulle förstöra och den kortaste vägen till åtgärdat.
 - [Åtgärda härifrån](#åtgärda-härifrån): Stäng en exponering, eller slå på ett skydd som saknas, med ett klick.
+- [Problem med en orsak](#problem-med-en-orsak): Problemen som ett enda fel orsakade, grupperade, och deras orsak åtgärdad en gång.
 :::
 
 ## Hur en kontroll avgör
@@ -194,6 +195,36 @@ Ett öppet problem som en enda ändring av ett datalagers inställningar åtgär
 Den frågar först och säger vad som ändras, vad som slutar fungera och vad det kostar. Den ändrar datalagrets inställningar, aldrig dess data, och ändrar inget som redan är som det ska. Ett datalager som är markerat som **Offentlig avsiktligt** blockeras aldrig.
 
 Den agerar via datalagrets molnanslutning, så anslutningen behöver ha **Datasäkerhetsrespons** påslaget och sitt installationskommando kört igen (se [Konfigurera Datasäkerhet](/docs/data-security/setup#låt-datasäkerhet-stänga-en-exponering)). Tills dess säger panelen vad som ska slås på. Datalagret kontrolleras igen direkt efteråt, och problemet löses av sig självt när dess kontroll godkänns. Problemets **Tidslinje** och datalagrets **Tidslinje** visar vad som gjordes och vem som gjorde det.
+
+## Problem med en orsak
+
+En Terraform-modul som stänger av åtkomstloggar skapar fyrtio buckets med fyrtio problem. Datasäkerhet samlar problemen som ett enda fel orsakade, så att deras orsak åtgärdas en gång.
+
+**Gruppera efter orsak** under **Problem** visar varje grupp ovanför listan: ”40 problem, en orsak: modulen static-site”, vad dess kontroll hittar, hur många som är åtgärdade och hur många som är kvar. Dess datalager fälls ut under den, vart och ett med en länk till sitt problem, och listans filter begränsar dem som de begränsar raderna. Problemen utan grupp visas under grupperna. Grupperingen är på så snart en grupp har fem problem, och din webbläsare kommer ihåg ditt val.
+
+Fakta bildar en grupp, aldrig OneUptime AI. Problem från en kontroll, på datalager i ett moln, är en grupp när deras datalager har ett av dessa fakta gemensamt, det starkaste först:
+
+| Fakta | Var det läses |
+| --- | --- |
+| Koden som deklarerar dem | En fil i en ansluten lagringsplats, uppkallad efter modulen eller stacken som deras taggar nämner |
+| Deras stack | CloudFormation-stackens egen tagg, eller en tagg som nämner en stack |
+| En tagg | En tagg som nämner modulen, stacken eller komponenten som skapade dem, som `module` eller `component` |
+| Vem som skapade dem | Identiteten som skapade dem enligt molnets ändringslogg, för datalager vars taggar inte nämner något som skapade dem |
+| Ett namnmönster | En del av deras namn som få andra datalager har, som `static-site-*` |
+
+En grupp har minst två problem, ett problem finns i högst en grupp, och ett problem stannar i sin grupp så länge dess datalager delar gruppens fakta. Medan **Arbeta med nya problem** är påslaget under **Datasäkerhet → AI** namnger OneUptime AI varje grupp utifrån dess fakta, som ”modulen static-site stänger av åtkomstloggar”, och ett namn som säger något som dess fakta inte säger behålls inte. Annars får en grupp namn efter sitt fakta.
+
+**Åtgärda orsaken** på en grupp säger vad den ändrar, vad den utelämnar och varför, innan något ändras:
+
+- **En pull request**, för de datalager som är deklarerade som kod: OneUptime AI ändrar modulen eller filen som deklarerar dem, i den lagringsplats du bekräftar, i stället för varje datalager. Pull requesten listar varje datalager och varje problem den åtgärdar, och visas under **Kod** och på varje problems **Tidslinje**. Den kräver samma som **Åtgärda med AI**: behörighet att ändra datasäkerhetsproblem och en lagringsplats som OneUptime AI får arbeta i.
+- **Ett godkännande**, för de datalager som skapades i konsolen: ändringen som [Åtgärda härifrån](#åtgärda-härifrån) gör, på vart och ett av dem via dess molnanslutning. Det kräver behörighet att redigera datalager.
+- **Utelämnade**: Ett datalager markerat som **Offentlig avsiktligt** blockeras aldrig. Ett datalager vars analys säger att åtgärden skulle ta bort åtkomst som något fortfarande använder väntar på att du markerar **Åtgärda ändå**. Ett datalager som ingen molnanslutning låter Datasäkerhet ändra lämnas åt sin konsol, med orsaken.
+
+När en grupp har båda sorters datalager gör ett klick båda delarna, och vilken som helst av dem kan utelämnas. Varje problem löses av sig självt när dess kontroll godkänns, och gruppen visar hur många som är kvar tills inga är det. En grupp vars problem alla är åtgärdade stannar i listan i sju dagar.
+
+OneUptime AI föreslår varje grupps åtgärd som dina AI-regler för datasäkerhet säger: utan regler väntar pull requesten på dig under **Datasäkerhet → AI**, och en regel vars **Åtgärd** är **Utan att fråga** öppnar den av sig själv. En ändring via molnanslutningarna väntar alltid på dig. I ett datasäkerhetsärende ber en playbooks steg **Fix the code with AI** om pull requesten för ärendets grupp. Ett problem i en grupp säger det under **OneUptime AI-analys**, med **Åtgärda orsaken**.
+
+Bara personer som läser datasäkerhetsproblem i hela projektet ser grupper: en grupp nämner datalager som en läsbehörighet begränsad till etiketter inte får nå.
 
 ## Var data i ett telemetriproblem hittades
 

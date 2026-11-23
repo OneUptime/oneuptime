@@ -6,7 +6,7 @@ Et inntaksbudsjett begrenser hvor mye telemetri et prosjekt sender på en dag, s
 - [Slik fungerer budsjetter](#slik-fungerer-budsjetter): Tre nivåer, telt etter hvert som telemetrien kommer inn.
 - [Angi standardbudsjettene for alle prosjekter](#angi-standardbudsjettene-for-alle-prosjekter): I innstillingene i Admin Dashboard.
 - [Gi en inntaksnøkkel et eget budsjett](#gi-en-inntaksnøkkel-et-eget-budsjett): En andel av prosjektets budsjett.
-- [Gi et team eller en etikett et eget budsjett](#gi-et-team-eller-en-etikett-et-eget-budsjett): For tjenestene teamet eier, eller som har etiketten.
+- [Gi et team eller en etikett et eget budsjett](#gi-et-team-eller-en-etikett-et-eget-budsjett): For tjenestene, vertene og de andre ressursene teamet eier, eller som har etiketten.
 - [Bli varslet om et budsjett](#bli-varslet-om-et-budsjett): Før det er brukt opp, og når det er det.
 :::
 
@@ -98,7 +98,7 @@ Klikk på **Lagre endringer**. En nøkkels budsjett kan ikke være større enn p
 
 ## Gi et team eller en etikett et eget budsjett
 
-Budsjettet til et team eller en etikett er også en andel av prosjektets, for tjenestene teamet eier, eller som har etiketten: en løpsk tjeneste hos et team stopper ved teamets budsjett, mens resten av prosjektet fortsetter å sende, selv gjennom den samme collectoren og den samme inntaksnøkkelen.
+Budsjettet til et team eller en etikett er også en andel av prosjektets, for tjenestene, vertene, klyngene og de andre ressursene teamet eier, eller som har etiketten: en løpsk tjeneste eller vert hos et team stopper ved teamets budsjett, mens resten av prosjektet fortsetter å sende, selv gjennom den samme collectoren og den samme inntaksnøkkelen.
 
 :::steps
 ### Åpne siden Forbruk
@@ -114,8 +114,9 @@ Klikk på **Opprett Budsjett** på kortet **Team- og etikettbudsjetter**. Velg t
 Klikk på **Opprett Budsjett**. Budsjettet til et team eller en etikett kan ikke være større enn prosjektets: OneUptime avviser det og sier hvor stort det kan være som mest.
 :::
 
-- **Hva det teller.** Loggene, sporene, målingene og profilene som teamets tjenester, eller tjenestene med etiketten, sender over OpenTelemetry (OTLP). Telemetri fra verter og andre ressurser, sikkerhetshendelser og logger fra Fluent Bit, Fluentd eller syslog telles bare mot prosjektets og nøkkelens budsjetter.
-- **Når det er brukt opp, forkastes telemetrien.** Telemetrien for det signalet fra tjenestene forkastes til tilbakestillingen, og avsenderen får ikke beskjed: den fikk svaret sitt da telemetrien kom inn. Det som forkastes, telles ikke lenger mot prosjektets eller nøkkelens budsjett.
+- **Hva det teller.** Loggene, sporene, målingene og profilene fra hver tjeneste, vert, klynge og annen ressurs teamet eier, eller som har etiketten, enten de sendes over OpenTelemetry (OTLP) eller, for logger, fra Fluent Bit, Fluentd eller syslog, inkludert syslog som nettverksenheter sender til en sonde. Sikkerhetshendelser telles bare mot prosjektets og nøkkelens budsjetter.
+- **Hvem en ressurs tilhører.** En tjeneste, en vert eller en annen ressurs tilhører et team når teamet er blant eierne, og en etikett når den har etiketten: de samme eierne og etikettene som avgjør hvem som kan lese telemetrien dens. En endring i dem telles innen et minutt.
+- **Når det er brukt opp, forkastes telemetrien.** Telemetrien deres for det signalet forkastes til tilbakestillingen, og avsenderen får ikke beskjed: den fikk svaret sitt da telemetrien kom inn. Det som forkastes, telles ikke lenger mot prosjektets eller nøkkelens budsjett.
 - **Hvem som får beskjed.** Prosjekteiere får en e-post når budsjettet passerer advarselsterskelen, og når det er brukt opp.
 - **Bare et daglig budsjett.** Et team eller en etikett har ingen hastighetsgrense.
 - **Hvert budsjett teller.** Telemetrien til en tjeneste telles mot budsjettene til teamene og etikettene dens, og til nøkkelen og prosjektet, og det som først er brukt opp, stopper den. Når prosjektets budsjett senkes under budsjettet til et team eller en etikett, holdes det til prosjektets.
@@ -134,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Andre HTTP-avsendere får JSON.** Fluent Bit, Fluentd, syslog og de andre HTTP-endepunktene får `error`, `message` og `resetsAt`, og fra en hastighetsgrense også `retryAfterSeconds`.
-- **MQTT og strømmer fra skyleverandører kan ikke få beskjed.** Telemetri som kommer inn over MQTT eller fra en skyleverandørs strøm, forkastes når budsjettet er brukt opp. Ingen hastighetsgrense gjelder for den: den kunne ikke sendes på nytt.
+- **MQTT, strømmer fra skyleverandører og sonder kan ikke få beskjed.** Telemetri som kommer inn over MQTT eller fra en skyleverandørs strøm, forkastes når budsjettet er brukt opp, og det samme gjelder syslog som nettverksenheter sender til en sonde: loggene fra hver enhet telles mot budsjettet til enhetens eget prosjekt. Ingen hastighetsgrense gjelder for den: den kunne ikke sendes på nytt.
 - **Det kan heller ikke tjenestene til et team eller en etikett.** Når budsjettet til et team eller en etikett er brukt opp, tas telemetrien deres imot og forkastes deretter: se [Gi et team eller en etikett et eget budsjett](#gi-et-team-eller-en-etikett-et-eget-budsjett).
 - **Avvisninger telles.** Det et oppbrukt budsjett avviser eller forkaster, telles som forkastet, og hver forespørsel en hastighetsgrense avviser, som strupet: se [Se dagens forbruk og forkastede data](#se-dagens-forbruk-og-forkastede-data).
 

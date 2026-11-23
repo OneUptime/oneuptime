@@ -1,6 +1,6 @@
 # Prüfungen und Probleme der Datensicherheit
 
-Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht.
+Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
 
 :::cards
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
@@ -9,6 +9,7 @@ Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem.
 - [Die Analyse von OneUptime AI](#die-analyse-von-oneuptime-ai): Ob ein Problem echt ist, was es gefährdet, was die Korrektur beeinträchtigen würde und der kürzeste Weg zur Behebung.
 - [Hier beheben](#hier-beheben): Eine Exponierung schließen oder einen fehlenden Schutz einschalten, mit einem Klick.
+- [Probleme mit einer Ursache](#probleme-mit-einer-ursache): Die Probleme, die ein Fehler verursacht hat, gruppiert, und ihre Ursache einmal behoben.
 :::
 
 ## Wie eine Prüfung entscheidet
@@ -194,6 +195,36 @@ Ein offenes Problem, das eine einzige Änderung an den Einstellungen eines Daten
 Es fragt zuerst und sagt, was sich ändert, was dann nicht mehr funktioniert und was es kostet. Es ändert die Einstellungen des Datenspeichers, nie seine Daten, und ändert nichts, was schon so ist, wie es sein soll. Ein als **Absichtlich öffentlich** markierter Datenspeicher wird nie gesperrt.
 
 Es handelt über die Cloud-Verbindung des Datenspeichers, also muss an der Verbindung **Datensicherheitsreaktion** eingeschaltet und ihr Einrichtungsbefehl erneut ausgeführt sein (siehe [Datensicherheit einrichten](/docs/data-security/setup#datensicherheit-eine-exponierung-schließen-lassen)). Bis dahin sagt das Panel, was einzuschalten ist. Der Datenspeicher wird direkt danach erneut geprüft, und das Problem wird von selbst behoben, sobald seine Prüfung besteht. Die **Zeitachse** des Problems und die **Zeitachse** des Datenspeichers sagen, was getan wurde und wer es getan hat.
+
+## Probleme mit einer Ursache
+
+Ein Terraform-Modul, das Zugriffsprotokolle ausschaltet, erzeugt vierzig Buckets mit vierzig Problemen. Datensicherheit fasst die Probleme zusammen, die ein Fehler verursacht hat, damit ihre Ursache einmal behoben wird.
+
+**Nach Ursache gruppieren** unter **Probleme** zeigt jede Gruppe über der Liste: „40 Probleme, eine Ursache: das Modul static-site“, was ihre Prüfung findet, wie viele behoben und wie viele übrig sind. Ihre Datenspeicher klappen darunter auf, jeder mit einem Link zu seinem Problem, und die Filter der Liste grenzen sie ein, wie sie die Zeilen eingrenzen. Die Probleme ohne Gruppe stehen unter den Gruppen. Die Gruppierung ist eingeschaltet, sobald eine Gruppe fünf Probleme enthält, und Ihr Browser merkt sich Ihre Wahl.
+
+Fakten bilden eine Gruppe, nie OneUptime AI. Probleme einer Prüfung, an Datenspeichern einer Cloud, sind eine Gruppe, wenn ihre Datenspeicher eines davon gemeinsam haben, das Stärkste zuerst:
+
+| Fakt | Wo er gelesen wird |
+| --- | --- |
+| Der Code, der sie deklariert | Eine Datei in einem verbundenen Repository, benannt nach dem Modul oder Stack, das ihre Tags nennen |
+| Ihr Stack | Das eigene Tag des CloudFormation-Stacks oder ein Tag, das einen Stack nennt |
+| Ein Tag | Ein Tag, das das Modul, den Stack oder die Komponente nennt, die sie erzeugt hat, etwa `module` oder `component` |
+| Wer sie erstellt hat | Die Identität, die sie laut Änderungsprotokoll der Cloud erstellt hat, für Datenspeicher, deren Tags nichts nennen, was sie erzeugt hat |
+| Ein Namensmuster | Ein Teil ihrer Namen, den wenige andere Datenspeicher haben, etwa `static-site-*` |
+
+Eine Gruppe enthält mindestens zwei Probleme, ein Problem gehört zu höchstens einer Gruppe, und ein Problem bleibt in seiner Gruppe, solange sein Datenspeicher den Fakt der Gruppe teilt. Solange **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet ist, benennt OneUptime AI jede Gruppe aus ihren Fakten, etwa „das Modul static-site schaltet Zugriffsprotokolle aus“, und ein Name, der etwas sagt, was ihre Fakten nicht sagen, wird nicht übernommen. Sonst wird eine Gruppe nach ihrem Fakt benannt.
+
+**Ursache beheben** an einer Gruppe sagt, was es ändert, was es auslässt und warum, bevor sich etwas ändert:
+
+- **Ein Pull Request**, für die als Code deklarierten Datenspeicher: OneUptime AI ändert das Modul oder die Datei, die sie deklariert, in dem Repository, das Sie bestätigen, statt jeden Datenspeicher einzeln. Der Pull Request listet jeden Datenspeicher und jedes Problem auf, das er behebt, und erscheint unter **Code** und in der **Zeitachse** jedes Problems. Er braucht, was **Mit KI beheben** braucht: die Berechtigung, Datensicherheitsprobleme zu ändern, und ein Repository, in dem OneUptime AI arbeiten darf.
+- **Eine Genehmigung**, für die in der Konsole erstellten Datenspeicher: die Änderung, die [Hier beheben](#hier-beheben) vornimmt, an jedem von ihnen über seine Cloud-Verbindung. Sie braucht die Berechtigung, Datenspeicher zu bearbeiten.
+- **Ausgelassen**: Ein als **Absichtlich öffentlich** markierter Datenspeicher wird nie gesperrt. Ein Datenspeicher, dessen Analyse sagt, dass die Behebung Zugriff entziehen würde, den noch etwas nutzt, wartet darauf, dass Sie **Trotzdem beheben** anhaken. Ein Datenspeicher, den keine Cloud-Verbindung Datensicherheit ändern lässt, bleibt seiner Konsole überlassen, mit dem Grund.
+
+Hat eine Gruppe beide Arten von Datenspeichern, nimmt ein Klick beide Teile vor, und jeder lässt sich auslassen. Jedes Problem wird von selbst gelöst, sobald seine Prüfung besteht, und die Gruppe sagt, wie viele übrig sind, bis keines mehr übrig ist. Eine Gruppe, deren Probleme alle behoben sind, bleibt sieben Tage in der Liste.
+
+OneUptime AI schlägt die Behebung jeder Gruppe so vor, wie Ihre KI-Regeln für Datensicherheit es sagen: Ohne Regeln wartet der Pull Request unter **Datensicherheit → KI** auf Sie, und eine Regel, deren **Behebung** **Ohne Rückfrage** ist, öffnet ihn von selbst. Eine Änderung über die Cloud-Verbindungen wartet immer auf Sie. In einem Datensicherheitsfall fordert der Schritt **Fix the code with AI** eines Playbooks den Pull Request der Gruppe des Falls an. Ein Problem in einer Gruppe sagt das unter **OneUptime AI-Analyse**, mit **Ursache beheben**.
+
+Gruppen sehen nur Personen, die Datensicherheitsprobleme im ganzen Projekt lesen: Eine Gruppe nennt Datenspeicher, die ein auf Labels beschränkter Lesezugriff nicht erreichen darf.
 
 ## Wo die Daten eines Telemetrie-Problems gefunden wurden
 

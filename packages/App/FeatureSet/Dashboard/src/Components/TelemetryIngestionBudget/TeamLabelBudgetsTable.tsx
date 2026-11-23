@@ -34,8 +34,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * Team and label budgets (issue #6386), on Project Settings > Telemetry &
  * APM > Usage, under More settings: a daily budget, inside the project's,
- * for the telemetry of the services a team owns or the services that carry
- * a label. The form asks two things: whose budget it is - one picker, the
+ * for the telemetry of the services, hosts and other resources a team owns
+ * or that carry a label (#10101). The form asks two things: whose budget it is - one picker, the
  * project's teams and its labels in two groups - and its logs budget, what
  * a runaway service fills first; the other signals fold under More fields.
  * What happens when one is used up, and who is told, is said on the card.
@@ -45,7 +45,7 @@ export const TEAM_LABEL_BUDGETS_CARD_TITLE: string = translationKey(
   "Team and Label Budgets",
 );
 export const TEAM_LABEL_BUDGETS_CARD_DESCRIPTION: string = translationKey(
-  "A daily budget for the services a team owns or a label is on. Once it is used up, their telemetry is dropped until the reset, and Project Owners are emailed.",
+  "A daily budget for the services, hosts and other resources a team owns or a label is on. Once it is used up, their telemetry is dropped until the reset, and Project Owners are emailed.",
 );
 
 // The form's own pick of whose budget it is: sent as teamId or labelId.

@@ -98,7 +98,7 @@ Runbooks finden Sie unter **Produkte**, in der Gruppe **Dashboards & Automatisie
 | **Einstellungen** eines Runbooks | **Dieses Runbook ausführen** ausschalten, ohne das Runbook zu löschen. |
 | **Runbooks → Ausführungen** | Jeder Lauf jedes Runbooks im Projekt. |
 | **Runbooks → Runbook-Agents** | Die [Runner](/docs/runbooks/agents) installieren, auf denen Ihre Runbook-Schritte laufen. |
-| **Runbooks → Einstellungen** | Unter **Globale Variablen** die Variablen verwalten, die jedes Runbook [verwenden](/docs/runbooks/variables) kann, dazu die **Eigentümerregeln** und **Beschriftungsregeln**, die neuen Runbooks Eigentümer und Beschriftungen geben. |
+| **Runbooks → Einstellungen** | Unter **Globale Variablen** die Variablen verwalten, die jedes Runbook [verwenden](/docs/runbooks/variables) kann, dazu die **Eigentümerregeln** und **Beschriftungsregeln**, die neuen Runbooks Eigentümer und Beschriftungen geben. **Audit-Protokolle der Regeln** listet, wer diese Regeln und die Runbook-Regeln jedes Produkts erstellt, geändert oder gelöscht hat und wann. |
 | **Vorfälle / Warnungen / Geplante Wartung → Regeln → Runbook-Regeln** | Die Regeln anlegen, die Runbooks automatisch starten. |
 | Ein Vorfall, eine Warnung oder ein Wartungsereignis → **Runbooks** | Die angehängten Läufe sehen und mit **Runbook ausführen** einen starten. |
 

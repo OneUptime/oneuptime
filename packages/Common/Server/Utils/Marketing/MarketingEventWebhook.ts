@@ -6,6 +6,7 @@ import {
 } from "../../EnvironmentConfig";
 import { MarketingEvent } from "../../../Types/Marketing/MarketingEvent";
 import logger from "../Logger";
+import OutboundProxyAgents from "../OutboundProxyAgents";
 
 const REQUEST_TIMEOUT_MS: number = 15000;
 
@@ -75,7 +76,9 @@ export default class MarketingEventWebhook {
       const response: AxiosResponse = await axios.post(
         MarketingWebhookUrl,
         body,
-        {
+        // Through the outbound proxy, or directly (OutboundProxyAgents).
+        OutboundProxyAgents.routeAxiosRequest({
+          url: MarketingWebhookUrl,
           headers: {
             "content-type": "application/json",
             "x-oneuptime-signature-256": this.sign(body),
@@ -87,7 +90,7 @@ export default class MarketingEventWebhook {
           validateStatus: (status: number): boolean => {
             return status >= 200 && status < 300;
           },
-        },
+        }),
       );
 
       logger.debug(

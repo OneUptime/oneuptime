@@ -142,6 +142,51 @@ describe("a body of bytes", () => {
   });
 });
 
+/*
+ * Under a Content-Type named exactly as API checks it, "Content-Type":
+ * "application/x-www-form-urlencoded", an object is sent as a form's
+ * fields. Bytes were handed to URLSearchParams too, which threw "Each query
+ * pair must be an iterable [name, value] tuple": an API monitor that sends
+ * its body as written, an array under a form's Content-Type, never sent it
+ * (#9737).
+ */
+describe("a body under a form's Content-Type", () => {
+  const FORM_HEADERS: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+
+  async function sendUnderForm(data: Buffer | JSONObject): Promise<Received> {
+    const before: number = received.length;
+
+    const result: unknown = await API.fetch<JSONObject>({
+      method: HTTPMethod.POST,
+      url: URL.fromString(`${origin}/form`),
+      data: data,
+      headers: FORM_HEADERS,
+    });
+
+    expect(result).toBeInstanceOf(HTTPResponse);
+    expect(received.length).toBe(before + 1);
+
+    return received[before]!;
+  }
+
+  test("of bytes is sent as the bytes it is", async () => {
+    const request: Received = await sendUnderForm(Buffer.from('[{"id": 1}]'));
+
+    expect(request.body.toString("utf8")).toBe('[{"id": 1}]');
+    expect(request.headers["content-type"]).toBe(
+      "application/x-www-form-urlencoded",
+    );
+  });
+
+  test("of an object is still sent as its fields", async () => {
+    const request: Received = await sendUnderForm({ name: "ops", count: "2" });
+
+    expect(request.body.toString("utf8")).toBe("name=ops&count=2");
+  });
+});
+
 describe("a JSON body", () => {
   test("is still sent as JSON", async () => {
     const before: number = received.length;

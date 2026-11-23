@@ -36,7 +36,9 @@ import {
 import { normalizeDiscoveredHosts } from "../../Utils/NetworkDiscovery/DiscoveredHostUtil";
 import {
   DISCOVERY_SCAN_IMPORTABLE_STATUSES,
+  DISCOVERY_SCAN_STARTED_MESSAGE,
   DiscoveryScanStatus,
+  isDiscoveryScanWaitingForFirstReport,
 } from "../../Utils/NetworkDiscovery/DiscoveryScanStatus";
 import {
   RunImportedDeviceRow,
@@ -459,6 +461,11 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           respondedHostCount: true,
           autoImportProcessedAt: true,
           /*
+           * The claim marker, which says the hosts on the row are still the
+           * run before's (isDiscoveryScanWaitingForFirstReport).
+           */
+          statusMessage: true,
+          /*
            * When this run was claimed — the line improveDiscoveredDeviceNames
            * draws between devices this run imported by address and devices
            * that were already there.
@@ -486,6 +493,28 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
      * that window.
      */
     if (!scan || !scan.projectId || scan.autoImportProcessedAt) {
+      return null;
+    }
+
+    /*
+     * A run its probe has claimed and not reported on yet: the hosts on the
+     * row are the run BEFORE's (isDiscoveryScanWaitingForFirstReport) - the
+     * claim keeps them, the run's first report replaces them - and that run
+     * may have failed, or ended days ago. Its completedAt was cleared when
+     * the scan was queued again, so read as this run's they would pass for
+     * fresh: a scan run again a fortnight after its last run failed
+     * (issue #10334) would have its failed run's hosts imported without
+     * anyone deciding to, and their details credited to a reading taken
+     * now. So nothing is imported, renamed or recorded from them.
+     *
+     * Stamped rather than left for the next tick, so the sweep does not
+     * read a multi-megabyte host list every minute for as long as the probe
+     * stays silent - and only while the row still carries the claim marker:
+     * the run's first report replaces the marker as it clears this stamp,
+     * so a stamp racing that report misses rather than retiring its hosts.
+     */
+    if (isDiscoveryScanWaitingForFirstReport(scan)) {
+      await this.stampScan({ scan: scan, isWaitingForFirstReport: true });
       return null;
     }
 
@@ -1018,6 +1047,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
             // The version token stampScan's compare-and-set uses; see there.
             scannedHostCount: true,
             respondedHostCount: true,
+            // The claim marker: see the skip below.
+            statusMessage: true,
             discoveredDevices: true,
             /*
              * The same builder select as the automatic path, so a dry run
@@ -1033,6 +1064,17 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
       // Re-queued or deleted since the stub query — nothing to evaluate.
       if (!scan) {
+        continue;
+      }
+
+      /*
+       * Claimed for a new run and not reported on yet: its hosts are the
+       * run before's, which Review Results will not import either
+       * (DiscoveryImportRunner) - that run may have failed, and a failed
+       * run's hosts are not imported from here. The run's first report
+       * puts this run's hosts on the row.
+       */
+      if (isDiscoveryScanWaitingForFirstReport(scan)) {
         continue;
       }
 
@@ -3443,6 +3485,14 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   private async stampScan(data: {
     scan: NetworkDeviceDiscoveryScan;
     leaveMarkerUnstamped?: boolean;
+    /*
+     * The scan is waiting for its run's first report (processCompletedScan):
+     * stamp only while it still carries the claim marker, which that report
+     * replaces in the same breath as it clears this stamp - so a report
+     * racing the stamp always wins, even one whose counts match the run
+     * before's, as a re-run of the same range's can.
+     */
+    isWaitingForFirstReport?: boolean;
   }): Promise<void> {
     if (data.leaveMarkerUnstamped) {
       return;
@@ -3481,6 +3531,9 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
          */
         scannedHostCount: data.scan.scannedHostCount ?? null,
         respondedHostCount: data.scan.respondedHostCount ?? null,
+        ...(data.isWaitingForFirstReport
+          ? { statusMessage: DISCOVERY_SCAN_STARTED_MESSAGE }
+          : {}),
       } as unknown as QueryDeepPartialEntity<NetworkDeviceDiscoveryScan>,
     });
   }

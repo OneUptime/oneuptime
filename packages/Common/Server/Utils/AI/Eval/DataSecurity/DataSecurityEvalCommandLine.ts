@@ -127,6 +127,25 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts",
     features: [DataSecurityAiFeature.ProposeStoreOwners],
   },
+  // Issues one mistake made (#10370): their name, and the fix of their cause.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming.ts",
+    features: [DataSecurityAiFeature.NameIssueGroup],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
 ];
 
 // The workflow's own paths: every file above, as GitHub's filter writes it.

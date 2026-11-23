@@ -465,6 +465,37 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "AIIncidentInvestigationRunner.runInvestigationEngine IncidentInternalNote":
       Why.Automation,
   },
+  /*
+   * OneUptime AI working a security case (#10352): when it looks at the
+   * case next and the lease on it, its log of what it did, and where it
+   * stands on the case - each change it makes to the case itself goes
+   * through the playbook engine, whose run records it.
+   */
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponse.ts": {
+    "SecurityCaseResponse.startDueLooks SecurityCase": Why.Bookkeeping,
+    "SecurityCaseResponse.startLook SecurityCase": Why.Bookkeeping,
+  },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseDecisions.ts":
+    {
+      "SecurityCaseResponseDecisions.claim SecurityCaseAiAction":
+        Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseLook.ts":
+    {
+      "SecurityCaseResponseLook.look SecurityCase": Why.Bookkeeping,
+      "SecurityCaseResponseLook.writeClosingReport SecurityCase":
+        Why.Automation,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseNudge.ts":
+    {
+      "SecurityCaseResponseNudge.lookNow SecurityCase": Why.Bookkeeping,
+    },
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseToolkit.ts":
+    {
+      "SecurityCaseResponseToolkit.doDirectly SecurityCase": Why.Automation,
+      "SecurityCaseResponseToolkit.updateRow SecurityCaseAiAction":
+        Why.Bookkeeping,
+    },
   "packages/Common/Server/Utils/Activation/ProjectMilestoneBackfill.ts": {
     "ProjectMilestoneBackfill.backfill ProjectMilestone": Why.Migration,
   },
@@ -551,6 +582,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   // The workers' content-scan claim holds the stores it hands out (#8325).
   "packages/Common/Server/Utils/DataSecurity/DataSecurityWorkerClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
+  },
+  /*
+   * The security stores OneUptime declares (#10398): archived once their
+   * data is gone and restored when it is back, as discovery archives and
+   * restores a store, each with its Timeline line; when they were last
+   * seen, and what they hold as the code says it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DeclaredDataStores.ts": {
+    "DeclaredDataStores.declareStore DataStore": Why.Bookkeeping,
+    "DeclaredDataStores.keep DataStore": Why.Bookkeeping,
   },
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
@@ -675,6 +716,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "SecurityBlocklistFeedServe.writeHeld SecurityBlocklistFeed":
         Why.Reported,
     },
+  // OneUptime AI handing a case it worked to people (#10352): its own state, on the timeline.
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseHandOff.ts": {
+    "SecurityCaseHandOff.handToPeople SecurityCase": Why.Automation,
+  },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseIngest.ts": {
     "SecurityCaseIngest.addDetection SecurityCase": Why.Reported,
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,

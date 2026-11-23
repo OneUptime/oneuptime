@@ -177,7 +177,7 @@ Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs 
 
 ## Registre des traitements
 
-L'article 30 du RGPD vous demande de tenir un registre de vos activités de traitement. Sécurité des données rédige la partie qui porte sur l'endroit où sont conservées les données personnelles : une ligne pour chaque magasin de données qui contient des données personnelles.
+L'article 30 du RGPD vous demande de tenir un registre de vos activités de traitement. Sécurité des données rédige la partie qui porte sur l'endroit où sont conservées les données personnelles : une ligne pour chaque magasin de données qui contient des données personnelles. C'est la carte **Registre des traitements** à la fin de **Sécurité des données → Conformité**, avec **Exporter en CSV** et **Exporter en JSON**.
 
 | Colonne | D'où elle vient |
 | --- | --- |
@@ -185,11 +185,27 @@ L'article 30 du RGPD vous demande de tenir un registre de vos activités de trai
 | Environnement | Les étiquettes ou le nom du magasin de données, ou ce que vous avez réglé |
 | Sensibilité, catégories et types de données | Ce que les analyses ont trouvé, ou la sensibilité que vous avez réglée |
 | Propriétaires | Les propriétaires du magasin de données : des personnes et les membres de ses équipes |
-| Finalité | Ce que vous écrivez dans la **Finalité** du magasin de données : pourquoi il contient des données personnelles |
-| Conservation | Ce que vous écrivez dans la **Conservation** du magasin de données : combien de temps les données y sont conservées |
+| Finalité | Ce que vous écrivez dans la **Finalité** du magasin de données : pourquoi il contient des données personnelles. OneUptime la renseigne pour les magasins de données qu'il conserve pour votre sécurité |
+| Conservation | Ce que vous écrivez dans la **Conservation** du magasin de données : combien de temps les données y sont conservées. OneUptime la renseigne pour les magasins de données qu'il conserve pour votre sécurité |
+| Qui peut lire | Qui peut lire un magasin de données que OneUptime conserve pour votre sécurité |
 | Référentiels | Les référentiels que ses types de données font entrer dans le périmètre |
+| Déclaré par | OneUptime, pour les magasins de données qu'il conserve pour votre sécurité |
 
-Remplissez **Finalité** et **Conservation** dans les **Paramètres** de chaque magasin de données : ce sont les deux choses qu'aucune analyse ne peut savoir. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing`, `/data-security/compliance` et, pour une seule ressource, `/data-security/resource-compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
+Pour un magasin de données que Sécurité des données a trouvé, remplissez **Finalité** et **Conservation** dans ses **Paramètres** : aucune analyse ne peut les savoir. L'API de Sécurité des données fournit aussi le registre et les scores, à `/data-security/record-of-processing`, `/data-security/compliance` et, pour une seule ressource, `/data-security/resource-compliance`, à quiconque peut lire les magasins de données (voir [Intégrations de Sécurité des données](/docs/data-security/integrations#api-terraform-et-mcp)).
+
+### Magasins de données que OneUptime conserve pour votre sécurité
+
+Trois magasins de données contiennent des adresses IP à dessein, pour protéger votre réseau : **Événements de sécurité**, **Flux réseau** et **Coffre d'adresses de sécurité**. Le registre liste chacun de ceux que votre projet possède. OneUptime les déclare au lieu de les trouver : ce qu'ils contiennent est connu par conception, donc aucune analyse ne les lit, aucun contrôle ne s'y applique, et le fait qu'ils contiennent ces adresses n'est jamais un problème, puisque c'est leur raison d'être. Ils portent la mention **Déclaré par OneUptime** dans **Magasins de données**, et la **Vue d'ensemble** et les scores des référentiels les laissent de côté.
+
+| Magasin de données | Ce qu'il contient | Conservation | Qui peut le lire |
+| --- | --- | --- | --- |
+| Événements de sécurité | Les adresses IP, noms d'utilisateur et adresses e-mail de qui a agi et de ce qui a été touché | La [conservation de la télémétrie](/docs/telemetry/data-retention) de votre projet, lue chaque fois que le registre l'est, si bien qu'un changement s'applique aussitôt | Propriétaires du projet, Administrateurs du projet, Administrateurs de la sécurité, Membres de la sécurité, Lecteurs de la sécurité et quiconque a Read Security Event |
+| Flux réseau | Les adresses IP de qui a communiqué avec qui | 30 jours après l'arrivée d'un flux | Quiconque peut lire les appareils réseau |
+| Coffre d'adresses de sécurité | L'adresse IP derrière chaque jeton qu'une règle d'adresse IP qui hache a laissé dans les journaux et les traces que lit [Événements de sécurité](/docs/telemetry/security-events) | 30 jours après la dernière apparition d'une adresse | Seules les analyses d'Événements de sécurité, au sein de OneUptime : aucune personne, page, exportation, API ni aucun outil d'IA |
+
+La finalité de chacun est « Sécurité des réseaux et de l'information (considérant 49 du RGPD) ». Pour écrire votre propre finalité ou durée de conservation, utilisez **Modifier le registre** dans les **Paramètres** du magasin de données : un champ laissé vide garde celle de OneUptime.
+
+Un magasin de données est listé tant que votre projet conserve ses données : le coffre, tant qu'une règle d'adresse IP activée hache les journaux ou les traces que lit Événements de sécurité, et pendant 31 jours ensuite (voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). Une fois ses données disparues, le magasin de données est archivé, et il revient avec votre finalité et votre durée de conservation si les données reviennent.
 
 ## Prochaines étapes
 

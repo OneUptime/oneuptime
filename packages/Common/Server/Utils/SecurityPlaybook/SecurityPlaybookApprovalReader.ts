@@ -49,6 +49,7 @@ import {
   readStepResults,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger, {
+  isOneUptimeAiRun,
   isSecurityPlaybookTrigger,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import {
@@ -70,6 +71,7 @@ import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../Services/ThreatIntelIndicatorService";
 import UserService from "../../Services/UserService";
+import FeedPersonName from "../Feed/FeedPersonName";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -532,6 +534,17 @@ export default class SecurityPlaybookApprovalReader {
   ): Promise<SecurityPlaybookApprovalSource> {
     const playbookName: string = run.playbookName || "";
 
+    /*
+     * One of OneUptime AI's steps, working the case (#10352): asked by
+     * OneUptime AI, with no playbook to name.
+     */
+    if (isOneUptimeAiRun(run)) {
+      return {
+        kind: SecurityPlaybookApprovalSourceKind.OneUptimeAi,
+        playbookName: "",
+      };
+    }
+
     if (run.triggeredByUserId) {
       const personName: string =
         await SecurityPlaybookApprovalReader.getPersonName(
@@ -855,7 +868,15 @@ export default class SecurityPlaybookApprovalReader {
     }
   }
 
-  // A person, as a message names them: their name, else their address.
+  /*
+   * A person, as an approval's messages name them - in the channels and
+   * chats it is posted to, the approvers' direct messages and the email to
+   * every approver. Everybody named there acted on the run: started it by
+   * hand, decided the step or undid a target. So a member, named by their
+   * name, else the part of their address before the "@"
+   * (FeedPersonName.getMemberName, #10681): never their address, which
+   * the messages said of anybody with no name. Empty for nobody.
+   */
   public static async getPersonName(
     userId: string | ObjectID | undefined | null,
   ): Promise<string> {
@@ -872,9 +893,10 @@ export default class SecurityPlaybookApprovalReader {
         props: { isRoot: true },
       });
 
-      return (
-        user?.name?.toString().trim() || user?.email?.toString().trim() || ""
-      );
+      return FeedPersonName.getMemberName({
+        name: user?.name,
+        email: user?.email,
+      });
     } catch (error) {
       logger.debug(`Could not read the name of a person: ${error}`);
       return "";

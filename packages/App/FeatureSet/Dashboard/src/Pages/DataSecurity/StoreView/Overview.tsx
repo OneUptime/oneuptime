@@ -6,6 +6,7 @@ import {
   SensitivityPill,
   SeverityPill,
 } from "../../../Components/DataSecurity/DataSecurityPills";
+import DeclaredStoreOverview from "../../../Components/DataSecurity/DeclaredStoreOverview";
 import StoreDataPaths from "../../../Components/DataSecurity/StoreDataPaths";
 import { getDataStoreEnvironmentTitle } from "../../../Components/DataSecurity/DataSecurityCatalogTerms";
 import StoreDataTypeList from "../../../Components/DataSecurity/StoreDataTypeList";
@@ -44,6 +45,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataCategory from "Common/Types/DataSecurity/DataCategory";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
+import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
@@ -363,7 +365,7 @@ async function readTopIssues(
   }
 }
 
-const DataStoreOverview: FunctionComponent<
+const ScannedDataStoreOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -964,11 +966,36 @@ const DataStoreOverview: FunctionComponent<
               title: "Last Found",
               fieldType: FieldType.DateTime,
             },
+            {
+              // The store's line: its ID, who added it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
         }}
       />
     </div>
   );
+};
+
+/*
+ * A store OneUptime declares (#10398) is no store a scan found: it has no
+ * sensitivity found, exposure, checks, issues or scans, so its Overview is
+ * what OneUptime declares of it (DeclaredStoreOverview).
+ */
+const DataStoreOverview: FunctionComponent<PageComponentProps> = (
+  props: PageComponentProps,
+): ReactElement => {
+  const { dataStoreId, dataStore } = useDataStoreViewContext();
+
+  if (dataStore?.kind && isDeclaredDataStoreKind(dataStore.kind)) {
+    return (
+      <DeclaredStoreOverview dataStoreId={dataStoreId} kind={dataStore.kind} />
+    );
+  }
+
+  return <ScannedDataStoreOverview {...props} />;
 };
 
 export default DataStoreOverview;

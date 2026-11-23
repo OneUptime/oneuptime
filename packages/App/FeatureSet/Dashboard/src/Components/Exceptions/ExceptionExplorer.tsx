@@ -27,6 +27,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import Icon from "Common/UI/Components/Icon/Icon";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -695,6 +696,15 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             isSaving={isAssigning}
             onAssign={onAssign}
           />
+        }
+        recordLine={
+          // Its ID, who created it and who last modified it (#10461).
+          props.section === ExceptionDetailSection.Overview ? (
+            <RecordActivityLine
+              modelType={TelemetryException}
+              recordId={props.telemetryExceptionId}
+            />
+          ) : undefined
         }
       />
 

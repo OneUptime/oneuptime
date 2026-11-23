@@ -1,6 +1,6 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita.
+Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
@@ -9,6 +9,7 @@ Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un cont
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema.
 - [L'analisi di OneUptime AI](#lanalisi-di-oneuptime-ai): Se un problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione.
 - [Correggi da qui](#correggi-da-qui): Chiudi un'esposizione, o attiva una protezione mancante, con un clic.
+- [Problemi con una sola causa](#problemi-con-una-sola-causa): I problemi causati da uno stesso errore, raggruppati, e la loro causa corretta una volta sola.
 :::
 
 ## Come decide un controllo
@@ -194,6 +195,36 @@ Un problema aperto che una sola modifica alle impostazioni di un archivio correg
 Prima chiede conferma, dicendo cosa cambia, cosa smette di funzionare e quanto costa. Cambia le impostazioni dell'archivio, mai i suoi dati, e non cambia nulla che sia già come dovrebbe. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato.
 
 Agisce tramite la connessione cloud dell'archivio, quindi la connessione deve avere **Risposta di sicurezza dei dati** attivata e il suo comando di configurazione eseguito di nuovo (vedi [Configurare Sicurezza dei dati](/docs/data-security/setup#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione)). Fino ad allora il pannello dice cosa attivare. L'archivio viene controllato di nuovo subito dopo, e il problema si risolve da solo quando il suo controllo viene superato. La **Cronologia** del problema e la **Cronologia** dell'archivio dicono cosa è stato fatto, e chi l'ha fatto.
+
+## Problemi con una sola causa
+
+Un modulo Terraform che disattiva i log di accesso crea quaranta bucket con quaranta problemi. La sicurezza dei dati riunisce i problemi causati da uno stesso errore, così la loro causa si corregge una volta sola.
+
+**Raggruppa per causa** in **Problemi** mostra ogni gruppo sopra l'elenco: «40 problemi, una sola causa: il modulo static-site», cosa trova il suo controllo, quanti sono corretti e quanti restano. I suoi archivi dati si aprono sotto di esso, ognuno con un link al suo problema, e i filtri dell'elenco li restringono come restringono le righe. I problemi senza gruppo sono elencati sotto i gruppi. Il raggruppamento si attiva appena un gruppo contiene cinque problemi, e il tuo browser ricorda la tua scelta.
+
+Sono i fatti a formare un gruppo, mai OneUptime AI. I problemi di uno stesso controllo, su archivi dati di uno stesso cloud, formano un gruppo quando i loro archivi condividono uno di questi fatti, dal più forte:
+
+| Fatto | Dove viene letto |
+| --- | --- |
+| Il codice che li dichiara | Un file di un repository collegato che porta il nome del modulo o dello stack nominato dai loro tag |
+| Il loro stack | Il tag proprio dello stack CloudFormation, o un tag che nomina uno stack |
+| Un tag | Un tag che nomina il modulo, lo stack o il componente che li ha creati, come `module` o `component` |
+| Chi li ha creati | L'identità che li ha creati secondo il log delle modifiche del cloud, per gli archivi i cui tag non nominano nulla di ciò che li ha creati |
+| Uno schema di nomi | Una parte dei loro nomi che pochi altri archivi hanno, come `static-site-*` |
+
+Un gruppo contiene almeno due problemi, un problema sta al massimo in un gruppo, e un problema resta nel suo gruppo finché il suo archivio dati condivide il fatto del gruppo. Finché **Lavora sui nuovi problemi** è attivo in **Sicurezza dei dati → IA**, OneUptime AI dà un nome a ogni gruppo a partire dai suoi fatti, come «il modulo static-site disattiva i log di accesso», e un nome che dice qualcosa che i fatti non dicono non viene tenuto. Altrimenti un gruppo prende il nome dal suo fatto.
+
+**Correggi la causa** su un gruppo dice cosa cambia, cosa esclude e perché, prima che cambi qualcosa:
+
+- **Una sola pull request**, per gli archivi dati dichiarati come codice: OneUptime AI modifica il modulo o il file che li dichiara, nel repository che confermi, invece di ogni archivio. La pull request elenca ogni archivio e ogni problema che corregge, e compare in **Codice** e nella **Cronologia** di ogni problema. Richiede ciò che richiede **Correggi con l'IA**: l'autorizzazione a modificare i problemi di sicurezza dei dati e un repository in cui OneUptime AI può lavorare.
+- **Una sola approvazione**, per gli archivi dati creati nella console: la modifica che fa [Correggi da qui](#correggi-da-qui), su ciascuno di essi tramite la sua connessione cloud. Richiede l'autorizzazione a modificare gli archivi dati.
+- **Esclusi**: un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato. Un archivio la cui analisi dice che la correzione toglierebbe un accesso che qualcosa usa ancora aspetta che tu selezioni **Correggilo comunque**. Un archivio che nessuna connessione cloud lascia modificare alla sicurezza dei dati resta alla sua console, con il motivo.
+
+Quando un gruppo ha entrambi i tipi di archivio, un solo clic esegue entrambe le parti, e ciascuna si può escludere. Ogni problema si risolve da sé appena il suo controllo viene superato, e il gruppo dice quanti ne restano finché non ne resta nessuno. Un gruppo con tutti i problemi corretti resta nell'elenco per sette giorni.
+
+OneUptime AI propone la correzione di ogni gruppo come dicono le tue regole IA di sicurezza dei dati: senza regole, la pull request ti aspetta in **Sicurezza dei dati → IA**, e una regola la cui **Correzione** è **Senza chiedere** la apre da sola. Una modifica tramite le connessioni cloud ti aspetta sempre. In un caso di sicurezza dei dati, il passaggio **Fix the code with AI** di un playbook chiede la pull request del gruppo del caso. Un problema di un gruppo lo dice sotto **Analisi di OneUptime AI**, con **Correggi la causa**.
+
+Solo chi legge i problemi di sicurezza dei dati di tutto il progetto vede i gruppi: un gruppo nomina archivi dati che una lettura limitata alle etichette non può raggiungere.
 
 ## Dove sono stati trovati i dati di un problema di telemetria
 

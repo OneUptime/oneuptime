@@ -99,6 +99,11 @@ export const RUNS_ONEUPTIME_STARTS: ReadonlyArray<AIRunType> = [
   AIRunType.Investigation,
   AIRunType.RemediationPlan,
   AIRunType.RemediationExecution,
+  /*
+   * OneUptime AI working a security case, whether a triage or a person's
+   * Respond with AI started it: the case's, never a person's own.
+   */
+  AIRunType.SecurityCaseResponse,
 ];
 
 // The runs that are the project's, as AI runs are read (AIRunPrivacyFilter).

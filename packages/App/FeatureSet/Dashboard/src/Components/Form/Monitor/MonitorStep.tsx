@@ -203,6 +203,7 @@ import {
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
 } from "../../../Utils/MonitorRetryHelpText";
 import SyntheticMonitorCopy from "../../../Utils/Form/Monitor/SyntheticMonitorCopy";
+import getRequestBodyFieldError from "../../../Utils/Form/Monitor/RequestBodyField";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -1279,6 +1280,12 @@ return {
                     />
                     <CodeEditor
                       type={CodeType.JSON}
+                      /*
+                       * Judged as the probe reads a body: any JSON value,
+                       * or JSON5, its {{...}} placeholders standing for
+                       * their values (getRequestBodyFieldError).
+                       */
+                      allowJSON5={true}
                       onBlur={() => {
                         setTouched({
                           ...touched,
@@ -1292,18 +1299,11 @@ return {
                       }
                       initialValue={monitorStep.data?.requestBody}
                       onChange={(value: string) => {
-                        try {
-                          JSON.parse(value);
-                          setErrors({
-                            ...errors,
-                            requestBody: "",
-                          });
-                        } catch {
-                          setErrors({
-                            ...errors,
-                            requestBody: "Invalid JSON",
-                          });
-                        }
+                        setErrors({
+                          ...errors,
+                          requestBody:
+                            getRequestBodyFieldError(value, translator) || "",
+                        });
 
                         monitorStep.setRequestBody(value);
                         if (props.onChange) {

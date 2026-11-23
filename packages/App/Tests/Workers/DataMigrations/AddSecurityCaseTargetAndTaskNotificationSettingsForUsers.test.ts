@@ -66,10 +66,12 @@ const NEW_EVENTS: Array<NotificationSettingEventType> = [
  * The walk seeds every security case setting a member lacks: the ones that
  * came after these two too - a step of a case I am on that stops holding
  * (#10340), which AddSecurityCaseStepRegressedNotificationSettingsForUsers
- * runs the walk again for.
+ * runs the walk again for, and OneUptime AI handing a case to people
+ * (#10352), which AddSecurityCaseAiHandOffNotificationSettingsForUsers does.
  */
 const LATER_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+  NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
 ];
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(

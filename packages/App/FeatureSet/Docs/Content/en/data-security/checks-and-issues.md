@@ -1,6 +1,6 @@
 # Data Security Checks and Issues
 
-Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
@@ -9,6 +9,7 @@ Data Security runs 34 checks on every store, in nine groups. A check reads what 
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
 - [OneUptime AI's analysis](#oneuptime-ais-analysis): Whether an issue is real, what it puts at risk, what the fix would break and the shortest path to fixed.
 - [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
+- [Issues with one cause](#issues-with-one-cause): The issues one mistake made, grouped, and their cause fixed once.
 :::
 
 ## How a check decides
@@ -194,6 +195,36 @@ An open issue that one change to a store's settings fixes - a public bucket, a s
 It asks first, saying what changes, what stops working and what it costs. It changes the store's settings, never its data, and changes nothing that is already as it should be. A store marked **Public By Design** is never blocked.
 
 It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
+
+## Issues with one cause
+
+One Terraform module that turns off access logs makes forty buckets with forty issues. Data Security puts the issues one mistake made together, so their cause is fixed once.
+
+**Group by cause** on **Issues** shows each group above the list: "40 issues, one cause: the static-site module", what its check finds, how many are fixed and how many are left. Its stores fold under it, each linking to its issue, and the list's filters narrow them as they narrow the rows. The issues in no group are listed under the groups. It starts on once a group holds five issues, and your browser keeps your choice.
+
+Facts make a group, never OneUptime AI. Issues of one check, on stores of one cloud, are a group when their stores share one of these, the strongest first:
+
+| Fact | Where it is read |
+| --- | --- |
+| The code that declares them | A file in a connected repository named after the module or stack their tags name |
+| Their stack | The CloudFormation stack's own tag, or a tag that names a stack |
+| A tag | A tag that names the module, the stack or the component that made them, such as `module` or `component` |
+| Who created them | The identity the cloud's change log says created them, for stores whose tags name nothing that made them |
+| A name pattern | A part of their names few other stores have, such as `static-site-*` |
+
+A group holds at least two issues, an issue is in one group at most, and an issue stays in its group while its store shares the group's fact. While **Work on new issues** is on under **Data Security → AI**, OneUptime AI names each group from its facts, such as "the static-site module turns off access logs", and a name that says anything its facts do not is not kept. Otherwise a group is named by its fact.
+
+**Fix the Cause** on a group says what it changes, what it leaves out and why, before anything changes:
+
+- **One Pull Request**, for the stores declared as code: OneUptime AI changes the module or file that declares them, in the repository you confirm, rather than each store. The pull request lists every store and issue it fixes, and shows under **Code** and on each issue's **Timeline**. It takes what **Fix with AI** takes: permission to change Data Security issues, and a repository OneUptime AI may work in.
+- **One Approval**, for the stores made in the console: the change [Fix it from here](#fix-it-from-here) makes, on each of them through its cloud connection. It takes permission to edit data stores.
+- **Left Out**: a store marked **Public By Design** is never blocked. A store whose analysis says the fix would take away access something still uses waits for you to tick **Fix it anyway**. A store no cloud connection lets Data Security change is left to its console, with why.
+
+When a group has both kinds of store, one press makes both parts, and either can be left out. Each issue resolves on its own once its check passes, and the group says how many are left until none is. A group whose issues are all fixed stays on the list for seven days.
+
+OneUptime AI proposes each group's fix as your Data Security AI rules say: out of the box, the pull request waits for you in **Data Security → AI**, and a rule whose **Fix** is **Without asking** opens it on its own. A change through the cloud connections always waits for you. On a Data Security case, a playbook's **Fix the code with AI** step asks for the pull request of the case's group. An issue in a group says so under **OneUptime AI Analysis**, with **Fix the Cause**.
+
+Only people who read Data Security issues across the whole project see groups: a group names stores a read held to labels may not reach.
 
 ## Where a telemetry issue's data was found
 

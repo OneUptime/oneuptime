@@ -63,7 +63,7 @@ import {
   HashedAddressSignal,
   getHashedAddressSearchTexts,
 } from "Common/Types/Telemetry/HashedAddressSearch";
-import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/useHashedAddressSearch";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useAttributeValueSuggestions, {

@@ -370,6 +370,15 @@ describe("which columns record a person doing something", () => {
        */
       "runAsGiven",
       /*
+       * NetworkDeviceDiscoveryScan.runRequestedByUserId: who last ran a
+       * discovery scan again on demand with Run Again (#10334), for the
+       * run on the row. NetworkDeviceDiscoveryScanService.runAgain stamps
+       * it from the caller once the run has passed its checks, and the
+       * requeue worker and an edit's retire clear it as they queue a run of
+       * their own; no request chooses it.
+       */
+      "runRequested",
+      /*
        * IncidentVideoCall.rootCauseSuggestionReviewedByUserId: who used the
        * root cause OneUptime AI suggested from an incident call as the
        * incident's own, or dismissed it. The transcript routes stamp it

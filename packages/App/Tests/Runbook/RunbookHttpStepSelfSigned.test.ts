@@ -1,21 +1,43 @@
 import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
+  PinnedAgentOptions,
   TargetTlsOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
+import RunbookVariableResolver, {
+  RunbookVariableResolution,
+} from "Common/Server/Utils/Runbook/RunbookVariableResolver";
+import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
   HttpRequestStepConfig,
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
 import {
+  CaCertificatePemProblem,
   CaCertificateProblem,
+  HTTP_STEP_CA_CERTIFICATE_MAX_LENGTH,
   HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES,
   HTTP_STEP_CERTIFICATE_NOT_FROM_STEP_CA_MESSAGE,
   HTTP_STEP_UNTRUSTED_CERTIFICATE_MESSAGE,
+  getHttpStepCaCertificateVariableProblemMessage,
   getHttpStepCertificateForAnotherHostMessage,
+  getHttpStepCertificateNotFromVariableCaMessage,
   getHttpStepProxyCertificateMessage,
 } from "Common/Types/Runbook/HttpStepCertificates";
+import {
+  RunbookVariableReference,
+  RunbookVariableScope,
+  getRunbookVariableReferenceKey,
+} from "Common/Types/Runbook/RunbookVariableReference";
+import {
+  RunbookVariableProblemReason,
+  describeRunbookVariableProblems,
+} from "Common/Types/Runbook/RunbookVariableProblems";
+import {
+  MIN_REDACTED_SECRET_PIECE_LENGTH,
+  REDACTED_SECRET_TEXT,
+} from "Common/Types/Runbook/SecretOutputRedaction";
 import {
   approveOnLoopback,
   canListenOn,
@@ -47,7 +69,9 @@ import axios from "axios";
 import https from "https";
 import tls from "tls";
 import {
+  HTTP_STEP_VARIABLES_OUTSIDE_RUN_MESSAGE,
   runHttpStep,
+  StepExecutionContext,
   StepRunResult,
 } from "../../FeatureSet/Runbook/Services/StepExecutors";
 
@@ -74,10 +98,18 @@ import {
  *   - Behind an outbound proxy the setting reaches the server through the
  *     tunnel, and never the proxy's own connection: an https:// proxy keeps
  *     the CAs the process trusts.
+ *   - The CA certificate may be one runbook variable alone (#10441): the
+ *     step trusts the variable's value, global or the runbook's own. A
+ *     value that is another CA is refused by the server's handshake; one
+ *     that is no certificate, holds a private key or is too long, and a
+ *     variable that is not there, are refused before anything is sent,
+ *     naming the variable and never its value. A secret one is hidden in
+ *     what the step records. With the switch on, the variable is not read.
  *
  * The servers answer at a made-up name only the egress guard's check is
  * told of (approveOnLoopback), so only a request dialled at the address the
- * check approved reaches them.
+ * check approved reaches them. Only the variables' storage is stubbed
+ * (RunbookVariableResolver.resolve), as RunbookHttpStepVariables stubs it.
  */
 
 clearOutboundProxyEnvironmentForEachTest();
@@ -328,21 +360,20 @@ describe("a CA certificate that is not one", () => {
       let agentsBuilt: number = 0;
       const realCreate: (
         target: PinnedTarget,
-        targetTls?: TargetTlsOptions | undefined,
-      ) => PinnedAgents =
-        DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
-          DataSourceEgressGuard,
-        );
+        options?: PinnedAgentOptions | undefined,
+      ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+        DataSourceEgressGuard,
+      );
 
       jest
-        .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+        .spyOn(DataSourceEgressGuard, "createPinnedAgents")
         .mockImplementation(
           (
             target: PinnedTarget,
-            targetTls?: TargetTlsOptions | undefined,
+            options?: PinnedAgentOptions | undefined,
           ): PinnedAgents => {
             agentsBuilt++;
-            return realCreate(target, targetTls);
+            return realCreate(target, options);
           },
         );
 
@@ -459,20 +490,19 @@ describe("only that step's request", () => {
     const built: Array<{ agents: PinnedAgents; destroyed: Array<string> }> = [];
     const realCreate: (
       target: PinnedTarget,
-      targetTls?: TargetTlsOptions | undefined,
-    ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
-        DataSourceEgressGuard,
-      );
+      options?: PinnedAgentOptions | undefined,
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
       .mockImplementation(
         (
           target: PinnedTarget,
-          targetTls?: TargetTlsOptions | undefined,
+          options?: PinnedAgentOptions | undefined,
         ): PinnedAgents => {
-          const agents: PinnedAgents = realCreate(target, targetTls);
+          const agents: PinnedAgents = realCreate(target, options);
           const entry: { agents: PinnedAgents; destroyed: Array<string> } = {
             agents,
             destroyed: [],
@@ -615,6 +645,504 @@ describe("behind an outbound proxy", () => {
     );
     // The proxy's certificate was refused before anything was asked of it.
     expect(proxy.connects).toEqual([]);
+    expect(server.isUntouched).toBe(true);
+  });
+});
+
+/*
+ * One CA, kept in a runbook variable, for many steps (#10441). The step's
+ * CA certificate is "{{global.variables.INTERNAL_CA}}" (or a runbook's own
+ * variable), and the step trusts the variable's value as it would a
+ * certificate pasted in.
+ */
+describe("a CA certificate kept in a runbook variable", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "10441000-0000-4000-8000-0000000000a1",
+  );
+  const RUNBOOK_ID: ObjectID = new ObjectID(
+    "10441000-0000-4000-8000-0000000000b1",
+  );
+
+  const CTX: StepExecutionContext = {
+    projectId: PROJECT_ID,
+    runbookExecutionId: new ObjectID("10441000-0000-4000-8000-0000000000c1"),
+    runbookId: RUNBOOK_ID,
+  };
+
+  const INTERNAL_CA: RunbookVariableReference = {
+    scope: RunbookVariableScope.Global,
+    name: "INTERNAL_CA",
+  };
+
+  interface StoredVariable {
+    value: string;
+    isSecret: boolean;
+  }
+
+  // The project's variables, by "global:NAME" / "local:NAME".
+  let stored: Record<string, StoredVariable> = {};
+  // Each time the step's variables were read, as it read them.
+  let reads: Array<Record<string, unknown>> = [];
+
+  function plain(value: string): StoredVariable {
+    return { value, isSecret: false };
+  }
+
+  // The variables' storage, and nothing else: the resolver's answer to it.
+  function useVariables(variables: Record<string, StoredVariable>): void {
+    stored = variables;
+    reads = [];
+
+    jest
+      .spyOn(RunbookVariableResolver, "resolve")
+      .mockImplementation(
+        async (data: {
+          projectId: ObjectID;
+          runbookId: ObjectID | null;
+          references: Array<RunbookVariableReference>;
+          access: unknown;
+          includeValues: boolean;
+        }): Promise<RunbookVariableResolution> => {
+          reads.push(data as unknown as Record<string, unknown>);
+
+          const resolution: RunbookVariableResolution = {
+            variables: new Map(),
+            problems: [],
+            secretValues: [],
+          };
+
+          for (const reference of data.references) {
+            const key: string = getRunbookVariableReferenceKey(reference);
+            const variable: StoredVariable | undefined = stored[key];
+
+            if (!variable) {
+              resolution.problems.push({
+                reference,
+                reason: RunbookVariableProblemReason.Missing,
+              });
+              continue;
+            }
+
+            resolution.variables.set(key, {
+              reference,
+              isSecret: variable.isSecret,
+              value: variable.value,
+            });
+
+            if (variable.isSecret) {
+              resolution.secretValues.push(variable.value);
+            }
+          }
+
+          return resolution;
+        },
+      );
+  }
+
+  // The TLS settings of every agent built for a request, as they were asked for.
+  function watchAgents(): Array<TargetTlsOptions | undefined> {
+    const asked: Array<TargetTlsOptions | undefined> = [];
+    const realCreate: (
+      target: PinnedTarget,
+      options?: PinnedAgentOptions | undefined,
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
+
+    jest
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
+      .mockImplementation(
+        (
+          target: PinnedTarget,
+          options?: PinnedAgentOptions | undefined,
+        ): PinnedAgents => {
+          asked.push(options?.tls);
+          return realCreate(target, options);
+        },
+      );
+
+    return asked;
+  }
+
+  // The lines of a PEM text that are its own: its base64, not its markers.
+  function bodyLines(pem: string): Array<string> {
+    return pem.split("\n").filter((line: string): boolean => {
+      return line.trim().length > 0 && !line.startsWith("-----");
+    });
+  }
+
+  /*
+   * The lines of a secret that what a step records is searched for: a
+   * shorter one could be anywhere in a text (SecretOutputRedaction).
+   */
+  function secretLines(pem: string): Array<string> {
+    return bodyLines(pem).filter((line: string): boolean => {
+      return line.trim().length >= MIN_REDACTED_SECRET_PIECE_LENGTH;
+    });
+  }
+
+  test("from a global variable, lets the request through: the step trusts the variable's value", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.caSigned);
+    useVariables({ "global:INTERNAL_CA": plain(certificates.caCertificate) });
+    const agents: Array<TargetTlsOptions | undefined> = watchAgents();
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).toContain("Status: 200");
+    expect(server.requests).toHaveLength(1);
+
+    // Read for the step's own project and runbook, as the server, once.
+    expect(reads).toHaveLength(1);
+    expect(String(reads[0]!["projectId"])).toBe(PROJECT_ID.toString());
+    expect(String(reads[0]!["runbookId"])).toBe(RUNBOOK_ID.toString());
+    expect(reads[0]!["access"]).toEqual({ kind: "server" });
+    expect(reads[0]!["includeValues"]).toBe(true);
+    expect(reads[0]!["references"]).toEqual([INTERNAL_CA]);
+
+    // The agent trusts the certificate, never the reference.
+    expect(agents).toEqual([
+      { rejectUnauthorized: true, ca: certificates.caCertificate.trim() },
+    ]);
+  });
+
+  test("from the runbook's own variable, written with white space around it, too", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({
+      "local:LAB_CA": plain(certificates.selfSigned.certificate),
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "\n  {{local.variables.LAB_CA}} \n" }),
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(server.requests).toHaveLength(1);
+    expect(reads[0]!["references"]).toEqual([
+      { scope: RunbookVariableScope.Local, name: "LAB_CA" },
+    ]);
+  });
+
+  test("still refuses a certificate that is not for the URL's host: the variable's CA checks everything a pasted one does", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.caSigned);
+    useVariables({ "global:INTERNAL_CA": plain(certificates.caCertificate) });
+
+    const result: StepRunResult = await runHttpStep(
+      step(
+        server,
+        { caCertificate: "{{global.variables.INTERNAL_CA}}" },
+        OTHER_HOST,
+      ),
+      CTX,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      getHttpStepCertificateForAnotherHostMessage(OTHER_HOST),
+    );
+    expect(server.isUntouched).toBe(true);
+  });
+
+  test("a variable that holds another CA is refused by the handshake, and the error says which variable to change", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.otherSelfSigned.certificate),
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+      CTX,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      getHttpStepCertificateNotFromVariableCaMessage(INTERNAL_CA),
+    );
+    expect(result.errorMessage).not.toBe(
+      HTTP_STEP_CERTIFICATE_NOT_FROM_STEP_CA_MESSAGE,
+    );
+    expect(server.isUntouched).toBe(true);
+  });
+
+  test("each run reads the variable again: the CA set there once is the one every next run trusts", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    const caStep: RunbookStep = step(server, {
+      caCertificate: "{{global.variables.INTERNAL_CA}}",
+    });
+
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.otherSelfSigned.certificate),
+    });
+    const before: StepRunResult = await runHttpStep(caStep, CTX);
+
+    stored["global:INTERNAL_CA"] = plain(certificates.selfSigned.certificate);
+    const after: StepRunResult = await runHttpStep(caStep, CTX);
+
+    expect(before.success).toBe(false);
+    expect(after.success).toBe(true);
+    expect(server.requests).toHaveLength(1);
+  });
+
+  test.each([
+    [
+      "text that is no certificate",
+      "my internal CA",
+      CaCertificateProblem.NotACertificate,
+    ],
+    [
+      "PEM markers around something else",
+      "-----BEGIN CERTIFICATE-----\nbm90IGEgY2VydGlmaWNhdGU=\n-----END CERTIFICATE-----",
+      CaCertificateProblem.NotACertificate,
+    ],
+    ["nothing", "", CaCertificateProblem.NotACertificate],
+    [
+      "another reference, which is never read again",
+      "{{global.variables.OTHER_CA}}",
+      CaCertificateProblem.NotACertificate,
+    ],
+    ["a private key", "key", CaCertificateProblem.PrivateKey],
+    ["more than a CA certificate can be", "long", CaCertificateProblem.TooLong],
+  ] as Array<[string, string, CaCertificatePemProblem]>)(
+    "a variable that holds %s is refused before anything is sent, naming the variable and never its value",
+    async (
+      _what: string,
+      written: string,
+      problem: CaCertificatePemProblem,
+    ) => {
+      const value: string =
+        written === "key"
+          ? certificates.selfSigned.key
+          : written === "long"
+            ? certificates.caCertificate.repeat(
+                Math.ceil(
+                  HTTP_STEP_CA_CERTIFICATE_MAX_LENGTH /
+                    certificates.caCertificate.length,
+                ) + 1,
+              )
+            : written;
+      const server: LocalHttpsServer = await serverWith(
+        certificates.selfSigned,
+      );
+      useVariables({ "global:INTERNAL_CA": plain(value) });
+      const agents: Array<TargetTlsOptions | undefined> = watchAgents();
+
+      const result: StepRunResult = await runHttpStep(
+        step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+        CTX,
+      );
+
+      expect(result).toEqual({
+        success: false,
+        output: "",
+        errorMessage: getHttpStepCaCertificateVariableProblemMessage({
+          problem,
+          reference: INTERNAL_CA,
+        }),
+      });
+      expect(result.errorMessage).toContain('the variable "INTERNAL_CA"');
+
+      if (value.trim()) {
+        expect(result.errorMessage).not.toContain(value.trim());
+      }
+
+      for (const line of secretLines(value)) {
+        expect(result.errorMessage).not.toContain(line);
+      }
+
+      expect(agents).toEqual([]);
+      expect(server.isUntouched).toBe(true);
+    },
+  );
+
+  test("a variable that is not there is refused as every missing variable is, and nothing is sent", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({});
+    const agents: Array<TargetTlsOptions | undefined> = watchAgents();
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+      CTX,
+    );
+
+    expect(result).toEqual({
+      success: false,
+      output: "",
+      errorMessage: describeRunbookVariableProblems([
+        {
+          reference: INTERNAL_CA,
+          reason: RunbookVariableProblemReason.Missing,
+        },
+      ]),
+    });
+    expect(result.errorMessage).toContain(
+      'there is no global variable named "INTERNAL_CA"',
+    );
+    expect(agents).toEqual([]);
+    expect(server.isUntouched).toBe(true);
+  });
+
+  test("a secret variable's certificate never shows in what the step records", async () => {
+    const server: LocalHttpsServer = await serve({
+      host: serverAddress(),
+      certificate: certificates.selfSigned,
+      // A server that answers with the certificate, as an echo would.
+      name: certificates.selfSigned.certificate,
+    });
+    approveOnLoopback({ [HOST]: [server.host] });
+    useVariables({
+      "global:INTERNAL_CA": {
+        value: certificates.selfSigned.certificate,
+        isSecret: true,
+      },
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).toContain("Status: 200");
+    expect(result.output).toContain(REDACTED_SECRET_TEXT);
+
+    const hidden: Array<string> = secretLines(
+      certificates.selfSigned.certificate,
+    );
+
+    expect(hidden.length).toBeGreaterThan(0);
+
+    for (const line of hidden) {
+      expect(result.output).not.toContain(line);
+    }
+  });
+
+  test("a plain variable's certificate is not a secret: what the server answers is recorded as it came", async () => {
+    const server: LocalHttpsServer = await serve({
+      host: serverAddress(),
+      certificate: certificates.selfSigned,
+      name: certificates.selfSigned.certificate,
+    });
+    approveOnLoopback({ [HOST]: [server.host] });
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.selfSigned.certificate),
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.output).not.toContain(REDACTED_SECRET_TEXT);
+
+    for (const line of bodyLines(certificates.selfSigned.certificate)) {
+      expect(result.output).toContain(line);
+    }
+  });
+
+  test("is read with the step's other variables, in one read", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.caSigned);
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.caCertificate),
+      "local:PORT": plain(String(server.port)),
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, {
+        url: `https://${HOST}:{{local.variables.PORT}}/health`,
+        caCertificate: "{{global.variables.INTERNAL_CA}}",
+      }),
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!["references"]).toEqual([
+      { scope: RunbookVariableScope.Local, name: "PORT" },
+      INTERNAL_CA,
+    ]);
+  });
+
+  test("with Allow self-signed certificates on, a variable that is not there fails nothing: it is not read", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({ "local:PORT": plain(String(server.port)) });
+
+    const alone: StepRunResult = await runHttpStep(
+      step(server, {
+        allowSelfSignedCertificates: true,
+        caCertificate: "{{global.variables.GONE}}",
+      }),
+      CTX,
+    );
+
+    expect(alone.success).toBe(true);
+    expect(reads).toEqual([]);
+
+    // Beside a variable the step does use, only that one is read.
+    const beside: StepRunResult = await runHttpStep(
+      step(server, {
+        url: `https://${HOST}:{{local.variables.PORT}}/health`,
+        allowSelfSignedCertificates: true,
+        caCertificate: "{{global.variables.GONE}}",
+      }),
+      CTX,
+    );
+
+    expect(beside.success).toBe(true);
+    expect(reads).toHaveLength(1);
+    expect(reads[0]!["references"]).toEqual([
+      { scope: RunbookVariableScope.Local, name: "PORT" },
+    ]);
+    expect(server.requests).toHaveLength(2);
+  });
+
+  test("outside a runbook's run, a step whose CA certificate names a variable is refused", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.selfSigned.certificate),
+    });
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, { caCertificate: "{{global.variables.INTERNAL_CA}}" }),
+    );
+
+    expect(result).toEqual({
+      success: false,
+      output: "",
+      errorMessage: HTTP_STEP_VARIABLES_OUTSIDE_RUN_MESSAGE,
+    });
+    expect(reads).toEqual([]);
+    expect(server.isUntouched).toBe(true);
+  });
+
+  test("a CA certificate stored with a variable beside a certificate is refused before anything is sent, and reads nothing", async () => {
+    const server: LocalHttpsServer = await serverWith(certificates.selfSigned);
+    useVariables({
+      "global:INTERNAL_CA": plain(certificates.selfSigned.certificate),
+    });
+    const agents: Array<TargetTlsOptions | undefined> = watchAgents();
+
+    const result: StepRunResult = await runHttpStep(
+      step(server, {
+        caCertificate: `${certificates.selfSigned.certificate}\n{{global.variables.INTERNAL_CA}}`,
+      }),
+      CTX,
+    );
+
+    expect(result).toEqual({
+      success: false,
+      output: "",
+      errorMessage:
+        HTTP_STEP_CA_CERTIFICATE_PROBLEM_MESSAGES[
+          CaCertificateProblem.VariableAmongText
+        ],
+    });
+    expect(reads).toEqual([]);
+    expect(agents).toEqual([]);
     expect(server.isUntouched).toBe(true);
   });
 });

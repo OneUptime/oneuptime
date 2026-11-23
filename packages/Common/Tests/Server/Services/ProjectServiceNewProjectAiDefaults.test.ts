@@ -102,6 +102,12 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticAlertInvestigation",
   "enableAutomaticSecurityCaseTriage",
+  /*
+   * OneUptime AI working a case end to end (#10352): on for new projects,
+   * within the rows of What OneUptime AI may do on a case, which start
+   * where the issue recommends - containment asks first.
+   */
+  "enableAutomaticSecurityCaseResponse",
   "enableAutomaticPostmortemDraft",
   "enableAiInsights",
   "enableInsightFixTasks",
@@ -155,7 +161,7 @@ async function runOnBeforeCreate(
 }
 
 describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
-  it("lists the ten per-feature AI switches", () => {
+  it("lists the per-feature AI switches", () => {
     expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
       [...AI_SWITCHES].sort(),
     );

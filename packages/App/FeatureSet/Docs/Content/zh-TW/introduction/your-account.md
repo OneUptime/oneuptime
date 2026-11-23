@@ -167,9 +167,9 @@ flowchart TB
 | 提供者 | OneUptime 要求的內容 | 無法確認時 |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"`，以及你登入的時間（`AuthnInstant`） | 讓提供者遵循該要求，例如在 Okta 中使用 Honor Force Authentication。 |
-| OpenID Connect | `prompt=login` 和 `max_age=0`，以及你登入的時間（`auth_time`） | 讓提供者傳送 `auth_time`。在 Microsoft Entra ID 中，將其作為選用宣告加入 ID 權杖。 |
+| OpenID Connect | `prompt=login` 和 `max_age=0`（Microsoft Entra ID：只有 `prompt=login`），以及你登入的時間（`auth_time`） | 讓提供者傳送 `auth_time`。在 Microsoft Entra ID 中，將其作為選用宣告加入 ID 權杖。 |
 | Google | 你登入的時間（`auth_time`）。無法要求 Google 讓你重新登入。 | 為伺服器的 Google 登入應用程式開啟 Session age claims，該應用程式必須已發布並通過驗證。 |
-| Microsoft | `prompt=login` 和 `max_age=0`，以及你登入的時間（`auth_time`） | 將 `auth_time` 作為選用宣告加入伺服器的 Microsoft 登入應用程式的 ID 權杖。 |
+| Microsoft | `prompt=login`，以及你登入的時間（`auth_time`） | 將 `auth_time` 作為選用宣告加入伺服器的 Microsoft 登入應用程式的 ID 權杖。 |
 | Vercel | 無：無法要求 Vercel 讓您重新登入，它也不會告知您的登入時間。 | 它從不確認。請選擇 **用其他方式登入** 並用寄到您信箱的連結登入，或透過 **忘記密碼？** 設定密碼並用它確認。 |
 
 在 Okta、Microsoft Entra ID、Keycloak 與 Google Workspace 中要設定什麼，請見 [SSO](/docs/identity/sso#重新登入以確認是您本人) 頁面。

@@ -107,7 +107,7 @@ Ces réglages sont repliés sous **Plus de champs**. L'en-tête replié les nomm
 | Champ | Par défaut | Ce qu'il fait |
 | --- | --- | --- |
 | **En-têtes de la requête** | Aucun | Les en-têtes à envoyer, sous forme de paires nom et valeur. Cliquez sur **Ajouter : En-tête de la requête** pour chacun. |
-| **Corps de la requête (en JSON)** | Aucun | Un objet JSON à envoyer comme corps, généralement avec **POST**, **PUT** ou **PATCH**. Il doit être du JSON valide. |
+| **Corps de la requête (en JSON)** | Aucun | Le corps à envoyer, généralement avec **POST**, **PUT** ou **PATCH** : n'importe quelle valeur JSON, comme un objet, un tableau, une chaîne ou un nombre. Il est envoyé tel que vous l'écrivez, en `application/json`, sauf si vous définissez un `Content-Type` dans **En-têtes de la requête**. Avec `application/x-www-form-urlencoded` ou `multipart/form-data`, un objet est envoyé sous forme de champs de formulaire. |
 | **Ne pas suivre les redirections** | Désactivé | Juger la première réponse au lieu de suivre les redirections. Voir [ci-dessous](#ne-pas-suivre-les-redirections). |
 | **Autoriser les certificats auto-signés** | Désactivé | Ignorer la validation du certificat TLS pour le nom d'hôte du moniteur lui-même. |
 | **Utiliser un certificat client (mTLS)** | Désactivé | Présenter un certificat client et une clé privée. Voir [Certificat client (mTLS)](#certificat-client-mtls). |
@@ -242,6 +242,10 @@ L'API a redirigé une requête avec un corps, ou avec une méthode autre que `GE
 
 :::details La vérification échoue avec « Remote response exceeded the allowed size. »
 La sonde lit au plus 512 Kio d'une réponse, et celle-ci est plus grande. Appelez un point de terminaison qui renvoie moins, par exemple avec une taille de page plus petite.
+:::
+
+:::details La vérification échoue avec « Le corps de la requête n'est pas un JSON valide, la requête n'a donc pas été envoyée. »
+Le corps n'est pas du JSON une fois ses [secrets de moniteur](/docs/monitor/monitor-secrets) insérés, donc la sonde n'a pas envoyé la requête. Corrigez le corps dans **Plus de champs**, ou la valeur d'un secret qu'il utilise : une valeur qui contient un `"` casse la chaîne JSON où elle se trouve.
 :::
 
 ## Étapes suivantes

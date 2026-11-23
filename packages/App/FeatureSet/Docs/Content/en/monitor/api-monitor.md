@@ -107,7 +107,7 @@ These settings are folded under **More fields**. The folded header lists them an
 | Field | Default | What it does |
 | --- | --- | --- |
 | **Request Headers** | None | Headers to send, as name and value pairs. Click **Add Request Header** for each one. |
-| **Request Body (in JSON)** | None | A JSON object to send as the body, usually with **POST**, **PUT** or **PATCH**. It must be valid JSON. |
+| **Request Body (in JSON)** | None | The body to send, usually with **POST**, **PUT** or **PATCH**: any JSON value, such as an object, an array, a string or a number. It is sent as you write it, as `application/json` unless you set a `Content-Type` in **Request Headers**. With `application/x-www-form-urlencoded` or `multipart/form-data`, an object is sent as form fields. |
 | **Do not follow redirects** | Off | Judge the first response instead of following redirects. See [below](#do-not-follow-redirects). |
 | **Allow self-signed certificates** | Off | Skip TLS certificate validation for the monitor's own host name. |
 | **Use client certificate (mTLS)** | Off | Present a client certificate and private key. See [Client certificate (mTLS)](#client-certificate-mtls). |
@@ -242,6 +242,10 @@ The API redirected a request with a body, or with a method other than `GET` or `
 
 :::details The check fails with "Remote response exceeded the allowed size."
 The probe reads at most 512 KiB of a response, and this one is larger. Call an endpoint that returns less, for example with a smaller page size.
+:::
+
+:::details The check fails with "The request body is not valid JSON, so the request was not sent."
+The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) are filled in, so the probe did not send the request. Correct the body under **More fields**, or the value of a secret it uses: a value with a `"` in it breaks the JSON string it stands in.
 :::
 
 ## Next steps

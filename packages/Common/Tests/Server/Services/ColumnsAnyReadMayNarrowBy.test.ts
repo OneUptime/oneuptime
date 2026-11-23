@@ -6,6 +6,7 @@ import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import SecurityCaseTaskService from "../../../Server/Services/SecurityCaseTaskService";
+import SecurityCaseStepCheckService from "../../../Server/Services/SecurityCaseStepCheckService";
 import SecurityPlaybookRunService from "../../../Server/Services/SecurityPlaybookRunService";
 import IncidentPostmortemActionItemService from "../../../Server/Services/IncidentPostmortemActionItemService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -187,6 +188,8 @@ const SERVICES: Array<DatabaseService<BaseModel>> = [
   ServiceLevelObjectiveService,
   SecurityCaseService,
   SecurityCaseTaskService,
+  // A step's check, read like its case, announces each one OneUptime writes (#10340).
+  SecurityCaseStepCheckService,
   IncidentPostmortemActionItemService,
   SecurityPlaybookRunService,
   AIRunService,

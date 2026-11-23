@@ -50,6 +50,20 @@ jest.mock("react-i18next", () => {
 });
 
 /*
+ * The store's record line (who created it and who last modified it,
+ * #10461) reads the store's activity columns itself: pinned in
+ * OverviewRecordLines, nothing here.
+ */
+jest.mock("../../../UI/Components/Detail/RecordActivityLine", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
+});
+
+/*
  * THE TABLES A DATABASE KEEPS REFUSING, ON ITS PAGE (#9541).
  *
  * A collection skips a table Dataverse keeps refusing until its next try,

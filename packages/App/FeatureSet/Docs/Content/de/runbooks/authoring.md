@@ -102,7 +102,7 @@ Ein ausgehender HTTP-Aufruf, ausgeführt vom OneUptime Worker. Es wird kein Runn
 | **URL** | Der aufzurufende Endpunkt. | Leer |
 | **Header (JSON)** | Unter **Weitere Felder**. Ein JSON-Objekt, etwa `{ "Authorization": "Bearer ..." }`. Header, die kein gültiges JSON sind, lassen den Schritt fehlschlagen. | Keine |
 | **Selbstsignierte Zertifikate zulassen** | Unter **Weitere Felder**. Ist der Schalter an, nimmt der Schritt jedes Zertifikat, das der Server zeigt, sodass ein selbstsigniertes funktioniert, prüft dann aber weder den Hostnamen noch den Gültigkeitszeitraum, und jeder auf dem Netzwerkpfad könnte die Anfrage samt ihren Geheimnissen lesen und die Antwort ändern. | Aus |
-| **CA-Zertifikat** | Unter **Weitere Felder**, solange **Selbstsignierte Zertifikate zulassen** aus ist. Das Zertifikat im PEM-Format der CA, die das Zertifikat des Servers signiert hat, oder das eigene des Servers, wenn es selbstsigniert ist. Der Schritt vertraut dann nur diesem Zertifikat und prüft weiterhin den Hostnamen und den Gültigkeitszeitraum. | Keins |
+| **CA-Zertifikat** | Unter **Weitere Felder**, solange **Selbstsignierte Zertifikate zulassen** aus ist. Das Zertifikat im PEM-Format der CA, die das Zertifikat des Servers signiert hat, oder das eigene des Servers, wenn es selbstsigniert ist, oder eine [Runbook-Variable](/docs/runbooks/variables), die es enthält. Der Schritt vertraut dann nur diesem Zertifikat und prüft weiterhin den Hostnamen und den Gültigkeitszeitraum. | Keins |
 | **Body** | Wird bei `POST`, `PUT`, `PATCH` und `DELETE` angezeigt. Wird als JSON gesendet, wenn er sich als JSON parsen lässt, sonst als Text. | Keiner |
 | **Anfrage-Timeout** | Wie lange auf die Antwort des Endpunkts gewartet wird, bevor der Schritt fehlschlägt. | 30 Sekunden |
 
@@ -118,10 +118,12 @@ Nützlich für: einen PagerDuty-Vorfall öffnen, an einen Slack-Webhook posten, 
 
 Ein Server mit einem Zertifikat, das er selbst signiert hat oder das Ihre eigene CA signiert hat, wird abgelehnt, bis der Schritt ihm vertraut, und es wird nichts gesendet. Der Fehler des Schritts sagt, was zu ändern ist: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Fügen Sie das Zertifikat, das es signiert hat, unter **CA-Zertifikat** ein: das der CA oder das eigene des Servers, wenn es selbstsigniert ist. Der Schritt prüft das Zertifikat des Servers dann dagegen, samt Hostnamen und Gültigkeitszeitraum, sodass ein Server, der sich nur als Ihrer ausgibt, weiterhin abgelehnt wird. Schalten Sie **Selbstsignierte Zertifikate zulassen** nur ein, wenn Sie keines einfügen können. Beides gilt nur für die Anfrage dieses Schritts, nie für einen anderen Schritt, eine andere Anfrage von OneUptime oder die Verbindung zu einem ausgehenden Proxy.
 
+Wenn viele Schritte Dienste aufrufen, die Ihre eigene CA signiert hat, legen Sie deren Zertifikat in einer [Runbook-Variablen](/docs/runbooks/variables) ab und schreiben Sie nur `{{global.variables.INTERNAL_CA}}` in **CA-Zertifikat**. Der Schritt liest die Variable bei jedem Lauf, sodass Sie bei einem Wechsel der CA nur die Variable einmal ändern. Eine einfache Variable genügt, denn ein Zertifikat ist kein Geheimnis; eine geheime funktioniert ebenso und wird in dem, was der Schritt erfasst, verborgen. Eine Variable, die es nicht gibt oder die kein Zertifikat enthält, lässt den Schritt fehlschlagen, bevor etwas gesendet wird, und der Fehler nennt die Variable. Solange **Selbstsignierte Zertifikate zulassen** an ist, liest der Schritt die Variable nicht.
+
 > [!TIP]
 > Um stattdessen Ihrer eigenen CA für alle Anfragen auf einmal zu vertrauen, Monitore eingeschlossen, setzt eine selbst gehostete Installation `NODE_EXTRA_CA_CERTS` auf ihren Containern.
 
-Über die API und Terraform ist der Schalter `allowSelfSignedCertificates` in der Konfiguration des Schritts, `true` oder `false`, und das CA-Zertifikat ihr `caCertificate`, das PEM als Text. Ein Speichern wird abgelehnt, wenn `caCertificate` kein Zertifikat ist oder einen privaten Schlüssel enthält.
+Über die API und Terraform ist der Schalter `allowSelfSignedCertificates` in der Konfiguration des Schritts, `true` oder `false`, und das CA-Zertifikat ihr `caCertificate`: das PEM als Text oder ein einzelner Variablenverweis. Ein Speichern wird abgelehnt, wenn `caCertificate` keines von beiden ist oder einen privaten Schlüssel enthält.
 
 ```hcl
 config = {
