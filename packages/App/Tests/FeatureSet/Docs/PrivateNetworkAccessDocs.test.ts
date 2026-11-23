@@ -475,6 +475,54 @@ describe("the guide says which outbound connections go through a proxy", () => {
     );
   });
 
+  /*
+   * The Microsoft Teams integration page's "Outbound access" paragraph
+   * lists the hosts the bot reaches, and says that behind a proxy it
+   * reaches them through it, pointing here.
+   */
+  test.each(LANGUAGES_WITH_PAGE)(
+    "%s: the Teams integration page's outbound access says the bot reaches its hosts through the proxy, pointing here",
+    (language: string) => {
+      const teamsPage: Array<string> = fs
+        .readFileSync(
+          path.join(
+            CONTENT_DIR,
+            language,
+            "self-hosted/microsoft-teams-integration.md",
+          ),
+          "utf8",
+        )
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.includes("`https://smba.trafficmanager.net/teams/`");
+        });
+
+      expect(teamsPage).toHaveLength(1);
+      expect({
+        language,
+        noProxy: teamsPage[0]!.includes("`NO_PROXY`"),
+        link: teamsPage[0]!.includes(
+          "](/docs/self-hosted/private-network-access)",
+        ),
+      }).toEqual({ language, noProxy: true, link: true });
+    },
+  );
+
+  test("in English, in those words", () => {
+    const teamsPage: string = fs.readFileSync(
+      path.join(
+        CONTENT_DIR,
+        "en",
+        "self-hosted/microsoft-teams-integration.md",
+      ),
+      "utf8",
+    );
+
+    expect(teamsPage).toContain(
+      "Behind an outbound proxy, the bot reaches all of these through it, apart from the hosts in `NO_PROXY`, as the rest of the server does: see [Private Network Access](/docs/self-hosted/private-network-access).",
+    );
+  });
+
   test.each(LANGUAGES_WITH_PAGE)(
     "%s names the Microsoft Teams bot beside its meetings, on the English paragraph's line",
     (language: string) => {
