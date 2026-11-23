@@ -209,7 +209,7 @@ describe("Cloud Environments docs", (): void => {
       );
     });
 
-    it("is the group just before Cloud's, which holds the accounts, their resources, what they cost, their streams and blocking in AWS WAF", (): void => {
+    it("is the group just before Cloud's, which holds the accounts, their resources, what they cost, their streams and blocking in AWS WAF, Azure WAF and Cloud Armor", (): void => {
       const titles: Array<string> = DocsNav.map((group: NavGroup): string => {
         return group.title;
       });
@@ -230,6 +230,9 @@ describe("Cloud Environments docs", (): void => {
         "/docs/telemetry/cloud-streaming-google-cloud",
         // AWS WAF enforces the blocklist through an AWS cloud connection (#10578).
         "/docs/telemetry/cloud-aws-waf-blocklist",
+        // Azure WAF and Cloud Armor, through Azure's and Google Cloud's (#10688).
+        "/docs/telemetry/cloud-azure-waf-blocklist",
+        "/docs/telemetry/cloud-armor-blocklist",
       ]);
     });
 
