@@ -17,6 +17,11 @@ import {
 } from "../../../Types/Database/RecordActor";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  getCrossplaneConnectionSecretKeys,
+  getCrossplaneReferences,
+} from "../../../Utils/DeveloperDocs/CrossplaneSchema";
+import {
+  getTerraformAttributes,
   getTerraformTypeName,
   toTerraformSnakeCase,
 } from "../../../Utils/DeveloperDocs/TerraformSchema";
@@ -370,6 +375,42 @@ describe("the Terraform provider generated from the spec", () => {
     expect(monitor.schema["last_modified_by_user_id"]?.description).toContain(
       "`oneuptime_user`",
     );
+  });
+
+  /*
+   * The Crossplane provider is generated from the Terraform provider
+   * (Upjet): an attribute only computed is the managed resource's
+   * status.atProvider, which a manifest never sets. So none of the six is
+   * a field a manifest gives, a reference to another kind, or a secret its
+   * connection Secret holds.
+   */
+  test("the Crossplane provider made from it reads each, as a status field", () => {
+    for (const model of documentedWithReaders()) {
+      const modelType: DatabaseBaseModelType =
+        model.constructor as DatabaseBaseModelType;
+
+      for (const reference of getCrossplaneReferences(modelType)) {
+        expect([
+          model.tableName,
+          RECORD_ACTOR_COLUMNS.includes(reference.descriptor.columnName),
+        ]).toEqual([model.tableName, false]);
+      }
+
+      for (const key of getCrossplaneConnectionSecretKeys(modelType)) {
+        expect([
+          model.tableName,
+          [...SCALAR_COLUMNS, ...SCALAR_COLUMNS.map(toTerraformSnakeCase)]
+            .includes(key),
+        ]).toEqual([model.tableName, false]);
+      }
+
+      for (const descriptor of getTerraformAttributes(modelType)) {
+        expect([
+          model.tableName,
+          RECORD_ACTOR_COLUMNS.includes(descriptor.columnName),
+        ]).toEqual([model.tableName, false]);
+      }
+    }
   });
 
   test("a data source reads them too, and has no deleted_by_user_id", () => {

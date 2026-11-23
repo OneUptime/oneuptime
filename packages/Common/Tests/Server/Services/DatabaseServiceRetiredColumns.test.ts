@@ -57,15 +57,21 @@ describe("a read that names who deleted a record", () => {
       ).resolves.toEqual([]);
     }
 
-    await expect(
-      monitors.findBy({
-        query: { deletedByUser: { name: "Alex" } } as never,
-        select: { name: true },
-        skip: 0,
-        limit: 10,
-        props: ROOT,
-      }),
-    ).resolves.toEqual([]);
+    for (const query of [
+      { deletedByUser: { name: "Alex" } },
+      // Through a relation: its record held the same nothing.
+      { project: { deletedByUserId: SOMEBODY } },
+    ]) {
+      await expect(
+        monitors.findBy({
+          query: query as never,
+          select: { name: true },
+          skip: 0,
+          limit: 10,
+          props: ROOT,
+        }),
+      ).resolves.toEqual([]);
+    }
 
     expect(narrow).not.toHaveBeenCalled();
   });
@@ -89,10 +95,15 @@ describe("a read that names who deleted a record", () => {
     const sort: JSONObject = {
       deletedByUserId: SortOrder.Ascending,
       name: SortOrder.Descending,
+      project: {
+        deletedByUserId: SortOrder.Ascending,
+        name: SortOrder.Ascending,
+      },
     };
     const query: JSONObject = {
       name: "API",
       deletedByUserId: new IsNull() as unknown as JSONObject,
+      project: { deletedByUserId: null },
     };
 
     await expect(
@@ -108,7 +119,10 @@ describe("a read that names who deleted a record", () => {
     ).rejects.toBeInstanceOf(Stop);
 
     expect(seen!["select"]).toEqual({ name: true });
-    expect(seen!["sort"]).toEqual({ name: SortOrder.Descending });
+    expect(seen!["sort"]).toEqual({
+      name: SortOrder.Descending,
+      project: { name: SortOrder.Ascending },
+    });
     expect(seen!["query"]).toEqual({ name: "API" });
     expect(seen!["groupBy"]).toEqual({});
 
@@ -118,8 +132,12 @@ describe("a read that names who deleted a record", () => {
       "deletedByUserId",
       "deletedByUser",
     ]);
-    expect(Object.keys(sort)).toEqual(["deletedByUserId", "name"]);
-    expect(Object.keys(query)).toEqual(["name", "deletedByUserId"]);
+    expect(Object.keys(sort)).toEqual(["deletedByUserId", "name", "project"]);
+    expect(Object.keys(sort["project"] as JSONObject)).toEqual([
+      "deletedByUserId",
+      "name",
+    ]);
+    expect(Object.keys(query)).toEqual(["name", "deletedByUserId", "project"]);
   });
 
   test("that names none is handed on as it was, the same objects", async () => {

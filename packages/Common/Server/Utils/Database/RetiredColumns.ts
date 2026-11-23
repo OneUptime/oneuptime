@@ -33,6 +33,11 @@ import { JSONObject, ObjectType } from "../../../Types/JSON";
  *     or a delete by it writes nothing. RetiredColumnsPostgres holds each
  *     operator to what Postgres answers for an empty column.
  *
+ * The same holds of a query or a sort through a relation, which names the
+ * related record's fields ({ statusPage: { deletedByUserId: null } }), one
+ * level deep as the API reads one. A select through a relation was refused
+ * then (no column of these was readable on a relation query), and still is.
+ *
  * Before any of this, a model that declares a column of one of these names
  * is read as it declares it.
  */
@@ -68,9 +73,15 @@ const HOLDS_FOR_EMPTY_TYPES: ReadonlyArray<string> = [
   ObjectType.NotWildcard,
 ];
 
-// The part of a model this reads: whether it has a column.
+/*
+ * The parts of a model this reads: whether it has a column, and the model a
+ * relation of it points at, for a query or a sort through the relation.
+ */
 export interface ModelWithColumns {
   hasColumn(columnName: string): boolean;
+  getTableColumnMetadata?(columnName: string):
+    | { modelType?: (new () => ModelWithColumns) | undefined }
+    | undefined;
 }
 
 // A query with the retired columns read: what is left to ask, and whether anything can match.
@@ -126,30 +137,139 @@ export default class RetiredColumns {
   }
 
   /*
+   * A sort without the retired columns, its own and those of a record a
+   * relation names ({ statusPage: { deletedByUserId: "ASC" } }): each held
+   * the same nothing on every record, so the order is the one the rest of
+   * the sort gives. A relation left with no field to sort by is no sort.
+   */
+  public static takeOutOfSort<T>(model: ModelWithColumns, sort: T): T {
+    let result: T = RetiredColumns.takeOut(model, sort);
+
+    for (const [key, related] of RetiredColumns.getRelationsNamingThem(
+      model,
+      result,
+    )) {
+      const inner: unknown = RetiredColumns.takeOut(
+        related,
+        (result as unknown as Record<string, unknown>)[key],
+      );
+
+      result = RetiredColumns.withField(result, key, inner);
+    }
+
+    return result;
+  }
+
+  /*
    * A query with each retired column read as empty on every record: a
    * condition that holds for an empty column is dropped, and one that does
-   * not means the query matches nothing.
+   * not means the query matches nothing. So is one on a record a relation
+   * names ({ statusPage: { deletedByUserId: "<id>" } }): the related record
+   * is read as the query reads it, joined beside the record, where it was as
+   * empty; a relation left with no field to match is no condition.
    */
   public static readQuery<TQuery>(
     model: ModelWithColumns,
     query: TQuery,
   ): RetiredColumnsQuery<TQuery> {
-    const named: Array<string> = RetiredColumns.getNamedIn(model, query);
+    const own: RetiredColumnsQuery<TQuery> = RetiredColumns.readOwnColumns(
+      model,
+      query,
+    );
 
-    if (named.length === 0) {
-      return { query: query, matchesNothing: false };
+    let matchesNothing: boolean = own.matchesNothing;
+    let result: TQuery = own.query;
+
+    for (const [key, related] of RetiredColumns.getRelationsNamingThem(
+      model,
+      result,
+    )) {
+      const inner: RetiredColumnsQuery<unknown> = RetiredColumns.readOwnColumns(
+        related,
+        (result as unknown as Record<string, unknown>)[key],
+      );
+
+      matchesNothing = matchesNothing || inner.matchesNothing;
+      result = RetiredColumns.withField(result, key, inner.query);
     }
 
-    const matchesNothing: boolean = named.some((name: string): boolean => {
-      return !RetiredColumns.holdsForEmpty(
-        (query as unknown as Record<string, unknown>)[name],
-      );
-    });
+    return { query: result, matchesNothing: matchesNothing };
+  }
+
+  // A query's conditions on the model's own retired columns, read as empty.
+  private static readOwnColumns<TQuery>(
+    model: ModelWithColumns,
+    query: TQuery,
+  ): RetiredColumnsQuery<TQuery> {
+    const named: Array<string> = RetiredColumns.getNamedIn(model, query);
 
     return {
       query: RetiredColumns.takeOut(model, query),
-      matchesNothing: matchesNothing,
+      matchesNothing: named.some((name: string): boolean => {
+        return !RetiredColumns.holdsForEmpty(
+          (query as unknown as Record<string, unknown>)[name],
+        );
+      }),
     };
+  }
+
+  /*
+   * The relations of a query or a sort that name a retired column of the
+   * record they point at, each with that record's model: a field whose
+   * value is a plain object of fields, of a relation of `model`. One level
+   * deep, as the API reads a relation's fields.
+   */
+  private static getRelationsNamingThem(
+    model: ModelWithColumns,
+    value: unknown,
+  ): Array<[string, ModelWithColumns]> {
+    if (!RetiredColumns.isObjectOfFields(value) || !model.getTableColumnMetadata) {
+      return [];
+    }
+
+    const relations: Array<[string, ModelWithColumns]> = [];
+
+    for (const [key, inner] of Object.entries(value)) {
+      if (!RetiredColumns.isPlainObject(inner)) {
+        continue;
+      }
+
+      const relatedType: (new () => ModelWithColumns) | undefined =
+        model.getTableColumnMetadata(key)?.modelType;
+
+      if (!relatedType) {
+        continue;
+      }
+
+      const related: ModelWithColumns = new relatedType();
+
+      if (RetiredColumns.getNamedIn(related, inner).length > 0) {
+        relations.push([key, related]);
+      }
+    }
+
+    return relations;
+  }
+
+  /*
+   * `value` with `key` set to `inner`, as a copy, and without `key` when
+   * `inner` holds no field: a relation with nothing left to ask of it.
+   */
+  private static withField<T>(value: T, key: string, inner: unknown): T {
+    const copy: Record<string, unknown> = {
+      ...(value as unknown as Record<string, unknown>),
+    };
+
+    if (
+      RetiredColumns.isObjectOfFields(inner) &&
+      Object.keys(inner).length === 0
+    ) {
+      delete copy[key];
+    } else {
+      copy[key] = inner;
+    }
+
+    return copy as unknown as T;
   }
 
   // Whether a query's condition on a column holds where the column is empty.
@@ -208,5 +328,16 @@ export default class RetiredColumns {
 
   private static isObjectOfFields(value: unknown): value is object {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  // An object of fields that is no operator, id or date: a relation's fields.
+  private static isPlainObject(value: unknown): value is object {
+    if (!RetiredColumns.isObjectOfFields(value)) {
+      return false;
+    }
+
+    const prototype: unknown = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
   }
 }

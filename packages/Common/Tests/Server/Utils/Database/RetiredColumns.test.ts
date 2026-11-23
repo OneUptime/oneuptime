@@ -300,6 +300,83 @@ describe("a query that names one", () => {
   });
 });
 
+/*
+ * Through a relation, a query and a sort name the related record's fields
+ * ({ project: { deletedByUserId: null } }): the related record held the
+ * same nothing, one level deep as the API reads a relation.
+ */
+describe("a query or a sort through a relation that names one", () => {
+  test("a query that holds for none there matches nothing", () => {
+    for (const condition of [AN_ID, new EqualTo(AN_ID), new NotNull()]) {
+      expect(
+        RetiredColumns.readQuery(monitor, {
+          project: { deletedByUserId: condition as JSONObject },
+        }).matchesNothing,
+      ).toBe(true);
+    }
+  });
+
+  test("a query that holds for every record there keeps the rest of the relation's fields", () => {
+    const query: JSONObject = {
+      name: "API",
+      project: {
+        name: "Acme",
+        deletedByUserId: new IsNull() as unknown as JSONObject,
+      },
+    };
+
+    expect(RetiredColumns.readQuery(monitor, query)).toEqual({
+      query: { name: "API", project: { name: "Acme" } },
+      matchesNothing: false,
+    });
+    // The caller's query, and its relation's fields, are as they were.
+    expect(Object.keys(query["project"] as JSONObject)).toEqual([
+      "name",
+      "deletedByUserId",
+    ]);
+  });
+
+  test("a relation left with no field to match is no condition", () => {
+    expect(
+      RetiredColumns.readQuery(monitor, {
+        name: "API",
+        project: { deletedByUserId: null },
+      }),
+    ).toEqual({ query: { name: "API" }, matchesNothing: false });
+  });
+
+  test("a sort keeps the relation's other fields, and drops a relation left with none", () => {
+    expect(
+      RetiredColumns.takeOutOfSort(monitor, {
+        project: { deletedByUserId: "ASC", name: "DESC" },
+        name: "ASC",
+      }),
+    ).toEqual({ project: { name: "DESC" }, name: "ASC" });
+    expect(
+      RetiredColumns.takeOutOfSort(monitor, {
+        project: { deletedByUserId: "ASC" },
+      }),
+    ).toEqual({});
+  });
+
+  test("an operator, an id, a field that is no relation, and a sort that names none are left as they are", () => {
+    const query: JSONObject = {
+      name: new Search("API") as unknown as JSONObject,
+      projectId: new ObjectID(AN_ID) as unknown as JSONObject,
+      customFields: { deletedByUserId: AN_ID },
+    };
+
+    expect(RetiredColumns.readQuery(monitor, query)).toEqual({
+      query: query,
+      matchesNothing: false,
+    });
+
+    const sort: JSONObject = { project: { name: "ASC" } };
+
+    expect(RetiredColumns.takeOutOfSort(monitor, sort)).toBe(sort);
+  });
+});
+
 describe("an answer to a select that named one", () => {
   test("answers each record's as null, as the API did", () => {
     const records: Array<JSONObject> = [

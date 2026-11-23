@@ -11645,16 +11645,31 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       findBy.query = retired.query;
     }
 
-    if (RetiredColumns.getNamedIn(this.model, findBy.select).length > 0) {
-      findBy.select = RetiredColumns.takeOut(this.model, findBy.select);
+    const select: FindBy<TBaseModel>["select"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.select,
+    );
+
+    if (select !== findBy.select) {
+      findBy.select = select;
     }
 
-    if (RetiredColumns.getNamedIn(this.model, findBy.sort).length > 0) {
-      findBy.sort = RetiredColumns.takeOut(this.model, findBy.sort);
+    const sort: FindBy<TBaseModel>["sort"] = RetiredColumns.takeOutOfSort(
+      this.model,
+      findBy.sort,
+    );
+
+    if (sort !== findBy.sort) {
+      findBy.sort = sort;
     }
 
-    if (RetiredColumns.getNamedIn(this.model, findBy.groupBy).length > 0) {
-      findBy.groupBy = RetiredColumns.takeOut(this.model, findBy.groupBy);
+    const groupBy: FindBy<TBaseModel>["groupBy"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.groupBy,
+    );
+
+    if (groupBy !== findBy.groupBy) {
+      findBy.groupBy = groupBy;
     }
 
     return retired;
