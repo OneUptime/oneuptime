@@ -106,6 +106,10 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
 const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
   "packages/Common/Server/Utils/Express.ts":
     "defines getClientIp, the address requests are recorded and logged with",
+  "packages/Common/Server/API/SecurityBlockAPI.ts":
+    "tells the person checking a block whether it covers the address they are using now, so they do not block themselves out of their own app (#10338); it counts nothing",
+  "packages/App/FeatureSet/Telemetry/Middleware/ProbeAuthorization.ts":
+    "records on an authenticated probe the address its requests come from, the address its checks leave from, so the blocklist never blocks it (#10338); it counts nothing",
   "packages/App/FeatureSet/Identity/API/Authentication.ts":
     "records the address of a sign-in and hands it to the captcha check; its attempts are counted by IdentityRateLimit",
   "packages/App/FeatureSet/Identity/API/StatusPageAuthentication.ts":
