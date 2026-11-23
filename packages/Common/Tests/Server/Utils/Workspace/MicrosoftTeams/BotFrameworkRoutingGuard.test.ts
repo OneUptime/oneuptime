@@ -6,6 +6,7 @@ import {
 } from "../../../TestingUtils/ServerSourceFiles";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
+import { createRequire } from "module";
 import path from "path";
 
 /*
@@ -269,6 +270,45 @@ describe("the Teams bot is made of the routed stacks", () => {
 });
 
 describe("the SDK still reads what the routing hands it", () => {
+  test.each([
+    [
+      "@azure/msal-node",
+      TOKEN_REQUESTS,
+      "botframework-connector/lib/auth/msalAppCredentials.js",
+    ],
+    [
+      "@azure/core-rest-pipeline",
+      CONNECTOR_HTTP_CLIENT,
+      "botframework-connector/lib/auth/botFrameworkClientImpl.js",
+    ],
+    [
+      "@azure/core-rest-pipeline",
+      CONNECTOR_HTTP_CLIENT,
+      "botbuilder-stdlib/lib/azureCoreHttpCompat/serviceClientContext.js",
+    ],
+    [
+      "@azure/core-http-compat",
+      CONNECTOR_HTTP_CLIENT,
+      "botbuilder-stdlib/lib/azureCoreHttpCompat/serviceClientContext.js",
+    ],
+  ])(
+    "%s resolves to the same copy from %s and %s",
+    (name: string, source: string, sdkSource: string) => {
+      // Use Node's resolver so Jest's Azure mocks cannot hide a second copy.
+      const fromOneUptime: NodeJS.Require = createRequire(
+        path.join(PACKAGES_ROOT, "..", source),
+      );
+      const fromConnector: NodeJS.Require = createRequire(
+        fromOneUptime.resolve("botframework-connector"),
+      );
+      const fromSdk: NodeJS.Require = createRequire(
+        fromConnector.resolve(sdkSource),
+      );
+
+      expect(fromOneUptime.resolve(name)).toBe(fromSdk.resolve(name));
+    },
+  );
+
   test("botbuilder and botframework-connector are 4.23.3, the release these were read from", () => {
     for (const name of ["botbuilder", "botframework-connector"]) {
       expect({

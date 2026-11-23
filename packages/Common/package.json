@@ -62,6 +62,9 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "@azure/core-http-compat": "2.3.1",
+    "@azure/core-rest-pipeline": "1.25.0",
+    "@azure/msal-node": "2.16.3",
     "@bull-board/express": "^5.21.4",
     "@clickhouse/client": "^1.10.1",
     "@cspotcode/source-map-support": "^0.8.1",
