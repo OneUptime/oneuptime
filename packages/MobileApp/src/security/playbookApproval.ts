@@ -24,6 +24,8 @@ export const SECURITY_PLAYBOOK_RUN_STATUSES: ReadonlyArray<string> = [
   "Queued",
   "Running",
   WAITING_FOR_APPROVAL,
+  // A Page On-Call step waits while OneUptime AI responds first to the case.
+  "Waiting for OneUptime AI",
   "Succeeded",
   "Failed",
   "Cancelled",

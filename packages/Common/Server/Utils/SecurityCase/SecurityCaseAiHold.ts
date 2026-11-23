@@ -364,12 +364,25 @@ export default class SecurityCaseAiHold {
 
     try {
       settings = await this.readSettings(data.projectId);
+    } catch (error) {
+      /*
+       * Whether the project holds cases at all cannot be read: nothing is
+       * held, and nothing is said - most projects do not hold, and a line
+       * on every case for them would be noise.
+       */
+      logger.error(
+        `SecurityCaseAiHold: could not read whether project ${data.projectId.toString()} lets OneUptime AI respond first; people are alerted as usual:`,
+      );
+      logger.error(error);
+      return decision;
+    }
 
-      // The cheap answer first: a project that does not hold reads nothing more.
-      if (!settings.isOn) {
-        return { canHold: false, skip: SecurityCaseAiHoldSkip.NotOn };
-      }
+    // The cheap answer first: a project that does not hold reads nothing more.
+    if (!settings.isOn) {
+      return { canHold: false, skip: SecurityCaseAiHoldSkip.NotOn };
+    }
 
+    try {
       facts = await this.readFacts({
         projectId: data.projectId,
         securityCaseId: data.securityCaseId,
@@ -1018,6 +1031,16 @@ export default class SecurityCaseAiHold {
     byUserId?: ObjectID | undefined;
   }): Promise<boolean> {
     try {
+      // Most hand-offs are of cases never held: one read, and nothing else.
+      if (
+        !(await this.isHeld({
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+        }))
+      ) {
+        return false;
+      }
+
       const isTakenOver: boolean =
         data.reason === SecurityCaseHandOffReason.TakenOver;
 
