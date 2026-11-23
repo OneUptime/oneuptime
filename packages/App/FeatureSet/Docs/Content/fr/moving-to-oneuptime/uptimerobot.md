@@ -57,7 +57,7 @@ Le rapport compte ce qui a été créé et non importé, et liste chaque éléme
 | Monitors | Moniteurs | Chaque moniteur devient un moniteur du même type, avec la même adresse, le même intervalle et le même délai d'attente, et les mêmes codes de statut considérés comme disponibles. |
 | Public status pages | Pages de statut | Chaque page affiche les mêmes moniteurs : ceux qu'elle nomme, ceux qui portent ses tags, ou tous, avec la disponibilité et les barres d'historique telles qu'elle les affichait. Une page protégée par mot de passe est importée en privé. |
 
-- **Les moniteurs HTTP(S) et à mot-clé** deviennent des moniteurs de site web, ou des moniteurs d'API quand ils envoient une autre méthode, des en-têtes ou un corps JSON. Un moniteur à mot-clé tombe quand son mot-clé apparaît ou manque, comme dans UptimeRobot, et le recherche exactement, majuscules comprises.
+- **Les moniteurs HTTP(S) et à mot-clé** deviennent des moniteurs de site web, ou des moniteurs d'API quand ils envoient une autre méthode, des en-têtes ou un corps de requête. Un moniteur à mot-clé tombe quand son mot-clé apparaît ou manque, comme dans UptimeRobot, et le recherche exactement, majuscules comprises.
 - **Les moniteurs ping et de port** deviennent des moniteurs ping et de port.
 - **Les moniteurs heartbeat** deviennent des moniteurs de requêtes entrantes, qui tombent quand aucune requête n'est arrivée pendant l'intervalle et le délai de grâce. Chacun a une nouvelle adresse dans OneUptime.
 - **Les moniteurs DNS et d'API** deviennent des moniteurs DNS et d'API.

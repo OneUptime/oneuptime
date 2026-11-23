@@ -200,6 +200,12 @@ import {
   SecurityCaseAiOnItsOwnStamps,
   readSecurityCaseAiOnItsOwnStamps,
 } from "../../Types/SecurityCase/SecurityCaseAi";
+import {
+  SECURITY_CASE_AI_HOLD_MINUTES_MAX,
+  SECURITY_CASE_AI_HOLD_MINUTES_MIN,
+} from "../../Types/SecurityCase/SecurityCaseAiHold";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorities";
 import TeamPermissionHolders, {
   TeamMembershipRow,
   TeamPermissionRow,
@@ -515,6 +521,22 @@ export interface ProjectCreateCarryForward {
   resellerFromPromoCode?: ProjectResellerFromPromoCode | undefined;
 }
 
+// A project's case priorities and statuses (#10353), loaded when needed for the same reason.
+function loadSecurityCaseValues(): typeof import("../Utils/SecurityCase/SecurityCaseValues").default {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../Utils/SecurityCase/SecurityCaseValues").default;
+}
+
+/*
+ * OneUptime AI responding first to security cases (#10353): loaded when it
+ * is needed - its module reads this service, and so do the many modules
+ * this one is loaded with.
+ */
+function loadSecurityCaseAiHold(): typeof import("../Utils/SecurityCase/SecurityCaseAiHold").default {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  return require("../Utils/SecurityCase/SecurityCaseAiHold").default;
+}
+
 export class ProjectService extends ProjectReferencesService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
@@ -808,6 +830,110 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * How long OneUptime AI holds a new security case's alerts while it
+   * responds first (#10353, Security Events -> AI -> Settings): a whole
+   * number of minutes from 1 to 30, written as a number. Anything else is
+   * refused with the reason, never stored and read as a bound later. A
+   * create cannot name the priority it holds cases below: a new project
+   * has no priorities yet.
+   */
+  public applySecurityCaseAiHoldRules(
+    data: {
+      securityCaseAiHoldMinutes?: unknown;
+      securityCaseAiHoldBelowPriorityId?: unknown;
+    },
+    options: { isCreate: boolean },
+  ): void {
+    if (
+      options.isCreate &&
+      data.securityCaseAiHoldBelowPriorityId !== undefined &&
+      data.securityCaseAiHoldBelowPriorityId !== null
+    ) {
+      throw new BadDataException(
+        "Pick the priority OneUptime AI responds first below once the project has its case priorities.",
+      );
+    }
+
+    if (data.securityCaseAiHoldMinutes === undefined) {
+      return;
+    }
+
+    const value: unknown = coerceNumericColumnValue(
+      data.securityCaseAiHoldMinutes,
+    );
+
+    if (
+      typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < SECURITY_CASE_AI_HOLD_MINUTES_MIN ||
+      value > SECURITY_CASE_AI_HOLD_MINUTES_MAX
+    ) {
+      throw new BadDataException(
+        `OneUptime AI holds a case's alerts for a whole number of minutes from ${SECURITY_CASE_AI_HOLD_MINUTES_MIN} to ${SECURITY_CASE_AI_HOLD_MINUTES_MAX}.`,
+      );
+    }
+
+    data.securityCaseAiHoldMinutes = value;
+  }
+
+  /*
+   * The priority OneUptime AI responds first below (#10353): one of the
+   * project's own case priorities, and one still offered - or nothing, for
+   * the built-in High. A priority of another project's, or archived, is
+   * refused with the reason.
+   */
+  private async checkSecurityCaseAiHoldPriority(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const picked: unknown = (updateBy.data as Record<string, unknown>)[
+      "securityCaseAiHoldBelowPriorityId"
+    ];
+
+    if (picked === undefined || picked === null) {
+      return;
+    }
+
+    const pickedId: string = picked.toString();
+
+    if (!ObjectID.isValidUUID(pickedId)) {
+      throw new BadDataException(
+        "Pick one of this project's case priorities for OneUptime AI to respond first below.",
+      );
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true } as Select<Model>,
+    );
+
+    for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      const priorities: Array<SecurityCasePriority> = (
+        await loadSecurityCaseValues().getForProject(project.id)
+      ).priorities;
+      const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+        priorities,
+        pickedId,
+      );
+
+      if (!priority) {
+        throw new BadDataException(
+          "Pick one of this project's case priorities for OneUptime AI to respond first below.",
+        );
+      }
+
+      if (priority.isArchived) {
+        throw new BadDataException(
+          `${priority.name || "This priority"} is archived. Pick a priority your cases still use for OneUptime AI to respond first below.`,
+        );
+      }
+    }
+  }
+
+  /*
    * The proxies Security Events trusts to forward a client's address
    * (Security Events > Connections, under More settings; #10416): one IP
    * address or range a line. Refused with the reason when an entry is
@@ -1095,6 +1221,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityCaseAiHoldRules(
+      data.data as {
+        securityCaseAiHoldMinutes?: unknown;
+        securityCaseAiHoldBelowPriorityId?: unknown;
+      },
+      { isCreate: true },
     );
     this.applySecurityTrustedProxyRules(
       data.data as { securityTrustedProxies?: unknown },
@@ -1678,6 +1811,24 @@ export class ProjectService extends ProjectReferencesService<Model> {
       }
     }
 
+    /*
+     * Letting OneUptime AI respond first to security cases, working them end
+     * to end, or AI itself turned off (#10353): every case OneUptime AI
+     * holds goes to people at once, saying why (SecurityCaseAiHold).
+     * Turned on, nothing changes - holds start with new cases.
+     */
+    if (
+      isAiTurnedOff ||
+      updateData["enableAutomaticSecurityCaseResponse"] === false ||
+      updateData["enableSecurityCaseAiRespondsFirst"] === false
+    ) {
+      for (const projectId of updatedItemIds) {
+        await loadSecurityCaseAiHold().onProjectSettingsChanged({
+          projectId: projectId,
+        });
+      }
+    }
+
     this.announceSignInRulesChanged(
       SsoRequirementChanges.takeProjectsWhoseRuleChanged(
         onUpdate.updateBy,
@@ -1851,6 +2002,13 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityCaseAiHoldRules(
+      updateBy.data as {
+        securityCaseAiHoldMinutes?: unknown;
+        securityCaseAiHoldBelowPriorityId?: unknown;
+      },
+      { isCreate: false },
     );
     this.applySecurityTrustedProxyRules(
       updateBy.data as { securityTrustedProxies?: unknown },
@@ -2090,6 +2248,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await this.checkNumbersStartAboveHighest(updateBy);
 
     await this.stampSecurityCaseAiOnItsOwn(updateBy);
+
+    await this.checkSecurityCaseAiHoldPriority(updateBy);
 
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
 
@@ -5083,6 +5243,21 @@ export class ProjectService extends ProjectReferencesService<Model> {
    */
   @CaptureSpan()
   public async getOwners(projectId: ObjectID): Promise<Array<User>> {
+    return await this.getUsersHolding(projectId, Permission.ProjectOwner);
+  }
+
+  /*
+   * The people who hold `permission` in the project, as getOwners reads
+   * Project Owner for it: every team row of the project for the permission
+   * (allows and blocks), the accepted members of those teams, and each
+   * person once. An automatic response policy pages the project's Security
+   * Admins at its hourly limit (#10350) through it.
+   */
+  @CaptureSpan()
+  public async getUsersHolding(
+    projectId: ObjectID,
+    permission: Permission,
+  ): Promise<Array<User>> {
     if (!projectId) {
       throw new BadDataException("Project ID is required");
     }
@@ -5092,7 +5267,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       await TeamPermissionService.findBy({
         query: {
           projectId: projectId,
-          permission: Permission.ProjectOwner,
+          permission: permission,
         },
         props: {
           isRoot: true,
@@ -5168,7 +5343,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     const holderIds: Array<string> = TeamPermissionHolders.getHolderIds({
-      permission: Permission.ProjectOwner,
+      permission: permission,
       rows: teamPermissions
         .filter((row: TeamPermission): boolean => {
           return Boolean(row.teamId);
@@ -5176,7 +5351,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         .map((row: TeamPermission): TeamPermissionRow => {
           return {
             teamId: row.teamId!,
-            permission: row.permission || Permission.ProjectOwner,
+            permission: row.permission || permission,
             isBlockPermission: row.isBlockPermission,
             labelIds: (row.labels || []).map((label: Label): ObjectID => {
               return label.id!;

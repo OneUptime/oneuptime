@@ -156,6 +156,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Playbooks", PageMap.SECURITY_PLAYBOOKS],
       ["Approvals", PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
+      // The policies that challenge or block as a detection is made (#10350).
+      ["Automatic Response", PageMap.SECURITY_AUTOMATIC_RESPONSE],
       // What the project blocks, beside what no block may touch.
       ["Blocklist", PageMap.SECURITY_BLOCKLIST],
       // The secret URLs firewalls read the blocklist from (#10345).
@@ -449,9 +451,9 @@ describe("Security Events side menu", () => {
     expect(activeLinkTitles()).toEqual(["Blocklist Feeds"]);
     expect(isExpanded("Playbooks")).toBe(true);
     // The entry still opens the list, not the feed.
-    expect(entryAnchor("Playbooks", "Blocklist Feeds").getAttribute("href")).toBe(
-      routeFor(PageMap.SECURITY_BLOCKLIST_FEEDS),
-    );
+    expect(
+      entryAnchor("Playbooks", "Blocklist Feeds").getAttribute("href"),
+    ).toBe(routeFor(PageMap.SECURITY_BLOCKLIST_FEEDS));
   });
 
   test("lights nothing on a case's own page: it opens outside the menu", async () => {

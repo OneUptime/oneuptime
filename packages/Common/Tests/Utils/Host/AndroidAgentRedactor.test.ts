@@ -163,8 +163,38 @@ describe("a token, looked for once per run of its characters", () => {
     // After a "-" in a run: the run's text before it stays.
     expect(redact(`trace-${jwt}`)).toBe("trace-[token]");
     expect(redact(`req a-b-${jwt}.more`)).toBe("req a-b-[token].more");
+    // From the first place in the run a token may start: the token from there holds the later one.
+    expect(redact(`x-eyJab-${jwt}`)).toBe("x-[token]");
     // Glued to a word, no token starts: the agent keeps it too.
     expect(redact(`x${jwt}`)).toBe(`x${jwt}`);
+    expect(redact(`_${jwt}`)).toBe(`_${jwt}`);
+    // Each token of a line, and a segment of fewer than five characters is none.
+    expect(redact(`${jwt} ${jwt}`)).toBe("[token] [token]");
+    expect(redact(`a=${jwt};b=${jwt}`)).toBe("a=[token];b=[token]");
+    expect(redact("eyJabcd.efghi.jklmn")).toBe("eyJabcd.efghi.jklmn");
+    expect(redact("eyJabcde.efghi.jklmn")).toBe("[token]");
+  });
+
+  test("every match of a long text is replaced, and the text between them kept", () => {
+    expect(redact("4111111111111111 x ".repeat(1000))).toBe(
+      "[card number] x ".repeat(1000),
+    );
+    expect(redact("password=hunter2&".repeat(1000))).toBe(
+      "password=[redacted]&".repeat(1000),
+    );
+    expect(redact("Bearer abcdefghijklmnop ".repeat(1000))).toBe(
+      "Bearer [credential] ".repeat(1000),
+    );
+    expect(redact("1795076857467 ".repeat(1000))).toBe(
+      "1795076857467 ".repeat(1000),
+    );
+    expect(
+      redact(
+        "a 4111111111111111, password=hunter2; Bearer abcdefghijklmnop a@b.io end",
+      ),
+    ).toBe(
+      "a [card number], password=[redacted]; Bearer [credential] [email] end",
+    );
   });
 
   test("a long run of a token's characters costs time in proportion to its length", () => {

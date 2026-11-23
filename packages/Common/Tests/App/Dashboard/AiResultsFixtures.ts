@@ -90,6 +90,9 @@ export function makeWeeks(
           DATA_SECURITY_CHANGES_MADE_BY_WEEK)[index]!,
         verdictsAgreed: counts.verdictsAgreed?.[index] || 0,
         verdictsDecided: counts.verdictsDecided?.[index] || 0,
+        // Leaks caught before they merged, of all counted (#10376).
+        leaksCaught: counts.leaksCaught?.[index] || 0,
+        leaksCounted: counts.leaksCounted?.[index] || 0,
       };
     },
   );

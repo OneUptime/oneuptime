@@ -10,6 +10,7 @@ import {
   AiOutcomesDataSecurityProposals,
   AiOutcomesIssueVerdictOutcome,
   AiOutcomesIssueVerdicts,
+  AiOutcomesLeaks,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
   AiOutcomesModels,
@@ -172,6 +173,22 @@ export interface AiOutcomesInput {
     | Array<AiOutcomesDataSecurityAnalysisRow>
     | null
     | undefined;
+  /*
+   * Leaks caught in pull requests and found after (#10376). Null: the
+   * caller may not read them; left out by a caller that does not count them.
+   */
+  leakRows?: Array<AiOutcomesLeakRow> | null | undefined;
+}
+
+/*
+ * One leak AI Results counts (#10376): caught in a pull request - when a
+ * review first posted it, and when a later one no longer found it - or
+ * found after it shipped, when a scan opened its issue.
+ */
+export interface AiOutcomesLeakRow {
+  createdAt: Date;
+  isCaught: boolean;
+  fixedAt?: Date | undefined;
 }
 
 export function getSubjectKey(
@@ -563,6 +580,8 @@ export default class AiOutcomesBuilder {
         dataSecurityChangesMade: 0,
         verdictsAgreed: 0,
         verdictsDecided: 0,
+        leaksCaught: 0,
+        leaksCounted: 0,
       });
     }
 
@@ -606,6 +625,13 @@ export default class AiOutcomesBuilder {
               : null,
           }
         : {}),
+      ...(input.leakRows !== undefined
+        ? {
+            leaks: input.leakRows
+              ? this.countLeaks(input.leakRows, weekOf)
+              : null,
+          }
+        : {}),
       models: input.canReadModels
         ? this.countModels({
             investigationRows: input.investigationRows || [],
@@ -617,6 +643,43 @@ export default class AiOutcomesBuilder {
       weeks,
       isPartial: input.isPartial,
     };
+  }
+
+  // Where a leak counts (#10376): fixed or still open in its pull request, or found after.
+  public static getLeakOutcome(row: AiOutcomesLeakRow): keyof AiOutcomesLeaks {
+    if (!row.isCaught) {
+      return "foundAfter";
+    }
+
+    return row.fixedAt ? "fixed" : "open";
+  }
+
+  /*
+   * The leaks of the window: each in the week it was caught or found, and
+   * every week's bar its caught ones out of all it counted.
+   */
+  private static countLeaks(
+    rows: Array<AiOutcomesLeakRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): AiOutcomesLeaks {
+    const leaks: AiOutcomesLeaks = { fixed: 0, open: 0, foundAfter: 0 };
+
+    for (const row of rows) {
+      const week: AiOutcomesWeek | null = weekOf(row.createdAt);
+
+      if (!week) {
+        continue;
+      }
+
+      leaks[this.getLeakOutcome(row)]++;
+      week.leaksCounted++;
+
+      if (row.isCaught) {
+        week.leaksCaught++;
+      }
+    }
+
+    return leaks;
   }
 
   private static countPages(

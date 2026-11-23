@@ -1057,6 +1057,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/security-cases",
       },
       {
+        title: "Automatic Response",
+        url: "/docs/telemetry/security-automatic-response",
+      },
+      {
         title: "Blocklist Feeds for Firewalls and Proxies",
         url: "/docs/telemetry/blocklist-feeds",
       },

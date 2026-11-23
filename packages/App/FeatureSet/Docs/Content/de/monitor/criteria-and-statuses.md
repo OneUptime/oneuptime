@@ -5,13 +5,14 @@ Die Kriterien eines Monitors entscheiden, was jede Prüfung bedeutet: ob der Mon
 :::cards
 - [Wie Kriterien entscheiden](#wie-kriterien-entscheiden): Von oben nach unten, und der erste Treffer gewinnt.
 - [Was ein Kriterium enthält](#was-ein-kriterium-enthält): Filter, eine Abgleichsbedingung, Aktionen und Einstellungen.
+- [Ein Fenster von Prüfungen bewerten](#ein-fenster-von-prüfungen-bewerten): Fehlgeschlagene Prüfungen zählen, Flattern erkennen, ein Perzentil lesen.
 - [Die Kriterien eines Monitors ändern](#die-kriterien-eines-monitors-ändern): Kriterien bearbeiten, hinzufügen, umsortieren und testen.
 - [Monitorstatus](#monitorstatus): Die vordefinierten Status und eigene Status.
 :::
 
 ## Wie Kriterien entscheiden
 
-Bei jeder Prüfung eines Monitors bewerten seine Kriterien das Ergebnis von oben nach unten. Das erste Kriterium, dessen Filter zutreffen, entscheidet, was passiert, und die Kriterien darunter werden für diese Prüfung nicht mehr betrachtet. Trifft keines zu, geht der Monitor in seinen **Standard-Überwachungsstatus**.
+Bei jeder Prüfung eines Monitors bewerten seine Kriterien das Ergebnis von oben nach unten. Das erste Kriterium, dessen Filter zutreffen, entscheidet, was passiert, und die Kriterien darunter werden für diese Prüfung nicht mehr betrachtet. Trifft keines zu, geht der Monitor in seinen **Standard-Überwachungsstatus**. Hat ein Kriterium, das ihn zurückbringt, noch nicht zugetroffen, behält er stattdessen seinen Status: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
 
 ```mermaid title="Wie jede Prüfung bewertet wird"
 flowchart TB
@@ -30,7 +31,7 @@ Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom 
 Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfung trotzdem: Der Monitor behält seinen Status, und die Kriterien darunter warten auf die nächste Prüfung. Der **Standard-Überwachungsstatus** gilt nur, wenn kein Kriterium zutrifft. Bei einem neuen Monitor ist er **Betriebsbereit**; ändern Sie ihn unter **Weitere Felder** unterhalb der Kriterien.
 
 > [!NOTE]
-> Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
+> Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Das gilt auch für einen Metrik-Monitor, der einen PromQL-Ausdruck überwacht: Jede Reihe, die der Ausdruck liefert, wird für sich beurteilt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
 >
 > Ein solcher Monitor hat trotzdem einen einzigen Status, den das erste passende Kriterium festlegt. Ein Kriterium, das ihn nur auf seinen **Standard-Überwachungsstatus** zurückbringt und keinen Vorfall und keine Warnung eröffnet, wartet auf die Hosts, die ein Kriterium erfüllt haben, das einen anderen Status setzt: Es greift, sobald jeder von ihnen es erfüllt, egal was die anderen Hosts tun. Bis dahin behält der Monitor seinen Status, auch wenn kein Kriterium passt, während die Vorfälle und Warnungen jedes Hosts weiterhin für sich aufgelöst werden.
 
@@ -43,7 +44,7 @@ Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfun
 | **Kriterienname** | Der Name in der Kriterienliste und in der Ursache jedes Vorfalls und jeder Warnung, die das Kriterium öffnet. **Kriterien hinzufügen** benennt ein neues Kriterium nach seinen Filtern, und der Name folgt ihnen, bis Sie einen eigenen eintippen. |
 | **Filter** | Was die Prüfung zeigen muss, als ein oder mehrere Filter. Kubernetes- und Metrik-Monitore nennen sie **Warnungsregeln**. |
 | **Aktionen** | Was passiert, wenn die Filter zutreffen: den Status ändern, eine Warnung erstellen, einen Vorfall deklarieren oder eine beliebige Kombination davon. |
-| **Einstellungen** | **Diese Kriterien aktivieren**, eine optionale **Beschreibung** und, bei Monitoren für eingehende Anfragen, **Vorfälle und Warnungen nach einem Payload-Feld gruppieren**. |
+| **Einstellungen** | **Diese Kriterien aktivieren**, eine optionale **Beschreibung**, wann es sich erholt und wann es bewertet wird, und, bei Monitoren für eingehende Anfragen, **Vorfälle und Warnungen nach einem Payload-Feld gruppieren**. |
 
 ### Filter
 
@@ -51,7 +52,7 @@ Ein Filter liest eine Sache aus der Prüfung und vergleicht sie: einen **Filtert
 
 Ab zwei Filtern erscheint darunter die **Abgleichsbedingung**: **Alle** bedeutet, dass jeder Filter zutreffen muss, **Beliebig**, dass einer genügt. Ein neues Kriterium beginnt mit **Alle**.
 
-Filter, die jede Prüfung messen, etwa **Ist online**, **Antwort-Statuscode** und **Antwortzeit (in ms)**, bieten **Diese Kriterien über einen Zeitraum hinweg auswerten** an. Damit wird ein Fenster der letzten Prüfungen statt nur der neuesten bewertet; es beginnt mit den letzten 5 Minuten und **Alle Werte**, was erst zutrifft, wenn jede Prüfung im Fenster zugetroffen hat. Siehe [Auswertung über einen Zeitraum](/docs/monitor/website-monitor#über-einen-zeitraum-auswerten).
+Filter, die jede Prüfung messen, etwa **Ist online**, **Antwort-Statuscode** und **Antwortzeit (in ms)**, bieten **Diese Kriterien über einen Zeitraum hinweg auswerten** an. Damit wird ein Fenster der letzten Prüfungen statt nur der neuesten bewertet; es beginnt mit den letzten 5 Minuten und **Alle Werte**, was erst zutrifft, wenn jede Prüfung im Fenster zugetroffen hat. Das Fenster kann bis zu 24 Stunden lang sein und die Prüfungen zählen, wie [Ein Fenster von Prüfungen bewerten](#ein-fenster-von-prüfungen-bewerten) erklärt. Siehe [Auswertung über einen Zeitraum](/docs/monitor/website-monitor#über-einen-zeitraum-auswerten).
 
 ### Aktionen
 
@@ -70,6 +71,54 @@ Ein Vorfall oder eine Warnung fragt nach einem Titel, einem **Schweregrad** und,
 **Diese Kriterien aktivieren** ist bei jedem neuen Kriterium eingeschaltet. Schalten Sie es aus, um ein Kriterium zu behalten, ohne es zu verwenden: Es wird bei jeder Prüfung übersprungen, ändert keinen Status, öffnet nichts, und sein Kopf zeigt **Deaktiviert**.
 
 **Vorfälle und Warnungen nach einem Payload-Feld gruppieren** öffnet einen Vorfall pro Wert, der in einer eingehenden Anfrage gefunden wird, sodass eine Webhook-Adresse mehrere Vorfälle offen halten kann. Siehe [Vorfallgruppierung einschalten](/docs/monitor/incoming-request-monitor#die-vorfallgruppierung-einschalten).
+
+**Nur erholen, wenn eine eigene Bedingung erfüllt ist** und **Diese Kriterien nur an bestimmten Tagen und zu bestimmten Zeiten auswerten** sind bei einem neuen Kriterium ausgeschaltet. Siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt) und [Nur an bestimmten Tagen und zu bestimmten Zeiten](#nur-an-bestimmten-tagen-und-zu-bestimmten-zeiten).
+
+## Ein Fenster von Prüfungen bewerten
+
+Ist **Diese Kriterien über einen Zeitraum hinweg auswerten** angehakt, legt **Auswerten** fest, wie die Prüfungen des Fensters bewertet werden, und **Für die letzten**, wie lang das Fenster ist, von 2 Minuten bis 24 Stunden. Die eigene Bedingung des Filters, etwa **Ist online** auf **Falsch**, sagt, was jede Prüfung zeigen muss.
+
+| Auswerten | Trifft zu, wenn |
+| --- | --- |
+| **Alle Werte** | Jede Prüfung des Fensters die Bedingung erfüllt hat. |
+| **Beliebiger Wert** | Mindestens eine Prüfung des Fensters die Bedingung erfüllt hat. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert aus den Werten des Fensters die Bedingung erfüllt, etwa eine durchschnittliche Antwortzeit über 300 ms. |
+| **Perzentil** | Das unter **Perzentil** gewählte Perzentil, von p50 bis p99, die Bedingung erfüllt: p95 über 300 ms heißt, die langsamsten 5 % der Prüfungen liegen über 300 ms. |
+| **Anzahl** | Die Zahl der Prüfungen, die die Bedingung erfüllt haben, so abschneidet, wie unter **Zutreffende Prüfungen** eingestellt: etwa **Größer als** 30. |
+| **Prozentsatz** | Ihr Anteil an den Prüfungen des Fensters so abschneidet, wie unter **Anteil zutreffender Prüfungen** eingestellt: etwa **Größer als** 10 %. |
+| **Statuswechsel** | Die Zahl der Wechsel der Prüfungen zwischen Erfüllen und Nichterfüllen der Bedingung so abschneidet, wie unter **Anzahl der Wechsel** eingestellt. Ein Gerät, das ausfällt und wieder hochkommt, wechselt zweimal. |
+
+Ein Satz unter den Einstellungen des Fensters gibt den Filter so wieder, wie er eingestellt ist: „Prüfen: "Ist online" ist falsch bei mehr als 30 Prüfungen der letzten 8 Stunden“.
+
+- **Jede Sonde für sich.** **Anzahl**, **Prozentsatz** und **Statuswechsel** zählen die Prüfungen der Sonde, die die Prüfung durchgeführt hat. Ein von drei Sonden geprüfter Monitor zählt also nicht dreimal so schnell, und seine Sonden müssen sich dann einig sein wie bei jedem Kriterium.
+- **Ein Fenster, das noch nicht voll ist.** Bis die Prüfungen an den Anfang des Fensters zurückreichen, hat ein gerade gestarteter Monitor weniger Prüfungen, als er haben wird. **Anzahl** und **Statuswechsel** treffen früh zu, wenn sie **Größer als** oder **Größer als oder gleich** schon überschritten haben, da weitere Prüfungen sie nur erhöhen; alles andere wartet auf ein volles Fenster.
+- **Ein Fenster ohne Prüfungen.** Solange das Fenster keine Prüfungen hat oder noch nicht voll ist, entscheidet **Bei keinen Daten**: **Ignore** wartet, **Auslöser** trifft zu, und **Treat As Zero** bewertet es so, als hätten die fehlenden Prüfungen die Bedingung nicht erfüllt.
+
+Die Durchschnitte und Perzentile lesen die Werte der Prüfungen aller Sonden, wie **Durchschnitt** es schon immer tut. **Anzahl**, **Prozentsatz** und **Statuswechsel** werden für jeden Filter angeboten, dem ein Fenster angeboten wird: bei Website-, API-, Ping-, IP- und Port-Monitoren, für CPU, Arbeitsspeicher, Festplatten und Last eines Servers, für **SNMP-Gerät ist online** und die Antwortzeit eines Netzwerkgeräts sowie bei DNS-, NTP-, Datenbank-, Monitoren für externe Statusseiten und Sondenstatus-Monitoren. **Ist online** eines Server-Monitors wird nicht gezählt: Es wird nach der Zeit seit der letzten Meldung des Servers bewertet. Metrik- und andere Telemetrie-Monitore bewerten stattdessen den Zeitraum ihrer Abfrage, mit deren eigener Aggregation, die auch Perzentile liest.
+
+### Beispiel: ein Access Point, der ausgefallen ist, und einer, der instabil ist
+
+Ein Ping-Monitor prüft jede Minute einen Access Point im Büro. Bevor Fenster Prüfungen zählen konnten, sah ein Access Point, der immer wieder ausfiel, wie einer aus, der ausgefallen war, oder nach gar nichts. Diese drei Kriterien, in dieser Reihenfolge, unterscheiden die beiden:
+
+| Kriterium | Filter | Auswerten | Ändert den Status auf |
+| --- | --- | --- | --- |
+| Access Point ist ausgefallen | **Ist online** ist **Falsch** | **Alle Werte**, **Für die letzten** 5 Minuten | **Offline**, und meldet einen Ausfall-Vorfall |
+| Access Point ist instabil | **Ist online** ist **Falsch** | **Statuswechsel**, **Größer als** 5, **Für die letzten** 1 Stunde | **Beeinträchtigt**, und meldet einen Instabilitäts-Vorfall |
+| Access Point ist online | **Ist online** ist **Wahr** | Nicht über einen Zeitraum | **Betriebsbereit** |
+
+Schalten Sie beim zweiten **Nur erholen, wenn eine eigene Bedingung erfüllt ist** mit **Statuswechsel**, **Kleiner als oder gleich** 1, **Für die letzten** 1 Stunde ein: Der Instabilitäts-Vorfall bleibt offen, bis der Access Point eine Stunde lang stabil war, statt in der ersten Minute zu schließen, in der er erreichbar ist. Um zu alarmieren, wenn er in 8 Stunden mehr als 30 Pings verfehlt, stellen Sie das zweite Kriterium stattdessen auf **Anzahl**, **Größer als** 30, **Für die letzten** 8 Stunden.
+
+## Wann sich ein Kriterium erholt
+
+Ein Kriterium hört auf zu wirken, sobald seine Filter nicht mehr zutreffen: Bei dieser Prüfung werden sein Vorfall und seine Warnung behoben, wenn **Vorfall automatisch beheben** und **Warnung automatisch beheben** eingeschaltet sind, und der Monitor geht zum nächsten Kriterium über, das zutrifft.
+
+**Nur erholen, wenn eine eigene Bedingung erfüllt ist** hält das Kriterium wirksam, nachdem seine Filter nicht mehr zutreffen, bis die Filter unter **Erholt, wenn** zutreffen. Sie beginnen als Gegenteil der Filter des Kriteriums, über die letzten 10 Minuten, und können alles nutzen, was ein Filter bietet, etwa ein Fenster, das Prüfungen zählt. Ein Kriterium ist wirksam, solange der Monitor den Status hat, den es setzt, oder ein Vorfall oder eine Warnung offen ist, die es gemeldet hat. Solange es hält, ist es ein Treffer an seiner Stelle in der Liste: Ein Kriterium darüber, das zutrifft, übernimmt trotzdem.
+
+Trifft kein Kriterium zu, behält ein Monitor, den ein Kriterium von seinem **Standard-Überwachungsstatus** weggebracht hat, seinen Status, solange er auch ein Kriterium hat, das ihn nur in diesen Status zurückbringt und nichts öffnet. Das ist der Erholungsabstand: Die Vorlagen lösen über 90 % aus und kommen bei höchstens 81 % zurück, sodass der Monitor bei 89 % bleibt, wo er ist. Seine Vorfälle und Warnungen werden trotzdem behoben, wenn ihr eigenes Kriterium nicht mehr zutrifft. Ein Monitor ohne ein solches Kriterium geht wie immer in seinen **Standard-Überwachungsstatus**.
+
+## Nur an bestimmten Tagen und zu bestimmten Zeiten
+
+**Diese Kriterien nur an bestimmten Tagen und zu bestimmten Zeiten auswerten** legt die Tage, eine **Startzeit** und eine **Endzeit** sowie eine **Zeitzone** fest, die mit Ihrer beginnt. Außerhalb dieser Zeiten wird das Kriterium wie ein deaktiviertes übersprungen: Es trifft auf nichts zu, also wird behoben, was es geöffnet hat, und das Auswertungsprotokoll vermerkt, dass es außerhalb seiner Zeiten lag. Die Zeiten werden auf der Uhr dieser Zeitzone gelesen, sodass 08:00 nach der Zeitumstellung 08:00 bleibt, und Zeiten, die früher enden, als sie beginnen, reichen bis in den nächsten Morgen.
 
 ## Wann Vorfälle und Warnungen öffnen und schließen
 

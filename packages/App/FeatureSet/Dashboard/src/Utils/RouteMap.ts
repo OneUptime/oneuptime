@@ -1073,6 +1073,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    */
   [PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL]: "playbook-runs",
   [PageMap.SECURITY_PLAYBOOK_RUNS]: "playbook-runs/all",
+  // The policies that challenge or block as a detection is made (#10350).
+  [PageMap.SECURITY_AUTOMATIC_RESPONSE]: "automatic-response",
   [PageMap.SECURITY_BLOCKLIST]: "blocklist",
   // The secret URLs firewalls read the blocklist from (#10345), under the Blocklist.
   [PageMap.SECURITY_BLOCKLIST_FEEDS]: "blocklist/feeds",
@@ -1685,6 +1687,7 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_CUSTOM_FIELDS]: "custom-fields",
   [PageMap.TEAM_ROLES]: "roles",
   [PageMap.TEAM_ROLE_VIEW]: `roles/${RouteParams.ModelID}`,
+  [PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]: `roles/${RouteParams.ModelID}/audit-logs`,
 
   [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
@@ -8787,6 +8790,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_AUTOMATIC_RESPONSE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_AUTOMATIC_RESPONSE]
+    }`,
+  ),
+
   [PageMap.SECURITY_BLOCKLIST]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST]
@@ -9827,6 +9836,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_ROLE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_ROLE_VIEW]
+    }`,
+  ),
+
+  [PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]
     }`,
   ),
 

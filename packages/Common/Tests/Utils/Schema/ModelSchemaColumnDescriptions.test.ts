@@ -129,12 +129,25 @@ describe("the spec's column descriptions", () => {
       ),
     );
 
-    const createdAt: string | undefined = descriptions.get("createdAt");
-    expect(createdAt).toBeDefined();
-    expect(createdAt).toMatch(
-      new RegExp(
-        "^Date and Time when the object was created\\. Permissions - ",
+    expect(descriptions.get("name")).toMatch(
+      new RegExp("^Any friendly name for this monitor\\. Permissions - "),
+    );
+  });
+
+  /*
+   * A field only OneUptime writes is read only, and says so (readOnly):
+   * "Create: [No access], Update: [No access]" said it again, on 11,397
+   * fields (#10527).
+   */
+  test("say a read-only column's own words alone (Monitor.createdAt)", () => {
+    const descriptions: Map<string, string> = new Map(
+      getColumnDescriptions(
+        ModelSchema.getReadModelSchema({ modelType: Monitor }),
       ),
+    );
+
+    expect(descriptions.get("createdAt")).toBe(
+      "Date and Time when the object was created.",
     );
   });
 

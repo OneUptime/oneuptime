@@ -63,8 +63,12 @@ export const CRITERIA_GROUPS_POSTMORTEMS_PAGES: ReadonlyArray<CriteriaGroupsPost
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    // The "⋯" that opens a row's menu, drawn the same in every language.
-    [CRITERIA_AND_STATUSES]: ["⋯"],
+    /*
+     * The "⋯" that opens a row's menu, drawn the same in every language, and
+     * the If No Data options the criteria form offers without a locale key
+     * (NoDataPolicy values), as every probe check page names them.
+     */
+    [CRITERIA_AND_STATUSES]: ["⋯", "Ignore", "Treat As Zero"],
     [POSTMORTEMS]: [
       "Standard Postmortem",
       "Detailed Technical Postmortem",
@@ -84,6 +88,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Several probes.",
     "A parent monitor that is down.",
     "Scheduled maintenance.",
+    // Judging a window of checks (#10355).
+    "Each probe on its own.",
+    "A window that is not full yet.",
+    "A window with no checks.",
     // What an incident or alert keeps of the check.
     "The field.",
     "The values.",

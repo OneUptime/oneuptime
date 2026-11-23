@@ -52,10 +52,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   switch.
  * - In German and Arabic, from the locales.
  *
- * Only the network is stubbed: the people picker's lookups.
+ * Monitors, labels, SLOs and policies are searched on the server, and what
+ * a condition holds is read by its ids (RecordConditionPicker, #10646,
+ * #10689); a name condition's words are searched there too. The stubbed
+ * network answers those reads from the project's values below.
+ *
+ * Only the network is stubbed: the people picker's lookups, and the reads
+ * and searches of the project's records.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
+
+// Every picker kind of every rule, each read once its ids are asked for.
+jest.setTimeout(30000);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -94,6 +103,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import User from "../../../Models/DatabaseModels/User";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Search from "../../../Types/BaseDatabase/Search";
 import Color from "../../../Types/Color";
 import Email from "../../../Types/Email";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -265,11 +275,96 @@ function makeUser(id: string, name: string, email: string): User {
   return user;
 }
 
+// The project's values the stubbed network answers from: the row's own.
+let served: Lists = lists();
+
+// The record kinds read and searched on the server, by their list.
+const SERVED_KINDS: Array<[unknown, keyof Lists]> = [
+  [Monitor, "monitors"],
+  [Label, "labels"],
+  [ServiceLevelObjective, "serviceLevelObjectives"],
+  [OnCallDutyPolicy, "onCallDutyPolicies"],
+];
+
+// A record matching a read: by its ids, its name's words, not archived.
+function matchesRead(record: BaseModel, query: any): boolean {
+  const row: any = record;
+
+  for (const [key, condition] of Object.entries(query)) {
+    if (key === "projectId") {
+      continue;
+    }
+
+    if (condition instanceof Includes) {
+      const ids: Array<string> = condition.values.map(
+        (value: unknown): string => {
+          return String(value).toLowerCase();
+        },
+      );
+
+      if (!ids.includes(String(row[key]).toLowerCase())) {
+        return false;
+      }
+
+      continue;
+    }
+
+    if (condition instanceof Search) {
+      if (
+        !String(row[key] || "")
+          .toLowerCase()
+          .includes(String(condition.value).toLowerCase())
+      ) {
+        return false;
+      }
+
+      continue;
+    }
+
+    if (typeof condition === "boolean") {
+      if (Boolean(row[key]) !== condition) {
+        return false;
+      }
+
+      continue;
+    }
+
+    throw new Error(`Not a condition this stub knows: ${key}`);
+  }
+
+  return true;
+}
+
 // Answers the people picker's look-ups: Jane is a member, nobody else.
 function serveDirectory(): void {
   getListMock.mockImplementation(async (request: any): Promise<any> => {
     const query: any = request.query || {};
     let rows: Array<unknown> = [];
+
+    const kind: [unknown, keyof Lists] | undefined = SERVED_KINDS.find(
+      ([modelType]: [unknown, keyof Lists]): boolean => {
+        return modelType === request.modelType;
+      },
+    );
+
+    if (kind) {
+      const records: Array<BaseModel> | undefined = served[kind[1]] as
+        | Array<BaseModel>
+        | undefined;
+
+      // A list the page could not read: refused.
+      if (!records) {
+        throw new Error("Refused");
+      }
+
+      rows = records
+        .filter((record: BaseModel): boolean => {
+          return matchesRead(record, query);
+        })
+        .sort((a: any, b: any): number => {
+          return String(a.name).localeCompare(String(b.name));
+        });
+    }
 
     if (request.modelType === TeamMember) {
       rows = [makeUser(JANE, "Jane Doe", "jane@example.com")]
@@ -301,16 +396,40 @@ function serveDirectory(): void {
 
 const onChangeSpy: MockFunction = getJestMockFunction();
 
+// The short lists a row picks from whole: a record kind is searched.
+function rowLists(values: Lists): {
+  alertStates: Array<AlertState>;
+  alertSeverities: Array<AlertSeverity>;
+  incidentStates: Array<IncidentState>;
+  incidentSeverities: Array<IncidentSeverity>;
+  scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  monitorStatus: Array<MonitorStatus>;
+  securityCasePriorities: Array<SecurityCasePriority>;
+  securityCaseStatuses: Array<SecurityCaseStatus>;
+} {
+  return {
+    alertStates: values.alertStates,
+    alertSeverities: values.alertSeverities,
+    incidentStates: values.incidentStates,
+    incidentSeverities: values.incidentSeverities,
+    scheduledMaintenanceStates: values.scheduledMaintenanceStates,
+    monitorStatus: values.monitorStatus,
+    securityCasePriorities: values.securityCasePriorities,
+    securityCaseStatuses: values.securityCaseStatuses,
+  };
+}
+
 function renderRow(data: {
   eventType: NotificationRuleEventType;
   condition: NotificationRuleCondition;
   lists?: Partial<Lists> | undefined;
 }): void {
+  served = { ...lists(), ...(data.lists || {}) };
+
   render(
     <ul>
       <NotificationRuleConditionElement
-        {...lists()}
-        {...(data.lists || {})}
+        {...rowLists(served)}
         teams={PROJECT_TEAMS}
         eventType={data.eventType}
         initialValue={data.condition}
@@ -369,19 +488,21 @@ function pickedValues(): Array<{
     return [];
   }
 
-  return within(control)
-    .queryAllByTestId("dropdown-value-label")
-    .map((label: HTMLElement) => {
-      return {
-        name: (label.textContent || "").trim(),
-        isArchived: Boolean(
-          label.parentElement?.querySelector(
-            "[data-testid='dropdown-archived-tag']",
-          ),
+  // A short list's picks (Dropdown), or a searched kind's (EntityDropdown).
+  return [
+    ...within(control).queryAllByTestId("dropdown-value-label"),
+    ...within(control).queryAllByTestId("entity-dropdown-chip-label"),
+  ].map((label: HTMLElement) => {
+    return {
+      name: (label.textContent || "").trim(),
+      isArchived: Boolean(
+        label.parentElement?.querySelector(
+          "[data-testid='dropdown-archived-tag'], [data-testid='entity-dropdown-archived-tag']",
         ),
-        isNotFound: label.getAttribute("data-not-found") === "true",
-      };
-    });
+      ),
+      isNotFound: label.getAttribute("data-not-found") === "true",
+    };
+  });
 }
 
 function chipNames(): Array<string> {
@@ -465,7 +586,7 @@ afterEach(async () => {
 });
 
 describe("a picked value that was since deleted, on the Conditions step (#7807)", () => {
-  test("REGRESSION: a deleted policy is a chip of its own beside the others, in the card's words", () => {
+  test("REGRESSION: a deleted policy is a chip of its own beside the others, in the card's words", async () => {
     renderRow({
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
       condition: condition(
@@ -475,16 +596,18 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
       ),
     });
 
-    expect(pickedValues()).toEqual([
-      { name: "Payments Escalation", isArchived: false, isNotFound: false },
-      { name: "Old Escalation", isArchived: true, isNotFound: false },
-      { name: VALUE_NOT_FOUND_NAME, isArchived: false, isNotFound: true },
-    ]);
+    await waitFor(() => {
+      expect(pickedValues()).toEqual([
+        { name: "Payments Escalation", isArchived: false, isNotFound: false },
+        { name: "Old Escalation", isArchived: true, isNotFound: false },
+        { name: VALUE_NOT_FOUND_NAME, isArchived: false, isNotFound: true },
+      ]);
+    });
 
     const notFound: HTMLElement = within(
       screen.getByTestId("notification-rule-condition-value-0"),
     )
-      .getAllByTestId("dropdown-value-label")
+      .getAllByTestId("entity-dropdown-chip-label")
       .find((label: HTMLElement): boolean => {
         return label.getAttribute("data-not-found") === "true";
       })!;
@@ -517,11 +640,11 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
       ),
     });
 
-    await userEvent
-      .setup()
-      .click(
-        screen.getByRole("button", { name: `Remove ${VALUE_NOT_FOUND_NAME}` }),
-      );
+    await userEvent.setup().click(
+      await screen.findByRole("button", {
+        name: `Remove ${VALUE_NOT_FOUND_NAME}`,
+      }),
+    );
 
     expect(lastCondition().value).toEqual([PAYMENTS_POLICY]);
     expect(pickedValues()).toEqual([
@@ -530,7 +653,10 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
 
     await openValueMenu();
 
-    expect(listedLabels()).toEqual(["Search Escalation", "Primary on-call"]);
+    // The live policies not picked, by name: never the archived one.
+    await waitFor(() => {
+      expect(listedLabels()).toEqual(["Primary on-call", "Search Escalation"]);
+    });
   });
 
   test("never offered for a pick while it is held", async () => {
@@ -543,8 +669,15 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
       ),
     });
 
+    await screen.findByRole("button", {
+      name: `Remove ${VALUE_NOT_FOUND_NAME}`,
+    });
+
     await openValueMenu();
 
+    await waitFor(() => {
+      expect(listedLabels().length).toBeGreaterThan(0);
+    });
     expect(listedLabels()).not.toContain(VALUE_NOT_FOUND_NAME);
   });
 
@@ -564,7 +697,7 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
     ]);
   });
 
-  test("every picker kind of every kind of rule shows one", () => {
+  test("every picker kind of every kind of rule shows one", async () => {
     let checked: number = 0;
 
     for (const eventType of Object.values(NotificationRuleEventType)) {
@@ -572,15 +705,6 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
         eventType,
       )) {
         if (!NotificationRuleConditionUtil.isRecordValueField(checkOn)) {
-          continue;
-        }
-
-        /*
-         * A Monitors condition searches the server and reads what it holds
-         * by its ids (#10646): its deleted monitor's chip is pinned in
-         * WorkspaceMonitorConditionPastTheCap.test.tsx.
-         */
-        if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
           continue;
         }
 
@@ -595,12 +719,19 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
           ),
         });
 
-        expect({ eventType, checkOn, picked: pickedValues() }).toEqual({
-          eventType,
-          checkOn,
-          picked: [
-            { name: VALUE_NOT_FOUND_NAME, isArchived: false, isNotFound: true },
-          ],
+        // A searched kind's picker names it once its ids are read.
+        await waitFor(() => {
+          expect({ eventType, checkOn, picked: pickedValues() }).toEqual({
+            eventType,
+            checkOn,
+            picked: [
+              {
+                name: VALUE_NOT_FOUND_NAME,
+                isArchived: false,
+                isNotFound: true,
+              },
+            ],
+          });
         });
 
         cleanup();
@@ -611,7 +742,7 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
     expect(checked).toBeGreaterThan(25);
   });
 
-  test("a list the page could not read says nothing is gone", () => {
+  test("a list that could not be read says nothing is gone", async () => {
     renderRow({
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
       condition: condition(
@@ -622,7 +753,16 @@ describe("a picked value that was since deleted, on the Conditions step (#7807)"
       lists: { onCallDutyPolicies: undefined },
     });
 
-    expect(pickedValues()).toEqual([]);
+    // The picker is drawn, its value unnamed: never said to be gone.
+    await waitFor(() => {
+      expect(pickedValues()).toHaveLength(1);
+    });
+    expect(
+      pickedValues().filter((value: { isNotFound: boolean }): boolean => {
+        return value.isNotFound;
+      }),
+    ).toEqual([]);
+    expect(screen.queryByText(VALUE_NOT_FOUND_NAME)).not.toBeInTheDocument();
     // ...and the rule keeps it.
     expect(lastCondition().value).toEqual([DELETED_POLICY]);
   });
@@ -821,14 +961,41 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
     return screen.queryByTestId("notification-rule-condition-use-policy-0");
   }
 
+  // The words a name condition asked the server for, in order (#10689).
+  function wordsSearched(): Array<string> {
+    return getListMock.mock.calls
+      .map(([request]: Array<any>): any => {
+        return request;
+      })
+      .filter((request: any): boolean => {
+        return (
+          request.modelType === OnCallDutyPolicy &&
+          request.query?.name instanceof Search
+        );
+      })
+      .map((request: any): string => {
+        return String(request.query.name.value);
+      });
+  }
+
+  // The line under the words, once they are read on the server.
+  async function lineSays(text: string): Promise<void> {
+    await waitFor(() => {
+      expect(matchLine()).toHaveTextContent(text);
+    });
+  }
+
   test("REGRESSION: shows the policies the words match now, and switches to them in one step", async () => {
     nameRow(ConditionType.Contains, "Escalation");
 
     // The archived Old Escalation matches too, and is left out.
-    expect(matchLine()).toHaveTextContent(
+    await lineSays(
       "Matches 2 policies now: Payments Escalation, Search Escalation.",
     );
     expect(switchButton()).toHaveTextContent(POLICY_NAME_SWITCH_ACTION);
+
+    // Searched by the words: never the project's policies whole (#10689).
+    expect(wordsSearched()).toEqual(["Escalation"]);
 
     await userEvent.setup().click(switchButton()!);
 
@@ -845,31 +1012,33 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
     expect(
       screen.getByTestId("notification-rule-condition-operator-0"),
     ).toHaveTextContent("is any of");
-    expect(pickedValues()).toEqual([
-      { name: "Payments Escalation", isArchived: false, isNotFound: false },
-      { name: "Search Escalation", isArchived: false, isNotFound: false },
-    ]);
+    await waitFor(() => {
+      expect(pickedValues()).toEqual([
+        { name: "Payments Escalation", isArchived: false, isNotFound: false },
+        { name: "Search Escalation", isArchived: false, isNotFound: false },
+      ]);
+    });
     expect(matchLine()).toBeNull();
     expect(switchButton()).toBeNull();
 
     // The picker takes the focus the button had.
-    expect(
-      screen.getByRole("combobox", { name: "Value for condition 1" }),
-    ).toHaveFocus();
+    await waitFor(() => {
+      expect(
+        screen.getByRole("combobox", { name: "Value for condition 1" }),
+      ).toHaveFocus();
+    });
   });
 
-  test("one policy is named in the singular", () => {
+  test("one policy is named in the singular", async () => {
     nameRow(ConditionType.EqualTo, "Primary on-call");
 
-    expect(matchLine()).toHaveTextContent(
-      "Matches 1 policy now: Primary on-call.",
-    );
+    await lineSays("Matches 1 policy now: Primary on-call.");
   });
 
   test("does not contain is switched to is none of the policies it leaves out", async () => {
     nameRow(ConditionType.NotContains, "Escalation");
 
-    expect(matchLine()).toHaveTextContent(
+    await lineSays(
       "Leaves out 2 policies now: Payments Escalation, Search Escalation.",
     );
 
@@ -885,28 +1054,28 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
     ).toHaveTextContent("is none of");
   });
 
-  test("letter case counts, as on the server: words that match no policy say so, and offer no switch", () => {
+  test("letter case counts, as on the server: words that match no policy say so, and offer no switch", async () => {
     nameRow(ConditionType.Contains, "escalation");
 
-    expect(matchLine()).toHaveTextContent(POLICY_NAME_MATCHES_NONE);
+    await lineSays(POLICY_NAME_MATCHES_NONE);
     expect(switchButton()).toBeNull();
 
     cleanup();
 
     nameRow(ConditionType.NotEqualTo, "Payments");
 
-    expect(matchLine()).toHaveTextContent(POLICY_NAME_LEAVES_OUT_NONE);
+    await lineSays(POLICY_NAME_LEAVES_OUT_NONE);
     expect(switchButton()).toBeNull();
   });
 
-  test("an archived policy the words match alone is not picked", () => {
+  test("an archived policy the words match alone is not picked", async () => {
     nameRow(ConditionType.StartsWith, "Old");
 
-    expect(matchLine()).toHaveTextContent(POLICY_NAME_MATCHES_NONE);
+    await lineSays(POLICY_NAME_MATCHES_NONE);
     expect(switchButton()).toBeNull();
   });
 
-  test("many policies: the first few by name, and how many more", () => {
+  test("many policies: the first few by name, and how many more", async () => {
     const many: Array<OnCallDutyPolicy> = Array.from(
       { length: 7 },
       (_: unknown, index: number): OnCallDutyPolicy => {
@@ -921,23 +1090,33 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
       onCallDutyPolicies: many,
     });
 
-    expect(matchLine()).toHaveTextContent(
+    await lineSays(
       "Matches 7 policies now: Team 1 Escalation, Team 2 Escalation, Team 3 Escalation, Team 4 Escalation, Team 5 Escalation and 2 more.",
     );
   });
 
-  test("nothing is said while the words are empty, or when the policies could not be read", () => {
+  test("nothing is said while the words are empty, or when the policies could not be read", async () => {
     nameRow(ConditionType.Contains, "");
 
     expect(matchLine()).toBeNull();
     expect(
       screen.getByTestId("notification-rule-condition-hint-0"),
     ).toBeInTheDocument();
+    // No words, nothing asked.
+    expect(wordsSearched()).toEqual([]);
 
     cleanup();
 
     nameRow(ConditionType.Contains, "Escalation", {
       onCallDutyPolicies: undefined,
+    });
+
+    // Asked, and refused: the line says nothing, and offers no switch.
+    await waitFor(() => {
+      expect(wordsSearched()).toEqual(["Escalation"]);
+    });
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(matchLine()).toBeNull();
@@ -947,9 +1126,7 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
   test("the line follows the words as they are typed", async () => {
     nameRow(ConditionType.Contains, "Pay");
 
-    expect(matchLine()).toHaveTextContent(
-      "Matches 1 policy now: Payments Escalation.",
-    );
+    await lineSays("Matches 1 policy now: Payments Escalation.");
 
     await userEvent
       .setup()
@@ -958,25 +1135,27 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
         "x",
       );
 
-    expect(matchLine()).toHaveTextContent(POLICY_NAME_MATCHES_NONE);
+    await lineSays(POLICY_NAME_MATCHES_NONE);
   });
 
   test("the switch replaces the condition where it stands, and leaves the others as they are", async () => {
     const changes: Array<Array<NotificationRuleCondition>> = [];
-    const severity: NotificationRuleCondition = condition(
+    const labels: NotificationRuleCondition = condition(
       NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
       ConditionType.ContainsAny,
       ["0000000a-0000-4000-8000-000000000001"],
     );
 
+    served = lists();
+
     render(
       <NotificationRuleConditionsElement
-        {...lists()}
+        {...rowLists(served)}
         teams={PROJECT_TEAMS}
         eventType={NotificationRuleEventType.OnCallDutyPolicy}
         filterCondition={FilterCondition.All}
         value={[
-          severity,
+          labels,
           condition(
             NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
             ConditionType.Contains,
@@ -991,10 +1170,12 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
 
     await userEvent
       .setup()
-      .click(screen.getByTestId("notification-rule-condition-use-policy-1"));
+      .click(
+        await screen.findByTestId("notification-rule-condition-use-policy-1"),
+      );
 
     expect(changes[changes.length - 1]).toEqual([
-      severity,
+      labels,
       {
         checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicies,
         conditionType: ConditionType.ContainsAny,
@@ -1003,8 +1184,12 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
     ]);
   });
 
-  test("the words are read with the line that says what they match", () => {
+  test("the words are read with the line that says what they match", async () => {
     nameRow(ConditionType.Contains, "Escalation");
+
+    await lineSays(
+      "Matches 2 policies now: Payments Escalation, Search Escalation.",
+    );
 
     const input: HTMLElement = screen.getByRole("textbox", {
       name: "Value for condition 1",
@@ -1022,6 +1207,10 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
 
       nameRow(ConditionType.Contains, "Escalation");
 
+      await waitFor(() => {
+        expect(matchLine()).not.toBeNull();
+      });
+
       const line: string = matchLine()?.textContent || "";
 
       // The sentence is the locale's, around the names as written.
@@ -1037,9 +1226,7 @@ describe("switching an On-Call Policy Name condition to the policies it names (#
 
       nameRow(ConditionType.Contains, "Nothing");
 
-      expect(matchLine()).toHaveTextContent(
-        word(language, POLICY_NAME_MATCHES_NONE),
-      );
+      await lineSays(word(language, POLICY_NAME_MATCHES_NONE));
     },
   );
 });

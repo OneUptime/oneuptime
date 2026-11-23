@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing is locked for longer than the catalog change, and every issue
  * resolved before reads as one whose resolution was not recorded.
  */
-export class AddDataSecurityIssueResolution1809187471368
+export class AddDataSecurityIssueResolution1809187510368
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityIssueResolution1809187471368";
+  public name: string = "AddDataSecurityIssueResolution1809187510368";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

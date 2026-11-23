@@ -143,8 +143,6 @@ describe("a monitor rule's incident", () => {
           ownerUserIds: [new ObjectID(ADA)],
         }}
         incidentSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         onChange={(value: CriteriaIncident) => {
           onChange(value);
@@ -193,8 +191,6 @@ describe("a monitor rule's alert", () => {
           ownerTeamIds: [new ObjectID(PLATFORM)],
         }}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         onChange={(value: CriteriaAlert) => {
           onChange(value);
         }}

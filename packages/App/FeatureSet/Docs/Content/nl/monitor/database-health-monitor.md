@@ -377,7 +377,7 @@ Tellers die op `total` eindigen zijn cumulatief sinds de server is gestart. Verg
 
 Drempels zijn gehele getallen. Schrijf `90`, niet `90.5` — percentages en seconden worden als gehele getallen vergeleken.
 
-**Database is online** en **Databasemetriek** kunnen over een periode worden gecontroleerd: vink **Evalueer deze criteria over een bepaalde periode** aan, kies dan onder **Evalueren** hoe de waarden worden beoordeeld (bijvoorbeeld **Alle waarden**) en vul **Voor de laatste (in minuten)** in. Over een periode bepaalt de instelling **Als geen gegevens** van het filter wat een ontbrekende waarde betekent; laat die op **Ignore** staan, zodat een ontbrekend recht nog steeds niemand kan oproepen.
+**Database is online** en **Databasemetriek** kunnen over een periode worden gecontroleerd: vink **Evalueer deze criteria over een bepaalde periode** aan, kies dan onder **Evalueren** hoe de waarden worden beoordeeld (bijvoorbeeld **Alle waarden**) en vul **Voor de laatste** in. Over een periode bepaalt de instelling **Als geen gegevens** van het filter wat een ontbrekende waarde betekent; laat die op **Ignore** staan, zodat een ontbrekend recht nog steeds niemand kan oproepen.
 
 ### Variabelen voor JavaScript-expressies
 

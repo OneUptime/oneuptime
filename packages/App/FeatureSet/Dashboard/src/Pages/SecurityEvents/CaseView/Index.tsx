@@ -8,6 +8,7 @@ import useSecurityCaseMatches, {
 } from "../../../Components/SecurityCase/Matches/useSecurityCaseMatches";
 import SecurityCaseResponsePlanCard from "../../../Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
+import SecurityCaseAiHoldNotice from "../../../Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import {
@@ -23,6 +24,8 @@ import {
   readCaseTargets,
 } from "../../../Components/SecurityCase/ResponseTargets/SecurityCaseTargetDisplay";
 import { formatCompactDurationInMinutes } from "../../../Utils/CompactDuration";
+import { CASE_TIME_TO_BLOCK } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
+import { formatTimeToBlock } from "../../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseModel";
 import { keepSecurityCaseTimeWhole } from "../../../Components/SecurityCase/SecurityCaseQueueViews";
 import SecurityCaseViewContext, {
   useSecurityCaseView,
@@ -184,6 +187,13 @@ const SecurityCaseOverviewPage: FunctionComponent<
   return (
     <>
       {/*
+       * While OneUptime AI responds first (#10353): that it is on it, when
+       * people are alerted unless it contains the case, and Page now - the
+       * first thing on the page, one click away.
+       */}
+      <SecurityCaseAiHoldNotice caseId={view.caseId} onChanged={view.refresh} />
+
+      {/*
        * By its own width: beside the case's side menu a laptop's window
        * leaves it too little for four tiles in a row, and their labels
        * wrapped and pushed two of the figures a line down.
@@ -229,6 +239,17 @@ const SecurityCaseOverviewPage: FunctionComponent<
           label="Time to Contain"
           value={duration(figures.timeToContainInMinutes)}
           note={targetNote(SecurityCaseTarget.Contain)}
+          // An automatic response policy blocked its address: how fast (#10350).
+          description={
+            typeof securityCase.timeToBlockInSeconds === "number"
+              ? translator.translateTemplate(CASE_TIME_TO_BLOCK, {
+                  time: formatTimeToBlock(
+                    securityCase.timeToBlockInSeconds,
+                    translator,
+                  ),
+                })
+              : undefined
+          }
         />
       </EventStatBar>
 

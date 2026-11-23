@@ -15,6 +15,7 @@ import WebsiteRequest, { WebsiteResponse } from "Common/Types/WebsiteRequest";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import API from "Common/Utils/API";
 import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import axios from "axios";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -113,6 +114,15 @@ export default class WebsiteMonitor {
     const checkCertificateRevocation: boolean =
       CertificateRevocationChecker.isEnabled();
 
+    /*
+     * The URLs this attempt sends - the monitor's own and each hop's as it
+     * goes out - which what it reports and logs names by their scheme,
+     * host and port alone: the server filled the monitor's secrets into
+     * them (#10785). Each is found exactly, so none is cut in two where no
+     * pattern can tell where it ends.
+     */
+    const sentUrls: Array<string> = [url.toString()];
+
     const attemptedAt: Date = new Date();
     try {
       logger.debug(
@@ -196,11 +206,16 @@ export default class WebsiteMonitor {
         let includeTlsClientIdentity: boolean = true;
 
         while (true) {
+          // A refusal of the address quotes it whole.
+          sentUrls.push(currentUrl);
+
           const prepared: PreparedHttpMonitorRequest = await prepareRequest(
             currentUrl,
             currentHeaders,
             includeTlsClientIdentity,
           );
+
+          sentUrls.push(prepared.dispatchUrl, prepared.url.toString());
 
           let result: WebsiteResponse;
           try {
@@ -359,10 +374,19 @@ export default class WebsiteMonitor {
        * A request that failed on the probe itself (no usable IPv6, say) is
        * worded as such. A bare "connect EADDRNOTAVAIL ..." reads as the site
        * being down, and it goes on to be the incident's root cause.
+       *
+       * It names the URL the request went to by its scheme, host and port
+       * alone, as everything the check reports does (#10785): the server
+       * filled the monitor's secrets into it, and the cause is shown to
+       * everyone who can read the monitor.
        */
-      const failureCauseForAttempt: string =
+      const failureCauseForAttempt: string = MonitorUrlInText.writeUrls(
         RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
-        API.getFriendlyErrorMessage(err as Error);
+          API.getFriendlyErrorMessage(err as Error),
+        sentUrls,
+      );
+      // Said in the logs below, its URLs written as the cause's (#10782).
+      const errorText: string = MonitorLogUrl.scrub(String(err), sentUrls);
       const statusCodeForAttempt: number | undefined = axios.isAxiosError(err)
         ? err.response?.status
         : undefined;
@@ -422,9 +446,12 @@ export default class WebsiteMonitor {
         responsebody = JSON.stringify(responsebody);
       }
 
-      // Get detailed error information
+      // Get detailed error information, its URLs written as the cause's.
       const requestFailedDetails: RequestFailedDetails =
-        RequestFailedDetailsUtil.getRequestFailedDetails(err);
+        MonitorUrlInText.writeRequestFailedDetails(
+          RequestFailedDetailsUtil.getRequestFailedDetails(err),
+          sentUrls,
+        );
 
       if (axios.isAxiosError(err)) {
         probeWebsiteResponse = {
@@ -484,7 +511,7 @@ export default class WebsiteMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
           );
           return null;
         }
@@ -499,7 +526,7 @@ export default class WebsiteMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
+          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
         );
 
         probeWebsiteResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -529,12 +556,13 @@ export default class WebsiteMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))} Response: ${MonitorLogUrl.scrub(
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText} Response: ${MonitorLogUrl.scrub(
           JSON.stringify({
             ...probeWebsiteResponse,
             // Its scheme and host alone: the server filled secrets into it (#10782).
             url: MonitorLogUrl.write(url),
           }),
+          sentUrls,
         )}`,
         EXTERNAL_FAULT,
       );

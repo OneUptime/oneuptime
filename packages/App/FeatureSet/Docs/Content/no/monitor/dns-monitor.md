@@ -118,13 +118,14 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS er tilkoblet** og **DNS-svartid (i ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 til 60 minutter, under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS er tilkoblet** og **DNS-svartid (i ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 minutter til 24 timer, under **For de siste**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare **DNS-svartid (i ms)**. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Persentil** | Den verdien over vinduet oppfyller betingelsen, for eksempel p95-responstiden. Bare **DNS-svartid (i ms)**. |
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 

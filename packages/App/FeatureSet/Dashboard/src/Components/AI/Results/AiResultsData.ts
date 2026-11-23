@@ -10,6 +10,9 @@ import {
   AiOutcomesDataSecurityChanges,
   AiOutcomesDataSecurityKind,
   AiOutcomesDataSecurityProposals,
+  AiOutcomesLeaks,
+  getLeaksCaughtCount,
+  getLeaksCountedCount,
   AiOutcomesIssueVerdicts,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
@@ -204,6 +207,13 @@ const ISSUE_VERDICT_KEYS: ReadonlyArray<keyof AiOutcomesIssueVerdicts> = [
   "likelyWrongFinding",
 ];
 
+// Leaks caught in pull requests, and found after (#10376).
+const LEAK_KEYS: ReadonlyArray<keyof AiOutcomesLeaks> = [
+  "fixed",
+  "open",
+  "foundAfter",
+];
+
 // A week's first day as the server writes it: YYYY-MM-DD.
 const WEEK_START_REGEX: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -266,9 +276,11 @@ function parseWeek(value: unknown): AiOutcomesWeek | null {
 
   const counts: Omit<AiOutcomesWeek, "weekStart"> | null | undefined =
     parseCounts<Omit<AiOutcomesWeek, "weekStart">>(value, WEEK_COUNT_KEYS);
-  // A server of the release before counts no verdicts (#10369).
+  // A server of the release before counts no verdicts (#10369), nor leaks (#10376).
   const verdictsAgreed: unknown = value["verdictsAgreed"];
   const verdictsDecided: unknown = value["verdictsDecided"];
+  const leaksCaught: unknown = value["leaksCaught"];
+  const leaksCounted: unknown = value["leaksCounted"];
 
   return counts
     ? {
@@ -276,6 +288,8 @@ function parseWeek(value: unknown): AiOutcomesWeek | null {
         ...counts,
         verdictsAgreed: isCount(verdictsAgreed) ? verdictsAgreed : 0,
         verdictsDecided: isCount(verdictsDecided) ? verdictsDecided : 0,
+        leaksCaught: isCount(leaksCaught) ? leaksCaught : 0,
+        leaksCounted: isCount(leaksCounted) ? leaksCounted : 0,
       }
     : null;
 }
@@ -510,6 +524,8 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
       data["issueVerdicts"],
       ISSUE_VERDICT_KEYS,
     );
+  const leaks: AiOutcomesLeaks | null | undefined =
+    parseCounts<AiOutcomesLeaks>(data["leaks"], LEAK_KEYS);
 
   if (
     pages === undefined ||
@@ -517,7 +533,8 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     pullRequestFixes === undefined ||
     rootCauses === undefined ||
     dataSecurity === undefined ||
-    issueVerdicts === undefined
+    issueVerdicts === undefined ||
+    leaks === undefined
   ) {
     return null;
   }
@@ -562,6 +579,8 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     dataSecurity,
     // A server that counts no verdicts sends none: nothing to draw, not zeros.
     ...(data["issueVerdicts"] === undefined ? {} : { issueVerdicts }),
+    // Nor does one that counts no leaks (#10376).
+    ...(data["leaks"] === undefined ? {} : { leaks }),
     models: parseModels(data["models"]),
     weeks,
     isPartial: data["isPartial"] === true,
@@ -576,7 +595,8 @@ export function canReadAnyAiResults(outcomes: AiOutcomes): boolean {
       outcomes.pullRequestFixes ||
       outcomes.rootCauses ||
       outcomes.dataSecurity ||
-      outcomes.issueVerdicts,
+      outcomes.issueVerdicts ||
+      outcomes.leaks,
   );
 }
 
@@ -622,7 +642,8 @@ export function hasAiResults(outcomes: AiOutcomes): boolean {
       fixes +
       investigations +
       dataSecurityWork +
-      getAnalyzedIssueCount(outcomes.issueVerdicts) >
+      getAnalyzedIssueCount(outcomes.issueVerdicts) +
+      (outcomes.leaks ? getLeaksCountedCount(outcomes.leaks) : 0) >
     0
   );
 }
@@ -649,6 +670,7 @@ export enum AiResultsCardKind {
   RootCausesConfirmed = "root-causes-confirmed",
   DataSecurity = "data-security",
   VerdictsAgreed = "verdicts-agreed",
+  LeaksCaught = "leaks-caught",
 }
 
 // One piece of a card's bar: an outcome and how many ended so.
@@ -2179,6 +2201,125 @@ function markModelChanges(
   });
 }
 
+// Leaks caught before they merged (#10376) ----------------------------------
+
+export const LEAKS_CAUGHT_TITLE: string = translationKey(
+  "Leaks Caught Before Merge",
+);
+
+export const LEAKS_CAUGHT_DESCRIPTION: string = translationKey(
+  "Leaks of sensitive data that production reviews caught in pull requests over the last 12 weeks, against those Data Security's scans found after they shipped.",
+);
+
+export const LEAKS_CAUGHT_HEADLINE: PluralTemplate = {
+  one: "{{value}} of {{count}} leak was caught before it merged.",
+  other: "{{value}} of {{count}} leaks were caught before they merged.",
+};
+
+export const LEAK_OUTCOME_LABELS: Record<keyof AiOutcomesLeaks, string> = {
+  fixed: translationKey("Caught, and fixed in the pull request"),
+  open: translationKey("Caught, still in the pull request"),
+  foundAfter: translationKey("Found after it shipped, by a scan"),
+};
+
+export const LEAKS_WEEK_LEGEND: AiResultsWeekLegend = {
+  value: translationKey("Caught in a pull request"),
+  total: translationKey("All leaks"),
+};
+
+// How the card starts counting, for a project with nothing counted yet.
+export const LEAKS_HOW_CAUGHT: string = translationKey(
+  "A leak counts once a production review posts it on a pull request, or a scan opens an issue for one.",
+);
+
+function getLeaksCard(
+  leaks: AiOutcomesLeaks,
+  weeks: Array<AiOutcomesWeek>,
+): AiResultsCard {
+  const caught: number = getLeaksCaughtCount(leaks);
+  const total: number = getLeaksCountedCount(leaks);
+  const segment: (
+    outcome: keyof AiOutcomesLeaks,
+    color: string,
+  ) => AiResultsSegment = (
+    outcome: keyof AiOutcomesLeaks,
+    color: string,
+  ): AiResultsSegment => {
+    return {
+      label: LEAK_OUTCOME_LABELS[outcome],
+      value: leaks[outcome],
+      color,
+      records: { part: AiOutcomesPart.Leaks, outcome },
+    };
+  };
+
+  return {
+    kind: AiResultsCardKind.LeaksCaught,
+    title: LEAKS_CAUGHT_TITLE,
+    description: LEAKS_CAUGHT_DESCRIPTION,
+    value: caught,
+    total,
+    headline: LEAKS_CAUGHT_HEADLINE,
+    startNotes:
+      total === 0
+        ? [
+            translateTemplate("No leaks caught or found yet."),
+            translateTemplate(LEAKS_HOW_CAUGHT),
+          ]
+        : [],
+    breakdowns:
+      total > 0
+        ? [
+            {
+              segments: [
+                segment("fixed", COLOR_WORKED),
+                segment("open", COLOR_CHECKING),
+                segment("foundAfter", COLOR_DID_NOT_WORK),
+              ],
+            },
+          ]
+        : [],
+    facts: [],
+    weekLegend: LEAKS_WEEK_LEGEND,
+    byModel: null,
+    byKind: null,
+    modelChanges: [],
+    weeks: weeks.map((week: AiOutcomesWeek): AiResultsWeekBar => {
+      const value: number = week.leaksCaught || 0;
+      const counted: number = week.leaksCounted || 0;
+
+      return {
+        weekStart: week.weekStart,
+        value,
+        total: counted,
+        description:
+          counted > 0
+            ? translatePlural(
+                {
+                  one: "Week of {{date}}: {{value}} of {{count}} leak caught before it merged",
+                  other:
+                    "Week of {{date}}: {{value}} of {{count}} leaks caught before they merged",
+                },
+                counted,
+                {
+                  date: describeTrendDate(week.weekStart),
+                  value: formatCount(value),
+                },
+              )
+            : translateTemplate("Week of {{date}}: no leaks", {
+                date: describeTrendDate(week.weekStart),
+              }),
+      };
+    }),
+    recentWeeks: describeRecentWeeks(weeks, (week: AiOutcomesWeek) => {
+      return {
+        value: week.leaksCaught || 0,
+        total: week.leaksCounted || 0,
+      };
+    }),
+  };
+}
+
 // The cards the reader may read, in the page's order.
 export function getAiResultsCards(outcomes: AiOutcomes): Array<AiResultsCard> {
   const cards: Array<AiResultsCard> = [];
@@ -2207,6 +2348,10 @@ export function getAiResultsCards(outcomes: AiOutcomes): Array<AiResultsCard> {
 
   if (outcomes.issueVerdicts) {
     cards.push(getVerdictsCard(outcomes.issueVerdicts, outcomes.weeks));
+  }
+
+  if (outcomes.leaks) {
+    cards.push(getLeaksCard(outcomes.leaks, outcomes.weeks));
   }
 
   return cards;

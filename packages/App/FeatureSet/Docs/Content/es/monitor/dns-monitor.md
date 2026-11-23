@@ -118,13 +118,14 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS en línea** y **Tiempo de respuesta de DNS (en ms)**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla bajo un filtro, disponible para **DNS en línea** y **Tiempo de respuesta de DNS (en ms)**. Actívela para juzgar una ventana de comprobaciones pasadas en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 minutos a 24 horas, en **En el último período de**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
-| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo** | Ese valor, en la ventana, cumple la condición. Solo **Tiempo de respuesta de DNS (en ms)**. |
+| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo**, **Percentil** | Ese valor, en la ventana, cumple la condición, como el tiempo de respuesta p95. Solo **Tiempo de respuesta de DNS (en ms)**. |
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
+| **Recuento**, **Porcentaje**, **Cambios de estado** | Cuántas comprobaciones cumplieron la condición, su proporción o cuántas veces pasaron de cumplirla a no cumplirla se compara con el número definido debajo. |
 
 La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta de datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avíseme en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 

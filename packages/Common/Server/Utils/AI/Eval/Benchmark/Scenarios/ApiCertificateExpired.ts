@@ -33,7 +33,7 @@ const scenario: BenchmarkScenario = {
     "Description: Requests reaching mobile-api fell 78% below the hour-of-week baseline for 5 minutes (Mobile API traffic monitor).",
     "Severity: SEV-1",
     "Current state: Created",
-    "Declared at: Jun 01 2026, 00:06 UTC",
+    "Declared at: Jun 1, 2026, 00:06 UTC",
     "Affected monitors: Mobile API traffic",
     "Labels: mobile, api",
     "",

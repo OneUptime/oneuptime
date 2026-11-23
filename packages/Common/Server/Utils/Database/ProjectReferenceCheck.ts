@@ -83,7 +83,6 @@ type ColumnReference = ProjectScopedReference & { column: string };
  */
 const SERVER_STAMPED_ID_COLUMNS: Array<string> = [
   "createdByUserId",
-  "deletedByUserId",
   "archivedByUserId",
   LAST_MODIFIED_BY_USER_ID_COLUMN,
 ];

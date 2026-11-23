@@ -69,6 +69,7 @@ import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationS
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
+import TwilioHttpClient from "../Utils/TwilioHttpClient";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import ServerSendingOutcomes from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
 import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
@@ -381,8 +382,11 @@ export default class SmsService {
         ).asUserError();
       }
 
+      // Through the outbound proxy, as every request of the server (#10721).
       const client: Twilio.Twilio | null = twilioConfig
-        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken)
+        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken, {
+            httpClient: TwilioHttpClient.create(),
+          })
         : null;
 
       /*

@@ -141,7 +141,7 @@ Medan OneUptime AI arbetar med problem i Datasäkerhet (se [OneUptime AI i Datas
 - **Dessa data är en hemlighet**, till exempel ett lösenord, en token eller en nyckel.
 - **Regeln är bevisad** på posterna där dessa data sågs: Den dolde dessa data i varje värde som innehöll dem.
 - **Den ändrar inget annat där**: inget av de andra värdena på dess plats.
-- **Inget läser det den döljer**: ingen övervakare, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
+- **Inget läser det den döljer**: ingen monitor, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
 - **Den gäller för tjänsten** där dessa data sågs.
 
 Allt annat föreslås i stället, på **Datasäkerhet → AI** och på problemets sida, med hur regeln bevisades och vad som läser det den skulle dölja: personuppgifter, en regel som något läser, en som ändrar andra värden, en utan någon post att köras på, en för alla tjänster, ett mätvärdes pipelineregel, och varje plats där en person ångrade eller avfärdade en tidigare regel. En AI-regel för Datasäkerhet som sätter **Begränsa** till **Automatiskt** för ett problem låter också bevisade personuppgifter döljas på egen hand. Ingen regel låter en ändring som inte är bevisat säker köras på egen hand.

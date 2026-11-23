@@ -108,8 +108,6 @@ function renderEditor(
         monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {
@@ -265,8 +263,6 @@ describe("a folded criteria's header and Filters section", () => {
           monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
           incidentSeverityDropdownOptions={[]}
           alertSeverityDropdownOptions={[]}
-          onCallPolicyDropdownOptions={[]}
-          labelDropdownOptions={[]}
           userDropdownOptions={[]}
           value={value}
           onChange={setValue}

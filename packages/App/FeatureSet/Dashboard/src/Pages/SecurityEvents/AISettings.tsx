@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import ProjectAiNotice from "../../Components/AISettings/ProjectAiNotice";
 import ProjectAiSwitchesCard from "../../Components/AISettings/ProjectAiSwitchesCard";
 import SecurityCaseAiLimitsCard from "../../Components/AISettings/SecurityCaseAiLimitsCard";
+import SecurityCaseAiRespondFirstCard from "../../Components/AISettings/SecurityCaseAiRespondFirstCard";
 import {
   ProjectAiNoticeContext,
   SECURITY_AI_SWITCHES,
@@ -15,6 +16,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export type ComponentProps = PageComponentProps;
 
+// The switch that triages each new case, which OneUptime AI's work starts from.
+const TRIAGE_SWITCH_COLUMN: string = "enableAutomaticSecurityCaseTriage";
+
 /*
  * Security Events → AI → Settings: what OneUptime AI does on its own for
  * security cases - two switches that save the moment they are flipped, as
@@ -26,7 +30,11 @@ export type ComponentProps = PageComponentProps;
  *
  * Under them, what OneUptime AI may do while it works a case: one row per
  * kind of action, each Off, Ask first or On its own (SecurityCaseAiLimitsCard),
- * which says so while working cases is off.
+ * which says so while working cases is off. Then whether it responds first
+ * to new cases, alerting people only when it needs them (#10353,
+ * SecurityCaseAiRespondFirstCard): offered while both switches are on, and
+ * saying, while nothing contains on its own, that most cases reach people
+ * as soon as OneUptime AI asks - which the rows above it change.
  *
  * The triage and OneUptime AI's log of each case it works are drawn where
  * people read cases - each case's AI card - not on this page.
@@ -34,8 +42,11 @@ export type ComponentProps = PageComponentProps;
 const SecurityEventsAISettings: FunctionComponent<ComponentProps> = (
   _props: ComponentProps,
 ): ReactElement => {
-  // Where Work cases end to end is, once the switches card has read it.
+  // Where the two switches are, once the switches card has read them.
   const [isWorkingCases, setIsWorkingCases] = useState<boolean | null>(null);
+  const [isTriaging, setIsTriaging] = useState<boolean | null>(null);
+  // Moves on whenever a row of what OneUptime AI may do is saved.
+  const [limitsRevision, setLimitsRevision] = useState<number>(0);
 
   return (
     <>
@@ -49,11 +60,28 @@ const SecurityEventsAISettings: FunctionComponent<ComponentProps> = (
           if (column === SECURITY_CASE_AI_SWITCH_COLUMN) {
             setIsWorkingCases(isOn);
           }
+
+          if (column === TRIAGE_SWITCH_COLUMN) {
+            setIsTriaging(isOn);
+          }
         }}
         dataTestId={SECURITY_AI_SWITCHES_TEST_ID}
       />
 
-      <SecurityCaseAiLimitsCard isWorkingCases={isWorkingCases} />
+      <SecurityCaseAiLimitsCard
+        isWorkingCases={isWorkingCases}
+        onSaved={() => {
+          setLimitsRevision((revision: number): number => {
+            return revision + 1;
+          });
+        }}
+      />
+
+      <SecurityCaseAiRespondFirstCard
+        isTriaging={isTriaging}
+        isWorkingCases={isWorkingCases}
+        limitsRevision={limitsRevision}
+      />
     </>
   );
 };

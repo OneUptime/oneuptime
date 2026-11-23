@@ -105,5 +105,5 @@ Das Ziel: eine Seite für den Checkout-Dienst mit seiner Latenz, seiner Fehlerqu
 - [Dashboard-Widgets](/docs/dashboards/widgets): Jedes Widget und welches Sie wählen.
 - [Dashboard-Variablen & Filter](/docs/dashboards/variables): Ein Dashboard für jeden Dienst, jeden Host oder jeden Kunden.
 - [Teilen & öffentliche Dashboards](/docs/dashboards/sharing): Öffentliche Links, Passwörter, IP-Zulassungslisten und eigene Domains.
-- [Import aus Grafana und Datadog](/docs/dashboards/import): Ein Dashboard oder die Alarmregeln übernehmen, die Sie in Grafana oder Datadog erstellt haben.
+- [Import aus Grafana und Datadog](/docs/dashboards/import): Ein Dashboard oder die Warnungsregeln übernehmen, die Sie in Grafana oder Datadog erstellt haben.
 :::

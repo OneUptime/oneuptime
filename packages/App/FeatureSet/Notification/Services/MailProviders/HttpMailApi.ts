@@ -1,6 +1,9 @@
 import { InlineImageRefusalFlag } from "./InlineImageRefusal";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import logger from "Common/Server/Utils/Logger";
+import OutboundFetch, {
+  OutboundProxyRefusal,
+} from "Common/Server/Utils/OutboundFetch";
 import RetryAfter from "Common/Utils/RetryAfter";
 import { createHash } from "crypto";
 
@@ -33,6 +36,11 @@ import { createHash } from "crypto";
  *     rather than as a thousand requests refused together. The gate is
  *     keyed by the provider, the config and a hash of its key, so two
  *     projects never wait on each other, and an edited key starts afresh.
+ *   - Each request goes through the server's outbound proxy, or directly,
+ *     as every request of the server does (OutboundFetch, #10720): Node's
+ *     fetch alone reads no HTTPS_PROXY, so a server whose mail leaves only
+ *     through a proxy sent none. A request the proxy refuses says so, and
+ *     never names the proxy.
  *
  * Each provider (MailProviders/*MailProvider.ts) builds its request and
  * reads its answer; nothing here knows any provider's format.
@@ -273,7 +281,7 @@ export default class HttpMailApi {
     const host: string = HttpMailApi.getHost(data.request.url);
 
     try {
-      const response: Response = await fetch(data.request.url, {
+      const response: Response = await OutboundFetch.fetch(data.request.url, {
         method: "POST",
         headers: data.request.headers,
         body: data.request.body,
@@ -286,6 +294,26 @@ export default class HttpMailApi {
         bodyText: await response.text(),
       };
     } catch (error) {
+      /*
+       * The outbound proxy refused it: said as the proxy's refusal, which
+       * names where it was going and never the proxy. A proxy that failed
+       * itself is tried again; one that refused it (403, 407) would refuse
+       * it again, and so would a proxy setting this server cannot use.
+       */
+      if (error instanceof OutboundProxyRefusal) {
+        throw new MailApiSendException(
+          `${data.providerName} could not be reached. ${error.message}`,
+          { isRetryable: error.isRetryable },
+        );
+      }
+
+      if (error instanceof BadDataException) {
+        throw new MailApiSendException(
+          `${data.providerName} could not be reached. ${error.message}`,
+          { isRetryable: false },
+        );
+      }
+
       /*
        * Our own timer aborted it. Read from the signal, not the error: fetch
        * rejects with a DOMException, which is not an Error of this realm
@@ -409,9 +437,10 @@ export default class HttpMailApi {
   /*
    * Node's fetch says only "fetch failed"; the reason (ENOTFOUND,
    * ECONNREFUSED, a certificate it would not trust) is on its cause. Read
-   * by shape: the error is not an Error of this realm everywhere.
+   * by shape: the error is not an Error of this realm everywhere. Microsoft
+   * Graph's sends say it the same way.
    */
-  private static describeNetworkError(error: unknown): string {
+  public static describeNetworkError(error: unknown): string {
     if (!error || typeof error !== "object") {
       return String(error);
     }

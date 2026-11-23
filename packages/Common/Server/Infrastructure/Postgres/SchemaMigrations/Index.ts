@@ -1165,7 +1165,13 @@ import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-A
 import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
 import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
-import { AddDataSecurityIssueResolution1809187471368 } from "./1809187471368-AddDataSecurityIssueResolution";
+import { AddCodeRepositoryProductionReviewFailOnLeak1809187470500 } from "./1809187470500-AddCodeRepositoryProductionReviewFailOnLeak";
+import { DropDeletedByUserColumns1809187480000 } from "./1809187480000-DropDeletedByUserColumns";
+import { AddSecurityCaseAiRespondsFirst1809187490000 } from "./1809187490000-AddSecurityCaseAiRespondsFirst";
+import { AddSecurityCaseAiHoldUntilIndex1809187490010 } from "./1809187490010-AddSecurityCaseAiHoldUntilIndex";
+import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
+import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 
 export default [
   InitialMigration,
@@ -2335,5 +2341,11 @@ export default [
   AddDataSecurityIssueGroups1809187470370,
   AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
   AddScrubRuleNamedKeysAndProof1809187470400,
-  AddDataSecurityIssueResolution1809187471368,
+  AddCodeRepositoryProductionReviewFailOnLeak1809187470500,
+  DropDeletedByUserColumns1809187480000,
+  AddSecurityCaseAiRespondsFirst1809187490000,
+  AddSecurityCaseAiHoldUntilIndex1809187490010,
+  AddSecurityAutomaticResponse1809187500000,
+  AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
+  AddDataSecurityIssueResolution1809187510368,
 ];

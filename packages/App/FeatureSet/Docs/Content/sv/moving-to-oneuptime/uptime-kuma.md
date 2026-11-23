@@ -56,7 +56,7 @@ Rapporten räknar vad som skapades och inte fördes över, och visar varje objek
 | --- | --- | --- |
 | Monitors | Monitorer | Från en säkerhetskopia blir varje monitor en monitor av samma typ, med samma adress, intervall, tidsgräns och statuskoder som räknas som uppe. Från mätvärdessidan förs var och en över med en kontroll var femte minut: kontrollera var och en efter importen. |
 
-- **HTTP(S)- och nyckelordsmonitorer** blir webbplatsmonitorer, eller API-monitorer när de skickar en annan metod, headers eller en JSON-body, med nyckelordet där det ska vara.
+- **HTTP(S)- och nyckelordsmonitorer** blir webbplatsmonitorer, eller API-monitorer när de skickar en annan metod, headers eller en body, med nyckelordet där det ska vara.
 - **JSON-frågemonitorer** blir API-monitorer, utan frågan: lägg till den som kriterium i OneUptime.
 - **Ping-, port- och DNS-monitorer** blir ping-, port- och DNS-monitorer.
 - **Push-monitorer** blir monitorer för inkommande förfrågningar, som går ner när ingen förfrågan har kommit under intervallet och dess omförsök. Var och en får en ny adress i OneUptime.

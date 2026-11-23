@@ -5,6 +5,8 @@ import getRequestBodyLimit, {
   LARGE_REQUEST_BODY_LIMIT,
   LARGE_REQUEST_BODY_ROUTES,
   MCP_OAUTH_REQUEST_BODY_LIMIT,
+  OPAMP_MESSAGE_MAX_BYTES,
+  OPAMP_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
@@ -235,11 +237,16 @@ describe("the routes that parse their body only after their caller's key is chec
         `${prefix}/openlineage/api/v1/lineage`,
         `${prefix}/dbt/v1/artifacts`,
         `${prefix}/android-agent/v1/log-sessions`,
-        `${prefix}/opamp/v1`,
         `${prefix}/pyroscope/push.v1.PusherService/Push`,
         `${prefix}/fivetran/v1/webhook/:ingestionKeyId`,
         `${prefix}/airbyte/v1/webhook/:ingestionKey`,
       ];
+    },
+  );
+
+  const securityEvents: Array<string> = TELEMETRY_ROUTE_PREFIXES.map(
+    (prefix: string): string => {
+      return `${prefix}/security-events/v1/ingest`;
     },
   );
 
@@ -278,13 +285,13 @@ describe("the routes that parse their body only after their caller's key is chec
   /*
    * #10702: the batches collectors, agents and CI send - Fluent Bit and
    * Fluentd, syslog, Pyroscope's push, Kubernetes cost, change events,
-   * OpenLineage, dbt, the Android agent, OpAMP, Fivetran and Airbyte - were
-   * read before their key was checked: JSON parsed, gzip inflated, for
-   * anyone. Each client sends its key in a header or the URL, so the body is
-   * read once the key is right, held to a large route's 50 MB.
+   * OpenLineage, dbt, the Android agent, Fivetran and Airbyte - were read
+   * before their key was checked: JSON parsed, gzip inflated, for anyone.
+   * Each client sends its key in a header or the URL, so the body is read
+   * once the key is right, held to a large route's 50 MB.
    */
   test("are the batches collectors, agents and CI send, under both telemetry prefixes, each held to a large route's limit", () => {
-    expect(batches).toHaveLength(22);
+    expect(batches).toHaveLength(20);
 
     for (const path of batches) {
       expect({
@@ -295,15 +302,85 @@ describe("the routes that parse their body only after their caller's key is chec
     }
   });
 
-  test("leave Security Events as it is: read by StartServer before routing, held to a large route's limit", () => {
+  /*
+   * #10770: OpAMP's host messages were read once their key was right too,
+   * but held to a large route's 50 MB, while the handler refused anything
+   * over an OpAMP message's 1 MiB: a key holder could have 50 MB read, or
+   * inflated, for a request refused at 1 MiB. They are held to the 1 MiB.
+   */
+  test("are OpAMP's host messages, under both telemetry prefixes, held to an OpAMP message's own 1 MiB", () => {
     for (const prefix of TELEMETRY_ROUTE_PREFIXES) {
-      const path: string = `${prefix}/security-events/v1/ingest`;
+      for (const path of [
+        `${prefix}/opamp/v1`,
+        `${prefix}/opamp/v1/`,
+        `${prefix}/OpAMP/V1`,
+      ]) {
+        expect({
+          path,
+          afterAuthentication: readsBodyAfterAuthentication(path),
+          limit: getRequestBodyLimit(path),
+        }).toEqual({
+          path,
+          afterAuthentication: true,
+          limit: OPAMP_REQUEST_BODY_LIMIT,
+        });
+      }
+    }
 
+    expect(OPAMP_MESSAGE_MAX_BYTES).toBe(MIB);
+    // Held by its size alone: protobuf has no JSON values to count.
+    expect(OPAMP_REQUEST_BODY_LIMIT).toEqual({
+      bytes: MIB,
+      values: MIB / 2,
+      objectsArraysAndStrings: MIB / 2,
+    });
+    // Only the route itself: what lies under it, or beside it, is not it.
+    for (const path of ["/opamp/v1/extra", "/opamp", "/telemetry/opamp/v2"]) {
+      expect({ path, limit: getRequestBodyLimit(path) }).toEqual({
+        path,
+        limit: ORDINARY_REQUEST_BODY_LIMIT,
+      });
+    }
+  });
+
+  /*
+   * #10795: the security events collectors, SIEMs and SOAR playbooks send
+   * were the last telemetry StartServer read before routing - up to 50 MiB
+   * of JSON parsed, or of gzip inflated, for anyone, under a prefix that
+   * took in every path below it. Each sender sends its key in a header, so
+   * the one route is read once the key is right, held to a large route's
+   * 50 MB, as the batches above are.
+   */
+  test("are Security Events' batches too, under both telemetry prefixes, each held to a large route's limit", () => {
+    expect(securityEvents).toHaveLength(2);
+
+    for (const path of securityEvents) {
       expect({
         path,
         afterAuthentication: readsBodyAfterAuthentication(path),
-      }).toEqual({ path, afterAuthentication: false });
+      }).toEqual({ path, afterAuthentication: true });
       expect(getRequestBodyLimit(path)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    }
+  });
+
+  test("leave a path below Security Events' route that no route answers to StartServer, held to the ordinary limit: it was 50 MB, for anyone", () => {
+    for (const path of [
+      "/security-events/v1/ingest/extra",
+      "/telemetry/security-events/v1/ingest/extra",
+      "/security-events/v1",
+      "/security-events/v2/ingest",
+      "/telemetry/security-events/anything",
+      "/security-events",
+    ]) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+        limit: getRequestBodyLimit(path),
+      }).toEqual({
+        path,
+        afterAuthentication: false,
+        limit: ORDINARY_REQUEST_BODY_LIMIT,
+      });
     }
   });
 
@@ -321,6 +398,8 @@ describe("the routes that parse their body only after their caller's key is chec
       "/Pyroscope/Ingest/",
       "/TELEMETRY/SOURCE-MAPS/V1/UPLOAD",
       "/telemetry/dsyms/v1/upload/",
+      "/Security-Events/V1/Ingest/",
+      "/TELEMETRY/SECURITY-EVENTS/V1/INGEST",
     ]) {
       expect({
         path,
@@ -343,8 +422,8 @@ describe("the routes that parse their body only after their caller's key is chec
       "/api/monitor/get-list",
       "/fluentd/v1/logs/extra",
       "/syslog/v1",
-      "/security-events/v1/ingest",
-      "/telemetry/security-events/v1/ingest",
+      "/security-events/v1/ingest/extra",
+      "/telemetry/security-events/v1",
       "/fivetran/v1/webhook",
       "/pyroscope/push.v1.PusherService/Push/extra",
       "/pyroscope/ingest/extra",
@@ -374,6 +453,7 @@ describe("the routes that parse their body only after their caller's key is chec
       ...batches,
       ...collections,
       "/telemetry-writer/insert",
+      ...securityEvents,
     ]);
 
     // Each says why, and how its caller is known first.
@@ -384,10 +464,26 @@ describe("the routes that parse their body only after their caller's key is chec
       expect(route.reason).toMatch(/key/);
     }
 
-    // No route that takes less than an ordinary one reads its body late.
-    for (const route of SMALL_REQUEST_BODY_ROUTES) {
-      expect(route.readsBodyAfterAuthentication).toBeFalsy();
-    }
+    /*
+     * Of the routes that take no more than an ordinary one, OpAMP's alone
+     * reads its body late: its key is checked first, as the batches' are.
+     */
+    const smallAndLate: Array<RequestBodyRoute> =
+      SMALL_REQUEST_BODY_ROUTES.filter((route: RequestBodyRoute): boolean => {
+        return Boolean(route.readsBodyAfterAuthentication);
+      });
+
+    expect(
+      smallAndLate.flatMap((route: RequestBodyRoute): ReadonlyArray<string> => {
+        return route.paths;
+      }),
+    ).toEqual(
+      TELEMETRY_ROUTE_PREFIXES.map((prefix: string): string => {
+        return `${prefix}/opamp/v1`;
+      }),
+    );
+    expect(smallAndLate[0]!.limit).toBe(OPAMP_REQUEST_BODY_LIMIT);
+    expect(smallAndLate[0]!.reason).toMatch(/key/);
   });
 });
 
@@ -450,7 +546,7 @@ describe("the routes that take less than an ordinary one", () => {
     }
   });
 
-  test("every one says why, takes less than an ordinary route, and none is listed twice, or as a large one", () => {
+  test("every one says why, takes no more than an ordinary route, and none is listed twice, or as a large one", () => {
     const large: Set<string> = new Set(
       LARGE_REQUEST_BODY_ROUTES.flatMap(
         (route: RequestBodyRoute): ReadonlyArray<string> => {
@@ -467,7 +563,8 @@ describe("the routes that take less than an ordinary one", () => {
     for (const route of SMALL_REQUEST_BODY_ROUTES) {
       expect(route.reason.length).toBeGreaterThan(40);
       expect(route.reason.endsWith(".")).toBe(true);
-      expect(route.limit.bytes).toBeLessThan(ORDINARY_REQUEST_BODY_LIMIT.bytes);
+      // The ordinary route's own 1 MiB, which REQUEST_BODY_MAX_BYTES can raise.
+      expect(route.limit.bytes).toBeLessThanOrEqual(MIB);
       expect(route.limit.objectsArraysAndStrings).toBeLessThanOrEqual(
         route.limit.values,
       );
@@ -542,7 +639,7 @@ describe("the ordinary limits a self-hosted server sets", () => {
     });
   });
 
-  test("raise no route's own limit: the MCP OAuth endpoints and the docs' reports keep theirs", () => {
+  test("raise no route's own limit: the MCP OAuth endpoints, the docs' reports and OpAMP keep theirs", () => {
     const saved: NodeJS.ProcessEnv = { ...process.env };
     const limits: Record<string, RequestBodyLimit> = {};
 
@@ -562,6 +659,7 @@ describe("the ordinary limits a self-hosted server sets", () => {
           "/api/monitor",
           "/mcp/oauth/token",
           "/docs/feedback",
+          "/telemetry/opamp/v1",
         ]) {
           limits[path] = reloaded.getRequestBodyLimit(path);
         }
@@ -573,6 +671,7 @@ describe("the ordinary limits a self-hosted server sets", () => {
     expect(limits["/api/monitor"]!.bytes).toBe(40 * MIB);
     expect(limits["/mcp/oauth/token"]).toEqual(MCP_OAUTH_REQUEST_BODY_LIMIT);
     expect(limits["/docs/feedback"]).toEqual(DOCS_REPORT_REQUEST_BODY_LIMIT);
+    expect(limits["/telemetry/opamp/v1"]).toEqual(OPAMP_REQUEST_BODY_LIMIT);
   });
 
   test("keep the defaults for a value that is not a whole positive number", () => {

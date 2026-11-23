@@ -70,7 +70,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 
 ### API-URL
 
-Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen.
+Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen. Der Fehler einer fehlgeschlagenen Prüfung nennt die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass das Geheimnis nie angezeigt wird.
 
 ### Dynamische URL-Platzhalter
 
@@ -194,17 +194,18 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Perzentil** | Dieser Wert über das Fenster die Bedingung erfüllt, etwa die p95-Antwortzeit. Nur für numerische Filter. |
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
+Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. Oder OneUptime zählt sie mit **Anzahl**, **Prozentsatz** oder **Statuswechsel**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -250,7 +251,7 @@ Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor
 :::
 
 :::details Die Prüfung meldet, dass die Sonde zu alt ist, um den Anfragetext zu senden
-Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem Release vor OneUptime 17.2.0, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) oder prüfen Sie den Monitor von einer anderen Sonde aus.
+Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem älteren Release, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. Das Formular des Monitors und die Seite der Sonde nennen eine solche Sonde. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) auf das neueste Release, oder prüfen Sie den Monitor von einer anderen Sonde aus.
 :::
 
 ## Nächste Schritte

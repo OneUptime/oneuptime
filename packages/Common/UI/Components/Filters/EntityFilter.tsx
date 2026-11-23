@@ -1,6 +1,9 @@
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
+import EntityDropdown, {
+  EntityDropdownValue,
+} from "../EntityDropdown/EntityDropdown";
 import FieldType from "../Types/FieldType";
-import Filter from "./Types/Filter";
+import Filter, { EntityFilterSearch } from "./Types/Filter";
 import FilterData from "./Types/FilterData";
 import FilterOperator from "./Types/FilterOperator";
 import OperatorSelector from "./OperatorSelector";
@@ -174,6 +177,27 @@ const buildSingleValue: BuildValueFunction = (state: EntityState): unknown => {
   }
 };
 
+type ToFilterValuesFunction = (
+  value: DropdownValue | Array<DropdownValue> | null,
+) => Array<string>;
+
+// What a picker handed back, as the filter's values.
+const toFilterValues: ToFilterValuesFunction = (
+  value: DropdownValue | Array<DropdownValue> | null,
+): Array<string> => {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  return (Array.isArray(value) ? value : [value])
+    .map((entry: DropdownValue): string => {
+      return entry.toString();
+    })
+    .filter((entry: string): boolean => {
+      return entry !== "";
+    });
+};
+
 interface ControlsProps<T extends GenericObject> extends ComponentProps<T> {
   // The filter's options: the controls are only drawn once it has them.
   options: Array<DropdownOption>;
@@ -235,6 +259,23 @@ const EntityFilterControls: EntityFilterControlsFunction = <
     },
   );
 
+  const search: EntityFilterSearch | undefined = filter.entitySearch;
+
+  /*
+   * A filter that searches the server holds every value it was given, each
+   * named where the list read its name (the options) - one it has not read
+   * is read by its id by the picker itself, never dropped or shown blank.
+   */
+  const heldValues: Array<DropdownOption | string> = state.values.map(
+    (value: string): DropdownOption | string => {
+      return (
+        props.options.find((option: DropdownOption): boolean => {
+          return option.value.toString() === value;
+        }) || value
+      );
+    },
+  );
+
   type ApplyFunction = (nextState: EntityState) => void;
 
   const apply: ApplyFunction = (nextState: EntityState): void => {
@@ -263,21 +304,40 @@ const EntityFilterControls: EntityFilterControlsFunction = <
           apply({ ...state, operator: nextOperator });
         }}
       />
-      {!valuelessOperator && (
+      {!valuelessOperator && search && (
+        <div className="flex-1 min-w-0" data-testid="entity-filter-search">
+          <EntityDropdown
+            modelType={search.modelType}
+            modelAPI={search.modelAPI}
+            labelField={search.labelField}
+            valueField={search.valueField}
+            query={search.query}
+            notFoundLabel={search.notFoundLabel}
+            /*
+             * A filter lists archived values too: the records that have
+             * one stay findable by it (ArchivedValuePicker).
+             */
+            listsArchivedValues={true}
+            options={props.options}
+            value={heldValues as EntityDropdownValue}
+            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+              apply({ ...state, values: toFilterValues(value) });
+            }}
+            isMultiSelect={isArray}
+            ariaLabel={getFilterPlaceholder(translator, filter.title)}
+            placeholder={getFilterPlaceholder(translator, filter.title)}
+            // "Filter by {{field}}", in the reader's words here.
+            isPlaceholderTranslated={true}
+            className="relative w-full"
+          />
+        </div>
+      )}
+      {!valuelessOperator && !search && (
         <div className="flex-1 min-w-0">
           <Dropdown
             options={props.options}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              if (!value || (Array.isArray(value) && value.length === 0)) {
-                apply({ ...state, values: [] });
-                return;
-              }
-              const nextValues: Array<string> = Array.isArray(value)
-                ? (value as Array<DropdownValue>).map((v: DropdownValue) => {
-                    return v.toString();
-                  })
-                : [value.toString()];
-              apply({ ...state, values: nextValues });
+              apply({ ...state, values: toFilterValues(value) });
             }}
             value={dropdownValues}
             isMultiSelect={isArray}
@@ -311,14 +371,18 @@ const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
     return <></>;
   }
 
-  if (!props.filter.filterDropdownOptions) {
+  /*
+   * A filter that searches the server needs no options to be drawn: it
+   * searches as it is typed in, and reads what it holds by its ids.
+   */
+  if (!props.filter.filterDropdownOptions && !props.filter.entitySearch) {
     return <></>;
   }
 
   return (
     <EntityFilterControls<T>
       {...props}
-      options={props.filter.filterDropdownOptions}
+      options={props.filter.filterDropdownOptions || []}
     />
   );
 };
