@@ -104,6 +104,8 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 
 `json_array true`는 버퍼의 청크마다 하나의 JSON 배열로 보내고, `flush_interval 10s`는 10초마다 버퍼를 보냅니다. `chunk_limit_size 900k`는 각 요청을 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB 미만으로 유지합니다.
 
+Fluentd의 기본 설정도 동작합니다. `content_type`과 `json_array true`가 없으면 Fluentd는 줄바꿈으로 구분된 JSON을 한 줄에 레코드 하나씩 보내고, OneUptime은 각 줄을 그 레코드로 읽습니다. `compress gzip`을 쓰든 쓰지 않든 같습니다.
+
 `@type file`은 아직 보내지 않은 배치를 `path`가 가리키는 폴더에 보관하므로, Fluentd를 다시 시작해도 하나도 잃지 않습니다. Fluentd의 기본값인 메모리 버퍼는 보관하던 것을 잃습니다. Fluentd의 사용자가 그 폴더에 쓸 수 있어야 합니다. `/var/log/fluent`는 fluent-package의 폴더이고, `/var/log/td-agent`는 td-agent의, `/fluentd/log`는 `fluent/fluentd` 이미지의 폴더입니다. `total_limit_size 512m`은 그곳에 최대 512MB까지 보관하며, 가득 차면 배치가 전송될 때까지 Fluentd는 더 이상 레코드를 받지 않습니다.
 
 `retryable_response_codes 429,502,503,504`는 OneUptime이 바쁘거나(`429`) 다시 시작하는 중일 때(`502`, `503`, `504`) 배치를 다시 보냅니다. 이 설정이 없으면 Fluentd는 `503`이 아닌 모든 응답에서 배치를 버립니다. `retry_max_interval 30s`는 재시도 사이에 최대 30초를 기다리고, `retry_timeout 72h`는 72시간이 지나도 보내지 못한 배치를 버립니다. `record_transformer` 필터는 Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다. HTTP 출력은 레코드만 보내고, OneUptime은 로그의 시간을 레코드에서 읽기 때문입니다.
