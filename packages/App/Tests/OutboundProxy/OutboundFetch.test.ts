@@ -38,6 +38,7 @@ import {
 } from "@jest/globals";
 import http from "http";
 import https from "https";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("Common/Server/Utils/Logger");
 
@@ -586,10 +587,7 @@ describe("a request that must go directly (direct: true)", () => {
 describe("nothing else changes", () => {
   test("the global fetch is the one sent with, so what stands in for it in a test still does", async () => {
     const target: LocalHttpServer = await serve({ name: "target" });
-    const spy: jest.SpiedFunction<typeof fetch> = jest.spyOn(
-      globalThis,
-      "fetch",
-    );
+    const spy: SpyInstance<typeof fetch> = jest.spyOn(globalThis, "fetch");
 
     await OutboundFetch.fetch(target.url("/seen"), { method: "GET" });
 

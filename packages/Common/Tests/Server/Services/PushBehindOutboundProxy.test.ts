@@ -34,6 +34,7 @@ import {
   test,
 } from "@jest/globals";
 import { createECDH, randomBytes } from "crypto";
+import type { SpyInstance } from "jest-mock";
 import webpush from "web-push";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -284,7 +285,7 @@ describe("a web push's failure", () => {
   test("is the server's, so the browser stays as it is", async () => {
     const proxy: LocalHttpServer = await serve({ name: "proxy" });
     process.env["HTTPS_PROXY"] = `http://${PROXY_HOST_NAME}:${proxy.port}`;
-    const markAsGone: jest.SpiedFunction<
+    const markAsGone: SpyInstance<
       typeof UserPushService.markWebPushSubscriptionAsGone
     > = jest
       .spyOn(UserPushService, "markWebPushSubscriptionAsGone")
