@@ -12,10 +12,10 @@ import React from "react";
 
 /*
  * A wide MoreMenu (isMenuWide) for items whose names are long - a kind of
- * log ("Azure activity and Entra ID logs"), a product - so each keeps one
- * line instead of wrapping in the 14rem every other menu has: 20rem, set on
- * the element itself in place or portalled, and never past a phone's edges.
- * A menu that does not ask for it keeps its width.
+ * log ("Azure Key Vault, Storage and SQL logs"), a product - so each keeps
+ * one line instead of wrapping in the 14rem every other menu has: 21rem,
+ * set on the element itself in place or portalled, and never past a
+ * phone's edges. A menu that does not ask for it keeps its width.
  */
 
 jest.mock("react-i18next", () => {
@@ -43,7 +43,7 @@ async function openMenu(props: {
   render(
     <MoreMenu text="Examples" {...props}>
       <MoreMenuItem
-        text="Azure activity and Entra ID logs"
+        text="Azure Key Vault, Storage and SQL logs"
         onClick={() => {}}
       />
       <MoreMenuItem text="Google Cloud audit logs" onClick={() => {}} />
@@ -60,16 +60,16 @@ async function openMenu(props: {
 }
 
 describe("MoreMenu - a wide menu", () => {
-  test("in place: 20rem on the element itself, over w-56, and never past the viewport", async () => {
+  test("in place: 21rem on the element itself, over w-56, and never past the viewport", async () => {
     const menu: HTMLElement = await openMenu({ isMenuWide: true });
 
-    expect(WIDE_MENU_WIDTH).toBe("20rem");
+    expect(WIDE_MENU_WIDTH).toBe("21rem");
     expect(menu.style.width).toBe(WIDE_MENU_WIDTH);
     expect(menu.style.maxWidth).toBe(WIDE_MENU_MAX_WIDTH);
     expect(WIDE_MENU_MAX_WIDTH).toBe("calc(100vw - 1rem)");
   });
 
-  test("portalled: 20rem in place of the 14rem, and never past the viewport", async () => {
+  test("portalled: 21rem in place of the 14rem, and never past the viewport", async () => {
     const menu: HTMLElement = await openMenu({
       isMenuWide: true,
       isMenuPortaled: true,

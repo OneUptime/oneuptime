@@ -2,6 +2,9 @@ import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import { NoDataPolicy } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   FOLDED_SECTION_OFF,
@@ -28,6 +31,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const MonitorMoreFieldsTitles: {
   requestHeaders: string;
+  requestBodyFormat: string;
   requestBody: string;
   doNotFollowRedirects: string;
   allowSelfSignedCertificates: string;
@@ -45,7 +49,9 @@ export const MonitorMoreFieldsTitles: {
   ifNoData: string;
 } = {
   requestHeaders: translationKey("Request Headers"),
-  requestBody: translationKey("Request Body (in JSON)"),
+  requestBodyFormat: translationKey("Request Body Format"),
+  // JSON or text, as its format says (#10736): no longer "(in JSON)".
+  requestBody: translationKey("Request Body"),
   doNotFollowRedirects: translationKey("Do not follow redirects"),
   allowSelfSignedCertificates: translationKey("Allow self-signed certificates"),
   useClientCertificate: translationKey("Use client certificate (mTLS)"),
@@ -60,6 +66,17 @@ export const MonitorMoreFieldsTitles: {
   privateAlert: translationKey("Private Alert"),
   remediationNotes: translationKey("Remediation Notes"),
   ifNoData: translationKey("If No Data"),
+};
+
+/*
+ * The request body's formats, by the words the picker and the folded header
+ * say them in: JSON first, the default (#10736).
+ */
+export const REQUEST_BODY_FORMAT_TITLES: Readonly<
+  Record<MonitorRequestBodyFormat, string>
+> = {
+  [MonitorRequestBodyFormat.JSON]: translationKey("JSON"),
+  [MonitorRequestBodyFormat.Text]: translationKey("Text"),
 };
 
 type SwitchItemFunction = (
@@ -134,6 +151,8 @@ export const getMonitorStepMoreFieldsItems: GetMonitorStepMoreFieldsItemsFunctio
     const headerCount: number = Object.keys(
       step.data?.requestHeaders || {},
     ).length;
+    const requestBodyFormat: MonitorRequestBodyFormat =
+      MonitorRequestBodyFormatUtil.read(step.data?.requestBodyFormat);
 
     const redirectAndTlsItems: Array<FoldedSectionItem> = [
       switchItem(
@@ -164,6 +183,13 @@ export const getMonitorStepMoreFieldsItems: GetMonitorStepMoreFieldsItemsFunctio
             key: "requestHeaders",
             isSet: headerCount > 0,
             value: String(headerCount),
+          }),
+          // Set when it is off its default, JSON: "Request Body Format: Text".
+          foldedSectionItem(MonitorMoreFieldsTitles.requestBodyFormat, {
+            key: "requestBodyFormat",
+            isSet: requestBodyFormat !== MonitorRequestBodyFormat.JSON,
+            value: REQUEST_BODY_FORMAT_TITLES[requestBodyFormat],
+            translateValue: true,
           }),
           foldedSectionItem(MonitorMoreFieldsTitles.requestBody, {
             key: "requestBody",

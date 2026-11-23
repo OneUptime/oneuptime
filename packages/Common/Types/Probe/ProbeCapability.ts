@@ -82,6 +82,19 @@ enum ProbeCapability {
    * saying to update the probe, on any other custom probe (issue #9759).
    */
   TotpCodes = "totpCodes",
+  /*
+   * The probe sends an API step's request body as the step says (issues
+   * #9737, #10736): any JSON value as written - an array or a single value
+   * as well as an object - and, for a step whose body is text, the text
+   * byte for byte (Common/Utils/Monitor/MonitorRequestBody). A probe from
+   * before FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY reads every body as a
+   * JSON object: it fails an array or a single value with "Expected
+   * JSONObject, but got JSONArray", and sends a text body as JSON, if at
+   * all. The server hands a step with such a body only to a probe that
+   * declares this, and fails it, with a sentence saying to update the
+   * probe, on any other custom probe (issue #10737).
+   */
+  AnyRequestBody = "anyRequestBody",
 }
 
 // The first probe release that walks SNMP tables.
@@ -95,6 +108,15 @@ export const FIRST_PROBE_VERSION_WITH_SNMP_TABLES: string = "14.0.18";
  * at least this.
  */
 export const FIRST_PROBE_VERSION_WITH_TOTP_CODES: string = "17.0.1";
+
+/*
+ * The first probe release that sends any request body
+ * (ProbeCapability.AnyRequestBody): an array or a single value (#9737) and
+ * a body sent as text (#10736) came after 17.1.0 was released, so they
+ * ship in the release after it: 17.2.0, or whatever later number it is
+ * given, which compares as at least this.
+ */
+export const FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY: string = "17.2.0";
 
 // How many capabilities, of how many characters, a request is read for.
 export const MAX_PROBE_CAPABILITIES: number = 32;

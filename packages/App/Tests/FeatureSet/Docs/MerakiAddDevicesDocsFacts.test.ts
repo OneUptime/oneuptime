@@ -1,6 +1,7 @@
 import { bold, boldIn, readRepoFile } from "./InventoryAndApiDocsSupport";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
 import { sectionInLanguage } from "./NetworkDocsLabels";
+import { withoutProductLevels } from "./DocsProductLevels";
 import {
   ADD_DEVICES_ACTION,
   DEVICE_KIND_NAMES,
@@ -319,9 +320,19 @@ describe("Network Traffic: Add devices, held to the code", () => {
       product: ProductKey.Network,
     });
 
-    expect(update.sort()).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin].sort(),
-    );
+    /*
+     * The Network product's Admin level (#10289) adds them too, as Project
+     * Admin does: the permissions page describes a product's levels once
+     * for every product, its connections and credentials included, as the
+     * other pages leave them to it.
+     */
+    expect(update).toContain(Permission.NetworkAdmin);
+    expect(
+      withoutProductLevels({
+        permissions: update,
+        product: ProductKey.Network,
+      }).sort(),
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin].sort());
     expect(readRepoFile(CONNECTION_API)).toContain(
       "`${basePath}/:connectionId/add-devices`",
     );

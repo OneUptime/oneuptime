@@ -58,7 +58,13 @@ import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
-import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
+import {
+  REQUEST_BODY_FORMAT_TITLES,
+  getMonitorStepMoreFieldsItems,
+} from "./MonitorMoreFields";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import Card from "Common/UI/Components/Card/Card";
 import CardFormSections from "Common/UI/Components/Card/CardFormSections";
 import React, {
@@ -822,6 +828,22 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
+  /*
+   * How an API monitor's body is sent (#10736): JSON, the default and
+   * first, or text sent exactly as written. The body's editor, its words
+   * and its check follow the format.
+   */
+  const requestBodyFormat: MonitorRequestBodyFormat =
+    MonitorRequestBodyFormatUtil.read(monitorStep.data?.requestBodyFormat);
+  const isTextRequestBody: boolean =
+    requestBodyFormat === MonitorRequestBodyFormat.Text;
+  const requestBodyFormatDropdownOptions: Array<DropdownOption> =
+    MonitorRequestBodyFormatUtil.ALL_FORMATS.map(
+      (format: MonitorRequestBodyFormat): DropdownOption => {
+        return { label: REQUEST_BODY_FORMAT_TITLES[format], value: format };
+      },
+    );
+
   // A Metrics monitor's rule, when its criteria are one (TelemetryAlertRule).
   const metricRule: TelemetryAlertRule | null =
     props.monitorType === MonitorType.Metrics
@@ -1261,12 +1283,64 @@ return {
 
                   <div>
                     <FieldLabelElement
-                      title={"Request Body (in JSON)"}
+                      title={"Request Body Format"}
+                      description={
+                        "Whether the body is JSON, or text sent exactly as written, such as XML or form fields."
+                      }
+                      required={false}
+                    />
+                    {/*
+                     * A body is always read in one format, JSON unless the
+                     * step says text, so there is nothing to clear.
+                     */}
+                    <Dropdown
+                      isClearable={false}
+                      ariaLabel="Request Body Format"
+                      dataTestId="request-body-format"
+                      initialValue={requestBodyFormatDropdownOptions.find(
+                        (option: DropdownOption) => {
+                          return option.value === requestBodyFormat;
+                        },
+                      )}
+                      options={requestBodyFormatDropdownOptions}
+                      onChange={(
+                        value: DropdownValue | Array<DropdownValue> | null,
+                      ) => {
+                        const format: MonitorRequestBodyFormat =
+                          MonitorRequestBodyFormatUtil.read(value?.toString());
+
+                        monitorStep.setRequestBodyFormat(format);
+
+                        // A text body is sent as written: no JSON to check.
+                        setErrors({
+                          ...errors,
+                          requestBody:
+                            getRequestBodyFieldError(
+                              monitorStep.data?.requestBody || "",
+                              translator,
+                              format,
+                            ) || "",
+                        });
+
+                        if (props.onChange) {
+                          props.onChange(MonitorStep.clone(monitorStep));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <FieldLabelElement
+                      title={"Request Body"}
                       description={
                         <p>
-                          {translator.translateText(
-                            "Sent with every request, as JSON.",
-                          )}{" "}
+                          {isTextRequestBody
+                            ? translator.translateText(
+                                "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.",
+                              )
+                            : translator.translateText(
+                                "Sent with every request, as JSON.",
+                              )}{" "}
                           <Link
                             className="underline"
                             openInNewTab={true}
@@ -1283,13 +1357,14 @@ return {
                       required={false}
                     />
                     <CodeEditor
-                      type={CodeType.JSON}
+                      type={isTextRequestBody ? CodeType.Text : CodeType.JSON}
                       /*
                        * Judged as the probe reads a body: any JSON value,
                        * or JSON5, its {{...}} placeholders standing for
-                       * their values (getRequestBodyFieldError).
+                       * their values (getRequestBodyFieldError). A text
+                       * body is never judged.
                        */
-                      allowJSON5={true}
+                      allowJSON5={!isTextRequestBody}
                       onBlur={() => {
                         setTouched({
                           ...touched,
@@ -1306,7 +1381,11 @@ return {
                         setErrors({
                           ...errors,
                           requestBody:
-                            getRequestBodyFieldError(value, translator) || "",
+                            getRequestBodyFieldError(
+                              value,
+                              translator,
+                              monitorStep.data?.requestBodyFormat,
+                            ) || "",
                         });
 
                         monitorStep.setRequestBody(value);
