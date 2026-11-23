@@ -60804,5 +60804,6 @@
   "Who may read this project's LLM providers sees which one it is.": "有權讀取此專案 LLM 提供商的人可以看到具體是哪一個。",
   "Your project's": "您專案的",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "您專案的 AI 上下文位於系統訊息的開頭：{{count}} 個字元，在「專案設定 → 人工智慧 → AI 功能」中設定。",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "您專案的 AI 上下文位於系統訊息的開頭：{{count}} 個字元，在「專案設定 → 人工智慧 → AI 功能」中設定。"
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "您專案的 AI 上下文位於系統訊息的開頭：{{count}} 個字元，在「專案設定 → 人工智慧 → AI 功能」中設定。",
+  "App Service key": "App Service 金鑰"
 }

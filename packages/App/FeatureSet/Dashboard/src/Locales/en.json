@@ -60804,5 +60804,6 @@
   "Who may read this project's LLM providers sees which one it is.": "Who may read this project's LLM providers sees which one it is.",
   "Your project's": "Your project's",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Your project's AI context comes first in the system message: {{count}} character, set under Project Settings → AI → AI Features."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Your project's AI context comes first in the system message: {{count}} character, set under Project Settings → AI → AI Features.",
+  "App Service key": "App Service key"
 }

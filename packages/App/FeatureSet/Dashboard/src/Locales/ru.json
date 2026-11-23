@@ -60804,5 +60804,6 @@
   "Who may read this project's LLM providers sees which one it is.": "Кто может читать провайдеров LLM этого проекта, видит, какой это провайдер.",
   "Your project's": "Вашего проекта",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Контекст ИИ вашего проекта идёт первым в системном сообщении (длина в символах: {{count}}), он задаётся в разделе «Настройки проекта → ИИ → Функции ИИ».",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Контекст ИИ вашего проекта идёт первым в системном сообщении ({{count}} символ), он задаётся в разделе «Настройки проекта → ИИ → Функции ИИ»."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Контекст ИИ вашего проекта идёт первым в системном сообщении ({{count}} символ), он задаётся в разделе «Настройки проекта → ИИ → Функции ИИ».",
+  "App Service key": "Ключ App Service"
 }

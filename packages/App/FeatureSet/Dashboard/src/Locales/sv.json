@@ -60804,5 +60804,6 @@
   "Who may read this project's LLM providers sees which one it is.": "Den som får läsa projektets LLM-leverantörer ser vilken det är.",
   "Your project's": "Ditt projekts",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Ditt projekts AI-kontext kommer först i systemmeddelandet: {{count}} tecken, inställt under Projektinställningar → AI → AI-funktioner.",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Ditt projekts AI-kontext kommer först i systemmeddelandet: {{count}} tecken, inställt under Projektinställningar → AI → AI-funktioner."
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Ditt projekts AI-kontext kommer först i systemmeddelandet: {{count}} tecken, inställt under Projektinställningar → AI → AI-funktioner.",
+  "App Service key": "App Service-nyckel"
 }

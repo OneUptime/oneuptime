@@ -60804,5 +60804,6 @@
   "Who may read this project's LLM providers sees which one it is.": "このプロジェクトの LLM プロバイダーを読み取れるユーザーには、どのプロバイダーかが表示されます。",
   "Your project's": "プロジェクトのもの",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "プロジェクトの AI コンテキストはシステムメッセージの先頭に入ります: {{count}} 文字。「プロジェクト設定 → AI → AI 機能」で設定します。",
-  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "プロジェクトの AI コンテキストはシステムメッセージの先頭に入ります: {{count}} 文字。「プロジェクト設定 → AI → AI 機能」で設定します。"
+  "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "プロジェクトの AI コンテキストはシステムメッセージの先頭に入ります: {{count}} 文字。「プロジェクト設定 → AI → AI 機能」で設定します。",
+  "App Service key": "App Service キー"
 }
