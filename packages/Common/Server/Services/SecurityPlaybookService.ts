@@ -105,7 +105,7 @@ export function assertSendWebhookCertificatesParse(
 
     if (problem) {
       throw new BadDataException(
-        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}`,
+        `Step ${index + 1} (${getSecurityPlaybookAction(step.action)?.title || step.action}): ${SEND_WEBHOOK_CA_CERTIFICATE_MESSAGES[problem]}.`,
       );
     }
   });

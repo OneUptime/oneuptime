@@ -83,7 +83,9 @@ for (const signal of ["log", "trace"] as Array<TelemetryFieldSignal>) {
         const projectId: ObjectID | undefined = props.tenantId;
 
         if (!projectId) {
-          throw new BadDataException("Project ID is required");
+          throw new BadDataException(
+            "Asking what a filter would drop needs a project: send its ID in the tenantid header.",
+          );
         }
 
         const impact: DropFilterImpact = await findDropFilterImpact({
