@@ -1964,8 +1964,24 @@ describe("the Fluentd page", () => {
     expect(FLUENT_SERVICE_SOURCE).toContain(
       "LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)",
     );
+    /*
+     * Scrubbed as an OTLP log is, with the batch's address vault (#10496):
+     * an address an IP Address Hash rule hides from a Fluentd log is kept
+     * for Security Events as one hidden from any other log is.
+     */
+    const scrubbed: string =
+      "logRow = LogScrubRuleService.scrubLog( logRow, loadedScrubRules, addressVault, );";
+
+    expect(FLUENT_SERVICE_SOURCE).toContain(scrubbed);
+    expect(
+      oneLine(
+        readSource(
+          "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
+        ),
+      ),
+    ).toContain(scrubbed);
     expect(FLUENT_SERVICE_SOURCE).toContain(
-      "logRow = LogScrubRuleService.scrubLog(logRow, loadedScrubRules);",
+      'await SecurityAddressVaultWriter.startBatch({ projectId: projectId, signal: "log", scrubRules: loadedScrubRules, });',
     );
     expect(FLUENT_SERVICE_SOURCE).toContain(
       "logRow = LogPipelineService.processLog(logRow, loadedPipelines);",

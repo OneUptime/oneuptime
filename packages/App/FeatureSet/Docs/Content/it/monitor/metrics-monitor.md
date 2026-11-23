@@ -194,6 +194,10 @@ Senza Group By, lo stesso monitor è un singolo scalare: la query riduce tutti g
 
 Ogni avviso per gruppo segue il proprio gruppo. Quando l'host A torna sotto la soglia, il suo avviso si risolve per conto proprio, e quello dell'host B resta aperto finché l'host B non si riprende. Il ripristino di un gruppo non chiude mai l'avviso di un altro.
 
+### Ogni serie nella panoramica
+
+La **Panoramica** del monitor elenca in **Serie** ogni serie letta dal suo ultimo controllo: le etichette della serie, come le nominano i suoi avvisi, il suo ultimo valore, i criteri che soddisfa e il suo incidente o avviso aperto. Una serie che mantiene lo stato del monitor mostra **Mantiene lo stato**. Un monitor con molte serie ne elenca 50, prima quelle che mantengono lo stato o soddisfano un criterio, e dice quante sono.
+
 ### Cosa conserva ogni avviso
 
 Ogni avviso o incidente aperto per un gruppo conserva il controllo che lo ha aperto solo per quel gruppo: la sua serie, i suoi punti e il riepilogo della valutazione. Nessun controllo conservato supera 256 KB, e i log di uno che è stato ridotto per rientrarvi lo dicono.
@@ -207,6 +211,7 @@ Gli avvisi e gli incidenti aperti prima conservavano tutti i gruppi della valuta
 
 - **I monitor raggruppati valutano ogni criterio.** Così livelli di gravità diversi possono scattare su gruppi diversi nello stesso momento: con «Critical: maggiore di 95» sopra «Warning: maggiore di 80», un host al 96% apre un avviso critico mentre un host all'85% apre un avviso di warning, nello stesso controllo. Un host che supera entrambi i livelli riceve comunque esattamente un avviso, quello del primo criterio che corrisponde, quindi **ordinate i criteri dal più grave al meno grave**.
 - **I monitor non raggruppati si fermano al primo criterio che corrisponde.** Scatta solo quel criterio, un motivo in più per mettere il criterio di avviso sopra quello di buona salute: un criterio di buona salute ampio messo per primo corrisponde quasi a ogni controllo e impedisce che il criterio di avviso sotto venga mai valutato.
+- **Lo stato di un monitor raggruppato torna con le serie che lo hanno cambiato.** Il monitor ha un solo stato, impostato dal primo criterio che corrisponde. Un criterio che lo riporta soltanto al suo **Stato predefinito del monitor**, senza aprire avvisi né incidenti, attende le serie che hanno soddisfatto un criterio che imposta un altro stato, e corrisponde quando ciascuna di esse lo soddisfa: un host che non è mai stato vicino alla soglia non riporta indietro il monitor. Fino ad allora il monitor mantiene il suo stato, anche quando nessun criterio corrisponde, così un criterio di buona salute poco sotto la soglia impedisce a una serie che oscilla intorno a essa di far cambiare continuamente lo stato. L'avviso di ogni serie continua a risolversi per conto proprio.
 
 | Host | Disco usato | Critical (> 95) | Warning (> 80) | Avviso generato |
 | --- | --- | --- | --- | --- |

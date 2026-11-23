@@ -24,6 +24,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import {
   SecurityBlockAction,
   SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
@@ -31,11 +32,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
  * ONE THING THE PROJECT BLOCKS (#10338): an address or a range, blocked or
- * challenged, until it expires or someone lifts it - and why, and who or
- * what blocked it. The Blocklist page lists them; a playbook, an automatic
- * response, OneUptime AI and the API add them through the same service
- * (SecurityBlockService), which refuses a protected or own address, a range
- * wider than the largest one, and a value an active block already covers.
+ * challenged at the edge - or everywhere, on every machine too - or a
+ * domain, a URL or a file blocked on every machine (#10346), until it
+ * expires or someone lifts it - and why, and who or what blocked it. The
+ * Blocklist page lists them; a playbook, an automatic response, OneUptime
+ * AI and the API add them through the same service (SecurityBlockService),
+ * which refuses a protected or own address, domain or file, a range wider
+ * than the largest one, and a value an active block already covers.
  *
  * A block is the desired state: the reconciler applies it at every
  * destination that enforces the blocklist and keeps it there, one
@@ -139,15 +142,17 @@ const serverColumnAccess: {
   pluralName: "Blocks",
   icon: IconProp.NoSymbol,
   tableDescription:
-    "The IP addresses and ranges the project blocks: why, until when, and where each block is enforced.",
+    "The IP addresses, ranges, domains, URLs and files the project blocks: why, until when, and where each block is enforced.",
   displayNameColumn: "value",
 })
 /*
- * One active block per address or range: a second block of the same value
- * is refused while the first is active, however two requests race (the
- * second insert fails on this index, and is answered "already blocked").
+ * One active block per value and reach: a second block of the same value,
+ * enforced in the same places, is refused while the first is active,
+ * however two requests race (the second insert fails on this index, and is
+ * answered "already blocked"). An address can be blocked at the edge and,
+ * on its own, everywhere.
  */
-@Index(["projectId", "value"], {
+@Index(["projectId", "value", "reach"], {
   unique: true,
   where: `"state" = 'Active' AND "deletedAt" IS NULL`,
 })
@@ -204,7 +209,7 @@ export default class SecurityBlock extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Indicator Type",
     description:
-      "What the block holds: IpAddress for one address, IpRange for a range. Worked out from the value.",
+      "What the block holds: IpAddress, IpRange, Domain, Url, or a file's FileSha256, FileSha1 or FileMd5 hash. Worked out from the value.",
   })
   @Column({
     nullable: false,
@@ -216,17 +221,17 @@ export default class SecurityBlock extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Value",
     description:
-      "The address or range blocked: an IPv4 or IPv6 address, or a range such as 203.0.113.0/24. Kept as its first address and its length, an IPv6 address compressed in lowercase, a /32 or /128 as the bare address.",
+      "What is blocked: an IPv4 or IPv6 address, a range such as 203.0.113.0/24, a domain, an http or https URL, or a file's MD5, SHA-1 or SHA-256 hash. Kept one way: a range as its first address and its length, an IPv6 address compressed in lowercase, a domain lower case without a trailing dot, a URL as a browser sends it, a hash in lower-case hex.",
     example: "35.205.11.131",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public value?: string = undefined;
 
@@ -240,7 +245,7 @@ export default class SecurityBlock extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Action",
     description:
-      "Block turns the address's requests away. Challenge asks for a challenge a person passes and a script or an API client does not.",
+      "Block turns it away. Challenge, for an address at the edge, asks for a challenge a person passes and a script or an API client does not. BlockAndQuarantine, for a file, also quarantines the copies an endpoint product finds.",
   })
   @Column({
     nullable: false,
@@ -249,6 +254,26 @@ export default class SecurityBlock extends BaseModel {
     default: SecurityBlockAction.Block,
   })
   public action?: SecurityBlockAction = undefined;
+
+  @ColumnAccessControl(createOnlyColumnAccess)
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(SecurityBlockReach),
+    isDefaultValueColumn: true,
+    defaultValue: SecurityBlockReach.Edge,
+    canReadOnRelationQuery: true,
+    title: "Reach",
+    description:
+      "Where it is enforced. Edge, for an address: at the edge in front of the app. Everywhere: on every machine too, through Microsoft Defender or CrowdStrike, which a domain, a URL and a file always are.",
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: SecurityBlockReach.Edge,
+  })
+  public reach?: SecurityBlockReach = undefined;
 
   @ColumnAccessControl({
     create: [],

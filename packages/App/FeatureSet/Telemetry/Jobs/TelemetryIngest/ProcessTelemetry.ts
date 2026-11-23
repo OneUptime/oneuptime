@@ -60,6 +60,7 @@ import {
   RumClientKind,
 } from "Common/Types/Rum/RumClientKind";
 import TelemetryIngestAttribution from "Common/Server/Utils/Telemetry/TelemetryIngestAttribution";
+import { measureParsedTelemetryIngestBody } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
 import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 
 /*
@@ -321,6 +322,82 @@ export async function resolveAttributedOtelRequest(data: {
       : null;
 
   return { body: resolved.body, attribution: attribution };
+}
+
+/*
+ * The size a Fluent or syslog batch is shared out at (#10102): what its
+ * handler carried - the request path's count, read before it reshaped the
+ * body - or the count its charge carries. A job a release before this one
+ * queued carries neither, and is shared out at its body as it is stored.
+ * null when there is no body to share.
+ *
+ * Exported for tests.
+ */
+export function getAttributedRequestBodyBytes(
+  jobData: TelemetryIngestJobData,
+): number | null {
+  if (
+    typeof jobData.ingestBytes === "number" &&
+    Number.isFinite(jobData.ingestBytes) &&
+    jobData.ingestBytes > 0
+  ) {
+    return jobData.ingestBytes;
+  }
+
+  const counted: number | undefined =
+    jobData.ingestionBudgetCharge?.countedBytes;
+
+  if (typeof counted === "number" && Number.isFinite(counted) && counted > 0) {
+    return counted;
+  }
+
+  if (!jobData.requestBody) {
+    return null;
+  }
+
+  return (
+    measureParsedTelemetryIngestBody({ body: jobData.requestBody }).bytes ||
+    null
+  );
+}
+
+/*
+ * A Fluent or syslog job's attribution to the teams, labels and usage of
+ * the services its lines are filed under (#10102), as an OTel job's is
+ * (resolveAttributedOtelRequest): null when its project needs none - two
+ * in-process set lookups. A retry drops what a used-up budget drops, but
+ * counts nothing: the first attempt counted the batch.
+ *
+ * Exported for tests.
+ */
+export async function resolveAttributedRequestBody(data: {
+  jobData: TelemetryIngestJobData;
+  isFirstAttempt: boolean;
+}): Promise<TelemetryIngestAttribution | null> {
+  const signal: TelemetryIngestionBudgetSignal | null =
+    getTelemetryIngestionBudgetSignalForTelemetryType(data.jobData.type);
+
+  if (
+    !signal ||
+    !data.jobData.projectId ||
+    !(await TelemetryIngestAttribution.isNeededFor(
+      data.jobData.projectId.toString(),
+    ))
+  ) {
+    return null;
+  }
+
+  return TelemetryIngestAttribution.forBatch({
+    projectId: data.jobData.projectId.toString(),
+    signal: signal,
+    bytes: getAttributedRequestBodyBytes(data.jobData),
+    receivedAt: data.jobData.ingestionTimestamp
+      ? new Date(data.jobData.ingestionTimestamp)
+      : undefined,
+    gateCharge: data.jobData.ingestionBudgetCharge ?? null,
+    // A retry drops what is used up, but counts nothing again.
+    isRetry: !data.isFirstAttempt,
+  });
 }
 
 /*
@@ -681,6 +758,10 @@ if (DisableQueueWorkers) {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body: jobData.requestBody!,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: await resolveAttributedRequestBody({
+                  jobData: jobData,
+                  isFirstAttempt: isFirstAttempt,
+                }),
               } as TelemetryRequest;
 
               await SyslogIngestService.processSyslogFromQueue(mockRequest);
@@ -711,6 +792,10 @@ if (DisableQueueWorkers) {
                 projectId: new ObjectID(jobData.projectId!.toString()),
                 body: jobData.requestBody!,
                 headers: jobData.requestHeaders!,
+                telemetryIngestAttribution: await resolveAttributedRequestBody({
+                  jobData: jobData,
+                  isFirstAttempt: isFirstAttempt,
+                }),
               } as TelemetryRequest;
 
               await FluentLogsIngestService.processFluentLogsFromQueue(

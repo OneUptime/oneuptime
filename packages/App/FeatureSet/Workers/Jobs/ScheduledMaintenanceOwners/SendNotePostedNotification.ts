@@ -384,10 +384,7 @@ async function readScheduledMaintenance(
 // A person told, as the event's feed names them.
 function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
-    OwnerNotificationFeedText.nameAndEmail({
-      name: user.name?.toString(),
-      email: user.email?.toString(),
-    }),
+    OwnerNotificationFeedText.personName(user),
   );
 }
 

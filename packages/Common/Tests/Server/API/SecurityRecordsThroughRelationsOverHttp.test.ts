@@ -16,6 +16,7 @@ import BaseAPI from "../../../Server/API/BaseAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import DataSecurityAPI from "../../../Server/API/DataSecurityAPI";
 import SecurityBlockAPI from "../../../Server/API/SecurityBlockAPI";
+import SecurityBlockCloudWafAPI from "../../../Server/API/SecurityBlockCloudWafAPI";
 import SecurityWatchlistAPI from "../../../Server/API/SecurityWatchlistAPI";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import DataSecurityIssueService from "../../../Server/Services/DataSecurityIssueService";
@@ -24,6 +25,7 @@ import DataStoreFindingService from "../../../Server/Services/DataStoreFindingSe
 import DataStoreService from "../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
+import SecurityBlockCloudWafService from "../../../Server/Services/SecurityBlockCloudWafService";
 import SecurityWatchlistService from "../../../Server/Services/SecurityWatchlistService";
 import ThreatIntelFeedService from "../../../Server/Services/ThreatIntelFeedService";
 import QueryPermission from "../../../Server/Types/Database/Permissions/QueryPermission";
@@ -376,6 +378,11 @@ const READS_BLOCKS_AND_RUNS: Reader = customRole(
   "a custom role that reads blocks and playbook runs",
   [Permission.ReadSecurityBlock, Permission.ReadSecurityPlaybookRun],
 );
+// A blocklist reader given the project's cloud resources too: reads a WAF's connection (#10344).
+const READS_BLOCKS_AND_CLOUD: Reader = customRole(
+  "a custom role that reads blocks and cloud resources",
+  [Permission.ReadSecurityBlock, Permission.ReadCloudResource],
+);
 
 // A cloud's resources' readers (#10289): every one of them reads its connection but App Platforms' levels.
 const VIEWER: Reader = { name: "Viewer", permissions: [Permission.Viewer] };
@@ -635,6 +642,32 @@ const JOINERS: Array<Joiner> = [
     filterColumn: "lastError",
     whoMay: CLOUD_READERS,
   },
+  {
+    /*
+     * The connection OneUptime writes a cloud WAF's blocklist through
+     * (#10344): read by the blocklist's readers, whom the Security levels
+     * are - and who read which connection it is, never its configuration,
+     * its last error or its pull times, unless they read cloud connections.
+     */
+    name: "SecurityBlockCloudWaf.cloudConnection",
+    path: "/api/security-block-cloud-waf/get-list",
+    service:
+      SecurityBlockCloudWafService as unknown as DatabaseService<BaseModel>,
+    relation: "cloudConnection",
+    relatedModel: new CloudConnection(),
+    joined: CLOUD_CONNECTION,
+    row: {
+      name: "checkout-edge",
+      region: "us-east-1",
+      clientAddress: "SourceIp",
+      cloudConnectionId: CLOUD_CONNECTION_ID,
+    },
+    readers: [OWNER, ADMIN, ...SECURITY_TIERS, READS_BLOCKS],
+    readsRelated: [OWNER, ADMIN, READS_BLOCKS_AND_CLOUD],
+    labels: ["isEnabled", "name", "provider"],
+    filterColumn: "lastError",
+    whoMay: CLOUD_READERS,
+  },
 ];
 
 // The columns of the related record held to its own read through a relation.
@@ -821,6 +854,7 @@ beforeAll(async () => {
     new SecurityWatchlistAPI().getRouter(),
     new DataSecurityAPI().getRouter(),
     new SecurityBlockAPI().getRouter(),
+    new SecurityBlockCloudWafAPI().getRouter(),
     new BaseAPI<CloudResource, DatabaseService<BaseModel>>(
       CloudResource,
       CloudResourceService as unknown as DatabaseService<BaseModel>,

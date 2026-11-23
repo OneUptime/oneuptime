@@ -6,6 +6,7 @@ import ComponentMetadata, {
   ComponentType,
 } from "./../Component";
 import { translationKey } from "../../Translator";
+import { API_CERTIFICATE_ARGUMENTS } from "./ApiCertificates";
 
 const components: Array<ComponentMetadata> = [
   {
@@ -49,6 +50,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {
@@ -153,6 +155,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {
@@ -257,6 +260,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {
@@ -361,6 +365,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {
@@ -465,6 +470,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {
@@ -578,6 +584,7 @@ const components: Array<ComponentMetadata> = [
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
+      ...API_CERTIFICATE_ARGUMENTS,
     ],
     returnValues: [
       {

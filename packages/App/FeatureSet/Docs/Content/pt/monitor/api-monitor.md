@@ -107,7 +107,7 @@ Estas configurações ficam recolhidas em **Mais campos**. O cabeçalho recolhid
 | Campo | Padrão | O que faz |
 | --- | --- | --- |
 | **Cabeçalhos da Requisição** | Nenhum | Os cabeçalhos a enviar, como pares de nome e valor. Clique em **Adicionar: Cabeçalho da requisição** para cada um. |
-| **Corpo da Requisição (em JSON)** | Nenhum | Um objeto JSON enviado como corpo, geralmente com **POST**, **PUT** ou **PATCH**. Precisa ser JSON válido. |
+| **Corpo da Requisição (em JSON)** | Nenhum | O corpo a enviar, geralmente com **POST**, **PUT** ou **PATCH**: qualquer valor JSON, como um objeto, um array, uma string ou um número. Ele é enviado como você o escreve, como `application/json`, a menos que você defina um `Content-Type` em **Cabeçalhos da Requisição**. Com `application/x-www-form-urlencoded` ou `multipart/form-data`, um objeto é enviado como campos de formulário. |
 | **Não seguir redirecionamentos** | Desativado | Avaliar a primeira resposta em vez de seguir os redirecionamentos. Veja [abaixo](#não-seguir-redirecionamentos). |
 | **Permitir certificados autoassinados** | Desativado | Pular a validação do certificado TLS para o próprio nome de host do monitor. |
 | **Usar certificado de cliente (mTLS)** | Desativado | Apresentar um certificado de cliente e uma chave privada. Veja [Certificado de cliente (mTLS)](#certificado-de-cliente-mtls). |
@@ -242,6 +242,10 @@ A API redirecionou uma requisição com um corpo, ou com um método diferente de
 
 :::details A verificação falha com "Remote response exceeded the allowed size."
 A sonda lê no máximo 512 KiB de uma resposta, e esta é maior. Chame um endpoint que retorne menos, por exemplo com um tamanho de página menor.
+:::
+
+:::details A verificação falha com "O corpo da requisição não é um JSON válido, então a requisição não foi enviada."
+O corpo não é JSON depois que seus [segredos de monitor](/docs/monitor/monitor-secrets) são preenchidos, então a sonda não enviou a requisição. Corrija o corpo em **Mais campos**, ou o valor de um segredo que ele usa: um valor com um `"` quebra a string JSON em que está.
 :::
 
 ## Próximos passos

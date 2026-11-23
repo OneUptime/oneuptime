@@ -148,7 +148,8 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | `/data-security/compliance` | Le score et les exigences de chaque référentiel |
 | `/data-security/resource-scope` | Les magasins de données d'une ressource - un cluster Kubernetes, un hôte Docker ou Podman, une base de données, un service ou une ressource cloud - et la ressource dont ils suivent les interrupteurs de conformité |
 | `/data-security/resource-compliance` | Les référentiels d'une ressource : leurs scores pour ses magasins de données, et ce qui est désactivé pour elle |
-| `/data-security/record-of-processing` | Le registre des traitements du RGPD, une ligne pour chaque magasin de données qui contient des données personnelles |
+| `/data-security/record-of-processing` | Le registre des traitements du RGPD, une ligne pour chaque magasin de données qui contient des données personnelles. Un magasin de données que OneUptime conserve pour votre sécurité a un objet `declared` : sa propre finalité, sa conservation et qui peut le lire |
+| `/data-store/<id>/declared` | Ce que le registre dit d'un magasin de données que OneUptime conserve pour votre sécurité : ce qu'il contient, pourquoi, combien de temps et qui peut le lire |
 | `/data-store/<id>/scan-now` | **Analyser maintenant** : échantillonne aussitôt le contenu du magasin de données |
 | `/data-store/<id>/check-now` | **Contrôler maintenant** : relit la configuration du magasin de données et exécute ses contrôles |
 | `/data-store-finding/<id>/scrub` | **Nettoyer** sur une détection de télémétrie |

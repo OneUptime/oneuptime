@@ -194,6 +194,10 @@ Uten Group By er den samme monitoren én skalar: spørringen slår alle verter s
 
 Hvert varsel per gruppe følger sin egen gruppe. Når vert A faller under terskelen igjen, løses varselet dens av seg selv, og varselet for vert B forblir åpent til vert B kommer seg. At én gruppe kommer seg, lukker aldri en annen gruppes varsel.
 
+### Hver serie i oversikten
+
+Monitorens **Oversikt** viser i **Serier** hver serie den siste sjekken leste: seriens etiketter, slik varslene dens navngir dem, siste verdi, kriteriene den oppfyller og den åpne hendelsen eller varselet. En serie som holder monitorens status, viser **Holder statusen**. En monitor med mange serier viser 50 av dem, de som holder statusen eller oppfyller et kriterium, først, og sier hvor mange det er.
+
 ### Hva hvert varsel lagrer
 
 Hvert varsel eller hver hendelse som åpnes for én gruppe, lagrer sjekken som åpnet den, bare for den gruppen: serien, punktene og sammendraget av evalueringen. Ingen lagret sjekk er større enn 256 KB, og loggene til en sjekk som måtte kortes ned for å få plass, sier det.
@@ -207,6 +211,7 @@ Varsler og hendelser som ble åpnet før dette, lagret alle gruppene i evaluerin
 
 - **Grupperte monitorer evaluerer alle kriterier.** Alvorlighetsnivåer kan derfor utløses for ulike grupper samtidig: med «Critical: større enn 95» over «Warning: større enn 80» åpner en vert på 96 % et kritisk varsel, mens en vert på 85 % åpner et advarselsvarsel i samme sjekk. En vert som overskrider begge nivåene, får fortsatt nøyaktig ett varsel, fra det første kriteriet som samsvarer, så **sorter kriteriene med det mest alvorlige først**.
 - **Ugrupperte monitorer stopper ved det første kriteriet som samsvarer.** Bare det ene kriteriet utløses, enda en grunn til å legge varslingskriteriet over det friske: et bredt friskt kriterium øverst samsvarer i nesten hver sjekk og hindrer at varslingskriteriet under det noen gang evalueres.
+- **Statusen til en gruppert monitor kommer tilbake med seriene som endret den.** Monitoren har én status, satt av det første kriteriet som samsvarer. Et kriterium som bare bringer den tilbake til **Standard monitorstatus** og ikke åpner noe varsel eller noen hendelse, venter på seriene som oppfylte et kriterium som setter en annen status, og samsvarer når hver av dem oppfyller det: en vert som aldri var nær terskelen, bringer ikke monitoren tilbake. Inntil da beholder monitoren statusen sin, også når ingen kriterier samsvarer, så et friskt kriterium litt under terskelen hindrer at en serie som svinger rundt den, får statusen til å skifte hele tiden. Varselet til hver serie løses fortsatt for seg.
 
 | Vert | Disk brukt | Critical (> 95) | Warning (> 80) | Varsel gitt |
 | --- | --- | --- | --- | --- |

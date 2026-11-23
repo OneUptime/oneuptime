@@ -11,6 +11,8 @@ import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
+  SecurityBlockEndMove,
+  SecurityBlockWriteResult,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationSource,
@@ -43,11 +45,15 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   SecurityBlockAction,
+  SecurityBlockIndicatorType,
+  SecurityBlockIndicatorValue,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
-  SecurityBlockValue,
-  readSecurityBlockValue,
+  getSecurityBlockReach,
+  readSecurityBlockIndicator,
 } from "../../../../Types/SecurityBlocklist/SecurityBlock";
+import SecurityCaseStepChecks from "../../../../Server/Utils/SecurityCase/StepChecks/SecurityCaseStepChecks";
 import {
   SecurityBlockDestinationProvider,
   SecurityBlockEnforcementState,
@@ -120,6 +126,7 @@ let rows: Map<string, SecurityBlockEnforcement>;
 let rowsCreated: number;
 let rowWrites: Array<{ id: string; data: JSONObject }>;
 let feedItems: Array<JSONObject>;
+let checkRequests: Array<JSONObject>;
 let locks: InMemoryLocks;
 
 function copyOfBlock(block: SecurityBlock): SecurityBlock {
@@ -138,6 +145,8 @@ interface BlockData {
   index: number;
   value: string;
   action?: SecurityBlockAction | undefined;
+  // Where it is enforced (#10346): at the edge unless said.
+  reach?: SecurityBlockReach | undefined;
   state?: SecurityBlockState | undefined;
   createdAt?: Date | undefined;
   expiresAt?: Date | null | undefined;
@@ -147,13 +156,19 @@ interface BlockData {
 
 // A block as the blocklist's service left it: Active for a day unless the test says.
 function addBlock(data: BlockData): SecurityBlock {
-  const read: SecurityBlockValue = readSecurityBlockValue(data.value)!;
+  const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(
+    data.value,
+  )!;
   const block: SecurityBlock = new SecurityBlock();
 
   block._id = blockId(data.index).toString();
   block.projectId = data.projectId || PROJECT_ID;
   block.value = read.value;
   block.indicatorType = read.indicatorType;
+  block.reach = getSecurityBlockReach({
+    indicatorType: read.indicatorType,
+    reach: data.reach,
+  });
   block.action = data.action || SecurityBlockAction.Block;
   block.state = data.state || SecurityBlockState.Active;
   block.source = SecurityBlockSource.Person;
@@ -374,6 +389,14 @@ beforeEach(() => {
     .mockImplementation((async (args: unknown): Promise<void> => {
       feedItems.push(args as JSONObject);
     }) as never);
+
+  // A case's steps are checked again at every line of its timeline (#10346).
+  checkRequests = [];
+  jest.spyOn(SecurityCaseStepChecks, "requestCheck").mockImplementation((async (
+    args: unknown,
+  ): Promise<void> => {
+    checkRequests.push(args as JSONObject);
+  }) as never);
 });
 
 afterEach(() => {
@@ -1498,7 +1521,7 @@ function planBlock(
   value: string,
   action: SecurityBlockAction = SecurityBlockAction.Block,
 ): SecurityBlock {
-  const read: SecurityBlockValue = readSecurityBlockValue(value)!;
+  const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(value)!;
   const block: SecurityBlock = new SecurityBlock();
   block._id = blockId(index).toString();
   block.value = read.value;
@@ -1722,6 +1745,338 @@ describe("getSecurityBlockEntryComment", () => {
   });
 });
 
+// ---------- Every machine (#10346) ----------
+
+/*
+ * A destination as Microsoft Defender and CrowdStrike are: it enforces on
+ * every machine, holds no range, ends what it holds at the end it was given
+ * (and says so when read back), and can move that end.
+ */
+class EveryMachineDestination implements SecurityBlockDestination {
+  public readonly key: string = "EveryMachine:1";
+  public readonly lockKey: string | undefined = undefined;
+  public readonly provider: SecurityBlockDestinationProvider =
+    SecurityBlockDestinationProvider.MicrosoftDefender;
+  public readonly name: string = "Microsoft Defender";
+  public readonly connectionId: ObjectID | null = null;
+  public readonly enforcesOnEveryMachine: boolean = true;
+  public readonly quarantinesFiles: boolean = true;
+
+  public readonly items: Map<
+    string,
+    { value: string; action: SecurityBlockAction; expiresAt: Date | null }
+  > = new Map();
+  public applied: Array<string> = [];
+  public updates: Array<{ value: string; expiresAt: Date | null }> = [];
+  public updateError: string | null = null;
+
+  public supports(entry: {
+    indicatorType: SecurityBlockIndicatorType;
+    action: SecurityBlockAction;
+    value: string;
+  }): SecurityBlockSupport {
+    return entry.indicatorType === SecurityBlockIndicatorType.IpRange
+      ? { isSupported: false, reason: "it blocks one address at a time" }
+      : { isSupported: true };
+  }
+
+  public async capacity(): Promise<SecurityBlockCapacity> {
+    return { limit: null };
+  }
+
+  public async apply(
+    entries: Array<SecurityBlockEntry>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return entries.map((entry: SecurityBlockEntry) => {
+      this.applied.push(entry.value);
+      this.items.set(`${entry.action}|${entry.value}`, {
+        value: entry.value,
+        action: entry.action,
+        expiresAt: entry.expiresAt,
+      });
+
+      return { value: entry.value, action: entry.action, isDone: true };
+    });
+  }
+
+  public async remove(
+    items: Array<SecurityBlockHeldItem>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return items.map((item: SecurityBlockHeldItem) => {
+      this.items.delete(`${item.action}|${item.value}`);
+      return { value: item.value, action: item.action, isDone: true };
+    });
+  }
+
+  public async readBack(): Promise<Array<SecurityBlockHeldItem>> {
+    return Array.from(this.items.values()).map(
+      (item: {
+        value: string;
+        action: SecurityBlockAction;
+        expiresAt: Date | null;
+      }): SecurityBlockHeldItem => {
+        return {
+          value: item.value,
+          action: item.action,
+          expiresAt: item.expiresAt,
+        };
+      },
+    );
+  }
+
+  public async moveEnds(
+    updates: Array<SecurityBlockEndMove>,
+  ): Promise<Array<SecurityBlockWriteResult>> {
+    return updates.map((update: SecurityBlockEndMove) => {
+      if (this.updateError) {
+        return {
+          value: update.entry.value,
+          action: update.entry.action,
+          isDone: false,
+          error: this.updateError,
+        };
+      }
+
+      this.updates.push({
+        value: update.entry.value,
+        expiresAt: update.entry.expiresAt,
+      });
+      this.items.set(`${update.entry.action}|${update.entry.value}`, {
+        value: update.entry.value,
+        action: update.entry.action,
+        expiresAt: update.entry.expiresAt,
+      });
+
+      return {
+        value: update.entry.value,
+        action: update.entry.action,
+        isDone: true,
+      };
+    });
+  }
+}
+
+describe("a destination on every machine (#10346)", () => {
+  test("never holds an address blocked at the edge alone, and gives it no row", async () => {
+    const edge: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination();
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(edge, machines);
+
+    addBlock({ index: 1, value: "198.51.100.7" });
+    await pass(1);
+
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(rowOf(1, machines)).toBeUndefined();
+    expect(machines.applied).toEqual([]);
+  });
+
+  test("holds an address blocked everywhere, beside the edge", async () => {
+    const edge: TestSecurityBlockDestination =
+      new TestSecurityBlockDestination();
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(edge, machines);
+
+    addBlock({
+      index: 1,
+      value: "198.51.100.7",
+      reach: SecurityBlockReach.Everywhere,
+    });
+    await pass(1);
+
+    expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("holds a domain, a URL and a file, and says why it cannot hold a range", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "Evil.Example." });
+    addBlock({ index: 2, value: "https://evil.example/Login" });
+    addBlock({ index: 3, value: "44D88612FEA8A8F36DE82E1278ABB02F" });
+    addBlock({
+      index: 4,
+      value: "198.51.100.0/24",
+      reach: SecurityBlockReach.Everywhere,
+    });
+    await pass(1);
+
+    expect(machines.applied).toEqual([
+      "evil.example",
+      "https://evil.example/Login",
+      "44d88612fea8a8f36de82e1278abb02f",
+    ]);
+
+    for (const index of [1, 2, 3]) {
+      expect(stateOf(index, machines)).toBe(
+        SecurityBlockEnforcementState.Applied,
+      );
+    }
+
+    expect(stateOf(4, machines)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(4, machines)).toBe(
+      "Not applied: it blocks one address at a time",
+    );
+  });
+
+  test("a held URL its provider wrote in lower case is the block it was given", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    machines.items.set("Block|https://evil.example/login", {
+      value: "https://evil.example/login",
+      action: SecurityBlockAction.Block,
+      expiresAt: at(1 + 24 * 60),
+    });
+    addBlock({ index: 1, value: "https://evil.example/Login" });
+    await pass(1);
+
+    // Held, not added again, nor removed.
+    expect(machines.applied).toEqual([]);
+    expect(machines.items.size).toBe(1);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("its blocks' ends are the provider's: a renewed block is renewed there, a block made permanent loses its end", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example" });
+    addBlock({ index: 2, value: "bad.example" });
+    await pass(1);
+
+    expect(machines.updates).toEqual([]);
+
+    const renewed: Date = at(7 * 24 * 60);
+    blocks.get(blockId(1).toString())!.expiresAt = renewed;
+    blocks.get(blockId(2).toString())!.expiresAt = null as unknown as Date;
+    await pass(2);
+
+    expect(machines.updates).toEqual([
+      { value: "evil.example", expiresAt: renewed },
+      { value: "bad.example", expiresAt: null },
+    ]);
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, machines)).toBeNull();
+
+    // Read back with the new ends: nothing to move on the next pass.
+    await pass(3);
+
+    expect(machines.updates.length).toBe(2);
+  });
+
+  test("an end within a minute of the block's is left alone", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    const block: SecurityBlock = addBlock({ index: 1, value: "evil.example" });
+    await pass(1);
+
+    machines.items.get("Block|evil.example")!.expiresAt = new Date(
+      new Date(block.expiresAt!).getTime() + 59 * 1000,
+    );
+    await pass(2);
+
+    expect(machines.updates).toEqual([]);
+  });
+
+  test("an end the provider would not move is said on the row, which still holds", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example" });
+    await pass(1);
+
+    machines.updateError = "HTTP 500";
+    blocks.get(blockId(1).toString())!.expiresAt = at(7 * 24 * 60);
+    await pass(2);
+
+    expect(stateOf(1, machines)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, machines)).toBe(
+      "Its end at Microsoft Defender was not moved: HTTP 500",
+    );
+
+    machines.updateError = null;
+    await pass(3);
+
+    expect(errorOf(1, machines)).toBeNull();
+  });
+
+  test("a destination that cannot move an end is never asked to", () => {
+    const block: SecurityBlock = planBlock(1, "evil.example");
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination: {
+          supports: (): SecurityBlockSupport => {
+            return { isSupported: true };
+          },
+        },
+        blocks: [block],
+        rowsByBlock: new Map(),
+        held: [
+          {
+            value: "evil.example",
+            action: SecurityBlockAction.Block,
+            expiresAt: new Date(0),
+          },
+        ],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(plan.toMoveEnd).toEqual([]);
+  });
+
+  test("an end the provider does not say is never moved", () => {
+    const destination: EveryMachineDestination = new EveryMachineDestination();
+    const plan: SecurityBlocklistDestinationPlan =
+      planSecurityBlocklistDestination({
+        destination,
+        blocks: [planBlock(1, "evil.example")],
+        rowsByBlock: new Map(),
+        held: [{ value: "evil.example", action: SecurityBlockAction.Block }],
+        capacity: { limit: null },
+        now: NOW,
+      });
+
+    expect(plan.toMoveEnd).toEqual([]);
+    expect(plan.toAdd).toEqual([]);
+  });
+
+  test("a case hears its block made on every machine, and its steps are checked at once", async () => {
+    const machines: EveryMachineDestination = new EveryMachineDestination();
+    enforceAt(machines);
+
+    addBlock({ index: 1, value: "evil.example", hasCase: true });
+    await pass(1);
+
+    expect(linesSaying("is enforced at Microsoft Defender").length).toBe(1);
+    expect(checkRequests).toEqual([
+      { projectId: PROJECT_ID, securityCaseId: CASE_ID },
+    ]);
+  });
+});
+
+describe("getHeldItemKey, for every kind of value (#10346)", () => {
+  test("a value as blocks write it, without case", () => {
+    expect(getHeldItemKey("Evil.Example.", SecurityBlockAction.Block)).toBe(
+      "Block|evil.example",
+    );
+    expect(
+      getHeldItemKey("HTTPS://Evil.Example/Login", SecurityBlockAction.Block),
+    ).toBe(
+      getHeldItemKey("https://evil.example/login", SecurityBlockAction.Block),
+    );
+    expect(
+      getHeldItemKey(
+        "44D88612FEA8A8F36DE82E1278ABB02F",
+        SecurityBlockAction.BlockAndQuarantine,
+      ),
+    ).toBe("BlockAndQuarantine|44d88612fea8a8f36de82e1278abb02f");
+  });
+});
+
 /*
  * A provider whose lists are replaced whole - an AWS WAF IP set (#10344),
  * and as they come an Azure WAF custom rule or a Cloud Armor rule - takes a
@@ -1809,7 +2164,7 @@ describe("a destination that takes a pass's changes in one call", () => {
 });
 
 describe("the destinations a project has in production", () => {
-  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344) and the blocklist feeds (#10345), and never the test destination", () => {
+  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
     SecurityBlockDestinations.resetSourcesForTests();
 
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
@@ -1823,6 +2178,8 @@ describe("the destinations a project has in production", () => {
       SecurityBlockDestinationProvider.Cloudflare,
       SecurityBlockDestinationProvider.AwsWaf,
       SecurityBlockDestinationProvider.Feed,
+      SecurityBlockDestinationProvider.MicrosoftDefender,
+      SecurityBlockDestinationProvider.CrowdStrike,
     ]);
   });
 });

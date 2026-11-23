@@ -12,7 +12,10 @@ import Sleep from "Common/Types/Sleep";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
-import API from "Common/Utils/API";
+import API, { APIRequestBody } from "Common/Utils/API";
+import MonitorRequestBody, {
+  MonitorRequestBodyReading,
+} from "Common/Utils/Monitor/MonitorRequestBody";
 import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
@@ -40,7 +43,8 @@ const DEFAULT_RETRIES_WHEN_UNSET: number = 4;
 export interface APIResponse {
   url: URL;
   requestHeaders: Headers;
-  requestBody: JSONObject;
+  // The body as configured, before its one-time codes are filled in.
+  requestBody?: string | undefined;
   isSecure: boolean;
   responseTimeInMS: PositiveNumber;
   statusCode: number | undefined;
@@ -59,8 +63,14 @@ export interface APIResponse {
 interface ApiMonitorRequest {
   url: string;
   headers: Headers;
-  body: JSONObject | undefined;
+  // JSON text, as written (MonitorRequestBody).
+  body: string | undefined;
 }
+
+// What one attempt sends as its body, or where its body stops being JSON.
+type ApiMonitorBody =
+  | { canSend: true; data: APIRequestBody | undefined }
+  | { canSend: false; line: number | null; column: number | null };
 
 export default class ApiMonitor {
   /*
@@ -73,7 +83,7 @@ export default class ApiMonitor {
     url: URL,
     options: {
       requestHeaders?: Headers | undefined;
-      requestBody?: JSONObject | undefined;
+      requestBody?: string | undefined;
       totpCodes?: TotpCodeIssuer | undefined;
     },
   ): Promise<ApiMonitorRequest> {
@@ -90,11 +100,111 @@ export default class ApiMonitor {
     return await options.totpCodes.fill(configured);
   }
 
+  /*
+   * What an attempt's request carries as its body, its one-time codes
+   * filled in (#9737): the JSON as written, byte for byte, under the
+   * request's Content-Type - or, when that Content-Type is a form, an
+   * object's fields, as such a body has always been sent. A body that is
+   * not JSON cannot be sent at all (MonitorRequestBody).
+   */
+  private static getBody(request: ApiMonitorRequest): ApiMonitorBody {
+    const text: string | undefined = MonitorRequestBody.getText(request.body);
+
+    if (text === undefined) {
+      return { canSend: true, data: undefined };
+    }
+
+    const reading: MonitorRequestBodyReading = MonitorRequestBody.read(text);
+
+    if (!reading.isJson) {
+      return { canSend: false, line: reading.line, column: reading.column };
+    }
+
+    if (
+      MonitorRequestBody.isObject(reading.value) &&
+      MonitorRequestBody.isSentAsForm(request.headers)
+    ) {
+      return { canSend: true, data: reading.value as JSONObject };
+    }
+
+    return { canSend: true, data: Buffer.from(reading.json, "utf8") };
+  }
+
+  /*
+   * The result of an attempt whose body is not JSON: nothing was sent, so
+   * nothing answered, and it is not tried again - every retry would send
+   * the same body. Its cause says so, in the reader's language on the
+   * monitor's summary (ProbeFailureCause.RequestBodyNotJson). The log says
+   * where the body stops being JSON, never what it holds: the server has
+   * filled the monitor's secrets into it.
+   */
+  private static getBodyNotSentResponse(data: {
+    url: URL;
+    requestType: HTTPMethod;
+    body: { line: number | null; column: number | null };
+    options: {
+      requestHeaders?: Headers | undefined;
+      requestBody?: string | undefined;
+      currentRetryCount?: number | undefined;
+      monitorId?: ObjectID | undefined;
+      attempts?: Array<ProbeAttempt> | undefined;
+    };
+  }): APIResponse {
+    const failureCause: string = writeProbeFailureCause(
+      ProbeFailureCause.RequestBodyNotJson,
+    );
+    const attempts: Array<ProbeAttempt> = data.options.attempts || [];
+    const at: Date = new Date();
+
+    attempts.push({
+      attemptNumber: data.options.currentRetryCount || 1,
+      attemptedAt: at,
+      responseReceivedAt: at,
+      responseTimeInMs: 0,
+      responseCode: undefined,
+      isOnline: false,
+      failureCause: failureCause,
+    });
+
+    const position: string =
+      data.body.line !== null && data.body.column !== null
+        ? ` at line ${data.body.line}, column ${data.body.column}`
+        : "";
+
+    // The monitor's own configuration, not a fault of OneUptime's.
+    logger.error(
+      `API Monitor - ${data.options.monitorId?.toString()} ${data.requestType} ${data.url.toString()}: the request body is not valid JSON${position}, so the request was not sent.`,
+      EXTERNAL_FAULT,
+    );
+
+    return {
+      url: data.url,
+      isOnline: false,
+      isTimeout: false,
+      requestBody: data.options.requestBody,
+      requestHeaders: data.options.requestHeaders || {},
+      isSecure: data.url.protocol === Protocol.HTTPS,
+      responseTimeInMS: new PositiveNumber(0),
+      statusCode: undefined,
+      responseBody: "",
+      responseHeaders: {},
+      failureCause: failureCause,
+      probeAttempts: attempts,
+      totalAttempts: attempts.length,
+    };
+  }
+
   public static async ping(
     url: URL,
     options: {
       requestHeaders?: Headers | undefined;
-      requestBody?: JSONObject | undefined;
+      /*
+       * The body: JSON text as written - an object, an array or a single
+       * value (MonitorRequestBody). Sent byte for byte, or as a form's
+       * fields when the request's Content-Type is a form and the body an
+       * object.
+       */
+      requestBody?: string | undefined;
       requestType?: HTTPMethod | undefined;
       retry?: number | undefined;
       currentRetryCount?: number | undefined;
@@ -140,6 +250,19 @@ export default class ApiMonitor {
       return totpCodes ? totpCodes.redact(value) : value;
     };
 
+    const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
+
+    const body: ApiMonitorBody = ApiMonitor.getBody(request);
+
+    if (!body.canSend) {
+      return ApiMonitor.getBodyNotSentResponse({
+        url: url,
+        requestType: requestType,
+        body: body,
+        options: options,
+      });
+    }
+
     const ownsExecutionContext: boolean = !options.executionContext;
     if (!options.executionContext) {
       options.executionContext = new HttpMonitorExecutionContext(
@@ -148,8 +271,6 @@ export default class ApiMonitor {
     }
     const executionContext: HttpMonitorExecutionContext =
       options.executionContext;
-
-    const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
     const timingCollector: HttpTimingCollector = new HttpTimingCollector();
 
@@ -176,12 +297,12 @@ export default class ApiMonitor {
         initialUrl: string,
         initialMethod: HTTPMethod,
         initialHeaders: Headers,
-        initialBody?: JSONObject | undefined,
+        initialBody?: APIRequestBody | undefined,
       ) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> = async (
         initialUrl: string,
         initialMethod: HTTPMethod,
         initialHeaders: Headers,
-        initialBody?: JSONObject | undefined,
+        initialBody?: APIRequestBody | undefined,
       ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
         const prepareRequest: (
           requestUrl: string,
@@ -216,7 +337,7 @@ export default class ApiMonitor {
         let currentUrl: string = initialUrl;
         let currentMethod: HTTPMethod = initialMethod;
         let currentHeaders: Headers = { ...initialHeaders };
-        let currentBody: JSONObject | undefined = initialBody;
+        let currentBody: APIRequestBody | undefined = initialBody;
         let redirectsFollowed: number = 0;
         let includeTlsClientIdentity: boolean = true;
 
@@ -249,7 +370,7 @@ export default class ApiMonitor {
             },
           };
 
-          if (currentBody) {
+          if (currentBody !== undefined) {
             fetchOptions.data = currentBody;
           }
 
@@ -305,7 +426,7 @@ export default class ApiMonitor {
           request.url,
           requestType,
           request.headers,
-          request.body,
+          body.data,
         );
 
       if (
@@ -324,7 +445,7 @@ export default class ApiMonitor {
           request.url,
           HTTPMethod.GET,
           request.headers,
-          request.body,
+          body.data,
         );
       }
 
@@ -416,7 +537,7 @@ export default class ApiMonitor {
         // A response that repeats a code it was sent never reports it.
         responseBody: redact(JSON.stringify(result.data || {})),
         responseHeaders: redact(result.headers),
-        requestBody: options.requestBody || {},
+        requestBody: options.requestBody,
         failureCause: "",
         isTimeout: false,
         probeAttempts: options.attempts,
@@ -537,7 +658,7 @@ export default class ApiMonitor {
       const apiResponse: APIResponse = {
         url: url,
         isOnline: false,
-        requestBody: options.requestBody || {},
+        requestBody: options.requestBody,
         requestHeaders: options.requestHeaders || {},
         isSecure: url.protocol === Protocol.HTTPS,
         responseTimeInMS: new PositiveNumber(0),

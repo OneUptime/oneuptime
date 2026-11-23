@@ -1069,7 +1069,7 @@ Uma nuvem escreve muito que ninguém lê. Na primeira vez que os logs do OpenSta
 | **OpenStack: health checks** | Um balanceador de carga pedindo a cada API `/` ou `/healthcheck`: uma linha a cada poucos segundos, por API, por controller | Com uma verificação a cada 2 segundos, 43.200 linhas por dia para cada API em cada controller. Com os 220 a 490 bytes que essas linhas tinham em nossas nuvens de teste, são 10 a 21 MB por dia. Isto é aritmética a partir do tamanho de uma linha: nossas nuvens de teste não têm balanceador de carga | Nada que uma pessoa leia. A mesma linha vinda de uma pessoa tem a mesma aparência |
 | **OpenStack: routine notifications** | `metrics.update`, e todo `*.exists` e `*.usage`. Veja [Eventos de ciclo de vida](#eventos-de-ciclo-de-vida) | Não medido: nossas gravações são curtas demais para conter muitos. Cresce com o número de instâncias | Nada que diga que algo mudou. Desative este para manter toda notificação |
 
-Esses filtros correspondem apenas ao que o OneUptime leu dos logs de uma nuvem, então nada mais em um projeto é tocado.
+Esses filtros correspondem apenas ao que o OneUptime leu dos logs de uma nuvem, então nada mais em um projeto é tocado. Do jeito que o OneUptime os criou, eles mantêm cada linha que os [Eventos de segurança](/docs/telemetry/security-events) leem: um login, um ataque em uma requisição, um registro de auditoria. Altere um, e ele descarta o que corresponde, como um filtro seu.
 
 ### Segredos nos logs
 

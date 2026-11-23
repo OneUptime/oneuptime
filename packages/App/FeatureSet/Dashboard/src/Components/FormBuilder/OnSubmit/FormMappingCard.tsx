@@ -111,27 +111,50 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
    */
   const [unsavedValues, setUnsavedValues] = useState<JSONObject | null>(null);
 
-  useAsyncEffect(async () => {
-    setIsLoading(true);
-    setLoadError("");
+  /*
+   * The records the settings name are read by their ids (#10646), so they
+   * are read again whenever the settings change - after a save, a monitor
+   * just picked is named - without the card going back to its skeleton.
+   */
+  const settingsKey: string = JSON.stringify(props.targetSettings ?? null);
 
-    try {
-      const [loadedReference, loadedCustomFields]: [
-        FormReferenceData,
-        Array<FormCustomFieldDefinition>,
-      ] = await Promise.all([
-        loadFormReferenceData(props.targetType),
-        loadFormCustomFields(props.targetType),
-      ]);
+  useAsyncEffect(
+    async (isMounted: () => boolean) => {
+      const isFirstLoad: boolean = !reference;
 
-      setReference(loadedReference);
-      setCustomFields(loadedCustomFields);
-    } catch (err) {
-      setLoadError(API.getFriendlyMessage(err));
-    }
+      if (isFirstLoad) {
+        setIsLoading(true);
+      }
 
-    setIsLoading(false);
-  }, [props.formId.toString(), props.targetType]);
+      setLoadError("");
+
+      try {
+        const [loadedReference, loadedCustomFields]: [
+          FormReferenceData,
+          Array<FormCustomFieldDefinition>,
+        ] = await Promise.all([
+          loadFormReferenceData(props.targetType, props.targetSettings),
+          loadFormCustomFields(props.targetType),
+        ]);
+
+        if (!isMounted()) {
+          return;
+        }
+
+        setReference(loadedReference);
+        setCustomFields(loadedCustomFields);
+      } catch (err) {
+        if (!isMounted()) {
+          return;
+        }
+
+        setLoadError(API.getFriendlyMessage(err));
+      }
+
+      setIsLoading(false);
+    },
+    [props.formId.toString(), props.targetType, settingsKey],
+  );
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new Form(),
@@ -418,6 +441,7 @@ const FormMappingCard: FunctionComponent<ComponentProps> = (
             fields: getFormSettingsFields({
               targetType: props.targetType,
               reference: reference,
+              settings: unsavedValues || props.targetSettings,
             }),
             initialValues:
               unsavedValues ||

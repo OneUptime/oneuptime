@@ -6,6 +6,7 @@ Import the alerts of every [Microsoft Defender XDR](https://learn.microsoft.com/
 - [Set up the connection](#set-up-the-connection): An app registration, one permission, and the connection's form.
 - [What is imported](#what-is-imported): How each Defender alert becomes a security event.
 - [How polling works](#how-polling-works): The window each poll reads, and what a busy tenant does to it.
+- [Block with Microsoft Defender](#block-with-microsoft-defender): Enforce your blocklist on every device, with one more permission.
 - [Troubleshooting](#troubleshooting): What each error means, and what to change.
 :::
 
@@ -64,6 +65,7 @@ Click **Test these settings** under **Test before saving**. The test signs in an
 | **Directory (tenant) ID** | The app's **Overview** page. The tenant's GUID, or a verified domain such as `contoso.onmicrosoft.com`. |
 | **Application (client) ID** | The app's **Overview** page. The GUID of the app that has `SecurityAlert.Read.All`. |
 | **Cloud** | **Azure public cloud**, which also serves Microsoft 365 GCC, or **Azure Government (US)** for GCC High (`login.microsoftonline.us` and `graph.microsoft.us`). Microsoft 365 DoD and the 21Vianet cloud in China are not supported. |
+| **Block domains, addresses and files with Defender** | Off on a new connection. On, it blocks what your project's blocklist holds on every device, and needs `Ti.ReadWrite.All` (see [Block with Microsoft Defender](#block-with-microsoft-defender)). |
 | **Client secret** | The secret's **Value**. It is encrypted, never returned by the API and never shown again. Replace it with **Update credentials** on the connection. |
 
 The **Polling** step also has an optional **Description**, the **Poll Interval (Minutes)**, a whole number from `1` to `1440` that starts at `5`, and **Enabled**, which starts on.
@@ -130,6 +132,26 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 - **Import this time range** imports a range of up to 7 days, after you confirm, without moving the cursor. Alerts already imported are skipped.
 - **Copy diagnostics** on a run copies its report for support. It never includes credentials.
 
+## Block with Microsoft Defender
+
+Turn on **Block domains, addresses and files with Defender** on a connection, and your project's [blocklist](/docs/telemetry/security-cases#blocklist) is enforced on every device Microsoft Defender for Endpoint protects. Each block becomes a Defender [indicator](https://learn.microsoft.com/en-us/defender-endpoint/indicators-overview), filed under the application `OneUptime`, that expires when the block does:
+
+| On the blocklist | Defender indicator | What Defender does |
+| --- | --- | --- |
+| A domain | `DomainName`, `Block` | Blocks the domain and every name under it |
+| A URL | `Url`, `Block` | Blocks the URL in Microsoft Edge, and its domain in other browsers |
+| An address blocked on every machine | `IpAddress`, `Block` | Blocks connections to the address. A range is never sent: Defender takes one address at a time |
+| A file | `FileSha256`, `FileSha1` or `FileMd5`, `Block` | Stops the file running |
+| A file blocked and quarantined | The same, `BlockAndRemediate` | Stops the file running, and quarantines the copies it finds |
+
+The switch is off on a new connection: a connection made to import alerts only reads. To turn it on:
+
+1. In the app registration, go to **API permissions → Add a permission → APIs my organization uses**, search for `WindowsDefenderATP`, choose **Application permissions**, pick `Ti.ReadWrite.All`, and grant admin consent. It is the only permission blocking needs.
+2. In the Microsoft Defender portal, turn on **Custom network indicators** and **Allow or block file** under **Settings → Endpoints → Advanced features**. Without them, Defender keeps the indicators but blocks nothing; outside Microsoft Edge, a domain, URL or address is blocked only where network protection is in block mode.
+3. On the connection, turn on **Block domains, addresses and files with Defender**, and click **Test connection**: **Block with Microsoft Defender** checks the permission.
+
+A tenant holds 15,000 indicators, its own included. A block Defender cannot hold, or refuses, shows as not enforced on the Blocklist, saying why. OneUptime reads and removes only the indicators it added for this connection, never one a person made. When Defender throttles it, it tries again on the next pass.
+
 ## Test connection
 
 **Test connection** on a connection's row, and **Test these settings** in the form, run in the API process, not in a background worker, so a test still answers when the workers are the problem. It runs these checks, in order:
@@ -140,6 +162,7 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 | **Authenticate with Microsoft Entra** | Microsoft Entra ID issues a token for Microsoft Graph, in the cloud you picked. It fails on a wrong or expired secret, a wrong tenant or client ID, or the wrong cloud. |
 | **Read alerts from Microsoft Graph** | One alert created in the last 24 hours can be read (`$top=1`). A `403` here is the missing `SecurityAlert.Read.All` permission, the missing admin consent, or a tenant without Defender XDR. |
 | **Alerts available to import** | How many alerts were created in the last 24 hours and the last 7 days, one page of 100 each, so `100+` means more. None in 7 days is a warning, not a failure. |
+| **Block with Microsoft Defender** | Only with **Block domains, addresses and files with Defender** on: the app registration holds `Ti.ReadWrite.All`, and the indicators can be read. It says how many of the tenant's 15,000 indicators OneUptime holds, and changes none. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime's own side: a process takes the Worker queue's jobs, the poll job runs every minute, and the store of security events answers. |
 | **Scheduled polling** | For a saved connection: polling is on, no run is stuck waiting for a worker, and polls run on time. |
 

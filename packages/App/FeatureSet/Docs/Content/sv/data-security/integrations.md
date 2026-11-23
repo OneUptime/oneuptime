@@ -148,7 +148,8 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-security/compliance` | Varje ramverks poäng och krav |
 | `/data-security/resource-scope` | Datalagren för en resurs – ett Kubernetes-kluster, en Docker- eller Podman-värd, en databas, en tjänst eller en molnresurs – och vilken resurs efterlevnadsreglage de följer |
 | `/data-security/resource-compliance` | En resurs ramverk: deras poäng för resursens datalager, och vad som är avstängt för den |
-| `/data-security/record-of-processing` | GDPR-registret över behandling, en rad för varje datalager som innehåller personuppgifter |
+| `/data-security/record-of-processing` | GDPR-registret över behandling, en rad för varje datalager som innehåller personuppgifter. Ett datalager som OneUptime sparar för din säkerhet har ett objekt `declared`: sitt eget syfte och sin egen lagringstid, och vem som kan läsa det |
+| `/data-store/<id>/declared` | Vad registret säger om ett datalager som OneUptime sparar för din säkerhet: vad det innehåller, varför, hur länge och vem som kan läsa det |
 | `/data-store/<id>/scan-now` | **Skanna nu**: tar prov på datalagrets innehåll nu |
 | `/data-store/<id>/check-now` | **Kontrollera nu**: läser datalagrets konfiguration igen och kör dess kontroller |
 | `/data-store-finding/<id>/scrub` | **Rensa** på ett telemetrifynd |

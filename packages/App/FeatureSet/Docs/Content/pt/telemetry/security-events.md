@@ -286,6 +286,17 @@ Cada evento é salvo com campos tipados e o payload de origem:
 
 Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de processo e nomeiam seu processo apenas como `principalProcess`, o processo que agiu. Eles não são preenchidos depois: mantêm o que tinham ao serem armazenados até o fim da retenção.
 
+### Ocultado por uma regra de limpeza
+
+Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o endereço de onde veio um ataque antes que Eventos de segurança os leia. O evento é guardado mesmo assim, sem endereço, e onde quer que fosse nomear o endereço, diz que uma regra de mascaramento o ocultou:
+
+- **IP de origem**, no painel do evento, nomeia a regra que o ocultou quando pode, como um link para as **Regras de mascaramento** dos logs ou dos traces. O filtro ao lado mostra cada evento cujo endereço foi ocultado por uma regra de mascaramento.
+- **O que aconteceu depois** diz que a requisição veio de um endereço ocultado por uma regra de mascaramento, e **Campanhas** agrupa essas requisições numa linha própria.
+- Um caso cujos eventos perderam todos o endereço diz isso no seu **Plano de resposta**: em vez de bloquear o endereço, ele pede que você o encontre nos logs do seu balanceador de carga ou firewall e o bloqueie lá, com **Abrir regras de mascaramento**.
+- **Visão geral** nomeia a regra que oculta os endereços que Eventos de segurança lê, também com **Abrir regras de mascaramento**.
+
+Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`.
+
 ## Explorar os eventos de segurança
 
 **Eventos** é um explorador de telemetria como os de logs e traces: um gráfico dos eventos da janela por gravidade, uma barra lateral de facetas, a lista e um painel com cada campo e atributo do evento que você abrir. A janela, os filtros e a pesquisa ficam todos na URL, então uma visualização filtrada pode ser compartilhada e sobrevive a um recarregamento.

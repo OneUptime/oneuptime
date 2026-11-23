@@ -121,6 +121,10 @@ function declaredColumns(model: unknown): Array<string> {
       return !RecordActorUtil.isColumn(column);
     })
     .filter((column: string): boolean => {
+      // Added to SecurityBlock later (AddSecurityBlockReachAndWiderValue, #10346).
+      return !(model === SecurityBlock && column === "reach");
+    })
+    .filter((column: string): boolean => {
       // Added to SecurityBlock later (AddSecurityAutomaticResponse, #10350).
       return !(
         model === SecurityBlock &&
@@ -144,6 +148,10 @@ function declaredIndexes(model: unknown): Array<{
   return getMetadataArgsStorage()
     .indices.filter((index: IndexMetadataArgs): boolean => {
       return index.target === model && Array.isArray(index.columns);
+    })
+    .filter((index: IndexMetadataArgs): boolean => {
+      // One active block per value and reach is built later (AddSecurityBlockValueReachIndex, #10346).
+      return !(index.columns as Array<string>).includes("reach");
     })
     .filter((index: IndexMetadataArgs): boolean => {
       // The blocks a policy made are found by it later (AddSecurityAutomaticResponseIndexesAndKeys, #10350).

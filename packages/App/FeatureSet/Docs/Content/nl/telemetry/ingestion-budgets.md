@@ -6,7 +6,7 @@ Een ingestiebudget begrenst hoeveel telemetrie een project per dag verstuurt, zo
 - [Hoe budgetten werken](#hoe-budgetten-werken): Drie niveaus, geteld terwijl de telemetrie binnenkomt.
 - [De standaardbudgetten van elk project instellen](#de-standaardbudgetten-van-elk-project-instellen): In de instellingen van het Admin Dashboard.
 - [Een ingestiesleutel een eigen budget geven](#een-ingestiesleutel-een-eigen-budget-geven): Een deel van het budget van het project.
-- [Een team of een label een eigen budget geven](#een-team-of-een-label-een-eigen-budget-geven): Voor de services van het team of met het label.
+- [Een team of een label een eigen budget geven](#een-team-of-een-label-een-eigen-budget-geven): Voor de services, hosts en andere resources van het team of met het label.
 - [Waarschuwen op een budget](#waarschuwen-op-een-budget): Voordat het op is, en wanneer het op is.
 :::
 
@@ -98,7 +98,7 @@ Klik op **Wijzigingen opslaan**. Het budget van een sleutel kan niet hoger zijn 
 
 ## Een team of een label een eigen budget geven
 
-Ook het budget van een team of een label is een deel van dat van zijn project, voor de services waarvan het team eigenaar is of die het label hebben: de op hol geslagen service van een team stopt bij het budget van zijn team, terwijl de rest van het project blijft verzenden, zelfs via dezelfde collector en dezelfde ingestiesleutel.
+Ook het budget van een team of een label is een deel van dat van zijn project, voor de services, hosts, clusters en andere resources waarvan het team eigenaar is of die het label hebben: de op hol geslagen service of host van een team stopt bij het budget van zijn team, terwijl de rest van het project blijft verzenden, zelfs via dezelfde collector en dezelfde ingestiesleutel.
 
 :::steps
 ### De pagina Gebruik openen
@@ -114,8 +114,9 @@ Klik op de kaart **Team- en labelbudgetten** op **Budget aanmaken**. Kies het te
 Klik op **Budget aanmaken**. Het budget van een team of een label kan niet hoger zijn dan dat van zijn project: OneUptime weigert het en zegt wat het maximum is.
 :::
 
-- **Wat het telt.** De logboeken, traces, metrieken en profielen die de services van het team, of de services met het label, via OpenTelemetry (OTLP) versturen. Telemetrie van hosts en andere resources, beveiligingsgebeurtenissen en logboeken van Fluent Bit, Fluentd of syslog tellen alleen mee voor de budgetten van het project en de sleutel.
-- **Is het op, dan wordt de telemetrie verwijderd.** De telemetrie van dat signaal van de services wordt tot de reset verwijderd, en de afzender hoort er niets van: die kreeg zijn antwoord toen de telemetrie binnenkwam. Wat wordt verwijderd, telt niet meer mee voor het budget van het project of de sleutel.
+- **Wat het telt.** De logboeken, traces, metrieken en profielen van elke service, host, cluster en andere resource waarvan het team eigenaar is of die het label heeft, of ze nu via OpenTelemetry (OTLP) worden verstuurd of, bij logboeken, vanuit Fluent Bit, Fluentd of syslog. Beveiligingsgebeurtenissen tellen alleen mee voor de budgetten van het project en de sleutel.
+- **Van wie een resource is.** Een service, host of andere resource is van een team als het team een van de eigenaren is, en van een label als die het label heeft: dezelfde eigenaren en labels die bepalen wie de telemetrie ervan mag lezen. Een wijziging daarin telt binnen een minuut.
+- **Is het op, dan wordt de telemetrie verwijderd.** Hun telemetrie van dat signaal wordt tot de reset verwijderd, en de afzender hoort er niets van: die kreeg zijn antwoord toen de telemetrie binnenkwam. Wat wordt verwijderd, telt niet meer mee voor het budget van het project of de sleutel.
 - **Wie het hoort.** De Projecteigenaren krijgen een e-mail wanneer het budget de waarschuwingsdrempel passeert, en wanneer het op is.
 - **Alleen een dagbudget.** Een team of een label heeft geen snelheidslimiet.
 - **Elk budget telt.** De telemetrie van een service telt mee voor de budgetten van zijn teams en zijn labels, en voor die van de sleutel en het project, en het budget dat het eerst op is, stopt haar. Wanneer het budget van het project onder dat van een team of een label wordt verlaagd, wordt dat aan het budget van het project gehouden.

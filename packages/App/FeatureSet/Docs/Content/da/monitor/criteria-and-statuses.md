@@ -31,6 +31,8 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 
 > [!NOTE]
 > En monitor, der åbner en hændelse eller en advarsel pr. vært, container, disk eller interface, vurderer alle kriterier ved hver kontrol, så to værter kan matche to forskellige kriterier på samme tid. Det er en monitor, hvis forespørgsel har en **Gruppér efter**, som en metrik- eller logmonitor, eller et kriterium, der angiver `*` for hver disk eller hvert interface. En monitor for indgående anmodninger, der grupperer hændelser efter et payload-felt, stopper stadig ved det første match.
+>
+> En sådan monitor har stadig én status, der sættes af det første kriterium, der matcher. Et kriterium, der kun bringer den tilbage til dens **Standardstatus for monitor** og ikke åbner nogen hændelse eller advarsel, venter på de værter, der opfyldte et kriterium, som satte en anden status: det matcher, når hver af dem opfylder det, uanset hvad de andre værter gør. Indtil da beholder monitoren sin status, selv når intet kriterium matcher, mens hver værts hændelser og advarsler stadig løses hver for sig.
 
 ## Hvad et kriterium indeholder
 

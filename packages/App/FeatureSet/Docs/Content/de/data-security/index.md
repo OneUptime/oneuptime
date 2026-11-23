@@ -70,9 +70,9 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken |
+| OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken, Sicherheitsereignisse, Netzwerk-Flows, Sicherheits-Adresstresor | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken |
 
-Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt.
+Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
 
 Ein Datenspeicher wird mit seinem Verlauf archiviert, sobald seine Quelle ihn nicht mehr aufführt, und seine offenen Probleme werden behoben: **Archivierte Datenspeicher**, am Ende des Menüs der Datensicherheit, bewahrt ihn auf. Er kehrt von selbst zurück, wenn seine Quelle ihn wieder aufführt, und ein Problem, dessen Prüfung noch fehlschlägt, öffnet sich erneut.
 

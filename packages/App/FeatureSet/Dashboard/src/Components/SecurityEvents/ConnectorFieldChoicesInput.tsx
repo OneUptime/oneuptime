@@ -24,6 +24,7 @@ import Dropdown, {
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   Translator,
@@ -363,7 +364,9 @@ const ConnectorFieldChoicesInput: FunctionComponent<
       ) : null}
       {state.status === "failed" ? (
         <div className="flex flex-wrap items-center gap-2" role="alert">
-          <p className="text-sm text-red-700">{state.message}</p>
+          <p className="text-sm text-red-700">
+            <ErrorInSentence message={state.message} showWhereToLook={true} />
+          </p>
           <Button
             title="Try Again"
             buttonStyle={ButtonStyleType.LINK}

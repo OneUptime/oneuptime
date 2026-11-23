@@ -69,7 +69,7 @@ Klicka på en tjänst för att se dess begäranden, fel och genomsnittliga laten
 
 ### Öppna en anslutning
 
-Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnittliga latens. Mellan två tjänster som du instrumenterar har den också en **History** över anrop, fel och latens.
+Klicka på en pil för att se dess begärandefrekvens, felfrekvens och genomsnittliga latens. Mellan två tjänster som du instrumenterar har den också en **Historik** över anrop, fel och latens.
 :::
 
 **Anslutningsetiketter** skriver en siffra på varje pil: **Begärandefrekvens**, **Felfrekvens** eller **Genomsnittlig latens**, eller ingen förrän du håller muspekaren över. **Tabell** listar samma tjänster med deras **Begäranden**, **Felfrekvens**, **Snittlatens** och **Anslutningar**, och **Visa på kartan** ritar en av dem.

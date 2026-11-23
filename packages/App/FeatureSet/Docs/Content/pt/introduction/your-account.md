@@ -167,9 +167,9 @@ Entrar novamente só conta quando seu provedor de identidade informa que você e
 | Provedor | O que o OneUptime pede | Quando não confirma nada |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` e quando você entrou (`AuthnInstant`) | Faça o provedor respeitar a solicitação, por exemplo com Honor Force Authentication no Okta. |
-| OpenID Connect | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
+| OpenID Connect | `prompt=login` e `max_age=0` (Microsoft Entra ID: só `prompt=login`), e quando você entrou (`auth_time`) | Faça o provedor enviar `auth_time`. No Microsoft Entra ID, adicione-o ao token de ID como uma declaração opcional. |
 | Google | Quando você entrou (`auth_time`). Não é possível pedir ao Google que faça você entrar de novo. | Ative Session age claims para o aplicativo de login do Google do servidor, que precisa estar publicado e verificado. |
-| Microsoft | `prompt=login` e `max_age=0`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
+| Microsoft | `prompt=login`, e quando você entrou (`auth_time`) | Adicione `auth_time` ao token de ID do aplicativo de login da Microsoft do servidor como uma declaração opcional. |
 | Vercel | Nada: não é possível pedir ao Vercel que faça você entrar novamente, e ele não informa quando você entrou. | Nunca confirma. Escolha **Entrar de outra forma** e entre com um link enviado para o seu e-mail, ou defina uma senha com **Esqueceu a senha?** e confirme com ela. |
 
 O que configurar no Okta, no Microsoft Entra ID, no Keycloak e no Google Workspace está na página [SSO](/docs/identity/sso#entrar-novamente-para-confirmar-que-é-você).

@@ -4,6 +4,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import {
+  DECLARED_BY_ONEUPTIME,
+  getStoreDisplayName,
+} from "./DeclaredStoreCopy";
+import {
   DataStoreKindInfo,
   getDataStoreKindInfo,
 } from "Common/Types/DataSecurity/DataStoreKind";
@@ -111,11 +115,18 @@ const StoreNameCell: FunctionComponent<ComponentProps> = (
   const kindInfo: DataStoreKindInfo | undefined = getDataStoreKindInfo(
     props.store.kind,
   );
-  // A cloud's own product names stay as they are; Logs and Traces do not.
-  const kind: string = props.store.kind
-    ? translator.translateText(props.store.kind) || props.store.kind
-    : "";
+  /*
+   * A cloud's own product names stay as they are; Logs and Traces do not.
+   * A store OneUptime declares says so where its kind would be: its name
+   * is its kind already.
+   */
+  const kind: string = kindInfo?.isDeclared
+    ? translator.translateText(DECLARED_BY_ONEUPTIME) || DECLARED_BY_ONEUPTIME
+    : props.store.kind
+      ? translator.translateText(props.store.kind) || props.store.kind
+      : "";
   const region: string = props.store.region || "";
+  const name: string = getStoreDisplayName(props.store, translator);
 
   return (
     <div className="flex min-w-0 items-start gap-2">
@@ -134,10 +145,10 @@ const StoreNameCell: FunctionComponent<ComponentProps> = (
               to={getDataStoreRoute(props.store._id)}
               className="hover:underline"
             >
-              {props.store.name || <TableEmptyValue />}
+              {name || <TableEmptyValue />}
             </AppLink>
           ) : (
-            <span>{props.store.name || <TableEmptyValue />}</span>
+            <span>{name || <TableEmptyValue />}</span>
           )}
         </div>
         {kind || region ? (

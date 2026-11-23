@@ -31,6 +31,8 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 
 > [!NOTE]
 > En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
+>
+> En sådan monitor har ändå en enda status, som sätts av det första kriterium som matchar. Ett kriterium som bara tar tillbaka den till dess **Standardstatus för övervakning** och inte öppnar någon incident eller något larm väntar på värdarna som uppfyllde ett kriterium som sätter en annan status: det matchar när var och en av dem uppfyller det, oavsett vad de andra värdarna gör. Tills dess behåller monitorn sin status, även när inget kriterium matchar, medan varje värds incidenter och larm fortfarande löses var för sig.
 
 ## Vad ett kriterium innehåller
 

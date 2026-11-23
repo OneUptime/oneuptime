@@ -131,6 +131,7 @@ import {
 } from "../SecurityEvent/SecurityWatchlistFilter";
 import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
 import { getPromQLMonitorExpressionProblem } from "../../Utils/PromQL/PromQLMonitorExpression";
+import MonitorRequestBody from "../../Utils/Monitor/MonitorRequestBody";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -1035,6 +1036,21 @@ export default class MonitorStep extends DatabaseProperty {
       return "Request Type is required";
     }
 
+    /*
+     * An API monitor sends any JSON value as its body: an object, an array
+     * or a single value. One that is not JSON, whatever its placeholders
+     * hold, no check could send (MonitorRequestBody, #9737).
+     */
+    const requestBodyError: string | null =
+      MonitorRequestBody.getUnreadableError({
+        monitorType: monitorType,
+        requestBody: value.data.requestBody,
+      });
+
+    if (requestBodyError) {
+      return requestBodyError;
+    }
+
     if (
       monitorType === MonitorType.API ||
       monitorType === MonitorType.Website
@@ -1651,7 +1667,11 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: (json["requestType"] as HTTPMethod) || HTTPMethod.GET,
       requestHeaders:
         (json["requestHeaders"] as Dictionary<string>) || undefined,
-      requestBody: (json["requestBody"] as string) ?? undefined,
+      /*
+       * Text, as the probe sends it: a body an API client wrote as a JSON
+       * value is read as that value's JSON (MonitorRequestBody).
+       */
+      requestBody: MonitorRequestBody.readWritten(json["requestBody"]),
       customCode: (json["customCode"] as string) ?? undefined,
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,

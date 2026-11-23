@@ -756,8 +756,12 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  // 25: the Keycloak release that gives every client the basic scope (#10332).
-  [SSO]: ["24", "17", "700016", "404", "10", "3", "25"],
+  /*
+   * 25: the Keycloak release that gives every client the basic scope
+   * (#10332). 26 and 27: Keycloak 26.8.2 and earlier skip ForceAuthn on a
+   * restarted sign-in, which 26.8.3 and 27.0.0 fix (#10530).
+   */
+  [SSO]: ["24", "17", "700016", "404", "10", "3", "25", "26", "27"],
   [SCIM]: ["14", "30", "40", "200", "1000", "401", "402"],
 };
 

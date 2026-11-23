@@ -142,7 +142,7 @@ outboundConnections:
 
 開啟後，被拒絕的主機名稱在回報時不會說明它解析到什麼，例如 _"LLM provider host ollama.internal could not be reached."_ 這樣的訊息。完全無法解析的名稱也會得到相同的訊息，因此專案成員無法利用這些欄位查出有哪些內部名稱存在。以 IP 形式輸入的位址仍會連同原因一起列出，例如 _"LLM provider host 10.0.4.12 is not allowed: private network address."_ 這樣的訊息。設定 `LOG_LEVEL=DEBUG` 後，應用程式會記錄每個被拒絕的名稱所解析到的位址。
 
-在對外代理伺服器之後，透過 HTTP 進行的連線會像 Webhook 一樣經過代理伺服器：透過 HTTP 讀取的資料來源和安全性事件連線、威脅情報來源、LLM 供應商、OAuth 權杖 URL、OIDC 單一登入、外部行事曆、MCP 伺服器、備份、自訂網域驗證、Runbook HTTP 步驟以及 Grafana OnCall 匯入，都會使用 `HTTPS_PROXY`、`HTTP_PROXY` 或 `ALL_PROXY` 中設定的代理伺服器，無論它是以位址還是以主機名稱指定。OneUptime 仍會先檢查位址，也從不跟隨重新導向，但解析名稱並建立連線的是代理伺服器，因此請在代理伺服器本身拒絕鏈路本機目的地，尤其是 `169.254.169.254`。`NO_PROXY` 中的主機會被直接連線，連到 OneUptime 檢查過的位址：請把你的內部主機列在那裡。資料庫和 SMTP 連線以及 Git 伺服器一律直接連線，不經過代理伺服器。
+在對外代理伺服器之後，透過 HTTP 進行的連線會像 Webhook 一樣經過代理伺服器：透過 HTTP 讀取的資料來源和安全性事件連線、威脅情報來源、LLM 供應商、OAuth 權杖 URL、OIDC 單一登入、外部行事曆、MCP 伺服器、備份、自訂網域驗證、Runbook HTTP 步驟以及 Grafana OnCall 匯入，都會使用 `HTTPS_PROXY`、`HTTP_PROXY` 或 `ALL_PROXY` 中設定的代理伺服器，無論它是以位址還是以主機名稱指定。使用者名稱或密碼中含有 URL 保留的字元（例如 `@`、`:` 或 `%`）時，要以百分比編碼書寫，例如密碼 `p@ss` 寫成 `http://user:p%40ss@proxy.internal:3128`，OneUptime 會以解碼後的值登入。OneUptime 仍會先檢查位址，也從不跟隨重新導向，但解析名稱並建立連線的是代理伺服器，因此請在代理伺服器本身拒絕鏈路本機目的地，尤其是 `169.254.169.254`。`NO_PROXY` 中的主機會被直接連線，連到 OneUptime 檢查過的位址：請把你的內部主機列在那裡。資料庫和 SMTP 連線以及 Git 伺服器一律直接連線，不經過代理伺服器。
 
 ## 探測器和監測器
 

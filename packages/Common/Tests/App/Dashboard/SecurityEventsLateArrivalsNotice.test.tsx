@@ -16,6 +16,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -52,6 +53,7 @@ import SecurityEventsLateArrivalsNotice, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsNotice";
 import { LATE_ARRIVALS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/LateArrivals/LateArrivalsCopy";
 import { RETROHUNT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import { getHiddenAddressRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressRoute";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { DetectionRetrohuntResult } from "../../../Types/SecurityEvent/DetectionRetrohunt";
@@ -60,6 +62,8 @@ import {
   SecurityEventLateArrivals,
 } from "../../../Types/SecurityEvent/SecurityEventLateArrival";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ObjectID from "../../../Types/ObjectID";
+import ProjectUtil from "../../../UI/Utils/Project";
 import { openDropdown } from "../../DropdownPicks";
 
 const DAY: number = 24 * 60 * 60 * 1000;
@@ -136,9 +140,21 @@ async function settle(): Promise<void> {
   });
 }
 
-async function show(answer: SecurityEventLateArrivals | null): Promise<void> {
+async function show(
+  answer: SecurityEventLateArrivals | null,
+  options: { inRouter?: boolean } = {},
+): Promise<void> {
   lateMock.mockResolvedValue(answer as never);
-  render(<SecurityEventsLateArrivalsNotice />);
+  // A line that links to another page (Open Scrub Rules) draws inside a router.
+  render(
+    options.inRouter ? (
+      <MemoryRouter>
+        <SecurityEventsLateArrivalsNotice />
+      </MemoryRouter>
+    ) : (
+      <SecurityEventsLateArrivalsNotice />
+    ),
+  );
   await settle();
 }
 
@@ -397,5 +413,102 @@ describe("Run on Past Events, from the notice", () => {
     expect(
       screen.getByTestId(LATE_ARRIVALS_TEST_IDS.noRules),
     ).toHaveTextContent("There is no detection rule to run yet.");
+  });
+});
+
+/*
+ * WHAT A RUN FROM THE NOTICE SAYS OF THE LATE EVENTS IT COULD NOT COUNT
+ * (#10415, #10511). A rule that counts per address leaves out the matching
+ * events that name none, rather than count them as one address - and late
+ * events are often a shipper's batch whose addresses a scrub rule hid. So
+ * the answer the notice opens says how many it left out, and why, never only
+ * that the rule would not have fired.
+ */
+describe("Run on Past Events, from the notice, over events it could not count", () => {
+  async function runFromTheNotice(
+    answer: DetectionRetrohuntResult,
+  ): Promise<void> {
+    runMock.mockResolvedValue(answer as never);
+    await show(late([source()]), { inRouter: true });
+
+    await act(async () => {
+      screen.getByTestId(LATE_ARRIVALS_TEST_IDS.run).click();
+    });
+    await settle();
+    await chooseRule(/Failed sign-ins/);
+  }
+
+  function uncountedLine(): HTMLElement {
+    return screen.getByTestId(RETROHUNT_TEST_IDS.uncounted);
+  }
+
+  test("a rule that counts per address says how many late events named none, so it could not count them", async () => {
+    await runFromTheNotice({
+      ...ANSWER,
+      matchedEventCount: 300,
+      uncounted: {
+        field: "principalIp",
+        eventCount: 300,
+        hiddenInLogsCount: 0,
+        hiddenInTracesCount: 0,
+      },
+    });
+
+    expect(uncountedLine()).toHaveTextContent(
+      "300 matching events had no IP address, so this rule couldn't count them.",
+    );
+    // No scrub rule hid them: nothing to open.
+    expect(within(uncountedLine()).queryByRole("link")).toBeNull();
+  });
+
+  test("when a scrub rule hid their addresses, it says how many, and opens the Scrub Rules that hid them", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID("11111111-1111-4111-8111-111111111111"));
+
+    await runFromTheNotice({
+      ...ANSWER,
+      matchedEventCount: 300,
+      uncounted: {
+        field: "principalIp",
+        eventCount: 300,
+        hiddenInLogsCount: 280,
+        hiddenInTracesCount: 0,
+      },
+    });
+
+    expect(uncountedLine()).toHaveTextContent(
+      "300 matching events had no IP address, so this rule couldn't count them. A scrub rule hid the address of 280 of them. Open Scrub Rules",
+    );
+    expect(
+      within(uncountedLine()).getByRole("link", {
+        name: "Open Scrub Rules",
+        hidden: true,
+      }),
+    ).toHaveAttribute("href", getHiddenAddressRulesRoute("log")!.toString());
+  });
+
+  test("one late event of a rule that counts per user is one, named by what it lacks", async () => {
+    await runFromTheNotice({
+      ...ANSWER,
+      matchedEventCount: 1,
+      uncounted: {
+        field: "principalUser",
+        eventCount: 1,
+        hiddenInLogsCount: 0,
+        hiddenInTracesCount: 0,
+      },
+    });
+
+    expect(uncountedLine()).toHaveTextContent(
+      "1 matching event had no user, so this rule couldn't count it.",
+    );
+  });
+
+  test("a run that counted every late event says nothing of uncounted ones", async () => {
+    await runFromTheNotice(ANSWER);
+
+    expect(screen.getByTestId(RETROHUNT_TEST_IDS.panel)).toBeInTheDocument();
+    expect(screen.queryByTestId(RETROHUNT_TEST_IDS.uncounted)).toBeNull();
   });
 });

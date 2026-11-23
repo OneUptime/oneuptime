@@ -478,7 +478,7 @@ export const TOOL_IMPORT_NOTE_TEMPLATES: Record<ToolImportNoteCode, string> = {
     "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.",
   ),
   [ToolImportNoteCode.MonitorBodyLeftOut]: translationKey(
-    "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.",
+    "Its request body is not JSON, the only kind OneUptime sends, so it is left out.",
   ),
   [ToolImportNoteCode.MonitorPaused]: translationKey(
     "It is paused in {{tool}}, so it starts unticked, and comes over paused.",

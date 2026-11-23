@@ -217,7 +217,13 @@ function burst(
  *   bob      2 in [0,5)                               - never reaches 3
  *   carol    3 in [30,35)                             - fires, unless skipped
  *   svc-*    3 + 3 service accounts in [40,45)        - each fires, unless skipped
- *   ''       3 with no user in [50,55)                - the '' group
+ *   ''       3 with no user in [50,55)                - no user, so no group
+ *
+ * A rule that counts per value (a group field and a threshold above one)
+ * never counts events with no value as one more of a '' group (#10415,
+ * #10511): the three with no user are left out of a per-user count, and
+ * said to be. By address, alice's two, bob's and Carol's are counted; the
+ * service accounts' six and the three with no user have no address.
  */
 const FIXTURES: Array<EventFixture> = [
   ...burst(1, 4, { user: "alice", sourceIp: "10.20.5.5", host: "web-01" }),
@@ -601,16 +607,23 @@ detection:
 
         const result: DetectionRetrohuntResult = await retrohunt();
 
-        // alice twice, Carol, svc-backup, svc-deploy and the '' group once each.
-        expect(result.firedCount).toBe(6);
-        expect(result.groupCount).toBe(5);
+        // alice twice, Carol, svc-backup and svc-deploy once each.
+        expect(result.firedCount).toBe(5);
+        expect(result.groupCount).toBe(4);
         // Every event behind a firing: alice 4 + 5, and 3 for each other.
-        expect(result.eventCount).toBe(21);
+        expect(result.eventCount).toBe(18);
         // Every match, firing or not: bob's 2 and alice's lone 2 too.
-        expect(result.matchedEventCount).toBe(25);
+        expect(result.matchedEventCount).toBe(22);
         expect(result.skippedEventCount).toBe(0);
         expect(result.preventedFiredCount).toBe(0);
         expect(result.hasMoreGroups).toBe(false);
+        // The three with no user are left out of the count, and said to be.
+        expect(result.uncounted).toEqual({
+          field: "principalUser",
+          eventCount: 3,
+          hiddenInLogsCount: 0,
+          hiddenInTracesCount: 0,
+        });
 
         const alice: DetectionRetrohuntResult["groups"][number] =
           result.groups[0]!;
@@ -642,7 +655,9 @@ detection:
 
         expect(result.firedCount).toBe(0);
         expect(result.groups).toEqual([]);
-        expect(result.matchedEventCount).toBe(25);
+        // Every event a user could be counted by; the three with none are not.
+        expect(result.matchedEventCount).toBe(22);
+        expect(result.uncounted?.eventCount).toBe(3);
         expect(result.threshold).toBe(50);
       });
 
@@ -669,17 +684,75 @@ detection:
         const result: DetectionRetrohuntResult = await retrohunt();
 
         expect(result.exceptionCount).toBe(2);
-        expect(result.firedCount).toBe(3);
+        // alice twice: Carol's and the service accounts' firings are prevented.
+        expect(result.firedCount).toBe(2);
         expect(result.skippedEventCount).toBe(9);
         expect(result.preventedFiredCount).toBe(3);
-        expect(result.matchedEventCount).toBe(16);
+        expect(result.matchedEventCount).toBe(13);
         expect(
           result.groups
             .map((group: { value: string }): string => {
               return group.value;
             })
             .sort(),
-        ).toEqual(["", "alice"]);
+        ).toEqual(["alice"]);
+        // The exceptions never bring back the events with no user.
+        expect(result.uncounted?.eventCount).toBe(3);
+      });
+
+      /*
+       * #10415: events with no address are no address a rule can count.
+       * Grouped by address with a threshold above one, the six service
+       * account sign-ins in [40,45) and the three with no user in [50,55)
+       * used to fire as one '' address - a brute force from nowhere, with
+       * nothing to block. They fire nothing now, and the run says how many
+       * it could not count, and by which field.
+       */
+      test("events with no address never fire as one address, and are said to be left out", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          groupByField: "principalIp",
+        });
+
+        // 10.20.5.5 in [0,5), 198.51.100.7 in [20,25), 198.51.100.9 in [30,35).
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual(["10.20.5.5", "198.51.100.7", "198.51.100.9"]);
+        expect(result.firedCount).toBe(3);
+        expect(result.groupCount).toBe(3);
+        expect(result.groups[0]!.entityType).toBe(SecurityEntityType.IpAddress);
+        // 4 + 5 + 3 behind the firings; 16 events have an address at all.
+        expect(result.eventCount).toBe(12);
+        expect(result.matchedEventCount).toBe(16);
+        expect(result.uncounted).toEqual({
+          field: "principalIp",
+          eventCount: 9,
+          hiddenInLogsCount: 0,
+          hiddenInTracesCount: 0,
+        });
+      });
+
+      test("a rule that fires on each event still fires for events with no address", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          groupByField: "principalIp",
+          matchCountThreshold: 1,
+        });
+
+        // Nothing is left out: each event fires on its own, address or not.
+        expect(result.uncounted).toBeNull();
+        expect(result.matchedEventCount).toBe(25);
+        expect(
+          result.groups.some((group: { value: string }): boolean => {
+            return group.value === "";
+          }),
+        ).toBe(true);
       });
 
       test("a distinct count counts different values, empty ones left out", async () => {

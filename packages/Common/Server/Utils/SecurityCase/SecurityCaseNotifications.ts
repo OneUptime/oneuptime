@@ -27,9 +27,7 @@ import logger from "../Logger";
 import CallerPermission from "../Permission/CallerPermission";
 import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../TeamMember/PendingInviteeProfiles";
+import FeedPersonName, { FEED_NOBODY_NAMED } from "../Feed/FeedPersonName";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
@@ -212,8 +210,14 @@ export enum SecurityCaseNotificationKind {
 
 export interface SecurityCaseRecipient {
   userId: ObjectID;
-  name: string;
-  email: string;
+  /*
+   * Their account as OneUptime read it - its name and address - under their
+   * id: what a line names them by, through FeedPersonName (#10681). Never
+   * placed in a line or message itself: it holds their address, and a
+   * case's feed, its channels and its emails to the people on it are read
+   * by others.
+   */
+  account: User;
   // Their own time zone, for a due time written in an email.
   timezone?: Timezone | undefined;
 }
@@ -1346,7 +1350,7 @@ export default class SecurityCaseNotifications {
     const assignedBy: string | undefined = data.playbookName
       ? `Playbook ${data.playbookName}`
       : data.actorUserId
-        ? (await this.getUser(data.actorUserId))?.name
+        ? await this.getActorName(data.actorUserId)
         : undefined;
 
     const byUserId: Map<
@@ -1467,7 +1471,7 @@ export default class SecurityCaseNotifications {
     );
     const playbookName: string = run.playbookName || "Playbook";
     const startedBy: string = run.triggeredByUserId
-      ? (await this.getUser(run.triggeredByUserId))?.name || "By hand"
+      ? (await this.getActorName(run.triggeredByUserId)) || "By hand"
       : describeRunTrigger(run.trigger);
     // For a step that acts on users or hosts: the ones it would act on.
     const targets: Array<string> = (
@@ -2005,7 +2009,7 @@ export default class SecurityCaseNotifications {
 
     const facts: SecurityCaseMessageFacts = await this.getFacts(securityCase);
     const assignedBy: string | undefined = data.actorUserId
-      ? (await this.getUser(data.actorUserId))?.name
+      ? await this.getActorName(data.actorUserId)
       : undefined;
     const taskTitle: string = task.title || "A task";
 
@@ -2274,10 +2278,20 @@ export default class SecurityCaseNotifications {
       return null;
     }
 
+    // Under the id it was read by: a membership's user carries none of its own.
+    const account: User = new User(userId);
+
+    if (user?.name) {
+      account.name = user.name;
+    }
+
+    if (user?.email) {
+      account.email = user.email;
+    }
+
     return {
       userId,
-      name: user?.name?.toString() || user?.email?.toString() || "",
-      email: user?.email?.toString() || "",
+      account,
       ...(user?.timezone ? { timezone: user.timezone } : {}),
     };
   }
@@ -2372,38 +2386,47 @@ export default class SecurityCaseNotifications {
   }
 
   /*
-   * Whom a case is assigned to, as the project names them: someone only
-   * invited to it by the name typed for them, else their address - never
-   * their account's own name, which it does not see until they join
-   * (#9823). Empty for a person who is gone.
+   * Who did something to a case - assigned it, handed somebody a task,
+   * started a playbook by hand - as a message about it names them: a person
+   * who acted is a member, named by their name, else the part of their
+   * address before the "@" (FeedPersonName.getMemberName, #10681). Never
+   * their address: an approval's email goes to every approver. Undefined
+   * for somebody who is gone.
+   */
+  private static async getActorName(
+    userId: ObjectID,
+  ): Promise<string | undefined> {
+    const actor: SecurityCaseRecipient | null = await this.getUser(userId);
+
+    if (!actor) {
+      return undefined;
+    }
+
+    return (
+      FeedPersonName.getMemberName({
+        name: actor.account.name,
+        email: actor.account.email,
+      }) || undefined
+    );
+  }
+
+  /*
+   * Whom a case is assigned to, as every message about it names them - its
+   * channels' posts, and the emails to everybody told about it
+   * (FeedPersonName, #10681): someone only invited by the name typed with
+   * their invitation, else "someone who hasn't joined the project yet",
+   * never by their account's own name (#9823); a member by their name, else
+   * the part of their address before the "@". Never an address. Empty for a
+   * person who is gone.
    */
   private static async getAssigneeName(data: {
     userId: ObjectID;
     projectId: ObjectID;
   }): Promise<string> {
-    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
-
-    if (!user) {
-      return "";
-    }
-
-    const withheld: Map<string, WithheldProfile> =
-      await PendingInviteeProfiles.readWithheldProfilesInProject({
-        userIds: [data.userId.toString()],
-        projectId: data.projectId,
-      });
-
-    return PendingInviteeProfiles.getWithheldProfile({
+    return await FeedPersonName.getText({
       userId: data.userId,
-      withheld: withheld,
-    })
-      ? PendingInviteeProfiles.getNameInProject({
-          userId: data.userId,
-          name: null,
-          email: user.email,
-          withheld: withheld,
-        })
-      : user.name;
+      projectId: data.projectId,
+    });
   }
 
   private static async getTeamName(teamId: ObjectID): Promise<string> {
@@ -2717,7 +2740,14 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
-  // The case's feed says who was told; nothing when nobody was.
+  /*
+   * The case's feed says who was told, one name each, as every feed entry
+   * names people (FeedPersonName.readNames, #10681): a member by their name,
+   * else the part of their address before the "@" - never their address,
+   * which the list put after every name ("Ana Lee (ana@acme.com)"), and
+   * the feed is read through the API and workflows. Who of them is only
+   * invited is read once for them all. Nothing when nobody was told.
+   */
   private static async recordInFeed(data: {
     facts: SecurityCaseMessageFacts;
     notified: Array<SecurityCaseRecipient>;
@@ -2728,15 +2758,20 @@ export default class SecurityCaseNotifications {
       return;
     }
 
+    const names: Map<string, string> = await FeedPersonName.readNames({
+      users: data.notified.map((recipient: SecurityCaseRecipient): User => {
+        return recipient.account;
+      }),
+      projectId: data.facts.projectId,
+    });
+
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: data.facts.projectId,
       securityCaseId: data.facts.caseId,
       feedInfoInMarkdown: data.feedInfo.toString(),
       moreInformationInMarkdown: FeedMarkdown.bulletList(
         data.notified.map((recipient: SecurityCaseRecipient): MarkdownText => {
-          return recipient.email && recipient.name !== recipient.email
-            ? mdText`${recipient.name} (${recipient.email})`
-            : mdText`${recipient.name || recipient.email}`;
+          return mdText`${names.get(recipient.userId.toString().toLowerCase()) || FEED_NOBODY_NAMED}`;
         }),
       ).toString(),
       eventType: SecurityCaseFeedEventType.Notification,
