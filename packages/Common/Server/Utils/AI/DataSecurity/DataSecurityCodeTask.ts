@@ -19,6 +19,10 @@ import CodeTaskAccess, {
 } from "../CodeTask/CodeTaskAccess";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
+import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import { InfrastructureFixTaskContext } from "../../../../Types/AI/CodeFixTaskContext";
+import CodeRepositoryService from "../../../Services/CodeRepositoryService";
+import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
 import {
   DataSecurityAiCodeRequest,
   isDataSecurityAiCodeRequest,
@@ -69,6 +73,17 @@ export const DATA_SECURITY_FIX_STARTED_MESSAGE: string =
 
 export const DATA_SECURITY_FIX_FEED_MESSAGE: string =
   "OneUptime AI was asked to open a fix as a pull request.";
+
+// What each issue of a group says when its cause's fix is asked for (#10370).
+export const DATA_SECURITY_GROUP_FIX_FEED_MESSAGE: string =
+  "OneUptime AI was asked to fix this issue's cause once, in one pull request for every issue of its group.";
+
+export const DATA_SECURITY_GROUP_FIX_STARTED_MESSAGE: string =
+  "OneUptime AI is working on one pull request for the cause. It will appear under Code, and on each of the group's issues.";
+
+// OneUptime asked for a group's fix with no repository to work in.
+export const DATA_SECURITY_GROUP_FIX_NO_REPOSITORY_MESSAGE: string =
+  "No repository was found for the code that declares these stores. Ask for the fix from the Issues list, and pick the repository.";
 
 export const DATA_SECURITY_FIX_SIGN_IN_MESSAGE: string =
   "Sign in to ask OneUptime AI for a fix.";
@@ -197,6 +212,140 @@ export default class DataSecurityCodeTask {
 
     return {
       message: DATA_SECURITY_FIX_STARTED_MESSAGE,
+      aiRunId: run.id?.toString(),
+    };
+  }
+
+  /*
+   * ONE PULL REQUEST FOR A GROUP OF ISSUES ONE MISTAKE MADE (#10370), in
+   * the infrastructure code that declares their stores: a task of its own
+   * recipe (CodeFixTaskType.FixInfrastructureCode), whose context carries
+   * the request the builder made, the cause, and the stores and issues its
+   * pull request lists.
+   *
+   * A person asks as for any fix: the gate, then a repository they may read
+   * and ask in - the one they confirmed, or the only one - then the gate
+   * for that repository. OneUptime asks with no person (a security
+   * playbook's step, an approved proposal made without asking): it works
+   * only in the repository it was given, which must be the project's, and
+   * the gate still decides. Each of the group's issues says it was asked.
+   */
+  @CaptureSpan()
+  public static async requestGroupFix(data: {
+    // The person who asked, with their own permissions; OneUptime's props for none.
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    issueIds: Array<ObjectID>;
+    requestedRepositoryId?: unknown;
+    // The context the task carries, but its request: built below.
+    fix: Omit<InfrastructureFixTaskContext, "request">;
+    triggeredBySecurityCaseId?: ObjectID | undefined;
+    buildMessage: () => Promise<DataSecurityAiCodeRequest>;
+  }): Promise<DataSecurityFixResult> {
+    const userId: ObjectID | undefined = data.props.userId || undefined;
+
+    if (!userId && !data.props.isRoot) {
+      throw new BadDataException(DATA_SECURITY_FIX_SIGN_IN_MESSAGE);
+    }
+
+    const blockerBeforeRepository: CodeTaskBlocker | null =
+      await CodeTaskGate.getBlocker({
+        props: data.props,
+        projectId: data.projectId,
+        repository: null,
+        canAsk: true,
+      });
+
+    if (blockerBeforeRepository) {
+      return { message: blockerBeforeRepository.message };
+    }
+
+    let repository: CodeRepository | null = null;
+
+    if (userId) {
+      const choice: RepositoryChoice =
+        await DataSecurityCodeTask.chooseRepository({
+          props: data.props,
+          projectId: data.projectId,
+          code: DataSecurityFixCode.Infrastructure,
+          requestedRepositoryId: data.requestedRepositoryId,
+        });
+
+      if (!choice.repository) {
+        return choice.answer;
+      }
+
+      repository = choice.repository;
+    } else {
+      const requested: string =
+        typeof data.requestedRepositoryId === "string"
+          ? data.requestedRepositoryId.trim()
+          : "";
+
+      repository = ObjectID.isValidUUID(requested)
+        ? await CodeRepositoryService.findOneBy({
+            query: { _id: requested, projectId: data.projectId },
+            select: {
+              _id: true,
+              name: true,
+              organizationName: true,
+              repositoryName: true,
+              repositoryHostedAt: true,
+              gitHubAppInstallationId: true,
+              codeRepositoryConnectionId: true,
+            },
+            props: { isRoot: true },
+          })
+        : null;
+
+      if (!repository?.id) {
+        return { message: DATA_SECURITY_GROUP_FIX_NO_REPOSITORY_MESSAGE };
+      }
+    }
+
+    const blocker: CodeTaskBlocker | null = await CodeTaskGate.getBlocker({
+      props: data.props,
+      projectId: data.projectId,
+      repository,
+      canAsk: true,
+    });
+
+    if (blocker) {
+      return { message: blocker.message };
+    }
+
+    const request: DataSecurityAiCodeRequest = await data.buildMessage();
+
+    if (!isDataSecurityAiCodeRequest(request)) {
+      throw new BadDataException(
+        "A Data Security fix takes a request built by DataSecurityAiInput.",
+      );
+    }
+
+    const run: AIRun = await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+      projectId: data.projectId,
+      taskType: CodeFixTaskType.FixInfrastructureCode,
+      userId,
+      codeRepositoryId: repository.id!,
+      taskContext: {
+        infrastructureFix: { ...data.fix, request: request.text },
+      },
+      triggeredBySecurityCaseId: data.triggeredBySecurityCaseId,
+    });
+
+    for (const issueId of data.issueIds) {
+      await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
+        projectId: data.projectId,
+        dataSecurityIssueId: issueId,
+        eventType: DataSecurityIssueFeedEventType.AiFixRequested,
+        displayColor: Purple500,
+        feedInfoInMarkdown: DATA_SECURITY_GROUP_FIX_FEED_MESSAGE,
+        userId,
+      });
+    }
+
+    return {
+      message: DATA_SECURITY_GROUP_FIX_STARTED_MESSAGE,
       aiRunId: run.id?.toString(),
     };
   }

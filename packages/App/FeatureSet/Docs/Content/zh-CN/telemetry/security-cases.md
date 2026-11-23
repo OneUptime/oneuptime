@@ -405,7 +405,7 @@ OneUptime 会就案例上的七件事通知相关人员。无需任何人做任�
 - **Run a runbook** 以案例作为输入，启动你的某个[运行手册](/docs/runbooks/index)，Bash 步骤会把这些输入读作环境变量（参见[调用 Webhook](/docs/runbooks/triggers#调用-webhook)）。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 和 `ONEUPTIME_INPUT_HOST` 是案例所涉及的地址、用户和主机，按与遏制类步骤相同的规则选出，案例不涉及其中任何一个时为空。`ONEUPTIME_INPUT_IPS`、`ONEUPTIME_INPUT_USERS` 和 `ONEUPTIME_INPUT_HOSTS` 以 JSON 列出案例提到的所有对象，`ONEUPTIME_INPUT_CASE_NUMBER`、`ONEUPTIME_INPUT_CASE_TITLE` 和 `ONEUPTIME_INPUT_CASE_URL` 说明是哪个案例。受保护的用户或主机永远不会在其中。运行手册的运行记录会注明它是由 **Security playbook** 为该案例启动的。
 - **Preserve the evidence** 把案例每个检测的最新事件按原样保存到案例的 **证据** 页面，最多 100 个，将案例背后请求的会话回放保留到其保留期之后，并在案例上写一条备注，链接每个请求的追踪、每个回放和每个异常。日志和追踪的保存时间不能超过项目保留遥测数据的时间，因此请在此之前导出你需要的内容。
 - **Post a status page announcement** 按你撰写的原样，把你写的内容发布到你选择的状态页上。不会添加案例中的任何内容。只有开启 **通知订阅者** 时，才会通知这些状态页的订阅者。
-- **Fix the code with AI** 针对案例的请求所引发的每个异常（最多三个），请 OneUptime AI 提交一个修复它的拉取请求。该步骤需要开启 OneUptime AI、一个包含代码并通过 GitHub App 连接的代码仓库，以及一个运行器。缺少这些时，该步骤会被跳过并说明缺少什么。每个拉取请求都会保留在案例上，响应计划的修复步骤会读取它是否已发布并拒绝了攻击：参见 [OneUptime 如何检查一个步骤](#oneuptime-如何检查一个步骤)。
+- **Fix the code with AI** 针对案例的请求所引发的每个异常（最多三个），请 OneUptime AI 提交一个修复它的拉取请求。该步骤需要开启 OneUptime AI、一个包含代码并通过 GitHub App 连接的代码仓库，以及一个运行器。缺少这些时，该步骤会被跳过并说明缺少什么。每个拉取请求都会保留在案例上，响应计划的修复步骤会读取它是否已发布并拒绝了攻击：参见 [OneUptime 如何检查一个步骤](#oneuptime-如何检查一个步骤)。 对于问题由同一个错误造成的数据安全案例，它会改为请求修复其原因的唯一拉取请求，并把在控制台中创建的数据存储留给人员批准（参见 [同一原因的问题](/docs/data-security/checks-and-issues#同一原因的问题)）。
 
 ### 遏制
 

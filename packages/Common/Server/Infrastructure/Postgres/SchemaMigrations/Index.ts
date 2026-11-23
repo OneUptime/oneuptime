@@ -1162,6 +1162,8 @@ import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450
 import { AddSecurityCaseAiResponse1809187452000 } from "./1809187452000-AddSecurityCaseAiResponse";
 import { AddSecurityCaseAiNextLookIndex1809187452010 } from "./1809187452010-AddSecurityCaseAiNextLookIndex";
 import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-AddCloudWafAndEnforcementReasons";
+import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
+import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 
 export default [
   InitialMigration,
@@ -2328,4 +2330,6 @@ export default [
   AddSecurityCaseAiResponse1809187452000,
   AddSecurityCaseAiNextLookIndex1809187452010,
   AddCloudWafAndEnforcementReasons1809187455000,
+  AddDataSecurityIssueGroups1809187470370,
+  AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
 ];

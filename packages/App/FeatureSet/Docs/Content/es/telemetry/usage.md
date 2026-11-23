@@ -97,7 +97,7 @@ Cada punto lleva estos atributos:
 | `resourceName` | Su nombre cuando se escribió el punto. |
 
 - **Contado a medida que llega.** Cada punto es la parte del recurso en lo que llegó, descomprimido, como lo cuentan los presupuestos de ingesta, así que puede marcar más que las filas de uso, que cuentan lo que se almacenó.
-- **Qué se cuenta.** Se cuentan los registros, trazas, métricas y perfiles enviados por OTLP, y también los registros de Fluent Bit, Fluentd o syslog. Los eventos de seguridad y las reproducciones de sesiones no.
+- **Qué se cuenta.** Se cuentan los registros, trazas, métricas y perfiles enviados por OTLP, y también los registros de Fluent Bit, Fluentd o syslog, incluido el syslog que los dispositivos de red envían a una sonda. Los eventos de seguridad y las reproducciones de sesiones no.
 - **Cada punto es de su recurso.** Quien puede leer la telemetría de un servicio o de un recurso lee sus puntos: un rol limitado a algunas etiquetas solo ve los suyos.
 - **No cuestan nada.** Estos puntos no se descuentan de ningún presupuesto ni cuentan como uso, y se conservan tanto como las métricas de monitores: 30 días, salvo que el administrador de la instancia lo cambie. Los nombres de métrica que empiezan por `oneuptime.telemetry.usage.` están reservados para ellos: las métricas que sus aplicaciones envían con un nombre así se descartan.
 - **Desactivado de forma predeterminada.** Mientras está desactivado, no se escribe nada, y los puntos ya escritos se conservan hasta que caducan.

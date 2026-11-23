@@ -5,6 +5,10 @@ import {
   isDataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
 import CreateOwnerRuleAction from "./Actions/CreateOwnerRuleAction";
+import {
+  FixIssueGroupInCloudAction,
+  FixIssueGroupInCodeAction,
+} from "./Actions/IssueGroupFixActions";
 import ScrubTelemetryAction from "./Actions/ScrubTelemetryAction";
 import SetStoreOwnersAction from "./Actions/SetStoreOwnersAction";
 import { DataSecurityAiAction } from "./DataSecurityAiAction";
@@ -28,6 +32,9 @@ function actions(): Readonly<
     [DataSecurityAiProposalKind.ScrubTelemetry]: ScrubTelemetryAction,
     [DataSecurityAiProposalKind.SetStoreOwners]: SetStoreOwnersAction,
     [DataSecurityAiProposalKind.CreateOwnerRule]: CreateOwnerRuleAction,
+    [DataSecurityAiProposalKind.FixIssueGroupInCode]: FixIssueGroupInCodeAction,
+    [DataSecurityAiProposalKind.FixIssueGroupInCloud]:
+      FixIssueGroupInCloudAction,
   };
 }
 

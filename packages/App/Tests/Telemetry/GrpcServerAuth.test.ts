@@ -116,6 +116,7 @@ const makeMetadata: (entries: Record<string, string>) => grpc.Metadata = (
 
 describe("GrpcServer authenticateRequest", () => {
   let loggerErrorSpy: SpyLike;
+  let loggerDebugSpy: SpyLike;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -125,10 +126,16 @@ describe("GrpcServer authenticateRequest", () => {
     ).mockImplementation(() => {
       return undefined;
     });
+    loggerDebugSpy = (
+      jest.spyOn(logger, "debug") as unknown as SpyLike
+    ).mockImplementation(() => {
+      return undefined;
+    });
   });
 
   afterEach(() => {
     loggerErrorSpy.mockRestore();
+    loggerDebugSpy.mockRestore();
   });
 
   test("valid token resolves projectId through the cached resolver — never through a direct findOneBy", async () => {
@@ -201,10 +208,18 @@ describe("GrpcServer authenticateRequest", () => {
      * The failure must be logged — but the token is a secret and log
      * lines routinely land in third-party sinks, so no logged argument
      * may contain it (previously the log line was
-     * "gRPC: Invalid service token: <token>").
+     * "gRPC: Invalid service token: <token>"). At debug, not error: an
+     * unknown token comes from anyone, and is counted instead (#10703).
      */
-    expect(loggerErrorSpy.mock.calls.length).toBeGreaterThan(0);
-    for (const call of loggerErrorSpy.mock.calls) {
+    expect(loggerDebugSpy.mock.calls).toContainEqual([
+      "gRPC: Invalid service token.",
+      { service: "telemetry" },
+    ]);
+    expect(loggerErrorSpy.mock.calls).toEqual([]);
+    for (const call of [
+      ...loggerErrorSpy.mock.calls,
+      ...loggerDebugSpy.mock.calls,
+    ]) {
       for (const argument of call) {
         expect(JSON.stringify(argument) ?? "").not.toContain(secretToken);
       }
