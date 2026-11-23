@@ -8,6 +8,7 @@ import { translationKey } from "../../Types/Translator";
 import {
   TemplatePlaceholder,
   findTemplatePlaceholders,
+  replaceTemplatePlaceholders,
 } from "../TemplatePlaceholders";
 import { getReferencedName } from "./MonitorSecretReferences";
 import JSON5 from "json5";
@@ -432,5 +433,32 @@ export default class MonitorRequestBody {
   // Whether a value read from a body is a JSON object, not an array or a single value.
   public static isObject(value: unknown): boolean {
     return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  /*
+   * Whether only a probe that sends any request body can send this one
+   * (ProbeCapability.AnyRequestBody, #10737): JSON that is not an object -
+   * an array or a single value. A probe from before #9737 read every body
+   * as a JSON object (JSONFunctions.parseJSONObject) and failed such a
+   * check with "Expected JSONObject, but got JSONArray". No body, an
+   * object, and a body that is no JSON at all - which no probe sends - need
+   * no such probe. Read as the server hands the step over, its secrets
+   * filled in: a placeholder still in it - a one-time code, which the
+   * probe makes - stands for its value, as getProblem reads one.
+   */
+  public static needsProbeThatSendsAnyBody(body: unknown): boolean {
+    const text: string | undefined = MonitorRequestBody.getText(body);
+
+    if (text === undefined) {
+      return false;
+    }
+
+    const reading: MonitorRequestBodyReading = MonitorRequestBody.read(
+      replaceTemplatePlaceholders(text, (): string => {
+        return "1";
+      }),
+    );
+
+    return reading.isJson && !MonitorRequestBody.isObject(reading.value);
   }
 }
