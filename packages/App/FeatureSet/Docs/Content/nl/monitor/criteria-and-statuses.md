@@ -5,13 +5,14 @@ De criteria van een monitor bepalen wat elke controle betekent: of de monitor be
 :::cards
 - [Hoe criteria beslissen](#hoe-criteria-beslissen): Van boven naar beneden, en de eerste overeenkomst wint.
 - [Wat een criterium bevat](#wat-een-criterium-bevat): Filters, een overeenkomstvoorwaarde, acties en instellingen.
+- [Een venster van controles beoordelen](#een-venster-van-controles-beoordelen): Mislukte controles tellen, instabiliteit opmerken, een percentiel lezen.
 - [De criteria van een monitor wijzigen](#de-criteria-van-een-monitor-wijzigen): Criteria bewerken, toevoegen, herschikken en testen.
 - [Monitorstatussen](#monitorstatussen): De ingebouwde statussen, en statussen van uzelf.
 :::
 
 ## Hoe criteria beslissen
 
-Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het resultaat van boven naar beneden in de lijst. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt, en de criteria eronder worden voor die controle niet meer bekeken. Komt er geen overeen, dan gaat de monitor naar zijn **Standaard monitorstatus**.
+Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het resultaat van boven naar beneden in de lijst. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt, en de criteria eronder worden voor die controle niet meer bekeken. Komt er geen overeen, dan gaat de monitor naar zijn **Standaard monitorstatus**. Zolang een criterium dat hem terugbrengt nog niet overeenkomt, behoudt hij in plaats daarvan zijn status: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
@@ -30,7 +31,7 @@ De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechts
 Een criterium dat overeenkomt maar geen status wijzigt, beslist de controle toch: de monitor houdt zijn status, en de criteria eronder wachten op de volgende controle. De **Standaard monitorstatus** geldt alleen als geen enkel criterium overeenkomt. Bij een nieuwe monitor is dat **Operationeel**; wijzig het onder **Meer velden**, onder de criteria.
 
 > [!NOTE]
-> Een monitor die per host, container, schijf of interface een eigen incident of waarschuwing opent, beoordeelt bij elke controle alle criteria, zodat twee hosts tegelijk met twee verschillende criteria kunnen overeenkomen. Dat is een monitor waarvan de query een **Groeperen op** heeft, zoals een metriek- of logmonitor, of een criterium dat `*` noemt voor elke schijf of interface. Een monitor voor inkomende verzoeken die incidenten groepeert op een payloadveld, stopt toch bij de eerste overeenkomst.
+> Een monitor die per host, container, schijf of interface een eigen incident of waarschuwing opent, beoordeelt bij elke controle alle criteria, zodat twee hosts tegelijk met twee verschillende criteria kunnen overeenkomen. Dat is een monitor waarvan de query een **Groeperen op** heeft, zoals een metriek- of logmonitor, of een criterium dat `*` noemt voor elke schijf of interface. Een query in PromQL telt ook mee. Een monitor voor inkomende verzoeken die incidenten groepeert op een payloadveld, stopt toch bij de eerste overeenkomst.
 >
 > Zo'n monitor heeft toch één status, bepaald door het eerste criterium dat overeenkomt. Een criterium dat hem alleen terugbrengt naar zijn **Standaard monitorstatus** en geen incident of waarschuwing opent, wacht op de hosts die voldeden aan een criterium dat een andere status zet: het komt overeen zodra elk van hen eraan voldoet, wat de andere hosts ook doen. Tot dan behoudt de monitor zijn status, ook als geen criterium overeenkomt, terwijl de incidenten en waarschuwingen van elke host nog steeds elk apart worden opgelost.
 
@@ -43,7 +44,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 | **Criterianaam** | De naam in de lijst met criteria, en in de oorzaak van elk incident en elke waarschuwing die het criterium opent. **Criteria toevoegen** noemt een nieuw criterium naar zijn filters, en de naam volgt ze tot u er zelf een typt. |
 | **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Waarschuwingsregels**. |
 | **Acties** | Wat er gebeurt als de filters overeenkomen: de status wijzigen, een waarschuwing maken, een incident melden, of een combinatie daarvan. |
-| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving** en, bij monitoren voor inkomende verzoeken, **Group incidents and alerts by a payload field**. |
+| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Group incidents and alerts by a payload field**. |
 
 ### Filters
 
@@ -51,7 +52,7 @@ Een filter leest één gegeven uit de controle en vergelijkt het: een **Filterty
 
 Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Minstens één** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
 
-Filters die elke controle meten, zoals **Is online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **Alle waarden**, dat pas overeenkomt als elke controle in het venster overeenkwam. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
+Filters die elke controle meten, zoals **Is online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **Alle waarden**, dat pas overeenkomt als elke controle in het venster overeenkwam. Het venster kan tot 24 uur lang zijn en de controles tellen, zoals [Een venster van controles beoordelen](#een-venster-van-controles-beoordelen) uitlegt. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
 
 ### Acties
 
@@ -70,6 +71,54 @@ Een incident of waarschuwing vraagt om een titel, een **Ernst** en, ingeklapt, e
 **Schakel dit criterium in** staat aan bij elk nieuw criterium. Zet het uit om een criterium te bewaren zonder het te gebruiken: het wordt bij elke controle overgeslagen, wijzigt geen status, opent niets, en zijn kop toont **Uitgeschakeld**.
 
 **Group incidents and alerts by a payload field** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
+
+**Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** en **Dit criterium alleen op bepaalde dagen en tijden beoordelen** staan uit voor een nieuw criterium. Zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt) en [Alleen op bepaalde dagen en tijden](#alleen-op-bepaalde-dagen-en-tijden).
+
+## Een venster van controles beoordelen
+
+Met **Evalueer deze criteria over een bepaalde periode** aangevinkt bepaalt **Evalueren** hoe de controles van het venster worden beoordeeld, en **Voor de laatste** hoe lang het venster is, van 2 minuten tot 24 uur. De eigen voorwaarde van het filter, zoals **Is online** op **Onwaar**, zegt wat elke controle moet laten zien.
+
+| Evalueren | Komt overeen wanneer |
+| --- | --- |
+| **Alle waarden** | Elke controle van het venster aan de voorwaarde voldeed. |
+| **Willekeurige waarde** | Minstens één controle van het venster aan de voorwaarde voldeed. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal over de waarden van het venster aan de voorwaarde voldoet, zoals een gemiddelde reactietijd boven 300 ms. |
+| **Percentiel** | Het onder **Percentiel** gekozen percentiel, van p50 tot p99, aan de voorwaarde voldoet: p95 boven 300 ms betekent dat de traagste 5% van de controles boven 300 ms ligt. |
+| **Aantal** | Het aantal controles dat aan de voorwaarde voldeed zich verhoudt zoals ingesteld onder **Overeenkomende controles**: bijvoorbeeld **Groter dan** 30. |
+| **Percentage** | Hun aandeel in de controles van het venster zich verhoudt zoals ingesteld onder **Aandeel overeenkomende controles**: bijvoorbeeld **Groter dan** 10%. |
+| **Statuswijzigingen** | Het aantal keren dat de controles wisselden tussen wel en niet voldoen aan de voorwaarde zich verhoudt zoals ingesteld onder **Aantal wijzigingen**. Een apparaat dat uitvalt en weer terugkomt, wisselt twee keer. |
+
+Een zin onder de instellingen van het venster leest het filter terug zoals het is ingesteld: ‘Controleer: "Is online" is onwaar bij meer dan 30 controles in de afgelopen 8 uur’.
+
+- **Elke probe op zich.** **Aantal**, **Percentage** en **Statuswijzigingen** tellen de controles van de probe die de controle deed, dus een monitor die vanaf drie probes wordt gecontroleerd, telt niet drie keer zo snel, en zijn probes moeten het daarna eens zijn zoals bij elk criterium.
+- **Een venster dat nog niet vol is.** Tot de controles terugreiken tot het begin van het venster, heeft een monitor die net is gestart minder controles dan hij zal hebben. **Aantal** en **Statuswijzigingen** komen vroeg overeen als ze **Groter dan** of **Groter dan of gelijk aan** al voorbij zijn, omdat meer controles ze alleen verhogen; al het andere wacht op een vol venster.
+- **Een venster zonder controles.** Zolang het venster geen controles heeft, of nog niet vol is, beslist **Als geen gegevens**: **Ignore** wacht, **Trigger** komt overeen, en **Treat As Zero** beoordeelt het alsof de ontbrekende controles niet aan de voorwaarde voldeden.
+
+De gemiddelden en percentielen lezen de waarden van de controles van alle probes, zoals **Gemiddelde** altijd al deed. **Aantal**, **Percentage** en **Statuswijzigingen** worden aangeboden voor elk filter waarvoor een venster wordt aangeboden: bij Website-, API-, Ping-, IP- en Port-monitors, voor de CPU, het geheugen, de schijven en de belasting van een server, voor **SNMP-apparaat is online** en de reactietijd van een netwerkapparaat, en bij DNS-, NTP-, database-, externe-statuspagina- en probestatusmonitors. **Is online** van een servermonitor wordt niet geteld: dat wordt beoordeeld op de tijd sinds de server voor het laatst rapporteerde. Metrics- en andere telemetriemonitors beoordelen in plaats daarvan het tijdsbereik van hun query, met de eigen aggregatie van de query, die ook percentielen leest.
+
+### Voorbeeld: een access point dat uitvalt, en een dat instabiel is
+
+Een Ping-monitor controleert elke minuut een access point op kantoor. Voordat vensters controles konden tellen, leek een access point dat steeds wegviel op een dat uitgevallen was, of op niets. Deze drie criteria, in deze volgorde, houden de twee uit elkaar:
+
+| Criterium | Filter | Evalueren | Zet de status op |
+| --- | --- | --- | --- |
+| Access point is uitgevallen | **Is online** is **Onwaar** | **Alle waarden**, **Voor de laatste** 5 minuten | **Offline**, en meldt een storingsincident |
+| Access point is instabiel | **Is online** is **Onwaar** | **Statuswijzigingen**, **Groter dan** 5, **Voor de laatste** 1 uur | **Verminderd**, en meldt een instabiliteitsincident |
+| Access point is online | **Is online** is **Waar** | Niet over een periode | **Operationeel** |
+
+Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** aan met **Statuswijzigingen**, **Kleiner dan of gelijk aan** 1, **Voor de laatste** 1 uur: het instabiliteitsincident blijft open tot het access point een uur stabiel is geweest, in plaats van te sluiten in de eerste minuut dat het bereikbaar is. Om te waarschuwen als het in 8 uur meer dan 30 pings mist, stel je het tweede criterium in plaats daarvan in op **Aantal**, **Groter dan** 30, **Voor de laatste** 8 uur.
+
+## Wanneer een criterium herstelt
+
+Een criterium stopt met handelen zodra zijn filters niet meer overeenkomen: bij die controle worden zijn incident en waarschuwing opgelost, als **Incident automatisch oplossen** en **Waarschuwing automatisch oplossen** aan staan, en de monitor gaat naar het volgende criterium dat overeenkomt.
+
+**Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** houdt het criterium van kracht nadat zijn filters niet meer overeenkomen, tot de filters onder **Herstelt wanneer** overeenkomen. Ze beginnen als het tegendeel van de filters van het criterium, over de laatste 10 minuten, en kunnen alles gebruiken wat een filter biedt, zoals een venster dat controles telt. Een criterium is van kracht zolang de monitor de status heeft die het instelt, of een incident of waarschuwing open is die het heeft gemeld. Zolang het standhoudt, telt het als een overeenkomst op zijn plaats in de lijst: een criterium erboven dat overeenkomt, neemt het nog steeds over.
+
+Als geen criterium overeenkomt, behoudt een monitor die een criterium van zijn **Standaard monitorstatus** heeft gehaald zijn status, zolang hij ook een criterium heeft dat hem alleen naar die status terugbrengt en niets opent. Dat is de herstelmarge: de sjablonen gaan af boven 90% en komen terug bij 81% of minder, dus bij 89% blijft de monitor waar hij is. Zijn incidenten en waarschuwingen worden nog steeds opgelost wanneer hun eigen criterium niet meer overeenkomt. Een monitor zonder zo'n criterium gaat zoals altijd naar zijn **Standaard monitorstatus**.
+
+## Alleen op bepaalde dagen en tijden
+
+**Dit criterium alleen op bepaalde dagen en tijden beoordelen** stelt de dagen, **Starttijd** en **Eindtijd**, en **Tijdzone** in; de tijdzone begint als die van jou. Buiten die uren wordt het criterium overgeslagen zoals een uitgeschakeld criterium: het komt nergens mee overeen, dus wat het opende wordt opgelost, en het evaluatielogboek meldt dat het buiten zijn uren viel. De uren worden gelezen op de klok van die tijdzone, dus 08:00 blijft 08:00 na de klokwissel, en uren die eerder eindigen dan ze beginnen, lopen door tot de volgende ochtend.
 
 ## Wanneer incidenten en waarschuwingen openen en sluiten
 

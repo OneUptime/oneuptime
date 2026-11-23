@@ -5,13 +5,14 @@ En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe el
 :::cards
 - [Hur kriterier avgör](#hur-kriterier-avgör): Uppifrån och ned, och den första matchningen vinner.
 - [Vad ett kriterium innehåller](#vad-ett-kriterium-innehåller): Filter, ett matchningsvillkor, åtgärder och inställningar.
+- [Bedöma ett fönster av kontroller](#bedöma-ett-fönster-av-kontroller): Räkna misslyckade kontroller, upptäck instabilitet, läs av en percentil.
 - [Ändra en monitors kriterier](#ändra-en-monitors-kriterier): Redigera, lägg till, ordna om och testa kriterier.
 - [Monitorstatusar](#monitorstatusar): De inbyggda statusarna och dina egna statusar.
 :::
 
 ## Hur kriterier avgör
 
-Varje gång en monitor kontrolleras bedömer dess kriterier resultatet uppifrån och ned i listan. Det första kriteriet vars filter matchar avgör vad som händer, och kriterierna under det tittas inte på för den kontrollen. Om inget matchar går monitorn till sin **Standardstatus för övervakning**.
+Varje gång en monitor kontrolleras bedömer dess kriterier resultatet uppifrån och ned i listan. Det första kriteriet vars filter matchar avgör vad som händer, och kriterierna under det tittas inte på för den kontrollen. Om inget matchar går monitorn till sin **Standardstatus för övervakning**. Den behåller i stället sin status så länge ett kriterium som återställer den ännu inte har matchat: se [När ett kriterium återställs](#när-ett-kriterium-återställs).
 
 ```mermaid title="Hur varje kontroll bedöms"
 flowchart TB
@@ -30,7 +31,7 @@ Ordningen är en del av regeln. En ny monitor listar sina kriterier från det v�
 Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrollen: monitorn behåller sin status, och kriterierna under det väntar på nästa kontroll. **Standardstatus för övervakning** gäller bara när inget kriterium matchar. För en ny monitor är den **Fungerar**; ändra den under **Fler fält**, under kriterierna.
 
 > [!NOTE]
-> En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
+> En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En fråga skriven i PromQL räknas också. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
 >
 > En sådan monitor har ändå en enda status, som sätts av det första kriterium som matchar. Ett kriterium som bara tar tillbaka den till dess **Standardstatus för övervakning** och inte öppnar någon incident eller något larm väntar på värdarna som uppfyllde ett kriterium som sätter en annan status: det matchar när var och en av dem uppfyller det, oavsett vad de andra värdarna gör. Tills dess behåller monitorn sin status, även när inget kriterium matchar, medan varje värds incidenter och larm fortfarande löses var för sig.
 
@@ -43,7 +44,7 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 | **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och larm som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
 | **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och mätvärdesmonitorer kallar dem **Larmregler**. |
 | **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa ett larm, deklarera en incident eller någon kombination. |
-| **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning** och, på monitorer för inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
+| **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning**, när det återställs och när det utvärderas och, på övervakningar av inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
 
 ### Filter
 
@@ -51,7 +52,7 @@ Ett filter läser en sak från kontrollen och jämför den: en **Filtertyp** (va
 
 Från två filter och uppåt visas **Matchningsvillkor** under dem: **Alla** betyder att varje filter måste matcha, **Valfri** att ett räcker. Ett nytt kriterium börjar på **Alla**.
 
-Filter som mäter varje kontroll, som **Är online**, **Statuskod för svar** och **Svarstid (i ms)**, erbjuder **Utvärdera dessa kriterier över en tidsperiod**. Det bedömer ett fönster av senaste kontroller i stället för bara den senaste, och börjar på de senaste 5 minuterna med **Alla värden**, som matchar först när varje kontroll i fönstret har matchat. Se [Utvärdering över en tidsperiod](/docs/monitor/website-monitor#utvärdering-över-en-tidsperiod).
+Filter som mäter varje kontroll, som **Är online**, **Statuskod för svar** och **Svarstid (i ms)**, erbjuder **Utvärdera dessa kriterier över en tidsperiod**. Det bedömer ett fönster av senaste kontroller i stället för bara den senaste, och börjar på de senaste 5 minuterna med **Alla värden**, som matchar först när varje kontroll i fönstret har matchat. Fönstret kan vara upp till 24 timmar långt och räkna kontrollerna, som [Bedöma ett fönster av kontroller](#bedöma-ett-fönster-av-kontroller) förklarar. Se [Utvärdering över en tidsperiod](/docs/monitor/website-monitor#utvärdering-över-en-tidsperiod).
 
 ### Åtgärder
 
@@ -70,6 +71,54 @@ En incident eller ett larm frågar efter en titel, en **Allvarlighetsgrad** och,
 **Aktivera det här kriteriet** är påslaget för varje nytt kriterium. Stäng av det för att behålla ett kriterium utan att använda det: det hoppas över vid varje kontroll, ändrar ingen status, öppnar ingenting, och dess rubrik visar **Inaktiverad**.
 
 **Group incidents and alerts by a payload field** öppnar en incident per värde som hittas i en inkommande förfrågan, så att en enda webhook-adress kan hålla flera incidenter öppna. Se [Slå på incidentgruppering](/docs/monitor/incoming-request-monitor#aktivera-gruppering-av-incidenter).
+
+**Återställ bara när ett eget villkor är uppfyllt** och **Utvärdera det här kriteriet bara vissa dagar och tider** är avstängda för ett nytt kriterium. Se [När ett kriterium återställs](#när-ett-kriterium-återställs) och [Bara vissa dagar och tider](#bara-vissa-dagar-och-tider).
+
+## Bedöma ett fönster av kontroller
+
+Med **Utvärdera dessa kriterier över en tidsperiod** markerat anger **Utvärdera** hur fönstrets kontroller bedöms, och **Under de senaste** hur långt fönstret är, från 2 minuter till 24 timmar. Filtrets eget villkor, till exempel **Är online** satt till **Falskt**, säger vad varje kontroll måste visa.
+
+| Utvärdera | Matchar när |
+| --- | --- |
+| **Alla värden** | Varje kontroll i fönstret uppfyllde villkoret. |
+| **Minst ett värde** | Minst en kontroll i fönstret uppfyllde villkoret. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet av fönstrets värden uppfyller villkoret, till exempel en genomsnittlig svarstid över 300 ms. |
+| **Percentil** | Percentilen som valts under **Percentil**, från p50 till p99, uppfyller villkoret: p95 över 300 ms betyder att de långsammaste 5 % av kontrollerna ligger över 300 ms. |
+| **Antal** | Antalet kontroller som uppfyllde villkoret jämförs som angivet under **Kontroller som matchar**: till exempel **Större än** 30. |
+| **Procentandel** | Deras andel av fönstrets kontroller jämförs som angivet under **Andel kontroller som matchar**: till exempel **Större än** 10 %. |
+| **Statusbyten** | Antalet gånger kontrollerna växlade mellan att uppfylla villkoret och inte jämförs som angivet under **Antal byten**. En enhet som går ner och kommer upp igen växlar två gånger. |
+
+En mening under fönstrets inställningar återger filtret som det är inställt: ”Kontrollera: "Är online" är falskt vid fler än 30 kontroller under den senaste perioden på 8 timmar”.
+
+- **Varje probe för sig.** **Antal**, **Procentandel** och **Statusbyten** räknar kontrollerna från den probe som gjorde kontrollen, så en övervakning som kontrolleras från tre prober räknar inte tre gånger så snabbt, och dess prober måste sedan vara överens som för vilket kriterium som helst.
+- **Ett fönster som ännu inte är fullt.** Tills kontrollerna når tillbaka till fönstrets början har en övervakning som just startat färre kontroller än den kommer att ha. **Antal** och **Statusbyten** matchar tidigt när de redan är förbi **Större än** eller **Större än eller lika med**, eftersom fler kontroller bara ökar dem; allt annat väntar på ett fullt fönster.
+- **Ett fönster utan kontroller.** Så länge fönstret saknar kontroller, eller ännu inte är fullt, avgör **Om ingen data**: **Ignore** väntar, **Utlösare** matchar, och **Treat As Zero** bedömer det som om de saknade kontrollerna inte hade uppfyllt villkoret.
+
+Genomsnitt och percentiler läser värdena från alla probers kontroller, som **Genomsnitt** alltid har gjort. **Antal**, **Procentandel** och **Statusbyten** erbjuds för varje filter som erbjuds ett fönster: på Website-, API-, Ping-, IP- och Port-övervakningar, för en servers CPU, minne, diskar och last, för en nätverksenhets **SNMP-enhet är online** och svarstid, samt på DNS-, NTP-, databas-, externa statussid- och probestatusövervakningar. En Server-övervaknings **Är online** räknas inte: den bedöms efter tiden sedan servern senast rapporterade. Metrics- och andra telemetriövervakningar bedömer i stället tidsintervallet för sin fråga, med frågans egen aggregering, som också läser percentiler.
+
+### Exempel: en åtkomstpunkt som är nere, och en som är instabil
+
+En Ping-övervakning kontrollerar en åtkomstpunkt på kontoret varje minut. Innan fönster kunde räkna kontroller såg en åtkomstpunkt som hela tiden föll bort ut som en som var nere, eller som ingenting alls. Dessa tre kriterier, i den här ordningen, skiljer de två åt:
+
+| Kriterium | Filter | Utvärdera | Ändrar statusen till |
+| --- | --- | --- | --- |
+| Åtkomstpunkten är nere | **Är online** är **Falskt** | **Alla värden**, **Under de senaste** 5 minuter | **Offline**, och deklarerar en avbrottsincident |
+| Åtkomstpunkten är instabil | **Är online** är **Falskt** | **Statusbyten**, **Större än** 5, **Under de senaste** 1 timme | **Försämrad**, och deklarerar en instabilitetsincident |
+| Åtkomstpunkten är online | **Är online** är **Sant** | Inte över en tidsperiod | **Fungerar** |
+
+För det andra slår du på **Återställ bara när ett eget villkor är uppfyllt** med **Statusbyten**, **Mindre än eller lika med** 1, **Under de senaste** 1 timme: instabilitetsincidenten förblir öppen tills åtkomstpunkten har varit stabil i en timme, i stället för att stängas den första minuten den är uppe. För att larma när den missar mer än 30 ping på 8 timmar ställer du i stället in det andra kriteriet på **Antal**, **Större än** 30, **Under de senaste** 8 timmar.
+
+## När ett kriterium återställs
+
+Ett kriterium slutar verka så snart dess filter slutar matcha: vid den kontrollen löses dess incident och larm, när **Lös incident automatiskt** och **Lös larm automatiskt** är påslagna, och övervakningen går vidare till nästa kriterium som matchar.
+
+**Återställ bara när ett eget villkor är uppfyllt** håller kriteriet i kraft efter att dess filter slutar matcha, tills filtren under **Återställs när** matchar. De börjar som motsatsen till kriteriets filter, över de senaste 10 minuterna, och kan använda allt ett filter erbjuder, till exempel ett fönster som räknar kontroller. Ett kriterium är i kraft så länge övervakningen har den status det sätter eller en incident eller ett larm som det deklarerade är öppet. Medan det håller är det en matchning på sin plats i listan: ett kriterium ovanför som matchar tar ändå över.
+
+När inget kriterium matchar behåller en övervakning som ett kriterium har flyttat från dess **Standardstatus för övervakning** den status den har, så länge den också har ett kriterium som bara för tillbaka den till den statusen och inte öppnar något. Det är återställningsmarginalen: mallarna utlöses över 90 % och kommer tillbaka vid 81 % eller lägre, så vid 89 % stannar övervakningen där den är. Dess incidenter och larm löses ändå när deras eget kriterium slutar matcha. En övervakning utan ett sådant kriterium går till sin **Standardstatus för övervakning**, som den alltid har gjort.
+
+## Bara vissa dagar och tider
+
+**Utvärdera det här kriteriet bara vissa dagar och tider** anger dagarna, **Starttid** och **Sluttid** samt **Tidszon**, som börjar som din. Utanför de tiderna hoppas kriteriet över som ett inaktiverat kriterium: det matchar ingenting, så det som det öppnade löses, och utvärderingsloggen säger att det var utanför sina tider. Tiderna läses på den tidszonens klocka, så 08:00 förblir 08:00 när klockan ställs om, och tider som slutar tidigare än de börjar fortsätter in i nästa morgon.
 
 ## När incidenter och larm öppnas och stängs
 

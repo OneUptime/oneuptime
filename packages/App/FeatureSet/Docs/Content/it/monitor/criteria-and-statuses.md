@@ -5,13 +5,14 @@ I criteri di un monitor decidono cosa significa ogni controllo: se il monitor è
 :::cards
 - [Come decidono i criteri](#come-decidono-i-criteri): Dall'alto verso il basso, e vince la prima corrispondenza.
 - [Cosa contiene un criterio](#cosa-contiene-un-criterio): Filtri, una condizione di corrispondenza, azioni e impostazioni.
+- [Giudicare una finestra di controlli](#giudicare-una-finestra-di-controlli): Contare i controlli falliti, individuare l'instabilità, leggere un percentile.
 - [Modificare i criteri di un monitor](#modificare-i-criteri-di-un-monitor): Modificare, aggiungere, riordinare e testare i criteri.
 - [Stati dei monitor](#stati-dei-monitor): Gli stati integrati e gli stati personalizzati.
 :::
 
 ## Come decidono i criteri
 
-Ogni volta che un monitor viene controllato, i suoi criteri giudicano il risultato dall'alto dell'elenco verso il basso. Il primo criterio i cui filtri corrispondono decide cosa succede, e i criteri sottostanti non vengono considerati per quel controllo. Se nessuno corrisponde, il monitor passa al suo **Stato predefinito del monitor**.
+Ogni volta che un monitor viene controllato, i suoi criteri giudicano il risultato dall'alto dell'elenco verso il basso. Il primo criterio i cui filtri corrispondono decide cosa succede, e i criteri sottostanti non vengono considerati per quel controllo. Se nessuno corrisponde, il monitor passa al suo **Stato predefinito del monitor**. Mantiene invece il suo stato finché un criterio che lo riporta indietro non ha ancora corrisposto: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
 
 ```mermaid title="Come viene giudicato ogni controllo"
 flowchart TB
@@ -30,7 +31,7 @@ L'ordine fa parte della regola. Un nuovo monitor elenca i suoi criteri dal caso 
 Un criterio che corrisponde ma non cambia alcuno stato decide comunque il controllo: il monitor mantiene il suo stato, e i criteri sottostanti attendono il controllo successivo. Lo **Stato predefinito del monitor** si applica solo quando nessun criterio corrisponde. Per un nuovo monitor è **Operativo**; modificatelo sotto **Altri campi**, sotto i criteri.
 
 > [!NOTE]
-> Un monitor che apre un incidente o un avviso per ogni host, container, disco o interfaccia giudica tutti i criteri a ogni controllo, così due host possono corrispondere a due criteri diversi contemporaneamente. È un monitor la cui query ha un **Raggruppa per**, come un monitor di metriche o di log, oppure un criterio che indica `*` per ogni disco o interfaccia. Un monitor di richieste in ingresso che raggruppa gli incidenti per un campo del payload si ferma comunque alla prima corrispondenza.
+> Un monitor che apre un incidente o un avviso per ogni host, container, disco o interfaccia giudica tutti i criteri a ogni controllo, così due host possono corrispondere a due criteri diversi contemporaneamente. È un monitor la cui query ha un **Raggruppa per**, come un monitor di metriche o di log, oppure un criterio che indica `*` per ogni disco o interfaccia. Vale anche per una query scritta in PromQL. Un monitor di richieste in ingresso che raggruppa gli incidenti per un campo del payload si ferma comunque alla prima corrispondenza.
 >
 > Un monitor del genere ha comunque un solo stato, impostato dal primo criterio che corrisponde. Un criterio che lo riporta soltanto al suo **Stato predefinito del monitor**, senza aprire incidenti né avvisi, attende gli host che hanno soddisfatto un criterio che imposta un altro stato: corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri host. Fino ad allora il monitor mantiene il suo stato, anche quando nessun criterio corrisponde, mentre gli incidenti e gli avvisi di ogni host continuano a risolversi ciascuno per conto proprio.
 
@@ -43,7 +44,7 @@ Aprite un criterio: ha un nome e tre sezioni, ognuna delle quali si chiude in un
 | **Nome dei criteri** | Il nome nell'elenco dei criteri e nella causa principale di ogni incidente e avviso che il criterio apre. **Aggiungi criteri** dà a un nuovo criterio il nome dei suoi filtri, e il nome li segue finché non ne digitate uno vostro. |
 | **Filtri** | Ciò che il controllo deve mostrare, come uno o più filtri. I monitor Kubernetes e di metriche li chiamano **Regole degli avvisi**. |
 | **Azioni** | Cosa succede quando i filtri corrispondono: cambiare lo stato, creare un avviso, dichiarare un incidente o qualsiasi combinazione. |
-| **Impostazioni** | **Abilita questi criteri**, una **Descrizione** facoltativa e, sui monitor di richieste in ingresso, **Group incidents and alerts by a payload field**. |
+| **Impostazioni** | **Abilita questi criteri**, una **Descrizione** facoltativa, quando si ripristina e quando viene giudicato e, sui monitor delle richieste in arrivo, **Group incidents and alerts by a payload field**. |
 
 ### Filtri
 
@@ -51,7 +52,7 @@ Un filtro legge un dato dal controllo e lo confronta: un **Tipo di filtro** (cos
 
 Con due o più filtri, sotto di essi compare la **Condizione di corrispondenza**: **Tutti** significa che ogni filtro deve corrispondere, **Qualsiasi** che ne basta uno. Un nuovo criterio parte da **Tutti**.
 
-I filtri che misurano ogni controllo, come **Online**, **Codice di stato della risposta** e **Tempo di risposta (in ms)**, offrono **Valuta questo criterio su un periodo di tempo**. Giudica una finestra di controlli recenti invece del solo ultimo, e parte dagli ultimi 5 minuti con **Tutti i valori**, che corrisponde solo quando ogni controllo della finestra ha corrisposto. Vedere [Valutare su un periodo di tempo](/docs/monitor/website-monitor#valutare-su-un-periodo-di-tempo).
+I filtri che misurano ogni controllo, come **Online**, **Codice di stato della risposta** e **Tempo di risposta (in ms)**, offrono **Valuta questo criterio su un periodo di tempo**. Giudica una finestra di controlli recenti invece del solo ultimo, e parte dagli ultimi 5 minuti con **Tutti i valori**, che corrisponde solo quando ogni controllo della finestra ha corrisposto. La finestra può durare fino a 24 ore e contare i controlli, come spiega [Giudicare una finestra di controlli](#giudicare-una-finestra-di-controlli). Vedere [Valutare su un periodo di tempo](/docs/monitor/website-monitor#valutare-su-un-periodo-di-tempo).
 
 ### Azioni
 
@@ -70,6 +71,54 @@ Un incidente o un avviso chiede un titolo, una **Gravità** e, nelle sezioni chi
 **Abilita questi criteri** è attivo per ogni nuovo criterio. Disattivatelo per tenere un criterio senza usarlo: viene saltato a ogni controllo, non cambia alcuno stato, non apre nulla e la sua intestazione mostra **Disabilitato**.
 
 **Group incidents and alerts by a payload field** apre un incidente per ogni valore trovato in una richiesta in ingresso, così un unico indirizzo di webhook può tenere aperti più incidenti. Vedere [Attivare il raggruppamento degli incidenti](/docs/monitor/incoming-request-monitor#attivare-il-raggruppamento-degli-incidenti).
+
+**Ripristina solo quando è soddisfatta una condizione propria** e **Valuta questi criteri solo in determinati giorni e orari** sono disattivati per un nuovo criterio. Vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina) e [Solo in certi giorni e orari](#solo-in-certi-giorni-e-orari).
+
+## Giudicare una finestra di controlli
+
+Con **Valuta questo criterio su un periodo di tempo** selezionato, **Valuta** dice come vengono giudicati i controlli della finestra, e **Nell'ultimo periodo di** quanto è lunga la finestra, da 2 minuti a 24 ore. La condizione del filtro stesso, come **Online** impostato su **Falso**, dice cosa deve mostrare ogni controllo.
+
+| Valuta | Corrisponde quando |
+| --- | --- |
+| **Tutti i valori** | Ogni controllo della finestra ha soddisfatto la condizione. |
+| **Qualsiasi valore** | Almeno un controllo della finestra ha soddisfatto la condizione. |
+| **Media**, **Somma**, **Valore massimo**, **Valore minimo** | Quel valore, calcolato sui valori della finestra, soddisfa la condizione, come un tempo di risposta medio sopra i 300 ms. |
+| **Percentile** | Il percentile scelto in **Percentile**, da p50 a p99, soddisfa la condizione: p95 sopra i 300 ms significa che il 5% più lento dei controlli supera i 300 ms. |
+| **Conteggio** | Il numero di controlli che hanno soddisfatto la condizione si confronta come impostato in **Controlli corrispondenti**: **Maggiore di** 30, ad esempio. |
+| **Percentuale** | La loro quota sui controlli della finestra si confronta come impostato in **Quota di controlli corrispondenti**: **Maggiore di** 10%, ad esempio. |
+| **Cambi di stato** | Il numero di volte in cui i controlli sono passati dal soddisfare la condizione al non soddisfarla, o viceversa, si confronta come impostato in **Volte che è cambiato**. Un dispositivo che cade e torna su cambia due volte. |
+
+Una frase sotto le impostazioni della finestra rilegge il filtro così come è impostato: «Verifica se "Online" è falso in più di 30 controlli dell'ultimo periodo di 8 ore».
+
+- **Ogni sonda per conto suo.** **Conteggio**, **Percentuale** e **Cambi di stato** contano i controlli della sonda che ha eseguito il controllo, quindi un monitor controllato da tre sonde non conta tre volte più in fretta, e le sue sonde devono poi concordare come per qualsiasi criterio.
+- **Una finestra non ancora piena.** Finché i controlli non risalgono all'inizio della finestra, un monitor appena avviato ha meno controlli di quanti ne avrà. **Conteggio** e **Cambi di stato** corrispondono in anticipo quando superano già **Maggiore di** o **Maggiore o uguale a**, perché altri controlli possono solo aumentarli; tutto il resto attende una finestra piena.
+- **Una finestra senza controlli.** Finché la finestra non ha controlli, o non è ancora piena, decide **Se nessun dato**: **Ignore** attende, **Trigger** corrisponde, e **Treat As Zero** la giudica come se i controlli mancanti non avessero soddisfatto la condizione.
+
+Le medie e i percentili leggono i valori dei controlli di tutte le sonde, come **Media** ha sempre fatto. **Conteggio**, **Percentuale** e **Cambi di stato** sono offerti per ogni filtro a cui è offerta una finestra: sui monitor Website, API, Ping, IP e Port, per CPU, memoria, dischi e carico di un server, per **Dispositivo SNMP online** e il tempo di risposta di un dispositivo di rete, e sui monitor DNS, NTP, di database, di pagina di stato esterna e di stato delle sonde. **Online** di un monitor di server non viene contato: è giudicato in base al tempo trascorso dall'ultima segnalazione del server. I monitor di metriche e gli altri monitor di telemetria giudicano invece l'intervallo di tempo della loro query, con l'aggregazione propria della query, che legge anche i percentili.
+
+### Esempio: un access point fuori servizio e uno instabile
+
+Un monitor Ping controlla ogni minuto un access point d'ufficio. Prima che le finestre potessero contare i controlli, un access point che continuava a cadere sembrava uno fuori servizio, oppure niente di strano. Questi tre criteri, in questo ordine, distinguono i due casi:
+
+| Criterio | Filtro | Valuta | Cambia lo stato in |
+| --- | --- | --- | --- |
+| L'access point è fuori servizio | **Online** è **Falso** | **Tutti i valori**, **Nell'ultimo periodo di** 5 minuti | **Offline**, e dichiara un incidente di interruzione |
+| L'access point è instabile | **Online** è **Falso** | **Cambi di stato**, **Maggiore di** 5, **Nell'ultimo periodo di** 1 ora | **Degradato**, e dichiara un incidente di instabilità |
+| L'access point è online | **Online** è **Vero** | Non su un periodo di tempo | **Operativo** |
+
+Per il secondo, attiva **Ripristina solo quando è soddisfatta una condizione propria** con **Cambi di stato**, **Minore o uguale a** 1, **Nell'ultimo periodo di** 1 ora: l'incidente di instabilità resta aperto finché l'access point non è stabile da un'ora, invece di chiudersi il primo minuto in cui risponde. Per ricevere un avviso quando fallisce più di 30 ping in 8 ore, imposta invece il secondo criterio su **Conteggio**, **Maggiore di** 30, **Nell'ultimo periodo di** 8 ore.
+
+## Quando un criterio si ripristina
+
+Un criterio smette di agire non appena i suoi filtri smettono di corrispondere: in quel controllo il suo incidente e il suo avviso si risolvono, quando **Risoluzione automatica dell'incidente** e **Risoluzione automatica dell'avviso** sono attivi, e il monitor passa al criterio successivo che corrisponde.
+
+**Ripristina solo quando è soddisfatta una condizione propria** mantiene il criterio in vigore dopo che i suoi filtri smettono di corrispondere, finché non corrispondono i filtri sotto **Si ripristina quando**. Partono come l'opposto dei filtri del criterio, negli ultimi 10 minuti, e possono usare tutto ciò che offre un filtro, come una finestra che conta i controlli. Un criterio è in vigore finché il monitor ha lo stato che imposta o è aperto un incidente o un avviso che ha dichiarato. Finché resta in vigore, conta come una corrispondenza al suo posto nell'elenco: un criterio sopra di esso che corrisponde prende comunque il sopravvento.
+
+Quando nessun criterio corrisponde, un monitor che un criterio ha spostato dal suo **Stato predefinito del monitor** mantiene lo stato che ha, purché abbia anche un criterio che lo riporti soltanto a quello stato senza aprire nulla. È il margine di ripristino: i modelli scattano sopra il 90% e tornano all'81% o meno, quindi all'89% il monitor resta dov'è. I suoi incidenti e avvisi si risolvono comunque quando il loro criterio smette di corrispondere. Un monitor senza un criterio del genere passa al suo **Stato predefinito del monitor**, come sempre.
+
+## Solo in certi giorni e orari
+
+**Valuta questi criteri solo in determinati giorni e orari** imposta i giorni, **Ora di inizio** e **Ora di fine**, e **Fuso orario**, che parte dal tuo. Fuori da quegli orari il criterio viene saltato come un criterio disattivato: non corrisponde a nulla, quindi ciò che ha aperto si risolve, e il registro di valutazione indica che era fuori dai suoi orari. Gli orari si leggono sull'orologio di quel fuso orario, quindi le 08:00 restano le 08:00 dopo il cambio dell'ora, e gli orari che finiscono prima di iniziare proseguono fino al mattino seguente.
 
 ## Quando incidenti e avvisi si aprono e si chiudono
 

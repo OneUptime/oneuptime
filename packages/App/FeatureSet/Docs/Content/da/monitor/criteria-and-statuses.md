@@ -5,13 +5,14 @@ En monitors kriterier afgør, hvad hver kontrol betyder: om monitoren er oppe el
 :::cards
 - [Sådan afgør kriterierne](#sådan-afgør-kriterierne): Oppefra og ned, og det første match vinder.
 - [Hvad et kriterium indeholder](#hvad-et-kriterium-indeholder): Filtre, en matchbetingelse, handlinger og indstillinger.
+- [Bedømme et vindue af kontroller](#bedømme-et-vindue-af-kontroller): Tæl mislykkede kontroller, opdag ustabilitet, aflæs en percentil.
 - [Ændr en monitors kriterier](#ændr-en-monitors-kriterier): Rediger, tilføj, omorganiser og test kriterier.
 - [Monitorstatusser](#monitorstatusser): De indbyggede statusser og dine egne statusser.
 :::
 
 ## Sådan afgør kriterierne
 
-Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker, og kriterierne under det bliver ikke set på ved den kontrol. Matcher intet, går monitoren til sin **Standardstatus for monitor**.
+Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker, og kriterierne under det bliver ikke set på ved den kontrol. Matcher intet, går monitoren til sin **Standardstatus for monitor**. Den beholder i stedet sin status, så længe et kriterium, der bringer den tilbage, endnu ikke har matchet: se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes).
 
 ```mermaid title="Sådan vurderes hver kontrol"
 flowchart TB
@@ -30,7 +31,7 @@ Rækkefølgen er en del af reglen. En ny monitor viser sine kriterier fra det v�
 Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontrollen: monitoren beholder sin status, og kriterierne under det venter på næste kontrol. **Standardstatus for monitor** gælder kun, når intet kriterium matcher. For en ny monitor er den **I drift**; skift den under **Flere felter** under kriterierne.
 
 > [!NOTE]
-> En monitor, der åbner en hændelse eller en advarsel pr. vært, container, disk eller interface, vurderer alle kriterier ved hver kontrol, så to værter kan matche to forskellige kriterier på samme tid. Det er en monitor, hvis forespørgsel har en **Gruppér efter**, som en metrik- eller logmonitor, eller et kriterium, der angiver `*` for hver disk eller hvert interface. En monitor for indgående anmodninger, der grupperer hændelser efter et payload-felt, stopper stadig ved det første match.
+> En monitor, der åbner en hændelse eller en advarsel pr. vært, container, disk eller interface, vurderer alle kriterier ved hver kontrol, så to værter kan matche to forskellige kriterier på samme tid. Det er en monitor, hvis forespørgsel har en **Gruppér efter**, som en metrik- eller logmonitor, eller et kriterium, der angiver `*` for hver disk eller hvert interface. En forespørgsel skrevet i PromQL tæller også. En monitor for indgående anmodninger, der grupperer hændelser efter et payload-felt, stopper stadig ved det første match.
 >
 > En sådan monitor har stadig én status, der sættes af det første kriterium, der matcher. Et kriterium, der kun bringer den tilbage til dens **Standardstatus for monitor** og ikke åbner nogen hændelse eller advarsel, venter på de værter, der opfyldte et kriterium, som satte en anden status: det matcher, når hver af dem opfylder det, uanset hvad de andre værter gør. Indtil da beholder monitoren sin status, selv når intet kriterium matcher, mens hver værts hændelser og advarsler stadig løses hver for sig.
 
@@ -43,7 +44,7 @@ Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontroll
 | **Kriterienavn** | Navnet i listen over kriterier og i grundårsagen til hver hændelse og advarsel, som kriteriet åbner. **Tilføj kriterier** navngiver et nyt kriterium efter dets filtre, og navnet følger dem, indtil du skriver dit eget. |
 | **Filtre** | Hvad kontrollen skal vise, som et eller flere filtre. Kubernetes- og metrikmonitorer kalder dem **Advarselsregler**. |
 | **Handlinger** | Hvad der sker, når filtrene matcher: skift status, opret en advarsel, erklær en hændelse eller en kombination. |
-| **Indstillinger** | **Aktivér disse kriterier**, en valgfri **Beskrivelse** og, på monitorer for indgående anmodninger, **Group incidents and alerts by a payload field**. |
+| **Indstillinger** | **Aktivér disse kriterier**, en valgfri **Beskrivelse**, hvornår det gendannes, og hvornår det evalueres, og, på monitorer for indgående forespørgsler, **Group incidents and alerts by a payload field**. |
 
 ### Filtre
 
@@ -51,7 +52,7 @@ Et filter læser én ting fra kontrollen og sammenligner den: en **Filtertype** 
 
 Fra to filtre og opefter vises **Matchbetingelse** under dem: **Alle** betyder, at hvert filter skal matche, **Enhver**, at ét er nok. Et nyt kriterium starter på **Alle**.
 
-Filtre, der måler hver kontrol, som **Er online**, **Svarstatuskode** og **Svartid (i ms)**, tilbyder **Evaluér disse kriterier over en periode**. Det vurderer et vindue af nylige kontroller i stedet for kun den seneste og starter på de seneste 5 minutter med **Alle værdier**, som først matcher, når hver kontrol i vinduet har matchet. Se [Evaluering over en periode](/docs/monitor/website-monitor#evaluering-over-en-periode).
+Filtre, der måler hver kontrol, som **Er online**, **Svarstatuskode** og **Svartid (i ms)**, tilbyder **Evaluér disse kriterier over en periode**. Det vurderer et vindue af nylige kontroller i stedet for kun den seneste og starter på de seneste 5 minutter med **Alle værdier**, som først matcher, når hver kontrol i vinduet har matchet. Vinduet kan være op til 24 timer langt og tælle kontrollerne, som [Bedømme et vindue af kontroller](#bedømme-et-vindue-af-kontroller) forklarer. Se [Evaluering over en periode](/docs/monitor/website-monitor#evaluering-over-en-periode).
 
 ### Handlinger
 
@@ -70,6 +71,54 @@ En hændelse eller en advarsel beder om en titel, en **Alvorlighed** og, sammenk
 **Aktivér disse kriterier** er slået til for hvert nyt kriterium. Slå det fra for at beholde et kriterium uden at bruge det: det springes over ved hver kontrol, ændrer ingen status, åbner intet, og dets overskrift viser **Deaktiveret**.
 
 **Group incidents and alerts by a payload field** åbner én hændelse pr. værdi fundet i en indgående anmodning, så én webhook-adresse kan holde flere hændelser åbne. Se [Slå hændelsesgruppering til](/docs/monitor/incoming-request-monitor#slå-gruppering-af-hændelser-til).
+
+**Gendan kun, når en egen betingelse er opfyldt** og **Evaluér kun disse kriterier på bestemte dage og tidspunkter** er slået fra for et nyt kriterium. Se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes) og [Kun på bestemte dage og tidspunkter](#kun-på-bestemte-dage-og-tidspunkter).
+
+## Bedømme et vindue af kontroller
+
+Med **Evaluér disse kriterier over en periode** markeret angiver **Evaluér**, hvordan vinduets kontroller bedømmes, og **For de seneste**, hvor langt vinduet er, fra 2 minutter til 24 timer. Filterets egen betingelse, for eksempel **Er online** sat til **Falsk**, siger, hvad hver kontrol skal vise.
+
+| Evaluér | Matcher, når |
+| --- | --- |
+| **Alle værdier** | Hver kontrol i vinduet opfyldte betingelsen. |
+| **Vilkårlig værdi** | Mindst én kontrol i vinduet opfyldte betingelsen. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi af vinduets værdier opfylder betingelsen, for eksempel en gennemsnitlig svartid over 300 ms. |
+| **Percentil** | Den percentil, der er valgt under **Percentil**, fra p50 til p99, opfylder betingelsen: p95 over 300 ms betyder, at de langsomste 5 % af kontrollerne ligger over 300 ms. |
+| **Antal** | Antallet af kontroller, der opfyldte betingelsen, sammenlignes som angivet under **Kontroller, der matcher**: for eksempel **Større end** 30. |
+| **Procentdel** | Deres andel af vinduets kontroller sammenlignes som angivet under **Andel af kontroller, der matcher**: for eksempel **Større end** 10 %. |
+| **Statusskift** | Antallet af gange, kontrollerne skiftede mellem at opfylde betingelsen og ikke at opfylde den, sammenlignes som angivet under **Antal skift**. En enhed, der går ned og kommer op igen, skifter to gange. |
+
+En sætning under vinduets indstillinger gengiver filteret, som det er indstillet: »Tjek: "Er online" er falsk ved flere end 30 kontroller i den seneste periode på 8 timer«.
+
+- **Hver probe for sig.** **Antal**, **Procentdel** og **Statusskift** tæller kontrollerne fra den probe, der udførte kontrollen, så en monitor, der kontrolleres fra tre prober, tæller ikke tre gange så hurtigt, og dens prober skal derefter være enige som for ethvert kriterium.
+- **Et vindue, der endnu ikke er fuldt.** Indtil kontrollerne når tilbage til vinduets start, har en monitor, der lige er startet, færre kontroller, end den vil få. **Antal** og **Statusskift** matcher tidligt, når de allerede er forbi **Større end** eller **Større end eller lig med**, da flere kontroller kun øger dem; alt andet venter på et fuldt vindue.
+- **Et vindue uden kontroller.** Så længe vinduet ikke har nogen kontroller eller endnu ikke er fuldt, afgør **Hvis ingen data**: **Ignore** venter, **Trigger** matcher, og **Treat As Zero** bedømmer det, som om de manglende kontroller ikke havde opfyldt betingelsen.
+
+Gennemsnit og percentiler læser værdierne fra alle probers kontroller, som **Gennemsnit** altid har gjort. **Antal**, **Procentdel** og **Statusskift** tilbydes for hvert filter, der tilbydes et vindue: på Website-, API-, Ping-, IP- og Port-monitorer, for en servers CPU, hukommelse, diske og belastning, for en netværksenheds **SNMP-enhed er online** og svartid samt på DNS-, NTP-, database-, eksterne statusside- og probestatus-monitorer. En Server-monitors **Er online** tælles ikke: den bedømmes på tiden siden serverens seneste rapport. Metrics- og andre telemetrimonitorer bedømmer i stedet tidsintervallet for deres forespørgsel med forespørgslens egen aggregering, som også læser percentiler.
+
+### Eksempel: et adgangspunkt, der er nede, og et, der er ustabilt
+
+En Ping-monitor kontrollerer et adgangspunkt på kontoret hvert minut. Før vinduer kunne tælle kontroller, lignede et adgangspunkt, der blev ved med at falde ud, et, der var nede, eller slet ingenting. Disse tre kriterier, i denne rækkefølge, skelner mellem de to:
+
+| Kriterium | Filter | Evaluér | Ændrer status til |
+| --- | --- | --- | --- |
+| Adgangspunktet er nede | **Er online** er **Falsk** | **Alle værdier**, **For de seneste** 5 minutter | **Offline**, og erklærer en nedbrudshændelse |
+| Adgangspunktet er ustabilt | **Er online** er **Falsk** | **Statusskift**, **Større end** 5, **For de seneste** 1 time | **Forringet**, og erklærer en ustabilitetshændelse |
+| Adgangspunktet er online | **Er online** er **Sand** | Ikke over en periode | **I drift** |
+
+For det andet skal du slå **Gendan kun, når en egen betingelse er opfyldt** til med **Statusskift**, **Mindre end eller lig med** 1, **For de seneste** 1 time: ustabilitetshændelsen forbliver åben, indtil adgangspunktet har været stabilt i en time, i stedet for at lukke det første minut, det er oppe. For at advare, når det fejler mere end 30 ping på 8 timer, skal du i stedet sætte det andet kriterium til **Antal**, **Større end** 30, **For de seneste** 8 timer.
+
+## Hvornår et kriterium gendannes
+
+Et kriterium holder op med at virke, så snart dets filtre holder op med at matche: ved den kontrol løses dets hændelse og alarm, når **Løs hændelse automatisk** og **Løs advarsel automatisk** er slået til, og monitoren går videre til det næste kriterium, der matcher.
+
+**Gendan kun, når en egen betingelse er opfyldt** holder kriteriet gældende, efter at dets filtre holder op med at matche, indtil filtrene under **Gendannes når** matcher. De starter som det modsatte af kriteriets filtre, over de seneste 10 minutter, og kan bruge alt, hvad et filter tilbyder, for eksempel et vindue, der tæller kontroller. Et kriterium er gældende, så længe monitoren har den status, det sætter, eller en hændelse eller alarm, det har erklæret, er åben. Mens det holder, er det et match på sin plads i listen: et kriterium over det, der matcher, overtager stadig.
+
+Når intet kriterium matcher, beholder en monitor, som et kriterium har flyttet væk fra dens **Standardstatus for monitor**, den status, den har, så længe den også har et kriterium, der kun bringer den tilbage til den status og ikke åbner noget. Det er gendannelsesmarginen: skabelonerne udløses over 90 % og vender tilbage ved 81 % eller derunder, så ved 89 % bliver monitoren, hvor den er. Dens hændelser og alarmer løses stadig, når deres eget kriterium holder op med at matche. En monitor uden et sådant kriterium går til sin **Standardstatus for monitor**, som den altid har gjort.
+
+## Kun på bestemte dage og tidspunkter
+
+**Evaluér kun disse kriterier på bestemte dage og tidspunkter** angiver dagene, **Starttidspunkt** og **Sluttidspunkt** samt **Tidszone**, som starter som din. Uden for disse tider springes kriteriet over som et deaktiveret kriterium: det matcher intet, så det, det åbnede, løses, og evalueringsloggen siger, at det var uden for sine tider. Tiderne læses på den tidszones ur, så 08:00 forbliver 08:00, når uret stilles, og tider, der slutter tidligere, end de starter, løber ind i næste morgen.
 
 ## Hvornår hændelser og advarsler åbner og lukker
 

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62240,
+    "keys": 62347,
     "untranslated": 8322
   },
   "sameAsEnglish": [
@@ -368,6 +368,7 @@
     "Payload",
     "Pebibytes",
     "Peer",
+    "Percentage",
     "Persistent volume claims",
     "Persistent volumes",
     "Petabytes",
