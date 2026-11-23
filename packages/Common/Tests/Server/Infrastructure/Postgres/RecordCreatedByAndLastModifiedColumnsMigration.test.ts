@@ -109,6 +109,11 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityBlocklistFeedFetch",
     migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
   },
+  // What OneUptime AI did and asked on a case it works (#10352).
+  {
+    table: "SecurityCaseAiAction",
+    migration: "1809187452000-AddSecurityCaseAiResponse.ts",
+  },
   // Automatic response's policies, and what each did (#10350).
   {
     table: "SecurityAutomaticResponsePolicy",
