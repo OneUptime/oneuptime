@@ -1,5 +1,7 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorLogUrl from "../MonitorLogUrl";
 import logger from "Common/Server/Utils/Logger";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import Sleep from "Common/Types/Sleep";
@@ -157,6 +159,32 @@ export default class ExternalStatusPageMonitorUtil {
       error instanceof BadDataException ||
       ExternalStatusPageMonitorUtil.isTimeoutError(error)
     );
+  }
+
+  /*
+   * An error as the check's failure cause says it, every URL in it by its
+   * scheme, host and port alone (#10785): the server filled the monitor's
+   * secrets into the page's URL, and the cause is shown to everyone who
+   * can read the monitor. A refusal quotes an address that is no URL
+   * whole, so the page's URL - every address the check asks begins with
+   * it - is found exactly first.
+   */
+  public static writeFailureCause(
+    config: MonitorStepExternalStatusPageMonitor,
+    error: unknown,
+  ): string {
+    return MonitorUrlInText.writeUrls(
+      (error as Error)?.message || String(error),
+      [config.statusPageUrl],
+    );
+  }
+
+  // The same, for a log line (#10782).
+  public static writeErrorForLog(
+    config: MonitorStepExternalStatusPageMonitor,
+    error: unknown,
+  ): string {
+    return MonitorLogUrl.scrub(String(error), [config.statusPageUrl]);
   }
 
   private static async readBudgetedResponseBody(
@@ -342,7 +370,7 @@ export default class ExternalStatusPageMonitorUtil {
       options as ExternalStatusPageQueryOptionsWithExecutionContext;
 
     logger.debug(
-      `External Status Page Query: ${options?.monitorId?.toString()} ${config.statusPageUrl} - Retry: ${options?.currentRetryCount}`,
+      `External Status Page Query: ${options?.monitorId?.toString()} ${MonitorLogUrl.write(config.statusPageUrl)} - Retry: ${options?.currentRetryCount}`,
     );
 
     const startTime: [number, number] = process.hrtime();
@@ -496,15 +524,15 @@ export default class ExternalStatusPageMonitorUtil {
       }
 
       logger.debug(
-        `External Status Page Query success: ${options?.monitorId?.toString()} ${config.statusPageUrl} - Response Time: ${responseTimeInMs}ms`,
+        `External Status Page Query success: ${options?.monitorId?.toString()} ${MonitorLogUrl.write(config.statusPageUrl)} - Response Time: ${responseTimeInMs}ms`,
       );
 
       return response;
     } catch (err: unknown) {
       logger.debug(
-        `External Status Page Query error: ${options?.monitorId?.toString()} ${config.statusPageUrl}`,
+        `External Status Page Query error: ${options?.monitorId?.toString()} ${MonitorLogUrl.write(config.statusPageUrl)}`,
       );
-      logger.debug(err);
+      logger.debug(ExternalStatusPageMonitorUtil.writeErrorForLog(config, err));
 
       if (!options) {
         options = {};
@@ -530,7 +558,7 @@ export default class ExternalStatusPageMonitorUtil {
         responseReceivedAt,
         responseTimeInMs,
         isOnline: false,
-        failureCause: (err as Error).message || (err as Error).toString(),
+        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(config, err),
       });
 
       if (
@@ -572,7 +600,7 @@ export default class ExternalStatusPageMonitorUtil {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `ExternalStatusPageMonitor - Probe is not online. Cannot fetch ${options?.monitorId?.toString()} ${config.statusPageUrl} - ERROR: ${err}`,
+            `ExternalStatusPageMonitor - Probe is not online. Cannot fetch ${options?.monitorId?.toString()} ${MonitorLogUrl.write(config.statusPageUrl)} - ERROR: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
           );
           return null;
         }
@@ -604,7 +632,7 @@ export default class ExternalStatusPageMonitorUtil {
         componentStatuses: [],
         activeIncidentCount: 0,
         responseTimeInMs: responseTimeInMs,
-        failureCause: (err as Error).message || (err as Error).toString(),
+        failureCause: ExternalStatusPageMonitorUtil.writeFailureCause(config, err),
         // The provider that read a page which would not let the probe in.
         provider:
           err instanceof ExternalStatusPageRefusedException
@@ -721,7 +749,7 @@ export default class ExternalStatusPageMonitorUtil {
           throw err;
         }
         logger.debug(
-          `Failed to fetch Atlassian components for ${baseUrl}: ${err}`,
+          `Failed to fetch Atlassian components for ${MonitorLogUrl.write(baseUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
         );
         // Continue without component data
       }
@@ -745,7 +773,7 @@ export default class ExternalStatusPageMonitorUtil {
           throw err;
         }
         logger.debug(
-          `Failed to fetch Atlassian unresolved incidents for ${baseUrl}: ${err}`,
+          `Failed to fetch Atlassian unresolved incidents for ${MonitorLogUrl.write(baseUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
         );
         // Continue without incident data
       }
@@ -763,7 +791,7 @@ export default class ExternalStatusPageMonitorUtil {
         throw err;
       }
       logger.debug(
-        `Atlassian Statuspage API failed for ${config.statusPageUrl}: ${err}`,
+        `Atlassian Statuspage API failed for ${MonitorLogUrl.write(config.statusPageUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
       );
       return null;
     }
@@ -822,7 +850,7 @@ export default class ExternalStatusPageMonitorUtil {
         throw err;
       }
       logger.debug(
-        `incident.io status page API failed for ${config.statusPageUrl}: ${err}`,
+        `incident.io status page API failed for ${MonitorLogUrl.write(config.statusPageUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
       );
       return null;
     }
@@ -921,7 +949,7 @@ export default class ExternalStatusPageMonitorUtil {
         throw err;
       }
       logger.debug(
-        `OneUptime status page summary failed for ${config.statusPageUrl}: ${err}`,
+        `OneUptime status page summary failed for ${MonitorLogUrl.write(config.statusPageUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
       );
       return null;
     }
@@ -1004,7 +1032,7 @@ export default class ExternalStatusPageMonitorUtil {
         throw err;
       }
       logger.debug(
-        `RSS/Atom feed parsing failed for ${config.statusPageUrl}: ${err}`,
+        `RSS/Atom feed parsing failed for ${MonitorLogUrl.write(config.statusPageUrl)}: ${ExternalStatusPageMonitorUtil.writeErrorForLog(config, err)}`,
       );
       return null;
     }
