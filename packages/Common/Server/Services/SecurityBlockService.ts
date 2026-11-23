@@ -929,9 +929,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     data["liftedAt"] = OneUptimeDate.getCurrentDate();
-    data["liftedByUserId"] = isPerson(updateBy.props)
-      ? updateBy.props.userId || null
-      : null;
+
+    // By its id column, so no other name of it is left to be stored instead.
+    RelationIdUtil.stamp(
+      data,
+      ["liftedByUserId", "liftedByUser"],
+      isPerson(updateBy.props) ? updateBy.props.userId || null : null,
+    );
   }
 
   @CaptureSpan()
