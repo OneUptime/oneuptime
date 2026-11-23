@@ -60805,5 +60805,7 @@
   "Your project's": "Ihres Projekts",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Der KI-Kontext Ihres Projekts steht am Anfang der Systemnachricht: {{count}} Zeichen, festgelegt unter Projekteinstellungen → KI → KI-Funktionen.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Der KI-Kontext Ihres Projekts steht am Anfang der Systemnachricht: {{count}} Zeichen, festgelegt unter Projekteinstellungen → KI → KI-Funktionen.",
-  "App Service key": "App-Service-Schlüssel"
+  "App Service key": "App-Service-Schlüssel",
+  "Custom Role Audit Logs": "Audit-Protokolle der benutzerdefinierten Rolle",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Jede Änderung an dieser benutzerdefinierten Rolle und ihren Berechtigungen: wer sie vorgenommen hat, wann und was sich geändert hat."
 }

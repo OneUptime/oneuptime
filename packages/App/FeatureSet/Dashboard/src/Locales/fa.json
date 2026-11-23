@@ -60805,5 +60805,7 @@
   "Your project's": "متعلق به پروژهٔ شما",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "زمینهٔ هوش مصنوعی پروژهٔ شما در ابتدای پیام سیستمی می‌آید: {{count}} نویسه، که در «تنظیمات پروژه ← هوش مصنوعی ← قابلیت‌های هوش مصنوعی» تنظیم می‌شود.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "زمینهٔ هوش مصنوعی پروژهٔ شما در ابتدای پیام سیستمی می‌آید: {{count}} نویسه، که در «تنظیمات پروژه ← هوش مصنوعی ← قابلیت‌های هوش مصنوعی» تنظیم می‌شود.",
-  "App Service key": "کلید App Service"
+  "App Service key": "کلید App Service",
+  "Custom Role Audit Logs": "گزارش‌های ممیزی نقش سفارشی",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "هر تغییری که در این نقش سفارشی و دسترسی‌های آن داده شده است: چه کسی، چه زمانی و چه چیزی را تغییر داد."
 }

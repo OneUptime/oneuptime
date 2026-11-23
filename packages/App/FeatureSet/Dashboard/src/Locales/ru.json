@@ -60805,5 +60805,7 @@
   "Your project's": "Вашего проекта",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Контекст ИИ вашего проекта идёт первым в системном сообщении (длина в символах: {{count}}), он задаётся в разделе «Настройки проекта → ИИ → Функции ИИ».",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Контекст ИИ вашего проекта идёт первым в системном сообщении ({{count}} символ), он задаётся в разделе «Настройки проекта → ИИ → Функции ИИ».",
-  "App Service key": "Ключ App Service"
+  "App Service key": "Ключ App Service",
+  "Custom Role Audit Logs": "Журналы аудита пользовательской роли",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Каждое изменение этой пользовательской роли и её разрешений: кто его внёс, когда и что изменилось."
 }
