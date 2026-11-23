@@ -1504,6 +1504,25 @@ export const AZURE_KEY_METRICS: ReadonlyArray<AzureTypeKeyMetrics> = [
     ],
   },
   {
+    /*
+     * A site's deployment slot other than production (#6793), which Azure
+     * Monitor measures as a resource of its own: the numbers an App
+     * Platforms app of the slot shows (its Azure Monitor section and its
+     * lists), each as the site's. Every one is kept at a minute, so a slot
+     * is one call a read, as a site is; its Health check and file system,
+     * each a call of its own, are left to the site.
+     */
+    type: "Microsoft.Web/sites/slots",
+    metrics: [
+      azure("Requests", G.Traffic),
+      azure("Http5xx", G.Errors),
+      azure("Http4xx", G.Errors),
+      azure("HttpResponseTime", G.Latency),
+      azure("CpuTime", G.Compute),
+      azure("MemoryWorkingSet", G.Memory),
+    ],
+  },
+  {
     type: "Microsoft.Web/serverfarms",
     metrics: [
       azure("CpuPercentage", G.Compute),

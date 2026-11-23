@@ -270,7 +270,7 @@ gcloud run services replace service.yaml --region us-central1
 
 ## 得られるもの
 
-- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ。
+- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ。**クラウド → 接続** でプロジェクトを接続すると、このタブに **Google Cloud Monitoring** セクションが加わり、アプリが何を送っていても、Cloud Run が測定したサービスのリクエスト、5xx ステータスで応答した割合、p95 レイテンシ、コンテナの CPU とメモリが表示されます。どれも読み取られていない間は、**セットアップ チェック** の **Google Cloud Monitoring 接続** の行が探しているサービスを示します。
 - **インスタンス**: Cloud Run インスタンスごとに一行で、`faas.instance` が名前になります。Cloud Run はコンテナのリソース使用量をサイドカーに公開しないため、同じ `faas.instance` を持つ `container.cpu.utilization` と `container.memory.usage` のメトリクスを自分で送らない限り、**CPU** と **メモリ** のタイルは空のままです。ここではリクエストのタイルを見て、インスタンスの CPU とメモリは Cloud Monitoring に任せてください。
 - 環境に絞り込まれた **ログ**、**トレース**、**メトリクス**。
 - 同じサービスが **サーバーレス関数** (`faas.name` ごと) と **サービス** (`service.name` ごと) にも表示されます。

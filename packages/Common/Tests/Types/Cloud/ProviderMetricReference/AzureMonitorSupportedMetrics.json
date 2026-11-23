@@ -81,6 +81,18 @@
         "FileSystemUsage": {"displayName": "File System Usage", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT6H", "PT12H", "P1D"], "dsExport": true, "advanced": false}
       }
     },
+    "Microsoft.Web/sites/slots": {
+      "page": "microsoft-web-sites-slots-metrics.md",
+      "pageDate": "07/31/2026",
+      "metrics": {
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http5xx": {"displayName": "Http Server Errors", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Http4xx": {"displayName": "Http 4xx", "unit": "Count", "aggregations": ["Total"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "HttpResponseTime": {"displayName": "Response Time", "unit": "Seconds", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "CpuTime": {"displayName": "CPU Time", "unit": "Seconds", "aggregations": ["Count", "Total", "Minimum", "Maximum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "MemoryWorkingSet": {"displayName": "Memory working set", "unit": "Bytes", "aggregations": ["Average"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false}
+      }
+    },
     "Microsoft.Web/serverfarms": {
       "page": "microsoft-web-serverfarms-metrics.md",
       "pageDate": "07/31/2026",

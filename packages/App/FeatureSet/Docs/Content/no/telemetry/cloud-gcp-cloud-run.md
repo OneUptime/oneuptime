@@ -270,7 +270,7 @@ Bare containeren som tar imot forespørsler (`app`), oppgir `ports`; en sidecar 
 
 ## Hva du får
 
-- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine.
+- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine. Koble til prosjektet under **Sky → Koble til**, så får denne fanen en seksjon **Google Cloud Monitoring**: tjenestens forespørsler, andelen besvart med en 5xx-status, p95-latens og CPU og minne for containerne, slik Cloud Run måler dem, uansett hva appen sender. Raden **Google Cloud Monitoring-tilkobling** i **Oppsettsjekk** nevner tjenesten den ser etter så lenge ingen er lest.
 - **Instanser**: én rad per Cloud Run-instans, navngitt etter `faas.instance`. Cloud Run viser ikke en containers ressursbruk til en sidecar, så flisene **CPU** og **Minne** forblir tomme, med mindre du selv sender målingene `container.cpu.utilization` og `container.memory.usage` med den samme `faas.instance`. Les flisene for forespørsler her, og overlat CPU og minne for instansene til Cloud Monitoring.
 - **Logger**, **Spor** og **Målinger**, filtrert til miljøet.
 - Den samme tjenesten under **Serverløse funksjoner** (etter `faas.name`) og under **Tjenester** (etter `service.name`).
