@@ -172,6 +172,10 @@ describe("a grouped metric monitor's records keep their own series", () => {
     jest
       .spyOn(SeriesResourceLinker, "linkSeriesResourcesToModel")
       .mockResolvedValue(undefined);
+    // Nor the many series' path: every series reads as its own.
+    jest
+      .spyOn(SeriesResourceLinker, "resolveManySeries")
+      .mockResolvedValue(new Map());
 
     jest
       .spyOn(IncidentService, "create")

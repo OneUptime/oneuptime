@@ -206,6 +206,10 @@ describe("Incidents and alerts store payload copies Postgres can hold", () => {
     jest
       .spyOn(SeriesResourceLinker, "linkSeriesResourcesToModel")
       .mockResolvedValue(undefined);
+    // Nor the many series' path: every series reads as its own.
+    jest
+      .spyOn(SeriesResourceLinker, "resolveManySeries")
+      .mockResolvedValue(new Map());
 
     jest
       .spyOn(IncidentService, "create")

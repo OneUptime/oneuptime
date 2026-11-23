@@ -36,6 +36,9 @@ import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import UUIDColumnFilter from "../../Types/Database/UUIDColumnFilter";
+import { EventLoopBudget } from "../EventLoop";
+import logger from "../Logger";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
@@ -124,17 +127,46 @@ export interface SeriesResolvedResourceIds {
 }
 
 /*
- * One resource type's lookup recipe: where its ids and names come from
- * in the extracted refs, which column its name maps to, and which
- * service reads the table.
+ * One resource type as both paths read it: the one series' path
+ * (resolveResourceRefs) and the many series' (resolveManySeries). Where
+ * its ids land in a resolution, where its ids and names come from in a
+ * series' refs, the column its name maps to, and the service that reads
+ * its table. One table, so the two paths cannot resolve the same label to
+ * different rows.
  */
-interface ResourceResolutionSpec {
-  ids: Array<string>;
-  names: Array<string>;
+interface ResourceKind {
+  resultKey: keyof SeriesResolvedResourceIds;
+  ids: (refs: SeriesResourceRefs) => Array<string>;
+  names: (refs: SeriesResourceRefs) => Array<string>;
   nameColumn: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   findBy: (args: any) => Promise<Array<{ _id?: string | undefined }>>;
 }
+
+// What a lookup reads of a resource row.
+interface ResolvedResourceRow {
+  _id?: string | undefined;
+  createdAt?: Date | undefined;
+  [nameColumn: string]: unknown;
+}
+
+/*
+ * One kind's rows a lookup of the many series' path read, in the order read,
+ * and where each identifier's rows are among them.
+ */
+interface KindRead {
+  rows: Array<ResolvedResourceRow>;
+  positions: Map<string, Array<number>>;
+}
+
+/*
+ * The most identifiers one read of the many series' path names, and so the
+ * most rows it can answer with: each name column is unique in a project
+ * (Host's and the clusters' unique indexes), as an id is, so a read never
+ * comes back cut at its limit. A kind with more is read in as many reads
+ * as it takes, whatever the number of series.
+ */
+const MAX_IDENTIFIERS_PER_READ: number = LIMIT_PER_PROJECT;
 
 export default class SeriesResourceLinker {
   /*
@@ -153,9 +185,27 @@ export default class SeriesResourceLinker {
      */
     monitorType?: MonitorType | undefined;
   }): Promise<SeriesResolvedResourceIds> {
-    const refs: SeriesResourceRefs = SeriesResourceLabels.extractResourceRefs(
-      input.seriesLabels,
-    );
+    /*
+     * Series labels are ingest-written, so they match the resource
+     * rows' identifier columns byte for byte. See resolveResourceIds
+     * for why that rules out case-insensitive matching here.
+     */
+    return this.resolveResourceRefs({
+      refs: this.seriesRefsOf(input.seriesLabels, input.monitorType),
+      projectId: input.projectId,
+      nameMatch: "exact",
+    });
+  }
+
+  /*
+   * The identifiers a series' labels name, as both series paths read them.
+   */
+  private static seriesRefsOf(
+    seriesLabels: JSONObject,
+    monitorType: MonitorType | undefined,
+  ): SeriesResourceRefs {
+    const refs: SeriesResourceRefs =
+      SeriesResourceLabels.extractResourceRefs(seriesLabels);
 
     /*
      * On a Docker or Podman monitor, `resource.host.name` names the
@@ -168,23 +218,376 @@ export default class SeriesResourceLinker {
      * than linking a resource the event is not about.
      */
     if (
-      input.monitorType === MonitorType.Docker ||
-      input.monitorType === MonitorType.Podman
+      monitorType === MonitorType.Docker ||
+      monitorType === MonitorType.Podman
     ) {
       refs.hostIds = [];
       refs.hostNames = [];
     }
 
-    /*
-     * Series labels are ingest-written, so they match the resource
-     * rows' identifier columns byte for byte. See resolveResourceIds
-     * for why that rules out case-insensitive matching here.
-     */
-    return this.resolveResourceRefs({
-      refs: refs,
-      projectId: input.projectId,
-      nameMatch: "exact",
+    return refs;
+  }
+
+  /*
+   * THE SERIES OF ONE EVALUATION, RESOLVED TOGETHER (issue #10315).
+   *
+   * Each record a grouped monitor opens is about one series, and was linked
+   * by reading that series' resources on its own: an evaluation that opened
+   * alerts for 700 series of a fleet read the Host table 700 times, one
+   * after another. This reads every series' identifiers at once - one read
+   * per resource kind by id and one by name, all kinds side by side, as one
+   * series' reads are - and hands each series its part of the answer: the
+   * same database ids, in the same order, as resolveResourcesFromSeriesLabels
+   * gives that series alone.
+   *
+   *   - The same rows. Each lookup reads what one series' lookup reads: the
+   *     project's rows whose id is one of the ids, or whose name column
+   *     equals one of the names (exactly, as Postgres compares them), with
+   *     the same root read and the same order (createdAt, newest first).
+   *     An id is matched in the form Postgres reads it in (a uuid in any
+   *     case, braced or not), a name as the client sends it (UTF-8, a lone
+   *     surrogate as U+FFFD).
+   *   - The same order. A series' rows are its id rows as they were read,
+   *     then its name rows, each repeated id once.
+   *   - The same failures. A series with an identifier one read of all of
+   *     them would fail on - an id that is no uuid, a name with a NUL,
+   *     which Postgres refuses - is left out, so its record is linked by
+   *     its own read and fails on its own, as before, and the rest are not
+   *     held back by it. So is one that names a database by its endpoint,
+   *     which no series label does.
+   *
+   * The map holds the series it resolved, by their labels' object. Every
+   * other series is resolved by itself when its record is linked
+   * (SeriesResourcesOfEvaluation). Hands the event loop back between
+   * series once the budget is spent, as the create pass around it does.
+   */
+  public static async resolveManySeries(input: {
+    seriesLabels: ReadonlyArray<JSONObject>;
+    projectId: ObjectID;
+    monitorType?: MonitorType | undefined;
+    budget?: EventLoopBudget | undefined;
+  }): Promise<Map<JSONObject, SeriesResolvedResourceIds>> {
+    const budget: EventLoopBudget = input.budget || new EventLoopBudget();
+    const kinds: Array<ResourceKind> = this.resourceKinds();
+    const entries: Array<{ labels: JSONObject; refs: SeriesResourceRefs }> = [];
+    const seen: Set<JSONObject> = new Set<JSONObject>();
+
+    // Every kind's identifiers over the series, each once, as they are matched.
+    const idsByKind: Array<Set<string>> = kinds.map((): Set<string> => {
+      return new Set<string>();
     });
+    const namesByKind: Array<Set<string>> = kinds.map((): Set<string> => {
+      return new Set<string>();
+    });
+
+    for (const labels of input.seriesLabels) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      if (!labels || typeof labels !== "object" || seen.has(labels)) {
+        continue;
+      }
+
+      seen.add(labels);
+
+      const refs: SeriesResourceRefs = this.seriesRefsOf(
+        labels,
+        input.monitorType,
+      );
+
+      if (!this.isReadTogether(refs, kinds)) {
+        continue;
+      }
+
+      entries.push({ labels: labels, refs: refs });
+
+      kinds.forEach((kind: ResourceKind, index: number): void => {
+        for (const id of kind.ids(refs)) {
+          idsByKind[index]!.add(this.toIdKey(id));
+        }
+
+        for (const name of kind.names(refs)) {
+          namesByKind[index]!.add(this.toNameKey(name));
+        }
+      });
+    }
+
+    const resolutions: Map<JSONObject, SeriesResolvedResourceIds> = new Map<
+      JSONObject,
+      SeriesResolvedResourceIds
+    >();
+
+    if (entries.length === 0) {
+      return resolutions;
+    }
+
+    const reads: Array<{ byId: KindRead; byName: KindRead }> =
+      await Promise.all(
+        kinds.map(
+          async (
+            kind: ResourceKind,
+            index: number,
+          ): Promise<{ byId: KindRead; byName: KindRead }> => {
+            const [byId, byName] = await Promise.all([
+              this.readKind({
+                kind: kind,
+                column: "_id",
+                values: idsByKind[index]!,
+                projectId: input.projectId,
+              }),
+              this.readKind({
+                kind: kind,
+                column: kind.nameColumn,
+                values: namesByKind[index]!,
+                projectId: input.projectId,
+              }),
+            ]);
+
+            return { byId: byId, byName: byName };
+          },
+        ),
+      );
+
+    for (const entry of entries) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      const resolved: SeriesResolvedResourceIds =
+        SeriesResourceLinker.emptyResolution();
+
+      kinds.forEach((kind: ResourceKind, index: number): void => {
+        const read: { byId: KindRead; byName: KindRead } = reads[index]!;
+        const found: Set<string> = new Set<string>();
+
+        for (const row of this.rowsOf(
+          read.byId,
+          kind.ids(entry.refs).map((id: string): string => {
+            return this.toIdKey(id);
+          }),
+        )) {
+          if (row._id) {
+            found.add(String(row._id));
+          }
+        }
+
+        for (const row of this.rowsOf(
+          read.byName,
+          kind.names(entry.refs).map((name: string): string => {
+            return this.toNameKey(name);
+          }),
+        )) {
+          if (row._id) {
+            found.add(String(row._id));
+          }
+        }
+
+        resolved[kind.resultKey] = Array.from(found);
+      });
+
+      resolutions.set(entry.labels, resolved);
+    }
+
+    return resolutions;
+  }
+
+  /*
+   * Whether a series' identifiers can be read with every other series':
+   * each id one Postgres reads as a uuid (UUIDColumnFilter, which refuses
+   * any other before it is sent), no name with a NUL (which Postgres
+   * refuses in text), and no database endpoint.
+   */
+  private static isReadTogether(
+    refs: SeriesResourceRefs,
+    kinds: Array<ResourceKind>,
+  ): boolean {
+    if ((refs.databaseServerEndpoints || []).length > 0) {
+      return false;
+    }
+
+    for (const kind of kinds) {
+      for (const id of kind.ids(refs)) {
+        if (!UUIDColumnFilter.isUUIDText(id)) {
+          return false;
+        }
+      }
+
+      for (const name of kind.names(refs)) {
+        if (name.includes("\u0000")) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * An id as Postgres reads a uuid and writes it back: 32 hex digits in
+   * lower case, hyphenated 8-4-4-4-12, whatever case, braces and hyphens it
+   * was written with. Only ever handed text UUIDColumnFilter reads as one.
+   */
+  private static toIdKey(id: string): string {
+    const unbraced: string =
+      id.startsWith("{") && id.endsWith("}") ? id.slice(1, -1) : id;
+    const hex: string = unbraced.split("-").join("").toLowerCase();
+
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  /*
+   * A name as Postgres compares it: the client sends text as UTF-8, a lone
+   * surrogate as U+FFFD, and a name column equals it byte for byte.
+   */
+  private static toNameKey(name: string): string {
+    return Buffer.from(name, "utf8").toString("utf8");
+  }
+
+  /*
+   * One kind's rows whose `column` holds one of `values`, read as one
+   * series' lookup reads them, MAX_IDENTIFIERS_PER_READ values a read.
+   * Kept in the order they were read: newest first, the service's own
+   * order, across reads too.
+   */
+  private static async readKind(input: {
+    kind: ResourceKind;
+    column: string;
+    values: Set<string>;
+    projectId: ObjectID;
+  }): Promise<KindRead> {
+    const values: Array<string> = Array.from(input.values);
+    const positions: Map<string, Array<number>> = new Map<
+      string,
+      Array<number>
+    >();
+
+    if (values.length === 0) {
+      return { rows: [], positions: positions };
+    }
+
+    const parts: Array<Array<string>> = [];
+
+    for (
+      let start: number = 0;
+      start < values.length;
+      start += MAX_IDENTIFIERS_PER_READ
+    ) {
+      parts.push(values.slice(start, start + MAX_IDENTIFIERS_PER_READ));
+    }
+
+    const answers: Array<Array<ResolvedResourceRow>> = await Promise.all(
+      parts.map(
+        async (part: Array<string>): Promise<Array<ResolvedResourceRow>> => {
+          return (await input.kind.findBy({
+            query: {
+              projectId: input.projectId,
+              [input.column]: new Includes(part),
+            },
+            select: {
+              _id: true,
+              createdAt: true,
+              ...(input.column === "_id" ? {} : { [input.column]: true }),
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          })) as Array<ResolvedResourceRow>;
+        },
+      ),
+    );
+
+    let rows: Array<ResolvedResourceRow> = answers.flat();
+
+    if (answers.length > 1) {
+      // Each read is newest first; so is the whole, ties kept in read order.
+      rows = rows
+        .map((row: ResolvedResourceRow, index: number) => {
+          return { row: row, index: index };
+        })
+        .sort(
+          (
+            a: { row: ResolvedResourceRow; index: number },
+            b: { row: ResolvedResourceRow; index: number },
+          ): number => {
+            return (
+              this.toTime(b.row.createdAt) - this.toTime(a.row.createdAt) ||
+              a.index - b.index
+            );
+          },
+        )
+        .map((entry: { row: ResolvedResourceRow }): ResolvedResourceRow => {
+          return entry.row;
+        });
+    }
+
+    rows.forEach((row: ResolvedResourceRow, index: number): void => {
+      const value: unknown =
+        input.column === "_id" ? row._id : row[input.column];
+
+      if (value === undefined || value === null) {
+        return;
+      }
+
+      const key: string = String(value);
+      const at: Array<number> = positions.get(key) || [];
+      at.push(index);
+      positions.set(key, at);
+    });
+
+    return { rows: rows, positions: positions };
+  }
+
+  private static toTime(value: unknown): number {
+    const time: number =
+      value instanceof Date
+        ? value.getTime()
+        : new Date(String(value)).getTime();
+
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  // The rows of a kind's read that one series names, in the order read.
+  private static rowsOf(
+    read: KindRead,
+    keys: Array<string>,
+  ): Array<ResolvedResourceRow> {
+    const at: Set<number> = new Set<number>();
+
+    for (const key of keys) {
+      for (const position of read.positions.get(key) || []) {
+        at.add(position);
+      }
+    }
+
+    return Array.from(at)
+      .sort((a: number, b: number): number => {
+        return a - b;
+      })
+      .map((position: number): ResolvedResourceRow => {
+        return read.rows[position]!;
+      });
+  }
+
+  // A resolution that names nothing, its lists in their usual order.
+  private static emptyResolution(): SeriesResolvedResourceIds {
+    return {
+      hostIds: [],
+      dockerHostIds: [],
+      podmanHostIds: [],
+      kubernetesClusterIds: [],
+      serviceIds: [],
+      proxmoxClusterIds: [],
+      openStackCloudIds: [],
+      vmwareVCenterIds: [],
+      cephClusterIds: [],
+      dockerSwarmClusterIds: [],
+      iotFleetIds: [],
+      databaseServerIds: [],
+      storageArrayIds: [],
+      cloudResourceIds: [],
+      networkDeviceIds: [],
+    };
   }
 
   /*
@@ -201,133 +604,18 @@ export default class SeriesResourceLinker {
     nameMatch: NameMatchMode;
   }): Promise<SeriesResolvedResourceIds> {
     const refs: SeriesResourceRefs = input.refs;
+    const kinds: Array<ResourceKind> = this.resourceKinds();
 
-    /*
-     * Proxmox / VMware / Ceph / Docker Swarm / IoT / storage arrays carry no
-     * `oneuptime.*.id` stamp at ingest — they are addressable by name
-     * only — so their `ids` lists are empty by construction, not by
-     * omission. Databases are the reverse: never addressable by name (see
-     * DatabaseServerIdLabelKeys), so their `names` list is empty — they
-     * resolve by the `oneuptime.database.server.id` stamp here, and by an
-     * endpoint they own through the DatabaseServerEndpoint table below
-     * (the endpoint lives on a separate table, so it cannot be a spec).
-     *
-     * The Promise.all below destructures by POSITION: a new entry goes at
-     * the end of this list AND at the end of that destructure.
-     */
-    const specs: Array<ResourceResolutionSpec> = [
-      {
-        ids: refs.hostIds,
-        names: refs.hostNames,
-        nameColumn: "hostIdentifier",
-        findBy: HostService.findBy.bind(HostService),
-      },
-      {
-        ids: refs.dockerHostIds,
-        names: refs.dockerHostNames,
-        nameColumn: "hostIdentifier",
-        findBy: DockerHostService.findBy.bind(DockerHostService),
-      },
-      {
-        ids: refs.podmanHostIds,
-        names: refs.podmanHostNames,
-        nameColumn: "hostIdentifier",
-        findBy: PodmanHostService.findBy.bind(PodmanHostService),
-      },
-      {
-        ids: refs.kubernetesClusterIds,
-        names: refs.kubernetesClusterNames,
-        nameColumn: "clusterIdentifier",
-        findBy: KubernetesClusterService.findBy.bind(KubernetesClusterService),
-      },
-      {
-        ids: refs.serviceIds,
-        names: refs.serviceNames,
-        nameColumn: "name",
-        findBy: ServiceService.findBy.bind(ServiceService),
-      },
-      {
-        ids: [],
-        names: refs.proxmoxClusterNames,
-        nameColumn: "name",
-        findBy: ProxmoxClusterService.findBy.bind(ProxmoxClusterService),
-      },
-      {
-        ids: [],
-        names: refs.openStackCloudNames,
-        nameColumn: "name",
-        findBy: OpenStackCloudService.findBy.bind(OpenStackCloudService),
-      },
-      {
-        ids: [],
-        names: refs.vmwareVCenterNames,
-        nameColumn: "name",
-        findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
-      },
-      {
-        ids: [],
-        names: refs.cephClusterNames,
-        nameColumn: "name",
-        findBy: CephClusterService.findBy.bind(CephClusterService),
-      },
-      {
-        ids: [],
-        names: refs.dockerSwarmClusterNames,
-        nameColumn: "name",
-        findBy: DockerSwarmClusterService.findBy.bind(
-          DockerSwarmClusterService,
-        ),
-      },
-      {
-        ids: [],
-        names: refs.iotFleetNames,
-        nameColumn: "name",
-        findBy: IoTFleetService.findBy.bind(IoTFleetService),
-      },
-      {
-        ids: refs.databaseServerIds,
-        names: [],
-        nameColumn: "name",
-        findBy: DatabaseServerService.findBy.bind(DatabaseServerService),
-      },
-      {
-        ids: [],
-        names: refs.storageArrayNames,
-        nameColumn: "name",
-        findBy: StorageArrayService.findBy.bind(StorageArrayService),
-      },
-      /*
-       * Id-only: a Network Device monitor names its device by the picker's
-       * primary key, never by a name.
-       */
-      {
-        ids: refs.networkDeviceIds || [],
-        names: [],
-        nameColumn: "name",
-        findBy: NetworkDeviceService.findBy.bind(NetworkDeviceService),
-      },
-      /*
-       * Id-only: a query's event scope names its cloud resource by its
-       * primary key (SeriesResourceRefs.cloudResourceIds).
-       */
-      {
-        ids: refs.cloudResourceIds || [],
-        names: [],
-        nameColumn: "name",
-        findBy: CloudResourceService.findBy.bind(CloudResourceService),
-      },
-    ];
-
-    const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
+    const [resolvedByKind, databaseServerIdsByEndpoint] = await Promise.all([
       Promise.all(
-        specs.map((spec: ResourceResolutionSpec): Promise<Array<string>> => {
+        kinds.map((kind: ResourceKind): Promise<Array<string>> => {
           return this.resolveResourceIds({
-            ids: spec.ids,
-            names: spec.names,
-            nameColumn: spec.nameColumn,
+            ids: kind.ids(refs),
+            names: kind.names(refs),
+            nameColumn: kind.nameColumn,
             projectId: input.projectId,
             nameMatch: input.nameMatch,
-            findBy: spec.findBy,
+            findBy: kind.findBy,
           });
         }),
       ),
@@ -337,52 +625,204 @@ export default class SeriesResourceLinker {
       }),
     ]);
 
-    const [
-      hostIds,
-      dockerHostIds,
-      podmanHostIds,
-      kubernetesClusterIds,
-      serviceIds,
-      proxmoxClusterIds,
-      openStackCloudIds,
-      vmwareVCenterIds,
-      cephClusterIds,
-      dockerSwarmClusterIds,
-      iotFleetIds,
-      databaseServerIdsById,
-      storageArrayIds,
-      networkDeviceIds,
-      cloudResourceIds,
-    ] = resolvedBySpec;
+    const resolved: SeriesResolvedResourceIds =
+      SeriesResourceLinker.emptyResolution();
+
+    kinds.forEach((kind: ResourceKind, index: number): void => {
+      resolved[kind.resultKey] = resolvedByKind[index] || [];
+    });
 
     /*
      * A database can be named twice — by its id stamp and by an endpoint it
      * owns — so the two answers are unioned, not concatenated.
      */
-    const databaseServerIds: Array<string> = Array.from(
+    resolved.databaseServerIds = Array.from(
       new Set<string>([
-        ...(databaseServerIdsById || []),
+        ...resolved.databaseServerIds,
         ...databaseServerIdsByEndpoint,
       ]),
     );
 
-    return {
-      hostIds: hostIds || [],
-      dockerHostIds: dockerHostIds || [],
-      podmanHostIds: podmanHostIds || [],
-      kubernetesClusterIds: kubernetesClusterIds || [],
-      serviceIds: serviceIds || [],
-      proxmoxClusterIds: proxmoxClusterIds || [],
-      openStackCloudIds: openStackCloudIds || [],
-      vmwareVCenterIds: vmwareVCenterIds || [],
-      cephClusterIds: cephClusterIds || [],
-      dockerSwarmClusterIds: dockerSwarmClusterIds || [],
-      iotFleetIds: iotFleetIds || [],
-      databaseServerIds: databaseServerIds,
-      storageArrayIds: storageArrayIds || [],
-      cloudResourceIds: cloudResourceIds || [],
-      networkDeviceIds: networkDeviceIds || [],
+    return resolved;
+  }
+
+  /*
+   * Every resource type a series or a monitor's config names, in the order
+   * its lookups are sent. Each service's findBy is looked up when this is
+   * called, so a stand-in a test puts on it is the one read.
+   *
+   * Proxmox / VMware / Ceph / Docker Swarm / IoT / storage arrays carry no
+   * `oneuptime.*.id` stamp at ingest — they are addressable by name only —
+   * so they have no ids, by construction, not by omission. Databases are
+   * the reverse: never addressable by name (see DatabaseServerIdLabelKeys),
+   * so they have no names — they resolve by the
+   * `oneuptime.database.server.id` stamp here, and by an endpoint they own
+   * through the DatabaseServerEndpoint table
+   * (resolveDatabaseServerIdsByEndpoint: the endpoint lives on a separate
+   * table, so it cannot be a kind).
+   */
+  private static resourceKinds(): Array<ResourceKind> {
+    const none: () => Array<string> = (): Array<string> => {
+      return [];
     };
+
+    return [
+      {
+        resultKey: "hostIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.hostIds;
+        },
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.hostNames;
+        },
+        nameColumn: "hostIdentifier",
+        findBy: HostService.findBy.bind(HostService),
+      },
+      {
+        resultKey: "dockerHostIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.dockerHostIds;
+        },
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.dockerHostNames;
+        },
+        nameColumn: "hostIdentifier",
+        findBy: DockerHostService.findBy.bind(DockerHostService),
+      },
+      {
+        resultKey: "podmanHostIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.podmanHostIds;
+        },
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.podmanHostNames;
+        },
+        nameColumn: "hostIdentifier",
+        findBy: PodmanHostService.findBy.bind(PodmanHostService),
+      },
+      {
+        resultKey: "kubernetesClusterIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.kubernetesClusterIds;
+        },
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.kubernetesClusterNames;
+        },
+        nameColumn: "clusterIdentifier",
+        findBy: KubernetesClusterService.findBy.bind(KubernetesClusterService),
+      },
+      {
+        resultKey: "serviceIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.serviceIds;
+        },
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.serviceNames;
+        },
+        nameColumn: "name",
+        findBy: ServiceService.findBy.bind(ServiceService),
+      },
+      {
+        resultKey: "proxmoxClusterIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.proxmoxClusterNames;
+        },
+        nameColumn: "name",
+        findBy: ProxmoxClusterService.findBy.bind(ProxmoxClusterService),
+      },
+      {
+        resultKey: "openStackCloudIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.openStackCloudNames;
+        },
+        nameColumn: "name",
+        findBy: OpenStackCloudService.findBy.bind(OpenStackCloudService),
+      },
+      {
+        resultKey: "vmwareVCenterIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.vmwareVCenterNames;
+        },
+        nameColumn: "name",
+        findBy: VMwareVCenterService.findBy.bind(VMwareVCenterService),
+      },
+      {
+        resultKey: "cephClusterIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.cephClusterNames;
+        },
+        nameColumn: "name",
+        findBy: CephClusterService.findBy.bind(CephClusterService),
+      },
+      {
+        resultKey: "dockerSwarmClusterIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.dockerSwarmClusterNames;
+        },
+        nameColumn: "name",
+        findBy: DockerSwarmClusterService.findBy.bind(
+          DockerSwarmClusterService,
+        ),
+      },
+      {
+        resultKey: "iotFleetIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.iotFleetNames;
+        },
+        nameColumn: "name",
+        findBy: IoTFleetService.findBy.bind(IoTFleetService),
+      },
+      {
+        resultKey: "databaseServerIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.databaseServerIds;
+        },
+        names: none,
+        nameColumn: "name",
+        findBy: DatabaseServerService.findBy.bind(DatabaseServerService),
+      },
+      {
+        resultKey: "storageArrayIds",
+        ids: none,
+        names: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.storageArrayNames;
+        },
+        nameColumn: "name",
+        findBy: StorageArrayService.findBy.bind(StorageArrayService),
+      },
+      /*
+       * Id-only: a Network Device monitor names its device by the picker's
+       * primary key, never by a name.
+       */
+      {
+        resultKey: "networkDeviceIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.networkDeviceIds || [];
+        },
+        names: none,
+        nameColumn: "name",
+        findBy: NetworkDeviceService.findBy.bind(NetworkDeviceService),
+      },
+      /*
+       * Id-only: a query's event scope names its cloud resource by its
+       * primary key (SeriesResourceRefs.cloudResourceIds).
+       */
+      {
+        resultKey: "cloudResourceIds",
+        ids: (refs: SeriesResourceRefs): Array<string> => {
+          return refs.cloudResourceIds || [];
+        },
+        names: none,
+        nameColumn: "name",
+        findBy: CloudResourceService.findBy.bind(CloudResourceService),
+      },
+    ];
   }
 
   /*
@@ -764,5 +1204,108 @@ export default class SeriesResourceLinker {
     }
 
     return Array.from(resolved);
+  }
+}
+
+/*
+ * THE SERIES RESOURCES OF ONE EVALUATION (issue #10315).
+ *
+ * Before a create pass, the incident or alert creator hands this every
+ * series it will open a record for (resolve), and they are resolved
+ * together, one read per resource kind (SeriesResourceLinker
+ * .resolveManySeries). Each record is then linked from that answer
+ * (linkSeriesResourcesToModel). The answers are kept for the evaluation, so
+ * its incidents and its alerts for the same series read them once
+ * (MonitorRecordResources hands the same to both creators).
+ *
+ * A series it has not resolved is linked by its own read, exactly as
+ * before: one the pass did not hand it, one whose identifiers are read
+ * alone, or every series of a resolve whose read failed - linking is
+ * best-effort context, and a failed read must not take every record of the
+ * evaluation with it.
+ */
+export class SeriesResourcesOfEvaluation {
+  private readonly projectId: ObjectID | undefined;
+  private readonly monitorType: MonitorType | undefined;
+
+  // The series resolved so far, by their labels' object.
+  private readonly resolved: Map<JSONObject, SeriesResolvedResourceIds> =
+    new Map<JSONObject, SeriesResolvedResourceIds>();
+
+  public constructor(input: {
+    projectId: ObjectID | undefined;
+    monitorType?: MonitorType | undefined;
+  }) {
+    this.projectId = input.projectId;
+    this.monitorType = input.monitorType;
+  }
+
+  // Resolves, together, every series of these not resolved yet.
+  public async resolve(seriesLabels: ReadonlyArray<JSONObject>): Promise<void> {
+    if (!this.projectId) {
+      return;
+    }
+
+    const unresolved: Array<JSONObject> = seriesLabels.filter(
+      (labels: JSONObject): boolean => {
+        return Boolean(labels) && !this.resolved.has(labels);
+      },
+    );
+
+    if (unresolved.length === 0) {
+      return;
+    }
+
+    try {
+      const resolutions: Map<JSONObject, SeriesResolvedResourceIds> =
+        await SeriesResourceLinker.resolveManySeries({
+          seriesLabels: unresolved,
+          projectId: this.projectId,
+          monitorType: this.monitorType,
+        });
+
+      for (const [labels, resolved] of resolutions) {
+        this.resolved.set(labels, resolved);
+      }
+    } catch (error) {
+      logger.error(
+        `Could not read the resources of ${unresolved.length} series together; each is read on its own as its record is created.`,
+        { projectId: this.projectId.toString() },
+      );
+      logger.error(error, { projectId: this.projectId.toString() });
+    }
+  }
+
+  // Whether a series' resources are known without a read of its own.
+  public isResolved(seriesLabels: JSONObject): boolean {
+    return this.resolved.has(seriesLabels);
+  }
+
+  /*
+   * SeriesResourceLinker.linkSeriesResourcesToModel, from the answer of a
+   * resolve when the series had one, else from a read of its own.
+   */
+  public async linkSeriesResourcesToModel(input: {
+    model: SeriesLinkableModel;
+    seriesLabels: JSONObject;
+  }): Promise<void> {
+    const resolved: SeriesResolvedResourceIds | undefined = this.resolved.get(
+      input.seriesLabels,
+    );
+
+    if (resolved) {
+      SeriesResourceLinker.attachResolvedResources({
+        model: input.model,
+        resolved: resolved,
+      });
+      return;
+    }
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: input.model,
+      seriesLabels: input.seriesLabels,
+      projectId: this.projectId!,
+      monitorType: this.monitorType,
+    });
   }
 }

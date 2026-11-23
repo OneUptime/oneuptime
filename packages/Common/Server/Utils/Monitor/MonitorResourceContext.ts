@@ -15,6 +15,7 @@ import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import { SeriesResourceRefs } from "./SeriesResourceLabels";
 import SeriesResourceLinker, {
   SeriesResolvedResourceIds,
+  SeriesResourcesOfEvaluation,
 } from "./SeriesResourceLinker";
 
 /*
@@ -62,6 +63,13 @@ import SeriesResourceLinker, {
 export interface MonitorRecordResources {
   getResourceContext: () => Promise<SeriesResolvedResourceIds>;
   getLinkedResources: () => Promise<SeriesResolvedResourceIds>;
+  /*
+   * What each record's series names, resolved for every series a create
+   * pass will open a record for before the pass (#10315): one read per
+   * resource kind, not one per series, kept for the evaluation's incidents
+   * and alerts alike.
+   */
+  seriesResources: SeriesResourcesOfEvaluation;
 }
 
 export default class MonitorResourceContextUtil {
@@ -96,6 +104,10 @@ export default class MonitorResourceContextUtil {
 
         return linkedResources;
       },
+      seriesResources: new SeriesResourcesOfEvaluation({
+        projectId: input.monitor.projectId,
+        monitorType: input.monitor.monitorType,
+      }),
     };
   }
 

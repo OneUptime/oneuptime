@@ -57,7 +57,10 @@ import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabel
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
-import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
+import {
+  CriteriaIncident,
+  IncidentMemberRoleAssignment,
+} from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorResourceContextUtil, {
   MonitorRecordResources,
@@ -77,6 +80,7 @@ import CreatedNotificationHold, {
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
 import MonitorOpenRecords from "./MonitorOpenRecords";
+import { EventLoopBudget } from "../EventLoop";
 
 export default class MonitorIncident {
   @CaptureSpan()
@@ -759,6 +763,26 @@ export default class MonitorIncident {
       openIncidentsBySeries.set(seriesKey, ofSeries);
     }
 
+    /*
+     * The resources of every series this pass will open an incident for,
+     * read together before it: one read per resource kind, where each
+     * series used to read its own (#10315), and once for the incidents and
+     * the alerts of the evaluation (MonitorRecordResources). A series the
+     * pass skips after all costs nothing more, and one it opens that this
+     * did not foresee reads its own, as before.
+     */
+    if ((input.criteriaInstance.data?.incidents || []).length > 0) {
+      await recordResources.seriesResources.resolve(
+        await this.getLabelsOfSeriesToOpen({
+          seriesToProcess: seriesToProcess,
+          templates: input.criteriaInstance.data?.incidents || [],
+          openIncidentsBySeries: openIncidentsBySeries,
+          suppressedSeriesFingerprints: input.suppressedSeriesFingerprints,
+          dependencySuppression: input.dependencySuppression,
+        }),
+      );
+    }
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
       for (const seriesMatch of seriesToProcess) {
@@ -1146,11 +1170,10 @@ export default class MonitorIncident {
           if (seriesLabels && Object.keys(seriesLabels).length > 0) {
             incident.seriesLabels = toStorableJson(seriesLabels);
 
-            await SeriesResourceLinker.linkSeriesResourcesToModel({
+            // Read with the pass's other series, above.
+            await recordResources.seriesResources.linkSeriesResourcesToModel({
               model: incident,
               seriesLabels,
-              projectId: input.monitor.projectId!,
-              monitorType: input.monitor.monitorType,
             });
           }
 
@@ -1513,6 +1536,68 @@ export default class MonitorIncident {
         }
       }
     }
+  }
+
+  /*
+   * The labels of each series the create pass will open an incident for:
+   * one with labels, not under a maintenance window or a parent's
+   * suppression, and with a template of this criteria that has no incident
+   * open for it (as the pass looks it up). The pass decides again, series
+   * by series; this only says whose resources to read before it (#10315).
+   * Hands the event loop back between series, as the pass does.
+   */
+  private static async getLabelsOfSeriesToOpen(input: {
+    seriesToProcess: Array<PerSeriesCriteriaMatch | undefined>;
+    templates: Array<CriteriaIncident>;
+    openIncidentsBySeries: Map<string | undefined, Array<Incident>>;
+    suppressedSeriesFingerprints?: Set<string> | undefined;
+    dependencySuppression?: DependencySuppressionResult | undefined;
+  }): Promise<Array<JSONObject>> {
+    const budget: EventLoopBudget = new EventLoopBudget();
+    const labelsToOpen: Array<JSONObject> = [];
+
+    for (const seriesMatch of input.seriesToProcess) {
+      if (budget.isSpent()) {
+        await budget.handBack();
+      }
+
+      const seriesLabels: JSONObject | undefined = seriesMatch?.labels;
+
+      if (
+        !seriesMatch ||
+        !seriesLabels ||
+        Object.keys(seriesLabels).length === 0 ||
+        (seriesMatch.fingerprint &&
+          input.suppressedSeriesFingerprints?.has(seriesMatch.fingerprint)) ||
+        MonitorDependencyRule.isSeriesSuppressed({
+          suppression: input.dependencySuppression,
+          labels: seriesLabels,
+        })
+      ) {
+        continue;
+      }
+
+      const openForSeries: Array<Incident> =
+        input.openIncidentsBySeries.get(seriesMatch.fingerprint) || [];
+
+      const opensOne: boolean = input.templates.some(
+        (template: CriteriaIncident): boolean => {
+          return !openForSeries.some((incident: Incident): boolean => {
+            return (
+              !incident.createdIncidentTemplateId ||
+              incident.createdIncidentTemplateId ===
+                (template.id?.toString() || undefined)
+            );
+          });
+        },
+      );
+
+      if (opensOne) {
+        labelsToOpen.push(seriesLabels);
+      }
+    }
+
+    return labelsToOpen;
   }
 
   /*
