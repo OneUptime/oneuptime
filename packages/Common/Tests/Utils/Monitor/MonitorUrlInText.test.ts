@@ -109,6 +109,38 @@ describe("every URL in a text is written so, the sentence around it kept", () =>
     );
   });
 
+  test("an IPv6 host keeps its closing bracket before the sentence's full stop", () => {
+    expect(
+      MonitorUrlInText.writeUrls(
+        `Request failed to https://[2001:db8::1]. connect EADDRNOTAVAIL 2001:db8::1:443`,
+      ),
+    ).toBe(
+      "Request failed to https://[2001:db8::1]. connect EADDRNOTAVAIL 2001:db8::1:443",
+    );
+    expect(
+      MonitorUrlInText.writeUrls(
+        `Request failed to http://[2001:db8::1]:8080/${MARK}?k=${MARK}. socket hang up`,
+      ),
+    ).toBe("Request failed to http://[2001:db8::1]:8080. socket hang up");
+    // Sent, it is found exactly, and then read the same way.
+    expect(
+      MonitorUrlInText.writeUrls("Request failed to https://[2001:db8::1]/.", [
+        "https://[2001:db8::1]/",
+      ]),
+    ).toBe("Request failed to https://[2001:db8::1].");
+  });
+
+  test("a closing bracket the URL did not open is the sentence's", () => {
+    expect(
+      MonitorUrlInText.writeUrls(
+        `(see https://wiki.example.com/Page_(${MARK})).`,
+      ),
+    ).toBe("(see https://wiki.example.com).");
+    expect(
+      MonitorUrlInText.writeUrls(`[https://api.example.com/${MARK}]`),
+    ).toBe("[https://api.example.com]");
+  });
+
   test("a text with no URL is as it was", () => {
     for (const text of [
       "Connection Refused.",

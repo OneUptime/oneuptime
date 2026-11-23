@@ -54,6 +54,17 @@ const TRAILING_PUNCTUATION: ReadonlySet<string> = new Set<string>([
   "}",
 ]);
 
+/*
+ * A closing bracket the URL opened is the URL's own - the "]" of an IPv6
+ * host above all ("https://[2001:db8::1]."): only one it did not open ends
+ * the sentence instead.
+ */
+const OPENING_BRACKETS: Readonly<Record<string, string>> = {
+  ")": "(",
+  "]": "[",
+  "}": "{",
+};
+
 export default class MonitorUrlInText {
   /*
    * A URL by its scheme, host and port: never its path, query, fragment or
@@ -102,14 +113,51 @@ export default class MonitorUrlInText {
 
     // Read in time in line with the text's length, however it is made.
     return written.replace(URL_IN_TEXT, (match: string): string => {
-      let end: number = match.length;
-
-      while (end > 0 && TRAILING_PUNCTUATION.has(match.charAt(end - 1))) {
-        end--;
-      }
+      const end: number = MonitorUrlInText.endOfUrl(match);
 
       return `${MonitorUrlInText.write(match.slice(0, end))}${match.slice(end)}`;
     });
+  }
+
+  /*
+   * Where a URL found in a text ends: before the sentence marks after it,
+   * but never before a closing bracket the URL itself opened. Each
+   * bracket is counted once, so the time is in line with the URL's length.
+   */
+  private static endOfUrl(match: string): number {
+    const open: Record<string, number> = { "(": 0, "[": 0, "{": 0 };
+    const close: Record<string, number> = { ")": 0, "]": 0, "}": 0 };
+
+    for (const character of match) {
+      if (character in open) {
+        open[character] = (open[character] as number) + 1;
+      } else if (character in close) {
+        close[character] = (close[character] as number) + 1;
+      }
+    }
+
+    let end: number = match.length;
+
+    while (end > 0 && TRAILING_PUNCTUATION.has(match.charAt(end - 1))) {
+      const character: string = match.charAt(end - 1);
+      const opening: string | undefined = OPENING_BRACKETS[character];
+
+      // Taken off, this one would leave a bracket the URL opened unclosed.
+      if (
+        opening &&
+        (open[opening] as number) >= (close[character] as number)
+      ) {
+        break;
+      }
+
+      if (opening) {
+        close[character] = (close[character] as number) - 1;
+      }
+
+      end--;
+    }
+
+    return end;
   }
 
   // Each attempt with its failure cause written so; a copy.
