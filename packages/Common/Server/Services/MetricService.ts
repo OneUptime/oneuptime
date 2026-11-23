@@ -9,7 +9,10 @@ import AggregateBy, {
 import DeleteBy from "../Types/AnalyticsDatabase/DeleteBy";
 import Query from "../Types/AnalyticsDatabase/Query";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
-import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getQuerySettings,
+  INTERACTIVE_READ_TIME_LIMIT,
+} from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
   getDistributionAwareAggregationExpression,
   getRollupAggregationExpression,
@@ -3308,6 +3311,212 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      */
     return new Date(d).toISOString().replace("T", " ").substring(0, 19);
   }
+
+  /**
+   * One monitor's checks of one series over a window, counted in the
+   * database (#10355): for each group of rows - each probe, and each disk
+   * of a disk series - how many checks there were, how many met the
+   * condition, how often the condition changed from one check to the next,
+   * whether the first and the last met it, and when they were.
+   *
+   * What a criteria's "more than 30 failed checks in the last 8 hours" reads.
+   * One statement whatever the number of groups, over the table's own sort
+   * key (projectId, name, primaryEntityId, time): a bounded range of one
+   * monitor's rows, read in place and handed back as one small row a group,
+   * never the rows themselves. The changes are counted over the rows sorted
+   * by time inside each group.
+   *
+   * The condition is one comparison of a row's value with a number, its
+   * operator one of a fixed list and its number a bound parameter, so
+   * nothing written in a criteria reaches the statement as text.
+   */
+  public async summarizeMonitorChecks(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    windowStart: Date;
+    windowEnd: Date;
+    // Rows whose attribute equals the value: the filter key of a match history.
+    attributes?: Record<string, string> | undefined;
+    // The attributes each group is one value of: probeId, and diskPath.
+    groupByAttributeKeys: Array<string>;
+    condition: MonitorCheckCondition;
+  }): Promise<Array<MonitorCheckSummaryRow>> {
+    const operator: string | undefined =
+      MONITOR_CHECK_CONDITION_OPERATORS[data.condition.comparison];
+
+    if (!operator || !Number.isFinite(data.condition.threshold)) {
+      throw new BadDataException(
+        "A check is counted against a comparison with a number.",
+      );
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const groupKeys: Array<string> = data.groupByAttributeKeys.slice(0, 4);
+
+    // Whether a row meets the condition, as 1 or 0.
+    const conditionStatement: () => Statement = (): Statement => {
+      return SQL`toUInt8(value `
+        .append(operator)
+        .append(
+          SQL` ${{
+            value: data.condition.threshold,
+            type: TableColumnType.Decimal,
+          }})`,
+        );
+    };
+
+    const statement: Statement = SQL`SELECT `;
+
+    groupKeys.forEach((_key: string, index: number): void => {
+      statement.append(`g${index}, `);
+    });
+
+    statement.append(
+      ` checkCount, matchCount, firstAt, lastAt, states[1] AS firstState, states[length(states)] AS lastState, arraySum(arrayMap((a, b) -> a != b, arrayPopBack(states), arrayPopFront(states))) AS changeCount FROM (SELECT `,
+    );
+
+    groupKeys.forEach((key: string, index: number): void => {
+      statement
+        .append(SQL`attributes[${{ value: key, type: TableColumnType.Text }}]`)
+        .append(` AS g${index}, `);
+    });
+
+    statement
+      .append(` count() AS checkCount, sum(`)
+      .append(conditionStatement())
+      .append(
+        ` ) AS matchCount, min(time) AS firstAt, max(time) AS lastAt, arrayMap(x -> x.2, arraySort(x -> x.1, groupArray((time, `,
+      )
+      .append(conditionStatement())
+      .append(`)))) AS states FROM ${databaseName}.${this.model.tableName}`)
+      .append(
+        SQL` WHERE projectId = ${{
+          value: data.projectId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND name = ${{
+          value: data.metricName,
+          type: TableColumnType.Text,
+        }} AND primaryEntityId = ${{
+          value: data.monitorId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND time >= ${{
+          value: data.windowStart,
+          type: TableColumnType.DateTime64,
+        }} AND time <= ${{
+          value: data.windowEnd,
+          type: TableColumnType.DateTime64,
+        }} AND isNotNull(value)`,
+      );
+
+    for (const [key, value] of Object.entries(data.attributes || {})) {
+      statement.append(
+        SQL` AND attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}] = ${{ value: value, type: TableColumnType.Text }}`,
+      );
+    }
+
+    statement.append(this.getRetentionReadFilter());
+
+    if (groupKeys.length > 0) {
+      statement.append(
+        ` GROUP BY ${groupKeys
+          .map((_key: string, index: number): string => {
+            return `g${index}`;
+          })
+          .join(", ")}`,
+      );
+    }
+
+    statement
+      .append(`)`)
+      .append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    return (responseJSON.data || []).map(
+      (row: JSONObject): MonitorCheckSummaryRow => {
+        const group: Record<string, string> = {};
+
+        groupKeys.forEach((key: string, index: number): void => {
+          group[key] = String(row[`g${index}`] ?? "");
+        });
+
+        return {
+          group: group,
+          checkCount: Number(row["checkCount"] || 0),
+          matchCount: Number(row["matchCount"] || 0),
+          changeCount: Number(row["changeCount"] || 0),
+          firstAt: MetricService.readSummaryTime(row["firstAt"]),
+          lastAt: MetricService.readSummaryTime(row["lastAt"]),
+          firstMatched: Number(row["firstState"]) === 1,
+          lastMatched: Number(row["lastState"]) === 1,
+        };
+      },
+    );
+  }
+
+  // A DateTime64 as the JSON format writes it, read on UTC's clock.
+  private static readSummaryTime(value: unknown): Date | null {
+    if (value === undefined || value === null || value === "") {
+      return null;
+    }
+
+    const text: string = String(value);
+    const at: Date = new Date(
+      /^\d{4}-\d{2}-\d{2} /.test(text) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)
+        ? `${text.replace(" ", "T")}Z`
+        : text,
+    );
+
+    return isNaN(at.getTime()) ? null : at;
+  }
+}
+
+/*
+ * How a monitor check's value is compared, for summarizeMonitorChecks: one
+ * of a fixed list of comparisons, with a number.
+ */
+export type MonitorCheckComparison = "gt" | "gte" | "lt" | "lte" | "eq" | "ne";
+
+export interface MonitorCheckCondition {
+  comparison: MonitorCheckComparison;
+  threshold: number;
+}
+
+const MONITOR_CHECK_CONDITION_OPERATORS: Record<
+  MonitorCheckComparison,
+  string
+> = {
+  gt: ">",
+  gte: ">=",
+  lt: "<",
+  lte: "<=",
+  eq: "=",
+  ne: "!=",
+};
+
+// One group of a monitor's checks over a window, as summarizeMonitorChecks reads it.
+export interface MonitorCheckSummaryRow {
+  // Each grouped attribute's value in this group: "" when the rows have none.
+  group: Record<string, string>;
+  checkCount: number;
+  matchCount: number;
+  // How often the condition changed between two checks in a row.
+  changeCount: number;
+  firstAt: Date | null;
+  lastAt: Date | null;
+  firstMatched: boolean;
+  lastMatched: boolean;
 }
 
 export default new MetricService();

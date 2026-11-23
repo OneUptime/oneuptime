@@ -3,6 +3,7 @@ import {
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil,
+  DEFAULT_EVALUATE_OVER_TIME_PERCENTILE,
   EvaluateOverTimeType,
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
@@ -43,6 +44,8 @@ export default class CompareCriteria {
   public static reduceWindow(data: {
     values: Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    // Percentile only: which one. 95 when not given.
+    percentile?: number | undefined;
   }): Array<number> {
     const values: Array<number> = data.values;
 
@@ -51,6 +54,13 @@ export default class CompareCriteria {
     }
 
     switch (data.evaluationType) {
+      case EvaluateOverTimeType.Percentile:
+        return [
+          CompareCriteria.getPercentileOf({
+            values: values,
+            percentile: data.percentile,
+          }),
+        ];
       case EvaluateOverTimeType.Average: {
         const sum: number = values.reduce((a: number, b: number) => {
           return a + b;
@@ -74,6 +84,43 @@ export default class CompareCriteria {
   }
 
   /*
+   * The given percentile of the values (#10355), between the two closest
+   * ranks: the 50th of [1, 2, 3, 4] is 2.5, the 95th of a hundred response
+   * times the value 95% of them are at or under. A percentile outside 0 to
+   * 100 is read as the 95th.
+   */
+  public static getPercentileOf(data: {
+    values: Array<number>;
+    percentile?: number | undefined;
+  }): number {
+    const sorted: Array<number> = data.values
+      .filter((value: number): boolean => {
+        return Number.isFinite(value);
+      })
+      .sort((a: number, b: number): number => {
+        return a - b;
+      });
+
+    if (sorted.length === 0) {
+      return NaN;
+    }
+
+    const percentile: number =
+      typeof data.percentile === "number" &&
+      Number.isFinite(data.percentile) &&
+      data.percentile > 0 &&
+      data.percentile < 100
+        ? data.percentile
+        : DEFAULT_EVALUATE_OVER_TIME_PERCENTILE;
+
+    const rank: number = (percentile / 100) * (sorted.length - 1);
+    const lower: number = Math.floor(rank);
+    const upper: number = Math.ceil(rank);
+
+    return sorted[lower]! + (sorted[upper]! - sorted[lower]!) * (rank - lower);
+  }
+
+  /*
    * The one place a numeric criteria filter decides whether it is met.
    *
    * `AnyValue` is an existential quantifier, everything else is universal
@@ -84,6 +131,7 @@ export default class CompareCriteria {
   private static evaluateWindow(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     predicate: (value: number) => boolean;
   }): boolean {
     if (!Array.isArray(data.value)) {
@@ -93,6 +141,7 @@ export default class CompareCriteria {
     const values: Array<number> = CompareCriteria.reduceWindow({
       values: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
     });
 
     if (values.length === 0) {
@@ -128,11 +177,13 @@ export default class CompareCriteria {
   public static greaterThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value > data.threshold;
       },
@@ -182,11 +233,13 @@ export default class CompareCriteria {
   public static lessThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value < data.threshold;
       },
@@ -196,11 +249,13 @@ export default class CompareCriteria {
   public static greaterThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value >= data.threshold;
       },
@@ -210,11 +265,13 @@ export default class CompareCriteria {
   public static lessThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value <= data.threshold;
       },
@@ -224,11 +281,13 @@ export default class CompareCriteria {
   public static equalTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value === data.threshold;
       },
@@ -238,11 +297,13 @@ export default class CompareCriteria {
   public static notEqualTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
+    percentile?: number | undefined;
     threshold: number;
   }): boolean {
     return CompareCriteria.evaluateWindow({
       value: data.value,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
       predicate: (value: number) => {
         return value !== data.threshold;
       },
@@ -553,6 +614,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -576,6 +638,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -599,6 +662,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -622,6 +686,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -645,6 +710,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -668,6 +734,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
         })
       ) {
         return CompareCriteria.getCompareMessage({
@@ -785,6 +852,7 @@ export default class CompareCriteria {
           evaluationType:
             data.criteriaFilter.evaluateOverTimeOptions?.evaluateOverTimeType ||
             data.criteriaFilter.metricMonitorOptions?.metricAggregationType,
+          percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
           label,
           withUnit,
         });
@@ -805,6 +873,7 @@ export default class CompareCriteria {
       CompareCriteria.getQuantifiedSubject({
         evaluationType: evaluationType,
         label: label,
+        percentile: CriteriaFilterUtil.getPercentile(data.criteriaFilter),
       });
 
     if (
@@ -959,16 +1028,40 @@ export default class CompareCriteria {
     return label;
   }
 
+  /*
+   * A percentile as "p95" writes it: its number, at most one decimal
+   * (99.9). The default when the filter names none.
+   */
+  public static describePercentile(percentile: number | undefined): string {
+    const value: number =
+      typeof percentile === "number" &&
+      Number.isFinite(percentile) &&
+      percentile > 0 &&
+      percentile < 100
+        ? percentile
+        : DEFAULT_EVALUATE_OVER_TIME_PERCENTILE;
+
+    return Number.isInteger(value)
+      ? String(value)
+      : String(Math.round(value * 10) / 10);
+  }
+
   // "Any value of Is Online", "The average of CPU Usage (in %)", or the label.
   private static getQuantifiedSubject(data: {
     evaluationType: EvaluateOverTimeType | undefined;
     label: EvaluationSentenceValue;
+    percentile?: number | undefined;
   }): EvaluationSentenceValue {
     const values: Record<string, EvaluationSentenceValue> = {
       label: data.label,
     };
 
     switch (data.evaluationType) {
+      case EvaluateOverTimeType.Percentile:
+        return translatableSentence("The p{{percentile}} of {{label}}", {
+          ...values,
+          percentile: CompareCriteria.describePercentile(data.percentile),
+        });
       case EvaluateOverTimeType.AnyValue:
         return translatableSentence("Any value of {{label}}", values);
       case EvaluateOverTimeType.AllValues:
@@ -1003,6 +1096,8 @@ export default class CompareCriteria {
     threshold: number;
     filterType: FilterType;
     evaluationType: EvaluateOverTimeType | undefined;
+    // Percentile only: which one.
+    percentile?: number | undefined;
     label: EvaluationSentenceValue;
     withUnit: ((value: number) => string) | undefined;
   }): EvaluationSentence | null {
@@ -1059,13 +1154,11 @@ export default class CompareCriteria {
     }
 
     const isAggregated: boolean =
-      data.evaluationType === EvaluateOverTimeType.Average ||
-      data.evaluationType === EvaluateOverTimeType.Sum ||
-      data.evaluationType === EvaluateOverTimeType.MaximumValue ||
-      data.evaluationType === EvaluateOverTimeType.MunimumValue;
+      CriteriaFilterUtil.isValueAggregateWindowType(data.evaluationType);
     const reducedValues: Array<number> = CompareCriteria.reduceWindow({
       values: data.values,
       evaluationType: data.evaluationType,
+      percentile: data.percentile,
     });
     const matchingValues: Array<number> = reducedValues.filter(predicate);
     const reportedValues: Array<number> =
@@ -1090,7 +1183,11 @@ export default class CompareCriteria {
       data.withUnit,
     );
     const subject: EvaluationSentenceValue = isAggregated
-      ? CompareCriteria.getAggregatedSubject(data.evaluationType, data.label)
+      ? CompareCriteria.getAggregatedSubject(
+          data.evaluationType,
+          data.label,
+          data.percentile,
+        )
       : data.label;
     let observation: EvaluationSentence =
       low === high
@@ -1143,6 +1240,7 @@ export default class CompareCriteria {
             evaluationType: data.evaluationType,
             isAggregated: isAggregated,
             isSeries: data.isSeries,
+            percentile: data.percentile,
           }),
           comparison: comparison,
         },
@@ -1159,8 +1257,15 @@ export default class CompareCriteria {
   private static getAggregatedSubject(
     evaluationType: EvaluateOverTimeType | undefined,
     label: EvaluationSentenceValue,
+    percentile?: number | undefined,
   ): EvaluationSentenceValue {
     switch (evaluationType) {
+      // "The p95 of Response Time (in ms)", as monitoring tools write it.
+      case EvaluateOverTimeType.Percentile:
+        return translatableSentence("The p{{percentile}} of {{label}}", {
+          label,
+          percentile: CompareCriteria.describePercentile(percentile),
+        });
       case EvaluateOverTimeType.Average:
         return translatableSentence("The average of {{label}}", { label });
       case EvaluateOverTimeType.Sum:
@@ -1179,9 +1284,14 @@ export default class CompareCriteria {
     evaluationType: EvaluateOverTimeType | undefined;
     isAggregated: boolean;
     isSeries: boolean;
+    percentile?: number | undefined;
   }): EvaluationSentence {
     if (data.isAggregated) {
       switch (data.evaluationType) {
+        case EvaluateOverTimeType.Percentile:
+          return translatableSentence("the p{{percentile}}", {
+            percentile: CompareCriteria.describePercentile(data.percentile),
+          });
         case EvaluateOverTimeType.Average:
           return translatableSentence("the average");
         case EvaluateOverTimeType.Sum:
