@@ -215,28 +215,6 @@ class RoutingDispatcher {
     return this.routeThrough(proxy).dispatch(options, handler);
   }
 
-  public async close(): Promise<void> {
-    await Promise.all(
-      Array.from(this.routes.values()).map(
-        (route: Dispatcher): Promise<void> => {
-          return route.close();
-        },
-      ),
-    );
-  }
-
-  public async destroy(): Promise<void> {
-    const routes: Array<Dispatcher> = Array.from(this.routes.values());
-
-    this.routes.clear();
-
-    await Promise.all(
-      routes.map((route: Dispatcher): Promise<void> => {
-        return route.destroy();
-      }),
-    );
-  }
-
   // "host:port", as a refusal names where a request was going.
   private static destinationOf(origin: URL): string {
     return `${origin.hostname}:${origin.port || (origin.protocol === "https:" ? "443" : "80")}`;
