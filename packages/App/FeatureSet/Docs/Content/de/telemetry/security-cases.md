@@ -269,6 +269,7 @@ OneUptime informiert Personen über sieben Dinge an einem Fall. Niemand muss daf
 - Niemand wird über das informiert, was er selbst getan hat: Wer einen Fall per Hand eröffnet, ihn zuweist oder eine Ausführung startet, wird darüber nicht benachrichtigt.
 - Jede Person erfährt nur einmal von einem Fall. Ein Fall, der mit Medium eröffnet wird und später auf Kritisch steigt, erreicht beim Anstieg die Personen, die Hoch und Kritisch oder Nur Kritisch gewählt haben, und nicht noch einmal die Personen, die Mittel und höher gewählt und schon bei der Eröffnung davon erfahren haben.
 - Der Testangriff aus **Testangriff senden** eröffnet einen Fall, der niemanden benachrichtigt.
+- Ist **OneUptime AI zuerst reagieren lassen** eingeschaltet, wartet ein neuer Fall unter der gewählten Priorität auf OneUptime AI: Personen erfahren erst davon, wenn OneUptime AI sie braucht, dann sofort und mit dem Grund. Siehe [OneUptime AI zuerst reagieren lassen](/docs/telemetry/security-ai#oneuptime-ai-zuerst-reagieren-lassen).
 - Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten. Ebenso ein Reaktionsziel, das gleich verfehlt wird oder verfehlt ist, ein Schritt, der nicht mehr hält, und ein Fall, den OneUptime AI an Menschen übergeben hat.
 - Die **Zeitachse** des Falls zeigt, wer wann informiert wurde.
 
@@ -490,6 +491,7 @@ Jede Ausführung wird an ihrem Fall und unter **Produkte → Sicherheitsereignis
 | In der Warteschlange | Wartet auf einen Worker |
 | Wird ausgeführt | Führt ihre Schritte aus |
 | Wartet auf Genehmigung | Vor einem Schritt angehalten, der eine Genehmigung braucht |
+| Wartet auf OneUptime AI | Vor einem Schritt **Bereitschaft alarmieren** angehalten, während [OneUptime AI zuerst auf ihren Fall reagiert](/docs/telemetry/security-ai#oneuptime-ai-zuerst-reagieren-lassen) |
 | Erfolgreich | Jeder Schritt lief oder wurde übersprungen, oder ein Schritt **Ausführung stoppen** hat sie beendet |
 | Fehlgeschlagen | Ein Schritt ist fehlgeschlagen, und die Ausführung wurde beendet |
 | Abgebrochen | Jemand hat sie abgebrochen oder einen Schritt abgelehnt |

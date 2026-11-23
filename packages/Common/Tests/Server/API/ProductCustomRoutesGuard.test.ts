@@ -104,6 +104,8 @@ const PAGE_LINK: string =
   "A page's own link or key press: the person paged answers it. What already runs keeps running, and refusing the answer would page everyone up the policy.";
 const STOPS_AI: string =
   "Take Over stops OneUptime AI working a case and hands it to people: stopping OneUptime AI is never held back while a product is switched off, and it writes only that the case is the people's now (SecurityCaseHandOff).";
+const PAGES_PEOPLE: string =
+  "Page now ends OneUptime AI's hold of a new case's alerts and alerts people at once: getting people on a case is never held back while a product is switched off - with Security Events off, every hold ends within a minute anyway (SecurityCaseAiHold) - and it writes only that the hold ended, as theirs.";
 const IN_FIX: string =
   "Refused in RemediationApproval once the fix is read (RemediationFixProducts): its incident's or alert's product, Runbooks for a fix that starts a runbook, Cloud for a dry run - a Slack or Microsoft Teams press too.";
 
@@ -663,6 +665,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       // The case's OneUptime AI card: what it did, asked about or left (#10352).
       "`${basePath}/:caseId/ai-response`": READ,
       "`${basePath}/:caseId/ai-response/take-over`": STOPS_AI,
+      // OneUptime AI responding first to a case: alert people now (#10353).
+      "`${basePath}/:caseId/ai-response/page-now`": PAGES_PEOPLE,
     },
   },
   "packages/Common/Server/API/SecurityCaseContextAPI.ts": {

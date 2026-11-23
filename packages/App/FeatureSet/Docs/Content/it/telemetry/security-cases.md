@@ -269,6 +269,7 @@ OneUptime avvisa le persone di sette cose su un caso. Nessuno deve configurare n
 - Nessuno viene avvisato di ciò che ha fatto: chi apre un caso a mano, lo assegna o avvia un'esecuzione non riceve una notifica al riguardo.
 - Ogni persona viene avvisata di un caso una sola volta. Un caso che si apre con priorità Medium e poi sale a Critico raggiunge, quando sale, le persone che hanno scelto Alta e Critica o Solo Critica, e non di nuovo quelle che hanno scelto Media e superiori, già avvisate quando si è aperto.
 - L'attacco di prova di **Invia un attacco di prova** apre un caso che non avvisa nessuno.
+- Con **Lascia che OneUptime AI risponda per primo** attivo, un nuovo caso al di sotto della priorità scelta attende OneUptime AI: le persone ne vengono avvisate solo quando OneUptime AI ha bisogno di loro, subito e con il motivo. Vedi [Lascia che OneUptime AI risponda per primo](/docs/telemetry/security-ai#lascia-che-oneuptime-ai-risponda-per-primo).
 - Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup). Lo stesso vale per un obiettivo di risposta che sta per essere mancato, o è stato mancato, per un passaggio che non regge più e per un caso che OneUptime AI ha affidato alle persone.
 - La **Cronologia** del caso indica chi è stato avvisato, e quando.
 
@@ -487,9 +488,10 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Eventi di sicurezza
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
-| Queued | In attesa di un worker |
+| In coda | In attesa di un worker |
 | In esecuzione | Sta eseguendo i suoi passi |
-| Waiting for Approval | Ferma prima di un passo che richiede approvazione |
+| In attesa di approvazione | Ferma prima di un passo che richiede approvazione |
+| In attesa di OneUptime AI | Ferma prima di un passo **Allerta la reperibilità** mentre [OneUptime AI risponde per primo](/docs/telemetry/security-ai#lascia-che-oneuptime-ai-risponda-per-primo) al suo caso |
 | Riuscito | Ogni passo è stato eseguito, o saltato, oppure un passo **Ferma l'esecuzione** l'ha terminata |
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |

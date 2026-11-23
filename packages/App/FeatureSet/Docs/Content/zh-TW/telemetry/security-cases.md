@@ -269,6 +269,7 @@ OneUptime 會就案件上的七件事通知相關人員。不需要任何人做�
 - 沒有人會因為自己做的事而收到通知：手動開啟案件、指派案件或啟動執行的人不會收到相應的通知。
 - 每個人對一個案件只會收到一次通知。一個以 Medium 開啟、之後提升到 Critical 的案件，會在提升時通知選擇了 High 或 Critical 的人，而不會再次通知選擇了 Medium 的人，因為他們在案件開啟時就已經收到通知。
 - 透過 **傳送測試攻擊** 發起的測試攻擊會開啟一個不通知任何人的案件。
+- 開啟 **讓 OneUptime AI 率先回應** 後，低於其所選優先順序的新案件會先等待 OneUptime AI：只有在 OneUptime AI 需要人員時，相關人員才會收到通知，屆時會立即收到，並附上原因。請參閱 [讓 OneUptime AI 率先回應](/docs/telemetry/security-ai#讓-oneuptime-ai-率先回應)。
 - Critical 案件和等待核准的步驟會立即傳送，絕不會被壓在 [郵件彙總](/docs/emails/notification-rollup) 中延後傳送。即將錯過或已錯過的回應目標、不再有效的步驟，以及 OneUptime AI 移交給人員的案件，也是如此。
 - 案件的 **時間軸** 會顯示通知了誰以及何時通知。
 
@@ -490,6 +491,7 @@ Mattermost 收到的核准是不帶按鈕的文字。
 | Queued | 等待工作程序 |
 | Running | 正在執行其步驟 |
 | Waiting for Approval | 停在需要核准的步驟之前 |
+| 等待 OneUptime AI | 在 OneUptime AI 對其案件 [率先回應](/docs/telemetry/security-ai#讓-oneuptime-ai-率先回應) 期間，停在一個 **呼叫待命人員** 步驟之前 |
 | Succeeded | 每個步驟都已執行或被略過，或者由 **停止執行** 步驟結束了執行 |
 | Failed | 某個步驟失敗，執行已停止 |
 | Cancelled | 有人取消了它，或拒絕了某個步驟 |

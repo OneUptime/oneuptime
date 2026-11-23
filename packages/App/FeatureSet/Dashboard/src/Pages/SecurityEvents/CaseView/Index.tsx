@@ -8,6 +8,7 @@ import useSecurityCaseMatches, {
 } from "../../../Components/SecurityCase/Matches/useSecurityCaseMatches";
 import SecurityCaseResponsePlanCard from "../../../Components/SecurityCase/Response/SecurityCaseResponsePlanCard";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
+import SecurityCaseAiHoldNotice from "../../../Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice";
 import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import {
@@ -185,6 +186,13 @@ const SecurityCaseOverviewPage: FunctionComponent<
 
   return (
     <>
+      {/*
+       * While OneUptime AI responds first (#10353): that it is on it, when
+       * people are alerted unless it contains the case, and Page now - the
+       * first thing on the page, one click away.
+       */}
+      <SecurityCaseAiHoldNotice caseId={view.caseId} onChanged={view.refresh} />
+
       {/*
        * By its own width: beside the case's side menu a laptop's window
        * leaves it too little for four tiles in a row, and their labels

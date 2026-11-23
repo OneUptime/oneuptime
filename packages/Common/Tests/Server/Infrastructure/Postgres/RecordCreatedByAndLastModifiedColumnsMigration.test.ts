@@ -122,11 +122,11 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
   // Automatic response's policies, and what each did (#10350).
   {
     table: "SecurityAutomaticResponsePolicy",
-    migration: "1809187490000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187500000-AddSecurityAutomaticResponse.ts",
   },
   {
     table: "SecurityAutomaticResponseAction",
-    migration: "1809187490000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187500000-AddSecurityAutomaticResponse.ts",
   },
 ];
 

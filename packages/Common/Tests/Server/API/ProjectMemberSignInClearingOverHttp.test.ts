@@ -65,6 +65,8 @@ import {
 } from "../../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../../Types/SSO/SignInSettingsClearedEmail";
 import { getJestSpyOn } from "../../Spy";
+import InMemoryLocks from "../TestingUtils/InMemoryLocks";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
 import { readQueryValues } from "../TestingUtils/SsoManagedProjects";
 import {
   afterAll,
@@ -116,6 +118,11 @@ if (
  *   - the owner's own row is never listed, nor cleared;
  *   - nobody the owner does not see on this project's Users list is named:
  *     only people asked about, members of this project.
+ *
+ * Every session here has confirmed it's its person's (confirmEverySession):
+ * the clear asks that first (#10775), and the confirmation itself, over
+ * HTTP through these same routes, is ProjectSignInClearingConfirmItsYou-
+ * OverHttp.test.ts's.
  */
 
 // The people of the world, and who they are.
@@ -472,6 +479,12 @@ beforeEach(() => {
   joins(DAN_ID, ACME_ID, false);
 
   signedInAs(OWNER_ID);
+
+  // The owner's session confirmed it's theirs, as a clear asks (#10775).
+  confirmEverySession();
+
+  // The clear's lock on each person, held in memory as Valkey holds it (#10776).
+  new InMemoryLocks().install();
 
   getJestSpyOn(UserMiddleware, "readRequestSession").mockImplementation(
     async (): Promise<RequestSession> => {

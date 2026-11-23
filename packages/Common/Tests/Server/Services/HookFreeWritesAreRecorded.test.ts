@@ -736,6 +736,17 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
         Why.Reported,
     },
   // OneUptime AI handing a case it worked to people (#10352): its own state, on the timeline.
+  /*
+   * Whether a new case's alerts wait while OneUptime AI responds first, and
+   * how the hold ended (#10353): when people are told, which the case's
+   * timeline says, naming who pressed Page now or took the case.
+   */
+  "packages/Common/Server/Utils/SecurityCase/SecurityCaseAiHold.ts": {
+    "SecurityCaseAiHold.endHold SecurityCase": Why.Bookkeeping,
+    // A run whose page step waited carries on: its progress (#10353).
+    "SecurityCaseAiHold.queueAgain SecurityPlaybookRun": Why.Automation,
+    "SecurityCaseAiHold.startHold SecurityCase": Why.Bookkeeping,
+  },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseHandOff.ts": {
     "SecurityCaseHandOff.handToPeople SecurityCase": Why.Automation,
   },
@@ -744,6 +755,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityCaseIngest.recordRepeat SecurityCase": Why.Reported,
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
+    // What a held case's end has told people, claimed once (#10353).
+    "SecurityCaseNotifications.notifyAiHoldEnded SecurityCase": Why.Bookkeeping,
     "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
       Why.Bookkeeping,
   },
@@ -772,6 +785,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityPlaybookEngine.finishRun SecurityPlaybookRun": Why.Automation,
     "SecurityPlaybookEngine.recoverRuns SecurityPlaybookRun": Why.Automation,
     "SecurityPlaybookEngine.runSteps SecurityPlaybookRun": Why.Automation,
+    // A page step waits while OneUptime AI responds first (#10353).
+    "SecurityPlaybookEngine.waitForOneUptimeAi SecurityPlaybookRun":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookRunDecision.ts":
     {
