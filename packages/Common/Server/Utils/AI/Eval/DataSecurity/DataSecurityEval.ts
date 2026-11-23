@@ -5,6 +5,7 @@ import {
 } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import { JSONObject } from "../../../../../Types/JSON";
+import { getLinearRegExp } from "../../../../../Utils/LinearRegExp/PatternCache";
 import { LLMMessage } from "../../../LLM/LLMService";
 import DataSecurityAiInput, {
   DataSecurityAiCodeRequest,
@@ -500,8 +501,12 @@ function doesRuleChange(rule: ScrubRuleWriterRule, value: string): boolean {
     return true;
   }
 
+  /*
+   * As ingest runs a scrub rule's pattern: OneUptime AI wrote it, so in
+   * linear time; one no scrub rule can run changes nothing.
+   */
   try {
-    return new RegExp(rule.pattern || "").test(value);
+    return getLinearRegExp(rule.pattern || "").test(value);
   } catch {
     return false;
   }
