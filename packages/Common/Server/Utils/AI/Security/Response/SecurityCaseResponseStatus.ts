@@ -135,9 +135,11 @@ export default class SecurityCaseResponseStatus {
     ]);
 
     const limits: SecurityCaseAiLimits = readSecurityCaseAiLimits(project);
-    const names: Map<string, string> = await this.readNames(data.projectId, rows, [
-      securityCase?.aiHoldEndedByUserId?.toString() || "",
-    ]);
+    const names: Map<string, string> = await this.readNames(
+      data.projectId,
+      rows,
+      [securityCase?.aiHoldEndedByUserId?.toString() || ""],
+    );
 
     let notStarted: SecurityCaseResponseNotStartedCode | null =
       await SecurityCaseResponse.getNotStartedReason({

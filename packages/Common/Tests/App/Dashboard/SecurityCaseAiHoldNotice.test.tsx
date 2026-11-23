@@ -131,7 +131,9 @@ describe("a case that is not held", () => {
     });
     await settle();
 
-    expect(screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID),
+    ).toBeNull();
     expect(reads[0]).toEqual({
       id: CASE_ID,
       select: { _id: true, aiHoldOutcome: true, aiHoldUntil: true },
@@ -147,7 +149,9 @@ describe("a case that is not held", () => {
     await settle();
     await settle();
 
-    expect(screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -222,7 +226,9 @@ describe("a case OneUptime AI is responding first to", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Page now/ }));
 
     expect(
-      await screen.findByTestId(`${SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID}-error`),
+      await screen.findByTestId(
+        `${SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID}-error`,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Page now/ })).toBeEnabled();
   });
@@ -255,7 +261,9 @@ describe("a case OneUptime AI is responding first to", () => {
       await Promise.resolve();
     });
 
-    expect(screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(SECURITY_CASE_AI_HOLD_NOTICE_TEST_ID),
+    ).toBeNull();
     expect(reads).toHaveLength(3);
     expect(onChanged).toHaveBeenCalledTimes(1);
   });

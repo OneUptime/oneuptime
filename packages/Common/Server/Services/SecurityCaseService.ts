@@ -1028,9 +1028,7 @@ export class Service extends ProjectReferencesService<Model> {
         projectId,
         securityCaseId: caseId,
         byUserId: isPersonsChange ? userId : undefined,
-        isAssignedToPerson: Boolean(
-          userChanged && data["assignedToUserId"],
-        ),
+        isAssignedToPerson: Boolean(userChanged && data["assignedToUserId"]),
         isStatusChanged: Boolean(newStatusId && newStatusId !== old.statusId),
         isPriorityRaised: Boolean(
           newPriorityId &&

@@ -2821,7 +2821,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "wait before paging",
               "page now",
             ],
-            settings: ["Work cases end to end", "Let OneUptime AI respond first"],
+            settings: [
+              "Work cases end to end",
+              "Let OneUptime AI respond first",
+            ],
           },
         ],
       },

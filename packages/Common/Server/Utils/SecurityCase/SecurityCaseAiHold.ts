@@ -470,7 +470,9 @@ export default class SecurityCaseAiHold {
     const securityCase: SecurityCase | null = await this.readCase(data);
 
     if (!securityCase?.id) {
-      throw new Error(`Security case ${data.securityCaseId.toString()} not found.`);
+      throw new Error(
+        `Security case ${data.securityCaseId.toString()} not found.`,
+      );
     }
 
     const values: ProjectSecurityCaseValues =
@@ -900,13 +902,12 @@ export default class SecurityCaseAiHold {
     }
 
     try {
-      const securityCase: SecurityCase | null = await SecurityCaseService.findOneBy(
-        {
+      const securityCase: SecurityCase | null =
+        await SecurityCaseService.findOneBy({
           query: { _id: data.securityCaseId, projectId: data.projectId },
           select: { _id: true, createdAt: true },
           props: { isRoot: true },
-        },
-      );
+        });
       const heldMinutes: number | undefined = securityCase?.createdAt
         ? Math.max(
             1,
@@ -1134,7 +1135,10 @@ export default class SecurityCaseAiHold {
   public static async getPageDecision(data: {
     projectId: ObjectID;
     securityCaseId: ObjectID;
-    run: Pick<SecurityPlaybookRun, "trigger" | "triggeredByUserId" | "createdAt">;
+    run: Pick<
+      SecurityPlaybookRun,
+      "trigger" | "triggeredByUserId" | "createdAt"
+    >;
   }): Promise<{
     decision: SecurityCaseAiHoldPageDecision;
     // How the hold ended, for a page skipped: what its step says.
@@ -1183,13 +1187,12 @@ export default class SecurityCaseAiHold {
     projectId: ObjectID;
     securityCaseId: ObjectID;
   }): Promise<boolean> {
-    const securityCase: SecurityCase | null = await SecurityCaseService.findOneBy(
-      {
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
         query: { _id: data.securityCaseId, projectId: data.projectId },
         select: { _id: true, aiHoldOutcome: true },
         props: { isRoot: true },
-      },
-    );
+      });
 
     return securityCase?.aiHoldOutcome === SecurityCaseAiHoldOutcome.Holding;
   }
@@ -1283,13 +1286,15 @@ export default class SecurityCaseAiHold {
 
       try {
         const isQueued: boolean =
-          await SecurityPlaybookRunService.compareAndSetColumnsByIdWithoutHooks({
-            id: run.id,
-            data: { status: SecurityPlaybookRunStatus.Queued },
-            expectedData: {
-              status: SecurityPlaybookRunStatus.WaitingForOneUptimeAi,
+          await SecurityPlaybookRunService.compareAndSetColumnsByIdWithoutHooks(
+            {
+              id: run.id,
+              data: { status: SecurityPlaybookRunStatus.Queued },
+              expectedData: {
+                status: SecurityPlaybookRunStatus.WaitingForOneUptimeAi,
+              },
             },
-          });
+          );
 
         if (isQueued) {
           await SecurityPlaybookEngine.enqueueRun(run.id);

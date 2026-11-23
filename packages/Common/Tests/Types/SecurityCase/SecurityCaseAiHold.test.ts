@@ -156,18 +156,18 @@ describe("the hold's outcomes", () => {
   });
 
   test("every end alerts people, but a resolved case and one a person took", () => {
-    expect(isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.Resolved)).toBe(
-      false,
-    );
+    expect(
+      isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.Resolved),
+    ).toBe(false);
     expect(
       isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.TakenByPerson),
     ).toBe(false);
-    expect(isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.Holding)).toBe(
-      false,
-    );
-    expect(isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.PageNow)).toBe(
-      true,
-    );
+    expect(
+      isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.Holding),
+    ).toBe(false);
+    expect(
+      isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.PageNow),
+    ).toBe(true);
     expect(
       isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.RoseInPriority),
     ).toBe(true);
@@ -179,7 +179,9 @@ describe("the hold's outcomes", () => {
     }
 
     expect(
-      SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[SecurityCaseAiHoldOutcome.PageNow],
+      SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[
+        SecurityCaseAiHoldOutcome.PageNow
+      ],
     ).toContain("{{name}}");
     expect(
       SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[
@@ -187,7 +189,9 @@ describe("the hold's outcomes", () => {
       ],
     ).toContain("{{name}}");
     expect(
-      SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[SecurityCaseAiHoldOutcome.Resolved],
+      SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[
+        SecurityCaseAiHoldOutcome.Resolved
+      ],
     ).toContain("Nobody was alerted");
   });
 });
@@ -258,9 +262,12 @@ describe("whether a new case is held", () => {
   });
 
   test("never a case at or above the priority the project holds below", () => {
-    expect(decideSecurityCaseAiHold(facts({ isBelowThreshold: false }))).toEqual(
-      { canHold: false, skip: SecurityCaseAiHoldSkip.AtOrAboveThreshold },
-    );
+    expect(
+      decideSecurityCaseAiHold(facts({ isBelowThreshold: false })),
+    ).toEqual({
+      canHold: false,
+      skip: SecurityCaseAiHoldSkip.AtOrAboveThreshold,
+    });
     expect(SECURITY_CASE_AI_HOLD_QUIET_SKIPS).toContain(
       SecurityCaseAiHoldSkip.AtOrAboveThreshold,
     );
@@ -306,7 +313,10 @@ describe("whether a new case is held", () => {
           },
         }),
       ),
-    ).toEqual({ canHold: false, skip: SecurityCaseAiHoldSkip.RecentlyResolved });
+    ).toEqual({
+      canHold: false,
+      skip: SecurityCaseAiHoldSkip.RecentlyResolved,
+    });
   });
 
   test("never one OneUptime AI cannot work, or cannot triage - a hold would only be a later alert", () => {
@@ -361,10 +371,14 @@ describe("whether a new case is held", () => {
     }
 
     expect(
-      SECURITY_CASE_AI_HOLD_SKIP_SENTENCES[SecurityCaseAiHoldSkip.RecentlyResolved],
+      SECURITY_CASE_AI_HOLD_SKIP_SENTENCES[
+        SecurityCaseAiHoldSkip.RecentlyResolved
+      ],
     ).toContain("{{value}}");
     expect(
-      SECURITY_CASE_AI_HOLD_SKIP_SENTENCES[SecurityCaseAiHoldSkip.CannotWorkCases],
+      SECURITY_CASE_AI_HOLD_SKIP_SENTENCES[
+        SecurityCaseAiHoldSkip.CannotWorkCases
+      ],
     ).toContain("{{why}}");
 
     // Said: the ones a person would want to know about.
@@ -505,7 +519,9 @@ describe("what ends a hold", () => {
           responseState: null,
           triageStatus: null,
           triageSettledAt: null,
-          openedAt: minutesAgo(SECURITY_CASE_AI_HOLD_START_GRACE_IN_MINUTES - 1),
+          openedAt: minutesAgo(
+            SECURITY_CASE_AI_HOLD_START_GRACE_IN_MINUTES - 1,
+          ),
         }),
       ),
     ).toEqual({ outcome: null });
@@ -553,7 +569,9 @@ describe("what ends a hold", () => {
         state({
           responseState: null,
           triageStatus: AIRunStatus.Completed,
-          triageSettledAt: minutesAgo(SECURITY_CASE_AI_HOLD_START_GRACE_IN_MINUTES),
+          triageSettledAt: minutesAgo(
+            SECURITY_CASE_AI_HOLD_START_GRACE_IN_MINUTES,
+          ),
         }),
       ),
     ).toEqual({ outcome: SecurityCaseAiHoldOutcome.NotStarted });

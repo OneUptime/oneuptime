@@ -247,7 +247,9 @@ describe("while OneUptime AI responds first", () => {
       SecurityPlaybookStepStatus.WaitingForOneUptimeAi,
       SecurityPlaybookStepStatus.Pending,
     ]);
-    expect(feed[feed.length - 1]).toContain("waits while OneUptime AI responds first");
+    expect(feed[feed.length - 1]).toContain(
+      "waits while OneUptime AI responds first",
+    );
     // Still held after it came to wait: nothing to carry on yet.
     expect(carriedOn).toBe(0);
   });
@@ -282,7 +284,10 @@ describe("while OneUptime AI responds first", () => {
   });
 
   test("a run a person started pages at once: they asked for it", async () => {
-    useRun({ trigger: SecurityPlaybookTrigger.Manual, triggeredByUserId: PERSON_ID });
+    useRun({
+      trigger: SecurityPlaybookTrigger.Manual,
+      triggeredByUserId: PERSON_ID,
+    });
 
     await SecurityPlaybookEngine.executeRun(RUN_ID);
 

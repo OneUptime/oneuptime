@@ -77,7 +77,9 @@ describe("how long it took, and how long a block lasts", () => {
   test("joined as English joins a list", () => {
     expect(joinWithAnd([])).toBe("");
     expect(joinWithAnd(["Cloudflare"])).toBe("Cloudflare");
-    expect(joinWithAnd(["Cloudflare", "AWS WAF"])).toBe("Cloudflare and AWS WAF");
+    expect(joinWithAnd(["Cloudflare", "AWS WAF"])).toBe(
+      "Cloudflare and AWS WAF",
+    );
     expect(joinWithAnd(["a", "b", "c"])).toBe("a, b and c");
   });
 
@@ -177,10 +179,7 @@ describe("the summary a resolved case's channels get instead of an alert", () =>
         ],
         isNothingThrough: false,
       }).facts,
-    ).toEqual([
-      "Contained the account k.morgan.",
-      "Contained the host web-1.",
-    ]);
+    ).toEqual(["Contained the account k.morgan.", "Contained the host web-1."]);
   });
 
   test("a case closed, and one contained without OneUptime AI working it, say so", () => {
@@ -280,9 +279,7 @@ describe("why people are alerted now", () => {
         },
         ASKS_TO_CONTAIN,
       ]),
-    ).toBe(
-      "block 35.205.11.131 for 24 hours and contain the account k.morgan",
-    );
+    ).toBe("block 35.205.11.131 for 24 hours and contain the account k.morgan");
     expect(
       describeAiHoldEnd({
         outcome: SecurityCaseAiHoldOutcome.NeedsApproval,
@@ -390,9 +387,9 @@ describe("why people are alerted now", () => {
 
   test("every outcome has its words", () => {
     for (const outcome of Object.values(SecurityCaseAiHoldOutcome)) {
-      expect(
-        describeAiHoldEnd({ outcome, aiName: AI }).length,
-      ).toBeGreaterThan(0);
+      expect(describeAiHoldEnd({ outcome, aiName: AI }).length).toBeGreaterThan(
+        0,
+      );
     }
   });
 

@@ -59,7 +59,10 @@ import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntit
 import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { RESPONSE_STEP_KINDS } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
 import { getJestSpyOn } from "../../../Spy";
-import { testPriorityId, testStatusId } from "../../../Helpers/SecurityCaseValues";
+import {
+  testPriorityId,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
 import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
@@ -554,7 +557,9 @@ describe("with OneUptime AI responding first", () => {
 
     // One summary, to the channels that post new cases.
     expect(posts).toHaveLength(1);
-    expect(posts[0]!.kinds).toEqual([NotificationRuleUpdateKind.PriorityReached]);
+    expect(posts[0]!.kinds).toEqual([
+      NotificationRuleUpdateKind.PriorityReached,
+    ]);
     expect(posts[0]!.markdown).toContain(
       `OneUptime AI contained SEC-12 in 1m${NO_BREAK_SPACE}52s, so nobody was alerted.`,
     );
@@ -687,8 +692,12 @@ describe("with OneUptime AI responding first", () => {
         return alert.userId;
       }),
     ).toEqual([ADMIN_ID.toString()]);
-    expect(alerts[0]!.vars["aiHoldReason"]).toBe("Ana Analyst pressed Page now.");
-    expect(posts[0]!.kinds).toEqual([NotificationRuleUpdateKind.PriorityReached]);
+    expect(alerts[0]!.vars["aiHoldReason"]).toBe(
+      "Ana Analyst pressed Page now.",
+    );
+    expect(posts[0]!.kinds).toEqual([
+      NotificationRuleUpdateKind.PriorityReached,
+    ]);
   });
 
   test("a person taking the case has it: nobody else is alerted, and the channels hear of the new case", async () => {

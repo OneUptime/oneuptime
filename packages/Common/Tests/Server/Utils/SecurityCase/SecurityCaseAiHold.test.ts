@@ -41,7 +41,10 @@ import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntit
 import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../../Spy";
-import { testPriorityId, testStatusId } from "../../../Helpers/SecurityCaseValues";
+import {
+  testPriorityId,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
 import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
@@ -545,7 +548,9 @@ describe("a case opens", () => {
       skip: SecurityCaseAiHoldSkip.CheckFailed,
     });
     expect(writes).toEqual([]);
-    expect(feedText()).toContain("could not check whether it may respond first");
+    expect(feedText()).toContain(
+      "could not check whether it may respond first",
+    );
   });
 });
 
@@ -710,7 +715,11 @@ describe("how a hold ends", () => {
     ]);
     expect(feed).toHaveLength(1);
     expect(toldHoldEnded).toEqual([
-      { projectId: PROJECT_ID, securityCaseId: CASE_ID, actorUserId: undefined },
+      {
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        actorUserId: undefined,
+      },
     ]);
     expect(runCas).toEqual([
       {
@@ -861,7 +870,9 @@ describe("how a hold ends", () => {
       },
     );
 
-    await SecurityCaseAiHold.onProjectSettingsChanged({ projectId: PROJECT_ID });
+    await SecurityCaseAiHold.onProjectSettingsChanged({
+      projectId: PROJECT_ID,
+    });
 
     expect(
       ended.map((args: Record<string, unknown>): unknown => {

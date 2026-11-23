@@ -144,9 +144,21 @@ describe("time to contain", () => {
   test("is the median, over the cases OneUptime AI worked that were contained this week", () => {
     const numbers: SecurityCaseAiWeeklyDigestNumbers = digest({
       cases: [
-        { createdAt: inWeek(1), aiTookCaseAt: inWeek(1), containedAt: inWeek(1, 2) },
-        { createdAt: inWeek(2), aiTookCaseAt: inWeek(2), containedAt: inWeek(2, 4) },
-        { createdAt: inWeek(3), aiTookCaseAt: inWeek(3), containedAt: inWeek(3, 30) },
+        {
+          createdAt: inWeek(1),
+          aiTookCaseAt: inWeek(1),
+          containedAt: inWeek(1, 2),
+        },
+        {
+          createdAt: inWeek(2),
+          aiTookCaseAt: inWeek(2),
+          containedAt: inWeek(2, 4),
+        },
+        {
+          createdAt: inWeek(3),
+          aiTookCaseAt: inWeek(3),
+          containedAt: inWeek(3, 30),
+        },
         // A case nobody let OneUptime AI work is not its time to contain.
         { createdAt: inWeek(4), containedAt: inWeek(4, 1) },
         // Contained before the week.
@@ -263,7 +275,7 @@ describe("the median", () => {
     const MINUTE: number = 60 * 1000;
 
     expect(getMedianMinutes([])).toBe(null);
-    expect(getMedianMinutes([3 * MINUTE, 1 * MINUTE, 2 * MINUTE])).toBe(2);
-    expect(getMedianMinutes([1 * MINUTE, 4 * MINUTE])).toBe(3);
+    expect(getMedianMinutes([3 * MINUTE, MINUTE, 2 * MINUTE])).toBe(2);
+    expect(getMedianMinutes([MINUTE, 4 * MINUTE])).toBe(3);
   });
 });

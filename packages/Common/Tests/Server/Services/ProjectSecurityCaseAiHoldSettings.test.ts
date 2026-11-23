@@ -199,10 +199,7 @@ describe("the priority cases are held below", () => {
     stubSecurityCaseValues();
     holdTheRows();
 
-    for (const picked of [
-      ObjectID.generate().toString(),
-      "not-an-id",
-    ]) {
+    for (const picked of [ObjectID.generate().toString(), "not-an-id"]) {
       expect({
         picked,
         refused: await asyncRefusal(() => {
@@ -265,10 +262,10 @@ describe("the priority cases are held below", () => {
       order: 1,
     });
 
-    getJestSpyOn(ProjectService, "findRowsAndHoldUpdateToThem").mockResolvedValue([
-      new Project(PROJECT_ID),
-      new Project(otherProjectId),
-    ]);
+    getJestSpyOn(
+      ProjectService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([new Project(PROJECT_ID), new Project(otherProjectId)]);
 
     const reads: Array<string> = [];
     const values: typeof import("../../../Server/Utils/SecurityCase/SecurityCaseValues").default =

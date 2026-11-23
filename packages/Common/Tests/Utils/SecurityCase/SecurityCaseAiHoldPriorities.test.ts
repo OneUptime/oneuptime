@@ -91,13 +91,19 @@ describe("whether a case is below it", () => {
   test("Medium, Low and Informational are held; High and Critical are not", () => {
     for (const priorityId of [MEDIUM, LOW, INFORMATIONAL]) {
       expect(
-        isSecurityCaseBelowAiHoldThreshold({ priorities: PRIORITIES, priorityId }),
+        isSecurityCaseBelowAiHoldThreshold({
+          priorities: PRIORITIES,
+          priorityId,
+        }),
       ).toBe(true);
     }
 
     for (const priorityId of [HIGH, CRITICAL]) {
       expect(
-        isSecurityCaseBelowAiHoldThreshold({ priorities: PRIORITIES, priorityId }),
+        isSecurityCaseBelowAiHoldThreshold({
+          priorities: PRIORITIES,
+          priorityId,
+        }),
       ).toBe(false);
     }
   });

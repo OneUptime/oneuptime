@@ -922,6 +922,8 @@ describe("OneUptime AI in Security docs", () => {
     expect(section).toContain(
       "Every Monday, Project Owners and Security Admins who can read security cases get one email",
     );
-    expect(section).toContain("A week OneUptime AI did nothing sends no email.");
+    expect(section).toContain(
+      "A week OneUptime AI did nothing sends no email.",
+    );
   });
 });

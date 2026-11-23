@@ -228,9 +228,7 @@ describe("who gets it", () => {
     const securityAdmin: Member = member("Sam Admin", [
       Permission.SecurityAdmin,
     ]);
-    const projectAdmin: Member = member("Pat Admin", [
-      Permission.ProjectAdmin,
-    ]);
+    const projectAdmin: Member = member("Pat Admin", [Permission.ProjectAdmin]);
     const analyst: Member = member("Ana Analyst", [Permission.SecurityMember]);
     const developer: Member = member("Dev Eloper", [Permission.ProjectMember]);
     const gone: Member = member("Gail Gone", [Permission.ProjectOwner], {
@@ -504,17 +502,18 @@ describe("every project's email", () => {
 
     const projectsSent: Array<string> = [];
 
-    getJestSpyOn(SecurityCaseAiWeeklyDigest, "sendForProject").mockImplementation(
-      async (data: { projectId: ObjectID; now: Date }) => {
-        if (data.projectId.toString() === failingProjectId.toString()) {
-          throw new Error("could not read the week");
-        }
+    getJestSpyOn(
+      SecurityCaseAiWeeklyDigest,
+      "sendForProject",
+    ).mockImplementation(async (data: { projectId: ObjectID; now: Date }) => {
+      if (data.projectId.toString() === failingProjectId.toString()) {
+        throw new Error("could not read the week");
+      }
 
-        expect(data.now).toBe(NOW);
-        projectsSent.push(data.projectId.toString());
-        return 2;
-      },
-    );
+      expect(data.now).toBe(NOW);
+      projectsSent.push(data.projectId.toString());
+      return 2;
+    });
 
     expect(await SecurityCaseAiWeeklyDigest.sendAll(NOW)).toBe(4);
     expect(projectsSent.sort()).toEqual(

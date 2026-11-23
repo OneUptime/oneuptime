@@ -219,7 +219,11 @@ export const SECURITY_CASE_AI_HOLD_RECURRENCE_WINDOW_IN_HOURS: number =
  * same one shows did not hold. A domain, a URL or a file is no fix's.
  */
 export const SECURITY_CASE_AI_HOLD_RECURRENCE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> =
-  [SecurityEntityType.IpAddress, SecurityEntityType.User, SecurityEntityType.Host];
+  [
+    SecurityEntityType.IpAddress,
+    SecurityEntityType.User,
+    SecurityEntityType.Host,
+  ];
 
 /*
  * How long a held case may go without OneUptime AI starting on it - its
@@ -311,7 +315,10 @@ export function decideSecurityCaseAiHold(
   }
 
   if (!facts.isOpenedByDetection) {
-    return { canHold: false, skip: SecurityCaseAiHoldSkip.NotOpenedByDetection };
+    return {
+      canHold: false,
+      skip: SecurityCaseAiHoldSkip.NotOpenedByDetection,
+    };
   }
 
   if (facts.isHighestPriority) {
@@ -322,7 +329,9 @@ export function decideSecurityCaseAiHold(
     return { canHold: false, skip: SecurityCaseAiHoldSkip.AtOrAboveThreshold };
   }
 
-  if (facts.otherCasesOpenedRecently >= SECURITY_CASE_AI_HOLD_ATTACK_CASE_COUNT) {
+  if (
+    facts.otherCasesOpenedRecently >= SECURITY_CASE_AI_HOLD_ATTACK_CASE_COUNT
+  ) {
     return {
       canHold: false,
       skip: SecurityCaseAiHoldSkip.ActiveAttack,

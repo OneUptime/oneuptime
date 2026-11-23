@@ -737,8 +737,7 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseNotifications.ts": {
     // What a held case's end has told people, claimed once (#10353).
-    "SecurityCaseNotifications.notifyAiHoldEnded SecurityCase":
-      Why.Bookkeeping,
+    "SecurityCaseNotifications.notifyAiHoldEnded SecurityCase": Why.Bookkeeping,
     "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
       Why.Bookkeeping,
   },

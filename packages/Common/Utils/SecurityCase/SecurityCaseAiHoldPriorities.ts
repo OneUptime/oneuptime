@@ -27,7 +27,9 @@ function isArchived(priority: unknown): boolean {
 }
 
 function getId(priority: unknown): string {
-  return priority ? toStateListRow(SecurityCasePriorities.definition, priority).id : "";
+  return priority
+    ? toStateListRow(SecurityCasePriorities.definition, priority).id
+    : "";
 }
 
 /*
@@ -97,7 +99,9 @@ export function isSecurityCaseBelowAiHoldThreshold(data: {
     return false;
   }
 
-  if (SecurityCasePriorities.getRank(data.priorities, data.priorityId) === null) {
+  if (
+    SecurityCasePriorities.getRank(data.priorities, data.priorityId) === null
+  ) {
     return false;
   }
 

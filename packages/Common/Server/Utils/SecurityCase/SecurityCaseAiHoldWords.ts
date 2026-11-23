@@ -341,9 +341,10 @@ export function buildAiHoldResolvedLines(data: {
 }
 
 // The summary's lines, as the channel post's headline.
-export function buildAiHoldResolvedMarkdown(
-  lines: { headline: string; facts: Array<string> },
-): MarkdownText {
+export function buildAiHoldResolvedMarkdown(lines: {
+  headline: string;
+  facts: Array<string>;
+}): MarkdownText {
   const headline: MarkdownText = mdText`✅ **${lines.headline}**`;
 
   if (lines.facts.length === 0) {

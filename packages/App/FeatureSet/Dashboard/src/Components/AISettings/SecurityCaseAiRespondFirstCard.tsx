@@ -147,9 +147,7 @@ const SecurityCaseAiRespondFirstCard: FunctionComponent<ComponentProps> = (
   const ruledListClassName: string = useCardRuledListClassName();
 
   const [settings, setSettings] = useState<RespondFirstSettings | null>(null);
-  const [priorities, setPriorities] = useState<Array<SecurityCasePriority>>(
-    [],
-  );
+  const [priorities, setPriorities] = useState<Array<SecurityCasePriority>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -440,7 +438,9 @@ const RespondFirstSettingsRows: FunctionComponent<RowsProps> = (
     return (
       priority.isArchived !== true &&
       !held.some((one: SecurityCasePriority): boolean => {
-        return getSecurityCasePriorityId(one) === getSecurityCasePriorityId(priority);
+        return (
+          getSecurityCasePriorityId(one) === getSecurityCasePriorityId(priority)
+        );
       })
     );
   });
@@ -566,7 +566,10 @@ const RespondFirstSettingsRows: FunctionComponent<RowsProps> = (
                     onChange={(
                       value: DropdownValue | Array<DropdownValue> | null,
                     ) => {
-                      if (typeof value === "string" && thresholdGate.isAllowed) {
+                      if (
+                        typeof value === "string" &&
+                        thresholdGate.isAllowed
+                      ) {
                         thresholdSetting.change(value);
                       }
                     }}

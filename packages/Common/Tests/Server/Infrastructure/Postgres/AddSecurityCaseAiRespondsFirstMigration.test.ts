@@ -27,7 +27,8 @@ import type { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs"
  * cases (#10352). Fake QueryRunner only.
  */
 
-const PREVIOUS_CLASS_NAME: string = "AddSecurityCaseAiNextLookIndex1809187452010";
+const PREVIOUS_CLASS_NAME: string =
+  "AddSecurityCaseAiNextLookIndex1809187452010";
 
 const MIGRATIONS_DIR: string = path.join(
   __dirname,
@@ -230,7 +231,10 @@ describe("AddSecurityCaseAiHoldUntilIndex1809187453010", () => {
     );
 
     const source: string = fs.readFileSync(
-      path.join(MIGRATIONS_DIR, "1809187453010-AddSecurityCaseAiHoldUntilIndex.ts"),
+      path.join(
+        MIGRATIONS_DIR,
+        "1809187453010-AddSecurityCaseAiHoldUntilIndex.ts",
+      ),
       "utf8",
     );
 

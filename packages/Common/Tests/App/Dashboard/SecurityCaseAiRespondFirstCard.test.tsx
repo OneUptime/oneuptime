@@ -149,7 +149,9 @@ describe("off, as every project starts", () => {
 
     const toggle: HTMLElement = await theSwitch();
 
-    expect(screen.getByText(SecurityCaseAiRespondFirstCopy.cardTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(SecurityCaseAiRespondFirstCopy.cardTitle),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("switch", { name: /Respond first/ }),
     ).toHaveAttribute("aria-checked", "false");
@@ -164,7 +166,9 @@ describe("off, as every project starts", () => {
   test("flipping it on saves at once, and shows the two choices", async () => {
     renderCard();
 
-    fireEvent.click(await screen.findByRole("switch", { name: /Respond first/ }));
+    fireEvent.click(
+      await screen.findByRole("switch", { name: /Respond first/ }),
+    );
 
     await waitFor(() => {
       expect(writes).toEqual([{ enableSecurityCaseAiRespondsFirst: true }]);
@@ -236,7 +240,9 @@ describe("on", () => {
       `${TEST_ID}-threshold-row`,
     );
 
-    expect(row).toHaveTextContent(SecurityCaseAiRespondFirstCopy.thresholdTitle);
+    expect(row).toHaveTextContent(
+      SecurityCaseAiRespondFirstCopy.thresholdTitle,
+    );
     expect(row).toHaveTextContent("High");
     expect(row).toHaveTextContent(
       "Held: Medium, Low, Informational. Alerted at once: Critical, High.",
@@ -253,7 +259,9 @@ describe("on", () => {
 
     expect(row).toHaveTextContent(SecurityCaseAiRespondFirstCopy.holdTitle);
     expect(row).toHaveTextContent("10 minutes");
-    expect(row).toHaveTextContent(SecurityCaseAiRespondFirstCopy.holdDescription);
+    expect(row).toHaveTextContent(
+      SecurityCaseAiRespondFirstCopy.holdDescription,
+    );
   });
 
   test("while every containment asks first, it says most cases reach people as soon as OneUptime AI asks", async () => {
@@ -281,7 +289,10 @@ describe("on", () => {
 
 describe("whether any containment runs on its own", () => {
   test("a user or a host, as soon as it is set so", () => {
-    for (const area of [SecurityCaseAiArea.Accounts, SecurityCaseAiArea.Hosts]) {
+    for (const area of [
+      SecurityCaseAiArea.Accounts,
+      SecurityCaseAiArea.Hosts,
+    ]) {
       expect({
         area,
         isOnItsOwn: isAnySecurityCaseContainmentOnItsOwn({

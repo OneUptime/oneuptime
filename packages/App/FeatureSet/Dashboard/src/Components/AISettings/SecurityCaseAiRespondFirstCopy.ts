@@ -1,4 +1,7 @@
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * SECURITY EVENTS -> AI -> SETTINGS: LET ONEUPTIME AI RESPOND FIRST (#10353).
