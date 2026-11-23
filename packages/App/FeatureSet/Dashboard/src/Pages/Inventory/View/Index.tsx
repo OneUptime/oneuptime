@@ -24,6 +24,7 @@ import {
   resolveTypedRowLink,
 } from "../../../Components/Inventory/ResolveTypedRowLink";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
@@ -213,6 +214,13 @@ const InventoryItemOverview: FunctionComponent<
               </div>
             </div>
           ) : null}
+
+          {/* The item's line: its ID, who created it and who last changed it. */}
+          <RecordActivityLine
+            modelType={InventoryItem}
+            recordId={modelId}
+            className="border-t border-gray-100 pt-3"
+          />
         </div>
       </Card>
 

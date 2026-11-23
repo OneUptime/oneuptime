@@ -34,7 +34,19 @@ export interface ComponentProps {
   isLaidOutByOwnWidth?: boolean | undefined;
   // The room a cell keeps when laid out by the bar's own width: "regular" when left out.
   cellSize?: EventStatBarCellSize | undefined;
+  /*
+   * A row across the foot of the card, under every cell: the record's line
+   * (its ID, who created it and who last modified it, #10461) on a page
+   * whose first card is this bar - a pipeline's, a data product's, a
+   * security case's - so the line ends the page's first card, as it ends a
+   * details card. It is no cell: the columns are the cells' alone.
+   */
+  footer?: ReactNode | undefined;
 }
+
+// The foot row: the width of the card, under a hairline, like a cell.
+export const EVENT_STAT_BAR_FOOTER_CLASS_NAME: string =
+  "col-span-full min-w-0 bg-white px-5 py-3";
 
 /*
  * Literal class names per column count - never built by string
@@ -149,6 +161,16 @@ const EventStatBar: FunctionComponent<ComponentProps> = (
       }`}
     >
       {props.children}
+      {props.footer ? (
+        <div
+          data-testid="event-stat-bar-footer"
+          className={EVENT_STAT_BAR_FOOTER_CLASS_NAME}
+        >
+          {props.footer}
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 

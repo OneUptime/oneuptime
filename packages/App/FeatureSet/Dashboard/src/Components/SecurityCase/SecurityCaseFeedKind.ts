@@ -61,6 +61,15 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
     // OneUptime AI's triage: drawn as an AI investigation's report is.
     case SecurityCaseFeedEventType.AiTriage:
       return SHARED_FEED_ENTRY_KINDS.AIRootCause;
+    /*
+     * OneUptime AI working the case (#10352): taking it, a step it marked
+     * done, its closing report, handing the case to people.
+     */
+    case SecurityCaseFeedEventType.AiResponse:
+      return { icon: IconProp.Sparkles, tone: FeedTone.AI };
+    // A step OneUptime saw done that stopped holding (#10340), in the color the server chose.
+    case SecurityCaseFeedEventType.StepCheck:
+      return { icon: IconProp.ShieldExclamation, tone: FeedTone.Record };
     // A task added, done, opened again, handed on or deleted.
     case SecurityCaseFeedEventType.Task:
       return { icon: IconProp.ClipboardDocumentCheck, tone: FeedTone.Record };

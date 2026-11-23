@@ -28,6 +28,12 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityCaseAiVerdict from "../../Types/SecurityCase/SecurityCaseAiVerdict";
+import {
+  SECURITY_CASE_AI_RESPONSE_STATES,
+  SECURITY_CASE_HAND_OFF_REASONS,
+  SecurityCaseAiResponseState,
+  SecurityCaseHandOffReason,
+} from "../../Types/SecurityCase/SecurityCaseAi";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -1144,6 +1150,104 @@ export default class SecurityCase extends BaseModel {
     type: ColumnType.Boolean,
   })
   public aiTriagePromptInjectionSuspected?: boolean = undefined;
+
+  /*
+   * Where OneUptime AI stands on the case when it works it (#10352,
+   * Types/SecurityCase/SecurityCaseAi): Working once it took the case (the
+   * case is on OneUptime AI's queue), Waiting For People while it waits for
+   * an approval or a person's step, Handed To People once it handed the
+   * case over - and why, below - and Finished once the case is closed.
+   * Empty for a case OneUptime AI never worked. Only OneUptime writes it.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    allowedValues: SECURITY_CASE_AI_RESPONSE_STATES,
+    title: "AI Response State",
+    description:
+      "Where OneUptime AI stands on the case when it works it: Working, WaitingForPeople, HandedToPeople or Finished. Empty for a case OneUptime AI never worked.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiResponseState?: SecurityCaseAiResponseState = undefined;
+
+  // Why OneUptime AI last handed the case to people (SecurityCaseHandOffReason).
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    allowedValues: SECURITY_CASE_HAND_OFF_REASONS,
+    title: "AI Hand Off Reason",
+    description:
+      "Why OneUptime AI last handed the case to people, such as SteeringText, HighestPriority or ProtectedTarget.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiHandOffReason?: SecurityCaseHandOffReason = undefined;
+
+  /*
+   * When OneUptime AI next looks at the case while it works it: now, when
+   * something it waits on changes (an approval decided, a step's check, a
+   * new detection), else when what it waits on is due - the end of the
+   * quiet window before it closes the case. The every-minute job reads the
+   * cases whose moment has come, by this index (SecurityCaseResponse).
+   * Empty when OneUptime AI is not working the case.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Next Look At",
+    description:
+      "When OneUptime AI next looks at the case while it works it. Empty when it is not working the case.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiNextLookAt?: Date = undefined;
+
+  // When OneUptime AI took the case: what the overview's times "with AI" count.
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Took Case At",
+    description:
+      "When OneUptime AI took the case to work it. Empty for a case it never took.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiTookCaseAt?: Date = undefined;
+
+  /*
+   * When OneUptime AI closed the case - on its own, or once a person
+   * approved its close: the overview's "resolved by OneUptime AI". Cleared
+   * when the case is reopened.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Closed At",
+    description:
+      "When OneUptime AI closed the case, on its own or once a person approved it. Empty for a case it did not close.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiClosedAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

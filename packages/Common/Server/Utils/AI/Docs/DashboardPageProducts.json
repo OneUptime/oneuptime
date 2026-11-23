@@ -63,6 +63,9 @@
   "/dashboard/:projectId/monitors/settings/label-rules": [
     "monitors"
   ],
+  "/dashboard/:projectId/monitors/settings/rules-audit-logs": [
+    "monitors"
+  ],
   "/dashboard/:projectId/monitors/settings/status": [
     "monitors"
   ],
@@ -148,6 +151,9 @@
     "incidents"
   ],
   "/dashboard/:projectId/incidents/settings/reminder-rules": [
+    "incidents"
+  ],
+  "/dashboard/:projectId/incidents/settings/rules-audit-logs": [
     "incidents"
   ],
   "/dashboard/:projectId/incidents/settings/state": [
@@ -387,6 +393,9 @@
   "/dashboard/:projectId/status-pages/settings/label-rules": [
     "status-pages"
   ],
+  "/dashboard/:projectId/status-pages/settings/rules-audit-logs": [
+    "status-pages"
+  ],
   "/dashboard/:projectId/status-pages/settings/announcement-templates": [
     "status-pages"
   ],
@@ -442,6 +451,9 @@
     "scheduled-maintenance"
   ],
   "/dashboard/:projectId/scheduled-maintenance-events/settings/reminder-rules": [
+    "scheduled-maintenance"
+  ],
+  "/dashboard/:projectId/scheduled-maintenance-events/settings/rules-audit-logs": [
     "scheduled-maintenance"
   ],
   "/dashboard/:projectId/scheduled-maintenance-events/settings/state": [
@@ -969,6 +981,9 @@
   "/dashboard/:projectId/service/settings/label-rules": [
     "services"
   ],
+  "/dashboard/:projectId/service/settings/rules-audit-logs": [
+    "services"
+  ],
   "/dashboard/:projectId/service/archived": [
     "services"
   ],
@@ -1095,6 +1110,9 @@
   "/dashboard/:projectId/host/settings/label-rules": [
     "hosts"
   ],
+  "/dashboard/:projectId/host/settings/rules-audit-logs": [
+    "hosts"
+  ],
   "/dashboard/:projectId/host/archived": [
     "hosts"
   ],
@@ -1131,6 +1149,9 @@
   "/dashboard/:projectId/kubernetes/settings/label-rules": [
     "kubernetes"
   ],
+  "/dashboard/:projectId/kubernetes/settings/rules-audit-logs": [
+    "kubernetes"
+  ],
   "/dashboard/:projectId/kubernetes/archived": [
     "kubernetes"
   ],
@@ -1159,6 +1180,9 @@
     "docker"
   ],
   "/dashboard/:projectId/docker/settings/label-rules": [
+    "docker"
+  ],
+  "/dashboard/:projectId/docker/settings/rules-audit-logs": [
     "docker"
   ],
   "/dashboard/:projectId/docker/archived": [
@@ -1191,6 +1215,9 @@
   "/dashboard/:projectId/docker-swarm/settings/label-rules": [
     "docker-swarm"
   ],
+  "/dashboard/:projectId/docker-swarm/settings/rules-audit-logs": [
+    "docker-swarm"
+  ],
   "/dashboard/:projectId/docker-swarm/archived": [
     "docker-swarm"
   ],
@@ -1219,6 +1246,9 @@
     "podman"
   ],
   "/dashboard/:projectId/podman/settings/label-rules": [
+    "podman"
+  ],
+  "/dashboard/:projectId/podman/settings/rules-audit-logs": [
     "podman"
   ],
   "/dashboard/:projectId/podman/archived": [
@@ -1356,6 +1386,9 @@
   "/dashboard/:projectId/proxmox/settings/label-rules": [
     "proxmox"
   ],
+  "/dashboard/:projectId/proxmox/settings/rules-audit-logs": [
+    "proxmox"
+  ],
   "/dashboard/:projectId/proxmox/archived": [
     "proxmox"
   ],
@@ -1384,6 +1417,9 @@
     "openstack"
   ],
   "/dashboard/:projectId/openstack/settings/label-rules": [
+    "openstack"
+  ],
+  "/dashboard/:projectId/openstack/settings/rules-audit-logs": [
     "openstack"
   ],
   "/dashboard/:projectId/openstack/archived": [
@@ -1416,6 +1452,9 @@
   "/dashboard/:projectId/vmware/settings/label-rules": [
     "vmware"
   ],
+  "/dashboard/:projectId/vmware/settings/rules-audit-logs": [
+    "vmware"
+  ],
   "/dashboard/:projectId/vmware/archived": [
     "vmware"
   ],
@@ -1446,6 +1485,9 @@
   "/dashboard/:projectId/ceph/settings/label-rules": [
     "ceph"
   ],
+  "/dashboard/:projectId/ceph/settings/rules-audit-logs": [
+    "ceph"
+  ],
   "/dashboard/:projectId/ceph/archived": [
     "ceph"
   ],
@@ -1474,6 +1516,9 @@
     "storage-arrays"
   ],
   "/dashboard/:projectId/storage-arrays/settings/label-rules": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/settings/rules-audit-logs": [
     "storage-arrays"
   ],
   "/dashboard/:projectId/storage-arrays/archived": [
@@ -1548,6 +1593,9 @@
   "/dashboard/:projectId/network-devices/settings/link-rules": [
     "network"
   ],
+  "/dashboard/:projectId/network-devices/settings/rules-audit-logs": [
+    "network"
+  ],
   "/dashboard/:projectId/network-devices/settings/alert-policies": [
     "network"
   ],
@@ -1597,6 +1645,9 @@
     "iot"
   ],
   "/dashboard/:projectId/iot/settings/label-rules": [
+    "iot"
+  ],
+  "/dashboard/:projectId/iot/settings/rules-audit-logs": [
     "iot"
   ],
   "/dashboard/:projectId/iot/archived": [
@@ -1693,6 +1744,9 @@
     "runbooks"
   ],
   "/dashboard/:projectId/runbooks/settings/label-rules": [
+    "runbooks"
+  ],
+  "/dashboard/:projectId/runbooks/settings/rules-audit-logs": [
     "runbooks"
   ],
   "/dashboard/:projectId/runbooks/developer/terraform": [

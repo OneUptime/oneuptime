@@ -35,7 +35,7 @@ What OneUptime AI does on its own is not set here: it has a section of its own, 
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index). Tools that open incidents on their own, such as [Huntress](/docs/integrations/huntress), are set up as workflows.
 
-Expand **Rules** and you get eight more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules** and **Reminder Rules**. Those are covered further down.
+Expand **Rules** and you get nine more pages: **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **SLA Rules**, **Reminder Rules** and **Audit Logs**: who created, changed or deleted any of these rules, what they changed and when, deleted rules included. The rules are covered further down.
 
 ## Incident templates
 

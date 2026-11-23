@@ -1159,6 +1159,8 @@ import { AddSecurityBlockReachAndWiderValue1809187440100 } from "./1809187440100
 import { AddSecurityBlockValueReachIndex1809187440110 } from "./1809187440110-AddSecurityBlockValueReachIndex";
 import { AddDiscoveryScanRunRequested1809187450000 } from "./1809187450000-AddDiscoveryScanRunRequested";
 import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450010-AddDiscoveryScanRunRequestedByUserKey";
+import { AddSecurityCaseAiResponse1809187452000 } from "./1809187452000-AddSecurityCaseAiResponse";
+import { AddSecurityCaseAiNextLookIndex1809187452010 } from "./1809187452010-AddSecurityCaseAiNextLookIndex";
 import { AddSecurityAutomaticResponse1809187460000 } from "./1809187460000-AddSecurityAutomaticResponse";
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187460010 } from "./1809187460010-AddSecurityAutomaticResponseIndexesAndKeys";
 
@@ -2324,6 +2326,8 @@ export default [
   AddSecurityBlockValueReachIndex1809187440110,
   AddDiscoveryScanRunRequested1809187450000,
   AddDiscoveryScanRunRequestedByUserKey1809187450010,
+  AddSecurityCaseAiResponse1809187452000,
+  AddSecurityCaseAiNextLookIndex1809187452010,
   AddSecurityAutomaticResponse1809187460000,
   AddSecurityAutomaticResponseIndexesAndKeys1809187460010,
 ];

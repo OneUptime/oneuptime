@@ -210,6 +210,23 @@ const labelRules: PageFunction = (page: PageMap): PageSearchPage => {
 };
 
 /*
+ * Who changed a product's rules, what and when (#10462): "Audit Logs" in a
+ * Rules section, as Alerts' is, and "Rule Audit Logs" in a Settings section
+ * that holds the product's rules.
+ */
+const rulesAuditLogs: (page: PageMap, title: string) => PageSearchPage = (
+  page: PageMap,
+  title: string,
+): PageSearchPage => {
+  return {
+    page,
+    title,
+    icon: IconProp.List,
+    keywords: ["history", "who changed", "rule changes"],
+  };
+};
+
+/*
  * A Custom Fields page. Its card names whose fields they are ("Team Member
  * Custom Fields"): where the menu does not say it, that name finds the page
  * too.
@@ -477,11 +494,14 @@ const incidentAlertAiSection: (pages: {
 const resourceSettingsSections: (pages: {
   ownerRules: PageMap;
   labelRules: PageMap;
+  // The rules' history, last in the section (#10462).
+  rulesAuditLogs?: PageMap | undefined;
   archived: PageMap;
   more?: Array<PageSearchPage> | undefined;
 }) => Array<PageSearchSection> = (pages: {
   ownerRules: PageMap;
   labelRules: PageMap;
+  rulesAuditLogs?: PageMap | undefined;
   archived: PageMap;
   more?: Array<PageSearchPage> | undefined;
 }): Array<PageSearchSection> => {
@@ -491,6 +511,9 @@ const resourceSettingsSections: (pages: {
       pages: [
         ownerRules(pages.ownerRules),
         labelRules(pages.labelRules),
+        ...(pages.rulesAuditLogs
+          ? [rulesAuditLogs(pages.rulesAuditLogs, "Rule Audit Logs")]
+          : []),
         ...(pages.more || []),
       ],
     },
@@ -1231,6 +1254,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           ownerRules(PageMap.MONITORS_SETTINGS_OWNER_RULES),
           labelRules(PageMap.MONITORS_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1388,6 +1415,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          rulesAuditLogs(
+            PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1882,6 +1913,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           ownerRules(PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES),
           labelRules(PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -1969,6 +2004,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Bell,
             keywords: ["reminders"],
           },
+          rulesAuditLogs(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -2783,7 +2822,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "triage new cases",
               "oneuptime ai security",
               "automatic triage",
+              "automatic response",
+              "ai response",
+              "block on its own",
+              // The card under the switches: What OneUptime AI may do on a case.
+              "what oneuptime ai may do",
             ],
+            settings: ["Work cases end to end"],
           },
         ],
       },
@@ -3452,6 +3497,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.SERVICE_SETTINGS_OWNER_RULES,
         labelRules: PageMap.SERVICE_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.SERVICE_ARCHIVED,
       }),
     ],
@@ -3573,6 +3619,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.HOST_SETTINGS_OWNER_RULES,
         labelRules: PageMap.HOST_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.HOST_ARCHIVED,
       }),
     ],
@@ -3611,6 +3658,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.KUBERNETES_SETTINGS_OWNER_RULES,
         labelRules: PageMap.KUBERNETES_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.KUBERNETES_ARCHIVED,
       }),
     ],
@@ -3632,6 +3680,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.DOCKER_SETTINGS_OWNER_RULES,
         labelRules: PageMap.DOCKER_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.DOCKER_ARCHIVED,
       }),
     ],
@@ -3653,6 +3702,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES,
         labelRules: PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.DOCKER_SWARM_ARCHIVED,
       }),
     ],
@@ -3674,6 +3724,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.PODMAN_SETTINGS_OWNER_RULES,
         labelRules: PageMap.PODMAN_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.PODMAN_ARCHIVED,
       }),
     ],
@@ -3906,6 +3957,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.PROXMOX_SETTINGS_OWNER_RULES,
         labelRules: PageMap.PROXMOX_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.PROXMOX_ARCHIVED,
       }),
     ],
@@ -3927,6 +3979,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.OPENSTACK_SETTINGS_OWNER_RULES,
         labelRules: PageMap.OPENSTACK_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.OPENSTACK_ARCHIVED,
       }),
     ],
@@ -3948,6 +4001,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.VMWARE_SETTINGS_OWNER_RULES,
         labelRules: PageMap.VMWARE_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.VMWARE_ARCHIVED,
       }),
     ],
@@ -3969,6 +4023,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.CEPH_SETTINGS_OWNER_RULES,
         labelRules: PageMap.CEPH_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.CEPH_ARCHIVED,
       }),
     ],
@@ -3990,6 +4045,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES,
         labelRules: PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.STORAGE_ARRAYS_ARCHIVED,
       }),
     ],
@@ -4166,6 +4222,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Link Rules",
             icon: IconProp.Link,
           },
+          rulesAuditLogs(
+            PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS,
+            "Audit Logs",
+          ),
         ],
       },
       {
@@ -4253,6 +4313,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       ...resourceSettingsSections({
         ownerRules: PageMap.IOT_SETTINGS_OWNER_RULES,
         labelRules: PageMap.IOT_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS,
         archived: PageMap.IOT_ARCHIVED,
       }),
     ],
@@ -4386,6 +4447,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           ownerRules(PageMap.RUNBOOKS_SETTINGS_OWNER_RULES),
           labelRules(PageMap.RUNBOOKS_SETTINGS_LABEL_RULES),
+          rulesAuditLogs(
+            PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS,
+            "Rule Audit Logs",
+          ),
         ],
       },
     ],

@@ -188,6 +188,18 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../Models/DatabaseModels/TeamPermission";
 import User from "../../Models/DatabaseModels/User";
 import Select from "../Types/Database/Select";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import { TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
+import {
+  SECURITY_CASE_AI_CONTAINMENT_AREAS,
+  SECURITY_CASE_AI_MODE_COLUMNS,
+  SECURITY_CASE_AI_ON_ITS_OWN_REFUSED_MESSAGE,
+  SECURITY_CASE_AI_STAMPS_COLUMN,
+  SecurityCaseAiArea,
+  SecurityCaseAiMode,
+  SecurityCaseAiOnItsOwnStamps,
+  readSecurityCaseAiOnItsOwnStamps,
+} from "../../Types/SecurityCase/SecurityCaseAi";
 import TeamPermissionHolders, {
   TeamMembershipRow,
   TeamPermissionRow,
@@ -313,6 +325,7 @@ export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
   | "enableAutomaticAlertInvestigation"
   | "enableAutomaticSecurityCaseTriage"
+  | "enableAutomaticSecurityCaseResponse"
   | "enableAutomaticPostmortemDraft"
   | "enableAiInsights"
   | "enableInsightFixTasks"
@@ -329,6 +342,14 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticIncidentInvestigation",
     "enableAutomaticAlertInvestigation",
     "enableAutomaticSecurityCaseTriage",
+    /*
+     * Working security cases end to end (#10352): on for a new project,
+     * within the recommended limits its columns default to - Case and Code
+     * on its own, Edge, Accounts, Hosts and Close asking first
+     * (Types/SecurityCase/SecurityCaseAi). A project that existed keeps it
+     * off until an owner turns it on.
+     */
+    "enableAutomaticSecurityCaseResponse",
     "enableAutomaticDataSecurityAi",
     "enableAutomaticPostmortemDraft",
     "enableAiInsights",
@@ -2068,6 +2089,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await this.checkNumbersStartAboveHighest(updateBy);
 
+    await this.stampSecurityCaseAiOnItsOwn(updateBy);
+
     await SsoRequirementChanges.beforeProjectUpdate({ updateBy });
 
     // What the rules are now, so a write that asks for less is told only where it changes one.
@@ -2159,6 +2182,125 @@ export class ProjectService extends ProjectReferencesService<Model> {
           );
         }
       }
+    }
+  }
+
+  /*
+   * WHO LET ONEUPTIME AI CONTAIN ON ITS OWN (#10352). Setting Edge,
+   * Accounts or Hosts of a project's Security Case AI settings to On its own
+   * lets OneUptime AI block an address, suspend a user or isolate a host
+   * without asking anyone: what a playbook's containment step does with
+   * Needs Approval off, so it takes the same authority - a Security Admin's,
+   * which Project Owners and Admins hold too
+   * (TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS) - and is stamped with who
+   * did it and when (securityCaseAiOnItsOwnStamps), as such a step is.
+   * Every containment step OneUptime AI then runs without asking carries
+   * that stamp. Setting one back to Ask or Off takes its stamp away.
+   *
+   * Edge counts as On its own only once it is stamped
+   * (getEdgeOnItsOwnClearance): the stamp is the Security Admin's
+   * confirmation the setting asks for, given in the dialog that sets it.
+   *
+   * A mode sent as it is stored is no change: Terraform sends every value
+   * on each apply, and its stamp stays as it was. Read once the caller has
+   * passed every permission check, for the rows the update writes.
+   */
+  private async stampSecurityCaseAiOnItsOwn(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const values: Record<string, unknown> = updateBy.data as Record<
+      string,
+      unknown
+    >;
+
+    const changing: Array<SecurityCaseAiArea> =
+      SECURITY_CASE_AI_CONTAINMENT_AREAS.filter(
+        (area: SecurityCaseAiArea): boolean => {
+          return values[SECURITY_CASE_AI_MODE_COLUMNS[area]] !== undefined;
+        },
+      );
+
+    if (changing.length === 0) {
+      return;
+    }
+
+    const select: Record<string, boolean> = {
+      _id: true,
+      [SECURITY_CASE_AI_STAMPS_COLUMN]: true,
+    };
+
+    for (const area of changing) {
+      select[SECURITY_CASE_AI_MODE_COLUMNS[area]] = true;
+    }
+
+    const projects: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select as Select<Model>,
+    );
+
+    if (projects.length === 0) {
+      return;
+    }
+
+    // One project's stamps are written with its own update.
+    if (projects.length > 1) {
+      throw new BadDataException(
+        "Change what OneUptime AI may do on security cases one project at a time.",
+      );
+    }
+
+    const project: Record<string, unknown> = projects[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    const stored: SecurityCaseAiOnItsOwnStamps =
+      readSecurityCaseAiOnItsOwnStamps(project[SECURITY_CASE_AI_STAMPS_COLUMN]);
+    const next: SecurityCaseAiOnItsOwnStamps = { ...stored };
+    let isChanged: boolean = false;
+
+    for (const area of changing) {
+      const column: string = SECURITY_CASE_AI_MODE_COLUMNS[area];
+      const isOnItsOwn: boolean =
+        values[column] === SecurityCaseAiMode.OnItsOwn;
+
+      if (!isOnItsOwn) {
+        if (next[area]) {
+          delete next[area];
+          isChanged = true;
+        }
+        continue;
+      }
+
+      // Already on its own and stamped: sent again as it is stored.
+      if (project[column] === SecurityCaseAiMode.OnItsOwn && next[area]) {
+        continue;
+      }
+
+      if (
+        !(
+          Boolean(updateBy.props.isRoot || updateBy.props.isMasterAdmin) ||
+          CallerPermission.holdsAnyOf(
+            updateBy.props,
+            TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
+          )
+        )
+      ) {
+        throw new NotAuthorizedException(
+          SECURITY_CASE_AI_ON_ITS_OWN_REFUSED_MESSAGE,
+        );
+      }
+
+      next[area] = {
+        ...(updateBy.props.userId
+          ? { byUserId: updateBy.props.userId.toString() }
+          : {}),
+        at: OneUptimeDate.getCurrentDate().toISOString(),
+      };
+      isChanged = true;
+    }
+
+    if (isChanged) {
+      values[SECURITY_CASE_AI_STAMPS_COLUMN] = next as unknown as JSONObject;
     }
   }
 

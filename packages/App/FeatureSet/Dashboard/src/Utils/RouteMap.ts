@@ -34,6 +34,7 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.MONITORS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.MONITORS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.MONITORS_SETTINGS_PROBES]: "settings/probes",
   [PageMap.MONITORS_SETTINGS_PROBE_VIEW]: `settings/probes/${RouteParams.ModelID}`,
@@ -81,6 +82,7 @@ export const ServiceRoutePath: Dictionary<string> = {
   [PageMap.SERVICE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.SERVICE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.SERVICE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SERVICE_ARCHIVED]: `archived`,
   [PageMap.SERVICES_GUIDED_SETUP]: `setup`,
@@ -170,6 +172,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.KUBERNETES_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.KUBERNETES_ARCHIVED]: `archived`,
 };
@@ -201,6 +204,8 @@ export const NetworkDeviceRoutePath: Dictionary<string> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: `settings/link-rules`,
+  [PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS]:
+    "settings/rules-audit-logs",
   [PageMap.NETWORK_DEVICE_SETTINGS_AUTO_IMPORT_RULES]: `settings/auto-import-rules`,
   [PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES]: `settings/oid-collection-templates`,
   [PageMap.NETWORK_DEVICE_SETTINGS_DEVICE_ROLES]: `settings/device-roles`,
@@ -307,6 +312,7 @@ export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.DOCKER_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DOCKER_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DOCKER_ARCHIVED]: `archived`,
 };
@@ -340,6 +346,7 @@ export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.PODMAN_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.PODMAN_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.PODMAN_ARCHIVED]: `archived`,
 };
@@ -373,6 +380,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.PROXMOX_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.PROXMOX_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.PROXMOX_ARCHIVED]: `archived`,
 };
@@ -457,6 +465,7 @@ export const OpenStackRoutePath: Dictionary<string> = {
   [PageMap.OPENSTACK_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.OPENSTACK_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.OPENSTACK_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.OPENSTACK_ARCHIVED]: `archived`,
 };
@@ -493,6 +502,7 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.VMWARE_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.VMWARE_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.VMWARE_ARCHIVED]: `archived`,
 };
@@ -517,6 +527,7 @@ export const IoTRoutePath: Dictionary<string> = {
   [PageMap.IOT_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.IOT_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.IOT_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.IOT_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.IOT_ARCHIVED]: `archived`,
 };
@@ -555,6 +566,7 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.DOCKER_SWARM_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DOCKER_SWARM_ARCHIVED]: `archived`,
 };
@@ -588,6 +600,7 @@ export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.CEPH_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CEPH_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.CEPH_ARCHIVED]: `archived`,
 };
@@ -629,6 +642,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS]:
+    "settings/rules-audit-logs",
   [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.STORAGE_ARRAYS_ARCHIVED]: `archived`,
 };
@@ -664,6 +679,7 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
   [PageMap.HOST_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.HOST_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.HOST_ARCHIVED]: `archived`,
   [PageMap.HOST_COLLECTOR_CONFIGS]: `collector-configs`,
@@ -942,6 +958,7 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.RUNBOOKS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.RUNBOOKS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
 };
 
@@ -1346,6 +1363,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.STATUS_PAGES_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.ANNOUNCEMENT_VIEW_NOTIFICATION_LOGS]: `announcements/${RouteParams.ModelID}/notification-logs`,
   [PageMap.ANNOUNCEMENT_VIEW_AUDIT_LOGS]: `announcements/${RouteParams.ModelID}/audit-logs`,
@@ -1434,6 +1452,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
+  [PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
@@ -1588,6 +1607,8 @@ export const ScheduledMaintenanceEventsRoutePath: Dictionary<string> = {
     "settings/runbook-rules",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES]:
     "settings/reminder-rules",
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS]:
+    "settings/rules-audit-logs",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]:
     "settings/measurements",
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_NUMBERING]:
@@ -2037,6 +2058,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -2916,6 +2943,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_ROLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_ROLES]
@@ -3237,6 +3270,14 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
+      ScheduledMaintenanceEventsRoutePath[
+        PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS
+      ]
+    }`,
+  ),
+
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_MEASUREMENTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${
       ScheduledMaintenanceEventsRoutePath[
@@ -3291,6 +3332,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SERVICE_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/service/${
       ServiceRoutePath[PageMap.SERVICE_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/service/${
+      ServiceRoutePath[PageMap.SERVICE_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -3902,6 +3949,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_SETTINGS_LABEL_RULE_VIEW]
@@ -4076,6 +4129,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/network-devices/${
       NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_LINK_RULES]
+    }`,
+  ),
+
+  [PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/network-devices/${
+      NetworkDeviceRoutePath[PageMap.NETWORK_DEVICE_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -4594,6 +4653,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_SETTINGS_LABEL_RULE_VIEW]
@@ -4783,6 +4848,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW]
@@ -4969,6 +5040,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -5464,6 +5541,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/openstack/${
+      OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/openstack/${
       OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_LABEL_RULE_VIEW]
@@ -5671,6 +5754,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_SETTINGS_LABEL_RULE_VIEW]
@@ -5800,6 +5889,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.IOT_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/iot/${
       IoTRoutePath[PageMap.IOT_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/iot/${
+      IoTRoutePath[PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -6024,6 +6119,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_SETTINGS_LABEL_RULE_VIEW]
@@ -6208,6 +6309,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CEPH_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -6412,6 +6519,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
   [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]
@@ -6607,6 +6720,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -7989,6 +8108,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 
@@ -10240,6 +10365,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/runbooks/${
+      RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS]
     }`,
   ),
 

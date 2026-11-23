@@ -207,6 +207,7 @@ import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityCaseTask from "./SecurityCaseTask";
 import SecurityCaseStepCheck from "./SecurityCaseStepCheck";
+import SecurityCaseAiAction from "./SecurityCaseAiAction";
 import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
@@ -738,6 +739,7 @@ const AllModelTypes: Array<{
   SecurityCaseNote,
   SecurityCaseTask,
   SecurityCaseStepCheck,
+  SecurityCaseAiAction,
   SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,

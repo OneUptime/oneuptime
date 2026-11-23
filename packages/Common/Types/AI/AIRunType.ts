@@ -31,6 +31,17 @@ enum AIRunType {
    * credential of a Runner bound to the cluster.
    */
   RemediationExecution = "RemediationExecution",
+  /*
+   * OneUptime AI working a security case end to end (#10352,
+   * Server/Utils/AI/Security/Response): one look at the case - it takes
+   * the case, starts the next steps of its Response Plan through the
+   * playbook engine, reads how the ones it started went, and closes the
+   * case with a report - within what the project lets it do on its own
+   * (Types/SecurityCase/SecurityCaseAi). It changes things, so a server
+   * shutting down never hands it back while it runs, and a case has one
+   * such run queued or running at a time.
+   */
+  SecurityCaseResponse = "SecurityCaseResponse",
 }
 
 export default AIRunType;

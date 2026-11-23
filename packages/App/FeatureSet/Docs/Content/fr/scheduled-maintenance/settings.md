@@ -19,6 +19,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 | **Règles de runbook** | Démarre des runbooks pour les événements qui correspondent.      |
 | **Règles d'étiquettes** | Ajoute des étiquettes aux événements qui correspondent.        |
 | **Règles de rappel** | Rappelle l'événement aux propriétaires à intervalle régulier jusqu'à ce qu'il soit achevé. |
+| **Journaux d'audit** | Indique qui a créé, modifié ou supprimé l'une de ces règles, et quand. |
 
 La section **Paramètres** contient **État de la maintenance**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles de maintenance**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 

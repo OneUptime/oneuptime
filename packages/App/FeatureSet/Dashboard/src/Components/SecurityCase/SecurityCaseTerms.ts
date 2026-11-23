@@ -73,6 +73,8 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Triaged as Likely Malicious"),
   // An automatic response policy's run (#10350).
   translationKey("Automatic Response"),
+  // The runs OneUptime AI starts while it works a case (#10352).
+  translationKey("OneUptime AI"),
   // SecurityPlaybookRunStatus and SecurityPlaybookStepStatus
   translationKey("Queued"),
   translationKey("Running"),

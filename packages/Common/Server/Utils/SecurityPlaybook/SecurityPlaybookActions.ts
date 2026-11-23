@@ -91,8 +91,11 @@ import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCaseNoteService from "../../Services/SecurityCaseNoteService";
 import SecurityCaseTaskService from "../../Services/SecurityCaseTaskService";
 import SecurityCaseService, {
+  SECURITY_CASE_AI_ACTOR_KEY,
   SECURITY_CASE_PLAYBOOK_NAME_KEY,
 } from "../../Services/SecurityCaseService";
+import ProductBrandingText from "../ProductBrandingText";
+import { SecurityBlockSource } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityEventConnectionService from "../../Services/SecurityEventConnectionService";
 import SecurityEventService, {
   ObservableActivity,
@@ -158,6 +161,11 @@ export interface PlaybookStepContext {
    * is the policy's (playbookName is the policy's name).
    */
   automaticResponsePolicyId?: ObjectID | undefined;
+  /*
+   * A step OneUptime AI ran while working the case (#10352): a change of the
+   * case reads as OneUptime AI's, and a block it makes is OneUptime AI's.
+   */
+  isOneUptimeAi?: boolean | undefined;
 }
 
 export interface PlaybookStepOutcome {
@@ -332,9 +340,11 @@ export default class SecurityPlaybookActions {
     await SecurityCaseService.updateOneById({
       id: context.securityCase.id!,
       data: data,
-      miscDataProps: {
-        [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
-      },
+      miscDataProps: context.isOneUptimeAi
+        ? { [SECURITY_CASE_AI_ACTOR_KEY]: true }
+        : {
+            [SECURITY_CASE_PLAYBOOK_NAME_KEY]: context.playbookName,
+          },
       props: ROOT,
     });
   }
@@ -1069,7 +1079,10 @@ export default class SecurityPlaybookActions {
         projectId: context.projectId,
         securityCase: context.securityCase,
         incidentSeverityId: severities[0]!.id!,
-        playbookName: context.playbookName,
+        playbookName: context.isOneUptimeAi ? undefined : context.playbookName,
+        aiName: context.isOneUptimeAi
+          ? `${ProductBrandingText.getProductName()} AI`
+          : undefined,
       });
 
     return succeeded(mdText`Declared incident **${result.incidentNumber}**.`, {
@@ -1120,6 +1133,8 @@ export default class SecurityPlaybookActions {
     securityCase: SecurityCase;
     incidentSeverityId: ObjectID;
     playbookName?: string | undefined;
+    // OneUptime AI declares it, working the case (#10352): its name.
+    aiName?: string | undefined;
     userId?: ObjectID | undefined;
     /*
      * The person declaring it from the case's page. The incident is created
@@ -1230,6 +1245,7 @@ export default class SecurityPlaybookActions {
         incidentNumber,
         incidentUrl: incidentUrl.toString(),
         playbookName: data.playbookName,
+        aiName: data.aiName,
       }).toString(),
       eventType: SecurityCaseFeedEventType.IncidentDeclared,
       userId: data.userId,
@@ -1470,7 +1486,9 @@ export default class SecurityPlaybookActions {
       return await SecurityPlaybookAddressBlocks.lift({
         projectId: context.projectId,
         targets,
-        reason: `Lifted by playbook ${context.playbookName}.`,
+        reason: context.isOneUptimeAi
+          ? `Lifted by ${ProductBrandingText.getProductName()} AI, closing the case.`
+          : `Lifted by playbook ${context.playbookName}.`,
       });
     }
 
@@ -1492,6 +1510,10 @@ export default class SecurityPlaybookActions {
               policyName: context.playbookName,
             }
           : undefined,
+      // OneUptime AI's own block, working the case (#10352).
+      ...(context.isOneUptimeAi
+        ? { source: SecurityBlockSource.OneUptimeAi }
+        : {}),
     });
   }
 

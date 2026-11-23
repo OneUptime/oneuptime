@@ -215,6 +215,8 @@ export default class SecurityPlaybookAddressBlocks {
      * on the case once it takes hold (SecurityAutomaticResponseRecorder).
      */
     automaticResponse?: { policyId: ObjectID; policyName: string } | undefined;
+    // Who made it, when not a person or a playbook: OneUptime AI (#10352).
+    source?: SecurityBlockSource | undefined;
   }): Promise<PlaybookStepOutcome> {
     const definition: SecurityPlaybookActionDefinition =
       getSecurityPlaybookAction(SecurityPlaybookActionType.BlockAddress)!;
@@ -272,11 +274,13 @@ export default class SecurityPlaybookAddressBlocks {
           duration: data.config.duration,
           reason,
           securityCaseId: data.securityCaseId,
-          source: data.personId
-            ? SecurityBlockSource.Person
-            : data.automaticResponse
-              ? SecurityBlockSource.AutomaticResponse
-              : SecurityBlockSource.Playbook,
+          source:
+            data.source ||
+            (data.personId
+              ? SecurityBlockSource.Person
+              : data.automaticResponse
+                ? SecurityBlockSource.AutomaticResponse
+                : SecurityBlockSource.Playbook),
           securityPlaybookRunId: data.runId,
           ...(data.automaticResponse
             ? {

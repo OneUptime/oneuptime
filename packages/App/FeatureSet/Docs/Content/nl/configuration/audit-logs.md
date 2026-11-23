@@ -78,6 +78,8 @@ Een resource zonder eigen naam krijgt de naam van wat hem in OneUptime benoemt: 
 
 Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resources hebben ook een eigen pagina **Auditlogboeken**, in een ingeklapte sectie van hun zijmenu, zoals **Geavanceerd**. Die toont alleen de vermeldingen van die resource, samen met die van wat erbij hoort: de pagina van een SLO toont ook de regels en eigenaren.
 
+Ook de regels van een product hebben een eigen pagina, aan het eind van de menusectie die ze toont: **Auditlogboeken** in een sectie **Regels**, zoals **Incidenten → Regels → Auditlogboeken**, en **Auditlogboeken van regels** in een sectie **Instellingen** met eigenaars- en labelregels, zoals **Hosts → Instellingen → Auditlogboeken van regels**. Die toont elke regel van dat product, ook verwijderde. Runbook-regels zijn één soort regel voor waarschuwingen, incidenten en onderhoudsgebeurtenissen, dus hun geschiedenis staat onder **Runbooks → Instellingen → Auditlogboeken van regels**.
+
 ## Wat wordt vastgelegd
 
 Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd: monitors, incidenten, waarschuwingen, statuspagina's, workflows en hun stappen, wachtrijen, dashboards, piketbeleid, teams en wie erin zit, API-sleutels en elke instelling. **Resourcetype** zegt waar een vermelding over gaat, bijvoorbeeld `Monitor`, `Workflow` of `Queue`.

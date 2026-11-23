@@ -124,6 +124,12 @@ export function getIoTBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.IOT_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "IoT",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.IOT_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "IoT",

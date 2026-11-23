@@ -253,7 +253,7 @@ Ein Sicherheits-Administrator verwaltet die benutzerdefinierten Felder und Notiz
 
 ## Benachrichtigungen
 
-OneUptime informiert Personen über sechs Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
+OneUptime informiert Personen über sieben Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
 
 | Benachrichtigung | Wer informiert wird | Standardmäßig |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime informiert Personen über sechs Dinge an einem Fall. Niemand muss daf�
 | Reaktionsziel eines Sicherheitsfalls | Die Personen am Fall: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Ist niemand am Fall, die Personen, die über neue Fälle seiner Priorität informiert werden | Per E-Mail und Push |
 | Mir zugewiesene Aufgabe eines Sicherheitsfalls | Die Person, der eine Aufgabe des Falls gegeben wird, außer sie hat sie sich selbst genommen | Per E-Mail und Push |
 | Schritt eines Sicherheitsfalls hält nicht mehr | Die Personen am Fall, wenn ein Schritt, den OneUptime erledigt gesehen hat, nicht mehr hält: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Ist niemand am Fall, die Personen, die über neue Fälle seiner Priorität informiert werden | Per E-Mail und Push |
+| OneUptime AI hat einen Sicherheitsfall an Menschen übergeben | Die Personen am Fall, wenn OneUptime AI die Bearbeitung beendet und sagt, warum: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Ist niemand am Fall, die Personen, die über neue Fälle seiner Priorität informiert werden | Per E-Mail und Push |
 
 - Nur Personen, die den Fall sehen können, werden darüber informiert: Projektinhaber, Projektadministrator und die Rollen Sicherheits-Administrator, Sicherheits-Mitglied und Sicherheits-Betrachter. Eine Rolle, die auf bestimmte Labels beschränkt ist, wird nur über die Fälle mit diesen Labels informiert.
 - Niemand wird über das informiert, was er selbst getan hat: Wer einen Fall per Hand eröffnet, ihn zuweist oder eine Ausführung startet, wird darüber nicht benachrichtigt.
 - Jede Person erfährt nur einmal von einem Fall. Ein Fall, der mit Medium eröffnet wird und später auf Kritisch steigt, erreicht beim Anstieg die Personen, die Hoch und Kritisch oder Nur Kritisch gewählt haben, und nicht noch einmal die Personen, die Mittel und höher gewählt und schon bei der Eröffnung davon erfahren haben.
 - Der Testangriff aus **Testangriff senden** eröffnet einen Fall, der niemanden benachrichtigt.
-- Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten. Ebenso ein Reaktionsziel, das gleich verfehlt wird oder verfehlt ist, und ein Schritt, der nicht mehr hält.
+- Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten. Ebenso ein Reaktionsziel, das gleich verfehlt wird oder verfehlt ist, ein Schritt, der nicht mehr hält, und ein Fall, den OneUptime AI an Menschen übergeben hat.
 - Die **Zeitachse** des Falls zeigt, wer wann informiert wurde.
 
 ### Wählen, worüber Sie informiert werden
@@ -303,7 +304,7 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 
 Jede Benachrichtigung außer der zu einer Aufgabe wird in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
 
-Der Schritt **Aktualisierungen** einer Regel wählt aus, welche dieser Meldungen sie postet: **Neue und hochgestufte Fälle**, **Zuweisungen**, **Genehmigungsanfragen** und **Reaktionsziele**, je ein Kästchen unter **Aktualisierungen auswählen**. **Nur wichtige Aktualisierungen** postet alle außer den Zuweisungen, für einen Kanal, der nur hören soll, worauf jemand reagieren muss. Eine Regel, die vor dem Schritt gespeichert wurde, und eine neue Regel posten jede Meldung.
+Der Schritt **Aktualisierungen** einer Regel wählt aus, welche dieser Meldungen sie postet: **Neue und hochgestufte Fälle**, **Zuweisungen**, **Genehmigungsanfragen**, **Reaktionsziele** und **Von OneUptime AI an Menschen übergebene Fälle**, je ein Kästchen unter **Aktualisierungen auswählen**. **Nur wichtige Aktualisierungen** postet alle außer den Zuweisungen, für einen Kanal, der nur hören soll, worauf jemand reagieren muss. Eine Regel, die vor dem Schritt gespeichert wurde, und eine neue Regel posten jede Meldung.
 
 ## Playbooks
 

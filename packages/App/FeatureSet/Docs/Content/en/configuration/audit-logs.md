@@ -78,6 +78,8 @@ A resource with no name of its own is named by what names it in OneUptime: an ex
 
 Monitors, incidents, alerts, status pages, SLOs and many other resources also have an **Audit Logs** page of their own, in a folded section of their side menu such as **Advanced**. It lists only that resource's entries, with those of what belongs to it: an SLO's page shows its rules and owners too.
 
+A product's rules have a page of their own as well, at the end of the menu section that lists them: **Audit Logs** in a **Rules** section, such as **Incidents → Rules → Audit Logs**, and **Rule Audit Logs** in a **Settings** section that holds owner and label rules, such as **Hosts → Settings → Rule Audit Logs**. It lists every rule of that product, deleted ones included. Runbook rules are one kind of rule for alerts, incidents and maintenance events, so their history is under **Runbooks → Settings → Rule Audit Logs**.
+
 ## What is recorded
 
 Everything people create, change or delete in a project is recorded: monitors, incidents, alerts, status pages, workflows and their steps, queues, dashboards, on-call policies, teams and who is on them, API keys and every setting. **Resource Type** says what an entry is about, such as `Monitor`, `Workflow` or `Queue`.

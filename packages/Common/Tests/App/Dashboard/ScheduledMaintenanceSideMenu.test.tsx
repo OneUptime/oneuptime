@@ -244,7 +244,7 @@ describe("Scheduled maintenance side menu", () => {
   });
 
   describe("Rules section", () => {
-    test("holds every maintenance rule page", async () => {
+    test("holds every maintenance rule page, then their history", async () => {
       await renderScheduledMaintenanceMenu();
 
       expect(linksIn("Rules")).toEqual([
@@ -272,7 +272,27 @@ describe("Scheduled maintenance side menu", () => {
             PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
           ),
         },
+        // Who changed the rules above, what and when (#10462).
+        {
+          title: "Audit Logs",
+          href: routeFor(
+            PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+          ),
+        },
       ]);
+    });
+
+    test("opens itself on the rules' Audit Logs page, and marks it", async () => {
+      goTo(
+        routeFor(
+          PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS,
+        ),
+      );
+      await renderScheduledMaintenanceMenu();
+
+      expect(isExpanded("Rules")).toBe(true);
+      expect(activeLinkTitles()).toEqual(["Audit Logs"]);
+      expect(isExpanded("Settings")).toBe(false);
     });
 
     test("starts collapsed", async () => {
@@ -302,8 +322,8 @@ describe("Scheduled maintenance side menu", () => {
       await renderScheduledMaintenanceMenu();
 
       expect(isExpanded("Rules")).toBe(false);
-      expect(linksIn("Rules")).toHaveLength(4);
-      expect(iconCountIn("Rules")).toBe(4);
+      expect(linksIn("Rules")).toHaveLength(5);
+      expect(iconCountIn("Rules")).toBe(5);
     });
   });
 
