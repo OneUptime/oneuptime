@@ -76,7 +76,7 @@ Recording rules, alert rules over logs, Datadog widgets that read logs, traces o
 
 ## Convert a query with OneUptime AI
 
-A query that no rule converts shows **Convert with OneUptime AI**, which needs AI to be on for the project. Only that query, with the names of the dashboard's variables, goes to your project's AI provider. Its answer is checked as any query is, and shown to you: choose **Use This Query** to use it. Nothing is created until you create the dashboard or the monitors.
+A query that no rule converts shows **Convert with OneUptime AI**, which needs AI to be on for the project. Only that query, with the names of the dashboard's variables, goes to your project's [LLM provider](/docs/ai/llm-provider). Its answer is checked as any query is, and shown to you: choose **Use This Query** to use it. Nothing is created until you create the dashboard or the monitors.
 
 ## Next steps
 
