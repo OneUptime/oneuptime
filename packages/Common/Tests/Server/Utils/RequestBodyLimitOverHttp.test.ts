@@ -327,8 +327,9 @@ function expectNoServerFault(result: HttpResult): void {
   expect(logger.error).not.toHaveBeenCalled();
 }
 
+// The figure held to its unit by a no-break space.
 const TOO_LARGE_FOR_ROUTE: string =
-  "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.";
+  "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.";
 
 const TOO_MANY_VALUES_FOR_ROUTE: string =
   "The request body holds more than 100,000 JSON values (objects, arrays, strings and numbers), the most OneUptime reads in one request to this address, so this did not finish. Send less in each request.";

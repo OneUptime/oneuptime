@@ -1,4 +1,5 @@
 import { UNEXPLAINED_ERROR_MESSAGES } from "../../Types/Exception/UnexplainedError";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 import {
   JsonElementLimit,
   JsonElementLimits,
@@ -60,17 +61,21 @@ export const TOO_MANY_JSON_VALUES_TYPE: string = "entity.too.many.values";
 export const APP_REQUEST_BODY_LIMIT_FIELD: string =
   "appRequestBodyLimitInBytes";
 
-// A size as the too-large sentences say one: "1 MB", "50 MB", "1.5 MB".
+/*
+ * A size as the too-large sentences say one: "1 MB", "50 MB", "1.5 MB",
+ * the figure held to its unit by a no-break space, so the sentence never
+ * ends a line with "1" where a person reads it.
+ */
 export const describeBodyLimit: (bytes: number) => string = (
   bytes: number,
 ): string => {
   const mebibytes: number = bytes / (1024 * 1024);
 
   if (mebibytes >= 1) {
-    return `${Number(mebibytes.toFixed(1))} MB`;
+    return `${Number(mebibytes.toFixed(1))}${NO_BREAK_SPACE}MB`;
   }
 
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${Math.max(1, Math.round(bytes / 1024))}${NO_BREAK_SPACE}KB`;
 };
 
 // "100,000": a count as an English sentence writes it.

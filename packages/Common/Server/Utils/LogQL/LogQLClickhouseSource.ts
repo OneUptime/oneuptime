@@ -11,6 +11,7 @@ import {
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import {
   LogQLLineFilterOperator,
@@ -541,7 +542,7 @@ export default class LogQLClickhouseSource implements LogQLLogSource {
     } catch (error: unknown) {
       if (isResultLimitError(error)) {
         throw new PromQLError(
-          `the logs this query reads are more than ${LOGQL_MAX_RESULT_BYTES / (1024 * 1024)} MB. Ask for fewer lines (a lower limit), a shorter time range, or add label matchers or line filters.`,
+          `the logs this query reads are more than ${LOGQL_MAX_RESULT_BYTES / (1024 * 1024)}${NO_BREAK_SPACE}MB. Ask for fewer lines (a lower limit), a shorter time range, or add label matchers or line filters.`,
           PromQLErrorType.Execution,
         );
       }
