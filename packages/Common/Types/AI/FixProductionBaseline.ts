@@ -84,10 +84,86 @@ export interface TelemetryFixBaseline {
   to: string;
 }
 
+/*
+ * TelemetryLeak (#10368): one place a Data Security telemetry issue found
+ * its data, as the fix's first check read it.
+ */
+export interface TelemetryLeakFixPlace {
+  // The DataStoreFinding.
+  findingId: string;
+  dataTypeId: string;
+  // Where it sits: body, attributes.user.email, events.login.token.
+  location: string;
+  // The enabled scrub rules that hid it at ingest when the fix merged.
+  scrubRuleIds: Array<string>;
+  // ISO-8601: when the scan last saw it.
+  lastSeenAt?: string | undefined;
+}
+
+// One telemetry store - a service's logs, its spans - the fix is for.
+export interface TelemetryLeakFixStore {
+  dataStoreId: string;
+  // Its DataStoreKind: which of the service's records are counted.
+  kind: string;
+  // The store's issues the fix is for.
+  issueIds: Array<string>;
+  places: Array<TelemetryLeakFixPlace>;
+  /*
+   * How many records of the store the old version sent in the hour its
+   * data was last seen - what the new version must send before it can be
+   * called fixed. The store's records as a whole, not only those holding
+   * the attribute: a fix that removes the attribute leaves none there.
+   */
+  recordsBefore: number;
+  // ISO-8601: the start of that hour.
+  recordsBeforeHour?: string | undefined;
+}
+
+/*
+ * TelemetryLeak: what a code fix of a telemetry leak is watched for - the
+ * service whose deploys ship it, and its stores' places and rules.
+ */
+export interface TelemetryLeakFixBaseline {
+  serviceId: string;
+  stores: Array<TelemetryLeakFixStore>;
+  // The values the places' rules changed in the week before the merge.
+  valuesChangedBefore: number;
+  // ISO-8601: the week read, before the merge.
+  from: string;
+  to: string;
+}
+
+// StoreConfiguration (#10368): one store's issue the fix is for.
+export interface StoreConfigurationFixIssue {
+  issueId: string;
+  dataStoreId: string;
+  checkId: string;
+}
+
+/*
+ * StoreConfiguration: the issues a fix in infrastructure code is for, and
+ * what was done while it is watched - each read asked for, and the one
+ * notice that it merged and was not applied.
+ */
+export interface StoreConfigurationFixBaseline {
+  issues: Array<StoreConfigurationFixIssue>;
+  // ISO-8601: when the stores were asked to be read again, at once after the merge.
+  readAskedAt?: string | undefined;
+  // ISO-8601: when they were asked again, a day after the merge.
+  dayReadAskedAt?: string | undefined;
+  /*
+   * ISO-8601: when the store's owners and the pull request's author were
+   * told it merged and was not applied - once, never again.
+   */
+  notAppliedToldAt?: string | undefined;
+}
+
 export interface FixProductionBaseline {
   performance?: PerformanceFixBaseline | undefined;
   recurrence?: RecurrenceFixBaseline | undefined;
   telemetry?: TelemetryFixBaseline | undefined;
+  telemetryLeak?: TelemetryLeakFixBaseline | undefined;
+  storeConfiguration?: StoreConfigurationFixBaseline | undefined;
 }
 
 export default FixProductionBaseline;

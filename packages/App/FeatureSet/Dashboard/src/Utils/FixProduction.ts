@@ -56,6 +56,35 @@ export const FIX_PRODUCTION_CHECK_LABELS: Record<
       "Telemetry stopped after the fix",
     ),
   },
+  /*
+   * A code fix of a Data Security telemetry leak (#10368): the service's
+   * new version writes no more of the data, or still does.
+   */
+  [FixProductionCheck.TelemetryLeak]: {
+    ...WAITING,
+    [FixProductionStatus.Verified]: translationKey("Leak stopped in production"),
+    [FixProductionStatus.Regressed]: translationKey(
+      "Still written after the fix",
+    ),
+  },
+  /*
+   * A fix in the infrastructure code that declares a store (#10368): it
+   * waits to be applied, not deployed, and its proof is the store's check
+   * passing when its configuration is read again.
+   */
+  [FixProductionCheck.StoreConfiguration]: {
+    [FixProductionStatus.AwaitingDeploy]: translationKey(
+      "Merged, not applied yet",
+    ),
+    [FixProductionStatus.Watching]: translationKey("Applied to some stores"),
+    [FixProductionStatus.Verified]: translationKey(
+      "Applied: the check passes",
+    ),
+    [FixProductionStatus.Regressed]: translationKey(
+      "The check failed again after the fix",
+    ),
+    [FixProductionStatus.Unverifiable]: translationKey("Not verified as applied"),
+  },
 };
 
 // The fields of a verdict its words are chosen by.

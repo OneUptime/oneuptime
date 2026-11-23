@@ -10,7 +10,8 @@ import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
-import { FixProductionCheckHelper } from "Common/Types/AI/FixProductionCheck";
+import FixProductionCheck from "Common/Types/AI/FixProductionCheck";
+import FixProductionCheckPicker from "Common/Server/Utils/AI/CodeFix/FixProductionCheckPicker";
 import FixPullRequestCiStatus, {
   FixPullRequestCiStatusHelper,
 } from "Common/Types/AI/FixPullRequestCiStatus";
@@ -198,6 +199,21 @@ async function applyExceptionFeedbackForStateChange(data: {
   }
 }
 
+/*
+ * The check a merged fix is watched with in production: its recipe's, or a
+ * Data Security issue's when its task names one (FixProductionCheckPicker,
+ * #10368) - a request in Code asked from an issue is that issue's fix.
+ */
+async function getProductionCheckForRun(
+  aiRunId: ObjectID,
+  cache: Map<string, CodeFixTaskType>,
+): Promise<FixProductionCheck | null> {
+  return await FixProductionCheckPicker.forRun({
+    aiRunId,
+    taskType: await getTaskTypeForRun(aiRunId, cache),
+  });
+}
+
 async function getTaskTypeForRun(
   aiRunId: ObjectID,
   cache: Map<string, CodeFixTaskType>,
@@ -291,11 +307,9 @@ export async function syncPullRequestOnCodeHost(data: {
           mergeCommitSha: read.mergeCommitSha,
           mergedAt: read.mergedAt,
           productionCheck: pullRequest.aiRunId
-            ? FixProductionCheckHelper.forTaskType(
-                await getTaskTypeForRun(
-                  pullRequest.aiRunId,
-                  data.taskTypeByRunId,
-                ),
+            ? await getProductionCheckForRun(
+                pullRequest.aiRunId,
+                data.taskTypeByRunId,
               )
             : null,
           now: OneUptimeDate.getCurrentDate(),
@@ -537,11 +551,9 @@ RunCron(
               mergeCommitSha: merge.mergeCommitSha,
               mergedAt: merge.mergedAt,
               productionCheck: pullRequest.aiRunId
-                ? FixProductionCheckHelper.forTaskType(
-                    await getTaskTypeForRun(
-                      pullRequest.aiRunId,
-                      taskTypeByRunId,
-                    ),
+                ? await getProductionCheckForRun(
+                    pullRequest.aiRunId,
+                    taskTypeByRunId,
                   )
                 : null,
               now: OneUptimeDate.getCurrentDate(),
