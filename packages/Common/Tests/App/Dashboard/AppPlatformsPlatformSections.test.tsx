@@ -565,10 +565,14 @@ describe("a Cloud Run service's Google Cloud Monitoring section", () => {
   test("its requests and server errors from one read of its request count by response_code_class, its p95, CPU and memory", async () => {
     mockReads.resources = [resourceOf(CASES["cloudRun"]!)];
     mockReads.groupedValues = {
-      // Each a minute's rate: 3 a second for a minute is 180 requests.
+      /*
+       * Each a minute's rate: 3 a second for a minute is 180 requests. The
+       * 4xx are not server errors, and are fewer than the 5xx, so a share
+       * read from the wrong class reads otherwise.
+       */
       "run.googleapis.com/request_count": [
         { group: "2xx", value: 3 },
-        { group: "4xx", value: 0.5 },
+        { group: "4xx", value: 0.25 },
         { group: "5xx", value: 0.5 },
       ],
     };
@@ -596,8 +600,9 @@ describe("a Cloud Run service's Google Cloud Monitoring section", () => {
       "CPU",
       "Memory",
     ]);
-    expect(tiles["Requests"]!.value).toBe("240");
-    expect(tiles["Server errors"]!.value).toBe("12.5%");
+    // 225 requests, 30 of them 5xx: 13.3%.
+    expect(tiles["Requests"]!.value).toBe("225");
+    expect(tiles["Server errors"]!.value).toBe("13.3%");
     expect(tiles["Server errors"]!.sublabel).toBe("30 errored");
     expect(tiles["p95 latency"]!.value).toBe("120\u00A0ms");
     expect(tiles["CPU"]!.value).toBe("42.0%");
@@ -643,7 +648,7 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
     mockReads.groupedValues = {
       "appengine.googleapis.com/http/server/response_count": [
         { group: "200", value: 9 },
-        { group: "404", value: 0.5 },
+        { group: "404", value: 0.25 },
         { group: "503", value: 0.5 },
       ],
     };
@@ -659,8 +664,9 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
       "Server errors",
       "p95 latency",
     ]);
-    expect(tiles["Requests"]!.value).toBe("600");
-    expect(tiles["Server errors"]!.value).toBe("5.0%");
+    // 585 requests, 30 of them a 503 - the 404s are not server errors: 5.1%.
+    expect(tiles["Requests"]!.value).toBe("585");
+    expect(tiles["Server errors"]!.value).toBe("5.1%");
     expect(tiles["p95 latency"]!.value).toBe("64\u00A0ms");
 
     // No CPU or memory of an App Engine app is read yet (#10838): its own tiles stay.
