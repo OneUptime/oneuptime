@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "der Stack {{stack}}",
   "{{count}} issues, one cause: {{cause}}": "{{count}} Probleme, eine Ursache: {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} Problem, eine Ursache: {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "Eine Person, aus einer Gruppe in der Problemliste oder indem sie den Vorschlag von OneUptime AI genehmigt, in einem Repository, das sie in Code ändern darf; der Schritt „Fix the code with AI“ eines Sicherheits-Playbooks; oder von selbst eine KI-Regel, deren Behebung „Ohne Rückfrage“ ist.",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "Um OneUptime AI um diesen Pull Request zu bitten, brauchen Sie die Berechtigung, Datensicherheitsprobleme zu ändern.",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "Um diese Datenspeicher über ihre Cloud-Verbindungen zu ändern, brauchen Sie die Berechtigung, Datenspeicher zu bearbeiten.",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "In dieser Gruppe lässt sich von hier aus nichts beheben: Jeder Datenspeicher ist aus ihrer Behebung ausgelassen.",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{value}} von {{count}} Lecks wurden vor dem Merge erkannt.",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{value}} von {{count}} Leck wurde vor dem Merge erkannt.",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Merge-Request-Prüfung fehlschlagen lassen bei Geheimnissen oder Daten der Stufe Eingeschränkt in Telemetrie, öffentlichen sensiblen Speichern, Klartext-Passwörtern oder CVVs.",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Pull-Request-Prüfung fehlschlagen lassen bei Geheimnissen oder Daten der Stufe Eingeschränkt in Telemetrie, öffentlichen sensiblen Speichern, Klartext-Passwörtern oder CVVs."
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Pull-Request-Prüfung fehlschlagen lassen bei Geheimnissen oder Daten der Stufe Eingeschränkt in Telemetrie, öffentlichen sensiblen Speichern, Klartext-Passwörtern oder CVVs.",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "Eine Person, aus einer Gruppe in der Problemliste oder indem sie den Vorschlag von OneUptime AI genehmigt, in einem Repository, das sie in Code ändern darf; der Schritt „Fix the code with AI“ eines Sicherheits-Playbooks; oder von selbst eine KI-Regel, deren Behebung „Automatisch“ ist.",
+  "AI Analysis": "KI-Analyse",
+  "AI Proposed": "Von KI vorgeschlagen",
+  "AI Proposal Approved": "KI-Vorschlag genehmigt",
+  "AI Change Made": "KI-Änderung vorgenommen",
+  "AI Proposal Dismissed": "KI-Vorschlag verworfen",
+  "AI Change Undone": "KI-Änderung rückgängig gemacht",
+  "AI Change Failed": "KI-Änderung fehlgeschlagen",
+  "AI Response": "KI-Reaktion",
+  "Step Check": "Schrittprüfung"
 }

@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "المكدس {{stack}}",
   "{{count}} issues, one cause: {{cause}}": "المشكلات: {{count}}، والسبب واحد: {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} مشكلة، والسبب واحد: {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "شخص، من مجموعة في قائمة المشكلات أو بالموافقة على اقتراح OneUptime AI، في مستودع يمكنه تغييره ضمن التعليمات البرمجية؛ أو خطوة «Fix the code with AI» في دليل تشغيل أمني؛ أو تلقائيًا، قاعدة ذكاء اصطناعي إصلاحها «دون سؤال».",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "يتطلب طلب طلب السحب هذا من OneUptime AI إذنًا بتغيير مشكلات أمن البيانات.",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "يتطلب تغيير مخازن البيانات هذه عبر اتصالاتها السحابية إذنًا بتحرير مخازن البيانات.",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "لا شيء في هذه المجموعة يمكن إصلاحه من هنا: كل مخزن بيانات مستبعد من إصلاحها.",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{value}} من {{count}} من التسريبات اكتُشفت قبل الدمج.",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{value}} من {{count}} تسريب اكتُشف قبل الدمج.",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "إفشال فحص طلب الدمج عندما يضع أسرارًا أو بيانات من مستوى «مقيّد» في القياس عن بُعد، أو يجعل مخزن بيانات حساسًا عامًا، أو يخزّن كلمات مرور أو رموز CVV بنص صريح.",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "إفشال فحص طلب السحب عندما يضع أسرارًا أو بيانات من مستوى «مقيّد» في القياس عن بُعد، أو يجعل مخزن بيانات حساسًا عامًا، أو يخزّن كلمات مرور أو رموز CVV بنص صريح."
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "إفشال فحص طلب السحب عندما يضع أسرارًا أو بيانات من مستوى «مقيّد» في القياس عن بُعد، أو يجعل مخزن بيانات حساسًا عامًا، أو يخزّن كلمات مرور أو رموز CVV بنص صريح.",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "شخص، من مجموعة في قائمة المشكلات أو بالموافقة على اقتراح OneUptime AI، في مستودع يمكنه تغييره ضمن التعليمات البرمجية؛ أو خطوة «إصلاح التعليمات البرمجية بالذكاء الاصطناعي» في دليل تشغيل أمني؛ أو تلقائيًا، قاعدة ذكاء اصطناعي إصلاحها «تلقائيًا».",
+  "AI Analysis": "تحليل الذكاء الاصطناعي",
+  "AI Proposed": "اقترحه الذكاء الاصطناعي",
+  "AI Proposal Approved": "تمت الموافقة على اقتراح الذكاء الاصطناعي",
+  "AI Change Made": "أجرى الذكاء الاصطناعي تغييرًا",
+  "AI Proposal Dismissed": "رُفض اقتراح الذكاء الاصطناعي",
+  "AI Change Undone": "تم التراجع عن تغيير الذكاء الاصطناعي",
+  "AI Change Failed": "فشل تغيير الذكاء الاصطناعي",
+  "AI Response": "استجابة الذكاء الاصطناعي",
+  "Step Check": "فحص الخطوة"
 }

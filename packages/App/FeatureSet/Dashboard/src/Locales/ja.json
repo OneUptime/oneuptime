@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "{{stack}} スタック",
   "{{count}} issues, one cause: {{cause}}": "{{count}} 件の問題、原因は 1 つ: {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} 件の問題、原因は 1 つ: {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "問題リストのグループから、または OneUptime AI の提案を承認したユーザー (コードで変更できるリポジトリで)、セキュリティプレイブックの「Fix the code with AI」ステップ、または修正が「確認なしで」の AI ルールによって自動的に開始されます。",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "OneUptime AI にこのプルリクエストを依頼するには、データセキュリティの問題を変更する権限が必要です。",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "クラウド接続を通じてこれらのデータストアを変更するには、データストアを編集する権限が必要です。",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "このグループには、ここから修正できるものがありません。すべてのデータストアが修正の対象外です。",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "漏えい {{count}} 件中 {{value}} 件がマージ前に検出されました。",
   "{{value}} of {{count}} leaks were caught before they merged._one": "漏えい {{count}} 件中 {{value}} 件がマージ前に検出されました。",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "マージリクエストがシークレットや「制限」レベルのデータをテレメトリに書き込む、機密データストアを公開する、またはパスワードや CVV を平文で保存するときに、そのチェックを失敗させます。",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "プルリクエストがシークレットや「制限」レベルのデータをテレメトリに書き込む、機密データストアを公開する、またはパスワードや CVV を平文で保存するときに、そのチェックを失敗させます。"
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "プルリクエストがシークレットや「制限」レベルのデータをテレメトリに書き込む、機密データストアを公開する、またはパスワードや CVV を平文で保存するときに、そのチェックを失敗させます。",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "問題リストのグループから、または OneUptime AI の提案を承認したユーザー (コードで変更できるリポジトリで)、セキュリティプレイブックの「Fix the code with AI」ステップ、または修正が「自動」の AI ルールによって自動的に開始されます。",
+  "AI Analysis": "AI 分析",
+  "AI Proposed": "AI による提案",
+  "AI Proposal Approved": "AI の提案を承認",
+  "AI Change Made": "AI による変更を実施",
+  "AI Proposal Dismissed": "AI の提案を却下",
+  "AI Change Undone": "AI による変更を取り消し",
+  "AI Change Failed": "AI による変更が失敗",
+  "AI Response": "AI 対応",
+  "Step Check": "ステップのチェック"
 }

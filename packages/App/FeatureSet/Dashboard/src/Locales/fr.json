@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "la stack {{stack}}",
   "{{count}} issues, one cause: {{cause}}": "{{count}} problèmes, une seule cause : {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} problème, une seule cause : {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "Une personne, depuis un groupe de la liste des problèmes ou en approuvant la proposition d'OneUptime AI, dans un dépôt qu'elle peut modifier dans Code ; l'étape « Fix the code with AI » d'un playbook de sécurité ; ou, d'elle-même, une règle d'IA dont la correction est « Sans demander ».",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "Demander cette pull request à OneUptime AI nécessite l'autorisation de modifier les problèmes de sécurité des données.",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "Modifier ces magasins de données via leurs connexions cloud nécessite l'autorisation de modifier les magasins de données.",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "Rien dans ce groupe ne peut être corrigé d'ici : chaque magasin de données est laissé de côté par sa correction.",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{value}} fuites sur {{count}} ont été détectées avant la fusion.",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{value}} fuite sur {{count}} a été détectée avant la fusion.",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Faire échouer la vérification d'une demande de fusion pour des secrets ou données Restreintes en télémétrie, un magasin de données sensible rendu public, ou des mots de passe ou CVV en clair.",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Faire échouer la vérification d'une demande de tirage pour des secrets ou données Restreintes en télémétrie, un magasin de données sensible rendu public, ou des mots de passe ou CVV en clair."
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "Faire échouer la vérification d'une demande de tirage pour des secrets ou données Restreintes en télémétrie, un magasin de données sensible rendu public, ou des mots de passe ou CVV en clair.",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "Une personne, depuis un groupe de la liste des problèmes ou en approuvant la proposition d'OneUptime AI, dans un dépôt qu'elle peut modifier dans Code ; l'étape « Fix the code with AI » d'un playbook de sécurité ; ou, d'elle-même, une règle d'IA dont la correction est « Automatiquement ».",
+  "AI Analysis": "Analyse par l'IA",
+  "AI Proposed": "Proposé par l'IA",
+  "AI Proposal Approved": "Proposition de l'IA approuvée",
+  "AI Change Made": "Modification par l'IA effectuée",
+  "AI Proposal Dismissed": "Proposition de l'IA rejetée",
+  "AI Change Undone": "Modification par l'IA annulée",
+  "AI Change Failed": "Échec de la modification par l'IA",
+  "AI Response": "Réponse de l'IA",
+  "Step Check": "Contrôle d'étape"
 }

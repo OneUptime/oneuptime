@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "پشته {{stack}}",
   "{{count}} issues, one cause: {{cause}}": "{{count}} مسئله، یک علت: {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} مسئله، یک علت: {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "یک شخص، از یک گروه در فهرست مسائل یا با تأیید پیشنهاد OneUptime AI، در مخزنی که اجازه دارد در کد تغییرش دهد؛ گام «Fix the code with AI» یک پلی‌بوک امنیتی؛ یا خودبه‌خود، یک قاعده هوش مصنوعی که اصلاحش «بدون پرسیدن» است.",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "درخواست این Pull Request از OneUptime AI به مجوز تغییر مسائل امنیت داده نیاز دارد.",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "تغییر این مخزن‌های داده از طریق اتصال‌های ابری‌شان به مجوز ویرایش مخزن‌های داده نیاز دارد.",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "هیچ چیزی در این گروه از اینجا رفع‌شدنی نیست: همه مخزن‌های داده از رفع آن کنار گذاشته شده‌اند.",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{value}} از {{count}} نشت پیش از ادغام گرفته شد.",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{value}} از {{count}} نشت پیش از ادغام گرفته شد.",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "ناموفق کردن بررسی یک Merge Request وقتی اسرار یا داده‌های سطح محدود را در تله‌متری می‌گذارد، مخزن دادهٔ حساسی را عمومی می‌کند یا گذرواژه‌ها یا CVVها را به‌صورت متن ساده ذخیره می‌کند.",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "ناموفق کردن بررسی یک Pull Request وقتی اسرار یا داده‌های سطح محدود را در تله‌متری می‌گذارد، مخزن دادهٔ حساسی را عمومی می‌کند یا گذرواژه‌ها یا CVVها را به‌صورت متن ساده ذخیره می‌کند."
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "ناموفق کردن بررسی یک Pull Request وقتی اسرار یا داده‌های سطح محدود را در تله‌متری می‌گذارد، مخزن دادهٔ حساسی را عمومی می‌کند یا گذرواژه‌ها یا CVVها را به‌صورت متن ساده ذخیره می‌کند.",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "یک شخص، از یک گروه در فهرست مسائل یا با تأیید پیشنهاد OneUptime AI، در مخزنی که اجازه دارد در کد تغییرش دهد؛ گام «اصلاح کد با هوش مصنوعی» یک پلی‌بوک امنیتی؛ یا خودبه‌خود، یک قاعده هوش مصنوعی که اصلاحش «به‌صورت خودکار» است.",
+  "AI Analysis": "تحلیل هوش مصنوعی",
+  "AI Proposed": "پیشنهادشده توسط هوش مصنوعی",
+  "AI Proposal Approved": "پیشنهاد هوش مصنوعی تأیید شد",
+  "AI Change Made": "تغییر هوش مصنوعی انجام شد",
+  "AI Proposal Dismissed": "پیشنهاد هوش مصنوعی رد شد",
+  "AI Change Undone": "تغییر هوش مصنوعی برگردانده شد",
+  "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
+  "AI Response": "پاسخ هوش مصنوعی",
+  "Step Check": "بررسی گام"
 }

@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "{{stack}} 스택",
   "{{count}} issues, one cause: {{cause}}": "이슈 {{count}}건, 원인은 하나: {{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "이슈 {{count}}건, 원인은 하나: {{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "이슈 목록의 그룹에서 또는 OneUptime AI의 제안을 승인한 사용자(코드에서 변경할 수 있는 저장소에서), 보안 플레이북의 'Fix the code with AI' 단계, 또는 수정이 '묻지 않고'인 AI 규칙이 스스로 시작합니다.",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "OneUptime AI에 이 풀 리퀘스트를 요청하려면 데이터 보안 이슈를 변경할 권한이 필요합니다.",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "클라우드 연결을 통해 이 데이터 저장소를 변경하려면 데이터 저장소를 편집할 권한이 필요합니다.",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "이 그룹에는 여기서 수정할 수 있는 것이 없습니다. 모든 데이터 저장소가 수정에서 제외됩니다.",
@@ -62630,5 +62629,15 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "유출 {{count}}건 중 {{value}}건이 머지 전에 발견되었습니다.",
   "{{value}} of {{count}} leaks were caught before they merged._one": "유출 {{count}}건 중 {{value}}건이 머지 전에 발견되었습니다.",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "머지 리퀘스트가 시크릿이나 제한 등급 데이터를 텔레메트리에 넣거나, 민감한 데이터 저장소를 공개하거나, 비밀번호나 CVV를 평문으로 저장하면 검사를 실패시킵니다.",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "풀 리퀘스트가 시크릿이나 제한 등급 데이터를 텔레메트리에 넣거나, 민감한 데이터 저장소를 공개하거나, 비밀번호나 CVV를 평문으로 저장하면 검사를 실패시킵니다."
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "풀 리퀘스트가 시크릿이나 제한 등급 데이터를 텔레메트리에 넣거나, 민감한 데이터 저장소를 공개하거나, 비밀번호나 CVV를 평문으로 저장하면 검사를 실패시킵니다.",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "이슈 목록의 그룹에서 또는 OneUptime AI의 제안을 승인한 사용자(코드에서 변경할 수 있는 저장소에서), 보안 플레이북의 'Fix the code with AI' 단계, 또는 수정이 '자동'인 AI 규칙이 스스로 시작합니다.",
+  "AI Analysis": "AI 분석",
+  "AI Proposed": "AI가 제안함",
+  "AI Proposal Approved": "AI 제안 승인됨",
+  "AI Change Made": "AI 변경 완료",
+  "AI Proposal Dismissed": "AI 제안 거부됨",
+  "AI Change Undone": "AI 변경 취소됨",
+  "AI Change Failed": "AI 변경 실패",
+  "AI Response": "AI 대응",
+  "Step Check": "단계 검사"
 }
