@@ -77,6 +77,8 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Queued"),
   translationKey("Running"),
   translationKey("Waiting for Approval"),
+  // A Page On-Call step held while OneUptime AI responds first (#10353).
+  translationKey("Waiting for OneUptime AI"),
   translationKey("Succeeded"),
   translationKey("Failed"),
   translationKey("Cancelled"),

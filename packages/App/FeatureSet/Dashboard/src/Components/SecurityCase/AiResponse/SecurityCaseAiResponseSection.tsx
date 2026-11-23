@@ -14,6 +14,7 @@ import {
   canRespondWithAi,
   getActionReasonKey,
   getActionTitleKey,
+  getAiHoldEndedSentence,
   getClosingReport,
   getSecurityCaseAiResponseStage,
   isSecurityCaseAiWorking,
@@ -24,6 +25,7 @@ import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { SecurityCaseAiActionStatus } from "Common/Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_AI_HOLD_SOMEONE } from "Common/Types/SecurityCase/SecurityCaseAiHold";
 import {
   SECURITY_CASE_AI_ACTION_STATUS_LABELS,
   SECURITY_CASE_HAND_OFF_SENTENCES,
@@ -188,6 +190,9 @@ const SecurityCaseAiResponseSection: FunctionComponent<ComponentProps> = (
   }
 
   const report: SecurityCaseAiActionView | null = getClosingReport(view);
+  // How OneUptime AI's hold of the case's alerts ended (#10353), once it has.
+  const holdEnded: ReturnType<typeof getAiHoldEndedSentence> =
+    getAiHoldEndedSentence(view.hold);
   const stageCopy: { title: string; description: string } =
     SECURITY_CASE_AI_RESPONSE_STAGE_COPY[stage];
 
@@ -435,6 +440,28 @@ const SecurityCaseAiResponseSection: FunctionComponent<ComponentProps> = (
           view.notStartedReason ? (
             <p className="mt-1 text-sm text-gray-500">
               {translator.translateText(view.notStartedReason.message)}
+            </p>
+          ) : (
+            <></>
+          )}
+          {holdEnded ? (
+            <p
+              className="mt-1 text-sm text-gray-600"
+              data-testid={`${SECURITY_CASE_AI_RESPONSE_TEST_ID}-hold`}
+            >
+              {translator.translateTemplate(holdEnded.sentence, {
+                name:
+                  holdEnded.name ||
+                  translator.translateText(SECURITY_CASE_AI_HOLD_SOMEONE) ||
+                  SECURITY_CASE_AI_HOLD_SOMEONE,
+              })}
+              {holdEnded.endedAt ? (
+                <span className="text-gray-500">
+                  {` · ${formatFeedTimeAgo(holdEnded.endedAt, clock) || ""}`}
+                </span>
+              ) : (
+                <></>
+              )}
             </p>
           ) : (
             <></>

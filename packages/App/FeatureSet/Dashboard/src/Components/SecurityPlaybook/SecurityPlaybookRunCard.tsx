@@ -335,6 +335,16 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
                 "This run is waiting for someone to approve its next step before it does anything.",
               )}
             </p>
+          ) : run.status === SecurityPlaybookRunStatus.WaitingForOneUptimeAi ? (
+            // Its Page On-Call step waits while OneUptime AI responds first (#10353).
+            <p
+              className="mb-3 rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-800"
+              data-testid="security-playbook-run-waiting-for-ai"
+            >
+              {translator.translateText(
+                "This run waits at its Page On-Call step while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.",
+              )}
+            </p>
           ) : (
             <></>
           )}
