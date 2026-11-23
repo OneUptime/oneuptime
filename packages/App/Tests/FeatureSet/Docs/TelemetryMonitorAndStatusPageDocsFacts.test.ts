@@ -2054,12 +2054,27 @@ describe("the Metrics monitor", () => {
           },
         )?.value;
       }),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
     expect(
       rows.map((cells: Array<string>): string => {
         return cells[1] as string;
       }),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
+    /*
+     * The six a metric rule reduces its points with. Percentile and the
+     * counts came with #10355 for a check's own window; a Metrics monitor's
+     * query reads its percentiles itself, and counting is #10824.
+     */
+    expect(CommonCriteriaFilterUtil.getMetricAggregationTypes()).toEqual(
+      Object.values(EvaluateOverTimeType).filter(
+        (type: EvaluateOverTimeType): boolean => {
+          return (
+            type !== EvaluateOverTimeType.Percentile &&
+            !CommonCriteriaFilterUtil.isCountedWindowType(type)
+          );
+        },
+      ),
+    );
   });
 
   it("works the growing-queue example out the way the evaluator does", () => {

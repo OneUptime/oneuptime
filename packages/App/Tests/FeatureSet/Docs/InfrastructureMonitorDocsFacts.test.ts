@@ -2416,7 +2416,12 @@ describe("the criteria of the telemetry-backed monitors", () => {
   });
 
   it("aggregate the window as the pages list", () => {
-    expect(Object.values(EvaluateOverTimeType)).toEqual([
+    /*
+     * What a telemetry-backed monitor's rule aggregates its query's window
+     * with, as the form offers it. The counts and Percentile came with
+     * #10355 for a check's own window, and are not offered here (#10824).
+     */
+    expect(CommonCriteriaFilterUtil.getMetricAggregationTypes()).toEqual([
       "Average",
       "Sum",
       "Maximum Value",
@@ -2424,6 +2429,9 @@ describe("the criteria of the telemetry-backed monitors", () => {
       "All Values",
       "Any Value",
     ]);
+    expect(source(`${FORMS}/CriteriaFilter.tsx`)).toContain(
+      "CriteriaFilterUtil.getMetricAggregationTypes().map(",
+    );
 
     /*
      * All Values over the whole window: its data must cover the window, not
@@ -2458,7 +2466,7 @@ describe("the criteria of the telemetry-backed monitors", () => {
           return cells[0] as string;
         },
       ),
-    ).toEqual(Object.values(EvaluateOverTimeType));
+    ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
   });
 
   it("detect anomalies with the sensitivities and baseline windows the pages give", () => {
