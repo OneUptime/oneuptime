@@ -60111,7 +60111,7 @@
   "Query {{refId}} is left out.": "Query {{refId}} is left out.",
   "Search sites by name": "Cerca siti per nome",
   "Select a site type": "Seleziona un tipo di sito",
-  "Sends only this query to your project's AI provider.": "Sends only this query to your project's AI provider.",
+  "Sends only this query to your project's LLM provider.": "Sends only this query to your project's LLM provider.",
   "Set Default Probe": "Imposta la sonda predefinita",
   "Set Parent Site": "Imposta il sito padre",
   "Show Hierarchy": "Mostra la gerarchia",

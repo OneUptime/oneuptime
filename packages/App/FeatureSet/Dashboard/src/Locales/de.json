@@ -60111,7 +60111,7 @@
   "Query {{refId}} is left out.": "Query {{refId}} is left out.",
   "Search sites by name": "Standorte nach Namen durchsuchen",
   "Select a site type": "Standorttyp auswählen",
-  "Sends only this query to your project's AI provider.": "Sends only this query to your project's AI provider.",
+  "Sends only this query to your project's LLM provider.": "Sends only this query to your project's LLM provider.",
   "Set Default Probe": "Standardsonde festlegen",
   "Set Parent Site": "Übergeordneten Standort festlegen",
   "Show Hierarchy": "Hierarchie anzeigen",

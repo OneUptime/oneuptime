@@ -60111,7 +60111,7 @@
   "Query {{refId}} is left out.": "Query {{refId}} is left out.",
   "Search sites by name": "サイトを名前で検索",
   "Select a site type": "サイトの種類を選択",
-  "Sends only this query to your project's AI provider.": "Sends only this query to your project's AI provider.",
+  "Sends only this query to your project's LLM provider.": "Sends only this query to your project's LLM provider.",
   "Set Default Probe": "デフォルトのプローブを設定",
   "Set Parent Site": "親サイトを設定",
   "Show Hierarchy": "階層を表示",
