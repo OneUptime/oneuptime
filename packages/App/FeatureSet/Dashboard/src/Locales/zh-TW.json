@@ -62518,7 +62518,7 @@
   "the {{stack}} stack": "{{stack}} 堆疊",
   "{{count}} issues, one cause: {{cause}}": "{{count}} 個問題，同一個原因：{{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} 個問題，同一個原因：{{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "由使用者從問題清單中的群組發起，或透過核准 OneUptime AI 的提議發起（在其可於程式碼中變更的存放庫中）；由安全腳本的 “Fix the code with AI” 步驟發起；或由修正設為「無需詢問」的 AI 規則自動發起。",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "由使用者從問題清單中的群組發起，或透過核准 OneUptime AI 的提議發起（在其可於程式碼中變更的存放庫中）；由安全腳本的 “Fix the code with AI” 步驟發起；或由修正設為「自動」的 AI 規則自動發起。",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "向 OneUptime AI 請求此拉取請求需要變更資料安全問題的權限。",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "透過雲端連線變更這些資料儲存區需要編輯資料儲存區的權限。",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "此群組中沒有可在此修正的內容：每個資料儲存區都未包含在其修正中。",
@@ -62572,5 +62572,14 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "所在位置：屬性或日誌內文，以及旁邊屬性的名稱",
   "You need permission to edit scrub rules to switch this rule to Hash.": "您需要編輯清理規則的權限，才能將此規則切換為雜湊。",
   "e.g. customer_name": "例如 customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 現在會對 IP 位址進行雜湊。安全事件可以告訴您應封鎖哪個位址。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 現在會對 IP 位址進行雜湊。安全事件可以告訴您應封鎖哪個位址。",
+  "AI Analysis": "AI 分析",
+  "AI Proposed": "AI 已提議",
+  "AI Proposal Approved": "AI 提議已核准",
+  "AI Change Made": "AI 已進行變更",
+  "AI Proposal Dismissed": "AI 提議已駁回",
+  "AI Change Undone": "AI 變更已復原",
+  "AI Change Failed": "AI 變更失敗",
+  "AI Response": "AI 回應",
+  "Step Check": "步驟檢查"
 }

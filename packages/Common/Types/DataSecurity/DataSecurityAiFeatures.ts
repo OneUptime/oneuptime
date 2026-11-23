@@ -316,7 +316,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.FixIssueGroup,
       title: translationKey("Fix the cause"),
       startedBy: translationKey(
-        "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.",
+        "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.",
       ),
       runsOnItsOwn: false,
       sends: [
