@@ -60734,7 +60734,7 @@
   "AWS did not take the credentials this OneUptime signs in to roles with, so the email was not sent. That is not the role's setup: OneUptime tries again for the next email, and the server's log says why.": "AWS اعتبارنامه‌هایی را که این OneUptime با آن‌ها وارد نقش‌ها می‌شود نپذیرفت، پس ایمیل فرستاده نشد. این مشکل از راه‌اندازی نقش نیست: OneUptime برای ایمیل بعدی دوباره تلاش می‌کند، و گزارش سرور دلیلش را می‌گوید.",
   "Amazon SES Role ARN": "ARN نقش Amazon SES",
   "Amazon SES needs a Role ARN and a Region to sign in with an IAM role.": "Amazon SES برای ورود با یک نقش IAM به یک ARN نقش و یک منطقه نیاز دارد.",
-  "Amazon SES's Authentication Type must be \"Access Key\" or \"IAM Role\".": "نوع احراز هویت Amazon SES باید \"Access Key\" یا \"IAM Role\" باشد.",
+  "Amazon SES's Authentication Type must be \"Access Key\" or \"IAM Role\".": "نوع احراز هویت Amazon SES باید «کلید دسترسی» یا «نقش IAM» باشد.",
   "Create a role in your AWS account that may send with Amazon SES and trusts OneUptime. No key is stored.": "در حساب AWS خود نقشی بسازید که بتواند با Amazon SES بفرستد و به OneUptime اعتماد کند. هیچ کلیدی نگهداری نمی‌شود.",
   "Create the role with this trust policy, then allow it ses:SendEmail on your sender's identity.": "نقش را با این سیاست اعتماد بسازید، سپس روی هویت فرستنده خود ses:SendEmail را به آن اجازه دهید.",
   "Enter the ARN of an IAM role in your AWS account, such as arn:aws:iam::123456789012:role/OneUptimeSes.": "ARN یک نقش IAM در حساب AWS خود را وارد کنید، مانند arn:aws:iam::123456789012:role/OneUptimeSes.",
