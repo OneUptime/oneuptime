@@ -37,6 +37,7 @@ import {
   NotAnIssueModal,
 } from "../../../Components/DataSecurity/IssueModals";
 import IssueRemediation from "../../../Components/DataSecurity/IssueRemediation";
+import IssueResolution from "../../../Components/DataSecurity/IssueResolution";
 import IssueResponseAction from "../../../Components/DataSecurity/IssueResponseAction";
 import IssueRiskScore, {
   readIssueRiskFactors,
@@ -141,7 +142,7 @@ const HOW_TO_FIX: string = translationKey(
 );
 // A telemetry issue is fixed at ingest and in the code that writes the data.
 const HOW_TO_FIX_TELEMETRY: string = translationKey(
-  "Scrub it at ingest from the list above, then fix the code that writes it. The issue resolves once the store is checked again.",
+  "Scrub it at ingest from the list above to contain it, then fix the code that writes it. It counts as fixed once the service's new version no longer writes the data.",
 );
 const MORE_ACTIONS: string = translationKey("More actions");
 
@@ -690,6 +691,28 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          {/*
+           * How it was resolved (#10368): fixed in code with its pull
+           * request and version, contained at ingest - not fixed - with
+           * Fix the Code, or the leak back after its fix.
+           */}
+          <IssueResolution
+            issue={issue}
+            issueId={view.issueId}
+            onFixTheCode={
+              isAiOffered
+                ? () => {
+                    void fixWithAi();
+                  }
+                : undefined
+            }
+            isFixing={isFixing}
+            fixDisabledReason={
+              updateGate.isAllowed ? undefined : updateGate.disabledReason
+            }
+            refreshToggle={view.refreshToggle}
+          />
 
           {issue.reopenCount && issue.reopenCount > 0 ? (
             <p className="text-xs text-gray-500">
