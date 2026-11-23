@@ -93,6 +93,14 @@ Et datalager uten eiere kan få dem fra OneUptime AI. Den leser det som allerede
 
 Se [Utløsere for arbeidsflyter](/docs/workflows/triggers) for feltene hver utløser sender videre.
 
+## Pull requests
+
+En lekkasje er billigst å rette før den merges. I et repositorium koblet til under **Kode** med produksjonsgjennomganger slått på har gjennomgangen av hver pull request en del **Sensitive data**, lest fra diffen: kode som skriver personopplysninger eller en hemmelighet til telemetri, infrastrukturkode som gjør et datalager offentlig eller slår av krypteringen, sikkerhetskopiene eller loggingen, og migreringer som legger til kolonner for personopplysninger, passord eller kortdata. Hvert punkt nevner datasikkerhetskontrollen endringen ville feilet når den er rullet ut, og dine egne datatyper leses ut fra navnehintene sine, slik skanningene leser dem. Se [Produksjonsgjennomgang av pull requests](/docs/ai/ai-agent#produksjonsgjennomgang-av-pull-requests).
+
+Det Datasikkerhet vet, gjør disse punktene skarpere, i kommentaren til et privat repositorium og, i Kode, for dem som får lese Datasikkerhets funn: hvor tjenestens telemetri inneholdt samme type data de siste 7 dagene, rensingsregelen som maskerer dem ved inntak, og datalageret en ressurs er, med følsomheten. Et datalager merket **Offentlig med vilje** gir ikke noe punkt for å være offentlig. Kommentaren til et offentlig repositorium sier bare det diffen viser.
+
+**Lekkasjer fanget før merge** på **Prosjektinnstillinger → KI → AI-resultater** teller lekkasjene gjennomganger fanget i pull requests, rettet der eller ikke ennå, ved siden av problemene skanningene åpnet for de samme kontrollene etter at koden ble rullet ut.
+
 ## OneUptime AI
 
 To handlinger på et problem ber OneUptime AI om hjelp. Begge sender OneUptime AI problemets tittel og alvorlighetsgrad, datalagerets navn, type, region og sky-ID, sensitiviteten og datatypene, hver med sitt navn (dine egne datatyper med navnet du ga dem), bevisene, hvorfor kontrollen er viktig, og løsningen for datalagerets sky – aldri prøvene fra et funn. Begge kjører under prosjektets brytere og grenser for OneUptime AI. Hva hver av dem sender, hva den aldri sender, og modellen den kjører på, står på [OneUptime AI i Datasikkerhet](/docs/data-security/ai).

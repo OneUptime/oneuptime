@@ -213,11 +213,41 @@ function includes(haystack: unknown, needle: unknown): boolean {
     .includes(String(needle || "").toLowerCase());
 }
 
-// Answers the people picker's requests the way the API filters them.
+// An id the way the API compares it: an ObjectID or text, any letter case.
+function idText(value: unknown): string {
+  return String(value).toLowerCase();
+}
+
+/*
+ * Answers the people picker's requests the way the API filters them, and a
+ * policies condition's: its search by name, archived ones left out, and its
+ * read of the policies it holds by their ids (#10689).
+ */
 function serveDirectory(): void {
   getListMock.mockImplementation(async (request: any): Promise<any> => {
     const query: any = request.query || {};
     let rows: Array<unknown> = [];
+
+    if (request.modelType === OnCallDutyPolicy) {
+      rows = lookupProps()
+        .onCallDutyPolicies.filter((policy: OnCallDutyPolicy): boolean => {
+          if (
+            query._id instanceof Includes &&
+            !query._id.values.map(idText).includes(idText(policy._id))
+          ) {
+            return false;
+          }
+
+          if (query.name && !includes(policy.name, query.name.toString())) {
+            return false;
+          }
+
+          return query.isArchived !== false || !policy.isArchived;
+        })
+        .sort((a: OnCallDutyPolicy, b: OnCallDutyPolicy): number => {
+          return String(a.name).localeCompare(String(b.name));
+        });
+    }
 
     if (request.modelType === TeamMember) {
       let users: Array<User> = DIRECTORY.users;
@@ -254,9 +284,7 @@ function serveDirectory(): void {
 
       if (query._id instanceof Includes) {
         teams = teams.filter((team: Team): boolean => {
-          return (query._id.values as Array<string>).includes(
-            team._id as string,
-          );
+          return query._id.values.map(idText).includes(idText(team._id));
         });
       }
 
@@ -466,18 +494,20 @@ function pickedValues(): Array<{ name: string; isArchived: boolean }> {
     return [];
   }
 
-  return within(control)
-    .queryAllByTestId("dropdown-value-label")
-    .map((label: HTMLElement) => {
-      return {
-        name: (label.textContent || "").trim(),
-        isArchived: Boolean(
-          label.parentElement?.querySelector(
-            "[data-testid='dropdown-archived-tag']",
-          ),
+  // A short list's picks (Dropdown), or a searched kind's (EntityDropdown).
+  return [
+    ...within(control).queryAllByTestId("dropdown-value-label"),
+    ...within(control).queryAllByTestId("entity-dropdown-chip-label"),
+  ].map((label: HTMLElement) => {
+    return {
+      name: (label.textContent || "").trim(),
+      isArchived: Boolean(
+        label.parentElement?.querySelector(
+          "[data-testid='dropdown-archived-tag'], [data-testid='entity-dropdown-archived-tag']",
         ),
-      };
-    });
+      ),
+    };
+  });
 }
 
 async function inLanguage(language: string): Promise<void> {
@@ -634,11 +664,17 @@ describe("an owners condition (#7583)", () => {
       },
     );
 
-    expect(requests).toHaveLength(2);
-    expect(requests[0].modelType).toBe(TeamMember);
-    expect(requests[0].query.userId.values).toEqual([JANE]);
-    expect(requests[1].modelType).toBe(Team);
-    expect(requests[1].query._id.values).toEqual([PLATFORM]);
+    /*
+     * The id the page does not know as a team is asked for as one first
+     * (#10689); then the picker reads each kind once.
+     */
+    expect(requests).toHaveLength(3);
+    expect(requests[0].modelType).toBe(Team);
+    expect(requests[0].query._id.values.map(idText)).toEqual([JANE]);
+    expect(requests[1].modelType).toBe(TeamMember);
+    expect(requests[1].query.userId.values).toEqual([JANE]);
+    expect(requests[2].modelType).toBe(Team);
+    expect(requests[2].query._id.values).toEqual([PLATFORM]);
   });
 
   test("tells a team from a person whatever case its id is stored in", async () => {
@@ -802,10 +838,13 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
 
     await openDropdown(2);
 
-    expect(listedLabels()).toEqual([
-      "Payments Escalation",
-      "Search Escalation",
-    ]);
+    // Searched on the server as the list opens (#10689).
+    await waitFor(() => {
+      expect(listedLabels()).toEqual([
+        "Payments Escalation",
+        "Search Escalation",
+      ]);
+    });
 
     await pickOption("Search Escalation");
 
@@ -832,10 +871,13 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
       ),
     });
 
-    expect(pickedValues()).toEqual([
-      { name: "Payments Escalation", isArchived: false },
-      { name: "Old Escalation", isArchived: true },
-    ]);
+    // Read by their ids, in the order the rule holds them (#10689).
+    await waitFor(() => {
+      expect(pickedValues()).toEqual([
+        { name: "Old Escalation", isArchived: true },
+        { name: "Payments Escalation", isArchived: false },
+      ]);
+    });
 
     fireEvent.click(
       screen.getByRole("button", { name: "Remove Old Escalation" }),
@@ -849,8 +891,10 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     // Once taken out, it cannot be picked again.
     await openDropdown(2);
 
+    await waitFor(() => {
+      expect(listedLabels()).toContain("Search Escalation");
+    });
     expect(listedLabels()).not.toContain("Old Escalation");
-    expect(listedLabels()).toContain("Search Escalation");
   });
 
   test("says in the list of fields which policy field does what, and nothing under the others", async () => {
@@ -882,7 +926,7 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     ]);
   });
 
-  test("a name condition says under its words what keeps matching a renamed policy, read with them", () => {
+  test("a name condition says under its words what keeps matching a renamed policy, read with them", async () => {
     renderRow({
       eventType: NotificationRuleEventType.OnCallDutyPolicy,
       condition: condition(
@@ -900,8 +944,8 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
       "To keep matching a policy after it is renamed, use On-Call Policy.",
     );
 
-    // ...and with which policies its words match now (#7806).
-    const matches: HTMLElement = screen.getByTestId(
+    // ...and with which policies its words match now, searched (#7806, #10689).
+    const matches: HTMLElement = await screen.findByTestId(
       "notification-rule-condition-policy-name-matches-0",
     );
 
@@ -923,7 +967,7 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
     ],
   ])(
     "a %s rule's %s condition, picked from a list, has no line under its picks",
-    (
+    async (
       eventType: NotificationRuleEventType,
       checkOn: NotificationRuleConditionCheckOn,
       value: Array<string>,
@@ -939,9 +983,11 @@ describe("an on-call rule's policies, picked by name and kept by id (#7554)", ()
 
       // Nothing points the picks at a line that is not there.
       const describedBy: Array<string> = (
-        screen
-          .getByRole("combobox", { name: "Value for condition 1" })
-          .getAttribute("aria-describedby") || ""
+        (
+          await screen.findByRole("combobox", {
+            name: "Value for condition 1",
+          })
+        ).getAttribute("aria-describedby") || ""
       )
         .split(" ")
         .filter((id: string): boolean => {
@@ -1282,9 +1328,11 @@ describe("in the reader's language", () => {
         screen.getByTestId("notification-rule-condition-operator-0"),
       ).toHaveTextContent(word(language, "is none of"));
       // A policy's name is the team's own, drawn as written.
-      expect(pickedValues()).toEqual([
-        { name: "Payments Escalation", isArchived: false },
-      ]);
+      await waitFor(() => {
+        expect(pickedValues()).toEqual([
+          { name: "Payments Escalation", isArchived: false },
+        ]);
+      });
 
       // The two policy fields say which does what, in the language.
       await openDropdown(0);

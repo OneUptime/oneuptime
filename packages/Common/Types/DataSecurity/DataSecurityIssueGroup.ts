@@ -1,4 +1,5 @@
 import { escapeRegExp } from "../../Utils/RegExpEscape";
+import { getLinearRegExp } from "../../Utils/LinearRegExp/PatternCache";
 import { sha256Hex } from "../AutoRemediation/RemediationPlanFingerprint";
 import { PluralTemplate, translationKey } from "../Translator";
 import { toStableJsonText } from "./DataSecurityAi";
@@ -595,7 +596,8 @@ export function matchesNamePattern(name: string, pattern: string): boolean {
     })
     .join(".*");
 
-  return new RegExp(`^${escaped}$`).test(name.trim().toLowerCase());
+  // A pattern of a store's names, run in linear time, however many stars.
+  return getLinearRegExp(`^${escaped}$`).test(name.trim().toLowerCase());
 }
 
 /*

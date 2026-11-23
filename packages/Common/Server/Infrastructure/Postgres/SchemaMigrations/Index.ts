@@ -1165,8 +1165,10 @@ import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-A
 import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
 import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
-import { AddSecurityAutomaticResponse1809187480000 } from "./1809187480000-AddSecurityAutomaticResponse";
-import { AddSecurityAutomaticResponseIndexesAndKeys1809187480010 } from "./1809187480010-AddSecurityAutomaticResponseIndexesAndKeys";
+import { AddCodeRepositoryProductionReviewFailOnLeak1809187470500 } from "./1809187470500-AddCodeRepositoryProductionReviewFailOnLeak";
+import { DropDeletedByUserColumns1809187480000 } from "./1809187480000-DropDeletedByUserColumns";
+import { AddSecurityAutomaticResponse1809187490000 } from "./1809187490000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187490010 } from "./1809187490010-AddSecurityAutomaticResponseIndexesAndKeys";
 
 export default [
   InitialMigration,
@@ -2336,6 +2338,8 @@ export default [
   AddDataSecurityIssueGroups1809187470370,
   AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
   AddScrubRuleNamedKeysAndProof1809187470400,
-  AddSecurityAutomaticResponse1809187480000,
-  AddSecurityAutomaticResponseIndexesAndKeys1809187480010,
+  AddCodeRepositoryProductionReviewFailOnLeak1809187470500,
+  DropDeletedByUserColumns1809187480000,
+  AddSecurityAutomaticResponse1809187490000,
+  AddSecurityAutomaticResponseIndexesAndKeys1809187490010,
 ];

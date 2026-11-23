@@ -102,8 +102,7 @@ function renderPanel(limitReached?: ActiveMonitorLimitStatus): void {
       <MonitorRecommendationCreateSideOver
         selectedRecommendations={[RECOMMENDATION]}
         resourceLabel="Host"
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
+        hasOnCallPolicies={false}
         incidentSeverityOptions={[]}
         alertSeverityOptions={[]}
         isCreating={false}

@@ -77,6 +77,7 @@ import {
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
 import Twilio from "twilio";
+import TwilioHttpClient from "../Utils/TwilioHttpClient";
 import { CallInstance } from "twilio/lib/rest/api/v2010/account/call";
 import Phone from "Common/Types/Phone";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
@@ -353,8 +354,11 @@ export default class CallService {
         ).asUserError();
       }
 
+      // Through the outbound proxy, as every request of the server (#10721).
       const client: Twilio.Twilio | null = twilioConfig
-        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken)
+        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken, {
+            httpClient: TwilioHttpClient.create(),
+          })
         : null;
 
       callLog.toNumber = callRequest.to;

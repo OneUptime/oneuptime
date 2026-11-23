@@ -100,7 +100,7 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityBlockCloudWaf",
     migration: "1809187430000-AddSecurityBlockCloudWaf.ts",
   },
-  // The blocklist feeds a firewall fetches, and its fetches (#10345).
+  // A firewall's blocklist feeds and the log of their fetches (#10345).
   {
     table: "SecurityBlocklistFeed",
     migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
@@ -109,12 +109,12 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityBlocklistFeedFetch",
     migration: "1809187440000-AddSecurityBlocklistFeeds.ts",
   },
-  // What OneUptime AI did and asked on a case it works (#10352).
+  // What OneUptime AI did on a case it works, one action each (#10352).
   {
     table: "SecurityCaseAiAction",
     migration: "1809187452000-AddSecurityCaseAiResponse.ts",
   },
-  // The groups of Data Security issues fixed at their one cause (#10370).
+  // The issues one mistake made, as one group (#10370).
   {
     table: "DataSecurityIssueGroup",
     migration: "1809187470370-AddDataSecurityIssueGroups.ts",
@@ -122,11 +122,11 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
   // Automatic response's policies, and what each did (#10350).
   {
     table: "SecurityAutomaticResponsePolicy",
-    migration: "1809187480000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187490000-AddSecurityAutomaticResponse.ts",
   },
   {
     table: "SecurityAutomaticResponseAction",
-    migration: "1809187480000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187490000-AddSecurityAutomaticResponse.ts",
   },
 ];
 

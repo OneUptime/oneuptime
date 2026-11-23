@@ -1,6 +1,8 @@
 import fs from "fs";
 import os from "os";
 import { isAwsRegion } from "../../../Types/Cloud/AwsRegionCode";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import OutboundFetch, { OutboundProxyRefusal } from "../OutboundFetch";
 import {
   AwsChainProcessResult,
   AwsChainProcessRunner,
@@ -84,6 +86,13 @@ import {
  * These are the server's credentials. Only the server's own settings may
  * sign in with them, never a project's (AmazonSesMailProvider refuses).
  *
+ * STS is asked through the server's outbound proxy, or directly, as every
+ * request of the server is (OutboundFetch, #10720). The instance metadata
+ * service and the container agents answer this machine alone, at a
+ * link-local or loopback address no proxy can reach, so they are asked
+ * directly whatever the environment says, as AWS's SDK for JavaScript asks
+ * them.
+ *
  * https://docs.aws.amazon.com/sdkref/latest/guide/standardized-credentials.html
  * https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
  * https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html
@@ -119,6 +128,16 @@ export interface AwsChainHttpRequest {
   headers: Record<string, string>;
   body?: string | undefined;
   timeoutMs: number;
+  /*
+   * true for a service only this machine answers - the EC2 instance
+   * metadata service, the ECS and EKS Pod Identity agents - which is asked
+   * directly, never through the outbound proxy (OutboundFetch's direct): a
+   * proxy elsewhere cannot reach this machine's link-local address, and
+   * could reach its own host's metadata instead. AWS's SDK for JavaScript
+   * never sends them through a proxy either. STS is asked through the
+   * outbound proxy, as every other request of the server is.
+   */
+  direct?: boolean | undefined;
 }
 
 export interface AwsChainHttpResponse {
@@ -175,11 +194,24 @@ export class AwsCredentialChainError extends Error {
 // A request that got no answer: the network, or the time it was given ran out.
 export class AwsChainHttpError extends Error {
   public readonly isTimeout: boolean;
+  /*
+   * The outbound proxy refused the request, or its setting cannot be used:
+   * the message says so whole, and never names the proxy.
+   */
+  public readonly isOutboundProxyFailure: boolean;
+  // Whether asking again could get an answer: a proxy that failed itself.
+  public readonly isProxyFailureRetryable: boolean;
 
-  public constructor(message: string, isTimeout: boolean) {
+  public constructor(
+    message: string,
+    isTimeout: boolean,
+    outboundProxy?: { isFailure: boolean; isRetryable: boolean } | undefined,
+  ) {
     super(message);
     this.name = "AwsChainHttpError";
     this.isTimeout = isTimeout;
+    this.isOutboundProxyFailure = outboundProxy?.isFailure === true;
+    this.isProxyFailureRetryable = outboundProxy?.isRetryable === true;
   }
 }
 
@@ -398,7 +430,10 @@ const readAnswerText: (response: Response) => Promise<string> = async (
 /*
  * The request each source is asked with: fetch, given the time it may
  * take, never following a redirect (a credentials endpoint has no reason
- * to send one, and the next host would get the request's token).
+ * to send one, and the next host would get the request's token). STS is
+ * asked through the server's outbound proxy, or directly, as every request
+ * of the server is (OutboundFetch, #10720); a service only this machine
+ * answers, directly (AwsChainHttpRequest.direct).
  */
 export const defaultAwsChainHttpClient: AwsChainHttpClient = async (
   request: AwsChainHttpRequest,
@@ -409,19 +444,38 @@ export const defaultAwsChainHttpClient: AwsChainHttpClient = async (
   }, request.timeoutMs);
 
   try {
-    const response: Response = await fetch(request.url, {
-      method: request.method,
-      headers: request.headers,
-      body: request.body ?? null,
-      redirect: "error",
-      signal: controller.signal,
-    });
+    const response: Response = await OutboundFetch.fetch(
+      request.url,
+      {
+        method: request.method,
+        headers: request.headers,
+        body: request.body ?? null,
+        redirect: "error",
+        signal: controller.signal,
+      },
+      { direct: request.direct === true },
+    );
 
     return {
       status: response.status,
       bodyText: await readAnswerText(response),
     };
   } catch (error) {
+    // The proxy's refusal, or a proxy setting that cannot be used, as it is.
+    if (error instanceof OutboundProxyRefusal) {
+      throw new AwsChainHttpError(error.message, false, {
+        isFailure: true,
+        isRetryable: error.isRetryable,
+      });
+    }
+
+    if (error instanceof BadDataException) {
+      throw new AwsChainHttpError(error.message, false, {
+        isFailure: true,
+        isRetryable: false,
+      });
+    }
+
     if (
       controller.signal.aborted ||
       (error as { name?: unknown } | null)?.name === "AbortError"
@@ -1243,6 +1297,21 @@ export default class AwsDefaultCredentialChain {
         timeoutMs: STS_TIMEOUT_MS,
       });
     } catch (error) {
+      /*
+       * The outbound proxy refused it, or its setting cannot be used: the
+       * proxy's words say what to change. A proxy that refused it (403,
+       * 407) would refuse it again, so that is remembered as a failure.
+       */
+      if (error instanceof AwsChainHttpError && error.isOutboundProxyFailure) {
+        throw new AwsCredentialChainError(
+          `AWS STS could not be reached at ${host}. ${error.message}`,
+          {
+            isRetryable: error.isProxyFailureRetryable,
+            source: "web-identity",
+          },
+        );
+      }
+
       throw new AwsCredentialChainError(
         `AWS STS could not be reached at ${host}: ${AwsDefaultCredentialChain.reasonOf(error)}. Check that this server can reach it over HTTPS (port 443).`,
         { isRetryable: true, source: "web-identity" },
@@ -1345,6 +1414,8 @@ export default class AwsDefaultCredentialChain {
         url: url,
         headers: headers,
         timeoutMs: CONTAINER_CREDENTIALS_TIMEOUT_MS,
+        // The agent answers on this machine only, never through a proxy.
+        direct: true,
       });
     } catch (error) {
       throw new AwsCredentialChainError(
@@ -1408,6 +1479,8 @@ export default class AwsDefaultCredentialChain {
         return await this.httpClient({
           ...request,
           timeoutMs: EC2_METADATA_TIMEOUT_MS,
+          // The metadata service answers this machine only, never a proxy.
+          direct: true,
         });
       } catch (error) {
         const reason: string = AwsDefaultCredentialChain.reasonOf(error);

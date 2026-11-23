@@ -886,6 +886,31 @@ describe("GitHubConversation", () => {
       });
 
       /*
+       * A production review's suggested changes (#10376) are all their
+       * review is for: posted without them, it would be a line saying
+       * "changes on the lines below" with nothing below it.
+       */
+      test("does NOT retry with the body alone when the review is only its comments", async () => {
+        const failure: HTTPErrorResponse = errorResponse(422, {
+          message: "Validation Failed",
+        });
+
+        postMock.mockResolvedValueOnce(failure);
+
+        await expect(
+          GitHubConversation.createPullRequestReview({
+            ...REPO,
+            pullRequestNumber: 12,
+            body: "Sensitive data: 1 change on the lines below.",
+            comments: [{ path: "gone.ts", line: 999, body: "suggestion" }],
+            commitSha: "abc123",
+            isOnlyItsComments: true,
+          }),
+        ).rejects.toBe(failure);
+        expect(postMock).toHaveBeenCalledTimes(1);
+      });
+
+      /*
        * With no comments there is nothing to drop, so a retry would re-post an
        * identical review — either a duplicate on the pull request or a second
        * copy of the same failure in place of the real one.

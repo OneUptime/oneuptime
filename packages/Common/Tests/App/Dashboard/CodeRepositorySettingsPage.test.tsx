@@ -115,6 +115,7 @@ import CodeRepositorySettings, {
   CODE_REPOSITORY_MORE_SETTINGS_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID,
+  CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID,
   CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings";
 import {
@@ -211,6 +212,7 @@ const FOLDED_CARDS: Array<string> = [
   "pull-requests",
   "trigger-label",
   "production-review-comment",
+  "production-review-fail-on-leak",
   "production-review-llm-provider",
 ];
 
@@ -464,12 +466,12 @@ function openMoreSettings(): void {
  * What More settings lists, folded, on GitLab - in its word - and on
  * Forgejo or Gitea: production reviews too, never GitHub's commands.
  */
+// The first four of six named: Sensitive Data Check and the LLM provider are counted.
 const GITLAB_FOLDED_NAMES: Array<string> = [
   "Production Review: Off",
   "Runner",
   "Merge Requests",
   "Production Review Comment",
-  "Production Review LLM Provider",
 ];
 
 const FORGEJO_FOLDED_NAMES: Array<string> = [
@@ -477,7 +479,6 @@ const FORGEJO_FOLDED_NAMES: Array<string> = [
   "Runner",
   "Pull Requests",
   "Production Review Comment",
-  "Production Review LLM Provider",
 ];
 
 function foldedNames(): Array<string> {
@@ -737,7 +738,7 @@ describe("on top, the repository itself; every other setting under More settings
     ]);
     expect(
       within(folded()).getByTestId("folded-section-more"),
-    ).toHaveTextContent("3 more");
+    ).toHaveTextContent("4 more");
     // Nothing is set to anything but its default.
     expect(setChips()).toEqual([]);
   });
@@ -1350,6 +1351,7 @@ describe("More settings", () => {
       "Pull Requests",
       "GitHub Trigger Label",
       "Production Review Comment",
+      "Sensitive Data Check",
       "Production Review LLM Provider",
     ]);
   });
@@ -1696,6 +1698,8 @@ describe("the settings' words and rules, as plain functions", () => {
       ["trigger-label", false, undefined],
       // Never chosen: the default, the review or a link on a public one.
       ["production-review-comment", false, undefined],
+      // Never turned on: the check stays neutral (#10376).
+      ["production-review-fail-on-leak", false, undefined],
       // None picked: the project's default provider.
       ["production-review-llm-provider", false, undefined],
     ]);
@@ -1899,7 +1903,7 @@ describe("the settings' words and rules, as plain functions", () => {
       value: "None: AI opens no fix pull requests here",
       translateValue: true,
     });
-    expect(items[7]).toMatchObject({
+    expect(items[8]).toMatchObject({
       key: "commands",
       title: "Build and Test Commands",
       isSet: true,
@@ -2076,6 +2080,107 @@ describe("Review Pull Requests Against Production: one switch, off until turned 
     // Two short lines at most (ShortDescriptionsGuard).
     expect(
       PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription.length,
+    ).toBeLessThanOrEqual(150);
+  });
+});
+
+describe("Fail the Check on a Leak: one switch, off until turned on, under More settings (#10376)", () => {
+  // The switch itself carries the card's test id (ModelSwitchRow).
+  async function failSwitch(): Promise<HTMLElement> {
+    const toggle: HTMLElement = await screen.findByRole("switch", {
+      name: "Fail the Check on a Leak",
+    });
+
+    expect(toggle).toHaveAttribute(
+      "data-testid",
+      CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID,
+    );
+
+    return toggle;
+  }
+
+  test("a repository that never set it reads as off - its check neutral - and folded, it is not 'set'", async () => {
+    stored = {};
+    draw();
+
+    expect(await failSwitch()).toHaveAttribute("aria-checked", "false");
+    // Read through its own card, by its one column.
+    expect(
+      getItemMock.mock.calls.some((call: Array<unknown>): boolean => {
+        const select: Record<string, unknown> = (
+          call[0] as { select: Record<string, unknown> }
+        ).select;
+
+        return (
+          select["isProductionReviewFailOnLeakEnabled"] === true &&
+          Object.keys(select).length === 1
+        );
+      }),
+    ).toBe(true);
+    expect(setChips().join(" ")).not.toContain("Sensitive Data Check");
+  });
+
+  test("turned on, More settings says so folded", async () => {
+    stored = { isProductionReviewFailOnLeakEnabled: true };
+    draw();
+
+    expect(await failSwitch()).toHaveAttribute("aria-checked", "true");
+    expect(
+      getRepositoryMoreSettingsItems(
+        { isProductionReviewFailOnLeakEnabled: true },
+        english,
+      ).find((item: FoldedSectionItem): boolean => {
+        return item.key === "production-review-fail-on-leak";
+      }),
+    ).toMatchObject({ isSet: true, title: "Sensitive Data Check" });
+  });
+
+  test("flipping it saves at once, with nothing else", async () => {
+    stored = { isProductionReviewFailOnLeakEnabled: false };
+    draw();
+
+    await failSwitch();
+    openMoreSettings();
+    fireEvent.click(await failSwitch());
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateByIdMock.mock.calls[0]![0]).toMatchObject({
+      modelType: CodeRepository,
+      data: { isProductionReviewFailOnLeakEnabled: true },
+    });
+    expect(
+      Object.keys(
+        (updateByIdMock.mock.calls[0]![0] as { data: Record<string, unknown> })
+          .data,
+      ),
+    ).toEqual(["isProductionReviewFailOnLeakEnabled"]);
+  });
+
+  test("its card sits after Production Review Comment, and says what fails in two short lines", async () => {
+    draw();
+
+    const toggle: HTMLElement = await failSwitch();
+
+    expect(
+      document
+        .getElementById("production-review-comment")!
+        .compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      within(
+        document.getElementById("production-review-fail-on-leak")!,
+      ).getByTestId("card-details-heading"),
+    ).toHaveTextContent("Sensitive Data Check");
+    expect(
+      screen.getByText(
+        PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription,
+      ),
+    ).toBeInTheDocument();
+    // Two short lines at most (ShortDescriptionsGuard).
+    expect(
+      PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription.length,
     ).toBeLessThanOrEqual(150);
   });
 });
@@ -2622,6 +2727,7 @@ describe("a repository off GitHub: only what its host has", () => {
       "runner",
       "pull-requests",
       "production-review-comment",
+      "production-review-fail-on-leak",
     ]) {
       expect(folded()).toContainElement(document.getElementById(kept));
     }

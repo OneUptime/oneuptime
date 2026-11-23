@@ -57,7 +57,11 @@ export default class MonitorTemplateSyncFieldUtil {
         translationKey("Keep the monitor's entire set of request headers."),
       );
       add("requestType", translationKey("Request method"));
-      add("requestBody", translationKey("Request body"));
+      add(
+        "requestBody",
+        translationKey("Request body"),
+        translationKey("Keep the body and its format together."),
+      );
     }
 
     if ([MonitorType.Website, MonitorType.API].includes(monitorType)) {
@@ -351,6 +355,10 @@ export default class MonitorTemplateSyncFieldUtil {
   public static getPaths(field: string): Array<string> {
     // Validate even when called independently of parse: never traverse arbitrary paths.
     this.parse([field]);
+    // A body is read in its own format: JSON as JSON, text as text (#10736).
+    if (field === "requestBody") {
+      return ["requestBody", "requestBodyFormat"];
+    }
     if (field === "tlsClientAuthentication") {
       return ["tlsClientCertificate", "tlsClientKey", "tlsClientKeyPassphrase"];
     }

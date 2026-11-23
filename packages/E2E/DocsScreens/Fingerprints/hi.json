@@ -217,8 +217,8 @@
       "button: ऑन-कॉल नीति",
       "button: सहेजें और आगे बढ़ें"
     ],
-    "width": 768,
-    "height": 282
+    "width": 784,
+    "height": 311
   },
   "website-down-test": {
     "text": [
@@ -232,8 +232,8 @@
       "button: मुझे परीक्षण पेज भेजें",
       "button: टेस्ट छोड़ें"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: इस नीति का परीक्षण करें",
       "button: टेस्ट छोड़ें"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: सुलझाएं",
+      "button: Maya Chen से घटना कमांडर फिर से असाइन करें",
       "button: जोड़ें मालिक जोड़ें",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"
