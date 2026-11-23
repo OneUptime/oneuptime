@@ -308,8 +308,6 @@ describe("a rule names who takes each role, through its criteria card", () => {
             { value: SEVERITY_ID, label: "Critical" },
           ]}
           alertSeverityDropdownOptions={[]}
-          onCallPolicyDropdownOptions={[]}
-          labelDropdownOptions={[]}
           userDropdownOptions={USERS}
           incidentRoleOptions={ROLES}
           value={value}

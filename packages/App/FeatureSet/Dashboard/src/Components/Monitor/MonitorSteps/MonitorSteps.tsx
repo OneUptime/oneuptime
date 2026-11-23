@@ -17,6 +17,13 @@ import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RecordsById from "Common/UI/Utils/RecordsById";
+import ObjectID from "Common/Types/ObjectID";
+import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
+import {
+  CriteriaIncident,
+  IncidentMemberRoleAssignment,
+} from "Common/Types/Monitor/CriteriaIncident";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -35,6 +42,67 @@ export interface ComponentProps extends CustomElementProps {
   monitorSteps: MonitorSteps;
   monitorType: MonitorType;
 }
+
+// The records a monitor's criteria name by id: what each incident and alert sets.
+interface CriteriaHeldIds {
+  onCallPolicyIds: Array<string>;
+  labelIds: Array<string>;
+  teamIds: Array<string>;
+  // Owners, and the people pre-assigned to an incident's roles.
+  userIds: Array<string>;
+}
+
+export const getCriteriaHeldIds: (
+  monitorSteps: MonitorSteps | undefined,
+) => CriteriaHeldIds = (
+  monitorSteps: MonitorSteps | undefined,
+): CriteriaHeldIds => {
+  const held: CriteriaHeldIds = {
+    onCallPolicyIds: [],
+    labelIds: [],
+    teamIds: [],
+    userIds: [],
+  };
+
+  const add: (
+    list: Array<string>,
+    ids: Array<ObjectID | string> | undefined,
+  ) => void = (
+    list: Array<string>,
+    ids: Array<ObjectID | string> | undefined,
+  ): void => {
+    for (const id of ids || []) {
+      if (id) {
+        list.push(id.toString());
+      }
+    }
+  };
+
+  for (const step of monitorSteps?.data?.monitorStepsInstanceArray || []) {
+    for (const instance of step.data?.monitorCriteria?.data
+      ?.monitorCriteriaInstanceArray || []) {
+      for (const record of [
+        ...(instance.data?.incidents || []),
+        ...(instance.data?.alerts || []),
+      ] as Array<CriteriaIncident | CriteriaAlert>) {
+        add(held.onCallPolicyIds, record.onCallPolicyIds);
+        add(held.labelIds, record.labelIds);
+        add(held.teamIds, record.ownerTeamIds);
+        add(held.userIds, record.ownerUserIds);
+        add(
+          held.userIds,
+          ((record as CriteriaIncident).incidentMemberRoles || []).map(
+            (assignment: IncidentMemberRoleAssignment): ObjectID => {
+              return assignment.userId;
+            },
+          ),
+        );
+      }
+    }
+  }
+
+  return held;
+};
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -135,18 +203,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           },
         });
 
-      const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-        await ModelAPI.getList({
-          modelType: OnCallDutyPolicy,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-          },
-          sort: {},
-        });
-
       if (incidentSeverityList.data) {
         setIncidentSeverityOptions(
           incidentSeverityList.data as Array<IncidentSeverity>,
@@ -157,58 +213,46 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         setAlertSeverityOptions(alertSeverityList.data as Array<AlertSeverity>);
       }
 
-      if (onCallPolicyList.data) {
-        setOnCallPolicyOptions(
-          onCallPolicyList.data as Array<OnCallDutyPolicy>,
-        );
-      }
+      /*
+       * The on-call policies, labels, teams and people the criteria hold,
+       * read by their ids (#10646): the page read the project's first
+       * 10,000 of each, unsorted, and a criteria's policy, label or owner
+       * past them was left off what the criteria do.
+       */
+      const held: CriteriaHeldIds = getCriteriaHeldIds(props.monitorSteps);
 
-      const labelList: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-          color: true,
-        },
-        sort: {},
-      });
+      const [policies, labels, teams, users]: [
+        Array<OnCallDutyPolicy>,
+        Array<Label>,
+        Array<Team>,
+        Array<User>,
+      ] = await Promise.all([
+        RecordsById.read<OnCallDutyPolicy>({
+          modelType: OnCallDutyPolicy,
+          ids: held.onCallPolicyIds,
+          select: { name: true },
+        }),
+        RecordsById.read<Label>({
+          modelType: Label,
+          ids: held.labelIds,
+          select: { name: true, color: true },
+        }),
+        RecordsById.read<Team>({
+          modelType: Team,
+          ids: held.teamIds,
+          select: { name: true },
+        }),
+        RecordsById.read<User>({
+          modelType: User,
+          ids: held.userIds,
+          select: { name: true, email: true },
+        }),
+      ]);
 
-      if (labelList.data) {
-        setLabelOptions(labelList.data as Array<Label>);
-      }
-
-      const teamList: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-        },
-        sort: {},
-      });
-
-      if (teamList.data) {
-        setTeamOptions(teamList.data as Array<Team>);
-      }
-
-      const userList: ListResult<User> = await ModelAPI.getList({
-        modelType: User,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-          email: true,
-        },
-        sort: {},
-      });
-
-      if (userList.data) {
-        setUserOptions(userList.data as Array<User>);
-      }
+      setOnCallPolicyOptions(policies);
+      setLabelOptions(labels);
+      setTeamOptions(teams);
+      setUserOptions(users);
 
       const incidentRoleList: ListResult<IncidentRole> = await ModelAPI.getList(
         {

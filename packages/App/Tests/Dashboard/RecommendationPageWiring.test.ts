@@ -831,7 +831,7 @@ describe("MonitorRecommendations seeds its search and status from the URL", () =
 
   const initialFilterState: string = PAGE_CODE.split(
     "useState<RecommendationFilterState>(",
-  )[1]!.split("const [onCallPolicyDropdownOptions")[0]!;
+  )[1]!.split("const [hasOnCallPolicies")[0]!;
 
   test("the page reads ?search= and ?status= through the house Navigation util", () => {
     expect(PAGE_CODE).toContain(

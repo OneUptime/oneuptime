@@ -140,8 +140,6 @@ async function renderPart(data: {
           onChange(value);
         }}
         eventType={data.eventType || NotificationRuleEventType.Incident}
-        monitors={[]}
-        labels={[]}
         alertStates={[]}
         alertSeverities={[]}
         incidentSeverities={[]}
