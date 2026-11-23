@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Nieuwe logs worden gemaskeerd<br/>voordat ze worden opgeslagen"]
 ```
 
-Een bevinding die een opschoonregel dekt, wordt als opgeschoond gemarkeerd: wat er van die gegevens over is, zijn oude gegevens die wachten tot hun bewaartermijn afloopt, geen lek dat nog doorstroomt. De twee telemetriecontroles tellen alleen wat geen regel dekt, dus hun probleem lost op zodra elke bevinding is opgeschoond (zie [Telemetriecontroles](/docs/data-security/checks-and-issues#telemetrie)).
+Een bevinding die een opschoonregel dekt, wordt als opgeschoond gemarkeerd: wat OneUptime van die gegevens opslaat, zijn oude gegevens die wachten tot hun bewaartermijn afloopt. De code schrijft ze echter nog steeds, dus de twee telemetriecontroles tellen de bevinding als ingedamd, niet als opgelost: hun probleem lost op als **Ingedamd bij inname** zodra elke bevinding is opgeschoond, en als **Hersteld in de code** pas zodra de nieuwe versie van een codefix stopt met het schrijven van de gegevens (zie [Wat er met een probleem gebeurt](/docs/data-security/checks-and-issues#wat-er-met-een-probleem-gebeurt)).
 
 ## Wat wordt gelezen
 

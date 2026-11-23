@@ -6,7 +6,7 @@ A Segurança de dados executa 34 verificações em cada repositório, em nove gr
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
 - [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
-- [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema.
+- [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema, como cada um foi resolvido e as correções acompanhadas até a produção.
 - [A análise do OneUptime AI](#a-análise-do-oneuptime-ai): Se um problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção.
 - [Corrigir daqui](#corrigir-daqui): Feche uma exposição, ou ative uma proteção que falta, com um clique.
 - [Problemas com uma só causa](#problemas-com-uma-só-causa): Os problemas que um mesmo erro causou, agrupados, e sua causa corrigida uma só vez.
@@ -154,13 +154,41 @@ O OneUptime abre, atualiza e resolve problemas à medida que as verificações r
 | Status | Como chega lá | O que vem depois |
 | --- | --- | --- |
 | **Aberto** | A verificação dele falha no repositório agora. | Ele conta na Visão geral, no resumo do repositório e na conformidade, até a verificação passar. |
-| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
+| **Resolvido** | A verificação dele passou em uma execução posterior, não se aplica mais ou foi desativada, ou o repositório dele foi arquivado. Uma pessoa também pode escolher **Marcar como resolvido**: o repositório é verificado de novo na hora. | Ele diz como foi resolvido (veja abaixo). Ele abre de novo se a verificação falhar de novo, e o problema conta quantas vezes foi reaberto. |
 | **Aceito** | Uma pessoa escolheu **Aceitar o risco**, com um **Motivo** e uma data em **Aceito até**, no máximo daqui a um ano. | Ele fica fechado até essa data e depois abre de novo se a verificação ainda falhar. Aceite-o de novo então, se o motivo ainda for válido. |
 | **Não é um problema** | Uma pessoa escolheu **Não é um problema** e disse por quê em **Motivo**: a detecção estava errada. | Continua fechado, mesmo enquanto a verificação falha, e guarda o motivo. **Reabrir** o devolve para Aberto. |
 
 As funções Membro de segurança, Administrador de segurança, Administrador do projeto e Proprietário do projeto podem mudar o status de um problema e **Atribuir** o problema a uma pessoa ou a uma equipe. Cada mudança é gravada na **Linha do tempo** do problema: quando ele abriu, cada mudança de gravidade, cada mudança de status e quem a fez, as reverificações pedidas e o que as integrações fizeram.
 
 Um problema que abre de novo mantém o seu histórico. Os riscos aceitos são examinados de novo todos os dias, então uma aceitação expira na hora certa mesmo quando nada foi varrido.
+
+### Como foi resolvido
+
+Um problema resolvido diz como foi resolvido, no topo da página dele e na lista de problemas, que pode ser filtrada por isso em **Resolução**:
+
+| Resolução | O que significa |
+| --- | --- |
+| **Corrigido no código** | O pull request de uma correção de código foi entregue, e a nova versão do serviço não grava mais os dados. O problema diz qual foi e quando: "Corrigido no pull request #482, implantado na versão 2.4.1, verificado". |
+| **Corrigido no código de infraestrutura** | Um pull request para o Terraform, CloudFormation ou Bicep que declara o repositório de dados passou pelo merge, e o repositório passou na verificação assim que a mudança foi aplicada. |
+| **Corrigido daqui** | Uma ação de resposta ([Corrigir daqui](#corrigir-daqui)) alterou o repositório, e a verificação dele passou depois. |
+| **Contido na ingestão** | Toda descoberta de um problema de telemetria é ocultada por uma regra de limpeza antes de ser armazenada. Isso não é uma correção: o código continua gravando os dados, no stdout e em todos os outros lugares para onde o serviço envia sua telemetria. O problema diz isso em âmbar, com o que a regra alterou na última semana, e oferece **Corrigir o código**. |
+| **Verificação aprovada** | A verificação dele passa sem nenhuma mudança feita pelo OneUptime. |
+| **Resolvido por uma pessoa** | Alguém escolheu **Marcar como resolvido**. O repositório é verificado de novo na hora, e o problema abre de novo se a verificação ainda falhar. |
+| **Não é mais verificado** | A verificação dele foi desativada ou não se aplica mais ao repositório. |
+| **Repositório arquivado** | O repositório dele sumiu da origem. |
+
+A Visão geral conta os problemas corrigidos na origem separadamente dos vazamentos apenas contidos na ingestão, e **Na sua telemetria** mantém à vista uma descoberta contida, com a marca **Limpo**, até o código parar de gravá-la.
+
+### Correções acompanhadas até a produção
+
+Um pull request que o OneUptime AI abriu para um problema (**Corrigir com IA**, ou um só pull request para um [grupo de problemas](#problemas-com-uma-só-causa)) ainda não corrigiu nada quando passa pelo merge. O OneUptime o acompanha até que a produção comprove a correção:
+
+- **Um vazamento no código.** O OneUptime espera um deploy registrado do serviço que contenha o merge e então observa a nova versão dele. Onde uma regra de limpeza oculta os dados, a regra não pode alterar nenhum valor nessa versão; onde nenhuma regra faz isso, nenhuma entrada dessa versão pode conter os dados nos lugares em que foram encontrados. A nova versão também precisa rodar por um dia e enviar pelo menos tantos logs ou spans quanto a antiga enviou na hora em que o vazamento foi visto pela última vez. Então o problema fica **Corrigido no código**. Um único valor alterado, ou uma única entrada que ainda contém os dados, significa que a correção não deteve o vazamento, e de uma versão que envia pouco demais em uma semana não dá para concluir nada. Os deploys são associados pelo commit: registre-os com `oneuptime deploy` ou envie `vcs.ref.head.revision` (veja [Deploys e alterações](/docs/telemetry/change-events)).
+- **A configuração de um repositório de dados.** Quando o pull request passa pelo merge, os repositórios dele são lidos de novo na hora. Cada problema cuja verificação passa depois disso fica **Corrigido no código de infraestrutura**. Quando um repositório ainda falha na verificação ao ser lido de novo um dia depois do merge, a correção ficou **mesclada, não aplicada**: os proprietários do repositório e a pessoa que pediu o pull request recebem um e-mail, uma única vez, e as linhas do tempo do problema e do repositório registram isso. Geralmente o que falta é um apply.
+- **A regra de limpeza é mantida.** Depois de uma correção de código verificada, a regra de limpeza que conteve o vazamento continua, então uma regressão fica oculta assim que chega. O problema diz que a regra não alterou nada desde a correção e oferece **Remover regra**.
+- **Uma regressão.** Uma correção verificada continua sendo observada depois: quando uma regra mantida volta a alterar valores, ou a varredura encontra os dados de novo, o problema abre de novo e diz qual versão os trouxe de volta. Ele fica aberto até ser corrigido de novo, mesmo enquanto uma regra oculta os dados.
+
+Cada etapa fica na **Linha do tempo** do problema e na do repositório, e Resultados de IA conta as correções verificadas por tipo (veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo)).
 
 ## A análise do OneUptime AI
 

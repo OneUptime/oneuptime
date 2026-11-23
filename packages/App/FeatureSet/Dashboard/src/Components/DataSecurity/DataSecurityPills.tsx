@@ -9,6 +9,15 @@ import {
 import Color from "Common/Types/Color";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution, {
+  isDataSecurityIssueResolution,
+} from "Common/Types/DataSecurity/DataSecurityIssueResolution";
+import {
+  RESOLUTION_LABELS,
+  RESOLUTION_TOOLTIPS,
+  ResolutionTone,
+  getResolutionTone,
+} from "./IssueResolutionCopy";
 import DataSensitivity, {
   DATA_SENSITIVITY_DESCRIPTION,
 } from "Common/Types/DataSecurity/DataSensitivity";
@@ -188,6 +197,43 @@ export const IssueStatusPill: FunctionComponent<{
     <Pill
       text={getIssueStatusLabel(status)}
       color={ISSUE_STATUS_COLOR[status] || Gray500}
+    />
+  );
+};
+
+// How a resolution looks: fixed green, only contained amber, closed another way grey.
+const RESOLUTION_TONE_COLOR: Readonly<Record<ResolutionTone, Color>> = {
+  [ResolutionTone.Fixed]: Green500,
+  [ResolutionTone.Contained]: Yellow500,
+  [ResolutionTone.Closed]: Gray500,
+  [ResolutionTone.CameBack]: Red500,
+};
+
+/*
+ * Where an issue stands, and for a resolved one how it was resolved
+ * (#10368): "Fixed in code", "Contained at ingest" - never fixed - or
+ * "Resolved by a person". One resolved before its resolution was recorded
+ * reads Resolved, as it did.
+ */
+export const IssueResolutionPill: FunctionComponent<{
+  status: DataSecurityIssueStatus | string | undefined;
+  resolution: DataSecurityIssueResolution | string | undefined | null;
+}> = (props: {
+  status: DataSecurityIssueStatus | string | undefined;
+  resolution: DataSecurityIssueResolution | string | undefined | null;
+}): ReactElement => {
+  if (
+    props.status !== DataSecurityIssueStatus.Resolved ||
+    !isDataSecurityIssueResolution(props.resolution)
+  ) {
+    return <IssueStatusPill status={props.status} />;
+  }
+
+  return (
+    <Pill
+      text={RESOLUTION_LABELS[props.resolution]}
+      color={RESOLUTION_TONE_COLOR[getResolutionTone(props.resolution)]}
+      tooltip={RESOLUTION_TOOLTIPS[props.resolution]}
     />
   );
 };

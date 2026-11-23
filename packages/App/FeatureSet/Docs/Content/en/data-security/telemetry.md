@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["New logs are masked<br/>before they are stored"]
 ```
 
-A finding a scrub rule covers is marked scrubbed: what is left of that data is old data waiting for its retention, not a leak still flowing. The two telemetry checks count only what no rule covers, so their issue resolves once every finding is scrubbed (see [Telemetry checks](/docs/data-security/checks-and-issues#telemetry)).
+A finding a scrub rule covers is marked scrubbed: what OneUptime stores of that data is old data waiting for its retention. The code still writes it, though, so the two telemetry checks count it as contained, not fixed: their issue resolves as **Contained at ingest** once every finding is scrubbed, and as **Fixed in code** only once a code fix's new version stops writing the data (see [What happens to an issue](/docs/data-security/checks-and-issues#what-happens-to-an-issue)).
 
 ## What is read
 

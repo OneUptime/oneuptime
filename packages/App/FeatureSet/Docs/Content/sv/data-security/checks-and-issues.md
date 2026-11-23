@@ -6,7 +6,7 @@ Datasäkerhet kör 34 kontroller på varje datalager, i nio grupper. En kontroll
 - [Hur en kontroll avgör](#hur-en-kontroll-avgör): Godkänd, underkänd eller kan inte avgöra, och hur allvarligt ett underkännande är.
 - [Varje kontroll](#varje-kontroll): Alla 34, med vad var och en kontrollerar och hur det åtgärdas.
 - [Riskpoäng](#riskpoäng): Hur problem ordnas inom en allvarlighetsgrad.
-- [Vad som händer med ett problem](#vad-som-händer-med-ett-problem): Öppet, löst, accepterat, inte ett problem.
+- [Vad som händer med ett problem](#vad-som-händer-med-ett-problem): Öppet, löst, accepterat, inte ett problem, hur vart och ett löstes, och åtgärder som följs ända till produktion.
 - [OneUptime AI:s analys](#oneuptime-ais-analys): Om ett problem är verkligt, vad det sätter på spel, vad åtgärden skulle förstöra och den kortaste vägen till åtgärdat.
 - [Åtgärda härifrån](#åtgärda-härifrån): Stäng en exponering, eller slå på ett skydd som saknas, med ett klick.
 - [Problem med en orsak](#problem-med-en-orsak): Problemen som ett enda fel orsakade, grupperade, och deras orsak åtgärdad en gång.
@@ -154,13 +154,41 @@ OneUptime öppnar, uppdaterar och löser problem när kontrollerna körs. Det en
 | Status | Hur det hamnar där | Vad som följer |
 | --- | --- | --- |
 | **Öppen** | Dess kontroll underkänns på datalagret nu. | Det räknas i Översikt, i datalagrets sammanfattning och i efterlevnaden, tills kontrollen godkänns. |
-| **Löst** | Dess kontroll godkändes vid en senare körning, gäller inte längre eller stängdes av, eller så arkiverades dess datalager. En person kan också välja **Markera som löst**: datalagret kontrolleras då igen direkt. | Det öppnas igen om kontrollen underkänns igen, och problemet räknar hur ofta det har öppnats igen. |
+| **Löst** | Dess kontroll godkändes vid en senare körning, gäller inte längre eller stängdes av, eller så arkiverades dess datalager. En person kan också välja **Markera som löst**: datalagret kontrolleras då igen direkt. | Det visar hur det löstes (se nedan). Det öppnas igen om kontrollen underkänns igen, och problemet räknar hur ofta det har öppnats igen. |
 | **Accepterat** | En person valde **Acceptera risk**, med en **Orsak** och ett datum i **Accepterat till**, högst ett år framåt. | Det förblir stängt till det datumet och öppnas sedan igen om kontrollen fortfarande underkänns. Acceptera det då igen om orsaken fortfarande gäller. |
 | **Inte ett problem** | En person valde **Inte ett problem** och sa varför under **Orsak**: fyndet var fel. | Det förblir stängt, även medan kontrollen misslyckas, och behåller orsaken. **Öppna igen** sätter tillbaka det till Öppet. |
 
 Rollerna Säkerhetsmedlem, Säkerhetsadministratör, Projektadministratör och Projektägare kan ändra ett problems status och **Tilldela** det till en person eller ett team. Varje ändring skrivs till problemets **Tidslinje**: när det öppnades, varje ändring av allvarlighetsgrad, varje statusändring och vem som gjorde den, de omkontroller som begärts och vad integrationerna gjorde.
 
 Ett problem som öppnas igen behåller sin historik. Accepterade risker granskas igen varje dag, så att en acceptans löper ut i tid även när inget har skannats.
+
+### Hur det löstes
+
+Ett löst problem visar hur, överst på sin sida och i problemlistan, som kan filtreras på det under **Lösning**:
+
+| Lösning | Vad det betyder |
+| --- | --- |
+| **Åtgärdat i koden** | En kodåtgärds pull request levererades, och tjänstens nya version skriver inte längre dessa data. Problemet visar vilken och när: ”Åtgärdat i pull request #482, driftsatt i version 2.4.1, verifierat”. |
+| **Åtgärdat i infrastrukturkoden** | En pull request till den Terraform, CloudFormation eller Bicep som deklarerar datalagret slogs samman, och datalagrets kontroll godkändes när ändringen hade tillämpats. |
+| **Åtgärdat härifrån** | En responsåtgärd ([Åtgärda härifrån](#åtgärda-härifrån)) ändrade datalagret, och dess kontroll godkändes efteråt. |
+| **Begränsat vid inmatning** | Varje fynd i ett telemetriproblem döljs av en rensningsregel innan det lagras. Det här är ingen åtgärd: koden skriver fortfarande dessa data, till stdout och till varje annan plats dit tjänsten skickar sin telemetri. Problemet säger det i orange, med vad regeln har ändrat den senaste veckan, och erbjuder **Åtgärda koden**. |
+| **Kontroll godkänd** | Dess kontroll godkänns, utan att OneUptime har ändrat något. |
+| **Löst av en person** | Någon valde **Markera som löst**. Datalagret kontrolleras igen direkt, och problemet öppnas igen om dess kontroll fortfarande underkänns. |
+| **Kontrolleras inte längre** | Dess kontroll stängdes av eller gäller inte längre för datalagret. |
+| **Datalager arkiverat** | Dess datalager är borta från sin källa. |
+
+Översikten räknar problemen som åtgärdats där de uppstår separat från läckorna som bara begränsats vid intaget, och **I din telemetri** håller ett begränsat fynd synligt, markerat **Rensat**, tills koden slutar skriva det.
+
+### Åtgärder som följs ända till produktion
+
+En pull request som OneUptime AI öppnade för ett problem (**Åtgärda med AI**, eller en pull request för en [grupp av problem](#problem-med-en-orsak)) har ännu inte åtgärdat något när den slås samman. OneUptime följer den tills produktionen bevisar det:
+
+- **En läcka i koden.** OneUptime väntar på en registrerad driftsättning av tjänsten som innehåller sammanslagningen och bevakar sedan dess nya version. Där en rensningsregel döljer dessa data får regeln inte ändra något värde i den versionen; där ingen regel gör det får ingen av versionens poster innehålla dessa data på de platser där de hittades. Den nya versionen måste också köras i ett dygn och skicka minst lika många loggar eller spans som den gamla gjorde under timmen då läckan senast sågs. Då är problemet **Åtgärdat i koden**. Ett ändrat värde, eller en post som fortfarande innehåller dessa data, betyder att åtgärden inte stoppade läckan, och om en version som skickar för lite under en vecka går det inte att säga något. Driftsättningar matchas via sin commit: registrera dem med `oneuptime deploy`, eller skicka `vcs.ref.head.revision` (se [Driftsättningar och ändringar](/docs/telemetry/change-events)).
+- **Ett datalagers konfiguration.** När pull requesten slås samman läses dess datalager in igen direkt. Varje problem vars kontroll godkänns efter det är **Åtgärdat i infrastrukturkoden**. Om ett datalager fortfarande underkänns i sin kontroll när det läses in igen ett dygn efter sammanslagningen blev åtgärden **mergad, inte tillämpad**: datalagrets ägare och personen som bad om pull requesten får ett e-postmeddelande, en gång, och problemets och datalagrets tidslinjer visar det. Det som saknas är oftast en apply.
+- **Rensningsregeln behålls.** Efter en verifierad kodåtgärd finns rensningsregeln som begränsade läckan kvar, så att en regression döljs så snart den dyker upp. Problemet visar att regeln inte har ändrat något sedan åtgärden, och erbjuder **Ta bort regel**.
+- **En regression.** En verifierad åtgärd bevakas även efteråt: när en behållen regel ändrar värden igen, eller skanningen hittar dessa data igen, öppnas problemet igen och visar vilken version som förde tillbaka dem. Det förblir öppet tills det har åtgärdats igen, även medan en regel döljer dessa data.
+
+Varje steg finns på problemets **Tidslinje** och på datalagrets, och AI-resultat räknar de verifierade åtgärderna efter typ (se [Hur bra OneUptime AI klarar sig](/docs/ai/ai-sre#hur-bra-oneuptime-ai-klarar-sig)).
 
 ## OneUptime AI:s analys
 

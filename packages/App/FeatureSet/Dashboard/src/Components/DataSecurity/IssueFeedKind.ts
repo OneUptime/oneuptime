@@ -80,6 +80,23 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
       case DataSecurityIssueFeedEventType.AiChangeUndone:
       case DataSecurityIssueFeedEventType.AiChangeFailed:
         return getAiFeedKind(eventType);
+      /*
+       * Contained at ingest is no fix (#10368): hidden, in a warning's
+       * tone, never the green check a resolved issue gets.
+       */
+      case DataSecurityIssueFeedEventType.Contained:
+        return { icon: IconProp.EyeSlash, tone: FeedTone.Warning };
+      // The issue's fix followed to production (#10368).
+      case DataSecurityIssueFeedEventType.FixShipped:
+        return { icon: IconProp.RocketLaunch, tone: FeedTone.Info };
+      case DataSecurityIssueFeedEventType.FixVerified:
+        return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+      case DataSecurityIssueFeedEventType.FixNotApplied:
+        return { icon: IconProp.Clock, tone: FeedTone.Warning };
+      case DataSecurityIssueFeedEventType.FixRegressed:
+        return { icon: IconProp.Refresh, tone: FeedTone.Danger };
+      case DataSecurityIssueFeedEventType.FixUnverifiable:
+        return { icon: IconProp.QuestionMarkCircle, tone: FeedTone.Record };
       default:
         return undefined;
     }
