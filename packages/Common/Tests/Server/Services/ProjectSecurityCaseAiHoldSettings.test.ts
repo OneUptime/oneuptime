@@ -239,7 +239,7 @@ describe("the priority cases are held below", () => {
   });
 
   test("going back to the built-in High - no priority - reads nothing", async () => {
-    const priorities: jest.Mock = jest.fn();
+    const priorities: ReturnType<typeof jest.fn> = jest.fn();
     const rows: jest.Mock = holdTheRows();
 
     stubSecurityCaseValues();

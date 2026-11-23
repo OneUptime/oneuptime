@@ -73,6 +73,8 @@ import SecurityCaseTriage, {
 } from "../AI/Security/SecurityCaseTriage";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
+import ServerProducts from "../ServerProducts/ServerProducts";
+import ProductKey from "../../../Types/Product/ProductKey";
 import SecurityPlaybookEngine from "../SecurityPlaybook/SecurityPlaybookEngine";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import SecurityCaseNotifications, {
@@ -106,6 +108,11 @@ import SecurityCaseValues, {
  *   - Page now, a person taking the case, the case rising to the priority
  *     people are alerted for at once, OneUptime AI's own hand-off and the
  *     project turning the setting off end it where they happen.
+ *   - Security Events switched off on the server (#10816) stops this work
+ *     as it stops the product's: no case is held while it is off, and the
+ *     next review - within a minute - hands every held case to people,
+ *     saying why (isProductOff). Switched on again, a case is held only as
+ *     it opens: nothing held before comes back.
  *
  * However it ends - one compare-and-set from Holding, so it ends once - the
  * case's timeline says how, the notice people were held from is sent or
@@ -315,6 +322,8 @@ export function getHoldEndedMarkdown(data: {
       return mdText`🔔 **People were alerted.** Several cases opened within ${minutes(SECURITY_CASE_AI_HOLD_ATTACK_WINDOW_IN_MINUTES)}, which looks like an active attack. ${sent}`;
     case SecurityCaseAiHoldOutcome.TurnedOff:
       return mdText`🔔 **People were alerted.** Letting ${ai} respond first was turned off. ${sent}`;
+    case SecurityCaseAiHoldOutcome.ProductOff:
+      return mdText`🔔 **People were alerted.** Security Events is off on this server, so ${ai} stopped responding first. ${sent}`;
     case SecurityCaseAiHoldOutcome.PageNow:
       return mdText`🔔 **Page now was pressed.** ${sent}`;
     case SecurityCaseAiHoldOutcome.RoseInPriority:
@@ -380,6 +389,11 @@ export default class SecurityCaseAiHold {
     // The cheap answer first: a project that does not hold reads nothing more.
     if (!settings.isOn) {
       return { canHold: false, skip: SecurityCaseAiHoldSkip.NotOn };
+    }
+
+    // Security Events switched off on the server: none of its work starts.
+    if (await this.isProductOff()) {
+      return { canHold: false, skip: SecurityCaseAiHoldSkip.ProductOff };
     }
 
     try {
@@ -770,6 +784,28 @@ export default class SecurityCaseAiHold {
     }
   }
 
+  /*
+   * Whether Security Events is switched off on the server (#10816): then
+   * no case is held, and every held case goes to people at the next
+   * review, within a minute, saying why. A read that fails answers "on",
+   * as ServerProducts does: switching a product off is never a lock.
+   */
+  public static async isProductOff(): Promise<boolean> {
+    try {
+      return Boolean(
+        await ServerProducts.getOffReasonOfServerWork(
+          ProductKey.SecurityEvents,
+        ),
+      );
+    } catch (error) {
+      logger.error(
+        "SecurityCaseAiHold: could not read whether Security Events is switched off; reading it as on:",
+      );
+      logger.error(error);
+      return false;
+    }
+  }
+
   // What a held case's review reads about it, and about OneUptime AI's work on it.
   public static async readState(data: {
     projectId: ObjectID;
@@ -777,12 +813,14 @@ export default class SecurityCaseAiHold {
     now: Date;
   }): Promise<SecurityCaseAiHoldState> {
     const { securityCase } = data;
-    const [settings, values]: [
+    const [settings, values, isProductOff]: [
       SecurityCaseAiHoldSettings,
       ProjectSecurityCaseValues,
+      boolean,
     ] = await Promise.all([
       this.readSettings(data.projectId),
       SecurityCaseValues.getForProject(data.projectId),
+      this.isProductOff(),
     ]);
     const stage: SecurityCaseStage =
       SecurityCaseStatuses.getStage(
@@ -839,6 +877,7 @@ export default class SecurityCaseAiHold {
         ? new Date(securityCase.aiHoldUntil)
         : null,
       isStillOn: settings.isOn && settings.isWorkingCases,
+      isProductOff,
       isStillBelowThreshold: isSecurityCaseBelowAiHoldThreshold({
         priorities: values.priorities,
         priorityId: securityCase.securityCasePriorityId?.toString(),

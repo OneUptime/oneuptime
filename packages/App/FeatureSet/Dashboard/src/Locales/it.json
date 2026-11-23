@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "È il caso dell'attacco di prova.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Attiva «Classifica i nuovi casi» e «Gestisci i casi dall'inizio alla fine» qui sopra, così OneUptime AI può rispondere per primo.",
   "Waiting for OneUptime AI": "In attesa di OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Questa esecuzione attende prima di allertare la reperibilità mentre OneUptime AI risponde per primo. Allerta la reperibilità se le persone vengono avvisate, e salta il passaggio se nessuno deve esserlo."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Questa esecuzione attende prima di allertare la reperibilità mentre OneUptime AI risponde per primo. Allerta la reperibilità se le persone vengono avvisate, e salta il passaggio se nessuno deve esserlo.",
+  "People were alerted: Security Events is off on this server.": "Le persone sono state avvisate: il prodotto Eventi di sicurezza è inattivo su questo server.",
+  "Security Events is off on this server.": "Il prodotto Eventi di sicurezza è inattivo su questo server."
 }

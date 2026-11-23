@@ -108,6 +108,7 @@ describe("the hold's outcomes", () => {
       "NotVerified",
       "ActiveAttack",
       "TurnedOff",
+      "ProductOff",
       "PageNow",
       "RoseInPriority",
       "TakenByPerson",
@@ -135,6 +136,7 @@ describe("the hold's outcomes", () => {
       SecurityCaseAiHoldOutcome.NotVerified,
       SecurityCaseAiHoldOutcome.ActiveAttack,
       SecurityCaseAiHoldOutcome.TurnedOff,
+      SecurityCaseAiHoldOutcome.ProductOff,
     ]) {
       expect(getSecurityCaseAiHoldEnd(outcome)).toBe(
         SecurityCaseAiHoldEnd.HandedToPeople,
@@ -251,6 +253,25 @@ describe("whether a new case is held", () => {
     expect(SECURITY_CASE_AI_HOLD_QUIET_SKIPS).toContain(
       SecurityCaseAiHoldSkip.NotOn,
     );
+  });
+
+  test("not while Security Events is switched off on the server - and nothing is said of it", () => {
+    expect(decideSecurityCaseAiHold(facts({ isProductOff: true }))).toEqual({
+      canHold: false,
+      skip: SecurityCaseAiHoldSkip.ProductOff,
+    });
+    // Before any other rule: none of the product's work starts while it is off.
+    expect(
+      decideSecurityCaseAiHold(
+        facts({ isProductOff: true, isHighestPriority: true }),
+      ).skip,
+    ).toBe(SecurityCaseAiHoldSkip.ProductOff);
+    expect(SECURITY_CASE_AI_HOLD_QUIET_SKIPS).toContain(
+      SecurityCaseAiHoldSkip.ProductOff,
+    );
+    expect(decideSecurityCaseAiHold(facts({ isProductOff: false }))).toEqual({
+      canHold: true,
+    });
   });
 
   test("never the project's highest priority", () => {
@@ -587,6 +608,38 @@ describe("what ends a hold", () => {
     expect(reviewSecurityCaseAiHold(state({ isStillOn: false }))).toEqual({
       outcome: SecurityCaseAiHoldOutcome.TurnedOff,
     });
+  });
+
+  test("handed to people: Security Events was switched off on the server", () => {
+    expect(reviewSecurityCaseAiHold(state({ isProductOff: true }))).toEqual({
+      outcome: SecurityCaseAiHoldOutcome.ProductOff,
+    });
+    // Its own words on the case's card, and people alerted at once.
+    expect(
+      SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[
+        SecurityCaseAiHoldOutcome.ProductOff
+      ],
+    ).toBe("People were alerted: Security Events is off on this server.");
+    expect(
+      isSecurityCaseAiHoldAlerting(SecurityCaseAiHoldOutcome.ProductOff),
+    ).toBe(true);
+  });
+
+  test("a case contained and checked, or closed, as Security Events goes off is still resolved", () => {
+    expect(
+      reviewSecurityCaseAiHold(
+        state({
+          isProductOff: true,
+          stage: SecurityCaseStage.Contained,
+          isContainmentVerified: true,
+        }),
+      ),
+    ).toEqual({ outcome: SecurityCaseAiHoldOutcome.Resolved });
+    expect(
+      reviewSecurityCaseAiHold(
+        state({ isProductOff: true, stage: SecurityCaseStage.Closed }),
+      ),
+    ).toEqual({ outcome: SecurityCaseAiHoldOutcome.Resolved });
   });
 });
 

@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "C'est le dossier de l'attaque de test.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Activez « Qualifier les nouveaux dossiers » et « Traiter les dossiers de bout en bout » ci-dessus pour que OneUptime AI puisse répondre en premier.",
   "Waiting for OneUptime AI": "En attente de OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Cette exécution attend avant d'alerter l'astreinte pendant que OneUptime AI répond en premier. Elle alerte l'astreinte si les personnes sont alertées, et ignore cette étape si personne n'a besoin de l'être."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Cette exécution attend avant d'alerter l'astreinte pendant que OneUptime AI répond en premier. Elle alerte l'astreinte si les personnes sont alertées, et ignore cette étape si personne n'a besoin de l'être.",
+  "People were alerted: Security Events is off on this server.": "Les personnes ont été alertées : le produit Événements de sécurité est inactif sur ce serveur.",
+  "Security Events is off on this server.": "Le produit Événements de sécurité est inactif sur ce serveur."
 }

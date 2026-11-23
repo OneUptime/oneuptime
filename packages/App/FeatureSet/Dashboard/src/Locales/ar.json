@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "هذه حالة الهجوم التجريبي.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "فعّل «فرز الحالات الجديدة» و«العمل على الحالات من البداية إلى النهاية» أعلاه، ليتمكن OneUptime AI من الاستجابة أولًا.",
   "Waiting for OneUptime AI": "في انتظار OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "ينتظر هذا التشغيل لاستدعاء المناوبين بينما يستجيب OneUptime AI أولًا. ويستدعيهم إذا نُبّه الأشخاص، ويتخطى الاستدعاء إذا لم يلزم تنبيه أحد."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "ينتظر هذا التشغيل لاستدعاء المناوبين بينما يستجيب OneUptime AI أولًا. ويستدعيهم إذا نُبّه الأشخاص، ويتخطى الاستدعاء إذا لم يلزم تنبيه أحد.",
+  "People were alerted: Security Events is off on this server.": "نُبّه الأشخاص: المنتج (الأحداث الأمنية) متوقف على هذا الخادم.",
+  "Security Events is off on this server.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم."
 }

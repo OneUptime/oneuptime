@@ -180,7 +180,7 @@ describe("a case OneUptime AI is responding first to", () => {
   test("Page now alerts people in one click, and the notice goes once the hold has ended", async () => {
     holds = [held(until)];
     lastHold = ended(SecurityCaseAiHoldOutcome.PageNow);
-    const onChanged: jest.Mock = jest.fn();
+    const onChanged: ReturnType<typeof jest.fn> = jest.fn();
 
     render(<SecurityCaseAiHoldNotice caseId={CASE_ID} onChanged={onChanged} />);
 
@@ -237,7 +237,7 @@ describe("a case OneUptime AI is responding first to", () => {
     jest.useFakeTimers();
     holds = [held(until), held(until)];
     lastHold = ended(SecurityCaseAiHoldOutcome.Resolved);
-    const onChanged: jest.Mock = jest.fn();
+    const onChanged: ReturnType<typeof jest.fn> = jest.fn();
 
     render(<SecurityCaseAiHoldNotice caseId={CASE_ID} onChanged={onChanged} />);
 

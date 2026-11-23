@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "यह टेस्ट हमले का केस है।",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "ऊपर \"नए केस का ट्राइएज करें\" और \"केस पर शुरू से अंत तक काम करें\" चालू करें, ताकि OneUptime AI पहले प्रतिक्रिया दे सके।",
   "Waiting for OneUptime AI": "OneUptime AI की प्रतीक्षा में",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI के पहले प्रतिक्रिया देते समय यह रन ऑन-कॉल को पेज करने की प्रतीक्षा करता है। लोगों को अलर्ट किया जाए तो यह पेज करता है, और किसी को अलर्ट न करना पड़े तो पेज छोड़ देता है।"
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI के पहले प्रतिक्रिया देते समय यह रन ऑन-कॉल को पेज करने की प्रतीक्षा करता है। लोगों को अलर्ट किया जाए तो यह पेज करता है, और किसी को अलर्ट न करना पड़े तो पेज छोड़ देता है।",
+  "People were alerted: Security Events is off on this server.": "लोगों को अलर्ट किया गया: सुरक्षा इवेंट इस सर्वर पर बंद है।",
+  "Security Events is off on this server.": "सुरक्षा इवेंट इस सर्वर पर बंद है।"
 }

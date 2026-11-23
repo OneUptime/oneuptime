@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "Это кейс тестовой атаки.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Включите выше «Оценивать новые кейсы» и «Вести кейсы от начала до конца», чтобы OneUptime AI мог реагировать первым.",
   "Waiting for OneUptime AI": "Ожидает OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Этот запуск ждёт с вызовом дежурных, пока OneUptime AI реагирует первым. Он вызывает дежурных, если людей оповещают, и пропускает вызов, если никого оповещать не нужно."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Этот запуск ждёт с вызовом дежурных, пока OneUptime AI реагирует первым. Он вызывает дежурных, если людей оповещают, и пропускает вызов, если никого оповещать не нужно.",
+  "People were alerted: Security Events is off on this server.": "Люди оповещены: продукт «События безопасности» выключен на этом сервере.",
+  "Security Events is off on this server.": "Продукт «События безопасности» выключен на этом сервере."
 }

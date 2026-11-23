@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "테스트 공격으로 열린 케이스입니다.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "OneUptime AI가 먼저 대응할 수 있도록 위에서 '새 케이스 트리아지'와 '케이스를 처음부터 끝까지 처리'를 켜세요.",
   "Waiting for OneUptime AI": "OneUptime AI 대기 중",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI가 먼저 대응하는 동안 이 실행은 온콜 호출을 기다립니다. 사람에게 알리게 되면 호출하고, 아무에게도 알릴 필요가 없으면 호출을 건너뜁니다."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI가 먼저 대응하는 동안 이 실행은 온콜 호출을 기다립니다. 사람에게 알리게 되면 호출하고, 아무에게도 알릴 필요가 없으면 호출을 건너뜁니다.",
+  "People were alerted: Security Events is off on this server.": "사람에게 알렸습니다: 보안 이벤트가 이 서버에서 꺼져 있습니다.",
+  "Security Events is off on this server.": "보안 이벤트가 이 서버에서 꺼져 있습니다."
 }

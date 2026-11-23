@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "Dette er testangrebets sag.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Slå »Vurder nye sager« og »Arbejd med sager fra start til slut« til ovenfor, så OneUptime AI kan reagere først.",
   "Waiting for OneUptime AI": "Venter på OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Denne kørsel venter med at tilkalde vagten, mens OneUptime AI reagerer først. Den tilkalder, hvis folk får besked, og springer tilkaldet over, hvis ingen skal have besked."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Denne kørsel venter med at tilkalde vagten, mens OneUptime AI reagerer først. Den tilkalder, hvis folk får besked, og springer tilkaldet over, hvis ingen skal have besked.",
+  "People were alerted: Security Events is off on this server.": "Folk fik besked: produktet Sikkerhedshændelser er ikke aktivt på denne server.",
+  "Security Events is off on this server.": "Produktet Sikkerhedshændelser er ikke aktivt på denne server."
 }

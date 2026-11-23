@@ -16,6 +16,7 @@ import SecurityCaseResponse from "../../../../Server/Utils/AI/Security/Response/
 import SecurityCaseResponseLook from "../../../../Server/Utils/AI/Security/Response/SecurityCaseResponseLook";
 import SecurityCaseTriage from "../../../../Server/Utils/AI/Security/SecurityCaseTriage";
 import FeedPersonName from "../../../../Server/Utils/Feed/FeedPersonName";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
 import SecurityBlockDestinations from "../../../../Server/Utils/SecurityBlocklist/SecurityBlockDestinations";
 import SecurityCaseAiHold from "../../../../Server/Utils/SecurityCase/SecurityCaseAiHold";
 import SecurityCaseHandOff from "../../../../Server/Utils/SecurityCase/SecurityCaseHandOff";
@@ -36,6 +37,7 @@ import URL from "../../../../Types/API/URL";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../../Types/JSON";
+import Name from "../../../../Types/Name";
 import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -57,6 +59,7 @@ import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage"
 import SecurityCaseStepCheckState from "../../../../Types/SecurityCase/SecurityCaseStepCheckState";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { NotificationRuleUpdateKind } from "../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
 import { RESPONSE_STEP_KINDS } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
 import { getJestSpyOn } from "../../../Spy";
 import {
@@ -387,7 +390,7 @@ beforeEach(() => {
       const row: TeamMember = new TeamMember();
       row.userId = member.id;
       const user: User = new User(member.id);
-      user.name = member.name;
+      user.name = new Name(member.name);
       user.email = member.email as never;
       row.user = user;
       return row;
@@ -437,7 +440,7 @@ beforeEach(() => {
       }
 
       const user: User = new User(member.id);
-      user.name = member.name;
+      user.name = new Name(member.name);
       user.email = member.email as never;
       return user;
     },
@@ -743,6 +746,74 @@ describe("with OneUptime AI responding first", () => {
     expect(String(alerts[0]!.vars["aiHoldReason"])).toContain(
       `did not finish within 10${NO_BREAK_SPACE}minutes`,
     );
+  });
+
+  test("Security Events switched off on the server releases a held case at once: people are alerted, saying why", async () => {
+    await openCase();
+    await runQueuedJobs();
+    aiBlocksTheScanner();
+
+    expect(alerts).toEqual([]);
+
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    // The every-minute review's step for the case, with time left on the hold.
+    expect(
+      await SecurityCaseAiHold.review({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: later(60),
+      }),
+    ).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+
+    await runQueuedJobs();
+
+    expect(
+      alerts
+        .map((alert: { userId: string }): string => {
+          return alert.userId;
+        })
+        .sort(),
+    ).toEqual([ANALYST_ID.toString(), ADMIN_ID.toString()].sort());
+
+    for (const alert of alerts) {
+      expect(alert.vars["aiHoldReason"]).toBe(
+        "Security Events is off on this server, so OneUptime AI stopped responding first.",
+      );
+      expect(alert.vars["aiHoldDone"]).toBe(
+        `Took the case. Blocked ${ADDRESS} for 24 hours.`,
+      );
+    }
+
+    expect(posts).toHaveLength(1);
+    expect(feed.join("\n")).toContain("Security Events is off on this server");
+    expect(everythingSent()).not.toContain(REPORT_SECRET);
+  });
+
+  test("while Security Events is switched off no new case is held: people are told as always", async () => {
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    await openCase();
+
+    expect(caseRow["aiHoldOutcome"]).toBeUndefined();
+
+    await runQueuedJobs();
+
+    expect(
+      alerts
+        .map((alert: { userId: string }): string => {
+          return alert.userId;
+        })
+        .sort(),
+    ).toEqual([ANALYST_ID.toString(), ADMIN_ID.toString()].sort());
+
+    for (const alert of alerts) {
+      expect(alert.vars["aiHoldReason"]).toBeUndefined();
+    }
   });
 
   test("a case at the project's highest priority is never held: people are told as always", async () => {

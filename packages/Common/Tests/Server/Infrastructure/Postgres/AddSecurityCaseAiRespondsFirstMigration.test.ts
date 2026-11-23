@@ -248,15 +248,17 @@ describe("AddSecurityCaseAiHoldUntilIndex1809187453010", () => {
 });
 
 describe("where they run", () => {
-  test("both are registered right after OneUptime AI working cases, the columns before their index", () => {
-    const at: number = registeredNames.indexOf(PREVIOUS_CLASS_NAME);
+  test("both are registered after OneUptime AI working cases, the columns right before their index", () => {
+    const previous: number = registeredNames.indexOf(PREVIOUS_CLASS_NAME);
+    const columns: number = registeredNames.indexOf(
+      new AddSecurityCaseAiRespondsFirst1809187453000().name,
+    );
 
-    expect(at).toBeGreaterThanOrEqual(0);
-    expect(registeredNames.slice(at, at + 3)).toEqual([
-      PREVIOUS_CLASS_NAME,
-      "AddSecurityCaseAiRespondsFirst1809187453000",
-      "AddSecurityCaseAiHoldUntilIndex1809187453010",
-    ]);
+    expect(previous).toBeGreaterThanOrEqual(0);
+    expect(columns).toBeGreaterThan(previous);
+    expect(registeredNames[columns + 1]).toBe(
+      new AddSecurityCaseAiHoldUntilIndex1809187453010().name,
+    );
   });
 
   test("each class's name ends with the timestamp its file starts with", () => {

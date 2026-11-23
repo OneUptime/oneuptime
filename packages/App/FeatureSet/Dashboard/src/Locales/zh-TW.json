@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "這是測試攻擊的案例。",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "開啟上方的「研判新案例」和「端到端處理案例」後，OneUptime AI 才能率先回應。",
   "Waiting for OneUptime AI": "等待 OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI 率先回應期間，此次執行會暫緩呼叫待命人員。如果通知了相關人員，它就會呼叫；如果無需通知任何人，就會略過呼叫。"
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI 率先回應期間，此次執行會暫緩呼叫待命人員。如果通知了相關人員，它就會呼叫；如果無需通知任何人，就會略過呼叫。",
+  "People were alerted: Security Events is off on this server.": "已通知相關人員：安全事件在此伺服器上處於關閉狀態。",
+  "Security Events is off on this server.": "安全事件在此伺服器上處於關閉狀態。"
 }

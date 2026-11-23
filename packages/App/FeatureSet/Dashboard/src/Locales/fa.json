@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "این پروندهٔ حملهٔ آزمایشی است.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "«بررسی اولیهٔ پرونده‌های جدید» و «رسیدگی به پرونده‌ها از ابتدا تا انتها» را در بالا روشن کنید تا OneUptime AI بتواند اول پاسخ دهد.",
   "Waiting for OneUptime AI": "در انتظار OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "این اجرا تا وقتی OneUptime AI اول پاسخ می‌دهد، برای فراخوانی آنکال منتظر می‌ماند. اگر به افراد هشدار داده شود فرا می‌خواند، و اگر لازم نباشد به کسی هشدار داده شود، از فراخوانی صرف‌نظر می‌کند."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "این اجرا تا وقتی OneUptime AI اول پاسخ می‌دهد، برای فراخوانی آنکال منتظر می‌ماند. اگر به افراد هشدار داده شود فرا می‌خواند، و اگر لازم نباشد به کسی هشدار داده شود، از فراخوانی صرف‌نظر می‌کند.",
+  "People were alerted: Security Events is off on this server.": "به افراد هشدار داده شد: رویدادهای امنیتی در این سرور خاموش است.",
+  "Security Events is off on this server.": "رویدادهای امنیتی در این سرور خاموش است."
 }

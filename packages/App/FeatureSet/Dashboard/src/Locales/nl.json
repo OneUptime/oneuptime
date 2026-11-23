@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "Dit is de zaak van de testaanval.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Zet hierboven ‘Nieuwe zaken beoordelen’ en ‘Zaken van begin tot eind behandelen’ aan, zodat OneUptime AI eerst kan reageren.",
   "Waiting for OneUptime AI": "Wacht op OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Deze uitvoering wacht met het oproepen van de bereikbaarheidsdienst terwijl OneUptime AI eerst reageert. Ze roept op als mensen worden gewaarschuwd, en slaat de oproep over als niemand gewaarschuwd hoeft te worden."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Deze uitvoering wacht met het oproepen van de bereikbaarheidsdienst terwijl OneUptime AI eerst reageert. Ze roept op als mensen worden gewaarschuwd, en slaat de oproep over als niemand gewaarschuwd hoeft te worden.",
+  "People were alerted: Security Events is off on this server.": "Mensen zijn gewaarschuwd: het product Beveiligingsgebeurtenissen staat uit op deze server.",
+  "Security Events is off on this server.": "Het product Beveiligingsgebeurtenissen staat uit op deze server."
 }

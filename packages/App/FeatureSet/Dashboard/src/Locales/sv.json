@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "Det här är testattackens ärende.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Slå på ”Bedöm nya ärenden” och ”Arbeta med ärenden från början till slut” ovan, så att OneUptime AI kan agera först.",
   "Waiting for OneUptime AI": "Väntar på OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Körningen väntar med att larma jouren medan OneUptime AI agerar först. Den larmar jouren om personer larmas, och hoppar över det om ingen behöver larmas."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "Körningen väntar med att larma jouren medan OneUptime AI agerar först. Den larmar jouren om personer larmas, och hoppar över det om ingen behöver larmas.",
+  "People were alerted: Security Events is off on this server.": "Personer larmades: produkten Säkerhetshändelser är inte aktiv på den här servern.",
+  "Security Events is off on this server.": "Produkten Säkerhetshändelser är inte aktiv på den här servern."
 }

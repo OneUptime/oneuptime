@@ -268,6 +268,8 @@ export function describeAiHoldEnd(data: {
       return `Several security cases opened within ${SECURITY_CASE_AI_HOLD_ATTACK_WINDOW_IN_MINUTES}${NO_BREAK_SPACE}minutes, which looks like an active attack.`;
     case SecurityCaseAiHoldOutcome.TurnedOff:
       return `Letting ${ai} respond first was turned off.`;
+    case SecurityCaseAiHoldOutcome.ProductOff:
+      return `Security Events is off on this server, so ${ai} stopped responding first.`;
     case SecurityCaseAiHoldOutcome.PageNow:
       return `${person} pressed Page now.`;
     case SecurityCaseAiHoldOutcome.RoseInPriority:

@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "This is the setup test's case.",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.",
   "Waiting for OneUptime AI": "Waiting for OneUptime AI",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be."
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.",
+  "People were alerted: Security Events is off on this server.": "People were alerted: Security Events is off on this server.",
+  "Security Events is off on this server.": "Security Events is off on this server."
 }

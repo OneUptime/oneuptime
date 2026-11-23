@@ -74,6 +74,8 @@ export enum SecurityCaseAiHoldOutcome {
   NotVerified = "NotVerified",
   ActiveAttack = "ActiveAttack",
   TurnedOff = "TurnedOff",
+  // Security Events is switched off on the server (#10816): its work stops.
+  ProductOff = "ProductOff",
 
   // Stopped by a person, or by the case's own priority.
   PageNow = "PageNow",
@@ -109,6 +111,7 @@ const HANDED_TO_PEOPLE: ReadonlyArray<SecurityCaseAiHoldOutcome> = [
   SecurityCaseAiHoldOutcome.NotVerified,
   SecurityCaseAiHoldOutcome.ActiveAttack,
   SecurityCaseAiHoldOutcome.TurnedOff,
+  SecurityCaseAiHoldOutcome.ProductOff,
 ];
 
 const STOPPED: ReadonlyArray<SecurityCaseAiHoldOutcome> = [
@@ -252,6 +255,8 @@ export enum SecurityCaseAiHoldSkip {
   SteeringText = "SteeringText",
   RecentlyResolved = "RecentlyResolved",
   CheckFailed = "CheckFailed",
+  // Security Events is switched off on the server: nothing of it runs.
+  ProductOff = "ProductOff",
 }
 
 // The skips nobody needs to hear of: nothing about them is unexpected.
@@ -262,12 +267,19 @@ export const SECURITY_CASE_AI_HOLD_QUIET_SKIPS: ReadonlyArray<SecurityCaseAiHold
     SecurityCaseAiHoldSkip.NotOpenedByDetection,
     SecurityCaseAiHoldSkip.AtOrAboveThreshold,
     SecurityCaseAiHoldSkip.HighestPriority,
+    // Its pages are switched off too: nobody reads the timeline meanwhile.
+    SecurityCaseAiHoldSkip.ProductOff,
   ];
 
 // What is read about a new case, and its project, to decide whether it is held.
 export interface SecurityCaseAiHoldFacts {
   // The project's "Let OneUptime AI respond first".
   isOn: boolean;
+  /*
+   * Security Events is switched off on the server (ServerProducts): what
+   * the server does by itself for it stops, and nothing is held.
+   */
+  isProductOff?: boolean | undefined;
   isSetupTest: boolean;
   isOpenedByDetection: boolean;
   // Below the priority the project holds cases under.
@@ -308,6 +320,10 @@ export function decideSecurityCaseAiHold(
 ): SecurityCaseAiHoldDecision {
   if (!facts.isOn) {
     return { canHold: false, skip: SecurityCaseAiHoldSkip.NotOn };
+  }
+
+  if (facts.isProductOff) {
+    return { canHold: false, skip: SecurityCaseAiHoldSkip.ProductOff };
   }
 
   if (facts.isSetupTest) {
@@ -368,6 +384,8 @@ export interface SecurityCaseAiHoldState {
   holdUntil: Date | null;
   // The setting is still on, and OneUptime AI may still work cases.
   isStillOn: boolean;
+  // Security Events switched off on the server since (#10816).
+  isProductOff?: boolean | undefined;
   // The case is still below the priority the project holds cases under.
   isStillBelowThreshold: boolean;
   stage: SecurityCaseStage;
@@ -403,8 +421,9 @@ function minutesSince(at: Date, now: Date): number {
  *
  *   1. Closed, or Contained with every containing step verified: resolved,
  *      nobody alerted. Contained but not every step checked: people.
- *   2. The setting turned off, or the case risen to the priority people are
- *      alerted for at once: people.
+ *   2. The setting turned off, Security Events switched off on the
+ *      server, or the case risen to the priority people are alerted for at
+ *      once: people.
  *   3. OneUptime AI handed the case over, or waits for a person's approval:
  *      people.
  *   4. Its triage read the case as not malicious and nobody asked it to
@@ -431,6 +450,10 @@ export function reviewSecurityCaseAiHold(
 
   if (!state.isStillOn) {
     return { outcome: SecurityCaseAiHoldOutcome.TurnedOff };
+  }
+
+  if (state.isProductOff) {
+    return { outcome: SecurityCaseAiHoldOutcome.ProductOff };
   }
 
   if (!state.isStillBelowThreshold) {
@@ -610,6 +633,9 @@ export const SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES: Readonly<
   [SecurityCaseAiHoldOutcome.TurnedOff]: translationKey(
     "People were alerted: letting OneUptime AI respond first was turned off.",
   ),
+  [SecurityCaseAiHoldOutcome.ProductOff]: translationKey(
+    "People were alerted: Security Events is off on this server.",
+  ),
   [SecurityCaseAiHoldOutcome.PageNow]: translationKey(
     "People were alerted: {{name}} pressed Page now.",
   ),
@@ -664,5 +690,8 @@ export const SECURITY_CASE_AI_HOLD_SKIP_SENTENCES: Readonly<
   ),
   [SecurityCaseAiHoldSkip.CheckFailed]: translationKey(
     "OneUptime AI could not check whether it may respond first.",
+  ),
+  [SecurityCaseAiHoldSkip.ProductOff]: translationKey(
+    "Security Events is off on this server.",
   ),
 };

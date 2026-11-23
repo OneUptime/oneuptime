@@ -889,7 +889,11 @@ describe("OneUptime AI in Security docs", () => {
       `- it is about an address, user or host of a case OneUptime AI resolved in the last ${SECURITY_CASE_AI_HOLD_RECURRENCE_WINDOW_IN_HOURS} hours, since what it did did not hold;`,
     );
 
-    // What the timeline says nothing of: the page names each.
+    /*
+     * What the timeline says nothing of: the page names each, but Security
+     * Events switched off on the server - an administrator's switch that
+     * turns this page's product off too, so no case of it is read meanwhile.
+     */
     expect([...SECURITY_CASE_AI_HOLD_QUIET_SKIPS].sort()).toEqual(
       [
         SecurityCaseAiHoldSkip.NotOn,
@@ -897,6 +901,7 @@ describe("OneUptime AI in Security docs", () => {
         SecurityCaseAiHoldSkip.NotOpenedByDetection,
         SecurityCaseAiHoldSkip.AtOrAboveThreshold,
         SecurityCaseAiHoldSkip.HighestPriority,
+        SecurityCaseAiHoldSkip.ProductOff,
       ].sort(),
     );
     expect(section).toContain(

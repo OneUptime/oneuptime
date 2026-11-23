@@ -62368,5 +62368,7 @@
   "This is the setup test's case.": "これはテスト攻撃のケースです。",
   "Turn on Triage new cases and Work cases end to end above, so OneUptime AI can respond first.": "OneUptime AI が先に対応できるよう、上の「新しいケースをトリアージ」と「ケースに最後まで対応」をオンにしてください。",
   "Waiting for OneUptime AI": "OneUptime AI 待ち",
-  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI が先に対応している間、この実行はオンコールの呼び出しを待機します。人に通知される場合は呼び出し、誰にも通知する必要がなければ呼び出しをスキップします。"
+  "This run waits to page on-call while OneUptime AI responds first. It pages if people are alerted, and skips the page if nobody has to be.": "OneUptime AI が先に対応している間、この実行はオンコールの呼び出しを待機します。人に通知される場合は呼び出し、誰にも通知する必要がなければ呼び出しをスキップします。",
+  "People were alerted: Security Events is off on this server.": "人に通知しました: セキュリティイベントはこのサーバーでオフです。",
+  "Security Events is off on this server.": "セキュリティイベントはこのサーバーでオフです。"
 }

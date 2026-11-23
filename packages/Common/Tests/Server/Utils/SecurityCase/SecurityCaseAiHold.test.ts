@@ -14,6 +14,8 @@ import SecurityPlaybookRunService from "../../../../Server/Services/SecurityPlay
 import SecurityCaseResponse from "../../../../Server/Utils/AI/Security/Response/SecurityCaseResponse";
 import SecurityCaseResponseLook from "../../../../Server/Utils/AI/Security/Response/SecurityCaseResponseLook";
 import SecurityCaseTriage from "../../../../Server/Utils/AI/Security/SecurityCaseTriage";
+import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
+import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
 import SecurityCaseAiHold, {
   findSharedHoldEntity,
   getHoldEndedMarkdown,
@@ -37,6 +39,7 @@ import {
 import SecurityCaseAiVerdict from "../../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
+import ProductKey from "../../../../Types/Product/ProductKey";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import SecurityPlaybookRunStatus from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
@@ -347,6 +350,48 @@ describe("a case opens", () => {
     expect(SecurityCaseService.findOneBy).not.toHaveBeenCalled();
   });
 
+  test("Security Events switched off on the server holds nothing, reads nothing more and says nothing", async () => {
+    const products: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ServerProducts,
+      "getOffReasonOfServerWork",
+    ).mockResolvedValue(ServerProductOffReason.SwitchedOff);
+
+    const decision: SecurityCaseAiHoldDecision =
+      await SecurityCaseAiHold.onCaseOpened({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        isOpenedByDetection: true,
+        now: NOW,
+      });
+
+    expect(decision).toEqual({
+      canHold: false,
+      skip: SecurityCaseAiHoldSkip.ProductOff,
+    });
+    expect(products).toHaveBeenCalledWith(ProductKey.SecurityEvents);
+    expect(writes).toEqual([]);
+    expect(feed).toEqual([]);
+    expect(SecurityCaseService.findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("switched on again, a new case is held as before; a read of the products that fails reads them as on", async () => {
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockRejectedValue(
+      new Error("the server's products could not be read"),
+    );
+
+    expect(
+      (
+        await SecurityCaseAiHold.onCaseOpened({
+          projectId: PROJECT_ID,
+          securityCaseId: CASE_ID,
+          isOpenedByDetection: true,
+          now: NOW,
+        })
+      ).canHold,
+    ).toBe(true);
+    expect(writes[0]!["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.Holding);
+  });
+
   test("a High case alerts people at once, and nothing is said of it", async () => {
     caseRow["securityCasePriorityId"] = testPriorityId(
       SecurityCasePriorityLevel.High,
@@ -645,6 +690,75 @@ describe("a held case's review", () => {
         now: NOW,
       }),
     ).toBe(SecurityCaseAiHoldOutcome.TurnedOff);
+  });
+
+  test("Security Events switched off on the server hands a held case to people at once, saying why", async () => {
+    heldCase();
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    expect(
+      await SecurityCaseAiHold.review({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: NOW,
+      }),
+    ).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+    expect(ends[0]!.data["aiHoldOutcome"]).toBe(
+      SecurityCaseAiHoldOutcome.ProductOff,
+    );
+    expect(feedText()).toContain(
+      "Security Events is off on this server, so OneUptime AI stopped responding first.",
+    );
+    // The notice people were held from goes out now (SecurityCaseNotifications reads why).
+    expect(toldHoldEnded).toEqual([
+      {
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        actorUserId: undefined,
+      },
+    ]);
+  });
+
+  test("the every-minute review hands every held case to people while Security Events is off", async () => {
+    heldCase();
+    held = [
+      (() => {
+        const row: SecurityCase = new SecurityCase(CASE_ID);
+        row.projectId = PROJECT_ID;
+        return row;
+      })(),
+    ];
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.TelemetryIngestionStopped,
+    );
+
+    await SecurityCaseAiHold.reviewHolds(NOW);
+
+    expect(
+      ends.map((end: { data: Record<string, unknown> }): unknown => {
+        return end.data["aiHoldOutcome"];
+      }),
+    ).toEqual([SecurityCaseAiHoldOutcome.ProductOff]);
+  });
+
+  test("a case contained and checked as Security Events goes off is still resolved: nobody is alerted", async () => {
+    heldCase({
+      securityCaseStatusId: testStatusId(SecurityCaseStage.Contained),
+    });
+    isContainmentVerified = true;
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    expect(
+      await SecurityCaseAiHold.review({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: NOW,
+      }),
+    ).toBe(SecurityCaseAiHoldOutcome.Resolved);
   });
 
   test("a case no longer held is left alone", async () => {
