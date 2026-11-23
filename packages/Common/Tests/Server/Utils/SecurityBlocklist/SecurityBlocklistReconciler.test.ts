@@ -2156,7 +2156,7 @@ describe("a destination that takes a pass's changes in one call", () => {
 });
 
 describe("the destinations a project has in production", () => {
-  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
+  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), Azure WAF policies (#10348), Cloud Armor policies (#10349), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
     SecurityBlockDestinations.resetSourcesForTests();
 
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
@@ -2169,6 +2169,8 @@ describe("the destinations a project has in production", () => {
     ).toEqual([
       SecurityBlockDestinationProvider.Cloudflare,
       SecurityBlockDestinationProvider.AwsWaf,
+      SecurityBlockDestinationProvider.AzureWaf,
+      SecurityBlockDestinationProvider.CloudArmor,
       SecurityBlockDestinationProvider.Feed,
       SecurityBlockDestinationProvider.MicrosoftDefender,
       SecurityBlockDestinationProvider.CrowdStrike,

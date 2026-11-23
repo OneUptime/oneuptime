@@ -24,6 +24,19 @@ export enum SecurityBlockClientAddress {
   XForwardedFor = "XForwardedFor",
   CfConnectingIp = "CfConnectingIp",
   TrueClientIp = "TrueClientIp",
+  /*
+   * Azure Front Door's RemoteAddr (#10348): the original client, which
+   * Front Door takes from X-Forwarded-For - for a Front Door behind another
+   * proxy or CDN that writes it. A client that reaches Front Door directly
+   * writes that header itself.
+   */
+  ForwardedClient = "ForwardedClient",
+  /*
+   * Google Cloud Armor's origin.user_ip (#10349): the address in the first
+   * of the policy's user IP request headers that holds one, or the
+   * connecting address when none does.
+   */
+  UserIp = "UserIp",
 }
 
 export const SECURITY_BLOCK_CLIENT_ADDRESSES: ReadonlyArray<SecurityBlockClientAddress> =
@@ -32,6 +45,8 @@ export const SECURITY_BLOCK_CLIENT_ADDRESSES: ReadonlyArray<SecurityBlockClientA
     SecurityBlockClientAddress.XForwardedFor,
     SecurityBlockClientAddress.CfConnectingIp,
     SecurityBlockClientAddress.TrueClientIp,
+    SecurityBlockClientAddress.ForwardedClient,
+    SecurityBlockClientAddress.UserIp,
   ];
 
 export const SECURITY_BLOCK_DEFAULT_CLIENT_ADDRESS: SecurityBlockClientAddress =
@@ -52,9 +67,15 @@ export interface SecurityBlockClientAddressHeader {
   position: "FIRST" | "LAST";
 }
 
+// The client addresses AWS WAF reads from a header (a forwarded IP configuration).
+export type SecurityBlockClientAddressHeaderChoice =
+  | SecurityBlockClientAddress.XForwardedFor
+  | SecurityBlockClientAddress.CfConnectingIp
+  | SecurityBlockClientAddress.TrueClientIp;
+
 export const SECURITY_BLOCK_CLIENT_ADDRESS_HEADERS: Readonly<
   Record<
-    Exclude<SecurityBlockClientAddress, SecurityBlockClientAddress.SourceIp>,
+    SecurityBlockClientAddressHeaderChoice,
     SecurityBlockClientAddressHeader
   >
 > = {
@@ -72,18 +93,23 @@ export const SECURITY_BLOCK_CLIENT_ADDRESS_HEADERS: Readonly<
   },
 };
 
-// The header a WAF reads the client's address from: null for the source address.
+/*
+ * The header AWS WAF reads the client's address from: null for the source
+ * address, and for a choice another cloud reads its own way (Front Door's
+ * RemoteAddr, Cloud Armor's user IP).
+ */
 export function getSecurityBlockClientAddressHeader(
   clientAddress: SecurityBlockClientAddress | string | undefined | null,
 ): SecurityBlockClientAddressHeader | null {
   if (
-    !isSecurityBlockClientAddress(clientAddress) ||
-    clientAddress === SecurityBlockClientAddress.SourceIp
+    clientAddress === SecurityBlockClientAddress.XForwardedFor ||
+    clientAddress === SecurityBlockClientAddress.CfConnectingIp ||
+    clientAddress === SecurityBlockClientAddress.TrueClientIp
   ) {
-    return null;
+    return SECURITY_BLOCK_CLIENT_ADDRESS_HEADERS[clientAddress];
   }
 
-  return SECURITY_BLOCK_CLIENT_ADDRESS_HEADERS[clientAddress];
+  return null;
 }
 
 export function isSecurityBlockClientAddress(
@@ -107,8 +133,17 @@ export function isSecurityBlockClientAddress(
  *   NoFreePriority  no priority is free below the WAF's first rule for
  *                   OneUptime's, and OneUptime never renumbers a rule of
  *                   the customer's: someone frees one;
- *   Failed          OneUptime could not read or write it: why, and what to
- *                   do, in statusMessage.
+ *   Applying        the WAF holds OneUptime's latest change and is still
+ *                   applying it everywhere (Azure Front Door and
+ *                   Application Gateway's provisioning, #10348): its new
+ *                   blocks are Pending there until it is done;
+ *   Drifted         a rule of OneUptime's was turned off, changed or
+ *                   deleted by hand (#10348, #10349): OneUptime never puts
+ *                   it back behind the person's back, and the blocks it held
+ *                   are not enforced until someone selects Put It Back;
+ *   Failed          OneUptime could not read or write it, or the WAF itself
+ *                   blocks nothing (turned off, in Detection mode, attached
+ *                   to nothing): why, and what to do, in statusMessage.
  *
  * Only Enforcing enforces anything; the Blocklist page says so of the
  * others, and its blocks say "Not enforced" until a destination holds them.
@@ -118,6 +153,8 @@ export enum SecurityBlockCloudWafStatus {
   Enforcing = "Enforcing",
   WaitingForRule = "WaitingForRule",
   NoFreePriority = "NoFreePriority",
+  Applying = "Applying",
+  Drifted = "Drifted",
   Failed = "Failed",
 }
 
@@ -127,6 +164,8 @@ export const SECURITY_BLOCK_CLOUD_WAF_STATUSES: ReadonlyArray<SecurityBlockCloud
     SecurityBlockCloudWafStatus.Enforcing,
     SecurityBlockCloudWafStatus.WaitingForRule,
     SecurityBlockCloudWafStatus.NoFreePriority,
+    SecurityBlockCloudWafStatus.Applying,
+    SecurityBlockCloudWafStatus.Drifted,
     SecurityBlockCloudWafStatus.Failed,
   ];
 
@@ -146,16 +185,33 @@ export const SECURITY_BLOCK_CLOUD_WAF_MESSAGE_MAX_LENGTH: number = 1000;
  * What OneUptime leaves in a cloud WAF it no longer enforces the blocklist
  * in - its rule, kept by "remove from OneUptime only", or an IP set a rule
  * of the team's still references - named for the person to delete there.
+ * Azure WAF's rules are named rules (#10348); Cloud Armor's are known by
+ * their priority, and its address groups by name (#10349).
  */
 export enum SecurityBlockCloudWafLeftKind {
   IpSet = "ipSet",
   Rule = "rule",
+  PriorityRule = "priorityRule",
+  AddressGroup = "addressGroup",
 }
 
 export interface SecurityBlockCloudWafLeftItem {
   kind: SecurityBlockCloudWafLeftKind;
-  // Its name in the WAF: "oneuptime-1a2b3c4d-block-ipv4".
+  // Its name in the WAF: "oneuptime-1a2b3c4d-block-ipv4", "OneUptime1a2b3c4dBlock1".
   name: string;
-  // A rule's web ACL.
+  // A rule's web ACL or policy.
   webAcl?: string | undefined;
+  // A Cloud Armor rule's priority.
+  priority?: number | undefined;
+}
+
+export function isSecurityBlockCloudWafLeftKind(
+  value: unknown,
+): value is SecurityBlockCloudWafLeftKind {
+  return (
+    typeof value === "string" &&
+    (Object.values(SecurityBlockCloudWafLeftKind) as Array<string>).includes(
+      value,
+    )
+  );
 }
