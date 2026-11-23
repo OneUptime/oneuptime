@@ -482,8 +482,8 @@ Kubernetes 集群或基础设施资源上的调查和修复，现在是 AI 代�
 
 这两个开关过去会拦住一些修复。为了在它们消失后不会有任何东西在没有人参与的情况下开始更改你的系统，服务器升级会把这些修复改为先询问：
 
-- 在曾关闭 **Enable Auto-Remediation** 的项目中，**Full Auto** 规则会变为 **Suggest**，设置为 **自动** 或 **跳过批准** 的集群和资源会变为 **请求批准**。
-- 在从未开启 **Enable AI Command Execution** 的项目中，让 AI 编写命令的 **Full Auto** 规则会变为 **Suggest**。AI 通过你绑定到它的 Runner（使用 Kubernetes 凭据）访问的 Kubernetes 集群，会从 **自动** 或 **跳过批准** 变为 **请求批准**。通过 Kubernetes AI 代理访问的集群会保留其模式，资源也一样：它们从来不需要那个开关。
+- 在曾关闭 **Enable Auto-Remediation** 的项目中，**Full Auto** 规则会变为 **建议**，设置为 **自动** 或 **跳过批准** 的集群和资源会变为 **请求批准**。
+- 在从未开启 **Enable AI Command Execution** 的项目中，让 AI 编写命令的 **Full Auto** 规则会变为 **建议**。AI 通过你绑定到它的 Runner（使用 Kubernetes 凭据）访问的 Kubernetes 集群，会从 **自动** 或 **跳过批准** 变为 **请求批准**。通过 Kubernetes AI 代理访问的集群会保留其模式，资源也一样：它们从来不需要那个开关。
 
 不会关闭任何东西。被其中一个开关压住的规则、集群和资源会开始提出修复，每个修复仍然等待人来处理。要让项目不进行自动补救，请关闭 **启用 AI**，或关闭 **自动修复新事件** 和 **自动修复新警报**（事件或警报 → 人工智能 → 设置；请参阅 [修复新事件和警报有自己的开关](#修复新事件和警报有自己的开关)）。设置了 `enableAutoRemediation` 或 `enableAiCommandExecution`（Terraform 中为 `enable_auto_remediation` 或 `enable_ai_command_execution`）的 API 客户端和 Terraform 配置应停止设置它们。
 
