@@ -20,6 +20,7 @@ import {
   AiOutcomesPages,
   AiOutcomesPart,
   AiOutcomesPullRequestFixes,
+  AiOutcomesPullRequestFixKind,
   AiOutcomesRemediationFixes,
   AiOutcomesRootCauses,
   AiOutcomesWeek,
@@ -36,6 +37,9 @@ import {
   DataSecurityAiProposalKind,
   isDataSecurityAiProposalKind,
 } from "Common/Types/DataSecurity/DataSecurityAi";
+import FixProductionCheck, {
+  FixProductionCheckHelper,
+} from "Common/Types/AI/FixProductionCheck";
 import { JSONObject } from "Common/Types/JSON";
 import {
   getGlobalTranslator,
@@ -459,6 +463,36 @@ function parseDataSecurity(
   };
 }
 
+/*
+ * The fix pull requests by what production watched each for (#10368):
+ * each kind read on its own, and one of the wrong shape left out. None
+ * from a server of the release before.
+ */
+function parsePullRequestFixKinds(
+  value: unknown,
+): Array<AiOutcomesPullRequestFixKind> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const kinds: Array<AiOutcomesPullRequestFixKind> = [];
+
+  for (const item of value) {
+    if (!isObject(item) || typeof item["check"] !== "string") {
+      continue;
+    }
+
+    const counts: AiOutcomesPullRequestFixes | null | undefined =
+      parseCounts<AiOutcomesPullRequestFixes>(item, PULL_REQUEST_FIX_KEYS);
+
+    if (counts) {
+      kinds.push({ check: item["check"], ...counts });
+    }
+  }
+
+  return kinds;
+}
+
 // The server's AiOutcomes, or null when it is not something this page can draw.
 export function parseAiOutcomes(data: unknown): AiOutcomes | null {
   if (!isObject(data)) {
@@ -533,6 +567,14 @@ export function parseAiOutcomes(data: unknown): AiOutcomes | null {
     pages,
     remediationFixes,
     pullRequestFixes,
+    // By kind (#10368), from a server that counts them.
+    ...(Array.isArray(data["pullRequestFixKinds"])
+      ? {
+          pullRequestFixKinds: parsePullRequestFixKinds(
+            data["pullRequestFixKinds"],
+          ),
+        }
+      : {}),
     rootCauses,
     dataSecurity,
     // A server that counts no verdicts sends none: nothing to draw, not zeros.
@@ -695,6 +737,11 @@ export interface AiResultsKindRow {
   label: string;
   value: number;
   total: number;
+  /*
+   * The label is a translation key, looked up where it is drawn: a kind
+   * this build knows. A kind it does not is named as it is stored.
+   */
+  isLabelKey?: boolean | undefined;
 }
 
 export interface AiResultsByKind {
@@ -1013,6 +1060,70 @@ export const FIXES_WEEK_LEGEND: AiResultsWeekLegend = {
   total: translationKey("All checked fixes"),
 };
 
+/*
+ * What each kind of fix pull request is called under By kind (#10368):
+ * by what production watched it for - a Data Security leak fixed in code,
+ * a store fixed in its infrastructure code, beside the others.
+ */
+export const PULL_REQUEST_FIX_KIND_LABELS: Record<FixProductionCheck, string> =
+  {
+    [FixProductionCheck.Exception]: translationKey("Exceptions fixed"),
+    [FixProductionCheck.Performance]: translationKey(
+      "Slow operations made faster",
+    ),
+    [FixProductionCheck.Recurrence]: translationKey("Root causes fixed"),
+    [FixProductionCheck.Telemetry]: translationKey("Telemetry added"),
+    [FixProductionCheck.TelemetryLeak]: translationKey(
+      "Telemetry leaks fixed in code",
+    ),
+    [FixProductionCheck.StoreConfiguration]: translationKey(
+      "Stores fixed in infrastructure code",
+    ),
+  };
+
+/*
+ * The fix pull requests by kind: what worked of what was checked, once more
+ * than one kind was checked, or any Data Security fix was - so a team sees
+ * its leaks fixed in code apart from its other fixes. Null otherwise.
+ */
+export function getPullRequestFixesByKind(
+  kinds: ReadonlyArray<AiOutcomesPullRequestFixKind> | null | undefined,
+): AiResultsByKind | null {
+  const checked: Array<AiOutcomesPullRequestFixKind> = (kinds || []).filter(
+    (kind: AiOutcomesPullRequestFixKind): boolean => {
+      return kind.verified + kind.regressed > 0;
+    },
+  );
+  const hasDataSecurity: boolean = checked.some(
+    (kind: AiOutcomesPullRequestFixKind): boolean => {
+      return FixProductionCheckHelper.isDataSecurityCheck(
+        FixProductionCheckHelper.fromDatabaseValue(kind.check),
+      );
+    },
+  );
+
+  if (checked.length === 0 || (checked.length < 2 && !hasDataSecurity)) {
+    return null;
+  }
+
+  return {
+    rows: checked.map(
+      (kind: AiOutcomesPullRequestFixKind): AiResultsKindRow => {
+        const check: FixProductionCheck | undefined =
+          FixProductionCheckHelper.fromDatabaseValue(kind.check);
+
+        return {
+          kind: kind.check,
+          label: check ? PULL_REQUEST_FIX_KIND_LABELS[check] : kind.check,
+          value: kind.verified,
+          total: kind.verified + kind.regressed,
+          isLabelKey: Boolean(check),
+        };
+      },
+    ),
+  };
+}
+
 function getFixesCard(
   outcomes: AiOutcomes,
   weeks: Array<AiOutcomesWeek>,
@@ -1189,7 +1300,11 @@ function getFixesCard(
       total > 0
         ? getByModel(outcomes.models?.fixes, FIXES_BY_MODEL_NOTE)
         : null,
-    byKind: null,
+    // The fix pull requests by kind: Data Security's leaks and stores among them (#10368).
+    byKind:
+      total > 0
+        ? getPullRequestFixesByKind(outcomes.pullRequestFixKinds)
+        : null,
     modelChanges: describeModelChanges(getDrawnChanges(changes, weeks)),
     weeks: markModelChanges(
       changes,

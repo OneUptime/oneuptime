@@ -188,7 +188,7 @@ Samma anpassade drain fungerar på OneUptime Cloud, med `oneuptime.com` som vär
 Vercel visar OneUptimes svar på drainens leveranser:
 
 - `403` med `x-vercel-signature` i meddelandet: Vercel signerade inte leveransen med nyckeln som Vercel skickar. För en anpassad drain kontrollerar du dess `x-oneuptime-token`-header och sätter dess signeringshemlighet till samma nyckel.
-- `401`: OneUptime känner inte till något projekt med nyckeln som drainen skickar: den har tagits bort, eller skrivits fel på båda ställena. Använd en nyckel från **Projektinställningar → Telemetri och APM → Intagningsnycklar**.
+- `401`: OneUptime känner inte till något projekt med nyckeln som drainen skickar: den har tagits bort, eller skrivits fel. Använd en nyckel från **Projektinställningar → Telemetri och APM → Intagningsnycklar**.
 - `422`: nyckeln har stängts av. Slå på den igen på samma sida, eller använd en annan.
 :::
 

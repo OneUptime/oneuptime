@@ -34,13 +34,21 @@ import FeedMarkdown, {
  * found nothing new, so a timeline says each thing once.
  */
 
-// Who made a block, as a sentence starts with it when no person did.
-function madeBy(source: SecurityBlockSource): MarkdownText {
+/*
+ * Who made a block, as a sentence starts with it when no person did: an
+ * automatic response policy by its name when it is known (#10350).
+ */
+function madeBy(
+  source: SecurityBlockSource,
+  policyName?: string | undefined,
+): MarkdownText {
   switch (source) {
     case SecurityBlockSource.Playbook:
       return mdText`A playbook`;
     case SecurityBlockSource.AutomaticResponse:
-      return mdText`An automatic response`;
+      return policyName?.trim()
+        ? mdText`The ${FeedMarkdown.textInLine(policyName.trim())} policy`
+        : mdText`An automatic response`;
     case SecurityBlockSource.OneUptimeAi:
       return mdText`OneUptime AI`;
     case SecurityBlockSource.Api:
@@ -73,6 +81,8 @@ export function blockAddedMarkdown(data: {
   reason?: string | undefined;
   // Whether anything is asked to hold it: a destination of its reach.
   hasDestinations: boolean;
+  // The automatic response policy that made it, by name (#10350).
+  policyName?: string | undefined;
 }): MarkdownText {
   const value: MarkdownText = FeedMarkdown.code(data.value);
   const length: MarkdownText = howLong({
@@ -99,10 +109,10 @@ export function blockAddedMarkdown(data: {
           ? mdText`🚫 Blocked and quarantined ${value} ${length}.`
           : mdText`🚫 Blocked ${value}${where} ${length}.`
       : isChallenge
-        ? mdText`🚫 ${madeBy(data.source)} challenged ${value} ${length}.`
+        ? mdText`🚫 ${madeBy(data.source, data.policyName)} challenged ${value} ${length}.`
         : isQuarantine
-          ? mdText`🚫 ${madeBy(data.source)} blocked and quarantined ${value} ${length}.`
-          : mdText`🚫 ${madeBy(data.source)} blocked ${value}${where} ${length}.`;
+          ? mdText`🚫 ${madeBy(data.source, data.policyName)} blocked and quarantined ${value} ${length}.`
+          : mdText`🚫 ${madeBy(data.source, data.policyName)} blocked ${value}${where} ${length}.`;
 
   const reason: MarkdownText = data.reason
     ? mdText` Reason: ${FeedMarkdown.textInLine(data.reason)}`

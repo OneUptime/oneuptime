@@ -377,7 +377,7 @@ I contatori che finiscono con `total` sono cumulativi dall'avvio del server. Con
 
 Le soglie sono numeri interi. Scrivi `90`, non `90.5`: percentuali e secondi vengono confrontati come interi.
 
-**Database online** e **Metrica del database** possono essere controllati nel tempo: spunta **Valuta questo criterio su un periodo di tempo**, poi scegli come **Valuta** i valori (ad esempio **Tutti i valori**) e **Per gli ultimi (in minuti)**. Nel tempo, l'impostazione **Se nessun dato** del filtro decide cosa significa un valore mancante; lasciala su **Ignore**, così un permesso mancante continua a non poter chiamare nessuno.
+**Database online** e **Metrica del database** possono essere controllati nel tempo: spunta **Valuta questo criterio su un periodo di tempo**, poi scegli come **Valuta** i valori (ad esempio **Tutti i valori**) e **Nell'ultimo periodo di**. Nel tempo, l'impostazione **Se nessun dato** del filtro decide cosa significa un valore mancante; lasciala su **Ignore**, così un permesso mancante continua a non poter chiamare nessuno.
 
 ### Variabili delle espressioni JavaScript
 

@@ -5,6 +5,8 @@ export const EVERY_TWO_MINUTES: string = "*/2 * * * *";
 export const EVERY_FIVE_MINUTE: string = "*/5 * * * *";
 export const EVERY_FIVE_SECONDS: string = "*/5 * * * * *";
 export const EVERY_WEEK: string = "0 0 * * 0";
+// Mondays at 08:00 UTC: a week's digest, read at the start of the next.
+export const EVERY_MONDAY_MORNING: string = "0 8 * * 1";
 export const EVERY_FIFTEEN_MINUTE: string = "*/15 * * * *";
 export const EVERY_THIRTY_SECONDS: string = "*/30 * * * * *";
 export const EVERY_THIRTY_MINUTES: string = "*/30 * * * *";

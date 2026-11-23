@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Les nouveaux journaux sont masqués<br/>avant d'être stockés"]
 ```
 
-Une détection couverte par une règle de nettoyage est marquée comme nettoyée : ce qui reste de ces données, ce sont d'anciennes données qui attendent la fin de leur conservation, pas une fuite qui continue. Les deux contrôles de télémétrie ne comptent que ce qu'aucune règle ne couvre, donc leur problème se résout dès que chaque détection est nettoyée (voir [Contrôles de télémétrie](/docs/data-security/checks-and-issues#télémétrie)).
+Une détection couverte par une règle de nettoyage est marquée comme nettoyée : ce qu'OneUptime stocke de ces données, ce sont d'anciennes données qui attendent la fin de leur conservation. Le code les écrit pourtant toujours, donc les deux contrôles de télémétrie la comptent comme confinée, pas corrigée : leur problème se résout en **Confiné à l'ingestion** dès que chaque détection est nettoyée, et en **Corrigé dans le code** seulement quand la nouvelle version d'un correctif de code cesse d'écrire les données (voir [Ce qu'il advient d'un problème](/docs/data-security/checks-and-issues#ce-quil-advient-dun-problème)).
 
 ## Ce qui est lu
 

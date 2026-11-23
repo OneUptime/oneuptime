@@ -70,7 +70,7 @@ Houd of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **Elke
 
 ### API-URL
 
-Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`.
+Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`. De fout van een mislukte controle noemt de URL alleen met schema, host en poort, zoals `https://api.example.com`, dus het geheim wordt nooit getoond.
 
 ### Dynamische URL-plaatshouders
 
@@ -194,17 +194,18 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Percentiel** | Dat getal, over het venster, aan de voorwaarde voldoet, zoals de p95-reactietijd. Alleen numerieke filters. |
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Of het telt dat met **Aantal**, **Percentage** of **Statuswijzigingen**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
@@ -250,7 +251,7 @@ De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) e
 :::
 
 :::details De controle meldt dat de sonde te oud is om de body te versturen
-De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een release ouder dan OneUptime 17.2.0, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) of controleer de monitor vanaf een andere sonde.
+De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een oudere release, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. Het formulier van de monitor en de pagina van de sonde noemen zo'n sonde. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) naar de nieuwste release of controleer de monitor vanaf een andere sonde.
 :::
 
 ## Volgende stappen

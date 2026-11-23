@@ -73,6 +73,8 @@ import {
   EvaluatedCheck,
   FINDING_FRESHNESS_IN_DAYS,
   evaluateDataStoreChecks,
+  getTelemetryCheckIdOfDataType,
+  isContainedTelemetryFinding,
   isFindingCounted,
   isUnscrubbedTelemetryFinding,
 } from "../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -135,6 +137,8 @@ interface CustomDataTypeFacts {
 interface StoreFacts {
   findings: Array<SensitivityFinding>;
   unscrubbedDataTypeIds: Set<string>;
+  // A telemetry store's data types a scrub rule hides at ingest (#10368).
+  containedDataTypeIds: Set<string>;
   hasOwner: boolean;
   readers: Set<string>;
   // The readers not used in 90 days: principal -> the name people know it by.
@@ -149,6 +153,7 @@ function newFacts(): StoreFacts {
   return {
     findings: [],
     unscrubbedDataTypeIds: new Set(),
+    containedDataTypeIds: new Set(),
     hasOwner: false,
     readers: new Set(),
     unusedReaders: new Map(),
@@ -437,6 +442,15 @@ export default class DataSecurityEvaluator {
         dataTypeIds: computed.dataTypeIds,
         checks,
         existingIssues: facts.issues,
+        // A telemetry check whose data only a scrub rule hides is contained, not fixed.
+        containedCheckIds:
+          kindInfo?.family === DataStoreFamily.Telemetry
+            ? new Set<string>(
+                [...facts.containedDataTypeIds].map(
+                  getTelemetryCheckIdOfDataType,
+                ),
+              )
+            : undefined,
         now,
       });
 
@@ -589,6 +603,8 @@ export default class DataSecurityEvaluator {
             matchCount: true,
             isConfirmed: true,
             isAiSuggested: true,
+            // A finding a verified code fix stopped keeps no issue open (#10368).
+            fixedAt: true,
           },
           skip,
           limit,
@@ -626,6 +642,8 @@ export default class DataSecurityEvaluator {
       // Only a telemetry store's findings are scrubbed (evaluateStore).
       if (isUnscrubbedTelemetryFinding(finding)) {
         storeFacts.unscrubbedDataTypeIds.add(finding.dataTypeId);
+      } else if (isContainedTelemetryFinding(finding)) {
+        storeFacts.containedDataTypeIds.add(finding.dataTypeId);
       }
     }
   }
@@ -814,6 +832,7 @@ export default class DataSecurityEvaluator {
             _id: true,
             dataStoreId: true,
             checkId: true,
+            title: true,
             status: true,
             severity: true,
             riskScore: true,
@@ -821,6 +840,10 @@ export default class DataSecurityEvaluator {
             acceptedUntil: true,
             lastDetectedAt: true,
             reopenCount: true,
+            // How it resolved, and a fix's change waiting for its check (#10368).
+            resolution: true,
+            resolutionDetails: true,
+            pendingResolution: true,
           },
           skip,
           limit,

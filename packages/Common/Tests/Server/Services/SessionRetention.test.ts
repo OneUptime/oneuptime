@@ -1,6 +1,10 @@
+import DashboardPrivateUserSession from "../../../Models/DatabaseModels/DashboardPrivateUserSession";
+import FormPrivateUserSession from "../../../Models/DatabaseModels/FormPrivateUserSession";
 import StatusPagePrivateUserSession from "../../../Models/DatabaseModels/StatusPagePrivateUserSession";
 import UserSession from "../../../Models/DatabaseModels/UserSession";
+import { Service as DashboardSessionService } from "../../../Server/Services/DashboardPrivateUserSessionService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import { Service as FormSessionService } from "../../../Server/Services/FormPrivateUserSessionService";
 import Services from "../../../Server/Services/Index";
 import { Service as PrivateSessionService } from "../../../Server/Services/StatusPagePrivateUserSessionService";
 import { Service as UserSessionService } from "../../../Server/Services/UserSessionService";
@@ -10,6 +14,7 @@ import {
   OLDER_ROWS_PURGE_BATCH_SIZE,
   OLDER_ROWS_PURGE_TIME_BUDGET_MS,
 } from "../../../Server/Utils/Retention/OlderRowsPurge";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { EVERY_DAY } from "../../../Utils/CronTime";
 import { getJestSpyOn } from "../../Spy";
@@ -25,7 +30,7 @@ jest.mock("../../../../App/FeatureSet/Workers/Utils/Cron", () => {
 
 /*
  * Run the real worker and session services, with its registry narrowed to the
- * two session tables. A separate assertion checks the production registration.
+ * session tables. A separate assertion checks the production registration.
  */
 jest.mock("../../../Server/Services/Index", () => {
   return { __esModule: true, default: [] };
@@ -39,12 +44,18 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   };
 });
 
-type Session = StatusPagePrivateUserSession | UserSession;
+type Session =
+  | StatusPagePrivateUserSession
+  | UserSession
+  | DashboardPrivateUserSession
+  | FormPrivateUserSession;
 type CronHandler = () => Promise<void>;
 
 interface SessionCase {
   name: string;
   service: DatabaseService<Session>;
+  // How the kind marks an SSO login code that was never exchanged.
+  loginCode: JSONObject;
 }
 
 interface RetentionQuery {
@@ -67,8 +78,29 @@ const SESSION_CASES: Array<SessionCase> = [
   {
     name: "StatusPagePrivateUserSession",
     service: new PrivateSessionService(),
+    loginCode: { oneuptimeStatusPageSessionPurpose: "login-code" },
   },
-  { name: "UserSession", service: new UserSessionService() },
+  {
+    name: "UserSession",
+    service: new UserSessionService(),
+    loginCode: { oneuptimeStatusPageSessionPurpose: "login-code" },
+  },
+  /*
+   * A dashboard's and a form's private users' sessions (#10275, #10447):
+   * PrivateUserSessionServiceBase asks for the same 30 days, and they were
+   * left out of the registry the job reads, so none was ever purged
+   * (#10792).
+   */
+  {
+    name: "DashboardPrivateUserSession",
+    service: new DashboardSessionService() as DatabaseService<Session>,
+    loginCode: { oneuptimePrivateUserSessionPurpose: "login-code" },
+  },
+  {
+    name: "FormPrivateUserSession",
+    service: new FormSessionService() as DatabaseService<Session>,
+    loginCode: { oneuptimePrivateUserSessionPurpose: "login-code" },
+  },
 ];
 
 function sessionRow(
@@ -254,7 +286,7 @@ describe("session personal data retention", () => {
       const abandonedCode: Session = sessionRow(
         entry,
         new Date(CUTOFF.getTime() - 5 * 60 * 1000),
-        { additionalInfo: { oneuptimeStatusPageSessionPurpose: "login-code" } },
+        { additionalInfo: entry.loginCode },
       );
       const softDeleted: Session = sessionRow(
         entry,

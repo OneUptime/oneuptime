@@ -21,6 +21,7 @@ import GroupedMonitorRecovery, {
   GroupedRecoveryJudgement,
   RecoveryCriteriaCheck,
   SeriesBehindStatusReader,
+  WholeMonitorRecoveryJudgement,
 } from "./GroupedMonitorRecovery";
 import SeriesLabelDisplay from "../../../Types/Monitor/SeriesContext/SeriesLabelDisplay";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
@@ -35,7 +36,18 @@ import CriteriaFilterMatchHistory, {
   MatchHistoryJudgement,
 } from "./Criteria/CriteriaFilterMatchHistory";
 import CompareCriteria from "./Criteria/CompareCriteria";
+import CheckWindowCounts, {
+  CheckWindowCountReads,
+  CheckWindowJudgement,
+  CheckWindowSource,
+} from "./Criteria/CheckWindowCounts";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import CriteriaRecovery, {
+  CriteriaHeldText,
+  CriteriaHold,
+} from "./CriteriaRecovery";
+import CriteriaActiveHours from "./CriteriaActiveHours";
 import SyntheticMonitoringCriteria from "./Criteria/SyntheticMonitor";
 import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
@@ -110,6 +122,7 @@ import MonitorType, {
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import OneUptimeDate from "../../../Types/Date";
@@ -494,6 +507,12 @@ export default class MonitorCriteriaEvaluator {
      */
     const seriesEvaluations: MetricSeriesEvaluations = new Map();
 
+    /*
+     * The series that met the recovery condition of a criteria that held
+     * them, on this check (#10355): let go of by the grouped recovery rule.
+     */
+    const recoveredSeries: Set<string> = new Set<string>();
+
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       /*
        * Ungrouped monitors keep the historical semantics exactly: the
@@ -536,6 +555,30 @@ export default class MonitorCriteriaEvaluator {
         continue;
       }
 
+      /*
+       * A criteria judged only on some days and at some times (#10355) is
+       * skipped outside them, as a criteria that is off is: it matches
+       * nothing, so what it opened resolves as when it stops matching.
+       */
+      if (!CriteriaActiveHours.isActive({ criteria: criteriaInstance.data })) {
+        const skipReason: string =
+          "This criteria is judged only during its active hours, and this check was outside them.";
+
+        input.evaluationSummary.criteriaResults.push({
+          criteriaId: criteriaInstance.data?.id,
+          criteriaName: criteriaInstance.data?.name,
+          filterCondition:
+            criteriaInstance.data?.filterCondition || FilterCondition.All,
+          met: false,
+          message: skipReason,
+          filters: [],
+          skipped: true,
+          skipReason: skipReason,
+          skipCause: "outside-active-hours",
+        });
+        continue;
+      }
+
       const criteriaResult: MonitorEvaluationCriteriaResult = {
         criteriaId: criteriaInstance.data?.id,
         criteriaName: criteriaInstance.data?.name,
@@ -555,7 +598,7 @@ export default class MonitorCriteriaEvaluator {
         );
       }
 
-      const rootCause: string | null =
+      let rootCause: string | null =
         await MonitorCriteriaEvaluator.processMonitorCriteriaInstance({
           dataToProcess: input.dataToProcess,
           monitorStep: input.monitorStep,
@@ -567,6 +610,48 @@ export default class MonitorCriteriaEvaluator {
           criteriaInEffect: criteriaInEffect,
           seriesEvaluations: seriesEvaluations,
         });
+
+      /*
+       * A criteria with a recovery condition of its own (#10355) that has
+       * acted keeps acting until that condition is met, even on a check its
+       * filters no longer match: the whole monitor, or each series of a
+       * grouped one that it still holds (CriteriaRecovery).
+       */
+      let heldPerSeriesMatches: Array<PerSeriesCriteriaMatch> | undefined =
+        undefined;
+
+      if (MonitorCriteriaInstance.hasRecoveryCondition(criteriaInstance.data)) {
+        const hold: CriteriaHold =
+          await MonitorCriteriaEvaluator.holdUntilRecovered({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaInstance: criteriaInstance,
+            criteriaResult: criteriaResult,
+            isMet: Boolean(rootCause),
+            isPerSeries:
+              fanOutAcrossCriteria &&
+              !PerEntityCriteriaFanOut.judgesWholeMonitor({
+                monitorType: input.monitor.monitorType,
+                criteriaInstance: criteriaInstance,
+              }),
+            matchHistory: matchHistory,
+            criteriaInEffect: criteriaInEffect,
+            seriesEvaluations: seriesEvaluations,
+            seriesBehindStatus: input.seriesBehindStatus,
+          });
+
+        for (const fingerprint of hold.recoveredSeries) {
+          recoveredSeries.add(fingerprint);
+        }
+
+        heldPerSeriesMatches = hold.perSeriesMatches;
+
+        if (!rootCause && hold.rootCause) {
+          rootCause = hold.rootCause;
+        }
+      }
 
       if (!criteriaResult.message) {
         criteriaResult.message = criteriaResult.met
@@ -647,14 +732,16 @@ export default class MonitorCriteriaEvaluator {
           ? incomingRequestGrouping.perKeyMatches || []
           : judgesWholeMonitor
             ? []
-            : await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            : heldPerSeriesMatches ||
+              (await MonitorCriteriaEvaluator.collectPerSeriesMatches({
                 dataToProcess: input.dataToProcess,
                 monitor: input.monitor,
                 monitorStep: input.monitorStep,
                 criteriaInstance,
                 criteriaInEffect: criteriaInEffect,
                 seriesEvaluations: seriesEvaluations,
-              });
+                matchHistory: matchHistory,
+              }));
 
       /*
        * A grouped monitor whose scalar verdict says "met" but which
@@ -863,6 +950,7 @@ ${incomingRequestGrouping.rootCauseNote}
           criteriaResultsById: criteriaResultsById,
           evaluationSummary: input.evaluationSummary,
           seriesBehindStatus: input.seriesBehindStatus,
+          recoveredSeries: recoveredSeries,
         });
 
       const firstMatch: MatchedCriteriaResult | undefined =
@@ -920,6 +1008,35 @@ ${incomingRequestGrouping.rootCauseNote}
 
       input.probeApiIngestResponse.matchedCriteria = recovery.matchedCriteria;
       input.probeApiIngestResponse.evaluatedCriteriaIds = evaluatedCriteriaIds;
+    }
+
+    /*
+     * A monitor that judges no series on its own, on a check no criteria
+     * matched (#10743): its status set by a problem criteria holds until a
+     * recovery criteria of the step brings it back, as a grouped monitor's
+     * does (GroupedMonitorRecovery.judgeWholeMonitor). A recovery criteria
+     * outside its active hours cannot bring it back now, so it is not
+     * waited for.
+     */
+    if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {
+      const wholeMonitor: WholeMonitorRecoveryJudgement =
+        GroupedMonitorRecovery.judgeWholeMonitor({
+          criteriaInstances: criteria.data.monitorCriteriaInstanceArray.filter(
+            (criteriaInstance: MonitorCriteriaInstance): boolean => {
+              return CriteriaActiveHours.isActive({
+                criteria: criteriaInstance.data,
+              });
+            },
+          ),
+          defaultMonitorStatusId:
+            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+          currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+        });
+
+      if (wholeMonitor.isStatusKept) {
+        input.probeApiIngestResponse.statusKeptForRecoveryCriteriaIds =
+          wholeMonitor.recoveryCriteriaIds;
+      }
     }
 
     /*
@@ -1082,6 +1199,328 @@ ${incomingRequestGrouping.rootCauseNote}
     });
   }
 
+  /*
+   * A criteria with a recovery condition of its own (#10355): whether it
+   * still acts on this check, though its filters may no longer match.
+   *
+   * It does while it is in effect - it set the monitor's status, or an
+   * incident or alert it opened is still open (CriteriaInEffect) - and its
+   * recovery condition is not met. On a monitor that judges each series on
+   * its own it does so series by series: each series it has an incident or
+   * alert open for, or that is behind a status it set, and that the check
+   * read, is held until it meets the recovery condition. The series that
+   * met it are handed back, for the grouped recovery rule to let go of.
+   *
+   * Its row of the summary says what happened: held, with the recovery
+   * filters' findings, or recovered.
+   */
+  private static async holdUntilRecovered(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaInstance: MonitorCriteriaInstance;
+    criteriaResult: MonitorEvaluationCriteriaResult;
+    // Whether the criteria's own filters matched this check.
+    isMet: boolean;
+    // Judged series by series: a grouped monitor's criteria that names some.
+    isPerSeries: boolean;
+    matchHistory: MatchHistoryContext;
+    criteriaInEffect: CriteriaInEffect;
+    seriesEvaluations: MetricSeriesEvaluations;
+    seriesBehindStatus: SeriesBehindStatusReader | undefined;
+  }): Promise<CriteriaHold> {
+    const recoveryCriteria: MonitorCriteriaInstance =
+      CriteriaRecovery.toRecoveryCriteria(input.criteriaInstance);
+
+    if (!input.isPerSeries) {
+      if (input.isMet) {
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const isInEffect: boolean = await input.criteriaInEffect.isInEffect({
+        criteriaInstance: input.criteriaInstance,
+        seriesFingerprint: undefined,
+      });
+
+      if (!isInEffect) {
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const recoveryResult: MonitorEvaluationCriteriaResult =
+        CriteriaRecovery.newRecoveryResult(input.criteriaInstance);
+
+      const recoveryRootCause: string | null =
+        await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaInstance: recoveryCriteria,
+          criteriaResult: recoveryResult,
+          matchHistory: input.matchHistory,
+          criteriaInEffect: input.criteriaInEffect,
+          seriesEvaluations: input.seriesEvaluations,
+        });
+
+      if (recoveryRootCause) {
+        input.criteriaResult.message = CriteriaRecovery.describeRecovered({
+          recoveryResult: recoveryResult,
+        });
+
+        return { rootCause: null, recoveredSeries: [] };
+      }
+
+      const held: CriteriaHeldText = CriteriaRecovery.describeHeld({
+        recoveryResult: recoveryResult,
+      });
+
+      input.criteriaResult.met = true;
+      input.criteriaResult.message = held.message;
+
+      return { rootCause: held.rootCause, recoveredSeries: [] };
+    }
+
+    /*
+     * Series by series: the series its own filters matched, then each one
+     * it still holds.
+     */
+    const triggered: Array<PerSeriesCriteriaMatch> = input.isMet
+      ? await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+          dataToProcess: input.dataToProcess,
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
+          criteriaInstance: input.criteriaInstance,
+          criteriaInEffect: input.criteriaInEffect,
+          seriesEvaluations: input.seriesEvaluations,
+          matchHistory: input.matchHistory,
+        })
+      : [];
+
+    const triggeredFingerprints: Set<string> = new Set<string>(
+      triggered.map((series: PerSeriesCriteriaMatch): string => {
+        return series.fingerprint;
+      }),
+    );
+
+    const judged: Map<string, SeriesOfCheck> =
+      MonitorCriteriaEvaluator.getSeriesJudgedBy({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: input.criteriaInstance,
+      });
+
+    /*
+     * A status it set is behind the series it put there - known only while
+     * the monitor has that status, and only on a step whose recovery rule
+     * keeps them (SeriesBehindStatus).
+     */
+    const criteria: MonitorCriteriaInstance["data"] =
+      input.criteriaInstance.data;
+
+    const hasItsStatus: boolean =
+      Boolean(criteria?.changeMonitorStatus) &&
+      Boolean(criteria?.monitorStatusId) &&
+      input.monitor.currentMonitorStatusId?.toString() ===
+        criteria?.monitorStatusId?.toString();
+
+    const behindStatus: ReadonlySet<string> =
+      hasItsStatus && input.seriesBehindStatus
+        ? await input.seriesBehindStatus.getSeries()
+        : new Set<string>();
+
+    const inEffect: Array<string> = [];
+
+    for (const fingerprint of judged.keys()) {
+      if (triggeredFingerprints.has(fingerprint)) {
+        continue;
+      }
+
+      if (
+        behindStatus.has(fingerprint) ||
+        (MonitorCriteriaInstance.opensRecords(criteria!) &&
+          (await input.criteriaInEffect.isInEffect({
+            criteriaInstance: input.criteriaInstance,
+            seriesFingerprint: fingerprint,
+          })))
+      ) {
+        inEffect.push(fingerprint);
+      }
+    }
+
+    if (inEffect.length === 0) {
+      return {
+        rootCause: null,
+        perSeriesMatches: triggered,
+        recoveredSeries: [],
+      };
+    }
+
+    /*
+     * The recovery condition, judged for every series its filters read:
+     * the series a held one is, met it or not. When its filters name no
+     * series of their own, the check's verdict on them holds for every one.
+     */
+    const recoveryResult: MonitorEvaluationCriteriaResult =
+      CriteriaRecovery.newRecoveryResult(input.criteriaInstance);
+
+    const recoveryRootCause: string | null =
+      await MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
+        dataToProcess: input.dataToProcess,
+        monitorStep: input.monitorStep,
+        monitor: input.monitor,
+        probeApiIngestResponse: input.probeApiIngestResponse,
+        criteriaInstance: recoveryCriteria,
+        criteriaResult: recoveryResult,
+        matchHistory: input.matchHistory,
+        criteriaInEffect: input.criteriaInEffect,
+        seriesEvaluations: input.seriesEvaluations,
+      });
+
+    const recoveryJudged: Map<string, SeriesOfCheck> =
+      MonitorCriteriaEvaluator.getSeriesJudgedBy({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+        criteriaInstance: recoveryCriteria,
+      });
+
+    const recoveredPerSeries: Set<string> = new Set<string>(
+      (recoveryRootCause
+        ? await MonitorCriteriaEvaluator.collectPerSeriesMatches({
+            dataToProcess: input.dataToProcess,
+            monitor: input.monitor,
+            monitorStep: input.monitorStep,
+            criteriaInstance: recoveryCriteria,
+            criteriaInEffect: input.criteriaInEffect,
+            seriesEvaluations: input.seriesEvaluations,
+            matchHistory: input.matchHistory,
+          })
+        : []
+      ).map((series: PerSeriesCriteriaMatch): string => {
+        return series.fingerprint;
+      }),
+    );
+
+    const held: Array<PerSeriesCriteriaMatch> = [];
+    const recovered: Array<string> = [];
+
+    const heldText: CriteriaHeldText = CriteriaRecovery.describeHeld({
+      recoveryResult: recoveryResult,
+    });
+
+    for (const fingerprint of inEffect) {
+      const isRecovered: boolean = recoveryJudged.has(fingerprint)
+        ? recoveredPerSeries.has(fingerprint)
+        : Boolean(recoveryRootCause);
+
+      if (isRecovered) {
+        recovered.push(fingerprint);
+        continue;
+      }
+
+      const series: SeriesOfCheck | undefined = judged.get(fingerprint);
+
+      held.push({
+        criteriaMetId: criteria!.id.toString(),
+        fingerprint: fingerprint,
+        labels: series?.labels || {},
+        ...(series?.context ? { context: series.context } : {}),
+        rootCause: heldText.rootCause,
+      });
+    }
+
+    if (held.length > 0 && !input.isMet) {
+      input.criteriaResult.met = true;
+      input.criteriaResult.message = CriteriaRecovery.describeHeldSeries({
+        heldCount: held.length,
+        recoveryResult: recoveryResult,
+      });
+    }
+
+    return {
+      rootCause: held.length > 0 ? heldText.rootCause : null,
+      perSeriesMatches: [...triggered, ...held],
+      recoveredSeries: recovered,
+    };
+  }
+
+  /*
+   * A filter that counts its window's checks (CheckWindowCounts): this
+   * check's match of it, when the filter keeps a match history whose row
+   * this check has not written yet, and the window read with everything
+   * else judged for this probe result.
+   */
+  private static async judgeFilterOverCountedChecks(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    probeApiIngestResponse: ProbeApiIngestResponse;
+    criteriaFilter: CriteriaFilter;
+    matchHistory?: MatchHistoryContext | undefined;
+  }): Promise<CheckWindowJudgement> {
+    const source: CheckWindowSource | null = CheckWindowCounts.getSource({
+      criteriaFilter: input.criteriaFilter,
+      monitorType: input.monitor.monitorType,
+      monitorStepId: input.monitorStep.id,
+    });
+
+    const checkAt: Date =
+      input.matchHistory?.checkAt || OneUptimeDate.getCurrentDate();
+
+    let check: CriteriaFilterCheck = {
+      filterKey: "",
+      matched: false,
+      at: checkAt,
+    };
+
+    if (source?.isMatchHistory) {
+      const filterKey: string = CriteriaFilterMatchHistory.getFilterKey({
+        monitorStepId: input.monitorStep.id,
+        criteriaFilter: input.criteriaFilter,
+      });
+
+      check = input.matchHistory?.checks.get(filterKey) || {
+        filterKey: filterKey,
+        matched: await MonitorCriteriaEvaluator.isFilterMetOnThisCheck({
+          dataToProcess: input.dataToProcess,
+          monitorStep: input.monitorStep,
+          monitor: input.monitor,
+          probeApiIngestResponse: input.probeApiIngestResponse,
+          criteriaFilter: input.criteriaFilter,
+        }),
+        at: checkAt,
+      };
+    }
+
+    // A disk's usage is counted per disk: every disk the report has, for "*".
+    const diskPaths: Array<string> | undefined =
+      input.monitor.monitorType === MonitorType.Server &&
+      input.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
+        ? ServerMonitorCriteria.getAgentDiskPaths({
+            serverResponse: input.dataToProcess as ServerMonitorResponse,
+            diskPath: input.criteriaFilter.serverMonitorOptions?.diskPath,
+          })
+        : undefined;
+
+    return CheckWindowCounts.judgeFilter({
+      projectId:
+        input.monitor.projectId ||
+        (input.dataToProcess as ProbeMonitorResponse).projectId,
+      monitorId: input.monitor.id || input.dataToProcess.monitorId,
+      monitorStepId: input.monitorStep.id,
+      monitorType: input.monitor.monitorType,
+      probeId: (input.dataToProcess as ProbeMonitorResponse).probeId,
+      criteriaFilter: input.criteriaFilter,
+      check: check,
+      isStoredCheck: input.matchHistory?.isStoredCheck,
+      monitoringInterval: input.monitor.monitoringInterval,
+      diskPaths: diskPaths,
+      reads: input.matchHistory
+        ? CheckWindowCountReads.forMatchHistoryReads(input.matchHistory.reads)
+        : undefined,
+    });
+  }
+
   /**
    * Does this monitor raise one alert/incident per series rather than
    * one for the whole monitor?
@@ -1212,6 +1651,8 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaResultsById: Map<string, MonitorEvaluationCriteriaResult>;
     evaluationSummary: MonitorEvaluationSummary;
     seriesBehindStatus: SeriesBehindStatusReader | undefined;
+    // Series that met their own criteria's recovery condition (#10355).
+    recoveredSeries?: ReadonlySet<string> | undefined;
   }): Promise<GroupedRecoveryOutcome> {
     const defaultMonitorStatusId: ObjectID | undefined =
       input.monitor.monitorSteps?.data?.defaultMonitorStatusId;
@@ -1338,6 +1779,7 @@ ${incomingRequestGrouping.rootCauseNote}
       seriesBehindStatus: before,
       problemSeries: problemSeries,
       recoveryCriteria: checks,
+      recoveredSeries: input.recoveredSeries,
     });
 
     const standing: Array<MatchedCriteriaResult> = input.matchedCriteria.filter(
@@ -1650,6 +2092,11 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaInEffect?: CriteriaInEffect | undefined;
     // What the criteria's verdict judged every series to be, read again here.
     seriesEvaluations?: MetricSeriesEvaluations | undefined;
+    /*
+     * The reads of the probe result being handled, so a disk's counted
+     * window is read with the rest (CheckWindowCounts).
+     */
+    matchHistory?: MatchHistoryContext | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
     /*
      * Incoming Request / webhook monitors are not read here: their
@@ -1703,6 +2150,7 @@ ${incomingRequestGrouping.rootCauseNote}
               rootCause: null,
             },
             criteriaInstance: narrowedCriteriaInstance,
+            matchHistory: input.matchHistory,
             /*
              * A throwaway result: the per-entity pass must not overwrite
              * the summary row the whole-criteria evaluation already
@@ -1928,8 +2376,8 @@ ${incomingRequestGrouping.rootCauseNote}
     criteriaResult: MonitorEvaluationCriteriaResult;
     /*
      * This check's results for the filters that keep a match history, from
-     * processMonitorStep. Absent on the per-series and per-entity passes,
-     * whose monitor types keep none.
+     * processMonitorStep. The per-entity pass hands it on too, for the reads
+     * a counted window shares; its monitor types keep no match history.
      */
     matchHistory?: MatchHistoryContext | undefined;
     criteriaInEffect?: CriteriaInEffect | undefined;
@@ -1953,7 +2401,31 @@ ${incomingRequestGrouping.rootCauseNote}
       let rootCause: string | null = null;
       let matchHistoryMessage: string | null = null;
 
+      /*
+       * A filter that counts its window's checks (#10355) - how many
+       * matched, their share, how often it changed - is judged from them,
+       * whatever records them: a series or a match history. What the
+       * window came to is its message either way.
+       */
       if (
+        CriteriaFilterUtil.isCountedOverChecks(
+          criteriaFilter,
+          input.monitor.monitorType,
+        )
+      ) {
+        const judgement: CheckWindowJudgement =
+          await MonitorCriteriaEvaluator.judgeFilterOverCountedChecks({
+            dataToProcess: input.dataToProcess,
+            monitorStep: input.monitorStep,
+            monitor: input.monitor,
+            probeApiIngestResponse: input.probeApiIngestResponse,
+            criteriaFilter: criteriaFilter,
+            matchHistory: input.matchHistory,
+          });
+
+        rootCause = judgement.rootCause;
+        matchHistoryMessage = judgement.message;
+      } else if (
         CriteriaFilterMatchHistory.isJudgedFromHistory({
           criteriaFilter: criteriaFilter,
           monitorType: input.monitor.monitorType,

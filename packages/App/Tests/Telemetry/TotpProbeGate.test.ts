@@ -65,7 +65,7 @@ import TotpProbeGate, {
 
 /*
  * A step that needs a one-time code goes only to a probe that makes one
- * (issue #9759). A custom probe older than 17.0.1 does not declare
+ * (issue #9759). A custom probe older than 17.1.0 does not declare
  * totpCodes, would send {{monitorSecrets.NAME}} as written, and cannot be
  * changed: the server keeps such a step from it, and writes the step's
  * result itself, as the probe's, with a sentence saying to update the
@@ -105,7 +105,7 @@ const OLD_PROBE_BODY: JSONObject = {
 };
 const CURRENT_PROBE_BODY: JSONObject = {
   probeCapabilities: ["networkDevicePing", "retryWhenBusy", "totpCodes"],
-  probeVersion: "17.0.1",
+  probeVersion: "17.1.0",
 };
 
 let nextId: number = 1;
@@ -233,17 +233,19 @@ beforeEach(() => {
 });
 
 describe("the sentence a step kept from an old probe says", () => {
-  test("says what happened, why, and what to do, naming the first release that makes codes", () => {
-    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+  test("says what happened, why, and what to do, naming no release, as the request body gate's does", () => {
+    // 17.1.0 is the first release that makes codes: no 17.0.1 was released.
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.1.0");
     expect(ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE).toBe(
-      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.",
     );
+    expect(ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE).not.toMatch(/\d+\.\d+\.\d+/);
   });
 
   test("is one of the probe failure causes, so a summary words it in the reader's language", () => {
     expect(readProbeFailureCause(ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE)).toEqual({
       cause: ProbeFailureCause.ProbeTooOldForOneTimeCodes,
-      values: { version: "17.0.1" },
+      values: {},
     });
   });
 });

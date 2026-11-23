@@ -8,6 +8,7 @@ OneUptime AI læser hver sikkerhedssag, som en analytiker ville gøre: sagens de
 - [Arbejd med en sag fra start til slut](#arbejd-med-en-sag-fra-start-til-slut): Inddæm, tjek, ret og luk, med en person, der godkender det, du vælger.
 - [Hvad OneUptime AI må gøre på en sag](#hvad-oneuptime-ai-må-gøre-på-en-sag): Fra, Spørg først eller Selvstændigt for hver slags trin.
 - [Når den overdrager en sag til personer](#når-den-overdrager-en-sag-til-personer): Hvorfor den stopper, og hvem der hører om det.
+- [Lad OneUptime AI reagere først](#lad-oneuptime-ai-reagere-først): Giv kun folk besked, når OneUptime AI har brug for dem.
 - [Kør en playbook efter en vurdering](#kør-en-playbook-efter-en-vurdering): Reager på en sag, der læses som Sandsynligvis ondsindet.
 - [Skriv et udkast til en detektionsregel](#skriv-et-udkast-til-en-detektionsregel): Beskriv, hvad der skal fanges, og læs Sigma-reglen.
 - [Ask AI på sikkerhedssiderne](#ask-ai-på-sikkerhedssiderne): Spørgsmål om sager og begivenheder med almindelige ord.
@@ -184,6 +185,44 @@ Personerne på sagen hører om det med det samme, eller, når ingen er på sagen
 
 **Reagér med AI** beder OneUptime AI om at arbejde med sagen igen fra der, hvor sagen står.
 
+En sag, der holdes tilbage, mens OneUptime AI reagerer først, når frem til folk én gang, med notifikationen om den nye sag og grunden til, at OneUptime AI stoppede: se [Lad OneUptime AI reagere først](#lad-oneuptime-ai-reagere-først).
+
+## Lad OneUptime AI reagere først
+
+Under **Lad OneUptime AI reagere først** på **Produkter → Sikkerhedshændelser → AI → Indstillinger** slår du **Reagér først** til: så venter en ny sag, som en detektion åbner med en prioritet under den, du vælger, på OneUptime AI, før nogen får besked. Den tilbydes, mens **Vurder nye sager** og **Arbejd med sager fra start til slut** er slået til. Den starter slået fra og gemmes, så snart du ændrer den. Projektejer og Projektadministrator kan ændre den.
+
+- **For sager under**: den prioritet, en sag skal ligge under for at blive holdt tilbage. Den er High, indtil du vælger en anden.
+- **Giv folk besked alligevel efter**: hvor længe en sag højst holdes tilbage, 5, 10, 15, 20 eller 30 minutter. Den starter på 10 minutter.
+
+Mens en sag holdes tilbage, venter notifikationen om den nye sag, og det samme gør trinnene **Tilkald vagten** i de playbooks, der starter på den af sig selv. Sagen viser **OneUptime AI er i gang** sammen med tidspunktet, hvor folk får besked, og **Tilkald nu** giver dem besked med det samme. En playbook-kørsel, hvis tilkald venter, står som **Venter på OneUptime AI**.
+
+Tilbageholdelsen slutter, så snart en af disse ting sker:
+
+| Når | Så |
+| --- | --- |
+| OneUptime AI inddæmmer sagen, og OneUptime tjekker hvert trin, der inddæmmer den, eller sagen bliver lukket | Ingen får besked. De kanaler, der slår nye sager op, får én opsummering af, hvad OneUptime AI gjorde, og de tilkaldstrin, der ventede, springes over |
+| OneUptime AI har brug for en person: den beder nogen om at godkende et trin, overdrager sagen til personer eller kan ikke begynde at arbejde med den | Alle, som sagen blev holdt tilbage fra, får straks besked med begrundelsen og det, OneUptime AI allerede har gjort, og de tilkaldstrin, der ventede, tilkalder |
+| Dens vurdering læser ikke sagen som Sandsynligvis ondsindet, sagen bliver markeret som Inddæmmet, før OneUptime kunne tjekke hvert trin, eller tilbageholdelsestiden løber ud | Alle får straks besked med en begrundelse |
+| Nogen trykker på **Tilkald nu**, sagen stiger til den prioritet, du valgte, eller **Reagér først** eller **Arbejd med sager fra start til slut** bliver slået fra | Alle får besked med det samme |
+| En person tager sagen: med **Overtag**, ved at tildele den eller ved at flytte den videre | Personen har sagen. Ingen andre får besked, kanalerne hører om den nye sag, og de tilkaldstrin, der ventede, springes over |
+
+En sag holdes aldrig tilbage, og folk får besked som sædvanlig, når:
+
+- den har din højeste prioritet, eller den prioritet, du valgte, eller en højere;
+- 3 andre sager blev åbnet i de 5 minutter før den, hvilket ligner et aktivt angreb: de sager, der holdes tilbage på det tidspunkt, går også til personer;
+- noget af dens data lyder som instruktioner til en AI;
+- den handler om en adresse, bruger eller vært fra en sag, som OneUptime AI har løst inden for de seneste 24 timer, da det, den gjorde, ikke holdt;
+- OneUptime AI ikke kan vurdere eller arbejde med den, fx når projektet er løbet tør for AI-kreditter;
+- en person har åbnet den, eller den er testangrebets sag.
+
+Sagens tidslinje siger, hvorfor den ikke blev holdt tilbage, undtagen for en sag med den prioritet, du valgte, eller en højere, en sag, som en person har åbnet, og testangrebets sag. Et responsmåls notifikationer holdes aldrig tilbage.
+
+Indtil du sætter blokering af adresser og inddæmning af konti og værter til **Selvstændigt** under **Hvad OneUptime AI må gøre på en sag**, spørger OneUptime AI først, og en sag når frem til folk, så snart den spørger. Med **Blokér adresser** på **Selvstændigt**, bekræftet af en Sikkerhedsadministrator, kan den inddæmme en scanner, uden at nogen får besked.
+
+### Den ugentlige e-mail
+
+Hver mandag får Projektejere og Sikkerhedsadministratorer, der kan læse sikkerhedssager, én e-mail om, hvad OneUptime AI gjorde på projektets sikkerhedssager ugen før: de sager, den reagerede først på, og hvordan de endte; hvor hurtigt de sager, den arbejdede med, blev inddæmmet; de adresser, den blokerede, og de blokeringer, der blev ophævet igen; de trin, den bad folk om at godkende, og hvor hurtigt de svarede; og de trin, folk fortrød. Den indeholder kun tal og et link til **Produkter → Sikkerhedshændelser → Oversigt**. I en uge, hvor OneUptime AI intet gjorde, sendes der ingen e-mail.
+
 ## Afslutningsrapporten
 
 Når OneUptime AI lukker en sag, eller beder en person om at gøre det, skriver den en afslutningsrapport ud fra det, sagen indeholder, ikke ud fra vurderingens ord: hvad der skete, konsekvenserne, hvad der blev gjort, hvad der blev rettet, og hvad man skal holde øje med. Rapporten er sagens afslutningsnote, den står på tidslinjen, og kortet viser den under **Afslutningsrapport**. Med **Luk sagen** på **Spørg først** venter sagen på, at en person godkender lukningen, med rapporten til at læse først.
@@ -242,6 +281,14 @@ En Projektejer eller en person med Manage Billing kan tilføje kreditter under *
 
 :::details Kortet siger, at tekst i sagen lyder som instruktioner til en AI
 Noget af sagens data, som en begivenhedsmeddelelse eller et brugernavn, blev skrevet for at styre en AI. OneUptime AI læste det som data og overlod beslutningen til dig: læs selv detektionerne og beviserne, før du lukker sagen.
+:::
+
+:::details Folk fik besked, mens OneUptime AI reagerede først
+Sagens tidslinje siger, hvorfor tilbageholdelsen sluttede: OneUptime AI bad nogen om at godkende et trin, overdrog sagen til personer eller blev ikke færdig inden for **Giv folk besked alligevel efter**, eller nogen trykkede på **Tilkald nu**. Et trin, der spørger først, når frem til folk, så snart OneUptime AI spørger: se **Hvad OneUptime AI må gøre på en sag**.
+:::
+
+:::details En ny sag blev ikke holdt tilbage
+Tjek, at **Reagér først** er slået til, og at sagen ligger under den prioritet, der er valgt i **For sager under**. En sag med din højeste prioritet, en sag, som en person har åbnet, og testangrebets sag holdes aldrig tilbage. I alle andre tilfælde siger sagens tidslinje hvorfor.
 :::
 
 :::details En playbook med AI-udløseren kørte ikke

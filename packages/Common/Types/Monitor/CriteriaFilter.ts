@@ -348,7 +348,47 @@ export enum EvaluateOverTimeType {
   MunimumValue = "Minimum Value",
   AllValues = "All Values",
   AnyValue = "Any Value",
+  /*
+   * One figure for the window, like Average: the given percentile of the
+   * window's values (EvaluateOverTimeOptions.percentile, 95 when unset),
+   * compared with the filter's own threshold. "The 95th percentile of the
+   * response time over the last hour is above 300 ms" (#10355).
+   */
+  Percentile = "Percentile",
+  /*
+   * The window's checks, counted (#10355): the filter's own condition says
+   * which checks count - "Is Online is False" counts the failed ones - and
+   * countFilterType and countValue say how many it takes: "more than 30
+   * failed checks in the last 8 hours". Percentage compares their share of
+   * the window's checks instead, and Status Changes the number of times the
+   * condition changed between matching and not matching from one check to
+   * the next: how often a device went down or came back up.
+   *
+   * Each probe's checks are counted on their own, so a monitor checked from
+   * three probes does not count three times as fast, and the probes agree
+   * as for any other criteria (CheckWindowCounts on the server).
+   */
+  Count = "Count",
+  Percentage = "Percentage",
+  StatusChanges = "Status Changes",
 }
+
+/*
+ * The percentiles the criteria form offers for EvaluateOverTimeType.
+ * Percentile, the default first. The API takes any above 0 and below 100.
+ */
+export const EVALUATE_OVER_TIME_PERCENTILE_OPTIONS: ReadonlyArray<number> = [
+  95, 50, 90, 99,
+];
+
+export const DEFAULT_EVALUATE_OVER_TIME_PERCENTILE: number = 95;
+
+/*
+ * The longest window a filter's checks are counted over, in minutes: a
+ * week. Monitor metrics are kept 30 days by default, so the checks are
+ * there; past a week a count says more about the past than about now.
+ */
+export const MAX_COUNTED_WINDOW_IN_MINUTES: number = 7 * 24 * 60;
 
 export enum NoDataPolicy {
   /*
@@ -494,6 +534,16 @@ export enum EvaluateOverTimeMinutes {
   ThirtyMinutes = "30",
   FortyFiveMinutes = "45",
   SixtyMinutes = "60",
+  /*
+   * Hours, for the windows a count is judged over (#10355): "more than 30
+   * failed checks in the last 8 hours". Offered for every kind of window.
+   */
+  TwoHours = "120",
+  FourHours = "240",
+  SixHours = "360",
+  EightHours = "480",
+  TwelveHours = "720",
+  TwentyFourHours = "1440",
 }
 
 export interface EvaluateOverTimeOptions {
@@ -507,6 +557,19 @@ export interface EvaluateOverTimeOptions {
    * of firing off the reading that happens to have just arrived.
    */
   onNoDataPolicy?: NoDataPolicy | undefined;
+  /*
+   * Percentile only: which one, above 0 and below 100. 95 when unset
+   * (DEFAULT_EVALUATE_OVER_TIME_PERCENTILE).
+   */
+  percentile?: number | undefined;
+  /*
+   * Count, Percentage and Status Changes only: how the window's number of
+   * matching checks - their share of its checks, in %, for Percentage; the
+   * times the condition changed, for Status Changes - is compared, and with
+   * what: Greater Than 30. Greater Than 0 when unset.
+   */
+  countFilterType?: FilterType | undefined;
+  countValue?: number | undefined;
 }
 
 export interface CriteriaFilter {
@@ -893,6 +956,23 @@ export class CriteriaFilterUtil {
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
       criteriaFilter?.evaluateOverTimeOptions?.evaluateOverTimeType;
 
+    /*
+     * A count of the window's checks reads every check as a yes or a no
+     * (CheckWindowCounts), so it is what it says on any check that can be
+     * counted at all. On one that cannot, it is judged as All Values.
+     */
+    if (
+      evaluateOverTimeType &&
+      CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType)
+    ) {
+      return CriteriaFilterUtil.canCountChecks(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+        ? evaluateOverTimeType
+        : EvaluateOverTimeType.AllValues;
+    }
+
     if (
       !evaluateOverTimeType ||
       evaluateOverTimeType === EvaluateOverTimeType.AllValues ||
@@ -908,6 +988,157 @@ export class CriteriaFilterUtil {
     return EvaluateOverTimeType.AllValues;
   }
 
+  /*
+   * Whether a window type counts the window's checks (#10355): how many
+   * matched, their share, or how often the condition changed. The filter's
+   * own condition says which checks count; countFilterType and countValue
+   * say how many it takes.
+   */
+  public static isCountedWindowType(
+    evaluateOverTimeType: EvaluateOverTimeType | undefined,
+  ): boolean {
+    return (
+      evaluateOverTimeType === EvaluateOverTimeType.Count ||
+      evaluateOverTimeType === EvaluateOverTimeType.Percentage ||
+      evaluateOverTimeType === EvaluateOverTimeType.StatusChanges
+    );
+  }
+
+  /*
+   * Whether a window type reduces the window's values to one figure that the
+   * filter's own threshold is compared with: Average, Sum, Maximum Value,
+   * Minimum Value and Percentile.
+   */
+  public static isValueAggregateWindowType(
+    evaluateOverTimeType: EvaluateOverTimeType | undefined,
+  ): boolean {
+    return (
+      evaluateOverTimeType === EvaluateOverTimeType.Average ||
+      evaluateOverTimeType === EvaluateOverTimeType.Sum ||
+      evaluateOverTimeType === EvaluateOverTimeType.MaximumValue ||
+      evaluateOverTimeType === EvaluateOverTimeType.MunimumValue ||
+      evaluateOverTimeType === EvaluateOverTimeType.Percentile
+    );
+  }
+
+  /*
+   * Whether a check's checks can be counted over a window on this monitor
+   * type: every check that is offered a window is, since each of them has a
+   * series or a match history to count (isEvaluateOverTimeFilter), except on
+   * the monitors that receive rather than check - an Incoming Request or an
+   * Incoming Email monitor has no checks at a cadence to count. Without a
+   * monitor type, a check counts that can be counted on any monitor.
+   */
+  public static canCountChecks(
+    checkOn: CheckOn | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (!checkOn) {
+      return false;
+    }
+
+    if (
+      monitorType === MonitorType.IncomingRequest ||
+      monitorType === MonitorType.IncomingEmail
+    ) {
+      return false;
+    }
+
+    /*
+     * A Server monitor's Is Online is written only when its agent reports,
+     * so its series holds no failed check to count: a server that stops
+     * reporting writes nothing. Its offline criteria waits on the time since
+     * the last report instead (ServerMonitorCriteria).
+     */
+    if (monitorType === MonitorType.Server && checkOn === CheckOn.IsOnline) {
+      return false;
+    }
+
+    if (monitorType) {
+      return CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn, monitorType);
+    }
+
+    return (
+      CriteriaFilterUtil.isEvaluateOverTimeFilter(checkOn) ||
+      CriteriaFilterUtil.keepsMatchHistory(checkOn)
+    );
+  }
+
+  /*
+   * Whether this filter counts its window's checks: it is evaluated over a
+   * window of some minutes, its type is a count (isCountedWindowType), and
+   * its check can be counted on the monitor (canCountChecks).
+   */
+  public static isCountedOverChecks(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      !criteriaFilter?.evaluateOverTime ||
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) <= 0
+    ) {
+      return false;
+    }
+
+    return CriteriaFilterUtil.isCountedWindowType(
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ),
+    );
+  }
+
+  // The percentile a Percentile window reads: its own, or 95.
+  public static getPercentile(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
+    const percentile: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.percentile,
+    );
+
+    return Number.isFinite(percentile) && percentile > 0 && percentile < 100
+      ? percentile
+      : DEFAULT_EVALUATE_OVER_TIME_PERCENTILE;
+  }
+
+  /*
+   * How a counted window's number is compared, and with what: its own, or
+   * "Greater Than 0" - at least one check matched, changed or failed.
+   */
+  public static getCountComparison(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): { filterType: FilterType; value: number } {
+    const filterType: FilterType | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.countFilterType;
+    const value: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.countValue,
+    );
+
+    return {
+      filterType:
+        filterType && CriteriaFilterUtil.isCountComparison(filterType)
+          ? filterType
+          : FilterType.GreaterThan,
+      value: Number.isFinite(value) ? value : 0,
+    };
+  }
+
+  // The comparisons a count, a share or a number of changes is read with.
+  public static readonly COUNT_COMPARISONS: ReadonlyArray<FilterType> = [
+    FilterType.GreaterThan,
+    FilterType.GreaterThanOrEqualTo,
+    FilterType.LessThan,
+    FilterType.LessThanOrEqualTo,
+    FilterType.EqualTo,
+    FilterType.NotEqualTo,
+  ];
+
+  public static isCountComparison(filterType: FilterType | undefined): boolean {
+    return Boolean(
+      filterType && CriteriaFilterUtil.COUNT_COMPARISONS.includes(filterType),
+    );
+  }
+
   public static getEvaluateOverTimeTypeByCriteriaFilter(
     criteriaFilter: CriteriaFilter | undefined,
     monitorType?: MonitorType | undefined,
@@ -916,15 +1147,48 @@ export class CriteriaFilterUtil {
       return [];
     }
 
+    // Counting the window's checks, where they can be counted (#10355).
+    const counts: Array<EvaluateOverTimeType> =
+      CriteriaFilterUtil.canCountChecks(criteriaFilter.checkOn, monitorType)
+        ? [
+            EvaluateOverTimeType.Count,
+            EvaluateOverTimeType.Percentage,
+            EvaluateOverTimeType.StatusChanges,
+          ]
+        : [];
+
     if (
       CriteriaFilterUtil.isJudgedCheckByCheck(
         criteriaFilter.checkOn,
         monitorType,
       )
     ) {
-      return [EvaluateOverTimeType.AllValues, EvaluateOverTimeType.AnyValue];
+      return [
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+        ...counts,
+      ];
     }
 
+    return [
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.Percentile,
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+      ...counts,
+    ];
+  }
+
+  /*
+   * The aggregations a metric criteria reduces its series' data points with
+   * (MetricMonitorOptions.metricAggregationType). Not the window types that
+   * count checks or read a percentile: a metric query's own aggregation
+   * reads percentiles, and a metric monitor's window is its query's.
+   */
+  public static getMetricAggregationTypes(): Array<EvaluateOverTimeType> {
     return [
       EvaluateOverTimeType.Average,
       EvaluateOverTimeType.Sum,

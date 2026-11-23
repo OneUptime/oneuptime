@@ -1,4 +1,5 @@
 import CriteriaFilters from "./CriteriaFilters";
+import CriteriaRecoveryAndActiveHours from "./CriteriaRecoveryAndActiveHours";
 import IncidentOrAlertNote from "./IncidentOrAlertNote";
 import {
   CRITERIA_ACTION_FORM_CLASS_NAME,
@@ -857,7 +858,13 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           (isEnabled ? "Enabled" : "Disabled")
         }
         variant="bordered"
-        defaultCollapsed={!showIncidentGrouping}
+        defaultCollapsed={
+          !showIncidentGrouping &&
+          !MonitorCriteriaInstance.hasRecoveryCondition(
+            monitorCriteriaInstance?.data,
+          ) &&
+          !MonitorCriteriaInstance.hasActiveHours(monitorCriteriaInstance?.data)
+        }
         isFlushOnPhones={true}
         className={CRITERIA_SECTION_CLASS_NAME}
       >
@@ -902,6 +909,21 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
+
+          {/*
+           * When it recovers, and when it is judged at all (#10355): two
+           * switches, off until someone needs them.
+           */}
+          {props.monitorStep && (
+            <CriteriaRecoveryAndActiveHours
+              criteriaInstance={monitorCriteriaInstance}
+              monitorType={props.monitorType}
+              monitorStep={props.monitorStep}
+              onChange={(value: MonitorCriteriaInstance) => {
+                props.onChange?.(value);
+              }}
+            />
+          )}
 
           {props.monitorType === MonitorType.IncomingRequest && (
             <div className="mt-6 border-t border-gray-100 pt-4">

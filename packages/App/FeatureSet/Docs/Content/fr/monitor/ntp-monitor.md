@@ -119,7 +119,7 @@ Les critères sont évalués de haut en bas, et le premier qui correspond décid
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous chaque filtre NTP. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière seule : choisissez une agrégation sous **Évaluer** et une fenêtre de 2 à 60 minutes sous **Pour les dernières (en minutes)**. Seules les vérifications auxquelles le serveur a répondu ont une strate, un décalage et une dispersion racine ; une fenêtre sans réponse n'a donc pas de données pour ces filtres, et **En l'absence de données** décide de ce qui se passe.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous chaque filtre NTP. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière seule : choisissez une agrégation sous **Évaluer** et une fenêtre de 2 minutes à 24 heures sous **Pour les dernières**. Seules les vérifications auxquelles le serveur a répondu ont une strate, un décalage et une dispersion racine ; une fenêtre sans réponse n'a donc pas de données pour ces filtres, et **En l'absence de données** décide de ce qui se passe.
 
 ### Exemples de critères
 

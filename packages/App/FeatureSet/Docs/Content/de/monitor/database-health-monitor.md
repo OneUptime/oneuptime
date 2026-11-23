@@ -377,7 +377,7 @@ Zähler, die auf `total` enden, sind seit dem Serverstart kumulativ. Vergleichen
 
 Schwellenwerte sind ganze Zahlen. Schreiben Sie `90`, nicht `90.5` — Prozentwerte und Sekunden werden als Ganzzahlen verglichen.
 
-**Datenbank ist online** und **Datenbankmetrik** lassen sich über einen Zeitraum prüfen: Aktivieren Sie **Diese Kriterien über einen Zeitraum hinweg auswerten**, wählen Sie dann unter **Auswerten**, wie die Werte ausgewertet werden (zum Beispiel **Alle Werte**), und **Für die letzten (in Minuten)**. Über einen Zeitraum entscheidet die Einstellung **Bei keinen Daten** des Filters, was ein fehlender Wert bedeutet; lassen Sie sie auf **Ignore**, damit eine fehlende Berechtigung weiterhin niemanden alarmieren kann.
+**Datenbank ist online** und **Datenbankmetrik** lassen sich über einen Zeitraum prüfen: Aktivieren Sie **Diese Kriterien über einen Zeitraum hinweg auswerten**, wählen Sie dann unter **Auswerten**, wie die Werte ausgewertet werden (zum Beispiel **Alle Werte**), und **Für die letzten**. Über einen Zeitraum entscheidet die Einstellung **Bei keinen Daten** des Filters, was ein fehlender Wert bedeutet; lassen Sie sie auf **Ignore**, damit eine fehlende Berechtigung weiterhin niemanden alarmieren kann.
 
 ### Variablen für JavaScript-Ausdrücke
 

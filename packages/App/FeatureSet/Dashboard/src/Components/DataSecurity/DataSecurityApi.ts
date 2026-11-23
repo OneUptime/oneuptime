@@ -13,6 +13,8 @@ import {
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
   DataSecurityIssueAnalysisResult,
+  DataSecurityIssueContainment,
+  DataSecurityIssueContainmentRule,
   DataSecurityMetricUser,
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
@@ -68,6 +70,80 @@ export class DataSecurityApiError extends Error {
     super(message);
     this.statusCode = statusCode;
   }
+}
+
+function readCount(value: JSONValue | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.trunc(value)
+    : null;
+}
+
+function readOptionalText(value: JSONValue | undefined): string | undefined {
+  return typeof value === "string" && value ? value : undefined;
+}
+
+/*
+ * An issue's containment as the server sent it (#10368): each rule read on
+ * its own, and one of the wrong shape left out. None for an answer of no
+ * containment.
+ */
+export function readIssueContainment(
+  value: JSONValue | undefined,
+): DataSecurityIssueContainment | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const rules: Array<DataSecurityIssueContainmentRule> = [];
+
+  for (const item of Array.isArray(json["rules"]) ? json["rules"] : []) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      continue;
+    }
+
+    const rule: JSONObject = item as JSONObject;
+    const id: string | undefined = readOptionalText(rule["id"]);
+    const signal: string | undefined = readOptionalText(rule["signal"]);
+
+    if (!id || !signal) {
+      continue;
+    }
+
+    const read: DataSecurityIssueContainmentRule = {
+      id,
+      signal,
+      name: readOptionalText(rule["name"]) || "",
+      valuesChanged: readCount(rule["valuesChanged"]),
+      isKept: rule["isKept"] === true,
+    };
+    const lastChangedAt: string | undefined = readOptionalText(
+      rule["lastChangedAt"],
+    );
+    const lastChangedVersion: string | undefined = readOptionalText(
+      rule["lastChangedVersion"],
+    );
+
+    if (lastChangedAt) {
+      read.lastChangedAt = lastChangedAt;
+    }
+
+    if (lastChangedVersion) {
+      read.lastChangedVersion = lastChangedVersion;
+    }
+
+    if (rule["valuesChangedSinceFix"] !== undefined) {
+      read.valuesChangedSinceFix = readCount(rule["valuesChangedSinceFix"]);
+    }
+
+    rules.push(read);
+  }
+
+  return {
+    days: readCount(json["days"]) || 0,
+    containedFindingCount: readCount(json["containedFindingCount"]) || 0,
+    rules,
+  };
 }
 
 async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
@@ -551,6 +627,20 @@ export default class DataSecurityApi {
       analysis: readDataSecurityIssueAnalysisView(answer["analysis"]),
       group: readIssueGroup(answer["group"]),
     };
+  }
+
+  /*
+   * What hides a telemetry issue's data at ingest, and what each rule
+   * changed lately and since a verified code fix (#10368).
+   */
+  public static async getIssueContainment(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueContainment | null> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueContainment(issueId.toString()),
+    );
+
+    return readIssueContainment(answer["containment"]);
   }
 
   // Which response actions a store can take now, and why not.

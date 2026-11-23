@@ -35,7 +35,9 @@ export type MonitorEvaluationEventType =
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"
-  | "earlier-criterion-matched";
+  | "earlier-criterion-matched"
+  // Judged only during its active hours, and the check was outside them.
+  | "outside-active-hours";
 
 /*
  * What a grouping event says, for the Dashboard to word in the reader's

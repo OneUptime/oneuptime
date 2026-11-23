@@ -4,6 +4,7 @@ import ThreatIntelIndicatorService, {
 } from "../../../../../Server/Services/ThreatIntelIndicatorService";
 import AddressFacts, {
   AddressFactsReading,
+  getThreatIntelAddressValues,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressFacts";
 import SecurityConnections from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -149,6 +150,67 @@ describe("an address's facts, read through the connections taken at the first re
       signedInUsers: 0,
       signedInUser: "",
     });
+  });
+
+  /*
+   * A feed's indicators are kept as the feed wrote them, in lower case: an
+   * IPv6 one most often compressed, while the step reads the case's
+   * address written out. The facts asked the feeds for that one spelling,
+   * so no feed was ever found to list an IPv6 attacker (#10744).
+   */
+  test.each([
+    "2001:db8:0:0:0:0:0:7",
+    "2001:db8::7",
+    "2001:0DB8:0000:0000:0000:0000:0000:0007",
+  ])(
+    "the threat intel feeds are asked for an IPv6 address the case writes %s in each spelling a feed keeps",
+    async (address: string) => {
+      getJestSpyOn(SecurityConnections, "forEntities").mockResolvedValue(
+        connectionsHolding({
+          name: "checkout-1",
+          matchedValue: "203.0.113.70",
+        }),
+      );
+      const indicators: SpyInstance = getJestSpyOn(
+        ThreatIntelIndicatorService,
+        "findActiveIndicatorsByValues",
+      ).mockResolvedValue([indicator("a")]);
+      stubSignIns([]);
+
+      const reading: AddressFactsReading = await AddressFacts.read({
+        projectId: PROJECT_ID,
+        address,
+        now: NOW,
+      });
+
+      expect(reading.threatIntelFeeds).toBe(1);
+      expect(indicators).toHaveBeenCalledTimes(1);
+
+      const values: Array<string> = (
+        indicators.mock.calls[0]![0] as { values: Array<string> }
+      ).values;
+
+      expect(values).toEqual(
+        expect.arrayContaining(["2001:db8::7", "2001:db8:0:0:0:0:0:7"]),
+      );
+      // Feeds are kept in lower case: each spelling once, in lower case.
+      expect(values).toEqual(
+        Array.from(
+          new Set(
+            values.map((value: string): string => {
+              return value.toLowerCase();
+            }),
+          ),
+        ),
+      );
+    },
+  );
+
+  test("an IPv4 address is asked for as a dual-stack server maps it too", () => {
+    expect(getThreatIntelAddressValues(ADDRESS)).toEqual([
+      ADDRESS,
+      `::ffff:${ADDRESS}`,
+    ]);
   });
 
   test("records that cannot be read fail the facts: what is not known is not a fact", async () => {

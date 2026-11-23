@@ -428,6 +428,14 @@ export default class SecurityCaseApi {
   }
 
   /*
+   * Page now (#10353): the people OneUptime AI holds a new case's alerts
+   * from while it responds first are alerted at once.
+   */
+  public static async pageNowForAiHold(caseId: ObjectID): Promise<void> {
+    await post(`/security-case/${caseId.toString()}/ai-response/page-now`, {});
+  }
+
+  /*
    * A person's answer to what OneUptime AI asked on the card: taking the
    * case, a step it would mark done, an exception for the case's rule.
    */

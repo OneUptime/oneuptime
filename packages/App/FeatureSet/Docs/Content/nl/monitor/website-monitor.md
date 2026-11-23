@@ -71,7 +71,7 @@ Houd of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **Elke
 
 ### Website-URL
 
-De pagina die gecontroleerd wordt, als volledige URL met schema: `https://example.com`, `https://example.com/pricing` of `http://example.com:8080/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`, bijvoorbeeld een token in de querystring.
+De pagina die gecontroleerd wordt, als volledige URL met schema: `https://example.com`, `https://example.com/pricing` of `http://example.com:8080/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`, bijvoorbeeld een token in de querystring. De fout van een mislukte controle noemt de URL alleen met schema, host en poort, zoals `https://example.com`, dus het geheim wordt nooit getoond.
 
 ### Dynamische URL-plaatshouders
 
@@ -179,17 +179,18 @@ Monitoren die zijn gemaakt voordat OneUptime deze standaarden wijzigde, houden d
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder een filter, aangeboden voor **Is online**, **Reactiestatuscode**, **Reactietijd (in ms)**, **Antwoordlichaam**, **Reactieheader**, **Waarde van reactieheader**, **JavaScript-expressie** en **Time-out van aanvraag**. Zet het aan om een venster van eerdere controles te beoordelen in plaats van alleen de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**.
 
 | Aggregatie | Komt overeen wanneer |
 | --- | --- |
-| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde** | Dat getal, over het venster, aan de voorwaarde voldoet. Alleen numerieke filters. |
+| **Gemiddelde**, **Som**, **Maximale waarde**, **Minimale waarde**, **Percentiel** | Dat getal, over het venster, aan de voorwaarde voldoet, zoals de p95-reactietijd. Alleen numerieke filters. |
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
+| **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
+Een body, een header, een headerwaarde of een expressie is geen getal dat OneUptime vastlegt. Voor die filters en voor **Time-out van aanvraag** legt OneUptime daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Of het telt dat met **Aantal**, **Percentage** of **Statuswijzigingen**. Zo doorstaat een monitor een herstart. Een app die opstart, antwoordt misschien met `200` en een tijdelijke pagina zoals `Application starting...`; met **Alle waarden** zet een filter **Antwoordlichaam** dat naar de titel van de app zoekt de monitor pas offline als de tijdelijke pagina het hele venster heeft geduurd.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 
