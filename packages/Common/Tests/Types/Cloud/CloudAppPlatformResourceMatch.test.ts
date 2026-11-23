@@ -216,7 +216,10 @@ describe("which platforms run an app as a resource a connection reads", () => {
   });
 
   test("the type each app runs as, an App Service app's by its slot", () => {
-    const typeOf: (cloudPlatform: string, groupName?: string) => string | null = (
+    const typeOf: (
+      cloudPlatform: string,
+      groupName?: string,
+    ) => string | null = (
       cloudPlatform: string,
       groupName?: string,
     ): string | null => {
@@ -278,7 +281,10 @@ describe("which platforms run an app as a resource a connection reads", () => {
 
 describe("an App Service app of a deployment slot: its own slot (#6793)", () => {
   const SITE: Row = row("site", siteId("checkout-api"));
-  const STAGING: Row = row("staging", `${siteId("checkout-api")}/slots/staging`);
+  const STAGING: Row = row(
+    "staging",
+    `${siteId("checkout-api")}/slots/staging`,
+  );
   const QA: Row = row("qa", `${siteId("checkout-api")}/slots/qa`);
   const OTHER_GROUP: Row = row(
     "staging, other group",
@@ -428,7 +434,9 @@ describe("a Container App (#6794)", () => {
 
   test("by its cloud.resource_id first", () => {
     const resolution: CloudAppSiteResolution<Row> = resolve({
-      app: containerApp({ providerResourceId: CHECKOUT_WEST.providerResourceId! }),
+      app: containerApp({
+        providerResourceId: CHECKOUT_WEST.providerResourceId!,
+      }),
       candidates: [CHECKOUT, CHECKOUT_WEST],
       environment: { cloudAccountId: SUBSCRIPTION, cloudRegion: "East US" },
     });
@@ -442,7 +450,13 @@ describe("a Container App (#6794)", () => {
       labelOf(
         matchCloudAppPlatformResource({
           app: containerApp(),
-          candidates: [SITE, CHECKOUT_V2, OTHER_SUBSCRIPTION_APP, CHECKOUT_WEST, CHECKOUT],
+          candidates: [
+            SITE,
+            CHECKOUT_V2,
+            OTHER_SUBSCRIPTION_APP,
+            CHECKOUT_WEST,
+            CHECKOUT,
+          ],
           environment: { cloudAccountId: SUBSCRIPTION, cloudRegion: "East US" },
         }),
       ),
@@ -463,7 +477,13 @@ describe("a Container App (#6794)", () => {
     expect(
       pickedInEveryOrder({
         app: containerApp(),
-        candidates: [SITE, CHECKOUT_V2, OTHER_SUBSCRIPTION_APP, CHECKOUT_WEST, CHECKOUT],
+        candidates: [
+          SITE,
+          CHECKOUT_V2,
+          OTHER_SUBSCRIPTION_APP,
+          CHECKOUT_WEST,
+          CHECKOUT,
+        ],
         environment: { cloudAccountId: SUBSCRIPTION, cloudRegion: "eastus" },
         seed: 67941,
       }),
@@ -529,7 +549,12 @@ describe("a Cloud Run service (#6794)", () => {
     expect(
       matchCloudAppPlatformResource({
         app: runApp(),
-        candidates: [JOB, CHECKOUT_V2, CHECKOUT_STAGING_PROJECT, CHECKOUT_EUROPE],
+        candidates: [
+          JOB,
+          CHECKOUT_V2,
+          CHECKOUT_STAGING_PROJECT,
+          CHECKOUT_EUROPE,
+        ],
         environment: { cloudAccountId: PROJECT, cloudRegion: "us-central1" },
       }),
     ).toBeNull();
@@ -557,7 +582,10 @@ describe("a Cloud Run service (#6794)", () => {
 
   test("by a cloud.resource_id set to the service's full name", () => {
     const resolution: CloudAppSiteResolution<Row> = resolve({
-      app: runApp({ name: "checkout-api", providerResourceId: runId("checkout", PROJECT, "europe-west1") }),
+      app: runApp({
+        name: "checkout-api",
+        providerResourceId: runId("checkout", PROJECT, "europe-west1"),
+      }),
       candidates: EVERY,
       environment: { cloudAccountId: PROJECT, cloudRegion: "us-central1" },
     });
@@ -665,7 +693,9 @@ describe("an App Runner service (#6794)", () => {
 
   test("by the ARN its cloud.resource_id names", () => {
     const resolution: CloudAppSiteResolution<Row> = resolve({
-      app: appRunnerApp({ providerResourceId: CHECKOUT_WEST.providerResourceId! }),
+      app: appRunnerApp({
+        providerResourceId: CHECKOUT_WEST.providerResourceId!,
+      }),
       candidates: [CHECKOUT, CHECKOUT_WEST],
       environment: ENVIRONMENT,
     });
@@ -679,7 +709,12 @@ describe("an App Runner service (#6794)", () => {
       labelOf(
         matchCloudAppPlatformResource({
           app: appRunnerApp(),
-          candidates: [CHECKOUT_API, CHECKOUT_OTHER_ACCOUNT, CHECKOUT_WEST, CHECKOUT],
+          candidates: [
+            CHECKOUT_API,
+            CHECKOUT_OTHER_ACCOUNT,
+            CHECKOUT_WEST,
+            CHECKOUT,
+          ],
           environment: ENVIRONMENT,
         }),
       ),
@@ -712,7 +747,12 @@ describe("an App Runner service (#6794)", () => {
     expect(
       pickedInEveryOrder({
         app: appRunnerApp(),
-        candidates: [CHECKOUT_API, CHECKOUT_OTHER_ACCOUNT, CHECKOUT_WEST, CHECKOUT],
+        candidates: [
+          CHECKOUT_API,
+          CHECKOUT_OTHER_ACCOUNT,
+          CHECKOUT_WEST,
+          CHECKOUT,
+        ],
         environment: ENVIRONMENT,
         seed: 67944,
       }),
@@ -818,9 +858,13 @@ describe("an ECS service (#6794)", () => {
           row("web, west", ecsArn("prod", "web", "us-west-2"), {
             cloudProperties: taskDefinition("checkout"),
           }),
-          row("web, other account", ecsArn("prod", "web", "us-east-1", "999999999999"), {
-            cloudProperties: taskDefinition("checkout"),
-          }),
+          row(
+            "web, other account",
+            ecsArn("prod", "web", "us-east-1", "999999999999"),
+            {
+              cloudProperties: taskDefinition("checkout"),
+            },
+          ),
         ],
         environment: ENVIRONMENT,
       }),

@@ -595,15 +595,15 @@ const ECS_SERVICE_COMPOSITE: RegExp =
   /^AWS\/ECS ClusterName=(\S+) ServiceName=(\S+)$/i;
 const APP_RUNNER_SERVICE_COMPOSITE: RegExp =
   /^AWS\/AppRunner ServiceName=(\S+)$/i;
+// A task definition's revision: the number after its family's last colon.
+const TASK_DEFINITION_REVISION: RegExp = /^\d+$/;
 
 /*
  * The family of an ECS task definition, as a service lists the one it
  * runs: "arn:aws:ecs:us-east-1:123:task-definition/checkout:42", or
  * "checkout:42" -> "checkout".
  */
-export function getEcsTaskDefinitionFamily(
-  taskDefinition: unknown,
-): string {
+export function getEcsTaskDefinitionFamily(taskDefinition: unknown): string {
   if (typeof taskDefinition !== "string") {
     return "";
   }
@@ -617,7 +617,7 @@ export function getEcsTaskDefinitionFamily(
   const colon: number = afterSlash.lastIndexOf(":");
 
   return (
-    colon > 0 && /^\d+$/.test(afterSlash.slice(colon + 1))
+    colon > 0 && TASK_DEFINITION_REVISION.test(afterSlash.slice(colon + 1))
       ? afterSlash.slice(0, colon)
       : afterSlash
   ).trim();
@@ -769,7 +769,9 @@ function theOneOf<T extends CloudPlatformResourceCandidate>(
  * The app's Cloud Run, App Engine, App Runner or ECS service among the
  * candidates (see the top of this file).
  */
-function resolveCloudAppService<T extends CloudPlatformResourceCandidate>(data: {
+function resolveCloudAppService<
+  T extends CloudPlatformResourceCandidate,
+>(data: {
   app: CloudAppPlatformResourceSource;
   candidates: ReadonlyArray<T>;
   environment?: CloudAppPlatformEnvironment | null | undefined;
@@ -779,8 +781,10 @@ function resolveCloudAppService<T extends CloudPlatformResourceCandidate>(data: 
   const identified: Array<IdentifiedCandidate<T>> = [];
 
   for (const row of data.candidates) {
-    const identity: CloudAppServiceIdentity | null =
-      getCloudAppServiceIdentity(platform, row);
+    const identity: CloudAppServiceIdentity | null = getCloudAppServiceIdentity(
+      platform,
+      row,
+    );
 
     if (identity) {
       identified.push({ row, identity });

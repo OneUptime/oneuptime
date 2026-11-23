@@ -2120,18 +2120,17 @@ describe("the platform monitoring row off App Service (#6794)", () => {
       hint: "Its numbers, as Google Cloud Monitoring measures them, are below.",
       action: undefined,
     });
-    expect(isCloudAppSetupIncomplete([rowOf(rows, CloudAppSetupRowKey.PlatformMonitor)])).toBe(
-      false,
-    );
+    expect(
+      isCloudAppSetupIncomplete([
+        rowOf(rows, CloudAppSetupRowKey.PlatformMonitor),
+      ]),
+    ).toBe(false);
   });
 
   test("Not connected with no connection of its cloud: what to connect, and the way there", () => {
     for (const [platform, provider] of PLATFORMS) {
       const row: CloudAppSetupRow = rowOf(
-        rowsFor(
-          platform,
-          platformLink({ platform, provider, connections: 0 }),
-        ),
+        rowsFor(platform, platformLink({ platform, provider, connections: 0 })),
         CloudAppSetupRowKey.PlatformMonitor,
       );
 

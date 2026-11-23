@@ -214,8 +214,10 @@ export async function fetchCloudAppPlatformCandidates(
   app: CloudAppPlatformResourceSource,
   environment?: CloudAppPlatformEnvironment | null | undefined,
 ): Promise<Array<CloudResource>> {
-  const query: Query<CloudResource> | null =
-    getCloudAppPlatformCandidateQuery(app, environment);
+  const query: Query<CloudResource> | null = getCloudAppPlatformCandidateQuery(
+    app,
+    environment,
+  );
 
   if (!query) {
     return [];
@@ -242,9 +244,7 @@ export async function fetchCloudAppPlatformCandidates(
 export async function fetchCloudAppSiteCandidates(
   app: CloudAppPlatformResourceSource,
 ): Promise<Array<CloudResource>> {
-  return isAppServiceApp(app)
-    ? await fetchCloudAppPlatformCandidates(app)
-    : [];
+  return isAppServiceApp(app) ? await fetchCloudAppPlatformCandidates(app) : [];
 }
 
 // The subset of CloudApp that names the resource the server kept for it.

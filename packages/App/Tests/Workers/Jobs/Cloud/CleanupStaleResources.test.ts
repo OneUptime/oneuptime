@@ -807,7 +807,9 @@ describe("step 6: apps tied to the cloud resources they run as (#10407, #6794)",
 
     await runTick();
 
-    expect(appService.findProjectIdsWithPlatformResourceApps).not.toHaveBeenCalled();
+    expect(
+      appService.findProjectIdsWithPlatformResourceApps,
+    ).not.toHaveBeenCalled();
     expect(appService.linkPlatformResourcesSafely).not.toHaveBeenCalled();
 
     jest

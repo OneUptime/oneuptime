@@ -158,7 +158,7 @@ env_variables:
 
 **네트워킹:** App Engine 표준 환경은 인터넷에 바로 닿습니다. 가변형 환경의 인스턴스는 VPC 안에 있으므로, 서브넷에 외부 IP가 없다면 Cloud NAT와 OneUptime 호스트로 가는 TCP 443을 허용하는 방화벽 이그레스 규칙이 필요합니다.
 
-**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나옵니다. **클라우드 → 연결**에서 프로젝트를 연결하면 앱의 **개요**에 **Google Cloud Monitoring** 섹션이 추가되어, 앱이 무엇을 보내든 App Engine이 측정한 서비스의 요청, 5xx 상태로 응답한 비율, p95 지연 시간을 보여 줍니다. Cloud Monitoring은 App Engine 앱의 CPU나 메모리 사용 비율을 보고하지 않으므로, 이 섹션에는 그 값이 없습니다. OneUptime은 환경의 프로젝트에서 앱의 `faas.name`이 가리키는 App Engine 서비스에 앱을 연결하며, 아무것도 읽히지 않는 동안에는 앱의 **설정 점검**에 있는 **Google Cloud Monitoring 연결** 행이 찾고 있는 서비스를 알려 줍니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Google Cloud Monitoring의 서비스 수치를 보여 줍니다.
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나옵니다. **클라우드 → 연결**에서 프로젝트를 연결하면 앱의 **개요**에 **Google Cloud Monitoring** 섹션이 추가되어, 앱이 무엇을 보내든 App Engine이 측정한 서비스의 요청, 5xx 상태로 응답한 비율, p95 지연 시간을 보여 줍니다. OneUptime은 아직 App Engine 앱의 CPU와 메모리를 읽지 않으므로, 이 섹션에는 그 값이 없습니다. OneUptime은 환경의 프로젝트에서 앱의 `faas.name`이 가리키는 App Engine 서비스에 앱을 연결하며, 아무것도 읽히지 않는 동안에는 앱의 **설정 점검**에 있는 **Google Cloud Monitoring 연결** 행이 찾고 있는 서비스를 알려 줍니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Google Cloud Monitoring의 서비스 수치를 보여 줍니다.
 
 ## Azure App Service
 

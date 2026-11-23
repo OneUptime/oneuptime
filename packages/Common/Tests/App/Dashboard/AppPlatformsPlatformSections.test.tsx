@@ -118,7 +118,9 @@ jest.mock(
         mockReads.asks.push({ name: scope.name, attributes: scope.attributes });
         const value: number | undefined = mockReads.metricValues[scope.name];
 
-        return value === undefined ? [] : [{ x: scope.start, y: value * scale }];
+        return value === undefined
+          ? []
+          : [{ x: scope.start, y: value * scale }];
       },
       fetchGroupedMetricSeries: async (scope: {
         name: string;
@@ -162,7 +164,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
         const data: Array<unknown> =
           request.modelType.name === "CloudResource" ? mockReads.resources : [];
 
-        return Promise.resolve({ data, count: data.length, skip: 0, limit: 50 });
+        return Promise.resolve({
+          data,
+          count: data.length,
+          skip: 0,
+          limit: 50,
+        });
       },
       count: async (request: ListRequest): Promise<number> => {
         mockReads.connectionCounts.push(request);
@@ -308,7 +315,10 @@ function environmentOf(entry: PlatformCase): CloudResource {
 }
 
 // A running app that sends metrics only: no trace, no instance, no version.
-function appOf(entry: PlatformCase, fields: Record<string, unknown> = {}): CloudApp {
+function appOf(
+  entry: PlatformCase,
+  fields: Record<string, unknown> = {},
+): CloudApp {
   return Object.assign(new CloudApp(), {
     _id: APP_ID,
     cloudResourceId: ENVIRONMENT_ID,
@@ -378,7 +388,10 @@ async function renderCase(
   await act(async () => {
     render(
       <MemoryRouter>
-        <PageOverview app={appOf(entry, fields)} environment={environmentOf(entry)} />
+        <PageOverview
+          app={appOf(entry, fields)}
+          environment={environmentOf(entry)}
+        />
       </MemoryRouter>,
     );
   });
@@ -491,7 +504,9 @@ describe("a Container App's Azure Monitor section", () => {
 
     await renderCase(CASES["containerApps"]!);
 
-    const section: HTMLElement = screen.getByTestId("cloud-app-platform-monitor");
+    const section: HTMLElement = screen.getByTestId(
+      "cloud-app-platform-monitor",
+    );
     expect(
       within(section).getByRole("heading", { name: "Azure Monitor" }),
     ).toBeInTheDocument();
@@ -518,7 +533,9 @@ describe("a Container App's Azure Monitor section", () => {
       );
     }
     expect(
-      screen.getByTestId("cloud-app-platform-monitor-open").getAttribute("href"),
+      screen
+        .getByTestId("cloud-app-platform-monitor-open")
+        .getAttribute("href"),
     ).toContain(RESOURCE_ID);
   });
 
@@ -564,7 +581,9 @@ describe("a Cloud Run service's Google Cloud Monitoring section", () => {
 
     await renderCase(CASES["cloudRun"]!);
 
-    const section: HTMLElement = screen.getByTestId("cloud-app-platform-monitor");
+    const section: HTMLElement = screen.getByTestId(
+      "cloud-app-platform-monitor",
+    );
     expect(
       within(section).getByRole("heading", { name: "Google Cloud Monitoring" }),
     ).toBeInTheDocument();
@@ -644,7 +663,7 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
     expect(tiles["Server errors"]!.value).toBe("5.0%");
     expect(tiles["p95 latency"]!.value).toBe("64\u00A0ms");
 
-    // Cloud Monitoring reports no CPU or memory share of an App Engine app.
+    // No CPU or memory of an App Engine app is read yet (#10838): its own tiles stay.
     expect(appTileTitles()).toEqual([
       "Requests",
       "Error rate",
@@ -655,7 +674,9 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
     ]);
     expect(
       mockReads.asks.find((ask: MetricAsk): boolean => {
-        return ask.name === "appengine.googleapis.com/http/server/response_count";
+        return (
+          ask.name === "appengine.googleapis.com/http/server/response_count"
+        );
       })?.groupBy,
     ).toBe("response_code");
   });
@@ -674,7 +695,9 @@ describe("an App Runner service's Amazon CloudWatch section", () => {
 
     await renderCase(CASES["appRunner"]!);
 
-    const section: HTMLElement = screen.getByTestId("cloud-app-platform-monitor");
+    const section: HTMLElement = screen.getByTestId(
+      "cloud-app-platform-monitor",
+    );
     expect(
       within(section).getByRole("heading", { name: "Amazon CloudWatch" }),
     ).toBeInTheDocument();

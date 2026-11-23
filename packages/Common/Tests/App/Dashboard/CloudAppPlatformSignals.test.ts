@@ -309,7 +309,10 @@ describe("which apps show their resource's numbers", () => {
           app(2, { platformCloudResourceId: ORDERS_SITE_ROW }),
           app(3, { tracesLastReceivedAt: NOW }),
           app(4, { platformCloudResourceId: undefined }),
-          app(5, { cloudPlatform: "gcp_cloud_run", platformCloudResourceId: RUN_ROW }),
+          app(5, {
+            cloudPlatform: "gcp_cloud_run",
+            platformCloudResourceId: RUN_ROW,
+          }),
           app(6, { cloudPlatform: "aws_ecs", groupName: "prod" }),
         ]).entries(),
       ),
@@ -431,7 +434,9 @@ describe("the reads a page takes", () => {
 
   test("Cloud Run: its request count once, by response_code_class, each minute's rate times 60, and its p95", () => {
     expect(
-      describeReads(getCloudAppPlatformMetricReads([runRow(RUN_ROW, "checkout")])),
+      describeReads(
+        getCloudAppPlatformMetricReads([runRow(RUN_ROW, "checkout")]),
+      ),
     ).toEqual([
       [
         CloudAppPlatformFigure.Requests,
@@ -459,18 +464,36 @@ describe("the reads a page takes", () => {
     expect(reads[0]!.storedName).toBe(GAE_REQUESTS);
     expect(reads[0]!.errorLabel?.attribute).toBe("response_code");
     expect(reads[0]!.scale).toBe(60);
-    expect(reads.map((read: CloudAppPlatformGroupRead) => {
-      return read.figure;
-    })).toEqual([CloudAppPlatformFigure.Requests, CloudAppPlatformFigure.Latency]);
+    expect(
+      reads.map((read: CloudAppPlatformGroupRead) => {
+        return read.figure;
+      }),
+    ).toEqual([
+      CloudAppPlatformFigure.Requests,
+      CloudAppPlatformFigure.Latency,
+    ]);
   });
 
   test("App Runner: its Requests, 5xxStatusResponses and mean RequestLatency, by its dimensions, account and Region", () => {
     expect(
       describeReads(
-        getCloudAppPlatformMetricReads([appRunnerRow(APP_RUNNER_ROW, "checkout")]),
-      ).map((read: [string, string, AggregationType, number, Array<string>, string]) => {
-        return [read[0], read[1], read[2], read[4]];
-      }),
+        getCloudAppPlatformMetricReads([
+          appRunnerRow(APP_RUNNER_ROW, "checkout"),
+        ]),
+      ).map(
+        (
+          read: [
+            string,
+            string,
+            AggregationType,
+            number,
+            Array<string>,
+            string,
+          ],
+        ) => {
+          return [read[0], read[1], read[2], read[4]];
+        },
+      ),
     ).toEqual([
       [
         CloudAppPlatformFigure.Requests,
@@ -592,9 +615,18 @@ describe("a resource's hour, from the reads' groups", () => {
     const values: Map<string, CloudAppPlatformGroupValue> =
       readPlatformMetricGroups({
         rows: [
-          group({ ...runAttributes("checkout"), response_code_class: "2xx" }, 9),
-          group({ ...runAttributes("checkout"), response_code_class: "4xx" }, 2),
-          group({ ...runAttributes("checkout"), response_code_class: "5xx" }, 1),
+          group(
+            { ...runAttributes("checkout"), response_code_class: "2xx" },
+            9,
+          ),
+          group(
+            { ...runAttributes("checkout"), response_code_class: "4xx" },
+            2,
+          ),
+          group(
+            { ...runAttributes("checkout"), response_code_class: "5xx" },
+            1,
+          ),
           group({ ...runAttributes("orders"), response_code_class: "2xx" }, 5),
         ],
         keys,
@@ -615,7 +647,10 @@ describe("a resource's hour, from the reads' groups", () => {
       readPlatformMetricGroups({
         rows: ["200", "404", "499", "500", "503", "599", "600", "5xx", ""].map(
           (code: string): AggregatedModel => {
-            return group({ ...gaeAttributes("default"), response_code: code }, 1);
+            return group(
+              { ...gaeAttributes("default"), response_code: code },
+              1,
+            );
           },
         ),
         keys,
@@ -634,9 +669,15 @@ describe("a resource's hour, from the reads' groups", () => {
     responseTime?: number;
   }): CloudAppPlatformSignals {
     const site: CloudResource = siteRow(CHECKOUT_SITE_ROW, "checkout-api");
-    const valuesByRead: Map<string, Map<string, CloudAppPlatformGroupValue>> =
-      new Map();
-    const put: (figure: CloudAppPlatformFigure, name: string, value?: number) => void = (
+    const valuesByRead: Map<
+      string,
+      Map<string, CloudAppPlatformGroupValue>
+    > = new Map();
+    const put: (
+      figure: CloudAppPlatformFigure,
+      name: string,
+      value?: number,
+    ) => void = (
       figure: CloudAppPlatformFigure,
       name: string,
       value?: number,
@@ -650,11 +691,17 @@ describe("a resource's hour, from the reads' groups", () => {
     };
 
     put(CloudAppPlatformFigure.Requests, REQUESTS, values.requests);
-    put(CloudAppPlatformFigure.ServerErrors, SERVER_ERRORS, values.serverErrors);
+    put(
+      CloudAppPlatformFigure.ServerErrors,
+      SERVER_ERRORS,
+      values.serverErrors,
+    );
     put(
       CloudAppPlatformFigure.ResponseTime,
       RESPONSE_TIME,
-      values.responseTime === undefined ? undefined : values.responseTime * 1000,
+      values.responseTime === undefined
+        ? undefined
+        : values.responseTime * 1000,
     );
 
     return summarizePlatformSite({ site, values: valuesByRead })!;
@@ -667,7 +714,11 @@ describe("a resource's hour, from the reads' groups", () => {
 
   test("a site's requests, 5xx answers and their share, and its mean response time in milliseconds", () => {
     expect(
-      appServiceSummary({ requests: 1200, serverErrors: 6, responseTime: 0.18 }),
+      appServiceSummary({
+        requests: 1200,
+        serverErrors: 6,
+        responseTime: 0.18,
+      }),
     ).toEqual({
       requests: 1200,
       serverErrors: 6,
@@ -706,13 +757,15 @@ describe("a resource's hour, from the reads' groups", () => {
   });
 
   test("a site's id in another case is still its own", () => {
-    const valuesByRead: Map<string, Map<string, CloudAppPlatformGroupValue>> =
-      new Map([
-        [
-          [CloudAppPlatformFigure.Requests, REQUESTS, AZURE_ID].join("|"),
-          new Map([[armId("checkout-api").toLowerCase(), { value: 40 }]]),
-        ],
-      ]);
+    const valuesByRead: Map<
+      string,
+      Map<string, CloudAppPlatformGroupValue>
+    > = new Map([
+      [
+        [CloudAppPlatformFigure.Requests, REQUESTS, AZURE_ID].join("|"),
+        new Map([[armId("checkout-api").toLowerCase(), { value: 40 }]]),
+      ],
+    ]);
 
     expect(
       summarizePlatformSite({
@@ -766,9 +819,11 @@ describe("a resource's hour, from the reads' groups", () => {
         site: row,
         values: new Map([
           [
-            [CloudAppPlatformFigure.Requests, "azure_requests_total", ...keys].join(
-              "|",
-            ),
+            [
+              CloudAppPlatformFigure.Requests,
+              "azure_requests_total",
+              ...keys,
+            ].join("|"),
             new Map([[id, { value: 500 }]]),
           ],
           [
@@ -1072,8 +1127,14 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
       groups: {
         [REQUESTS]: [azureGroup(armId("checkout-api"), 100)],
         [RUN_REQUESTS]: [
-          group({ ...runAttributes("checkout"), response_code_class: "2xx" }, 4),
-          group({ ...runAttributes("checkout"), response_code_class: "5xx" }, 1),
+          group(
+            { ...runAttributes("checkout"), response_code_class: "2xx" },
+            4,
+          ),
+          group(
+            { ...runAttributes("checkout"), response_code_class: "5xx" },
+            1,
+          ),
         ],
         [RUN_LATENCY]: [group(runAttributes("checkout"), 120)],
         "amazonaws.com/AWS/AppRunner/Requests": [

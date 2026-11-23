@@ -158,7 +158,7 @@ env_variables:
 
 **網路：** App Engine 標準環境可以直接連上網際網路。彈性環境的執行個體位於 VPC 中：如果子網路沒有外部 IP，它們需要 Cloud NAT，以及允許透過 TCP 443 連到 OneUptime 主機的輸出防火牆規則。
 
-**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤。在 **雲端 → 連線** 中連線專案後，應用程式的 **概覽** 會多出一個 **Google Cloud Monitoring** 區段：無論應用程式傳送什麼，都會顯示 App Engine 測得的服務請求、以 5xx 狀態回應的比例與 p95 延遲。Cloud Monitoring 不會回報 App Engine 應用程式的 CPU 或記憶體使用比例，因此該區段不會顯示它們。OneUptime 會在其環境的專案中，將應用程式關聯到其 `faas.name` 指明的 App Engine 服務；在尚未讀取到任何服務時，它的 **設定檢查** 中的 **Google Cloud Monitoring 連線** 列會說明正在尋找的服務。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Google Cloud Monitoring 提供的服務資料。
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤。在 **雲端 → 連線** 中連線專案後，應用程式的 **概覽** 會多出一個 **Google Cloud Monitoring** 區段：無論應用程式傳送什麼，都會顯示 App Engine 測得的服務請求、以 5xx 狀態回應的比例與 p95 延遲。OneUptime 尚未讀取 App Engine 應用程式的 CPU 與記憶體，因此該區段不會顯示它們。OneUptime 會在其環境的專案中，將應用程式關聯到其 `faas.name` 指明的 App Engine 服務；在尚未讀取到任何服務時，它的 **設定檢查** 中的 **Google Cloud Monitoring 連線** 列會說明正在尋找的服務。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Google Cloud Monitoring 提供的服務資料。
 
 ## Azure App Service
 

@@ -352,17 +352,13 @@ describe("each platform's app keeps the resource it runs as (#6794)", () => {
       "arn:aws:apprunner:us-east-1:123456789012:service/checkout/8fe1e10304f84fd2b0df550fe98a71fa",
       { cloudResourceType: "AWS::AppRunner::Service" },
     ),
-    site(
-      "ecs-web",
-      "arn:aws:ecs:us-east-1:123456789012:service/prod/web",
-      {
-        cloudResourceType: "AWS::ECS::Service",
-        cloudProperties: {
-          TaskDefinition:
-            "arn:aws:ecs:us-east-1:123456789012:task-definition/checkout:12",
-        },
+    site("ecs-web", "arn:aws:ecs:us-east-1:123456789012:service/prod/web", {
+      cloudResourceType: "AWS::ECS::Service",
+      cloudProperties: {
+        TaskDefinition:
+          "arn:aws:ecs:us-east-1:123456789012:task-definition/checkout:12",
       },
-    ),
+    }),
     site(
       "ecs-checkout-other-family",
       "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout",
@@ -422,7 +418,9 @@ describe("each platform's app keeps the resource it runs as (#6794)", () => {
             keptSiteId: "app-runner",
           }),
           // No cluster: no ECS service is its.
-          platformApp("b2", "aws_ecs", AWS_ENVIRONMENT, { keptSiteId: "ecs-web" }),
+          platformApp("b2", "aws_ecs", AWS_ENVIRONMENT, {
+            keptSiteId: "ecs-web",
+          }),
           platformApp("b3", "gcp_cloud_run", GCP_ENVIRONMENT, {
             name: "orders",
             keptSiteId: "cloud-run",

@@ -413,7 +413,9 @@ export class Service extends DatabaseService<Model> {
         };
       })
       .filter((app: CloudAppLinkSource): boolean => {
-        return Boolean(app.id) && isCloudAppPlatformWithResource(app.cloudPlatform);
+        return (
+          Boolean(app.id) && isCloudAppPlatformWithResource(app.cloudPlatform)
+        );
       });
 
     if (apps.length === 0) {

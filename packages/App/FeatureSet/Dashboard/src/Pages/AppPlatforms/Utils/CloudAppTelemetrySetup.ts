@@ -528,9 +528,7 @@ export function showsCloudAppUsageTiles(data: {
   // Whether the platform's section below shows the app's CPU and memory.
   hasPlatformUsage: boolean;
 }): boolean {
-  return (
-    !data.hasPlatformUsage || data.hasCpuReading || data.hasMemoryReading
-  );
+  return !data.hasPlatformUsage || data.hasCpuReading || data.hasMemoryReading;
 }
 
 /*

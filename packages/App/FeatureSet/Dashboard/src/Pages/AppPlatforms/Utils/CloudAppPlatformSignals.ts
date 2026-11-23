@@ -434,7 +434,7 @@ export function summarizePlatformSite(data: {
     CloudAppPlatformFigure.ServerErrors,
   );
   const serverErrors: number | null = requestsRead?.read.errorLabel
-    ? (requestsRead.value?.serverErrors ?? null)
+    ? requestsRead.value?.serverErrors ?? null
     : errorsRead?.value
       ? errorsRead.value.value
       : null;
@@ -583,17 +583,24 @@ export async function fetchCloudAppPlatformSignals(data: {
 
     const reads: Array<CloudAppPlatformGroupRead> =
       getCloudAppPlatformMetricReads(sites);
-    const values: Map<string, Map<string, CloudAppPlatformGroupValue>> =
-      new Map<string, Map<string, CloudAppPlatformGroupValue>>();
+    const values: Map<
+      string,
+      Map<string, CloudAppPlatformGroupValue>
+    > = new Map<string, Map<string, CloudAppPlatformGroupValue>>();
 
     await Promise.all(
       reads.map(async (read: CloudAppPlatformGroupRead): Promise<void> => {
-        values.set(readKeyOf(read), await readGroupedMetric({ read, start, end }));
+        values.set(
+          readKeyOf(read),
+          await readGroupedMetric({ read, start, end }),
+        );
       }),
     );
 
-    const bySite: Map<string, { type: string; signals: CloudAppPlatformSignals }> =
-      new Map<string, { type: string; signals: CloudAppPlatformSignals }>();
+    const bySite: Map<
+      string,
+      { type: string; signals: CloudAppPlatformSignals }
+    > = new Map<string, { type: string; signals: CloudAppPlatformSignals }>();
 
     for (const site of sites) {
       const summary: CloudAppPlatformSignals | null = site._id
@@ -609,8 +616,9 @@ export async function fetchCloudAppPlatformSignals(data: {
     }
 
     for (const [appId, siteId] of siteIdsByApp) {
-      const site: { type: string; signals: CloudAppPlatformSignals } | undefined =
-        bySite.get(siteId);
+      const site:
+        | { type: string; signals: CloudAppPlatformSignals }
+        | undefined = bySite.get(siteId);
 
       if (site && site.type === typeByApp.get(appId)) {
         signals.set(appId, site.signals);

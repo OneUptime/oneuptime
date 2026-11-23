@@ -154,7 +154,9 @@ describe("which apps have a site to look up", () => {
       "Microsoft.Web/sites",
     );
     expect(
-      getCloudAppPlatformResourceType(appServiceApp({ groupName: "Production" })),
+      getCloudAppPlatformResourceType(
+        appServiceApp({ groupName: "Production" }),
+      ),
     ).toBe("Microsoft.Web/sites");
     expect(
       getCloudAppPlatformResourceType(appServiceApp({ groupName: "staging" })),
@@ -668,9 +670,7 @@ describe("the rows the page reads to find the resource", () => {
   function endOf(query: Record<string, unknown>): string {
     const id: unknown = query["providerResourceId"];
 
-    return id instanceof EndsWith || id instanceof Search
-      ? id.toString()
-      : "";
+    return id instanceof EndsWith || id instanceof Search ? id.toString() : "";
   }
 
   test("an App Service site by its id's end, a slot by its own: never one of the other", () => {
@@ -707,18 +707,22 @@ describe("the rows the page reads to find the resource", () => {
     const containerApp: Record<string, unknown> = of(
       ManagedCloudPlatform.AzureContainerApps,
     );
-    expect([containerApp["cloudProvider"], containerApp["cloudResourceType"], endOf(containerApp)]).toEqual([
+    expect([
+      containerApp["cloudProvider"],
+      containerApp["cloudResourceType"],
+      endOf(containerApp),
+    ]).toEqual([
       "azure",
       "Microsoft.App/containerApps",
       "/providers/microsoft.app/containerapps/checkout",
     ]);
 
     const run: Record<string, unknown> = of(ManagedCloudPlatform.GcpCloudRun);
-    expect([run["cloudProvider"], run["cloudResourceType"], endOf(run)]).toEqual([
-      "gcp",
-      "cloud_run_revision",
-      "/services/checkout",
-    ]);
+    expect([
+      run["cloudProvider"],
+      run["cloudResourceType"],
+      endOf(run),
+    ]).toEqual(["gcp", "cloud_run_revision", "/services/checkout"]);
 
     const appEngine: Record<string, unknown> = of(
       ManagedCloudPlatform.GcpAppEngine,

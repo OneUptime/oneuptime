@@ -50,8 +50,9 @@ import {
  *     CPU and memory utilizations' 95th percentile, a ratio of 1.
  *   - App Engine (Google Cloud Monitoring): response_count - each minute's
  *     rate, per response_code, whose 500 to 599 are its server errors -
- *     and response_latencies' 95th percentile. Cloud Monitoring reports no
- *     CPU or memory share of an App Engine app.
+ *     and response_latencies' 95th percentile. Its CPU and memory
+ *     (system/cpu/utilization, system/memory/usage) are not key metrics of
+ *     a gae_app yet, so the connection stores neither (#10838).
  *   - App Runner (Amazon CloudWatch): Requests, 5xxStatusResponses,
  *     RequestLatency (ms), CPUUtilization and MemoryUtilization.
  *   - ECS (Amazon CloudWatch): the service's CPUUtilization and
@@ -144,12 +145,13 @@ export const GOOGLE_CLOUD_MONITORING: string = translationKey(
 export const AMAZON_CLOUDWATCH: string = translationKey("Amazon CloudWatch");
 
 // The service each cloud's monitoring is, as a section names it.
-export const CLOUD_APP_PLATFORM_SERVICES: Readonly<Record<CloudProvider, string>> =
-  {
-    [CloudProvider.Azure]: AZURE_MONITOR,
-    [CloudProvider.GCP]: GOOGLE_CLOUD_MONITORING,
-    [CloudProvider.AWS]: AMAZON_CLOUDWATCH,
-  };
+export const CLOUD_APP_PLATFORM_SERVICES: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.Azure]: AZURE_MONITOR,
+  [CloudProvider.GCP]: GOOGLE_CLOUD_MONITORING,
+  [CloudProvider.AWS]: AMAZON_CLOUDWATCH,
+};
 
 /*
  * What each figure means, as a tile's (i) says it. "{{service}}" is the
@@ -224,9 +226,7 @@ export function getAzurePlatformStoredMetricName(data: {
     readings[data.metricName.toLowerCase()];
   const stored: string = (reading?.metric || "").trim().toLowerCase();
 
-  return (
-    stored || getAzureStoredMetricName(data.metricName, data.aggregation)
-  );
+  return stored || getAzureStoredMetricName(data.metricName, data.aggregation);
 }
 
 function azureRead(data: {
@@ -568,16 +568,16 @@ export function getCloudAppPlatformListReads(data: {
     return [];
   }
 
-  return profile.reads(data.readings).filter(
-    (read: CloudAppPlatformMetricRead): boolean => {
+  return profile
+    .reads(data.readings)
+    .filter((read: CloudAppPlatformMetricRead): boolean => {
       return (
         read.figure === F.Requests ||
         read.figure === F.ServerErrors ||
         read.figure === F.ResponseTime ||
         read.figure === F.Latency
       );
-    },
-  );
+    });
 }
 
 /* ------------------------------------------------------ Over a range */
@@ -646,9 +646,7 @@ export function meanCloudAppPlatformPoints(
 export function summarizeCloudAppPlatformSeries(
   series: CloudAppPlatformSeries,
 ): CloudAppPlatformSummary {
-  const requests: number | null = sumCloudAppPlatformPoints(
-    series[F.Requests],
-  );
+  const requests: number | null = sumCloudAppPlatformPoints(series[F.Requests]);
   const serverErrors: number | null = sumCloudAppPlatformPoints(
     series[F.ServerErrors],
   );

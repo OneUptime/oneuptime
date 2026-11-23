@@ -1227,7 +1227,11 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
  * labels Cloud Monitoring documents for it.
  */
 describe("a platform section reads its resource type's key metrics (#6793, #6794)", () => {
-  function isKeyMetricOf(type: string, provider: string, stored: string): boolean {
+  function isKeyMetricOf(
+    type: string,
+    provider: string,
+    stored: string,
+  ): boolean {
     if (provider === "azure") {
       return getAzureKeyMetricOfStoredName(type, stored) !== null;
     }
