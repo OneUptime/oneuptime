@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "La página que buscas no se encuentra.",
     "required": "Obligatorio",
     "defaultValue": "Predeterminado",
+    "readOnly": "Solo lectura",
     "or": "o",
     "copy": "Copiar",
     "copied": "¡Copiado!",

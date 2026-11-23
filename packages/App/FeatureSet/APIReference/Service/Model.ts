@@ -644,7 +644,9 @@ export default class ServiceHandler {
 
     /*
      * Required means a create must send it (requiredOnCreate), and a
-     * declared default is shown beside the column.
+     * declared default is shown beside the column. Read only means only
+     * OneUptime writes it - the id and the dates, who created the record and
+     * who last modified it (#10527) - as the spec marks it readOnly.
      */
     const requiredOnCreate: Set<string> =
       getColumnsRequiredOnCreateForDocumentation(model, isAnalytics);
@@ -655,6 +657,7 @@ export default class ServiceHandler {
       if (column) {
         (column as any).requiredOnCreate = requiredOnCreate.has(key);
         (column as any).documentedDefault = getDocumentedDefaultValue(column);
+        (column as any).readOnly = ModelSchema.isWrittenOnlyByOneUptime(column);
       }
     }
 
