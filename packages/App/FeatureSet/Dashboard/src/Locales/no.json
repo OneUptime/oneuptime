@@ -62639,5 +62639,8 @@
   "AI Change Undone": "KI-endring angret",
   "AI Change Failed": "KI-endring mislyktes",
   "AI Response": "KI-respons",
-  "Step Check": "Trinnkontroll"
+  "Step Check": "Trinnkontroll",
+  "Their sign-in settings were already cleared.": "Påloggingsinnstillingene deres var allerede fjernet.",
+  "{{name}}'s sign-in settings were already cleared.": "Påloggingsinnstillingene til {{name}} var allerede fjernet.",
+  "These people's sign-in settings were already cleared.": "Påloggingsinnstillingene til disse personene var allerede fjernet."
 }

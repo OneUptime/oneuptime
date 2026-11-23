@@ -62639,5 +62639,8 @@
   "AI Change Undone": "تغییر هوش مصنوعی برگردانده شد",
   "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
   "AI Response": "پاسخ هوش مصنوعی",
-  "Step Check": "بررسی گام"
+  "Step Check": "بررسی گام",
+  "Their sign-in settings were already cleared.": "تنظیمات ورود این فرد پیش‌تر پاک شده بود.",
+  "{{name}}'s sign-in settings were already cleared.": "تنظیمات ورود {{name}} پیش‌تر پاک شده بود.",
+  "These people's sign-in settings were already cleared.": "تنظیمات ورود این افراد پیش‌تر پاک شده بود."
 }

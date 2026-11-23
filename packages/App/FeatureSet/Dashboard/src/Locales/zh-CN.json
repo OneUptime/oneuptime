@@ -62639,5 +62639,8 @@
   "AI Change Undone": "AI 更改已撤消",
   "AI Change Failed": "AI 更改失败",
   "AI Response": "AI 响应",
-  "Step Check": "步骤检查"
+  "Step Check": "步骤检查",
+  "Their sign-in settings were already cleared.": "此人的登录设置已经被清除。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} 的登录设置已经被清除。",
+  "These people's sign-in settings were already cleared.": "这些人的登录设置已经被清除。"
 }

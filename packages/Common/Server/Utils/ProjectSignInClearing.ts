@@ -3,7 +3,11 @@ import AuditLogService from "../Services/AuditLogService";
 import ProjectService from "../Services/ProjectService";
 import TeamMemberService from "../Services/TeamMemberService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import LocalSignInClearing, { CLEAR_BATCH_SIZE } from "./LocalSignInClearing";
+import LocalSignInClearing, {
+  CLEAR_BATCH_SIZE,
+  ClearedPerson,
+  ReadAndClearResult,
+} from "./LocalSignInClearing";
 import logger from "./Logger";
 import CallerPermission, {
   PermissionCarrier,
@@ -95,6 +99,12 @@ import { SignInSettingsClearedBy } from "../../Types/SSO/SignInSettingsClearedEm
  * projects, which the count never does, so it names only members of this
  * project the Users list asked about - people the owner already sees there -
  * by their ids alone.
+ *
+ * A batch is read and cleared under its people's locks (#10776,
+ * LocalSignInClearing.readAndClear), as every clear is: an owner's clear and
+ * a master admin's, or two owners', of the same person at the same moment
+ * record the removal once, as the clear that removed it - the other finds
+ * nothing left, records and emails nothing, and counts nobody.
  */
 
 // Who the rule reads a person's projects as.
@@ -105,7 +115,13 @@ interface PersonsProjects {
 
 // What clearing a batch did: whom, how many sessions ended, and their emails.
 interface ClearedBatch {
+  // Whom it removed anything from, each under their lock (#10776).
   clearedUserIds: Array<ObjectID>;
+  /*
+   * Whom it found with nothing left, under their lock, and left alone:
+   * another clear of them came first.
+   */
+  foundEmptyUserIds: Array<ObjectID>;
   sessionsEnded: number;
   // Resolves once their emails are queued, or after the queue's time limit.
   emailsQueued: Promise<void>;
@@ -283,7 +299,9 @@ export default class ProjectSignInClearing {
    * right before the write, the same audit entry in each of their projects
    * as the owner's, the same email - or refused, with the rule and never
    * which part of it, for anybody the owner may not clear. Answers how many
-   * it cleared: one.
+   * it cleared: one - or none, when another clear of them removed what they
+   * had while this one waited for them (#10776), and this one then records
+   * and emails nothing.
    */
   public static async clearMember(data: {
     projectId: ObjectID;
@@ -334,8 +352,22 @@ export default class ProjectSignInClearing {
     // Queued within EMAIL_ENQUEUE_TIMEOUT_IN_MS: never a failure.
     await batch.emailsQueued;
 
-    // Made a master admin since the rule was read: nothing was cleared.
     if (batch.clearedUserIds.length === 0) {
+      /*
+       * Another clear of them - a master admin's, another owner's, this
+       * question sent twice - removed what they had while this one waited
+       * for them (#10776): nothing is cleared, recorded or emailed, and the
+       * answer says so.
+       */
+      if (batch.foundEmptyUserIds.length > 0) {
+        logger.info(
+          `An owner (${data.ownerUserId.toString()}) of project ${data.projectId.toString()} asked to clear the saved sign-in settings of user ${data.userId.toString()}, who had none left: another clear came first.`,
+        );
+
+        return 0;
+      }
+
+      // Made a master admin since the rule was read: nothing was cleared.
       throw new BadDataException(
         CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
       );
@@ -350,54 +382,45 @@ export default class ProjectSignInClearing {
 
   /*
    * Clears these people, whom the rule has just let through: what each has
-   * read first, for the audit log and the email; then cleared as a master
-   * admin's clear is (LocalSignInClearing.clearPeople), master admins left
-   * out once more; each recorded in the audit log of every project they are
-   * in as the owner's Update of the User, and emailed as cleared by an
-   * owner of this project - by a job a worker sends (#9991), so the clear
-   * never waits for an email, and a restart loses none. The project goes
-   * by its id: its name is read when the email is written.
+   * read under their lock (#10776), for the audit log and the email; then
+   * cleared as a master admin's clear is (LocalSignInClearing.readAndClear),
+   * master admins left out once more, and anybody another clear emptied
+   * while this one waited for them left alone; each recorded in the audit
+   * log of every project they are in as the owner's Update of the User, and
+   * emailed as cleared by an owner of this project - by a job a worker
+   * sends (#9991), so the clear never waits for an email, and a restart
+   * loses none. The project goes by its id: its name is read when the email
+   * is written.
    */
   private static async clearBatch(data: {
     projectId: ObjectID;
     ownerUserId: ObjectID;
     clearable: Array<ObjectID>;
   }): Promise<ClearedBatch> {
-    // Read before they are cleared, for the audit log and the emails.
-    const settingsByUser: Map<string, LocalSignInSettings> = new Map();
-
-    for (const userId of data.clearable) {
-      settingsByUser.set(
-        userId.toString(),
-        await LocalSignInClearing.readSettings(userId),
-      );
-    }
-
-    const result: { clearedUserIds: Array<ObjectID>; sessionsEnded: number } =
-      await LocalSignInClearing.clearPeople({
-        userIds: data.clearable,
-        // Never a master admin: read again, and left out of the write.
-        isMasterAdminIncluded: false,
-      });
+    const result: ReadAndClearResult = await LocalSignInClearing.readAndClear({
+      userIds: data.clearable,
+      // Never a master admin: read again, and left out of the write.
+      isMasterAdminIncluded: false,
+    });
 
     await AuditLogService.recordSignInSettingsCleared(
-      result.clearedUserIds.map(
-        (userId: ObjectID): SignInSettingsClearedAuditEvent => {
+      result.cleared.map(
+        (person: ClearedPerson): SignInSettingsClearedAuditEvent => {
           return {
-            userId: userId,
+            userId: person.userId,
             clearedByUserId: data.ownerUserId,
-            cleared: settingsByUser.get(userId.toString())!,
+            cleared: person.cleared,
           };
         },
       ),
     );
 
     const emailsQueued: Promise<void> = SignInSettingsClearedEmail.notify(
-      result.clearedUserIds.map(
-        (userId: ObjectID): SignInSettingsClearedEmailEvent => {
+      result.cleared.map(
+        (person: ClearedPerson): SignInSettingsClearedEmailEvent => {
           return {
-            userId: userId,
-            cleared: settingsByUser.get(userId.toString())!,
+            userId: person.userId,
+            cleared: person.cleared,
             clearedBy: SignInSettingsClearedBy.ProjectOwner,
             projectId: data.projectId,
           };
@@ -406,7 +429,10 @@ export default class ProjectSignInClearing {
     );
 
     return {
-      clearedUserIds: result.clearedUserIds,
+      clearedUserIds: result.cleared.map((person: ClearedPerson): ObjectID => {
+        return person.userId;
+      }),
+      foundEmptyUserIds: result.foundEmpty,
       sessionsEnded: result.sessionsEnded,
       emailsQueued: emailsQueued,
     };

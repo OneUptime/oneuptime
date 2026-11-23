@@ -62639,5 +62639,8 @@
   "AI Change Undone": "AI-ändring ångrad",
   "AI Change Failed": "AI-ändring misslyckades",
   "AI Response": "AI-respons",
-  "Step Check": "Stegkontroll"
+  "Step Check": "Stegkontroll",
+  "Their sign-in settings were already cleared.": "Deras inloggningsinställningar hade redan rensats.",
+  "{{name}}'s sign-in settings were already cleared.": "Inloggningsinställningarna för {{name}} hade redan rensats.",
+  "These people's sign-in settings were already cleared.": "Inloggningsinställningarna för de här personerna hade redan rensats."
 }
