@@ -14,8 +14,12 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import FindBy from "../../../Server/Types/Database/FindBy";
 import FindOneByID from "../../../Server/Types/Database/FindOneByID";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import LocalSignInClearing, {
   CLEAR_BATCH_SIZE,
+  CLEAR_LOCK_NAMESPACE,
 } from "../../../Server/Utils/LocalSignInClearing";
 import logger from "../../../Server/Utils/Logger";
 import ProjectSignInClearing from "../../../Server/Utils/ProjectSignInClearing";
@@ -36,11 +40,14 @@ import Permission, {
 import {
   CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
   CLEAR_PROJECT_SIGN_IN_NEEDS_MANAGED_SSO_MESSAGE,
+  CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE,
   LocalSignInSettings,
+  NO_LOCAL_SIGN_IN_SETTINGS,
   PersonSavedSignInSettings,
 } from "../../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../../Types/SSO/SignInSettingsClearedEmail";
 import { getJestSpyOn } from "../../Spy";
+import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 import { readQueryValues } from "../TestingUtils/SsoManagedProjects";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -93,6 +100,8 @@ let ownerRows: Map<string, Array<UserPermission>>;
 let clearPeople: jest.SpyInstance;
 let recordCleared: jest.SpyInstance;
 let notifyCleared: jest.SpyInstance;
+// The clear's lock on each person (#10776), held in memory as Valkey holds it.
+let locks: InMemoryLocks;
 
 const keyOf: (id: ObjectID | string) => string = (
   id: ObjectID | string,
@@ -374,7 +383,11 @@ beforeEach(() => {
     "notify",
   ).mockResolvedValue(undefined);
 
+  locks = new InMemoryLocks();
+  locks.install();
+
   getJestSpyOn(logger, "info").mockImplementation((): void => {});
+  getJestSpyOn(logger, "warn").mockImplementation((): void => {});
 });
 
 afterEach(() => {
@@ -1204,5 +1217,202 @@ describe("one member at a time: the clear is the bulk clear's, for one person", 
     expect(logged).toContain(OWNER_ID.toString());
     expect(logged).toContain(alice.toString());
     expect(logged).toContain(acme.id.toString());
+  });
+});
+
+/*
+ * TWO CLEARS OF ONE PERSON AT THE SAME MOMENT (#10776). An owner's clear -
+ * of one member or of everyone - and another clear of the same person, a
+ * master admin's or another owner's or the same one sent twice, could both
+ * read the person's settings before either cleared them, and both recorded
+ * the whole removal. Each clear now reads and clears a person under the
+ * person's lock (LocalSignInClearing.readAndClear): the second reads what
+ * the first left, and records, emails and counts nothing. The race itself,
+ * end to end with the real audit log recorder and every pair of clears, is
+ * ee/Tests/Server/AuditLog/SignInSettingsClearedOnceWhenClearsMeet.test.ts.
+ */
+describe("two clears of one person at the same moment (#10776)", () => {
+  const lockOf: (userId: ObjectID) => boolean = (userId: ObjectID): boolean => {
+    return locks.isHeld(keyOf(userId), CLEAR_LOCK_NAMESPACE);
+  };
+
+  test("a member is read and cleared under their lock, which is given back once they are cleared", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    const heldWhile: Array<string> = [];
+
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockImplementation(
+      async (): Promise<LocalSignInSettings> => {
+        heldWhile.push(`read:${lockOf(alice)}`);
+        return SETTINGS;
+      },
+    );
+    clearPeople.mockImplementation(
+      async (): Promise<{
+        clearedUserIds: Array<ObjectID>;
+        sessionsEnded: number;
+      }> => {
+        heldWhile.push(`clear:${lockOf(alice)}`);
+        return { clearedUserIds: [alice], sessionsEnded: 1 };
+      },
+    );
+    recordCleared.mockImplementation(async (): Promise<void> => {
+      heldWhile.push(`audit:${lockOf(alice)}`);
+    });
+
+    await expect(clearOne(acme, alice)).resolves.toBe(1);
+
+    // Held from the read through the clear; given back before the audit log is written.
+    expect(heldWhile).toEqual(["read:true", "clear:true", "audit:false"]);
+    expect(lockOf(alice)).toBe(false);
+    expect(locks.eventsOf("lock")).toEqual([
+      `lock:${CLEAR_LOCK_NAMESPACE}/${keyOf(alice)}`,
+    ]);
+    expect(locks.eventsOf("release")).toEqual([
+      `release:${CLEAR_LOCK_NAMESPACE}/${keyOf(alice)}`,
+    ]);
+  });
+
+  test("another clear came first: nothing is left under the lock, so nothing is cleared, recorded or emailed, and the clear answers none", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    // The rule saw what Alice had; under her lock, the clear before this one has removed it.
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockResolvedValue(
+      NO_LOCAL_SIGN_IN_SETTINGS,
+    );
+
+    await expect(clearOne(acme, alice)).resolves.toBe(0);
+
+    expect(clearPeople).not.toHaveBeenCalled();
+    expect(
+      (recordCleared.mock.calls[0]?.[0] as Array<unknown> | undefined) || [],
+    ).toEqual([]);
+    expect(
+      (notifyCleared.mock.calls[0]?.[0] as Array<unknown> | undefined) || [],
+    ).toEqual([]);
+    expect(lockOf(alice)).toBe(false);
+  });
+
+  test("waits while another clear holds the member, then reads what that clear left - nothing - and records nothing", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    let isAliceCleared: boolean = false;
+
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockImplementation(
+      async (): Promise<LocalSignInSettings> => {
+        return isAliceCleared ? NO_LOCAL_SIGN_IN_SETTINGS : SETTINGS;
+      },
+    );
+
+    // Another clear holds Alice while it clears her.
+    const other: SemaphoreMutex = await Semaphore.lock({
+      key: keyOf(alice),
+      namespace: CLEAR_LOCK_NAMESPACE,
+    });
+
+    const waitedFor: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        locks.onWait = (): void => {
+          resolve();
+        };
+      },
+    );
+
+    const clearing: Promise<number> = clearOne(acme, alice);
+
+    await waitedFor;
+
+    // Nothing of this clear's has been read while the other holds Alice.
+    expect(clearPeople).not.toHaveBeenCalled();
+    expect(locks.waitingFor(keyOf(alice), CLEAR_LOCK_NAMESPACE)).toBe(1);
+
+    isAliceCleared = true;
+    await Semaphore.release(other);
+
+    await expect(clearing).resolves.toBe(0);
+    expect(clearPeople).not.toHaveBeenCalled();
+    expect(
+      (recordCleared.mock.calls[0]?.[0] as Array<unknown> | undefined) || [],
+    ).toEqual([]);
+  });
+
+  test("an owner's clear of everyone counts, records and emails only the people it cleared itself", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    const bob: ObjectID = person();
+    joins(alice, acme);
+    joins(bob, acme);
+
+    // Bob was cleared by another clear while this one waited for him.
+    getJestSpyOn(LocalSignInClearing, "readSettings").mockImplementation(
+      async (userId: ObjectID): Promise<LocalSignInSettings> => {
+        return keyOf(userId) === keyOf(bob)
+          ? NO_LOCAL_SIGN_IN_SETTINGS
+          : SETTINGS;
+      },
+    );
+
+    await expect(clear(acme)).resolves.toBe(1);
+
+    expect(clearedIds()).toEqual([keyOf(alice)]);
+    expect(recordCleared.mock.calls[0]![0]).toEqual([
+      { userId: alice, clearedByUserId: OWNER_ID, cleared: SETTINGS },
+    ]);
+    expect(
+      (
+        notifyCleared.mock.calls[0]![0] as Array<SignInSettingsClearedEmailEvent>
+      ).map((event: SignInSettingsClearedEmailEvent): string => {
+        return keyOf(event.userId);
+      }),
+    ).toEqual([keyOf(alice)]);
+
+    // Both were locked, in the order of their ids, and both given back.
+    expect(locks.eventsOf("lock")).toEqual(
+      [keyOf(alice), keyOf(bob)].sort().map((key: string): string => {
+        return `lock:${CLEAR_LOCK_NAMESPACE}/${key}`;
+      }),
+    );
+    expect(lockOf(alice)).toBe(false);
+    expect(lockOf(bob)).toBe(false);
+  });
+
+  test("a member another clear holds for longer than a clear waits: refused with what to do, nothing read or cleared", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    const readSettings: jest.SpyInstance = getJestSpyOn(
+      LocalSignInClearing,
+      "readSettings",
+    );
+    locks.busy.add(keyOf(alice));
+
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      new BadDataException(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE),
+    );
+
+    expect(readSettings).not.toHaveBeenCalled();
+    expect(clearPeople).not.toHaveBeenCalled();
+    expect(recordCleared).not.toHaveBeenCalled();
+    expect(notifyCleared).not.toHaveBeenCalled();
+  });
+
+  test("made a master admin between the rule and the write is still refused, never answered as none", async () => {
+    const acme: WorldProject = ownedProject("Acme");
+    const alice: ObjectID = person();
+    joins(alice, acme);
+
+    // Something left to clear, but the write leaves a master admin out.
+    clearPeople.mockResolvedValue({ clearedUserIds: [], sessionsEnded: 0 });
+
+    await expect(clearOne(acme, alice)).rejects.toThrow(
+      CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+    );
   });
 });
