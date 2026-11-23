@@ -243,6 +243,12 @@ describe("the routes that parse their body only after their caller's key is chec
     },
   );
 
+  const securityEvents: Array<string> = TELEMETRY_ROUTE_PREFIXES.map(
+    (prefix: string): string => {
+      return `${prefix}/security-events/v1/ingest`;
+    },
+  );
+
   test("are a probe's collections, under every prefix, and a forwarding pod's rows", () => {
     expect(collections).toHaveLength(6);
 
@@ -295,15 +301,44 @@ describe("the routes that parse their body only after their caller's key is chec
     }
   });
 
-  test("leave Security Events as it is: read by StartServer before routing, held to a large route's limit", () => {
-    for (const prefix of TELEMETRY_ROUTE_PREFIXES) {
-      const path: string = `${prefix}/security-events/v1/ingest`;
+  /*
+   * #10795: the security events collectors, SIEMs and SOAR playbooks send
+   * were the last telemetry StartServer read before routing - up to 50 MiB
+   * of JSON parsed, or of gzip inflated, for anyone, under a prefix that
+   * took in every path below it. Each sender sends its key in a header, so
+   * the one route is read once the key is right, held to a large route's
+   * 50 MB, as the batches above are.
+   */
+  test("are Security Events' batches too, under both telemetry prefixes, each held to a large route's limit", () => {
+    expect(securityEvents).toHaveLength(2);
 
+    for (const path of securityEvents) {
       expect({
         path,
         afterAuthentication: readsBodyAfterAuthentication(path),
-      }).toEqual({ path, afterAuthentication: false });
+      }).toEqual({ path, afterAuthentication: true });
       expect(getRequestBodyLimit(path)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    }
+  });
+
+  test("leave a path below Security Events' route that no route answers to StartServer, held to the ordinary limit: it was 50 MB, for anyone", () => {
+    for (const path of [
+      "/security-events/v1/ingest/extra",
+      "/telemetry/security-events/v1/ingest/extra",
+      "/security-events/v1",
+      "/security-events/v2/ingest",
+      "/telemetry/security-events/anything",
+      "/security-events",
+    ]) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+        limit: getRequestBodyLimit(path),
+      }).toEqual({
+        path,
+        afterAuthentication: false,
+        limit: ORDINARY_REQUEST_BODY_LIMIT,
+      });
     }
   });
 
@@ -321,6 +356,8 @@ describe("the routes that parse their body only after their caller's key is chec
       "/Pyroscope/Ingest/",
       "/TELEMETRY/SOURCE-MAPS/V1/UPLOAD",
       "/telemetry/dsyms/v1/upload/",
+      "/Security-Events/V1/Ingest/",
+      "/TELEMETRY/SECURITY-EVENTS/V1/INGEST",
     ]) {
       expect({
         path,
@@ -343,8 +380,8 @@ describe("the routes that parse their body only after their caller's key is chec
       "/api/monitor/get-list",
       "/fluentd/v1/logs/extra",
       "/syslog/v1",
-      "/security-events/v1/ingest",
-      "/telemetry/security-events/v1/ingest",
+      "/security-events/v1/ingest/extra",
+      "/telemetry/security-events/v1",
       "/fivetran/v1/webhook",
       "/pyroscope/push.v1.PusherService/Push/extra",
       "/pyroscope/ingest/extra",
@@ -374,6 +411,7 @@ describe("the routes that parse their body only after their caller's key is chec
       ...batches,
       ...collections,
       "/telemetry-writer/insert",
+      ...securityEvents,
     ]);
 
     // Each says why, and how its caller is known first.

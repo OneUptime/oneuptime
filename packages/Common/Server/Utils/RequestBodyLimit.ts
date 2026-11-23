@@ -208,12 +208,17 @@ const createAndUpdate: (crudPath: string) => Array<string> = (
 };
 
 /*
- * The telemetry routes StartServer reads the body of: the rest of the
- * telemetry router (OTLP, session replay, the compatible endpoints, the
- * Vercel log drain, the cloud streams, the uploads and the batches below)
- * reads its own.
+ * The security events collectors, SIEMs and SOAR playbooks send, read once
+ * their ingest key is checked (#10795), as the batches below are: each
+ * sends its key in a header (x-oneuptime-token), and the route reads the
+ * body after it with StartServer's own parsers. StartServer reads no
+ * telemetry route's body now: OTLP, session replay, the compatible
+ * endpoints, the Vercel log drain and the cloud streams read their own, and
+ * the rest read theirs once their key is right.
  */
-const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = ["/security-events/*"];
+const SECURITY_EVENTS_INGEST_PATHS: ReadonlyArray<string> = [
+  "/security-events/v1/ingest",
+];
 
 /*
  * The batches collectors, agents and CI send, read once their ingest key is
@@ -327,10 +332,11 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
       "Whatever a system sends to an incoming request monitor (nginx sends /heartbeat here too). Bodies of up to 50 MB are documented as accepted.",
   },
   {
-    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
+    paths: under(TELEMETRY_ROUTE_PREFIXES, SECURITY_EVENTS_INGEST_PATHS),
     limit: LARGE_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
     reason:
-      "Batches of security events that collectors and SIEMs send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+      "Batches of security events that collectors, SIEMs and SOAR playbooks send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each. Each sends its ingest key in a header, which is checked before a byte of the body is read: a request without the right key is refused with its body unread.",
   },
   {
     paths: ["/workflow/*", "/api/huntress/webhook/*"],

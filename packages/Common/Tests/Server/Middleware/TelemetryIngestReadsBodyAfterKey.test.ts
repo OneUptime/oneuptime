@@ -253,7 +253,12 @@ afterEach(() => {
 });
 
 describe("a route that reads its body once the key is right", () => {
-  test.each([TelemetryIngestSurface.Fluent, TelemetryIngestSurface.Syslog])(
+  test.each([
+    TelemetryIngestSurface.Fluent,
+    TelemetryIngestSurface.Syslog,
+    // #10795: its batches were read by StartServer, before the key.
+    TelemetryIngestSurface.SecurityEvents,
+  ])(
     "%s: the key, then the body, then the budget in Refuse mode - which measures the body read, exactly",
     async (surface: TelemetryIngestSurface) => {
       const result: Run = await run({ surface, readBody: reader });
@@ -453,17 +458,21 @@ describe("a request refused for its key has nothing of its body read", () => {
   });
 });
 
-describe("a route whose body StartServer reads (Security Events)", () => {
-  test("is measured by the budget as it arrived, as before: no reader is given", async () => {
+/*
+ * OTLP/HTTP's raw bytes are read by its own middleware before the guard
+ * (OtelRequestMiddleware), so it is given no reader. Security Events was
+ * given none too, while StartServer read its batches (#10795).
+ */
+describe("a route whose body was read before the guard (OTLP/HTTP)", () => {
+  test("is measured by the budget as it arrived: no reader is given", async () => {
     const req: Record<string, unknown> = {
       headers: { "x-oneuptime-token": TOKEN },
-      id: "security-events",
-      body: JSON.parse(BATCH),
-      rawBody: BATCH,
+      id: "otlp-logs",
+      body: Buffer.from(BATCH),
     };
     const next: MockFn = jest.fn() as unknown as MockFn;
 
-    await TelemetryIngest.forSurface(TelemetryIngestSurface.SecurityEvents)(
+    await TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs)(
       req as unknown as ExpressRequest,
       {
         headersSent: false,
