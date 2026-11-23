@@ -258,6 +258,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Security case actions: one case at a time, each as the server sees it after the one before, and the list read again after.",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/useBlocklistActions.tsx":
+    [
+      {
+        expression: SEVERAL,
+        why: "Lift on the Blocklist (#10338): each block is lifted on its own - its own state, who lifted it and why, a line on its own case's timeline - and the project's blocklist is reconciled by one job, which a lift only asks for again (deduplicated per project), however many are lifted together.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/useAddEventsToCase.tsx":
     [
       {
