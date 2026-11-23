@@ -270,7 +270,7 @@ export const CLOUD_APP_PLATFORM_NOT_FOUND: Readonly<Record<string, string>> = {
     "No App Runner service named {{name}} is read yet.",
   ),
   [ManagedCloudPlatform.AwsEcs]: translationKey(
-    "No ECS service of cluster {{cluster}} that runs {{name}} is read yet.",
+    "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.",
   ),
 };
 export const CLOUD_APP_PLATFORM_NOT_FOUND_HINT: Readonly<

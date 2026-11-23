@@ -167,7 +167,7 @@ export const CLOUD_APP_PLATFORM_DESCRIPTIONS: Readonly<Record<string, string>> =
       "How long this app took to answer a request, averaged over the selected range, as {{service}} measures it.",
     ),
     latency: translationKey(
-      "The 95th percentile of how long this app took to answer a request, each minute's averaged over the selected range, as {{service}} measures it.",
+      "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.",
     ),
     cpu: translationKey(
       "The share of its CPU this app used, averaged over the selected range, as {{service}} measures it.",
