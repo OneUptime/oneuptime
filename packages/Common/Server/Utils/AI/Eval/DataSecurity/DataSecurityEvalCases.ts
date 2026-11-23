@@ -50,6 +50,11 @@ import {
 } from "./DataSecurityEvalCase";
 import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { ScrubRuleWriterRuleKind } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import {
+  AUDIT_EVIDENCE_CASES,
+  IMPACT_ASSESSMENT_CASES,
+  RECORD_DRAFT_CASES,
+} from "./DataSecurityPaperworkEvalCases";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1719,6 +1724,10 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ISSUE_GROUP_NAME_CASES,
   ...ISSUE_GROUP_FIX_CASES,
   ...SCRUB_RULE_CASES,
+  // The paperwork (#10375): records, impact assessments and audit evidence.
+  ...RECORD_DRAFT_CASES,
+  ...IMPACT_ASSESSMENT_CASES,
+  ...AUDIT_EVIDENCE_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

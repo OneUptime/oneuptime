@@ -374,6 +374,11 @@ export interface RecordFieldConfirmation {
   // The facts the confirmed draft rested on, and what they said then.
   factKeys: Array<string>;
   factsHash: string;
+  /*
+   * Those facts as they were: what Review Drafts sets beside them when one
+   * changed, so a person sees what changed under the value they confirmed.
+   */
+  facts: Array<ComplianceFact>;
   confirmedAt: string;
   confirmedByUserId?: string | undefined;
 }
@@ -457,9 +462,20 @@ function readConfirmation(value: unknown): RecordFieldConfirmation | undefined {
     valueHash: readText(value["valueHash"], 64),
     factKeys: readKeys(value["factKeys"]),
     factsHash: readText(value["factsHash"], 64),
+    facts: readComplianceFacts(value["facts"]),
     confirmedAt: readText(value["confirmedAt"], 40),
     confirmedByUserId: readText(value["confirmedByUserId"], 40) || undefined,
   };
+}
+
+// The facts of a list that a draft's keys name.
+function factsOf(
+  facts: ReadonlyArray<ComplianceFact>,
+  keys: ReadonlyArray<string>,
+): Array<ComplianceFact> {
+  return facts.filter((fact: ComplianceFact): boolean => {
+    return keys.includes(fact.key);
+  });
 }
 
 /*
@@ -818,6 +834,7 @@ export function applyRecordFieldAction(data: {
             valueHash: getRecordValueHash(draft.value),
             factKeys: draft.factKeys,
             factsHash: draft.factsHash,
+            facts: factsOf(data.drafts.facts, draft.factKeys),
             confirmedAt: data.now.toISOString(),
             confirmedByUserId: data.userId,
           },
@@ -844,6 +861,7 @@ export function applyRecordFieldAction(data: {
             valueHash: getRecordValueHash(proposed.value),
             factKeys: proposed.factKeys,
             factsHash: proposed.factsHash,
+            facts: factsOf(data.drafts.facts, proposed.factKeys),
             confirmedAt: data.now.toISOString(),
             confirmedByUserId: data.userId,
           },
@@ -866,6 +884,7 @@ export function applyRecordFieldAction(data: {
               facts: data.facts,
               keys: confirmed.factKeys,
             }),
+            facts: factsOf(data.facts, confirmed.factKeys),
             confirmedAt: data.now.toISOString(),
             confirmedByUserId: data.userId,
           },
@@ -1293,6 +1312,54 @@ export function describeRecordRecipient(recipient: RecordRecipient): string {
 }
 
 /*
+ * Why OneUptime AI drafted nothing for a store. Sent by the API: never
+ * rename one.
+ */
+export enum RecordDraftSkip {
+  // The store holds no personal data: it is not in the record.
+  NotPersonalData = "not-personal-data",
+  // OneUptime declares the store and fills in its record itself (#10398).
+  Declared = "declared",
+  // Every field is a person's, filled in by OneUptime, or up to date.
+  NothingToDraft = "nothing-to-draft",
+  // OneUptime AI's answer could not be read, or none of it held to its facts.
+  NothingHeld = "nothing-held",
+  NoLlmProvider = "no-llm-provider",
+  NoAiCredits = "no-ai-credits",
+  AiDailyLimitReached = "ai-daily-limit-reached",
+  Failed = "failed",
+}
+
+// What a person is told when a draft they asked for drafted nothing.
+export const RECORD_DRAFT_SKIP_TEXTS: Readonly<Record<RecordDraftSkip, string>> =
+  {
+    [RecordDraftSkip.NotPersonalData]: translationKey(
+      "This store holds no personal data, so it is not in the record of processing.",
+    ),
+    [RecordDraftSkip.Declared]: translationKey(
+      "OneUptime fills in this store's record itself.",
+    ),
+    [RecordDraftSkip.NothingToDraft]: translationKey(
+      "Nothing to draft: every field is answered or drafted, and nothing it rests on changed.",
+    ),
+    [RecordDraftSkip.NothingHeld]: translationKey(
+      "OneUptime AI found nothing in what the scans know of this store to draft from. Write the fields yourself.",
+    ),
+    [RecordDraftSkip.NoLlmProvider]: translationKey(
+      "No LLM provider is set up for this project.",
+    ),
+    [RecordDraftSkip.NoAiCredits]: translationKey(
+      "This project has no AI credits left.",
+    ),
+    [RecordDraftSkip.AiDailyLimitReached]: translationKey(
+      "This project reached its AI limit for today.",
+    ),
+    [RecordDraftSkip.Failed]: translationKey(
+      "OneUptime AI could not draft this store's record. Try again in a moment.",
+    ),
+  };
+
+/*
  * ---------------------------------------------------------------------------
  * The record's state, counted
  * ---------------------------------------------------------------------------
@@ -1373,6 +1440,8 @@ export interface RecordFieldView {
   proposed?: RecordFieldDraft | undefined;
   // The keys of the facts that changed under a confirmed field, beside a proposal.
   changedFactKeys?: Array<string> | undefined;
+  // Those facts as they were when the value was confirmed.
+  previousFacts?: Array<ComplianceFact> | undefined;
 }
 
 // What a record field's view says, as JSON: its value is plain JSON already.

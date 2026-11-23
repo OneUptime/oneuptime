@@ -3,6 +3,7 @@ import { translationKey } from "../Translator";
 import {
   ComplianceFact,
   getFactKeys,
+  getFactsHash,
   getUnfoundedNumbers,
   readComplianceFacts,
   withoutFactIds,
@@ -219,9 +220,53 @@ export interface ImpactAssessmentSection {
   source: ImpactAssessmentSectionSource;
   // The keys of the facts a drafted part rests on.
   factKeys: Array<string>;
+  /*
+   * What its facts said when it was written: a drafted part's, the facts
+   * it cites; an edited part's, every fact the person had in front of
+   * them. A part whose facts changed since says so (getStaleImpactAssessmentParts).
+   */
+  factsHash?: string | undefined;
   draftedAt?: string | undefined;
   editedAt?: string | undefined;
   editedByUserId?: string | undefined;
+}
+
+function allKeys(facts: ReadonlyArray<ComplianceFact>): Array<string> {
+  return facts.map((fact: ComplianceFact): string => {
+    return fact.key;
+  });
+}
+
+/*
+ * The parts of an assessment written over facts that say something else
+ * now: a new open issue, a fix, a transfer that began - for the page to
+ * say, and the person to look at.
+ */
+export function getStaleImpactAssessmentParts(data: {
+  assessment: StoreImpactAssessment | null;
+  facts: ReadonlyArray<ComplianceFact>;
+}): Array<ImpactAssessmentPart> {
+  if (!data.assessment) {
+    return [];
+  }
+
+  return IMPACT_ASSESSMENT_PARTS.filter(
+    (part: ImpactAssessmentPart): boolean => {
+      const section: ImpactAssessmentSection | undefined =
+        data.assessment!.sections[part];
+
+      if (!section?.factsHash) {
+        return false;
+      }
+
+      const keys: Array<string> =
+        section.source === ImpactAssessmentSectionSource.Edited
+          ? allKeys(data.facts)
+          : section.factKeys;
+
+      return getFactsHash({ facts: data.facts, keys }) !== section.factsHash;
+    },
+  );
 }
 
 // What a store keeps (DataStore.impactAssessment).
@@ -282,6 +327,7 @@ function readSection(
           })
           .slice(0, 60)
       : [],
+    factsHash: readText(value["factsHash"], 64) || undefined,
     draftedAt: readText(value["draftedAt"], 40) || undefined,
     editedAt: readText(value["editedAt"], 40) || undefined,
     editedByUserId: readText(value["editedByUserId"], 40) || undefined,
@@ -430,6 +476,7 @@ export function holdImpactAssessmentToFacts(data: {
       markdown,
       source: ImpactAssessmentSectionSource.Drafted,
       factKeys,
+      factsHash: getFactsHash({ facts: data.facts, keys: factKeys }),
       draftedAt: data.now.toISOString(),
     };
   }
@@ -496,6 +543,8 @@ export function editImpactAssessmentSection(data: {
   assessment: StoreImpactAssessment | null;
   part: ImpactAssessmentPart;
   markdown: string;
+  // The facts as the person read them, so a change after is said.
+  facts: ReadonlyArray<ComplianceFact>;
   userId?: string | undefined;
   language: string;
   now: Date;
@@ -524,6 +573,7 @@ export function editImpactAssessmentSection(data: {
       markdown,
       source: ImpactAssessmentSectionSource.Edited,
       factKeys: [],
+      factsHash: getFactsHash({ facts: data.facts, keys: allKeys(data.facts) }),
       editedAt: data.now.toISOString(),
       editedByUserId: data.userId,
     };

@@ -3,7 +3,6 @@ import DataStore from "../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../Models/DatabaseModels/DataStoreFinding";
 import DataSecuritySetting from "../../Models/DatabaseModels/DataSecuritySetting";
 import DataSecurityIssue from "../../Models/DatabaseModels/DataSecurityIssue";
-import User from "../../Models/DatabaseModels/User";
 import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -18,10 +17,25 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import SecuritySeverity from "../../Types/SecuritySeverity";
-import ComplianceFramework from "../../Types/DataSecurity/ComplianceFramework";
+import ComplianceFramework, {
+  ALL_COMPLIANCE_FRAMEWORKS,
+} from "../../Types/DataSecurity/ComplianceFramework";
+import { readAuditEvidencePeriod } from "../../Types/DataSecurity/AuditEvidence";
+import { DataSecurityAiFeature } from "../../Types/DataSecurity/DataSecurityAiFeatures";
+import { isImpactAssessmentPart } from "../../Types/DataSecurity/ImpactAssessment";
+import {
+  isRecordField,
+  isRecordFieldAction,
+} from "../../Types/DataSecurity/RecordOfProcessing";
+import AuditEvidenceDrafter from "../Utils/AI/DataSecurity/AuditEvidenceDrafter";
+import ImpactAssessmentDrafter from "../Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import RecordOfProcessingDrafter, {
+  RecordDraftOutcome,
+} from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
+import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
+import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
-  isPersonalDataCategory,
 } from "../../Types/DataSecurity/DataCategory";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
@@ -38,13 +52,11 @@ import {
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityOverviewIssue,
+  DataSecurityRecordDraftResult,
   DataSecurityRecordOfProcessingResponse,
-  DataSecurityRecordOfProcessingRow,
   DataSecurityResourceComplianceResponse,
   DataSecurityResourceScope,
 } from "../../Types/DataSecurity/DataSecurityApiTypes";
-import { getBuiltInDataType } from "../../Types/DataSecurity/DataTypeCatalog";
-import DataTypeNamer from "../../Types/DataSecurity/DataTypeNamer";
 import {
   DataStoreKind,
   TELEMETRY_DATA_STORE_KINDS,
@@ -77,11 +89,7 @@ import DataSecurityIssueAnalysis, {
 import DataSecurityIssueAnalysisReader from "../Utils/AI/DataSecurity/DataSecurityIssueAnalysisReader";
 import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
-import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
-import PendingInviteeProfiles, {
-  WithheldProfile,
-} from "../Utils/TeamMember/PendingInviteeProfiles";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
 import DataSecurityIssueGroupFix, {
@@ -405,13 +413,255 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    /*
+     * The record of processing (#10398, #10375), of the stores the caller
+     * may read - or one of them, { dataStoreId }, with the facts its drafts
+     * rest on.
+     */
     this.post(
       DATA_SECURITY_API_ROUTES.recordOfProcessing,
       READ_PERMISSIONS,
-      async (projectId: ObjectID) => {
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: unknown = body["dataStoreId"];
+
         return (await DataSecurityAPI.getRecordOfProcessing(
           projectId,
+          props,
+          typeof dataStoreId === "string" && ObjectID.isValidUUID(dataStoreId)
+            ? new ObjectID(dataStoreId)
+            : undefined,
         )) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A field of a store's record, as a person answers it (#10375): confirm
+     * OneUptime AI's draft, write their own words, or take or keep a change
+     * proposed for a confirmed value. The column is written with the
+     * caller's own props (RecordOfProcessingWriter).
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.recordField(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const field: unknown = body["field"];
+        const action: unknown = body["action"];
+
+        if (!isRecordField(field) || !isRecordFieldAction(action)) {
+          throw new BadDataException(
+            "Say which field of the record to change, and how: confirm its draft, write it, or take or keep a proposed change.",
+          );
+        }
+
+        return (await RecordOfProcessingWriter.applyFieldAction({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+          field,
+          action,
+          written: body["value"],
+          shownDraftedAt:
+            typeof body["shownDraftedAt"] === "string"
+              ? body["shownDraftedAt"]
+              : undefined,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * OneUptime AI's drafts of one store's record, when a person asks on
+     * Review Drafts (#10375): the fields no person answered, and a change
+     * beside a confirmed one whose facts changed - { force: true } drafts
+     * again what no person confirmed. Under the project's OneUptime AI
+     * switch and limits, as every AI request is.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: ObjectID = DataSecurityAPI.readId(req);
+
+        // The caller's own read first: a store they may not read is not found.
+        await RecordOfProcessingReader.readRow({
+          projectId,
+          props,
+          dataStoreId,
+        });
+
+        const outcome: RecordDraftOutcome =
+          await RecordOfProcessingDrafter.draftStore({
+            projectId,
+            dataStoreId,
+            feature: DataSecurityAiFeature.DraftRecordOnRequest,
+            userId: props.userId || undefined,
+            force: body["force"] === true,
+          });
+        const result: DataSecurityRecordDraftResult = {
+          row: await RecordOfProcessingReader.readRow({
+            projectId,
+            props,
+            dataStoreId,
+          }),
+          draftedFields: outcome.drafted ? outcome.draftedFields : [],
+          proposedFields: outcome.drafted ? outcome.proposedFields : [],
+          ...(outcome.drafted ? {} : { nothingDraftedBecause: outcome.reason }),
+        };
+
+        return result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A store's data protection impact assessment (#10375), for who may read
+     * the store and its issues - its risks are its open issues.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.impactAssessment(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ImpactAssessmentDrafter.read({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...drafted by OneUptime AI when a person asks: every part a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftImpactAssessment(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ImpactAssessmentDrafter.draftForPerson({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one part, in a person's own words: { part, markdown }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editImpactAssessment(":id"),
+      OPERATE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const part: unknown = body["part"];
+        const markdown: unknown = body["markdown"];
+
+        if (!isImpactAssessmentPart(part) || typeof markdown !== "string") {
+          throw new BadDataException(
+            "Say which part of the assessment to save, and its words.",
+          );
+        }
+
+        return (await ImpactAssessmentDrafter.editPart({
+          projectId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          props,
+          part,
+          markdown,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A framework's audit evidence over a period (#10375), for who may read
+     * the project's stores and issues: { framework, periodInDays }.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.auditEvidence,
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await AuditEvidenceDrafter.read({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...its paragraphs drafted by OneUptime AI, each one a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftAuditEvidence,
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await AuditEvidenceDrafter.draftForPerson({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one requirement's paragraph, in a person's own words: { requirement, text }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editAuditEvidence,
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const requirement: unknown = body["requirement"];
+        const text: unknown = body["text"];
+
+        if (typeof requirement !== "string" || typeof text !== "string") {
+          throw new BadDataException(
+            "Say which requirement's paragraph to save, and its words.",
+          );
+        }
+
+        return (await AuditEvidenceDrafter.editParagraph({
+          projectId,
+          framework: DataSecurityAPI.readFramework(body["framework"]),
+          periodInDays: readAuditEvidencePeriod(body["periodInDays"]),
+          requirement,
+          text,
+          props,
+        })) as unknown as JSONObject;
       },
     );
 
@@ -1110,6 +1360,20 @@ export default class DataSecurityAPI extends BaseAPI<
     return { kind, id: new ObjectID(id) };
   }
 
+  // A framework a request names, or a refusal in words.
+  private static readFramework(value: unknown): ComplianceFramework {
+    if (
+      typeof value !== "string" ||
+      !(ALL_COMPLIANCE_FRAMEWORKS as ReadonlyArray<string>).includes(value)
+    ) {
+      throw new BadDataException(
+        `Say which framework: one of ${ALL_COMPLIANCE_FRAMEWORKS.join(", ")}.`,
+      );
+    }
+
+    return value as ComplianceFramework;
+  }
+
   private static readId(req: ExpressRequest): ObjectID {
     const id: string = String(req.params["id"] || "");
 
@@ -1668,146 +1932,22 @@ export default class DataSecurityAPI extends BaseAPI<
 
   /*
    * The GDPR record of processing (Article 30): one row per store that
-   * holds personal data. The stores OneUptime keeps for the project's
-   * security - its security events, network flows and address vault - are
-   * declared first, so the record never misses one the project holds, and
-   * their rows say what OneUptime knows of them: the purpose, the retention
-   * each table keeps (read now, so a retention changed since is the one
-   * said) until the team writes its own, and who can read them (#10398).
+   * holds personal data, of the stores the caller may read - the stores
+   * OneUptime keeps for the project's security among them (#10398) - with
+   * the rest of what Article 30 asks: the legal basis and people, each
+   * field's drafts, its recipients and transfers (#10375). Built by
+   * RecordOfProcessingReader; read as OneUptime when no caller is given.
    */
   public static async getRecordOfProcessing(
     projectId: ObjectID,
+    props?: DatabaseCommonInteractionProps | undefined,
+    dataStoreId?: ObjectID | undefined,
   ): Promise<DataSecurityRecordOfProcessingResponse> {
-    await DeclaredDataStores.declareBeforeRead(projectId);
-
-    const stores: Array<DataStore> = await DataStoreService.findBy({
-      query: { projectId, isArchived: false },
-      select: {
-        _id: true,
-        name: true,
-        kind: true,
-        provider: true,
-        region: true,
-        environment: true,
-        sensitivity: true,
-        sensitivityOverride: true,
-        dataCategories: true,
-        dataTypeIds: true,
-        purpose: true,
-        retention: true,
-      },
-      skip: 0,
-      limit: 10000,
-      props: { isRoot: true },
-    });
-    const rows: Array<DataSecurityRecordOfProcessingRow> = [];
-    /*
-     * What an auditor reads each data type as: the project's own by the name
-     * it gave it, one it deleted as deleted - never an id (#10363). Read as
-     * OneUptime, as the stores are, once for the whole record.
-     */
-    const dataTypeNamer: DataTypeNamer = await ProjectDataTypeNames.read({
+    return await RecordOfProcessingReader.read({
       projectId,
+      props: props || { isRoot: true },
+      dataStoreId,
     });
-
-    // The stores that hold personal data, each with its owners.
-    const recorded: Array<{ store: DataStore; owners: Array<User> }> = [];
-
-    for (const store of stores) {
-      if (!(store.dataCategories || []).some(isPersonalDataCategory)) {
-        continue;
-      }
-
-      recorded.push({
-        store,
-        owners: await DataSecurityIntegrations.getOwnerUsers(store.id!),
-      });
-    }
-
-    /*
-     * Each owner as the project knows them (#10697). The owners are read as
-     * OneUptime, and a direct owner can be someone only invited to the
-     * project, whose own account's name it may not see until they join
-     * (#9823): they are named by the name typed with their invitation, else
-     * the address they were invited at. Read once for every owner of the
-     * record. The record is read inside the project, by its auditor, so the
-     * invited address is the project's own to read here.
-     */
-    const ownerIds: Array<string> = [
-      ...new Set(
-        recorded.flatMap((entry: { owners: Array<User> }): Array<string> => {
-          return entry.owners
-            .map((owner: User): string => {
-              return owner.id?.toString() || "";
-            })
-            .filter(Boolean);
-        }),
-      ),
-    ];
-    const withheld: Map<string, WithheldProfile> =
-      ownerIds.length > 0
-        ? await PendingInviteeProfiles.readWithheldProfilesInProject({
-            userIds: ownerIds,
-            projectId,
-          })
-        : new Map<string, WithheldProfile>();
-
-    for (const { store, owners } of recorded) {
-      const categories: Array<DataCategory> = store.dataCategories || [];
-      const frameworks: Set<ComplianceFramework> = new Set();
-
-      for (const dataTypeId of store.dataTypeIds || []) {
-        for (const framework of getBuiltInDataType(dataTypeId)?.frameworks ||
-          []) {
-          frameworks.add(framework);
-        }
-      }
-
-      const typeNames: Array<string> = dataTypeNamer.namesOf(store.dataTypeIds);
-      const declared: DataSecurityDeclaredStore | null =
-        await DeclaredDataStores.describe({ projectId, store });
-      const purposeAndRetention: { purpose: string; retention: string } =
-        declared
-          ? DeclaredDataStores.getRecordedPurposeAndRetention({
-              store,
-              declared,
-            })
-          : {
-              purpose: store.purpose || "",
-              retention: store.retention || "",
-            };
-
-      rows.push({
-        dataStoreId: store.id!.toString(),
-        name: store.name || "",
-        kind: store.kind || "",
-        provider: store.provider || "",
-        region: store.region || "",
-        environment: store.environment || "",
-        sensitivity:
-          (store.sensitivityOverride as DataSensitivity | undefined) ||
-          (store.sensitivity as DataSensitivity | undefined) ||
-          DataSensitivity.Public,
-        dataCategories: categories,
-        dataTypeNames: typeNames,
-        owners: owners
-          .map((owner: User): string => {
-            return PendingInviteeProfiles.getNameInProject({
-              userId: owner.id,
-              name: owner.name,
-              email: owner.email,
-              withheld,
-            });
-          })
-          .filter(Boolean),
-        purpose: purposeAndRetention.purpose,
-        retention: purposeAndRetention.retention,
-        frameworks: [...frameworks],
-        ...(declared ? { declared } : {}),
-      });
-    }
-
-    return { rows };
   }
 
   /*

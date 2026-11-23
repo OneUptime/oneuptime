@@ -11,6 +11,7 @@ import DataSecurityAiEngine from "Common/Server/Utils/AI/DataSecurity/DataSecuri
 import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSecurityOwnerNotice";
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
+import RecordOfProcessingDraftRun from "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun";
 import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
@@ -18,6 +19,7 @@ import {
   HeldOwnerNotice,
   readHeldOwnerNotice,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  DATA_SECURITY_DRAFT_RECORDS_JOB,
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
@@ -29,6 +31,7 @@ import {
   queueDataSecurityConnectionRead,
   queueDataSecurityDiscovery,
   queueDataSecurityEvaluation,
+  queueDataSecurityRecordDrafts,
   queueDataSecurityTelemetryScan,
   queueDataStoreOwnerProposals,
   queueDataStoreScan,
@@ -169,6 +172,21 @@ RunCron(
   async () => {
     for (const projectId of await DataSecurityRunner.listProjectIds()) {
       await queueDataStoreOwnerProposals({ projectId });
+    }
+  },
+);
+
+// OneUptime AI's drafts of each project's record of processing (#10375).
+RunCron(
+  "DataSecurity:DraftRecordsOfProcessing",
+  {
+    schedule: EVERY_DAY,
+    runOnStartup: false,
+    timeoutInMS: 10 * 60 * 1000,
+  },
+  async () => {
+    for (const projectId of await DataSecurityRunner.listProjectIds()) {
+      await queueDataSecurityRecordDrafts(projectId);
     }
   },
 );
@@ -329,6 +347,19 @@ JobDictionary.setTimeoutInMs(
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   15 * 60 * 1000,
 );
+
+// OneUptime AI's drafts of a project's record of processing (#10375).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_DRAFT_RECORDS_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await RecordOfProcessingDraftRun.run({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(DATA_SECURITY_DRAFT_RECORDS_JOB, 30 * 60 * 1000);
 
 // The owner rules the project's proposed owners share (#10374).
 JobDictionary.setJobFunction(

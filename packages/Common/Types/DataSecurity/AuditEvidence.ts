@@ -6,6 +6,7 @@ import ComplianceFramework, {
 import {
   ComplianceFact,
   ComplianceFactKind,
+  getFactsHash,
   holdTextToFacts,
   HeldText,
   readComplianceFacts,
@@ -61,9 +62,42 @@ export interface AuditEvidenceParagraph {
   source: AuditEvidenceParagraphSource;
   // The keys of the facts a drafted paragraph rests on.
   factKeys: Array<string>;
+  /*
+   * What its requirement's facts said when it was written
+   * (getRequirementFactsHash): a paragraph whose facts changed since says
+   * so, and its export reads the facts as they are.
+   */
+  factsHash?: string | undefined;
   draftedAt?: string | undefined;
   editedAt?: string | undefined;
   editedByUserId?: string | undefined;
+}
+
+// What a requirement's facts say, in sixty-four hex digits, whatever their ids.
+export function getRequirementFactsHash(
+  facts: ReadonlyArray<ComplianceFact>,
+  requirement: string,
+): string {
+  const own: Array<ComplianceFact> = getRequirementFacts(facts, requirement);
+
+  return getFactsHash({
+    facts: own,
+    keys: own.map((fact: ComplianceFact): string => {
+      return fact.key;
+    }),
+  });
+}
+
+// Whether a paragraph was written over facts that say something else now.
+export function isEvidenceParagraphStale(data: {
+  paragraph: AuditEvidenceParagraph;
+  facts: ReadonlyArray<ComplianceFact>;
+}): boolean {
+  return (
+    Boolean(data.paragraph.factsHash) &&
+    data.paragraph.factsHash !==
+      getRequirementFactsHash(data.facts, data.paragraph.requirement)
+  );
 }
 
 // One framework's paragraphs for one period, as the project keeps them.
@@ -166,6 +200,7 @@ function readParagraph(
           })
           .slice(0, 40)
       : [],
+    factsHash: readText(value["factsHash"], 64) || undefined,
     draftedAt: readText(value["draftedAt"], 40) || undefined,
     editedAt: readText(value["editedAt"], 40) || undefined,
     editedByUserId: readText(value["editedByUserId"], 40) || undefined,
@@ -278,6 +313,7 @@ export function holdAuditEvidenceToFacts(data: {
         text: held.text,
         source: AuditEvidenceParagraphSource.Drafted,
         factKeys: held.factKeys,
+        factsHash: getRequirementFactsHash(data.facts, raw.requirement),
         draftedAt: data.now.toISOString(),
       };
     }
@@ -343,6 +379,8 @@ export function editAuditEvidenceParagraph(data: {
   periodInDays: number;
   requirement: string;
   text: string;
+  // The requirement's facts as the person read them, so a change after is said.
+  facts: ReadonlyArray<ComplianceFact>;
   userId?: string | undefined;
   language: string;
   now: Date;
@@ -375,6 +413,7 @@ export function editAuditEvidenceParagraph(data: {
       text,
       source: AuditEvidenceParagraphSource.Edited,
       factKeys: [],
+      factsHash: getRequirementFactsHash(data.facts, data.requirement),
       editedAt: data.now.toISOString(),
       editedByUserId: data.userId,
     };

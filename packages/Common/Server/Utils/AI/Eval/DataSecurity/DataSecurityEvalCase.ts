@@ -17,12 +17,25 @@ import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields"
 import {
   AiAccessRecord,
   AiDataTypeChoice,
+  AiEvidenceRequirement,
   AiFindingRecord,
   AiGroupFixStore,
+  AiImpactAssessmentDossier,
   AiIssueDossier,
   AiIssueRecord,
+  AiRecordDossier,
   AiStoreRecord,
 } from "../../DataSecurity/DataSecurityAiInput";
+import ComplianceFramework from "../../../../../Types/DataSecurity/ComplianceFramework";
+import {
+  ImpactAssessmentPart,
+  ImpactAssessmentTriggerView,
+} from "../../../../../Types/DataSecurity/ImpactAssessment";
+import {
+  RecordField,
+  RecordLegalBasis,
+  RecordPeople,
+} from "../../../../../Types/DataSecurity/RecordOfProcessing";
 
 /*
  * A CASE OF THE DATA SECURITY EVAL (#10365): ONE INPUT A FEATURE WOULD
@@ -218,6 +231,79 @@ export interface ScrubRulesEvalCase extends DataSecurityEvalCaseBase {
   expect: Record<string, ScrubRuleEvalExpectation>;
 }
 
+/*
+ * What a right draft of one field of a store's record is (#10375): drafted,
+ * saying one word of each group; or left empty (null) where no fact says
+ * it - a record that guesses is worse than one that asks.
+ */
+export interface RecordTextEvalExpectation {
+  says: Array<Array<string>>;
+  // A right answer may also leave it empty: the facts say it only in part.
+  mayBeLeftEmpty?: boolean | undefined;
+}
+
+export interface RecordDraftEvalExpectation {
+  purpose?: RecordTextEvalExpectation | null | undefined;
+  retention?: RecordTextEvalExpectation | null | undefined;
+  // The bases a right answer may pick: one of these.
+  legalBasis?: { oneOf: Array<RecordLegalBasis> } | null | undefined;
+  // The categories a right answer names, and those it never does.
+  people?:
+    | { includes: Array<RecordPeople>; excludes?: Array<RecordPeople> }
+    | null
+    | undefined;
+  // Words no draft of it says: a planted instruction's demand, a made-up recipient.
+  never: Array<string>;
+}
+
+/*
+ * A store's record drafts (#10375): what OneUptime knows of the store, as
+ * the dossier the product reads (RecordOfProcessingDossier), the fields
+ * asked, and what a right draft of each is. The answer is held to its
+ * facts as the product holds it before it is scored.
+ */
+export interface RecordDraftEvalCase extends DataSecurityEvalCaseBase {
+  feature:
+    | DataSecurityAiFeature.DraftRecord
+    | DataSecurityAiFeature.DraftRecordOnRequest;
+  dossier: AiRecordDossier;
+  fields: Array<RecordField>;
+  language?: string | undefined;
+  expect: RecordDraftEvalExpectation;
+}
+
+/*
+ * A store's impact assessment (#10375): its dossier, why it needs one, and
+ * the words each part must say - each group, one of its words.
+ */
+export interface ImpactAssessmentEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftImpactAssessment;
+  dossier: AiImpactAssessmentDossier;
+  triggers: Array<ImpactAssessmentTriggerView>;
+  language?: string | undefined;
+  expect: {
+    parts: Partial<Record<ImpactAssessmentPart, Array<Array<string>>>>;
+    never: Array<string>;
+  };
+}
+
+/*
+ * A framework's audit evidence (#10375): its requirements' evidence as the
+ * reader works it out (AuditEvidenceReader), and the words each
+ * requirement's paragraph must say.
+ */
+export interface AuditEvidenceEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftAuditEvidence;
+  framework: ComplianceFramework;
+  periodInDays: number;
+  requirements: Array<AiEvidenceRequirement>;
+  language?: string | undefined;
+  expect: {
+    paragraphs: Record<string, Array<Array<string>>>;
+    never: Array<string>;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FieldSuggestionEvalCase
@@ -226,4 +312,7 @@ export type DataSecurityEvalCase =
   | StoreOwnersEvalCase
   | IssueGroupNameEvalCase
   | IssueGroupFixEvalCase
-  | ScrubRulesEvalCase;
+  | ScrubRulesEvalCase
+  | RecordDraftEvalCase
+  | ImpactAssessmentEvalCase
+  | AuditEvidenceEvalCase;

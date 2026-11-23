@@ -4,7 +4,10 @@ import { TelemetryFieldReaders } from "../Telemetry/TelemetryFieldReaders";
 import SecuritySeverity from "../SecuritySeverity";
 import ComplianceFramework from "./ComplianceFramework";
 import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
-import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
+import {
+  ComplianceFrameworkResult,
+  ComplianceRequirementStatus,
+} from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import { DataSecurityIssueAnalysisView } from "./DataSecurityIssueAnalysis";
 import type { DataSecurityIssueGroupJSON } from "./DataSecurityIssueGroup";
@@ -14,6 +17,21 @@ import {
   DeclaredStoreReaders,
   DeclaredStoreRetentionBasis,
 } from "./DeclaredDataStore";
+import { AuditEvidenceParagraph } from "./AuditEvidence";
+import { ComplianceFact, TelemetryRetentionSignal } from "./ComplianceFacts";
+import {
+  ImpactAssessmentPart,
+  ImpactAssessmentTriggerView,
+  StoreImpactAssessment,
+} from "./ImpactAssessment";
+import {
+  RecordDraftSkip,
+  RecordField,
+  RecordFieldView,
+  RecordRecipient,
+  RecordTransfer,
+  RecordTransfersUnknownReason,
+} from "./RecordOfProcessing";
 
 /*
  * WHAT DATA SECURITY'S OWN API ROUTES ANSWER.
@@ -52,6 +70,14 @@ export const DATA_SECURITY_API_ROUTES: {
   issueGroups: string;
   issueGroupFixPlan: (groupId: string) => string;
   fixIssueGroup: (groupId: string) => string;
+  recordField: (dataStoreId: string) => string;
+  draftRecord: (dataStoreId: string) => string;
+  impactAssessment: (dataStoreId: string) => string;
+  draftImpactAssessment: (dataStoreId: string) => string;
+  editImpactAssessment: (dataStoreId: string) => string;
+  auditEvidence: string;
+  draftAuditEvidence: string;
+  editAuditEvidence: string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -157,6 +183,37 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueGroup: (groupId: string): string => {
     return `/data-security-issue-group/${groupId}/fix`;
   },
+  /*
+   * The paperwork (#10375). A field of a store's record, as a person
+   * answers it: { field, action, value?, shownDraftedAt? } - confirm
+   * OneUptime AI's draft, write their own, or take or leave a proposed
+   * change (RecordFieldAction).
+   */
+  recordField: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/record-field`;
+  },
+  // ...OneUptime AI's drafts of a store's record, now: { force? } drafts again what no person confirmed.
+  draftRecord: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/draft-record`;
+  },
+  // A store's impact assessment, as its readers may read it.
+  impactAssessment: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/impact-assessment`;
+  },
+  // ...drafted by OneUptime AI, every part a person edited kept as written.
+  draftImpactAssessment: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/impact-assessment/draft`;
+  },
+  // ...one part written by a person: { part, markdown }.
+  editImpactAssessment: (dataStoreId: string): string => {
+    return `/data-store/${dataStoreId}/impact-assessment/edit`;
+  },
+  // A framework's audit evidence over a period: { framework, periodInDays }.
+  auditEvidence: "/data-security/audit-evidence",
+  // ...its paragraphs drafted by OneUptime AI, each one a person edited kept as written.
+  draftAuditEvidence: "/data-security/audit-evidence/draft",
+  // ...one requirement's paragraph written by a person: { framework, periodInDays, requirement, text }.
+  editAuditEvidence: "/data-security/audit-evidence/edit",
 };
 
 export interface DataSecurityOverviewIssue {
@@ -333,16 +390,171 @@ export interface DataSecurityRecordOfProcessingRow {
   dataCategories: Array<DataCategory>;
   dataTypeNames: Array<string>;
   owners: Array<string>;
-  // The team's words, or for a declared store OneUptime's until they change it.
+  /*
+   * The team's words, or what plain code fills in: for a declared store
+   * OneUptime's until they change it, for a telemetry store the retention
+   * set for its records. A draft is never here: it is in fields until a
+   * person confirms it.
+   */
   purpose: string;
   retention: string;
   frameworks: Array<ComplianceFramework>;
   // Set on the stores OneUptime declares, and only on them.
   declared?: DataSecurityDeclaredStore | undefined;
+  /*
+   * The rest of Article 30 (#10375): the legal basis and the people it is
+   * about as the record says them, a person's or filled in by OneUptime;
+   * where each field stands, with OneUptime AI's draft or proposed change
+   * while one waits; and its recipients and transfers, worked out from
+   * its flows and regions. Absent from an older server's answer.
+   */
+  legalBasis?: string | undefined;
+  dataSubjects?: Array<string> | undefined;
+  fields?: Array<RecordFieldView> | undefined;
+  recipients?: Array<RecordRecipient> | undefined;
+  transfers?: Array<RecordTransfer> | undefined;
+  transfersUnknownBecause?: RecordTransfersUnknownReason | null | undefined;
+  // How long OneUptime keeps a telemetry store's records.
+  telemetryRetention?: DataSecurityTelemetryRetention | undefined;
+  state?: RecordRowState | undefined;
+  impactAssessment?: DataSecurityRecordImpactAssessment | undefined;
+  // For one store's row (asked by dataStoreId): the facts its drafts rest on.
+  facts?: Array<ComplianceFact> | undefined;
+}
+
+export interface DataSecurityTelemetryRetention {
+  signal: TelemetryRetentionSignal;
+  days: number;
+  maxDays?: number | undefined;
+}
+
+/*
+ * Where a store's row of the record stands as a whole: a draft or a change
+ * waits for a person, every field is answered, or some field is empty. A
+ * store OneUptime declares is filled in by OneUptime and counts as none.
+ */
+export enum RecordRowState {
+  ToReview = "ToReview",
+  Complete = "Complete",
+  Incomplete = "Incomplete",
+  Declared = "Declared",
+}
+
+// Whether a store needs an impact assessment, and how far its assessment is.
+export enum ImpactAssessmentStatus {
+  NotNeeded = "NotNeeded",
+  // It needs one, and none is drafted yet.
+  Needed = "Needed",
+  // OneUptime AI drafted it, and no person edited it yet.
+  Drafted = "Drafted",
+  // A person edited at least one part.
+  Edited = "Edited",
+}
+
+export interface DataSecurityRecordImpactAssessment {
+  status: ImpactAssessmentStatus;
+  triggers: Array<ImpactAssessmentTriggerView>;
+}
+
+export interface DataSecurityRecordCounts {
+  toReview: number;
+  complete: number;
+  incomplete: number;
 }
 
 export interface DataSecurityRecordOfProcessingResponse {
   rows: Array<DataSecurityRecordOfProcessingRow>;
+  // The rows by where they stand, the declared stores left out (#10375).
+  counts?: DataSecurityRecordCounts | undefined;
+  /*
+   * What the reader may do with the drafts: whether the project's AI is on
+   * and drafts on its own, whether they may change a store's record, and
+   * whether they may ask OneUptime AI for drafts now.
+   */
+  isAiEnabled?: boolean | undefined;
+  isAutomaticAiOn?: boolean | undefined;
+  canEdit?: boolean | undefined;
+  canDraft?: boolean | undefined;
+}
+
+// What a field's press answers: the store's row, as it reads now.
+export interface DataSecurityRecordFieldResult {
+  row: DataSecurityRecordOfProcessingRow;
+}
+
+// What OneUptime AI's drafts of a store answer: the row, and what it drafted.
+export interface DataSecurityRecordDraftResult {
+  row: DataSecurityRecordOfProcessingRow;
+  draftedFields: Array<RecordField>;
+  proposedFields: Array<RecordField>;
+  // Why nothing was drafted, when nothing was: the Dashboard says it in the reader's words.
+  nothingDraftedBecause?: RecordDraftSkip | undefined;
+}
+
+// A store's impact assessment, as one reader may read it (#10375).
+export interface DataSecurityImpactAssessmentResponse {
+  dataStoreId: string;
+  storeName: string;
+  storeKind: string;
+  region: string;
+  status: ImpactAssessmentStatus;
+  triggers: Array<ImpactAssessmentTriggerView>;
+  assessment: StoreImpactAssessment | null;
+  // The facts as they are now, and the parts written over facts that changed since.
+  facts: Array<ComplianceFact>;
+  staleParts: Array<ImpactAssessmentPart>;
+  // Who edited each part, by name as the project knows them: userId -> name.
+  editors: Record<string, string>;
+  isAiEnabled: boolean;
+  canEdit: boolean;
+  canDraft: boolean;
+}
+
+// One requirement's audit evidence (#10375): its facts, and its paragraph for the period.
+export interface DataSecurityAuditEvidenceRequirement {
+  requirement: string;
+  title: string;
+  status: ComplianceRequirementStatus;
+  facts: Array<ComplianceFact>;
+  paragraph: AuditEvidenceParagraph | null;
+  // Whether its paragraph was written over facts that say something else now.
+  isParagraphStale: boolean;
+  // Its facts in plain English, for a requirement with no paragraph.
+  summary: string;
+}
+
+// One issue of the history an export cites.
+export interface DataSecurityEvidenceIssue {
+  issueId: string;
+  title: string;
+  storeName: string;
+  checkId: string;
+  severity: string;
+  status: string;
+  openedAt: string;
+  resolvedAt?: string | undefined;
+  hoursToFix?: number | undefined;
+}
+
+export interface DataSecurityAuditEvidenceResponse {
+  framework: ComplianceFramework;
+  fullName: string;
+  scope: string;
+  score: number | null;
+  storesInScope: number;
+  periodInDays: number;
+  requirements: Array<DataSecurityAuditEvidenceRequirement>;
+  // The record of processing of the stores in scope, which the evidence cites.
+  record: Array<DataSecurityRecordOfProcessingRow>;
+  // The issues of the framework's checks on those stores, opened or fixed in the period.
+  issueHistory: Array<DataSecurityEvidenceIssue>;
+  // When its paragraphs were last drafted, and in which language.
+  draftedAt?: string | undefined;
+  language?: string | undefined;
+  editors: Record<string, string>;
+  isAiEnabled: boolean;
+  canEdit: boolean;
+  canDraft: boolean;
 }
 
 // A declared store's page: what the record says of it.

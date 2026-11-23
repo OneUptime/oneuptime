@@ -40,6 +40,8 @@ export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
   "DataSecurity:ProposeOwnerRules";
 export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
   "DataSecurity:GroupIssues";
+export const DATA_SECURITY_DRAFT_RECORDS_JOB: string =
+  "DataSecurity:DraftRecords";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -293,6 +295,22 @@ export async function queueDataStoreOwnerProposals(data: {
         : {}),
     },
     description: `OneUptime AI's owners for the stores of project ${data.projectId.toString()}`,
+  });
+}
+
+/*
+ * Has OneUptime AI draft the record of processing of a project's stores
+ * with personal data (Server/Utils/AI/DataSecurity/
+ * RecordOfProcessingDraftRun, #10375): one job per project a day.
+ */
+export async function queueDataSecurityRecordDrafts(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DRAFT_RECORDS_JOB,
+    key: `data-security-record-drafts-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's record of processing drafts for project ${projectId.toString()}`,
   });
 }
 

@@ -257,6 +257,43 @@ export const AI_DATA_SECURITY_SCRUB_RULES_FEATURE: string =
   "AI Data Security Scrub Rules";
 
 /*
+ * The LlmLog feature name for OneUptime AI's drafts of a store's record of
+ * processing (RecordOfProcessingDrafter, #10375) written on their own: one
+ * constrained call per store with personal data whose drafts' facts
+ * changed, in the daily run, with no one pressing it - a project can hold
+ * hundreds of such stores - so the daily budget covers it. Its AI Logs
+ * rows keep no previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_RECORD_DRAFT_FEATURE: string =
+  "AI Data Security Record Draft";
+
+/*
+ * The same drafts when a person asks for one store's on Review Drafts
+ * (#10375): one request, answered while they wait. Not autonomous - the
+ * project's daily limits cover it like any other request.
+ */
+export const AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE: string =
+  "AI Data Security Record Draft Request";
+
+/*
+ * The LlmLog feature name for a store's data protection impact assessment
+ * (ImpactAssessmentDrafter, #10375): one request, started by a person on
+ * the store's Impact Assessment and answered while they wait. Not
+ * autonomous.
+ */
+export const AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE: string =
+  "AI Data Security Impact Assessment";
+
+/*
+ * The LlmLog feature name for a framework's audit evidence
+ * (AuditEvidenceDrafter, #10375): one request for the framework's
+ * requirements, started by a person on its Audit Evidence and answered
+ * while they wait. Not autonomous.
+ */
+export const AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE: string =
+  "AI Data Security Audit Evidence";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -431,6 +468,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * (ScrubRuleWriter, #10366): one constrained call per issue it contains.
    */
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  /*
+   * OneUptime AI's drafts of a store's record of processing
+   * (RecordOfProcessingDrafter, #10375) in the daily run: one constrained
+   * call per store whose drafts' facts changed.
+   */
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

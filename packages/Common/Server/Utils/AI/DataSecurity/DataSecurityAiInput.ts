@@ -52,6 +52,37 @@ import {
   ScrubRuleWriterPlace,
   ScrubRuleWriterShape,
 } from "../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import {
+  CloudRegionLocation,
+  getCloudRegionLocation,
+} from "../../../../Types/DataSecurity/CloudRegionCountry";
+import {
+  COMPLIANCE_FACT_KIND_WORDS,
+  ComplianceFact,
+  ComplianceFactKind,
+  ComplianceRecency,
+  MAX_COMPLIANCE_FACTS,
+  TelemetryRetentionSignal,
+} from "../../../../Types/DataSecurity/ComplianceFacts";
+import {
+  IMPACT_ASSESSMENT_PART_ARTICLES,
+  IMPACT_ASSESSMENT_PART_ASKS,
+  ImpactAssessmentPart,
+  ImpactAssessmentTrigger,
+  ImpactAssessmentTriggerView,
+} from "../../../../Types/DataSecurity/ImpactAssessment";
+import {
+  describeRecordTransfer,
+  RECORD_LEGAL_BASES,
+  RECORD_LEGAL_BASIS_INFO,
+  RECORD_PEOPLE,
+  RECORD_PEOPLE_DESCRIPTIONS,
+  RecordField,
+  RecordFieldStatus,
+  RecordLegalBasis,
+  RecordPeople,
+  RecordTransfer,
+} from "../../../../Types/DataSecurity/RecordOfProcessing";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
@@ -198,6 +229,9 @@ export type AiStoreRecord = AiReadable<
   | "posture"
   | "estimatedRecords"
   | "objectCount"
+  // What its team wrote it is for, and whose data it holds (#10375's paperwork).
+  | "description"
+  | "subjectCountries"
 >;
 
 export type AiIssueRecord = AiReadable<
@@ -217,6 +251,8 @@ export type AiIssueRecord = AiReadable<
   | "lastDetectedAt"
   | "resolvedAt"
   | "acceptedUntil"
+  // Why a person accepted its risk: the audit evidence cites it (#10375).
+  | "acceptedReason"
   | "securityCaseId"
   | "alertId"
   | "incidentId"
@@ -2683,6 +2719,942 @@ export function buildFixIssueGroupRequest(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * The paperwork (#10375): a store's record, its impact assessment and a
+ * framework's audit evidence, as facts
+ * ---------------------------------------------------------------------------
+ *
+ * Each is drafted from facts Data Security's code read
+ * (Types/DataSecurity/ComplianceFacts), made here in one pass with what
+ * OneUptime AI reads of them, under the same ids - so a draft cites facts a
+ * person can open, and what was kept is what was sent. Each fact holds
+ * names, counts, kinds and configuration: every text a cloud, a person or
+ * a service wrote is cleaned and held to a length (customerText), and a
+ * person is never named - not an owner, not who accepted a risk.
+ */
+
+// The most of each kind of fact a store's record is drafted from.
+export const MAX_RECORD_SERVICES: number = 10;
+export const MAX_RECORD_HOSTS: number = 15;
+export const MAX_RECORD_AI_PROVIDERS: number = 10;
+export const MAX_RECORD_COPIES: number = 10;
+export const MAX_ASSESSMENT_OPEN_ISSUES: number = 20;
+export const MAX_ASSESSMENT_FIXED_ISSUES: number = 10;
+export const MAX_EVIDENCE_STORE_NAMES: number = 20;
+export const MAX_EVIDENCE_RISKS: number = 10;
+export const MAX_EVIDENCE_TURNED_OFF: number = 5;
+// The longest text a team wrote that a fact holds: a description, a reason.
+const MAX_COMPLIANCE_TEXT_LENGTH: number = 600;
+
+// A service the service map shows using a store, and what its team wrote it is for.
+export interface AiRecordService {
+  serviceId?: string | undefined;
+  name: string;
+  description?: string | undefined;
+}
+
+// A host outside the project a service using the store calls.
+export interface AiRecordHost {
+  host: string;
+  via: string;
+}
+
+// An AI provider the store's data, or a service using it, is sent to.
+export interface AiRecordAiProvider {
+  provider: string;
+  via?: string | undefined;
+}
+
+// A copy of the store's data in another store, or the other way round.
+export interface AiRecordCopy {
+  otherStoreId: string;
+  otherStore: AiStoreRecord;
+  isCopyOfThisStore: boolean;
+}
+
+// How long OneUptime keeps a telemetry store's records (StoreTelemetryRetention).
+export interface AiRecordTelemetryRetention {
+  signal: TelemetryRetentionSignal;
+  days: number;
+  maxDays?: number | undefined;
+}
+
+// What a store's record is drafted from (RecordOfProcessingDossier).
+export interface AiRecordDossier {
+  store: AiStoreRecord;
+  services: ReadonlyArray<AiRecordService>;
+  externalHosts: ReadonlyArray<AiRecordHost>;
+  aiProviders: ReadonlyArray<AiRecordAiProvider>;
+  copies: ReadonlyArray<AiRecordCopy>;
+  telemetryRetention: AiRecordTelemetryRetention | null;
+  declaredCode: AiDeclaredCodeRecord | null;
+}
+
+// What the store's record says of one field, for its impact assessment.
+export interface AiRecordEntry {
+  field: RecordField;
+  // As text: a legal basis by its name, the people by theirs.
+  value: string;
+  status: RecordFieldStatus;
+}
+
+// What an impact assessment is drafted from: the record's, and its issues and access.
+export interface AiImpactAssessmentDossier extends AiRecordDossier {
+  access: ReadonlyArray<AiAccessRecord>;
+  openIssues: ReadonlyArray<AiIssueRecord>;
+  // Fixed lately, each with when.
+  fixedIssues: ReadonlyArray<AiIssueRecord>;
+  record: ReadonlyArray<AiRecordEntry>;
+  now: Date;
+}
+
+// The facts of a draft: as it keeps them, and as OneUptime AI reads them.
+export interface AiComplianceFacts {
+  facts: Array<ComplianceFact>;
+  data: Array<JSONObject>;
+  marks: AiInputMarks;
+}
+
+// A fact before it is given its id.
+type FactWithoutId<Fact> = Fact extends unknown ? Omit<Fact, "id"> : never;
+
+/*
+ * The facts of one draft, given their ids as they are added ("F1", "F2"),
+ * each kept as it was sent: the fields it holds, under the words that say
+ * what kind of fact it is.
+ */
+export class ComplianceFactList {
+  public readonly facts: Array<ComplianceFact> = [];
+  public readonly data: Array<JSONObject> = [];
+  private readonly prefix: string;
+
+  public constructor(prefix: string) {
+    this.prefix = prefix;
+  }
+
+  public add(fact: FactWithoutId<ComplianceFact>): void {
+    if (this.facts.length >= MAX_COMPLIANCE_FACTS) {
+      return;
+    }
+
+    const id: string = `${this.prefix}${this.facts.length + 1}`;
+    const kept: ComplianceFact = { ...fact, id } as ComplianceFact;
+    const sent: Record<string, JSONValue | undefined> = {};
+
+    for (const [name, value] of Object.entries(fact)) {
+      if (name !== "key" && name !== "kind") {
+        sent[name] = value as JSONValue | undefined;
+      }
+    }
+
+    this.facts.push(kept);
+    this.data.push({
+      id,
+      fact: COMPLIANCE_FACT_KIND_WORDS[fact.kind],
+      ...withoutEmpty(sent),
+    });
+  }
+}
+
+function lowerKey(value: string): string {
+  return value.trim().toLowerCase().slice(0, 200);
+}
+
+// A store's cloud tags as pairs, those that name an owner left out: a person is never named.
+function recordTagPairs(
+  store: AiStoreRecord,
+  marks: AiInputMarks,
+): Array<[string, string]> {
+  return Object.entries(tagFacts(store, marks))
+    .filter(([key]: [string, JSONValue]): boolean => {
+      return !isOwnerTagKey(key);
+    })
+    .map(([key, value]: [string, JSONValue]): [string, string] => {
+      return [key, typeof value === "string" ? value : ""];
+    });
+}
+
+/*
+ * The facts of a store's record: what it is, what it holds and where, its
+ * tags, its backups, how long OneUptime keeps a telemetry store, the
+ * services that use it and where they send its data, copies of it, and
+ * the code that declares it - each kind once, in that order.
+ */
+export function recordFacts(data: {
+  dossier: AiRecordDossier;
+  dataTypeNamer?: DataTypeNamer | undefined;
+  marks?: AiInputMarks | undefined;
+  list?: ComplianceFactList | undefined;
+}): AiComplianceFacts {
+  const marks: AiInputMarks = data.marks || new AiInputMarks();
+  const namer: DataTypeNamer =
+    data.dataTypeNamer || DataTypeNamer.withoutCustomTypes();
+  const list: ComplianceFactList = data.list || new ComplianceFactList("F");
+  const store: AiStoreRecord = data.dossier.store;
+
+  list.add({
+    key: "store",
+    kind: ComplianceFactKind.StoreIdentity,
+    name: customerText(store.name, MAX_ISSUE_VALUE_LENGTH, "store.name", marks),
+    storeKind: store.kind || "",
+    provider: store.provider || undefined,
+    environment: store.environment || undefined,
+    description:
+      customerText(
+        store.description,
+        MAX_COMPLIANCE_TEXT_LENGTH,
+        "store.description",
+        marks,
+      ) || undefined,
+  });
+
+  list.add({
+    key: "store:holds",
+    kind: ComplianceFactKind.StoreHolds,
+    dataTypes: dataTypeNames(
+      namer.namesOf(store.dataTypeIds),
+      "store.dataTypes",
+      marks,
+    ),
+    categories: (store.dataCategories || []).map((category: string): string => {
+      return category;
+    }),
+    sensitivity: effectiveSensitivity(store),
+    records: roundDataSecurityCount(store.estimatedRecords),
+  });
+
+  const location: CloudRegionLocation | null = getCloudRegionLocation(
+    store.region,
+  );
+
+  list.add({
+    key: "store:location",
+    kind: ComplianceFactKind.Location,
+    region:
+      customerText(store.region, MAX_WORD_LENGTH, "store.region", marks) ||
+      undefined,
+    country: location?.country || undefined,
+    isInEea: location ? location.isInEea : undefined,
+    replicationRegions: (store.posture?.replicationRegions || [])
+      .slice(0, MAX_LISTED_ACCOUNTS)
+      .map((region: string, index: number): string => {
+        return customerText(
+          region,
+          MAX_WORD_LENGTH,
+          `store.replicationRegions[${index}]`,
+          marks,
+        );
+      })
+      .filter(Boolean),
+    subjectCountries: (store.subjectCountries || [])
+      .filter((country: string): boolean => {
+        return /^[A-Za-z]{2}$/.test(country);
+      })
+      .map((country: string): string => {
+        return country.toUpperCase();
+      }),
+  });
+
+  const tags: Array<[string, string]> = recordTagPairs(store, marks);
+
+  if (tags.length > 0) {
+    list.add({ key: "store:tags", kind: ComplianceFactKind.StoreTags, tags });
+  }
+
+  const posture: AiStoreRecord["posture"] = store.posture;
+  const flag: (value: boolean | null | undefined) => boolean | undefined = (
+    value: boolean | null | undefined,
+  ): boolean | undefined => {
+    return typeof value === "boolean" ? value : undefined;
+  };
+
+  if (
+    posture &&
+    [
+      posture.backupsEnabled,
+      posture.pointInTimeRecovery,
+      posture.versioning,
+      posture.softDelete,
+      posture.deletionProtection,
+    ].some((value: boolean | null | undefined): boolean => {
+      return typeof value === "boolean";
+    })
+  ) {
+    list.add({
+      key: "store:backups",
+      kind: ComplianceFactKind.Backups,
+      backupsEnabled: flag(posture.backupsEnabled),
+      backupRetentionDays:
+        typeof posture.backupRetentionDays === "number"
+          ? posture.backupRetentionDays
+          : undefined,
+      pointInTimeRecovery: flag(posture.pointInTimeRecovery),
+      versioning: flag(posture.versioning),
+      softDelete: flag(posture.softDelete),
+      deletionProtection: flag(posture.deletionProtection),
+    });
+  }
+
+  const retention: AiRecordTelemetryRetention | null =
+    data.dossier.telemetryRetention;
+
+  if (retention) {
+    list.add({
+      key: "store:retention",
+      kind: ComplianceFactKind.TelemetryRetention,
+      signal: retention.signal,
+      days: retention.days,
+      maxDays: retention.maxDays,
+    });
+  }
+
+  data.dossier.services
+    .slice(0, MAX_RECORD_SERVICES)
+    .forEach((service: AiRecordService, index: number): void => {
+      const name: string = customerText(
+        service.name,
+        MAX_ISSUE_VALUE_LENGTH,
+        `services[${index}].name`,
+        marks,
+      );
+
+      if (!name) {
+        return;
+      }
+
+      list.add({
+        key: `service:${service.serviceId || lowerKey(name)}`,
+        kind: ComplianceFactKind.ServiceUse,
+        service: name,
+        description:
+          customerText(
+            service.description,
+            MAX_COMPLIANCE_TEXT_LENGTH,
+            `services[${index}].description`,
+            marks,
+          ) || undefined,
+      });
+    });
+
+  data.dossier.externalHosts
+    .slice(0, MAX_RECORD_HOSTS)
+    .forEach((entry: AiRecordHost, index: number): void => {
+      const host: string = customerText(
+        entry.host,
+        MAX_ISSUE_VALUE_LENGTH,
+        `hosts[${index}].host`,
+        marks,
+      );
+      const via: string = customerText(
+        entry.via,
+        MAX_ISSUE_VALUE_LENGTH,
+        `hosts[${index}].via`,
+        marks,
+      );
+
+      if (!host) {
+        return;
+      }
+
+      list.add({
+        key: `host:${lowerKey(host)}:${lowerKey(via)}`,
+        kind: ComplianceFactKind.ExternalHost,
+        host,
+        via,
+      });
+    });
+
+  data.dossier.aiProviders
+    .slice(0, MAX_RECORD_AI_PROVIDERS)
+    .forEach((entry: AiRecordAiProvider, index: number): void => {
+      const provider: string = customerText(
+        entry.provider,
+        MAX_WORD_LENGTH,
+        `aiProviders[${index}].provider`,
+        marks,
+      );
+      const via: string = customerText(
+        entry.via,
+        MAX_ISSUE_VALUE_LENGTH,
+        `aiProviders[${index}].via`,
+        marks,
+      );
+
+      if (!provider) {
+        return;
+      }
+
+      list.add({
+        key: `ai:${lowerKey(provider)}:${lowerKey(via)}`,
+        kind: ComplianceFactKind.AiProvider,
+        provider,
+        via: via || undefined,
+      });
+    });
+
+  data.dossier.copies
+    .slice(0, MAX_RECORD_COPIES)
+    .forEach((copy: AiRecordCopy, index: number): void => {
+      const name: string = customerText(
+        copy.otherStore.name,
+        MAX_ISSUE_VALUE_LENGTH,
+        `copies[${index}].store`,
+        marks,
+      );
+      const otherLocation: CloudRegionLocation | null = getCloudRegionLocation(
+        copy.otherStore.region,
+      );
+
+      if (!name) {
+        return;
+      }
+
+      list.add({
+        key: `copy:${copy.otherStoreId.toLowerCase()}`,
+        kind: ComplianceFactKind.Copy,
+        otherStore: name,
+        otherRegion:
+          customerText(
+            copy.otherStore.region,
+            MAX_WORD_LENGTH,
+            `copies[${index}].region`,
+            marks,
+          ) || undefined,
+        otherCountry: otherLocation?.country || undefined,
+        otherEnvironment: copy.otherStore.environment || undefined,
+        isCopyOfThisStore: copy.isCopyOfThisStore,
+      });
+    });
+
+  const code: AiDeclaredCodeRecord | null = data.dossier.declaredCode;
+
+  if (code) {
+    list.add({
+      key: "store:code",
+      kind: ComplianceFactKind.DeclaredCode,
+      repository: customerText(
+        code.repositoryName,
+        MAX_ISSUE_VALUE_LENGTH,
+        "code.repository",
+        marks,
+      ),
+      paths: code.paths
+        .slice(0, MAX_ANALYSIS_CODE_PATHS)
+        .map((filePath: string, index: number): string => {
+          return customerText(
+            filePath,
+            MAX_CODE_PATH_LENGTH,
+            `code.paths[${index}]`,
+            marks,
+          );
+        })
+        .filter(Boolean),
+      codeKind: code.codeKind,
+    });
+  }
+
+  return { facts: list.facts, data: list.data, marks };
+}
+
+// How long ago an issue was fixed, in a bucket.
+function fixedRecency(
+  resolvedAt: Date | string | null | undefined,
+  now: Date,
+): ComplianceRecency {
+  const at: number = resolvedAt ? new Date(resolvedAt).getTime() : NaN;
+  const days: number = Number.isFinite(at)
+    ? (now.getTime() - at) / (24 * 60 * 60 * 1000)
+    : Infinity;
+
+  if (days <= 7) {
+    return ComplianceRecency.Week;
+  }
+
+  return days <= 30 ? ComplianceRecency.Month : ComplianceRecency.Quarter;
+}
+
+// How a field of the record reads in the facts: by its words, not its column.
+const RECORD_FIELD_WORDS: Readonly<Record<RecordField, string>> = {
+  [RecordField.Purpose]: "purpose",
+  [RecordField.Retention]: "retention",
+  [RecordField.LegalBasis]: "legal basis",
+  [RecordField.People]: "people it is about",
+};
+
+/*
+ * The facts of a store's impact assessment: its record's, then what it
+ * says of each field, how exposed it is, its encryption, who can reach it,
+ * its open issues and the ones fixed lately.
+ */
+export function impactAssessmentFacts(data: {
+  dossier: AiImpactAssessmentDossier;
+  dataTypeNamer?: DataTypeNamer | undefined;
+  marks?: AiInputMarks | undefined;
+}): AiComplianceFacts {
+  const marks: AiInputMarks = data.marks || new AiInputMarks();
+  const list: ComplianceFactList = new ComplianceFactList("F");
+  const dossier: AiImpactAssessmentDossier = data.dossier;
+  const store: AiStoreRecord = dossier.store;
+
+  recordFacts({
+    dossier,
+    dataTypeNamer: data.dataTypeNamer,
+    marks,
+    list,
+  });
+
+  for (const entry of dossier.record) {
+    const value: string = customerText(
+      entry.value,
+      MAX_COMPLIANCE_TEXT_LENGTH,
+      `record.${entry.field}`,
+      marks,
+    );
+
+    if (!value) {
+      continue;
+    }
+
+    list.add({
+      key: `record:${entry.field}`,
+      kind: ComplianceFactKind.RecordEntry,
+      field: RECORD_FIELD_WORDS[entry.field],
+      value,
+      status: entry.status,
+    });
+  }
+
+  const configuration: JSONObject = configurationFacts(store, marks);
+
+  list.add({
+    key: "store:exposure",
+    kind: ComplianceFactKind.Exposure,
+    exposure: store.exposure || DataStoreExposure.Unknown,
+    isPublicByDesign: store.isPublicByDesign === true,
+    publicReason:
+      typeof configuration["publicReason"] === "string"
+        ? (configuration["publicReason"] as string)
+        : undefined,
+  });
+
+  const posture: AiStoreRecord["posture"] = store.posture;
+
+  if (posture) {
+    const flag: (value: boolean | null | undefined) => boolean | undefined = (
+      value: boolean | null | undefined,
+    ): boolean | undefined => {
+      return typeof value === "boolean" ? value : undefined;
+    };
+    const encryption: {
+      encryptedAtRest?: boolean | undefined;
+      customerManagedKey?: boolean | undefined;
+      encryptionInTransitEnforced?: boolean | undefined;
+    } = {
+      encryptedAtRest: flag(posture.encryptedAtRest),
+      customerManagedKey: flag(posture.customerManagedKey),
+      encryptionInTransitEnforced: flag(posture.encryptionInTransitEnforced),
+    };
+
+    if (
+      Object.values(encryption).some((value: boolean | undefined): boolean => {
+        return value !== undefined;
+      }) ||
+      posture.minimumTlsVersion
+    ) {
+      list.add({
+        key: "store:encryption",
+        kind: ComplianceFactKind.Encryption,
+        ...encryption,
+        minimumTlsVersion:
+          customerText(
+            posture.minimumTlsVersion || "",
+            MAX_WORD_LENGTH,
+            "store.minimumTlsVersion",
+            marks,
+          ) || undefined,
+      });
+    }
+  }
+
+  const grants: Array<AiAccessRecord> = dossier.access.filter(
+    (entry: AiAccessRecord): boolean => {
+      return entry.isSeenInTraces !== true;
+    },
+  );
+
+  list.add({
+    key: "store:reach",
+    kind: ComplianceFactKind.Reach,
+    identities: new Set(
+      grants.map((entry: AiAccessRecord): string => {
+        return entry.principal || "";
+      }),
+    ).size,
+    publicGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return entry.isPublic === true;
+    }).length,
+    externalGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return entry.isExternal === true && entry.isPublic !== true;
+    }).length,
+    writeGrants: grants.filter((entry: AiAccessRecord): boolean => {
+      return (ACCESS_LEVEL_RANK[entry.accessLevel || ""] || 0) > 0;
+    }).length,
+    servicesSeen: dossier.access.length - grants.length,
+  });
+
+  dossier.openIssues
+    .slice(0, MAX_ASSESSMENT_OPEN_ISSUES)
+    .forEach((issue: AiIssueRecord, index: number): void => {
+      list.add({
+        key: `issue:${idOf(issue)}`,
+        kind: ComplianceFactKind.OpenIssue,
+        title: customerText(
+          issue.title,
+          MAX_ISSUE_VALUE_LENGTH,
+          `openIssues[${index}].title`,
+          marks,
+        ),
+        checkId: issue.checkId || "",
+        severity: issue.severity || "",
+      });
+    });
+
+  dossier.fixedIssues
+    .slice(0, MAX_ASSESSMENT_FIXED_ISSUES)
+    .forEach((issue: AiIssueRecord, index: number): void => {
+      list.add({
+        key: `fixed:${idOf(issue)}`,
+        kind: ComplianceFactKind.FixedIssue,
+        title: customerText(
+          issue.title,
+          MAX_ISSUE_VALUE_LENGTH,
+          `fixedIssues[${index}].title`,
+          marks,
+        ),
+        checkId: issue.checkId || "",
+        fixed: fixedRecency(issue.resolvedAt, dossier.now),
+      });
+    });
+
+  return { facts: list.facts, data: list.data, marks };
+}
+
+/*
+ * What one requirement's evidence is drafted from (AuditEvidenceReader): its
+ * stores, its checks, its issues in the period, its accepted risks and the
+ * resources that turned it off - names, counts and reasons, never who.
+ */
+export interface AiEvidenceRequirement {
+  requirement: string;
+  title: string;
+  // Its status, as the framework's score says it.
+  status: string;
+  stores: ReadonlyArray<AiStoreRecord>;
+  checks: number;
+  // The titles of its checks an open issue fails on a store in scope.
+  failingChecks: ReadonlyArray<string>;
+  failingStores: number;
+  openIssues: number;
+  opened: number;
+  fixed: number;
+  stillOpen: number;
+  medianHoursToFix?: number | undefined;
+  acceptedRisks: ReadonlyArray<{
+    issue: AiIssueRecord;
+    storeName: string;
+  }>;
+  turnedOff: ReadonlyArray<{
+    id: string;
+    resourceName: string;
+    resourceKind: string;
+    reason: string;
+    isWholeFramework: boolean;
+  }>;
+}
+
+function dayOf(value: Date | string | null | undefined): string | undefined {
+  const iso: string | null = toIso(value as Date | string | null | undefined);
+
+  return iso ? iso.slice(0, 10) : undefined;
+}
+
+/*
+ * The facts of a framework's audit evidence over a period: for each of its
+ * requirements, its scope, its checks, its issues in the period, its
+ * accepted risks and what turned it off - each keyed under the requirement
+ * ("Art. 32:checks"), so a paragraph rests only on its own requirement's.
+ */
+export function auditEvidenceFacts(data: {
+  framework: string;
+  periodInDays: number;
+  requirements: ReadonlyArray<AiEvidenceRequirement>;
+  marks?: AiInputMarks | undefined;
+}): AiComplianceFacts {
+  const marks: AiInputMarks = data.marks || new AiInputMarks();
+  const list: ComplianceFactList = new ComplianceFactList("E");
+
+  for (const entry of data.requirements) {
+    const prefix: string = `${entry.requirement}:`;
+
+    list.add({
+      key: `${prefix}scope`,
+      kind: ComplianceFactKind.RequirementScope,
+      stores: entry.stores.length,
+      storeNames: entry.stores
+        .slice(0, MAX_EVIDENCE_STORE_NAMES)
+        .map((store: AiStoreRecord, index: number): string => {
+          return customerText(
+            store.name,
+            MAX_ISSUE_VALUE_LENGTH,
+            `${entry.requirement}.stores[${index}]`,
+            marks,
+          );
+        })
+        .filter(Boolean),
+      framework: data.framework,
+      requirement: entry.requirement,
+    });
+
+    list.add({
+      key: `${prefix}checks`,
+      kind: ComplianceFactKind.CheckState,
+      checks: entry.checks,
+      failingChecks: [...entry.failingChecks],
+      failingStores: entry.failingStores,
+      openIssues: entry.openIssues,
+    });
+
+    list.add({
+      key: `${prefix}history`,
+      kind: ComplianceFactKind.IssueHistory,
+      periodInDays: data.periodInDays,
+      opened: entry.opened,
+      fixed: entry.fixed,
+      stillOpen: entry.stillOpen,
+      medianHoursToFix:
+        entry.medianHoursToFix !== undefined
+          ? Math.round(entry.medianHoursToFix)
+          : undefined,
+      medianDaysToFix:
+        entry.medianHoursToFix !== undefined
+          ? Math.round((entry.medianHoursToFix / 24) * 10) / 10
+          : undefined,
+    });
+
+    entry.acceptedRisks
+      .slice(0, MAX_EVIDENCE_RISKS)
+      .forEach(
+        (risk: { issue: AiIssueRecord; storeName: string }, index: number) => {
+          list.add({
+            key: `${prefix}risk:${idOf(risk.issue)}`,
+            kind: ComplianceFactKind.AcceptedRisk,
+            issueTitle: customerText(
+              risk.issue.title,
+              MAX_ISSUE_VALUE_LENGTH,
+              `${entry.requirement}.risks[${index}].issue`,
+              marks,
+            ),
+            store: customerText(
+              risk.storeName,
+              MAX_ISSUE_VALUE_LENGTH,
+              `${entry.requirement}.risks[${index}].store`,
+              marks,
+            ),
+            reason: customerText(
+              risk.issue.acceptedReason,
+              MAX_COMPLIANCE_TEXT_LENGTH,
+              `${entry.requirement}.risks[${index}].reason`,
+              marks,
+            ),
+            until: dayOf(risk.issue.acceptedUntil),
+          });
+        },
+      );
+
+    entry.turnedOff
+      .slice(0, MAX_EVIDENCE_TURNED_OFF)
+      .forEach(
+        (
+          off: {
+            id: string;
+            resourceName: string;
+            resourceKind: string;
+            reason: string;
+            isWholeFramework: boolean;
+          },
+          index: number,
+        ) => {
+          list.add({
+            key: `${prefix}off:${off.id}`,
+            kind: ComplianceFactKind.TurnedOff,
+            resource: customerText(
+              off.resourceName,
+              MAX_ISSUE_VALUE_LENGTH,
+              `${entry.requirement}.turnedOff[${index}].resource`,
+              marks,
+            ),
+            resourceKind: off.resourceKind,
+            reason: customerText(
+              off.reason,
+              MAX_COMPLIANCE_TEXT_LENGTH,
+              `${entry.requirement}.turnedOff[${index}].reason`,
+              marks,
+            ),
+            isWholeFramework: off.isWholeFramework,
+          });
+        },
+      );
+  }
+
+  return { facts: list.facts, data: list.data, marks };
+}
+
+/*
+ * A store's record drafts: the fields to draft, what each legal basis and
+ * category of people means, and the record's facts.
+ */
+export function buildRecordDraftPrompt(data: {
+  feature:
+    | DataSecurityAiFeature.DraftRecord
+    | DataSecurityAiFeature.DraftRecordOnRequest;
+  instructions: string;
+  built: AiComplianceFacts;
+  fields: ReadonlyArray<RecordField>;
+}): DataSecurityAiPrompt {
+  return prompt({
+    feature: data.feature,
+    instructions: data.instructions,
+    facts: {
+      draft: data.fields.map((field: RecordField): string => {
+        return field === RecordField.People ? "people" : field;
+      }),
+      legalBases: RECORD_LEGAL_BASES.map(
+        (basis: RecordLegalBasis): JSONObject => {
+          return {
+            value: basis,
+            article: RECORD_LEGAL_BASIS_INFO[basis].article,
+            meaning: RECORD_LEGAL_BASIS_INFO[basis].description,
+          };
+        },
+      ),
+      people: RECORD_PEOPLE.map((category: RecordPeople): JSONObject => {
+        return {
+          value: category,
+          who: RECORD_PEOPLE_DESCRIPTIONS[category],
+        };
+      }),
+      facts: data.built.data,
+    },
+    marks: data.built.marks,
+  });
+}
+
+/*
+ * A store's impact assessment: why it needs one, the parts to write and
+ * what each asks, and the assessment's facts.
+ */
+export function buildImpactAssessmentPrompt(data: {
+  instructions: string;
+  built: AiComplianceFacts;
+  triggers: ReadonlyArray<ImpactAssessmentTriggerView>;
+  parts: ReadonlyArray<ImpactAssessmentPart>;
+}): DataSecurityAiPrompt {
+  return prompt({
+    feature: DataSecurityAiFeature.DraftImpactAssessment,
+    instructions: data.instructions,
+    facts: {
+      whyItNeedsOne: data.triggers.map(
+        (trigger: ImpactAssessmentTriggerView): string => {
+          return describeImpactAssessmentTrigger(trigger);
+        },
+      ),
+      parts: data.parts.map((part: ImpactAssessmentPart): JSONObject => {
+        return {
+          part,
+          article: IMPACT_ASSESSMENT_PART_ARTICLES[part],
+          write: IMPACT_ASSESSMENT_PART_ASKS[part],
+        };
+      }),
+      facts: data.built.data,
+    },
+    marks: data.built.marks,
+  });
+}
+
+// Why a store needs an assessment, in English, for OneUptime AI.
+function describeImpactAssessmentTrigger(
+  trigger: ImpactAssessmentTriggerView,
+): string {
+  switch (trigger.trigger) {
+    case ImpactAssessmentTrigger.SpecialCategory:
+      return `It holds special category data (GDPR Article 9): ${(
+        trigger.categories || []
+      ).join(", ")}.`;
+    case ImpactAssessmentTrigger.LargeScale:
+      return `It holds data about many people: about ${trigger.records} records.`;
+    case ImpactAssessmentTrigger.LeavesCountries:
+      return `Its data leaves the countries its people are in: ${(
+        trigger.transfers || []
+      )
+        .map((transfer: RecordTransfer): string => {
+          return describeRecordTransfer(transfer);
+        })
+        .join("; ")}.`;
+    default:
+      return "";
+  }
+}
+
+/*
+ * A framework's audit evidence: its requirements, each with where it
+ * stands and the ids of its own facts, and the facts.
+ */
+export function buildAuditEvidencePrompt(data: {
+  instructions: string;
+  built: AiComplianceFacts;
+  framework: string;
+  frameworkName: string;
+  periodInDays: number;
+  requirements: ReadonlyArray<{
+    requirement: string;
+    title: string;
+    status: string;
+  }>;
+}): DataSecurityAiPrompt {
+  return prompt({
+    feature: DataSecurityAiFeature.DraftAuditEvidence,
+    instructions: data.instructions,
+    facts: {
+      framework: data.framework,
+      frameworkName: data.frameworkName,
+      periodInDays: data.periodInDays,
+      requirements: data.requirements.map(
+        (entry: {
+          requirement: string;
+          title: string;
+          status: string;
+        }): JSONObject => {
+          return {
+            requirement: entry.requirement,
+            title: entry.title,
+            status: entry.status,
+            facts: data.built.facts
+              .filter((fact: ComplianceFact): boolean => {
+                return fact.key.startsWith(`${entry.requirement}:`);
+              })
+              .map((fact: ComplianceFact): string => {
+                return fact.id;
+              }),
+          };
+        },
+      ),
+      facts: data.built.data,
+    },
+    marks: data.built.marks,
+  });
+}
+
+/*
  * Whether a value is a prompt this file made: for the one call
  * (DataSecurityAiCall) to refuse anything else that reached it past the
  * type, and for tests.
@@ -2736,6 +3708,12 @@ const DataSecurityAiInput: {
   scrubRulePlaceFacts: typeof scrubRulePlaceFacts;
   ownerCandidateFacts: typeof ownerCandidateFacts;
   ownerEvidenceFacts: typeof ownerEvidenceFacts;
+  recordFacts: typeof recordFacts;
+  impactAssessmentFacts: typeof impactAssessmentFacts;
+  auditEvidenceFacts: typeof auditEvidenceFacts;
+  buildRecordDraftPrompt: typeof buildRecordDraftPrompt;
+  buildImpactAssessmentPrompt: typeof buildImpactAssessmentPrompt;
+  buildAuditEvidencePrompt: typeof buildAuditEvidencePrompt;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
   isDataSecurityAiCodeRequest: typeof isDataSecurityAiCodeRequest;
 } = {
@@ -2765,6 +3743,12 @@ const DataSecurityAiInput: {
   scrubRulePlaceFacts,
   ownerCandidateFacts,
   ownerEvidenceFacts,
+  recordFacts,
+  impactAssessmentFacts,
+  auditEvidenceFacts,
+  buildRecordDraftPrompt,
+  buildImpactAssessmentPrompt,
+  buildAuditEvidencePrompt,
   isDataSecurityAiPrompt,
   isDataSecurityAiCodeRequest,
 };

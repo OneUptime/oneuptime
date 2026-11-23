@@ -97,6 +97,14 @@ import {
   HeldDataStoreOwnerAnswer,
   holdDataStoreOwnerAnswerToEvidence,
 } from "../../../../../Utils/DataSecurity/DataStoreOwnerAnswer";
+import {
+  auditEvidenceCall,
+  impactAssessmentCall,
+  recordDraftCall,
+  scoreAuditEvidence,
+  scoreImpactAssessment,
+  scoreRecordDraft,
+} from "./DataSecurityPaperworkEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -172,6 +180,16 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    * four places' cases must pass.
    */
   [DataSecurityAiFeature.WriteScrubRules]: 0.75,
+  /*
+   * The paperwork (#10375): every draft is held to its facts before it is
+   * read, and a field the facts do not support must be left empty. Three
+   * in four of a record's cases must pass; an assessment and the evidence
+   * are written prose, read by their words, so one in two.
+   */
+  [DataSecurityAiFeature.DraftRecord]: 0.75,
+  [DataSecurityAiFeature.DraftRecordOnRequest]: 0.75,
+  [DataSecurityAiFeature.DraftImpactAssessment]: 0.5,
+  [DataSecurityAiFeature.DraftAuditEvidence]: 0.5,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -966,6 +984,13 @@ export function buildEvalCall(
       return issueGroupFixCall(testCase);
     case DataSecurityAiFeature.WriteScrubRules:
       return scrubRulesCall(testCase);
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return recordDraftCall(testCase);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return impactAssessmentCall(testCase);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return auditEvidenceCall(testCase);
   }
 }
 
@@ -998,6 +1023,13 @@ export function scoreAnswer(
       );
     case DataSecurityAiFeature.WriteScrubRules:
       return scoreScrubRules(testCase, answer);
+    case DataSecurityAiFeature.DraftRecord:
+    case DataSecurityAiFeature.DraftRecordOnRequest:
+      return scoreRecordDraft(testCase, answer);
+    case DataSecurityAiFeature.DraftImpactAssessment:
+      return scoreImpactAssessment(testCase, answer);
+    case DataSecurityAiFeature.DraftAuditEvidence:
+      return scoreAuditEvidence(testCase, answer);
   }
 }
 

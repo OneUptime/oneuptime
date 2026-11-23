@@ -66,6 +66,26 @@ export enum DataSecurityAiFeature {
    * records the finding was seen in before it is offered (#10366).
    */
   WriteScrubRules = "WriteScrubRules",
+  /*
+   * The record of processing, drafted (#10375): a store's purpose,
+   * retention, legal basis and the people it is about, from what the scans
+   * know of it - on its own for the stores with personal data, as the
+   * project's Data Security AI rules allow, and when a person asks on
+   * Review Drafts. Each stays a draft until a person confirms it.
+   */
+  DraftRecord = "DraftRecord",
+  DraftRecordOnRequest = "DraftRecordOnRequest",
+  /*
+   * A data protection impact assessment for a store that needs one, in
+   * GDPR Article 35(7)'s four parts, when a person asks (#10375).
+   */
+  DraftImpactAssessment = "DraftImpactAssessment",
+  /*
+   * The paragraph an auditor reads under each framework requirement, from
+   * the evidence the scans and the issues' history give, when a person
+   * asks (#10375).
+   */
+  DraftAuditEvidence = "DraftAuditEvidence",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -163,6 +183,35 @@ const ISSUE_ANALYSIS_NEVER_SENDS: ReadonlyArray<string> = [
 
 const ISSUE_ANALYSIS_KEEPS: string = translationKey(
   "The analysis, on the issue, with one entry on its timeline for each analysis written.",
+);
+
+/*
+ * What a store's record drafts send (#10375), on their own or when a person
+ * asks: what the scans know of the store and where its data goes.
+ */
+const RECORD_DRAFT_SENDS: ReadonlyArray<string> = [
+  translationKey(
+    "The store's name, kind, provider, region, environment and description, the names and categories of its data types and about how many records it holds",
+  ),
+  translationKey(
+    "The services seen using it and what their teams wrote they are for, the hosts and AI providers they send to, and copies of its data in other stores",
+  ),
+  translationKey(
+    "Where its data is: its region's country, where its cloud copies it, and the countries its data types say its people are in",
+  ),
+  translationKey(
+    "Its cloud tags, its backup settings, the retention set for a telemetry store, and the repository and files that declare it",
+  ),
+];
+
+const RECORD_DRAFT_NEVER_SENDS: ReadonlyArray<string> = [
+  translationKey("A sample of what was found, not even a masked one"),
+  translationKey("A record the data was seen in"),
+  translationKey("The names or email addresses of the store's owners"),
+];
+
+const RECORD_DRAFT_KEEPS: string = translationKey(
+  "Each draft, beside the store's record with the facts it rests on, until a person confirms it. A field a person wrote is never drafted.",
 );
 
 export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo> =
@@ -364,6 +413,81 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ],
       keeps: translationKey(
         "Each rule it wrote, proven on the records the finding was seen in, in Data Security > AI until a person approves or dismisses it - or made on its own, as your AI rules allow.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftRecord,
+      title: translationKey("Record of processing drafts"),
+      startedBy: translationKey(
+        "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: RECORD_DRAFT_SENDS,
+      neverSends: RECORD_DRAFT_NEVER_SENDS,
+      keeps: RECORD_DRAFT_KEEPS,
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftRecordOnRequest,
+      title: translationKey("Record of processing drafts on request"),
+      startedBy: translationKey(
+        "A person, on Review Drafts, for a store's empty fields.",
+      ),
+      runsOnItsOwn: false,
+      sends: RECORD_DRAFT_SENDS,
+      neverSends: RECORD_DRAFT_NEVER_SENDS,
+      keeps: RECORD_DRAFT_KEEPS,
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftImpactAssessment,
+      title: translationKey("Impact assessments"),
+      startedBy: translationKey(
+        "A person, on the Impact Assessment of a store that needs one.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        ...RECORD_DRAFT_SENDS,
+        translationKey(
+          "Its record of processing, its open issues and the ones fixed lately, how exposed it is, who can reach it, counted, and its encryption",
+        ),
+      ],
+      neverSends: RECORD_DRAFT_NEVER_SENDS,
+      keeps: translationKey(
+        "The assessment, on the store, with the facts each part rests on. A part a person edited is never drafted again.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftAuditEvidence,
+      title: translationKey("Audit evidence"),
+      startedBy: translationKey(
+        "A person, on a framework's Audit Evidence, for the period they picked.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey(
+          "Each requirement of the framework, the stores in its scope by name, the checks that are evidence for it and how many of them fail",
+        ),
+        translationKey(
+          "How many of its issues opened and were fixed in the period, and how fast",
+        ),
+        translationKey(
+          "The risks accepted under it, with their reasons and expiry, and the resources that turned it off, with theirs",
+        ),
+      ],
+      neverSends: [
+        translationKey("A sample of what was found, not even a masked one"),
+        translationKey("A record the data was seen in"),
+        translationKey("Who accepted a risk or turned a requirement off"),
+      ],
+      keeps: translationKey(
+        "The paragraphs, for the framework and the period, with the facts each rests on. A paragraph a person edited is never drafted again.",
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,

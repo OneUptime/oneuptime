@@ -32,7 +32,7 @@ import { resolveSessionReplayRetentionInDays } from "../SessionReplay/SessionRep
  * when the record is, and a change in Settings shows at once.
  */
 
-export interface StoreTelemetryRetention {
+export interface TelemetryStoreRetention {
   signal: TelemetryRetentionSignal;
   // What most of its records are kept for.
   days: number;
@@ -112,7 +112,7 @@ export function resolveStoreTelemetryRetention(data: {
       }
     | null
     | undefined;
-}): StoreTelemetryRetention {
+}): TelemetryStoreRetention {
   if (data.signal === TelemetryRetentionSignal.SessionReplays) {
     return {
       signal: data.signal,
@@ -131,10 +131,12 @@ export function resolveStoreTelemetryRetention(data: {
       return resolveTelemetryRetentionInDays({
         pillar,
         bucketKey,
-        serviceConfig: data.service?.telemetryRetentionConfig,
-        serviceRetentionInDays: data.service?.retainTelemetryDataForDays,
-        projectConfig: data.project.telemetryRetentionConfig,
-        projectRetentionInDays: data.project.defaultTelemetryRetentionInDays,
+        serviceConfig: data.service?.telemetryRetentionConfig ?? null,
+        serviceRetentionInDays:
+          data.service?.retainTelemetryDataForDays ?? null,
+        projectConfig: data.project.telemetryRetentionConfig ?? null,
+        projectRetentionInDays:
+          data.project.defaultTelemetryRetentionInDays ?? null,
       });
     },
   );
@@ -163,8 +165,8 @@ export default class StoreTelemetryRetention {
   public static async readForStores(data: {
     projectId: ObjectID;
     stores: ReadonlyArray<TelemetryStoreRef>;
-  }): Promise<Map<string, StoreTelemetryRetention>> {
-    const retention: Map<string, StoreTelemetryRetention> = new Map();
+  }): Promise<Map<string, TelemetryStoreRetention>> {
+    const retention: Map<string, TelemetryStoreRetention> = new Map();
     const telemetry: Array<{
       store: TelemetryStoreRef;
       signal: TelemetryRetentionSignal;
@@ -301,7 +303,7 @@ export default class StoreTelemetryRetention {
  * The Dashboard says the same in the reader's language.
  */
 export function getTelemetryRetentionText(
-  retention: StoreTelemetryRetention,
+  retention: TelemetryStoreRetention,
 ): string {
   const days: (count: number) => string = (count: number): string => {
     return `${count} ${count === 1 ? "day" : "days"}`;
