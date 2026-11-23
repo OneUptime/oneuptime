@@ -71,7 +71,7 @@ Chi accede, o si registra in un altro modo, accetta in uno di due posti:
 
 | Dove si trova | Che cosa vede | Dove fa clic |
 | --- | --- | --- |
-| Ancora in nessun progetto | L'invito, sulla pagina in cui arriva dopo l'accesso | **Accept & Join**, oppure **Decline** |
+| Ancora in nessun progetto | L'invito, sulla pagina in cui arriva dopo l'accesso | **Accept & Join**, oppure **Rifiuta** |
 | Già in un altro progetto | L'invito in sospeso sulla campanella in alto a destra, che apre **Inviti al progetto** | **Accetta**, oppure **Rifiuta** |
 
 Accettando entra subito nel progetto, con le autorizzazioni del suo team e la configurazione delle notifiche con cui parte ogni membro: vedi [Con che cosa inizi](/docs/notifications/index#con-cosa-partite). Rifiutare elimina l'invito, quindi per entrare più tardi ne serve uno nuovo.

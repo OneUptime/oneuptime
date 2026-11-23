@@ -50,9 +50,19 @@ const citation: (data: {
 
 describe("the kind of an answer", () => {
   test.each<[string, Array<string>, Array<string>, AskAiAnswerKind]>([
-    ["read only the docs", ["search_docs", "read_docs"], [], AskAiAnswerKind.Docs],
+    [
+      "read only the docs",
+      ["search_docs", "read_docs"],
+      [],
+      AskAiAnswerKind.Docs,
+    ],
     ["found only a page", ["find_dashboard_page"], [], AskAiAnswerKind.Docs],
-    ["read only data", ["query_incidents", "search_logs"], [], AskAiAnswerKind.Data],
+    [
+      "read only data",
+      ["query_incidents", "search_logs"],
+      [],
+      AskAiAnswerKind.Data,
+    ],
     [
       "read both",
       ["query_incidents", "read_docs", "find_dashboard_page"],
@@ -73,11 +83,19 @@ describe("the kind of an answer", () => {
     ],
     ["ran nothing", [], [], AskAiAnswerKind.None],
     ["ran a tool with no name", ["", ""], [], AskAiAnswerKind.None],
-  ])("%s", (_name: string, tools: Array<string>, actions: Array<string>, kind) => {
-    expect(getAskAiAnswerKind({ toolNames: tools, actionNames: actions })).toBe(
-      kind,
-    );
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      tools: Array<string>,
+      actions: Array<string>,
+      kind: AskAiAnswerKind,
+    ) => {
+      expect(
+        getAskAiAnswerKind({ toolNames: tools, actionNames: actions }),
+      ).toBe(kind);
+    },
+  );
 
   test("an answer's kind is read from its citations and the actions it proposed", () => {
     expect(

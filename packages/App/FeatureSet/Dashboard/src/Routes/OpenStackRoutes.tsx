@@ -12,6 +12,7 @@ import OpenStackClouds from "../Pages/OpenStack/Clouds";
 import OpenStackDocumentation from "../Pages/OpenStack/Documentation";
 import OpenStackSettingsOwnerRules from "../Pages/OpenStack/Settings/OwnerRules";
 import OpenStackSettingsLabelRules from "../Pages/OpenStack/Settings/LabelRules";
+import OpenStackRulesAuditLogs from "../Pages/OpenStack/Settings/RulesAuditLogs";
 import OpenStackArchived from "../Pages/OpenStack/Archived";
 import OpenStackCloudOverview from "../Pages/OpenStack/View/Index";
 import OpenStackCloudServices from "../Pages/OpenStack/View/Services";
@@ -154,6 +155,21 @@ const OpenStackRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.OPENSTACK_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            OpenStackRoutePath[PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS] ||
+            ""
+          }
+          element={
+            <OpenStackRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.OPENSTACK_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

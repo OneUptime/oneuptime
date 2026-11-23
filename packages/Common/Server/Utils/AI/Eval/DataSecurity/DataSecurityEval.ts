@@ -53,10 +53,25 @@ import {
   FieldSuggestionEvalCase,
   FixEvalCase,
   FixEvalFileCheck,
+  IssueGroupFixEvalCase,
+  IssueGroupNameEvalCase,
   ScrubRuleEvalExpectation,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
+import {
+  DATA_SECURITY_ISSUE_GROUP_NAME_MAX_TOKENS,
+  DATA_SECURITY_ISSUE_GROUP_NAME_TEMPERATURE,
+  buildIssueGroupFixRequest,
+  buildIssueGroupNamePrompt,
+  readIssueGroupNameAnswer,
+} from "../../DataSecurity/DataSecurityIssueGroupPrompt";
+import {
+  DataSecurityIssueGroupNameFact,
+  getIssueGroupNameFacts,
+  holdIssueGroupNameToFacts,
+} from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
+import { getDataSecurityCheck } from "../../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import {
   buildScrubRuleWriterPrompt,
   readScrubRuleWriterAnswer,
@@ -145,6 +160,12 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    * check reads exactly, so the bar is higher than a written answer's.
    */
   [DataSecurityAiFeature.ProposeStoreOwners]: 0.75,
+  /*
+   * A group's name is held to its facts before it is read: three in four
+   * names must survive that and say what the case expects.
+   */
+  [DataSecurityAiFeature.NameIssueGroup]: 0.75,
+  [DataSecurityAiFeature.FixIssueGroup]: 0.5,
   /*
    * A rule is held to made-up values the way the verifier holds it to a
    * finding's records, and nothing it writes is used unproven: three in
@@ -833,6 +854,88 @@ function storeOwnersCall(testCase: StoreOwnersEvalCase): DataSecurityEvalCall {
   };
 }
 
+// The facts a group's name is asked from, as the naming builds them.
+export function getIssueGroupNameEvalFacts(
+  testCase: IssueGroupNameEvalCase,
+): Array<DataSecurityIssueGroupNameFact> {
+  const check: { title: string; description: string } | undefined =
+    getDataSecurityCheck(testCase.facts.checkId);
+
+  return getIssueGroupNameFacts({
+    facts: testCase.facts,
+    checkTitle: check?.title || testCase.facts.checkId,
+    checkDescription: check?.description || "",
+    issueCount: testCase.issueCount,
+  });
+}
+
+// A group's name is asked as the product asks it (DataSecurityIssueGroupNaming).
+function issueGroupNameCall(
+  testCase: IssueGroupNameEvalCase,
+): DataSecurityEvalCall {
+  const prompt: DataSecurityAiPrompt = buildIssueGroupNamePrompt({
+    facts: getIssueGroupNameEvalFacts(testCase),
+    language: testCase.language || "en",
+  });
+
+  return {
+    messages: prompt.messages,
+    maxTokens: DATA_SECURITY_ISSUE_GROUP_NAME_MAX_TOKENS,
+    temperature: DATA_SECURITY_ISSUE_GROUP_NAME_TEMPERATURE,
+  };
+}
+
+/*
+ * A group's name: read and held to its facts as the product holds it,
+ * then held to the case's words.
+ */
+export function scoreIssueGroupName(
+  testCase: IssueGroupNameEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const name: string | null = holdIssueGroupNameToFacts({
+    answer: readIssueGroupNameAnswer(answer),
+    facts: getIssueGroupNameEvalFacts(testCase),
+    storeNames: testCase.storeNames,
+  });
+
+  if (!name) {
+    return {
+      passed: false,
+      notes: ["no name the product would keep: not held to its facts"],
+    };
+  }
+
+  return scoreWords(name, testCase.expect);
+}
+
+// A group's fix: the request the coding agent is handed, with the files it names.
+function issueGroupFixCall(
+  testCase: IssueGroupFixEvalCase,
+): DataSecurityEvalCall {
+  const request: DataSecurityAiCodeRequest = buildIssueGroupFixRequest({
+    facts: testCase.facts,
+    stores: testCase.stores,
+  });
+  const files: string = Object.entries(testCase.files)
+    .map(([filePath, content]: [string, string]): string => {
+      return `${filePath}:\n\`\`\`\n${content}\n\`\`\``;
+    })
+    .join("\n\n");
+
+  return {
+    messages: [
+      { role: "system", content: FIX_EVAL_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: `${request.text}\n\nThe repository's files:\n\n${files}`,
+      },
+    ],
+    maxTokens: FIX_MAX_TOKENS,
+    temperature: 0,
+  };
+}
+
 // The scrub rules are asked as the product asks them (ScrubRuleWriter).
 function scrubRulesCall(testCase: ScrubRulesEvalCase): DataSecurityEvalCall {
   return {
@@ -857,6 +960,10 @@ export function buildEvalCall(
       return askAiCall(testCase);
     case DataSecurityAiFeature.ProposeStoreOwners:
       return storeOwnersCall(testCase);
+    case DataSecurityAiFeature.NameIssueGroup:
+      return issueGroupNameCall(testCase);
+    case DataSecurityAiFeature.FixIssueGroup:
+      return issueGroupFixCall(testCase);
     case DataSecurityAiFeature.WriteScrubRules:
       return scrubRulesCall(testCase);
   }
@@ -878,6 +985,17 @@ export function scoreAnswer(
       return scoreWords(answer, testCase.expect);
     case DataSecurityAiFeature.ProposeStoreOwners:
       return scoreStoreOwners(testCase, answer);
+    case DataSecurityAiFeature.NameIssueGroup:
+      return scoreIssueGroupName(testCase, answer);
+    case DataSecurityAiFeature.FixIssueGroup:
+      return scoreFix(
+        {
+          ...testCase,
+          feature: DataSecurityAiFeature.FixIssue,
+          issue: {},
+        } as FixEvalCase,
+        answer,
+      );
     case DataSecurityAiFeature.WriteScrubRules:
       return scoreScrubRules(testCase, answer);
   }

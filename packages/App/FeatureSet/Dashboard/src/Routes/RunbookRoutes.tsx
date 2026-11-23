@@ -29,6 +29,7 @@ import RunbookSettings from "../Pages/Runbook/View/Settings";
 import RunbookDelete from "../Pages/Runbook/View/Delete";
 import RunbookSettingsOwnerRules from "../Pages/Runbook/Settings/OwnerRules";
 import RunbookSettingsLabelRules from "../Pages/Runbook/Settings/LabelRules";
+import RunbookRulesAuditLogs from "../Pages/Runbook/Settings/RulesAuditLogs";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookModel from "Common/Models/DatabaseModels/Runbook";
@@ -135,6 +136,20 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.RUNBOOKS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            RunbookRoutePath[PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS] || ""
+          }
+          element={
+            <RunbookRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUNBOOKS_SETTINGS_RULES_AUDIT_LOGS] as Route
               }
             />
           }

@@ -78,6 +78,8 @@ En ressource uden sit eget navn får navn efter det, der navngiver den i OneUpti
 
 Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer har også deres egen side **Auditlogs** i et sammenfoldet afsnit af deres sidemenu, som **Avanceret**. Den viser kun den ressources poster, sammen med posterne for det, der hører til den: et SLO's side viser også dets regler og ejere.
 
+Et produkts regler har også deres egen side, sidst i det afsnit af menuen, der viser dem: **Auditlogs** i et afsnit **Regler**, som **Hændelser → Regler → Auditlogs**, og **Auditlogs for regler** i et afsnit **Indstillinger**, der rummer ejer- og etiketregler, som **Værter → Indstillinger → Auditlogs for regler**. Den viser alle produktets regler, også slettede. Runbook-regler er én slags regel for advarsler, hændelser og vedligeholdelseshændelser, så deres historik findes under **Runbooks → Indstillinger → Auditlogs for regler**.
+
 ## Hvad registreres
 
 Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monitorer, hændelser, alarmer, statussider, arbejdsgange og deres trin, køer, dashboards, vagtpolitikker, teams og hvem der er med i dem, API-nøgler og alle indstillinger. **Ressourcetype** siger, hvad en post handler om, for eksempel `Monitor`, `Workflow` eller `Queue`.

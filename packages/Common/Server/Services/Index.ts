@@ -436,6 +436,7 @@ import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
+import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
 import SecurityCaseStatusService from "./SecurityCaseStatusService";
@@ -459,6 +460,7 @@ import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
 import DataSecurityFlowService from "./DataSecurityFlowService";
 import DataSecurityIssueService from "./DataSecurityIssueService";
 import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityIssueGroupService from "./DataSecurityIssueGroupService";
 import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
 import DataSecurityAiDecisionService from "./DataSecurityAiDecisionService";
 import DataSecurityScanService from "./DataSecurityScanService";
@@ -1054,6 +1056,7 @@ const services: Array<BaseService> = [
   SecurityCaseNoteService,
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
+  SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
   SecurityCaseStatusService,
@@ -1079,6 +1082,7 @@ const services: Array<BaseService> = [
   DataSecurityFlowService,
   DataSecurityIssueService,
   DataSecurityIssueFeedService,
+  DataSecurityIssueGroupService,
   DataSecurityAiProposalService,
   DataSecurityAiDecisionService,
   DataSecurityScanService,

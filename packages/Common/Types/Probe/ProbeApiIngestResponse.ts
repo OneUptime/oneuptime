@@ -52,6 +52,18 @@ export interface MatchedCriteriaResult {
   perSeriesMatches: Array<PerSeriesCriteriaMatch>;
 }
 
+/**
+ * A series behind a grouped monitor's status that has not met a recovery
+ * criteria yet, so the monitor keeps its status (GroupedMonitorRecovery).
+ */
+export interface SeriesKeepingStatus {
+  fingerprint: string;
+  // The series' labels as the check read them, to name it (SeriesLabelDisplay).
+  labels: JSONObject;
+  // What else is known about it, for its name only.
+  context?: JSONObject | undefined;
+}
+
 export default interface ProbeApiIngestResponse {
   monitorId: ObjectID;
   ingestedMonitorStepId?: ObjectID | undefined;
@@ -77,9 +89,24 @@ export default interface ProbeApiIngestResponse {
    * `rootCause` + `perSeriesMatches` are the whole story.
    *
    * `criteriaMetId` always stays the FIRST match — the monitor has a
-   * single status and that is what sets it.
+   * single status and that is what sets it. A recovery criteria that waits
+   * for the series behind the monitor's status (GroupedMonitorRecovery) is
+   * not a match.
    */
   matchedCriteria?: Array<MatchedCriteriaResult> | undefined;
+  /**
+   * A grouped monitor's series behind its status that have not met a
+   * recovery criteria yet (GroupedMonitorRecovery). Set when no criteria
+   * matched while some wait: the monitor then keeps its status rather than
+   * going to its default status. Unset otherwise.
+   */
+  seriesKeepingStatus?: Array<SeriesKeepingStatus> | undefined;
+  /**
+   * The series behind a grouped monitor's status after this check, for
+   * MonitorResource to keep for the next one (SeriesBehindStatus): an empty
+   * list deletes what was kept. Unset when there is nothing to write.
+   */
+  seriesBehindStatus?: Array<string> | undefined;
   /**
    * The ids of every criteria that was actually evaluated on this tick
    * (matched or not, excluding disabled ones and — for ungrouped

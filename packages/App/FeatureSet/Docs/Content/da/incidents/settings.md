@@ -35,7 +35,7 @@ Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit
 
 **Hændelsesstatus** og **Hændelsesalvor** gennemgås grundigt i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side fortsætter fra **Hændelsesskabeloner**. Formularer, der lader folk uden for dit team melde hændelser, er et produkt for sig: se [Formularer](/docs/forms/index). Værktøjer, der selv åbner hændelser, som [Huntress](/docs/integrations/huntress), sættes op som arbejdsgange.
 
-Fold **Regler** ud, og du får otte sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler** og **Påmindelsesregler**. De gennemgås længere nede.
+Fold **Regler** ud, og du får ni sider mere: **Grupperingsregler**, **Vagtregler**, **Ejerregler**, **Runbook-regler**, **Privatlivsregler**, **Etiketregler**, **SLA-regler**, **Påmindelsesregler** og **Auditlogs**: hvem der oprettede, ændrede eller slettede en af disse regler, hvad der blev ændret og hvornår, også slettede regler. Reglerne gennemgås længere nede.
 
 ## Hændelsesskabeloner
 

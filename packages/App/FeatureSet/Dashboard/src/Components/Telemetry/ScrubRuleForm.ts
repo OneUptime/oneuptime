@@ -42,7 +42,6 @@ import {
   translateText,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import type { ReactElement } from "react";
 
 /*
  * CREATE A LOG OR TRACE SCRUB RULE: START FROM WHAT IT SCRUBS.
@@ -519,11 +518,17 @@ export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
  * would hide (FieldReaders/ScrubRuleReadersPreview, #10433), from the
  * form's values as they are. The page hands it in, so this file - read by
  * the words and docs tests outside a browser - draws nothing that asks the
- * server.
+ * server. What it draws is named as the forms' own Field type names a
+ * footer's: this file imports nothing of React, so the App's tests, which
+ * type-check and run with no React installed, read it as the pages do.
  */
+type ScrubRuleFooterElement = ReturnType<
+  NonNullable<ModelField<LogScrubRule>["getFooterElement"]>
+>;
+
 export type ScrubRuleReadersFooter = (
   values: FormValues<LogScrubRule>,
-) => ReactElement | undefined;
+) => ScrubRuleFooterElement;
 
 /*
  * What a page draws under the rule's action choices: the notice an IP
@@ -724,7 +729,7 @@ const getScrubRuleFormFields: (
         ? {
             getFooterElement: (
               values: FormValues<LogScrubRule>,
-            ): ReactElement | undefined => {
+            ): ScrubRuleFooterElement => {
               return readersFooter(values);
             },
           }

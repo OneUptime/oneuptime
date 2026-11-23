@@ -716,6 +716,9 @@ import SecurityCaseNoteService, {
 import SecurityCaseTaskService, {
   Service as SecurityCaseTaskServiceType,
 } from "Common/Server/Services/SecurityCaseTaskService";
+import SecurityCaseStepCheckService, {
+  Service as SecurityCaseStepCheckServiceType,
+} from "Common/Server/Services/SecurityCaseStepCheckService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1982,6 +1985,7 @@ import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
+import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -2180,6 +2184,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
 import NetworkDeviceRefreshAPI from "Common/Server/API/NetworkDeviceRefreshAPI";
@@ -4819,6 +4824,20 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * What OneUptime found when it checked a case's Response Plan steps
+     * (#10340): read by the case's own readers, for the Response Plan card.
+     * Its lists let nobody create, change or delete one: only the step
+     * checks write them.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStepCheck, SecurityCaseStepCheckServiceType>(
+        SecurityCaseStepCheck,
+        SecurityCaseStepCheckService,
+      ).getRouter(),
+    );
+
     // A case's evidence, and the route its files download through.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -6996,6 +7015,17 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
+    );
+
+    /*
+     * Running a discovery scan again, on demand (Network > Discovery > Run
+     * Again, issue #10334). A bare router beside the scan's CRUD API, which
+     * claims no `/:id/run` path: the run is written as root, so its own
+     * check of who may edit scans is the gate.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      NetworkDeviceDiscoveryScanRunAPI,
     );
 
     /*

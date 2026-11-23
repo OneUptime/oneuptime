@@ -183,9 +183,9 @@ describe("the check itself", () => {
     expect(matchedTemplate(`/dashboard/${PROJECT_ID}/monitors/create`)).toBe(
       "/dashboard/:projectId/monitors/create",
     );
-    expect(matchedTemplate(`/dashboard/${PROJECT_ID}/monitors/${RECORD_ID}`)).toBe(
-      "/dashboard/:projectId/monitors/:id",
-    );
+    expect(
+      matchedTemplate(`/dashboard/${PROJECT_ID}/monitors/${RECORD_ID}`),
+    ).toBe("/dashboard/:projectId/monitors/:id");
     expect(ROUTE_TEMPLATES.has("/dashboard/:projectId/made-up-page")).toBe(
       false,
     );

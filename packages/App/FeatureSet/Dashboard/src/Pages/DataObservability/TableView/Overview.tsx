@@ -10,9 +10,11 @@ import FreshnessPill from "../../../Components/DataObservability/FreshnessPill";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import { useTableViewContext } from "./TableViewContext";
+import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -153,6 +155,19 @@ const TableOverviewPage: FunctionComponent<
               : "",
           )}
         </dl>
+        {/*
+         * The table's line, under its facts as a details card ends with
+         * it: its ID, who created it and who last modified it (#10461).
+         */}
+        {dataAsset.id ? (
+          <RecordActivityLine
+            modelType={DataAsset}
+            recordId={dataAsset.id}
+            className="mt-4 border-t border-gray-100 pt-3"
+          />
+        ) : (
+          <></>
+        )}
       </Card>
 
       {dataAsset.dbtNode ? (

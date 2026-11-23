@@ -106,7 +106,7 @@ Where Okta, Microsoft Entra ID, Auth0 and Keycloak keep these settings is on the
 
 ## Signing in again to confirm it's you
 
-Someone who signs in only through a global provider confirms it's them with **Sign In Again** before they change how they sign in or delete their account: OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect, and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment. Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.
+Someone who signs in only through a global provider confirms it's them with **Sign In Again** before they change how they sign in or delete their account: OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect (`prompt=login` alone for Microsoft Entra ID), and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment. Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.
 
 What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.
 

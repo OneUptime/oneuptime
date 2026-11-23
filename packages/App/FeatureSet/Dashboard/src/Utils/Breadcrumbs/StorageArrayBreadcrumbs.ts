@@ -199,6 +199,10 @@ export function getStorageArrayBreadcrumbs(
       ["Project", "Storage Arrays", "Settings", "Label Rules"],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Storage Arrays", "Settings", "Rule Audit Logs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "Storage Arrays", "Settings", "Label Rules", "View Rule"],
     ),

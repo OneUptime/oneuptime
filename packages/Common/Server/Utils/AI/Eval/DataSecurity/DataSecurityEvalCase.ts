@@ -8,6 +8,7 @@ import {
   DataStoreOwnerConfidence,
   DataStoreOwnerEvidence,
 } from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
+import { DataSecurityIssueGroupFacts } from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
 import {
   ScrubRuleWriterPlace,
   ScrubRuleWriterRuleKind,
@@ -17,6 +18,7 @@ import {
   AiAccessRecord,
   AiDataTypeChoice,
   AiFindingRecord,
+  AiGroupFixStore,
   AiIssueDossier,
   AiIssueRecord,
   AiStoreRecord,
@@ -162,6 +164,34 @@ export interface StoreOwnersEvalCase extends DataSecurityEvalCaseBase {
 }
 
 /*
+ * A group's name (#10370): the facts the group rests on, as the grouping
+ * keeps them, the group's stores (never told to the model), and what a
+ * right name says. The answer is held to its facts as the product holds
+ * it before it is scored: a name the product would drop fails.
+ */
+export interface IssueGroupNameEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.NameIssueGroup;
+  facts: DataSecurityIssueGroupFacts;
+  issueCount: number;
+  storeNames: Array<string>;
+  language?: string | undefined;
+  expect: DataSecurityEvalWords;
+}
+
+/*
+ * The pull request that fixes a group's cause once (#10370): the group,
+ * the code that declares its stores, and what the changed code must hold -
+ * the module's default changed, never each store's resource.
+ */
+export interface IssueGroupFixEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.FixIssueGroup;
+  facts: DataSecurityIssueGroupFacts;
+  stores: Array<AiGroupFixStore>;
+  files: Record<string, string>;
+  expect: Array<FixEvalFileCheck>;
+}
+
+/*
  * What a right rule for one place does (#10366): with made-up values of
  * the place, it changes each one that holds the data and none of the
  * others - as the verifier proves a rule on a finding's records - and it
@@ -194,4 +224,6 @@ export type DataSecurityEvalCase =
   | FixEvalCase
   | AskAiEvalCase
   | StoreOwnersEvalCase
+  | IssueGroupNameEvalCase
+  | IssueGroupFixEvalCase
   | ScrubRulesEvalCase;

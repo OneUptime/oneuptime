@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing is locked for longer than the catalog change, and every rule
  * saved before keeps reading every attribute, as it did.
  */
-export class AddScrubRuleNamedKeysAndProof1809187440200
+export class AddScrubRuleNamedKeysAndProof1809187470400
   implements MigrationInterface
 {
-  public name: string = "AddScrubRuleNamedKeysAndProof1809187440200";
+  public name: string = "AddScrubRuleNamedKeysAndProof1809187470400";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

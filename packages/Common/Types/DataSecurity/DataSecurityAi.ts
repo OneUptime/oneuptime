@@ -222,6 +222,15 @@ export enum DataSecurityAiChangeSafety {
    * data and is undone with one press - so one approval is enough.
    */
   ChangesWhoIsTold = "ChangesWhoIsTold",
+  /*
+   * Changes a cloud store's settings through its cloud connection - its
+   * versioning, its recovery, how it takes connections - for the stores of
+   * a group of issues one mistake made (#10370). It reaches the customer's
+   * own cloud, so a person always approves it. A change of who can reach
+   * the data through the cloud (Block public access, Revoke sharing) is
+   * ChangesAccess instead, and asks for the same reason.
+   */
+  ChangesCloudSettings = "ChangesCloudSettings",
 }
 
 // The changes that never run without asking, whatever a rule says.
@@ -230,6 +239,7 @@ export const DATA_SECURITY_AI_ALWAYS_ASKS: ReadonlyArray<DataSecurityAiChangeSaf
     DataSecurityAiChangeSafety.Deletes,
     DataSecurityAiChangeSafety.Pages,
     DataSecurityAiChangeSafety.ChangesWhoIsTold,
+    DataSecurityAiChangeSafety.ChangesCloudSettings,
   ];
 
 /*
@@ -335,6 +345,36 @@ export enum DataSecurityAiProposalKind {
    * them is owned too (#10374). It is for no one issue or store.
    */
   CreateOwnerRule = "CreateOwnerRule",
+  /*
+   * The cause of a group of issues one mistake made, fixed once (#10370):
+   * one pull request to the module or file that declares the group's
+   * stores. It is for the group, and names no one issue.
+   */
+  FixIssueGroupInCode = "FixIssueGroupInCode",
+  /*
+   * ...and, for the group's stores made in the console, the response action
+   * that fixes the check, on every one of them through its cloud connection:
+   * one approval. A store marked Public By Design, or one the fix would
+   * break, is left out.
+   */
+  FixIssueGroupInCloud = "FixIssueGroupInCloud",
+}
+
+// The kinds of change that fix a group of issues' cause, for the group alone (#10370).
+export const DATA_SECURITY_AI_ISSUE_GROUP_PROPOSAL_KINDS: ReadonlyArray<DataSecurityAiProposalKind> =
+  [
+    DataSecurityAiProposalKind.FixIssueGroupInCode,
+    DataSecurityAiProposalKind.FixIssueGroupInCloud,
+  ];
+
+export function isDataSecurityAiIssueGroupProposalKind(
+  kind: DataSecurityAiProposalKind | string | undefined,
+): boolean {
+  return (
+    DATA_SECURITY_AI_ISSUE_GROUP_PROPOSAL_KINDS as ReadonlyArray<
+      string | undefined
+    >
+  ).includes(kind);
 }
 
 /*
@@ -383,6 +423,20 @@ export const DATA_SECURITY_AI_PROPOSAL_KINDS: Readonly<
     kind: DataSecurityAiProposalKind.CreateOwnerRule,
     work: DataSecurityAiWork.Judge,
     safety: DataSecurityAiChangeSafety.ChangesWhoIsTold,
+  },
+  [DataSecurityAiProposalKind.FixIssueGroupInCode]: {
+    kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
+    work: DataSecurityAiWork.Fix,
+    safety: DataSecurityAiChangeSafety.OpensPullRequest,
+  },
+  /*
+   * A plan of Block public access or Revoke sharing says ChangesAccess
+   * (DataSecurityAiPlannedChange.safety); any other cloud setting is this.
+   */
+  [DataSecurityAiProposalKind.FixIssueGroupInCloud]: {
+    kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+    work: DataSecurityAiWork.Fix,
+    safety: DataSecurityAiChangeSafety.ChangesCloudSettings,
   },
 };
 

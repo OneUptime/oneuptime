@@ -161,8 +161,7 @@ export default class DashboardOIDC extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Dashboard,
     title: "Dashboard",
-    description:
-      "Relation to the dashboard this provider signs people in to.",
+    description: "Relation to the dashboard this provider signs people in to.",
   })
   @ManyToOne(
     () => {

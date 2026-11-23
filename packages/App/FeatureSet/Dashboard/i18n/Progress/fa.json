@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 62240,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -292,6 +292,7 @@
     "Valkey",
     "Verhoeff",
     "Vital",
+    "WAF",
     "WhatsApp: ",
     "Zabbix",
     "[\".customer-name\", \"#invoice-total\"]",

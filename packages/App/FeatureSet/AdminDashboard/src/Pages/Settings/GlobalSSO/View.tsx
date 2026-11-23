@@ -27,6 +27,8 @@ import {
   SSO_GLOBAL_SIGN_UP_TITLE,
 } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import SamlSignInAgainNote from "Common/UI/Components/Sso/SamlSignInAgainNote";
 import Navigation from "Common/UI/Utils/Navigation";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
 import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
@@ -150,12 +152,28 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 title: "Sign On URL",
                 fieldType: FieldType.URL,
               },
+              /*
+               * The issuer as it was written, and under it, for a Keycloak
+               * or an Okta provider, what Sign In Again needs of it
+               * (#10530): the issuer is what says which provider it is.
+               */
               {
                 field: {
                   issuerURL: true,
                 },
                 title: "Issuer",
-                fieldType: FieldType.Text,
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalSSO): ReactElement => {
+                  return (
+                    <div className="space-y-1">
+                      <IsolatedText text={item.issuerURL || ""} />
+                      <SamlSignInAgainNote
+                        issuerURL={item.issuerURL}
+                        signOnURL={item.signOnURL}
+                      />
+                    </div>
+                  );
+                },
               },
               {
                 field: {

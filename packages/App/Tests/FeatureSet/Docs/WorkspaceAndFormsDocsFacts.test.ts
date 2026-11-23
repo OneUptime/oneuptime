@@ -837,9 +837,11 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         NotificationRuleUpdateKind.PriorityReached,
         NotificationRuleUpdateKind.ApprovalRequested,
         NotificationRuleUpdateKind.ResponseTargets,
+        // OneUptime AI handing a case to people (#10352).
+        NotificationRuleUpdateKind.AI,
       ]);
       expect(updates).toContain(
-        "for a security case, new and raised cases, approvals needed and response targets.",
+        "for a security case, new and raised cases, approvals needed, response targets and cases OneUptime AI hands to people.",
       );
 
       // Custom field changes and still-open reminders, boxes of their own (#7937, #7938).

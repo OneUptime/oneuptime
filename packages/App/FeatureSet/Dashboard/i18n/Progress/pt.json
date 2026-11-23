@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61841,
-    "untranslated": 8288
+    "keys": 62240,
+    "untranslated": 8287
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -369,6 +369,8 @@
     "Volume",
     "Volume {{name}}",
     "Volumes",
+    "WAF",
+    "WAFs",
     "Watts",
     "Web",
     "Web, iOS, Android, React Native",

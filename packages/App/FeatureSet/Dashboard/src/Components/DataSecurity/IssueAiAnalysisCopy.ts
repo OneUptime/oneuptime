@@ -84,7 +84,7 @@ export const PUBLIC_BY_DESIGN_QUESTION: string = translationKey(
 );
 
 export const PUBLIC_BY_DESIGN_SENTENCE: string = translationKey(
-  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Turn it off in the store's Settings to undo it.",
+  "Its public access checks pass from now on, and it is checked again now: this issue resolves once its check passes. Undo it in the store's Settings.",
 );
 
 export const PUBLIC_BY_DESIGN_DONE: string = translationKey(
@@ -196,6 +196,13 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   // Owners for the issue's store, and the rule that keeps stores like it owned (#10374).
   [DataSecurityAiProposalKind.SetStoreOwners]: translationKey("Store owners"),
   [DataSecurityAiProposalKind.CreateOwnerRule]: translationKey("Owner rules"),
+  // The fix of the cause of the issue's group (#10370), in code or in its cloud.
+  [DataSecurityAiProposalKind.FixIssueGroupInCode]: translationKey(
+    "One pull request for the cause",
+  ),
+  [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
+    "One approval for the stores made in the console",
+  ),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).

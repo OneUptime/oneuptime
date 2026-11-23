@@ -9,7 +9,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import API, { RequestOptions } from "../../Utils/API";
 import ResponseTooLarge from "../../Utils/ResponseTooLarge";
-import DataSourceEgressGuard, { PinnedAgents } from "./DataSource/EgressGuard";
+import DataSourceEgressGuard, {
+  PinnedAgents,
+  TargetTlsOptions,
+} from "./DataSource/EgressGuard";
 import SSRFProtection, {
   ValidatedWebhookTarget,
   WebhookTargetValidationOptions,
@@ -48,9 +51,13 @@ import SSRFProtection, {
  *     It comes back as the answer it is.
  *
  *   - Outbound proxies keep working. A server that sends through an
- *     outbound proxy today - HTTPS_PROXY, HTTP_PROXY or ALL_PROXY in its
- *     environment, apart from the hosts in NO_PROXY - still does, exactly as
- *     axios routes every other request. The agents may look up the proxy's
+ *     outbound proxy - HTTPS_PROXY, HTTP_PROXY or ALL_PROXY in its
+ *     environment, apart from the hosts in NO_PROXY - sends webhooks through
+ *     it too, decided as axios decides for every other request. The agents
+ *     go through the proxy themselves, through Node's own proxy support, and
+ *     axios's proxy is off: axios sent the proxy's user name and password
+ *     percent-encoded, so a proxy whose password holds an @ or a : refused
+ *     every webhook with 407 (#10442). The agents may look up the proxy's
  *     own name for that (the operator wrote it); every other name but the
  *     webhook's is refused (DataSourceEgressGuard.createPinnedLookupForTarget).
  *     Through a proxy it is the proxy that looks the webhook's name up and
@@ -61,6 +68,14 @@ import SSRFProtection, {
  *     Pinning through the proxy instead - asking it to CONNECT to the
  *     approved address - would break proxies that allow destinations by
  *     name, and a hostname is what an egress proxy's rules are written in.
+ *
+ *   - The webhook's certificate is checked as every request's is, unless
+ *     its caller says otherwise for that request alone (tls: a workflow API
+ *     step's or a playbook's Send Webhook's Allow self-signed certificates
+ *     or CA certificate, #10440). The setting goes on that request's https
+ *     agent only, so on the connection to the webhook only, inside a
+ *     proxy's tunnel too: never on an https:// proxy's own connection,
+ *     never on another request.
  *
  *   - It is sent with Node's http adapter, the only one that uses the
  *     agents, and the agents are thrown away once the request is over.
@@ -80,8 +95,8 @@ import SSRFProtection, {
  * The Mattermost workflow step (Mattermost/MattermostWebhook) reads every
  * answer as text itself, so it sends with axios directly; it pins the same
  * way, with the same SSRFProtection call and pinned agents, and uses no
- * proxy at all. The Custom JavaScript sandbox (VM/VMRunner) pins its own
- * axios bridge.
+ * proxy at all (PinnedAgentOptions.direct). The Custom JavaScript sandbox
+ * (VM/VMRunner) pins its own axios bridge.
  */
 
 export type WebhookTarget = ValidatedWebhookTarget;
@@ -109,6 +124,13 @@ export interface WebhookSendOptions {
    */
   maxContentLength?: number | undefined;
   maxBodyLength?: number | undefined;
+  /*
+   * How the webhook's certificate is checked, for this request alone: not
+   * at all (rejectUnauthorized: false), or against these CAs only (ca).
+   * Unset, it is checked as every request's is. It reaches the connection
+   * to the webhook only, never an outbound proxy's own connection.
+   */
+  tls?: TargetTlsOptions | undefined;
 }
 
 export interface WebhookRequestOptions extends WebhookSendOptions {
@@ -210,13 +232,18 @@ export default class SafeWebhookRequest {
     target: WebhookTarget,
     options: WebhookSendOptions = {},
   ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
-    const agents: PinnedAgents = SafeWebhookRequest.createPinnedAgents(target);
+    const agents: PinnedAgents = SafeWebhookRequest.createPinnedAgents(
+      target,
+      options.tls,
+    );
 
     const requestOptions: RequestOptions = {
       doNotFollowRedirects: true,
       useNodeHttpAdapter: true,
       httpAgent: agents.httpAgent,
       httpsAgent: agents.httpsAgent,
+      // The agents go through the outbound proxy themselves.
+      disableProxy: true,
       /*
        * Exactly the URL that was checked: API sends this one (its query
        * parameters added), never a re-reading of it by another parser.
@@ -348,10 +375,14 @@ export default class SafeWebhookRequest {
    * An http and an https agent that dial only what the target was approved
    * for, and an outbound proxy the operator configured: the egress guard's
    * pinned agents (DataSourceEgressGuard.createPinnedAgents), the one
-   * implementation every pinned HTTP request of the server uses.
+   * implementation every pinned HTTP request of the server uses. `tls` is
+   * how the webhook's certificate is checked, for this request alone.
    */
-  public static createPinnedAgents(target: WebhookTarget): PinnedAgents {
-    return DataSourceEgressGuard.createPinnedAgents(target);
+  public static createPinnedAgents(
+    target: WebhookTarget,
+    tls?: TargetTlsOptions | undefined,
+  ): PinnedAgents {
+    return DataSourceEgressGuard.createPinnedAgents(target, { tls });
   }
 
   /*

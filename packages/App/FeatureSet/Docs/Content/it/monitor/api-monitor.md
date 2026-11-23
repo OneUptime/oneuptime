@@ -107,7 +107,7 @@ Queste impostazioni sono ripiegate sotto **Altri campi**. L'intestazione ripiega
 | Campo | Predefinito | Cosa fa |
 | --- | --- | --- |
 | **Intestazioni della richiesta** | Nessuna | Le intestazioni da inviare, come coppie nome e valore. Fate clic su **Aggiungi: Intestazione della richiesta** per ciascuna. |
-| **Corpo della richiesta (in JSON)** | Nessuno | Un oggetto JSON da inviare come corpo, di solito con **POST**, **PUT** o **PATCH**. Deve essere JSON valido. |
+| **Corpo della richiesta (in JSON)** | Nessuno | Il corpo da inviare, di solito con **POST**, **PUT** o **PATCH**: qualsiasi valore JSON, come un oggetto, un array, una stringa o un numero. Viene inviato così come lo scrivete, come `application/json`, a meno che non impostiate un `Content-Type` in **Intestazioni della richiesta**. Con `application/x-www-form-urlencoded` o `multipart/form-data`, un oggetto viene inviato come campi di un modulo. |
 | **Non seguire i reindirizzamenti** | Disattivato | Valutare la prima risposta invece di seguire i reindirizzamenti. Vedete [sotto](#non-seguire-i-reindirizzamenti). |
 | **Consenti certificati autofirmati** | Disattivato | Saltare la convalida del certificato TLS per il nome host del monitor stesso. |
 | **Usa certificato client (mTLS)** | Disattivato | Presentare un certificato client e una chiave privata. Vedete [Certificato client (mTLS)](#certificato-client-mtls). |
@@ -242,6 +242,10 @@ L'API ha reindirizzato una richiesta con un corpo, o con un metodo diverso da `G
 
 :::details Il controllo fallisce con «Remote response exceeded the allowed size.»
 La sonda legge al massimo 512 KiB di una risposta, e questa è più grande. Chiamate un endpoint che restituisce meno, per esempio con una dimensione di pagina più piccola.
+:::
+
+:::details Il controllo fallisce con «Il corpo della richiesta non è un JSON valido, quindi la richiesta non è stata inviata.»
+Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monitor/monitor-secrets), quindi la sonda non ha inviato la richiesta. Correggete il corpo in **Altri campi**, o il valore di un segreto che usa: un valore che contiene un `"` spezza la stringa JSON in cui si trova.
 :::
 
 ## Passaggi successivi

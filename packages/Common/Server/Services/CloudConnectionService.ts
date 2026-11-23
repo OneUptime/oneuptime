@@ -489,9 +489,15 @@ export class Service extends DatabaseService<Model> {
       await Service.refuseWhileEnforcingBlocklist({
         projectId: current.projectId,
         connectionId: new ObjectID(connectionId),
-        doing: "turn off Block addresses in AWS WAF",
+        provider: current.provider,
+        doing: `turn off ${
+          definition.configFields.find((field: CloudConnectionField) => {
+            return field.key === WAF_BLOCKLIST_FIELD_KEY;
+          })?.title || "Block addresses in AWS WAF"
+        }`,
       });
     } else if (
+      current.provider === CloudProvider.AWS &&
       doesCloudConnectionWafBlocklistAddRule(wafBefore) &&
       !doesCloudConnectionWafBlocklistAddRule(wafAfter)
     ) {
@@ -523,6 +529,8 @@ export class Service extends DatabaseService<Model> {
   private static async refuseWhileEnforcingBlocklist(data: {
     projectId: ObjectID;
     connectionId: ObjectID;
+    // The connection's cloud, for what its WAFs are called; AWS's web ACLs when absent.
+    provider?: string | undefined;
     // What the person tried, for the words: "delete this connection".
     doing: string;
   }): Promise<void> {
@@ -537,10 +545,25 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    // Azure WAF (#10348) and Cloud Armor (#10349) hold policies, AWS WAF web ACLs.
+    const names: { one: string; many: string; rule: string } =
+      data.provider === CloudProvider.Azure
+        ? { one: "a WAF policy", many: "WAF policies", rule: "its rules" }
+        : data.provider === CloudProvider.GCP
+          ? {
+              one: "a security policy",
+              many: "security policies",
+              rule: "its rules",
+            }
+          : { one: "a web ACL", many: "web ACLs", rule: "its rule" };
+
     throw new BadDataException(
       count === 1
-        ? `This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then ${data.doing}.`
-        : `This connection enforces your blocklist in ${count} web ACLs. Remove them under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of each, then ${data.doing}.`,
+        ? data.provider === CloudProvider.Azure ||
+          data.provider === CloudProvider.GCP
+          ? `This connection enforces your blocklist in ${names.one}. Remove it under Cloud WAFs on the Blocklist page first, so OneUptime takes ${names.rule} out of it, then ${data.doing}.`
+          : `This connection enforces your blocklist in a web ACL. Remove the web ACL under Cloud WAFs on the Blocklist page first, so OneUptime takes its rule out of it, then ${data.doing}.`
+        : `This connection enforces your blocklist in ${count} ${names.many}. Remove them under Cloud WAFs on the Blocklist page first, so OneUptime takes ${names.rule} out of each, then ${data.doing}.`,
     );
   }
 
@@ -549,7 +572,7 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnDelete<Model>> {
     const connections: Array<Model> = await this.findBy({
       query: deleteBy.query,
-      select: { _id: true, projectId: true },
+      select: { _id: true, projectId: true, provider: true },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
@@ -560,6 +583,7 @@ export class Service extends DatabaseService<Model> {
         await Service.refuseWhileEnforcingBlocklist({
           projectId: connection.projectId,
           connectionId: connection.id,
+          provider: connection.provider,
           doing: "delete this connection",
         });
       }

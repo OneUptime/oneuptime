@@ -4,6 +4,10 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  SecurityCaseAiResponseView,
+  parseSecurityCaseAiResponse,
+} from "./AiResponse/SecurityCaseAiResponseModel";
 import Timezone from "Common/Types/Timezone";
 import {
   DeclaredIncident,
@@ -393,6 +397,51 @@ export default class SecurityCaseApi {
       data: { runId: data.runId, citationId: data.citationId },
       headers: { ...ModelAPI.getCommonHeaders() },
     });
+  }
+
+  /*
+   * OneUptime AI working the case (#10352): where it stands, its log - every
+   * step it took, asked about or left, and why - and what stops Respond
+   * with AI (SecurityCaseResponseStatus).
+   */
+  public static async getAiResponse(
+    caseId: ObjectID,
+  ): Promise<SecurityCaseAiResponseView> {
+    return parseSecurityCaseAiResponse(
+      await post(`/security-case/${caseId.toString()}/ai-response`, {}),
+    );
+  }
+
+  // Respond with AI: asks OneUptime AI to work the case.
+  public static async startAiResponse(caseId: ObjectID): Promise<string> {
+    const body: JSONObject = await post(
+      `/security-case/${caseId.toString()}/ai-response/start`,
+      {},
+    );
+
+    return String(body["runId"] || "");
+  }
+
+  // Take Over: OneUptime AI stops working the case, which is the person's.
+  public static async takeOverFromAi(caseId: ObjectID): Promise<void> {
+    await post(`/security-case/${caseId.toString()}/ai-response/take-over`, {});
+  }
+
+  /*
+   * A person's answer to what OneUptime AI asked on the card: taking the
+   * case, a step it would mark done, an exception for the case's rule.
+   */
+  public static async decideAiAction(data: {
+    caseId: ObjectID;
+    actionId: string;
+    isApproved: boolean;
+  }): Promise<void> {
+    await post(
+      `/security-case/${data.caseId.toString()}/ai-response/actions/${data.actionId}/${
+        data.isApproved ? "approve" : "decline"
+      }`,
+      {},
+    );
   }
 
   // Triage with AI: asks OneUptime AI to triage the case now.

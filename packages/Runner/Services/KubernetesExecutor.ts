@@ -1,6 +1,8 @@
-import https from "https";
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { JSONObject } from "Common/Types/JSON";
+import OutboundProxyAgents, {
+  OutboundAgents,
+} from "Common/Server/Utils/OutboundProxyAgents";
 
 export interface KubernetesExecResult {
   success: boolean;
@@ -38,16 +40,52 @@ const PLURALS: Record<string, string> = {
   DaemonSet: "daemonsets",
 };
 
-function buildAgent(caCertificate?: string | undefined): https.Agent {
-  /*
-   * Verify the API server against the cluster CA when one was supplied.
-   * Without it we fall back to the host's trust store rather than disabling
-   * verification — an operator who omits the CA gets a connection error, not
-   * a silently unauthenticated one.
-   */
-  return new https.Agent(
-    caCertificate ? { ca: caCertificate } : { rejectUnauthorized: true },
+/*
+ * One PATCH to the API server, on agents of its own. Verify the API server
+ * against the cluster CA when one was supplied. Without it we fall back to
+ * the host's trust store rather than disabling verification — an operator
+ * who omits the CA gets a connection error, not a silently unauthenticated
+ * one.
+ *
+ * Through the outbound proxy the Runner's environment names, or directly,
+ * as every request of the Runner goes (OutboundProxyAgents): never through a
+ * proxy axios reads itself, which sent the proxy's password percent-encoded
+ * (#10442), and the cluster CA is checked on the connection to the API
+ * server only, never on an https:// proxy's.
+ */
+async function patchApiServer(data: {
+  url: string;
+  body: JSONObject;
+  token: string;
+  caCertificate?: string | undefined;
+  timeoutInMs: number;
+}): Promise<AxiosResponse> {
+  const agents: OutboundAgents = OutboundProxyAgents.createAgents(
+    new URL(data.url),
+    data.caCertificate ? { tls: { ca: data.caCertificate } } : {},
   );
+
+  const config: AxiosRequestConfig = {
+    headers: {
+      Authorization: `Bearer ${data.token}`,
+      "Content-Type": "application/strategic-merge-patch+json",
+    },
+    httpAgent: agents.httpAgent,
+    httpsAgent: agents.httpsAgent,
+    // The agents go through the outbound proxy themselves.
+    proxy: false,
+    timeout: data.timeoutInMs,
+    validateStatus: () => {
+      return true;
+    },
+  };
+
+  try {
+    return await axios.patch(data.url, data.body, config);
+  } finally {
+    agents.httpAgent.destroy();
+    agents.httpsAgent.destroy();
+  }
 }
 
 function resourceUrl(data: {
@@ -168,9 +206,9 @@ export default class KubernetesExecutor {
   }): Promise<KubernetesExecResult> {
     const restartedAt: string = new Date().toISOString();
 
-    const response: AxiosResponse = await axios.patch(
-      resourceUrl(data),
-      {
+    const response: AxiosResponse = await patchApiServer({
+      url: resourceUrl(data),
+      body: {
         spec: {
           template: {
             metadata: {
@@ -181,18 +219,10 @@ export default class KubernetesExecutor {
           },
         },
       },
-      {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-          "Content-Type": "application/strategic-merge-patch+json",
-        },
-        httpsAgent: buildAgent(data.caCertificate),
-        timeout: data.timeoutInMs,
-        validateStatus: () => {
-          return true;
-        },
-      },
-    );
+      token: data.token,
+      caCertificate: data.caCertificate,
+      timeoutInMs: data.timeoutInMs,
+    });
 
     if (response.status >= 200 && response.status < 300) {
       return {
@@ -231,21 +261,13 @@ export default class KubernetesExecutor {
       };
     }
 
-    const response: AxiosResponse = await axios.patch(
-      resourceUrl({ ...data, subresource: "scale" }),
-      { spec: { replicas: data.replicas } },
-      {
-        headers: {
-          Authorization: `Bearer ${data.token}`,
-          "Content-Type": "application/strategic-merge-patch+json",
-        },
-        httpsAgent: buildAgent(data.caCertificate),
-        timeout: data.timeoutInMs,
-        validateStatus: () => {
-          return true;
-        },
-      },
-    );
+    const response: AxiosResponse = await patchApiServer({
+      url: resourceUrl({ ...data, subresource: "scale" }),
+      body: { spec: { replicas: data.replicas } },
+      token: data.token,
+      caCertificate: data.caCertificate,
+      timeoutInMs: data.timeoutInMs,
+    });
 
     if (response.status >= 200 && response.status < 300) {
       return {

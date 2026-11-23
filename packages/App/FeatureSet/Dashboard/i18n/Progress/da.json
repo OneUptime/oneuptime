@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61841,
-    "untranslated": 8254
+    "keys": 62240,
+    "untranslated": 8253
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -441,6 +441,7 @@
     "Version {{version}}",
     "Violet",
     "Vital",
+    "WAF",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

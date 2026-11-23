@@ -1,5 +1,6 @@
 import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssueGroup from "../../../../Models/DatabaseModels/DataSecurityIssueGroup";
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import { DataStoreFeedEventType } from "../../../../Models/DatabaseModels/DataStoreFeed";
@@ -34,6 +35,7 @@ import {
   getDataSecurityAiApprovalsNeeded,
   getDataSecurityAiPlanFingerprint,
   getDataSecurityAiPlanLane,
+  isDataSecurityAiIssueGroupProposalKind,
   isDataSecurityAiProposalUndoable,
   isDataSecurityAiProposalWaiting,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
@@ -309,8 +311,22 @@ export default class DataSecurityAiProposals {
     kind: DataSecurityAiProposalKind;
     issue?: DataSecurityIssue | null | undefined;
     store?: DataStore | null | undefined;
+    group?: DataSecurityIssueGroup | null | undefined;
     planKey: string;
   }): Query<DataSecurityAiProposal> {
+    // A group's fix is for its group (#10370), each part of its own kind.
+    if (isDataSecurityAiIssueGroupProposalKind(data.kind)) {
+      if (!data.group?.id) {
+        throw new BadDataException("A group's fix proposal is for a group.");
+      }
+
+      return {
+        projectId: data.projectId,
+        kind: data.kind,
+        dataSecurityIssueGroupId: data.group.id,
+      };
+    }
+
     if (data.kind === DataSecurityAiProposalKind.CreateOwnerRule) {
       return {
         projectId: data.projectId,
@@ -359,6 +375,8 @@ export default class DataSecurityAiProposals {
      */
     issue?: DataSecurityIssue | null | undefined;
     store?: DataStore | null | undefined;
+    // The group of issues whose cause it fixes, for a group's fix (#10370).
+    group?: DataSecurityIssueGroup | null | undefined;
     // The action that planned the change: it makes it, too.
     action: DataSecurityAiAction;
     change: DataSecurityAiPlannedChange;
@@ -396,6 +414,7 @@ export default class DataSecurityAiProposals {
           kind,
           issue: data.issue,
           store: data.store,
+          group: data.group,
           planKey: data.change.planKey,
         }),
         select: { _id: true, status: true, planKey: true },
@@ -459,6 +478,10 @@ export default class DataSecurityAiProposals {
 
     if (data.store?.id) {
       proposal.dataStoreId = data.store.id;
+    }
+
+    if (data.group?.id) {
+      proposal.dataSecurityIssueGroupId = data.group.id;
     }
 
     proposal.kind = kind;

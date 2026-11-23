@@ -127,6 +127,25 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Types/DataSecurity/DataStoreOwnerProposal.ts",
     features: [DataSecurityAiFeature.ProposeStoreOwners],
   },
+  // Issues one mistake made (#10370): their name, and the fix of their cause.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming.ts",
+    features: [DataSecurityAiFeature.NameIssueGroup],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
+    features: [
+      DataSecurityAiFeature.NameIssueGroup,
+      DataSecurityAiFeature.FixIssueGroup,
+    ],
+  },
   // Scrub rules for what Scrub It cannot cover (#10366): what it is told, and how its answer is read.
   {
     path: "packages/Common/Server/Utils/AI/DataSecurity/ScrubRuleWriter.ts",

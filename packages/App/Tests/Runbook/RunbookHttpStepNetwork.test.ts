@@ -1,7 +1,7 @@
 import DataSourceEgressGuard, {
   PinnedAgents,
   PinnedTarget,
-  TargetTlsOptions,
+  PinnedAgentOptions,
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -11,9 +11,12 @@ import {
 import {
   LocalHttpServer,
   PROXY_HOST_NAME,
+  RESERVED_CHARACTER_CREDENTIALS,
   approveOnLoopback,
   canListenOn,
   clearOutboundProxyEnvironmentForEachTest,
+  proxyUrlWithCredentials,
+  signedInAs,
   useLocalHttpServers,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import { startEachTestOnSelfHostedEgressPolicy } from "Common/Tests/Server/Utils/EgressPolicyEnvironment";
@@ -42,7 +45,7 @@ import {
  * worker does - and a proxy named by host name used to be dialled at the
  * target's address instead, because the pinned lookup answered the proxy's
  * name too. A host in NO_PROXY is dialled directly, pinned. Its agents
- * open the tunnel, not axios (createPinnedAgentsForNodeHttp, #10277), so a
+ * open the tunnel, not axios (createPinnedAgents, #10277), so a
  * proxy that will not open one is said to have refused. The step reads
  * at most 10 MB of an answer (its output keeps 50 KB of it), so a step
  * pointed at an endpoint that streams forever no longer fills the
@@ -159,6 +162,34 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
     expect(target.isUntouched).toBe(true);
   });
 
+  /*
+   * #10442: the step signs in with the proxy's real password, @, : and % in
+   * it, and a proxy that still refuses it with 407 is said to have refused
+   * OneUptime's user name and password, not the host.
+   */
+  test("a proxy that refuses its user name and password is said to, and was sent them decoded", async () => {
+    const { proxy, target } = await proxyAndTarget();
+    proxy.connectStatusLine = "HTTP/1.1 407 Proxy Authentication Required";
+    process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
+      proxy.port,
+      RESERVED_CHARACTER_CREDENTIALS,
+    );
+
+    const result: StepRunResult = await runHttpStep(
+      step(`https://${HOST}/health`),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe(
+      `The outbound proxy did not take OneUptime's user name and password: it answered HTTP/1.1 407 Proxy Authentication Required, so the request to ${HOST}:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`,
+    );
+    expect(result.errorMessage).not.toContain("p@ss");
+    expect(proxy.connectCredentials).toEqual([
+      signedInAs(RESERVED_CHARACTER_CREDENTIALS),
+    ]);
+    expect(target.isUntouched).toBe(true);
+  });
+
   test("a host in NO_PROXY is dialled directly, at the address the guard approved", async () => {
     const { proxy, target } = await proxyAndTarget();
     process.env["HTTP_PROXY"] = `http://${PROXY_HOST_NAME}:${proxy.port}`;
@@ -180,20 +211,19 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
     const destroyed: Array<string> = [];
     const realCreate: (
       target: PinnedTarget,
-      tls?: TargetTlsOptions | undefined,
-    ) => PinnedAgents =
-      DataSourceEgressGuard.createPinnedAgentsForNodeHttp.bind(
-        DataSourceEgressGuard,
-      );
+      options?: PinnedAgentOptions | undefined,
+    ) => PinnedAgents = DataSourceEgressGuard.createPinnedAgents.bind(
+      DataSourceEgressGuard,
+    );
 
     jest
-      .spyOn(DataSourceEgressGuard, "createPinnedAgentsForNodeHttp")
+      .spyOn(DataSourceEgressGuard, "createPinnedAgents")
       .mockImplementation(
         (
           pinnedTarget: PinnedTarget,
-          tls?: TargetTlsOptions | undefined,
+          options?: PinnedAgentOptions | undefined,
         ): PinnedAgents => {
-          const agents: PinnedAgents = realCreate(pinnedTarget, tls);
+          const agents: PinnedAgents = realCreate(pinnedTarget, options);
           const destroyHttp: () => void = agents.httpAgent.destroy.bind(
             agents.httpAgent,
           );

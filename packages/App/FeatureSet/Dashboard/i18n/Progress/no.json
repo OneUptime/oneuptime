@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 61841,
-    "untranslated": 8310
+    "keys": 62240,
+    "untranslated": 8309
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -337,6 +337,7 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

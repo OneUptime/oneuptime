@@ -22,6 +22,7 @@ import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/D
 import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
 import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnection/AwsRoleExternalIdRefusal";
 import { RESPONDER_ON_RULE_ALREADY_REFUSALS } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
+import { DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -133,6 +134,11 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * a teammate adds the same one, or the guided on-call setup, meets it.
    */
   ...RESPONDER_ON_RULE_ALREADY_REFUSALS,
+  /*
+   * A discovery scan run again while its probe is not connected, with the
+   * probe's name (#10334): the scan's Run Again says it.
+   */
+  DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL,
 ];
 
 /*

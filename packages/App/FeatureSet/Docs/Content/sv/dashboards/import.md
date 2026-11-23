@@ -76,7 +76,7 @@ Inspelningsregler, larmregler över loggar, Datadog-widgetar som läser loggar, 
 
 ## Konvertera en fråga med OneUptime AI
 
-En fråga som ingen regel konverterar visar **Convert with OneUptime AI**, som kräver att AI är påslaget för projektet. Bara den frågan, med namnen på instrumentpanelens variabler, skickas till projektets AI-leverantör. Svaret kontrolleras som vilken fråga som helst och visas för dig: välj **Use This Query** för att använda det. Inget skapas förrän du skapar instrumentpanelen eller monitorerna.
+En fråga som ingen regel konverterar visar **Convert with OneUptime AI**, som kräver att AI är påslaget för projektet. Bara den frågan, med namnen på instrumentpanelens variabler, skickas till projektets [LLM-leverantör](/docs/ai/llm-provider). Svaret kontrolleras som vilken fråga som helst och visas för dig: välj **Use This Query** för att använda det. Inget skapas förrän du skapar instrumentpanelen eller monitorerna.
 
 ## Nästa steg
 

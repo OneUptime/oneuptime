@@ -788,6 +788,8 @@ export default class OAuth2TokenClient {
       },
       httpAgent: httpAgent,
       httpsAgent: httpsAgent,
+      // The agents go through the outbound proxy themselves.
+      proxy: false,
     };
 
     if (request.signal) {

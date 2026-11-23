@@ -69,7 +69,7 @@ Fate clic su un servizio per vederne le richieste, gli errori e la latenza media
 
 ### Aprire una connessione
 
-Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di errore e la latenza media. Tra due servizi che strumentate, ha anche una **History** di chiamate, errori e latenza.
+Fate clic su una freccia per vederne la frequenza delle richieste, il tasso di errore e la latenza media. Tra due servizi che strumentate, ha anche una **Cronologia** di chiamate, errori e latenza.
 :::
 
 **Etichette delle connessioni** scrive un valore su ogni freccia: **Frequenza delle richieste**, **Tasso di errore** o **Latenza media**, oppure nessuno finché non ci passate sopra con il mouse. **Tabella** elenca gli stessi servizi con le loro **Richieste**, **Tasso di errore**, **Latenza media** e **Connessioni**, e **Mostra sulla mappa** ne disegna uno.

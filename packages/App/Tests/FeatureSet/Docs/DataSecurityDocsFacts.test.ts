@@ -3119,12 +3119,16 @@ describe("Data Security Integrations", () => {
       "Judge",
       "Off",
       "Suggest",
-      // The choice that runs without approval, as the form draws it (e76f1ced289).
+      // The autonomy that runs without approval, as the rules' form draws it (e76f1ced289).
       "Automatically",
     ]) {
       expect(copy).toContain(`translationKey("${name}")`);
       expect(rules).toContain(`**${name}**`);
     }
+
+    // The retired word is gone from the page, as it is from the Dashboard.
+    expect(copy).not.toContain('translationKey("Without asking")');
+    expect(rules).not.toContain("**Without asking**");
 
     // Suggest wins over Automatically, as the engine decides it.
     expect(rules).toContain("**Suggest** wins over **Automatically**");

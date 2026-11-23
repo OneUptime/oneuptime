@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 62240,
     "untranslated": 4746
   },
   "sameAsEnglish": [
@@ -600,6 +600,7 @@
     "Volume",
     "Volume {{name}}",
     "Volumes",
+    "WAF",
     "Watts",
     "Web",
     "Web, iOS, Android, React Native",

@@ -607,7 +607,7 @@ describe("what the command is written from", () => {
     expect(readFormScope(AWS, values)).toBe(CloudConnectionSetupScope.Account);
   });
 
-  test("the first step folds the settings that change the command under it - Data Security's two, and on AWS blocking addresses in AWS WAF; the Credentials step's More fields keeps the rest", () => {
+  test("the first step folds the settings that change the command under it - Data Security's two and the blocklist's; the Credentials step's More fields keeps the rest", () => {
     for (const definition of CloudConnectionCatalog) {
       const command: Array<string> = getCommandSettingFields(definition).map(
         (field: CloudConnectionField): string => {
@@ -627,12 +627,11 @@ describe("what the command is written from", () => {
           return field.key;
         });
 
+      // Blocking addresses in AWS WAF, Azure WAF or Cloud Armor changes the command on every cloud.
       expect(command).toEqual([
         DATA_SECURITY_FIELD_KEY,
         DATA_SECURITY_RESPONSE_FIELD_KEY,
-        ...(definition.provider === CloudProvider.AWS
-          ? [WAF_BLOCKLIST_FIELD_KEY]
-          : []),
+        WAF_BLOCKLIST_FIELD_KEY,
       ]);
       // Every folded setting in one of the two, none in both, in the catalog's order.
       expect([...credentials, ...command].sort()).toEqual([...folded].sort());

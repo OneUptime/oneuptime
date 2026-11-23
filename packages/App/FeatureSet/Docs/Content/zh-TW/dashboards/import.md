@@ -76,7 +76,7 @@ Grafana 的 PromQL 保持原樣：OneUptime 會像 Grafana 一樣填入 `$__inte
 
 ## 用 OneUptime AI 轉換查詢
 
-沒有規則能轉換的查詢會顯示 **Convert with OneUptime AI** ，這需要專案已開啟 AI。只有該查詢和儀表板變數的名稱會傳送給你專案的 AI 提供者。答案會像任何查詢一樣經過檢查並呈現給你：選擇 **Use This Query** 即可使用。在你建立儀表板或監測器之前，不會建立任何東西。
+沒有規則能轉換的查詢會顯示 **Convert with OneUptime AI** ，這需要專案已開啟 AI。只有該查詢和儀表板變數的名稱會傳送給你專案的 [LLM 提供商](/docs/ai/llm-provider)。答案會像任何查詢一樣經過檢查並呈現給你：選擇 **Use This Query** 即可使用。在你建立儀表板或監測器之前，不會建立任何東西。
 
 ## 後續步驟
 

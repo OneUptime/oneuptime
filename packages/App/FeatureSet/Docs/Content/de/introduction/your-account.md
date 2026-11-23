@@ -167,9 +167,9 @@ Eine erneute Anmeldung zählt nur, wenn Ihr Identitätsanbieter angibt, dass Sie
 | Anbieter | Was OneUptime verlangt | Wenn sie nichts bestätigt |
 | --- | --- | --- |
 | SAML | `ForceAuthn="true"` und den Zeitpunkt Ihrer Anmeldung (`AuthnInstant`) | Lassen Sie den Anbieter die Anfrage befolgen, etwa mit Honor Force Authentication in Okta. |
-| OpenID Connect | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Lassen Sie den Anbieter `auth_time` senden. Fügen Sie es in Microsoft Entra ID dem ID-Token als optionalen Claim hinzu. |
+| OpenID Connect | `prompt=login` und `max_age=0` (Microsoft Entra ID: nur `prompt=login`) sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Lassen Sie den Anbieter `auth_time` senden. Fügen Sie es in Microsoft Entra ID dem ID-Token als optionalen Claim hinzu. |
 | Google | Den Zeitpunkt Ihrer Anmeldung (`auth_time`). Google lässt sich nicht bitten, Sie erneut anzumelden. | Schalten Sie Session age claims für die Google-Anmelde-App des Servers ein, die veröffentlicht und verifiziert sein muss. |
-| Microsoft | `prompt=login` und `max_age=0` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Fügen Sie `auth_time` dem ID-Token der Microsoft-Anmelde-App des Servers als optionalen Claim hinzu. |
+| Microsoft | `prompt=login` sowie den Zeitpunkt Ihrer Anmeldung (`auth_time`) | Fügen Sie `auth_time` dem ID-Token der Microsoft-Anmelde-App des Servers als optionalen Claim hinzu. |
 | Vercel | Nichts: Vercel lässt sich nicht bitten, Sie erneut anmelden zu lassen, und teilt nicht mit, wann Sie sich angemeldet haben. | Es bestätigt nie. Wählen Sie **Anders anmelden** und melden Sie sich mit einem Link an, den Sie per E-Mail erhalten, oder legen Sie mit **Passwort vergessen?** ein Passwort fest und bestätigen Sie damit. |
 
 Was Sie in Okta, Microsoft Entra ID, Keycloak und Google Workspace einstellen, steht auf der Seite [SSO](/docs/identity/sso#erneut-anmelden-um-zu-bestätigen-dass-sie-es-sind).

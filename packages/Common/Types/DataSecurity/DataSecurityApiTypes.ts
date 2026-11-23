@@ -7,6 +7,7 @@ import { DataSecurityResponseAction } from "./DataSecurityResponseAction";
 import { ComplianceFrameworkResult } from "./ComplianceRequirementCatalog";
 import DataCategory from "./DataCategory";
 import { DataSecurityIssueAnalysisView } from "./DataSecurityIssueAnalysis";
+import type { DataSecurityIssueGroupJSON } from "./DataSecurityIssueGroup";
 import DataSensitivity from "./DataSensitivity";
 import { DataStoreResourceKind } from "./DataStoreResource";
 import {
@@ -48,6 +49,9 @@ export const DATA_SECURITY_API_ROUTES: {
   dismissAiProposal: (proposalId: string) => string;
   undoAiProposal: (proposalId: string) => string;
   aiInput: string;
+  issueGroups: string;
+  issueGroupFixPlan: (groupId: string) => string;
+  fixIssueGroup: (groupId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -140,6 +144,19 @@ export const DATA_SECURITY_API_ROUTES: {
    * would send. { withExample?, issueId? }.
    */
   aiInput: "/data-security/ai-input",
+  /*
+   * Issues one mistake made (#10370): the project's groups, for a reader
+   * of its issues across the whole project, { groupIds? }; what a group's
+   * fix would do now, for the reader; and the fix itself,
+   * { codeRepositoryId?, includeDataStoreIds?, parts?, expectedPlanFingerprint? }.
+   */
+  issueGroups: "/data-security/issue-groups",
+  issueGroupFixPlan: (groupId: string): string => {
+    return `/data-security-issue-group/${groupId}/fix-plan`;
+  },
+  fixIssueGroup: (groupId: string): string => {
+    return `/data-security-issue-group/${groupId}/fix`;
+  },
 };
 
 export interface DataSecurityOverviewIssue {
@@ -669,6 +686,12 @@ export interface DataSecurityExplainResult {
   analysis?: DataSecurityIssueAnalysisView | null | undefined;
   // A model call was made for it now: there was none, its input changed, or it was asked for again.
   isNew?: boolean | undefined;
+  /*
+   * The group of issues one mistake made that the issue is one of (#10370),
+   * for a reader of issues across the whole project: its cause is fixed
+   * once, for all of them.
+   */
+  group?: DataSecurityIssueGroupJSON | null | undefined;
 }
 
 /*
@@ -677,6 +700,8 @@ export interface DataSecurityExplainResult {
  */
 export interface DataSecurityIssueAnalysisResult {
   analysis: DataSecurityIssueAnalysisView | null;
+  // The issue's group (#10370), as DataSecurityExplainResult says it.
+  group?: DataSecurityIssueGroupJSON | null | undefined;
 }
 
 // A repository the person may ask OneUptime AI to work in (#10362).
