@@ -105,4 +105,5 @@ flowchart TB
 - [儀表板小工具](/docs/dashboards/widgets): 每個小工具，以及該選哪一個。
 - [儀表板變數與篩選器](/docs/dashboards/variables): 每個服務、主機或客戶一個儀表板。
 - [共用與公開儀表板](/docs/dashboards/sharing): 公開連結、密碼、IP 允許清單和自訂網域。
+- [從 Grafana 和 Datadog 匯入](/docs/dashboards/import): 匯入你在 Grafana 或 Datadog 中建立的儀表板或警示規則。
 :::
