@@ -62323,5 +62323,7 @@
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。Runbook ルールの変更は Runbook > 設定 > ルールの監査ログにあります。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです：アラート、インシデント、メンテナンスイベントの Runbook ルールと、Runbook の所有者ルールおよびラベルルールです。",
   "vCenter Rule Audit Logs": "vCenter ルールの監査ログ",
-  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.": "OneUptime はプロジェクトのネットワークと情報のセキュリティのためにこのデータストアを保持しているため、内容を把握しています。データセキュリティはスキャンせず、これらのアドレスを保持していても問題にはなりません。それがこのデータストアの目的です。"
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.": "OneUptime はプロジェクトのネットワークと情報のセキュリティのためにこのデータストアを保持しているため、内容を把握しています。データセキュリティはスキャンせず、これらのアドレスを保持していても問題にはなりません。それがこのデータストアの目的です。",
+  "Custom Role Audit Logs": "カスタムロールの監査ログ",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "このカスタムロールとその権限に加えられたすべての変更: 誰が、いつ変更し、何が変わったか。"
 }
