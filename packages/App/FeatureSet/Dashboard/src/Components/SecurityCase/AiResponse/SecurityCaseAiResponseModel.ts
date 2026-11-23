@@ -17,6 +17,11 @@ import {
   readSecurityCaseAiActionEvidence,
 } from "Common/Types/SecurityCase/SecurityCaseAiActionEvidence";
 import {
+  SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES,
+  SecurityCaseAiHoldOutcome,
+  isSecurityCaseAiHoldOutcome,
+} from "Common/Types/SecurityCase/SecurityCaseAiHold";
+import {
   SECURITY_CASE_AI_ACTION_REASON_SENTENCES,
   SECURITY_CASE_HAND_OFF_SENTENCES,
   getSecurityCaseAiActionTitle,
@@ -55,6 +60,17 @@ export interface SecurityCaseAiActionView {
   isDecidedOnCard: boolean;
 }
 
+/*
+ * OneUptime AI responding first to the case (#10353): holding, and until
+ * when; then how it ended, when, and who ended it.
+ */
+export interface SecurityCaseAiHoldView {
+  outcome: SecurityCaseAiHoldOutcome;
+  until: Date | null;
+  endedAt: Date | null;
+  endedByName: string | null;
+}
+
 export interface SecurityCaseAiResponseView {
   isOn: boolean;
   modes: Record<SecurityCaseAiArea, SecurityCaseAiMode>;
@@ -66,6 +82,8 @@ export interface SecurityCaseAiResponseView {
   run: { id: string; status: string | null } | null;
   actions: Array<SecurityCaseAiActionView>;
   notStartedReason: { code: string; message: string } | null;
+  // Null for a case OneUptime AI never held.
+  hold: SecurityCaseAiHoldView | null;
 }
 
 function readDate(value: JSONValue | undefined): Date | null {
@@ -155,6 +173,7 @@ export function parseSecurityCaseAiResponse(
 
   const run: JSONValue | undefined = json["run"];
   const reason: JSONValue | undefined = json["notStartedReason"];
+  const hold: JSONValue | undefined = json["hold"];
   const handOffReason: JSONValue | undefined = json["handOffReason"];
 
   return {
@@ -198,6 +217,48 @@ export function parseSecurityCaseAiResponse(
             message: readText((reason as JSONObject)["message"]) || "",
           }
         : null,
+    hold: parseSecurityCaseAiHold(hold),
+  };
+}
+
+export function parseSecurityCaseAiHold(
+  value: JSONValue | undefined,
+): SecurityCaseAiHoldView | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const outcome: JSONValue | undefined = json["outcome"];
+
+  if (!isSecurityCaseAiHoldOutcome(outcome)) {
+    return null;
+  }
+
+  return {
+    outcome,
+    until: readDate(json["until"]),
+    endedAt: readDate(json["endedAt"]),
+    endedByName: readText(json["endedByName"]),
+  };
+}
+
+/*
+ * How the case's hold ended, as the card says it: its sentence, with whoever
+ * ended it. Null while it holds - the case's page says so above - and for a
+ * case never held.
+ */
+export function getAiHoldEndedSentence(
+  hold: SecurityCaseAiHoldView | null,
+): { sentence: string; name: string; endedAt: Date | null } | null {
+  if (!hold || hold.outcome === SecurityCaseAiHoldOutcome.Holding) {
+    return null;
+  }
+
+  return {
+    sentence: SECURITY_CASE_AI_HOLD_OUTCOME_SENTENCES[hold.outcome],
+    name: hold.endedByName || "",
+    endedAt: hold.endedAt,
   };
 }
 

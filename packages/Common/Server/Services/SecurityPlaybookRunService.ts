@@ -76,6 +76,8 @@ export const UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES: Array<SecurityPlaybookRu
     SecurityPlaybookRunStatus.Queued,
     SecurityPlaybookRunStatus.Running,
     SecurityPlaybookRunStatus.WaitingForApproval,
+    // A Page On-Call step waits while OneUptime AI responds first (#10353).
+    SecurityPlaybookRunStatus.WaitingForOneUptimeAi,
   ];
 
 // What a one-step run from a case is started with (startOneStepRun).
