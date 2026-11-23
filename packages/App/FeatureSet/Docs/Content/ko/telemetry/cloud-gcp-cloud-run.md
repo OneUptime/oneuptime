@@ -270,7 +270,7 @@ gcloud run services replace service.yaml --region us-central1
 
 ## 얻을 수 있는 것
 
-- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간.
+- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간. **클라우드 → 연결**에서 프로젝트를 연결하면 이 탭에 **Google Cloud Monitoring** 섹션이 추가되어, 앱이 무엇을 보내든 Cloud Run이 측정한 서비스의 요청, 5xx 상태로 응답한 비율, p95 지연 시간, 컨테이너의 CPU와 메모리를 보여 줍니다. 아무것도 읽히지 않는 동안에는 **설정 점검**의 **Google Cloud Monitoring 연결** 행이 찾고 있는 서비스를 알려 줍니다.
 - **인스턴스**: Cloud Run 인스턴스마다 한 행이며, 이름은 `faas.instance`입니다. Cloud Run은 컨테이너의 리소스 사용량을 사이드카에 보여 주지 않으므로, 같은 `faas.instance`를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭을 직접 보내지 않는 한 **CPU**와 **메모리** 타일은 비어 있습니다. 여기서는 요청 타일을 보고, 인스턴스 CPU와 메모리는 Cloud Monitoring에 맡기세요.
 - 환경으로 필터링된 **로그**, **트레이스**, **메트릭**.
 - 같은 서비스가 **서버리스 함수**(`faas.name` 기준)와 **서비스**(`service.name` 기준)에도 나타납니다.

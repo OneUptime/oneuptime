@@ -754,6 +754,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: 0,
           serverErrorRatePercent: 0,
           responseTimeMs: 90,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
         isLoadingPlatformSignals={true}
       />,
@@ -777,6 +780,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: null,
           serverErrorRatePercent: null,
           responseTimeMs: null,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
       />,
     );
@@ -801,6 +807,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: 0,
           serverErrorRatePercent: 0,
           responseTimeMs: 90,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
       />,
     );

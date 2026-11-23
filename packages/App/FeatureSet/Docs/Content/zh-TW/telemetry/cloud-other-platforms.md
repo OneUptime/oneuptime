@@ -122,6 +122,8 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os
 
 **網路：** 沒有 VPC 連接器的服務可以直接連上網際網路。使用 **Outgoing network traffic: Custom VPC** 時，輸出流量會經過你的 VPC，這時 VPC 需要 NAT 閘道，以及允許透過 TCP 443 連到 OneUptime 主機的安全性群組輸出規則。
 
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤。在 **雲端 → 連線** 中連線帳戶後，應用程式的 **概覽** 會多出一個 **Amazon CloudWatch** 區段：無論應用程式傳送什麼，都會顯示 App Runner 測得的服務請求、以 5xx 狀態回應的比例、回應時間、CPU 與記憶體。OneUptime 會將應用程式關聯到其 `cloud.resource_id` 指明的 App Runner 服務，否則關聯到其環境的帳戶與區域中與其 `service.name` 同名的服務；在尚未讀取到任何服務時，它的 **設定檢查** 中的 **Amazon CloudWatch 連線** 列會說明正在尋找的服務。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Amazon CloudWatch 提供的服務資料。
+
 ## Google App Engine
 
 `cloud.platform`：`gcp_app_engine`。GCP 偵測器會根據 `GAE_SERVICE`、`GAE_VERSION`、`GAE_INSTANCE` 與中繼資料伺服器辨識 App Engine 標準環境與彈性環境。它會設定 `cloud.account.id`（專案）、`cloud.region`、`faas.name`、`faas.version` 與 `faas.instance`。與 Cloud Run 一樣，`faas.name` 會讓每個 App Engine 服務也出現在 **無伺服器函式** 下，而環境則彙整專案與區域。
@@ -156,6 +158,8 @@ env_variables:
 
 **網路：** App Engine 標準環境可以直接連上網際網路。彈性環境的執行個體位於 VPC 中：如果子網路沒有外部 IP，它們需要 Cloud NAT，以及允許透過 TCP 443 連到 OneUptime 主機的輸出防火牆規則。
 
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤。在 **雲端 → 連線** 中連線專案後，應用程式的 **概覽** 會多出一個 **Google Cloud Monitoring** 區段：無論應用程式傳送什麼，都會顯示 App Engine 測得的服務請求、以 5xx 狀態回應的比例與 p95 延遲。Cloud Monitoring 不會回報 App Engine 應用程式的 CPU 或記憶體使用比例，因此該區段不會顯示它們。OneUptime 會在其環境的專案中，將應用程式關聯到其 `faas.name` 指明的 App Engine 服務；在尚未讀取到任何服務時，它的 **設定檢查** 中的 **Google Cloud Monitoring 連線** 列會說明正在尋找的服務。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Google Cloud Monitoring 提供的服務資料。
+
 ## Azure App Service
 
 `cloud.platform`：`azure_app_service`。Node.js 與 .NET 的 Azure 偵測器會讀取 App Service 設定的 `WEBSITE_*` 變數，填入 `cloud.platform`、`cloud.region`、`service.instance.id`（來自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署位置）與 `host.id`，但不會設定 `cloud.account.id`：請自己加入訂用帳戶 ID，否則環境金鑰中的帳戶區段會是空的。Collector 的 `azureappservice` 偵測器讀取相同的變數，也會設定 `cloud.account.id`，並把執行個體寫入 `azure.app_service.instance.id`。
@@ -187,7 +191,7 @@ SDK 偵測器把平台寫成帶點號的 `azure.app_service`；OneUptime 收到�
 
 **網路：** 除非開啟了 **VNet integration** 並啟用 **Route All**，否則 App Service 可以直接連上網際網路。開啟後，VNet 需要 NAT 閘道，或一條通往允許 TCP 443 連到 OneUptime 主機的防火牆的路由。
 
-**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤與用戶端錯誤、回應時間、CPU 時間與記憶體。之後，應用程式的 **執行個體** 分頁會列出 Azure 執行該應用程式的執行個體，**修訂版本** 分頁會列出 Azure 保留的部署。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Azure Monitor 提供的其網站資料：Azure 統計的請求、以 5xx 狀態回應的比例與平均回應時間。
+**應用程式頁面顯示的內容：** 請求、錯誤率與延遲來自應用程式的追蹤，因此只傳送日誌或指標的應用程式會在那裡顯示 **未收到追蹤**，它的 **設定檢查** 會說明需要加入什麼。App Service 不會給應用程式自己的 CPU 或記憶體，應用程式的 CPU 與記憶體圖格會說明這一點。在 **雲端 → 連線** 中連線訂用帳戶後，應用程式的 **概覽** 會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的網站請求、伺服器錯誤與用戶端錯誤、回應時間、CPU 時間與記憶體。之後，應用程式的 **執行個體** 分頁會列出 Azure 執行該應用程式的執行個體，**修訂版本** 分頁會列出 Azure 保留的部署。在 **應用程式平台 → 所有應用程式** 和環境的 **應用程式** 分頁中，不傳送追蹤的應用程式會改為顯示 Azure Monitor 提供的其網站資料：Azure 統計的請求、以 5xx 狀態回應的比例與平均回應時間。偵測器在 `deployment.environment` 中寫入名稱的非生產部署位置的應用程式，會顯示該位置自己的資料、執行個體與部署，而不是其網站的：Azure Monitor 會將每個位置視為獨立的資源來測量。
 
 應用程式的 **設定** 分頁會把這些設定以適用於 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令提供，每個命令中都有應用程式自己的名稱、資源群組與訂用帳戶。若還要查看網站自身的主控台、HTTP 與平台日誌，請在 **雲端 → 連線** 中，在訂用帳戶所在列選擇 **串流指標和日誌**：這些日誌會顯示在應用程式的 **日誌** 分頁中的 **來自 Azure 診斷設定** 下。環境的設定指南也提供了每種技術堆疊的步驟，並以預留位置代替應用程式的名稱和資源群組。
 
@@ -255,7 +259,7 @@ Node.js 與 .NET 的 App Service 偵測器不會設定 `cloud.account.id`。請�
 :::
 
 :::details App Service 應用程式沒有 Azure Monitor 數據
-它的 **設定檢查** 中的 **Azure Monitor 連線** 列會說明原因。OneUptime 透過 App Service 偵測器設定的 `cloud.resource_id` 將應用程式關聯到其網站，否則透過 `cloud.account.id` 指明的訂用帳戶中的 `service.name` 關聯：請將應用程式命名為與網站相同的名稱，或加入 `cloud.resource_id`。**雲端 → 連線** 下的某個 Azure 連線必須讀取該訂用帳戶，並在該訂用帳戶上擁有 Monitoring Reader 角色。部署位置是獨立的資源，OneUptime 尚未讀取它。
+它的 **設定檢查** 中的 **Azure Monitor 連線** 列會說明原因。OneUptime 透過 App Service 偵測器設定的 `cloud.resource_id` 將應用程式關聯到其網站，否則透過 `cloud.account.id` 指明的訂用帳戶中的 `service.name` 關聯：請將應用程式命名為與網站相同的名稱，或加入 `cloud.resource_id`。**雲端 → 連線** 下的某個 Azure 連線必須讀取該訂用帳戶，並在該訂用帳戶上擁有 Monitoring Reader 角色。非生產部署位置的應用程式只會關聯到其網站的該位置，而不會關聯到網站本身：在某個連線讀取該位置之前，該列會說明正在尋找的位置。
 :::
 
 :::details 修改 Container Instances 變數後沒有效果

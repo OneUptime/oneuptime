@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## Hva du får
 
-- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine, flisene **CPU** og **Minne** og **Toppinstanser etter CPU**. Flisene fylles fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`, eller fra enhver måling `container.cpu.utilization` og `container.memory.usage` som bærer oppgavens identitet. SDK direct sender ingen av dem.
+- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine, flisene **CPU** og **Minne** og **Toppinstanser etter CPU**. Flisene fylles fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`, eller fra enhver måling `container.cpu.utilization` og `container.memory.usage` som bærer oppgavens identitet. SDK direct sender ingen av dem. Koble til kontoen under **Sky → Koble til**, så får denne fanen en seksjon **Amazon CloudWatch**: CPU-en og minnet CloudWatch måler for ECS-tjenesten i appens klynge som kjører dens oppgavedefinisjonsfamilie, uansett hva appen sender. ECS publiserer ikke et eget antall forespørsler, siden lastbalansereren teller forespørslene, så forespørslene kommer fortsatt fra sporene dine. Raden **Amazon CloudWatch-tilkobling** i **Oppsettsjekk** nevner klyngen og familien den ser etter så lenge ingen slik tjeneste er lest.
 - **Instanser**: én rad per kjørende oppgave, navngitt etter oppgave-ID-en (slutten av `aws.ecs.task.arn`), med siste CPU, minne og tidspunkt for sist sett. En oppgave som slutter å rapportere, blir **Foreldet**.
 - **Logger**, **Spor** og **Målinger**: alt som bar `cloud.platform=aws_ecs` for denne kontoen og regionen.
 - **Tjenester**: de samme oppgavene, delt opp etter `service.name`.

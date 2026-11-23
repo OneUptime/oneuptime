@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## What you get
 
-- **Overview**: requests, error rate and p95 latency from your traces, the **CPU** and **Memory** tiles and **Top instances by CPU**. The tiles fill from the `awsecscontainermetrics` receiver's `ecs.task.cpu.utilized` and `ecs.task.memory.utilized`, or from any `container.cpu.utilization` and `container.memory.usage` metric that carries the task's identity. SDK direct ships neither.
+- **Overview**: requests, error rate and p95 latency from your traces, the **CPU** and **Memory** tiles and **Top instances by CPU**. The tiles fill from the `awsecscontainermetrics` receiver's `ecs.task.cpu.utilized` and `ecs.task.memory.utilized`, or from any `container.cpu.utilization` and `container.memory.usage` metric that carries the task's identity. SDK direct ships neither. Connect the account under **Cloud → Connect**, and this tab adds an **Amazon CloudWatch** section: the CPU and memory CloudWatch measures for the ECS service in the app's cluster that runs its task definition family, whatever the app sends. ECS publishes no request count of its own, as its load balancer counts the requests, so requests still come from your traces. The **Amazon CloudWatch connection** row of the **Setup check** names the cluster and the family it looks for while no such service is read.
 - **Instances**: one row per running task, named by its task ID (the end of `aws.ecs.task.arn`), with its latest CPU, memory and last-seen time. A task that stops reporting turns **Stale**.
 - **Logs**, **Traces** and **Metrics**: everything that carried `cloud.platform=aws_ecs` for this account and region.
 - **Services**: the same tasks, broken down by `service.name`.

@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## Wat je krijgt
 
-- **Overzicht**: aanvragen, foutpercentage en p95-latentie uit je traces. Container Apps toont het resourcegebruik van een replica niet aan een sidecar, dus de tegels **CPU** en **Geheugen** vullen zich alleen als je metrieken `container.cpu.utilization` en `container.memory.usage` stuurt die de identiteit van de replica dragen. De meeste teams laten die over aan Azure Monitor.
+- **Overzicht**: aanvragen, foutpercentage en p95-latentie uit je traces. Container Apps toont het resourcegebruik van een replica niet aan een sidecar, dus de tegels **CPU** en **Geheugen** vullen zich alleen als je metrieken `container.cpu.utilization` en `container.memory.usage` stuurt die de identiteit van de replica dragen. De meeste teams laten die over aan Azure Monitor. Koppel het abonnement onder **Cloud → Koppelen**, en dit tabblad krijgt een sectie **Azure Monitor**: de aanvragen, de responstijd, de CPU, het geheugen en de herstarts van de Container App, zoals Azure ze meet, wat de app ook stuurt. De rij **Azure Monitor-koppeling** van de **Configuratiecontrole** noemt de gezochte Container App zolang er geen wordt gelezen.
 - **Instanties**: één rij per replica, met als naam de `azure.container_app.instance.id` van de detectors, de `service.instance.id` als je die zelf instelt, of de `host.name` als alleen de hostdetector heeft gedraaid.
 - **Logboeken**, **Traces** en **Metrieken**, gefilterd op de omgeving, en de weergave per service onder **Services**.
 

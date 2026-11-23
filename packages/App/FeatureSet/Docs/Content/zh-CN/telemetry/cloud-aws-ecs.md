@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## 你能看到什么
 
-- **概览**：根据追踪计算的请求、错误率和 p95 延迟，**CPU** 和 **内存** 磁贴，以及 **按 CPU 排名的实例**。磁贴的数据来自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 和 `ecs.task.memory.utilized`，或者来自任何带有任务标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标。SDK direct 两者都不发送。
+- **概览**：根据追踪计算的请求、错误率和 p95 延迟，**CPU** 和 **内存** 磁贴，以及 **按 CPU 排名的实例**。磁贴的数据来自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 和 `ecs.task.memory.utilized`，或者来自任何带有任务标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标。SDK direct 两者都不发送。在 **云 → 连接** 中连接账户后，此选项卡会增加一个 **Amazon CloudWatch** 部分：无论应用发送什么，都会显示 CloudWatch 为应用所在集群中运行其任务定义系列的 ECS 服务测得的 CPU 和内存。ECS 不发布自己的请求数，请求由其负载均衡器统计，因此请求仍来自你的追踪。在尚未读取到这样的服务时，**设置检查** 中的 **Amazon CloudWatch 连接** 行会说明正在查找的集群和系列。
 - **实例**：每个运行中的任务一行，以任务 ID（`aws.ecs.task.arn` 的末尾部分）命名，显示最新的 CPU、内存和最后一次出现的时间。停止上报的任务会变为 **已过时**。
 - **日志**、**追踪** 和 **指标**：该账户和区域中所有带有 `cloud.platform=aws_ecs` 的数据。
 - **服务**：同样的任务，按 `service.name` 拆分。

@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## Hva du får
 
-- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine. Container Apps viser ikke en replikas ressursbruk til en sidecar, så flisene **CPU** og **Minne** fylles bare hvis du sender målingene `container.cpu.utilization` og `container.memory.usage` med replikaens identitet. De fleste team overlater dem til Azure Monitor.
+- **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine. Container Apps viser ikke en replikas ressursbruk til en sidecar, så flisene **CPU** og **Minne** fylles bare hvis du sender målingene `container.cpu.utilization` og `container.memory.usage` med replikaens identitet. De fleste team overlater dem til Azure Monitor. Koble til abonnementet under **Sky → Koble til**, så får denne fanen en seksjon **Azure Monitor**: Container Appens forespørsler, svartid, CPU, minne og omstarter, slik Azure måler dem, uansett hva appen sender. Raden **Azure Monitor-tilkobling** i **Oppsettsjekk** nevner Container Appen den ser etter så lenge ingen er lest.
 - **Instanser**: én rad per replika, navngitt etter detektorenes `azure.container_app.instance.id`, etter `service.instance.id` når du setter den selv, eller etter `host.name` når bare vertsdetektoren kjørte.
 - **Logger**, **Spor** og **Målinger**, filtrert til miljøet, og visningen per tjeneste under **Tjenester**.
 

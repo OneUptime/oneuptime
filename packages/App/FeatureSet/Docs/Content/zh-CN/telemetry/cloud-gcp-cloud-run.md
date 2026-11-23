@@ -270,7 +270,7 @@ gcloud run services replace service.yaml --region us-central1
 
 ## 你能看到什么
 
-- **概览**：根据追踪计算的请求、错误率和 p95 延迟。
+- **概览**：根据追踪计算的请求、错误率和 p95 延迟。在 **云 → 连接** 中连接项目后，此选项卡会增加一个 **Google Cloud Monitoring** 部分：无论应用发送什么，都会显示 Cloud Run 测得的服务请求、以 5xx 状态响应的比例、p95 延迟以及其容器的 CPU 和内存。在尚未读取到任何服务时，**设置检查** 中的 **Google Cloud Monitoring 连接** 行会说明正在查找的服务。
 - **实例**：每个 Cloud Run 实例一行，以 `faas.instance` 命名。Cloud Run 不会向 sidecar 公开容器的资源使用情况，因此除非你自己发送带有相同 `faas.instance` 的 `container.cpu.utilization` 和 `container.memory.usage` 指标，否则 **CPU** 和 **内存** 磁贴会保持为空。请在这里查看请求磁贴，实例的 CPU 和内存交给 Cloud Monitoring。
 - 按环境过滤的 **日志**、**追踪** 和 **指标**。
 - 同一个服务也会出现在 **无服务器函数**（按 `faas.name`）和 **服务**（按 `service.name`）下。

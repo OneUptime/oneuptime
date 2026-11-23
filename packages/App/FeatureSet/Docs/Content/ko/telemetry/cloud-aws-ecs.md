@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## 얻을 수 있는 것
 
-- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간, **CPU**와 **메모리** 타일, **CPU 기준 상위 인스턴스**. 타일은 `awsecscontainermetrics` 수신기의 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`, 또는 태스크의 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭으로 채워집니다. SDK direct는 둘 다 보내지 않습니다.
+- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간, **CPU**와 **메모리** 타일, **CPU 기준 상위 인스턴스**. 타일은 `awsecscontainermetrics` 수신기의 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`, 또는 태스크의 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭으로 채워집니다. SDK direct는 둘 다 보내지 않습니다. **클라우드 → 연결**에서 계정을 연결하면 이 탭에 **Amazon CloudWatch** 섹션이 추가되어, 앱이 무엇을 보내든 앱의 클러스터에서 그 태스크 정의 패밀리를 실행하는 ECS 서비스에 대해 CloudWatch가 측정한 CPU와 메모리를 보여 줍니다. ECS는 자체 요청 수를 게시하지 않고 요청은 로드 밸런서가 세므로, 요청은 계속 트레이스에서 나옵니다. 그런 서비스가 읽히지 않는 동안에는 **설정 점검**의 **Amazon CloudWatch 연결** 행이 찾고 있는 클러스터와 패밀리를 알려 줍니다.
 - **인스턴스**: 실행 중인 태스크마다 한 행이며, 이름은 태스크 ID(`aws.ecs.task.arn`의 끝부분)입니다. 최신 CPU, 메모리, 마지막으로 확인된 시각이 표시됩니다. 보고가 끊긴 태스크는 **오래됨**이 됩니다.
 - **로그**, **트레이스**, **메트릭**: 이 계정과 리전에서 `cloud.platform=aws_ecs`를 가진 모든 데이터.
 - **서비스**: 같은 태스크를 `service.name`별로 나눈 것.

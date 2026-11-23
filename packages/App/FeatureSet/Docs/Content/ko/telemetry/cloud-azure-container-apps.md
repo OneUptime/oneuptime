@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## 얻을 수 있는 것
 
-- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간. Container Apps는 복제본의 리소스 사용량을 사이드카에 보여 주지 않으므로, 복제본 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭을 보낼 때만 **CPU**와 **메모리** 타일이 채워집니다. 대부분의 팀은 이를 Azure Monitor에 맡깁니다.
+- **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간. Container Apps는 복제본의 리소스 사용량을 사이드카에 보여 주지 않으므로, 복제본 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭을 보낼 때만 **CPU**와 **메모리** 타일이 채워집니다. 대부분의 팀은 이를 Azure Monitor에 맡깁니다. **클라우드 → 연결**에서 구독을 연결하면 이 탭에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 Container App의 요청, 응답 시간, CPU, 메모리, 재시작을 보여 줍니다. 아무것도 읽히지 않는 동안에는 **설정 점검**의 **Azure Monitor 연결** 행이 찾고 있는 Container App을 알려 줍니다.
 - **인스턴스**: 복제본마다 한 행. 이름은 감지기의 `azure.container_app.instance.id`, 직접 설정했다면 `service.instance.id`, 호스트 감지기만 실행되었다면 `host.name`에서 가져옵니다.
 - 환경으로 필터링된 **로그**, **트레이스**, **메트릭**, 그리고 **서비스**의 서비스별 보기.
 

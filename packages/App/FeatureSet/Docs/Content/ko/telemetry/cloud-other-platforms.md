@@ -122,6 +122,8 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os
 
 **네트워킹:** VPC 커넥터가 없는 서비스는 인터넷에 바로 닿습니다. **Outgoing network traffic: Custom VPC**에서는 아웃바운드 트래픽이 VPC를 거치므로, NAT 게이트웨이와 OneUptime 호스트로 가는 TCP 443을 허용하는 보안 그룹 아웃바운드 규칙이 필요합니다.
 
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나옵니다. **클라우드 → 연결**에서 계정을 연결하면 앱의 **개요**에 **Amazon CloudWatch** 섹션이 추가되어, 앱이 무엇을 보내든 App Runner가 측정한 서비스의 요청, 5xx 상태로 응답한 비율, 응답 시간, CPU, 메모리를 보여 줍니다. OneUptime은 앱의 `cloud.resource_id`가 가리키는 App Runner 서비스에 앱을 연결하고, 없으면 환경의 계정과 리전에서 앱의 `service.name`과 같은 이름의 서비스에 연결하며, 아무것도 읽히지 않는 동안에는 앱의 **설정 점검**에 있는 **Amazon CloudWatch 연결** 행이 찾고 있는 서비스를 알려 줍니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Amazon CloudWatch의 서비스 수치를 보여 줍니다.
+
 ## Google App Engine
 
 `cloud.platform`: `gcp_app_engine`. GCP 감지기는 `GAE_SERVICE`, `GAE_VERSION`, `GAE_INSTANCE`와 메타데이터 서버로 App Engine 표준 환경과 가변형 환경을 인식합니다. 그리고 `cloud.account.id`(프로젝트), `cloud.region`, `faas.name`, `faas.version`, `faas.instance`를 설정합니다. Cloud Run과 마찬가지로 `faas.name` 때문에 각 App Engine 서비스가 **서버리스 함수**에도 나타나고, 환경은 프로젝트와 리전을 묶습니다.
@@ -156,6 +158,8 @@ env_variables:
 
 **네트워킹:** App Engine 표준 환경은 인터넷에 바로 닿습니다. 가변형 환경의 인스턴스는 VPC 안에 있으므로, 서브넷에 외부 IP가 없다면 Cloud NAT와 OneUptime 호스트로 가는 TCP 443을 허용하는 방화벽 이그레스 규칙이 필요합니다.
 
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나옵니다. **클라우드 → 연결**에서 프로젝트를 연결하면 앱의 **개요**에 **Google Cloud Monitoring** 섹션이 추가되어, 앱이 무엇을 보내든 App Engine이 측정한 서비스의 요청, 5xx 상태로 응답한 비율, p95 지연 시간을 보여 줍니다. Cloud Monitoring은 App Engine 앱의 CPU나 메모리 사용 비율을 보고하지 않으므로, 이 섹션에는 그 값이 없습니다. OneUptime은 환경의 프로젝트에서 앱의 `faas.name`이 가리키는 App Engine 서비스에 앱을 연결하며, 아무것도 읽히지 않는 동안에는 앱의 **설정 점검**에 있는 **Google Cloud Monitoring 연결** 행이 찾고 있는 서비스를 알려 줍니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Google Cloud Monitoring의 서비스 수치를 보여 줍니다.
+
 ## Azure App Service
 
 `cloud.platform`: `azure_app_service`. Node.js와 .NET용 Azure 감지기는 App Service가 설정하는 `WEBSITE_*` 변수를 읽고 `cloud.platform`, `cloud.region`, `service.instance.id`(`WEBSITE_INSTANCE_ID`에서), `deployment.environment`(슬롯), `host.id`를 채우지만 `cloud.account.id`는 설정하지 않으므로 구독 ID를 직접 추가하세요. 그렇지 않으면 환경 키의 계정 부분이 비게 됩니다. Collector의 `azureappservice` 감지기는 같은 변수를 읽고 `cloud.account.id`도 설정하며, 인스턴스를 `azure.app_service.instance.id`에 넣습니다.
@@ -187,7 +191,7 @@ SDK 감지기는 플랫폼을 점이 들어간 `azure.app_service`로 씁니다.
 
 **네트워킹:** **VNet integration**과 **Route All**을 켜지 않았다면 App Service는 인터넷에 바로 닿습니다. 켰다면 VNet에 NAT 게이트웨이나, OneUptime 호스트로 가는 TCP 443을 허용하는 방화벽으로의 경로가 필요합니다.
 
-**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나오므로, 로그나 메트릭만 보내는 앱에는 그곳에 **수신된 트레이스 없음**이 표시되고 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. App Service는 앱에 자체 CPU나 메모리를 주지 않으며, CPU와 메모리 타일이 그렇다고 알려 줍니다. **클라우드 → 연결**에서 구독을 연결하면 앱의 **개요**에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 사이트의 요청, 서버 오류와 클라이언트 오류, 응답 시간, CPU 시간, 메모리를 보여 줍니다. 이후 앱의 **인스턴스** 탭에는 Azure가 앱을 실행하는 인스턴스가, **리비전** 탭에는 Azure가 보관하는 배포가 나열됩니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Azure Monitor의 사이트 수치를 보여 줍니다. Azure가 집계한 요청, 5xx 상태로 응답한 비율, 평균 응답 시간입니다.
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나오므로, 로그나 메트릭만 보내는 앱에는 그곳에 **수신된 트레이스 없음**이 표시되고 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. App Service는 앱에 자체 CPU나 메모리를 주지 않으며, CPU와 메모리 타일이 그렇다고 알려 줍니다. **클라우드 → 연결**에서 구독을 연결하면 앱의 **개요**에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 사이트의 요청, 서버 오류와 클라이언트 오류, 응답 시간, CPU 시간, 메모리를 보여 줍니다. 이후 앱의 **인스턴스** 탭에는 Azure가 앱을 실행하는 인스턴스가, **리비전** 탭에는 Azure가 보관하는 배포가 나열됩니다. **앱 플랫폼 → 모든 앱**과 환경의 **앱** 탭에서는 트레이스를 보내지 않는 앱이 대신 Azure Monitor의 사이트 수치를 보여 줍니다. Azure가 집계한 요청, 5xx 상태로 응답한 비율, 평균 응답 시간입니다. 감지기가 `deployment.environment`에 이름을 넣는 프로덕션 외 배포 슬롯의 앱은 사이트의 수치가 아니라 그 슬롯 자체의 수치, 인스턴스, 배포를 보여 줍니다. Azure Monitor는 각 슬롯을 별도의 리소스로 측정합니다.
 
 앱의 **설정** 탭은 이 설정들을 .NET, Java, Node.js, Python용 Azure Cloud Shell 명령으로 제공하며, 모든 명령에 앱 자체의 이름, 리소스 그룹, 구독이 들어 있습니다. 사이트 자체의 콘솔, HTTP, 플랫폼 로그도 보려면 **클라우드 → 연결**에서 구독 행의 **메트릭 및 로그 스트리밍**을 선택하세요. 로그는 앱의 **로그** 탭에서 **Azure 진단 설정에서** 아래에 표시됩니다. 환경의 설정 가이드도 앱 이름과 리소스 그룹을 자리 표시자로 둔 각 스택의 단계를 제공합니다.
 
@@ -255,7 +259,7 @@ Node.js와 .NET의 App Service 감지기는 `cloud.account.id`를 설정하지 �
 :::
 
 :::details App Service 앱에 Azure Monitor 수치가 없음
-앱의 **설정 점검**에 있는 **Azure Monitor 연결** 행이 이유를 알려 줍니다. OneUptime은 App Service 감지기가 설정하는 `cloud.resource_id`로 앱을 사이트에 연결하고, 없으면 `cloud.account.id`가 가리키는 구독에서 앱의 `service.name`으로 연결합니다. 앱 이름을 사이트와 같게 하거나 `cloud.resource_id`를 추가하세요. **클라우드 → 연결**의 Azure 연결이 그 구독을 읽어야 하며, 그 구독에 Monitoring Reader 역할이 있어야 합니다. 배포 슬롯은 별도의 리소스이며, OneUptime은 아직 이를 읽지 않습니다.
+앱의 **설정 점검**에 있는 **Azure Monitor 연결** 행이 이유를 알려 줍니다. OneUptime은 App Service 감지기가 설정하는 `cloud.resource_id`로 앱을 사이트에 연결하고, 없으면 `cloud.account.id`가 가리키는 구독에서 앱의 `service.name`으로 연결합니다. 앱 이름을 사이트와 같게 하거나 `cloud.resource_id`를 추가하세요. **클라우드 → 연결**의 Azure 연결이 그 구독을 읽어야 하며, 그 구독에 Monitoring Reader 역할이 있어야 합니다. 프로덕션 외 배포 슬롯의 앱은 사이트 자체가 아니라 그 사이트의 해당 슬롯에만 연결됩니다. 연결이 그 슬롯을 읽을 때까지 행은 찾고 있는 슬롯을 알려 줍니다.
 :::
 
 :::details Container Instances 변수를 바꿔도 반영되지 않음

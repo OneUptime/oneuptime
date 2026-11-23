@@ -270,7 +270,7 @@ Only the container that receives requests (`app`) declares `ports`; a sidecar mu
 
 ## What you get
 
-- **Overview**: requests, error rate and p95 latency from your traces.
+- **Overview**: requests, error rate and p95 latency from your traces. Connect the project under **Cloud → Connect**, and this tab adds a **Google Cloud Monitoring** section: the service's requests, the share answered with a 5xx status, p95 latency, and its containers' CPU and memory, as Cloud Run measures them, whatever the app sends. The **Google Cloud Monitoring connection** row of the **Setup check** names the service it looks for while none is read.
 - **Instances**: one row per Cloud Run instance, named by `faas.instance`. Cloud Run does not show a container's resource usage to a sidecar, so the **CPU** and **Memory** tiles stay empty unless you send `container.cpu.utilization` and `container.memory.usage` metrics with the same `faas.instance` yourself. Read the requests tiles here, and leave instance CPU and memory to Cloud Monitoring.
 - **Logs**, **Traces** and **Metrics**, filtered to the environment.
 - The same service under **Serverless Functions** (by `faas.name`) and under **Services** (by `service.name`).

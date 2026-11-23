@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## 你能看到什么
 
-- **概览**：根据追踪计算的请求、错误率和 p95 延迟。Container Apps 不会向 sidecar 公开副本的资源使用情况，因此只有当你发送带有副本标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标时，**CPU** 和 **内存** 磁贴才会有数据。大多数团队把这些交给 Azure Monitor。
+- **概览**：根据追踪计算的请求、错误率和 p95 延迟。Container Apps 不会向 sidecar 公开副本的资源使用情况，因此只有当你发送带有副本标识的 `container.cpu.utilization` 和 `container.memory.usage` 指标时，**CPU** 和 **内存** 磁贴才会有数据。大多数团队把这些交给 Azure Monitor。在 **云 → 连接** 中连接订阅后，此选项卡会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的 Container App 的请求、响应时间、CPU、内存和重启次数。在尚未读取到任何 Container App 时，**设置检查** 中的 **Azure Monitor 连接** 行会说明正在查找的 Container App。
 - **实例**：每个副本一行，名称取自检测器设置的 `azure.container_app.instance.id`、你自己设置的 `service.instance.id`，或在只运行主机检测器时取自 `host.name`。
 - 按环境过滤的 **日志**、**追踪** 和 **指标**，以及 **服务** 下的按服务视图。
 

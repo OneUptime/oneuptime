@@ -122,6 +122,8 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os
 
 **网络：** 没有 VPC 连接器的服务可以直接访问互联网。使用 **Outgoing network traffic: Custom VPC** 时，出站流量会经过你的 VPC，这时 VPC 需要 NAT 网关，以及允许通过 TCP 443 访问 OneUptime 主机的安全组出站规则。
 
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪。在 **云 → 连接** 中连接账户后，应用的 **概览** 会增加一个 **Amazon CloudWatch** 部分：无论应用发送什么，都会显示 App Runner 测得的服务请求、以 5xx 状态响应的比例、响应时间、CPU 和内存。OneUptime 将应用关联到其 `cloud.resource_id` 指明的 App Runner 服务，否则关联到其环境的账户和区域中与其 `service.name` 同名的服务；在尚未读取到任何服务时，它的 **设置检查** 中的 **Amazon CloudWatch 连接** 行会说明正在查找的服务。在 **应用平台 → 所有应用** 和环境的 **应用** 选项卡中，不发送追踪的应用会改为显示 Amazon CloudWatch 提供的服务数据。
+
 ## Google App Engine
 
 `cloud.platform`：`gcp_app_engine`。GCP 检测器根据 `GAE_SERVICE`、`GAE_VERSION`、`GAE_INSTANCE` 和元数据服务器识别 App Engine 标准环境和柔性环境。它会设置 `cloud.account.id`（项目）、`cloud.region`、`faas.name`、`faas.version` 和 `faas.instance`。与 Cloud Run 一样，`faas.name` 会让每个 App Engine 服务也出现在 **无服务器函数** 下，而环境则汇总项目和区域。
@@ -156,6 +158,8 @@ env_variables:
 
 **网络：** App Engine 标准环境可以直接访问互联网。柔性环境的实例位于 VPC 中：如果子网没有外部 IP，它们需要 Cloud NAT，以及允许通过 TCP 443 访问 OneUptime 主机的出站防火墙规则。
 
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪。在 **云 → 连接** 中连接项目后，应用的 **概览** 会增加一个 **Google Cloud Monitoring** 部分：无论应用发送什么，都会显示 App Engine 测得的服务请求、以 5xx 状态响应的比例和 p95 延迟。Cloud Monitoring 不报告 App Engine 应用的 CPU 或内存占比，因此该部分不显示它们。OneUptime 在其环境的项目中，将应用关联到其 `faas.name` 指明的 App Engine 服务；在尚未读取到任何服务时，它的 **设置检查** 中的 **Google Cloud Monitoring 连接** 行会说明正在查找的服务。在 **应用平台 → 所有应用** 和环境的 **应用** 选项卡中，不发送追踪的应用会改为显示 Google Cloud Monitoring 提供的服务数据。
+
 ## Azure App Service
 
 `cloud.platform`：`azure_app_service`。Node.js 和 .NET 的 Azure 检测器会读取 App Service 设置的 `WEBSITE_*` 变量，填写 `cloud.platform`、`cloud.region`、`service.instance.id`（来自 `WEBSITE_INSTANCE_ID`）、`deployment.environment`（部署槽）和 `host.id`，但不会设置 `cloud.account.id`：请自己添加订阅 ID，否则环境密钥中的账户段会是空的。Collector 的 `azureappservice` 检测器读取相同的变量，也会设置 `cloud.account.id`，并把实例写入 `azure.app_service.instance.id`。
@@ -187,7 +191,7 @@ SDK 检测器把平台写作带点号的 `azure.app_service`；OneUptime 收到�
 
 **网络：** 除非开启了 **VNet integration** 并启用 **Route All**，否则 App Service 可以直接访问互联网。开启后，VNet 需要 NAT 网关，或一条通往允许 TCP 443 访问 OneUptime 主机的防火墙的路由。
 
-**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误和客户端错误、响应时间、CPU 时间和内存。之后，应用的 **实例** 选项卡会列出 Azure 运行该应用的实例，**修订版本** 选项卡会列出 Azure 保留的部署。在 **应用平台 → 所有应用** 和环境的 **应用** 选项卡中，不发送追踪的应用会改为显示 Azure Monitor 提供的其站点数据：Azure 统计的请求、以 5xx 状态响应的比例和平均响应时间。
+**应用页面显示的内容：** 请求、错误率和延迟来自应用的追踪，因此只发送日志或指标的应用会在那里显示 **未收到追踪**，它的 **设置检查** 会说明需要添加什么。App Service 不会给应用分配自己的 CPU 或内存，应用的 CPU 和内存磁贴会说明这一点。在 **云 → 连接** 中连接订阅后，应用的 **概览** 会增加一个 **Azure Monitor** 部分：无论应用发送什么，都会显示 Azure 测得的站点请求、服务器错误和客户端错误、响应时间、CPU 时间和内存。之后，应用的 **实例** 选项卡会列出 Azure 运行该应用的实例，**修订版本** 选项卡会列出 Azure 保留的部署。在 **应用平台 → 所有应用** 和环境的 **应用** 选项卡中，不发送追踪的应用会改为显示 Azure Monitor 提供的其站点数据：Azure 统计的请求、以 5xx 状态响应的比例和平均响应时间。检测器在 `deployment.environment` 中写入名称的非生产部署槽位的应用，会显示该槽位自己的数据、实例和部署，而不是其站点的：Azure Monitor 将每个槽位作为独立的资源进行测量。
 
 应用的 **设置** 选项卡会把这些设置以适用于 .NET、Java、Node.js 或 Python 的 Azure Cloud Shell 命令给出，每条命令中都有应用自己的名称、资源组和订阅。若还要查看站点自身的控制台、HTTP 和平台日志，请在 **云 → 连接** 中，在订阅所在行选择 **流式传输指标和日志**：这些日志会显示在应用的 **日志** 选项卡中的 **来自 Azure 诊断设置** 下。环境的设置指南也给出了每种技术栈的步骤，并用占位符代替应用的名称和资源组。
 
@@ -255,7 +259,7 @@ Node.js 和 .NET 的 App Service 检测器不会设置 `cloud.account.id`。请�
 :::
 
 :::details App Service 应用没有 Azure Monitor 数据
-它的 **设置检查** 中的 **Azure Monitor 连接** 行会说明原因。OneUptime 通过 App Service 检测器设置的 `cloud.resource_id` 将应用关联到其站点，否则通过 `cloud.account.id` 指明的订阅中的 `service.name` 关联：请将应用命名为与站点相同的名称，或添加 `cloud.resource_id`。**云 → 连接** 下的某个 Azure 连接必须读取该订阅，并在该订阅上拥有 Monitoring Reader 角色。部署槽位是独立的资源，OneUptime 尚未读取它。
+它的 **设置检查** 中的 **Azure Monitor 连接** 行会说明原因。OneUptime 通过 App Service 检测器设置的 `cloud.resource_id` 将应用关联到其站点，否则通过 `cloud.account.id` 指明的订阅中的 `service.name` 关联：请将应用命名为与站点相同的名称，或添加 `cloud.resource_id`。**云 → 连接** 下的某个 Azure 连接必须读取该订阅，并在该订阅上拥有 Monitoring Reader 角色。非生产部署槽位的应用只关联到其站点的该槽位，而不会关联到站点本身：在某个连接读取该槽位之前，该行会说明正在查找的槽位。
 :::
 
 :::details 修改 Container Instances 变量后没有效果
