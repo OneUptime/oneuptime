@@ -851,7 +851,7 @@ describe("DNS monitor", () => {
     );
 
     expect(evaluating).toContain(
-      `from ${Math.min(...minutes)} to ${Math.max(...minutes)} minutes, under **For the last (in minutes)**`,
+      `from ${Math.min(...minutes)} minutes to ${Math.max(...minutes) / 60} hours, under **For the last**`,
     );
 
     const noData: Array<Array<string>> = tableRows(

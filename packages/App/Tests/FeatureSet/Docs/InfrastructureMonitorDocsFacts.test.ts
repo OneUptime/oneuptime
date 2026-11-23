@@ -8,6 +8,7 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import {
   CheckOn,
   CriteriaFilter,
+  CriteriaFilterUtil as CommonCriteriaFilterUtil,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -3648,13 +3649,38 @@ describe(`${SERVER}`, () => {
     expect(form).toMatch(
       new RegExp('<FieldLabelElement\\s+title="Evaluate"\\s+description='),
     );
+    // Minutes up to an hour, then hours up to a day (#10355).
     expect(form).toMatch(
-      new RegExp(
-        '<FieldLabelElement\\s+title="For the last \\(in minutes\\)"\\s+description=',
-      ),
+      new RegExp('<FieldLabelElement\\s+title="For the last"\\s+description='),
     );
+    /*
+     * What Evaluate offers a server's numeric filter, in the order the
+     * dropdown lists it (#10355): the aggregates, a percentile, every or
+     * any check, and the counts.
+     */
+    expect(
+      CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
+        {
+          checkOn: CheckOn.CPUUsagePercent,
+          filterType: FilterType.GreaterThan,
+          value: 90,
+        },
+        MonitorType.Server,
+      ),
+    ).toEqual([
+      EvaluateOverTimeType.Average,
+      EvaluateOverTimeType.Sum,
+      EvaluateOverTimeType.MaximumValue,
+      EvaluateOverTimeType.MunimumValue,
+      EvaluateOverTimeType.Percentile,
+      EvaluateOverTimeType.AllValues,
+      EvaluateOverTimeType.AnyValue,
+      EvaluateOverTimeType.Count,
+      EvaluateOverTimeType.Percentage,
+      EvaluateOverTimeType.StatusChanges,
+    ]);
     expect(page).toContain(
-      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value)",
+      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, Percentile, All Values, Any Value, Count, Percentage, Status Changes)",
     );
     expect(
       tableBody(sectionOf(SERVER, "### Evaluate over a period of time")).map(

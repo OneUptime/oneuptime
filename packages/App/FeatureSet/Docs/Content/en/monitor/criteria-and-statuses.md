@@ -5,13 +5,14 @@ A monitor's criteria decide what each check means: whether the monitor is up or 
 :::cards
 - [How criteria decide](#how-criteria-decide): Top to bottom, and the first match wins.
 - [What a criteria holds](#what-a-criteria-holds): Filters, a match condition, actions and settings.
+- [Judging a window of checks](#judging-a-window-of-checks): Count failed checks, catch flapping, read a percentile.
 - [Change a monitor's criteria](#change-a-monitors-criteria): Edit, add, reorder and test criteria.
 - [Monitor statuses](#monitor-statuses): The built-in statuses, and statuses of your own.
 :::
 
 ## How criteria decide
 
-Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens, and the criteria below it are not looked at for that check. When none matches, the monitor goes to its **Default Monitor Status**.
+Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens, and the criteria below it are not looked at for that check. When none matches, the monitor goes to its **Default Monitor Status**, unless a criteria that brings it back has yet to match: see [When a criteria recovers](#when-a-criteria-recovers).
 
 ```mermaid title="How each check is judged"
 flowchart TB
@@ -30,7 +31,7 @@ The order is part of the rule. A new monitor lists its criteria worst first: off
 A criteria that matches but changes no status still decides the check: the monitor keeps the status it has, and the criteria below it wait for the next check. The **Default Monitor Status** applies only when no criteria matches. A new monitor's default is **Operational**; change it under **More fields**, below the criteria.
 
 > [!NOTE]
-> A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once. That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.
+> A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once. That is a monitor whose query has a **Group By** or is written in PromQL, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.
 >
 > Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.
 
@@ -43,7 +44,7 @@ Open a criteria and it has a name and three sections, each of which folds to a o
 | **Criteria Name** | The name in the criteria list, and in the root cause of every incident and alert the criteria opens. **Add Criteria** names a new criteria after its filters, and the name follows them until you type one of your own. |
 | **Filters** | What the check must show, as one or more filters. Kubernetes and Metrics monitors call them **Alert Rules**. |
 | **Actions** | What happens when the filters match: change the status, create an alert, declare an incident, or any of these. |
-| **Settings** | **Enable this criteria**, an optional **Description** and, on Incoming Request monitors, **Group incidents and alerts by a payload field**. |
+| **Settings** | **Enable this criteria**, an optional **Description**, when it recovers and when it is judged and, on Incoming Request monitors, **Group incidents and alerts by a payload field**. |
 
 ### Filters
 
@@ -51,7 +52,7 @@ A filter reads one thing from the check and compares it: a **Filter Type** (what
 
 With two filters or more, **Match Condition** appears below them: **All** means every filter must match, **Any** means one is enough. A new criteria starts on **All**.
 
-Filters that measure every check, such as **Is Online**, **Response Status Code** and **Response Time (in ms)**, offer **Evaluate this criteria over a period of time**. It judges a window of recent checks instead of the latest one, and starts on the last 5 minutes with **All Values**, which matches only once every check in the window did. See [Evaluating over a period of time](/docs/monitor/website-monitor#evaluating-over-a-period-of-time).
+Filters that measure every check, such as **Is Online**, **Response Status Code** and **Response Time (in ms)**, offer **Evaluate this criteria over a period of time**. It judges a window of recent checks instead of the latest one, and starts on the last 5 minutes with **All Values**, which matches only once every check in the window did. The window can be up to 24 hours long, and it can count the checks, as [Judging a window of checks](#judging-a-window-of-checks) explains. See [Evaluating over a period of time](/docs/monitor/website-monitor#evaluating-over-a-period-of-time).
 
 ### Actions
 
@@ -70,6 +71,54 @@ An incident or an alert asks for a title, a **Severity** and, folded away, a des
 **Enable this criteria** is on for every new criteria. Turn it off to keep a criteria without using it: it is skipped on every check, changes no status, opens nothing, and its header shows **Disabled**.
 
 **Group incidents and alerts by a payload field** opens one incident per value found in an incoming request, so one webhook address can keep several incidents open. See [Turning on incident grouping](/docs/monitor/incoming-request-monitor#turning-on-incident-grouping).
+
+**Recover only when a condition of its own is met** and **Judge this criteria only on certain days and times** are off for a new criteria. See [When a criteria recovers](#when-a-criteria-recovers) and [Only on certain days and times](#only-on-certain-days-and-times).
+
+## Judging a window of checks
+
+With **Evaluate this criteria over a period of time** ticked, **Evaluate** says how the checks of the window are judged, and **For the last** how long the window is, from 2 minutes to 24 hours. The filter's own condition, such as **Is Online** set to **False**, says what each check must show.
+
+| Evaluate | Matches when |
+| --- | --- |
+| **All Values** | Every check of the window met the condition. |
+| **Any Value** | At least one check of the window met the condition. |
+| **Average**, **Sum**, **Maximum Value**, **Minimum Value** | That figure of the window's values meets the condition, such as an average response time above 300 ms. |
+| **Percentile** | The percentile picked under **Percentile**, from p50 to p99, meets the condition: p95 above 300 ms is the slowest 5% of checks above 300 ms. |
+| **Count** | The number of checks that met the condition compares as set under **Checks That Match**: **Greater Than** 30, say. |
+| **Percentage** | Their share of the window's checks compares as set under **Share of Checks That Match**: **Greater Than** 10%, say. |
+| **Status Changes** | The number of times the checks changed between meeting the condition and not compares as set under **Times It Changed**. A device that goes down and comes back up changes twice. |
+
+A sentence under the window's settings reads the filter back as it is set: "Check if "Is Online" is false on more than 30 checks in the past 8 hours".
+
+- **Each probe on its own.** **Count**, **Percentage** and **Status Changes** count the checks of the probe that made the check, so a monitor checked from three probes does not count three times as fast, and its probes then have to agree as for any criteria.
+- **A window that is not full yet.** Until the checks reach back to the start of the window, a monitor that only just started has fewer checks than it will. **Count** and **Status Changes** match early when they are already past **Greater Than** or **Greater Than Or Equal To**, since more checks only add to them; anything else waits for a full window.
+- **A window with no checks.** While the window has no checks, or is not full yet, **If No Data** decides: **Ignore** waits, **Trigger** matches, and **Treat As Zero** judges it as if the missing checks had not met the condition.
+
+The averages and percentiles read the values of every probe's checks, as **Average** always has. **Count**, **Percentage** and **Status Changes** are offered for every filter that is offered a window: on Website, API, Ping, IP and Port monitors, a server's CPU, memory, disks and load, a network device's **SNMP Device Is Online** and response time, and DNS, NTP, Database, External Status Page and Probe Status monitors. A Server monitor's **Is Online** is not counted: it is judged on the time since the server last reported. Metrics and other telemetry monitors judge the time range of their query instead, with the query's own aggregation, which reads percentiles too.
+
+### Example: an access point that is down, and one that is unstable
+
+A Ping monitor checks an office access point every minute. Before windows could count checks, an access point that kept dropping out looked like one that was down, or like nothing at all. These three criteria, in this order, tell the two apart:
+
+| Criteria | Filter | Evaluate | Changes the status to |
+| --- | --- | --- | --- |
+| Access point is down | **Is Online** is **False** | **All Values**, **For the last** 5 minutes | **Offline**, and declares an outage incident |
+| Access point is unstable | **Is Online** is **False** | **Status Changes**, **Greater Than** 5, **For the last** 1 hour | **Degraded**, and declares an instability incident |
+| Access point is online | **Is Online** is **True** | Not over a period of time | **Operational** |
+
+For the second, turn on **Recover only when a condition of its own is met** with **Status Changes**, **Less Than Or Equal To** 1, **For the last** 1 hour: the instability incident stays open until the access point has been steady for an hour, rather than closing the first minute it is up. To alert when it fails more than 30 pings in 8 hours, make the second criteria **Count**, **Greater Than** 30, **For the last** 8 hours instead.
+
+## When a criteria recovers
+
+A criteria stops acting as soon as its filters stop matching: on that check its incident and alert resolve, when **Auto Resolve Incident** and **Auto Resolve Alert** are on, and the monitor moves to the next criteria that matches.
+
+**Recover only when a condition of its own is met** keeps the criteria in effect after its filters stop matching, until the filters under **Recover When** match. They start as the opposite of the criteria's filters, over the last 10 minutes, and can use everything a filter offers, such as a window that counts checks. A criteria is in effect while the monitor has the status it sets or an incident or alert it declared is open. While it holds, it is a match in its place in the list: a criteria above it that matches still takes over.
+
+When no criteria matches, a monitor that a criteria moved off its **Default Monitor Status** keeps the status it has, as long as it also has a criteria that only brings it back to that status and opens nothing. That is the recovery margin: the templates fire above 90% and come back at or below 81%, so at 89% the monitor stays where it is. Its incidents and alerts still resolve when their own criteria stops matching. A monitor with no such criteria goes to its **Default Monitor Status**, as it always has.
+
+## Only on certain days and times
+
+**Judge this criteria only on certain days and times** sets the days, a **Start Time** and an **End Time**, and a **Timezone**, which starts as yours. Outside those hours the criteria is skipped as a disabled criteria is: it matches nothing, so what it opened resolves, and the evaluation log says it was outside its hours. The hours are read on that time zone's clock, so 08:00 stays 08:00 after the clocks change, and hours that end earlier than they start run into the next morning.
 
 ## When incidents and alerts open and close
 
