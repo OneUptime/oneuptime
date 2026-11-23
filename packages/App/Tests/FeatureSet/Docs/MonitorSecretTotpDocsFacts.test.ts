@@ -4,7 +4,7 @@ import MonitorSecretType from "Common/Types/Monitor/MonitorSecretType";
 import { maskTotpCode } from "Common/Utils/Monitor/MonitorSecretTotp";
 import { FIRST_PROBE_VERSION_WITH_TOTP_CODES } from "Common/Types/Probe/ProbeCapability";
 import { ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE } from "../../../FeatureSet/Telemetry/Utils/TotpProbeGate";
-import { UPDATE_A_PROBE_DOCS_PATH } from "../../../FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes";
+import { UPDATE_A_PROBE_DOCS_PATH } from "../../../FeatureSet/Dashboard/src/Components/Monitor/ProbesTooOld";
 import {
   TOTP_ALGORITHMS,
   TOTP_DEFAULT_ALGORITHM,
@@ -240,7 +240,7 @@ describe("a probe too old to make one-time codes", () => {
     ).toContain("<ProbeVersionElement probe={item} />");
     expect(
       readRepoFile("App/FeatureSet/Dashboard/src/Pages/Monitor/Create.tsx"),
-    ).toContain("<OneTimeCodeProbesWarning");
+    ).toContain("<ProbesTooOldWarning");
     // Under Probe Status, as the page's card is titled.
     expect(CUSTOM_PROBE_PAGE).toContain(
       "The probe's page shows the release it runs, under **Probe Status**.",
