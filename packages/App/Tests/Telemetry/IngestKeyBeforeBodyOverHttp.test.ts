@@ -34,12 +34,21 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import HostCollectorAgent, {
   HostCollectorMessageResult,
 } from "Common/Server/Utils/HostCollector/HostCollectorAgent";
+import ClientRefusalLog from "Common/Server/Utils/ClientRefusalLog";
 import logger from "Common/Server/Utils/Logger";
 import {
   LARGE_REQUEST_BODY_BYTES,
+  LARGE_REQUEST_BODY_JSON_VALUES,
+  OPAMP_MESSAGE_MAX_BYTES,
   TELEMETRY_ROUTE_PREFIXES,
+  getRequestBodyLimit,
   readsBodyAfterAuthentication,
 } from "Common/Server/Utils/RequestBodyLimit";
+import {
+  getTooLargeForRouteMessage,
+  getTooManyJsonValuesMessage,
+} from "Common/Server/Utils/RequestBodyRefusal";
+import { JsonElementLimit } from "Common/Utils/JsonElementCount";
 import { expressErrorHandler } from "Common/Server/Utils/StartServer";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import TelemetryIngestAttributionSettings from "Common/Server/Utils/Telemetry/TelemetryIngestAttributionSettings";
@@ -145,6 +154,10 @@ const FIVETRAN_REFUSAL: JSONObject = {
   message:
     "This delivery is not signed with the ingestion key the URL names. Set the Fivetran webhook's secret to the ingestion key whose ID is in the URL.",
 };
+
+// What the Fluent route answers a batch it reads no records from (#10769).
+const NO_FLUENT_RECORDS: string =
+  "The request holds no log records OneUptime reads. Send them as JSON, newline-delimited JSON or lines of text: set Fluent Bit's format to json_lines or json.";
 
 const PROTO_DIR: string = path.resolve(
   __dirname,
@@ -367,7 +380,34 @@ interface IngestRoute {
    * only to check the signature over it - the key's proof.
    */
   readsBodyToCheckKey?: boolean;
+  /*
+   * The most its body may be, as sent and once inflated, and the words a
+   * body over it is refused 413 with: a large route's 50 MB unless said.
+   */
+  limit?: number;
+  tooLarge?: JSONObject;
 }
+
+const limitOf: (route: IngestRoute) => number = (
+  route: IngestRoute,
+): number => {
+  return route.limit ?? LIMIT;
+};
+
+const tooLargeFor: (route: IngestRoute) => JSONObject = (
+  route: IngestRoute,
+): JSONObject => {
+  return (
+    route.tooLarge ?? { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime }
+  );
+};
+
+// What OpAMP holds a host's message to (#10770): its own 1 MiB, not 50 MB.
+const OPAMP_LIMIT: number = OPAMP_MESSAGE_MAX_BYTES;
+
+const OPAMP_TOO_LARGE: JSONObject = {
+  error: getTooLargeForRouteMessage(OPAMP_LIMIT),
+};
 
 const gzipped: (send: Send) => Send = (send: Send): Send => {
   return {
@@ -407,6 +447,55 @@ const FLUENT_SEND: Send = {
   taken: FLUENT_RECORDS,
 };
 
+/*
+ * Fluentd's HTTP output without json_array, its default (#10769): out_http
+ * sets Content-Type application/x-ndjson for its json formatter
+ * (setup_content_type), and sends the buffer chunk as it is - each record
+ * formatted by formatter_json as its JSON and a line feed (add_newline,
+ * true by default) - with Content-Encoding gzip under compress gzip.
+ */
+const FLUENTD_NDJSON_SEND: Send = {
+  how: "a buffer chunk as newline-delimited JSON, as Fluentd's HTTP output posts it without json_array (application/x-ndjson)",
+  headers: {
+    "content-type": "application/x-ndjson",
+    ...TOKEN,
+    "x-oneuptime-service-name": "checkout",
+  },
+  body: Buffer.from(
+    FLUENT_RECORDS.map((record: JSONObject): string => {
+      return `${JSON.stringify(record)}\n`;
+    }).join(""),
+  ),
+  taken: FLUENT_RECORDS,
+};
+
+/*
+ * Fluent Bit's http output with format json_lines: Content-Type
+ * application/x-ndjson (FLB_HTTP_MIME_NDJSON), each record its JSON and a
+ * line feed (flb_pack_msgpack_to_json_format), with the time under
+ * json_date_key - "date" by default, seconds since the epoch as a double.
+ */
+const FLUENT_BIT_RECORDS: Array<JSONObject> = FLUENT_RECORDS.map(
+  (record: JSONObject, index: number): JSONObject => {
+    return { date: 1795255200.123456 + index, ...record };
+  },
+);
+
+const FLUENT_BIT_JSON_LINES_SEND: Send = {
+  how: "records as Fluent Bit's http output posts them with format json_lines (application/x-ndjson)",
+  headers: {
+    "content-type": "application/x-ndjson",
+    "user-agent": "Fluent-Bit",
+    ...TOKEN,
+  },
+  body: Buffer.from(
+    FLUENT_BIT_RECORDS.map((record: JSONObject): string => {
+      return `${JSON.stringify(record)}\n`;
+    }).join(""),
+  ),
+  taken: FLUENT_BIT_RECORDS,
+};
+
 const SYSLOG_JSON: Send = {
   how: "a JSON messages array, as rsyslog's omhttp posts it with the documented template",
   headers: { ...JSON_TYPE, ...TOKEN },
@@ -433,6 +522,12 @@ const ROUTES: Array<IngestRoute> = [
       FLUENT_SEND,
       // Read as JSON once inflated: it was stored as one log of its bytes.
       gzipped(FLUENT_SEND),
+      // Sent as it is, it was left unread: stored as one log of "{}".
+      FLUENTD_NDJSON_SEND,
+      // gzip-compressed, each record was one log of its JSON as text.
+      gzipped(FLUENTD_NDJSON_SEND),
+      FLUENT_BIT_JSON_LINES_SEND,
+      gzipped(FLUENT_BIT_JSON_LINES_SEND),
       {
         how: "newline-separated lines, gzip-encoded",
         headers: {
@@ -443,6 +538,29 @@ const ROUTES: Array<IngestRoute> = [
         body: zlib.gzipSync(Buffer.from("order placed\npayment declined\n")),
         taken: [{ message: "order placed" }, { message: "payment declined" }],
       },
+      {
+        how: "newline-separated lines, sent as they are",
+        headers: { "content-type": "application/x-ndjson", ...TOKEN },
+        body: Buffer.from("order placed\npayment declined\n"),
+        taken: [{ message: "order placed" }, { message: "payment declined" }],
+      },
+      /*
+       * Fluentd's single_value format: each record's message and a line
+       * feed, as text/plain (out_http's content type for it). Sent as it
+       * is, it was left unread too.
+       */
+      {
+        how: "lines of text, as Fluentd's HTTP output posts them with its single_value format (text/plain)",
+        headers: { "content-type": "text/plain", ...TOKEN },
+        body: Buffer.from("order placed\npayment declined\n"),
+        taken: [{ message: "order placed" }, { message: "payment declined" }],
+      },
+      gzipped({
+        how: "lines of text, as Fluentd's single_value format posts them",
+        headers: { "content-type": "text/plain", ...TOKEN },
+        body: Buffer.from("order placed\npayment declined\n"),
+        taken: [{ message: "order placed" }, { message: "payment declined" }],
+      }),
     ],
     takenStatus: 200,
     noKey: {
@@ -700,6 +818,8 @@ const ROUTES: Array<IngestRoute> = [
     },
     contentType: "application/x-protobuf",
     keyHeaders: TOKEN,
+    limit: OPAMP_LIMIT,
+    tooLarge: OPAMP_TOO_LARGE,
   },
   {
     name: "Pyroscope's push",
@@ -1162,6 +1282,7 @@ beforeEach(() => {
   budgetInForce = false;
   watched.inflated = 0;
   TelemetryIngestUnknownKeyRefusals.clear();
+  ClientRefusalLog.counter.clear();
 
   watchers = ZLIB_STREAMS.map(
     (prototype: { push: Readable["push"] }): ReturnType<typeof jest.spyOn> => {
@@ -1348,7 +1469,7 @@ describe.each(ROUTES)("$name", (route: IngestRoute) => {
     expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(READ_OR_TWO);
   });
 
-  test("with the right key, over 50 MB uncompressed: refused 413 before a byte is read when declared, at the limit when chunked", async () => {
+  test(`with the right key, over its ${route.limit ? "1 MiB" : "50 MB"} uncompressed: refused 413 before a byte is read when declared, at the limit when chunked`, async () => {
     const headers: Record<string, string> = {
       ...route.sends[0]!.headers,
       "content-type": route.contentType,
@@ -1366,7 +1487,7 @@ describe.each(ROUTES)("$name", (route: IngestRoute) => {
       json: declared.answer.json,
     }).toEqual({
       status: 413,
-      json: { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+      json: tooLargeFor(route),
     });
     expect(declared.answer.connection).toBe("close");
     expect(await server.readInAll(declared.tag)).toBeLessThanOrEqual(
@@ -1381,19 +1502,25 @@ describe.each(ROUTES)("$name", (route: IngestRoute) => {
       fill: 0x20,
     });
 
-    expect(chunked.answer.status).toBe(413);
+    expect({
+      status: chunked.answer.status,
+      json: chunked.answer.json,
+    }).toEqual({
+      status: 413,
+      json: tooLargeFor(route),
+    });
     expect(chunked.answer.connection).toBe("close");
 
     const read: number = await server.readInAll(chunked.tag);
 
-    expect(read).toBeGreaterThan(LIMIT);
-    expect(read).toBeLessThanOrEqual(LIMIT + READ_OR_TWO);
+    expect(read).toBeGreaterThan(limitOf(route));
+    expect(read).toBeLessThanOrEqual(limitOf(route) + READ_OR_TWO);
     expectNothingTaken();
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  test("with the right key, a gzip batch over 50 MB is refused 413 in the same words, as it inflates", async () => {
-    // 64 MiB of one byte in about 64 KiB: refused once 50 MB have inflated.
+  test("with the right key, a gzip batch over its limit is refused 413 in the same words, as it inflates", async () => {
+    // 64 MiB of one byte in about 64 KiB: refused once the limit has inflated.
     const bomb: SentRequest = await sendOverHttp(server, {
       path: route.path,
       headers: {
@@ -1407,12 +1534,12 @@ describe.each(ROUTES)("$name", (route: IngestRoute) => {
 
     expect({ status: bomb.answer.status, json: bomb.answer.json }).toEqual({
       status: 413,
-      json: { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+      json: tooLargeFor(route),
     });
     expect(bomb.answer.connection).toBe("close");
     expect(await server.readInAll(bomb.tag)).toBeLessThanOrEqual(READ_OR_TWO);
-    expect(watched.inflated).toBeGreaterThan(LIMIT);
-    expect(watched.inflated).toBeLessThanOrEqual(LIMIT + MIB);
+    expect(watched.inflated).toBeGreaterThan(limitOf(route));
+    expect(watched.inflated).toBeLessThanOrEqual(limitOf(route) + MIB);
     expectNothingTaken();
   });
 });
@@ -1459,13 +1586,13 @@ describe("over the limit as it is sent, gzip-compressed", () => {
         json: chunked.answer.json,
       }).toEqual({
         status: 413,
-        json: { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+        json: tooLargeFor(route),
       });
 
       const read: number = await server.readInAll(chunked.tag);
 
-      expect(read).toBeGreaterThan(LIMIT);
-      expect(read).toBeLessThanOrEqual(LIMIT + READ_OR_TWO);
+      expect(read).toBeGreaterThan(limitOf(route));
+      expect(read).toBeLessThanOrEqual(limitOf(route) + READ_OR_TWO);
       expectNothingTaken();
     },
   );
@@ -1579,6 +1706,32 @@ describe("the ingestion budget, once the key is right", () => {
   test.each([
     ["Fluent's JSON", "/fluentd/v1/logs", FLUENT_SEND],
     ["Fluent's JSON, gzip-encoded", "/fluentd/v1/logs", gzipped(FLUENT_SEND)],
+    // #10769: read a line at a time, measured as the same bytes.
+    [
+      "Fluentd's newline-delimited JSON",
+      "/fluentd/v1/logs",
+      FLUENTD_NDJSON_SEND,
+    ],
+    [
+      "Fluentd's newline-delimited JSON, gzip-encoded",
+      "/fluentd/v1/logs",
+      gzipped(FLUENTD_NDJSON_SEND),
+    ],
+    [
+      "Fluent Bit's json_lines",
+      "/fluentd/v1/logs",
+      FLUENT_BIT_JSON_LINES_SEND,
+    ],
+    [
+      "Fluentd's single_value lines of text",
+      "/fluentd/v1/logs",
+      {
+        how: "lines of text",
+        headers: { "content-type": "text/plain", ...TOKEN },
+        body: Buffer.from("order placed\npayment declined\n"),
+        taken: [],
+      },
+    ],
     ["syslog's JSON", "/syslog/v1/logs", SYSLOG_JSON],
     [
       "syslog's lines, gzip-compressed",
@@ -1756,5 +1909,464 @@ describe("refused keys are logged at debug, and counted", () => {
         JSON.stringify((logger[level] as unknown as jest.Mock).mock.calls),
       ).not.toContain(WRONG_KEY);
     }
+  });
+});
+
+/*
+ * #10769: Fluentd's HTTP output sends newline-delimited JSON unless
+ * json_array is set, and Fluent Bit's with format json_lines. Sent as it
+ * is, no parser read it, and the batch was stored as one log of "{}";
+ * gzip-compressed, each record was one log of its JSON as text. It is read
+ * once the key is right, a line at a time, each line counted before
+ * JSON.parse sees it, gzip-compressed or not alike.
+ */
+describe("newline-delimited JSON, Fluentd's default and Fluent Bit's json_lines", () => {
+  const FLUENT: string = "/fluentd/v1/logs";
+  const NDJSON_TYPE: Record<string, string> = {
+    "content-type": "application/x-ndjson",
+  };
+
+  const MIXED: Buffer = Buffer.from(
+    [
+      "2026-11-22 10:00:00 INFO order placed",
+      JSON.stringify(FLUENT_RECORDS[0]),
+      "",
+      "  payment declined  \r",
+      JSON.stringify(FLUENT_RECORDS[1]),
+      "{not json, a line of text}",
+      "",
+    ].join("\n"),
+  );
+  const MIXED_TAKEN: Array<JSONObject> = [
+    { message: "2026-11-22 10:00:00 INFO order placed" },
+    FLUENT_RECORDS[0]!,
+    { message: "payment declined" },
+    FLUENT_RECORDS[1]!,
+    { message: "{not json, a line of text}" },
+  ];
+
+  test("lines of text among the records are kept as messages, the same as it is and gzip-compressed, declared and chunked", async () => {
+    for (const body of [MIXED, zlib.gzipSync(MIXED)]) {
+      for (const chunked of [false, true]) {
+        const sent: SentRequest = await sendOverHttp(server, {
+          path: FLUENT,
+          headers: {
+            ...NDJSON_TYPE,
+            ...TOKEN,
+            ...(body === MIXED ? {} : { "content-encoding": "gzip" }),
+          },
+          chunked: chunked,
+          body: body,
+        });
+
+        expect(sent.answer.status).toBe(200);
+      }
+    }
+
+    expect(takenBy("Fluentd and Fluent Bit")).toEqual([
+      MIXED_TAKEN,
+      MIXED_TAKEN,
+      MIXED_TAKEN,
+      MIXED_TAKEN,
+    ]);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("the key is checked before a byte of it is inflated or parsed", async () => {
+    const sent: SentRequest = await sendOverHttp(server, {
+      path: FLUENT,
+      headers: { ...FLUENTD_NDJSON_SEND.headers, "content-encoding": "gzip" },
+      body: zlib.gzipSync(FLUENTD_NDJSON_SEND.body),
+    });
+
+    expect(sent.answer.status).toBe(200);
+    expect(atKeyCheck).toEqual([{ inflated: 0, parsed: 0 }]);
+    expect(takenBy("Fluentd and Fluent Bit")).toEqual([FLUENT_RECORDS]);
+  });
+
+  test("over a large route's 1,000,000 values: refused 413 before the line that passes them is parsed, as it is and gzip-compressed", async () => {
+    // 1,000 values a line: the 1,001st line passes the 1,000,000.
+    const line: string = `[${"0,".repeat(998)}0]`;
+    const over: Buffer = Buffer.from(`${line}\n`.repeat(1001));
+
+    for (const body of [over, zlib.gzipSync(over)]) {
+      jsonParse.mockClear();
+
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: FLUENT,
+        headers: {
+          ...NDJSON_TYPE,
+          ...TOKEN,
+          ...(body === over ? {} : { "content-encoding": "gzip" }),
+        },
+        body: body,
+      });
+
+      expect({ status: sent.answer.status, json: sent.answer.json }).toEqual({
+        status: 413,
+        json: {
+          error: getTooManyJsonValuesMessage(
+            JsonElementLimit.Values,
+            LARGE_REQUEST_BODY_JSON_VALUES,
+          ),
+        },
+      });
+      // The 1,000 lines within the limit, one by one; never the 1,001st.
+      expect(
+        (jsonParse.mock.calls as Array<Array<unknown>>).filter(
+          (call: Array<unknown>): boolean => {
+            return call[0] === line;
+          },
+        ),
+      ).toHaveLength(1000);
+      expect(longestJsonParsed()).toBeLessThan(4 * 1024);
+    }
+
+    expectNothingTaken();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("over 50 MB: refused 413 in the words every body over its limit gets, declared unread, chunked at the limit, gzip as it inflates", async () => {
+    const declared: SentRequest = await sendOverHttp(server, {
+      path: FLUENT,
+      headers: { ...NDJSON_TYPE, ...TOKEN },
+      bytes: OVER,
+      fill: 0x20,
+    });
+
+    expect({
+      status: declared.answer.status,
+      json: declared.answer.json,
+    }).toEqual({
+      status: 413,
+      json: { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+    });
+    expect(await server.readInAll(declared.tag)).toBeLessThanOrEqual(
+      READ_OR_TWO,
+    );
+
+    const chunked: SentRequest = await sendOverHttp(server, {
+      path: FLUENT,
+      headers: { ...NDJSON_TYPE, ...TOKEN },
+      chunked: true,
+      bytes: OVER,
+      fill: 0x20,
+    });
+
+    expect(chunked.answer.status).toBe(413);
+
+    const read: number = await server.readInAll(chunked.tag);
+
+    expect(read).toBeGreaterThan(LIMIT);
+    expect(read).toBeLessThanOrEqual(LIMIT + READ_OR_TWO);
+
+    watched.inflated = 0;
+
+    const bomb: SentRequest = await sendOverHttp(server, {
+      path: FLUENT,
+      headers: { ...NDJSON_TYPE, ...TOKEN, "content-encoding": "gzip" },
+      chunked: true,
+      body: zlib.gzipSync(Buffer.alloc(OVER, 0x0a)),
+    });
+
+    expect({ status: bomb.answer.status, json: bomb.answer.json }).toEqual({
+      status: 413,
+      json: { error: UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime },
+    });
+    expect(watched.inflated).toBeGreaterThan(LIMIT);
+    expect(watched.inflated).toBeLessThanOrEqual(LIMIT + MIB);
+    expectNothingTaken();
+  });
+
+  test.each([...CONNECTIONS])(
+    "with no key, 40 MiB of it are refused, declared, chunked or gzip-compressed, with nothing read, inflated or parsed (%s)",
+    async (connection: Connection) => {
+      const lines: Buffer = Buffer.from(
+        `${JSON.stringify({ message: "a".repeat(1000) })}\n`.repeat(
+          UNKEYED / 1024,
+        ),
+      );
+
+      for (const sent of [
+        { headers: NDJSON_TYPE, body: lines, chunked: false },
+        { headers: NDJSON_TYPE, body: lines, chunked: true },
+        {
+          headers: { ...NDJSON_TYPE, "content-encoding": "gzip" },
+          body: zlib.gzipSync(lines),
+          chunked: false,
+        },
+      ]) {
+        const refused: SentRequest = await sendOverHttp(server, {
+          path: FLUENT,
+          headers: sent.headers,
+          connection: connection,
+          chunked: sent.chunked,
+          body: sent.body,
+        });
+
+        expect({
+          status: refused.answer.status,
+          json: refused.answer.json,
+        }).toEqual({ status: 401, json: MISSING_KEY });
+        expect(await server.readInAll(refused.tag)).toBeLessThanOrEqual(
+          READ_OR_TWO,
+        );
+      }
+
+      expect(watched.inflated).toBe(0);
+      expect(longestJsonParsed()).toBeLessThan(READ_OR_TWO);
+      expectNothingTaken();
+    },
+  );
+});
+
+/*
+ * A body the Fluent route reads no records from - Fluent Bit's default
+ * format, msgpack, or none at all - was stored as one log of "{}" and
+ * answered 200, the records lost; gzip-compressed, as lines of its bytes.
+ * It is refused 400, saying what the route reads, so the sender logs why.
+ */
+describe("a body the Fluent route reads no records from is refused, not stored", () => {
+  // [{"message": "order placed"}] in msgpack, as Fluent Bit's format msgpack sends records.
+  const MSGPACK: Buffer = Buffer.concat([
+    Buffer.from([0x91, 0x81, 0xa7]),
+    Buffer.from("message"),
+    Buffer.from([0xac]),
+    Buffer.from("order placed"),
+  ] as unknown as Array<Uint8Array>);
+
+  test.each([
+    [
+      "msgpack, Fluent Bit's default format",
+      { "content-type": "application/msgpack", "user-agent": "Fluent-Bit" },
+      MSGPACK,
+    ],
+    [
+      "msgpack, gzip-compressed",
+      {
+        "content-type": "application/msgpack",
+        "content-encoding": "gzip",
+      },
+      zlib.gzipSync(MSGPACK),
+    ],
+    ["an empty JSON array", JSON_TYPE, json([])],
+    ["an empty record", JSON_TYPE, json({})],
+    ["no body", JSON_TYPE, Buffer.alloc(0)],
+    [
+      "no lines",
+      { "content-type": "application/x-ndjson" },
+      Buffer.from("\n\n"),
+    ],
+  ])(
+    "%s: 400, saying what is read, and nothing taken",
+    async (_what: string, headers: Record<string, string>, body: Buffer) => {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: "/fluentd/v1/logs",
+        headers: { ...headers, ...TOKEN },
+        body: body,
+      });
+
+      expect({ status: sent.answer.status, json: sent.answer.json }).toEqual({
+        status: 400,
+        json: { error: NO_FLUENT_RECORDS },
+      });
+      expectNothingTaken();
+      // The client's to fix: no error line.
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+});
+
+/*
+ * #10770: the OpAMP route's reader held a host's message to a large route's
+ * 50 MB, and its handler then refused anything over 1 MiB: a key holder
+ * could have 50 MB read, or inflated, a request, each refused at 1 MiB. The
+ * reader holds the message to its own 1 MiB now.
+ */
+describe("OpAMP holds a host's message to its own 1 MiB", () => {
+  const OPAMP: string = "/telemetry/opamp/v1";
+  const HEADERS: Record<string, string> = {
+    "content-type": "application/x-protobuf",
+    ...TOKEN,
+  };
+
+  test("its listed limit is the message's, under both telemetry prefixes, read after the key", () => {
+    for (const prefix of TELEMETRY_ROUTE_PREFIXES) {
+      const path: string = `${prefix}/opamp/v1`;
+
+      expect({
+        path,
+        bytes: getRequestBodyLimit(path).bytes,
+        afterKey: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, bytes: OPAMP_LIMIT, afterKey: true });
+    }
+
+    expect(OPAMP_LIMIT).toBe(MIB);
+  });
+
+  test("a message of exactly 1 MiB is taken, as it is and gzip-compressed, declared and chunked", async () => {
+    // A long error message, say: it compresses, so gzip-compressed it is sent in less.
+    const message: Buffer = Buffer.concat([
+      AGENT_TO_SERVER,
+      Buffer.alloc(OPAMP_LIMIT - AGENT_TO_SERVER.length, 0x61),
+    ] as unknown as Array<Uint8Array>);
+
+    for (const body of [message, zlib.gzipSync(message)]) {
+      for (const chunked of [false, true]) {
+        const sent: SentRequest = await sendOverHttp(server, {
+          path: OPAMP,
+          headers: {
+            ...HEADERS,
+            ...(body === message ? {} : { "content-encoding": "gzip" }),
+          },
+          chunked: chunked,
+          body: body,
+        });
+
+        expect(sent.answer.status).toBe(200);
+      }
+    }
+
+    expect(takenBy("OpAMP")).toEqual([
+      message.toString("hex"),
+      message.toString("hex"),
+      message.toString("hex"),
+      message.toString("hex"),
+    ]);
+  });
+
+  test.each([...CONNECTIONS])(
+    "1 MiB and one byte, or 40 MiB, declared: refused 413 with a socket read or two read; chunked: at 1 MiB (%s)",
+    async (connection: Connection) => {
+      for (const bytes of [OPAMP_LIMIT + 1, UNKEYED]) {
+        const declared: SentRequest = await sendOverHttp(server, {
+          path: OPAMP,
+          headers: HEADERS,
+          connection: connection,
+          bytes: bytes,
+          fill: 0x0a,
+        });
+
+        expect({
+          bytes,
+          status: declared.answer.status,
+          json: declared.answer.json,
+        }).toEqual({ bytes, status: 413, json: OPAMP_TOO_LARGE });
+        expect(declared.answer.clientError).toBeNull();
+        expect(declared.answer.connection).toBe("close");
+        expect(await server.readInAll(declared.tag)).toBeLessThanOrEqual(
+          READ_OR_TWO,
+        );
+
+        const chunked: SentRequest = await sendOverHttp(server, {
+          path: OPAMP,
+          headers: HEADERS,
+          connection: connection,
+          chunked: true,
+          bytes: bytes,
+          fill: 0x0a,
+        });
+
+        expect({
+          bytes,
+          status: chunked.answer.status,
+          json: chunked.answer.json,
+        }).toEqual({ bytes, status: 413, json: OPAMP_TOO_LARGE });
+
+        const read: number = await server.readInAll(chunked.tag);
+
+        expect(read).toBeGreaterThan(OPAMP_LIMIT);
+        expect(read).toBeLessThanOrEqual(OPAMP_LIMIT + READ_OR_TWO);
+      }
+
+      expectNothingTaken();
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("40 MiB gzip-compressed is refused as it inflates past 1 MiB, in the same words", async () => {
+    for (const body of [
+      // 40 MiB of one byte, in about 40 KiB.
+      zlib.gzipSync(Buffer.alloc(UNKEYED, 0x0a)),
+      // 2 MiB that do not compress: over the limit as it is sent too.
+      zlib.gzipSync(noise(2 * MIB), { level: 1 }),
+    ]) {
+      watched.inflated = 0;
+
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: OPAMP,
+        headers: { ...HEADERS, "content-encoding": "gzip" },
+        chunked: true,
+        body: body,
+      });
+
+      expect({ status: sent.answer.status, json: sent.answer.json }).toEqual({
+        status: 413,
+        json: OPAMP_TOO_LARGE,
+      });
+      expect(sent.answer.connection).toBe("close");
+      expect(watched.inflated).toBeLessThanOrEqual(OPAMP_LIMIT + MIB);
+      expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
+        OPAMP_LIMIT + READ_OR_TWO,
+      );
+    }
+
+    expectNothingTaken();
+  });
+
+  test("sent with fetch, 40 MiB are refused 413, read no further than 1 MiB and a socket read or two", async () => {
+    const sent: SentRequest = await sendWithFetch(server, {
+      path: OPAMP,
+      headers: HEADERS,
+      bytes: UNKEYED,
+    });
+
+    expect(sent.answer.clientError).toBeNull();
+    expect(sent.answer.status).toBe(413);
+    expect(await server.readInAll(sent.tag)).toBeLessThanOrEqual(
+      OPAMP_LIMIT + READ_OR_TWO,
+    );
+  });
+});
+
+/*
+ * #10768: a refusal of what a client sent was an error-level line a
+ * request, from anyone. The Fluent route's 400 for a batch with no records
+ * (a route's next(err)) is logged at debug and counted, with a warn line a
+ * minute; OpAMP's 413 is a body refused, at debug as every one is.
+ */
+describe("a client's refusals on these routes write no error line", () => {
+  test("a burst of 40 batches with no records and 40 messages over 1 MiB writes no error line, and one warn line for the Fluent route", async () => {
+    for (let index: number = 0; index < 40; index++) {
+      await sendOverHttp(server, {
+        path: "/fluentd/v1/logs",
+        headers: { "content-type": "application/msgpack", ...TOKEN },
+        body: Buffer.from([0x91, 0x80]),
+      });
+      await sendOverHttp(server, {
+        path: "/telemetry/opamp/v1",
+        headers: { "content-type": "application/x-protobuf", ...TOKEN },
+        bytes: OPAMP_LIMIT + 1,
+        fill: 0x0a,
+      });
+    }
+
+    const lines: (level: "error" | "warn") => Array<string> = (
+      level: "error" | "warn",
+    ): Array<string> => {
+      return (logger[level] as unknown as jest.Mock).mock.calls.map(
+        (call: Array<unknown>): string => {
+          return String(call[0]);
+        },
+      );
+    };
+
+    expect(lines("error")).toEqual([]);
+    expect(lines("warn")).toEqual([
+      `Refused 1 request from a client (POST /fluentd/v1/logs 400) with "${NO_FLUENT_RECORDS}". Each such refusal is logged at debug; these counts at most once a minute for each route.`,
+    ]);
+    expect(Object.fromEntries(ClientRefusalLog.counter.getCounts())).toEqual({
+      "POST /fluentd/v1/logs 400": 39,
+    });
   });
 });
