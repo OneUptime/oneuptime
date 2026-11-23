@@ -131,8 +131,7 @@ function declaredColumns(model: unknown): Array<string> {
     .filter((column: string): boolean => {
       // Added to SecurityBlock later (AddSecurityAutomaticResponse, #10350).
       return !(
-        model === SecurityBlock &&
-        AUTOMATIC_RESPONSE_COLUMNS.includes(column)
+        model === SecurityBlock && AUTOMATIC_RESPONSE_COLUMNS.includes(column)
       );
     });
 }

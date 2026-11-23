@@ -29,6 +29,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 type MigrationClass = new () => MigrationInterface;
 
+// The table an ALTER TABLE statement changes, and a migration's stamp at the end of its name.
+const ALTER_TABLE: RegExp = /^ALTER TABLE "([^"]+)"/;
+const STAMP: RegExp = /(\d{13})$/;
+
 async function recordQueries(
   migration: MigrationInterface,
   direction: "up" | "down",
@@ -74,8 +78,12 @@ describe("AddSecurityAutomaticResponse1809187480000", () => {
     );
     const policy: string = createTableOf(up, "SecurityAutomaticResponsePolicy");
 
-    expect(policy).toContain(`"mode" character varying(100) NOT NULL DEFAULT 'Off'`);
-    expect(policy).toContain(`"kind" character varying(100) NOT NULL DEFAULT 'Custom'`);
+    expect(policy).toContain(
+      `"mode" character varying(100) NOT NULL DEFAULT 'Off'`,
+    );
+    expect(policy).toContain(
+      `"kind" character varying(100) NOT NULL DEFAULT 'Custom'`,
+    );
     createTableOf(up, "SecurityAutomaticResponseAction");
     expect(up).toContain(
       `ALTER TABLE "SecurityBlock" ADD "challengeFallsBackToBlock" boolean NOT NULL DEFAULT false`,
@@ -113,12 +121,14 @@ describe("AddSecurityAutomaticResponse1809187480000", () => {
       new AddSecurityAutomaticResponse1809187480000(),
       "up",
     );
-    const busy: Array<string> = ["SecurityBlock", "SecurityPlaybookRun", "SecurityCase"];
+    const busy: Array<string> = [
+      "SecurityBlock",
+      "SecurityPlaybookRun",
+      "SecurityCase",
+    ];
 
     for (const statement of up) {
-      const table: string | undefined = /^ALTER TABLE "([^"]+)"/.exec(
-        statement,
-      )?.[1];
+      const table: string | undefined = ALTER_TABLE.exec(statement)?.[1];
 
       if (!table || !busy.includes(table)) {
         continue;
@@ -142,7 +152,9 @@ describe("AddSecurityAutomaticResponse1809187480000", () => {
       `ALTER TABLE "SecurityBlock" DROP COLUMN "challengeFallsBackToBlock"`,
     );
     // The actions go before the policies they point at.
-    expect(down.indexOf(`DROP TABLE "SecurityAutomaticResponseAction"`)).toBeLessThan(
+    expect(
+      down.indexOf(`DROP TABLE "SecurityAutomaticResponseAction"`),
+    ).toBeLessThan(
       down.indexOf(`DROP TABLE "SecurityAutomaticResponsePolicy"`),
     );
   });
@@ -209,7 +221,7 @@ describe("the order they run in", () => {
     expect(keys).toBe(tables + 1);
 
     const stamps: Array<number> = names.map((name: string): number => {
-      return Number(/(\d{13})$/.exec(name)?.[1] || 0);
+      return Number(STAMP.exec(name)?.[1] || 0);
     });
 
     for (const stamp of stamps.slice(0, tables)) {

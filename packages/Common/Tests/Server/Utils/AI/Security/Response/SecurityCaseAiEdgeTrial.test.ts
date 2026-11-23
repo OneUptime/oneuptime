@@ -92,7 +92,9 @@ function givenScannersPolicy(
       query: { projectId: ObjectID; kind: string };
     }): Promise<SecurityAutomaticResponsePolicy | null> => {
       expect(data.query.projectId.toString()).toBe(PROJECT_ID.toString());
-      expect(data.query.kind).toBe(SecurityAutomaticResponsePolicyKind.Scanners);
+      expect(data.query.kind).toBe(
+        SecurityAutomaticResponsePolicyKind.Scanners,
+      );
 
       if (policy instanceof Error) {
         throw policy;

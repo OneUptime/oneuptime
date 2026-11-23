@@ -510,9 +510,7 @@ export default class SecurityAutomaticResponse {
     address: string;
   }): Promise<boolean> {
     const keyOf: (value: string) => string = (value: string): string => {
-      return (
-        readSecurityBlockValue(value)?.value || value.trim().toLowerCase()
-      );
+      return readSecurityBlockValue(value)?.value || value.trim().toLowerCase();
     };
     const wanted: string = keyOf(data.address);
 
