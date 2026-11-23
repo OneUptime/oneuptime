@@ -39,6 +39,7 @@ import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/Metri
 import MetricSeriesResult from "../../../../Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -256,16 +257,35 @@ describe("MonitorResourceUtil: an infrastructure monitor's silence is not recove
     expect(timelineCreate).not.toHaveBeenCalled();
   });
 
-  test("data that matches no criteria still goes back to the default status, as before", async () => {
+  test("data inside the margin keeps the status its problem criteria set, and still resolves what is open (#10743)", async () => {
     // 75% sits between the template's fire (above 80) and recover (72 or below) lines.
-    await ingest(check([75, 75, 75, 75, 75, 75]));
+    const response: ProbeApiIngestResponse = await ingest(
+      check([75, 75, 75, 75, 75, 75]),
+    );
 
     expect(closeIncidents).toHaveBeenCalled();
-    expect(timelineCreate).toHaveBeenCalled();
+    expect(timelineCreate).not.toHaveBeenCalled();
+    expect(response.statusKeptForRecoveryCriteriaIds?.length).toBe(1);
   });
 
-  test("a Metrics monitor's silence keeps its old meaning: no criteria met is the default status", async () => {
+  test("a Metrics monitor's silence keeps the status a problem criteria set while its step can bring it back, and resolves what is open (#10743)", async () => {
     useStep(MonitorType.Metrics, hostCpuStep());
+
+    await ingest(silentCheck());
+
+    expect(closeIncidents).toHaveBeenCalled();
+    expect(timelineCreate).not.toHaveBeenCalled();
+  });
+
+  test("a Metrics monitor's silence with no criteria to bring it back is still the default status", async () => {
+    const monitorStep: MonitorStep = hostCpuStep();
+    monitorStep.data!.monitorCriteria.data!.monitorCriteriaInstanceArray =
+      monitorStep.data!.monitorCriteria.data!.monitorCriteriaInstanceArray.filter(
+        (criteria: MonitorCriteriaInstance): boolean => {
+          return criteria.data?.monitorStatusId?.toString() === OFFLINE.toString();
+        },
+      );
+    useStep(MonitorType.Metrics, monitorStep);
 
     await ingest(silentCheck());
 
