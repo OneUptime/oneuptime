@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando. As alterações das regras de runbook estão em Runbooks > Configurações > Registros de auditoria das regras.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando: as regras de runbook de alertas, incidentes e eventos de manutenção, e as regras de proprietário e de rótulos dos runbooks.",
-  "vCenter Rule Audit Logs": "Registros de auditoria das regras de vCenter"
+  "vCenter Rule Audit Logs": "Registros de auditoria das regras de vCenter",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Esta sonda é antiga demais para enviar um corpo de requisição que seja um array JSON, um único valor ou texto, então a verificação não foi executada. Atualize a sonda para o OneUptime {{version}} ou posterior.",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Antiga demais para enviar um corpo de requisição que seja um array JSON, um único valor ou texto. Monitores de API com um corpo assim falham na verificação nesta sonda até que ela seja atualizada."
 }

@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når. Endringer i runbook-regler finner du under Runbooks > Innstillinger > Revisjonslogger for regler.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når: runbook-reglene for varsler, hendelser og vedlikeholdshendelser, og runbookenes eier- og etikettregler.",
-  "vCenter Rule Audit Logs": "Revisjonslogger for vCenter-regler"
+  "vCenter Rule Audit Logs": "Revisjonslogger for vCenter-regler",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Denne sonden er for gammel til å sende en forespørselstekst som er en JSON-matrise, én enkelt verdi eller tekst, så kontrollen ble ikke kjørt. Oppdater sonden til OneUptime {{version}} eller nyere.",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "For gammel til å sende en forespørselstekst som er en JSON-matrise, én enkelt verdi eller tekst. API-monitorer med en slik forespørselstekst feiler kontrollen sin på denne sonden til den er oppdatert."
 }

@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब।",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब। रनबुक नियमों के बदलाव रनबुक > सेटिंग्स > नियमों के ऑडिट लॉग में हैं।",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब: अलर्ट, घटनाओं और रखरखाव इवेंट के रनबुक नियम, और रनबुक के स्वामी और लेबल नियम।",
-  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग"
+  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "यह प्रोब JSON ऐरे, एक मान या टेक्स्ट वाली अनुरोध बॉडी भेजने के लिए बहुत पुराना है, इसलिए जाँच नहीं चली। प्रोब को OneUptime {{version}} या बाद के संस्करण में अपडेट करें।",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "JSON ऐरे, एक मान या टेक्स्ट वाली अनुरोध बॉडी भेजने के लिए बहुत पुराना। ऐसी बॉडी वाले API मॉनिटर इस प्रोब पर अपनी जाँच में तब तक विफल रहते हैं जब तक इसे अपडेट नहीं किया जाता।"
 }

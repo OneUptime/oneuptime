@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。运行手册规则的更改位于 运行手册 > 设置 > 规则审计日志。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改：警报、事件和维护事件的运行手册规则，以及运行手册的所有者规则和标签规则。",
-  "vCenter Rule Audit Logs": "vCenter 规则审计日志"
+  "vCenter Rule Audit Logs": "vCenter 规则审计日志",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "此探测器版本过旧，无法发送 JSON 数组、单个值或文本形式的请求正文，因此未运行检查。请将探测器更新到 OneUptime {{version}} 或更高版本。",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "版本过旧，无法发送 JSON 数组、单个值或文本形式的请求正文。使用此类请求正文的 API 监视器在此探测器上的检查会失败，直到它完成更新。"
 }

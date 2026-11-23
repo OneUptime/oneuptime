@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다. 런북 규칙의 변경 사항은 런북 > 설정 > 규칙 감사 로그에 있습니다.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다: 경고, 인시던트, 유지 관리 이벤트의 런북 규칙과 런북의 소유자 규칙 및 레이블 규칙입니다.",
-  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그"
+  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "이 프로브는 너무 오래되어 JSON 배열, 단일 값 또는 텍스트인 요청 본문을 보낼 수 없으므로 검사가 실행되지 않았습니다. 프로브를 OneUptime {{version}} 이상으로 업데이트하세요.",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "너무 오래되어 JSON 배열, 단일 값 또는 텍스트인 요청 본문을 보낼 수 없습니다. 이런 본문을 사용하는 API 모니터는 이 프로브가 업데이트될 때까지 이 프로브에서 검사에 실패합니다."
 }

@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när. Ändringar av runbook-regler finns under Runbooks > Inställningar > Granskningsloggar för regler.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när: runbook-reglerna för larm, incidenter och underhållshändelser, och runbookarnas ägar- och etikettregler.",
-  "vCenter Rule Audit Logs": "Granskningsloggar för vCenter-regler"
+  "vCenter Rule Audit Logs": "Granskningsloggar för vCenter-regler",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Den här sonden är för gammal för att skicka en begärandetext som är en JSON-array, ett enda värde eller text, så kontrollen kördes inte. Uppdatera sonden till OneUptime {{version}} eller senare.",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "För gammal för att skicka en begärandetext som är en JSON-array, ett enda värde eller text. API-monitorer med en sådan begärandetext misslyckas med sin kontroll på den här sonden tills den har uppdaterats."
 }

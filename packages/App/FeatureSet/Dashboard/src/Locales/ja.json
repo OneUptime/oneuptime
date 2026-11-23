@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。Runbook ルールの変更は Runbook > 設定 > ルールの監査ログにあります。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです：アラート、インシデント、メンテナンスイベントの Runbook ルールと、Runbook の所有者ルールおよびラベルルールです。",
-  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ"
+  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "このプローブは古すぎて、JSON 配列、単一の値、またはテキストのリクエストボディを送信できないため、チェックは実行されませんでした。プローブを OneUptime {{version}} 以降に更新してください。",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "古すぎて、JSON 配列、単一の値、またはテキストのリクエストボディを送信できません。そのようなボディを使う API モニターは、このプローブが更新されるまで、このプローブでのチェックに失敗します。"
 }

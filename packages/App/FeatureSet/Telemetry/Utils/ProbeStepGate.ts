@@ -97,10 +97,13 @@ export default class ProbeStepGate {
   ): Array<MonitorStep> {
     return (item.monitorSteps?.data?.monitorStepsInstanceArray || []).filter(
       (step: MonitorStep): boolean => {
-        return Boolean(step) && need.isNeededBy({
-          step: step,
-          monitorType: item.monitorType,
-        });
+        return (
+          Boolean(step) &&
+          need.isNeededBy({
+            step: step,
+            monitorType: item.monitorType,
+          })
+        );
       },
     );
   }

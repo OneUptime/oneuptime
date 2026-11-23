@@ -62322,5 +62322,7 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer. Wijzigingen van runbook-regels staan onder Runbooks > Instellingen > Auditlogboeken van regels.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer: de runbook-regels van waarschuwingen, incidenten en onderhoudsgebeurtenissen, en de eigenaars- en labelregels van de runbooks.",
-  "vCenter Rule Audit Logs": "Auditlogboeken van vCenter-regels"
+  "vCenter Rule Audit Logs": "Auditlogboeken van vCenter-regels",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Deze sonde is te oud om een body van het verzoek te versturen die een JSON-array, één waarde of tekst is, dus de controle is niet uitgevoerd. Werk de sonde bij naar OneUptime {{version}} of nieuwer.",
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Te oud om een body van het verzoek te versturen die een JSON-array, één waarde of tekst is. API-monitoren met zo'n body mislukken hun controle op deze sonde totdat die is bijgewerkt."
 }
