@@ -30,7 +30,7 @@ Ordningen är en del av regeln. En ny monitor listar sina kriterier från det v�
 Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrollen: monitorn behåller sin status, och kriterierna under det väntar på nästa kontroll. **Standardstatus för övervakning** gäller bara när inget kriterium matchar. För en ny monitor är den **Fungerar**; ändra den under **Fler fält**, under kriterierna.
 
 > [!NOTE]
-> En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
+> En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. Detsamma gäller en mätvärdesmonitor som bevakar ett PromQL-uttryck: varje serie som uttrycket returnerar bedöms för sig. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
 
 ## Vad ett kriterium innehåller
 

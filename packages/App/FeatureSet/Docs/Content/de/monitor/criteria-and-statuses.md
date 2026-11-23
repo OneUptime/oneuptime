@@ -30,7 +30,7 @@ Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom 
 Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfung trotzdem: Der Monitor behält seinen Status, und die Kriterien darunter warten auf die nächste Prüfung. Der **Standard-Überwachungsstatus** gilt nur, wenn kein Kriterium zutrifft. Bei einem neuen Monitor ist er **Betriebsbereit**; ändern Sie ihn unter **Weitere Felder** unterhalb der Kriterien.
 
 > [!NOTE]
-> Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
+> Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Das gilt auch für einen Metrik-Monitor, der einen PromQL-Ausdruck überwacht: Jede Reihe, die der Ausdruck liefert, wird für sich beurteilt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
 
 ## Was ein Kriterium enthält
 
