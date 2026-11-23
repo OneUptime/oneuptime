@@ -62639,5 +62639,8 @@
   "AI Change Undone": "Cambio de IA deshecho",
   "AI Change Failed": "Cambio de IA fallido",
   "AI Response": "Respuesta de IA",
-  "Step Check": "Comprobación del paso"
+  "Step Check": "Comprobación del paso",
+  "Their sign-in settings were already cleared.": "Su configuración de inicio de sesión ya se había borrado.",
+  "{{name}}'s sign-in settings were already cleared.": "La configuración de inicio de sesión de {{name}} ya se había borrado.",
+  "These people's sign-in settings were already cleared.": "La configuración de inicio de sesión de estas personas ya se había borrado."
 }

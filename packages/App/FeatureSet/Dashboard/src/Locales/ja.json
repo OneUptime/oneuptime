@@ -62639,5 +62639,8 @@
   "AI Change Undone": "AI による変更を取り消し",
   "AI Change Failed": "AI による変更が失敗",
   "AI Response": "AI 対応",
-  "Step Check": "ステップのチェック"
+  "Step Check": "ステップのチェック",
+  "Their sign-in settings were already cleared.": "このユーザーのサインイン設定はすでに消去されています。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} のサインイン設定はすでに消去されています。",
+  "These people's sign-in settings were already cleared.": "これらのユーザーのサインイン設定はすでに消去されています。"
 }

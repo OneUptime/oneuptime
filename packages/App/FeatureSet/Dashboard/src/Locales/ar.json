@@ -62639,5 +62639,8 @@
   "AI Change Undone": "تم التراجع عن تغيير الذكاء الاصطناعي",
   "AI Change Failed": "فشل تغيير الذكاء الاصطناعي",
   "AI Response": "استجابة الذكاء الاصطناعي",
-  "Step Check": "فحص الخطوة"
+  "Step Check": "فحص الخطوة",
+  "Their sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هذا الشخص.",
+  "{{name}}'s sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى {{name}}.",
+  "These people's sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هؤلاء الأشخاص."
 }

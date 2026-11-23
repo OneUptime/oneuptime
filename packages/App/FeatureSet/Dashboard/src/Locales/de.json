@@ -62639,5 +62639,8 @@
   "AI Change Undone": "KI-Änderung rückgängig gemacht",
   "AI Change Failed": "KI-Änderung fehlgeschlagen",
   "AI Response": "KI-Reaktion",
-  "Step Check": "Schrittprüfung"
+  "Step Check": "Schrittprüfung",
+  "Their sign-in settings were already cleared.": "Die Anmeldeeinstellungen dieser Person wurden bereits gelöscht.",
+  "{{name}}'s sign-in settings were already cleared.": "Die Anmeldeeinstellungen von {{name}} wurden bereits gelöscht.",
+  "These people's sign-in settings were already cleared.": "Die Anmeldeeinstellungen dieser Personen wurden bereits gelöscht."
 }

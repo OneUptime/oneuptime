@@ -62639,5 +62639,8 @@
   "AI Change Undone": "AI बदलाव पूर्ववत किया गया",
   "AI Change Failed": "AI बदलाव विफल",
   "AI Response": "AI प्रतिक्रिया",
-  "Step Check": "चरण जांच"
+  "Step Check": "चरण जांच",
+  "Their sign-in settings were already cleared.": "उनकी साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} की साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।",
+  "These people's sign-in settings were already cleared.": "इन लोगों की साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।"
 }

@@ -62639,5 +62639,8 @@
   "AI Change Undone": "Изменение ИИ отменено",
   "AI Change Failed": "Изменение ИИ не удалось",
   "AI Response": "Реагирование ИИ",
-  "Step Check": "Проверка шага"
+  "Step Check": "Проверка шага",
+  "Their sign-in settings were already cleared.": "Настройки входа пользователя уже удалены.",
+  "{{name}}'s sign-in settings were already cleared.": "Настройки входа пользователя {{name}} уже удалены.",
+  "These people's sign-in settings were already cleared.": "Настройки входа этих пользователей уже удалены."
 }
