@@ -3421,7 +3421,8 @@ test.describe("connections: your logs and your SIEM", () => {
   /*
    * The heights a menu's items come in, each rounded: one height for a menu
    * whose every name keeps one line (the examples menu is the wide one,
-   * where 14rem broke "Azure activity and Entra ID logs" in two).
+   * where 14rem broke "Azure activity and Entra ID logs" in two, and 20rem
+   * "Azure Key Vault, Storage and SQL logs").
    */
   async function menuItemHeights(menu: Locator): Promise<Array<number>> {
     const heights: Array<number> = await menu
