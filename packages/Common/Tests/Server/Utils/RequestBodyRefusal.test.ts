@@ -180,8 +180,9 @@ describe("readRequestBodyRefusal", () => {
     expect(refusal).toEqual({
       type: "entity.too.large",
       status: 413,
+      // The figure held to its unit, so no line ends with "1" (#8720).
       message:
-        "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.",
+        "What was sent is larger than the 1 MB OneUptime takes in one request to this address, so this did not finish. Try again with less at once.",
     });
     expect(meetsErrorMessageRule(refusal!.message)).toBe(true);
     // Shown as it is: not the proxy's kind, whose words send an admin to a proxy.
@@ -210,12 +211,13 @@ describe("readRequestBodyRefusal", () => {
     ).toBe(UNEXPLAINED_ERROR_MESSAGES.tooLarge);
   });
 
+  // Each figure held to its unit by a no-break space.
   test.each([
-    [1024 * 1024, "1 MB"],
-    [50 * 1024 * 1024, "50 MB"],
-    [1.5 * 1024 * 1024, "1.5 MB"],
-    [512 * 1024, "512 KB"],
-    [100, "1 KB"],
+    [1024 * 1024, "1 MB"],
+    [50 * 1024 * 1024, "50 MB"],
+    [1.5 * 1024 * 1024, "1.5 MB"],
+    [512 * 1024, "512 KB"],
+    [100, "1 KB"],
   ])("a limit of %d bytes is said as %s", (bytes: number, said: string) => {
     expect(describeBodyLimit(bytes)).toBe(said);
   });
