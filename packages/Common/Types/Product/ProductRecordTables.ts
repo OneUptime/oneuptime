@@ -17,9 +17,10 @@ import ProductKey from "./ProductKey";
  * Observability's and Data Security's): its writes are refused only while
  * every product it serves is off, so a product that stays on keeps working.
  * A table that is every product's - a person, a project, a team, a label,
- * a notification method - is in TABLES_OF_NO_PRODUCT, with why. Every table
- * of the server is in one or the other (ProductRecordTables.test.ts holds
- * it to every model), so a new table is a decision, never forgotten.
+ * a notification method - is in TABLES_OF_NO_PRODUCT, with why
+ * (Types/Product/TablesOfNoProduct). Every table of the server is in one or
+ * the other (ProductRecordTables.test.ts holds it to every model), so a new
+ * table is a decision, never forgotten.
  *
  * Reads are never refused: products that stay on show records of others.
  * Nor is the server's own work, done as root: monitors keep checking,
@@ -27,7 +28,8 @@ import ProductKey from "./ProductKey";
  * arriving (ServerProducts).
  *
  * By table name, as the models and the analytics models name their tables.
- * Pure: the server and its tests read it.
+ * Pure: the server, its tests and the product levels every model's lists
+ * are read with (ProductLevels, in the browser too) read it.
  */
 export const PRODUCT_RECORD_TABLES: Readonly<
   Partial<Record<ProductKey, ReadonlyArray<string>>>
@@ -674,205 +676,6 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "FormSubmission",
   ],
 };
-
-// The tables of no one product, each with why: every product uses them.
-const noProduct: (
-  reason: string,
-  tables: ReadonlyArray<string>,
-) => Array<[string, string]> = (
-  reason: string,
-  tables: ReadonlyArray<string>,
-): Array<[string, string]> => {
-  return tables.map((table: string): [string, string] => {
-    return [table, reason];
-  });
-};
-
-export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
-  Object.fromEntries([
-    ...noProduct("A person's own account and how they sign in.", [
-      "User",
-      "UserSession",
-      "UserTotpAuth",
-      "UserTwoFactorBackupCode",
-      "UserWebAuthn",
-      "UserProjectSsoConsent",
-      "UserProjectSsoIdentity",
-      "EmailVerificationToken",
-      "ProjectUserPreference",
-      "ProjectUserProfile",
-    ]),
-    ...noProduct(
-      "A person's own progress through a guided setup, which spans products.",
-      ["GuidedSetupRun"],
-    ),
-    ...noProduct(
-      "How to reach a person, which incidents, alerts and on-call all use.",
-      [
-        "UserCall",
-        "UserEmail",
-        "UserIncomingCallNumber",
-        "UserMattermost",
-        "UserMicrosoftTeams",
-        "UserNotificationEmailRollupBatch",
-        "UserNotificationEmailRollupItem",
-        "UserNotificationEmailRollupSetting",
-        "UserNotificationRule",
-        "UserNotificationSetting",
-        "UserPush",
-        "UserSMS",
-        "UserSlack",
-        "UserTelegram",
-        "UserWebhook",
-        "UserWhatsApp",
-        "CustomNotificationChannel",
-      ],
-    ),
-    ...noProduct(
-      "A log of a message OneUptime sent, written by the server for every product.",
-      [
-        "CallLog",
-        "EmailLog",
-        "PushNotificationLog",
-        "ServerEmailLog",
-        "SmsLog",
-        "TelegramLog",
-        "WebhookLog",
-        "WhatsAppLog",
-        "WorkspaceNotificationLog",
-        "OwnerNotificationDelivery",
-      ],
-    ),
-    ...noProduct(
-      "The project, its people and its teams: Users, Teams and Project Settings, always on.",
-      [
-        "Project",
-        "Team",
-        "TeamComplianceSetting",
-        "TeamCustomField",
-        "TeamCustomRole",
-        "TeamMember",
-        "TeamMemberCustomField",
-        "TeamOwnerTeam",
-        "TeamOwnerUser",
-        "TeamPermission",
-        "CustomRole",
-        "CustomRolePermission",
-        "ApiKey",
-        "ApiKeyCustomRole",
-        "ApiKeyPermission",
-        "Label",
-        "File",
-        "Domain",
-        "TableView",
-        "ShortLink",
-        "ProjectMilestone",
-        "RecommendationDismissal",
-        "ProductFeedback",
-        "DeletedProject",
-        "ToolImportRecord",
-        "ToolImportRun",
-        "AuditLogExport",
-        AnalyticsTableName.AuditLog,
-        AnalyticsTableName.ChangeEvent,
-      ],
-    ),
-    ...noProduct("How the project's people sign in: Project Settings.", [
-      "ProjectSSO",
-      "ProjectOIDC",
-      "ProjectSCIM",
-      "ProjectSCIMLog",
-      "ProjectSCIMUser",
-    ]),
-    ...noProduct(
-      "Where the project sends from - its mail server, its phone numbers, its chat and video connections - for every product.",
-      [
-        "ProjectSMTPConfig",
-        "ProjectCallSMSConfig",
-        "VideoCallConnection",
-        "WorkspaceHomeChoice",
-        "WorkspaceLiveMessage",
-        "WorkspaceNotificationRule",
-        "WorkspaceNotificationRuleOwningTeam",
-        "WorkspaceNotificationSummary",
-        "WorkspaceProjectAuthToken",
-        "WorkspacePublicNoteApprovalMessage",
-        "WorkspaceSetting",
-        "WorkspaceUserAuthToken",
-        "PublicNoteApprovalRequest",
-      ],
-    ),
-    ...noProduct(
-      "Probes check monitors, network devices, data stores and VMware: Project Settings.",
-      ["Probe", "ProbeOwnerTeam", "ProbeOwnerUser"],
-    ),
-    ...noProduct(
-      "How telemetry reaches the project, for every telemetry product: Project Settings.",
-      [
-        "TelemetryIngestionKey",
-        "TelemetryIngestionKeyRefusal",
-        "TelemetryIngestionTeamLabelBudget",
-        "TelemetryUsageBilling",
-      ],
-    ),
-    ...noProduct(
-      "OneUptime AI's own setup and work, which every product's AI uses: Project Settings.",
-      [
-        "AIAgent",
-        "AIAgentOwnerTeam",
-        "AIAgentOwnerUser",
-        "AIRun",
-        "AIRunEvent",
-        "AIRunRecording",
-        "AutoRemediationDecision",
-        "AutoRemediationRule",
-        "AutoRemediationSuggestion",
-        "ExternalMcpServer",
-        "LlmLog",
-        "LlmProvider",
-        "ResourceAiAgent",
-        "RunnerJob",
-        "McpOAuthClient",
-        "McpOAuthGrant",
-        "McpOAuthToken",
-      ],
-    ),
-    ...noProduct("Billing, which the project pays for every product with.", [
-      "BillingInvoice",
-      "BillingPaymentMethod",
-      "PromoCode",
-      "Reseller",
-      "Reseller Plan",
-      "MarketplaceCharge",
-      "MarketplaceSubscription",
-      "MarketplaceUsageReport",
-      "VercelMarketplaceConnection",
-      "VercelMarketplaceInstallation",
-    ]),
-    ...noProduct(
-      "The server's own setup, which only a master admin or the server writes.",
-      [
-        "GlobalConfig",
-        "GlobalOIDC",
-        "GlobalOIDCProject",
-        "GlobalSSO",
-        "GlobalSSOProject",
-        "EnterpriseLicense",
-        "EnterpriseLicenseInstance",
-        "OpenSourceDeployment",
-        "AcmeCertificate",
-        "AcmeChallenge",
-        "BackupRun",
-        "BackupSetting",
-        "DataMigration",
-        "MigrationFailure",
-        "InstanceHealthLog",
-        "InstanceReceivingPeriod",
-        "InstanceTokenSigningKey",
-        "InstanceSamlSigningKey",
-      ],
-    ),
-  ]);
 
 // Table -> the products it serves, built once.
 const PRODUCTS_OF_TABLE: ReadonlyMap<
