@@ -26,6 +26,8 @@ import {
   getHashedAddressSearchTexts,
 } from "../../../Types/Telemetry/HashedAddressSearch";
 import TraceScrubAction from "../../../Types/Trace/TraceScrubAction";
+// A key as the sender or the filter wrote it, "__proto__" too, written as the map's own.
+import { writeOwnValue } from "../../../Utils/LookupTable";
 import TraceScrubPatternType from "../../../Types/Trace/TraceScrubPatternType";
 import { readOwnValue } from "../../../Utils/LookupTable";
 import ScrubIpAddress, {
@@ -484,7 +486,7 @@ export default class HashedAddressSearch {
         );
 
         if (boundValue !== value) {
-          boundMap[key] = boundValue;
+          writeOwnValue(boundMap, key, boundValue);
           isMapChanged = true;
         }
       }
@@ -664,7 +666,7 @@ export default class HashedAddressSearch {
       );
 
       if (boundValue !== value) {
-        bound[key] = boundValue;
+        writeOwnValue(bound, key, boundValue);
         isChanged = true;
       }
     }
