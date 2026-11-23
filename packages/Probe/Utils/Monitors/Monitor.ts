@@ -844,6 +844,8 @@ export default class MonitorUtil {
          * went out, and the check failed on every run.
          */
         requestBody: MonitorRequestBody.getText(monitorStep.data?.requestBody),
+        // JSON unless the step says text, as no step said before #10736.
+        requestBodyFormat: monitorStep.data?.requestBodyFormat,
         monitorId: monitorId,
         requestType: monitorStep.data?.requestType || HTTPMethod.GET,
         retry: retryCount,

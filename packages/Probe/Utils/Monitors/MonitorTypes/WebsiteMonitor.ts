@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorLogUrl from "../MonitorLogUrl";
 import MonitorRetry from "../MonitorRetry";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import Headers from "Common/Types/API/Headers";
@@ -115,7 +116,7 @@ export default class WebsiteMonitor {
     const attemptedAt: Date = new Date();
     try {
       logger.debug(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - Retry: ${
           options.currentRetryCount
         }`,
       );
@@ -336,7 +337,7 @@ export default class WebsiteMonitor {
       };
 
       logger.debug(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} succeeded with status ${probeWebsiteResponse.statusCode}`,
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} succeeded with status ${probeWebsiteResponse.statusCode}`,
       );
 
       return probeWebsiteResponse;
@@ -483,7 +484,7 @@ export default class WebsiteMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
           );
           return null;
         }
@@ -498,7 +499,7 @@ export default class WebsiteMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err}`,
+          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
         );
 
         probeWebsiteResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -528,8 +529,12 @@ export default class WebsiteMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${err} Response: ${JSON.stringify(
-          probeWebsiteResponse,
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))} Response: ${MonitorLogUrl.scrub(
+          JSON.stringify({
+            ...probeWebsiteResponse,
+            // Its scheme and host alone: the server filled secrets into it (#10782).
+            url: MonitorLogUrl.write(url),
+          }),
         )}`,
         EXTERNAL_FAULT,
       );

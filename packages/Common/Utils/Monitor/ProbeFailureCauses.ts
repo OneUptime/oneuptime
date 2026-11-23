@@ -134,6 +134,14 @@ export enum ProbeFailureCause {
    * (Common/Utils/Monitor/MonitorRequestBody).
    */
   RequestBodyNotJson = "RequestBodyNotJson",
+
+  /*
+   * An API step whose request body is a JSON array, a single value or
+   * text, withheld from a custom probe too old to send one (issue #10737):
+   * OneUptime writes it as the probe's result, since the probe would have
+   * failed it with "Expected JSONObject, but got JSONArray".
+   */
+  ProbeTooOldForRequestBody = "ProbeTooOldForRequestBody",
 }
 
 /*
@@ -308,6 +316,10 @@ export const PROBE_FAILURE_CAUSES: Readonly<Record<ProbeFailureCause, string>> =
 
     [ProbeFailureCause.RequestBodyNotJson]: translationKey(
       "The request body is not valid JSON, so the request was not sent. Correct the body, or the value of a monitor secret it uses.",
+    ),
+
+    [ProbeFailureCause.ProbeTooOldForRequestBody]: translationKey(
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.",
     ),
   };
 
@@ -703,6 +715,7 @@ const READING_ORDER: ReadonlyArray<ProbeFailureCause> = [
   ProbeFailureCause.PingNoEchoReply,
   ProbeFailureCause.ProbeTooOldForOneTimeCodes,
   ProbeFailureCause.RequestBodyNotJson,
+  ProbeFailureCause.ProbeTooOldForRequestBody,
   ...PROBE_SIDE_CAUSES,
   ...CLAUSES,
 ];

@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | وب‌سایت، API | متد HTTP: `GET`، `POST`، `PUT`، `DELETE`، `HEAD` یا `PATCH`. وقتی تعیین نشده باشد سرور `GET` را به کار می‌برد. |
 | `request_headers` | map(string) | وب‌سایت، API | سرآیندهایی که فرستاده می‌شوند: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | بدنهٔ درخواست، به‌صورت متن. |
+| `request_body_format` | string | API | اینکه `request_body` چگونه فرستاده می‌شود: `json`، پیش‌فرض، برای هر مقدار JSON؛ `text` برای بدنه‌ای که دقیقاً همان‌طور که نوشته شده فرستاده می‌شود، مانند XML یا فیلدهای فرم. |
 | `do_not_follow_redirects` | bool | وب‌سایت، API | به‌جای دنبال کردن تغییر مسیرها، در نخستین پاسخ بایستد. |
 | `allow_self_signed_certificates` | bool | وب‌سایت، API | گواهی TLS خودامضا را بپذیرد. |
 | `tls_client_certificate` | string | وب‌سایت، API | یک گواهی کلاینت برای TLS دوطرفه: PEM، یا یک ارجاع `{{monitorSecrets.name}}`. |
