@@ -70,8 +70,11 @@ import OtlpJson, {
  * delta sum that is not monotonic - a DogStatsD count can be decremented
  * below zero - starting one interval before its timestamp. A rate is
  * already per second (it is how the Agent sends a DogStatsD counter), so
- * it is a gauge too, marked datadog.metric.type = rate. Names and units
- * are kept as they are; every value is written as a double.
+ * it is a gauge too, marked datadog.metric.type = rate, starting one
+ * interval before its timestamp as a count does: the seconds it was
+ * counted over, which Datadog's .as_count() multiplies a rate by and an
+ * import reads (issue #10327). Names and units are kept as they are;
+ * every value is written as a double.
  *
  * A distribution arrives as DDSketches. Each becomes a summary point with
  * the sketch's exact count and sum, and its minimum and maximum as
@@ -1495,8 +1498,17 @@ export default class DatadogIntake {
         );
       }
 
+      /*
+       * A rate's point keeps the seconds it was counted over as its start,
+       * as a count's does, when the series names them: what Datadog's
+       * .as_count() multiplies a rate by.
+       */
+      const keepsInterval: boolean =
+        shape === OtlpMetricShape.DeltaSum ||
+        (series.type === DatadogMetricType.Rate && series.intervalSeconds > 0);
+
       metric.dataPoints.push(
-        shape === OtlpMetricShape.DeltaSum
+        keepsInterval
           ? {
               startTimeUnixNano: DatadogIntake.startTime(
                 timeUnixNano,
