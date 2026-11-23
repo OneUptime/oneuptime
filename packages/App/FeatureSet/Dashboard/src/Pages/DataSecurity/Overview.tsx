@@ -467,8 +467,7 @@ const DataSecurityOverviewPage: FunctionComponent<
             ariaLabel="Issues opened and resolved per day"
           />
           {overview.resolutions &&
-          overview.resolutions.fixedAtSource +
-            overview.resolutions.contained >
+          overview.resolutions.fixedAtSource + overview.resolutions.contained >
             0 ? (
             <dl
               className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-3 sm:grid-cols-3"

@@ -6,7 +6,10 @@ import DataSecurityIssueResolution, {
 } from "Common/Types/DataSecurity/DataSecurityIssueResolution";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE WORDS OF HOW AN ISSUE WAS RESOLVED (#10368): its page's resolution
@@ -29,13 +32,15 @@ export const RESOLUTION_LABELS: Record<DataSecurityIssueResolution, string> = {
   [DataSecurityIssueResolution.FixedInInfrastructureCode]: translationKey(
     "Fixed in infrastructure code",
   ),
-  [DataSecurityIssueResolution.FixedFromHere]: translationKey("Fixed from here"),
+  [DataSecurityIssueResolution.FixedFromHere]:
+    translationKey("Fixed from here"),
   [DataSecurityIssueResolution.ContainedAtIngest]: translationKey(
     "Contained at ingest",
   ),
   [DataSecurityIssueResolution.CheckPassed]: translationKey("Check passed"),
-  [DataSecurityIssueResolution.ResolvedByPerson]:
-    translationKey("Resolved by a person"),
+  [DataSecurityIssueResolution.ResolvedByPerson]: translationKey(
+    "Resolved by a person",
+  ),
   [DataSecurityIssueResolution.NoLongerChecked]:
     translationKey("No longer checked"),
   [DataSecurityIssueResolution.StoreArchived]: translationKey("Store archived"),
@@ -228,7 +233,9 @@ export function getFixedLineTemplate(data: {
   resolution: DataSecurityIssueResolution | string | null | undefined;
   fix: DataSecurityIssueResolutionFix | undefined;
 }): string | null {
-  if (data.resolution === DataSecurityIssueResolution.FixedInInfrastructureCode) {
+  if (
+    data.resolution === DataSecurityIssueResolution.FixedInInfrastructureCode
+  ) {
     return FIXED_IN_INFRASTRUCTURE_CODE;
   }
 

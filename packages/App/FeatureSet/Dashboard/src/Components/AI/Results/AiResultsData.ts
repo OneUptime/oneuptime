@@ -1279,7 +1279,10 @@ function getFixesCard(
         ? getByModel(outcomes.models?.fixes, FIXES_BY_MODEL_NOTE)
         : null,
     // The fix pull requests by kind: Data Security's leaks and stores among them (#10368).
-    byKind: total > 0 ? getPullRequestFixesByKind(outcomes.pullRequestFixKinds) : null,
+    byKind:
+      total > 0
+        ? getPullRequestFixesByKind(outcomes.pullRequestFixKinds)
+        : null,
     modelChanges: describeModelChanges(getDrawnChanges(changes, weeks)),
     weeks: markModelChanges(
       changes,

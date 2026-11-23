@@ -90,11 +90,11 @@ import React, {
  * Rule, for a reader who may delete it.
  */
 
-export const ISSUE_RESOLUTION_TEST_ID: string = "data-security-issue-resolution";
+export const ISSUE_RESOLUTION_TEST_ID: string =
+  "data-security-issue-resolution";
 
 const PANEL_CLASS_NAMES: Record<ResolutionTone, string> = {
-  [ResolutionTone.Fixed]:
-    "border-emerald-200 bg-emerald-50 text-emerald-900",
+  [ResolutionTone.Fixed]: "border-emerald-200 bg-emerald-50 text-emerald-900",
   [ResolutionTone.Contained]: "border-amber-200 bg-amber-50 text-amber-900",
   [ResolutionTone.Closed]: "border-gray-200 bg-gray-50 text-gray-800",
   [ResolutionTone.CameBack]: "border-red-200 bg-red-50 text-red-900",
@@ -124,13 +124,17 @@ export interface ComponentProps {
 function timeOf(at: string | undefined, fallback: Date | undefined): string {
   const date: Date | undefined = at ? new Date(at) : fallback;
 
-  return date ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date) : "";
+  return date
+    ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)
+    : "";
 }
 
 // "#482", opening the pull request where it lives; "a pull request" with no number.
 const PullRequestSlot: FunctionComponent<{
   fix: DataSecurityIssueResolutionFix | undefined;
-}> = (props: { fix: DataSecurityIssueResolutionFix | undefined }): ReactElement => {
+}> = (props: {
+  fix: DataSecurityIssueResolutionFix | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
   if (!props.fix?.number) {
@@ -263,7 +267,10 @@ const RuleLine: FunctionComponent<{
       );
   } else if (rule.valuesChanged === null) {
     sentence = (
-      <TranslatedSentence template={RULE_NOT_COUNTED} slots={{ rule: ruleSlot }} />
+      <TranslatedSentence
+        template={RULE_NOT_COUNTED}
+        slots={{ rule: ruleSlot }}
+      />
     );
   } else if (rule.valuesChanged === 0) {
     sentence = (
@@ -297,7 +304,8 @@ const RuleLine: FunctionComponent<{
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
       <span className="min-w-0">{sentence}</span>
-      {rule.isKept && (props.canRemove.isAllowed || props.canRemove.disabledReason) ? (
+      {rule.isKept &&
+      (props.canRemove.isAllowed || props.canRemove.disabledReason) ? (
         <Button
           title={REMOVE_RULE}
           icon={IconProp.Trash}
@@ -305,7 +313,9 @@ const RuleLine: FunctionComponent<{
           buttonSize={ButtonSize.Small}
           disabled={!props.canRemove.isAllowed}
           tooltip={
-            props.canRemove.isAllowed ? undefined : props.canRemove.disabledReason
+            props.canRemove.isAllowed
+              ? undefined
+              : props.canRemove.disabledReason
           }
           onClick={props.onRemove}
           dataTestId="data-security-issue-remove-rule"
@@ -330,7 +340,8 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
     details,
   });
   const cameBack: boolean =
-    issue.status === DataSecurityIssueStatus.Open && Boolean(details.regression);
+    issue.status === DataSecurityIssueStatus.Open &&
+    Boolean(details.regression);
   const tone: ResolutionTone = cameBack
     ? ResolutionTone.CameBack
     : getResolutionTone(issue.resolution);
@@ -376,7 +387,12 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [readsContainment, props.issueId.toString(), props.refreshToggle, readCount]);
+  }, [
+    readsContainment,
+    props.issueId.toString(),
+    props.refreshToggle,
+    readCount,
+  ]);
 
   if (!isShown) {
     return <></>;
@@ -443,13 +459,19 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
             })}
           />
         </p>
-        <p className="mt-0.5">{translator.translateText(CAME_BACK_STAYS_OPEN)}</p>
+        <p className="mt-0.5">
+          {translator.translateText(CAME_BACK_STAYS_OPEN)}
+        </p>
       </>
     );
-  } else if (issue.resolution === DataSecurityIssueResolution.ContainedAtIngest) {
+  } else if (
+    issue.resolution === DataSecurityIssueResolution.ContainedAtIngest
+  ) {
     line = (
       <>
-        <p className="font-medium">{translator.translateText(CONTAINED_TITLE)}</p>
+        <p className="font-medium">
+          {translator.translateText(CONTAINED_TITLE)}
+        </p>
         <p className="mt-0.5">{translator.translateText(CONTAINED_BODY)}</p>
       </>
     );
@@ -486,7 +508,8 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const rules: Array<DataSecurityIssueContainmentRule> = containment?.rules || [];
+  const rules: Array<DataSecurityIssueContainmentRule> =
+    containment?.rules || [];
   const keptRules: Array<DataSecurityIssueContainmentRule> = rules.filter(
     (rule: DataSecurityIssueContainmentRule): boolean => {
       return rule.isKept;
@@ -494,7 +517,8 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
   );
   const offersFix: boolean =
     Boolean(props.onFixTheCode) &&
-    (cameBack || issue.resolution === DataSecurityIssueResolution.ContainedAtIngest);
+    (cameBack ||
+      issue.resolution === DataSecurityIssueResolution.ContainedAtIngest);
 
   return (
     <div
@@ -556,7 +580,9 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
                 isLoading={props.isFixing}
-                disabled={Boolean(props.isFixing) || Boolean(props.fixDisabledReason)}
+                disabled={
+                  Boolean(props.isFixing) || Boolean(props.fixDisabledReason)
+                }
                 tooltip={props.fixDisabledReason}
                 onClick={props.onFixTheCode}
                 dataTestId="data-security-issue-fix-the-code"

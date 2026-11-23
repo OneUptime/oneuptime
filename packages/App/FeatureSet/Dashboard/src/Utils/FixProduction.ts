@@ -62,7 +62,9 @@ export const FIX_PRODUCTION_CHECK_LABELS: Record<
    */
   [FixProductionCheck.TelemetryLeak]: {
     ...WAITING,
-    [FixProductionStatus.Verified]: translationKey("Leak stopped in production"),
+    [FixProductionStatus.Verified]: translationKey(
+      "Leak stopped in production",
+    ),
     [FixProductionStatus.Regressed]: translationKey(
       "Still written after the fix",
     ),
@@ -77,13 +79,13 @@ export const FIX_PRODUCTION_CHECK_LABELS: Record<
       "Merged, not applied yet",
     ),
     [FixProductionStatus.Watching]: translationKey("Applied to some stores"),
-    [FixProductionStatus.Verified]: translationKey(
-      "Applied: the check passes",
-    ),
+    [FixProductionStatus.Verified]: translationKey("Applied: the check passes"),
     [FixProductionStatus.Regressed]: translationKey(
       "The check failed again after the fix",
     ),
-    [FixProductionStatus.Unverifiable]: translationKey("Not verified as applied"),
+    [FixProductionStatus.Unverifiable]: translationKey(
+      "Not verified as applied",
+    ),
   },
 };
 
