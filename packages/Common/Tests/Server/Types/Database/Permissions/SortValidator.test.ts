@@ -3,6 +3,8 @@ import Entities, {
 } from "../../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
+import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssueGroup from "../../../../../Models/DatabaseModels/DataSecurityIssueGroup";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../../Models/DatabaseModels/Label";
@@ -662,6 +664,32 @@ describe("what a refusal says", () => {
     );
   });
 
+  /*
+   * A record read only through other records - a Data Security issue
+   * group, which only Data Security's own routes answer (#10370) - has no
+   * time a select through the relation names, and none the API reference
+   * publishes for its sort (ModelSchema.getRelationSortFields). So a
+   * refusal suggests its id, which a client generated from the reference
+   * can send, and offers no time.
+   */
+  test("a relation of a record read only through other records is sorted by its id", () => {
+    const message: string = messageOf(DataSecurityIssue, {
+      dataSecurityIssueGroup: DESC,
+    });
+
+    expect(message).toContain(
+      'Send { "dataSecurityIssueGroup": { "_id": "ASC" } } to sort by its id, which keeps the records of each one together, or name another of its fields: ' +
+        relatedFieldsOf(DataSecurityIssueGroup).join(", ") +
+        ".",
+    );
+    expect(relatedFieldsOf(DataSecurityIssueGroup)).toContain("_id");
+    expect(message).not.toContain("createdAt");
+    expect(message).not.toContain("updatedAt");
+    expect(
+      refusalOf(DataSecurityIssue, { dataSecurityIssueGroup: { _id: ASC } }),
+    ).toBeNull();
+  });
+
   test("a relation two deep names the whole path, and an example to match", () => {
     const message: string = messageOf(Alert, {
       monitor: { currentMonitorStatus: DESC },
@@ -1117,6 +1145,12 @@ function relatedFieldsOf(modelType: ModelType): Array<string> {
 
   return fieldsOf(modelType)
     .filter((field: FieldOfModel): boolean => {
+      // An id or a time with the record's own read permissions (#10370).
+      const readers: Array<Permission> =
+        model.getColumnAccessControlFor(field.name)?.read ||
+        model.getReadPermissions() ||
+        [];
+
       return (
         isPlainField(field) &&
         !["deletedAt", "version"].includes(field.name) &&
@@ -1125,7 +1159,8 @@ function relatedFieldsOf(modelType: ModelType): Array<string> {
         !field.column.secret &&
         !isOwnerOnlyColumn(model, field.name) &&
         (Boolean(field.column.canReadOnRelationQuery) ||
-          ColumnPermissions.getExcludedColumnNames().includes(field.name))
+          (ColumnPermissions.getExcludedColumnNames().includes(field.name) &&
+            readers.length > 0))
       );
     })
     .map((field: FieldOfModel): string => {
