@@ -215,7 +215,10 @@ export default class RequestBodyJson {
       const count: JsonElementTallyCount = tally.getCount();
 
       used.values += Math.max(count.values, 1);
-      used.objectsArraysAndStrings += Math.max(count.objectsArraysAndStrings, 1);
+      used.objectsArraysAndStrings += Math.max(
+        count.objectsArraysAndStrings,
+        1,
+      );
 
       const passed: JsonElementLimit | null =
         count.passed ||

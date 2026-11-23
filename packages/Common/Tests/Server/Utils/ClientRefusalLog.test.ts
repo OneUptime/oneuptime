@@ -191,7 +191,10 @@ describe("isClientRefusal", () => {
   test("a client's Exception answered with a 5xx is not a client's refusal", () => {
     for (const status of [500, 502, 503, 504]) {
       expect(
-        isClientRefusal(new BadDataException("The query is malformed."), status),
+        isClientRefusal(
+          new BadDataException("The query is malformed."),
+          status,
+        ),
       ).toBe(false);
     }
   });

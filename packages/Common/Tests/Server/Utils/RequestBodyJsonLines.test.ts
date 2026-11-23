@@ -152,7 +152,7 @@ describe("parseLines reads one value a line", () => {
       RequestBodyJson.parseLines(
         lines(
           json([{ message: "a" }, { message: "b" }]),
-          json("a message with \"quotes\" and a \\n"),
+          json('a message with "quotes" and a \\n'),
           "42",
           "1.50",
           "true",
@@ -212,16 +212,21 @@ describe("parseLines reads one value a line", () => {
       end - start,
     );
 
-    expect(RequestBodyJson.parseLines(view, LARGE_REQUEST_BODY_LIMIT)).toEqual(
-      [{ message: "a" }, { message: "b" }],
-    );
+    expect(RequestBodyJson.parseLines(view, LARGE_REQUEST_BODY_LIMIT)).toEqual([
+      { message: "a" },
+      { message: "b" },
+    ]);
   });
 });
 
 describe("parseLines counts every line before JSON.parse sees it", () => {
   test("a body over the limit's values is refused 413 at the line that passes it, in the words a JSON body gets", () => {
     // 60 values a line: the second line passes the 100.
-    const line: string = json(Array.from({ length: 59 }, (): number => 1));
+    const line: string = json(
+      Array.from({ length: 59 }, (): number => {
+        return 1;
+      }),
+    );
     const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
 
     const error: unknown = refusalOf(() => {
@@ -288,7 +293,11 @@ describe("parseLines counts every line before JSON.parse sees it", () => {
      * Counted as one text, the open quote would make every line after it a
      * string - one value - while each line is still parsed on its own.
      */
-    const bomb: string = json(Array.from({ length: 200 }, (): number => 0));
+    const bomb: string = json(
+      Array.from({ length: 200 }, (): number => {
+        return 0;
+      }),
+    );
 
     expect(
       refusalOf(() => {
@@ -388,7 +397,7 @@ describe("a body of lines is read as the same body as one JSON array", () => {
     "placed",
     "ü",
     "中",
-    "\"quoted\"",
+    '"quoted"',
     "back\\slash",
     "tab\there",
     "line\nfeed",

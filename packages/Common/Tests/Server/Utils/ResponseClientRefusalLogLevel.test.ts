@@ -120,7 +120,11 @@ const REFUSALS: Array<[string, Exception, number]> = [
     new BadDataException("Invalid Probe ID or Probe Key"),
     400,
   ],
-  ["a page that is not there", new NotFoundException("Page not found - /x"), 404],
+  [
+    "a page that is not there",
+    new NotFoundException("Page not found - /x"),
+    404,
+  ],
 ];
 
 describe("sendErrorResponse", () => {
@@ -133,7 +137,9 @@ describe("sendErrorResponse", () => {
       expect(logger.debug).toHaveBeenCalledWith(refusal, expect.anything());
       // The first on its route this minute, with its words.
       expect(callsOf("warn")).toBe(1);
-      expect(String((logger.warn as unknown as MockFn).mock.calls[0]![0])).toContain(
+      expect(
+        String((logger.warn as unknown as MockFn).mock.calls[0]![0]),
+      ).toContain(
         `(POST /probe-ingest/probe/response/ingest ${status}) with "${refusal.message}"`,
       );
       expect(captured).toEqual({
@@ -277,10 +283,13 @@ describe("the Express error handler", () => {
       "another service's 4xx, passed on",
       new HTTPErrorResponse(400, { error: "Bad request upstream." }, {}),
     ],
-  ])("%s is logged at error, as it always was", (_what: string, err: unknown) => {
-    handle(err as Error);
+  ])(
+    "%s is logged at error, as it always was",
+    (_what: string, err: unknown) => {
+      handle(err as Error);
 
-    expect(logger.error).toHaveBeenCalledWith(err, expect.anything());
-    expect(callsOf("warn")).toBe(0);
-  });
+      expect(logger.error).toHaveBeenCalledWith(err, expect.anything());
+      expect(callsOf("warn")).toBe(0);
+    },
+  );
 });

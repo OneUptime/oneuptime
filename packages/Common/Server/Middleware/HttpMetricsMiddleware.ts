@@ -23,8 +23,7 @@ export const getHttpRouteTemplate: (req: ExpressRequest) => string = (
     req as ExpressRequest & { route?: { path?: unknown } }
   ).route;
 
-  const baseUrl: string = (req as ExpressRequest & { baseUrl?: string })
-    .baseUrl
+  const baseUrl: string = (req as ExpressRequest & { baseUrl?: string }).baseUrl
     ? (req as ExpressRequest & { baseUrl: string }).baseUrl
     : "";
 

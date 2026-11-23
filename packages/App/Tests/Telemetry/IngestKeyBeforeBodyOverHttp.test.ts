@@ -1717,11 +1717,7 @@ describe("the ingestion budget, once the key is right", () => {
       "/fluentd/v1/logs",
       gzipped(FLUENTD_NDJSON_SEND),
     ],
-    [
-      "Fluent Bit's json_lines",
-      "/fluentd/v1/logs",
-      FLUENT_BIT_JSON_LINES_SEND,
-    ],
+    ["Fluent Bit's json_lines", "/fluentd/v1/logs", FLUENT_BIT_JSON_LINES_SEND],
     [
       "Fluentd's single_value lines of text",
       "/fluentd/v1/logs",

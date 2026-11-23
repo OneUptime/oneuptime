@@ -86,7 +86,9 @@ const REFUSALS: Record<number, () => Exception> = {
     return new NotAuthorizedException("This key has been disabled.");
   },
   429: (): Exception => {
-    return new TooManyRequestsException("Too many wrong keys. Try again later.");
+    return new TooManyRequestsException(
+      "Too many wrong keys. Try again later.",
+    );
   },
 };
 
@@ -205,7 +207,10 @@ beforeEach(() => {
   }
 
   jest.spyOn(AppMetrics, "getHttpRequestCounter").mockReturnValue({
-    add: (_value: number, attributes: Record<string, string | number>): void => {
+    add: (
+      _value: number,
+      attributes: Record<string, string | number>,
+    ): void => {
       metered.push({
         route: String(attributes["http.route"]),
         status: Number(attributes["http.response.status_code"]),
@@ -264,22 +269,25 @@ const drawBurst: (random: SeededRandom, size: number) => Array<Refused> = (
   });
 };
 
-const sendBurst: (burst: Array<Refused>) => Promise<Array<SentRequest>> =
-  async (burst: Array<Refused>): Promise<Array<SentRequest>> => {
-    const sent: Array<SentRequest> = [];
+const sendBurst: (
+  burst: Array<Refused>,
+) => Promise<Array<SentRequest>> = async (
+  burst: Array<Refused>,
+): Promise<Array<SentRequest>> => {
+  const sent: Array<SentRequest> = [];
 
-    for (const refused of burst) {
-      sent.push(
-        await sendOverHttp(server, {
-          path: refused.path,
-          headers: { "content-type": "application/json" },
-          body: Buffer.from("{}"),
-        }),
-      );
-    }
+  for (const refused of burst) {
+    sent.push(
+      await sendOverHttp(server, {
+        path: refused.path,
+        headers: { "content-type": "application/json" },
+        body: Buffer.from("{}"),
+      }),
+    );
+  }
 
-    return sent;
-  };
+  return sent;
+};
 
 describe("a burst of refusals from clients", () => {
   test("at LOG_LEVEL=ERROR, the default, writes not a line, and every refusal is answered as before", async () => {

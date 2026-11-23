@@ -145,7 +145,7 @@ export const DOCS_REPORT_REQUEST_BODY_LIMIT: RequestBodyLimit = heldBySize(
  * message. The ingress lets more than this through
  * (Nginx/default.conf.template), so the 413 is the App's.
  */
-export const OPAMP_MESSAGE_MAX_BYTES: number = 1 * MIB;
+export const OPAMP_MESSAGE_MAX_BYTES: number = MIB;
 
 /*
  * OpAMP's body, read once the host's key is right, held to the message's

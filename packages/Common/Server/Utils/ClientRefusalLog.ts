@@ -1,4 +1,7 @@
-import { getHttpRouteTemplate, UNMATCHED_HTTP_ROUTE } from "../Middleware/HttpMetricsMiddleware";
+import {
+  getHttpRouteTemplate,
+  UNMATCHED_HTTP_ROUTE,
+} from "../Middleware/HttpMetricsMiddleware";
 import { TelemetryErrorClassEnabled } from "../EnvironmentConfig";
 import { ExpressRequest, OneUptimeRequest } from "./Express";
 import logger, { getLogAttributesFromRequest, LogAttributes } from "./Logger";

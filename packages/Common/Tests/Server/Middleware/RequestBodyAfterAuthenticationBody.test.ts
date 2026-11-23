@@ -554,20 +554,22 @@ describe("readLines: newline-delimited JSON is read as its values, and text as i
             chunked,
           );
 
-          expect({ encoding: encoding.how, chunked, ...answerOf(sent) }).toEqual(
-            {
-              encoding: encoding.how,
-              chunked,
-              status: 200,
-              json: {
-                kind: "array",
-                body: RECORD_LINES,
-                rawBody: NDJSON.toString("utf8"),
-                rawFormUrlEncodedBody: null,
-                limit: LIMIT.bytes,
-              },
+          expect({
+            encoding: encoding.how,
+            chunked,
+            ...answerOf(sent),
+          }).toEqual({
+            encoding: encoding.how,
+            chunked,
+            status: 200,
+            json: {
+              kind: "array",
+              body: RECORD_LINES,
+              rawBody: NDJSON.toString("utf8"),
+              rawFormUrlEncodedBody: null,
+              limit: LIMIT.bytes,
             },
-          );
+          });
         }
       }
 
@@ -636,7 +638,10 @@ describe("readLines: newline-delimited JSON is read as its values, and text as i
         answerOf(
           await send("/after", {
             how: "gzip text",
-            headers: { "content-type": contentType, "content-encoding": "gzip" },
+            headers: {
+              "content-type": contentType,
+              "content-encoding": "gzip",
+            },
             body: zlib.gzipSync(LINES),
           }),
         ),
