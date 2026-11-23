@@ -41,7 +41,10 @@ import {
   useDefaultCaRestored,
   useSelfSignedHttps,
 } from "Common/Tests/Server/TestingUtils/SelfSignedHttpsFixture";
-import { AuthError, NetworkResponse } from "Common/node_modules/@azure/msal-node";
+import {
+  AuthError,
+  NetworkResponse,
+} from "Common/node_modules/@azure/msal-node";
 import {
   afterAll,
   afterEach,
@@ -127,9 +130,7 @@ afterAll(() => {
 });
 
 afterEach(async () => {
-  (
-    AppCredentials as unknown as { cache: Map<string, unknown> }
-  ).cache.clear();
+  (AppCredentials as unknown as { cache: Map<string, unknown> }).cache.clear();
   await OutboundFetch.destroySharedDispatchers();
   OutboundProxyAgents.destroySharedAgents();
   jest.restoreAllMocks();
@@ -176,8 +177,10 @@ describe("MSAL's network for the bot, on its own", () => {
     ])(
       "a token request is forwarded whole, signed in with %s as written, decoded",
       async (_name: string, credentials: typeof PLAIN_CREDENTIALS) => {
-        const proxy: { server: LocalHttpServer; seen: Array<TokenRequestSeen> } =
-          await serveEntra("proxy");
+        const proxy: {
+          server: LocalHttpServer;
+          seen: Array<TokenRequestSeen>;
+        } = await serveEntra("proxy");
 
         process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
           proxy.server.port,
@@ -255,8 +258,10 @@ describe("MSAL's network for the bot, on its own", () => {
       "a token request to a host NO_PROXY names by %s is sent directly",
       async (_name: string, noProxy: string) => {
         const proxy: LocalHttpServer = await serve({ name: "proxy" });
-        const entra: { server: LocalHttpServer; seen: Array<TokenRequestSeen> } =
-          await serveEntra("entra");
+        const entra: {
+          server: LocalHttpServer;
+          seen: Array<TokenRequestSeen>;
+        } = await serveEntra("entra");
 
         process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
           proxy.port,
@@ -365,7 +370,8 @@ describe("MSAL's network for the bot, on its own", () => {
     });
 
     test("a proxy setting this server cannot use fails before anything is sent, naming no password", async () => {
-      process.env["HTTPS_PROXY"] = `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
+      process.env["HTTPS_PROXY"] =
+        `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
 
       const refusal: Error = await failureOf(
         postToken(`https://${ENTRA_HOST}${TOKEN_PATH}`),
@@ -510,7 +516,9 @@ describe("the credentials the bot sends with", () => {
       const lookups: Array<string> = watchLookups([host]);
       const credentials: MsalAppCredentials = await credentialsFor(settings);
 
-      expect(credentials.oAuthEndpoint).toBe(`https://${host}/${APP_TENANT_ID}`);
+      expect(credentials.oAuthEndpoint).toBe(
+        `https://${host}/${APP_TENANT_ID}`,
+      );
       expect(credentials.oAuthScope).toBe(scope);
 
       expect(await credentials.getToken()).toBe(ACCESS_TOKEN);
@@ -576,7 +584,9 @@ describe("the credentials the bot sends with", () => {
 
     expect(
       (second as unknown as { clientApplication: unknown }).clientApplication,
-    ).toBe((first as unknown as { clientApplication: unknown }).clientApplication);
+    ).toBe(
+      (first as unknown as { clientApplication: unknown }).clientApplication,
+    );
 
     expect(await (first as MsalAppCredentials).getToken()).toBe(ACCESS_TOKEN);
     expect(await (second as MsalAppCredentials).getToken()).toBe(ACCESS_TOKEN);

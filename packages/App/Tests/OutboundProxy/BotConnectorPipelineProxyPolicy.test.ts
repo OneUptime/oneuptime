@@ -101,8 +101,10 @@ describe("@azure/core-rest-pipeline's own proxy policy, beside the bot's HttpCli
   test("decodes the password, but reads no address range in NO_PROXY: the SDK's client goes through the proxy where the bot's goes directly", async () => {
     const proxy: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
       await serveConnector("proxy");
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
 
     process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
       proxy.server.port,
@@ -127,8 +129,10 @@ describe("@azure/core-rest-pipeline's own proxy policy, beside the bot's HttpCli
   test("reads NO_PROXY once: naming the host itself later changes nothing for the SDK's client", async () => {
     const proxy: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
       await serveConnector("proxy");
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
 
     process.env["HTTP_PROXY"] = proxyUrlWithCredentials(
       proxy.server.port,
@@ -150,8 +154,10 @@ describe("@azure/core-rest-pipeline's own proxy policy, beside the bot's HttpCli
   test("sends an http request through HTTPS_PROXY: the bot's takes the proxy of its scheme, and here there is none", async () => {
     const proxy: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
       await serveConnector("proxy");
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
 
     process.env["HTTPS_PROXY"] = proxyUrlWithCredentials(
       proxy.server.port,

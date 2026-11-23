@@ -172,9 +172,11 @@ describe("through the outbound proxy", () => {
       );
 
       expect(sent.id).toBe("message-1");
-      expect(proxy.server.requests.map((request: { url: string }) => {
-        return request.url;
-      })).toEqual([
+      expect(
+        proxy.server.requests.map((request: { url: string }) => {
+          return request.url;
+        }),
+      ).toEqual([
         `http://${UNRESOLVED_HOST}/teams/v3/conversations/a%3Aconversation/activities`,
       ]);
       expect(proxy.seen[0]!.activity).toMatchObject({
@@ -219,9 +221,11 @@ describe("through the outbound proxy", () => {
     );
 
     expect(sent.id).toBe("message-1");
-    expect(seen.map((call: ConnectorCallSeen): string => {
-      return call.path;
-    })).toEqual(["/teams/v3/conversations/a%3Aconversation/activities"]);
+    expect(
+      seen.map((call: ConnectorCallSeen): string => {
+        return call.path;
+      }),
+    ).toEqual(["/teams/v3/conversations/a%3Aconversation/activities"]);
     expect(proxy.connects).toEqual([`${BOT_CONNECTOR_HOST}:443`]);
     expect(proxy.connectCredentials).toEqual([
       signedInAs(RESERVED_CHARACTER_CREDENTIALS),
@@ -233,7 +237,9 @@ describe("through the outbound proxy", () => {
     const proxy: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
       await serveConnector("proxy");
     const credentials: ServiceClientCredentials = {
-      signRequest: async <T extends { headers: { set: (name: string, value: string) => void } }>(
+      signRequest: async <
+        T extends { headers: { set: (name: string, value: string) => void } },
+      >(
         webResource: T,
       ): Promise<T> => {
         webResource.headers.set("Authorization", "Bearer bot-token");
@@ -274,10 +280,9 @@ describe("through the outbound proxy", () => {
     );
 
     const answer: { readableStreamBody?: NodeJS.ReadableStream | undefined } =
-      await botConnector(`http://${UNRESOLVED_HOST}/`).attachments.getAttachment(
-        "attachment-1",
-        "original",
-      );
+      await botConnector(
+        `http://${UNRESOLVED_HOST}/`,
+      ).attachments.getAttachment("attachment-1", "original");
     const chunks: Array<Buffer> = [];
 
     for await (const chunk of answer.readableStreamBody!) {
@@ -351,8 +356,10 @@ describe("past the outbound proxy", () => {
   );
 
   test("with no proxy set at all, a message is sent directly, as it always was", async () => {
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
 
     const sent: { id?: string | undefined } = await sendMessage(
       botConnector(connector.server.url("/teams/")),
@@ -437,10 +444,13 @@ describe("a request the outbound proxy refuses", () => {
   });
 
   test("a proxy setting this server cannot use fails before anything is sent, naming no password", async () => {
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
 
-    process.env["HTTP_PROXY"] = `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
+    process.env["HTTP_PROXY"] =
+      `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
 
     const refusal: Error = await failureOf(
       sendMessage(botConnector(connector.server.url("/teams/"))),
@@ -517,8 +527,10 @@ describe("the team's details, which botbuilder's TeamsInfo reads with a client i
   });
 
   test("a team named, rather than the turn's, is read the same way", async () => {
-    const connector: { server: LocalHttpServer; seen: Array<ConnectorCallSeen> } =
-      await serveConnector("connector");
+    const connector: {
+      server: LocalHttpServer;
+      seen: Array<ConnectorCallSeen>;
+    } = await serveConnector("connector");
     const serviceUrl: string = connector.server.url("/teams/");
 
     await BotFrameworkRouting.getTeamDetails(
