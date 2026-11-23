@@ -71,7 +71,7 @@ Conserve o cambie las **Sondas** y el **Intervalo de monitoreo** (empieza en **C
 
 ### URL del sitio web
 
-La página que se comprueba, como URL completa con su esquema: `https://example.com`, `https://example.com/pricing` o `http://example.com:8080/health`. Puede poner un [secreto de monitor](/docs/monitor/monitor-secrets) en la URL como `{{monitorSecrets.NAME}}`, por ejemplo un token en la cadena de consulta.
+La página que se comprueba, como URL completa con su esquema: `https://example.com`, `https://example.com/pricing` o `http://example.com:8080/health`. Puede poner un [secreto de monitor](/docs/monitor/monitor-secrets) en la URL como `{{monitorSecrets.NAME}}`, por ejemplo un token en la cadena de consulta. El error de una comprobación fallida nombra la URL solo por su esquema, su host y su puerto, como `https://example.com`, así que el secreto nunca se muestra.
 
 ### Marcadores de URL dinámicos
 

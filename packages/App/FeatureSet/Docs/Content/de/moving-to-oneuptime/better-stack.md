@@ -58,7 +58,7 @@ Der Bericht zählt, was erstellt und nicht übernommen wurde, und listet jedes E
 | Status pages | Statusseiten | Jede Seite wird mit ihren Abschnitten als Gruppen und den Monitoren und Heartbeats übernommen, die sie zeigt. Ein Element, das Sie von Hand pflegen, wird zu einem manuellen Monitor. Eine Seite mit Passwort oder IP-Allowlist wird privat übernommen. |
 | Email subscribers | Statusseiten-Abonnenten | Bestätigte E-Mail-Abonnenten werden übernommen, sobald Sie bestätigen, dass Sie sie übertragen dürfen, und folgen denselben Ressourcen. Niemand erhält eine E-Mail, und jede Benachrichtigung von OneUptime enthält einen Link zum Abbestellen. |
 
-- **Status-, Expected-Status-Code-, Keyword- und Keyword-Absence-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen JSON-Body senden. Ein Status-Monitor ist bei jeder 2xx-Antwort verfügbar, ein Expected-Status-Code-Monitor bei den Codes, die er nennt.
+- **Status-, Expected-Status-Code-, Keyword- und Keyword-Absence-Monitore** werden zu Website-Monitoren, oder zu API-Monitoren, wenn sie eine andere Methode, Header oder einen Body senden. Ein Status-Monitor ist bei jeder 2xx-Antwort verfügbar, ein Expected-Status-Code-Monitor bei den Codes, die er nennt.
 - **Ping- und TCP-Monitore** werden zu Ping- und Port-Monitoren. **SMTP-, POP- und IMAP-Monitore** werden zu Port-Monitoren auf ihrem Port: OneUptime prüft, ob der Port antwortet, nicht die Mail-Kommunikation.
 - **DNS-Monitore** werden zu DNS-Monitoren für den Namen, den sie abfragen, mit demselben Server.
 - **Heartbeats** werden zu Monitoren für eingehende Anfragen, die ausfallen, wenn für den Zeitraum und die Karenzzeit keine Anfrage gekommen ist. Jeder hat in OneUptime eine neue Adresse.

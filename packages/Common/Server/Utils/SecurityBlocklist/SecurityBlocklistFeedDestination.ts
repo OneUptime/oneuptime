@@ -65,6 +65,12 @@ export default class SecurityBlocklistFeedDestination
     SecurityBlockDestinationProvider.Feed;
   public readonly name: string;
   public readonly connectionId: ObjectID;
+  /*
+   * A firewall blocks what is on its list and cannot challenge (#10350): an
+   * automatic response policy's challenge is handed to it, and served, as a
+   * block for the same time.
+   */
+  public readonly canChallenge: boolean = false;
 
   private readonly feedId: ObjectID;
   private readonly family: SecurityBlocklistFeedFamily;

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62240,
+    "keys": 62469,
     "untranslated": 8274
   },
   "sameAsEnglish": [
@@ -151,6 +151,7 @@
     "Slug",
     "StatusPage",
     "Stripe Payments API",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

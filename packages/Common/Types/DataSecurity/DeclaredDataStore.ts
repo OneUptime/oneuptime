@@ -4,6 +4,7 @@ import { DataStoreKind } from "./DataStoreKind";
 import { declaredDataStoreKey } from "./DataStoreKey";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "../NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../SecurityEvent/SecurityAddressVaultRetention";
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 
 /*
  * THE STORES ONEUPTIME DECLARES IN A PROJECT'S RECORD OF PROCESSING (#10398).
@@ -156,13 +157,15 @@ export function getFixedDeclaredRetentionInDays(
  * OneUptime's retention as the record writes it, in the English an auditor
  * files it under (the exports and the API): "15 days", or for the vault
  * "30 days after an address was last seen". The Dashboard says the same in
- * the reader's language.
+ * the reader's language. The figure keeps its word on its line, joined by a
+ * no-break space, so a narrow column never ends one line with "30" and
+ * starts the next with "days".
  */
 export function getDeclaredRetentionText(data: {
   basis: DeclaredStoreRetentionBasis;
   retentionInDays: number;
 }): string {
-  const days: string = `${data.retentionInDays} ${
+  const days: string = `${data.retentionInDays}${NO_BREAK_SPACE}${
     data.retentionInDays === 1 ? "day" : "days"
   }`;
 

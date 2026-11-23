@@ -9,6 +9,7 @@ import { CriteriaIncident } from "../Monitor/CriteriaIncident";
 import DnsRecordType from "../Monitor/DnsMonitor/DnsRecordType";
 import MonitorCriteria from "../Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../Monitor/MonitorCriteriaInstance";
+import MonitorRequestBodyFormat from "../Monitor/MonitorRequestBodyFormat";
 import MonitorStep from "../Monitor/MonitorStep";
 import { MonitorStepDnsMonitorUtil } from "../Monitor/MonitorStepDnsMonitor";
 import MonitorSteps from "../Monitor/MonitorSteps";
@@ -358,6 +359,11 @@ function applyRequest(
 
     if (monitor.requestBody) {
       step.setRequestBody(monitor.requestBody);
+
+      // Text, byte for byte, as the tool sends it (#10787); JSON unsaid.
+      if (monitor.requestBodyFormat === MonitorRequestBodyFormat.Text) {
+        step.setRequestBodyFormat(MonitorRequestBodyFormat.Text);
+      }
     }
   }
 

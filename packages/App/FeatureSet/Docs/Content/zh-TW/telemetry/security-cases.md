@@ -269,6 +269,7 @@ OneUptime 會就案件上的七件事通知相關人員。不需要任何人做�
 - 沒有人會因為自己做的事而收到通知：手動開啟案件、指派案件或啟動執行的人不會收到相應的通知。
 - 每個人對一個案件只會收到一次通知。一個以 Medium 開啟、之後提升到 Critical 的案件，會在提升時通知選擇了 High 或 Critical 的人，而不會再次通知選擇了 Medium 的人，因為他們在案件開啟時就已經收到通知。
 - 透過 **傳送測試攻擊** 發起的測試攻擊會開啟一個不通知任何人的案件。
+- 開啟 **讓 OneUptime AI 率先回應** 後，低於其所選優先順序的新案件會先等待 OneUptime AI：只有在 OneUptime AI 需要人員時，相關人員才會收到通知，屆時會立即收到，並附上原因。請參閱 [讓 OneUptime AI 率先回應](/docs/telemetry/security-ai#讓-oneuptime-ai-率先回應)。
 - Critical 案件和等待核准的步驟會立即傳送，絕不會被壓在 [郵件彙總](/docs/emails/notification-rollup) 中延後傳送。即將錯過或已錯過的回應目標、不再有效的步驟，以及 OneUptime AI 移交給人員的案件，也是如此。
 - 案件的 **時間軸** 會顯示通知了誰以及何時通知。
 
@@ -462,7 +463,7 @@ Mattermost 收到的核准是不帶按鈕的文字。
 
 你的專案自身的位址永遠不會被封鎖：**受保護的實體** 中的項目、你的主機、Kubernetes 節點、雲端資源、網路裝置和端點、你的位址名稱和探測器、OneUptime Cloud 的探測器、不在網際網路上的範圍，以及你的應用程式前端的邊緣網路。會觸及其中之一的封鎖會被拒絕，並說明該位址是什麼；**受保護的實體** 會在 **自動保護** 下列出它們。專案自己的網域也永遠不會被封鎖：OneUptime、Microsoft Defender 和 CrowdStrike Falcon 的網域、你的監測器檢查的主機、你的狀態頁面的網域、你已驗證的網域、你的雲端資源的 DNS 名稱和區域，以及空檔案的雜湊。對它們的封鎖也會同樣被拒絕。當 OneUptime 無法判斷某個位址、網域或檔案是否受保護時，不會封鎖它。
 
-**生效於** 顯示封鎖生效的每個位置，以及封鎖在那裡是否持續生效。 防火牆或代理透過讀取[封鎖清單來源](/docs/telemetry/blocklist-feeds)來執行封鎖清單，這是一個它每隔幾分鐘擷取一次的秘密 URL。為 AWS 雲端連線開啟後，AWS WAF 也會在你選擇的 Web ACL 中執行封鎖（[在 AWS WAF 中封鎖位址](/docs/telemetry/cloud-aws-waf-blocklist)）。為 Azure 或 Google Cloud 雲端連線開啟後，Azure WAF 和 Cloud Armor 也會在你選擇的政策中執行封鎖（[在 Azure WAF 中封鎖位址](/docs/telemetry/cloud-azure-waf-blocklist)、[在 Cloud Armor 中封鎖位址](/docs/telemetry/cloud-armor-blocklist)）。在沒有任何地方執行封鎖清單期間，頁面會說明這一點，封鎖會被記錄，但不會封鎖任何內容。每次封鎖、解除和到期都會記錄在專案的稽核日誌中；如果封鎖有對應的案件，也會記錄在該案件的時間軸上。案件位址的封鎖也會顯示在其 **回應計畫** 中，可在那裡用 **解除** 結束它；在 **攻擊活動** 的某一列上使用 **封鎖位址**，會封鎖該攻擊活動的位址。
+**生效於** 顯示封鎖生效的每個位置，以及封鎖在那裡是否持續生效。 防火牆或代理透過讀取[封鎖清單來源](/docs/telemetry/blocklist-feeds)來執行封鎖清單，這是一個它每隔幾分鐘擷取一次的秘密 URL。為 AWS 雲端連線開啟後，AWS WAF 也會在你選擇的 Web ACL 中執行封鎖（[在 AWS WAF 中封鎖位址](/docs/telemetry/cloud-aws-waf-blocklist)）。為 Azure 或 Google Cloud 雲端連線開啟後，Azure WAF 和 Cloud Armor 也會在你選擇的政策中執行封鎖（[在 Azure WAF 中封鎖位址](/docs/telemetry/cloud-azure-waf-blocklist)、[在 Cloud Armor 中封鎖位址](/docs/telemetry/cloud-armor-blocklist)）。在沒有任何地方執行封鎖清單期間，頁面會說明這一點，封鎖會被記錄，但不會封鎖任何內容。每次封鎖、解除和到期都會記錄在專案的稽核日誌中；如果封鎖有對應的案件，也會記錄在該案件的時間軸上。案件位址的封鎖也會顯示在其 **回應計畫** 中，可在那裡用 **解除** 結束它；在 **攻擊活動** 的某一列上使用 **封鎖位址**，會封鎖該攻擊活動的位址。 若要在任何人分流案例之前，在偵測到掃描器和密碼猜測時立即封鎖，請開啟 [自動回應](/docs/telemetry/security-automatic-response) 政策。
 
 ### 訊息
 
@@ -490,6 +491,7 @@ Mattermost 收到的核准是不帶按鈕的文字。
 | Queued | 等待工作程序 |
 | Running | 正在執行其步驟 |
 | Waiting for Approval | 停在需要核准的步驟之前 |
+| 等待 OneUptime AI | 在 OneUptime AI 對其案件 [率先回應](/docs/telemetry/security-ai#讓-oneuptime-ai-率先回應) 期間，停在一個 **呼叫待命人員** 步驟之前 |
 | Succeeded | 每個步驟都已執行或被略過，或者由 **停止執行** 步驟結束了執行 |
 | Failed | 某個步驟失敗，執行已停止 |
 | Cancelled | 有人取消了它，或拒絕了某個步驟 |

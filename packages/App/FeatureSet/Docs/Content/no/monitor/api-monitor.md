@@ -70,7 +70,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### API-URL
 
-Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
+Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`. Feilen fra en mislykket sjekk nevner bare URL-ens skjema, vert og port, som `https://api.example.com`, så hemmeligheten vises aldri.
 
 ### Dynamiske URL-plassholdere
 
@@ -250,7 +250,7 @@ Brødteksten er ikke JSON når [monitorhemmelighetene](/docs/monitor/monitor-sec
 :::
 
 :::details Sjekken sier at sonden er for gammel til å sende brødteksten
-Monitorens brødtekst er en JSON-matrise, én enkelt verdi eller **Tekst**, og den egendefinerte sonden som sjekker den, kjører en utgivelse eldre enn OneUptime 17.2.0, som bare sender et JSON-objekt, så sjekken ble ikke kjørt på den. [Oppdater sonden](/docs/probe/custom-probe#oppdater-en-sonde), eller sjekk monitoren fra en annen sonde.
+Monitorens brødtekst er en JSON-matrise, én enkelt verdi eller **Tekst**, og den egendefinerte sonden som sjekker den, kjører en eldre utgivelse, som bare sender et JSON-objekt, så sjekken ble ikke kjørt på den. Monitorens skjema og sondens side navngir en slik sonde. [Oppdater sonden](/docs/probe/custom-probe#oppdater-en-sonde) til den nyeste utgivelsen, eller sjekk monitoren fra en annen sonde.
 :::
 
 ## Neste steg

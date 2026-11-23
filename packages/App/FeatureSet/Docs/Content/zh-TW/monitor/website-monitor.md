@@ -71,7 +71,7 @@ flowchart TB
 
 ### 網站 URL
 
-要檢查的頁面，以包含通訊協定的完整 URL 表示：`https://example.com`、`https://example.com/pricing` 或 `http://example.com:8080/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [監測器密鑰](/docs/monitor/monitor-secrets)，例如查詢字串中的權杖。
+要檢查的頁面，以包含通訊協定的完整 URL 表示：`https://example.com`、`https://example.com/pricing` 或 `http://example.com:8080/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [監測器密鑰](/docs/monitor/monitor-secrets)，例如查詢字串中的權杖。檢查失敗時，錯誤中只寫出 URL 的通訊協定、主機和連接埠，例如 `https://example.com`，因此密鑰永遠不會顯示。
 
 ### 動態 URL 預留位置
 

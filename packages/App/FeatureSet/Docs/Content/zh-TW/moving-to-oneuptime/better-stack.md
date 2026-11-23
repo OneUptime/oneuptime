@@ -58,7 +58,7 @@ flowchart TB
 | Status pages | 狀態頁面 | 每個頁面會以其區段作為群組，連同它顯示的監測器和心跳一起匯入。你手動追蹤的項目會變成手動監測器。設有密碼或 IP 允許清單的頁面會以私人方式匯入。 |
 | Email subscribers | 狀態頁面訂閱者 | 在你確認可以搬移後，已確認的電子郵件訂閱者會被匯入，並訂閱相同的資源。不會寄電子郵件給任何人，他們從 OneUptime 收到的每則更新都附有取消訂閱的連結。 |
 
-- **status、expected status code、keyword 和 keyword absence 監測器** 會變成網站監測器；如果它們傳送其他方法、標頭或 JSON 本文，則變成 API 監測器。status 監測器在任何 2xx 回應時為正常，expected status code 監測器在它列出的狀態碼時為正常。
+- **status、expected status code、keyword 和 keyword absence 監測器** 會變成網站監測器；如果它們傳送其他方法、標頭或 本文，則變成 API 監測器。status 監測器在任何 2xx 回應時為正常，expected status code 監測器在它列出的狀態碼時為正常。
 - **Ping 和 TCP 監測器** 會變成 Ping 和連接埠監測器。**SMTP、POP 和 IMAP 監測器** 會變成對應連接埠的連接埠監測器：OneUptime 只檢查連接埠是否回應，不檢查郵件通訊。
 - **DNS 監測器** 會變成針對其查詢名稱的 DNS 監測器，並詢問同一台伺服器。
 - **心跳** 會變成傳入請求監測器，在週期加寬限時間內沒有收到請求時判定為故障。每個監測器在 OneUptime 中都有新位址。

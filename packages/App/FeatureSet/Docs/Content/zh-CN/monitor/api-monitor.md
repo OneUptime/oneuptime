@@ -70,7 +70,7 @@ sequenceDiagram
 
 ### API URL
 
-要调用的端点，以包含协议的完整 URL 表示，例如 `https://api.example.com/v1/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [监视器密钥](/docs/monitor/monitor-secrets)。
+要调用的端点，以包含协议的完整 URL 表示，例如 `https://api.example.com/v1/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [监视器密钥](/docs/monitor/monitor-secrets)。检查失败时，错误中只写出 URL 的协议、主机和端口，例如 `https://api.example.com`，因此密钥永远不会显示。
 
 ### 动态 URL 占位符
 
@@ -250,7 +250,7 @@ API 把带有正文、或方法不是 `GET` 或 `HEAD` 的请求重定向到了�
 :::
 
 :::details 检查显示探测器版本过旧，无法发送请求主体
-监视器的正文是 JSON 数组、单个值或 **文本**，而检查它的自定义探测器运行的是早于 OneUptime 17.2.0 的版本，只能发送 JSON 对象，因此未在该探测器上运行检查。请[更新探测器](/docs/probe/custom-probe#更新探测器)，或从其他探测器检查该监视器。
+监视器的正文是 JSON 数组、单个值或 **文本**，而检查它的自定义探测器运行的是较旧的版本，只能发送 JSON 对象，因此未在该探测器上运行检查。监视器的表单和探测器的页面会列出这样的探测器。请[更新探测器](/docs/probe/custom-probe#更新探测器)到最新版本，或从其他探测器检查该监视器。
 :::
 
 ## 后续步骤

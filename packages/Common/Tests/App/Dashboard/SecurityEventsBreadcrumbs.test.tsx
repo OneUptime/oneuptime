@@ -246,6 +246,10 @@ describe("each trail names the page as the menu does", () => {
       PageMap.SECURITY_PLAYBOOK_RUNS,
       ["Security Events", "Playbooks", "Playbook Runs"],
     ],
+    [
+      PageMap.SECURITY_AUTOMATIC_RESPONSE,
+      ["Security Events", "Playbooks", "Automatic Response"],
+    ],
     [PageMap.SECURITY_BLOCKLIST, ["Security Events", "Playbooks", "Blocklist"]],
     [
       PageMap.SECURITY_BLOCKLIST_FEEDS,
