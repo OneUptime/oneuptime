@@ -78,13 +78,31 @@ export function isTelemetryIngestRefusalReason(
   );
 }
 
+/*
+ * Whether a budget scope's refusal is the key's own, or holds for every key
+ * of the project alike - each scope named, so a new one is decided here.
+ *
+ * A team's or a label's budget (#6386) never refuses a request: whose
+ * telemetry a request carries is known only in the worker, after the
+ * sender was answered, so its budget drops what it counts there and keeps
+ * its drops in its own day counters (TelemetryIngestAttribution), which
+ * the Usage page and Security Events read. Were one handed here, it would
+ * read as the project's, not the key's: whichever key sent the team's
+ * telemetry, it would have been dropped the same way.
+ */
+const IS_KEY_SCOPE: Record<TelemetryIngestionBudgetScope, boolean> = {
+  [TelemetryIngestionBudgetScope.Project]: false,
+  [TelemetryIngestionBudgetScope.IngestionKey]: true,
+  [TelemetryIngestionBudgetScope.Team]: false,
+  [TelemetryIngestionBudgetScope.Label]: false,
+};
+
 // The reason an ingestion budget refusal is counted under.
 export function getTelemetryIngestRefusalReasonForBudget(refusal: {
   kind: TelemetryIngestionBudgetRefusalKind;
   scope: TelemetryIngestionBudgetScope;
 }): TelemetryIngestRefusalReason {
-  const isKey: boolean =
-    refusal.scope === TelemetryIngestionBudgetScope.IngestionKey;
+  const isKey: boolean = IS_KEY_SCOPE[refusal.scope] === true;
 
   if (refusal.kind === TelemetryIngestionBudgetRefusalKind.RateLimited) {
     return isKey
