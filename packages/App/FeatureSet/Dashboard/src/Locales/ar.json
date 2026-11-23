@@ -60498,7 +60498,7 @@
   "Done without asking": "نُفّذ دون سؤال",
   "Enable Automatic Data Security AI": "تفعيل الذكاء الاصطناعي التلقائي لأمن البيانات",
   "Expired At": "وقت الانتهاء",
-  "Failed At": "وقت الإخفاق",
+  "Change Failed At": "وقت إخفاق التغيير",
   "First Approved By": "وافق عليه أولًا",
   "First Approved By ID": "معرّف أول من وافق",
   "How It Is Proven": "كيف يُثبت",
