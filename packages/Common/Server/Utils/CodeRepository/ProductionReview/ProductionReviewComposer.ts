@@ -19,12 +19,24 @@ import {
   ProductionReviewPointJSON,
   ProductionReviewPosting,
   ProductionReviewReport,
+  ProductionReviewSection,
   ProductionReviewServiceJSON,
   ProductionReviewUtil,
   ProductionReviewWhere,
 } from "../../../../Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewLeakHeldBeforeJSON,
+  ProductionReviewLeakJSON,
+  ProductionReviewLeakProductionJSON,
+  ProductionReviewLeakSuggestionJSON,
+  ProductionReviewSensitiveDataJSON,
+  ProductionReviewSensitiveDataUtil,
+  SENSITIVE_DATA_LIMITS,
+  SensitiveDataPosting,
+} from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { PullRequestTerm } from "../../../../Types/CodeRepository/CodeHost";
 import { GitHubCheckConclusion } from "../GitHub/GitHubCheckRuns";
+import { withArticle } from "./SensitiveData/SensitiveDataWords";
 
 /*
  * THE PRODUCTION REVIEW COMMENT, AS GITHUB, GITLAB, FORGEJO AND GITEA SHOW IT.
@@ -88,13 +100,21 @@ export interface ProductionReviewCommentInput {
    * footer says to press Review again in OneUptime, with a link to it.
    */
   asksAgainInProduct?: boolean | undefined;
+  /*
+   * What the comment shows of the Sensitive data section
+   * (ProductionReviewUtil.getSensitiveDataPosting): everything, only what
+   * the diff shows, or nothing. Unset: worked out from `posting` and
+   * whether the repository is public - none for a link.
+   */
+  sensitiveDataPosting?: SensitiveDataPosting | undefined;
 }
 
 /*
  * What a review's GitHub check run says: its conclusion - success when
- * production has nothing to say, neutral when there is something worth a
- * look (a review never fails a pull request) - a title, and a summary that
- * holds what the comment holds: the review, or only a link to it.
+ * the review has nothing to say, neutral when there is something worth a
+ * look, failure only when the change leaks sensitive data the repository
+ * asked its check to fail on (#10376) - a title, and a summary that holds
+ * what the comment holds: the review, or only a link to it.
  */
 export interface ProductionReviewCheckRunText {
   conclusion: GitHubCheckConclusion;
@@ -106,10 +126,94 @@ export interface ProductionReviewCheckRunText {
 export const PRODUCTION_REVIEW_CHECK_TITLES: {
   worthALook: string;
   nothingFound: string;
+  sensitiveDataFails: string;
+  sensitiveData: string;
+  sensitiveDataAndProduction: string;
+  noLeakFails: string;
 } = {
   worthALook: "Something in production is worth a look",
   nothingFound: "Nothing in production runs through these changes",
+  sensitiveDataFails: "Sensitive data in these changes fails this check",
+  sensitiveData: "Sensitive data in these changes is worth a look",
+  sensitiveDataAndProduction:
+    "Sensitive data in these changes, and production, are worth a look",
+  // A commit status's description on GitLab, Forgejo and Gitea.
+  noLeakFails: "No leak of sensitive data in these changes fails this check",
 };
+
+/*
+ * What the comment shows of a review's Sensitive data section, as its
+ * input says - or, when it says nothing, as `posting` and the repository's
+ * visibility say: a link shows none of it.
+ */
+export function getSensitiveDataPostingOf(
+  input: Pick<
+    ProductionReviewCommentInput,
+    "sensitiveDataPosting" | "posting" | "isPublicRepository"
+  >,
+): SensitiveDataPosting {
+  if (input.sensitiveDataPosting) {
+    return input.sensitiveDataPosting;
+  }
+
+  if (input.posting === ProductionReviewPosting.Link) {
+    return SensitiveDataPosting.None;
+  }
+
+  return input.isPublicRepository === false
+    ? SensitiveDataPosting.Full
+    : SensitiveDataPosting.DiffOnly;
+}
+
+// A fence no backtick run of `lines` can close: three backticks, or more.
+export function fenceFor(lines: ReadonlyArray<string>): string {
+  let longest: number = 0;
+
+  for (const line of lines) {
+    let run: number = 0;
+
+    for (const character of line) {
+      run = character === "`" ? run + 1 : 0;
+      longest = Math.max(longest, run);
+    }
+  }
+
+  return "`".repeat(Math.max(3, longest + 1));
+}
+
+/*
+ * A suggested change as a diff block, indented under a list item: each
+ * line as the change has it, minus, and as it would be, plus. Code is
+ * shown as written: a fence is where nothing in it is read as Markdown, a
+ * mention or a link.
+ */
+export function suggestionDiff(
+  suggestion: ProductionReviewLeakSuggestionJSON,
+  indent: string,
+): string {
+  const lines: Array<string> = [
+    ...suggestion.original.map((line: string): string => {
+      return `- ${line}`;
+    }),
+    ...suggestion.replacement.map((line: string): string => {
+      return `+ ${line}`;
+    }),
+  ].map((line: string): string => {
+    return line.slice(0, SENSITIVE_DATA_LIMITS.maxSuggestionLineLength + 2);
+  });
+
+  if (lines.length === 0) {
+    return "";
+  }
+
+  const fence: string = fenceFor(lines);
+
+  return [`${fence}diff`, ...lines, fence]
+    .map((line: string): string => {
+      return `${indent}${line}`;
+    })
+    .join("\n");
+}
 
 // The input's word for a pull request.
 function termOf(input: {
@@ -361,6 +465,7 @@ export default class ProductionReviewComposer {
   public static compose(input: ProductionReviewCommentInput): string {
     const parts: Array<MarkdownText> = [
       ProductionReviewComposer.heading(input),
+      ProductionReviewComposer.sensitiveDataSection(input),
       input.posting === ProductionReviewPosting.Link
         ? ProductionReviewComposer.linkBody(input)
         : ProductionReviewComposer.reviewBody(input),
@@ -390,9 +495,8 @@ export default class ProductionReviewComposer {
   public static composeCheckRun(
     input: ProductionReviewCommentInput,
   ): ProductionReviewCheckRunText {
-    const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
-
     const summary: string = [
+      ProductionReviewComposer.sensitiveDataSection(input),
       input.posting === ProductionReviewPosting.Link
         ? ProductionReviewComposer.linkBody(input)
         : ProductionReviewComposer.reviewBody(input),
@@ -407,13 +511,59 @@ export default class ProductionReviewComposer {
       .join("\n\n");
 
     return {
-      conclusion: hasSignal
+      ...ProductionReviewComposer.checkOutcome(input.report),
+      summary,
+    };
+  }
+
+  /*
+   * What a review's check concludes, and its title: failure only when a
+   * point of the Sensitive data section fails it - the repository asked -
+   * neutral when the review says something, success when it says nothing.
+   */
+  public static checkOutcome(
+    report: ProductionReviewReport,
+  ): Omit<ProductionReviewCheckRunText, "summary"> {
+    const hasProduction: boolean =
+      ProductionReviewUtil.hasProductionSignal(report);
+    const hasSensitiveData: boolean =
+      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData).length >
+      0;
+
+    if (ProductionReviewSensitiveDataUtil.failsCheck(report.sensitiveData)) {
+      return {
+        conclusion: GitHubCheckConclusion.Failure,
+        title: PRODUCTION_REVIEW_CHECK_TITLES.sensitiveDataFails,
+      };
+    }
+
+    if (hasSensitiveData) {
+      return {
+        conclusion: GitHubCheckConclusion.Neutral,
+        title: hasProduction
+          ? PRODUCTION_REVIEW_CHECK_TITLES.sensitiveDataAndProduction
+          : PRODUCTION_REVIEW_CHECK_TITLES.sensitiveData,
+      };
+    }
+
+    if (hasProduction) {
+      return {
+        conclusion: GitHubCheckConclusion.Neutral,
+        title: PRODUCTION_REVIEW_CHECK_TITLES.worthALook,
+      };
+    }
+
+    /*
+     * A section that could not be read this time is no answer a check
+     * should pass on: neutral, until a review reads it.
+     */
+    return {
+      conclusion: (report.unreadSections || []).includes(
+        ProductionReviewSection.SensitiveData,
+      )
         ? GitHubCheckConclusion.Neutral
         : GitHubCheckConclusion.Success,
-      title: hasSignal
-        ? PRODUCTION_REVIEW_CHECK_TITLES.worthALook
-        : PRODUCTION_REVIEW_CHECK_TITLES.nothingFound,
-      summary,
+      title: PRODUCTION_REVIEW_CHECK_TITLES.nothingFound,
     };
   }
 
@@ -427,6 +577,22 @@ export default class ProductionReviewComposer {
   ): string {
     if (!ProductionReviewUtil.hasSignal(report)) {
       return `Nothing in production runs through this ${term}'s changes.`;
+    }
+
+    const leaks: Array<ProductionReviewLeakJSON> =
+      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData);
+    const failing: number = ProductionReviewSensitiveDataUtil.getFailingPoints(
+      report.sensitiveData,
+    ).length;
+    const leakSentence: string =
+      leaks.length === 0
+        ? ""
+        : failing > 0
+          ? `Sensitive data: ${plural(leaks.length, "point", "points")}, ${plural(failing, "of which fails", "of which fail")} the check.`
+          : `Sensitive data: ${plural(leaks.length, "point", "points")} to look at.`;
+
+    if (!ProductionReviewUtil.hasProductionSignal(report)) {
+      return leakSentence;
     }
 
     const found: Array<string> = [];
@@ -472,10 +638,13 @@ export default class ProductionReviewComposer {
     }
 
     const last: string = found.pop() || "";
-
-    return `Production review: ${
+    const productionSentence: string = `Production review: ${
       found.length > 0 ? `${found.join(", ")} and ${last}` : last
     } in or around the changed code.`;
+
+    return leakSentence
+      ? `${productionSentence} ${leakSentence}`
+      : productionSentence;
   }
 
   private static heading(input: ProductionReviewCommentInput): MarkdownText {
@@ -485,9 +654,275 @@ export default class ProductionReviewComposer {
     )}`;
   }
 
-  // The link-only comment: no fact of production in it.
+  /*
+   * THE SENSITIVE DATA SECTION (#10376): what the change writes to
+   * telemetry, does to a store or adds a column for, read from the diff -
+   * first, as it is what the author can fix before anything merges. Each
+   * point: where it is, what kind of data, whether it fails the check;
+   * what it does, in OneUptime AI's words or OneUptime's own; what
+   * production already knows of it, in a private repository's comment
+   * only; the fix, and the change as a diff. Nothing when nothing was
+   * found, or the comment shows none of it.
+   */
+  public static sensitiveDataSection(
+    input: ProductionReviewCommentInput,
+  ): MarkdownText {
+    const posting: SensitiveDataPosting = getSensitiveDataPostingOf(input);
+    const section: ProductionReviewSensitiveDataJSON | undefined =
+      input.report.sensitiveData;
+    const points: Array<ProductionReviewLeakJSON> =
+      ProductionReviewSensitiveDataUtil.getPoints(section);
+
+    if (posting === SensitiveDataPosting.None || points.length === 0) {
+      return FeedMarkdown.empty();
+    }
+
+    const isFull: boolean = posting === SensitiveDataPosting.Full;
+    const failing: number =
+      ProductionReviewSensitiveDataUtil.getFailingPoints(section).length;
+    const now: Date = new Date(input.report.reviewedAt);
+    const listed: Array<ProductionReviewLeakJSON> = points.slice(
+      0,
+      SENSITIVE_DATA_LIMITS.maxPointsInComment,
+    );
+
+    const title: MarkdownText =
+      failing > 0
+        ? mdText`**Sensitive data** · ${plural(failing, "leak fails", "leaks fail")} this check`
+        : mdText`**Sensitive data** · ${plural(points.length, "leak", "leaks")} to look at before this merges`;
+
+    const items: Array<MarkdownText> = listed.map(
+      (point: ProductionReviewLeakJSON): MarkdownText => {
+        return ProductionReviewComposer.sensitiveDataPoint(point, isFull, now);
+      },
+    );
+
+    const notes: Array<MarkdownText> = [];
+    const notShown: number =
+      points.length - listed.length + (section?.moreCount || 0);
+
+    if (notShown > 0) {
+      notes.push(
+        mdText`${FeedMarkdown.link(
+          `And ${plural(notShown, "more", "more")} in ${githubSafeText(input.productName, 60)}`,
+          input.reviewUrl,
+        )}.`,
+      );
+    }
+
+    if ((section?.droppedCount || 0) > 0) {
+      notes.push(
+        mdText`<sub>${githubSafeText(input.productName, 60)} AI read ${plural(section!.droppedCount, "more point the rules found", "more points the rules found")} as no leak, and left ${section!.droppedCount === 1 ? "it" : "them"} out.</sub>`,
+      );
+    }
+
+    if (failing > 0) {
+      notes.push(
+        mdText`<sub>No leak after all? Write ${FeedMarkdown.code("oneuptime:not-sensitive")} on its line, or in a comment on the line above it, and say why in the review.</sub>`,
+      );
+    }
+
+    return FeedMarkdown.join(
+      [title, FeedMarkdown.join(items, "\n\n"), ...notes],
+      "\n\n",
+    );
+  }
+
+  /*
+   * The points whose suggested change can go on their line, as a GitHub
+   * suggestion: a change to one line, in the order the section lists them,
+   * as many as the comment lists.
+   */
+  public static getSuggestedPoints(
+    report: ProductionReviewReport,
+  ): Array<ProductionReviewLeakJSON> {
+    return ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData)
+      .slice(0, SENSITIVE_DATA_LIMITS.maxPointsInComment)
+      .filter((point: ProductionReviewLeakJSON): boolean => {
+        return Boolean(
+          point.suggestion &&
+            point.suggestion.startLine === point.suggestion.endLine &&
+            point.suggestion.endLine > 0,
+        );
+      });
+  }
+
+  // The review the suggestions are posted in: what they are, in a line.
+  public static composeSuggestionsBody(
+    input: ProductionReviewCommentInput,
+    count: number,
+  ): string {
+    return mdText`**Sensitive data** · ${githubSafeText(
+      input.productName,
+      60,
+    )}'s production review suggests ${plural(count, "change", "changes")} on the lines below, each one you can commit.`.toString();
+  }
+
+  /*
+   * One point's suggestion, on its line: what it is, what it does, the fix
+   * and the change as a suggestion block - what the line becomes. Only
+   * what the diff shows: a suggestion is read wherever the pull request is.
+   */
+  public static composeSuggestion(point: ProductionReviewLeakJSON): string {
+    const suggestion: ProductionReviewLeakSuggestionJSON | undefined =
+      point.suggestion;
+    const replacement: Array<string> = (suggestion?.replacement || []).map(
+      (line: string): string => {
+        return line.slice(0, SENSITIVE_DATA_LIMITS.maxSuggestionLineLength);
+      },
+    );
+    const fence: string = fenceFor(replacement);
+    const what: string = point.dataTypeNames.slice(0, 2).join(", ");
+    const header: MarkdownText = FeedMarkdown.join(
+      [
+        mdText`**Sensitive data**`,
+        ...(what ? [mdText`${githubSafeText(what, 120)}`] : []),
+        ...(point.failsCheck ? [mdText`fails the check`] : []),
+      ],
+      " · ",
+    );
+
+    return [
+      header.toString(),
+      FeedMarkdown.textWithCode(
+        githubSafeAiText(point.text, SENSITIVE_DATA_LIMITS.maxTextLength),
+      ).toString(),
+      mdText`Fix: ${FeedMarkdown.textWithCode(
+        githubSafeAiText(point.fix, SENSITIVE_DATA_LIMITS.maxFixLength),
+      )}`.toString(),
+      [`${fence}suggestion`, ...replacement, fence].join("\n"),
+    ].join("\n\n");
+  }
+
+  // One point of the Sensitive data section, as a list item.
+  private static sensitiveDataPoint(
+    point: ProductionReviewLeakJSON,
+    isFull: boolean,
+    now: Date,
+  ): MarkdownText {
+    const what: string =
+      point.dataTypeNames.length > 0
+        ? point.dataTypeNames.slice(0, 2).join(", ")
+        : point.isWholeObject
+          ? "Whole object"
+          : "";
+    const facts: Array<MarkdownText> = [
+      mdText`**${FeedMarkdown.code(githubSafeText(point.path, 200))} line ${String(point.line)}**`,
+    ];
+
+    if (what) {
+      facts.push(mdText`${githubSafeText(what, 120)}`);
+    }
+
+    if (point.failsCheck) {
+      facts.push(mdText`**fails the check**`);
+    }
+
+    const lines: Array<MarkdownText> = [
+      FeedMarkdown.join(facts, " · "),
+      FeedMarkdown.textWithCode(
+        githubSafeAiText(point.text, SENSITIVE_DATA_LIMITS.maxTextLength),
+      ),
+    ];
+
+    if (isFull && point.production) {
+      const known: MarkdownText = ProductionReviewComposer.productionKnows(
+        point.production,
+        now,
+      );
+
+      if (!known.isEmpty()) {
+        lines.push(known);
+      }
+    }
+
+    lines.push(
+      mdText`Fix: ${FeedMarkdown.textWithCode(
+        githubSafeAiText(point.fix, SENSITIVE_DATA_LIMITS.maxFixLength),
+      )}`,
+    );
+
+    const item: string = `- ${lines
+      .map((line: MarkdownText): string => {
+        return line.toString();
+      })
+      .join("\n  ")}`;
+
+    const diff: string = point.suggestion
+      ? suggestionDiff(point.suggestion, "  ")
+      : "";
+
+    return FeedMarkdown.asMarkdown(diff ? `${item}\n\n${diff}` : item);
+  }
+
+  /*
+   * What production knows of a point, in a sentence or two: where the
+   * service's telemetry held the same data lately, the scrub rule that
+   * masks it at ingest, the store a resource is and what it holds.
+   */
+  private static productionKnows(
+    production: ProductionReviewLeakProductionJSON,
+    now: Date,
+  ): MarkdownText {
+    const parts: Array<MarkdownText> = [];
+    const held: Array<ProductionReviewLeakHeldBeforeJSON> =
+      production.heldBefore || [];
+
+    if (held.length > 0) {
+      const places: Array<MarkdownText> = held.map(
+        (place: ProductionReviewLeakHeldBeforeJSON): MarkdownText => {
+          const age: string = formatAge(place.lastSeenAt, now);
+
+          return mdText`**${githubSafeText(place.serviceName, 80)}**'s ${githubSafeText(
+            place.storeKind.toLowerCase(),
+            40,
+          )} held ${githubSafeText(
+            withArticle(place.dataTypeName || "sensitive data"),
+            120,
+          )} at ${FeedMarkdown.code(githubSafeText(place.location, 200))}${
+            age ? ` ${age}` : ""
+          }`;
+        },
+      );
+
+      parts.push(mdText`Production has held this before: ${listing(places)}.`);
+    }
+
+    if (production.maskedAtIngestBy !== undefined) {
+      parts.push(
+        production.maskedAtIngestBy
+          ? mdText`Masked at ingest by the scrub rule **${githubSafeText(production.maskedAtIngestBy, 120)}**, but written by the code: whatever reads it before ingest reads it whole.`
+          : mdText`Masked at ingest, but written by the code: whatever reads it before ingest reads it whole.`,
+      );
+    }
+
+    if (production.store) {
+      const holds: string = production.store.dataTypeNames
+        .slice(0, 3)
+        .join(", ");
+
+      parts.push(
+        holds
+          ? mdText`It is the store **${githubSafeText(production.store.name, 120)}**, which holds ${githubSafeText(production.store.sensitivity, 40)} data: ${githubSafeText(holds, 200)}.`
+          : mdText`It is the store **${githubSafeText(production.store.name, 120)}**, which holds ${githubSafeText(production.store.sensitivity, 40)} data.`,
+      );
+    }
+
+    return FeedMarkdown.join(parts, " ");
+  }
+
+  /*
+   * The link-only comment: no fact of production in it. Where the comment
+   * shows the Sensitive data section above it, the sentence is about
+   * production alone; where it does not, sensitive data is something worth
+   * a look too.
+   */
   private static linkBody(input: ProductionReviewCommentInput): MarkdownText {
-    const hasSignal: boolean = ProductionReviewUtil.hasSignal(input.report);
+    const isSensitiveDataShown: boolean =
+      getSensitiveDataPostingOf(input) !== SensitiveDataPosting.None;
+    const hasSignal: boolean = isSensitiveDataShown
+      ? ProductionReviewUtil.hasProductionSignal(input.report)
+      : ProductionReviewUtil.hasSignal(input.report);
 
     const finding: MarkdownText = hasSignal
       ? mdText`${githubSafeText(input.productName, 60)} reviewed this ${termOf(input)} against production and found something worth a look in the code it changes.`
@@ -515,7 +950,8 @@ export default class ProductionReviewComposer {
   private static reviewBody(input: ProductionReviewCommentInput): MarkdownText {
     const report: ProductionReviewReport = input.report;
 
-    if (!ProductionReviewUtil.hasSignal(report)) {
+    // Production's part: the Sensitive data section above it is the diff's.
+    if (!ProductionReviewUtil.hasProductionSignal(report)) {
       return ProductionReviewComposer.nothingFound(input);
     }
 

@@ -70,11 +70,12 @@ import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
 
 /*
- * The filter modal of a real table. BaseModelTable fetches every entity
- * filter's options when the modal opens and only then hands the form its
- * list of filters, each with its options. When the page's filters change
- * while the modal is open, the table fetches again and the form is handed
- * the new list in place of the old one. The form's rows are keyed by
+ * The filter modal of a real table. BaseModelTable builds its filters when
+ * the modal opens - an entity filter of records searches the server as its
+ * picker is typed in (#10646) - and only then hands the form its list of
+ * filters. When the page's filters change while the modal is open, the
+ * table builds them again and the form is handed the new list in place of
+ * the old one. The form's rows are keyed by
  * position, so a row can now hold a filter of another type: here the date
  * filter put in front moves the text and entity filters down a row.
  *
@@ -258,19 +259,22 @@ describe("BaseModelTable filter modal", () => {
     );
     fireEvent.click(screen.getByRole("menuitem", { name: "Filter" }));
 
-    await answerTheLabelsRequest();
-
+    /*
+     * The Labels filter searches the server as its picker is typed in
+     * (#10646): opening the modal reads none of the project's labels.
+     */
     await waitFor(() => {
       expect(formRows()).toEqual(["Name", "Labels"]);
     });
+    expect(answerLabelsRequest).toBeNull();
     expect(
       screen.getByPlaceholderText("Nach Name filtern"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Nach Labels filtern")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Nach Labels filtern"),
+    ).toBeInTheDocument();
 
     view.rerender(table([CREATED_FILTER, NAME_FILTER, LABELS_FILTER]));
-
-    await answerTheLabelsRequest();
 
     await waitFor(() => {
       expect(formRows()).toEqual(["Created", "Name", "Labels"]);
@@ -281,6 +285,19 @@ describe("BaseModelTable filter modal", () => {
     expect(
       screen.getByPlaceholderText("Nach Name filtern"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Nach Labels filtern")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Nach Labels filtern"),
+    ).toBeInTheDocument();
+
+    // Its picker searches once it is opened, and draws what it finds.
+    await act(async () => {
+      fireEvent.focus(screen.getByPlaceholderText("Nach Labels filtern"));
+    });
+
+    await answerTheLabelsRequest();
+
+    expect(
+      await screen.findByRole("option", { name: /Production/ }),
+    ).toBeInTheDocument();
   });
 });

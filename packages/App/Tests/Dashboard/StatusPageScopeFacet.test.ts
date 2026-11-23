@@ -20,7 +20,7 @@ import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/Resourc
 import { FilterChipDropdownOption } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -97,10 +97,14 @@ describe("buildStatusPageScopeFacet", () => {
     expect(ids(value)).toEqual([SITE_03, SITE_07]);
   });
 
+  /*
+   * The rest, the incidents limited to no page among them (#10581): every
+   * "is not" chip builds IncludesNoneOrNull, which keeps the empty rows.
+   */
   test("'is not' is incidents limited to none of them", () => {
     const value: unknown = facet.toQueryValue!([SITE_03], "is_not");
 
-    expect(value).toBeInstanceOf(IncludesNone);
+    expect(value).toBeInstanceOf(IncludesNoneOrNull);
     expect(ids(value)).toEqual([SITE_03]);
   });
 

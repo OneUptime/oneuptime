@@ -38,6 +38,7 @@ import FieldsLeftOut, {
   FIELDS_LEFT_OUT_HEADER,
 } from "../../Types/API/FieldsLeftOut";
 import ListEntries from "../Utils/Database/ListEntries";
+import RetiredColumns from "../Utils/Database/RetiredColumns";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -305,6 +306,16 @@ export default class BaseAPI<
       ) as GroupBy<BaseModel>;
     }
 
+    /*
+     * Columns every record had that no model has now (RetiredColumns,
+     * #10469): the read leaves them out, and each record answers them as
+     * null, as it did.
+     */
+    const retiredColumns: Array<string> = RetiredColumns.getNamedIn(
+      new this.entityType(),
+      select,
+    );
+
     const databaseProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
@@ -400,7 +411,7 @@ export default class BaseAPI<
         list,
         new PositiveNumber(countCap),
         this.entityType,
-        { isCountCapped: true },
+        { isCountCapped: true, retiredColumns: retiredColumns },
       );
     }
 
@@ -410,6 +421,7 @@ export default class BaseAPI<
       list,
       count,
       this.entityType,
+      { retiredColumns: retiredColumns },
     );
   }
 
@@ -483,6 +495,12 @@ export default class BaseAPI<
       ) as Select<BaseModel>;
     }
 
+    // Answered as null, as getList answers them (RetiredColumns).
+    const retiredColumns: Array<string> = RetiredColumns.getNamedIn(
+      new this.entityType(),
+      select,
+    );
+
     const item: BaseModel | null = await this.service.findOneById({
       id: objectId,
       select,
@@ -504,7 +522,9 @@ export default class BaseAPI<
 
     await this.onBeforeSendRecords([item]);
 
-    return Response.sendEntityResponse(req, res, item, this.entityType);
+    return Response.sendEntityResponse(req, res, item, this.entityType, {
+      retiredColumns: retiredColumns,
+    });
   }
 
   @CaptureSpan()
@@ -812,8 +832,15 @@ export default class BaseAPI<
       data: item,
       miscDataProps: miscDataProps,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
-      // Filled in by the create: what it left out because only OneUptime writes it.
-      fieldsLeftOut: [],
+      /*
+       * Filled in by the create: what it left out because only OneUptime
+       * writes it. A column no model has now (RetiredColumns, #10469) was
+       * one such, and BaseModel.fromJSON has left it out already.
+       */
+      fieldsLeftOut: RetiredColumns.getNamedIn(
+        new this.entityType(),
+        body["data"],
+      ),
     };
 
     const savedItem: BaseModel = await this.service.create(createBy);

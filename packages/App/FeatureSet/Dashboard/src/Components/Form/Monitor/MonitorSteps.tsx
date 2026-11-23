@@ -29,16 +29,10 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Color from "Common/Types/Color";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import {
-  getSharedNameFacts,
-  getSharedNameSelect,
-} from "Common/UI/Utils/SharedNameOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
-import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 import useAsyncEffect from "use-async-effect";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -147,13 +141,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
   const [alertSeverityDropdownOptions, setAlertSeverityDropdownOptions] =
     React.useState<Array<DropdownOption>>([]);
-
-  const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
-    React.useState<Array<DropdownOption>>([]);
-
-  const [labelDropdownOptions, setLabelDropdownOptions] = React.useState<
-    Array<DropdownOption>
-  >([]);
 
   const [userDropdownOptions, setUserDropdownOptions] = React.useState<
     Array<DropdownOption>
@@ -493,20 +480,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       const liveAlertSeverities: Array<AlertSeverity> =
         ArchivedValuePicker.getLiveValues(alertSeverityList.data || []);
 
-      const onCallPolicyList: ListResult<OnCallDutyPolicy> =
-        await ModelAPI.getList({
-          modelType: OnCallDutyPolicy,
-          query: {},
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            name: true,
-            // What tells policies of one name apart (#10064).
-            ...getSharedNameSelect(OnCallDutyPolicy),
-          },
-          sort: {},
-        });
-
       if (incidentSeverityList.data) {
         setIncidentSeverityDropdownOptions(
           ArchivedValuePicker.getPickerOptions({
@@ -550,55 +523,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         }
       }
 
-      if (onCallPolicyList.data) {
-        setOnCallPolicyDropdownOptions(
-          onCallPolicyList.data.map((i: OnCallDutyPolicy) => {
-            return {
-              value: i._id!,
-              label: i.name!,
-              // A policy's name is its owner's, drawn as written.
-              isUserContent: true,
-              sharedName: getSharedNameFacts(i),
-            };
-          }),
-        );
-      }
-
-      // Fetch labels
-      const labelList: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
-        query: {},
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          name: true,
-          color: true,
-          isArchived: true,
-          // What tells labels of one name apart (#10064).
-          ...getSharedNameSelect(Label),
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-      if (labelList.data) {
-        setLabelDropdownOptions(
-          ArchivedValuePicker.getPickerOptions({
-            values: labelList.data,
-            options: DropdownUtil.getDropdownOptionsFromEntityArray({
-              array: labelList.data,
-              labelField: "name",
-              valueField: "_id",
-            }),
-            keptIds: keptArchivedIds(labelList.data),
-          }),
-        );
-      }
-
       /*
-       * Owners are picked with the people picker, which searches the
-       * project's people and teams itself.
+       * The on-call policies and labels a criteria sets are not read here:
+       * their pickers search the server and read the ones the criteria hold
+       * by their ids (CriteriaRecordPicker, #10690). The form read the
+       * project's first 10,000 of each every time it opened, only to name
+       * the picks. Owners are picked with the people picker, which searches
+       * the project's people and teams itself.
        */
 
       // Fetch users
@@ -1027,8 +958,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               monitorStatusDropdownOptions={monitorStatusDropdownOptions}
               incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
               alertSeverityDropdownOptions={alertSeverityDropdownOptions}
-              onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-              labelDropdownOptions={labelDropdownOptions}
               userDropdownOptions={userDropdownOptions}
               incidentRoleOptions={incidentRoleOptions}
               value={i}

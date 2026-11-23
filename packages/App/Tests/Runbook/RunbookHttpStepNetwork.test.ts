@@ -181,7 +181,7 @@ describe("a Runbook HTTP step behind an outbound proxy", () => {
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toBe(
-      `The outbound proxy did not take OneUptime's user name and password: it answered HTTP/1.1 407 Proxy Authentication Required, so the request to ${HOST}:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`,
+      `The outbound proxy answered HTTP/1.1 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to ${HOST}:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`,
     );
     expect(result.errorMessage).not.toContain("p@ss");
     expect(proxy.connectCredentials).toEqual([

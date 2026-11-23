@@ -1034,6 +1034,11 @@ const APPS = [1, 2, 3, 4, 5].map((number) => {
  * ---------------------------------------------------------------------------
  * Budgets: one within, one on course to pass, one past 80%, one paused
  * ---------------------------------------------------------------------------
+ *
+ * In a month's first three weeks. Later a month so far nears where it is
+ * heading - on its last day they are one figure - so the budget on course
+ * to pass (85% of where data-lake's month is heading) has passed 80% from
+ * the 22nd on. The suite reads the statuses on a month's 10th.
  */
 function summaryOf(accountRow) {
   const found = ACCOUNTS.find((row) => {

@@ -1157,8 +1157,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
             },
             pendingResourceCount,
           )}
-          onCallPolicyDropdownOptions={setup.onCallPolicyDropdownOptions}
-          labelDropdownOptions={setup.labelDropdownOptions}
+          hasOnCallPolicies={setup.hasOnCallPolicies}
           incidentSeverityOptions={setup.incidentSeverityOptions}
           alertSeverityOptions={setup.alertSeverityOptions}
           isCreating={isStarting}

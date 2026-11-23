@@ -103,8 +103,6 @@ function renderCriteria(
         monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {
@@ -412,8 +410,6 @@ function renderCriteriaList(
         monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteria) => {

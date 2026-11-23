@@ -142,8 +142,6 @@ function renderCriteriaEditor(filterCondition: FilterCondition): void {
         monitorStatusDropdownOptions={MONITOR_STATUS_OPTIONS}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {
