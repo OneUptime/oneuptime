@@ -1765,9 +1765,7 @@ describe("the Global SSO guide", () => {
     expect(
       countOf("await ProjectAPI.assertSignInClearingOwnerConfirmed(req);"),
     ).toBe(2);
-    expect(countOf("await ProjectAPI.assertSignInClearingOwner(req);")).toBe(
-      3,
-    );
+    expect(countOf("await ProjectAPI.assertSignInClearingOwner(req);")).toBe(3);
     expect(routes).toContain(
       "await Reauthentication.assertConfirmed(\n      owner.props,\n      ReauthenticationPurpose.AdminChange,\n    );",
     );

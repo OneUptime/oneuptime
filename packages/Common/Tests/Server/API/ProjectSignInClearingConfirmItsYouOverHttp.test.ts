@@ -382,9 +382,9 @@ const expectAliceCleared: (result: HttpResult) => void = (
   expect(result.body).toEqual({ peopleCleared: 1 });
   expect(clearPeople).toHaveBeenCalledTimes(1);
   expect(
-    (
-      clearPeople.mock.calls[0]![0] as { userIds: Array<ObjectID> }
-    ).userIds.map(keyOf),
+    (clearPeople.mock.calls[0]![0] as { userIds: Array<ObjectID> }).userIds.map(
+      keyOf,
+    ),
   ).toEqual([keyOf(ALICE_ID)]);
   expect(recordCleared).toHaveBeenCalledTimes(1);
 };

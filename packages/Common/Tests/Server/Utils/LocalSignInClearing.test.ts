@@ -1847,7 +1847,9 @@ describe("two clears of one person at the same moment (#10776)", () => {
       LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement({
         clearedByUserId: ADMIN_ID,
       }),
-    ).rejects.toThrow(new BadDataException(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE));
+    ).rejects.toThrow(
+      new BadDataException(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE),
+    );
 
     expect(UserTotpAuthService.countBy).not.toHaveBeenCalled();
     nothingCleared();
@@ -1885,7 +1887,9 @@ describe("two clears of one person at the same moment (#10776)", () => {
     expect(updateBy).toHaveBeenCalledTimes(1);
     expect(recordCleared).toHaveBeenCalledTimes(1);
 
-    const warned: Array<string> = (logger.warn as unknown as jest.Mock).mock.calls
+    const warned: Array<string> = (
+      logger.warn as unknown as jest.Mock
+    ).mock.calls
       .map((call: Array<unknown>): string => {
         return String(call[0]);
       })

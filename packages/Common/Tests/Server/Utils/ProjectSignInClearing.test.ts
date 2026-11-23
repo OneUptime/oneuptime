@@ -1366,7 +1366,8 @@ describe("two clears of one person at the same moment (#10776)", () => {
     ]);
     expect(
       (
-        notifyCleared.mock.calls[0]![0] as Array<SignInSettingsClearedEmailEvent>
+        notifyCleared.mock
+          .calls[0]![0] as Array<SignInSettingsClearedEmailEvent>
       ).map((event: SignInSettingsClearedEmailEvent): string => {
         return keyOf(event.userId);
       }),

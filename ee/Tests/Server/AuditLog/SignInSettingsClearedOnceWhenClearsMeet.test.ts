@@ -98,7 +98,9 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
  * recorded twice: the lock is what holds the rest.
  */
 
-const PERSON_ID: ObjectID = new ObjectID("10776000-0000-4000-8000-0000000000b1");
+const PERSON_ID: ObjectID = new ObjectID(
+  "10776000-0000-4000-8000-0000000000b1",
+);
 const ADMIN_A_ID: ObjectID = new ObjectID(
   "10776000-0000-4000-8000-0000000000a1",
 );
@@ -475,7 +477,9 @@ const standInTheWorld: () => void = (): void => {
 
   jest
     .spyOn(UserTwoFactorBackupCodeService, "countUnusedForUser")
-    .mockImplementation((async (data: { userId: ObjectID }): Promise<number> => {
+    .mockImplementation((async (data: {
+      userId: ObjectID;
+    }): Promise<number> => {
       await step();
       return personOf(data.userId)?.settings.backupCodeCount || 0;
     }) as never);
@@ -656,9 +660,9 @@ const clearOf: (kind: ClearKind, actorId: ObjectID) => Clear = (
         clearedBy: SignInSettingsClearedBy.ServerAdmin,
         run: async (): Promise<boolean> => {
           return (
-            (await LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement(
-              { clearedByUserId: actorId },
-            )) > 0
+            (await LocalSignInClearing.clearForEveryoneCoveredBySsoRequirement({
+              clearedByUserId: actorId,
+            })) > 0
           );
         },
       };
@@ -730,27 +734,29 @@ const pairOf: (first: ClearKind, second: ClearKind) => [Clear, Clear] = (
 };
 
 // The person's entries in the audit log: where, and by whom.
-const entriesOfPerson: () => Array<{ projectId: string; actorId: string }> =
-  (): Array<{ projectId: string; actorId: string }> => {
-    return inserted
-      .filter((entry: AuditLog): boolean => {
-        return keyOf(String(entry.resourceId)) === keyOf(PERSON_ID);
-      })
-      .map((entry: AuditLog): { projectId: string; actorId: string } => {
-        return {
-          projectId: keyOf(String(entry.projectId)),
-          actorId: keyOf(String(entry.userId)),
-        };
-      })
-      .sort(
-        (
-          a: { projectId: string; actorId: string },
-          b: { projectId: string; actorId: string },
-        ): number => {
-          return a.projectId.localeCompare(b.projectId);
-        },
-      );
-  };
+const entriesOfPerson: () => Array<{
+  projectId: string;
+  actorId: string;
+}> = (): Array<{ projectId: string; actorId: string }> => {
+  return inserted
+    .filter((entry: AuditLog): boolean => {
+      return keyOf(String(entry.resourceId)) === keyOf(PERSON_ID);
+    })
+    .map((entry: AuditLog): { projectId: string; actorId: string } => {
+      return {
+        projectId: keyOf(String(entry.projectId)),
+        actorId: keyOf(String(entry.userId)),
+      };
+    })
+    .sort(
+      (
+        a: { projectId: string; actorId: string },
+        b: { projectId: string; actorId: string },
+      ): number => {
+        return a.projectId.localeCompare(b.projectId);
+      },
+    );
+};
 
 // Runs the two at the same moment: whether each says it removed anything.
 const race: (pair: [Clear, Clear]) => Promise<[boolean, boolean]> = async (

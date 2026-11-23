@@ -634,11 +634,7 @@ describe("in every language", () => {
     "%s says a clear that cleared nobody in its own words (#10776)",
     async (locale: string) => {
       counts = [3, 0];
-      clearAnswer = new HTTPResponse<JSONObject>(
-        200,
-        { peopleCleared: 0 },
-        {},
-      );
+      clearAnswer = new HTTPResponse<JSONObject>(200, { peopleCleared: 0 }, {});
       const entries: Locale = readLocale(locale);
 
       await renderIn(locale);
