@@ -276,6 +276,7 @@
     "Send (Enter)",
     "Send test",
     "Send {{command}}",
+    "Sensitive data",
     "Server",
     "Server / VM",
     "Server: {{server}}",
