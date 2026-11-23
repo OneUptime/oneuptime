@@ -641,6 +641,7 @@ export default class MonitorStepViewModel {
             description: "The body is sent as text, exactly as written.",
             valueType: MonitorStepViewValueType.Text,
             value: "Text",
+            placeholder: "No data entered",
             translateValue: true,
           }
         : null,
