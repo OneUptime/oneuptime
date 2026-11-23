@@ -59,20 +59,24 @@ import {
  *     length: it is the project's settings to read, not the issue's.
  */
 
-// The columns a model is named by: never a key, additional parameters or an address.
+/*
+ * The columns a model is named by: never a key, additional parameters or an
+ * address. Nor isGlobalLlm, which nobody may read through the API: the
+ * project's providers are read with the reader's own props, and a select of
+ * it is refused to every reader, the project's owner included. A provider
+ * with a projectId is the project's own; the server's global one has none.
+ */
 const MODEL_SELECT: {
   _id: true;
   name: true;
   llmType: true;
   modelName: true;
-  isGlobalLlm: true;
   projectId: true;
 } = {
   _id: true,
   name: true,
   llmType: true,
   modelName: true,
-  isGlobalLlm: true,
   projectId: true,
 };
 
