@@ -288,7 +288,7 @@ criteria = [
 
 هر فیلتر `check_on` (به چه چیزی نگاه کند)، `filter_type` (چگونه مقایسه کند) و `value` (با چه چیزی مقایسه کند، به‌صورت رشته؛ برای بررسی‌های درست‌یا‌نادرست مانند `True` و `False` آن را ننویسید) دارد.
 
-یک فیلتر می‌تواند به‌جای آخرین بررسی، یک بازهٔ زمانی را هم بسنجد: `evaluate_over_time = true` را تعیین کنید، طول بازه را در `evaluate_over_time_minutes`، و در `evaluate_over_time_type` اینکه بازه چگونه خوانده شود: `Average`، `Sum`، `Maximum Value`، `Minimum Value`، `All Values` یا `Any Value`.
+یک فیلتر می‌تواند به‌جای آخرین بررسی، یک بازهٔ زمانی را هم بسنجد: `evaluate_over_time = true` را تعیین کنید، طول بازه را در `evaluate_over_time_minutes`، و در `evaluate_over_time_type` اینکه بازه چگونه خوانده شود: `Average`، `Sum`، `Maximum Value`، `Minimum Value`، `Percentile`، `All Values`، `Any Value`، `Count`، `Percentage` یا `Status Changes`. `Percentile` صدک `evaluate_over_time_percentile` را با مقدار فیلتر مقایسه می‌کند (اگر تنظیم نشود ۹۵). `Count`، `Percentage` و `Status Changes` برای هر پراب، بررسی‌هایی از بازه را که شرط را برآورده کردند، سهم آن‌ها به درصد، یا دفعاتی که بین برآوردن و برآورده نکردن آن تغییر کردند می‌شمارند و آن عدد را همان‌طور که `evaluate_over_time_count_filter_type` می‌گوید با `evaluate_over_time_count_value` مقایسه می‌کنند (اگر تنظیم نشود `Greater Than` ۰).
 
 `All Values` یعنی همهٔ بررسی‌های بازه قاعده را نقض کرده‌اند، پس فقط وقتی مطابقت دارد که بازه با داده پوشیده شده باشد: مانیتوری که تازه ساخته شده است به‌جای مطابقت در نخستین بررسی، منتظر پر شدن بازه‌اش می‌ماند. بازه‌ای دست‌کم دو برابر `monitoring_interval` مانیتور به آن بدهید؛ وگرنه بازه یک بررسی را در خود دارد، و «همهٔ مقدارها» همان معنای «هر مقداری» را می‌دهد. `Any Value` عمداً با یک بررسیِ ناقضِ قاعده مطابقت دارد.
 
