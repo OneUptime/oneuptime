@@ -44,6 +44,7 @@ import logger, {
   type LogAttributes,
 } from "./Logger";
 import "./Process";
+import ClientRefusalLog, { isClientRefusal } from "./ClientRefusalLog";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
 import TelemetryContext from "./Telemetry/TelemetryContext";
@@ -596,6 +597,13 @@ const addDefaultRoutes: PromiseVoidFunction = async (): Promise<void> => {
   app.use(expressErrorHandler);
 };
 
+// The status an Exception is answered with: its code, or 500 for one that is no status.
+const statusOf: (exception: Exception) => number = (
+  exception: Exception,
+): number => {
+  return StatusCode.isValidStatusCode(exception.code) ? exception.code : 500;
+};
+
 /**
  * The last-resort error handler: whatever it writes is what the browser reads,
  * so its job is to preserve the diagnosis rather than flatten it.
@@ -642,7 +650,18 @@ export const expressErrorHandler: (
     return;
   }
 
-  logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
+  /*
+   * A refusal of what the client sent - a route's next(err) with a
+   * BadDataException, a NotAuthenticatedException and the rest of the 4xx
+   * that say the fault is the client's - is logged at debug and counted by
+   * its route, as Response.sendErrorResponse logs one (#10768): it comes
+   * from anyone. Everything else, every 5xx, is logged at error.
+   */
+  if (err instanceof Exception && isClientRefusal(err, statusOf(err))) {
+    ClientRefusalLog.log(_req, err, statusOf(err));
+  } else {
+    logger.error(err, getLogAttributesFromRequest(_req as OneUptimeRequest));
+  }
 
   /*
    * Deliberately does NOT record the exception on a span.
@@ -726,9 +745,7 @@ export const expressErrorHandler: (
      */
     const exception: Exception = err as Exception;
 
-    const status: number = StatusCode.isValidStatusCode(exception.code)
-      ? exception.code
-      : 500;
+    const status: number = statusOf(exception);
 
     /*
      * An Exception thrown with no message, or with only "Server Error"
