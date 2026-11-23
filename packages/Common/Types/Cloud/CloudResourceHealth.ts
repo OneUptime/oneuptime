@@ -1471,6 +1471,18 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
     ],
   },
   {
+    // A site's deployment slot (#6793), judged by its own answers as a site is.
+    provider: AZURE,
+    types: ["Microsoft.Web/sites/slots"],
+    rules: [
+      failedShare({
+        failures: ["http5xx"],
+        total: "requests",
+        reason: REASON_REQUESTS_FAILED,
+      }),
+    ],
+  },
+  {
     provider: AZURE,
     types: ["Microsoft.Web/serverfarms"],
     rules: [memoryHigh("memorypercentage")],
@@ -2465,6 +2477,17 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("filesystemusage", HEADLINE_STORAGE_USED, "bytes", {
           onlySome: true,
         }),
+      ],
+    },
+    {
+      // A site's deployment slot (#6793): what its own page leads with, as a site's.
+      provider: AZURE,
+      types: ["Microsoft.Web/sites/slots"],
+      readings: [
+        headline("requests", HEADLINE_REQUESTS, "count"),
+        headline("httpresponsetime", HEADLINE_RESPONSE_TIME, "seconds"),
+        headline("http5xx", HEADLINE_ERRORS, "perPeriod"),
+        headline("memoryworkingset", HEADLINE_MEMORY, "bytes"),
       ],
     },
     {

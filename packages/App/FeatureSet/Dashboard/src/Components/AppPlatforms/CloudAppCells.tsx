@@ -287,10 +287,12 @@ export const APP_P95_SUMMARY: string = translationKey("p95 {{latency}}");
 export const APP_NO_REQUESTS: string = translationKey("No requests");
 
 /*
- * An App Service app that sends no traces, in a list (#10406): its site's
- * numbers from Azure Monitor - 5xx answers, not every error a trace calls
- * one, and a mean response time, not a p95 - each said as what it is, and
- * the source named under them, so no one reads them as traced requests.
+ * An app that sends no traces, in a list (#10406, #6794): the numbers its
+ * provider's monitoring measures for the resource it runs as - 5xx answers,
+ * not every error a trace calls one, and a mean response time or a 95th
+ * percentile, each said as what it is - and the service named under them
+ * (Azure Monitor, Google Cloud Monitoring, Amazon CloudWatch), so no one
+ * reads them as traced requests.
  */
 export const APP_PLATFORM_SERVER_ERRORS_SUMMARY: string = translationKey(
   "{{rate}} server errors",
@@ -299,8 +301,13 @@ export const APP_PLATFORM_RESPONSE_TIME_SUMMARY: string = translationKey(
   "{{latency}} on average",
 );
 export const APP_PLATFORM_SIGNALS_SOURCE: string = AZURE_MONITOR_SECTION_TITLE;
+// An App Service app's: its site's (or its slot's) numbers.
 export const APP_PLATFORM_SIGNALS_HINT: string = translationKey(
   "No traces received from this app. These are its site's numbers from Azure Monitor: every request the site answered, the share answered with a 5xx status, and the average response time.",
+);
+// Any other platform's, by the service that measured them.
+export const APP_PLATFORM_SIGNALS_SERVICE_HINT: string = translationKey(
+  "No traces received from this app. These are its numbers from {{service}}, which counts its requests whatever the app sends.",
 );
 
 export interface CloudAppPlatformSignalsSummaryProps {
@@ -313,11 +320,11 @@ interface PlatformSignalDetail {
 }
 
 /*
- * An App Service app's site's last hour, as Azure Monitor counted it: its
- * 5xx share first - toned as a traced error rate is - then its requests
- * and mean response time, and "Azure Monitor" under them. A site that
- * answered nothing says so; a number Azure Monitor did not report is left
- * out, never written as 0.
+ * The last hour of the resource an app runs as, as its provider's
+ * monitoring counted it: its 5xx share first - toned as a traced error rate
+ * is - then its requests and its mean response time (or its p95), and the
+ * service under them. A resource that answered nothing says so; a number
+ * the service did not report is left out, never written as 0.
  */
 export const CloudAppPlatformSignalsSummary: FunctionComponent<
   CloudAppPlatformSignalsSummaryProps
@@ -336,11 +343,23 @@ export const CloudAppPlatformSignalsSummary: FunctionComponent<
   const responseText: string | null =
     responseTimeMs === null
       ? null
-      : translator.translateTemplate(APP_PLATFORM_RESPONSE_TIME_SUMMARY, {
-          latency: composedValue((sentence: Translator): string => {
-            return formatDurationMsInLanguage(responseTimeMs, sentence);
-          }),
-        });
+      : translator.translateTemplate(
+          signals.latency === "p95"
+            ? APP_P95_SUMMARY
+            : APP_PLATFORM_RESPONSE_TIME_SUMMARY,
+          {
+            latency: composedValue((sentence: Translator): string => {
+              return formatDurationMsInLanguage(responseTimeMs, sentence);
+            }),
+          },
+        );
+  const service: string = signals.service || APP_PLATFORM_SIGNALS_SOURCE;
+  // An App Service site's, or slot's, says what a site's numbers are.
+  const hint: string = signals.isAppService
+    ? translator.translateText(APP_PLATFORM_SIGNALS_HINT)
+    : translator.translateTemplate(APP_PLATFORM_SIGNALS_SERVICE_HINT, {
+        service,
+      });
   const hasRate: boolean = signals.serverErrorRatePercent !== null;
 
   // What the first line does not say, in the line under it.
@@ -391,7 +410,7 @@ export const CloudAppPlatformSignalsSummary: FunctionComponent<
   return (
     <div
       className="min-w-0"
-      title={translator.translateText(APP_PLATFORM_SIGNALS_HINT)}
+      title={hint}
       data-testid="cloud-app-platform-signals"
     >
       {firstLine}
@@ -421,7 +440,7 @@ export const CloudAppPlatformSignalsSummary: FunctionComponent<
           icon={IconProp.Cloud}
           className="h-3 w-3 flex-shrink-0 text-gray-400"
         />
-        <span>{translator.translateText(APP_PLATFORM_SIGNALS_SOURCE)}</span>
+        <span>{translator.translateText(service) || service}</span>
       </div>
     </div>
   );

@@ -144,8 +144,8 @@ export interface CloudConnectionPullDependencies {
    */
   findRetiredMetricReads?: CloudRetiredMetricReadsFinder | undefined;
   /*
-   * Ties the project's App Service apps to their sites once an Azure read
-   * has kept them (#10407): CloudAppService's, unless a test's.
+   * Ties the project's apps to the cloud resources they run as once a read
+   * has kept them (#10407, #6794): CloudAppService's, unless a test's.
    */
   linkAppPlatformResources?: AppPlatformResourceLinker | undefined;
 }
@@ -275,8 +275,9 @@ export default class CloudConnectionPullRunner {
   }
 
   /*
-   * The project's App Service apps tied to their sites (#10407), after an
-   * Azure read: a failure is logged, and the hourly sweep links again.
+   * The project's apps tied to the cloud resources they run as (#10407,
+   * #6794), after a read: a failure is logged, and the hourly sweep links
+   * again.
    */
   public static async linkAppPlatformResources(data: {
     projectId: ObjectID;
@@ -291,7 +292,7 @@ export default class CloudConnectionPullRunner {
       )({ projectId: data.projectId });
     } catch (error) {
       logger.error(
-        `Cloud connection read: the App Service apps of project ${data.projectId.toString()} could not be tied to their sites: ${
+        `Cloud connection read: the apps of project ${data.projectId.toString()} could not be tied to the cloud resources they run as: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -648,17 +649,17 @@ export default class CloudConnectionPullRunner {
       });
 
       /*
-       * The project's App Service apps tied to their sites again (#10407):
-       * a site this read listed or created is matched, and one it archived
-       * - gone from its subscription, or moved, which gives it a new id -
-       * lets its app go. Never fails the read.
+       * The project's apps tied to the cloud resources they run as again
+       * (#10407): an App Service site or slot or a Container App an Azure
+       * read listed, a Cloud Run or App Engine service a Google Cloud one
+       * did, an App Runner or ECS service an AWS one did (#6794), is
+       * matched, and one it archived - gone from its account, or moved,
+       * which gives it a new id - lets its app go. Never fails the read.
        */
-      if (definition.provider === CloudProvider.Azure) {
-        await CloudConnectionPullRunner.linkAppPlatformResources({
-          projectId: connection.projectId,
-          link: dependencies.linkAppPlatformResources,
-        });
-      }
+      await CloudConnectionPullRunner.linkAppPlatformResources({
+        projectId: connection.projectId,
+        link: dependencies.linkAppPlatformResources,
+      });
 
       // What the connection holds after the last sync of this read.
       const held: CloudConnectionSyncResult = inventory.synced || synced;

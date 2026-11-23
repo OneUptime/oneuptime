@@ -321,6 +321,90 @@ export const fetchMetricSeries: (
   }
 };
 
+// One bucket of one group of a grouped metric read.
+export interface GroupedTimePoint {
+  x: Date;
+  // The value of the attribute the read is grouped by, as stored ("" when absent).
+  group: string;
+  y: number;
+}
+
+/*
+ * Time series for a named Metric, one per value of `groupBy` - a Cloud Run
+ * request count per response_code_class, an App Engine one per
+ * response_code (CloudAppPlatformMetrics) - each bucket's value of each
+ * group. Rejects when the read fails, so a caller can tell nothing from
+ * not known.
+ */
+export const fetchGroupedMetricSeries: (
+  scope: MetricScope & { groupBy: string },
+) => Promise<Array<GroupedTimePoint>> = async (
+  scope: MetricScope & { groupBy: string },
+): Promise<Array<GroupedTimePoint>> => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+  if (!projectId) {
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: any = {
+    projectId: projectId,
+    time: new InBetween<Date>(scope.start, scope.end),
+    name: scope.name,
+  };
+  if (scope.attributes && Object.keys(scope.attributes).length > 0) {
+    query.attributes = scope.attributes;
+  }
+
+  const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+    modelType: Metric,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    aggregateBy: {
+      query: query,
+      aggregationType: scope.aggregationType,
+      ...(scope.aggregationInterval
+        ? { aggregationInterval: scope.aggregationInterval }
+        : {}),
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      startTimestamp: scope.start,
+      endTimestamp: scope.end,
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: { time: SortOrder.Descending },
+      groupByAttributeKeys: [scope.groupBy],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  });
+
+  const points: Array<GroupedTimePoint> = [];
+
+  for (const row of (result.data || []) as Array<AggregatedModel>) {
+    const x: Date | null = getBucketDate(row);
+    const y: number = Number(row["value"]);
+    const attributes: unknown = row["attributes"];
+    const group: unknown =
+      attributes && typeof attributes === "object"
+        ? (attributes as Record<string, unknown>)[scope.groupBy]
+        : undefined;
+
+    if (x && Number.isFinite(y)) {
+      points.push({
+        x,
+        group:
+          typeof group === "string" || typeof group === "number"
+            ? String(group)
+            : "",
+        y,
+      });
+    }
+  }
+
+  return points.sort((a: GroupedTimePoint, b: GroupedTimePoint): number => {
+    return a.x.getTime() - b.x.getTime();
+  });
+};
+
 export interface WebVital {
   key: string;
   label: string;

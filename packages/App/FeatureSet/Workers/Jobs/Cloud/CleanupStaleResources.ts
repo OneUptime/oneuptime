@@ -76,13 +76,15 @@ import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
  *      environment's own lastSeenAt, as the instance prune is: an
  *      environment whose telemetry stopped altogether keeps its apps and
  *      their history until it reports again.
- *   6. Every App Service app is tied again to the site Azure Monitor
- *      reports it as (#10407, CloudAppService.linkPlatformResources): the
- *      sweep in step 4 archives a site that went silent and restores one
- *      that reports again, a collector discovers sites no connection
- *      reads, and a person deletes one - each changes which site an app
- *      keeps. An Azure connection's read links its project's apps as it
- *      ends; this catches the rest, and ties the apps that were there
+ *   6. Every app of a platform its provider's monitoring measures (an App
+ *      Service site or slot, a Container App, a Cloud Run, App Engine, App
+ *      Runner or ECS service) is tied again to the Cloud Resource it runs
+ *      as (#10407, #6793, #6794, CloudAppService.linkPlatformResources):
+ *      the sweep in step 4 archives a resource that went silent and
+ *      restores one that reports again, a collector discovers resources no
+ *      connection reads, and a person deletes one - each changes which
+ *      resource an app keeps. A connection's read links its project's apps
+ *      as it ends; this catches the rest, and ties the apps that were there
  *      before the link was kept.
  * ------------------------------------------------------------------
  */
@@ -147,12 +149,13 @@ async function pruneUnseenAppsAndRevisions(): Promise<void> {
 }
 
 /*
- * Step 6: every project's App Service apps, tied again to their sites. One
- * project failing is logged by the link itself, and the others go on.
+ * Step 6: every project's apps, tied again to the cloud resources they run
+ * as. One project failing is logged by the link itself, and the others go
+ * on.
  */
-async function linkAppServiceAppsToTheirSites(): Promise<void> {
+async function linkAppsToTheirCloudResources(): Promise<void> {
   const projectIds: Array<ObjectID> =
-    await CloudAppService.findProjectIdsWithAppServiceApps();
+    await CloudAppService.findProjectIdsWithPlatformResourceApps();
   let changed: number = 0;
 
   for (const projectId of projectIds) {
@@ -163,7 +166,7 @@ async function linkAppServiceAppsToTheirSites(): Promise<void> {
 
   if (changed > 0) {
     logger.debug(
-      `${JOB_NAME}: tied ${changed} App Service app(s) to another site, or to none`,
+      `${JOB_NAME}: tied ${changed} app(s) to another cloud resource, or to none`,
     );
   }
 }
@@ -226,10 +229,10 @@ RunCron(
         }
 
         try {
-          await linkAppServiceAppsToTheirSites();
+          await linkAppsToTheirCloudResources();
         } catch (err) {
           logger.error(
-            `${JOB_NAME}: tying App Service apps to their sites failed: ${err instanceof Error ? err.message : String(err)}`,
+            `${JOB_NAME}: tying apps to the cloud resources they run as failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

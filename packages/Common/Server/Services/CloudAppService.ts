@@ -17,16 +17,16 @@ import {
   getCloudAppSignalColumn,
 } from "../../Types/Cloud/CloudAppTelemetrySignal";
 import {
-  APP_SERVICE_SITE_TYPE,
+  CLOUD_APP_PLATFORMS_WITH_RESOURCE,
   CloudAppPlatformEnvironment,
+  CloudAppPlatformResourceKind,
   CloudAppSiteResolution,
-  isAppServiceApp,
-  resolveCloudAppSite,
+  ECS_SERVICE_TYPE,
+  getCloudAppPlatformResourceKind,
+  getCloudAppPlatformResourceType,
+  isCloudAppPlatformWithResource,
+  resolveCloudAppPlatformResource,
 } from "../../Types/Cloud/CloudAppPlatformResourceMatch";
-import {
-  CloudProvider,
-  ManagedCloudPlatform,
-} from "../../Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
 
 /*
@@ -35,10 +35,12 @@ import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
  * the Cloud:CleanupStaleResources worker once an app has sent nothing for
  * CLOUD_APP_RETENTION_DAYS.
  *
- * Each App Service app is also tied to the site Azure Monitor reports it as
- * (linkPlatformResources, #10407), and keeps it
+ * Each app of a managed platform its provider's monitoring measures - an
+ * App Service site or slot, a Container App, a Cloud Run, App Engine, App
+ * Runner or ECS service - is also tied to the Cloud Resource it runs as
+ * (linkPlatformResources, #10407, #6793, #6794), and keeps it
  * (CloudApp.platformCloudResourceId): its page, its lists, monitors and the
- * AI then read the site without looking it up again.
+ * AI then read the resource without looking it up again.
  */
 
 // How long an app that sends nothing stays listed, by default.
@@ -56,25 +58,45 @@ export interface CloudAppLinkSource {
   keptSiteId: string;
 }
 
-// A site an app could be tied to, as the matching reads it.
+// A resource an app could be tied to, as the matching reads it.
 export interface CloudAppSiteCandidate {
   id: string;
   providerResourceId: string;
   lastSeenAt: Date | null;
   cloudRegion: string;
+  // Its type: only an app that runs as one of it is tied to it.
+  cloudResourceType?: string | undefined;
+  // The account it is in: an AWS account, a Google Cloud project.
+  cloudAccountId?: string | undefined;
+  // What the inventory lists of it: an ECS service's TaskDefinition.
+  cloudProperties?: unknown;
 }
 
-// One app whose kept site changes, and to what (empty: none).
+// One app whose kept resource changes, and to what (empty: none).
 export interface CloudAppPlatformLinkChange {
   appId: string;
   siteId: string;
 }
 
+// What the matching reads of an app.
+interface CloudAppMatchSource {
+  name: string;
+  groupName: string;
+  cloudPlatform: string;
+  providerResourceId: string;
+}
+
+// A type as compared: CloudResourceCatalog's lookups ignore case.
+function typeText(type: string | null | undefined): string {
+  return (type || "").trim().toLowerCase();
+}
+
 /*
- * The links the site rows call for, by the rules the app's page reads by
- * (resolveCloudAppSite): for each app, the site it should keep when that is
- * not the one it keeps - another, or none. Pure, so the decisions are
- * tested alone.
+ * The links the resource rows call for, by the rules the app's page reads
+ * by (resolveCloudAppPlatformResource): for each app, the resource it
+ * should keep when that is not the one it keeps - another, or none. Each
+ * app is matched among the rows of the type it runs as alone. Pure, so the
+ * decisions are tested alone.
  */
 export function getCloudAppPlatformLinkChanges(data: {
   apps: ReadonlyArray<CloudAppLinkSource>;
@@ -84,15 +106,24 @@ export function getCloudAppPlatformLinkChanges(data: {
   const changes: Array<CloudAppPlatformLinkChange> = [];
 
   for (const app of data.apps) {
+    const source: CloudAppMatchSource = {
+      name: app.name,
+      groupName: app.groupName,
+      cloudPlatform: app.cloudPlatform,
+      providerResourceId: app.providerResourceId,
+    };
+    const type: string = typeText(getCloudAppPlatformResourceType(source));
     const resolution: CloudAppSiteResolution<CloudAppSiteCandidate> =
-      resolveCloudAppSite({
-        app: {
-          name: app.name,
-          groupName: app.groupName,
-          cloudPlatform: app.cloudPlatform,
-          providerResourceId: app.providerResourceId,
-        },
-        candidates: data.sites,
+      resolveCloudAppPlatformResource({
+        app: source,
+        candidates: data.sites.filter(
+          (site: CloudAppSiteCandidate): boolean => {
+            return (
+              !site.cloudResourceType ||
+              typeText(site.cloudResourceType) === type
+            );
+          },
+        ),
         environment: data.environments.get(app.environmentId) || null,
       });
     const siteId: string = resolution.site ? resolution.site.id : "";
@@ -186,9 +217,9 @@ export class Service extends DatabaseService<Model> {
       });
 
       /*
-       * Its telemetry names another site (#10407): the app is tied to that
-       * one. Unchanged, nothing is looked up - this runs once per app and
-       * kind per ingest window.
+       * Its telemetry names another resource (#10407): the app is tied to
+       * that one. Unchanged, nothing is looked up - this runs once per app
+       * and kind per ingest window.
        */
       if (
         data.identity.providerResourceId &&
@@ -269,7 +300,7 @@ export class Service extends DatabaseService<Model> {
       return raced;
     }
 
-    // A new App Service app is tied to its site at once (#10407).
+    // A new app is tied to the resource it runs as at once (#10407).
     await this.linkPlatformResourcesSafely({
       projectId: data.projectId,
       appIds: [createdId],
@@ -323,20 +354,22 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Ties each App Service app of the project - or only `appIds` - to the
-   * site Azure Monitor reports it as, and keeps it on the app
+   * Ties each app of the project - or only `appIds` - to the Cloud Resource
+   * its provider's monitoring reports it as, and keeps it on the app
    * (CloudApp.platformCloudResourceId, #10407), by the rules the app's page
-   * reads it by (resolveCloudAppSite): its cloud.resource_id's site, else
-   * one of its name in the subscription its telemetry names, its region
-   * first. Only a live site is one: a site gone from its subscription (or
-   * silent for a week) is archived, and an app tied to it is untied - or
-   * tied to the site that took its place, as a site moved to another
-   * resource group or subscription gets a new id, and a new row.
+   * reads it by (resolveCloudAppPlatformResource): an App Service app's site
+   * or slot (#6793), a Container App, a Cloud Run, App Engine, App Runner or
+   * ECS service (#6794). Only a live resource is one: a resource gone from
+   * its account (or silent for a week) is archived, and an app tied to it
+   * is untied - or tied to the resource that took its place, as a site
+   * moved to another resource group or subscription gets a new id, and a
+   * new row.
    *
    * Read and written as root: the link is a fact about the two rows, and
-   * every reader of it reads the site itself with their own permissions
-   * (the page and lists never show a site the reader may not read). Only
-   * the links that change are written. Returns how many did.
+   * every reader of it reads the resource itself with their own permissions
+   * (the page and lists never show a resource the reader may not read).
+   * Only the rows of the types the apps run as are read, and only the links
+   * that change are written. Returns how many did.
    */
   @CaptureSpan()
   public async linkPlatformResources(data: {
@@ -350,7 +383,7 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
-        cloudPlatform: ManagedCloudPlatform.AzureAppService,
+        cloudPlatform: QueryHelper.any([...CLOUD_APP_PLATFORMS_WITH_RESOURCE]),
         ...(data.appIds ? { _id: QueryHelper.any(data.appIds) } : {}),
       },
       select: {
@@ -380,7 +413,7 @@ export class Service extends DatabaseService<Model> {
         };
       })
       .filter((app: CloudAppLinkSource): boolean => {
-        return Boolean(app.id) && isAppServiceApp(app);
+        return Boolean(app.id) && isCloudAppPlatformWithResource(app.cloudPlatform);
       });
 
     if (apps.length === 0) {
@@ -399,9 +432,25 @@ export class Service extends DatabaseService<Model> {
       ),
     );
 
-    const [environmentRows, siteRows]: [
+    // The types the apps run as, each with its cloud, read once each.
+    const types: Map<string, { provider: string; type: string }> = new Map<
+      string,
+      { provider: string; type: string }
+    >();
+
+    for (const app of apps) {
+      const kind: CloudAppPlatformResourceKind | null =
+        getCloudAppPlatformResourceKind(app.cloudPlatform);
+      const type: string | null = getCloudAppPlatformResourceType(app);
+
+      if (kind && type && !types.has(typeText(type))) {
+        types.set(typeText(type), { provider: kind.provider, type });
+      }
+    }
+
+    const [environmentRows, ...resourceRows]: [
       Array<CloudResource>,
-      Array<CloudResource>,
+      ...Array<Array<CloudResource>>,
     ] = await Promise.all([
       environmentIds.length > 0
         ? CloudResourceService.findBy({
@@ -415,24 +464,37 @@ export class Service extends DatabaseService<Model> {
             props: { isRoot: true },
           })
         : Promise.resolve([] as Array<CloudResource>),
-      CloudResourceService.findBy({
-        query: {
-          projectId: data.projectId,
-          cloudResourceKind: CloudResourceKind.Resource,
-          cloudProvider: CloudProvider.Azure,
-          cloudResourceType: APP_SERVICE_SITE_TYPE,
-          isArchived: false,
+      ...Array.from(types.values()).map(
+        (entry: {
+          provider: string;
+          type: string;
+        }): Promise<Array<CloudResource>> => {
+          return CloudResourceService.findBy({
+            query: {
+              projectId: data.projectId,
+              cloudResourceKind: CloudResourceKind.Resource,
+              cloudProvider: entry.provider,
+              cloudResourceType: entry.type,
+              isArchived: false,
+            },
+            select: {
+              _id: true,
+              providerResourceId: true,
+              lastSeenAt: true,
+              cloudRegion: true,
+              cloudAccountId: true,
+              cloudResourceType: true,
+              // The task definition an ECS service runs, as its inventory lists it.
+              ...(entry.type === ECS_SERVICE_TYPE
+                ? { cloudProperties: true }
+                : {}),
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            props: { isRoot: true },
+          });
         },
-        select: {
-          _id: true,
-          providerResourceId: true,
-          lastSeenAt: true,
-          cloudRegion: true,
-        },
-        skip: 0,
-        limit: LIMIT_MAX,
-        props: { isRoot: true },
-      }),
+      ),
     ]);
 
     const environments: Map<string, CloudAppPlatformEnvironment> = new Map<
@@ -447,13 +509,17 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    const sites: Array<CloudAppSiteCandidate> = siteRows
+    const sites: Array<CloudAppSiteCandidate> = resourceRows
+      .flat()
       .map((site: CloudResource): CloudAppSiteCandidate => {
         return {
           id: idText(site._id),
           providerResourceId: site.providerResourceId || "",
           lastSeenAt: site.lastSeenAt ? new Date(site.lastSeenAt) : null,
           cloudRegion: site.cloudRegion || "",
+          cloudResourceType: site.cloudResourceType || undefined,
+          cloudAccountId: site.cloudAccountId || undefined,
+          cloudProperties: site.cloudProperties || undefined,
         };
       })
       .filter((site: CloudAppSiteCandidate): boolean => {
@@ -481,17 +547,18 @@ export class Service extends DatabaseService<Model> {
   /*
    * linkPlatformResources where a failure must not fail what called it - an
    * ingest batch, a cloud connection's read, a sweep: logged, and the next
-   * sweep links again. Nothing is read for an app of another platform.
+   * sweep links again. Nothing is read for an app of a platform whose apps
+   * run as no resource a connection reads.
    */
   public async linkPlatformResourcesSafely(data: {
     projectId: ObjectID;
     appIds?: Array<ObjectID> | undefined;
-    // The calling app's platform, when known: only App Service apps link.
+    // The calling app's platform, when known.
     cloudPlatform?: string | undefined;
   }): Promise<number> {
     if (
       data.cloudPlatform !== undefined &&
-      data.cloudPlatform !== ManagedCloudPlatform.AzureAppService
+      !isCloudAppPlatformWithResource(data.cloudPlatform)
     ) {
       return 0;
     }
@@ -503,7 +570,7 @@ export class Service extends DatabaseService<Model> {
       });
     } catch (error) {
       logger.error(
-        `CloudApp: could not tie the App Service apps of project ${data.projectId.toString()} to their sites: ${
+        `CloudApp: could not tie the apps of project ${data.projectId.toString()} to the cloud resources they run as: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -512,15 +579,20 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // The projects that hold an App Service app, for the hourly link sweep.
+  /*
+   * The projects that hold an app of a platform whose apps run as a Cloud
+   * Resource a connection reads, for the hourly link sweep.
+   */
   @CaptureSpan()
-  public async findProjectIdsWithAppServiceApps(): Promise<Array<ObjectID>> {
+  public async findProjectIdsWithPlatformResourceApps(): Promise<
+    Array<ObjectID>
+  > {
     const rows: unknown = await this.getRepository().manager.query(
       `SELECT DISTINCT "projectId"
         FROM "CloudApp"
-        WHERE "cloudPlatform" = $1
+        WHERE "cloudPlatform" = ANY($1)
           AND "deletedAt" IS NULL`,
-      [ManagedCloudPlatform.AzureAppService],
+      [[...CLOUD_APP_PLATFORMS_WITH_RESOURCE]],
     );
 
     return (Array.isArray(rows) ? rows : [])

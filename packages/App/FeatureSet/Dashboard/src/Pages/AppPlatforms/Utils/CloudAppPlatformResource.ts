@@ -1,30 +1,45 @@
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import EndsWith from "Common/Types/BaseDatabase/EndsWith";
+import Query from "Common/Types/BaseDatabase/Query";
+import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getAzureStoredMetricName } from "Common/Types/Cloud/CloudKeyMetrics";
 import {
+  APP_ENGINE_SERVICE_TYPE,
+  APP_RUNNER_SERVICE_TYPE,
   APP_SERVICE_PRODUCTION_SLOT,
   APP_SERVICE_SITE_TYPE,
+  APP_SERVICE_SLOT_TYPE,
+  CLOUD_RUN_SERVICE_TYPE,
+  CONTAINER_APP_TYPE,
   CloudAppPlatformEnvironment,
+  CloudAppPlatformResourceKind,
   CloudAppPlatformResourceSource,
   CloudAppSiteMatch,
   CloudAppSiteResolution,
   CloudAppSubscription,
   CloudAppSubscriptionSource,
   CloudPlatformResourceCandidate,
+  ECS_SERVICE_TYPE,
   getAppServiceSiteIdSuffix,
+  getAppServiceSlotIdSuffix,
+  getCloudAppPlatformResourceKind,
+  getCloudAppPlatformResourceName,
+  getCloudAppPlatformResourceType,
   getCloudAppSiteMatchOf,
   getCloudAppSiteName,
   getCloudAppSlotName,
   getCloudAppSubscription,
+  getContainerAppIdSuffix,
+  getGcpServiceIdSuffix,
   hasCloudAppPlatformResource,
   isAppServiceApp,
   matchCloudAppPlatformResource,
   normalizeAzureRegion,
   normalizeAzureSubscription,
+  resolveCloudAppPlatformResource,
   resolveCloudAppSite,
 } from "Common/Types/Cloud/CloudAppPlatformResourceMatch";
-import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudResourceReading,
   CloudResourceReadings,
@@ -42,18 +57,19 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * THE CLOUD RESOURCE AN APP RUNS AS, AS THE DASHBOARD READS IT (issue
- * #6770): an App Service app's site, whose Azure Monitor numbers its page
- * and its lists show beside its own.
+ * THE CLOUD RESOURCE AN APP RUNS AS, AS THE DASHBOARD READS IT (issues
+ * #6770, #6793, #6794): an App Service app's site or slot, a Container App,
+ * a Cloud Run, App Engine, App Runner or ECS service, whose numbers - as
+ * Azure Monitor, Google Cloud Monitoring or Amazon CloudWatch measure them -
+ * its page and its lists show beside its own.
  *
- * Which site is the app's is decided in one place, for the server and the
- * page alike (Common/Types/Cloud/CloudAppPlatformResourceMatch, re-exported
- * here): its cloud.resource_id's, else one named as the app is in the
- * subscription its telemetry names. The server keeps the answer on the app
+ * Which resource is the app's is decided in one place, for the server and
+ * the page alike (Common/Types/Cloud/CloudAppPlatformResourceMatch,
+ * re-exported here). The server keeps the answer on the app
  * (CloudApp.platformCloudResourceId, #10407); this file reads the rows -
- * the kept site, or the candidates while none is kept - with the reader's
- * own permissions, names and sums the site's metrics, and is otherwise
- * React-free, so all of it is tested without a renderer.
+ * the kept resource, or the candidates while none is kept - with the
+ * reader's own permissions, names and sums an App Service site's metrics,
+ * and is otherwise React-free, so all of it is tested without a renderer.
  */
 
 export type {
@@ -67,9 +83,12 @@ export type {
 export {
   APP_SERVICE_PRODUCTION_SLOT,
   APP_SERVICE_SITE_TYPE,
+  APP_SERVICE_SLOT_TYPE,
   CloudAppSiteMatch,
   CloudAppSubscriptionSource,
   getAppServiceSiteIdSuffix,
+  getAppServiceSlotIdSuffix,
+  getCloudAppPlatformResourceType,
   getCloudAppSiteMatchOf,
   getCloudAppSiteName,
   getCloudAppSlotName,
@@ -79,16 +98,19 @@ export {
   matchCloudAppPlatformResource,
   normalizeAzureRegion,
   normalizeAzureSubscription,
+  resolveCloudAppPlatformResource,
   resolveCloudAppSite,
 };
 
 /*
- * The most rows one look-up reads: far more than name one site - one per
- * subscription that holds a site of that name.
+ * The most rows one look-up reads: far more than name one resource - one
+ * per subscription that holds a site of that name, one per App Runner
+ * service of an account's Region (30 at most, by default), one per service
+ * of an ECS cluster.
  */
 export const CLOUD_APP_PLATFORM_RESOURCE_READ_LIMIT: number = 50;
 
-// What the look-up reads of each site row.
+// What the look-up reads of each resource row.
 export const CLOUD_APP_SITE_SELECT: Readonly<Record<string, true>> = {
   _id: true,
   name: true,
@@ -103,36 +125,106 @@ export const CLOUD_APP_SITE_SELECT: Readonly<Record<string, true>> = {
   telemetryAttributes: true,
   cloudReadings: true,
   cloudReadingsAt: true,
+  // The task definition an ECS service runs, which ties it to its app.
+  cloudProperties: true,
   lastSeenAt: true,
 };
 
 /*
- * Read the Azure site rows that could be the app's: those whose ARM id ends
- * with a site of the app's name (getAppServiceSiteIdSuffix), in whichever
- * subscription; resolveCloudAppSite picks among them. A site gone from its
- * subscription (archived) is not one, as the server's link leaves it out
- * too. Empty when the app has no site to look up. Rejects when the read
- * fails, so the page can tell "not found" from "could not check".
+ * What narrows the rows that could be the app's resource, beside its type:
+ * the end of their id where it names the resource (an ARM id, a Google
+ * Cloud full resource name), else the account and Region its environment
+ * names, or the cluster in an ECS service's ARN. Null for an app with none
+ * to look up.
  */
-export async function fetchCloudAppSiteCandidates(
+export function getCloudAppPlatformCandidateQuery(
   app: CloudAppPlatformResourceSource,
+  environment?: CloudAppPlatformEnvironment | null | undefined,
+): Query<CloudResource> | null {
+  const kind: CloudAppPlatformResourceKind | null =
+    getCloudAppPlatformResourceKind(app.cloudPlatform);
+  const type: string | null = getCloudAppPlatformResourceType(app);
+
+  if (!kind || !type || !hasCloudAppPlatformResource(app)) {
+    return null;
+  }
+
+  const name: string = getCloudAppPlatformResourceName(app);
+  const account: string = (environment?.cloudAccountId || "").trim();
+  const region: string = (environment?.cloudRegion || "").trim();
+  const query: Query<CloudResource> = {
+    cloudResourceKind: CloudResourceKind.Resource,
+    cloudProvider: kind.provider,
+    cloudResourceType: type,
+    isArchived: false,
+  } as Query<CloudResource>;
+
+  switch (type) {
+    case APP_SERVICE_SITE_TYPE:
+      query.providerResourceId = new EndsWith(
+        getAppServiceSiteIdSuffix(getCloudAppSiteName(app)),
+      );
+      break;
+    case APP_SERVICE_SLOT_TYPE:
+      query.providerResourceId = new EndsWith(
+        getAppServiceSlotIdSuffix(
+          getCloudAppSiteName(app),
+          getCloudAppSlotName(app) || "",
+        ),
+      );
+      break;
+    case CONTAINER_APP_TYPE:
+      query.providerResourceId = new EndsWith(getContainerAppIdSuffix(name));
+      break;
+    case CLOUD_RUN_SERVICE_TYPE:
+    case APP_ENGINE_SERVICE_TYPE:
+      query.providerResourceId = new EndsWith(getGcpServiceIdSuffix(name));
+      break;
+    case ECS_SERVICE_TYPE:
+      // Every service of the app's cluster: the one that runs its family is its.
+      query.providerResourceId = new Search(
+        `:service/${(app.groupName || "").trim()}/`,
+      );
+      break;
+    case APP_RUNNER_SERVICE_TYPE:
+      // An account's Region holds few App Runner services (30, by default).
+      if (account) {
+        query.cloudAccountId = account;
+      }
+      if (region) {
+        query.cloudRegion = region;
+      }
+      break;
+    default:
+      break;
+  }
+
+  return query;
+}
+
+/*
+ * Read the rows that could be the app's resource
+ * (getCloudAppPlatformCandidateQuery); resolveCloudAppPlatformResource picks
+ * among them. A resource gone from its account (archived) is not one, as
+ * the server's link leaves it out too. Empty when the app has none to look
+ * up. Rejects when the read fails, so the page can tell "not found" from
+ * "could not check".
+ */
+export async function fetchCloudAppPlatformCandidates(
+  app: CloudAppPlatformResourceSource,
+  environment?: CloudAppPlatformEnvironment | null | undefined,
 ): Promise<Array<CloudResource>> {
-  if (!hasCloudAppPlatformResource(app)) {
+  const query: Query<CloudResource> | null =
+    getCloudAppPlatformCandidateQuery(app, environment);
+
+  if (!query) {
     return [];
   }
 
   const result: { data: Array<CloudResource> } =
     await ModelAPI.getList<CloudResource>({
       modelType: CloudResource,
-      query: {
-        cloudResourceKind: CloudResourceKind.Resource,
-        cloudProvider: CloudProvider.Azure,
-        cloudResourceType: APP_SERVICE_SITE_TYPE,
-        providerResourceId: new EndsWith(
-          getAppServiceSiteIdSuffix(getCloudAppSiteName(app)),
-        ),
-        isArchived: false,
-      },
+      query,
       select: CLOUD_APP_SITE_SELECT,
       sort: { lastSeenAt: SortOrder.Descending },
       skip: 0,
@@ -142,26 +234,41 @@ export async function fetchCloudAppSiteCandidates(
   return result.data;
 }
 
-// The subset of CloudApp that names the site the server kept for it.
+/*
+ * An App Service app's candidates: the site rows - or, for an app of another
+ * slot than production, the slot rows (#6793) - whose ARM id ends with its
+ * name's, in whichever subscription; resolveCloudAppSite picks among them.
+ */
+export async function fetchCloudAppSiteCandidates(
+  app: CloudAppPlatformResourceSource,
+): Promise<Array<CloudResource>> {
+  return isAppServiceApp(app)
+    ? await fetchCloudAppPlatformCandidates(app)
+    : [];
+}
+
+// The subset of CloudApp that names the resource the server kept for it.
 export interface CloudAppKeptSiteSource extends CloudAppPlatformResourceSource {
   platformCloudResourceId?: ObjectID | string | null | undefined;
 }
 
 /*
- * The site the server tied the app to (#10407), read with the reader's own
- * permissions: null when none is kept, when it is gone, or when the reader
- * may not read it (a label they are not given) - the page then says what
- * it finds itself, and never shows a site the reader cannot open. Rejects
- * only when the read fails.
+ * The resource the server tied the app to (#10407), read with the reader's
+ * own permissions: null when none is kept, when it is gone, when it is not
+ * of the type the app runs as now (an app moved to another slot), or when
+ * the reader may not read it (a label they are not given) - the page then
+ * says what it finds itself, and never shows a resource the reader cannot
+ * open. Rejects only when the read fails.
  */
-export async function fetchKeptCloudAppSite(
+export async function fetchKeptCloudAppPlatformResource(
   app: CloudAppKeptSiteSource,
 ): Promise<CloudResource | null> {
-  const siteId: string = app.platformCloudResourceId
+  const resourceId: string = app.platformCloudResourceId
     ? app.platformCloudResourceId.toString()
     : "";
+  const type: string | null = getCloudAppPlatformResourceType(app);
 
-  if (!siteId || !hasCloudAppPlatformResource(app)) {
+  if (!resourceId || !type || !hasCloudAppPlatformResource(app)) {
     return null;
   }
 
@@ -169,9 +276,9 @@ export async function fetchKeptCloudAppSite(
     await ModelAPI.getList<CloudResource>({
       modelType: CloudResource,
       query: {
-        _id: new ObjectID(siteId),
+        _id: new ObjectID(resourceId),
         cloudResourceKind: CloudResourceKind.Resource,
-        cloudResourceType: APP_SERVICE_SITE_TYPE,
+        cloudResourceType: type,
       },
       select: CLOUD_APP_SITE_SELECT,
       sort: {},
@@ -182,18 +289,27 @@ export async function fetchKeptCloudAppSite(
   return result.data[0] || null;
 }
 
+// The site, or slot, the server tied an App Service app to.
+export async function fetchKeptCloudAppSite(
+  app: CloudAppKeptSiteSource,
+): Promise<CloudResource | null> {
+  return isAppServiceApp(app)
+    ? await fetchKeptCloudAppPlatformResource(app)
+    : null;
+}
+
 /*
- * Read the app's site: the row resolveCloudAppSite picks among the
- * candidates. Null when the app has none to look up, or none is found.
- * Rejects when the read fails.
+ * Read the app's resource: the row resolveCloudAppPlatformResource picks
+ * among the candidates. Null when the app has none to look up, or none is
+ * found. Rejects when the read fails.
  */
 export async function fetchCloudAppPlatformResource(
   app: CloudAppPlatformResourceSource,
   environment?: CloudAppPlatformEnvironment | null | undefined,
 ): Promise<CloudResource | null> {
-  return resolveCloudAppSite({
+  return resolveCloudAppPlatformResource({
     app,
-    candidates: await fetchCloudAppSiteCandidates(app),
+    candidates: await fetchCloudAppPlatformCandidates(app, environment),
     environment,
   }).site;
 }

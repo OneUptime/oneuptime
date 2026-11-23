@@ -66,7 +66,15 @@ const REQUEST_TIMEOUT_MS: number = 15 * 1000;
 // The most sites whose reads are kept at once.
 const MAX_CACHED_SITES: number = 500;
 
-const SITE_TYPE: string = "microsoft.web/sites";
+/*
+ * A site, and a deployment slot of one (#6793): Resource Manager answers a
+ * slot's instances, deployments and configuration at the slot's own id
+ * (.../sites/<site>/slots/<slot>/instances), as a site's at the site's.
+ */
+const SITE_TYPES: ReadonlySet<string> = new Set<string>([
+  "microsoft.web/sites",
+  "microsoft.web/sites/slots",
+]);
 
 export interface AppServiceSiteActivityDependencies {
   transport?: CloudConnectorTransport | undefined;
@@ -167,7 +175,7 @@ export default class AzureAppServiceSiteActivity {
     if (
       String(site.cloudProvider || "").toLowerCase() !== CloudProvider.Azure ||
       !parsed ||
-      parsed.type.toLowerCase() !== SITE_TYPE
+      !SITE_TYPES.has(parsed.type.toLowerCase())
     ) {
       throw new BadDataException(
         "Only an Azure App Service app has instances and deployments to read.",

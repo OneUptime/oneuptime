@@ -4,8 +4,10 @@ import {
   CloudAppTelemetrySignal,
 } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 import {
+  CloudProvider,
   ManagedCloudPlatform,
   ManagedCloudPlatformDescriptor,
+  getCloudProviderForPlatform,
   getManagedCloudPlatformDescriptor,
 } from "Common/Types/Cloud/CloudPlatform";
 import {
@@ -29,6 +31,12 @@ import {
   getAzureMonitorLatestReadingAt,
   getCloudAppAzureMonitorState,
 } from "./CloudAppAzureLink";
+import {
+  CloudAppPlatformLink,
+  CloudAppPlatformMonitorState,
+  getCloudAppPlatformMonitorState,
+} from "./CloudAppPlatformLink";
+import { CLOUD_APP_PLATFORM_SERVICES } from "./CloudAppPlatformMetrics";
 import {
   CLOUD_APP_STATE_LABELS,
   CloudAppState,
@@ -195,8 +203,9 @@ export const CLOUD_APP_AZURE_SITE_ELSEWHERE: string = translationKey(
 export const CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT: string = translationKey(
   "Set cloud.account.id to the subscription the app runs in, or add cloud.resource_id: the App Service resource detector sets it.",
 );
-export const CLOUD_APP_AZURE_SLOT: string = translationKey(
-  "It runs in deployment slot {{slot}}, which Azure Monitor reports as a resource of its own that OneUptime does not read yet.",
+// An app of a deployment slot whose slot is not read (#6793): never its site's numbers.
+export const CLOUD_APP_AZURE_SLOT_NOT_FOUND: string = translationKey(
+  "Subscription {{subscription}} is connected, but holds no deployment slot {{slot}} of {{site}}.",
 );
 
 // The Azure Monitor metrics' row.
@@ -206,9 +215,83 @@ export const CLOUD_APP_AZURE_METRICS_NEXT_READ: string = translationKey(
 export const CLOUD_APP_AZURE_METRICS_NEED_CONNECTION: string = translationKey(
   "They arrive once the Azure Monitor connection above works.",
 );
-export const CLOUD_APP_AZURE_METRICS_NOT_READ: string = translationKey(
-  "OneUptime does not read them for this app.",
+
+/*
+ * The platform's monitoring row off App Service (#6794): a Container App's
+ * Azure Monitor, a Cloud Run or App Engine service's Google Cloud
+ * Monitoring, an App Runner or ECS service's Amazon CloudWatch
+ * (CloudAppPlatformLink). Its label names the service, as its section does.
+ */
+export const CLOUD_APP_PLATFORM_ROW_LABELS: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.Azure]: CLOUD_APP_ROW_LABELS["azureMonitor"]!,
+  [CloudProvider.GCP]: translationKey("Google Cloud Monitoring connection"),
+  [CloudProvider.AWS]: translationKey("Amazon CloudWatch connection"),
+};
+export const CLOUD_APP_PLATFORM_READ: string = translationKey(
+  "OneUptime reads {{resource}}.",
 );
+export const CLOUD_APP_PLATFORM_READ_HINT: string = translationKey(
+  "Its numbers, as {{service}} measures them, are below.",
+);
+export const CLOUD_APP_PLATFORM_NO_CONNECTION: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.Azure]: CLOUD_APP_AZURE_NO_CONNECTION,
+  [CloudProvider.GCP]: translationKey(
+    "No Google Cloud project is connected yet.",
+  ),
+  [CloudProvider.AWS]: translationKey("No AWS account is connected yet."),
+};
+export const CLOUD_APP_PLATFORM_CONNECT_HINT: Readonly<
+  Record<CloudProvider, string>
+> = {
+  [CloudProvider.Azure]: CLOUD_APP_AZURE_MONITOR_HINT,
+  [CloudProvider.GCP]: translationKey(
+    "Connect the Google Cloud project this app runs in, and Google Cloud Monitoring reports its numbers, with no change to the app.",
+  ),
+  [CloudProvider.AWS]: translationKey(
+    "Connect the AWS account this app runs in, and Amazon CloudWatch reports its numbers, with no change to the app.",
+  ),
+};
+// No resource a connection reads is the app's: which one is looked for, and how.
+export const CLOUD_APP_PLATFORM_NOT_FOUND: Readonly<Record<string, string>> = {
+  [ManagedCloudPlatform.AzureContainerApps]: translationKey(
+    "No Container App named {{name}} is read yet.",
+  ),
+  [ManagedCloudPlatform.GcpCloudRun]: translationKey(
+    "No Cloud Run service named {{name}} is read yet.",
+  ),
+  [ManagedCloudPlatform.GcpAppEngine]: translationKey(
+    "No App Engine service named {{name}} is read yet.",
+  ),
+  [ManagedCloudPlatform.AwsAppRunner]: translationKey(
+    "No App Runner service named {{name}} is read yet.",
+  ),
+  [ManagedCloudPlatform.AwsEcs]: translationKey(
+    "No ECS service of cluster {{cluster}} that runs {{name}} is read yet.",
+  ),
+};
+export const CLOUD_APP_PLATFORM_NOT_FOUND_HINT: Readonly<
+  Record<string, string>
+> = {
+  [ManagedCloudPlatform.AzureContainerApps]: translationKey(
+    "OneUptime ties the app to the Container App its cloud.resource_id names, else to the one named as its service.name in the subscription its cloud.account.id names. An Azure connection under Cloud > Connect must read that subscription.",
+  ),
+  [ManagedCloudPlatform.GcpCloudRun]: translationKey(
+    "OneUptime ties the app to the Cloud Run service its faas.name names, in its environment's project and region. A Google Cloud connection under Cloud > Connect must read that project.",
+  ),
+  [ManagedCloudPlatform.GcpAppEngine]: translationKey(
+    "OneUptime ties the app to the App Engine service its faas.name names, in its environment's project. A Google Cloud connection under Cloud > Connect must read that project.",
+  ),
+  [ManagedCloudPlatform.AwsAppRunner]: translationKey(
+    "OneUptime ties the app to the App Runner service its cloud.resource_id names, else to the one named as its service.name in its environment's account and Region. An AWS connection under Cloud > Connect must read that account.",
+  ),
+  [ManagedCloudPlatform.AwsEcs]: translationKey(
+    "OneUptime ties the app to the ECS service of its cluster that runs its task definition family. An AWS connection under Cloud > Connect must read that account.",
+  ),
+};
 
 // What Azure says of the app's instances and deployments (AppServiceSiteActivity).
 export const CLOUD_APP_AZURE_INSTANCES: PluralTemplate = {
@@ -429,27 +512,24 @@ export function getCloudAppUsageTileNote(data: {
 }
 
 /*
- * Whether the app's CPU and Memory tiles are shown. They give way only on a
- * platform that gives an app no CPU or memory of its own
- * (CLOUD_APP_PLATFORMS_WITHOUT_USAGE), once the platform's own section -
- * Azure Monitor's, for an App Service site - shows the site's CPU time and
- * memory below them: tiles that would only say "Not on Azure App Service"
- * above those numbers read as a contradiction. A tile with a number is
- * always shown.
+ * Whether the app's CPU and Memory tiles are shown. They give way once the
+ * platform's own section below shows the CPU and memory its provider
+ * measures (#6794) - Azure Monitor's for an App Service site or a Container
+ * App, Google Cloud Monitoring's for a Cloud Run service, Amazon
+ * CloudWatch's for an App Runner or ECS service - while the app itself
+ * reports neither: tiles that would only say "Not on Azure App Service" or
+ * "Not reported" above those numbers read as a contradiction. A tile with
+ * a number is always shown, and so are both where the section shows no CPU
+ * or memory (an App Engine service's).
  */
 export function showsCloudAppUsageTiles(data: {
-  cloudPlatform: string | null | undefined;
   hasCpuReading: boolean;
   hasMemoryReading: boolean;
-  hasPlatformSection: boolean;
+  // Whether the platform's section below shows the app's CPU and memory.
+  hasPlatformUsage: boolean;
 }): boolean {
-  if (!data.hasPlatformSection || data.hasCpuReading || data.hasMemoryReading) {
-    return true;
-  }
-
-  return !(
-    data.cloudPlatform &&
-    CLOUD_APP_PLATFORMS_WITHOUT_USAGE.has(data.cloudPlatform)
+  return (
+    !data.hasPlatformUsage || data.hasCpuReading || data.hasMemoryReading
   );
 }
 
@@ -496,6 +576,8 @@ export function getCloudAppInstancesTileNote(data: {
 export enum CloudAppSetupRowKey {
   AzureMonitor = "azure-monitor",
   AzureMonitorMetrics = "azure-monitor-metrics",
+  // Any other platform's monitoring (#6794): its connection, by its service's name.
+  PlatformMonitor = "platform-monitor",
   Traces = "traces",
   Metrics = "metrics",
   Logs = "logs",
@@ -594,6 +676,13 @@ export type CloudAppAzureMonitorLookup =
   | { status: "failed" }
   | { status: "read"; link: CloudAppAzureLink };
 
+// How the app's way to its platform's monitoring was read (the other platforms).
+export type CloudAppPlatformMonitorLookup =
+  | { status: "checking" }
+  // The resources could not be read: the row is left out.
+  | { status: "failed" }
+  | { status: "read"; link: CloudAppPlatformLink };
+
 export interface CloudAppSetupInput {
   app: CloudAppArrivalSource & {
     cloudPlatform?: string | null | undefined;
@@ -608,6 +697,12 @@ export interface CloudAppSetupInput {
    * other platforms: no Azure Monitor rows.
    */
   azureMonitor?: CloudAppAzureMonitorLookup | undefined;
+  /*
+   * Any other platform's way to its monitoring, as read (#6794): a
+   * Container App's, a Cloud Run, App Engine, App Runner or ECS service's.
+   * Undefined for an App Service app, and on a platform with none.
+   */
+  platformMonitor?: CloudAppPlatformMonitorLookup | undefined;
   /*
    * When the latest log Azure's diagnostic settings streamed of the app's
    * site arrived; null when none did. Undefined when it was not read.
@@ -862,15 +957,6 @@ function azureMonitorRows(data: {
         translator,
       });
       break;
-    case CloudAppAzureMonitorState.Slot:
-      connection = statusRow({
-        key: CloudAppSetupRowKey.AzureMonitor,
-        label: connectionLabel,
-        status: CloudAppSetupStatus.NotAvailable,
-        text: sentence(CLOUD_APP_AZURE_SLOT),
-        translator,
-      });
-      break;
     case CloudAppAzureMonitorState.NoConnection:
       connection = statusRow({
         key: CloudAppSetupRowKey.AzureMonitor,
@@ -946,7 +1032,9 @@ function azureMonitorRows(data: {
         text: sentence(
           link?.sitesInSubscription === 0
             ? CLOUD_APP_AZURE_NO_SITES
-            : CLOUD_APP_AZURE_SITE_NOT_FOUND,
+            : link?.slot
+              ? CLOUD_APP_AZURE_SLOT_NOT_FOUND
+              : CLOUD_APP_AZURE_SITE_NOT_FOUND,
         ),
         hint: CLOUD_APP_AZURE_SITE_NAME_HINT,
         translator,
@@ -1015,15 +1103,6 @@ function azureMonitorRows(data: {
         translator,
       });
       break;
-    case CloudAppAzureMonitorState.Slot:
-      metrics = statusRow({
-        key: CloudAppSetupRowKey.AzureMonitorMetrics,
-        label: metricsLabel,
-        status: CloudAppSetupStatus.NotAvailable,
-        text: translate(translator, CLOUD_APP_AZURE_METRICS_NOT_READ),
-        translator,
-      });
-      break;
     case CloudAppAzureMonitorState.Unknown:
       metrics = statusRow({
         key: CloudAppSetupRowKey.AzureMonitorMetrics,
@@ -1045,6 +1124,89 @@ function azureMonitorRows(data: {
   }
 
   return [connection, metrics];
+}
+
+/*
+ * The platform's monitoring row off App Service (#6794): Checking while the
+ * look-up runs, Connected once the resource the app runs as is found, Not
+ * connected - with what to connect, or what is looked for and how - while
+ * none is. Left out when the look-up failed: nothing can be said.
+ */
+function platformMonitorRow(data: {
+  lookup: CloudAppPlatformMonitorLookup;
+  provider: CloudProvider | null;
+  translator: Translator;
+}): CloudAppSetupRow | null {
+  const { lookup, translator } = data;
+  const provider: CloudProvider | null =
+    lookup.status === "read" ? lookup.link.provider : data.provider;
+
+  if (lookup.status === "failed" || !provider) {
+    return null;
+  }
+
+  const label: string = CLOUD_APP_PLATFORM_ROW_LABELS[provider];
+
+  if (lookup.status === "checking") {
+    return statusRow({
+      key: CloudAppSetupRowKey.PlatformMonitor,
+      label,
+      status: CloudAppSetupStatus.Checking,
+      text: translate(translator, CLOUD_APP_ROW_CHECKING),
+      translator,
+    });
+  }
+
+  const link: CloudAppPlatformLink = lookup.link;
+  const service: string = CLOUD_APP_PLATFORM_SERVICES[provider];
+
+  switch (getCloudAppPlatformMonitorState(link)) {
+    case CloudAppPlatformMonitorState.Connected:
+      return {
+        ...statusRow({
+          key: CloudAppSetupRowKey.PlatformMonitor,
+          label,
+          status: CloudAppSetupStatus.Received,
+          statusLabel: CLOUD_APP_ROW_CONNECTED,
+          text: translator.translateTemplate(CLOUD_APP_PLATFORM_READ, {
+            resource: (link.resource?.name || link.name).trim(),
+          }),
+          translator,
+        }),
+        hint: translator.translateTemplate(CLOUD_APP_PLATFORM_READ_HINT, {
+          service: translate(translator, service),
+        }),
+      };
+    case CloudAppPlatformMonitorState.NoConnection:
+      return statusRow({
+        key: CloudAppSetupRowKey.PlatformMonitor,
+        label,
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+        text: translate(translator, CLOUD_APP_PLATFORM_NO_CONNECTION[provider]),
+        hint: CLOUD_APP_PLATFORM_CONNECT_HINT[provider],
+        action: CloudAppSetupAction.ConnectCloud,
+        translator,
+      });
+    case CloudAppPlatformMonitorState.NotFound:
+    default:
+      return statusRow({
+        key: CloudAppSetupRowKey.PlatformMonitor,
+        label,
+        status: CloudAppSetupStatus.NeedsSetup,
+        statusLabel: CLOUD_APP_ROW_NOT_CONNECTED,
+        text: translator.translateTemplate(
+          CLOUD_APP_PLATFORM_NOT_FOUND[link.platform] ||
+            CLOUD_APP_PLATFORM_NOT_FOUND[
+              ManagedCloudPlatform.AzureContainerApps
+            ]!,
+          { name: link.name, cluster: link.cluster },
+        ),
+        hint: CLOUD_APP_PLATFORM_NOT_FOUND_HINT[link.platform],
+        action: CloudAppSetupAction.OpenConnections,
+        translator,
+      });
+  }
 }
 
 function instancesRow(input: CloudAppSetupInput): CloudAppSetupRow {
@@ -1191,6 +1353,17 @@ export function getCloudAppSetupRows(
   const rows: Array<CloudAppSetupRow> = input.azureMonitor
     ? azureMonitorRows({ lookup: input.azureMonitor, now, translator })
     : [];
+  const platformRow: CloudAppSetupRow | null = input.platformMonitor
+    ? platformMonitorRow({
+        lookup: input.platformMonitor,
+        provider: getCloudProviderForPlatform(app.cloudPlatform),
+        translator,
+      })
+    : null;
+
+  if (platformRow) {
+    rows.push(platformRow);
+  }
 
   rows.push(
     arrivalRow({
