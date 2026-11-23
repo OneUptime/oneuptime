@@ -442,6 +442,8 @@ export const SCRUBBED_ADDRESS_FORMATS: ReadonlyArray<ScrubbedAddressFormat> = [
       return jsonLine({
         Records: [
           cloudTrailRecord({
+            // A record of its own: one record is stored once, whichever line holds it.
+            eventID: "8f1c2e3d-0000-0000-0000-000000000002",
             eventSource: "signin.amazonaws.com",
             eventName: "ConsoleLogin",
             eventType: "AwsConsoleSignIn",
