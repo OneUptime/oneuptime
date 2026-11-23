@@ -261,22 +261,4 @@ export default class GlobalSSOProject extends BaseModel {
   )
   @JoinColumn({ name: "createdByUserId" })
   public createdByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description: "User ID who deleted this object",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

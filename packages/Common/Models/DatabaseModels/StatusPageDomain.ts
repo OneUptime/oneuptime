@@ -466,43 +466,6 @@ export default class StatusPageDomain extends BaseModel {
   })
   public createdByUserId?: ObjectID = undefined;
 
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageDomain,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    modelType: User,
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
   /*
    * This token is used by the Worker.
    * worker pings the status page of customers - eg: status.company.com/verify-token/:id
@@ -631,24 +594,6 @@ export default class StatusPageDomain extends BaseModel {
     default: false,
   })
   public isSslProvisioned?: boolean = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

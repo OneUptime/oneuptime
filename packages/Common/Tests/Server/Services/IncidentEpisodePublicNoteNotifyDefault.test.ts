@@ -840,11 +840,10 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
     );
   });
 
-  test("who deleted a note is never the request's to say: it is taken out, not stored", async () => {
+  test("who created a note is never the request's to say: it is taken out, and the caller stamped", async () => {
     mockEpisodeLookup(episodeWithFlag(false));
 
     const note: IncidentEpisodePublicNote = buildNote({ projectId: undefined });
-    note.deletedByUserId = OTHER_USER_ID;
     note.createdByUserId = OTHER_USER_ID;
 
     const saved: IncidentEpisodePublicNote =
@@ -854,7 +853,6 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
       });
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(saved.deletedByUserId).toBeUndefined();
     expect(saved.createdByUserId?.toString()).toBe(USER_ID.toString());
   });
 
