@@ -151,6 +151,21 @@ Segreti e dati personali vengono mascherati prima di conservare qualsiasi cosa: 
 > [!TIP]
 > Quando le risposte di un monitor di siti web o API sono sensibili di per sé, disattivate **Conserva il contenuto della risposta** nella scheda **Contenuto della risposta** della sua pagina **Avanzato → Impostazioni**. I suoi log di monitoraggio, incidenti e avvisi conservano allora quali filtri hanno corrisposto, il codice di stato e il tempo di risposta, e nessuna parte della risposta. Un monitor di richieste in ingresso ha lo stesso interruttore per le richieste che riceve: **Conserva il contenuto della richiesta**, nella scheda **Contenuto della richiesta**. L'interruttore vale per i controlli eseguiti, e per gli incidenti e gli avvisi aperti, dopo averlo cambiato. L'ultima richiesta nella panoramica di un monitor di richieste in ingresso segue subito l'interruttore.
 
+## Quanto dura ogni controllo
+
+Il riepilogo di valutazione di ogni controllo, in **Visualizza riepilogo** nei **Log di monitoraggio** del monitor e, per l'ultimo controllo, nella sua **Panoramica**, dice quando il controllo è stato valutato, quanto è durata la sua valutazione e, per un monitor che giudica ogni host, container o gruppo separatamente, quante serie ha valutato. Il tempo va da quando OneUptime ha iniziato a leggere i dati che il controllo giudica fino a quando ne ha scritto il log: la lettura dei dati, la valutazione dei criteri e l'apertura di incidenti e avvisi.
+
+Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvisa. Troppo è più di un decimo del tempo tra due controlli del monitor, mai meno di 5 secondi e mai più di un minuto:
+
+| Monitor controllato | Avvisa dopo |
+| --- | --- |
+| Ogni minuto | 6 secondi |
+| Ogni 5 minuti | 30 secondi |
+| Ogni 10 minuti o meno spesso | 1 minuto |
+| All'arrivo dei suoi risultati, come richieste ed email in arrivo | 5 secondi |
+
+Un decimo lascia a un monitor lo spazio per crescere di dieci volte prima che i suoi controlli si sovrappongano e restino indietro, così lo sai presto. Sotto i 5 secondi, un controllo va bene per quanto sia grande: valutare 16.000 serie richiede circa 2,5 secondi. Oltre un minuto, occupa un worker e i database che legge per tutto quel tempo, qualunque sia il suo intervallo. Per velocizzarlo, restringi i filtri delle sue query, raggruppa per meno attributi o controllalo meno spesso.
+
 ## Modificare i criteri di un monitor
 
 :::steps

@@ -151,6 +151,21 @@ Hemmeligheder og personoplysninger maskeres, før noget gemmes: headere som `Aut
 > [!TIP]
 > Når svarene fra en website- eller API-monitor er følsomme i sig selv, så slå **Behold svarindhold** fra på kortet **Svarindhold** på dens side **Avanceret → Indstillinger**. Dens overvågningslogs, hændelser og advarsler beholder så, hvilke filtre der matchede, statuskoden og svartiden, og ingen del af svaret. En monitor for indgående anmodninger har den samme kontakt for de anmodninger, den modtager: **Behold anmodningsindhold**, på kortet **Anmodningsindhold**. Kontakten gælder for de kontroller, der kører, og de hændelser og advarsler, der åbnes, efter du ændrer den. Den seneste anmodning i oversigten over en monitor for indgående anmodninger følger kontakten med det samme.
 
+## Hvor lang tid hver kontrol tager
+
+Evalueringsoversigten for hver kontrol, under **Vis oversigt** i monitorens **Overvågningslogs** og for den seneste kontrol på dens **Oversigt**, fortæller, hvornår kontrollen blev evalueret, hvor lang tid evalueringen tog og, for en monitor, der vurderer hver vært, container eller gruppe for sig, hvor mange serier den vurderede. Tiden løber fra det øjeblik, OneUptime begyndte at læse de data, kontrollen vurderer, til den skrev kontrollens log: læsningen af dataene, vurderingen af kriterierne og åbningen af hændelser og advarsler.
+
+Når en evaluering tager for lang tid for sin monitor, advarer dens oversigt dig. For lang tid er mere end en tiendedel af tiden mellem monitorens kontroller, aldrig under 5 sekunder og aldrig over et minut:
+
+| Monitor kontrolleret | Advarer efter |
+| --- | --- |
+| Hvert minut | 6 sekunder |
+| Hvert 5. minut | 30 sekunder |
+| Hvert 10. minut eller sjældnere | 1 minut |
+| Når dens resultater kommer ind, som ved indgående forespørgsler og e-mails | 5 sekunder |
+
+En tiendedel giver en monitor plads til at vokse ti gange, før dens kontroller løber ind i hinanden og kommer bagud, så du hører om det tidligt. Under 5 sekunder er en kontrol i orden, uanset hvor stor den er: at vurdere 16.000 serier tager omkring 2,5 sekunder. Over et minut optager den en worker og de databaser, den læser, så længe, uanset dens interval. Gør den hurtigere ved at indsnævre dens forespørgslers filtre, gruppere efter færre attributter eller kontrollere den sjældnere.
+
 ## Ændr en monitors kriterier
 
 :::steps

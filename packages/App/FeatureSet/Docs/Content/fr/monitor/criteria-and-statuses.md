@@ -151,6 +151,21 @@ Les secrets et les données personnelles sont masqués avant que quoi que ce soi
 > [!TIP]
 > Lorsque les réponses d'un moniteur de site web ou d'API sont sensibles en elles-mêmes, désactivez **Conserver le contenu de la réponse** dans la carte **Contenu de la réponse** de sa page **Avancé → Paramètres**. Ses journaux de surveillance, incidents et alertes conservent alors les filtres qui ont correspondu, le code de statut et le temps de réponse, et aucune partie de la réponse. Un moniteur de requêtes entrantes a le même interrupteur pour les requêtes qu'il reçoit : **Conserver le contenu de la requête**, dans la carte **Contenu de la requête**. L'interrupteur s'applique aux vérifications exécutées, et aux incidents et alertes ouverts, après sa modification. La dernière requête dans la vue d'ensemble d'un moniteur de requêtes entrantes suit l'interrupteur aussitôt.
 
+## Combien de temps prend chaque vérification
+
+Le résumé d'évaluation de chaque vérification, sous **Voir le résumé** dans les **Journaux de surveillance** du moniteur et pour la dernière vérification sur sa **Vue d'ensemble**, indique quand la vérification a été évaluée, combien de temps son évaluation a pris et, pour un moniteur qui juge chaque hôte, conteneur ou groupe séparément, combien de séries elle a évaluées. Ce temps court du moment où OneUptime a commencé à lire les données que la vérification juge jusqu'à l'écriture de son journal : la lecture des données, l'évaluation des critères et l'ouverture des incidents et des alertes.
+
+Quand une évaluation prend trop de temps pour son moniteur, son résumé vous avertit. Trop long, c'est plus d'un dixième du temps entre deux vérifications du moniteur, jamais moins de 5 secondes et jamais plus d'une minute :
+
+| Moniteur vérifié | Avertit après |
+| --- | --- |
+| Chaque minute | 6 secondes |
+| Toutes les 5 minutes | 30 secondes |
+| Toutes les 10 minutes ou moins souvent | 1 minute |
+| À l'arrivée de ses résultats, comme les requêtes et e-mails entrants | 5 secondes |
+
+Un dixième laisse à un moniteur la place de grandir dix fois avant que ses vérifications ne se chevauchent et prennent du retard : vous en êtes averti tôt. Sous 5 secondes, une vérification est correcte quelle que soit sa taille : évaluer 16 000 séries prend environ 2,5 secondes. Au-delà d'une minute, elle occupe un worker et les bases de données qu'elle lit pendant tout ce temps, quel que soit son intervalle. Pour l'accélérer, affinez les filtres de ses requêtes, regroupez par moins d'attributs ou vérifiez-la moins souvent.
+
 ## Modifier les critères d'un moniteur
 
 :::steps

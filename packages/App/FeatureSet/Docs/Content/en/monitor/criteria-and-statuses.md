@@ -151,6 +151,21 @@ Secrets and personal data are masked before anything is kept: headers such as `A
 > [!TIP]
 > When a Website or API monitor's responses are sensitive in themselves, turn off **Keep response content** in the **Response content** card on its **Advanced → Settings** page. Its monitoring logs, incidents and alerts then keep which filters matched, the status code and the response time, and no part of the response. An Incoming Request monitor has the same switch for the requests it receives: **Keep request content**, in the **Request content** card. The switch applies to the checks that run, and the incidents and alerts that open, after you change it. The latest request on an Incoming Request monitor's overview follows the switch at once.
 
+## How long each check takes
+
+Each check's evaluation summary, under **View Summary** in the monitor's **Monitoring Logs** and for the latest check on its **Overview**, says when the check was evaluated, how long its evaluation took and, on a monitor that judges each host, container or group on its own, how many series it judged. The time runs from when OneUptime began reading the data the check judges until it wrote the check's log: reading the data, judging the criteria, and opening incidents and alerts.
+
+When an evaluation takes too long for its monitor, its summary warns you. Too long is more than a tenth of the time between the monitor's checks, never less than 5 seconds and never more than a minute:
+
+| Monitor checked | Warns after |
+| --- | --- |
+| Every minute | 6 seconds |
+| Every 5 minutes | 30 seconds |
+| Every 10 minutes or less often | 1 minute |
+| As its results arrive, such as incoming requests and emails | 5 seconds |
+
+A tenth leaves a monitor room to grow tenfold before its checks run into each other and fall behind, so you hear of it early. Under 5 seconds, a check is fine however large it is: judging 16,000 series takes about 2.5 seconds. Over a minute, it holds a worker and the databases it reads that long, whatever its interval. To speed it up, narrow its queries' filters, group by fewer attributes, or check it less often.
+
 ## Change a monitor's criteria
 
 :::steps

@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "جای آن: ویژگی یا بدنه لاگ، و نام ویژگی‌های کنار آن",
   "You need permission to edit scrub rules to switch this rule to Hash.": "برای تغییر این قاعده به درهم‌سازی، به مجوز ویرایش قواعد پالایش نیاز دارید.",
   "e.g. customer_name": "برای نمونه customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} اکنون نشانی‌های IP را درهم‌سازی می‌کند. رویدادهای امنیتی می‌تواند بگوید کدام نشانی را مسدود کنید."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} اکنون نشانی‌های IP را درهم‌سازی می‌کند. رویدادهای امنیتی می‌تواند بگوید کدام نشانی را مسدود کنید.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "{{count}} سری را بررسی کرد. برای سریع‌تر شدن، فیلترهایش را محدودتر کنید یا بر اساس ویژگی‌های کمتری گروه‌بندی کنید.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "{{count}} سری را بررسی کرد. برای سریع‌تر شدن، فیلترهایش را محدودتر کنید یا بر اساس ویژگی‌های کمتری گروه‌بندی کنید.",
+  "Judged {{count}} series": "{{count}} سری بررسی شد",
+  "Judged {{count}} series_one": "{{count}} سری بررسی شد",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "این برای مانیتوری که هر {{interval}} بررسی می‌شود زیاد است: اگر ارزیابی‌هایش همچنان طولانی‌تر شوند، بررسی‌هایش عقب می‌افتند.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "این برای یک ارزیابی زیاد است: اگر ارزیابی‌ها همچنان طولانی‌تر شوند، هر کدام ارزیابی بعدی را معطل می‌کند.",
+  "This evaluation took {{duration}}": "این ارزیابی {{duration}} طول کشید",
+  "Took {{duration}}": "مدت: {{duration}}"
 }

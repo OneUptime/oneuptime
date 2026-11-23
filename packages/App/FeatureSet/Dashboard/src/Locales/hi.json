@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "यह कहाँ है: विशेषता या लॉग बॉडी, और उसके पास की विशेषताओं के नाम",
   "You need permission to edit scrub rules to switch this rule to Hash.": "इस नियम को हैश पर स्विच करने के लिए आपको स्क्रब नियम संपादित करने की अनुमति चाहिए।",
   "e.g. customer_name": "उदा. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} अब IP पतों को हैश करता है। सुरक्षा इवेंट बता सकता है कि कौन-सा पता ब्लॉक करना है।"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} अब IP पतों को हैश करता है। सुरक्षा इवेंट बता सकता है कि कौन-सा पता ब्लॉक करना है।",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "इसने {{count}} सीरीज़ जाँचीं। इसे तेज़ करने के लिए, इसके फ़िल्टर सीमित करें या कम विशेषताओं के अनुसार समूहित करें।",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "इसने {{count}} सीरीज़ जाँची। इसे तेज़ करने के लिए, इसके फ़िल्टर सीमित करें या कम विशेषताओं के अनुसार समूहित करें।",
+  "Judged {{count}} series": "{{count}} सीरीज़ जाँची गईं",
+  "Judged {{count}} series_one": "{{count}} सीरीज़ जाँची गई",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "{{interval}} के जाँच अंतराल वाले मॉनिटर के लिए यह बहुत है: अगर इसके मूल्यांकन बढ़ते रहे, तो इसकी जाँचें पीछे छूट जाएँगी।",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "एक मूल्यांकन के लिए यह बहुत है: अगर मूल्यांकन बढ़ते रहे, तो हर मूल्यांकन अगले को रोके रखेगा।",
+  "This evaluation took {{duration}}": "इस मूल्यांकन में {{duration}} लगे",
+  "Took {{duration}}": "लगा समय: {{duration}}"
 }

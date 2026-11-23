@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "場所: 属性またはログ本文と、その横にある属性の名前",
   "You need permission to edit scrub rules to switch this rule to Hash.": "このルールをハッシュに切り替えるには、スクラブルールを編集する権限が必要です。",
   "e.g. customer_name": "例: customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} は IP アドレスをハッシュするようになりました。セキュリティイベントはどのアドレスをブロックすべきかを示せます。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} は IP アドレスをハッシュするようになりました。セキュリティイベントはどのアドレスをブロックすべきかを示せます。",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "{{count}} 系列を判定しました。速くするには、フィルターを絞り込むか、グループ化する属性を減らしてください。",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "{{count}} 系列を判定しました。速くするには、フィルターを絞り込むか、グループ化する属性を減らしてください。",
+  "Judged {{count}} series": "{{count}} 系列を判定",
+  "Judged {{count}} series_one": "{{count}} 系列を判定",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "チェック間隔が {{interval}} のモニターとしては長い時間です。評価がこのまま長くなると、チェックが遅れていきます。",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "1 回の評価としては長い時間です。評価がこのまま長くなると、それぞれが次の評価を待たせます。",
+  "This evaluation took {{duration}}": "この評価には {{duration}} かかりました",
+  "Took {{duration}}": "所要時間: {{duration}}"
 }

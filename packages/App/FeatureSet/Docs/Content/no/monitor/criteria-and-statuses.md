@@ -151,6 +151,21 @@ Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som 
 > [!TIP]
 > Når svarene fra en nettsted- eller API-monitor er sensitive i seg selv, slår du av **Behold svarinnhold** på kortet **Svarinnhold** på siden **Avansert → Innstillinger**. Overvåkingsloggene, hendelsene og varslene tar da vare på hvilke filtre som samsvarte, statuskoden og svartiden, og ingen del av svaret. En monitor for innkommende forespørsler har den samme bryteren for forespørslene den mottar: **Behold forespørselsinnhold**, på kortet **Forespørselsinnhold**. Bryteren gjelder for kontrollene som kjøres, og hendelsene og varslene som åpnes, etter at du endrer den. Den siste forespørselen i oversikten over en monitor for innkommende forespørsler følger bryteren med en gang.
 
+## Hvor lang tid hver sjekk tar
+
+Evalueringssammendraget for hver sjekk, under **Vis sammendrag** i monitorens **Overvåkingslogger** og for den siste sjekken på dens **Oversikt**, forteller når sjekken ble evaluert, hvor lang tid evalueringen tok og, for en monitor som vurderer hver vert, container eller gruppe for seg, hvor mange serier den vurderte. Tiden løper fra OneUptime begynte å lese dataene sjekken vurderer, til den skrev sjekkens logg: lesingen av dataene, vurderingen av kriteriene og åpningen av hendelser og varsler.
+
+Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg. For lang tid er mer enn en tidel av tiden mellom monitorens sjekker, aldri under 5 sekunder og aldri over ett minutt:
+
+| Monitor sjekket | Varsler etter |
+| --- | --- |
+| Hvert minutt | 6 sekunder |
+| Hvert 5. minutt | 30 sekunder |
+| Hvert 10. minutt eller sjeldnere | 1 minutt |
+| Når resultatene kommer inn, som ved innkommende forespørsler og e-poster | 5 sekunder |
+
+En tidel gir en monitor rom til å vokse ti ganger før sjekkene går inn i hverandre og kommer på etterskudd, så du får vite det tidlig. Under 5 sekunder er en sjekk i orden, uansett hvor stor den er: å vurdere 16 000 serier tar omtrent 2,5 sekunder. Over ett minutt holder den en worker og databasene den leser like lenge, uansett intervall. Gjør den raskere ved å snevre inn filtrene i spørringene, gruppere etter færre attributter eller sjekke den sjeldnere.
+
 ## Endre en monitors kriterier
 
 :::steps

@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "위치: 속성 또는 로그 본문, 그리고 옆에 있는 속성의 이름",
   "You need permission to edit scrub rules to switch this rule to Hash.": "이 규칙을 해시로 전환하려면 스크럽 규칙 편집 권한이 필요합니다.",
   "e.g. customer_name": "예: customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}}이(가) 이제 IP 주소를 해시합니다. 보안 이벤트가 어떤 주소를 차단할지 알려 줄 수 있습니다."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}}이(가) 이제 IP 주소를 해시합니다. 보안 이벤트가 어떤 주소를 차단할지 알려 줄 수 있습니다.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "시리즈 {{count}}개를 판정했습니다. 더 빠르게 하려면 필터를 좁히거나 더 적은 속성으로 그룹화하세요.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "시리즈 {{count}}개를 판정했습니다. 더 빠르게 하려면 필터를 좁히거나 더 적은 속성으로 그룹화하세요.",
+  "Judged {{count}} series": "시리즈 {{count}}개 판정",
+  "Judged {{count}} series_one": "시리즈 {{count}}개 판정",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "확인 간격이 {{interval}}인 모니터에는 긴 시간입니다. 평가가 계속 길어지면 확인이 밀리게 됩니다.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "한 번의 평가로는 긴 시간입니다. 평가가 계속 길어지면 각 평가가 다음 평가를 지연시킵니다.",
+  "This evaluation took {{duration}}": "이번 평가에 {{duration}} 걸렸습니다",
+  "Took {{duration}}": "소요 시간: {{duration}}"
 }

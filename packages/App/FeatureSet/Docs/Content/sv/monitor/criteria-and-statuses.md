@@ -151,6 +151,21 @@ Hemligheter och personuppgifter maskeras innan något sparas: headers som `Autho
 > [!TIP]
 > När svaren från en webbplats- eller API-monitor är känsliga i sig själva stänger du av **Behåll svarsinnehåll** på kortet **Svarsinnehåll** på dess sida **Avancerad → Inställningar**. Dess övervakningsloggar, incidenter och larm behåller då vilka filter som matchade, statuskoden och svarstiden, och ingen del av svaret. En monitor för inkommande förfrågningar har samma reglage för förfrågningarna den tar emot: **Behåll förfrågans innehåll**, på kortet **Förfrågans innehåll**. Reglaget gäller de kontroller som körs, och de incidenter och larm som öppnas, efter att du ändrar det. Den senaste förfrågan i översikten för en monitor för inkommande förfrågningar följer reglaget direkt.
 
+## Hur lång tid varje kontroll tar
+
+Utvärderingssammanfattningen för varje kontroll, under **Visa sammanfattning** i monitorns **Övervakningsloggar** och för den senaste kontrollen på dess **Översikt**, berättar när kontrollen utvärderades, hur lång tid utvärderingen tog och, för en monitor som bedömer varje värd, container eller grupp för sig, hur många serier den bedömde. Tiden räknas från att OneUptime började läsa de data som kontrollen bedömer tills den skrev kontrollens logg: läsningen av data, bedömningen av kriterierna och öppnandet av incidenter och aviseringar.
+
+När en utvärdering tar för lång tid för sin monitor varnar sammanfattningen dig. För lång tid är mer än en tiondel av tiden mellan monitorns kontroller, aldrig under 5 sekunder och aldrig över en minut:
+
+| Monitor kontrollerad | Varnar efter |
+| --- | --- |
+| Varje minut | 6 sekunder |
+| Var 5:e minut | 30 sekunder |
+| Var 10:e minut eller mer sällan | 1 minut |
+| När resultaten kommer in, som vid inkommande förfrågningar och e-post | 5 sekunder |
+
+En tiondel ger en monitor utrymme att växa tiofaldigt innan dess kontroller krockar och hamnar på efterkälken, så att du får veta det tidigt. Under 5 sekunder är en kontroll okej hur stor den än är: att bedöma 16 000 serier tar ungefär 2,5 sekunder. Över en minut håller den en worker och de databaser den läser så länge, oavsett intervall. Gör den snabbare genom att snäva in frågornas filter, gruppera efter färre attribut eller kontrollera den mer sällan.
+
 ## Ändra en monitors kriterier
 
 :::steps

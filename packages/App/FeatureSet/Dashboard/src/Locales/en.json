@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Where it sits: the attribute or the log body, and the names of the attributes beside it",
   "You need permission to edit scrub rules to switch this rule to Hash.": "You need permission to edit scrub rules to switch this rule to Hash.",
   "e.g. customer_name": "e.g. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} now hashes IP addresses. Security Events can tell you which address to block."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.",
+  "Judged {{count}} series": "Judged {{count}} series",
+  "Judged {{count}} series_one": "Judged {{count}} series",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.",
+  "This evaluation took {{duration}}": "This evaluation took {{duration}}",
+  "Took {{duration}}": "Took {{duration}}"
 }

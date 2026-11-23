@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Dónde está: el atributo o el cuerpo del registro, y los nombres de los atributos de al lado",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Necesitas permiso para editar las reglas de depuración para cambiar esta regla a Hash.",
   "e.g. customer_name": "p. ej. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} ahora aplica hash a las direcciones IP. Eventos de seguridad puede decirte qué dirección bloquear."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} ahora aplica hash a las direcciones IP. Eventos de seguridad puede decirte qué dirección bloquear.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "Evaluó {{count}} series. Para acelerarla, acota sus filtros o agrupa por menos atributos.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "Evaluó {{count}} serie. Para acelerarla, acota sus filtros o agrupa por menos atributos.",
+  "Judged {{count}} series": "{{count}} series evaluadas",
+  "Judged {{count}} series_one": "{{count}} serie evaluada",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "Es mucho para un monitor con un intervalo de comprobación de {{interval}}: si sus evaluaciones siguen creciendo, sus comprobaciones se retrasarán.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "Es mucho para una sola evaluación: si las evaluaciones siguen creciendo, cada una retrasará la siguiente.",
+  "This evaluation took {{duration}}": "Esta evaluación tardó {{duration}}",
+  "Took {{duration}}": "Duración: {{duration}}"
 }

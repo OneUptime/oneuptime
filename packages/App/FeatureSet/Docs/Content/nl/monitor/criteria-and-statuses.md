@@ -151,6 +151,21 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 > [!TIP]
 > Als de antwoorden van een website- of API-monitor op zich gevoelig zijn, zet dan **Antwoordinhoud bewaren** uit op de kaart **Antwoordinhoud** van zijn pagina **Geavanceerd → Instellingen**. Zijn monitoringlogboeken, incidenten en waarschuwingen bewaren dan welke filters overeenkwamen, de statuscode en de responstijd, en geen enkel deel van het antwoord. Een monitor voor inkomende verzoeken heeft dezelfde schakelaar voor de verzoeken die hij ontvangt: **Verzoekinhoud bewaren**, op de kaart **Verzoekinhoud**. De schakelaar geldt voor de controles die worden uitgevoerd, en de incidenten en waarschuwingen die worden geopend, nadat u hem wijzigt. Het laatste verzoek in het overzicht van een monitor voor inkomende verzoeken volgt de schakelaar meteen.
 
+## Hoe lang elke controle duurt
+
+De evaluatiesamenvatting van elke controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor en voor de laatste controle op zijn **Overzicht**, zegt wanneer de controle is geëvalueerd, hoe lang de evaluatie duurde en, bij een monitor die elke host, container of groep afzonderlijk beoordeelt, hoeveel reeksen er zijn beoordeeld. De tijd loopt vanaf het moment dat OneUptime de gegevens van de controle begon te lezen tot het het logboek van de controle schreef: het lezen van de gegevens, het beoordelen van de criteria en het openen van incidenten en waarschuwingen.
+
+Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u. Te lang is meer dan een tiende van de tijd tussen de controles van de monitor, nooit minder dan 5 seconden en nooit meer dan een minuut:
+
+| Monitor gecontroleerd | Waarschuwt na |
+| --- | --- |
+| Elke minuut | 6 seconden |
+| Elke 5 minuten | 30 seconden |
+| Elke 10 minuten of minder vaak | 1 minuut |
+| Zodra de resultaten binnenkomen, zoals bij inkomende verzoeken en e-mails | 5 seconden |
+
+Een tiende laat een monitor ruimte om tienvoudig te groeien voordat zijn controles elkaar in de weg zitten en achterlopen, zodat u het vroeg merkt. Onder 5 seconden is een controle in orde, hoe groot ook: 16.000 reeksen beoordelen duurt ongeveer 2,5 seconden. Boven een minuut bezet ze zo lang een worker en de databases die ze leest, wat haar interval ook is. Om haar sneller te maken, maakt u de filters van haar query's nauwer, groepeert u op minder attributen of controleert u minder vaak.
+
 ## De criteria van een monitor wijzigen
 
 :::steps

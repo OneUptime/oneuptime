@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "所在位置：属性或日志正文，以及旁边属性的名称",
   "You need permission to edit scrub rules to switch this rule to Hash.": "您需要编辑清理规则的权限，才能将此规则切换为哈希。",
   "e.g. customer_name": "例如 customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 现在会对 IP 地址进行哈希处理。安全事件可以告诉您应封禁哪个地址。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 现在会对 IP 地址进行哈希处理。安全事件可以告诉您应封禁哪个地址。",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "判定了 {{count}} 个序列。要加快评估，请缩小过滤器范围或按更少的属性分组。",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "判定了 {{count}} 个序列。要加快评估，请缩小过滤器范围或按更少的属性分组。",
+  "Judged {{count}} series": "已判定 {{count}} 个序列",
+  "Judged {{count}} series_one": "已判定 {{count}} 个序列",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "对于检查间隔为 {{interval}} 的监视器来说，这已经很长了：如果它的评估继续变长，检查就会落后。",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "对一次评估来说，这已经很长了：如果评估继续变长，每次评估都会拖延下一次。",
+  "This evaluation took {{duration}}": "本次评估耗时 {{duration}}",
+  "Took {{duration}}": "耗时：{{duration}}"
 }

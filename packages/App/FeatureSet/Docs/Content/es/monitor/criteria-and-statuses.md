@@ -151,6 +151,21 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 > [!TIP]
 > Cuando las respuestas de un monitor de sitio web o de API sean sensibles en sí mismas, desactive **Conservar el contenido de la respuesta** en la tarjeta **Contenido de la respuesta** de su página **Avanzado → Ajustes**. Sus registros de monitoreo, incidentes y alertas conservarán entonces qué filtros coincidieron, el código de estado y el tiempo de respuesta, y ninguna parte de la respuesta. Un monitor de solicitudes entrantes tiene el mismo interruptor para las solicitudes que recibe: **Conservar el contenido de la solicitud**, en la tarjeta **Contenido de la solicitud**. El interruptor se aplica a las comprobaciones que se ejecuten, y a los incidentes y alertas que se abran, después de cambiarlo. La última solicitud en la vista general de un monitor de solicitudes entrantes sigue el interruptor al instante.
 
+## Cuánto tarda cada comprobación
+
+El resumen de evaluación de cada comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor y, para la última comprobación, en su **Vista general**, indica cuándo se evaluó la comprobación, cuánto tardó su evaluación y, en un monitor que juzga cada host, contenedor o grupo por separado, cuántas series evaluó. El tiempo va desde que OneUptime empezó a leer los datos que la comprobación juzga hasta que escribió su registro: la lectura de los datos, la evaluación de los criterios y la apertura de incidentes y alertas.
+
+Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Demasiado es más de una décima parte del tiempo entre las comprobaciones del monitor, nunca menos de 5 segundos y nunca más de un minuto:
+
+| Monitor comprobado | Avisa a partir de |
+| --- | --- |
+| Cada minuto | 6 segundos |
+| Cada 5 minutos | 30 segundos |
+| Cada 10 minutos o con menos frecuencia | 1 minuto |
+| Al llegar sus resultados, como solicitudes y correos entrantes | 5 segundos |
+
+Una décima parte deja a un monitor margen para crecer diez veces antes de que sus comprobaciones se solapen y se retrasen, así que usted se entera pronto. Por debajo de 5 segundos, una comprobación está bien por grande que sea: evaluar 16.000 series lleva unos 2,5 segundos. Por encima de un minuto, ocupa un worker y las bases de datos que lee durante todo ese tiempo, sea cual sea su intervalo. Para acelerarla, acote los filtros de sus consultas, agrupe por menos atributos o compruébela con menos frecuencia.
+
 ## Cambiar los criterios de un monitor
 
 :::steps

@@ -151,6 +151,21 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 > [!TIP]
 > Quando as respostas de um monitor de site ou de API forem sensíveis por si só, desative **Manter o conteúdo da resposta** no cartão **Conteúdo da resposta** da página **Avançado → Configurações** dele. Os registros de monitoramento, incidentes e alertas dele passam a guardar quais filtros corresponderam, o código de status e o tempo de resposta, e nenhuma parte da resposta. Um monitor de requisições recebidas tem o mesmo interruptor para as requisições que recebe: **Manter o conteúdo da solicitação**, no cartão **Conteúdo da solicitação**. O interruptor vale para as verificações executadas, e para os incidentes e alertas abertos, depois que você o muda. A última requisição na visão geral de um monitor de requisições recebidas segue o interruptor na hora.
 
+## Quanto tempo leva cada verificação
+
+O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
+
+Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
+
+| Monitor verificado | Avisa após |
+| --- | --- |
+| A cada minuto | 6 segundos |
+| A cada 5 minutos | 30 segundos |
+| A cada 10 minutos ou com menos frequência | 1 minuto |
+| À medida que os resultados chegam, como solicitações e e-mails recebidos | 5 segundos |
+
+Um décimo deixa a um monitor espaço para crescer dez vezes antes que as suas verificações se sobreponham e fiquem para trás, então você fica sabendo cedo. Abaixo de 5 segundos, uma verificação está bem, por maior que seja: avaliar 16.000 séries leva cerca de 2,5 segundos. Acima de um minuto, ela ocupa um worker e os bancos de dados que lê durante todo esse tempo, seja qual for o seu intervalo. Para acelerá-la, restrinja os filtros das suas consultas, agrupe por menos atributos ou verifique-a com menos frequência.
+
 ## Alterar os critérios de um monitor
 
 :::steps

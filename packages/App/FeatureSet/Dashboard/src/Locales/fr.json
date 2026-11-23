@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Où se trouve la détection : l'attribut ou le corps du journal, et les noms des attributs voisins",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Vous devez avoir l'autorisation de modifier les règles de nettoyage pour passer cette règle en Hachage.",
   "e.g. customer_name": "ex. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hache désormais les adresses IP. Événements de sécurité peut vous indiquer quelle adresse bloquer."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hache désormais les adresses IP. Événements de sécurité peut vous indiquer quelle adresse bloquer.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "Elle a évalué {{count}} séries. Pour l'accélérer, affinez ses filtres ou regroupez par moins d'attributs.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "Elle a évalué {{count}} série. Pour l'accélérer, affinez ses filtres ou regroupez par moins d'attributs.",
+  "Judged {{count}} series": "{{count}} séries évaluées",
+  "Judged {{count}} series_one": "{{count}} série évaluée",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "C'est beaucoup pour un moniteur dont l'intervalle de vérification est de {{interval}} : si ses évaluations continuent de s'allonger, ses vérifications prendront du retard.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "C'est beaucoup pour une seule évaluation : si les évaluations continuent de s'allonger, chacune retardera la suivante.",
+  "This evaluation took {{duration}}": "Cette évaluation a duré {{duration}}",
+  "Took {{duration}}": "Durée : {{duration}}"
 }

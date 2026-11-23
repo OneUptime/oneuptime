@@ -151,6 +151,21 @@ Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wir
 > [!TIP]
 > Wenn die Antworten eines Website- oder API-Monitors selbst vertraulich sind, schalten Sie **Antwortinhalt behalten** auf der Karte **Antwortinhalt** seiner Seite **Erweitert → Einstellungen** aus. Seine Überwachungsprotokolle, Vorfälle und Warnungen behalten dann, welche Filter zutrafen, den Statuscode und die Antwortzeit, und keinen Teil der Antwort. Ein Monitor für eingehende Anfragen hat denselben Schalter für die Anfragen, die er empfängt: **Anfrageinhalt behalten**, auf der Karte **Anfrageinhalt**. Der Schalter gilt für die Prüfungen, die nach Ihrer Änderung laufen, und die Vorfälle und Warnungen, die danach geöffnet werden. Die letzte Anfrage in der Übersicht eines Monitors für eingehende Anfragen folgt dem Schalter sofort.
 
+## Wie lange jede Prüfung dauert
+
+Die Auswertungszusammenfassung jeder Prüfung, unter **Zusammenfassung anzeigen** auf der Seite **Überwachungsprotokolle** des Monitors und für die letzte Prüfung auf seiner **Übersicht**, sagt, wann die Prüfung ausgewertet wurde, wie lange ihre Auswertung dauerte und, bei einem Monitor, der jeden Host, jeden Container oder jede Gruppe für sich beurteilt, wie viele Reihen sie beurteilt hat. Die Zeit läuft ab dem Moment, in dem OneUptime begann, die Daten der Prüfung zu lesen, bis es das Protokoll der Prüfung schrieb: das Lesen der Daten, das Beurteilen der Kriterien und das Öffnen von Vorfällen und Warnungen.
+
+Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammenfassung. Zu lange ist mehr als ein Zehntel der Zeit zwischen den Prüfungen des Monitors, nie weniger als 5 Sekunden und nie mehr als eine Minute:
+
+| Monitor geprüft | Warnt nach |
+| --- | --- |
+| Jede Minute | 6 Sekunden |
+| Alle 5 Minuten | 30 Sekunden |
+| Alle 10 Minuten oder seltener | 1 Minute |
+| Wenn seine Ergebnisse eintreffen, etwa bei eingehenden Anfragen und E-Mails | 5 Sekunden |
+
+Ein Zehntel lässt einem Monitor Raum, um das Zehnfache zu wachsen, bevor seine Prüfungen einander in die Quere kommen und in Rückstand geraten, sodass Sie es früh erfahren. Unter 5 Sekunden ist eine Prüfung in Ordnung, wie groß sie auch ist: 16.000 Reihen zu beurteilen dauert etwa 2,5 Sekunden. Über eine Minute belegt sie so lange einen Worker und die Datenbanken, die sie liest, unabhängig von ihrem Intervall. Um sie zu beschleunigen, grenzen Sie die Filter ihrer Abfragen ein, gruppieren Sie nach weniger Attributen oder prüfen Sie seltener.
+
 ## Die Kriterien eines Monitors ändern
 
 :::steps

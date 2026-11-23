@@ -62572,5 +62572,13 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Hvor den sidder: attributten eller logbeskeden, og navnene på attributterne ved siden af",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Du skal have tilladelse til at redigere rensningsregler for at skifte denne regel til Hash.",
   "e.g. customer_name": "f.eks. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasher nu IP-adresser. Sikkerhedshændelser kan fortælle dig, hvilken adresse du skal blokere."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasher nu IP-adresser. Sikkerhedshændelser kan fortælle dig, hvilken adresse du skal blokere.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.": "Den vurderede {{count}} serier. Gør den hurtigere ved at indsnævre filtrene eller gruppere efter færre attributter.",
+  "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes._one": "Den vurderede {{count}} serie. Gør den hurtigere ved at indsnævre filtrene eller gruppere efter færre attributter.",
+  "Judged {{count}} series": "{{count}} serier vurderet",
+  "Judged {{count}} series_one": "{{count}} serie vurderet",
+  "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.": "Det er meget for en monitor med et kontrolinterval på {{interval}}: Hvis dens evalueringer bliver ved med at vokse, kommer dens kontroller bagud.",
+  "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.": "Det er meget for én evaluering: Hvis evalueringerne bliver ved med at vokse, holder hver af dem den næste tilbage.",
+  "This evaluation took {{duration}}": "Denne evaluering tog {{duration}}",
+  "Took {{duration}}": "Varighed: {{duration}}"
 }

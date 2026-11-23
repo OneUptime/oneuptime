@@ -35,6 +35,8 @@ import EvaluationGroupingNote, {
 } from "./EvaluationGroupingNote";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 import { wordEvaluationText } from "../../../Utils/EvaluationText";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import MonitorEvaluationTime from "Common/Utils/Monitor/MonitorEvaluationTime";
 
 interface FilterGroup {
   message: string;
@@ -759,19 +761,142 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * What the evaluation was, set apart by " · ": when it ran, how long it
+   * took and how many series it judged (#10317). An evaluation logged
+   * before it said how long it took says when it ran only.
+   */
+  const durationInMs: number | undefined =
+    typeof evaluationSummary.durationInMs === "number" &&
+    Number.isFinite(evaluationSummary.durationInMs)
+      ? evaluationSummary.durationInMs
+      : undefined;
+  const seriesJudged: number | undefined =
+    typeof evaluationSummary.seriesJudged === "number" &&
+    evaluationSummary.seriesJudged >= 0
+      ? evaluationSummary.seriesJudged
+      : undefined;
+  const evaluationFacts: Array<{ key: string; text: string }> = [];
+
+  if (evaluationSummary.evaluatedAt) {
+    evaluationFacts.push({
+      key: "evaluated-at",
+      text: translator.translateTemplate("Evaluated at {{time}}", {
+        time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          evaluationSummary.evaluatedAt,
+        ),
+      }),
+    });
+  }
+
+  if (durationInMs !== undefined) {
+    evaluationFacts.push({
+      key: "took",
+      text: translator.translateTemplate("Took {{duration}}", {
+        duration: MonitorEvaluationTime.formatDuration(
+          translator,
+          durationInMs,
+        ),
+      }),
+    });
+  }
+
+  if (seriesJudged !== undefined) {
+    evaluationFacts.push({
+      key: "series-judged",
+      text: translator.translatePlural(
+        { one: "Judged {{count}} series", other: "Judged {{count}} series" },
+        seriesJudged,
+      ),
+    });
+  }
+
+  /*
+   * Too long for its monitor: a tenth of its interval, at least 5 seconds,
+   * at most a minute (MonitorEvaluationTime). Said where the summary is
+   * read - this check's View Summary, and the latest one on the monitor's
+   * Overview - so a monitor that grows past what its interval allows is
+   * noticed before its checks fall behind.
+   */
+  const intervalInMs: number | undefined =
+    typeof evaluationSummary.intervalInMs === "number" &&
+    evaluationSummary.intervalInMs > 0
+      ? evaluationSummary.intervalInMs
+      : undefined;
+  const isSlow: boolean =
+    durationInMs !== undefined &&
+    MonitorEvaluationTime.isSlow(evaluationSummary);
+
   return (
     <div className="mt-6 space-y-4">
       <div className="text-base font-semibold text-gray-900">
         {getSummaryTitle}
       </div>
-      {evaluationSummary.evaluatedAt && (
-        <div className="text-xs text-gray-500">
-          {translator.translateTemplate("Evaluated at {{time}}", {
-            time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-              evaluationSummary.evaluatedAt,
-            ),
-          })}
+      {evaluationFacts.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"
+          data-testid="evaluation-facts"
+        >
+          {evaluationFacts.map(
+            (fact: { key: string; text: string }, index: number) => {
+              return (
+                <React.Fragment key={fact.key}>
+                  {index > 0 && <span aria-hidden="true">·</span>}
+                  <span>{fact.text}</span>
+                </React.Fragment>
+              );
+            },
+          )}
         </div>
+      )}
+      {isSlow && durationInMs !== undefined && (
+        <Alert
+          type={AlertType.WARNING}
+          icon={IconProp.Clock}
+          dataTestId="slow-evaluation"
+          title={
+            <span className="block space-y-1">
+              <span className="block font-semibold">
+                {translator.translateTemplate(
+                  "This evaluation took {{duration}}",
+                  {
+                    duration: MonitorEvaluationTime.formatDuration(
+                      translator,
+                      durationInMs,
+                    ),
+                  },
+                )}
+              </span>
+              <span className="block">
+                {intervalInMs !== undefined
+                  ? translator.translateTemplate(
+                      "That is a lot for a monitor checked every {{interval}}: if its evaluations keep growing, its checks will fall behind.",
+                      {
+                        interval: MonitorEvaluationTime.formatDuration(
+                          translator,
+                          intervalInMs,
+                        ),
+                      },
+                    )
+                  : translator.translateText(
+                      "That is a lot for one evaluation: if its evaluations keep growing, each will hold up the next.",
+                    )}
+              </span>
+              {seriesJudged !== undefined && (
+                <span className="block">
+                  {translator.translatePlural(
+                    {
+                      one: "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.",
+                      other:
+                        "It judged {{count}} series. To make it faster, narrow its filters or group by fewer attributes.",
+                    },
+                    seriesJudged,
+                  )}
+                </span>
+              )}
+            </span>
+          }
+        />
       )}
 
       {hasCriteriaResults && (
