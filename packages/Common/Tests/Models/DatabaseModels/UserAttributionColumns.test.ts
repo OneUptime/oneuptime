@@ -283,6 +283,13 @@ describe("which columns record a person doing something", () => {
       "accepted",
       "acknowledged",
       "added",
+      /*
+       * SecurityCase.aiHoldEndedByUserId: who ended OneUptime AI's hold of a
+       * case's alerts, by pressing Page now or taking the case (#10353).
+       * SecurityCaseAiHold stamps it from the person who ended it, and leaves
+       * it empty when OneUptime ended it; no request chooses it.
+       */
+      "aiHoldEnded",
       "answered",
       "approved",
       "archived",
@@ -293,6 +300,13 @@ describe("which columns record a person doing something", () => {
        */
       "closed",
       "created",
+      /*
+       * SecurityCaseAiAction.decidedByUserId: who approved or declined what
+       * OneUptime AI asked on a case it works (#10352). The decisions on the
+       * case's card (SecurityCaseResponseDecisions, SecurityCaseHandOff)
+       * stamp it from the caller; no request chooses it.
+       */
+      "decided",
       "dismissed",
       /*
        * SecurityCaseTask.doneByUserId: who ticked a task on a security case
@@ -314,6 +328,13 @@ describe("which columns record a person doing something", () => {
        * once the approval has passed its checks; no request chooses it.
        */
       "firstApproved",
+      /*
+       * DataSecurityIssueGroup.fixRequestedByUserId: who last asked for a
+       * group of Data Security issues to be fixed in Code (#10370).
+       * DataSecurityIssueGroupFix stamps it from the caller, and leaves it
+       * empty for OneUptime AI; no request chooses it.
+       */
+      "fixRequested",
       "humanVerdict",
       /*
        * <every model>.lastModifiedByUserId: the person who last modified a

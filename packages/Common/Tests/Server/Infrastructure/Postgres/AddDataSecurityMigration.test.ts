@@ -16,6 +16,8 @@ import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infra
 import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436369-AddDataSecurityIssueAiAnalysis";
+import { AddDataSecurityIssueGroups1809187470370 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470370-AddDataSecurityIssueGroups";
+import { AddScrubRuleNamedKeysAndProof1809187470400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470400-AddScrubRuleNamedKeysAndProof";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -195,6 +197,18 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
       AddDataSecurityIssueAiAnalysis1809187436369,
     ];
   }),
+  // The group of issues one mistake made that an issue is in (#10370).
+  [
+    "DataSecurityIssue",
+    "dataSecurityIssueGroupId",
+    AddDataSecurityIssueGroups1809187470370,
+  ],
+  // The OneUptime AI proposal a feed item is about, for its proof (#10366).
+  [
+    "DataSecurityIssueFeed",
+    "dataSecurityAiProposalId",
+    AddScrubRuleNamedKeysAndProof1809187470400,
+  ],
 ];
 
 function addedLater(table: string): Array<string> {
