@@ -614,6 +614,8 @@ export function getSecurityPipelineStages(
 // One line of the Overview's card: which kind of telemetry, which rule, and where it is changed.
 export interface SecurityAddressScrubItem {
   signal: ScrubbedAddressSignal;
+  // The rule Hash Instead switches (#10396).
+  ruleId: string;
   // What it means for Security Events, a translation key.
   sentence: string;
   // Which rule does it, a template with {{rule}}, and the rule's name as it was saved.
@@ -627,8 +629,8 @@ export interface SecurityAddressScrubItem {
  * What Security Events' setup says of the scrub rules that keep it from
  * naming the address an attack came from: one line for the logs it reads,
  * one for the traces, each with the rule that redacts or masks the
- * addresses there and a way to it. Hash Instead takes the button's place
- * once #10396 ships.
+ * addresses there, and Hash Instead (#10396) - the switch every such rule
+ * gets where it is.
  */
 export function getSecurityAddressScrubItems(
   status: SecuritySetupStatus,
@@ -638,6 +640,7 @@ export function getSecurityAddressScrubItems(
   for (const rule of status.addressScrubRules || []) {
     items.push({
       signal: rule.signal,
+      ruleId: rule.ruleId,
       sentence:
         rule.signal === "trace"
           ? TRACE_ADDRESSES_SCRUBBED

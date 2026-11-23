@@ -2044,12 +2044,13 @@ test.describe("Quick Setup's alert templates", () => {
    * Every template getAllKubernetesAlertTemplates() returns
    * (Common/Types/Monitor/KubernetesAlertTemplates): twenty-one since #5518
    * added node pressure, a StatefulSet's replica mismatch and a DaemonSet's
-   * pods not ready, twenty-four since #9548 added the cost templates, and
-   * twenty-five since #9539 added PVC Almost Full. The spec cannot import
-   * the list: it loads Common's TypeORM models, whose decorators Playwright's
+   * pods not ready, twenty-four since #9548 added the cost templates,
+   * twenty-five since #9539 added PVC Almost Full, and twenty-six since
+   * #9843 added Node Image Disk Almost Full. The spec cannot import the
+   * list: it loads Common's TypeORM models, whose decorators Playwright's
    * transpiler does not run.
    */
-  const KUBERNETES_TEMPLATE_COUNT: number = 25;
+  const KUBERNETES_TEMPLATE_COUNT: number = 26;
   const ETCD_DESCRIPTION_START: string =
     "Requires the agent's control-plane scrape";
 

@@ -8,6 +8,7 @@ Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand,
 - [Wat wordt gelezen](#wat-wordt-gelezen): De attributen, bodies, berichten en prompts van elk signaal.
 - [Hoe een scan bemonstert](#hoe-een-scan-bemonstert): De nieuwste records van elke service, elk uur.
 - [Opschonen](#opschonen): Verberg een bevinding bij de inname, in de service waarin ze is gevonden.
+- [Zelf ingedamd](#zelf-ingedamd): Een geheim verborgen zonder dat iemand ergens op drukt, waar bewezen is dat dat veilig is.
 - [Deze metriek verwerpen](#deze-metriek-verwerpen): Sla de metrieken waarvan de naam gevoelige gegevens bevat niet meer op.
 - [Wat telt als opgeschoond](#wat-telt-als-opgeschoond): Wanneer een opschoonregel een bevinding al dekt.
 :::
@@ -101,14 +102,23 @@ Klik op **Opschonen**. Een dialoogvenster zegt wat de regel zou doen voordat er 
 De regel verbergt nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut.
 :::
 
-De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in log attributes of checkout", en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is een van deze:
+De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in log attributes of checkout", of "Data Security: Password or secret in db.password of checkout" voor een regel die zijn attribuut noemt, en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is de smalste regel die de gegevens van de bevinding verbergt, de eerste van deze die past:
 
 | Bevinding | Regel die Opschonen maakt |
 | --- | --- |
-| E-mailadres, kaartnummer, Amerikaans socialezekerheidsnummer, telefoonnummer of IP-adres | Het ingebouwde patroon van dat type. Kaartnummers, socialezekerheidsnummers en telefoonnummers worden gemaskeerd, de rest wordt weggelakt. |
-| Een waarde onder een sleutel die gevoelig lijkt, zoals `password` of `token` | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
-| Elk ander gegevenstype dat een patroon kan vinden | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype, die elke waarde van die vorm weglakt |
+| E-mailadres, kaartnummer, Amerikaans socialezekerheidsnummer, telefoonnummer of IP-adres | Het ingebouwde patroon van dat type, gemaskeerd. Een IP-adres wordt weggelakt, of gehasht waar [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) die records leest, zodat het nog kan zeggen welk adres je moet blokkeren. |
+| Elk ander gegevenstype dat een patroon zelf vindt, zoals een GitHub-token | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype. Een geheim wordt weggelakt. |
+| Een van je eigen gegevenstypen, met een patroon | Dat patroon, alleen in het attribuut waarin het is gevonden |
+| Een gegevenstype dat door de woorden eromheen te onderscheiden is, zoals een routingnummer | Zijn vorm, alleen in het attribuut waarin het is gevonden |
+| Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name`, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
+| Een waarde onder een sleutel die gevoelig lijkt, waar niets smallers haar verbergt | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
 | Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut met de vorm van het gegevenstype vervangt door `[REDACTED]`, of elke waarde van het attribuut wanneer geen patroon het gegevenstype vindt |
+
+### Bewezen op de records waarin het werd gezien
+
+Voordat het dialoogvenster zegt wat de regel zou doen, voert OneUptime elke regel die het zou kunnen maken uit op de records waarin de bevinding werd gezien, en op de nieuwste records van haar service met een waarde op die plek, met precies de code die de inname uitvoert, en vraagt de scanner wat er overblijft. De eerste regel die de gegevens verbergt in elke waarde die ze bevatte, en hooguit 5 op de 100 van de andere waarden daar wijzigt, is de regel. Het dialoogvenster zegt op hoeveel records hij is uitgevoerd, hoeveel waarden de gegevens bevatten en hoeveel andere hij wijzigde. Een patroon dat meer zou wijzigen, wordt nooit aangeboden: de regel die het attribuut noemt wel, met wat hij nog meer wijzigt.
+
+Het bewijs wordt bij de regel bewaard, en de lijst met opschoonregels toont **Bewezen** in zijn rij totdat de regel wordt gewijzigd. Waar geen record meer over is om een regel op uit te voeren, zoals die van een exception of een sessieweergave, of records voorbij hun bewaartermijn, wordt de regel gemaakt zoals gepland, en zegt het dialoogvenster dat.
 
 Een regel voor logs of traces geldt voor de service waarin de bevinding is gevonden: ze schoont de logs of spans van die service op, en die van andere services blijven zoals ze zijn, zodat niets verandert wat die van hen leest. De kolom **Bereik** van de lijst met opschoonregels zegt voor welke service een regel geldt. Een bevinding in de sessie-opnames van een RUM-toepassing maakt een regel voor elke service en app van het project, omdat regels voor logs ook opnames opschonen, en het dialoogvenster zegt dat. Bestaat de service niet meer, dan zegt **Opschonen** dat en maakt het geen regel.
 
@@ -116,14 +126,35 @@ Het dialoogvenster noemt, elk als link, de monitors, dashboards met hun widgets,
 
 Sommige bevindingen kan geen regel opschonen, en **Opschonen** zegt waarom. Het attribuut van een metriek kan altijd worden opgeschoond, omdat de regel ervoor elke waarde van het attribuut kan verbergen:
 
-- Een gegevenstype dat alleen op veldnamen wordt gevonden, zoals de naam van een persoon: geen patroon kan het vinden. Hernoem het attribuut naar een sleutel die een regel voor gevoelige sleutels verbergt, of stop met het versturen ervan.
-- Een gegevenstype dat alleen door de woorden eromheen van andere waarden te onderscheiden is, zoals een routingnummer: een regel zou veel meer verbergen dan dat gegevenstype.
+- Een gegevenstype dat alleen op veldnamen wordt gevonden in de tekst van een log, zoals de naam van een persoon: geen regel kan het onderscheiden van de rest van het bericht. Verstuur het als attribuut, dat een regel **Benoemde attributen** verbergt, of stop met het versturen ervan.
+- Elke geprobeerde regel verborg veel meer dan de gegevens: elke regel werd uitgevoerd op de records waarin ze werden gezien, en wijzigde te veel andere dingen. Stop met het versturen ervan in de code die ze schrijft.
 - Een documentmarkering: het woord verbergen verbergt het document niet.
-- Een van je eigen gegevenstypen: voeg zelf een aangepaste opschoonregel met zijn patroon toe.
 - De eigen gegevens van een sessie (`sessions.*`): de inname van sessieherhalingen voert geen opschoonregels uit.
 - De naam van een metriek (`name`): de code die de metriek maakt, stelt hem in, en een pipelineregel kan een metriek alleen als geheel hernoemen. Hernoem de metriek, en stuur wat in de naam varieert in plaats daarvan als attribuut. Tot dan kan **Deze metriek verwerpen** het opslaan van die metrieken stoppen.
 
 **Opschonen** maakt de regel namens jou, met je eigen machtigingen: Projecteigenaren en Projectbeheerders kunnen erop drukken, en ook een team dat opschoonregels voor logs mag maken, opschoonregels voor traces voor spans, uitzonderingen en AI-aanroepen, en pipelineregels voor metrieken.
+
+## Zelf ingedamd
+
+Terwijl OneUptime AI aan problemen van Gegevensbeveiliging werkt (zie [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai)), wordt een telemetrieprobleem ingedamd zonder dat iemand ergens op drukt, waar bewezen is dat dat veilig is. Voor elke plek die het probleem telt, plant OneUptime AI de regel die **Opschonen** zou maken, op dezelfde manier bewezen, en maakt die alleen zelf aan als dit allemaal klopt:
+
+- **De gegevens zijn een geheim**, zoals een wachtwoord, een token of een sleutel.
+- **De regel is bewezen** op de records waarin de gegevens werden gezien: hij verborg de gegevens in elke waarde die ze bevatte.
+- **Hij wijzigt daar verder niets**: geen van de andere waarden op zijn plek.
+- **Niets leest wat hij verbergt**: geen monitor, dashboard, opgeslagen weergave, recordingregel of SLO, en niets wat Beveiligingsgebeurtenissen nodig heeft.
+- **Hij geldt voor de service** waarin de gegevens werden gezien.
+
+Al het andere wordt in plaats daarvan voorgesteld, op **Gegevensbeveiliging → AI** en op de pagina van het probleem, met hoe de regel is bewezen en wat leest wat hij zou verbergen: persoonsgegevens, een regel die iets leest, een die andere waarden wijzigt, een zonder record om op uit te voeren, een voor elke service, de pipelineregel van een metriek, en elke plek waarvan iemand een eerdere regel ongedaan maakte of negeerde. Een AI-regel van Gegevensbeveiliging die **Indammen** op **Automatisch** zet voor een probleem, laat ook bewezen persoonsgegevens zelf verbergen. Geen regel laat een wijziging waarvan niet bewezen is dat ze veilig is, zelf uitvoeren.
+
+Waar geen van de regels van **Opschonen** de gegevens kan verbergen, zoals bij een van je eigen gegevenstypen zonder patroon, schrijft OneUptime AI er een: een patroon voor de gegevens, of het attribuut om helemaal te verbergen. Het krijgt het gegevenstype, waar het staat, de namen van de attributen ernaast en de vormen van de waarden, zoals `AA-9999` voor `AB-1234`, nooit een waarde, en wat het schrijft, wordt net als elke andere regel op de records bewezen voordat het wordt voorgesteld of aangemaakt.
+
+Een wijziging die OneUptime AI zelf maakte:
+
+- **Staat op de tijdlijn van het probleem**, met de regels die het maakte, hoe elke regel is bewezen, en **Ongedaan maken**, dat ze verwijdert. **Gegevensbeveiliging → AI** heeft hetzelfde **Ongedaan maken**. Een plek waarvan je de regel ongedaan maakt, wordt nooit meer zelf ingedamd: OneUptime AI stelt haar in plaats daarvan voor.
+- **Wordt gemaild** naar de eigenaren van de opslag en de eigenaren van de service.
+- **Zegt dat een geheim moet worden geroteerd.** Een geheim verbergen houdt alleen nieuwe kopieën tegen: het geheim werkt nog, en de records die vóór de regel zijn opgeslagen, houden het tot hun bewaartermijn afloopt. De tijdlijn en de e-mail zeggen waar het werd gezien.
+
+Nieuwe bevindingen in een service waarvan het probleem al openstaat, worden op dezelfde manier ingedamd zodra de scan van elk uur ze vindt.
 
 ## Deze metriek verwerpen
 
@@ -145,7 +176,9 @@ Een bevinding wordt alleen als opgeschoond gemarkeerd wanneer de inname er een i
 - **Het juiste deel.** De **Te wissen velden** van de regel bevatten het deel van het record waarin de bevinding staat, of de regel laat ze op hun standaardwaarde.
 - **De juiste service.** Een regel voor logs of traces voor één service dekt alleen de bevindingen van die service. Een regel zonder service dekt die van elke service.
 - **Een patroon dat het type vindt.** Een ingebouwd **Patroontype** vindt zijn eigen gegevenstype: **E-mailadres** vindt e-mailadressen, **Creditcardnummer** kaartnummers, **SSN (burgerservicenummer)** Amerikaanse socialezekerheidsnummers, **Telefoonnummer** telefoonnummers en **IP-adres** IP-adressen. **Gevoelige attribuutsleutels** dekt elke waarde onder een sleutel die gevoelig lijkt, wat de waarde ook is.
-- **Je eigen aangepaste patronen tellen nooit.** Een **Aangepaste reguliere expressie** dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
+- **Een regel die op de records van de bevinding is bewezen.** Een regel die OneUptime maakte en bewees op de records waarin een bevinding werd gezien, dekt die bevinding, wat zijn patroon ook is, zolang het de regel is die werd bewezen: wijzig zijn patroon, zijn attributen, zijn actie, zijn velden of zijn service, en hij dekt haar niet meer.
+- **Een regel Benoemde attributen** dekt een bevinding in een attribuut dat hij noemt, of in een attribuut dat eronder genest is.
+- **Je eigen aangepaste patronen tellen verder nooit.** Een **Aangepaste reguliere expressie** die je zelf schreef, dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
 - **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden.
 - **De naam van een metriek.** Een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding of voor het hele project dekt haar als de regel precies het filter heeft dat **Deze metriek verwerpen** maakt, of helemaal geen filter, waarmee hij geen enkele metriek van de service opslaat. Zo'n regel zonder filter dekt elke bevinding in die metrieken.
 

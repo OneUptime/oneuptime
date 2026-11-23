@@ -81,6 +81,7 @@ import {
   DATA_SECURITY_SCAN_STORE_JOB,
 } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import * as TelemetryScrubCoverage from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import * as TelemetryScrubIt from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubIt";
 import * as TelemetryMetricDrop from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import * as TelemetryScrubImpact from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
 import * as TelemetryFindingOccurrences from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
@@ -812,12 +813,14 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return new AIRun(new ObjectID("77777777-7777-4777-8777-777777777777"));
     }) as never);
+  // Scrub It makes the proven, narrow rule for the finding (#10366).
   scrubSpy = jest
-    .spyOn(TelemetryScrubCoverage, "createScrubRuleForFinding")
+    .spyOn(TelemetryScrubIt, "scrubFindingWithProvenRule")
     .mockResolvedValue({
       signal: "log",
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
+      isProven: true,
     });
   dropSpy = jest
     .spyOn(TelemetryScrubCoverage, "createDropRuleForFinding")
@@ -1514,6 +1517,8 @@ describe("Scrub It", () => {
     expect(scrubSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      // Its records are what the rule is proven on (#10366).
+      findingId: STORE_ID.toString(),
       kind: DataStoreKind.TelemetryLogs,
       dataTypeId: "email-address",
       location: "attributes.user.email",
@@ -1539,6 +1544,7 @@ describe("Scrub It", () => {
       signal: "log",
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
+      isProven: true,
     });
   });
 
@@ -1580,6 +1586,7 @@ describe("Scrub It", () => {
     expect(scrubSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      findingId: STORE_ID.toString(),
       kind: DataStoreKind.TelemetryMetrics,
       dataTypeId: "email-address",
       location: "attributes.user.email",

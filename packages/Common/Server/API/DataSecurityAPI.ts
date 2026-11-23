@@ -110,11 +110,11 @@ import {
 } from "../Utils/DataSecurity/Telemetry/TelemetryFindingOccurrences";
 import {
   createDropRuleForFinding,
-  createScrubRuleForFinding,
   CreatedScrubRule,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
 import { getScrubItImpact } from "../Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
+import { scrubFindingWithProvenRule } from "../Utils/DataSecurity/Telemetry/TelemetryScrubIt";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -572,9 +572,14 @@ export default class DataSecurityAPI extends BaseAPI<
         const finding: DataStoreFinding =
           await DataSecurityAPI.readTelemetryFinding(projectId, req);
 
-        const created: CreatedScrubRule = await createScrubRuleForFinding({
+        /*
+         * The proven, narrow rule for the finding (#10366): the one the
+         * dialog showed, proven on the records it was seen in.
+         */
+        const created: CreatedScrubRule = await scrubFindingWithProvenRule({
           projectId,
           userId: props.userId || undefined,
+          findingId: finding.id!.toString(),
           kind: finding.dataStore!.kind as DataStoreKind,
           dataTypeId: finding.dataTypeId!,
           dataTypeName: finding.dataTypeName,
@@ -619,6 +624,7 @@ export default class DataSecurityAPI extends BaseAPI<
           location: finding.location!,
           serviceId: finding.dataStore!.serviceId || null,
           storeKey: finding.dataStore!.storeKey || null,
+          findingId: finding.id!.toString(),
           props,
         })) as unknown as JSONObject;
       },

@@ -1164,6 +1164,7 @@ import { AddSecurityCaseAiNextLookIndex1809187452010 } from "./1809187452010-Add
 import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-AddCloudWafAndEnforcementReasons";
 import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
 import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
+import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
 
 export default [
   InitialMigration,
@@ -2332,4 +2333,5 @@ export default [
   AddCloudWafAndEnforcementReasons1809187455000,
   AddDataSecurityIssueGroups1809187470370,
   AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
+  AddScrubRuleNamedKeysAndProof1809187470400,
 ];

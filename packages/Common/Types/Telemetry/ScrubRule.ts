@@ -19,6 +19,10 @@ import {
   SCRUB_HASH_TOKEN_PREFIX,
   SCRUB_HASH_TOKEN_SUFFIX,
 } from "./ScrubHashTokenFormat";
+import {
+  readScrubRuleKeys,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+} from "./ScrubRuleKeys";
 
 /*
  * WHAT A LOG OR TRACE SCRUB RULE STARTS WITH, AND WHAT MAKES ONE SCRUB
@@ -361,22 +365,21 @@ export function scrubRegExpFromRanges(data: {
  * IP Address is not here: its matches are what Data Security's own
  * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).
  */
-export const SCRUB_RULE_BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> =
-  {
-    /*
-     * Each part of the address is length-bounded to the sizes RFC 5321
-     * allows (local part 64, domain 253, final label 63), so finding
-     * addresses in a log body or a span attribute stays in line with its
-     * length however long it is - this runs over every ingested record of a
-     * project with an email scrub rule.
-     */
-    [LogScrubPatternType.Email]:
-      /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
-    [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
-    [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
-    [LogScrubPatternType.PhoneNumber]:
-      /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
-  };
+export const SCRUB_RULE_BUILT_IN_PATTERNS: Readonly<Record<string, RegExp>> = {
+  /*
+   * Each part of the address is length-bounded to the sizes RFC 5321
+   * allows (local part 64, domain 253, final label 63), so finding
+   * addresses in a log body or a span attribute stays in line with its
+   * length however long it is - this runs over every ingested record of a
+   * project with an email scrub rule.
+   */
+  [LogScrubPatternType.Email]:
+    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
+  [LogScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
+  [LogScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
+  [LogScrubPatternType.PhoneNumber]:
+    /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+};
 
 /*
  * The attribute-KEY denylist of a Sensitive Attribute Keys rule: matched
@@ -593,6 +596,8 @@ export function doesScrubRuleScrubNothing(data: {
   patternType: unknown;
   customRegex: unknown;
   fieldsToScrub: unknown;
+  // A Named Attributes rule's keys (#10366): one that names none hides nothing.
+  attributeKeys?: unknown;
   knownPatternTypes: ReadonlyArray<string>;
   knownFieldsToScrub: ReadonlyArray<string>;
 }): boolean {
@@ -603,12 +608,20 @@ export function doesScrubRuleScrubNothing(data: {
     return true;
   }
 
+  if (
+    data.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE &&
+    readScrubRuleKeys(data.attributeKeys).length === 0
+  ) {
+    return true;
+  }
+
   /*
    * Left empty, ingest scrubs every field; a value it does not know, none of
    * them.
    */
   if (
     data.patternType !== SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE &&
+    data.patternType !== SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE &&
     typeof data.fieldsToScrub === "string" &&
     data.fieldsToScrub.length > 0 &&
     !data.knownFieldsToScrub.includes(data.fieldsToScrub)

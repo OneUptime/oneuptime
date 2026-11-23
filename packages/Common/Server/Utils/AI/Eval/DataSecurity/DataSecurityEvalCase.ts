@@ -9,6 +9,10 @@ import {
   DataStoreOwnerEvidence,
 } from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataSecurityIssueGroupFacts } from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
+import {
+  ScrubRuleWriterPlace,
+  ScrubRuleWriterRuleKind,
+} from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
 import {
   AiAccessRecord,
@@ -187,6 +191,33 @@ export interface IssueGroupFixEvalCase extends DataSecurityEvalCaseBase {
   expect: Array<FixEvalFileCheck>;
 }
 
+/*
+ * What a right rule for one place does (#10366): with made-up values of
+ * the place, it changes each one that holds the data and none of the
+ * others - as the verifier proves a rule on a finding's records - and it
+ * is of the kind a right answer writes, where only one kind is right.
+ */
+export interface ScrubRuleEvalExpectation {
+  // Made-up values at the place the rule must change: the model never sees them.
+  hides: Array<string>;
+  // Made-up values beside them it must leave as they are.
+  keeps: Array<string>;
+  kind?: ScrubRuleWriterRuleKind | undefined;
+  // No rule is right for the place: a right answer leaves it out.
+  leftOut?: boolean | undefined;
+}
+
+/*
+ * OneUptime AI's scrub rules for what Scrub It cannot cover (#10366): the
+ * places as it is told them - names and shapes, never a value - and what a
+ * right rule for each does, by the place's ref.
+ */
+export interface ScrubRulesEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.WriteScrubRules;
+  places: Array<ScrubRuleWriterPlace>;
+  expect: Record<string, ScrubRuleEvalExpectation>;
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FieldSuggestionEvalCase
@@ -194,4 +225,5 @@ export type DataSecurityEvalCase =
   | AskAiEvalCase
   | StoreOwnersEvalCase
   | IssueGroupNameEvalCase
-  | IssueGroupFixEvalCase;
+  | IssueGroupFixEvalCase
+  | ScrubRulesEvalCase;

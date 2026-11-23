@@ -898,6 +898,8 @@ describe("Security Events' setup", () => {
         signal: "log",
         sentence: copy.LOG_ADDRESSES_SCRUBBED,
         ruleSentence: copy.SCRUB_RULE_REDACTS_THEM,
+        // The rule Hash Instead switches (#10396).
+        ruleId: "l-1",
         ruleName: "Scrub IP addresses",
         rulesPage: PageMap.LOGS_SETTINGS_SCRUB_RULES,
       },
@@ -905,6 +907,7 @@ describe("Security Events' setup", () => {
         signal: "trace",
         sentence: copy.TRACE_ADDRESSES_SCRUBBED,
         ruleSentence: copy.SCRUB_RULE_MASKS_THEM,
+        ruleId: "t-1",
         ruleName: "Mask IPs in spans",
         rulesPage: PageMap.TRACES_SETTINGS_SCRUB_RULES,
       },
