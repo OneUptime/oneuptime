@@ -359,7 +359,10 @@ function isSecretType(dataTypeId: string): boolean {
  * a secret keeps "Secrets are reaching your telemetry" open, any other
  * type "Sensitive data is reaching your telemetry". The evaluator counts
  * findings with these, and an issue's page lists them with these, so the
- * page names exactly what the check counted.
+ * page names exactly what the check counted. A finding a rule masks is
+ * contained, not fixed: its issue resolves as Contained at ingest, and one
+ * a verified code fix stopped keeps no issue open until it comes back
+ * (#10368).
  */
 
 // How long a finding counts toward its store after a scan last saw it.
@@ -385,6 +388,12 @@ export interface CheckedFinding {
   isAiSuggested?: boolean | null | undefined;
   isScrubbed?: boolean | null | undefined;
   isSuppressed?: boolean | null | undefined;
+  /*
+   * For telemetry: when a code fix stopped it, as production proved it
+   * (#10368). Until the leak comes back - which the fix's watch says, and
+   * clears this - it keeps no issue open.
+   */
+  fixedAt?: Date | string | null | undefined;
 }
 
 // Whether a finding counts toward its store's sensitivity and checks.
@@ -405,6 +414,22 @@ export function isUnscrubbedTelemetryFinding(finding: CheckedFinding): boolean {
   return (
     isFindingCounted(finding) &&
     !finding.isScrubbed &&
+    !finding.fixedAt &&
+    finding.confidence !== DataConfidence.Low
+  );
+}
+
+/*
+ * Whether a telemetry store's finding is contained at ingest (#10368): a
+ * scrub rule hides it before it is stored, so it keeps no issue open, but
+ * the code still writes it - its issue resolves as contained, never as
+ * fixed. A finding a verified code fix stopped is fixed, not contained.
+ */
+export function isContainedTelemetryFinding(finding: CheckedFinding): boolean {
+  return (
+    isFindingCounted(finding) &&
+    Boolean(finding.isScrubbed) &&
+    !finding.fixedAt &&
     finding.confidence !== DataConfidence.Low
   );
 }
