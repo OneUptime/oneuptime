@@ -1485,7 +1485,11 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                               },
                             )}
                             options={countComparisonOptions}
-                            ariaLabel="Filter Condition"
+                            /*
+                             * Named by the row, as its number box is: the
+                             * filter's own Filter Condition sits above.
+                             */
+                            ariaLabel={countedWindowField.title}
                             isClearable={false}
                             onChange={(
                               value: DropdownValue | Array<DropdownValue> | null,

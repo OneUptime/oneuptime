@@ -118,7 +118,7 @@ Quando nessun criterio corrisponde, un monitor che un criterio ha spostato dal s
 
 ## Solo in certi giorni e orari
 
-**Valuta questi criteri solo in determinati giorni e orari** imposta i giorni, **Ora di inizio** e **Ora di fine**, e **Fuso orario**, che parte dal tuo. Fuori da quegli orari il criterio viene saltato come un criterio disattivato: non corrisponde a nulla, quindi ciò che ha aperto si risolve, e il registro di valutazione indica che era fuori dai suoi orari. Gli orari si leggono sull'orologio di quel fuso orario, quindi le 08:00 restano le 08:00 dopo il cambio dell'ora, e gli orari che finiscono prima di iniziare proseguono fino al mattino seguente.
+**Valuta questi criteri solo in determinati giorni e orari** imposta i giorni, **Ora di inizio** e **Ora di fine**, e **Fuso orario**, che parte dal tuo. Fuori da quegli orari il criterio viene saltato come un criterio disattivato: non corrisponde a nulla, quindi ciò che ha aperto si risolve, e il log di valutazione indica che era fuori dai suoi orari. Gli orari si leggono sull'orologio di quel fuso orario, quindi le 08:00 restano le 08:00 dopo il cambio dell'ora, e gli orari che finiscono prima di iniziare proseguono fino al mattino seguente.
 
 ## Quando incidenti e avvisi si aprono e si chiudono
 
