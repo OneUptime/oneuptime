@@ -290,11 +290,12 @@ Ereignisse, die vor OneUptime 14.0.84 gespeichert wurden, lassen die Prozessfeld
 Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbirgt die Adresse, von der ein Angriff kam, bevor Sicherheitsereignisse sie liest. Das Ereignis wird trotzdem gespeichert, ohne Adresse, und überall, wo es die Adresse nennen würde, sagt es, dass eine Scrub-Regel sie verborgen hat:
 
 - **Quell-IP** im Panel des Ereignisses nennt, wenn möglich, die Regel, die sie verborgen hat, als Link zu den **Scrub-Regeln** der Logs oder Traces. Der Filter daneben zeigt jedes Ereignis, dessen Adresse eine Scrub-Regel verborgen hat.
+- **Ziel-IP** sagt dasselbe, wenn eine Regel verborgen hat, wohin eine Verbindung ging: das Ziel einer Firewall oder wohin Daten gesendet wurden. Der Filter daneben zeigt jedes Ereignis, dessen Zieladresse eine Scrub-Regel verborgen hat.
 - **Was danach geschah** sagt, dass die Anfrage von einer Adresse kam, die eine Scrub-Regel verborgen hat, und **Kampagnen** fasst solche Anfragen in einer eigenen Zeile zusammen.
 - Ein Fall, dessen Ereignisse alle ihre Adresse verloren haben, sagt das in seinem **Reaktionsplan**: Statt die Adresse zu sperren, fordert er Sie auf, sie in den Logs Ihres Load Balancers oder Ihrer Firewall zu suchen und dort zu sperren, mit **Scrub-Regeln öffnen**.
 - Die **Übersicht** nennt die Regel, die die Adressen verbirgt, die Sicherheitsereignisse liest, ebenfalls mit **Scrub-Regeln öffnen**.
 
-Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`.
+Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`. Für ein Ziel suchen Sie nach `@oneuptime.target_address_hidden:scrub-rule`.
 
 ## Sicherheitsereignisse erkunden
 
