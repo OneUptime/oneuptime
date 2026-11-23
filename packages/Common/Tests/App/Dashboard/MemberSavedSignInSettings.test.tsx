@@ -853,8 +853,11 @@ describe("the clear", () => {
     await renderUsers();
     await rowsFetched();
 
-    const nameless: TeamMember = row({ userId: ALICE_ID, name: "" });
-    nameless.user!.email = undefined;
+    // Alice's row, with neither a name nor an address to say.
+    const nameless: TeamMember = row({ userId: ALICE_ID });
+    const unnamed: User = new User();
+    unnamed._id = ALICE_ID;
+    nameless.user = unnamed;
     const completed: Mock<() => void> = jest.fn();
 
     await act(async (): Promise<void> => {

@@ -31,6 +31,8 @@ export const MEMBER_SAVED_SIGN_IN_SETTINGS_COPY: {
   twoFactorAuth: string;
   cleared: string;
   clearedWithoutName: string;
+  alreadyCleared: string;
+  alreadyClearedWithoutName: string;
 } = {
   // The chip beside Member, and what it means on hover.
   pill: translationKey("Sign-In Settings Saved"),
