@@ -4484,6 +4484,7 @@
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "このエスカレーションルールはすでにオンコールスケジュール「{{schedule}}」のオンコール担当者を呼び出しているため、スケジュールを再度追加しませんでした。",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "オンコールポリシー「{{policy}}」のエスカレーションルール「{{rule}}」はすでにオンコールスケジュール「{{schedule}}」のローテーションの次の人を呼び出しているため、スケジュールを再度追加しませんでした。",
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "このエスカレーションルールはすでにオンコールスケジュール「{{schedule}}」のローテーションの次の人を呼び出しているため、スケジュールを再度追加しませんでした。",
+  "No longer available": "使用できなくなりました",
   "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "有効な破棄フィルターは、一致するログを 1 分以内に破棄するため、それを読み取るものには 1 件も届きません。1 つずつ有効にして、それぞれが何を取り除くかを先に確認してください。",
   "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "有効な破棄フィルターは、一致するスパンを 1 分以内に破棄するため、それを読み取るものには 1 件も届きません。1 つずつ有効にして、それぞれが何を取り除くかを先に確認してください。",
   "This scan is already queued to run. It starts when its probe picks it up.": "このスキャンはすでにキューに入っています。プローブが取得すると開始されます。",

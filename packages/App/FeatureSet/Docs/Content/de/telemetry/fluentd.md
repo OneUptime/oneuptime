@@ -104,6 +104,8 @@ Fügen Sie einen `<match>`-Abschnitt hinzu, der Datensätze an OneUptime sendet.
 
 `json_array true` sendet jeden Chunk des Puffers als ein JSON-Array, und `flush_interval 10s` sendet den Puffer alle 10 Sekunden. `chunk_limit_size 900k` hält jede Anfrage unter 1 MB, dem Höchstwert, den OneUptime an diesem Endpunkt annimmt.
 
+Auch die Voreinstellung von Fluentd funktioniert: Ohne `content_type` und `json_array true` sendet Fluentd zeilengetrenntes JSON, einen Datensatz pro Zeile, und OneUptime liest jede Zeile als ihren Datensatz, mit `compress gzip` oder ohne.
+
 `@type file` hält die noch zu sendenden Batches in dem Ordner, den `path` nennt, sodass ein Neustart von Fluentd keinen davon verliert; ein Puffer im Arbeitsspeicher, die Voreinstellung von Fluentd, verliert, was er hält. Der Benutzer von Fluentd muss in diesen Ordner schreiben können: `/var/log/fluent` ist der von fluent-package, `/var/log/td-agent` der von td-agent und `/fluentd/log` der des Images `fluent/fluentd`. `total_limit_size 512m` hält dort höchstens 512 MB; ist er voll, nimmt Fluentd keine Datensätze mehr an, bis ein Batch gesendet ist.
 
 `retryable_response_codes 429,502,503,504` sendet einen Batch erneut, wenn OneUptime ausgelastet ist (`429`) oder neu startet (`502`, `503`, `504`); ohne diese Einstellung verwirft Fluentd einen Batch bei jeder Antwort außer `503`. `retry_max_interval 30s` wartet zwischen zwei Versuchen höchstens 30 Sekunden, und `retry_timeout 72h` verwirft einen Batch, der nach 72 Stunden noch immer nicht gesendet werden kann. Der Filter `record_transformer` fügt jedem Datensatz die Zeit hinzu, die Fluentd ihm gegeben hat, als `fluentd_time`: Der HTTP-Output sendet nur den Datensatz, und OneUptime liest die Zeit eines Logs daraus.

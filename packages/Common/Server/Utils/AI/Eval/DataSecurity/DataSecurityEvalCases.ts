@@ -45,9 +45,13 @@ import {
   IssueGroupFixEvalCase,
   IssueGroupNameEvalCase,
   FixEvalCase,
+  PullRequestReviewEvalCase,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
+import PULL_REQUEST_EVAL_DIFFS, {
+  PullRequestEvalDiff,
+} from "./PullRequestReviewEvalSet";
 import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { ScrubRuleWriterRuleKind } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 
@@ -1710,6 +1714,29 @@ const SCRUB_RULE_CASES: Array<ScrubRulesEvalCase> = [
   },
 ];
 
+/*
+ * A pull request's sensitive data (#10376): each diff of the eval set that
+ * says what OneUptime AI should keep of the points the rules give it.
+ */
+const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
+  PULL_REQUEST_EVAL_DIFFS.filter((diff: PullRequestEvalDiff): boolean => {
+    return Boolean(diff.ai);
+  }).map((diff: PullRequestEvalDiff): PullRequestReviewEvalCase => {
+    return {
+      id: `pull-request-${diff.id}`,
+      title: diff.title,
+      feature: DataSecurityAiFeature.ReviewPullRequests,
+      pullRequestTitle: diff.title,
+      files: diff.files,
+      isFailOn: diff.isFailOn,
+      expect: {
+        keeps: diff.ai!.keeps,
+        fixMentions: diff.ai!.fixMentions,
+        never: diff.ai!.never,
+      },
+    };
+  });
+
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
@@ -1719,6 +1746,7 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ISSUE_GROUP_NAME_CASES,
   ...ISSUE_GROUP_FIX_CASES,
   ...SCRUB_RULE_CASES,
+  ...PULL_REQUEST_REVIEW_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

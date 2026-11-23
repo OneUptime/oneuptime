@@ -48,6 +48,7 @@ Data Security reads your data itself, inside its scans, and keeps none of it. Wh
 | **Names for issues with one cause** | What a group's stores share: the module, stack or tag that made them, the identity that created them, or their name pattern; the check they fail, how many issues the group holds, the kind of store and the code that declares them. Never the name of any one store in the group | Yes: a group of issues one mistake made starts it, when it forms or what its stores share changes, while **Work on new issues** is on |
 | **Fix the cause** | The check the group's issues fail, what their stores share, and the module or files that declare them, as a request to the coding agent; each store the pull request fixes: its name, kind, region and cloud ID, and its issue; and the repository's own code, which the coding agent reads to make the change | No: a person asks, from a group on **Issues** or by approving OneUptime AI's proposal, in a repository they may change in **Code**; or a security playbook's **Fix the code with AI** step. A rule whose **Fix** is set to **Automatically** opens it on its own |
 | **Scrub rules for what Scrub It cannot cover** | Each finding's data type, its category and whether it is found by its values or by a field's name; where it sits, the attribute or the log body, and the names of the attributes beside it; the shapes of its values, such as `AA-9999` for the value `AB-1234`, and how many values were read | Yes: a telemetry issue OneUptime AI contains starts it, for the data no rule of Scrub It's can hide, while **Work on new issues** is on |
+| **Sensitive data in pull requests** | What the rules found in the pull request's diff: the file and line, the name written, the kind of data it names and the check it would fail; the diff of those files and the pull request's title, with what looks like a secret, an email address or an IP address left out; never what production holds: where your telemetry held the data, a store's name or what a store holds, nor a sample of what was found, not even a masked one | Yes: a pull request's [production review](/docs/ai/ai-agent#production-review-of-pull-requests) starts it, when its rules find sensitive data in the change |
 
 **Analysis on request**, **Analysis of new issues** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems.
 
@@ -65,7 +66,7 @@ Each call's row in **Project Settings → AI → AI Logs** says which feature ca
 
 When a call fails, the analysis and the field suggestions keep no word of the provider's error, which can quote what was sent. The coding agent behind Fix with AI and Fix the cause, and Ask AI's chat, still keep a failed call's provider error in its row.
 
-The owner proposals keep the same as Explain with AI: their calls' rows name the feature, the model, the tokens and the cost, never what was sent or answered, and no word of a failed call's error. So do the scrub rules OneUptime AI writes, and each rule it wrote is run on the records the data was seen in before it is proposed or made.
+The owner proposals keep the same as Explain with AI: their calls' rows name the feature, the model, the tokens and the cost, never what was sent or answered, and no word of a failed call's error. So do the scrub rules OneUptime AI writes, and each rule it wrote is run on the records the data was seen in before it is proposed or made. So do the reads of a pull request's sensitive data, whose points are kept on its production review, in Code and in its comment.
 
 ## See it for yourself
 
@@ -83,6 +84,7 @@ Every Data Security AI feature runs on the model your project chose:
 - The analysis and the field suggestions run on the provider an AI rule picks for the work, else your project's default LLM provider, else the server's own.
 - **Fix with AI**'s coding agent runs on the provider an AI rule picks, else one of your project's own providers, else the server's own.
 - **Ask AI** runs on the provider picked in the chat, else your project's default.
+- A pull request's sensitive data read runs on the provider the repository picks for its production reviews, else your project's default LLM provider, else the server's own.
 
 A self-hosted model runs all of them: Ollama, vLLM, or any OpenAI-compatible endpoint you add under **Project Settings → AI → LLM Providers**. On an air-gapped server, the Helm chart's bundled vLLM is the server's own provider, so nothing leaves the server.
 
@@ -94,7 +96,7 @@ With **Enable AI** off in **Project Settings → AI → AI Features**, OneUptime
 
 Every Data Security AI feature is measured on a fixed set of made-up cases, built the way the feature builds its input and scored on what a right answer says: an analysis with the right verdict, each of its lines resting on the facts it was given, that repeats nothing a store's name told it to say, the right data type for each field, a fix that changes what the check needs and nothing else, and an answer from what Ask AI read. The cases run against a pinned model every night, on every change to a Data Security AI prompt, and before every release, which needs each feature to meet its threshold.
 
-The owner proposals are scored on naming the owner the evidence points to, on picking nobody when it points to no one, and on being unsure where the evidence disagrees. The scrub rules are run on made-up values of each place, which the model never sees, and scored on hiding every value that holds the data and none of the others, and on writing no rule for a place no rule is right for.
+The owner proposals are scored on naming the owner the evidence points to, on picking nobody when it points to no one, and on being unsure where the evidence disagrees. The scrub rules are run on made-up values of each place, which the model never sees, and scored on hiding every value that holds the data and none of the others, and on writing no rule for a place no rule is right for. The pull request reads are scored on keeping each point that is a leak, leaving out what is not, and a fix that says what to change.
 
 To measure your own model on the same cases, run the eval from a checkout of OneUptime, with your model's key, if it needs one, in `AI_EVAL_LLM_API_KEY`:
 

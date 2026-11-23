@@ -1106,6 +1106,58 @@ export default class CodeRepository extends BaseModel {
   })
   public productionReviewLlmProviderId?: ObjectID = undefined;
 
+  /*
+   * Whether this repository's production review fails its check when a
+   * pull request leaks sensitive data (#10376): writes a secret or
+   * Restricted data to telemetry, makes a store that may hold sensitive
+   * data public, or adds a column for a password or a card security code
+   * stored as it is. Unset - every repository, until someone turns it on -
+   * is off: the check stays neutral, and the leak is said in the comment.
+   * On GitHub the check run fails; on GitLab, Forgejo and Gitea the review
+   * writes a commit status a branch rule can require.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Fail the Check on a Leak",
+    description:
+      "Whether a production review fails its check when a pull request writes a secret or Restricted data to telemetry, makes a store that may hold sensitive data public, or adds a column for a password or a card security code stored as it is. Off: the check stays neutral.",
+    example: false,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isProductionReviewFailOnLeakEnabled?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

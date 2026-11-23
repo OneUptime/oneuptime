@@ -17,7 +17,6 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -250,11 +249,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const [onCallPolicyDropdownOptions, setOnCallPolicyDropdownOptions] =
-    useState<Array<DropdownOption>>([]);
-  const [labelDropdownOptions, setLabelDropdownOptions] = useState<
-    Array<DropdownOption>
-  >([]);
+  // Whether the project has an on-call policy to page anyone with.
+  const [hasOnCallPolicies, setHasOnCallPolicies] = useState<boolean>(false);
   const [incidentSeverityOptions, setIncidentSeverityOptions] = useState<
     Array<MonitorRecommendationSeverityOption>
   >([]);
@@ -335,8 +331,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       setProjectDefaults(defaults);
       setIncidentSeverityOptions(setup.incidentSeverityOptions);
       setAlertSeverityOptions(setup.alertSeverityOptions);
-      setOnCallPolicyDropdownOptions(setup.onCallPolicyDropdownOptions);
-      setLabelDropdownOptions(setup.labelDropdownOptions);
+      setHasOnCallPolicies(setup.hasOnCallPolicies);
 
       await Promise.all([loadCoverage(defaults), loadDismissals()]);
     } catch (err) {
@@ -1143,8 +1138,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
             },
           )}
           resourceLabel={definition.resourceLabel}
-          onCallPolicyDropdownOptions={onCallPolicyDropdownOptions}
-          labelDropdownOptions={labelDropdownOptions}
+          hasOnCallPolicies={hasOnCallPolicies}
           incidentSeverityOptions={incidentSeverityOptions}
           alertSeverityOptions={alertSeverityOptions}
           isCreating={isCreating}

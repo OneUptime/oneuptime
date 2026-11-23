@@ -13,6 +13,7 @@ import AiOutcomesIssueVerdicts, {
   AiOutcomesIssueVerdictReadRow,
   AiOutcomesIssueVerdictRows,
 } from "./AiOutcomesIssueVerdicts";
+import AiOutcomesLeaks, { AiOutcomesLeakRows } from "./AiOutcomesLeaks";
 import InvestigationReportSummary, {
   InvestigationReportSummaryRun,
 } from "../SRE/InvestigationReportSummary";
@@ -21,6 +22,7 @@ import AiOutcomesBuilder, {
   AiOutcomesDataSecurityProposalRow,
   AiOutcomesInvestigationRow,
   AiOutcomesIssueVerdictRow,
+  AiOutcomesLeakRow,
   AiOutcomesPageRow,
   AiOutcomesPullRequestRow,
   AiOutcomesRemediationRow,
@@ -47,6 +49,7 @@ import {
   AI_OUTCOMES_SCAN_LIMIT,
   AiOutcomes,
   AiOutcomesIssueVerdictOutcome,
+  AiOutcomesLeaks as AiOutcomesLeaksCounts,
   AiOutcomesPart,
   AiOutcomesRecord,
   AiOutcomesRecordDataSecurityIssue,
@@ -90,7 +93,11 @@ import ObjectID from "../../../../Types/ObjectID";
  *     its work gets no count of the issues it analyzed (null).
  *   - OneUptime AI's verdicts on Data Security issues are read under the
  *     caller's props too, by their own reader (AiOutcomesIssueVerdicts,
- *     #10369): a caller who may not read those issues gets none.
+ *     #10369): a caller who may not read those issues gets none;
+ *   - the leaks pull requests' production reviews caught, against the
+ *     issues the scans found after, by their own reader too
+ *     (AiOutcomesLeaks, #10376): only for a caller who may read the
+ *     project's code repositories and its Data Security issues.
  *
  * The counts carry no title, rationale or report. The records a number
  * opens are read by the same rows and filters, so they are exactly what it
@@ -267,10 +274,11 @@ export default class AiOutcomesReader {
   ): Promise<AiOutcomes> {
     const now: Date = options.now || new Date();
 
-    const [rows, canReadModels, verdicts]: [
+    const [rows, canReadModels, verdicts, leaks]: [
       AiOutcomesCountedRows,
       boolean,
       AiOutcomesIssueVerdictRows | null,
+      AiOutcomesLeakRows | null,
     ] = await Promise.all([
       this.readCountedRows({
         projectId: options.projectId,
@@ -280,6 +288,11 @@ export default class AiOutcomesReader {
       }),
       this.canReadModels(options),
       AiOutcomesIssueVerdicts.readRows({
+        projectId: options.projectId,
+        props: options.props,
+        now,
+      }),
+      AiOutcomesLeaks.readRows({
         projectId: options.projectId,
         props: options.props,
         now,
@@ -362,7 +375,20 @@ export default class AiOutcomesReader {
             },
           )
         : null,
-      isPartial: rows.isPartial || Boolean(verdicts?.isPartial),
+      leakRows: leaks
+        ? [
+            ...leaks.caught.map((row: AiOutcomesLeakRow): AiOutcomesLeakRow => {
+              return row;
+            }),
+            ...leaks.found.map((row: AiOutcomesLeakRow): AiOutcomesLeakRow => {
+              return row;
+            }),
+          ]
+        : null,
+      isPartial:
+        rows.isPartial ||
+        Boolean(verdicts?.isPartial) ||
+        Boolean(leaks?.isPartial),
       canReadModels,
       dataSecurityProposalRows: rows.dataSecurityProposals
         ? rows.dataSecurityProposals
@@ -515,6 +541,18 @@ export default class AiOutcomesReader {
       1,
       Math.floor(options.pageSize || AI_OUTCOMES_RECORDS_PAGE_SIZE),
     );
+
+    // The leaks caught in pull requests, and found after, have a reader of their own (#10376).
+    if (part === AiOutcomesPart.Leaks) {
+      return await AiOutcomesLeaks.readRecords({
+        projectId,
+        props,
+        outcome: outcome as keyof AiOutcomesLeaksCounts,
+        windowEnd,
+        skip,
+        pageSize,
+      });
+    }
 
     // OneUptime AI's verdicts on Data Security issues have a reader of their own.
     if (part === AiOutcomesPart.IssueVerdicts) {

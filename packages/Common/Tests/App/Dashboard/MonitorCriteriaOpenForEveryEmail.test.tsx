@@ -148,8 +148,6 @@ function renderForm(
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={SEVERITY_OPTIONS}
         alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {
@@ -405,8 +403,6 @@ describe("A folded criteria's header", () => {
           monitorStatusDropdownOptions={[]}
           incidentSeverityDropdownOptions={SEVERITY_OPTIONS}
           alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-          onCallPolicyDropdownOptions={[]}
-          labelDropdownOptions={[]}
           userDropdownOptions={[]}
           value={value}
         />
@@ -496,8 +492,6 @@ describe("In German, as the Dashboard ships it", () => {
             monitorStatusDropdownOptions={[]}
             incidentSeverityDropdownOptions={SEVERITY_OPTIONS}
             alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-            onCallPolicyDropdownOptions={[]}
-            labelDropdownOptions={[]}
             userDropdownOptions={[]}
             value={buildCriteria({
               createIncidents: true,

@@ -222,6 +222,25 @@ describe("what the editor starts with", () => {
       [getPublicFormFieldKey("title")]: "Down",
     });
   });
+
+  // #10692: one choice gone used to empty the whole answer in the editor.
+  test("a multi-select answer starts with the choices its question still offers, one gone since left out", () => {
+    expect(
+      getFormTemplateEditorValues({
+        template: {
+          id: "offices",
+          name: "Offices",
+          answers: { offices: ["Paris", "London", "Berlin"] },
+        },
+        questions: QUESTIONS,
+      }),
+    ).toEqual({
+      [TEMPLATE_NAME_KEY]: "Offices",
+      [TEMPLATE_DEFAULT_KEY]: false,
+      [TEMPLATE_FIELD_SETTINGS_KEY]: {},
+      [getPublicFormFieldKey("offices")]: ["London", "Berlin"],
+    });
+  });
 });
 
 describe("the template the editor's answers make", () => {
@@ -362,6 +381,19 @@ describe("what a template's row says it fills in", () => {
         questions: QUESTIONS,
       }),
     ).toEqual(["Your Email"]);
+  });
+
+  test("a multi-select answer with a choice gone since is still counted for the ones left (#10692)", () => {
+    expect(
+      getFormTemplateAnsweredLabels({
+        template: {
+          id: "a",
+          name: "A",
+          answers: { offices: ["Paris", "Berlin"] },
+        },
+        questions: QUESTIONS,
+      }),
+    ).toEqual(["Offices"]);
   });
 
   test("a template that answers nothing says nothing", () => {
@@ -888,5 +920,26 @@ describe("fitFormTemplateToQuestions - a copy keeps only what it can use", () =>
     expect(
       fitFormTemplateToQuestions({ template: OUTAGE, questions: QUESTIONS }),
     ).toEqual(OUTAGE);
+  });
+
+  test("a copy's multi-select answer keeps the choices still offered, and the server takes it (#10692)", () => {
+    const fitted: FormTemplate = fitFormTemplateToQuestions({
+      template: {
+        id: "copy",
+        name: "Copy",
+        answers: { offices: ["Berlin", "Paris"] },
+      },
+      questions: QUESTIONS,
+    });
+
+    expect(fitted.answers).toEqual({ offices: ["Berlin"] });
+
+    // A copy is judged whole: what it keeps is all the server is asked.
+    expect(
+      validateFormTemplateAnswers({
+        templates: [fitted],
+        fields: BUILT.allFields,
+      }),
+    ).toBeNull();
   });
 });

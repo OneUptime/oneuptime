@@ -1,4 +1,3 @@
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NotificationRuleConditionElement from "./NotificationRuleCondition";
 import IconProp from "Common/Types/Icon/IconProp";
 import NotificationRuleCondition, {
@@ -13,7 +12,6 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import RuleAppliesToChoice from "Common/UI/Components/RuleCriteria/RuleAppliesToChoice";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
-import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -21,9 +19,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { RULE_CRITERIA_LIST_CLASS_NAME } from "Common/UI/Components/RuleCriteria/RuleCriteriaRowLayout";
@@ -40,9 +36,11 @@ export interface ComponentProps {
   value: Array<NotificationRuleCondition> | undefined;
   onChange?: undefined | ((value: Array<NotificationRuleCondition>) => void);
   eventType: NotificationRuleEventType;
-  // Not needed: a Monitors condition searches the server (#10646).
-  monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
+  /*
+   * The short lists a condition picks from whole. Its monitors, labels,
+   * SLOs and policies are searched on the server, and the ones it holds
+   * read by their ids (RecordConditionPicker, #10646, #10689).
+   */
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -51,11 +49,10 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
-  // An SLO rule's: the project's SLOs, to pick the ones it is for.
-  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
-  // An on-call rule's: the project's policies, to pick the ones it is for.
-  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
-  // The project's teams: which picks of an owners condition are teams.
+  /*
+   * Teams the page knows already, among an owners condition's picks: the
+   * others are read by their ids (useTeamIdsAmong, #10689).
+   */
   teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
   /*
