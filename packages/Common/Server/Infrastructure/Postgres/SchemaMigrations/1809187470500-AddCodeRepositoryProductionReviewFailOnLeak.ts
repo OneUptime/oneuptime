@@ -15,11 +15,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * review's always was, until someone turns it on. Adding a nullable column
  * without a default rewrites no row.
  */
-export class AddCodeRepositoryProductionReviewFailOnLeak1809187440200
+export class AddCodeRepositoryProductionReviewFailOnLeak1809187470500
   implements MigrationInterface
 {
   public name: string =
-    "AddCodeRepositoryProductionReviewFailOnLeak1809187440200";
+    "AddCodeRepositoryProductionReviewFailOnLeak1809187470500";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
