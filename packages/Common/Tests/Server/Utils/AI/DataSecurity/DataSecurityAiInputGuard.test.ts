@@ -110,6 +110,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
   },
+  // Scrub rules for what Scrub It cannot cover (#10366), in the engine's job.
+  [DataSecurityAiFeature.WriteScrubRules]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ScrubRuleWriter.ts`,
+  },
   [DataSecurityAiFeature.FixIssue]: {
     kind: "codeTask",
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
@@ -491,12 +496,38 @@ function receiverOf(call: ts.CallExpression, source: ts.SourceFile): string {
   );
 }
 
+/*
+ * A scanned file's AST is made when a rule first reads it, and let go when
+ * the next file's is made. Kept, the ASTs of the 12,000 files under
+ * SCAN_ROOTS came to 2.3 GB, which with the rest of what this suite loads
+ * filled the 4 GB heap of a Common Test worker (--max-old-space-size in
+ * packages/Common's npm test): the worker died out of memory, and Jest
+ * waited for the file it had been running until the job's 30-minute cap.
+ * Every rule reads one file's AST at a time, so the last one made is the
+ * only one kept.
+ */
+let lastParsed: SourceFile | null = null;
+
+function scanned(file: string, text: string): SourceFile {
+  return {
+    file,
+    text,
+    get source(): ts.SourceFile {
+      if (!lastParsed || lastParsed.file !== file) {
+        lastParsed = parse(file, text);
+      }
+
+      return lastParsed.source;
+    },
+  };
+}
+
 const SERVER_FILES: Array<SourceFile> = SCAN_ROOTS.flatMap(
   (root: string): Array<string> => {
     return listSourceFiles(path.join(REPOSITORY_ROOT, root));
   },
 ).map((full: string): SourceFile => {
-  return parse(
+  return scanned(
     path.relative(REPOSITORY_ROOT, full).split(path.sep).join("/"),
     fs.readFileSync(full, "utf8"),
   );

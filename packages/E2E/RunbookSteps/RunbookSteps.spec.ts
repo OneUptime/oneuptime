@@ -251,7 +251,17 @@ test.describe("a runbook's steps, at a laptop's width", () => {
         "Runner: Global Runner",
         ["Description", "Timeouts"],
       ],
-      [2, "Page the database team", null, ["Headers (JSON): 1", "Description"]],
+      /*
+       * Its headers, then how it checks the server's certificate (#10277):
+       * the two switches, Headers and Allow self-signed certificates, then
+       * "3 more" - the CA certificate, Description and Timeouts.
+       */
+      [
+        2,
+        "Page the database team",
+        null,
+        ["Headers (JSON): 1", "Allow self-signed certificates"],
+      ],
       [
         3,
         "Capture the database's state",

@@ -33,8 +33,12 @@ import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper
  * list may read the vault through it.
  */
 
-// The most tokens one query names: a page of a scan, and some.
-export const MAX_TOKENS_PER_VAULT_LOOKUP: number = 1000;
+/*
+ * The most tokens one query names: both addresses - the source's and the
+ * destination's (#10419) - of every line of a page of the log scan
+ * (LOG_SCAN_PAGE_SIZE, a thousand lines), so a page is one query.
+ */
+export const MAX_TOKENS_PER_VAULT_LOOKUP: number = 2000;
 
 // How long the lookup may take: a point read by key, which a scan waits for.
 export const VAULT_LOOKUP_TIME_LIMIT_IN_SECONDS: number = 10;
@@ -99,10 +103,12 @@ export class SecurityAddressVaultService extends AnalyticsDatabaseService<Securi
   /*
    * The oldest a row may have been last seen and still name its address:
    * exactly the vault's 30 days, whether or not the day it was written in
-   * has been dropped yet.
+   * has been dropped yet. A length of time, as the table's TTL counts it,
+   * never the server's own calendar: 30 x 24 hours in every zone, across a
+   * clock change too (#8236).
    */
   public static getOldestNameableTime(now: Date): Date {
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       now,
       -SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
     );

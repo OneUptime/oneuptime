@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import Msgpack, {
   MSGPACK_MAX_DEPTH,
   MsgpackDecodeError,
@@ -53,18 +54,6 @@ const decodedValues: (value: MsgpackValue) => number = (
   }
 
   return 1;
-};
-
-// A deterministic stream of numbers, so a failing case can be run again.
-const random: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
 };
 
 const generate: (next: () => number, depth: number) => Encodable = (
@@ -242,7 +231,7 @@ describe("Msgpack.decode", () => {
 
 describe("Msgpack.count", () => {
   test("equals the values the decoder makes, over many generated documents", () => {
-    const next: () => number = random(7);
+    const next: () => number = seededRandom(7);
 
     for (let run: number = 0; run < 400; run++) {
       const body: Buffer = encodeMsgpack(generate(next, 0));

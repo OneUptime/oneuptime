@@ -463,7 +463,7 @@ describe("Data Security > Scans, for each reader of scans", () => {
       expect(
         serverCheckOf(DataSecurityScan, withConfig, reader.permissions),
       ).toThrow(
-        "You do not have permissions to read config of Cloud Connection through cloudConnection on Data Security Scan. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource.",
+        "You do not have permissions to read config of Cloud Connection through cloudConnection on Data Security Scan. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource, Cloud Admin, Cloud Member, Cloud Viewer.",
       );
     }
 

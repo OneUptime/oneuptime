@@ -290,11 +290,12 @@ Gebeurtenissen die vóór OneUptime 14.0.84 zijn opgeslagen, laten de procesveld
 Een IP-adresregel die je logs of traces wist of maskeert, verbergt het adres waar een aanval vandaan kwam voordat Beveiligingsgebeurtenissen ze leest. De gebeurtenis wordt toch opgeslagen, zonder adres, en overal waar ze het adres zou noemen, zegt ze dat een scrub-regel het verborg:
 
 - **Bron-IP** in het paneel van de gebeurtenis noemt de regel die het verborg wanneer dat kan, als link naar de **Scrub-regels** van de logs of de traces. Het filter ernaast toont elke gebeurtenis waarvan een scrub-regel het adres verborg.
+- **Doel-IP** zegt hetzelfde wanneer een regel verborg waar een verbinding naartoe ging: de bestemming van een firewall, of waar gegevens naartoe werden gestuurd. Het filter ernaast toont elke gebeurtenis waarvan een scrub-regel het doeladres verborg.
 - **Wat er daarna gebeurde** zegt dat het verzoek kwam van een adres dat een scrub-regel verborg, en **Campagnes** brengt zulke verzoeken samen in één eigen rij.
 - Een zaak waarvan alle gebeurtenissen hun adres kwijt zijn, zegt dat in haar **Responsplan**: in plaats van het adres te blokkeren, zegt het plan je het te zoeken in de logs van je load balancer of firewall en het daar te blokkeren, met **Scrub-regels openen**.
 - **Overzicht** noemt de regel die de adressen verbergt die Beveiligingsgebeurtenissen leest, ook met **Scrub-regels openen**.
 
-Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de gebeurtenis het noemt, tenzij het token ouder is dan 30 dagen of gemaakt is voordat tokens een sleutel hadden: zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). Zoek `@oneuptime.request.client_address_hidden:scrub-rule` om deze gebeurtenissen te vinden. Wat de regel op de plaats van het adres achterliet, zoals `[REDACTED]`, staat in `oneuptime.request.client_address_scrubbed`.
+Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de gebeurtenis het noemt, tenzij het token ouder is dan 30 dagen of gemaakt is voordat tokens een sleutel hadden: zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen). Zoek `@oneuptime.request.client_address_hidden:scrub-rule` om deze gebeurtenissen te vinden. Wat de regel op de plaats van het adres achterliet, zoals `[REDACTED]`, staat in `oneuptime.request.client_address_scrubbed`. Zoek voor een bestemming `@oneuptime.target_address_hidden:scrub-rule`.
 
 ## Beveiligingsgebeurtenissen verkennen
 

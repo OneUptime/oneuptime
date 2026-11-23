@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { stripVTControlCharacters } from "util";
 
 /*
  * THE SLOW-QUERY LOG SAYS WHAT WAS SLOW (issue #10108).
@@ -28,8 +29,12 @@ const SELECT_BY_ID: string =
 
 let printed: Array<string>;
 
+/*
+ * What the lines say. TypeORM's console logger colours them wherever the
+ * terminal takes colour - in CI too - so they are read without it.
+ */
 function printedText(): string {
-  return printed.join("\n");
+  return stripVTControlCharacters(printed.join("\n"));
 }
 
 beforeEach(() => {

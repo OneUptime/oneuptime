@@ -76,7 +76,7 @@ Les règles d'enregistrement, les règles d'alerte sur des journaux, les widgets
 
 ## Convertir une requête avec OneUptime AI
 
-Une requête qu'aucune règle ne convertit affiche **Convert with OneUptime AI**, qui demande que l'IA soit activée pour le projet. Seule cette requête, avec les noms des variables du tableau de bord, part vers le fournisseur d'IA de votre projet. Sa réponse est vérifiée comme n'importe quelle requête et vous est montrée : choisissez **Use This Query** pour l'utiliser. Rien n'est créé tant que vous ne créez pas le tableau de bord ou les moniteurs.
+Une requête qu'aucune règle ne convertit affiche **Convert with OneUptime AI**, qui demande que l'IA soit activée pour le projet. Seule cette requête, avec les noms des variables du tableau de bord, part vers le [fournisseur LLM](/docs/ai/llm-provider) de votre projet. Sa réponse est vérifiée comme n'importe quelle requête et vous est montrée : choisissez **Use This Query** pour l'utiliser. Rien n'est créé tant que vous ne créez pas le tableau de bord ou les moniteurs.
 
 ## Prochaines étapes
 

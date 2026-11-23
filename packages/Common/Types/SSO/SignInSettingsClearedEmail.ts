@@ -106,8 +106,10 @@ export const getSsoProviderNamesForEmail: (
 
 /*
  * Who cleared them, as the email says it: a server admin, or an owner of a
- * project, named by that project's name (a required column, so there is
- * always one to name).
+ * project, named by that project's name. The name is read when the email
+ * is written (#9991), so it is "" for a project deleted since the clear:
+ * the email then says "a project owner", and sends them to the server's
+ * admin or to support, as a server admin's clear does.
  */
 export type SignInSettingsClearer =
   | { clearedBy: SignInSettingsClearedBy.ServerAdmin }
@@ -145,16 +147,32 @@ export const getSignInSettingsClearedEmailVariables: (
     signInUrl: data.signInUrl,
   };
 
-  // A project's owner is never called a server admin, whatever its name is.
+  /*
+   * A project's owner is never called a server admin, whatever its name is,
+   * and a project whose name cannot be read (deleted since the clear) is
+   * named nowhere: no sentence is left with a gap where its name was.
+   */
   if (data.clearedBy === SignInSettingsClearedBy.ProjectOwner) {
     vars["clearedByProjectOwner"] = "true";
-    vars["projectName"] = (data.projectName || "").trim();
+
+    const projectName: string = (data.projectName || "").trim();
+
+    if (projectName) {
+      vars["projectName"] = projectName;
+    }
   } else {
     vars["clearedByServerAdmin"] = "true";
   }
 
   if (data.cleared.hasPassword) {
     vars["removedPassword"] = "true";
+  } else if (data.cleared.hasPasswordResetLink) {
+    /*
+     * A reset link with no password beside it (#9992): somebody who asked
+     * for one to set their first password. With a password, its row already
+     * names "any password reset link".
+     */
+    vars["removedPasswordResetLink"] = "true";
   }
 
   if (data.cleared.passkeyAndSecurityKeyCount > 0) {

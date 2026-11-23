@@ -1967,6 +1967,24 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       IAAS,
       C.Networking,
     ),
+    /*
+     * The WAF policies a project's blocklist can be enforced in (#10348):
+     * their metrics are their Application Gateway's and Front Door's.
+     */
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies",
+      "Application Gateway WAF Policy",
+      PAAS,
+      C.Security,
+    ),
+    descriptorOf(
+      CloudProvider.Azure,
+      "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+      "Front Door WAF Policy",
+      PAAS,
+      C.Security,
+    ),
     descriptorOf(
       CloudProvider.GCP,
       "compute.googleapis.com/Network",
@@ -1987,6 +2005,14 @@ export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescr
       "VPC Firewall Rule",
       IAAS,
       C.Networking,
+    ),
+    // The security policies a project's blocklist can be enforced in (#10349).
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/SecurityPolicy",
+      "Cloud Armor Security Policy",
+      PAAS,
+      C.Security,
     ),
     // A load balancer's pieces that publish no metrics of their own.
     descriptorOf(

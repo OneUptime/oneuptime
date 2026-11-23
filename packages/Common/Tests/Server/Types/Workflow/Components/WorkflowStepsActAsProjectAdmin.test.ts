@@ -204,6 +204,23 @@ function stopBeforeUpdate<TBaseModel extends BaseModel>(modelType: {
   let permitted: { query: JSONObject; data: JSONObject } | undefined =
     undefined;
 
+  /*
+   * The unique-value checks find no clash, without a database: a rename
+   * (#10318) reads the record it renames, in the workflow's project, and
+   * no other record holds the new value.
+   */
+  getJestSpyOn(service, "findRowsAndHoldUpdateToThem").mockImplementation(
+    (async (): Promise<Array<TBaseModel>> => {
+      const row: TBaseModel = new modelType();
+      row._id = RECORD_ID;
+      (row as unknown as Record<string, unknown>)["projectId"] = PROJECT_ID;
+      return [row];
+    }) as never,
+  );
+  getJestSpyOn(service, "countBy").mockResolvedValue(
+    new PositiveNumber(0) as never,
+  );
+
   getJestSpyOn(service, "onUpdatePermitted").mockImplementation(((updateBy: {
     query: JSONObject;
     data: JSONObject;

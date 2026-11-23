@@ -381,6 +381,8 @@ An account can belong to many organizations, so you can clear only the people yo
 - someone only invited to your project, who has not joined it yet;
 - master admins, and you: change your own in your **User Profile**.
 
+To clear one person, open **Users**: the row of each person you may clear says **Sign-In Settings Saved**, and **Clear Sign-In Settings** in its menu clears that person alone, under the same rule, after a question that lists what goes.
+
 Each person cleared is emailed what was removed and that they sign in with SSO now, and your projects' audit logs record the clear as yours. Only a **Project Owner** can clear, signed in to the Dashboard: never with an API key.
 
 ## Turning a provider off or deleting it
