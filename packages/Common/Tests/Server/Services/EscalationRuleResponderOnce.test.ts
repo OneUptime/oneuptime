@@ -46,6 +46,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A RESPONDER IS ON AN ESCALATION RULE ONCE (#10411).
@@ -202,7 +203,7 @@ function uniqueViolation(constraint: string, table: string): Error {
   );
 }
 
-let countBy: jest.SpiedFunction<
+let countBy: SpyInstance<
   (this: DatabaseService<BaseModel>, data: unknown) => Promise<PositiveNumber>
 >;
 let ruleReads: number;
