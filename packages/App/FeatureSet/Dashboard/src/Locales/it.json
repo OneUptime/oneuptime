@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Chi ha creato, modificato o eliminato queste regole, cosa ha modificato e quando: le regole di runbook di avvisi, incidenti ed eventi di manutenzione, e le regole del proprietario e delle etichette dei runbook.",
   "vCenter Rule Audit Logs": "Log di audit delle regole dei vCenter",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Questa sonda è troppo vecchia per inviare un corpo della richiesta che sia un array JSON, un singolo valore o testo, quindi il controllo non è stato eseguito. Aggiorna la sonda a OneUptime {{version}} o successiva.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Troppo vecchia per inviare un corpo della richiesta che sia un array JSON, un singolo valore o testo. I monitor di API con un corpo simile falliscono il controllo su questa sonda finché non viene aggiornata."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Troppo vecchia per inviare un corpo della richiesta che sia un array JSON, un singolo valore o testo. I monitor di API con un corpo simile falliscono il controllo su questa sonda finché non viene aggiornata.",
+  "Keep the body and its format together.": "Il corpo e il suo formato vengono mantenuti insieme.",
+  "Request Body Format": "Formato del Corpo della Richiesta",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "Inviato con ogni richiesta, esattamente come è scritto, come text/plain a meno che le intestazioni non indichino un Content-Type.",
+  "The body is sent as text, exactly as written.": "Il corpo viene inviato come testo, esattamente come è scritto.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "Se il corpo è JSON, o testo inviato esattamente come è scritto, come XML o campi di un modulo."
 }

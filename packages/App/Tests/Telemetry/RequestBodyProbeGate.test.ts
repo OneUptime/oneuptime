@@ -43,6 +43,7 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -149,6 +150,11 @@ function apiStep(requestBody?: string | undefined): MonitorStep {
     requestBody: requestBody,
   };
 
+  return monitorStep;
+}
+
+function asText(monitorStep: MonitorStep): MonitorStep {
+  monitorStep.setRequestBodyFormat(MonitorRequestBodyFormat.Text);
   return monitorStep;
 }
 
@@ -415,6 +421,43 @@ describe("a custom probe too old to send such a body", () => {
 
     expect(handed).toEqual([item]);
     expect(stepIds(item)).toHaveLength(1);
+  });
+});
+
+describe("a text body (#10736)", () => {
+  test.each([
+    { name: "XML", body: "<ping/>" },
+    { name: "form fields", body: "a=1&b=2" },
+    { name: "text that reads as a JSON object", body: '{"a": 1}' },
+  ])(
+    "$name is kept from a probe too old to send it, its result written offline",
+    async ({ body }: { name: string; body: string }) => {
+      const item: Monitor = monitor([asText(apiStep(body))]);
+
+      expect(await handOut([item], PROBE_BEFORE_ANY_BODY)).toEqual([]);
+
+      const jobs: Array<QueuedJob> = queuedJobs();
+
+      expect(jobs).toHaveLength(1);
+      expect(readBack(jobs[0]!).isOnline).toBe(false);
+      expect(readBack(jobs[0]!).failureCause).toBe(
+        REQUEST_BODY_STEP_NOT_RUN_MESSAGE,
+      );
+    },
+  );
+
+  test("is handed to a probe that sends any body", async () => {
+    const item: Monitor = monitor([asText(apiStep("<ping/>"))]);
+
+    expect(await handOut([item], CURRENT_PROBE)).toEqual([item]);
+    expect(queue.addProbeIngestJob).not.toHaveBeenCalled();
+  });
+
+  test("a text step with no body sends nothing, on any probe", async () => {
+    const item: Monitor = monitor([asText(apiStep(undefined))]);
+
+    expect(await handOut([item], PROBE_BEFORE_ANY_BODY)).toEqual([item]);
+    expect(queue.addProbeIngestJob).not.toHaveBeenCalled();
   });
 });
 

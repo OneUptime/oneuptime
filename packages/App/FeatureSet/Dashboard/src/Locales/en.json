@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.",
   "vCenter Rule Audit Logs": "vCenter Rule Audit Logs",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.",
+  "Keep the body and its format together.": "Keep the body and its format together.",
+  "Request Body Format": "Request Body Format",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.",
+  "The body is sent as text, exactly as written.": "The body is sent as text, exactly as written.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "Whether the body is JSON, or text sent exactly as written, such as XML or form fields."
 }

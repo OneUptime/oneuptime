@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی: قواعد رانبوک هشدارها، حوادث و رویدادهای تعمیر و نگهداری، و قواعد مالکیت و برچسب رانبوک‌ها.",
   "vCenter Rule Audit Logs": "گزارش‌های ممیزی قواعد vCenter",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "این پراب قدیمی‌تر از آن است که بدنه درخواستی را بفرستد که یک آرایه JSON، یک مقدار تنها یا متن است، پس بررسی اجرا نشد. پراب را به OneUptime {{version}} یا بالاتر به‌روزرسانی کنید.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "قدیمی‌تر از آن است که بدنه درخواستی را بفرستد که یک آرایه JSON، یک مقدار تنها یا متن است. مانیتورهای API با چنین بدنه‌ای، تا وقتی این پراب به‌روزرسانی نشود، در بررسی روی آن شکست می‌خورند."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "قدیمی‌تر از آن است که بدنه درخواستی را بفرستد که یک آرایه JSON، یک مقدار تنها یا متن است. مانیتورهای API با چنین بدنه‌ای، تا وقتی این پراب به‌روزرسانی نشود، در بررسی روی آن شکست می‌خورند.",
+  "Keep the body and its format together.": "بدنه و قالب آن با هم حفظ می‌شوند.",
+  "Request Body Format": "قالب بدنه درخواست",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "همراه هر درخواست، دقیقاً همان‌طور که نوشته شده فرستاده می‌شود، به‌صورت text/plain مگر اینکه هدرها یک Content-Type تعیین کنند.",
+  "The body is sent as text, exactly as written.": "بدنه به‌صورت متن، دقیقاً همان‌طور که نوشته شده فرستاده می‌شود.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "اینکه بدنه JSON است، یا متنی که دقیقاً همان‌طور که نوشته شده فرستاده می‌شود، مانند XML یا فیلدهای فرم."
 }

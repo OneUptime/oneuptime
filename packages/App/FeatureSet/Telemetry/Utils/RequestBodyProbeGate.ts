@@ -46,6 +46,7 @@ export const ANY_REQUEST_BODY_NEED: ProbeStepNeed = {
       data.monitorType === MonitorType.API &&
       MonitorRequestBody.needsProbeThatSendsAnyBody(
         data.step?.data?.requestBody,
+        data.step?.data?.requestBodyFormat,
       )
     );
   },

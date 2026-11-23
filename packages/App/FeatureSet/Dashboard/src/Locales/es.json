@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Quién creó, cambió o eliminó estas reglas, qué cambió y cuándo: las reglas de runbook de alertas, incidentes y eventos de mantenimiento, y las reglas de propietario y de etiquetas de los runbooks.",
   "vCenter Rule Audit Logs": "Registros de auditoría de las reglas de vCenter",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Esta sonda es demasiado antigua para enviar un cuerpo de solicitud que sea un array JSON, un único valor o texto, así que la comprobación no se ejecutó. Actualice la sonda a OneUptime {{version}} o posterior.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Demasiado antigua para enviar un cuerpo de solicitud que sea un array JSON, un único valor o texto. Los monitores de API con un cuerpo así fallan su comprobación en esta sonda hasta que se actualice."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "Demasiado antigua para enviar un cuerpo de solicitud que sea un array JSON, un único valor o texto. Los monitores de API con un cuerpo así fallan su comprobación en esta sonda hasta que se actualice.",
+  "Keep the body and its format together.": "El cuerpo y su formato se conservan juntos.",
+  "Request Body Format": "Formato del cuerpo de la solicitud",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "Se envía con cada solicitud, exactamente como está escrito, como text/plain salvo que los encabezados indiquen un Content-Type.",
+  "The body is sent as text, exactly as written.": "El cuerpo se envía como texto, exactamente como está escrito.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "Si el cuerpo es JSON, o texto que se envía exactamente como está escrito, como XML o campos de formulario."
 }

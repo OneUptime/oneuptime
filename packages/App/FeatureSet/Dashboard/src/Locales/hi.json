@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब: अलर्ट, घटनाओं और रखरखाव इवेंट के रनबुक नियम, और रनबुक के स्वामी और लेबल नियम।",
   "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "यह प्रोब JSON ऐरे, एक मान या टेक्स्ट वाली अनुरोध बॉडी भेजने के लिए बहुत पुराना है, इसलिए जाँच नहीं चली। प्रोब को OneUptime {{version}} या बाद के संस्करण में अपडेट करें।",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "JSON ऐरे, एक मान या टेक्स्ट वाली अनुरोध बॉडी भेजने के लिए बहुत पुराना। ऐसी बॉडी वाले API मॉनिटर इस प्रोब पर अपनी जाँच में तब तक विफल रहते हैं जब तक इसे अपडेट नहीं किया जाता।"
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "JSON ऐरे, एक मान या टेक्स्ट वाली अनुरोध बॉडी भेजने के लिए बहुत पुराना। ऐसी बॉडी वाले API मॉनिटर इस प्रोब पर अपनी जाँच में तब तक विफल रहते हैं जब तक इसे अपडेट नहीं किया जाता।",
+  "Keep the body and its format together.": "बॉडी और उसका फ़ॉर्मैट एक साथ रखे जाते हैं।",
+  "Request Body Format": "अनुरोध बॉडी का फ़ॉर्मैट",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "हर अनुरोध के साथ ठीक वैसे ही भेजा जाता है जैसा लिखा गया है, text/plain के रूप में, जब तक हेडर कोई Content-Type न बताएँ।",
+  "The body is sent as text, exactly as written.": "बॉडी टेक्स्ट के रूप में, ठीक वैसे ही भेजी जाती है जैसी लिखी गई है।",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "बॉडी JSON है, या ठीक वैसे ही भेजा जाने वाला टेक्स्ट जैसा लिखा गया है, जैसे XML या फ़ॉर्म फ़ील्ड।"
 }

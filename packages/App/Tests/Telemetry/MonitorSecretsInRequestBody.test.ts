@@ -57,6 +57,7 @@ import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorSecretType from "Common/Types/Monitor/MonitorSecretType";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -157,6 +158,7 @@ function secretDestination(urlTemplate: string): URL {
 
 function apiStep(data: {
   body?: string;
+  format?: MonitorRequestBodyFormat;
   headers?: Dictionary<string>;
   url?: string;
 }): MonitorStep {
@@ -164,6 +166,10 @@ function apiStep(data: {
 
   if (data.body !== undefined) {
     step.setRequestBody(data.body);
+  }
+
+  if (data.format !== undefined) {
+    step.setRequestBodyFormat(data.format);
   }
 
   if (data.headers) {
@@ -331,6 +337,33 @@ describe("what is left for the probe, and what is left alone", () => {
     );
 
     expect(step.data!.requestBody).toBe(`<pass>${TOKEN}</pass>`);
+  });
+});
+
+describe("a text body (#10736) takes each secret's value as it is", () => {
+  test("XML, as written around it", async () => {
+    const step: MonitorStep = await populate(
+      apiStep({
+        body: "<login><pass>{{monitorSecrets.Password}}</pass></login>",
+        format: MonitorRequestBodyFormat.Text,
+      }),
+    );
+
+    expect(step.data!.requestBody).toBe(
+      `<login><pass>${PASSWORD}</pass></login>`,
+    );
+    expect(step.data!.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+  });
+
+  test("even inside quotes of text that reads as JSON: it is sent as written", async () => {
+    const step: MonitorStep = await populate(
+      apiStep({
+        body: '{"password": "{{monitorSecrets.Password}}"}',
+        format: MonitorRequestBodyFormat.Text,
+      }),
+    );
+
+    expect(step.data!.requestBody).toBe(`{"password": "${PASSWORD}"}`);
   });
 });
 

@@ -4,6 +4,9 @@ import {
 } from "../../Types/Code/JsonSyntax";
 import Dictionary from "../../Types/Dictionary";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "../../Types/Monitor/MonitorRequestBodyFormat";
 import { translationKey } from "../../Types/Translator";
 import {
   TemplatePlaceholder,
@@ -55,6 +58,11 @@ import JSON5 from "json5";
  * JSON is sent byte for byte as written - no number rounded, no key moved or
  * dropped. One in JSON5, which the API it goes to would not read, is sent as
  * the JSON it stands for, as it always was.
+ *
+ * A step whose body is text (MonitorRequestBodyFormat.Text, #10736) is
+ * none of that: it is never read as JSON, never refused for not being
+ * JSON, and its placeholders are filled in as they are. The probe sends it
+ * byte for byte.
  */
 
 // What the monitor form and the API say of a body no check could send.
@@ -194,13 +202,17 @@ export default class MonitorRequestBody {
    * Why a step's body cannot be sent, or null when it can. Only an API
    * monitor sends one: a step of another type that kept a body from when
    * it was an API monitor sends nothing, so its body is no reason to
-   * refuse it.
+   * refuse it. A text body is sent as written, whatever it holds.
    */
   public static getUnreadableError(data: {
     monitorType: MonitorType | undefined | null;
     requestBody: unknown;
+    requestBodyFormat?: MonitorRequestBodyFormat | undefined;
   }): string | null {
-    if (data.monitorType !== MonitorType.API) {
+    if (
+      data.monitorType !== MonitorType.API ||
+      MonitorRequestBodyFormatUtil.isText(data.requestBodyFormat)
+    ) {
       return null;
     }
 
@@ -227,7 +239,8 @@ export default class MonitorRequestBody {
    *     always was: a value 1,2,3 is three numbers in the array, never one
    *     string.
    *
-   * A body that is not JSON is written as it is throughout.
+   * A body that is not JSON, and a text body (#10736), is written as it is
+   * throughout.
    *
    * Where a placeholder stands is read from the body as written, never from
    * a value filled in: a quote one value holds never ends a string for the
@@ -238,6 +251,8 @@ export default class MonitorRequestBody {
   public static fillPlaceholders(data: {
     body: string;
     getValue: (placeholder: TemplatePlaceholder) => string | undefined;
+    // JSON when unset.
+    format?: MonitorRequestBodyFormat | undefined;
   }): string {
     const placeholders: Array<TemplatePlaceholder> = findTemplatePlaceholders(
       data.body,
@@ -248,6 +263,7 @@ export default class MonitorRequestBody {
     }
 
     const quotes: Array<PlaceholderQuote> =
+      !MonitorRequestBodyFormatUtil.isText(data.format) &&
       MonitorRequestBody.getProblem(data.body) === null
         ? MonitorRequestBody.getPlaceholderQuotes(data.body, placeholders)
         : placeholders.map((): PlaceholderQuote => {
@@ -285,6 +301,8 @@ export default class MonitorRequestBody {
   public static fillSecrets(
     body: string,
     values: ReadonlyMap<string, string>,
+    // How the step sends its body: JSON when unset.
+    format?: MonitorRequestBodyFormat | undefined,
   ): string {
     if (values.size === 0) {
       return body;
@@ -292,6 +310,7 @@ export default class MonitorRequestBody {
 
     return MonitorRequestBody.fillPlaceholders({
       body: body,
+      format: format,
       getValue: (placeholder: TemplatePlaceholder): string | undefined => {
         const name: string | null = getReferencedName(placeholder);
 
@@ -437,20 +456,29 @@ export default class MonitorRequestBody {
 
   /*
    * Whether only a probe that sends any request body can send this one
-   * (ProbeCapability.AnyRequestBody, #10737): JSON that is not an object -
-   * an array or a single value. A probe from before #9737 read every body
-   * as a JSON object (JSONFunctions.parseJSONObject) and failed such a
-   * check with "Expected JSONObject, but got JSONArray". No body, an
-   * object, and a body that is no JSON at all - which no probe sends - need
-   * no such probe. Read as the server hands the step over, its secrets
-   * filled in: a placeholder still in it - a one-time code, which the
-   * probe makes - stands for its value, as getProblem reads one.
+   * (ProbeCapability.AnyRequestBody, #10737): a text body (#10736), or JSON
+   * that is not an object - an array or a single value. A probe from before
+   * #9737 read every body as a JSON object (JSONFunctions.parseJSONObject):
+   * it failed an array or a single value with "Expected JSONObject, but got
+   * JSONArray", and knows nothing of a text body. No body, a JSON object,
+   * and a JSON body that is no JSON at all - which no probe sends - need no
+   * such probe. Read as the server hands the step over, its secrets filled
+   * in: a placeholder still in it - a one-time code, which the probe makes -
+   * stands for its value, as getProblem reads one.
    */
-  public static needsProbeThatSendsAnyBody(body: unknown): boolean {
+  public static needsProbeThatSendsAnyBody(
+    body: unknown,
+    // How the step sends its body: JSON when unset.
+    format?: MonitorRequestBodyFormat | undefined,
+  ): boolean {
     const text: string | undefined = MonitorRequestBody.getText(body);
 
     if (text === undefined) {
       return false;
+    }
+
+    if (MonitorRequestBodyFormatUtil.isText(format)) {
+      return true;
     }
 
     const reading: MonitorRequestBodyReading = MonitorRequestBody.read(

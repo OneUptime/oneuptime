@@ -21,6 +21,7 @@ import {
   getTotpSecretNamesNeeded,
 } from "Common/Utils/Monitor/MonitorSecretReferences";
 import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import { TotpParameters, TotpSecrets } from "Common/Utils/Totp/TotpParameters";
 import {
   TotpSecretReading,
@@ -176,7 +177,8 @@ export default class MonitorUtil {
 
           monitorStep.data.requestBody = MonitorUtil.fillSecretsInRequestBody({
             secrets: monitorSecrets,
-            requestBody: monitorStep.data.requestBody,
+            populateSecretsIn: monitorStep.data.requestBody,
+            requestBodyFormat: monitorStep.data.requestBodyFormat,
           });
         }
       }
@@ -757,17 +759,21 @@ export default class MonitorUtil {
   /*
    * An API step's body with the monitor's Text secrets filled in, each
    * written as its place in the body needs it (MonitorRequestBody.
-   * fillSecrets, #10735). A reference to a secret the monitor may not use,
-   * or to a one-time code secret, is left as written. Nothing here is
-   * logged or thrown: the values are the secrets'.
+   * fillSecrets, #10735) - as it is throughout a text body (#10736). A
+   * reference to a secret the monitor may not use, or to a one-time code
+   * secret, is left as written. Nothing here is logged or thrown: the
+   * values are the secrets'.
    */
   private static fillSecretsInRequestBody(data: {
     secrets: Array<MonitorSecret>;
-    requestBody: string;
+    // The body, as the step holds it.
+    populateSecretsIn: string;
+    requestBodyFormat: MonitorRequestBodyFormat | undefined;
   }): string {
     return MonitorRequestBody.fillSecrets(
-      data.requestBody,
+      data.populateSecretsIn,
       MonitorUtil.getTextSecretValues(data.secrets),
+      data.requestBodyFormat,
     );
   }
 

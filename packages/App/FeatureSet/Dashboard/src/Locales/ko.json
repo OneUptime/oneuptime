@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다: 경고, 인시던트, 유지 관리 이벤트의 런북 규칙과 런북의 소유자 규칙 및 레이블 규칙입니다.",
   "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "이 프로브는 너무 오래되어 JSON 배열, 단일 값 또는 텍스트인 요청 본문을 보낼 수 없으므로 검사가 실행되지 않았습니다. 프로브를 OneUptime {{version}} 이상으로 업데이트하세요.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "너무 오래되어 JSON 배열, 단일 값 또는 텍스트인 요청 본문을 보낼 수 없습니다. 이런 본문을 사용하는 API 모니터는 이 프로브가 업데이트될 때까지 이 프로브에서 검사에 실패합니다."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "너무 오래되어 JSON 배열, 단일 값 또는 텍스트인 요청 본문을 보낼 수 없습니다. 이런 본문을 사용하는 API 모니터는 이 프로브가 업데이트될 때까지 이 프로브에서 검사에 실패합니다.",
+  "Keep the body and its format together.": "본문과 그 형식을 함께 유지합니다.",
+  "Request Body Format": "요청 본문 형식",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "모든 요청과 함께 작성한 그대로 전송되며, 헤더에 Content-Type이 없으면 text/plain으로 전송됩니다.",
+  "The body is sent as text, exactly as written.": "본문은 작성한 그대로 텍스트로 전송됩니다.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "본문이 JSON인지, 아니면 XML이나 양식 필드처럼 작성한 그대로 보내는 텍스트인지 정합니다."
 }

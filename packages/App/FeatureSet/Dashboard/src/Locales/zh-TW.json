@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更：警示、事件和維護事件的運行手冊規則，以及運行手冊的擁有者規則和標籤規則。",
   "vCenter Rule Audit Logs": "vCenter 規則稽核日誌",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "此探測器版本過舊，無法傳送 JSON 陣列、單一值或文字形式的請求本文，因此未執行檢查。請將探測器更新至 OneUptime {{version}} 或更新版本。",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "版本過舊，無法傳送 JSON 陣列、單一值或文字形式的請求本文。使用此類請求本文的 API 監測器在此探測器上的檢查會失敗，直到它完成更新。"
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "版本過舊，無法傳送 JSON 陣列、單一值或文字形式的請求本文。使用此類請求本文的 API 監測器在此探測器上的檢查會失敗，直到它完成更新。",
+  "Keep the body and its format together.": "請求內文及其格式會一併保留。",
+  "Request Body Format": "請求內文格式",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "隨每個請求依原樣傳送；除非請求標頭指定了 Content-Type，否則以 text/plain 傳送。",
+  "The body is sent as text, exactly as written.": "請求內文依原樣以文字形式傳送。",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "請求內文是 JSON，還是依原樣傳送的文字，例如 XML 或表單欄位。"
 }

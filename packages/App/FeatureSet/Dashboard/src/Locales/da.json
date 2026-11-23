@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Hvem der oprettede, ændrede eller slettede disse regler, hvad de ændrede og hvornår: runbook-reglerne for advarsler, hændelser og vedligeholdelseshændelser og runbookenes ejer- og etiketregler.",
   "vCenter Rule Audit Logs": "Auditlogs for vCenter-regler",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Denne sonde er for gammel til at sende en anmodningstekst, der er et JSON-array, en enkelt værdi eller tekst, så kontrollen blev ikke kørt. Opdater sonden til OneUptime {{version}} eller nyere.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "For gammel til at sende en anmodningstekst, der er et JSON-array, en enkelt værdi eller tekst. API-monitorer med sådan en anmodningstekst fejler deres kontrol på denne sonde, indtil den er opdateret."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "For gammel til at sende en anmodningstekst, der er et JSON-array, en enkelt værdi eller tekst. API-monitorer med sådan en anmodningstekst fejler deres kontrol på denne sonde, indtil den er opdateret.",
+  "Keep the body and its format together.": "Brødteksten og dens format bevares samlet.",
+  "Request Body Format": "Format for anmodningsbrødtekst",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "Sendes med hver anmodning, præcis som skrevet, som text/plain, medmindre headerne angiver en Content-Type.",
+  "The body is sent as text, exactly as written.": "Brødteksten sendes som tekst, præcis som skrevet.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "Om brødteksten er JSON eller tekst, der sendes præcis som skrevet, såsom XML eller formularfelter."
 }

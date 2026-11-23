@@ -16,6 +16,10 @@ import API, { APIRequestBody } from "Common/Utils/API";
 import MonitorRequestBody, {
   MonitorRequestBodyReading,
 } from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+  TEXT_REQUEST_BODY_CONTENT_TYPE,
+} from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
@@ -63,13 +67,21 @@ export interface APIResponse {
 interface ApiMonitorRequest {
   url: string;
   headers: Headers;
-  // JSON text, as written (MonitorRequestBody).
+  // The body's text, as written: JSON, or text sent as it is (#10736).
   body: string | undefined;
 }
 
-// What one attempt sends as its body, or where its body stops being JSON.
+/*
+ * What one attempt sends as its body - and the Content-Type it goes under
+ * when the headers name none, for a body that is not JSON - or where its
+ * body stops being JSON.
+ */
 type ApiMonitorBody =
-  | { canSend: true; data: APIRequestBody | undefined }
+  | {
+      canSend: true;
+      data: APIRequestBody | undefined;
+      contentType?: string | undefined;
+    }
   | { canSend: false; line: number | null; column: number | null };
 
 export default class ApiMonitor {
@@ -104,14 +116,29 @@ export default class ApiMonitor {
    * What an attempt's request carries as its body, its one-time codes
    * filled in (#9737): the JSON as written, byte for byte, under the
    * request's Content-Type - or, when that Content-Type is a form, an
-   * object's fields, as such a body has always been sent. A body that is
-   * not JSON cannot be sent at all (MonitorRequestBody).
+   * object's fields, as such a body has always been sent. A JSON body that
+   * is not JSON cannot be sent at all (MonitorRequestBody).
+   *
+   * A text body (#10736) is sent byte for byte and never parsed - XML,
+   * plain text, form fields written as a=1&b=2 - under the Content-Type the
+   * headers name, or text/plain.
    */
-  private static getBody(request: ApiMonitorRequest): ApiMonitorBody {
+  private static getBody(
+    request: ApiMonitorRequest,
+    format: MonitorRequestBodyFormat,
+  ): ApiMonitorBody {
     const text: string | undefined = MonitorRequestBody.getText(request.body);
 
     if (text === undefined) {
       return { canSend: true, data: undefined };
+    }
+
+    if (format === MonitorRequestBodyFormat.Text) {
+      return {
+        canSend: true,
+        data: Buffer.from(text, "utf8"),
+        contentType: TEXT_REQUEST_BODY_CONTENT_TYPE,
+      };
     }
 
     const reading: MonitorRequestBodyReading = MonitorRequestBody.read(text);
@@ -128,6 +155,30 @@ export default class ApiMonitor {
     }
 
     return { canSend: true, data: Buffer.from(reading.json, "utf8") };
+  }
+
+  /*
+   * The headers an attempt sends: the request's own, with the Content-Type
+   * of a body that is not JSON added when they name none - API.fetch would
+   * otherwise send it as application/json.
+   */
+  private static getHeadersToSend(
+    headers: Headers,
+    body: ApiMonitorBody,
+  ): Headers {
+    if (!body.canSend || !body.contentType) {
+      return headers;
+    }
+
+    const namesContentType: boolean = Object.keys(headers).some(
+      (name: string): boolean => {
+        return name.toLowerCase() === "content-type";
+      },
+    );
+
+    return namesContentType
+      ? headers
+      : { ...headers, "Content-Type": body.contentType };
   }
 
   /*
@@ -221,6 +272,11 @@ export default class ApiMonitor {
        * object.
        */
       requestBody?: string | undefined;
+      /*
+       * How the body is read (#10736): JSON, as above, when unset - every
+       * step saved before the format existed - or text, sent byte for byte.
+       */
+      requestBodyFormat?: MonitorRequestBodyFormat | undefined;
       requestType?: HTTPMethod | undefined;
       retry?: number | undefined;
       currentRetryCount?: number | undefined;
@@ -268,7 +324,10 @@ export default class ApiMonitor {
 
     const requestType: HTTPMethod = options.requestType || HTTPMethod.GET;
 
-    const body: ApiMonitorBody = ApiMonitor.getBody(request);
+    const body: ApiMonitorBody = ApiMonitor.getBody(
+      request,
+      MonitorRequestBodyFormatUtil.read(options.requestBodyFormat),
+    );
 
     if (!body.canSend) {
       return ApiMonitor.getBodyNotSentResponse({
@@ -278,6 +337,11 @@ export default class ApiMonitor {
         options: options,
       });
     }
+
+    const headersToSend: Headers = ApiMonitor.getHeadersToSend(
+      request.headers,
+      body,
+    );
 
     const ownsExecutionContext: boolean = !options.executionContext;
     if (!options.executionContext) {
@@ -441,7 +505,7 @@ export default class ApiMonitor {
         await executeRequest(
           request.url,
           requestType,
-          request.headers,
+          headersToSend,
           body.data,
         );
 
@@ -460,7 +524,7 @@ export default class ApiMonitor {
         result = await executeRequest(
           request.url,
           HTTPMethod.GET,
-          request.headers,
+          headersToSend,
           body.data,
         );
       }

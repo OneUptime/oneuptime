@@ -62324,5 +62324,10 @@
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når: runbook-reglene for varsler, hendelser og vedlikeholdshendelser, og runbookenes eier- og etikettregler.",
   "vCenter Rule Audit Logs": "Revisjonslogger for vCenter-regler",
   "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime {{version}} or later.": "Denne sonden er for gammel til å sende en forespørselstekst som er en JSON-matrise, én enkelt verdi eller tekst, så kontrollen ble ikke kjørt. Oppdater sonden til OneUptime {{version}} eller nyere.",
-  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "For gammel til å sende en forespørselstekst som er en JSON-matrise, én enkelt verdi eller tekst. API-monitorer med en slik forespørselstekst feiler kontrollen sin på denne sonden til den er oppdatert."
+  "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.": "For gammel til å sende en forespørselstekst som er en JSON-matrise, én enkelt verdi eller tekst. API-monitorer med en slik forespørselstekst feiler kontrollen sin på denne sonden til den er oppdatert.",
+  "Keep the body and its format together.": "Forespørselsteksten og formatet beholdes samlet.",
+  "Request Body Format": "Format for forespørselstekst",
+  "Sent with every request, exactly as written, as text/plain unless the headers name a Content-Type.": "Sendes med hver forespørsel, nøyaktig slik den er skrevet, som text/plain med mindre hodene oppgir en Content-Type.",
+  "The body is sent as text, exactly as written.": "Forespørselsteksten sendes som tekst, nøyaktig slik den er skrevet.",
+  "Whether the body is JSON, or text sent exactly as written, such as XML or form fields.": "Om forespørselsteksten er JSON eller tekst som sendes nøyaktig slik den er skrevet, for eksempel XML eller skjemafelt."
 }
