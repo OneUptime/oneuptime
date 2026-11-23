@@ -29,6 +29,11 @@ import { JSONObject } from "../../../Types/JSON";
  * And the real provider parser, reading the real spec, keeps api_key from
  * the create's answer and leaves it out of the data source.
  *
+ * One other column is answered once, the same way: a blocklist feed's
+ * secret (#10596), which OneUptime makes, answers to the create that makes
+ * the feed and to a rotation of it, and keeps only as its hash. No other
+ * model answers a column once.
+ *
  * The whole spec is generated once for the suite: it walks every model.
  */
 
@@ -159,12 +164,57 @@ describe("a project's API key in the OpenAPI specification", () => {
     }
   });
 
-  it("no other model answers a column once: the created schema is the API key's alone", () => {
+  it("a blocklist feed's secret is answered once too: by the create, and by nothing else (#10596)", () => {
+    expect(answeredBy("/security-blocklist-feed", "post")).toBe(
+      "SecurityBlocklistFeedCreatedSchema",
+    );
+    expect(
+      propertiesOf("SecurityBlocklistFeedCreatedSchema")["secret"],
+    ).toEqual(
+      expect.objectContaining({
+        readOnly: true,
+        "x-oneuptime-secret": true,
+        "x-oneuptime-shown-once": true,
+      }),
+    );
+
+    // Not a record, a list's, nor what an update answers; nobody writes it.
+    for (const name of [
+      answeredBy("/security-blocklist-feed/{id}/get-item", "post"),
+      "SecurityBlocklistFeedReadSchema",
+      "SecurityBlocklistFeedCreateSchema",
+      "SecurityBlocklistFeedUpdateSchema",
+    ]) {
+      expect([name, Object.keys(propertiesOf(name))]).not.toEqual([
+        name,
+        expect.arrayContaining(["secret"]),
+      ]);
+    }
+
+    // Nothing selects, filters, sorts or groups by it.
+    for (const name of [
+      "SecurityBlocklistFeedSelectSchema",
+      "SecurityBlocklistFeedQuerySchema",
+      "SecurityBlocklistFeedSortSchema",
+      "SecurityBlocklistFeedGroupBySchema",
+    ]) {
+      if (!schemas[name]) {
+        continue;
+      }
+
+      expect([name, Object.keys(propertiesOf(name))]).not.toEqual([
+        name,
+        expect.arrayContaining(["secret"]),
+      ]);
+    }
+  });
+
+  it("no other model answers a column once: the created schemas are the API key's and the blocklist feed's", () => {
     expect(
       Object.keys(schemas).filter((name: string): boolean => {
         return name.endsWith("CreatedSchema");
       }),
-    ).toEqual(["ApiKeyCreatedSchema"]);
+    ).toEqual(["ApiKeyCreatedSchema", "SecurityBlocklistFeedCreatedSchema"]);
   });
 
   it("the real provider parser keeps api_key from the create's answer, and the data source has none", () => {
