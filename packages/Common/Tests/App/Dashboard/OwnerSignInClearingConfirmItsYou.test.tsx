@@ -195,9 +195,7 @@ beforeEach(() => {
   getJestSpyOn(UserUtil, "getEmail").mockReturnValue(
     new Email("olive@example.com"),
   );
-  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
-    PROJECT_ID,
-  );
+  getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   getJestSpyOn(ModelAPI, "getCommonHeaders").mockReturnValue({
     tenantid: PROJECT_ID.toString(),
   });
@@ -288,7 +286,9 @@ describe("the Require SSO card's clear of everyone the owner may clear", () => {
 
   test("cancelled, nothing is cleared, and the dialog says why", async () => {
     server
-      .on(HTTPMethod.GET, COUNT_URL, [{ status: 200, data: { peopleCount: 3 } }])
+      .on(HTTPMethod.GET, COUNT_URL, [
+        { status: 200, data: { peopleCount: 3 } },
+      ])
       .on(HTTPMethod.POST, CLEAR_URL, [REFUSAL])
       .on(HTTPMethod.GET, STATUS_URL, [NOT_CONFIRMED]);
 
