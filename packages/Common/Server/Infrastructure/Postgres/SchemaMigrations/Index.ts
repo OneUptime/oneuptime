@@ -1161,6 +1161,8 @@ import { AddDiscoveryScanRunRequested1809187450000 } from "./1809187450000-AddDi
 import { AddDiscoveryScanRunRequestedByUserKey1809187450010 } from "./1809187450010-AddDiscoveryScanRunRequestedByUserKey";
 import { AddSecurityCaseAiResponse1809187452000 } from "./1809187452000-AddSecurityCaseAiResponse";
 import { AddSecurityCaseAiNextLookIndex1809187452010 } from "./1809187452010-AddSecurityCaseAiNextLookIndex";
+import { AddSecurityCaseAiRespondsFirst1809187453000 } from "./1809187453000-AddSecurityCaseAiRespondsFirst";
+import { AddSecurityCaseAiHoldUntilIndex1809187453010 } from "./1809187453010-AddSecurityCaseAiHoldUntilIndex";
 
 export default [
   InitialMigration,
@@ -2326,4 +2328,6 @@ export default [
   AddDiscoveryScanRunRequestedByUserKey1809187450010,
   AddSecurityCaseAiResponse1809187452000,
   AddSecurityCaseAiNextLookIndex1809187452010,
+  AddSecurityCaseAiRespondsFirst1809187453000,
+  AddSecurityCaseAiHoldUntilIndex1809187453010,
 ];
