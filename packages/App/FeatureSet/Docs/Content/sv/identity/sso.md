@@ -381,6 +381,8 @@ Ett konto kan tillhöra många organisationer, så du kan bara rensa inställnin
 - någon som bara är inbjuden till ditt projekt och inte har gått med än;
 - master admins, och du själv: ändra dina egna i din **Användarprofil**.
 
+För att rensa en enda person öppnar du **Användare**: Raden för varje person du får rensa visar **Inloggningsinställningar sparade**, och **Rensa inloggningsinställningar** i dess meny rensar bara den personens, enligt samma regel och efter en fråga som listar vad som tas bort.
+
 Varje person vars inställningar rensas får ett e-postmeddelande om vad som togs bort och att personen nu loggar in med SSO, och dina projekts granskningsloggar registrerar rensningen som din. Bara en **Projektägare** kan rensa, inloggad i instrumentpanelen: aldrig med en API-nyckel.
 
 ## Stänga av eller ta bort en leverantör

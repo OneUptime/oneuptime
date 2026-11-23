@@ -57,11 +57,16 @@ import {
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ProjectSignInClearing from "../Utils/ProjectSignInClearing";
 import {
+  CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
   CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE,
   ClearSavedSignInSettingsAnswer,
+  PROJECT_CLEAR_PERSON_SAVED_SIGN_IN_SETTINGS_ACTION,
   PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION,
   PROJECT_SAVED_SIGN_IN_SETTINGS_ACTION,
+  PROJECT_SAVED_SIGN_IN_SETTINGS_OF_PEOPLE_ACTION,
+  readSavedSignInSettingsOfPeopleRequest,
   SavedSignInSettingsAnswer,
+  toSavedSignInSettingsOfPeopleAnswerJSON,
 } from "../../Types/SSO/LocalSignInClearing";
 import ResolvedRecordRetention, {
   DueRecordsCount,
@@ -554,6 +559,95 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
 
           const answer: ClearSavedSignInSettingsAnswer = {
             peopleCleared: await ProjectSignInClearing.clearForProject(caller),
+          };
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /project/:id/saved-sign-in-settings/people - of the people the
+     * project's Users list shows (the body's userIds, a page of them at
+     * most), those the signed-in owner may clear the saved sign-in settings
+     * of, with what each has saved (#9993,
+     * ProjectSignInClearing.readSavedSettingsOfMembers): members of this
+     * project whose every project manages sign-in with SSO and is one this
+     * owner owns; master admins and the owner never. It names a person
+     * across the owner's projects, which the count never does, so it names
+     * only people asked about who are members of this project - people the
+     * owner already sees on its Users list - by their ids alone. It only
+     * reads: a POST, for the ids it is asked about.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_SAVED_SIGN_IN_SETTINGS_OF_PEOPLE_ACTION}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          // Who may ask, before anything of the body is read.
+          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+            await ProjectAPI.assertSignInClearingOwner(req);
+
+          const userIds: Array<ObjectID> =
+            readSavedSignInSettingsOfPeopleRequest(req.body);
+
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            toSavedSignInSettingsOfPeopleAnswerJSON(
+              await ProjectSignInClearing.readSavedSettingsOfMembers({
+                projectId: caller.projectId,
+                ownerUserId: caller.ownerUserId,
+                userIds: userIds,
+              }),
+            ),
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /project/:id/saved-sign-in-settings/people/:userId/clear - the
+     * signed-in owner clearing one member's saved sign-in settings, from the
+     * project's Users list (#9993, ProjectSignInClearing.clearMember): under
+     * the rule of the list, read again right before the clear, and exactly
+     * as the bulk clear clears a person - recorded in each of their
+     * projects' audit logs as the owner's, and emailed. Refused, with the
+     * rule and never which part of it, for anybody else. It cannot be
+     * undone, and the row asks first. Takes no body.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_CLEAR_PERSON_SAVED_SIGN_IN_SETTINGS_ACTION}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+            await ProjectAPI.assertSignInClearingOwner(req);
+
+          const userIdParam: string = String(req.params["userId"] || "");
+
+          if (!ObjectID.isValidUUID(userIdParam)) {
+            throw new BadDataException(
+              CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+            );
+          }
+
+          const answer: ClearSavedSignInSettingsAnswer = {
+            peopleCleared: await ProjectSignInClearing.clearMember({
+              projectId: caller.projectId,
+              ownerUserId: caller.ownerUserId,
+              userId: new ObjectID(userIdParam),
+            }),
           };
 
           return Response.sendJsonObjectResponse(
@@ -1302,7 +1396,8 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
 
   /*
    * Who may count and clear the sign-in settings a project's people saved
-   * (#9820): a signed-in person - never a project API key, which a leak
+   * (#9820), and list and clear them one person at a time (#9993): a
+   * signed-in person - never a project API key, which a leak
    * would turn into a way to strip people's sign-in - who is a Project
    * Owner of the project in the path, read from their own permission rows
    * (CallerPermission: a team's block is no grant) and never from
