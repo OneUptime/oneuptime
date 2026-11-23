@@ -711,22 +711,41 @@ export function findScrubRuleHidingAddresses(
   rules: ReadonlyArray<AddressScrubRule>,
   signal: ScrubbedAddressSignal,
 ): AddressScrubRule | null {
-  for (const rule of rules) {
-    if (
-      isIpAddressScrubRule(rule) &&
-      getScrubbedKindOfAction(rule.scrubAction) !==
-        ScrubbedAddressKind.Hashed &&
-      SECURITY_EVENTS_ADDRESS_PLACES[signal].some(
-        (place: ScrubbedAddressPlace): boolean => {
-          return doesScrubRuleReach(rule, place);
-        },
-      )
-    ) {
-      return rule;
-    }
-  }
+  return findScrubRulesHidingAddresses(rules, signal)[0] || null;
+}
 
-  return null;
+/*
+ * Whether one rule keeps Security Events from naming the address an attack
+ * came from: an IP Address rule that redacts or masks a part of the record
+ * Security Events reads the address from (#10396). A Hash rule never does.
+ */
+export function isScrubRuleHidingAddresses(
+  rule: Pick<AddressScrubRule, "patternType" | "scrubAction" | "fieldsToScrub">,
+  signal: ScrubbedAddressSignal,
+): boolean {
+  return (
+    isIpAddressScrubRule(rule) &&
+    getScrubbedKindOfAction(rule.scrubAction) !== ScrubbedAddressKind.Hashed &&
+    SECURITY_EVENTS_ADDRESS_PLACES[signal].some(
+      (place: ScrubbedAddressPlace): boolean => {
+        return doesScrubRuleReach(rule, place);
+      },
+    )
+  );
+}
+
+/*
+ * Every one of a project's enabled rules of a kind that keeps Security
+ * Events from naming attackers' addresses, in the order ingest runs them:
+ * each gets the notice and its Hash Instead (#10396).
+ */
+export function findScrubRulesHidingAddresses(
+  rules: ReadonlyArray<AddressScrubRule>,
+  signal: ScrubbedAddressSignal,
+): Array<AddressScrubRule> {
+  return rules.filter((rule: AddressScrubRule): boolean => {
+    return isScrubRuleHidingAddresses(rule, signal);
+  });
 }
 
 /*

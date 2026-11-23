@@ -14,10 +14,13 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
@@ -530,6 +533,64 @@ describe("the Overview's card", () => {
     expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
       getHiddenAddressRulesRoute("trace")!.toString(),
     );
+  });
+
+  /*
+   * Security Events' setup item uses the switch the rules pages use
+   * (#10396): Hash Instead makes the rule hash, as the person who pressed
+   * it, and the card reads its figures again.
+   */
+  test("offers Hash Instead beside the way to the rule, which switches the rule and reads the card again", async () => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    const hashSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ScrubRuleAddressesApi, "hashInstead")
+      .mockResolvedValue({
+        signal: "log",
+        ruleId: RULE_ID,
+        ruleName: "Scrub IP addresses",
+        scrubAction: LogScrubAction.Hash,
+      });
+    const onChanged: MockFunction = getJestMockFunction();
+
+    render(
+      inRouter(
+        <SecurityOverviewStatus
+          queue={QUEUE}
+          status={status({
+            addressScrubRules: [
+              {
+                signal: "log",
+                ruleId: RULE_ID,
+                ruleName: "Scrub IP addresses",
+                scrubAction: LogScrubAction.Redact,
+              },
+            ],
+          })}
+          showPipeline={true}
+          hasStatusFailed={false}
+          isReading={false}
+          now={new Date("2026-11-20T12:00:00.000Z")}
+          onChanged={onChanged}
+          onTryAgain={(): void => {}}
+          onSetUp={(): void => {}}
+        />,
+      ),
+    );
+
+    const logs: HTMLElement = screen.getByTestId(
+      `${SECURITY_ADDRESS_SCRUB_TEST_ID}-log`,
+    );
+
+    expect(
+      within(logs).getByRole("button", { name: "Open Scrub Rules" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(logs).getByRole("button", { name: "Hash Instead" }));
+
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalledTimes(1);
+    });
+    expect(hashSpy).toHaveBeenCalledWith({ signal: "log", ruleId: RULE_ID });
   });
 
   test("says it while Get started is on the page too, and nothing without such a rule", () => {

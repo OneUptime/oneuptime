@@ -26,6 +26,7 @@ import {
   decideDataSecurityAiWork,
   getDataSecurityAiApprovalsNeeded,
   getDataSecurityAiPlanFingerprint,
+  getDataSecurityAiPlanLane,
   getDataSecurityAiRuleAutonomy,
   getDataSecurityAiRuleProblem,
   getDataSecurityAiWithoutAskingVerdict,
@@ -418,6 +419,7 @@ describe("what may run without asking", () => {
     isNamedByRule?: boolean;
     twoApprovals?: boolean;
     changesThisHour?: number;
+    canRunWithoutAsking?: boolean;
   }): DataSecurityAiWithoutAskingVerdict {
     const work: DataSecurityAiWorkDecision = {
       autonomy: data.autonomy,
@@ -428,6 +430,7 @@ describe("what may run without asking", () => {
       work,
       safety: data.safety,
       meetsDefaultConditions: data.meetsDefaultConditions === true,
+      canRunWithoutAsking: data.canRunWithoutAsking,
       isNamedByRule: data.isNamedByRule === true,
       requireTwoApprovalsForRiskierChanges: data.twoApprovals === true,
       changesWithoutAskingThisHour: data.changesThisHour || 0,
@@ -608,6 +611,106 @@ describe("what may run without asking", () => {
       isRiskierDataSecurityAiChange(DataSecurityAiChangeSafety.MaskOnly),
     ).toBe(false);
     expect(isRiskierDataSecurityAiChange(undefined)).toBe(false);
+  });
+});
+
+describe("a telemetry scrub rule that runs on its own, and one that never does (#10366)", () => {
+  const MASK: DataSecurityAiChangeSafety = DataSecurityAiChangeSafety.MaskOnly;
+
+  function verdictOf(data: {
+    autonomy: DataSecurityAiAutonomy;
+    fromDefaults: boolean;
+    meetsDefaultConditions: boolean;
+    canRunWithoutAsking?: boolean;
+  }): DataSecurityAiWithoutAskingVerdict {
+    return getDataSecurityAiWithoutAskingVerdict({
+      work: { autonomy: data.autonomy, fromDefaults: data.fromDefaults },
+      safety: MASK,
+      meetsDefaultConditions: data.meetsDefaultConditions,
+      canRunWithoutAsking: data.canRunWithoutAsking,
+      isNamedByRule: false,
+      requireTwoApprovalsForRiskierChanges: false,
+      changesWithoutAskingThisHour: 0,
+    });
+  }
+
+  test("out of the box, a secret's proven rule nothing reads runs; personal data's is proposed", () => {
+    expect(
+      verdictOf({
+        autonomy: DataSecurityAiAutonomy.WithoutAsking,
+        fromDefaults: true,
+        meetsDefaultConditions: true,
+        canRunWithoutAsking: true,
+      }),
+    ).toEqual({ runWithoutAsking: true, askReason: null });
+    expect(
+      verdictOf({
+        autonomy: DataSecurityAiAutonomy.WithoutAsking,
+        fromDefaults: true,
+        meetsDefaultConditions: false,
+        canRunWithoutAsking: true,
+      }),
+    ).toEqual({
+      runWithoutAsking: false,
+      askReason: DataSecurityAiAskReason.NotProvenSafe,
+    });
+  });
+
+  test("an AI rule widens it to personal data proven safe - and overrides the default the other way, to Suggest", () => {
+    expect(
+      verdictOf({
+        autonomy: DataSecurityAiAutonomy.WithoutAsking,
+        fromDefaults: false,
+        meetsDefaultConditions: false,
+        canRunWithoutAsking: true,
+      }),
+    ).toEqual({ runWithoutAsking: true, askReason: null });
+    expect(
+      verdictOf({
+        autonomy: DataSecurityAiAutonomy.Suggest,
+        fromDefaults: false,
+        meetsDefaultConditions: true,
+        canRunWithoutAsking: true,
+      }),
+    ).toEqual({
+      runWithoutAsking: false,
+      askReason: DataSecurityAiAskReason.WorkAsksFirst,
+    });
+  });
+
+  test("a rule not proven safe always asks, whatever a rule or the defaults say", () => {
+    for (const fromDefaults of [true, false]) {
+      expect(
+        verdictOf({
+          autonomy: DataSecurityAiAutonomy.WithoutAsking,
+          fromDefaults,
+          meetsDefaultConditions: true,
+          canRunWithoutAsking: false,
+        }),
+      ).toEqual({
+        runWithoutAsking: false,
+        askReason: DataSecurityAiAskReason.NotProvenSafe,
+      });
+    }
+  });
+
+  test("an action that says nothing of it may run as the rules decide, as before", () => {
+    expect(
+      verdictOf({
+        autonomy: DataSecurityAiAutonomy.WithoutAsking,
+        fromDefaults: false,
+        meetsDefaultConditions: false,
+      }),
+    ).toEqual({ runWithoutAsking: true, askReason: null });
+  });
+
+  test("a plan's lane is its key's text before the first colon", () => {
+    expect(getDataSecurityAiPlanLane("scrub-alone:0123456789abcdef")).toBe(
+      "scrub-alone",
+    );
+    expect(getDataSecurityAiPlanLane("scrub:0123456789abcdef")).toBe("scrub");
+    expect(getDataSecurityAiPlanLane("owners")).toBe("owners");
+    expect(getDataSecurityAiPlanLane(":odd")).toBe(":odd");
   });
 });
 

@@ -8,6 +8,7 @@ Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gesc
 - [Was gelesen wird](#was-gelesen-wird): Die Attribute, Bodys, Nachrichten und Prompts jedes Signals.
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
 - [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme verbergen, in dem Dienst, in dem er gefunden wurde.
+- [Von sich aus eingedämmt](#von-sich-aus-eingedämmt): Ein Geheimnis, das verborgen wird, ohne dass jemand auf etwas klickt, wo das nachweislich sicher ist.
 - [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
@@ -101,14 +102,23 @@ Klicken Sie auf **Bereinigen**. Ein Dialog sagt, was die Regel tun würde, bevor
 Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
 :::
 
-Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist eine der folgenden:
+Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, oder „Data Security: Password or secret in db.password of checkout“ bei einer Regel, die ihr Attribut nennt, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist die engste Regel, die die Daten des Funds verbirgt, die erste der folgenden, die passt:
 
 | Fund | Regel, die Bereinigen erstellt |
 | --- | --- |
-| E-Mail-Adresse, Kartennummer, US-Sozialversicherungsnummer, Telefonnummer oder IP-Adresse | Das integrierte Muster dieses Typs. Kartennummern, Sozialversicherungsnummern und Telefonnummern werden maskiert, der Rest geschwärzt. |
-| Ein Wert unter einem Schlüssel, der sensibel aussieht, etwa `password` oder `token` | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
-| Jeder andere Datentyp, den ein Muster finden kann | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps, die jeden Wert seiner Form schwärzt |
+| E-Mail-Adresse, Kartennummer, US-Sozialversicherungsnummer, Telefonnummer oder IP-Adresse | Das integrierte Muster dieses Typs, maskiert. Eine IP-Adresse wird geschwärzt, oder gehasht, wo [Sicherheitsereignisse](/docs/telemetry/security-events) diese Datensätze liest, damit Sicherheitsereignisse die zu sperrende Adresse weiterhin nennen kann. |
+| Jeder andere Datentyp, den ein Muster allein findet, etwa ein GitHub-Token | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps. Ein Geheimnis wird geschwärzt. |
+| Einer Ihrer eigenen Datentypen, mit einem Muster | Dieses Muster, nur in dem Attribut, in dem er gefunden wurde |
+| Ein Datentyp, der sich durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl | Seine Form, nur in dem Attribut, in dem er gefunden wurde |
+| Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name`, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
+| Ein Wert unter einem Schlüssel, der sensibel aussieht, wo nichts Engeres ihn verbirgt | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
 | Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs in der Form des Datentyps durch `[REDACTED]` ersetzt, oder jeden Wert des Attributs, wenn kein Muster den Datentyp findet |
+
+### Nachgewiesen an den Einträgen des Funds
+
+Bevor der Dialog sagt, was die Regel tun würde, führt OneUptime jede Regel, die es erstellen könnte, auf den Einträgen aus, in denen der Fund gesehen wurde, und auf den neuesten Datensätzen seines Dienstes mit einem Wert an dieser Stelle, mit genau dem Code, den die Aufnahme ausführt, und fragt den Scanner, was übrig bleibt. Die erste Regel, die die Daten in jedem Wert verbirgt, der sie enthielt, und höchstens 5 von 100 der anderen Werte dort ändert, ist die richtige. Der Dialog sagt, auf wie vielen Datensätzen sie ausgeführt wurde, wie viele Werte die Daten enthielten und wie viele andere sie geändert hat. Ein Muster, das mehr ändern würde, wird nie angeboten: Angeboten wird stattdessen die Regel, die das Attribut nennt, mit dem, was sie sonst noch ändert.
+
+Der Nachweis wird bei der Regel gespeichert, und die Liste der Bereinigungsregeln zeigt **Nachgewiesen** in ihrer Zeile, bis die Regel geändert wird. Ist kein Eintrag mehr übrig, auf dem eine Regel ausgeführt werden kann, etwa bei einer Ausnahme oder einer Sitzungswiedergabe, oder bei Datensätzen jenseits ihrer Aufbewahrung, wird die Regel so erstellt, wie sie geplant ist, und der Dialog sagt das.
 
 Eine Regel für Logs oder Traces gilt für den Dienst, in dem der Fund gefunden wurde: Sie bereinigt die Logs oder Spans dieses Dienstes, und die anderer Dienste bleiben, wie sie sind, sodass sich nichts ändert, was deren Daten liest. Die Spalte **Geltungsbereich** der Liste der Bereinigungsregeln sagt, für welchen Dienst eine Regel gilt. Ein Fund in den Sitzungsaufzeichnungen einer RUM-Anwendung erstellt eine Regel für alle Dienste und Apps des Projekts, da Regeln für Logs auch Aufzeichnungen bereinigen, und der Dialog sagt das. Gibt es den Dienst nicht mehr, sagt **Bereinigen** das und erstellt keine Regel.
 
@@ -116,14 +126,35 @@ Der Dialog nennt, jeweils als Link, die Monitore, Dashboards mit ihren Widgets, 
 
 Manche Funde lassen sich durch keine Regel bereinigen, und **Bereinigen** sagt, warum. Das Attribut einer Metrik lässt sich immer bereinigen, da seine Regel jeden Wert des Attributs verbergen kann:
 
-- Ein Datentyp, der allein anhand von Feldnamen gefunden wird, etwa der Name einer Person: Kein Muster kann ihn finden. Benennen Sie das Attribut in einen Schlüssel um, den eine Regel für sensible Schlüssel verbirgt, oder senden Sie es nicht mehr.
-- Ein Datentyp, der sich von anderen Werten nur durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl: Eine Regel würde weit mehr verbergen als diesen Datentyp.
+- Ein Datentyp, der allein anhand von Feldnamen in einem Log-Body gefunden wird, etwa der Name einer Person: Keine Regel kann ihn vom Rest der Nachricht unterscheiden. Senden Sie ihn als Attribut, das eine Regel **Benannte Attribute** verbirgt, oder senden Sie ihn nicht mehr.
+- Jede ausprobierte Regel hat weit mehr verborgen als die Daten: Jede wurde auf den Einträgen ausgeführt, in denen die Daten gesehen wurden, und hat zu viel anderes geändert. Senden Sie die Daten im Code, der sie schreibt, nicht mehr.
 - Eine Dokumentkennzeichnung: Das Wort zu verbergen, würde das Dokument nicht verbergen.
-- Einer Ihrer eigenen Datentypen: Fügen Sie selbst eine benutzerdefinierte Bereinigungsregel mit seinem Muster hinzu.
 - Die eigenen Details einer Sitzung (`sessions.*`): Die Aufnahme von Sitzungswiedergaben führt keine Bereinigungsregeln aus.
 - Der Name einer Metrik (`name`): Ihn legt der Code fest, der die Metrik erstellt, und eine Pipeline-Regel kann eine Metrik nur als Ganzes umbenennen. Benennen Sie die Metrik um, und senden Sie, was in ihrem Namen variiert, stattdessen als Attribut. Bis dahin kann **Diese Metrik verwerfen** das Speichern dieser Metriken beenden.
 
 **Bereinigen** erstellt die Regel in Ihrem Namen, mit Ihren eigenen Berechtigungen: Projektinhaber und Projektadministratoren können darauf klicken, ebenso ein Team, das Bereinigungsregeln für Logs erstellen darf, für Spans, Ausnahmen und KI-Aufrufe Bereinigungsregeln für Traces und für Metriken Metrik-Pipeline-Regeln.
+
+## Von sich aus eingedämmt
+
+Während OneUptime AI an Problemen der Datensicherheit arbeitet (siehe [OneUptime AI in der Datensicherheit](/docs/data-security/ai)), wird ein Telemetrieproblem eingedämmt, ohne dass jemand auf etwas klickt, wo das nachweislich sicher ist. Für jede Stelle, die das Problem zählt, plant OneUptime AI die Regel, die **Bereinigen** erstellen würde, auf dieselbe Weise nachgewiesen, und erstellt sie nur dann von sich aus, wenn all dies zutrifft:
+
+- **Die Daten sind ein Geheimnis**, etwa ein Passwort, ein Token oder ein Schlüssel.
+- **Die Regel ist nachgewiesen** an den Einträgen, in denen die Daten gesehen wurden: Sie hat die Daten in jedem Wert verborgen, der sie enthielt.
+- **Sie ändert dort nichts anderes**: keinen der anderen Werte an ihrer Stelle.
+- **Nichts liest, was sie verbirgt**: kein Monitor, kein Dashboard, keine gespeicherte Ansicht, keine Aufzeichnungsregel und kein SLO, und nichts, was Sicherheitsereignisse braucht.
+- **Sie gilt für den Dienst**, in dem die Daten gesehen wurden.
+
+Alles andere wird stattdessen vorgeschlagen, unter **Datensicherheit → KI** und auf der Seite des Problems, mit dem, wie die Regel nachgewiesen wurde und was liest, was sie verbergen würde: personenbezogene Daten, eine Regel, deren Werte von etwas gelesen werden, eine, die andere Werte ändert, eine, für die kein Eintrag zum Ausführen übrig war, eine für alle Dienste, die Pipeline-Regel einer Metrik und jede Stelle, deren frühere Regel eine Person rückgängig gemacht oder verworfen hat. Eine KI-Regel der Datensicherheit, die für ein Problem **Eindämmen** auf **Automatisch** setzt, lässt auch nachgewiesene personenbezogene Daten von sich aus verbergen. Keine Regel lässt eine Änderung von sich aus laufen, die nicht nachweislich sicher ist.
+
+Wo keine der Regeln von **Bereinigen** die Daten verbergen kann, etwa bei einem Ihrer eigenen Datentypen ohne Muster, schreibt OneUptime AI eine: ein Muster für die Daten oder das Attribut, das ganz verborgen wird. OneUptime AI erfährt den Datentyp, wo er steht, die Namen der Attribute daneben und die Formen der Werte, etwa `AA-9999` für `AB-1234`, nie einen Wert, und was sie schreibt, wird wie jede andere Regel an den Einträgen nachgewiesen, bevor es vorgeschlagen oder erstellt wird.
+
+Eine Änderung, die OneUptime AI von sich aus vorgenommen hat:
+
+- **Steht in der Zeitachse des Problems**, mit den Regeln, die sie erstellt hat, wie jede nachgewiesen wurde, und **Rückgängig**, das sie löscht. **Datensicherheit → KI** hat dasselbe **Rückgängig**. Eine Stelle, deren Regel Sie rückgängig machen, wird nie wieder von sich aus eingedämmt: OneUptime AI schlägt sie stattdessen vor.
+- **Geht per E-Mail** an die Eigentümer des Datenspeichers und an die Eigentümer des Dienstes.
+- **Sagt, dass ein Geheimnis rotiert werden muss.** Ein Geheimnis zu verbergen, stoppt nur neue Kopien: Das Geheimnis funktioniert weiterhin, und die vor der Regel gespeicherten Datensätze behalten es, bis ihre Aufbewahrung endet. Die Zeitachse und die E-Mail sagen, wo es gesehen wurde.
+
+Neue Funde in einem Dienst, dessen Problem bereits offen ist, werden auf dieselbe Weise eingedämmt, sobald der stündliche Scan sie findet.
 
 ## Diese Metrik verwerfen
 
@@ -145,7 +176,9 @@ Ein Fund wird nur dann als bereinigt markiert, wenn die Aufnahme eine aktivierte
 - **Der richtige Teil.** Die Regel nennt unter **Zu bereinigende Felder** den Teil des Datensatzes, in dem der Fund steht, oder lässt sie auf ihrem Standardwert.
 - **Der richtige Dienst.** Eine Regel für Logs oder Traces für einen Dienst deckt nur die Funde dieses Dienstes ab. Eine Regel ohne Dienst deckt die aller Dienste ab.
 - **Ein Muster, das den Typ findet.** Ein integrierter **Mustertyp** findet seinen eigenen Datentyp: **E-Mail-Adresse** findet E-Mail-Adressen, **Kreditkartennummer** Kartennummern, **SSN (Sozialversicherungsnummer)** US-Sozialversicherungsnummern, **Telefonnummer** Telefonnummern und **IP-Adresse** IP-Adressen. **Sensible Attributschlüssel** deckt jeden Wert unter einem Schlüssel ab, der sensibel aussieht, egal welcher Wert es ist.
-- **Ihre eigenen benutzerdefinierten Muster zählen nie.** Ein **Benutzerdefinierter Regex** deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
+- **Eine Regel, die an den Einträgen des Funds nachgewiesen ist.** Eine Regel, die OneUptime erstellt und an den Einträgen nachgewiesen hat, in denen ein Fund gesehen wurde, deckt diesen Fund ab, egal welches Muster sie hat, solange sie die Regel ist, die nachgewiesen wurde: Ändern Sie ihr Muster, ihre Attribute, ihre Aktion, ihre Felder oder ihren Dienst, und sie deckt ihn nicht mehr ab.
+- **Eine Regel für benannte Attribute** deckt einen Fund in einem Attribut ab, das sie nennt, oder in einem darunter verschachtelten.
+- **Ihre eigenen benutzerdefinierten Muster zählen sonst nie.** Ein **Benutzerdefinierter Regex**, den Sie geschrieben haben, deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
 - **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund.
 - **Der Name einer Metrik.** Eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds oder das ganze Projekt deckt ihn ab, wenn sie genau den Filter hat, den **Diese Metrik verwerfen** erstellt, oder gar keinen Filter, womit sie keine Metrik des Dienstes speichert. Eine solche Regel ohne Filter deckt jeden Fund in diesen Metriken ab.
 

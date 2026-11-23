@@ -90,6 +90,13 @@ export interface DataSecurityAiPlannedChange {
    * box, with no AI rule (#10366's conditions for a secret's scrub rule).
    */
   meetsDefaultConditions: boolean;
+  /*
+   * Whether it may run without asking at all, whatever a rule says: false
+   * for a change that cannot prove it is safe - a scrub rule not proven on
+   * its records, one that changes other values there, or one that hides
+   * what something reads (#10366). Left out, it may, as the rules decide.
+   */
+  canRunWithoutAsking?: boolean | undefined;
   // Whether the deciding rule names this very action (a change of access).
   isNamedByRule?: boolean | undefined;
 }
@@ -119,6 +126,11 @@ export interface DataSecurityAiChangeMade {
   result: JSONObject;
   // What the timelines say was done, in Markdown.
   summaryMarkdown: string;
+  /*
+   * What the issue's timeline entry shows when it is opened: how the
+   * change was proven, and anything else a person acts on (#10366).
+   */
+  detailsMarkdown?: string | undefined;
 }
 
 export interface DataSecurityAiChangeUndone {
@@ -183,6 +195,17 @@ export interface DataSecurityAiAction {
    * several stores' owners rest on (#10374). Never fails the proposal.
    */
   onProposed?(data: { projectId: ObjectID }): Promise<void>;
+
+  /*
+   * After OneUptime AI made a change of this kind without asking: who is
+   * told, beyond the timelines - the store's and the service's owners of a
+   * scrub rule made on its own (#10366). Never fails the change.
+   */
+  onMadeWithoutAsking?(data: {
+    projectId: ObjectID;
+    proposal: DataSecurityAiProposal;
+    made: DataSecurityAiChangeMade;
+  }): Promise<void>;
 
   // Take it back, as the actor. Throws when it cannot.
   undo(data: {

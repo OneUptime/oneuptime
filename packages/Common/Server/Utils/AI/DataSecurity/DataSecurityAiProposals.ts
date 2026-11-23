@@ -34,6 +34,7 @@ import {
   DataSecurityAiWorkDecision,
   getDataSecurityAiApprovalsNeeded,
   getDataSecurityAiPlanFingerprint,
+  getDataSecurityAiPlanLane,
   isDataSecurityAiIssueGroupProposalKind,
   isDataSecurityAiProposalUndoable,
   isDataSecurityAiProposalWaiting,
@@ -258,7 +259,7 @@ export default class DataSecurityAiProposals {
     proposal: Pick<
       DataSecurityAiProposal,
       "dataSecurityIssueId" | "dataStoreId"
-    >;
+    > & { id?: ObjectID | null | undefined };
     issueEvent: DataSecurityIssueFeedEventType;
     storeEvent: DataStoreFeedEventType;
     markdown: string;
@@ -275,6 +276,14 @@ export default class DataSecurityAiProposals {
         feedInfoInMarkdown: data.markdown,
         moreInformationInMarkdown: data.moreInformationInMarkdown,
         userId: data.userId,
+        // The entry's Undo, Approve or Dismiss reads the proposal by it (#10366).
+        ...(data.proposal.id
+          ? {
+              dataSecurityAiProposalId: new ObjectID(
+                data.proposal.id.toString(),
+              ),
+            }
+          : {}),
       });
     }
 
@@ -431,10 +440,18 @@ export default class DataSecurityAiProposals {
 
     /*
      * A newer plan of the same kind replaces the one still waiting - but
-     * every owner rule is a thing of its own, and replaces none.
+     * every owner rule is a thing of its own, and replaces none. A kind
+     * that plans changes in lanes - Scrub It rules that may run on their
+     * own beside those that must wait (#10366) - replaces only the waiting
+     * one of the same lane: the planKey's text before its first ":".
      */
+    const lane: string = getDataSecurityAiPlanLane(data.change.planKey);
     const replaced: Array<DataSecurityAiProposal> =
-      kind === DataSecurityAiProposalKind.CreateOwnerRule ? [] : earlier;
+      kind === DataSecurityAiProposalKind.CreateOwnerRule
+        ? []
+        : earlier.filter((proposal: DataSecurityAiProposal): boolean => {
+            return getDataSecurityAiPlanLane(proposal.planKey || "") === lane;
+          });
 
     for (const waiting of replaced) {
       if (waiting.id && isDataSecurityAiProposalWaiting(waiting.status)) {
@@ -605,11 +622,28 @@ export default class DataSecurityAiProposals {
         markdown: FeedMarkdown.join(
           [
             mdText`OneUptime AI made this change without asking, as the project's AI rules allow: **${data.proposal.title || ""}**.`,
-            mdText`${FeedMarkdown.asMarkdown(made.summaryMarkdown)} Undo it from Data Security > AI.`,
+            mdText`${FeedMarkdown.asMarkdown(made.summaryMarkdown)} Undo it here, or from Data Security > AI.`,
           ],
           " ",
         ).toString(),
+        // How it was proven, under the entry (#10366).
+        moreInformationInMarkdown: made.detailsMarkdown || undefined,
       });
+
+      // Who is told beyond the timelines: never a reason the change fails.
+      if (data.action.onMadeWithoutAsking) {
+        try {
+          await data.action.onMadeWithoutAsking({
+            projectId: data.projectId,
+            proposal: data.proposal,
+            made,
+          });
+        } catch (error) {
+          logger.error(
+            `DataSecurity AI: could not tell anyone of change ${proposalId.toString()} of project ${data.projectId.toString()}: ${error}`,
+          );
+        }
+      }
 
       return data.entry(DataSecurityAiDecisionReason.AppliedWithoutAsking, {
         proposalId: proposalId.toString(),
@@ -899,6 +933,8 @@ export default class DataSecurityAiProposals {
         ],
         " ",
       ).toString(),
+      // How it was proven, and what a person still must do, under the entry (#10366).
+      moreInformationInMarkdown: made.detailsMarkdown || undefined,
       userId,
     });
 
