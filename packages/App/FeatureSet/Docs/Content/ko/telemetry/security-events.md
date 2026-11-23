@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 형식은 `?format=`, `x-oneuptime-security-event-format` 헤더, 또는 최상위 `"format"` 필드로 지정합니다. 지정하지 않으면 이벤트마다 형식을 따로 판단하므로, 웹훅 하나에 탐지와 원시 이벤트를 섞어 보낼 수 있습니다.
 
 - 본문은 이벤트 하나, 이벤트 배열, 또는 `{ "events": [...] }` 일 수 있습니다.
+- gzip으로 압축한 JSON 배치를 보내려면 `Content-Encoding: gzip` 및 `Content-Type: application/json` 헤더를 설정하세요.
 - `x-oneuptime-service-name` 헤더는 이벤트가 속한 텔레메트리 서비스를 지정합니다. 없으면 첫 이벤트의 제품이나 공급업체 이름을 딴 서비스, 또는 `Security Events` 에 속합니다.
 - 매핑되지 않았다고 버려지는 것은 없습니다. 소스의 모든 필드가 이벤트의 속성에 들어갑니다.
 

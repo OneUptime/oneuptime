@@ -133,6 +133,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 Ange formatet med `?format=`, med huvudet `x-oneuptime-security-event-format` eller med ett fält `"format"` på översta nivån. Utelämnar du det avgörs varje händelses format för sig, så en enda webhook kan blanda detektioner med råa händelser.
 
 - Kroppen kan vara en händelse, en array av händelser eller `{ "events": [...] }`.
+- För att skicka en gzip-komprimerad JSON-batch, ange `Content-Encoding: gzip` och `Content-Type: application/json`.
 - Huvudet `x-oneuptime-service-name` anger telemetritjänsten som händelserna hör till. Utan det hör de till tjänsten som är uppkallad efter den första händelsens produkt eller leverantör, eller till `Security Events`.
 - Ingenting kastas för att det inte gick att mappa: varje fält från källan hamnar i händelsens attribut.
 

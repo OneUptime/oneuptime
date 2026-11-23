@@ -133,6 +133,7 @@ Open **Products → Security Events → Events**. The events show within a few s
 Name the format with `?format=`, with the `x-oneuptime-security-event-format` header, or with a top-level `"format"` field. Leave it out, and each event's format is worked out on its own, so one webhook can mix detections with raw events.
 
 - The body can be one event, an array of events, or `{ "events": [...] }`.
+- To send a gzip-compressed JSON batch, set `Content-Encoding: gzip` and `Content-Type: application/json`.
 - The `x-oneuptime-service-name` header names the telemetry service the events belong to. Without it, they belong to the service named after the first event's product or vendor, or to `Security Events`.
 - Nothing is dropped because it didn't map: every field of the source arrives in the event's attributes.
 

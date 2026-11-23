@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 可以用 `?format=`、`x-oneuptime-security-event-format` 標頭，或最上層的 `"format"` 欄位指定格式。不指定時，每個事件的格式會個別判斷，所以一個 Webhook 可以混合傳送偵測和原始事件。
 
 - 內文可以是一個事件、一個事件陣列，或 `{ "events": [...] }`。
+- 若要傳送以 gzip 壓縮的 JSON 批次，請設定 `Content-Encoding: gzip` 和 `Content-Type: application/json` 要求標頭。
 - `x-oneuptime-service-name` 標頭指定事件所屬的遙測服務。沒有它時，事件屬於以第一個事件的產品或供應商命名的服務，或屬於 `Security Events`。
 - 不會因為無法對應而捨棄任何內容：來源的每個欄位都會進入事件的屬性。
 
