@@ -62384,8 +62384,8 @@
   "other than {{share}}": "other than {{share}}",
   "p{{percentile}} of {{measure}}": "p{{percentile}} of {{measure}}",
   "the p{{percentile}}": "the p{{percentile}}",
-  "whether {{condition}} changed {{times}} in the past {{window}}": "whether {{condition}} changed {{times}} in the past {{window}}",
   "{{check}} changed {{times}} in the past {{window}}": "{{check}} changed {{times}} in the past {{window}}",
   "{{condition}} on {{checks}} in the past {{window}}": "{{condition}} on {{checks}} in the past {{window}}",
-  "{{condition}} on {{share}} of the checks in the past {{window}}": "{{condition}} on {{share}} of the checks in the past {{window}}"
+  "{{condition}} on {{share}} of the checks in the past {{window}}": "{{condition}} on {{share}} of the checks in the past {{window}}",
+  "the checks changed {{times}} between matching and not in the past {{window}}: {{condition}}": "the checks changed {{times}} between matching and not in the past {{window}}: {{condition}}"
 }

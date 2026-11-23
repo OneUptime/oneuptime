@@ -171,9 +171,12 @@ export const CRITERIA_ON_SHARE_OF_CHECKS_SENTENCE: string = translationKey(
 export const CRITERIA_CHECK_CHANGED_SENTENCE: string = translationKey(
   "{{check}} changed {{times}} in the past {{window}}",
 );
-// Any other condition: whether it holds changed.
+/*
+ * Any other condition: how often the checks went between matching it and
+ * not, the condition last, so it reads whole after "Check if".
+ */
 export const CRITERIA_CONDITION_CHANGED_SENTENCE: string = translationKey(
-  "whether {{condition}} changed {{times}} in the past {{window}}",
+  "the checks changed {{times}} between matching and not in the past {{window}}: {{condition}}",
 );
 
 // How many checks a count takes, by how it is compared.
