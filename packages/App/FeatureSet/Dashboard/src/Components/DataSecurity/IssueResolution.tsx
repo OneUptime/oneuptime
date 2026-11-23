@@ -1,6 +1,5 @@
 import DataSecurityApi from "./DataSecurityApi";
 import {
-  A_PULL_REQUEST,
   CAME_BACK_STAYS_OPEN,
   CONTAINED_BODY,
   CONTAINED_TITLE,
@@ -129,16 +128,15 @@ function timeOf(at: string | undefined, fallback: Date | undefined): string {
     : "";
 }
 
-// "#482", opening the pull request where it lives; "a pull request" with no number.
+// "#482", opening the pull request where it lives.
 const PullRequestSlot: FunctionComponent<{
   fix: DataSecurityIssueResolutionFix | undefined;
 }> = (props: {
   fix: DataSecurityIssueResolutionFix | undefined;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
-
+  // A line names a pull request only by its number (getFixedLineTemplate).
   if (!props.fix?.number) {
-    return <>{translator.translateText(A_PULL_REQUEST)}</>;
+    return <></>;
   }
 
   const label: ReactElement = <span dir="ltr">#{props.fix.number}</span>;

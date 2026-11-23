@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import i18next from "i18next";
+import type { Mock } from "jest-mock";
 import { initReactI18next } from "react-i18next";
 import {
   cleanup,
@@ -27,13 +28,19 @@ import IssueResolution, {
   ISSUE_RESOLUTION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/IssueResolution";
 import {
+  CAME_BACK_AFTER_FIX,
+  CAME_BACK_AFTER_PULL_REQUEST,
   CAME_BACK_IN_VERSION,
   CAME_BACK_IN_VERSION_AFTER_FIX,
   CHECK_PASSED_AT,
   FIXED_IN_CODE,
   FIXED_IN_CODE_IN_COMMIT,
+  FIXED_IN_CODE_IN_COMMIT_NO_NUMBER,
   FIXED_IN_CODE_IN_VERSION,
+  FIXED_IN_CODE_IN_VERSION_NO_NUMBER,
+  FIXED_IN_CODE_NO_NUMBER,
   FIXED_IN_INFRASTRUCTURE_CODE,
+  FIXED_IN_INFRASTRUCTURE_CODE_NO_NUMBER,
   FIXED_FROM_HERE,
   FIXED_FROM_HERE_WITH,
   RESOLUTION_LABELS,
@@ -209,25 +216,25 @@ describe("the words of a resolution", () => {
     expect(
       getFixedLineTemplate({
         resolution: DataSecurityIssueResolution.FixedInCode,
-        fix: { pullRequestId: "x", version: "2.4.1" },
+        fix: { pullRequestId: "x", number: 482, version: "2.4.1" },
       }),
     ).toBe(FIXED_IN_CODE_IN_VERSION);
     expect(
       getFixedLineTemplate({
         resolution: DataSecurityIssueResolution.FixedInCode,
-        fix: { pullRequestId: "x", commitSha: "1a2b3c4" },
+        fix: { pullRequestId: "x", number: 482, commitSha: "1a2b3c4" },
       }),
     ).toBe(FIXED_IN_CODE_IN_COMMIT);
     expect(
       getFixedLineTemplate({
         resolution: DataSecurityIssueResolution.FixedInCode,
-        fix: { pullRequestId: "x" },
+        fix: { pullRequestId: "x", number: 482 },
       }),
     ).toBe(FIXED_IN_CODE);
     expect(
       getFixedLineTemplate({
         resolution: DataSecurityIssueResolution.FixedInInfrastructureCode,
-        fix: undefined,
+        fix: { pullRequestId: "x", number: 482 },
       }),
     ).toBe(FIXED_IN_INFRASTRUCTURE_CODE);
     expect(
@@ -256,7 +263,31 @@ describe("the words of a resolution", () => {
     ).toBe(CHECK_PASSED_AT);
   });
 
-  test("a leak that came back names the version, and the fix's when known", () => {
+  test("a pull request recorded without its number is never named - the line says what was fixed", () => {
+    expect(
+      getFixedLineTemplate({
+        resolution: DataSecurityIssueResolution.FixedInCode,
+        fix: { pullRequestId: "x", version: "2.4.1" },
+      }),
+    ).toBe(FIXED_IN_CODE_IN_VERSION_NO_NUMBER);
+    expect(
+      getFixedLineTemplate({
+        resolution: DataSecurityIssueResolution.FixedInCode,
+        fix: { pullRequestId: "x", commitSha: "1a2b3c4" },
+      }),
+    ).toBe(FIXED_IN_CODE_IN_COMMIT_NO_NUMBER);
+    expect(
+      getFixedLineTemplate({
+        resolution: DataSecurityIssueResolution.FixedInCode,
+        fix: { pullRequestId: "x" },
+      }),
+    ).toBe(FIXED_IN_CODE_NO_NUMBER);
+    expect(
+      getFixedLineTemplate({
+        resolution: DataSecurityIssueResolution.FixedInInfrastructureCode,
+        fix: undefined,
+      }),
+    ).toBe(FIXED_IN_INFRASTRUCTURE_CODE_NO_NUMBER);
     expect(
       getCameBackTemplate({
         regression: {
@@ -265,7 +296,32 @@ describe("the words of a resolution", () => {
           fix: { pullRequestId: "x", version: "2.4.1" },
         },
       }),
+    ).toBe(CAME_BACK_IN_VERSION_AFTER_FIX);
+    expect(
+      getCameBackTemplate({
+        regression: { at: VERIFIED_AT, fix: { pullRequestId: "x" } },
+      }),
+    ).toBe(CAME_BACK_AFTER_FIX);
+  });
+
+  test("a leak that came back names the version, and the fix's when known", () => {
+    expect(
+      getCameBackTemplate({
+        regression: {
+          at: VERIFIED_AT,
+          version: "2.5.0",
+          fix: { pullRequestId: "x", number: 482, version: "2.4.1" },
+        },
+      }),
     ).toBe(CAME_BACK_IN_VERSION);
+    expect(
+      getCameBackTemplate({
+        regression: {
+          at: VERIFIED_AT,
+          fix: { pullRequestId: "x", number: 482 },
+        },
+      }),
+    ).toBe(CAME_BACK_AFTER_PULL_REQUEST);
     expect(
       getCameBackTemplate({
         regression: { at: VERIFIED_AT, version: "2.5.0" },
@@ -340,7 +396,7 @@ describe("the issue's page", () => {
         },
       ]),
     );
-    const fixTheCode: jest.Mock = jest.fn();
+    const fixTheCode: Mock<() => void> = jest.fn<() => void>();
 
     render(
       <IssueResolution
@@ -405,9 +461,9 @@ describe("the issue's page", () => {
         },
       ]),
     );
-    const deleted: jest.SpiedFunction<typeof ModelAPI.deleteItem> = jest
+    const deleted: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "deleteItem")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(undefined as never);
 
     render(
       <IssueResolution
@@ -446,7 +502,9 @@ describe("the issue's page", () => {
     await waitFor(() => {
       expect(deleted).toHaveBeenCalledTimes(1);
     });
-    expect(deleted.mock.calls[0]![0].id.toString()).toBe(RULE_ID);
+    expect((deleted.mock.calls[0]![0] as { id: ObjectID }).id.toString()).toBe(
+      RULE_ID,
+    );
   });
 
   test("a reader who may not delete scrub rules sees Remove Rule locked, saying why", async () => {

@@ -129,8 +129,22 @@ export const FIXED_IN_INFRASTRUCTURE_CODE: string = translationKey(
   "Fixed in pull request {{pullRequest}}, applied, verified {{time}}.",
 );
 
-// A pull request with no number: what the slot says instead.
-export const A_PULL_REQUEST: string = translationKey("a pull request");
+/*
+ * The same lines for a pull request recorded without its number: they say
+ * what was fixed instead of naming it.
+ */
+export const FIXED_IN_CODE_IN_VERSION_NO_NUMBER: string = translationKey(
+  "Fixed in code, deployed in version {{version}}, verified {{time}}.",
+);
+export const FIXED_IN_CODE_IN_COMMIT_NO_NUMBER: string = translationKey(
+  "Fixed in code, deployed in commit {{commit}}, verified {{time}}.",
+);
+export const FIXED_IN_CODE_NO_NUMBER: string = translationKey(
+  "Fixed in code, deployed, verified {{time}}.",
+);
+export const FIXED_IN_INFRASTRUCTURE_CODE_NO_NUMBER: string = translationKey(
+  "Fixed in infrastructure code, applied, verified {{time}}.",
+);
 
 export const FIXED_FROM_HERE_WITH: string = translationKey(
   "Fixed from here with {{action}}, {{time}}. Its check has passed since.",
@@ -166,6 +180,9 @@ export const CAME_BACK_IN_VERSION: string = translationKey(
 );
 export const CAME_BACK_AFTER_PULL_REQUEST: string = translationKey(
   "The leak came back after pull request {{pullRequest}} fixed it.",
+);
+export const CAME_BACK_AFTER_FIX: string = translationKey(
+  "The leak came back after its fix was verified.",
 );
 export const CAME_BACK_IN_VERSION_AFTER_FIX: string = translationKey(
   "The leak came back in version {{version}}, after its fix was verified.",
@@ -233,10 +250,15 @@ export function getFixedLineTemplate(data: {
   resolution: DataSecurityIssueResolution | string | null | undefined;
   fix: DataSecurityIssueResolutionFix | undefined;
 }): string | null {
+  // A pull request is named by its number; one recorded without it is not.
+  const isNumbered: boolean = Boolean(data.fix?.number);
+
   if (
     data.resolution === DataSecurityIssueResolution.FixedInInfrastructureCode
   ) {
-    return FIXED_IN_INFRASTRUCTURE_CODE;
+    return isNumbered
+      ? FIXED_IN_INFRASTRUCTURE_CODE
+      : FIXED_IN_INFRASTRUCTURE_CODE_NO_NUMBER;
   }
 
   if (data.resolution !== DataSecurityIssueResolution.FixedInCode) {
@@ -244,10 +266,18 @@ export function getFixedLineTemplate(data: {
   }
 
   if (data.fix?.version) {
-    return FIXED_IN_CODE_IN_VERSION;
+    return isNumbered
+      ? FIXED_IN_CODE_IN_VERSION
+      : FIXED_IN_CODE_IN_VERSION_NO_NUMBER;
   }
 
-  return data.fix?.commitSha ? FIXED_IN_CODE_IN_COMMIT : FIXED_IN_CODE;
+  if (data.fix?.commitSha) {
+    return isNumbered
+      ? FIXED_IN_CODE_IN_COMMIT
+      : FIXED_IN_CODE_IN_COMMIT_NO_NUMBER;
+  }
+
+  return isNumbered ? FIXED_IN_CODE : FIXED_IN_CODE_NO_NUMBER;
 }
 
 // The template of a resolution with no pull request, by its kind.
@@ -299,7 +329,10 @@ export function getCameBackTemplate(
   const regression: DataSecurityIssueResolutionDetails["regression"] =
     details.regression;
 
-  if (regression?.version && regression.fix?.version) {
+  // The fix's pull request is named only by its number.
+  const isNumbered: boolean = Boolean(regression?.fix?.number);
+
+  if (regression?.version && regression.fix?.version && isNumbered) {
     return CAME_BACK_IN_VERSION;
   }
 
@@ -307,5 +340,5 @@ export function getCameBackTemplate(
     return CAME_BACK_IN_VERSION_AFTER_FIX;
   }
 
-  return CAME_BACK_AFTER_PULL_REQUEST;
+  return isNumbered ? CAME_BACK_AFTER_PULL_REQUEST : CAME_BACK_AFTER_FIX;
 }

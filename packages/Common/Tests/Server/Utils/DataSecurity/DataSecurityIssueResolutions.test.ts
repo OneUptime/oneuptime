@@ -403,7 +403,11 @@ describe("a leak that came back after its verified fix", () => {
       checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
       status: DataSecurityIssueStatus.Resolved,
       resolution: DataSecurityIssueResolution.FixedInCode,
-      resolutionDetails: { at: NOW.toISOString(), fix: FIX, ...regression },
+      resolutionDetails: {
+        at: NOW.toISOString(),
+        fix: FIX as unknown as JSONObject,
+        ...regression,
+      },
     });
 
     const output: ReconcileStoreOutput = await reconcile({
@@ -483,7 +487,10 @@ describe("a leak that came back after its verified fix", () => {
           checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
           status: DataSecurityIssueStatus.Resolved,
           resolution: DataSecurityIssueResolution.FixedInCode,
-          resolutionDetails: { fix: FIX, ...regression },
+          resolutionDetails: {
+            fix: FIX as unknown as JSONObject,
+            ...regression,
+          },
         }),
       ],
     });
