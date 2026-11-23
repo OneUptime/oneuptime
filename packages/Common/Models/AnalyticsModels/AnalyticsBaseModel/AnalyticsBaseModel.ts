@@ -224,13 +224,32 @@ export default class AnalyticsBaseModel extends CommonModel {
       ? withProductLevelsOnLists(data.tableName, data.accessControl)
       : data.accessControl;
 
+    /*
+     * Columns that share one access control object share one with the
+     * levels too, as a database model's columns do (ColumnAccessControl
+     * keeps one per object): a model shares the object to keep columns'
+     * lists moving together, such as a session's person columns, apart
+     * from the rest of its row (RumSessionReplayColumns).
+     */
+    const listsWithLevels: Map<ColumnAccessControl, ColumnAccessControl> =
+      new Map<ColumnAccessControl, ColumnAccessControl>();
+
     for (const column of columns) {
       if (column.accessControl) {
-        column.accessControl = withProductLevelsOnLists(
-          data.tableName,
-          column.accessControl,
-          data.accessControl || {},
-        );
+        const declared: ColumnAccessControl = column.accessControl;
+        let withLevels: ColumnAccessControl | undefined =
+          listsWithLevels.get(declared);
+
+        if (!withLevels) {
+          withLevels = withProductLevelsOnLists(
+            data.tableName,
+            declared,
+            data.accessControl || {},
+          );
+          listsWithLevels.set(declared, withLevels);
+        }
+
+        column.accessControl = withLevels;
       }
     }
     this.enableWorkflowOn = data.enableWorkflowOn;
