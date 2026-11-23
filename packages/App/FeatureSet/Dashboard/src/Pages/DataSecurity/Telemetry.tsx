@@ -13,7 +13,9 @@ import {
 import { getStoreViewRoute } from "../../Components/DataSecurity/IssueListRoute";
 import IssueMoment from "../../Components/DataSecurity/IssueMoment";
 import {
+  FIXED_IN_CODE_TOOLTIP,
   getTelemetryStoreOwnerName,
+  SCRUBBED_TOOLTIP,
   TelemetryStoreOfFindings,
 } from "../../Components/DataSecurity/IssueTelemetryFindings";
 import DropMetricModal from "../../Components/DataSecurity/DropMetricModal";
@@ -41,7 +43,14 @@ import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Gray500, Green500 } from "Common/Types/BrandColors";
+import { Gray500, Green500, Yellow500 } from "Common/Types/BrandColors";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssueResolution from "Common/Types/DataSecurity/DataSecurityIssueResolution";
+import { getTelemetryCheckIdOfDataType } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import Navigation from "Common/UI/Utils/Navigation";
+import { getDataSecurityIssueRoute } from "../../Components/DataSecurity/StoreIssuesTable";
+import { RESOLUTION_LABELS } from "../../Components/DataSecurity/IssueResolutionCopy";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   DataSecurityDropMetricResult,
@@ -122,6 +131,8 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 const SHOW_RECORDS: string = translationKey("Show Records");
 
 const SCRUBBED: string = translationKey("Scrubbed");
+const FIXED_IN_CODE: string =
+  RESOLUTION_LABELS[DataSecurityIssueResolution.FixedInCode];
 
 // How many values matched, under where they were found.
 const MATCHES: PluralTemplate = {
@@ -135,7 +146,16 @@ const PAGE_DESCRIPTION: string = translationKey(
   "Sensitive data found in the logs, traces, metrics, exceptions, replays and AI conversations your services send. Scrub It masks it at ingest.",
 );
 
-type ScrubView = "notScrubbed" | "all";
+/*
+ * Which findings the list shows (#10368): every one the code still writes
+ * - not scrubbed yet, or only contained at ingest, since a rule that hides
+ * the data leaves the code writing it - what is left to scrub, or all.
+ */
+type ScrubView = "notFixed" | "notScrubbed" | "all";
+
+// What the code still writes, a rule hiding it or not.
+const NOT_FIXED_ONLY: string = translationKey("Not fixed in code");
+const FIX_THE_CODE: string = translationKey("Fix the Code");
 
 /*
  * One telemetry store: a service's logs, traces, metrics, exceptions,
@@ -154,6 +174,45 @@ interface ScrubNotice {
   isDrop?: boolean | undefined;
 }
 
+/*
+ * The telemetry stores' issues, by "store|check": the issue a finding's
+ * Fix the Code opens. None when they cannot be read - Fix the Code is then
+ * not offered, and the list still is.
+ */
+async function readIssueIds(
+  storeIds: Array<string>,
+): Promise<Map<string, string>> {
+  const ids: Map<string, string> = new Map();
+
+  if (storeIds.length === 0) {
+    return ids;
+  }
+
+  try {
+    const result: ListResult<DataSecurityIssue> =
+      await ModelAPI.getList<DataSecurityIssue>({
+        modelType: DataSecurityIssue,
+        query: { dataStoreId: new Includes(storeIds) },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { _id: true, dataStoreId: true, checkId: true },
+        sort: {},
+      });
+
+    for (const issue of result.data) {
+      const id: string = issue._id?.toString() || "";
+
+      if (id && issue.dataStoreId && issue.checkId) {
+        ids.set(`${issue.dataStoreId.toString()}|${issue.checkId}`, id);
+      }
+    }
+  } catch {
+    // A reader who may not read issues sees the findings, with no way to their issue.
+  }
+
+  return ids;
+}
+
 const DataSecurityTelemetryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -166,7 +225,9 @@ const DataSecurityTelemetryPage: FunctionComponent<
   );
   const [storesError, setStoresError] = useState<string>("");
   const [storesReadCount, setStoresReadCount] = useState<number>(0);
-  const [scrubView, setScrubView] = useState<ScrubView>("notScrubbed");
+  const [scrubView, setScrubView] = useState<ScrubView>("notFixed");
+  // Each telemetry store's issues, by store and check: where Fix the Code leads.
+  const [issueIds, setIssueIds] = useState<Map<string, string>>(new Map());
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
   // The finding whose records are open beside the list.
@@ -222,6 +283,13 @@ const DataSecurityTelemetryPage: FunctionComponent<
         }
 
         setStores(map);
+
+        return readIssueIds([...map.keys()]);
+      })
+      .then((ids: Map<string, string> | undefined) => {
+        if (isCurrent && ids) {
+          setIssueIds(ids);
+        }
       })
       .catch((err: unknown) => {
         if (isCurrent) {
@@ -299,6 +367,19 @@ const DataSecurityTelemetryPage: FunctionComponent<
     setRefreshCount((count: number): number => {
       return count + 1;
     });
+  };
+
+  // A finding's issue: its store's, of the check its data type fails.
+  const issueIdOf: (finding: DataStoreFinding) => string = (
+    finding: DataStoreFinding,
+  ): string => {
+    return (
+      issueIds.get(
+        `${finding.dataStoreId?.toString() || ""}|${getTelemetryCheckIdOfDataType(
+          finding.dataTypeId || "",
+        )}`,
+      ) || ""
+    );
   };
 
   const actionButtons: Array<ActionButtonSchema<DataStoreFinding>> = [];
@@ -389,12 +470,38 @@ const DataSecurityTelemetryPage: FunctionComponent<
     });
   }
 
+  /*
+   * A finding a rule hides at ingest is contained, not fixed (#10368): the
+   * code still writes it. Fix the Code opens its issue, which asks
+   * OneUptime AI for the fix.
+   */
+  actionButtons.push({
+    title: FIX_THE_CODE,
+    icon: IconProp.Bolt,
+    buttonStyleType: ButtonStyleType.OUTLINE,
+    isVisible: (finding: DataStoreFinding): boolean => {
+      return (
+        Boolean(finding.isScrubbed) &&
+        !finding.fixedAt &&
+        Boolean(issueIdOf(finding))
+      );
+    },
+    onClick: (
+      finding: DataStoreFinding,
+      onCompleteAction: VoidFunction,
+    ): void => {
+      onCompleteAction();
+      Navigation.navigate(getDataSecurityIssueRoute(issueIdOf(finding)));
+    },
+  });
+
   const storeIds: Array<string> = stores ? [...stores.keys()] : [];
 
   const query: Query<DataStoreFinding> = {
     ...(projectId ? { projectId: projectId } : {}),
     dataStoreId: new Includes(storeIds),
     ...(scrubView === "notScrubbed" ? { isScrubbed: false } : {}),
+    ...(scrubView === "notFixed" ? { fixedAt: new IsNull() } : {}),
   };
 
   const filterBar: ReactElement = (
@@ -403,9 +510,12 @@ const DataSecurityTelemetryPage: FunctionComponent<
         ariaLabel="Scrubbed"
         selectedValue={scrubView}
         onSelect={(value: string) => {
-          setScrubView(value === "all" ? "all" : "notScrubbed");
+          setScrubView(
+            value === "all" || value === "notScrubbed" ? value : "notFixed",
+          );
         }}
         options={[
+          { label: NOT_FIXED_ONLY, value: "notFixed" },
           { label: "Not scrubbed only", value: "notScrubbed" },
           { label: "All findings", value: "all" },
         ]}
@@ -555,7 +665,9 @@ const DataSecurityTelemetryPage: FunctionComponent<
         noItemsMessage={
           scrubView === "notScrubbed"
             ? "Nothing unmasked. Every finding in your telemetry is scrubbed at ingest."
-            : "No sensitive data in your telemetry."
+            : scrubView === "notFixed"
+              ? "Nothing left for the code to stop writing. Every finding is fixed in code, or no longer seen."
+              : "No sensitive data in your telemetry."
         }
         emptyState={{ isAllClear: true }}
         showRefreshButton={true}
@@ -564,6 +676,8 @@ const DataSecurityTelemetryPage: FunctionComponent<
           dataStoreId: true,
           dataTypeName: true,
           isScrubbed: true,
+          // Stopped by a verified code fix (#10368).
+          fixedAt: true,
           locationKind: true,
           sensitivity: true,
           // What a finding's records panel says of it.
@@ -763,7 +877,7 @@ const DataSecurityTelemetryPage: FunctionComponent<
           },
           {
             field: { isScrubbed: true },
-            title: "Scrubbed",
+            title: "Status",
             type: FieldType.Element,
             disableSort: true,
             /*
@@ -774,6 +888,10 @@ const DataSecurityTelemetryPage: FunctionComponent<
             hideBelowLargeScreen: true,
             foldInto: "dataTypeId",
             getExportValue: (finding: DataStoreFinding): string => {
+              if (finding.fixedAt) {
+                return FIXED_IN_CODE;
+              }
+
               if (!finding.isScrubbed) {
                 return NOT_SCRUBBED;
               }
@@ -781,19 +899,38 @@ const DataSecurityTelemetryPage: FunctionComponent<
               return isDroppedFinding(finding) ? DROPPED : SCRUBBED;
             },
             getElement: (finding: DataStoreFinding): ReactElement => {
+              // A verified code fix stopped it (#10368).
+              if (finding.fixedAt) {
+                return (
+                  <Pill
+                    text={FIXED_IN_CODE}
+                    color={Green500}
+                    tooltip={FIXED_IN_CODE_TOOLTIP}
+                  />
+                );
+              }
+
               if (!finding.isScrubbed) {
                 return <Pill text={NOT_SCRUBBED} color={Gray500} />;
               }
 
-              // A metric's name is not scrubbed: a Drop rule keeps its metrics out.
+              /*
+               * Contained at ingest, not fixed: amber, the code still
+               * writes it. A metric's name is not scrubbed: a Drop rule
+               * keeps its metrics out.
+               */
               return isDroppedFinding(finding) ? (
                 <Pill
                   text={DROPPED}
-                  color={Green500}
+                  color={Yellow500}
                   tooltip={DROPPED_TOOLTIP}
                 />
               ) : (
-                <Pill text={SCRUBBED} color={Green500} />
+                <Pill
+                  text={SCRUBBED}
+                  color={Yellow500}
+                  tooltip={SCRUBBED_TOOLTIP}
+                />
               );
             },
           },

@@ -30,6 +30,7 @@ import SecurityEventService, {
   SECURITY_CONNECTION_READ_TIME_LIMIT,
 } from "../../../../Services/SecurityEventService";
 import { sentence } from "../StepCheck";
+import { getAddressRequestSpellings } from "./AddressRequests";
 
 /*
  * WHAT CLOUDFLARE STOPPED OF AN ADDRESS SINCE ITS BLOCK (#10343): evidence a
@@ -75,7 +76,10 @@ export function getCloudflareVendorName(): string {
 /*
  * The SQL that counts them: the address's events from Cloudflare since the
  * block, stopped at the edge by OneUptime's rule for the action (or by the
- * access rule the block is), each the requests of its sample interval.
+ * access rule the block is), each the requests of its sample interval. The
+ * address in every spelling an event may hold it in, as the app's own
+ * requests are read (getAddressRequestSpellings, #10744): Cloudflare writes
+ * an IPv6 client compressed, and a case keeps it written out.
  */
 export function buildCloudflareStoppedStatement(data: {
   projectId: ObjectID;
@@ -101,9 +105,9 @@ export function buildCloudflareStoppedStatement(data: {
   }} AND time <= ${{
     type: TableColumnType.DateTime64,
     value: data.until,
-  }} AND principalIp = ${{
-    type: TableColumnType.Text,
-    value: data.address,
+  }} AND principalIp IN ${{
+    type: TableColumnType.ArrayText,
+    value: getAddressRequestSpellings(data.address),
   }} AND vendorName = ${{
     type: TableColumnType.Text,
     value: getCloudflareVendorName(),

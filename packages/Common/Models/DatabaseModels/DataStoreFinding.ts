@@ -737,4 +737,27 @@ export default class DataStoreFinding extends BaseModel {
     nullable: true,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * For telemetry: when a code fix stopped this finding, as production
+   * proved it (#10368) - the service's new version writes no more of the
+   * data. What was stored before is old data waiting for its retention,
+   * so it no longer keeps its issue open. A scan that finds it again is
+   * the leak coming back, and the issue opens again, naming the version.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Fixed At",
+    description:
+      "For telemetry: when a code fix was verified to have stopped this finding in production. It no longer counts toward its issue unless a scan finds it again.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public fixedAt?: Date = undefined;
 }

@@ -28,6 +28,7 @@ import {
   SecurityEntityType,
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { getSecurityAddressSpellings } from "../../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import {
   SecurityConnectionLookups,
   SecurityConnectionVerdict,
@@ -732,6 +733,21 @@ export default class SecurityConnectedRecords {
       }
     }
 
+    /*
+     * The texts a record may hold an address as (#10744): every spelling
+     * of it (getSecurityAddressSpellings) - an agent, a device or a cloud
+     * inventory writes an IPv6 address compressed as often as written out,
+     * and the lookups read it written out - each record found then held to
+     * the address itself.
+     */
+    const spellingsOf: (address: string) => Array<string> = (
+      address: string,
+    ): Array<string> => {
+      const spellings: Array<string> = getSecurityAddressSpellings(address);
+
+      return spellings.length > 0 ? spellings : [address];
+    };
+
     const holders: Map<
       string,
       Array<{
@@ -752,7 +768,7 @@ export default class SecurityConnectedRecords {
       const hosts: Array<Host> = await HostService.findBy({
         query: {
           projectId,
-          hostIpAddresses: QueryHelper.search(address),
+          hostIpAddresses: QueryHelper.textContainsAnyOf(spellingsOf(address)),
         },
         select: {
           _id: true,
@@ -795,7 +811,7 @@ export default class SecurityConnectedRecords {
           NetworkDeviceService.findBy({
             query: {
               projectId,
-              hostname: QueryHelper.findWithSameTextAnyOf([address]),
+              hostname: QueryHelper.findWithSameTextAnyOf(spellingsOf(address)),
             } as never,
             select,
             limit: MAX_ADDRESS_HOLDERS_READ,
@@ -805,7 +821,9 @@ export default class SecurityConnectedRecords {
           NetworkDeviceService.findBy({
             query: {
               projectId,
-              otherAddresses: QueryHelper.search(address),
+              otherAddresses: QueryHelper.textContainsAnyOf(
+                spellingsOf(address),
+              ),
             } as never,
             select,
             limit: MAX_ADDRESS_HOLDERS_READ,
@@ -840,9 +858,9 @@ export default class SecurityConnectedRecords {
 
     /*
      * The cloud resources answering on an address, as a cloud connection's
-     * inventory lists them: searched for as written and in its one
-     * spelling (an endpoint is kept as the provider wrote it), then held to
-     * the address itself.
+     * inventory lists them: searched for as written and in each of its
+     * spellings (an endpoint is kept as the provider wrote it), then held
+     * to the address itself.
      */
     const cloudResourcesHolding: (
       address: string,
@@ -854,7 +872,7 @@ export default class SecurityConnectedRecords {
           query: {
             projectId,
             cloudEndpoints: QueryHelper.textContainsAnyOf([
-              address,
+              ...spellingsOf(address),
               entityByAddress.get(address)?.value || address,
             ]),
           } as never,

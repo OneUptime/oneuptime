@@ -28,6 +28,7 @@ import EnableAuditLog from "../../Types/Database/EnableAuditLog";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 import SecuritySeverity from "../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import { DataSecurityAiVerdict } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import { JSONArray, JSONObject } from "../../Types/JSON";
@@ -772,6 +773,69 @@ export default class DataSecurityIssue extends BaseModel {
     nullable: true,
   })
   public resolvedAt?: Date = undefined;
+
+  /*
+   * How a resolved issue was resolved (#10368): fixed in code, in
+   * infrastructure code or from here, contained at ingest, its check
+   * passing, a person, its check no longer run, or its store archived -
+   * and the facts behind it: the pull request, the version that shipped it
+   * and when production proved it, the rules that contain a leak, the
+   * response action. Written by OneUptime as the issue resolves, and
+   * cleared when it opens again.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    allowedValues: Object.values(DataSecurityIssueResolution),
+    title: "Resolution",
+    description:
+      "How a resolved issue was resolved: FixedInCode, FixedInInfrastructureCode, FixedFromHere, ContainedAtIngest (a scrub rule hides the data at ingest, but the code still writes it), CheckPassed, ResolvedByPerson, NoLongerChecked or StoreArchived. Empty while the issue is not resolved.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public resolution?: DataSecurityIssueResolution = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Resolution Details",
+    description:
+      "The facts behind the resolution: the pull request that fixed it, the version that shipped it and when production verified it; the scrub rules that contain it; the response action that fixed it; or who resolved it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public resolutionDetails?: JSONObject = undefined;
+
+  /*
+   * A change made to fix the open issue, waiting for its check to pass: a
+   * response action that changed the store, so its check passing then
+   * resolves it as fixed from here. OneUptime's own bookkeeping, read
+   * through no CRUD route.
+   */
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Pending Resolution",
+    description:
+      "A change made to fix the open issue that waits for its check to pass: the response action that changed the store.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public pendingResolution?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
