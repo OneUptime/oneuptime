@@ -59,10 +59,13 @@ const HANDLES_ARCHIVED: Array<string> = [
 /*
  * Files that read every value, archived ones too, for something that is not
  * a new pick - and why.
+ *
+ * The Affected Resources picker's Labels tab no longer reads the labels
+ * itself: it searches them on the server as it is typed in, through
+ * Common's useLabelSearch (#10646), by name alone, so a label still on a
+ * monitor finds it, archived or not, as it did.
  */
 const READS_EVERY_VALUE: Record<string, string> = {
-  "Components/AffectedResources/AffectedResourcesPicker.tsx":
-    "picks monitors by the labels they have: a label still on a monitor finds it, archived or not",
   "Components/Alert/AlertRootCauseMetricChart.tsx":
     "works out an alert's times and moments from its state timeline, for the ranges and marks of its metrics",
   "Components/AlertEpisode/AlertEpisodeRootCauseMetricChart.tsx":
