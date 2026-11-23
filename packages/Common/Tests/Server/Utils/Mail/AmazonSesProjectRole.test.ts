@@ -748,9 +748,7 @@ describe("what the project is told", () => {
     expect(asked.length).toBe(fetchedBefore + 1);
     expect(
       sts.assumeRoles[sts.assumeRoles.length - 1]!.authorization,
-    ).toContain(
-      `Credential=ASIAPODROLE${asked.length}0000000/`,
-    );
+    ).toContain(`Credential=ASIAPODROLE${asked.length}0000000/`);
   });
 
   test("every sentence a project may be told is whole, one of OneUptime's, and names no value", () => {

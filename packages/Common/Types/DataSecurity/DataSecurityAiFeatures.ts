@@ -59,6 +59,13 @@ export enum DataSecurityAiFeature {
    * file that declares its stores (#10370): a task in Code.
    */
   FixIssueGroup = "FixIssueGroup",
+  /*
+   * The scrub rules for telemetry findings no rule of Scrub It's can hide:
+   * a pattern or the attributes to hide, from the data type, its place,
+   * the names around it and the shapes of its values - each proven on the
+   * records the finding was seen in before it is offered (#10366).
+   */
+  WriteScrubRules = "WriteScrubRules",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -332,6 +339,34 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: true,
       modelSource: DataSecurityAiModelSource.CodeAgent,
+    },
+    {
+      feature: DataSecurityAiFeature.WriteScrubRules,
+      title: translationKey("Scrub rules for what Scrub It cannot cover"),
+      startedBy: translationKey(
+        "A telemetry issue OneUptime AI contains, for the data no rule of Scrub It's can hide, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "Each finding's data type, its category and whether it is found by its values or by a field's name",
+        ),
+        translationKey(
+          "Where it sits: the attribute or the log body, and the names of the attributes beside it",
+        ),
+        translationKey(
+          "The shapes of its values, such as AA-9999 for the value AB-1234, and how many values were read",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of the field, nor a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "Each rule it wrote, proven on the records the finding was seen in, in Data Security > AI until a person approves or dismisses it - or made on its own, as your AI rules allow.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
   ];
 

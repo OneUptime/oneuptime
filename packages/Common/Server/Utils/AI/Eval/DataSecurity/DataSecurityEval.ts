@@ -55,6 +55,8 @@ import {
   FixEvalFileCheck,
   IssueGroupFixEvalCase,
   IssueGroupNameEvalCase,
+  ScrubRuleEvalExpectation,
+  ScrubRulesEvalCase,
   StoreOwnersEvalCase,
 } from "./DataSecurityEvalCase";
 import {
@@ -70,6 +72,16 @@ import {
   holdIssueGroupNameToFacts,
 } from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
 import { getDataSecurityCheck } from "../../../../../Types/DataSecurity/DataSecurityCheckCatalog";
+import {
+  buildScrubRuleWriterPrompt,
+  readScrubRuleWriterAnswer,
+  SCRUB_RULE_WRITER_MAX_TOKENS,
+  SCRUB_RULE_WRITER_TEMPERATURE,
+} from "../../DataSecurity/ScrubRuleWriter";
+import {
+  ScrubRuleWriterRule,
+  ScrubRuleWriterRuleKind,
+} from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import {
   buildDataStoreOwnerPrompt,
   DATA_STORE_OWNER_ANSWER_SHAPE,
@@ -118,7 +130,12 @@ import {
  *   - owners for a store (#10374): the answer, held to the evidence as the
  *     product holds it (DataStoreOwnerAnswer), names exactly the owners the
  *     case expects - one it made up counts against it - says where the
- *     evidence disagrees, and is no surer than the evidence lets it be.
+ *     evidence disagrees, and is no surer than the evidence lets it be;
+ *   - scrub rules for what Scrub It cannot cover (#10366): the answer, read
+ *     as the product reads it (readScrubRuleWriterAnswer), gives each place
+ *     a rule that changes every made-up value holding the data and none of
+ *     the others - as the verifier proves a rule - of the kind the case
+ *     expects, and leaves out a place no rule is right for.
  *
  * A feature's score is the share of its cases that pass - a case run more
  * than once passes when more than half its runs did - and the release
@@ -149,6 +166,12 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    */
   [DataSecurityAiFeature.NameIssueGroup]: 0.75,
   [DataSecurityAiFeature.FixIssueGroup]: 0.5,
+  /*
+   * A rule is held to made-up values the way the verifier holds it to a
+   * finding's records, and nothing it writes is used unproven: three in
+   * four places' cases must pass.
+   */
+  [DataSecurityAiFeature.WriteScrubRules]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -465,6 +488,118 @@ export function scoreStoreOwners(
         `was ${held.confidence} sure, above ${testCase.expect.atMostConfidence}`,
       );
     }
+  }
+
+  return { passed: notes.length === 0, notes };
+}
+
+// Whether a rule OneUptime AI wrote changes a made-up value at its place.
+function doesRuleChange(rule: ScrubRuleWriterRule, value: string): boolean {
+  // The whole value of the place's attribute: every value there changes.
+  if (rule.kind === ScrubRuleWriterRuleKind.Keys) {
+    return true;
+  }
+
+  try {
+    return new RegExp(rule.pattern || "").test(value);
+  } catch {
+    return false;
+  }
+}
+
+function scoreScrubRulePlace(data: {
+  ref: string;
+  expect: ScrubRuleEvalExpectation;
+  rules: ReadonlyArray<ScrubRuleWriterRule>;
+}): Array<string> {
+  const rules: Array<ScrubRuleWriterRule> = data.rules.filter(
+    (rule: ScrubRuleWriterRule): boolean => {
+      return rule.ref === data.ref;
+    },
+  );
+
+  if (data.expect.leftOut) {
+    return rules.length === 0
+      ? []
+      : [`${data.ref}: wrote a rule for a place no rule is right for`];
+  }
+
+  if (rules.length === 0) {
+    return [`${data.ref}: wrote no rule it could use`];
+  }
+
+  // As the verifier picks: the first that hides it all and changes nothing else.
+  const right: ScrubRuleWriterRule | undefined = rules.find(
+    (rule: ScrubRuleWriterRule): boolean => {
+      return (
+        (!data.expect.kind || rule.kind === data.expect.kind) &&
+        data.expect.hides.every((value: string): boolean => {
+          return doesRuleChange(rule, value);
+        }) &&
+        !data.expect.keeps.some((value: string): boolean => {
+          return doesRuleChange(rule, value);
+        })
+      );
+    },
+  );
+
+  if (right) {
+    return [];
+  }
+
+  const notes: Array<string> = [];
+
+  for (const rule of rules) {
+    const missed: Array<string> = data.expect.hides.filter((value: string) => {
+      return !doesRuleChange(rule, value);
+    });
+    const changed: Array<string> = data.expect.keeps.filter((value: string) => {
+      return doesRuleChange(rule, value);
+    });
+
+    if (data.expect.kind && rule.kind !== data.expect.kind) {
+      notes.push(
+        `${data.ref}: wrote a ${rule.kind} rule, not ${data.expect.kind}`,
+      );
+    }
+
+    if (missed.length > 0) {
+      notes.push(
+        `${data.ref}: /${rule.pattern || ""}/ misses ${missed.length} value(s) holding the data`,
+      );
+    }
+
+    if (changed.length > 0) {
+      notes.push(
+        `${data.ref}: /${rule.pattern || ""}/ also changes ${changed.length} other value(s)`,
+      );
+    }
+  }
+
+  return notes;
+}
+
+/*
+ * Scrub rules: the answer read as the product reads it, each place's rule
+ * run on the case's made-up values - none of which the model saw.
+ */
+export function scoreScrubRules(
+  testCase: ScrubRulesEvalCase,
+  answer: string,
+): DataSecurityEvalScore {
+  const rules: Array<ScrubRuleWriterRule> | null = readScrubRuleWriterAnswer({
+    content: answer,
+    places: testCase.places,
+  });
+
+  if (!rules) {
+    return { passed: false, notes: ["not the JSON asked for"] };
+  }
+
+  const notes: Array<string> = [];
+
+  for (const [ref, expect] of Object.entries(testCase.expect)) {
+    notes.push(...scoreScrubRulePlace({ ref, expect, rules }));
   }
 
   return { passed: notes.length === 0, notes };
@@ -801,6 +936,15 @@ function issueGroupFixCall(
   };
 }
 
+// The scrub rules are asked as the product asks them (ScrubRuleWriter).
+function scrubRulesCall(testCase: ScrubRulesEvalCase): DataSecurityEvalCall {
+  return {
+    messages: buildScrubRuleWriterPrompt(testCase.places).messages,
+    maxTokens: SCRUB_RULE_WRITER_MAX_TOKENS,
+    temperature: SCRUB_RULE_WRITER_TEMPERATURE,
+  };
+}
+
 export function buildEvalCall(
   testCase: DataSecurityEvalCase,
 ): DataSecurityEvalCall {
@@ -820,6 +964,8 @@ export function buildEvalCall(
       return issueGroupNameCall(testCase);
     case DataSecurityAiFeature.FixIssueGroup:
       return issueGroupFixCall(testCase);
+    case DataSecurityAiFeature.WriteScrubRules:
+      return scrubRulesCall(testCase);
   }
 }
 
@@ -850,6 +996,8 @@ export function scoreAnswer(
         } as FixEvalCase,
         answer,
       );
+    case DataSecurityAiFeature.WriteScrubRules:
+      return scoreScrubRules(testCase, answer);
   }
 }
 

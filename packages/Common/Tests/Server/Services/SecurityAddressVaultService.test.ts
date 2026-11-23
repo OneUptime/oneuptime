@@ -537,7 +537,7 @@ describe("the one read: the addresses behind a page's tokens", () => {
     expect(found.size).toBe(0);
   });
 
-  test("a page of more tokens than one query names is read a thousand at a time", async () => {
+  test("a page of more tokens than one query names is read MAX_TOKENS_PER_VAULT_LOOKUP at a time", async () => {
     const tokens: Array<string> = [];
 
     for (

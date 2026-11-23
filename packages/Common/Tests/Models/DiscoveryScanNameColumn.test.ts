@@ -165,6 +165,11 @@ describe("NetworkDeviceDiscoveryScan.name migration", () => {
 });
 
 describe("NetworkDeviceDiscoveryScan.name access control", () => {
+  /*
+   * Each list ends with Network's levels (#10289), which follow the
+   * project-wide roles on Network's records: Network Viewer reads a scan,
+   * Network Member and Admin set and edit one.
+   */
   const CREATORS: Array<Permission> = [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -172,6 +177,8 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
     Permission.SettingsAdmin,
     Permission.SettingsMember,
     Permission.CreateNetworkDeviceDiscoveryScan,
+    Permission.NetworkAdmin,
+    Permission.NetworkMember,
   ];
 
   const READERS: Array<Permission> = [
@@ -183,6 +190,9 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
     Permission.SettingsMember,
     Permission.SettingsViewer,
     Permission.ReadNetworkDeviceDiscoveryScan,
+    Permission.NetworkAdmin,
+    Permission.NetworkMember,
+    Permission.NetworkViewer,
   ];
 
   const EDITORS: Array<Permission> = [
@@ -192,6 +202,8 @@ describe("NetworkDeviceDiscoveryScan.name access control", () => {
     Permission.SettingsAdmin,
     Permission.SettingsMember,
     Permission.EditNetworkDeviceDiscoveryScan,
+    Permission.NetworkAdmin,
+    Permission.NetworkMember,
   ];
 
   test("is set by whoever may create a scan", () => {

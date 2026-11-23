@@ -83,6 +83,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored digests of the master API key and every project's API keys (#7901, #8902), which a request's key is looked up by",
   "packages/Common/Server/Utils/PresentedKey/PresentedKey.ts":
     "keys the stored lookup hashes of the keys presented to OneUptime and the stored hashes of SCIM bearer tokens (#9012), which a request's key or token is looked up by",
+  "packages/Common/Server/Utils/Telemetry/ScrubHashToken.ts":
+    "keys each project's Hash scrub tokens, which telemetry stores in place of a value, so no one without it can hash a guess to compare (#10394)",
 };
 
 /*

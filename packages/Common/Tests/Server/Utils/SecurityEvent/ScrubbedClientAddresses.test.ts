@@ -41,8 +41,11 @@ import {
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  markAddressScrubbed,
   markClientAddressScrubbed,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
 } from "../../../../Utils/SecurityEvent/ScrubbedAddress";
 import { IPV4_ADDRESS_MASK as SCRUB_IPV4_MASK } from "../../../../Utils/Telemetry/ScrubIpAddress";
 import { logLine } from "../../../Utils/SecurityEvent/LogParsers/LogParserFixtures";
@@ -245,6 +248,63 @@ describe("ScrubbedClientAddresses.nameScrubRules", () => {
     expect((traces.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
       isRoot: true,
     });
+  });
+
+  test("names the rule that hid a destination too, in its own marker, with one read of the rules (#10419)", async () => {
+    const logs: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(LogScrubRuleService, "findBy")
+      .mockResolvedValue([
+        logRule({ scrubAction: LogScrubAction.Mask, name: "Mask IPs" }),
+        logRule({
+          id: "0192f1a0-0000-7000-8000-00000000d102",
+          scrubAction: LogScrubAction.Redact,
+          name: "Redact IPs",
+        }),
+      ] as never);
+
+    // A firewall's line: its source masked, its destination redacted.
+    const event: NormalizedSecurityEvent = hiddenEvent(
+      ScrubbedAddressPlace.LogBody,
+      SCRUB_IPV4_MASK,
+    );
+    markAddressScrubbed(event.attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Redacted, value: "[REDACTED]" },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    // A destination alone hidden.
+    const toOnly: NormalizedSecurityEvent = WebAttackLogParser.parse(
+      logLine("WARN rejected /static/../../etc/passwd from 203.0.113.7"),
+    )[0]!;
+    markAddressScrubbed(toOnly.attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Masked, value: SCRUB_IPV4_MASK },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+
+    await ScrubbedClientAddresses.nameScrubRules({
+      projectId: PROJECT_ID,
+      events: [event, toOnly],
+    });
+
+    expect(logs).toHaveBeenCalledTimes(1);
+    expect(readHiddenClientAddress(event)).toEqual(
+      expect.objectContaining({ ruleId: LOG_RULE_ID, ruleName: "Mask IPs" }),
+    );
+    expect(readHiddenTargetAddress(event)).toEqual(
+      expect.objectContaining({
+        ruleId: "0192f1a0-0000-7000-8000-00000000d102",
+        ruleName: "Redact IPs",
+      }),
+    );
+    expect(toOnly.principalIp).toBe("203.0.113.7");
+    expect(readHiddenClientAddress(toOnly)).toBeNull();
+    expect(readHiddenTargetAddress(toOnly)).toEqual(
+      expect.objectContaining({ ruleId: LOG_RULE_ID, ruleName: "Mask IPs" }),
+    );
+    // A destination the event names is no destination to name a rule for.
+    toOnly.targetIp = "198.51.100.9";
+    expect(readHiddenTargetAddress(toOnly)).toBeNull();
   });
 
   test("names none where no enabled rule leaves what the record holds, and says it is hidden still", async () => {

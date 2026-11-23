@@ -650,6 +650,8 @@ describe("testing and connecting", () => {
         cloud: "public",
         dataSecurity: "off",
         dataSecurityResponse: "off",
+        // Blocking addresses in Azure WAF stays off until someone turns it on (#10348).
+        wafBlocklist: "off",
         readIntervalInMinutes: "5",
         readScope: "account",
       },
@@ -860,7 +862,11 @@ describe("Data Security's settings, under the command", () => {
         .getByTestId("cloud-setup-command")
         .compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(foldedItems()).toEqual(["Data security", "Data security response"]);
+    expect(foldedItems()).toEqual([
+      "Data security",
+      "Data security response",
+      "Block addresses in Azure WAF",
+    ]);
     expect(shownCommand()).toBe(
       commandOf({
         provider: CloudProvider.Azure,
@@ -1154,6 +1160,7 @@ describe("Data Security's settings, under the command", () => {
       readScope: "organization",
       dataSecurity: "content",
       dataSecurityResponse: "block",
+      wafBlocklist: "off",
       readIntervalInMinutes: "5",
     });
   });

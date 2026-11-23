@@ -54,6 +54,7 @@ import {
   isAwsKeyMetricInTemplate,
   isAwsKeyMetricSeries,
   isAwsKeyMetricStreamable,
+  CloudKeyMetricCadence,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import { MESSAGE_QUEUE_METRICS } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
 import {
@@ -556,6 +557,8 @@ describe("Azure metrics read at five minutes, and deprecated ones still read", (
       group: CloudKeyMetricGroup.Availability,
       rank: 4,
       intervalSeconds: 300,
+      // And how often it comes, which its row says (#10026).
+      cadence: CloudKeyMetricCadence.FiveMinutes,
     });
     expect(
       getCloudKeyMetricOfStoredName({

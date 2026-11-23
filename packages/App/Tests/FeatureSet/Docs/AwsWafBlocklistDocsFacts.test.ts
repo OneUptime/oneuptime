@@ -119,6 +119,7 @@ describe("Block Addresses in AWS WAF", () => {
     expect(PAGE).toContain("**Waiting for Your Rule**");
     expect(PAGE).toContain("**No Free Priority**");
     expect(PAGE).toContain("Not Enforcing");
-    expect(Object.values(SecurityBlockCloudWafStatus)).toHaveLength(5);
+    // Applying and Changed by Hand are Azure WAF's and Cloud Armor's: their pages name them.
+    expect(Object.values(SecurityBlockCloudWafStatus)).toHaveLength(7);
   });
 });

@@ -407,6 +407,7 @@ const ImportAlertsModal: FunctionComponent<ComponentProps> = (
             ariaLabel={translator.translateTemplate("Import {{name}}", {
               name: names.get(item.key) || item.name,
             })}
+            isAriaLabelTranslated={true}
             dataTestId="import-rule-toggle"
             onChange={(value: boolean) => {
               const next: Set<string> = new Set<string>(unticked);

@@ -245,10 +245,10 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     const hrefs: Array<string> = hrefsInMenu();
 
     /*
-     * Six Runbooks pages, then the Developer section's four (Terraform, API,
-     * CLI and AI Assistants).
+     * Six Runbooks pages, then the Developer section's five (Terraform,
+     * Crossplane, API, CLI and AI Assistants).
      */
-    expect(hrefs).toHaveLength(10);
+    expect(hrefs).toHaveLength(11);
     for (const href of hrefs) {
       expect(href).not.toMatch(/[:*]/);
       expect(matchRoutes(realRoutes, href)).not.toBeNull();

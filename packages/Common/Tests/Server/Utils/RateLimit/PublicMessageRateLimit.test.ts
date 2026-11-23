@@ -221,6 +221,14 @@ describe("the limits in force", () => {
         perClientLimit: 30,
         perContactLimit: 10,
       },
+      /*
+       * A private dashboard's or form's user's password reset (#10250):
+       * counted apart from a status page's, with the same numbers.
+       */
+      [PublicMessageKind.PrivateUserPasswordReset]: {
+        perClientLimit: 30,
+        perContactLimit: 5,
+      },
       [PublicMessageKind.PasswordReset]: {
         perClientLimit: 30,
         perContactLimit: 5,

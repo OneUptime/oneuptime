@@ -14,6 +14,7 @@ import {
   resolveCloudMonitoredResource,
 } from "../../../../Types/Cloud/CloudMonitoredResource";
 import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
+import { CLOUD_ARMOR_POLICY_ASSET_TYPE } from "../../../../Types/CloudConnection/CloudArmorBlocklist";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
 import GoogleServiceAccountToken from "../../LlmObservability/Connectors/GoogleVertexAI/GoogleServiceAccountToken";
@@ -786,6 +787,17 @@ export const GCP_INVENTORY_TYPES: ReadonlyArray<GcpInventoryType> = [
       };
     },
     relationships: inNetwork,
+  },
+  /*
+   * A Cloud Armor security policy (#10349): what the project's blocklist
+   * can be enforced in. Its type says what it guards - a backend service
+   * (CLOUD_ARMOR), the edge in front of one (CLOUD_ARMOR_EDGE), a network
+   * load balancer (CLOUD_ARMOR_NETWORK) - and never its rules, which the
+   * blocklist reads from the policy itself.
+   */
+  {
+    assetType: CLOUD_ARMOR_POLICY_ASSET_TYPE,
+    properties: ["type", "description"],
   },
   /*
    * A URL map is an Application Load Balancer, filed under the monitored

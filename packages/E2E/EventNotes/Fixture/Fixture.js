@@ -108,6 +108,7 @@ import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecordAccess } from "../../SuiteHelpers/RecordAccessAnswers";
 
 /*
  * ---------------------------------------------------------------------------
@@ -962,6 +963,37 @@ async function handleApi(method, options) {
 
   if (url.includes("/incident/subscriber-audience")) {
     return ok(SUBSCRIBER_AUDIENCE);
+  }
+
+  /*
+   * What Maya may do on the record its note pages are open on (GET
+   * /<record>/record-access/:id, SuiteHelpers/RecordAccessAnswers), with
+   * the permissions ?role= gives her. She holds them through no team, and
+   * a private record (?private=1) is changed only through the teams of
+   * hers that own it: as the default master admin she is refused nothing
+   * on it, as anyone else every change.
+   */
+  if (method === "GET" && url.includes("/record-access/")) {
+    const access = answerRecordAccess({
+      url,
+      rowsOf: (modelType) => {
+        return tables.get(tableName(modelType))?.records || [];
+      },
+      reader: {
+        isMasterAdmin: UserUtil.isMasterAdmin(),
+        permissions: PermissionUtil.getAllPermissions(),
+        permissionRows: [],
+        globalPermissions: [],
+        userId: people.maya.id,
+      },
+      unmodelled: (modelName) => {
+        fixture.unhandled.push({ kind: "record-access", modelName });
+      },
+    });
+
+    if (access) {
+      return ok(access);
+    }
   }
 
   if (method === "POST" && url.endsWith("/public-note-reach")) {

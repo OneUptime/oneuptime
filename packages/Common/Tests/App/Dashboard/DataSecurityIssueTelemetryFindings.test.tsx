@@ -52,6 +52,7 @@ import {
   OPENED_LOG_LINE_TIME_SLACK_IN_MS,
   readOpenedLogLineAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Logs/useOpenedLogLine";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
@@ -215,6 +216,10 @@ let listSpy: ReturnType<typeof jest.spyOn>;
 let occurrencesSpy: SpyInstance<typeof DataSecurityApi.getFindingOccurrences>;
 let scrubSpy: SpyInstance<typeof DataSecurityApi.scrubFinding>;
 let impactSpy: SpyInstance<typeof DataSecurityApi.getScrubImpact>;
+// The IP Address rules hiding addresses from Security Events (#10396): none, unless a test says.
+let addressRulesSpy: SpyInstance<
+  typeof ScrubRuleAddressesApi.getRulesHidingAddresses
+>;
 let onChanged: Mock<() => void>;
 let occurrences: DataSecurityFindingOccurrences;
 
@@ -360,6 +365,9 @@ beforeEach(() => {
   impactSpy = jest
     .spyOn(DataSecurityApi, "getScrubImpact")
     .mockResolvedValue(ppsImpact());
+  addressRulesSpy = jest
+    .spyOn(ScrubRuleAddressesApi, "getRulesHidingAddresses")
+    .mockResolvedValue({ isChecked: true, signalsRead: [], rules: [] });
 });
 
 afterEach(() => {
@@ -608,6 +616,93 @@ describe("the card", () => {
     expect(
       within(blocks[0]!).getByTestId("data-security-issue-finding-scrub"),
     ).toBeEnabled();
+  });
+
+  /*
+   * An IP address scrubbed by a Redact or Mask rule where Security Events
+   * reads the spans says what it costs, with Hash Instead (#10396): the
+   * switch is the person's, and the rules are read again after it.
+   */
+  test("a scrubbed IP address names the rule that hides it from Security Events, and Hash Instead switches it", async () => {
+    const RULE_ID: string = "9d9d9d9d-0000-4000-8000-0000000000d9";
+
+    stored = [
+      findingOf(IP_ID, {
+        dataTypeId: "ip-address",
+        dataTypeName: "IP address",
+        sensitivity: DataSensitivity.Confidential,
+        location: "attributes.http.client_ip",
+        maskedSamples: ["81.***.***.***"],
+        isScrubbed: true,
+      }),
+    ];
+    addressRulesSpy.mockResolvedValue({
+      isChecked: true,
+      signalsRead: ["trace"],
+      rules: [
+        {
+          signal: "trace",
+          ruleId: RULE_ID,
+          ruleName: "Scrub IP addresses",
+          scrubAction: "redact",
+        },
+      ],
+    });
+    const hashSpy: SpyInstance<typeof ScrubRuleAddressesApi.hashInstead> = jest
+      .spyOn(ScrubRuleAddressesApi, "hashInstead")
+      .mockResolvedValue({
+        signal: "trace",
+        ruleId: RULE_ID,
+        ruleName: "Scrub IP addresses",
+        scrubAction: "hash",
+      });
+
+    renderCard();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "data-security-issue-finding-hash-instead",
+    );
+
+    expect(notice).toHaveTextContent(
+      "The scrub rule Scrub IP addresses also hides addresses from Security Events, so it can't tell you which address to block.",
+    );
+
+    fireEvent.click(
+      within(notice).getByRole("button", { name: "Hash Instead" }),
+    );
+
+    await waitFor(() => {
+      expect(hashSpy).toHaveBeenCalledWith({
+        signal: "trace",
+        ruleId: RULE_ID,
+      });
+    });
+    // The rules are read again: the one switched no longer hides anything.
+    await waitFor(() => {
+      expect(addressRulesSpy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("an IP address finding says nothing of Security Events while no rule hides addresses from it", async () => {
+    stored = [
+      findingOf(IP_ID, {
+        dataTypeId: "ip-address",
+        dataTypeName: "IP address",
+        location: "attributes.http.client_ip",
+        isScrubbed: true,
+      }),
+    ];
+
+    renderCard();
+
+    await screen.findAllByTestId("data-security-issue-finding");
+    await waitFor(() => {
+      expect(addressRulesSpy).toHaveBeenCalled();
+    });
+
+    expect(
+      screen.queryByTestId("data-security-issue-finding-hash-instead"),
+    ).not.toBeInTheDocument();
   });
 
   test("Scrub It asks first, makes the rule, says which, reads the findings again and tells the issue", async () => {

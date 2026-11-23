@@ -11,6 +11,10 @@ import {
 } from "../../Types/Telemetry/ScrubRule";
 import { doScrubScopesMeet } from "../../Types/Telemetry/ScrubRuleScope";
 import {
+  readScrubRuleKeys,
+  ScrubRuleKeyMatcher,
+} from "../../Types/Telemetry/ScrubRuleKeys";
+import {
   SecurityEventsFieldNeed,
   SecurityEventsTelemetrySource,
   TelemetryFieldPart,
@@ -82,6 +86,12 @@ export interface ScrubRuleReading {
    * the type Scrub It made a custom pattern for.
    */
   dataTypeId?: string | null | undefined;
+  /*
+   * The attributes it names (#10366): the ones a Named Attributes rule
+   * hides whole, or the only ones a pattern rule reads. None for every
+   * attribute.
+   */
+  attributeKeys?: ReadonlyArray<string> | null | undefined;
 }
 
 /*
@@ -96,9 +106,13 @@ export interface ScrubRuleKeyEvidence {
 // A rule ready to be asked about many references: its pattern compiled once.
 export interface CompiledScrubRuleReading {
   rule: ScrubRuleReading;
-  // What the rule finds in a value; null for a Sensitive Attribute Keys rule, or a pattern that cannot run.
+  // What the rule finds in a value; null for a key-targeted rule, or a pattern that cannot run.
   regex: ScrubRegExp | null;
   isSensitiveKeysRule: boolean;
+  // A Named Attributes rule: it hides the whole value of the attributes it names (#10366).
+  isNamedKeysRule: boolean;
+  // The attributes it names; null for a rule that reads every attribute.
+  keys: ScrubRuleKeyMatcher | null;
   dataTypeId: string | null;
   parts: ReadonlySet<TelemetryFieldPart>;
   // The attribute keys known to hold what it hides, in lower case.
@@ -151,8 +165,32 @@ export function compileScrubRuleValuePattern(data: {
 export function getScrubRuleParts(
   rule: Pick<ScrubRuleReading, "signal" | "patternType" | "fieldsToScrub">,
 ): Set<TelemetryFieldPart> {
+  const patternType: string = (rule.patternType || "").trim();
   const isSensitiveKeys: boolean =
-    (rule.patternType || "").trim() === LogScrubPatternType.SensitiveKeys;
+    patternType === LogScrubPatternType.SensitiveKeys;
+
+  /*
+   * A Named Attributes rule reads attributes only: a log's, and a span's
+   * and its events' as its fields say - All when they name the span's name,
+   * which has no keys (#10366).
+   */
+  if (patternType === LogScrubPatternType.NamedKeys) {
+    if (rule.signal === "log") {
+      return new Set([TelemetryFieldPart.Attributes]);
+    }
+
+    switch (rule.fieldsToScrub) {
+      case TraceScrubField.Attributes:
+        return new Set([TelemetryFieldPart.Attributes]);
+      case TraceScrubField.Events:
+        return new Set([TelemetryFieldPart.Events]);
+      default:
+        return new Set([
+          TelemetryFieldPart.Attributes,
+          TelemetryFieldPart.Events,
+        ]);
+    }
+  }
 
   if (rule.signal === "log") {
     if (isSensitiveKeys) {
@@ -165,7 +203,10 @@ export function getScrubRuleParts(
       case LogScrubField.Attributes:
         return new Set([TelemetryFieldPart.Attributes]);
       default:
-        return new Set([TelemetryFieldPart.Body, TelemetryFieldPart.Attributes]);
+        return new Set([
+          TelemetryFieldPart.Body,
+          TelemetryFieldPart.Attributes,
+        ]);
     }
   }
 
@@ -197,6 +238,11 @@ export function compileScrubRuleReading(
   const patternType: string = (rule.patternType || "").trim();
   const isSensitiveKeysRule: boolean =
     patternType === LogScrubPatternType.SensitiveKeys;
+  const isNamedKeysRule: boolean =
+    patternType === LogScrubPatternType.NamedKeys;
+  const namedKeys: Array<string> = isSensitiveKeysRule
+    ? []
+    : readScrubRuleKeys(rule.attributeKeys);
   const dataTypeId: string | null =
     (rule.dataTypeId || "").trim() ||
     readOwnValue(DATA_TYPE_OF_SCRUB_PATTERN_TYPE, patternType) ||
@@ -215,8 +261,13 @@ export function compileScrubRuleReading(
 
   return {
     rule,
-    regex: isSensitiveKeysRule ? null : compileScrubRuleValuePattern(rule),
+    regex:
+      isSensitiveKeysRule || isNamedKeysRule
+        ? null
+        : compileScrubRuleValuePattern(rule),
     isSensitiveKeysRule,
+    isNamedKeysRule,
+    keys: namedKeys.length > 0 ? new ScrubRuleKeyMatcher(namedKeys) : null,
     dataTypeId,
     parts: getScrubRuleParts(rule),
     keysHolding,
@@ -235,7 +286,10 @@ export function isKeyHiddenBySensitiveKeysRule(key: string): boolean {
 }
 
 // Whether an attribute is known to hold what the rule hides.
-function doesKeyHoldIt(compiled: CompiledScrubRuleReading, key: string): boolean {
+function doesKeyHoldIt(
+  compiled: CompiledScrubRuleReading,
+  key: string,
+): boolean {
   const lower: string = key.trim().toLowerCase();
 
   if (!lower) {
@@ -287,7 +341,28 @@ export function doesScrubRuleTakeFrom(
       : false;
   }
 
+  /*
+   * A Named Attributes rule hides the whole value of what it names: every
+   * reading of such an attribute reads what the rule left (#10366).
+   */
+  if (compiled.isNamedKeysRule) {
+    return Boolean(
+      reference.key !== undefined && compiled.keys?.matches(reference.key),
+    );
+  }
+
   if (!compiled.regex) {
+    return false;
+  }
+
+  // A pattern that names attributes reads only theirs: another attribute keeps its values.
+  if (
+    compiled.keys &&
+    reference.key !== undefined &&
+    (reference.part === TelemetryFieldPart.Attributes ||
+      reference.part === TelemetryFieldPart.Events) &&
+    !compiled.keys.matches(reference.key)
+  ) {
     return false;
   }
 
@@ -355,7 +430,9 @@ const SECURITY_EVENTS_USER_KEYS: ReadonlyArray<string> =
 const NEEDS_OF_SOURCE: Readonly<
   Record<
     SecurityEventsTelemetrySource,
-    Partial<Record<TelemetryFieldSignal, ReadonlyArray<SecurityEventsFieldNeed>>>
+    Partial<
+      Record<TelemetryFieldSignal, ReadonlyArray<SecurityEventsFieldNeed>>
+    >
   >
 > = {
   [SecurityEventsTelemetrySource.Logs]: {
@@ -398,13 +475,40 @@ function hidesFromSecurityEvents(
     return keys.some(isKeyHiddenBySensitiveKeysRule);
   }
 
+  // A Named Attributes rule: where it names the attributes Security Events reads (#10366).
+  if (compiled.isNamedKeysRule) {
+    return keys.some((key: string): boolean => {
+      return Boolean(compiled.keys?.matches(key));
+    });
+  }
+
   const regex: ScrubRegExp | null = compiled.regex;
 
-  return regex
-    ? probes.some((probe: string): boolean => {
-        return doesPatternFind(regex, probe);
-      })
-    : false;
+  if (!regex) {
+    return false;
+  }
+
+  /*
+   * A pattern that names attributes reads a log's body as its fields say,
+   * and only the attributes it names: Security Events loses a value from
+   * the attributes only where those include one it reads.
+   */
+  const readsTheBody: boolean =
+    compiled.rule.signal === "log" &&
+    compiled.parts.has(TelemetryFieldPart.Body);
+  const readsAnAttributeItReads: boolean =
+    !compiled.keys ||
+    keys.some((key: string): boolean => {
+      return Boolean(compiled.keys?.matches(key));
+    });
+
+  if (!readsTheBody && !readsAnAttributeItReads) {
+    return false;
+  }
+
+  return probes.some((probe: string): boolean => {
+    return doesPatternFind(regex, probe);
+  });
 }
 
 /*
@@ -426,7 +530,8 @@ export function findSecurityEventsLosses(
   compiled: CompiledScrubRuleReading,
   sources: ReadonlyArray<SecurityEventsTelemetrySource>,
 ): Array<SecurityEventsFieldNeed> {
-  const needs: Set<SecurityEventsFieldNeed> = new Set<SecurityEventsFieldNeed>();
+  const needs: Set<SecurityEventsFieldNeed> =
+    new Set<SecurityEventsFieldNeed>();
 
   for (const source of sources) {
     for (const need of NEEDS_OF_SOURCE[source][compiled.rule.signal] || []) {
@@ -443,7 +548,11 @@ export function findSecurityEventsLosses(
   if (
     needs.has(SecurityEventsFieldNeed.ClientAddresses) &&
     !(isIpAddressRule && isHash) &&
-    hidesFromSecurityEvents(compiled, ADDRESS_PROBES, CLIENT_ADDRESS_ATTRIBUTES_READ)
+    hidesFromSecurityEvents(
+      compiled,
+      ADDRESS_PROBES,
+      CLIENT_ADDRESS_ATTRIBUTES_READ,
+    )
   ) {
     losses.push(SecurityEventsFieldNeed.ClientAddresses);
   }
@@ -451,7 +560,11 @@ export function findSecurityEventsLosses(
   if (
     needs.has(SecurityEventsFieldNeed.UserNames) &&
     !isHash &&
-    hidesFromSecurityEvents(compiled, USER_NAME_PROBES, SECURITY_EVENTS_USER_KEYS)
+    hidesFromSecurityEvents(
+      compiled,
+      USER_NAME_PROBES,
+      SECURITY_EVENTS_USER_KEYS,
+    )
   ) {
     losses.push(SecurityEventsFieldNeed.UserNames);
   }

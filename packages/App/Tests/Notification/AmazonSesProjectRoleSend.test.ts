@@ -252,9 +252,7 @@ describe("sending through a project's IAM role, to stand-ins for STS and SES", (
 
     expect(
       String(ses.requests[ses.requests.length - 1]!.headers.authorization),
-    ).toContain(
-      `Credential=${SECOND_SESSION.accessKeyId}/`,
-    );
+    ).toContain(`Credential=${SECOND_SESSION.accessKeyId}/`);
   });
 
   test("a role that may not send reads as the role's policy, and never shows its secret or token", async () => {

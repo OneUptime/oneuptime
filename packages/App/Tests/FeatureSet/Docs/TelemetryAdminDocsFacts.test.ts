@@ -3133,8 +3133,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
   it("says a rule can be for one service, and that the form says what it would break", () => {
     expect(scrubForm).toContain('title: "Only for one service"');
     expect(scrubForm).toContain("service: true,");
+    // The service is in the form's folded section, which is titled More fields.
+    expect(scrubForm).toContain("getAdvancedFormSection<LogScrubRule>({");
     expect(page).toContain(
-      "- **A rule can be for one service.** Under **Advanced**, pick the service in **Only for one service**: the rule scrubs that service's records, and other services' records stay as they are.",
+      "- **A rule can be for one service.** Under **More fields**, pick the service in **Only for one service**: the rule scrubs that service's records, and other services' records stay as they are.",
     );
     expect(page).toContain(
       "- **The form says what a rule would change for others.** Before you create a rule, and when you turn one on,",

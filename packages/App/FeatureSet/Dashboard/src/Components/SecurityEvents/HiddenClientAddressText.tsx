@@ -10,11 +10,18 @@ import Route from "Common/Types/API/Route";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { HiddenClientAddress } from "Common/Utils/SecurityEvent/ScrubbedAddress";
+import {
+  HiddenClientAddress,
+  ScrubbedAddressRole,
+} from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export const HIDDEN_CLIENT_ADDRESS_TEST_ID: string =
   "security-hidden-client-address";
+
+// Where Target IP says a scrub rule hid the destination (#10419).
+export const HIDDEN_TARGET_ADDRESS_TEST_ID: string =
+  "security-hidden-target-address";
 
 export const CLAIMED_CLIENT_ADDRESS_TEST_ID: string =
   "security-claimed-client-address";
@@ -91,7 +98,16 @@ export function readFieldValue(
   translator: Translator,
 ): ReactElement | string {
   if (field.hiddenAddress) {
-    return <HiddenClientAddressText hidden={field.hiddenAddress} />;
+    return (
+      <HiddenClientAddressText
+        hidden={field.hiddenAddress}
+        dataTestId={
+          field.hiddenAddressRole === ScrubbedAddressRole.Target
+            ? HIDDEN_TARGET_ADDRESS_TEST_ID
+            : HIDDEN_CLIENT_ADDRESS_TEST_ID
+        }
+      />
+    );
   }
 
   /*
