@@ -1,4 +1,5 @@
 import SMTPOAuthService from "../SMTPOAuthService";
+import HttpMailApi from "./HttpMailApi";
 import InlineImageAttachments from "./InlineImageAttachments";
 import InlineImageRefusal, {
   InlineImageRefusalFlag,
@@ -439,10 +440,14 @@ export default class MicrosoftGraphMailProvider implements MailProvider {
           { isRetryable: true },
         );
       }
+      /*
+       * Node's fetch says only "fetch failed": the reason (ENOTFOUND,
+       * ECONNREFUSED, a certificate it would not trust) is on its cause.
+       */
+      const host: string = endpoint.hostname.toString();
+
       throw new GraphSendException(
-        `Microsoft Graph request failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Microsoft Graph could not be reached at ${host}: ${HttpMailApi.describeNetworkError(error)}. Check that this server can reach ${host} over HTTPS (port 443).`,
         { isRetryable: true },
       );
     } finally {

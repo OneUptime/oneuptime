@@ -437,9 +437,10 @@ export default class HttpMailApi {
   /*
    * Node's fetch says only "fetch failed"; the reason (ENOTFOUND,
    * ECONNREFUSED, a certificate it would not trust) is on its cause. Read
-   * by shape: the error is not an Error of this realm everywhere.
+   * by shape: the error is not an Error of this realm everywhere. Microsoft
+   * Graph's sends say it the same way.
    */
-  private static describeNetworkError(error: unknown): string {
+  public static describeNetworkError(error: unknown): string {
     if (!error || typeof error !== "object") {
       return String(error);
     }
