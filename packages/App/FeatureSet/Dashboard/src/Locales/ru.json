@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Кто создал, изменил или удалил эти правила, что изменилось и когда.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Кто создал, изменил или удалил эти правила, что изменилось и когда. Изменения правил сборников инструкций — в разделе Сборники инструкций > Настройки > Журналы аудита правил.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Кто создал, изменил или удалил эти правила, что изменилось и когда: правила сборников инструкций для оповещений, инцидентов и событий обслуживания, а также правила владельцев и меток сборников инструкций.",
-  "vCenter Rule Audit Logs": "Журналы аудита правил vCenter"
+  "vCenter Rule Audit Logs": "Журналы аудита правил vCenter",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "Каждая проверка или блокировка, которую политика автоматического реагирования ставит, как только обнаружена атака."
 }

@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。运行手册规则的更改位于 运行手册 > 设置 > 规则审计日志。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改：警报、事件和维护事件的运行手册规则，以及运行手册的所有者规则和标签规则。",
-  "vCenter Rule Audit Logs": "vCenter 规则审计日志"
+  "vCenter Rule Audit Logs": "vCenter 规则审计日志",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "一检测到攻击，自动响应策略即进行的每次质询或封禁。"
 }

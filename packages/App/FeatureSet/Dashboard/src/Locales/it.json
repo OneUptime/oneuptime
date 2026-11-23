@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Chi ha creato, modificato o eliminato queste regole, cosa ha modificato e quando.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Chi ha creato, modificato o eliminato queste regole, cosa ha modificato e quando. Le modifiche alle regole di runbook sono in Runbook > Impostazioni > Log di audit delle regole.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Chi ha creato, modificato o eliminato queste regole, cosa ha modificato e quando: le regole di runbook di avvisi, incidenti ed eventi di manutenzione, e le regole del proprietario e delle etichette dei runbook.",
-  "vCenter Rule Audit Logs": "Log di audit delle regole dei vCenter"
+  "vCenter Rule Audit Logs": "Log di audit delle regole dei vCenter",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "Ogni verifica o blocco che un criterio di risposta automatica applica appena viene rilevato un attacco."
 }

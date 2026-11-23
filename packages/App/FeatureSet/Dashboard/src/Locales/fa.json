@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی. تغییرهای قواعد رانبوک در رانبوک‌ها > تنظیمات > گزارش‌های ممیزی قواعد است.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی: قواعد رانبوک هشدارها، حوادث و رویدادهای تعمیر و نگهداری، و قواعد مالکیت و برچسب رانبوک‌ها.",
-  "vCenter Rule Audit Logs": "گزارش‌های ممیزی قواعد vCenter"
+  "vCenter Rule Audit Logs": "گزارش‌های ممیزی قواعد vCenter",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "هر چالش یا مسدودسازی که یک سیاست پاسخ خودکار به‌محض تشخیص یک حمله انجام می‌دهد."
 }

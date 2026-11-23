@@ -26,14 +26,8 @@ export interface SecurityPlaybookTriggerOption {
 export const SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION: string =
   translationKey("When the playbook runs on its own.");
 
-// The triggers a playbook may choose: Automatic Response is a run's, never a playbook's (#10350).
-export type ChoosableSecurityPlaybookTrigger = Exclude<
-  SecurityPlaybookTrigger,
-  SecurityPlaybookTrigger.AutomaticResponse
->;
-
 export const SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS: Record<
-  ChoosableSecurityPlaybookTrigger,
+  SecurityPlaybookTrigger,
   string
 > = {
   [SecurityPlaybookTrigger.CaseOpened]: translationKey(
@@ -55,6 +49,13 @@ export const SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS: Record<
   [SecurityPlaybookTrigger.OneUptimeAi]: translationKey(
     "Each step OneUptime AI takes while it works a case.",
   ),
+  /*
+   * Never a playbook's trigger either: the one-step runs an automatic
+   * response policy starts as an attack is detected (#10350).
+   */
+  [SecurityPlaybookTrigger.AutomaticResponse]: translationKey(
+    "Each challenge or block an automatic response policy makes as an attack is detected.",
+  ),
 };
 
 export function getSecurityPlaybookTriggerOptions(data: {
@@ -74,10 +75,7 @@ export function getSecurityPlaybookTriggerOptions(data: {
     return {
       value: trigger,
       label: trigger,
-      description:
-        SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS[
-          trigger as ChoosableSecurityPlaybookTrigger
-        ],
+      description: SECURITY_PLAYBOOK_TRIGGER_DESCRIPTIONS[trigger],
     };
   });
 }

@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى. تغييرات قواعد أدلة التشغيل في أدلة التشغيل > الإعدادات > سجلات التدقيق للقواعد.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى: قواعد أدلة التشغيل للتنبيهات والحوادث وأحداث الصيانة، وقواعد المالكين والتسميات لأدلة التشغيل.",
-  "vCenter Rule Audit Logs": "سجلات التدقيق لقواعد vCenter"
+  "vCenter Rule Audit Logs": "سجلات التدقيق لقواعد vCenter",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "كل تحدٍّ أو حظر تفرضه سياسة استجابة تلقائية فور اكتشاف هجوم."
 }

@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब।",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब। रनबुक नियमों के बदलाव रनबुक > सेटिंग्स > नियमों के ऑडिट लॉग में हैं।",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब: अलर्ट, घटनाओं और रखरखाव इवेंट के रनबुक नियम, और रनबुक के स्वामी और लेबल नियम।",
-  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग"
+  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "हमला पकड़े जाते ही स्वचालित प्रतिक्रिया नीति जो हर चैलेंज या ब्लॉक लगाती है।"
 }

@@ -62461,5 +62461,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。Runbook ルールの変更は Runbook > 設定 > ルールの監査ログにあります。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです：アラート、インシデント、メンテナンスイベントの Runbook ルールと、Runbook の所有者ルールおよびラベルルールです。",
-  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ"
+  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ",
+  "Each challenge or block an automatic response policy makes as an attack is detected.": "攻撃が検出されるとすぐに自動対応ポリシーが行う各チャレンジまたはブロック。"
 }
