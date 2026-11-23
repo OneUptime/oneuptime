@@ -26,10 +26,9 @@ import {
   getHashedAddressSearchTexts,
 } from "../../../Types/Telemetry/HashedAddressSearch";
 import TraceScrubAction from "../../../Types/Trace/TraceScrubAction";
-// A key as the sender or the filter wrote it, "__proto__" too, written as the map's own.
-import { writeOwnValue } from "../../../Utils/LookupTable";
 import TraceScrubPatternType from "../../../Types/Trace/TraceScrubPatternType";
-import { readOwnValue } from "../../../Utils/LookupTable";
+// A key as the sender or the filter wrote it, "__proto__" too, read and written as the map's own.
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
 import ScrubIpAddress, {
   ScrubIpAddressRange,
 } from "../../../Utils/Telemetry/ScrubIpAddress";
