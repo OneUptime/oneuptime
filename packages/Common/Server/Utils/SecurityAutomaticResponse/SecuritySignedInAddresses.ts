@@ -14,6 +14,10 @@ import {
   readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { getSecurityAddressSpellings } from "../../../Types/SecurityBlocklist/SecurityAddressSpellings";
+import {
+  doesScrubRuleKeyName,
+  readScrubRuleKeys,
+} from "../../../Types/Telemetry/ScrubRuleKeys";
 import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import {
   AddressScrubRule,
@@ -281,6 +285,17 @@ export function getSecuritySignedInMatchOfAddresses(data: {
           address: read.value,
         })
       ] = read.value;
+
+      /*
+       * A Named Attributes rule hashes an attribute's value as it was
+       * written, not as one spelling of an address (#10366): the token of
+       * every spelling.
+       */
+      for (const spelling of getSecurityAddressSpellings(read.value)) {
+        addressOf[
+          ScrubHashToken.ofValue({ projectId: data.projectId, value: spelling })
+        ] = read.value;
+      }
     }
   }
 
@@ -1074,10 +1089,134 @@ export default class SecuritySignedInAddresses {
       );
     }
 
+    const named: NamedAddressRules = await this.readNamedAddressRules(data);
+
     return {
-      hiding: findScrubRuleHidingAddresses(rules, data.signal),
-      isHashing: hashing.length > 0,
+      hiding: findScrubRuleHidingAddresses(rules, data.signal) || named.hiding,
+      isHashing: hashing.length > 0 || named.isHashing,
       hasUnkeyedTokens,
     };
   }
+
+  /*
+   * The project's Named Attributes rules of a kind (#10366) that name an
+   * attribute this check reads a client's address from - client.address,
+   * or client, which names it too: one that redacts or masks it leaves no
+   * address to match, and one that hashes it leaves its token. An IP
+   * Address rule hides addresses by their shape; such a rule hides the
+   * attribute whole, whatever it holds, and is read here so it is not
+   * mistaken for a quiet address.
+   */
+  private static async readNamedAddressRules(data: {
+    projectId: ObjectID;
+    signal: ScrubbedAddressSignal;
+  }): Promise<NamedAddressRules> {
+    const query: {
+      projectId: ObjectID;
+      isEnabled: boolean;
+      patternType: LogScrubPatternType;
+    } = {
+      projectId: data.projectId,
+      isEnabled: true,
+      patternType: LogScrubPatternType.NamedKeys,
+    };
+    const select: {
+      _id: true;
+      name: true;
+      patternType: true;
+      scrubAction: true;
+      fieldsToScrub: true;
+      attributeKeys: true;
+    } = {
+      _id: true,
+      name: true,
+      patternType: true,
+      scrubAction: true,
+      fieldsToScrub: true,
+      attributeKeys: true,
+    };
+    const stored: Array<LogScrubRule | TraceScrubRule> =
+      data.signal === "log"
+        ? await LogScrubRuleService.findBy({
+            query,
+            select,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          })
+        : await TraceScrubRuleService.findBy({
+            query,
+            select,
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+
+    return findNamedAddressRules({ rules: stored, signal: data.signal });
+  }
+}
+
+// What the project's Named Attributes rules do to the attributes a client's address is read from.
+export interface NamedAddressRules {
+  // One that redacts or masks such an attribute, when there is one.
+  hiding: AddressScrubRule | null;
+  // Whether one hashes such an attribute.
+  isHashing: boolean;
+}
+
+/*
+ * Of a project's Named Attributes rules (#10366), those that name an
+ * attribute a client's address is read from in this kind of record: the
+ * first that redacts or masks one, and whether one hashes one. Pure.
+ */
+export function findNamedAddressRules(data: {
+  rules: ReadonlyArray<
+    Pick<
+      LogScrubRule,
+      "_id" | "name" | "patternType" | "scrubAction" | "fieldsToScrub"
+    > & { attributeKeys?: unknown }
+  >;
+  signal: ScrubbedAddressSignal;
+}): NamedAddressRules {
+  const addressAttributes: ReadonlyArray<string> =
+    data.signal === "trace"
+      ? SPAN_CLIENT_ADDRESS_ATTRIBUTES
+      : LOG_CLIENT_ADDRESS_ATTRIBUTES;
+  let hiding: AddressScrubRule | null = null;
+  let isHashing: boolean = false;
+
+  for (const rule of data.rules) {
+    if (rule.patternType !== LogScrubPatternType.NamedKeys) {
+      continue;
+    }
+
+    const namesAnAddress: boolean = readScrubRuleKeys(rule.attributeKeys).some(
+      (key: string): boolean => {
+        return addressAttributes.some((attribute: string): boolean => {
+          return doesScrubRuleKeyName(key, attribute);
+        });
+      },
+    );
+
+    if (!namesAnAddress) {
+      continue;
+    }
+
+    if (
+      getScrubbedKindOfAction(rule.scrubAction || "") ===
+      ScrubbedAddressKind.Hashed
+    ) {
+      isHashing = true;
+    } else if (!hiding) {
+      hiding = {
+        id: rule._id ? rule._id.toString() : "",
+        name: rule.name || "",
+        patternType: LogScrubPatternType.NamedKeys,
+        scrubAction: rule.scrubAction || "",
+        fieldsToScrub: rule.fieldsToScrub || "",
+      };
+    }
+  }
+
+  return { hiding, isHashing };
 }

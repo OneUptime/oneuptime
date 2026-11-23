@@ -13,6 +13,7 @@ import SecuritySignedInAddresses, {
   SecuritySignedInSource,
   buildSignedInRequestsStatement,
   buildSignedInSignInsStatement,
+  findNamedAddressRules,
   getSecuritySignedInMatch,
   listSecuritySignedInAddresses,
   readSignedInUsersByAddress,
@@ -69,7 +70,13 @@ let logRows: Array<JSONObject>;
 let signInRows: Array<JSONObject>;
 let hiddenSignIns: number;
 let rules: { log: Array<AddressScrubRule>; trace: Array<AddressScrubRule> };
-let storedRules: Array<{ scrubAction: string; createdAt: Date }>;
+let storedRules: Array<{
+  scrubAction: string;
+  createdAt?: Date;
+  name?: string;
+  patternType?: string;
+  attributeKeys?: Array<string>;
+}>;
 let failReads: boolean;
 
 function answer(rows: Array<JSONObject>): unknown {
@@ -288,6 +295,93 @@ describe("hashed addresses", () => {
     });
     // Nothing is read that could not answer anyway.
     expect(asked).toHaveLength(0);
+  });
+
+  /*
+   * A Named Attributes rule (#10366) hides an attribute whole, whatever it
+   * holds: one that names the attribute a client's address is read from -
+   * client.address, or client, which names it too - leaves no address to
+   * match, so OneUptime cannot tell, and says which rule. One that names
+   * other attributes changes nothing.
+   */
+  test("a Named Attributes rule that redacts the client's address attribute: CannotTell, naming the rule", async () => {
+    storedRules = [
+      {
+        name: "Hide the client",
+        patternType: LogScrubPatternType.NamedKeys,
+        scrubAction: "redact",
+        attributeKeys: ["client"],
+      },
+    ];
+
+    const result: SecuritySignedInAddressCheck = await check();
+
+    expect(result.state).toBe(SecuritySignedInAddressState.CannotTell);
+    expect(result.reason).toContain(
+      "Your scrub rule Hide the client hides client addresses",
+    );
+  });
+
+  test("Named Attributes rules: only those naming an attribute the address is read from count, by exact key or prefix", () => {
+    const named: (
+      attributeKeys: Array<string>,
+      scrubAction: string,
+    ) => {
+      name: string;
+      patternType: string;
+      scrubAction: string;
+      fieldsToScrub: string;
+      attributeKeys: Array<string>;
+    } = (attributeKeys: Array<string>, scrubAction: string) => {
+      return {
+        name: attributeKeys.join(", "),
+        patternType: LogScrubPatternType.NamedKeys,
+        scrubAction,
+        fieldsToScrub: "",
+        attributeKeys,
+      };
+    };
+
+    // Other attributes, and a rule of another kind: nothing.
+    expect(
+      findNamedAddressRules({
+        rules: [
+          named(["user.email", "customer_name"], "redact"),
+          { ...named(["client.address"], "redact"), patternType: "email" },
+        ],
+        signal: "trace",
+      }),
+    ).toEqual({ hiding: null, isHashing: false });
+
+    // The span attribute, exactly: hidden.
+    expect(
+      findNamedAddressRules({
+        rules: [named(["client.address"], "mask")],
+        signal: "trace",
+      }).hiding?.name,
+    ).toBe("client.address");
+
+    // A log's remote_addr is an address attribute of logs, not of spans.
+    expect(
+      findNamedAddressRules({
+        rules: [named(["remote_addr"], "redact")],
+        signal: "log",
+      }).hiding?.name,
+    ).toBe("remote_addr");
+    expect(
+      findNamedAddressRules({
+        rules: [named(["remote_addr"], "redact")],
+        signal: "trace",
+      }).hiding,
+    ).toBeNull();
+
+    // One that hashes it: the address's tokens are matched instead.
+    expect(
+      findNamedAddressRules({
+        rules: [named(["http"], "hash")],
+        signal: "trace",
+      }),
+    ).toEqual({ hiding: null, isHashing: true });
   });
 
   test("a Hash rule older than keyed tokens, within the window: CannotTell until those tokens are past it", async () => {
