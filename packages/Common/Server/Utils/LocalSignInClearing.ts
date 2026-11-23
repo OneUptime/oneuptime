@@ -102,7 +102,10 @@ export const isPasswordResetLinkWorking: (data: {
   resetPasswordExpires: Date | null | undefined;
   now: Date;
 }): boolean => {
-  if (data.resetPasswordToken === null || data.resetPasswordToken === undefined) {
+  if (
+    data.resetPasswordToken === null ||
+    data.resetPasswordToken === undefined
+  ) {
     return false;
   }
 

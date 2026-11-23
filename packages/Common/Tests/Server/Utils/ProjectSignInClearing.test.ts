@@ -953,7 +953,9 @@ describe("one member at a time: who the list names, and who an owner may clear",
     ): Promise<void> => {
       await expect(listedIds(acme, [who])).resolves.toEqual([]);
       await expect(clearOne(acme, who)).rejects.toThrow(
-        new BadDataException(CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE),
+        new BadDataException(
+          CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
+        ),
       );
       expect(clearPeople).not.toHaveBeenCalled();
       expect(recordCleared).not.toHaveBeenCalled();

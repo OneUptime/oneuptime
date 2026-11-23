@@ -83,7 +83,13 @@ jest.mock("../../../UI/Utils/User", () => {
         return mockIsMasterAdmin;
       },
       getUserId: (): unknown => {
-        return mockReaderId ? { toString: () => mockReaderId } : null;
+        return mockReaderId
+          ? {
+              toString: () => {
+                return mockReaderId;
+              },
+            }
+          : null;
       },
     },
   };
@@ -835,9 +841,11 @@ describe("in every Dashboard language", () => {
     `${MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.backupCodes.other}_one`,
   ];
 
-  test.each(DASHBOARD_LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))("%s words every one of them", (language: string) => {
+  test.each(
+    DASHBOARD_LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )("%s words every one of them", (language: string) => {
     const unworded: Array<string> = KEYS.filter((key: string): boolean => {
       return !isWordedInDashboardLocale(key, language);
     });
@@ -845,9 +853,11 @@ describe("in every Dashboard language", () => {
     expect(unworded).toEqual([]);
   });
 
-  test.each(DASHBOARD_LANGUAGES.filter((language: string) => {
-    return language !== "en";
-  }))(
+  test.each(
+    DASHBOARD_LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )(
     "%s: the list of what goes reads in the language, its counts in it too",
     (language: string) => {
       const lines: Array<string> = getSavedSignInSettingLines(

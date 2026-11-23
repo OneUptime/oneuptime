@@ -219,8 +219,9 @@ const holds: (
   projectId: ObjectID,
   permissions: Array<Permission>,
 ): void => {
-  const byProject: Map<string, Array<UserPermission>> =
-    rows.get(keyOf(userId)) || new Map<string, Array<UserPermission>>();
+  const byProject: Map<string, Array<UserPermission>> = rows.get(
+    keyOf(userId),
+  ) || new Map<string, Array<UserPermission>>();
   byProject.set(keyOf(projectId), allow(permissions));
   rows.set(keyOf(userId), byProject);
 };
@@ -448,9 +449,7 @@ beforeEach(() => {
   rows = new Map<string, Map<string, Array<UserPermission>>>();
   masterAdmins = new Set<string>([keyOf(ADA_ID)]);
   withSettings = new Set<string>(
-    [OWNER_ID, ADMIN_ID, ALICE_ID, BOB_ID, ADA_ID, CAROL_ID, DAN_ID].map(
-      keyOf,
-    ),
+    [OWNER_ID, ADMIN_ID, ALICE_ID, BOB_ID, ADA_ID, CAROL_ID, DAN_ID].map(keyOf),
   );
   listedSql = [];
 
@@ -482,13 +481,9 @@ beforeEach(() => {
 
   // What the middleware reads around the permissions: none of it decides here.
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
-  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(
-    undefined,
-  );
+  getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
-  getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(
-    true,
-  );
+  getJestSpyOn(ProjectService, "getRequireSsoForLogin").mockResolvedValue(true);
   getJestSpyOn(
     ProjectService,
     "getRequireSsoWithSsoProviderId",
@@ -738,7 +733,9 @@ describe("an owner", () => {
 
   test("names only members of this project: somebody from another of their projects is named there, not here", async () => {
     expect(listed(await ask([CAROL_ID]))).toEqual([]);
-    expect(listed(await ask([CAROL_ID], STAGING_ID))).toEqual([keyOf(CAROL_ID)]);
+    expect(listed(await ask([CAROL_ID], STAGING_ID))).toEqual([
+      keyOf(CAROL_ID),
+    ]);
 
     const refused: HttpResult = await clearOne(CAROL_ID);
     expect(refused.status).toBe(400);

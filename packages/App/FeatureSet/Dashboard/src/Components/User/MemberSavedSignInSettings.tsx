@@ -81,17 +81,16 @@ import React, {
  * rows, a team's block taking it away, as the server reads it - never by
  * master-admin standing, which the server does not count.
  */
-export const isMemberSavedSignInSettingsAsked: () => boolean =
-  (): boolean => {
-    return HeldPermissionsUtil.holdsAnyOf(
-      HeldPermissionsUtil.fromRows({
-        rows: PermissionUtil.getProjectPermissions()?.permissions || [],
-        globalPermissions:
-          PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
-      }),
-      [Permission.ProjectOwner],
-    );
-  };
+export const isMemberSavedSignInSettingsAsked: () => boolean = (): boolean => {
+  return HeldPermissionsUtil.holdsAnyOf(
+    HeldPermissionsUtil.fromRows({
+      rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+      globalPermissions:
+        PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+    }),
+    [Permission.ProjectOwner],
+  );
+};
 
 // Whether this row is the signed-in reader's own.
 const isReadersOwnRow: (row: TeamMember) => boolean = (
@@ -109,25 +108,26 @@ const isReadersOwnRow: (row: TeamMember) => boolean = (
  * pending invitation is nobody's to clear), never the reader, each once, a
  * page at most.
  */
-export const getMembersToAskAbout: (rows: Array<TeamMember>) => Array<string> =
-  (rows: Array<TeamMember>): Array<string> => {
-    const userIds: Set<string> = new Set<string>();
+export const getMembersToAskAbout: (
+  rows: Array<TeamMember>,
+) => Array<string> = (rows: Array<TeamMember>): Array<string> => {
+  const userIds: Set<string> = new Set<string>();
 
-    for (const row of rows) {
-      const userId: string = getRowUserId(row);
+  for (const row of rows) {
+    const userId: string = getRowUserId(row);
 
-      if (!userId || !row.hasAcceptedInvitation || isReadersOwnRow(row)) {
-        continue;
-      }
-
-      userIds.add(userId);
+    if (!userId || !row.hasAcceptedInvitation || isReadersOwnRow(row)) {
+      continue;
     }
 
-    return Array.from(userIds).slice(
-      0,
-      MAX_PEOPLE_PER_SAVED_SIGN_IN_SETTINGS_ASK,
-    );
-  };
+    userIds.add(userId);
+  }
+
+  return Array.from(userIds).slice(
+    0,
+    MAX_PEOPLE_PER_SAVED_SIGN_IN_SETTINGS_ASK,
+  );
+};
 
 /*
  * Of these members, the ones whose saved sign-in settings the reader may
@@ -368,9 +368,7 @@ export const useMemberSavedSignInSettings: () => MemberSavedSignInSettings =
               (
                 current: ReadonlyMap<string, LocalSignInSettings>,
               ): ReadonlyMap<string, LocalSignInSettings> => {
-                const next: Map<string, LocalSignInSettings> = new Map(
-                  current,
-                );
+                const next: Map<string, LocalSignInSettings> = new Map(current);
 
                 // What this page said of its people replaces what was known.
                 for (const userId of userIds) {
@@ -477,7 +475,10 @@ export const getClearMemberSavedSignInSettingsRowAction: (data: {
         submitButtonText: copy.action,
         submitButtonType: ButtonStyleType.DANGER,
         details: (
-          <SavedSignInSettingsList settings={settings} translator={translator} />
+          <SavedSignInSettingsList
+            settings={settings}
+            translator={translator}
+          />
         ),
       };
     },

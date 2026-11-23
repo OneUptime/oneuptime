@@ -432,9 +432,10 @@ describe("LocalSignInClearing.readSettings: what one person has saved", () => {
       settings: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
     });
 
-    await expect(LocalSignInClearing.readSettings(PERSON_ID)).resolves.toEqual(
-      { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
-    );
+    await expect(LocalSignInClearing.readSettings(PERSON_ID)).resolves.toEqual({
+      ...NO_LOCAL_SIGN_IN_SETTINGS,
+      hasPasswordResetLink: true,
+    });
   });
 
   test.each([
@@ -459,7 +460,12 @@ describe("isPasswordResetLinkWorking: a reset link, as the count's SQL reads it 
   const now: Date = new Date("2026-11-22T10:00:00.000Z");
 
   test.each([
-    ["a token and an expiry still to come", "hash", "2026-11-22T10:00:01.000Z", true],
+    [
+      "a token and an expiry still to come",
+      "hash",
+      "2026-11-22T10:00:01.000Z",
+      true,
+    ],
     ["no token", null, "2026-11-23T10:00:00.000Z", false],
     ["a token never stored", undefined, "2026-11-23T10:00:00.000Z", false],
     ["no expiry", "hash", null, false],

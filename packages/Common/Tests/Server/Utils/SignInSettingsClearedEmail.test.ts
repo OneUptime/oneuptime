@@ -347,12 +347,11 @@ const standIn: (modules: ProcessModules) => void = (
         throw new Error("Cache is not connected");
       }
 
-      const entry: { value: string; expiresAt: number } | undefined =
-        cache.get(`${namespace}-${key}`);
+      const entry: { value: string; expiresAt: number } | undefined = cache.get(
+        `${namespace}-${key}`,
+      );
 
-      return entry && entry.expiresAt > mockQueueState.now
-        ? entry.value
-        : null;
+      return entry && entry.expiresAt > mockQueueState.now ? entry.value : null;
     },
   );
 
@@ -369,8 +368,7 @@ const standIn: (modules: ProcessModules) => void = (
 
       cache.set(`${namespace}-${key}`, {
         value: value,
-        expiresAt:
-          mockQueueState.now + (options?.expiresInSeconds || 0) * 1000,
+        expiresAt: mockQueueState.now + (options?.expiresInSeconds || 0) * 1000,
       });
     },
   );
@@ -424,9 +422,13 @@ const startAnotherServer: () => ProcessModules = (): ProcessModules => {
         "Server/Services/ProjectService",
       ),
       mail: load<typeof MailService>("Server/Services/MailService"),
-      ssoManaged: load<typeof SsoManagedSignIn>("Server/Utils/SsoManagedSignIn"),
+      ssoManaged: load<typeof SsoManagedSignIn>(
+        "Server/Utils/SsoManagedSignIn",
+      ),
       databaseConfig: load<typeof DatabaseConfig>("Server/DatabaseConfig"),
-      globalCache: load<typeof GlobalCache>("Server/Infrastructure/GlobalCache"),
+      globalCache: load<typeof GlobalCache>(
+        "Server/Infrastructure/GlobalCache",
+      ),
       log: load<typeof logger>("Server/Utils/Logger"),
     };
   });
@@ -453,105 +455,108 @@ interface WorkerRun {
  * are spent; a job done or failed is removed when its options say so. When
  * nothing is due, the suite's clock moves on to the next job that will be.
  */
-const runWorker: (modules: ProcessModules) => Promise<Array<WorkerRun>> =
-  async (modules: ProcessModules): Promise<Array<WorkerRun>> => {
-    const runs: Array<WorkerRun> = [];
+const runWorker: (
+  modules: ProcessModules,
+) => Promise<Array<WorkerRun>> = async (
+  modules: ProcessModules,
+): Promise<Array<WorkerRun>> => {
+  const runs: Array<WorkerRun> = [];
 
-    for (let step: number = 0; step < 10000; step++) {
-      const waiting: Array<[string, MockStoredJob]> = Array.from(
-        mockRedisJobs.entries(),
-      ).filter(([, job]: [string, MockStoredJob]): boolean => {
-        return job.state === "waiting";
+  for (let step: number = 0; step < 10000; step++) {
+    const waiting: Array<[string, MockStoredJob]> = Array.from(
+      mockRedisJobs.entries(),
+    ).filter(([, job]: [string, MockStoredJob]): boolean => {
+      return job.state === "waiting";
+    });
+
+    if (waiting.length === 0) {
+      return runs;
+    }
+
+    const due: Array<[string, MockStoredJob]> = waiting
+      .filter(([, job]: [string, MockStoredJob]): boolean => {
+        return job.availableAt <= mockQueueState.now;
+      })
+      .sort(
+        (
+          [, a]: [string, MockStoredJob],
+          [, b]: [string, MockStoredJob],
+        ): number => {
+          return (
+            Number(a.opts["priority"] || 0) - Number(b.opts["priority"] || 0) ||
+            a.addedAs - b.addedAs
+          );
+        },
+      );
+
+    if (due.length === 0) {
+      mockQueueState.now = Math.min(
+        ...waiting.map(([, job]: [string, MockStoredJob]): number => {
+          return job.availableAt;
+        }),
+      );
+      continue;
+    }
+
+    const [jobId, job] = due[0]!;
+    const maxAttempts: number = Number(job.opts["attempts"] || 1);
+    const attempt: number = job.attemptsMade + 1;
+
+    try {
+      await modules.email.runJob(
+        JSON.parse(JSON.stringify(job.data)) as Record<string, unknown>,
+        { attempt: attempt, maxAttempts: maxAttempts },
+      );
+
+      runs.push({
+        jobId,
+        attempt,
+        at: mockQueueState.now,
+        outcome: "done",
       });
 
-      if (waiting.length === 0) {
-        return runs;
+      job.state = "completed";
+
+      if (job.opts["removeOnComplete"] === true) {
+        mockRedisJobs.delete(jobId);
       }
+    } catch {
+      job.attemptsMade += 1;
 
-      const due: Array<[string, MockStoredJob]> = waiting
-        .filter(([, job]: [string, MockStoredJob]): boolean => {
-          return job.availableAt <= mockQueueState.now;
-        })
-        .sort(
-          (
-            [, a]: [string, MockStoredJob],
-            [, b]: [string, MockStoredJob],
-          ): number => {
-            return (
-              Number(a.opts["priority"] || 0) -
-                Number(b.opts["priority"] || 0) || a.addedAs - b.addedAs
-            );
-          },
-        );
+      if (job.attemptsMade < maxAttempts) {
+        const backoff: { type?: string; delay?: number } =
+          (job.opts["backoff"] as { type?: string; delay?: number }) || {};
 
-      if (due.length === 0) {
-        mockQueueState.now = Math.min(
-          ...waiting.map(([, job]: [string, MockStoredJob]): number => {
-            return job.availableAt;
-          }),
-        );
+        job.availableAt =
+          mockQueueState.now +
+          Math.round(Math.pow(2, job.attemptsMade - 1) * (backoff.delay || 0));
+
+        runs.push({
+          jobId,
+          attempt,
+          at: mockQueueState.now,
+          outcome: "retry",
+        });
         continue;
       }
 
-      const [jobId, job] = due[0]!;
-      const maxAttempts: number = Number(job.opts["attempts"] || 1);
-      const attempt: number = job.attemptsMade + 1;
+      runs.push({
+        jobId,
+        attempt,
+        at: mockQueueState.now,
+        outcome: "failed",
+      });
 
-      try {
-        await modules.email.runJob(
-          JSON.parse(JSON.stringify(job.data)) as Record<string, unknown>,
-          { attempt: attempt, maxAttempts: maxAttempts },
-        );
+      job.state = "failed";
 
-        runs.push({
-          jobId,
-          attempt,
-          at: mockQueueState.now,
-          outcome: "done",
-        });
-
-        job.state = "completed";
-
-        if (job.opts["removeOnComplete"] === true) {
-          mockRedisJobs.delete(jobId);
-        }
-      } catch {
-        job.attemptsMade += 1;
-
-        if (job.attemptsMade < maxAttempts) {
-          const backoff: { type?: string; delay?: number } =
-            (job.opts["backoff"] as { type?: string; delay?: number }) || {};
-
-          job.availableAt =
-            mockQueueState.now +
-            Math.round(Math.pow(2, job.attemptsMade - 1) * (backoff.delay || 0));
-
-          runs.push({
-            jobId,
-            attempt,
-            at: mockQueueState.now,
-            outcome: "retry",
-          });
-          continue;
-        }
-
-        runs.push({
-          jobId,
-          attempt,
-          at: mockQueueState.now,
-          outcome: "failed",
-        });
-
-        job.state = "failed";
-
-        if (job.opts["removeOnFail"] === true) {
-          mockRedisJobs.delete(jobId);
-        }
+      if (job.opts["removeOnFail"] === true) {
+        mockRedisJobs.delete(jobId);
       }
     }
+  }
 
-    throw new Error("The worker never ran out of jobs.");
-  };
+  throw new Error("The worker never ran out of jobs.");
+};
 
 const event: (
   userId: ObjectID,
@@ -771,7 +776,11 @@ describe("queuing: a job for each person, for a worker to send", () => {
       isDone = true;
     });
 
-    for (let step: number = 0; step < 1000 && jest.getTimerCount() === 0; step++) {
+    for (
+      let step: number = 0;
+      step < 1000 && jest.getTimerCount() === 0;
+      step++
+    ) {
       await Promise.resolve();
     }
 

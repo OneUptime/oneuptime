@@ -110,7 +110,10 @@ describe("readLocalSignInSettings", () => {
       "a reset link that is a string",
       { ...EVERYTHING, hasPasswordResetLink: "true" },
     ],
-    ["a reset link that is null", { ...EVERYTHING, hasPasswordResetLink: null }],
+    [
+      "a reset link that is null",
+      { ...EVERYTHING, hasPasswordResetLink: null },
+    ],
   ])("%s is no answer", (_label: string, value: unknown) => {
     expect(readLocalSignInSettings(value)).toBeNull();
   });
@@ -246,7 +249,9 @@ describe("one member at a time: the routes", () => {
     expect(getProjectSavedSignInSettingsOfPeopleRoute(projectId)).toBe(
       `/project/${projectId}/saved-sign-in-settings/people`,
     );
-    expect(getProjectClearPersonSavedSignInSettingsRoute(projectId, userId)).toBe(
+    expect(
+      getProjectClearPersonSavedSignInSettingsRoute(projectId, userId),
+    ).toBe(
       `/project/${projectId}/saved-sign-in-settings/people/${userId}/clear`,
     );
   });
@@ -290,7 +295,9 @@ describe("one member at a time: the ask", () => {
     expect(() => {
       readSavedSignInSettingsOfPeopleRequest(body);
     }).toThrow(
-      new BadDataException(SAVED_SIGN_IN_SETTINGS_OF_PEOPLE_BAD_REQUEST_MESSAGE),
+      new BadDataException(
+        SAVED_SIGN_IN_SETTINGS_OF_PEOPLE_BAD_REQUEST_MESSAGE,
+      ),
     );
   });
 

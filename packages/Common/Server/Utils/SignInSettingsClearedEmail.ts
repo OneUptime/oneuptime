@@ -193,15 +193,14 @@ interface SignInNow {
 }
 
 // The order the key reads what was removed in, so it never depends on JSON's.
-const CLEARED_FIELDS_IN_KEY_ORDER: ReadonlyArray<keyof LocalSignInSettings> =
-  [
-    "hasPassword",
-    "hasPasswordResetLink",
-    "isTwoFactorAuthEnabled",
-    "authenticatorAppCount",
-    "passkeyAndSecurityKeyCount",
-    "backupCodeCount",
-  ];
+const CLEARED_FIELDS_IN_KEY_ORDER: ReadonlyArray<keyof LocalSignInSettings> = [
+  "hasPassword",
+  "hasPasswordResetLink",
+  "isTwoFactorAuthEnabled",
+  "authenticatorAppCount",
+  "passkeyAndSecurityKeyCount",
+  "backupCodeCount",
+];
 
 const readId: (value: unknown) => ObjectID | null = (
   value: unknown,
@@ -229,7 +228,9 @@ export default class SignInSettingsClearedEmail {
       ...(event.clearedBy === SignInSettingsClearedBy.ProjectOwner
         ? { projectId: event.projectId.toString() }
         : {}),
-      clearedAt: (event.clearedAt || OneUptimeDate.getCurrentDate()).toISOString(),
+      clearedAt: (
+        event.clearedAt || OneUptimeDate.getCurrentDate()
+      ).toISOString(),
       cleared: cleared,
     };
   }
@@ -240,7 +241,9 @@ export default class SignInSettingsClearedEmail {
    * again, since trying cannot mend it. Keys it does not know (the tracing
    * the queue adds) are left alone.
    */
-  public static readJobData(data: unknown): SignInSettingsClearedEmailJob | null {
+  public static readJobData(
+    data: unknown,
+  ): SignInSettingsClearedEmailJob | null {
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return null;
     }
@@ -273,7 +276,10 @@ export default class SignInSettingsClearedEmail {
     // An owner's clear names its project: it is the one the email names.
     const projectId: ObjectID | null = readId(job["projectId"]);
 
-    if (job["clearedBy"] === SignInSettingsClearedBy.ProjectOwner && projectId) {
+    if (
+      job["clearedBy"] === SignInSettingsClearedBy.ProjectOwner &&
+      projectId
+    ) {
       return {
         userId: userId,
         clearedBy: SignInSettingsClearedBy.ProjectOwner,
@@ -346,11 +352,9 @@ export default class SignInSettingsClearedEmail {
     }
 
     const queued: Promise<void> = Promise.all(
-      toSend.map(
-        (event: SignInSettingsClearedEmailEvent): Promise<void> => {
-          return SignInSettingsClearedEmail.enqueue(event);
-        },
-      ),
+      toSend.map((event: SignInSettingsClearedEmailEvent): Promise<void> => {
+        return SignInSettingsClearedEmail.enqueue(event);
+      }),
     ).then((): void => {
       return undefined;
     });
@@ -640,7 +644,10 @@ export default class SignInSettingsClearedEmail {
   private static async readClearer(
     job: SignInSettingsClearedEmailJob,
   ): Promise<SignInSettingsClearer> {
-    if (job.clearedBy !== SignInSettingsClearedBy.ProjectOwner || !job.projectId) {
+    if (
+      job.clearedBy !== SignInSettingsClearedBy.ProjectOwner ||
+      !job.projectId
+    ) {
       return { clearedBy: SignInSettingsClearedBy.ServerAdmin };
     }
 

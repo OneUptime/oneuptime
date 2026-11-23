@@ -256,11 +256,10 @@ describe("the routes of an organization's own clear", () => {
   }
 
   // What each route is called with when a test names no body or person.
-  const extraFor: (
-    route: string,
-  ) => { params?: Dictionary<string>; body?: unknown } = (
-    route: string,
-  ): { params?: Dictionary<string>; body?: unknown } => {
+  const extraFor: (route: string) => {
+    params?: Dictionary<string>;
+    body?: unknown;
+  } = (route: string): { params?: Dictionary<string>; body?: unknown } => {
     if (route === PEOPLE_ROUTE) {
       return { body: { userIds: [MEMBER_ID] } };
     }
@@ -291,9 +290,9 @@ describe("the routes of an organization's own clear", () => {
   });
 
   test("one member at a time (#9993): the routes the Users list calls are the ones mounted, behind getUserMiddleware", () => {
-    expect(getProjectSavedSignInSettingsOfPeopleRoute(projectId.toString())).toBe(
-      `/project/${projectId.toString()}/saved-sign-in-settings/people`,
-    );
+    expect(
+      getProjectSavedSignInSettingsOfPeopleRoute(projectId.toString()),
+    ).toBe(`/project/${projectId.toString()}/saved-sign-in-settings/people`);
     expect(
       getProjectClearPersonSavedSignInSettingsRoute(
         projectId.toString(),

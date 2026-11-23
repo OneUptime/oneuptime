@@ -250,12 +250,11 @@ export default class ProjectSignInClearing {
         userIds: data.userIds,
       });
 
-    const clearable: Array<ObjectID> = await ProjectSignInClearing.findClearable(
-      {
+    const clearable: Array<ObjectID> =
+      await ProjectSignInClearing.findClearable({
         candidates: members,
         ownerUserId: data.ownerUserId,
-      },
-    );
+      });
 
     const people: Array<PersonSavedSignInSettings> = [];
 
@@ -314,12 +313,11 @@ export default class ProjectSignInClearing {
       });
 
     // The rule, read right before the clear.
-    const clearable: Array<ObjectID> = await ProjectSignInClearing.findClearable(
-      {
+    const clearable: Array<ObjectID> =
+      await ProjectSignInClearing.findClearable({
         candidates: members,
         ownerUserId: data.ownerUserId,
-      },
-    );
+      });
 
     if (clearable.length !== 1) {
       throw new BadDataException(
