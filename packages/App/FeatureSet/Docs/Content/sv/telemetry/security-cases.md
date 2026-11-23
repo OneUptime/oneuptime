@@ -269,6 +269,7 @@ OneUptime berättar för personer om sju saker som händer i ett ärende. Ingen 
 - Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
 - Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
 - Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
+- Med **Låt OneUptime AI agera först** påslaget väntar ett nytt ärende på OneUptime AI om dess prioritet ligger under den valda: personer får veta om det först när OneUptime AI behöver dem, och då direkt och med en förklaring. Se [Låt OneUptime AI agera först](/docs/telemetry/security-ai#låt-oneuptime-ai-agera-först).
 - Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats, ett steg som inte längre håller och ett ärende som OneUptime AI har lämnat över till personer.
 - Ärendets **Tidslinje** visar vem som fick veta, och när.
 
@@ -490,6 +491,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Queued | Väntar på en worker |
 | Running | Kör sina steg |
 | Waiting for Approval | Stoppad före ett steg som kräver godkännande |
+| Väntar på OneUptime AI | Stoppad före ett steg **Larma jouren** medan [OneUptime AI agerar först](/docs/telemetry/security-ai#låt-oneuptime-ai-agera-först) i körningens ärende |
 | Succeeded | Varje steg kördes eller hoppades över, eller ett steg **Stoppa körningen** avslutade den |
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |

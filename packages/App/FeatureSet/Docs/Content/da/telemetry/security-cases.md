@@ -269,6 +269,7 @@ OneUptime giver folk besked om syv ting på en sag. Ingen behøver at sætte nog
 - Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
 - Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
 - Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
+- Med **Lad OneUptime AI reagere først** slået til venter en ny sag på OneUptime AI, hvis dens prioritet ligger under den valgte: folk hører først om den, når OneUptime AI har brug for dem, og så med det samme og med en begrundelse. Se [Lad OneUptime AI reagere først](/docs/telemetry/security-ai#lad-oneuptime-ai-reagere-først).
 - En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet, et trin, der ikke længere holder, og en sag, som OneUptime AI har overdraget til personer.
 - Sagens **Tidslinje** viser, hvem der fik besked, og hvornår.
 
@@ -490,6 +491,7 @@ Hver kørsel vises på sin sag og under **Produkter → Sikkerhedshændelser →
 | Queued | Venter på en worker |
 | Kører | Kører sine trin |
 | Waiting for Approval | Holdt tilbage før et trin, der kræver godkendelse |
+| Venter på OneUptime AI | Holdt tilbage før et trin **Tilkald vagten**, mens [OneUptime AI reagerer først](/docs/telemetry/security-ai#lad-oneuptime-ai-reagere-først) på kørslens sag |
 | Lykkedes | Alle trin kørte eller blev sprunget over, eller et trin **Stop kørslen** afsluttede den |
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
