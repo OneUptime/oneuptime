@@ -44,6 +44,8 @@ import DataSecurityAiInput, {
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
+import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
+import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -167,6 +169,8 @@ import type { SpyInstance } from "jest-mock";
  *     permission layer, the reads for AI and the builder, to the model
  *     (LLMService) and to the Code task (CodeTaskRuns.start);
  *   - the field suggestions, from the store's scan state to the model;
+ *   - the verdicts on findings that wait for a person (#10372), from the
+ *     store's findings and the team's decisions on findings like them;
  *   - Ask AI's three Data Security tools, to the text the chat reads.
  *
  * Every byte each one sends is searched for every planted value. A
@@ -398,6 +402,49 @@ function findingRows(): Array<StoredRow> {
       isConfirmed: false,
       isSuppressed: false,
       maskedSamples: [PLANTED["maskedSample"]],
+    },
+  ];
+}
+
+/*
+ * The team's decision on a finding like the bucket's suggestion, on a third
+ * store (#10372): the one column of a finding a verdict is told as a person
+ * wrote it, the reason, with a value of its own typed into it. The verdict
+ * is told the words, never the values.
+ */
+const CRM_STORE_ID: string = "10372000-0000-4000-8000-0000000000b3";
+const REASON_WORDS: string = "Our support inbox, not a customer";
+const REASON_EMAIL: string = "support@acme-shop.com";
+const REASON_NUMBER: string = "48151623421";
+
+function precedentRows(): Array<StoredRow> {
+  return [
+    {
+      _id: "10372000-0000-4000-8000-0000000000d4",
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: CRM_STORE_ID,
+      dataTypeId: "email-address",
+      dataTypeName: "Email address",
+      location: "crm.customers.kontakt",
+      locationKind: "Column",
+      confidence: "Medium",
+      matchCount: 30,
+      valueCount: 40,
+      isSuppressed: true,
+      isConfirmed: false,
+      isAiSuggested: false,
+      suppressedReason: `${REASON_WORDS}: ${REASON_EMAIL}, ticket ${REASON_NUMBER}`,
+      decidedAt: new Date(),
+      lastSeenAt: new Date(),
+      maskedSamples: [PLANTED["maskedSample"]],
+      sampleRecords: [
+        {
+          time: new Date().toISOString(),
+          traceId: PLANTED["sampleRecordTrace"],
+          logId: PLANTED["sampleRecordLog"],
+        },
+      ],
+      body: PLANTED["logBody"],
     },
   ];
 }
@@ -1089,6 +1136,59 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   },
   [DataSecurityAiFeature.NameIssueGroup]: nameIssueGroupRun,
   [DataSecurityAiFeature.FixIssueGroup]: fixIssueGroupRun,
+  /*
+   * The verdicts (#10372): the bucket's suggestion waits for a person, and
+   * the team's decision on a field of the same name on another store is
+   * its precedent - read with every column planted, its own included.
+   */
+  [DataSecurityAiFeature.JudgeFindings]: async (): Promise<string> => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: PROJECT_ID,
+      enableAi: true,
+      enableAutomaticDataSecurityAi: true,
+    } as unknown as Project);
+    useInMemoryTable(asService(DataStoreFindingService), [
+      ...findingRows(),
+      ...precedentRows(),
+    ]);
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID),
+      storeRow(CRM_STORE_ID, {
+        name: "crm-eu",
+        kind: "PostgreSQL",
+        provider: "aws",
+      }),
+    ]);
+    // No AI rule: the project's defaults, which suggest.
+    jest.spyOn(DataSecurityAiEngine, "readRules").mockResolvedValue([]);
+    // Written as one statement the tables in memory do not run: what it saves is no input.
+    jest
+      .spyOn(DataStoreFindingService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        findings: [
+          {
+            ref: "F1",
+            verdict: "NotSensitive",
+            reason: "Your team marked kontakt not sensitive on another store.",
+            precedent: ["P1"],
+            draft: "The support inbox, as on crm-eu.",
+          },
+        ],
+      }),
+      usage: { promptTokens: 300, completionTokens: 40, totalTokens: 340 },
+    });
+
+    await DataSecurityFindingVerdicts.judgeStore({
+      projectId: PROJECT_ID,
+      dataStoreId: new ObjectID(STORE_ID),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
 };
 
 // What each feature is for, which its input must still carry.
@@ -1142,6 +1242,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "customer.email",
     "acme-card-exports",
     "public-read",
+  ],
+  // The finding that waits, and the decision on one like it, in the person's words.
+  [DataSecurityAiFeature.JudgeFindings]: [
+    "public.customers.kontakt",
+    "crm.customers.kontakt",
+    REASON_WORDS,
   ],
 };
 
@@ -1205,6 +1311,16 @@ describe("no feature's input carries a value planted where a record keeps one", 
         selected: false,
       });
     }
+  });
+});
+
+describe("a person's reason reaches the verdicts without a value in it", () => {
+  test("the words go, the email address and the number typed into it do not", async () => {
+    const sent: string = await RUNS[DataSecurityAiFeature.JudgeFindings]();
+
+    expect(sent).toContain(REASON_WORDS);
+    expect(sent).not.toContain(REASON_EMAIL);
+    expect(sent).not.toContain(REASON_NUMBER);
   });
 });
 
