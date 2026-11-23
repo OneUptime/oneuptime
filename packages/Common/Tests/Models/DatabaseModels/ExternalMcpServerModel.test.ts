@@ -188,7 +188,7 @@ describe("ExternalMcpServer: its secrets", () => {
     });
   });
 
-  test("every other column is read back: only the secrets, and who deleted a server, are not", () => {
+  test("every other column is read back: only the secrets are not", () => {
     const unreadable: Array<string> = Object.entries(access)
       .filter(([, control]: [string, ColumnAccessControl]) => {
         return control.read.length === 0;
@@ -198,9 +198,7 @@ describe("ExternalMcpServer: its secrets", () => {
       })
       .sort();
 
-    expect(unreadable).toEqual(
-      [...SECRETS, "deletedByUser", "deletedByUserId"].sort(),
-    );
+    expect(unreadable).toEqual([...SECRETS].sort());
   });
 });
 

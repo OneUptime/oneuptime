@@ -1,3 +1,8 @@
+import {
+  DELETED_BY_USER_ID_COLUMN,
+  DELETED_BY_USER_TABLES,
+  DeletedByUserTable,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
 import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
@@ -381,11 +386,22 @@ describe("the Data Security migration", () => {
     async (table: string, Model: ModelClass) => {
       const statement: string = createStatement(await record("up"), table);
       const later: Array<string> = addedLater(table);
+      // Dropped from every table that had it later (DropDeletedByUserColumns, #10469).
+      const droppedLater: Array<string> = DELETED_BY_USER_TABLES.some(
+        (entry: DeletedByUserTable): boolean => {
+          return entry.table === table;
+        },
+      )
+        ? [DELETED_BY_USER_ID_COLUMN]
+        : [];
 
       expect(columnsCreated(statement)).toEqual(
-        storedColumns(new Model()).filter((column: string): boolean => {
-          return !later.includes(column);
-        }),
+        [
+          ...storedColumns(new Model()).filter((column: string): boolean => {
+            return !later.includes(column);
+          }),
+          ...droppedLater,
+        ].sort(),
       );
       expect(statement).toContain(
         `"_id" uuid NOT NULL DEFAULT uuid_generate_v4()`,
