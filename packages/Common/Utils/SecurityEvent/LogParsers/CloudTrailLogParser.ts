@@ -225,7 +225,11 @@ export default class CloudTrailLogParser {
           eventUid: eventId ? `cloudtrail:${eventId}` : undefined,
           principalUser: actor,
           principalIp: sourceIp,
-          // A call from inside AWS names the service instead of an address.
+          /*
+           * A call from inside AWS names the service instead of an address.
+           * An address a scrub rule hid is still an address, never a host
+           * every hidden call shares (#10419).
+           */
           principalHost: sourceIp ? "" : sourceAddress.slice(0, 255),
           targetHost: account,
           targetResource: `${eventSource} ${eventName}`,

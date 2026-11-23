@@ -18,7 +18,7 @@ import {
 } from "../SecurityRecordReading";
 import {
   boundAttributes,
-  readRemoteIpAddress,
+  readRemoteIpAddressOnly,
 } from "../LogParsers/SecurityLogLine";
 
 /*
@@ -570,7 +570,7 @@ export function readGoogleWorkspaceActivity(
   const actor: string =
     text(readValue(activity, "actor.email")) ||
     text(readValue(activity, "actor.key"));
-  const ip: string = readRemoteIpAddress(text(activity["ipAddress"]));
+  const ip: string = readRemoteIpAddressOnly(text(activity["ipAddress"]));
   const events: unknown = activity["events"];
 
   if (!application || !Array.isArray(events)) {

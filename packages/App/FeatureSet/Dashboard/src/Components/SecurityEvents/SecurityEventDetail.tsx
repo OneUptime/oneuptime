@@ -13,9 +13,12 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   HiddenClientAddress,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import { ScrubbedUserRole } from "Common/Utils/SecurityEvent/ScrubbedUser";
-import HiddenClientAddressText from "./HiddenClientAddressText";
+import HiddenClientAddressText, {
+  HIDDEN_TARGET_ADDRESS_TEST_ID,
+} from "./HiddenClientAddressText";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenUserCopy";
 import { buildHiddenUserField } from "./SecurityEventDetailFields";
 
@@ -78,6 +81,8 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
 
   const hiddenAddress: HiddenClientAddress | null =
     readHiddenClientAddress(event);
+  const hiddenTargetAddress: HiddenClientAddress | null =
+    readHiddenTargetAddress(event);
 
   /*
    * Observables are the pivot points of the whole product — every one of
@@ -162,7 +167,18 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
         : event.targetUser,
     },
     { label: "Target Host", value: event.targetHost },
-    { label: "Target IP", value: event.targetIp },
+    {
+      label: "Target IP",
+      // A destination a scrub rule hid says so, as the events list's drawer does (#10419).
+      value: hiddenTargetAddress ? (
+        <HiddenClientAddressText
+          hidden={hiddenTargetAddress}
+          dataTestId={HIDDEN_TARGET_ADDRESS_TEST_ID}
+        />
+      ) : (
+        event.targetIp
+      ),
+    },
     {
       label: "Target Port",
       value: event.targetPort ? event.targetPort.toString() : undefined,

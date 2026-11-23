@@ -56,6 +56,16 @@ import { doesScrubRuleApplyTo } from "../../Types/Telemetry/ScrubRuleScope";
  * The pages read them through readHiddenClientAddress, which says nothing
  * once an event names its address.
  *
+ * An event has two addresses (#10419): the one its activity came from
+ * (principalIp - a request's client, a connection's source, a sign-in's)
+ * and the one it went to (targetIp - a firewall's destination, where an
+ * outbound transfer went). Each has a marker of its own (ScrubbedAddress
+ * Role): the principal's is the request attributes above, kept as they
+ * were, and the target's is SCRUBBED_ADDRESS_ATTRIBUTES' target keys. Every
+ * log format marks both where it builds its event (LogParsers/
+ * SecurityLogLine's buildLogSecurityEvent), from what its parser read in
+ * the address's field.
+ *
  * Pure, and read in the browser too: every reading is an indexOf or a
  * slice over a bounded text, or the token's one anchored pattern of fixed
  * length over a text of at most MAX_SCRUBBED_ADDRESS_LENGTH - the text is a
@@ -284,17 +294,91 @@ export function readScrubbedAddress(value: string): ScrubbedAddress | null {
  * ---------------------------------------------------------------------------
  */
 
-// The attributes the marker is made of, cleared together.
-const MARKER_ATTRIBUTES: ReadonlyArray<string> = [
-  SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
-  SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
-  SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
-  SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
-  SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
-];
+/*
+ * Which of an event's addresses a rule hid (#10419): the one its activity
+ * came from, or the one it went to.
+ */
+export enum ScrubbedAddressRole {
+  // principalIp: a request's client, a connection's source, a sign-in's address.
+  Principal = "principal",
+  // targetIp: a connection's destination, where a transfer went.
+  Target = "target",
+}
+
+export const SCRUBBED_ADDRESS_ROLES: ReadonlyArray<ScrubbedAddressRole> =
+  Object.values(ScrubbedAddressRole);
+
+// The attributes one address's marker is made of.
+export interface ScrubbedAddressMarkerKeys {
+  // That a scrub rule hid it: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE.
+  hidden: string;
+  // What the rule left: "[REDACTED]", a mask, or the rule's token.
+  scrubbed: string;
+  // Where in the record (ScrubbedAddressPlace).
+  scrubbedIn: string;
+  // The project's rule that explains it, by its id and its name.
+  ruleId: string;
+  rule: string;
+}
+
+/*
+ * Each address's marker. The principal's are the request attributes #10397
+ * made for a request's client, kept as stored events and searches spell
+ * them; the target's are its own, beside the target user's (ScrubbedUser).
+ */
+export const SCRUBBED_ADDRESS_ATTRIBUTES: Readonly<
+  Record<ScrubbedAddressRole, ScrubbedAddressMarkerKeys>
+> = {
+  [ScrubbedAddressRole.Principal]: {
+    hidden: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+    scrubbed: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
+    scrubbedIn: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+    ruleId: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
+    rule: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
+  },
+  [ScrubbedAddressRole.Target]: {
+    hidden: "oneuptime.target_address_hidden",
+    scrubbed: "oneuptime.target_address_scrubbed",
+    scrubbedIn: "oneuptime.target_address_scrubbed_in",
+    ruleId: "oneuptime.target_address_scrub_rule_id",
+    rule: "oneuptime.target_address_scrub_rule",
+  },
+};
+
+// The attributes a role's marker is made of, cleared together.
+export function getScrubbedAddressMarkerAttributes(
+  role: ScrubbedAddressRole,
+): ReadonlyArray<string> {
+  const keys: ScrubbedAddressMarkerKeys = SCRUBBED_ADDRESS_ATTRIBUTES[role];
+
+  return [keys.hidden, keys.scrubbed, keys.scrubbedIn, keys.ruleId, keys.rule];
+}
 
 export const CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES: ReadonlyArray<string> =
-  MARKER_ATTRIBUTES;
+  getScrubbedAddressMarkerAttributes(ScrubbedAddressRole.Principal);
+
+export const TARGET_ADDRESS_SCRUB_MARKER_ATTRIBUTES: ReadonlyArray<string> =
+  getScrubbedAddressMarkerAttributes(ScrubbedAddressRole.Target);
+
+/*
+ * An address of the event is one a scrub rule hid: what the rule left, and
+ * where in the record.
+ */
+export function markAddressScrubbed(
+  attributes: JSONObject,
+  data: {
+    role: ScrubbedAddressRole;
+    scrubbed: ScrubbedAddress;
+    place: ScrubbedAddressPlace;
+  },
+): void {
+  const keys: ScrubbedAddressMarkerKeys =
+    SCRUBBED_ADDRESS_ATTRIBUTES[data.role];
+
+  attributes[keys.hidden] = CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE;
+  attributes[keys.scrubbed] = data.scrubbed.value;
+  attributes[keys.scrubbedIn] = data.place;
+}
 
 /*
  * The event's request came from an address a scrub rule hid: what the rule
@@ -304,45 +388,59 @@ export function markClientAddressScrubbed(
   attributes: JSONObject,
   data: { scrubbed: ScrubbedAddress; place: ScrubbedAddressPlace },
 ): void {
-  attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden] =
-    CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE;
-  attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed] =
-    data.scrubbed.value;
-  attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn] = data.place;
+  markAddressScrubbed(attributes, {
+    ...data,
+    role: ScrubbedAddressRole.Principal,
+  });
 }
 
-// The project's rule that hid it, by its id and its name when it was read.
-export function nameClientAddressScrubRule(
+// The project's rule that hid an address, by its id and its name when it was read.
+export function nameAddressScrubRule(
   attributes: JSONObject,
+  role: ScrubbedAddressRole,
   rule: { id: string; name: string },
 ): void {
+  const keys: ScrubbedAddressMarkerKeys = SCRUBBED_ADDRESS_ATTRIBUTES[role];
   const id: string = (rule.id || "").trim();
 
   if (!id) {
     return;
   }
 
-  attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId] = id;
+  attributes[keys.ruleId] = id;
 
   const name: string = (rule.name || "").trim();
 
   if (name) {
-    attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule] =
-      name.length > 255 ? `${name.slice(0, 254)}…` : name;
+    attributes[keys.rule] = name.length > 255 ? `${name.slice(0, 254)}…` : name;
   } else {
-    delete attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule];
+    delete attributes[keys.rule];
   }
 }
 
+export function nameClientAddressScrubRule(
+  attributes: JSONObject,
+  rule: { id: string; name: string },
+): void {
+  nameAddressScrubRule(attributes, ScrubbedAddressRole.Principal, rule);
+}
+
 /*
- * The event names its address after all - the request's trace held the
+ * The event names an address after all - the request's trace held the
  * address a log rule hid, the vault knew a token (#10395) - so nothing of
- * the marker is left to say otherwise.
+ * that address's marker is left to say otherwise.
  */
-export function clearClientAddressScrubbed(attributes: JSONObject): void {
-  for (const key of MARKER_ATTRIBUTES) {
+export function clearAddressScrubbed(
+  attributes: JSONObject,
+  role: ScrubbedAddressRole,
+): void {
+  for (const key of getScrubbedAddressMarkerAttributes(role)) {
     delete attributes[key];
   }
+}
+
+export function clearClientAddressScrubbed(attributes: JSONObject): void {
+  clearAddressScrubbed(attributes, ScrubbedAddressRole.Principal);
 }
 
 function readAttribute(attributes: unknown, key: string): string {
@@ -366,7 +464,7 @@ export function isScrubbedAddressPlace(
   );
 }
 
-// A client address a scrub rule hid, as an event says it.
+// An address a scrub rule hid, as an event says it.
 export interface HiddenClientAddress {
   kind: ScrubbedAddressKind;
   // What the rule left: "[REDACTED]", a mask, or the rule's token.
@@ -379,48 +477,48 @@ export interface HiddenClientAddress {
   ruleName: string;
 }
 
+// The same, for whichever of the event's addresses it was (ScrubbedAddressRole).
+export type HiddenAddress = HiddenClientAddress;
+
 /*
- * The client address a scrub rule hid from an event, or null: for an event
- * that names its address (principalIp), or carries no marker. What every
- * page reads, so an event the vault named the address of (#10395) shows the
- * address, never this.
+ * The address of a role a scrub rule hid from an event, or null: for an
+ * event that names that address (principalIp, targetIp), or carries no
+ * marker for it. What every page reads, so an event the vault named the
+ * address of (#10395) shows the address, never this.
  */
-export function readHiddenClientAddress(event: {
-  principalIp?: string | undefined;
-  attributes?: unknown;
-}): HiddenClientAddress | null {
-  if ((event.principalIp || "").trim()) {
+export function readHiddenAddress(
+  event: {
+    principalIp?: string | undefined;
+    targetIp?: string | undefined;
+    attributes?: unknown;
+  },
+  role: ScrubbedAddressRole,
+): HiddenAddress | null {
+  const named: string | undefined =
+    role === ScrubbedAddressRole.Principal ? event.principalIp : event.targetIp;
+
+  if ((named || "").trim()) {
     return null;
   }
 
+  const keys: ScrubbedAddressMarkerKeys = SCRUBBED_ADDRESS_ATTRIBUTES[role];
   const attributes: unknown = event.attributes;
 
   if (
-    readAttribute(
-      attributes,
-      SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
-    ) !== CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE
+    readAttribute(attributes, keys.hidden) !==
+    CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE
   ) {
     return null;
   }
 
   const scrubbed: ScrubbedAddress = readScrubbedValue(
-    readAttribute(
-      attributes,
-      SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
-    ),
+    readAttribute(attributes, keys.scrubbed),
   ) || { kind: ScrubbedAddressKind.Redacted, value: SCRUB_REDACTED_VALUE };
-  const placeText: string = readAttribute(
-    attributes,
-    SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
-  );
+  const placeText: string = readAttribute(attributes, keys.scrubbedIn);
   const place: ScrubbedAddressPlace | null = isScrubbedAddressPlace(placeText)
     ? placeText
     : null;
-  const ruleId: string = readAttribute(
-    attributes,
-    SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
-  );
+  const ruleId: string = readAttribute(attributes, keys.ruleId);
 
   return {
     kind: scrubbed.kind,
@@ -428,13 +526,62 @@ export function readHiddenClientAddress(event: {
     place,
     signal: place ? getSignalOfScrubbedAddressPlace(place) : null,
     ruleId,
-    ruleName: ruleId
-      ? readAttribute(
-          attributes,
-          SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
-        )
-      : "",
+    ruleName: ruleId ? readAttribute(attributes, keys.rule) : "",
   };
+}
+
+/*
+ * The client address a scrub rule hid from an event, or null: for an event
+ * that names its address (principalIp), or carries no marker.
+ */
+export function readHiddenClientAddress(event: {
+  principalIp?: string | undefined;
+  attributes?: unknown;
+}): HiddenClientAddress | null {
+  return readHiddenAddress(event, ScrubbedAddressRole.Principal);
+}
+
+// The destination a scrub rule hid from an event, or null (#10419).
+export function readHiddenTargetAddress(event: {
+  targetIp?: string | undefined;
+  attributes?: unknown;
+}): HiddenAddress | null {
+  return readHiddenAddress(event, ScrubbedAddressRole.Target);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * An address field, as an event names it
+ * ---------------------------------------------------------------------------
+ */
+
+// An address field as an event names it: the address, or what a rule left of one.
+export interface EventAddressReading {
+  // The address, as handed over; '' when a scrub rule hid it.
+  address: string;
+  // What the rule left in its place, when one did.
+  scrubbed: ScrubbedAddress | null;
+}
+
+/*
+ * An event's address field as a parser hands it over (#10419): the
+ * address, or - when the field holds what a scrub rule left ("[REDACTED]",
+ * a mask, a Hash token, with the port, brackets or "::ffff:" an address is
+ * written with) - no address, and what the rule left. Anything else is
+ * kept as it was handed over, as it always was: a parser decides what its
+ * fields hold.
+ */
+export function readEventAddress(
+  value: string | null | undefined,
+): EventAddressReading {
+  const text: string = (value || "").trim();
+  const scrubbed: ScrubbedAddress | null = text
+    ? readScrubbedAddress(text)
+    : null;
+
+  return scrubbed
+    ? { address: "", scrubbed }
+    : { address: text, scrubbed: null };
 }
 
 /*
