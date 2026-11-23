@@ -45,6 +45,7 @@ Gegevensbeveiliging leest je gegevens zelf, in de eigen scans, en bewaart er nie
 | **Suggesties voor velden die geen detector heeft geplaatst** | Het soort opslag en de gegevenstypen die de AI mag noemen; de naam van elk veld, de namen van de velden ernaast en de vormen van de waarden, elke letter als `a` of `A` en elk cijfer als `9`; hoeveel waarden zijn gelezen en hoe lang ze zijn | Ja: de inhoudsscan van een opslag start ze |
 | **AI vragen** | De opslagen, problemen en toegang die de persoon in Gegevensbeveiliging mag lezen; wat waar is gevonden, elk gegevenstype per locatie, met aantallen en betrouwbaarheid | Nee: een persoon stelt een vraag |
 | **Eigenaren voor gegevensopslagen** | De naam, het soort, de provider, de omgeving en de gevoeligheid van de opslag, en de namen van de gegevenstypen; wat naar een eigenaar wijst: de cloudtags, de services die de opslag gebruiken, de code-eigenaren van het bestand dat de opslag declareert en de wijzigingen die eraan zijn gedaan; de teams die het bewijs noemt, bij naam, en de personen die het noemt, alleen als genummerde kandidaten, nooit bij hun naam of e-mailadres | Ja: een opslag zonder eigenaren start het, eens per dag voor nieuwe opslagen en wanneer een cloudkoppeling voor het eerst wordt gelezen, zolang **Aan nieuwe problemen werken** aan staat |
+| **Gevoelige gegevens in pull requests** | Wat de regels in de diff van de pull request vonden: het bestand en de regel, de geschreven naam, het soort gegevens dat die noemt en de controle waarvoor die zou zakken; de diff van die bestanden en de titel van de pull request, zonder wat op een geheim, een e-mailadres of een IP-adres lijkt; nooit wat productie bevat: waar je telemetrie de gegevens bevatte, de naam van een opslag of wat een opslag bevat, en ook geen voorbeeld van wat er gevonden is, zelfs geen gemaskeerd | Ja: de [productiebeoordeling](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests) van een pull request start het, wanneer de regels ervan gevoelige gegevens in de wijziging vinden |
 
 **Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven. **Analyse van nieuwe problemen** leest die ook.
 
@@ -62,7 +63,7 @@ De rij van elke aanroep in **Projectinstellingen → AI → AI-logboeken** zegt 
 
 Als een aanroep mislukt, bewaren Uitleggen met AI en de veldsuggesties geen woord van de fout van de provider, die kan citeren wat is verstuurd. De code-agent achter Oplossen met AI en de chat van AI vragen bewaren de providerfout van een mislukte aanroep nog wel in de rij.
 
-De eigenaarsvoorstellen bewaren hetzelfde als Uitleggen met AI: de rijen van hun aanroepen noemen de functie, het model, de tokens en de kosten, nooit wat er is verstuurd of geantwoord, en geen woord van de fout van een mislukte aanroep.
+De eigenaarsvoorstellen bewaren hetzelfde als Uitleggen met AI: de rijen van hun aanroepen noemen de functie, het model, de tokens en de kosten, nooit wat er is verstuurd of geantwoord, en geen woord van de fout van een mislukte aanroep. Dat geldt ook voor het lezen van de gevoelige gegevens van een pull request, waarvan de punten op de productiebeoordeling worden bewaard, in Code en in de opmerking.
 
 ## Zie het zelf
 
@@ -80,6 +81,7 @@ Elke AI-functie van Gegevensbeveiliging draait op het model dat je project koos:
 - **Uitleggen met AI** en de veldsuggesties draaien op de provider die een AI-regel voor het werk kiest, anders op de standaard-LLM-provider van je project, anders op die van de server zelf.
 - De code-agent van **Oplossen met AI** draait op de provider die een AI-regel kiest, anders op een van de eigen providers van je project, anders op die van de server zelf.
 - **AI vragen** draait op de provider die in de chat is gekozen, anders op de standaard van je project.
+- Het lezen van de gevoelige gegevens van een pull request draait op de provider die de repository voor zijn productiebeoordelingen kiest, anders op de standaard-LLM-provider van je project, anders op die van de server zelf.
 
 Een zelf gehost model draait ze allemaal: Ollama, vLLM of een OpenAI-compatibel endpoint dat je toevoegt onder **Projectinstellingen → AI → LLM-providers**. Op een afgeschermde server is de vLLM die met de Helm-chart wordt meegeleverd de eigen provider van de server, zodat niets de server verlaat.
 
@@ -91,7 +93,7 @@ Met **AI inschakelen** uit in **Projectinstellingen → AI → AI-functies** ver
 
 Elke AI-functie van Gegevensbeveiliging wordt gemeten op een vaste set verzonnen gevallen, opgebouwd zoals de functie de eigen invoer opbouwt en beoordeeld op wat een goed antwoord zegt: een uitleg die de oplossing noemt en niets herhaalt wat de naam van een opslag zei te zeggen, het juiste gegevenstype voor elk veld, een oplossing die verandert wat de controle nodig heeft en verder niets, en een antwoord uit wat AI vragen heeft gelezen. De gevallen draaien elke nacht tegen een vastgezet model, bij elke wijziging van een AI-prompt van Gegevensbeveiliging en voor elke release, die vereist dat elke functie de eigen drempel haalt.
 
-De eigenaarsvoorstellen worden beoordeeld op het noemen van de eigenaar waar het bewijs naar wijst, op niemand kiezen als het naar niemand wijst, en op onzeker zijn waar het bewijs elkaar tegenspreekt.
+De eigenaarsvoorstellen worden beoordeeld op het noemen van de eigenaar waar het bewijs naar wijst, op niemand kiezen als het naar niemand wijst, en op onzeker zijn waar het bewijs elkaar tegenspreekt. Het lezen van pull requests wordt beoordeeld op het houden van elk punt dat een lek is, het weglaten van wat er geen is, en een oplossing die zegt wat er moet veranderen.
 
 Om je eigen model op dezelfde gevallen te meten, voer je de evaluatie uit vanuit een checkout van OneUptime, met de sleutel van je model, als het er een nodig heeft, in `AI_EVAL_LLM_API_KEY`:
 

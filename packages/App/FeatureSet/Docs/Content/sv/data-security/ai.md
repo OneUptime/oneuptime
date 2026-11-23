@@ -45,6 +45,7 @@ Datasäkerhet läser själv dina data, i sina skanningar, och sparar ingenting a
 | **Förslag för fält som ingen detektor placerade** | Typen av datalager och de datatyper som AI får nämna; varje fälts namn, namnen på fälten bredvid och formerna på dess värden, varje bokstav som `a` eller `A` och varje siffra som `9`; hur många värden som lästes och hur långa de är | Ja: ett datalagers innehållsskanning startar dem |
 | **Fråga AI** | De datalager, problem och den åtkomst som personen får läsa i Datasäkerhet; vad som hittades var, varje datatyp efter plats, med antal och konfidens | Nej: en person ställer en fråga |
 | **Ägare för datalager** | Datalagrets namn, typ, leverantör, miljö och känslighet och namnen på dess datatyper; vad som pekar på en ägare: dess molntaggar, tjänsterna som använder det, kodägarna för filen som deklarerar det och ändringarna som gjorts i det; de team som bevisen nämner, med namn, och de personer de nämner, bara som numrerade kandidater, aldrig med namn eller e-postadress | Ja: Ett datalager utan ägare startar den, en gång om dagen för nya datalager och när en molnanslutning läses för första gången, medan **Arbeta med nya problem** är påslaget |
+| **Känsliga data i pull requests** | Det som reglerna hittade i pull requestens diff: filen och raden, det skrivna namnet, den typ av data det nämner och den kontroll det skulle misslyckas med; diffen av de filerna och pull requestens titel, utan det som ser ut som en hemlighet, en e-postadress eller en IP-adress; aldrig det som produktionen innehåller: var din telemetri innehöll datan, ett datalagers namn eller vad ett datalager innehåller, och inte heller ett prov på det som hittades, inte ens ett maskerat | Ja: En pull requests [produktionsgranskning](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests) startar den, när dess regler hittar känsliga data i ändringen |
 
 **Förklara med AI** och **Fråga AI** läser också först ditt teams [AI-kontext](/docs/ai/ai-context), när det finns en: anteckningarna som ditt team har skrivit åt OneUptime AI om era system. **Analys av nya problem** läser den också.
 
@@ -62,7 +63,7 @@ Varje anrops rad i **Projektinställningar → AI → AI-loggar** säger vilken 
 
 När ett anrop misslyckas sparar Förklara med AI och fältförslagen inte ett ord av leverantörens fel, som kan citera det som skickades. Kodagenten bakom Åtgärda med AI och chatten i Fråga AI sparar fortfarande ett misslyckat anrops leverantörsfel i dess rad.
 
-Ägarförslagen sparar samma sak som Förklara med AI: Raderna för deras anrop nämner funktionen, modellen, tokens och kostnaden, aldrig vad som skickades eller svarades, och inte ett ord av ett misslyckat anrops fel.
+Ägarförslagen sparar samma sak som Förklara med AI: Raderna för deras anrop nämner funktionen, modellen, tokens och kostnaden, aldrig vad som skickades eller svarades, och inte ett ord av ett misslyckat anrops fel. Detsamma gäller läsningarna av en pull requests känsliga data, vars punkter sparas på dess produktionsgranskning, i Kod och i dess kommentar.
 
 ## Se det själv
 
@@ -80,6 +81,7 @@ Varje AI-funktion i Datasäkerhet körs på den modell som ditt projekt valde:
 - **Förklara med AI** och fältförslagen körs på den leverantör som en AI-regel väljer för arbetet, annars på ditt projekts standard-LLM-leverantör, annars på serverns egen.
 - Kodagenten i **Åtgärda med AI** körs på den leverantör som en AI-regel väljer, annars på en av ditt projekts egna leverantörer, annars på serverns egen.
 - **Fråga AI** körs på den leverantör som valts i chatten, annars på ditt projekts standard.
+- Läsningen av en pull requests känsliga data körs på den leverantör som repositoriet väljer för sina produktionsgranskningar, annars på projektets standard-LLM-leverantör, annars på serverns egen.
 
 En självhostad modell kör dem alla: Ollama, vLLM eller valfri OpenAI-kompatibel slutpunkt som du lägger till under **Projektinställningar → AI → LLM-leverantörer**. På en server utan nätverksåtkomst är den vLLM som följer med Helm-diagrammet serverns egen leverantör, så ingenting lämnar servern.
 
@@ -91,7 +93,7 @@ Med **Aktivera AI** avstängt under **Projektinställningar → AI → AI-funkti
 
 Varje AI-funktion i Datasäkerhet mäts på en fast uppsättning påhittade fall, byggda så som funktionen bygger sin indata och bedömda efter vad ett rätt svar säger: en förklaring som nämner åtgärden och inte upprepar något som ett datalagers namn sa åt den att säga, rätt datatyp för varje fält, en åtgärd som ändrar det som kontrollen behöver och inget annat, och ett svar utifrån det som Fråga AI läste. Fallen körs mot en fastlåst modell varje natt, vid varje ändring av en AI-prompt i Datasäkerhet och före varje release, som kräver att varje funktion når sin tröskel.
 
-Ägarförslagen bedöms på om de nämner den ägare som bevisen pekar på, väljer ingen när de inte pekar på någon, och är osäkra där bevisen går isär.
+Ägarförslagen bedöms på om de nämner den ägare som bevisen pekar på, väljer ingen när de inte pekar på någon, och är osäkra där bevisen går isär. Läsningarna av pull requests bedöms på om de behåller varje punkt som är en läcka, utelämnar det som inte är det, och skriver en rättning som säger vad som ska ändras.
 
 För att mäta din egen modell på samma fall kör du utvärderingen från en utcheckning av OneUptime, med din modells nyckel, om den behöver en, i `AI_EVAL_LLM_API_KEY`:
 

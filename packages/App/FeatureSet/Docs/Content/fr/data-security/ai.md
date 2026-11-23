@@ -45,6 +45,7 @@ Sécurité des données lit vos données elle-même, dans ses analyses, et n'en 
 | **Suggestions pour les champs qu'aucun détecteur n'a identifiés** | Le type de magasin de données et les types de données que l'IA peut nommer ; le nom de chaque champ, les noms des champs voisins et les formes de ses valeurs, chaque lettre comme `a` ou `A` et chaque chiffre comme `9` ; combien de valeurs ont été lues, et leur longueur | Oui : l'analyse du contenu d'un magasin de données les lance |
 | **Demander à l'IA** | Les magasins de données, problèmes et accès que la personne peut lire dans Sécurité des données ; ce qui a été trouvé et où, chaque type de données selon son emplacement, avec des décomptes et la confiance | Non : une personne pose une question |
 | **Propriétaires des magasins de données** | Le nom du magasin de données, son type, son fournisseur, son environnement et sa sensibilité, et les noms de ses types de données ; ce qui désigne un propriétaire : ses balises cloud, les services qui l'utilisent, les propriétaires du code du fichier qui le déclare et les modifications qui y ont été faites ; les équipes que les preuves nomment, par leur nom, et les personnes qu'elles nomment, seulement comme candidats numérotés, jamais par leur nom ou leur adresse e-mail | Oui : un magasin sans propriétaire le lance, une fois par jour pour les nouveaux magasins et quand une connexion cloud est lue pour la première fois, tant que **Travailler sur les nouveaux problèmes** est activé |
+| **Données sensibles dans les pull requests** | Ce que les règles ont trouvé dans le diff de la pull request : le fichier et la ligne, le nom écrit, le type de données qu'il désigne et le contrôle qu'il ferait échouer ; le diff de ces fichiers et le titre de la pull request, sans ce qui ressemble à un secret, une adresse e-mail ou une adresse IP ; jamais ce que contient la production : où votre télémétrie a contenu les données, le nom d'un magasin ou ce que contient un magasin, ni un échantillon de ce qui a été trouvé, même masqué | Oui : la [revue de production](/docs/ai/ai-agent#revue-de-production-des-pull-requests) d'une pull request la lance, quand ses règles trouvent des données sensibles dans le changement |
 
 **Expliquer avec l'IA** et **Demander à l'IA** lisent aussi d'abord le [contexte IA](/docs/ai/ai-context) de votre équipe, quand elle en a un : les notes que votre équipe a écrites pour OneUptime AI sur vos systèmes. **Analyse des nouveaux problèmes** le lit aussi.
 
@@ -62,7 +63,7 @@ La ligne de chaque appel dans **Paramètres du projet → IA → Journaux IA** d
 
 Quand un appel échoue, Expliquer avec l'IA et les suggestions de champs ne gardent pas un mot de l'erreur du fournisseur, qui peut citer ce qui a été envoyé. L'agent de code derrière Corriger avec l'IA et le chat de Demander à l'IA gardent encore l'erreur du fournisseur d'un appel échoué dans sa ligne.
 
-Les propositions de propriétaires gardent la même chose qu'Expliquer avec l'IA : les lignes de leurs appels nomment la fonctionnalité, le modèle, les jetons et le coût, jamais ce qui a été envoyé ou répondu, et aucun mot de l'erreur d'un appel échoué.
+Les propositions de propriétaires gardent la même chose qu'Expliquer avec l'IA : les lignes de leurs appels nomment la fonctionnalité, le modèle, les jetons et le coût, jamais ce qui a été envoyé ou répondu, et aucun mot de l'erreur d'un appel échoué. Les lectures des données sensibles d'une pull request conservent la même chose, et leurs points sont conservés sur sa revue de production, dans Code et dans son commentaire.
 
 ## Voyez par vous-même
 
@@ -80,6 +81,7 @@ Chaque fonctionnalité IA de Sécurité des données s'exécute sur le modèle c
 - **Expliquer avec l'IA** et les suggestions de champs s'exécutent sur le fournisseur qu'une règle IA choisit pour le travail, sinon sur le fournisseur LLM par défaut de votre projet, sinon sur celui du serveur.
 - L'agent de code de **Corriger avec l'IA** s'exécute sur le fournisseur qu'une règle IA choisit, sinon sur l'un des fournisseurs de votre projet, sinon sur celui du serveur.
 - **Demander à l'IA** s'exécute sur le fournisseur choisi dans le chat, sinon sur celui par défaut de votre projet.
+- La lecture des données sensibles d'une pull request s'exécute sur le fournisseur que le dépôt choisit pour ses revues de production, sinon sur le fournisseur LLM par défaut de votre projet, sinon sur celui du serveur.
 
 Un modèle auto-hébergé les exécute toutes : Ollama, vLLM ou tout endpoint compatible OpenAI que vous ajoutez sous **Paramètres du projet → IA → Fournisseurs LLM**. Sur un serveur isolé du réseau, le vLLM fourni avec le chart Helm est le fournisseur propre du serveur, et rien ne quitte donc le serveur.
 
@@ -91,7 +93,7 @@ Avec **Activer l'IA** désactivé dans **Paramètres du projet → IA → Foncti
 
 Chaque fonctionnalité IA de Sécurité des données est mesurée sur un ensemble fixe de cas inventés, construits comme la fonctionnalité construit son entrée et notés sur ce que dit une bonne réponse : une explication qui nomme la correction et ne répète rien de ce que le nom d'un magasin de données lui demandait de dire, le bon type de données pour chaque champ, une correction qui change ce dont le contrôle a besoin et rien d'autre, et une réponse tirée de ce que Demander à l'IA a lu. Les cas s'exécutent contre un modèle épinglé chaque nuit, à chaque modification d'un prompt IA de Sécurité des données et avant chaque version, qui exige que chaque fonctionnalité atteigne son seuil.
 
-Les propositions de propriétaires sont notées sur le fait de nommer le propriétaire que désignent les preuves, de ne choisir personne quand elles ne désignent personne, et de ne pas être sûres là où les preuves ne concordent pas.
+Les propositions de propriétaires sont notées sur le fait de nommer le propriétaire que désignent les preuves, de ne choisir personne quand elles ne désignent personne, et de ne pas être sûres là où les preuves ne concordent pas. Les lectures de pull requests sont notées sur le fait de garder chaque point qui est une fuite, d'écarter ce qui n'en est pas une, et d'écrire une correction qui dit quoi changer.
 
 Pour mesurer votre propre modèle sur les mêmes cas, lancez l'évaluation depuis une copie de travail de OneUptime, avec la clé de votre modèle, s'il en a besoin, dans `AI_EVAL_LLM_API_KEY` :
 

@@ -45,6 +45,7 @@ Sicurezza dei dati legge i tuoi dati da sé, nelle sue scansioni, e non ne conse
 | **Suggerimenti per i campi che nessun rilevatore ha classificato** | Il tipo di archivio e i tipi di dati che l'IA può indicare; il nome di ogni campo, i nomi dei campi accanto e le forme dei suoi valori, ogni lettera come `a` o `A` e ogni cifra come `9`; quanti valori sono stati letti e quanto sono lunghi | Sì: la scansione del contenuto di un archivio li avvia |
 | **Chiedi all'IA** | Gli archivi, i problemi e gli accessi che la persona può leggere in Sicurezza dei dati; cosa è stato trovato e dove, ogni tipo di dati per posizione, con conteggi e confidenza | No: una persona fa una domanda |
 | **Proprietari degli archivi dati** | Il nome, il tipo, il provider, l'ambiente e la sensibilità dell'archivio, e i nomi dei suoi tipi di dati; ciò che indica un proprietario: i suoi tag cloud, i servizi che lo usano, i proprietari del codice del file che lo dichiara e le modifiche fatte su di esso; i team che le prove nominano, per nome, e le persone che nominano, solo come candidati numerati, mai con il loro nome o indirizzo email | Sì: la avvia un archivio senza proprietari, una volta al giorno per i nuovi archivi e quando una connessione cloud viene letta per la prima volta, mentre **Lavora sui nuovi problemi** è attivo |
+| **Dati sensibili nelle pull request** | Ciò che le regole hanno trovato nel diff della pull request: il file e la riga, il nome scritto, il tipo di dati che nomina e il controllo che non supererebbe; il diff di quei file e il titolo della pull request, senza ciò che sembra un segreto, un indirizzo email o un indirizzo IP; mai ciò che contiene la produzione: dove la tua telemetria ha contenuto i dati, il nome di un archivio o ciò che contiene un archivio, né un campione di ciò che è stato trovato, nemmeno mascherato | Sì: la avvia la [revisione di produzione](/docs/ai/ai-agent#revisione-di-produzione-delle-pull-request) di una pull request, quando le sue regole trovano dati sensibili nella modifica |
 
 **Spiega con l'IA** e **Chiedi all'IA** leggono anche, per primo, il [contesto IA](/docs/ai/ai-context) del tuo team, quando ne ha uno: le note che il tuo team ha scritto per OneUptime AI sui tuoi sistemi. **Analisi dei nuovi problemi** lo legge anche.
 
@@ -62,7 +63,7 @@ La riga di ogni chiamata in **Impostazioni del progetto → IA → Log IA** dice
 
 Quando una chiamata non riesce, Spiega con l'IA e i suggerimenti per i campi non conservano neanche una parola dell'errore del provider, che può citare ciò che è stato inviato. L'agente di programmazione dietro Correggi con l'IA e la chat di Chiedi all'IA conservano ancora l'errore del provider di una chiamata non riuscita nella sua riga.
 
-Le proposte di proprietari conservano lo stesso di Spiega con l'IA: le righe delle loro chiamate nominano la funzionalità, il modello, i token e il costo, mai ciò che è stato inviato o risposto, e nessuna parola dell'errore di una chiamata fallita.
+Le proposte di proprietari conservano lo stesso di Spiega con l'IA: le righe delle loro chiamate nominano la funzionalità, il modello, i token e il costo, mai ciò che è stato inviato o risposto, e nessuna parola dell'errore di una chiamata fallita. Lo stesso vale per le letture dei dati sensibili di una pull request, i cui punti vengono conservati nella sua revisione di produzione, in Codice e nel suo commento.
 
 ## Verificalo di persona
 
@@ -80,6 +81,7 @@ Ogni funzionalità IA di Sicurezza dei dati viene eseguita sul modello scelto da
 - **Spiega con l'IA** e i suggerimenti per i campi vengono eseguiti sul provider che una regola IA sceglie per il lavoro, altrimenti sul provider LLM predefinito del tuo progetto, altrimenti su quello del server.
 - L'agente di programmazione di **Correggi con l'IA** viene eseguito sul provider che una regola IA sceglie, altrimenti su uno dei provider del tuo progetto, altrimenti su quello del server.
 - **Chiedi all'IA** viene eseguito sul provider scelto nella chat, altrimenti su quello predefinito del tuo progetto.
+- La lettura dei dati sensibili di una pull request viene eseguita sul provider che il repository sceglie per le sue revisioni di produzione, altrimenti sul provider LLM predefinito del tuo progetto, altrimenti su quello del server.
 
 Un modello self-hosted le esegue tutte: Ollama, vLLM o qualsiasi endpoint compatibile con OpenAI che aggiungi in **Impostazioni del progetto → IA → Provider LLM**. Su un server isolato dalla rete, il vLLM incluso nel chart Helm è il provider del server, quindi nulla lascia il server.
 
@@ -91,7 +93,7 @@ Con **Abilita IA** disattivato in **Impostazioni del progetto → IA → Funzion
 
 Ogni funzionalità IA di Sicurezza dei dati viene misurata su un insieme fisso di casi inventati, costruiti come la funzionalità costruisce il suo input e valutati su ciò che dice una risposta giusta: una spiegazione che indica la correzione e non ripete nulla di ciò che il nome di un archivio le diceva di dire, il tipo di dati giusto per ogni campo, una correzione che cambia ciò che serve al controllo e nient'altro, e una risposta tratta da ciò che Chiedi all'IA ha letto. I casi vengono eseguiti contro un modello fissato ogni notte, a ogni modifica di un prompt IA di Sicurezza dei dati e prima di ogni release, che richiede che ogni funzionalità raggiunga la sua soglia.
 
-Le proposte di proprietari sono valutate sul nominare il proprietario indicato dalle prove, sul non scegliere nessuno quando non indicano nessuno e sul non essere sicure dove le prove non concordano.
+Le proposte di proprietari sono valutate sul nominare il proprietario indicato dalle prove, sul non scegliere nessuno quando non indicano nessuno e sul non essere sicure dove le prove non concordano. Le letture delle pull request vengono valutate sul mantenere ogni punto che è una fuga, sul lasciare fuori ciò che non lo è e su una correzione che dice cosa cambiare.
 
 Per misurare il tuo modello sugli stessi casi, esegui la valutazione da un checkout di OneUptime, con la chiave del tuo modello, se ne ha bisogno, in `AI_EVAL_LLM_API_KEY`:
 

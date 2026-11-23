@@ -45,6 +45,7 @@ Datensicherheit liest Ihre Daten selbst, in ihren Scans, und bewahrt nichts davo
 | **Vorschläge für Felder, die kein Detektor zugeordnet hat** | Die Art des Datenspeichers und die Datentypen, die die KI nennen darf; der Name jedes Felds, die Namen der Felder daneben und die Formen seiner Werte, jeder Buchstabe als `a` oder `A` und jede Ziffer als `9`; wie viele Werte gelesen wurden und wie lang sie sind | Ja: Der Inhaltsscan eines Datenspeichers startet sie |
 | **KI fragen** | Die Datenspeicher, Probleme und Zugriffe, die die Person in Datensicherheit lesen darf; was wo gefunden wurde, jeder Datentyp nach seinem Ort, mit Anzahlen und Konfidenz | Nein: Eine Person stellt eine Frage |
 | **Eigentümer für Datenspeicher** | Name, Art, Anbieter, Umgebung und Sensibilität des Datenspeichers und die Namen seiner Datentypen; was auf einen Eigentümer hinweist: seine Cloud-Tags, die Dienste, die ihn nutzen, die Code-Eigentümer der Datei, die ihn deklariert, und die Änderungen daran; die Teams, die die Belege nennen, mit Namen, und die Personen, die sie nennen, nur als nummerierte Kandidaten, nie mit Namen oder E-Mail-Adresse | Ja: Ein Datenspeicher ohne Eigentümer startet sie, einmal täglich für neue Datenspeicher und wenn eine Cloud-Verbindung zum ersten Mal gelesen wird, solange **An neuen Problemen arbeiten** eingeschaltet ist |
+| **Sensible Daten in Pull Requests** | Was die Regeln im Diff des Pull Requests gefunden haben: die Datei und die Zeile, den geschriebenen Namen, die Art der Daten, die er nennt, und die Prüfung, die er nicht bestehen würde; den Diff dieser Dateien und den Titel des Pull Requests, ohne das, was wie ein Geheimnis, eine E-Mail-Adresse oder eine IP-Adresse aussieht; nie, was die Produktion enthält: wo Ihre Telemetrie die Daten enthielt, den Namen eines Datenspeichers oder was ein Datenspeicher enthält, und auch keine Probe dessen, was gefunden wurde, nicht einmal eine maskierte | Ja: Die [Produktionsprüfung](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests) eines Pull Requests startet sie, wenn ihre Regeln sensible Daten in der Änderung finden |
 
 **Mit KI erklären** und **KI fragen** lesen außerdem zuerst den [KI-Kontext](/docs/ai/ai-context) Ihres Teams, wenn es einen hat: die Notizen, die Ihr Team für OneUptime AI über Ihre Systeme geschrieben hat. **Analyse neuer Probleme** liest ihn ebenfalls.
 
@@ -62,7 +63,7 @@ Die Zeile jedes Aufrufs in **Projekteinstellungen → KI → KI-Protokolle** sag
 
 Schlägt ein Aufruf fehl, behalten Mit KI erklären und die Feldvorschläge kein Wort vom Fehler des Anbieters, der Gesendetes zitieren kann. Der Code-Agent hinter Mit KI beheben und der Chat von KI fragen behalten den Anbieterfehler eines fehlgeschlagenen Aufrufs weiterhin in seiner Zeile.
 
-Die Eigentümervorschläge bewahren dasselbe auf wie Mit KI erklären: Die Zeilen ihrer Aufrufe nennen die Funktion, das Modell, die Tokens und die Kosten, nie, was gesendet oder geantwortet wurde, und kein Wort vom Fehler eines fehlgeschlagenen Aufrufs.
+Die Eigentümervorschläge bewahren dasselbe auf wie Mit KI erklären: Die Zeilen ihrer Aufrufe nennen die Funktion, das Modell, die Tokens und die Kosten, nie, was gesendet oder geantwortet wurde, und kein Wort vom Fehler eines fehlgeschlagenen Aufrufs. Ebenso die Lesevorgänge sensibler Daten eines Pull Requests, deren Punkte in seiner Produktionsprüfung aufbewahrt werden, in Code und in ihrem Kommentar.
 
 ## Selbst nachsehen
 
@@ -80,6 +81,7 @@ Jede KI-Funktion der Datensicherheit läuft auf dem Modell, das Ihr Projekt gew�
 - **Mit KI erklären** und die Feldvorschläge laufen auf dem Anbieter, den eine KI-Regel für die Arbeit wählt, sonst auf dem Standard-LLM-Anbieter Ihres Projekts, sonst auf dem eigenen des Servers.
 - Der Code-Agent von **Mit KI beheben** läuft auf dem Anbieter, den eine KI-Regel wählt, sonst auf einem der eigenen Anbieter Ihres Projekts, sonst auf dem eigenen des Servers.
 - **KI fragen** läuft auf dem im Chat gewählten Anbieter, sonst auf dem Standard Ihres Projekts.
+- Der Lesevorgang sensibler Daten eines Pull Requests läuft auf dem Anbieter, den das Repository für seine Produktionsprüfungen wählt, sonst auf dem Standard-LLM-Anbieter Ihres Projekts, sonst auf dem eigenen des Servers.
 
 Ein selbst gehostetes Modell führt sie alle aus: Ollama, vLLM oder ein beliebiger OpenAI-kompatibler Endpunkt, den Sie unter **Projekteinstellungen → KI → LLM-Anbieter** hinzufügen. Auf einem Server ohne Internetzugang ist das im Helm-Chart mitgelieferte vLLM der eigene Anbieter des Servers, sodass nichts den Server verlässt.
 
@@ -91,7 +93,7 @@ Ist **KI aktivieren** unter **Projekteinstellungen → KI → KI-Funktionen** au
 
 Jede KI-Funktion der Datensicherheit wird an einem festen Satz erfundener Fälle gemessen, die so gebaut sind, wie die Funktion ihre Eingabe baut, und danach bewertet, was eine richtige Antwort sagt: eine Erklärung, die die Behebung nennt und nichts wiederholt, was ihr der Name eines Datenspeichers zu sagen befahl, der richtige Datentyp für jedes Feld, eine Behebung, die ändert, was die Prüfung braucht, und sonst nichts, und eine Antwort aus dem, was KI fragen gelesen hat. Die Fälle laufen jede Nacht gegen ein festgelegtes Modell, bei jeder Änderung an einem KI-Prompt der Datensicherheit und vor jedem Release, für das jede Funktion ihren Schwellenwert erreichen muss.
 
-Die Eigentümervorschläge werden danach bewertet, ob sie den Eigentümer nennen, auf den die Belege hinweisen, niemanden wählen, wenn sie auf niemanden hinweisen, und unsicher sind, wo sich die Belege widersprechen.
+Die Eigentümervorschläge werden danach bewertet, ob sie den Eigentümer nennen, auf den die Belege hinweisen, niemanden wählen, wenn sie auf niemanden hinweisen, und unsicher sind, wo sich die Belege widersprechen. Die Lesevorgänge von Pull Requests werden danach bewertet, ob sie jeden Punkt behalten, der ein Leck ist, weglassen, was keines ist, und eine Korrektur schreiben, die sagt, was zu ändern ist.
 
 Um Ihr eigenes Modell an denselben Fällen zu messen, führen Sie die Auswertung aus einem Checkout von OneUptime aus, mit dem Schlüssel Ihres Modells, falls es einen braucht, in `AI_EVAL_LLM_API_KEY`:
 

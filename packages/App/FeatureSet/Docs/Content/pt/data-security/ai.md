@@ -45,6 +45,7 @@ A Segurança de dados lê os seus dados ela mesma, dentro das suas varreduras, e
 | **Sugestões para campos que nenhum detector identificou** | O tipo de repositório de dados e os tipos de dados que a IA pode nomear; o nome de cada campo, os nomes dos campos ao lado e as formas dos seus valores, cada letra como `a` ou `A` e cada dígito como `9`; quantos valores foram lidos e qual o tamanho deles | Sim: a varredura de conteúdo de um repositório de dados as inicia |
 | **Pergunte à IA** | Os repositórios de dados, problemas e acessos que a pessoa pode ler na Segurança de dados; o que foi encontrado e onde, cada tipo de dado por local, com contagens e confiança | Não: uma pessoa faz uma pergunta |
 | **Proprietários de repositórios de dados** | O nome, o tipo, o provedor, o ambiente e a sensibilidade do repositório de dados, e os nomes dos seus tipos de dados; o que aponta para um proprietário: as tags de nuvem dele, os serviços que o usam, os proprietários do código do arquivo que o declara e as mudanças feitas nele; as equipes que as evidências citam, pelo nome, e as pessoas que elas citam, só como candidatos numerados, nunca pelo nome ou pelo e-mail | Sim: um repositório sem proprietários o inicia, uma vez por dia para repositórios novos e quando uma conexão de nuvem é lida pela primeira vez, enquanto **Trabalhar em problemas novos** está ligado |
+| **Dados sensíveis em pull requests** | O que as regras encontraram no diff do pull request: o arquivo e a linha, o nome gravado, o tipo de dado que ele nomeia e a verificação em que falharia; o diff desses arquivos e o título do pull request, sem o que parece um segredo, um endereço de e-mail ou um endereço IP; nunca o que a produção contém: onde a sua telemetria conteve os dados, o nome de um repositório de dados ou o que ele contém, nem uma amostra do que foi encontrado, nem mesmo mascarada | Sim: a [revisão de produção](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests) de um pull request a inicia, quando as regras dela encontram dados sensíveis na alteração |
 
 **Explicar com IA** e **Pergunte à IA** também leem primeiro o [contexto de IA](/docs/ai/ai-context) da sua equipe, quando ela tem um: as notas que a sua equipe escreveu para o OneUptime AI sobre os seus sistemas. **Análise de problemas novos** também o lê.
 
@@ -62,7 +63,7 @@ A linha de cada chamada em **Configurações do projeto → IA → Registros de 
 
 Quando uma chamada falha, Explicar com IA e as sugestões de campos não guardam nenhuma palavra do erro do provedor, que pode citar o que foi enviado. O agente de código por trás de Corrigir com IA e o chat de Pergunte à IA ainda guardam o erro do provedor de uma chamada que falhou na linha dela.
 
-As propostas de proprietários guardam o mesmo que Explicar com IA: as linhas das chamadas delas citam o recurso, o modelo, os tokens e o custo, nunca o que foi enviado ou respondido, e nenhuma palavra do erro de uma chamada que falhou.
+As propostas de proprietários guardam o mesmo que Explicar com IA: as linhas das chamadas delas citam o recurso, o modelo, os tokens e o custo, nunca o que foi enviado ou respondido, e nenhuma palavra do erro de uma chamada que falhou. O mesmo vale para as leituras dos dados sensíveis de um pull request, cujos pontos ficam guardados na revisão de produção dele, no Código e no comentário dele.
 
 ## Veja você mesmo
 
@@ -80,6 +81,7 @@ Cada recurso de IA da Segurança de dados roda no modelo que o seu projeto escol
 - **Explicar com IA** e as sugestões de campos rodam no provedor que uma regra de IA escolhe para o trabalho; senão, no provedor de LLM padrão do seu projeto; senão, no próprio do servidor.
 - O agente de código de **Corrigir com IA** roda no provedor que uma regra de IA escolhe; senão, em um dos provedores do seu projeto; senão, no próprio do servidor.
 - **Pergunte à IA** roda no provedor escolhido no chat; senão, no padrão do seu projeto.
+- A leitura dos dados sensíveis de um pull request roda no provedor que o repositório escolhe para as revisões de produção dele; senão, no provedor de LLM padrão do seu projeto; senão, no próprio do servidor.
 
 Um modelo auto-hospedado roda todos eles: Ollama, vLLM ou qualquer endpoint compatível com OpenAI que você adicionar em **Configurações do projeto → IA → Provedores LLM**. Em um servidor isolado da rede, o vLLM que vem com o chart Helm é o provedor próprio do servidor, então nada sai do servidor.
 
@@ -91,7 +93,7 @@ Com **Habilitar IA** desligado em **Configurações do projeto → IA → Recurs
 
 Cada recurso de IA da Segurança de dados é medido em um conjunto fixo de casos inventados, montados do jeito que o recurso monta a sua entrada e pontuados pelo que uma resposta certa diz: uma explicação que nomeia a correção e não repete nada que o nome de um repositório de dados mandou dizer, o tipo de dado certo para cada campo, uma correção que muda o que a verificação precisa e mais nada, e uma resposta a partir do que Pergunte à IA leu. Os casos rodam contra um modelo fixado toda noite, a cada mudança em um prompt de IA da Segurança de dados e antes de cada versão, que exige que cada recurso atinja o seu limite mínimo.
 
-As propostas de proprietários são pontuadas por citar o proprietário para o qual as evidências apontam, por não escolher ninguém quando elas não apontam para ninguém e por não ter certeza onde as evidências não concordam.
+As propostas de proprietários são pontuadas por citar o proprietário para o qual as evidências apontam, por não escolher ninguém quando elas não apontam para ninguém e por não ter certeza onde as evidências não concordam. As leituras de pull requests são avaliadas por manter cada ponto que é um vazamento, deixar de fora o que não é, e uma correção que diga o que mudar.
 
 Para medir o seu próprio modelo nos mesmos casos, rode a avaliação a partir de um checkout do OneUptime, com a chave do seu modelo, se ele precisar de uma, em `AI_EVAL_LLM_API_KEY`:
 

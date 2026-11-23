@@ -45,6 +45,7 @@ Seguridad de datos lee tus datos ella misma, dentro de sus escaneos, y no guarda
 | **Sugerencias para campos que ningún detector identificó** | El tipo de almacén y los tipos de datos que la IA puede nombrar; el nombre de cada campo, los nombres de los campos de al lado y las formas de sus valores, cada letra como `a` o `A` y cada dígito como `9`; cuántos valores se leyeron y qué longitud tienen | Sí: el escaneo de contenido de un almacén las inicia |
 | **Preguntar a la IA** | Los almacenes, problemas y accesos que la persona puede leer en Seguridad de datos; qué se encontró y dónde, cada tipo de datos por su ubicación, con recuentos y confianza | No: una persona hace una pregunta |
 | **Propietarios de almacenes de datos** | El nombre, el tipo, el proveedor, el entorno y la sensibilidad del almacén, y los nombres de sus tipos de datos; lo que apunta a un propietario: sus etiquetas en la nube, los servicios que lo usan, los propietarios del código del archivo que lo declara y los cambios que se le hicieron; los equipos que nombran las evidencias, por su nombre, y las personas que nombran, solo como candidatos numerados, nunca por su nombre ni su correo electrónico | Sí: la inicia un almacén sin propietarios, una vez al día para los almacenes nuevos y cuando se lee por primera vez una conexión a la nube, mientras **Trabajar en los problemas nuevos** está activado |
+| **Datos sensibles en pull requests** | Lo que las reglas encontraron en el diff de la pull request: el archivo y la línea, el nombre escrito, el tipo de dato que nombra y la comprobación que no superaría; el diff de esos archivos y el título de la pull request, sin lo que parece un secreto, una dirección de correo electrónico o una dirección IP; nunca lo que contiene producción: dónde tu telemetría contuvo los datos, el nombre de un almacén o lo que contiene un almacén, ni una muestra de lo encontrado, ni siquiera enmascarada | Sí: la [revisión de producción](/docs/ai/ai-agent#revisión-de-producción-de-pull-requests) de una pull request lo inicia, cuando sus reglas encuentran datos sensibles en el cambio |
 
 **Explicar con IA** y **Preguntar a la IA** también leen primero el [contexto de IA](/docs/ai/ai-context) de tu equipo, cuando tiene uno: las notas que tu equipo escribió para OneUptime AI sobre tus sistemas. **Análisis de problemas nuevos** también lo lee.
 
@@ -62,7 +63,7 @@ La fila de cada llamada en **Ajustes del proyecto → IA → Registros de IA** d
 
 Cuando una llamada falla, Explicar con IA y las sugerencias de campos no guardan ni una palabra del error del proveedor, que puede citar lo que se envió. El agente de código detrás de Corregir con IA y el chat de Preguntar a la IA siguen guardando el error del proveedor de una llamada fallida en su fila.
 
-Las propuestas de propietarios guardan lo mismo que Explicar con IA: las filas de sus llamadas nombran la función, el modelo, los tokens y el coste, nunca lo que se envió o se respondió, y ni una palabra del error de una llamada fallida.
+Las propuestas de propietarios guardan lo mismo que Explicar con IA: las filas de sus llamadas nombran la función, el modelo, los tokens y el coste, nunca lo que se envió o se respondió, y ni una palabra del error de una llamada fallida. Lo mismo guardan las lecturas de los datos sensibles de una pull request, cuyos puntos se guardan en su revisión de producción, en Código y en su comentario.
 
 ## Compruébalo tú mismo
 
@@ -80,6 +81,7 @@ Cada función de IA de Seguridad de datos se ejecuta en el modelo que eligió tu
 - **Explicar con IA** y las sugerencias de campos se ejecutan en el proveedor que elige una regla de IA para el trabajo; si no, en el proveedor de LLM predeterminado de tu proyecto; si no, en el propio del servidor.
 - El agente de código de **Corregir con IA** se ejecuta en el proveedor que elige una regla de IA; si no, en uno de los proveedores de tu proyecto; si no, en el propio del servidor.
 - **Preguntar a la IA** se ejecuta en el proveedor elegido en el chat; si no, en el predeterminado de tu proyecto.
+- La lectura de los datos sensibles de una pull request se ejecuta en el proveedor que el repositorio elige para sus revisiones de producción; si no, en el proveedor de LLM predeterminado de tu proyecto; si no, en el propio del servidor.
 
 Un modelo autoalojado las ejecuta todas: Ollama, vLLM o cualquier endpoint compatible con OpenAI que añadas en **Ajustes del proyecto → IA → Proveedores de LLM**. En un servidor aislado de la red, el vLLM incluido en el chart de Helm es el proveedor propio del servidor, así que nada sale del servidor.
 
@@ -91,7 +93,7 @@ Con **Habilitar IA** desactivado en **Ajustes del proyecto → IA → Funciones 
 
 Cada función de IA de Seguridad de datos se mide con un conjunto fijo de casos inventados, construidos como la función construye su entrada y puntuados según lo que dice una respuesta correcta: una explicación que nombra la corrección y no repite nada que el nombre de un almacén le dijera que dijese, el tipo de datos correcto para cada campo, una corrección que cambia lo que necesita la comprobación y nada más, y una respuesta a partir de lo que leyó Preguntar a la IA. Los casos se ejecutan contra un modelo fijado cada noche, con cada cambio en un prompt de IA de Seguridad de datos y antes de cada versión, que exige que cada función alcance su umbral.
 
-Las propuestas de propietarios se puntúan por nombrar al propietario al que apuntan las evidencias, por no elegir a nadie cuando no apuntan a nadie y por no estar seguras donde las evidencias no coinciden.
+Las propuestas de propietarios se puntúan por nombrar al propietario al que apuntan las evidencias, por no elegir a nadie cuando no apuntan a nadie y por no estar seguras donde las evidencias no coinciden. Las lecturas de pull requests se puntúan por conservar cada punto que es una fuga, dejar fuera lo que no lo es y una corrección que diga qué cambiar.
 
 Para medir tu propio modelo con los mismos casos, ejecuta la evaluación desde una copia de OneUptime, con la clave de tu modelo, si la necesita, en `AI_EVAL_LLM_API_KEY`:
 
