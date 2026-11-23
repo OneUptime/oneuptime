@@ -29,8 +29,6 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityCaseAiVerdict from "../../Types/SecurityCase/SecurityCaseAiVerdict";
 import {
-  SECURITY_CASE_AI_RESPONSE_STATES,
-  SECURITY_CASE_HAND_OFF_REASONS,
   SecurityCaseAiResponseState,
   SecurityCaseHandOffReason,
 } from "../../Types/SecurityCase/SecurityCaseAi";
@@ -1125,7 +1123,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_AI_RESPONSE_STATES,
+    allowedValues: Object.values(SecurityCaseAiResponseState),
     title: "AI Response State",
     description:
       "Where OneUptime AI stands on the case when it works it: Working, WaitingForPeople, HandedToPeople or Finished. Empty for a case OneUptime AI never worked.",
@@ -1142,7 +1140,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_HAND_OFF_REASONS,
+    allowedValues: Object.values(SecurityCaseHandOffReason),
     title: "AI Hand Off Reason",
     description:
       "Why OneUptime AI last handed the case to people, such as SteeringText, HighestPriority or ProtectedTarget.",
@@ -1285,47 +1283,4 @@ export default class SecurityCase extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "The person who deleted the case.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the person who deleted the case.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

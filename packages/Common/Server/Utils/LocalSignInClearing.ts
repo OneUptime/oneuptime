@@ -1,3 +1,7 @@
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+  SemaphoreMutex,
+} from "../Infrastructure/Semaphore";
 import AuditLogService from "../Services/AuditLogService";
 import UserService from "../Services/UserService";
 import UserSessionService from "../Services/UserSessionService";
@@ -23,7 +27,9 @@ import {
   CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE,
   CLEAR_OWN_SIGN_IN_MESSAGE,
   CLEAR_SAVED_SIGN_IN_SETTINGS_NEEDS_SSO_REQUIRED_MESSAGE,
+  CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE,
   ClearLocalSignInAnswer,
+  hasLocalSignInSettings,
   LocalSignInSettings,
 } from "../../Types/SSO/LocalSignInClearing";
 import { SignInSettingsClearedBy } from "../../Types/SSO/SignInSettingsClearedEmail";
@@ -59,10 +65,86 @@ import { SelectQueryBuilder } from "typeorm";
  * master admin made one in the middle of a clear keeps their password, and
  * their second steps unless the batch they were in was already being
  * cleared.
+ *
+ * TWO CLEARS OF ONE PERSON AT THE SAME MOMENT (#10776). Every clear reads
+ * what a person has, then clears it: a master admin's of one person or of
+ * everyone, and an owner's of their people or of one member
+ * (ProjectSignInClearing). Two at once - a master admin's and an owner's, or
+ * the same dialog sent twice - could both read the settings before either
+ * cleared them, and both recorded the whole removal: two audit entries in
+ * each of the person's projects, each by its own actor, one of them untrue.
+ * So a clear holds a lock on each person it clears, by their id, from before
+ * it reads what they have until it has cleared it (whileHoldingPeople,
+ * readAndClear). The second waits, reads what the first left - nothing - and
+ * records nothing, emails nothing and counts nobody: each clear reports what
+ * it removed itself.
+ *
+ *   - A batch takes its people's locks one after another, in the order of
+ *     their ids, and gives them all back before the next batch: two clears
+ *     that meet never each hold a lock the other is waiting for.
+ *   - A lock lasts CLEAR_LOCK_TIMEOUT_IN_MS and is kept while its clear
+ *     runs, so the locks of a clear that stopped half way (a restart) run
+ *     out rather than hold its people for ever.
+ *   - A clear waits for a person CLEAR_LOCK_WAIT_IN_MS at most - far longer
+ *     than a batch takes - and is then refused
+ *     (CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE): nothing more of it is cleared,
+ *     and it can be sent again.
+ *   - When Valkey cannot be reached, a clear goes on unlocked, as every
+ *     clear did before: it is never refused for a lock it could not take.
+ *
+ * A person a clear finds with nothing saved under their lock is left alone
+ * by a bulk clear - another clear removed it a moment ago - and a master
+ * admin's clear of that one person still writes and ends their sessions
+ * not signed in with SSO, as it always did; neither records or emails
+ * anything for them.
  */
 
 // How many people one batch of the clear of everyone clears.
 export const CLEAR_BATCH_SIZE: number = 500;
+
+// Where the lock a clear holds on a person lives in Valkey (#10776).
+export const CLEAR_LOCK_NAMESPACE: string = "LocalSignInClearing.person";
+
+/*
+ * How long a person's lock lasts, kept every 80% of it while its clear
+ * runs (Semaphore.lock's refresh): one a stopped clear never gave back runs
+ * out this long after it was last kept.
+ */
+export const CLEAR_LOCK_TIMEOUT_IN_MS: number = 30_000;
+
+/*
+ * How long a clear waits for a person another clear holds: a whole batch's
+ * read and clear (CLEAR_BATCH_SIZE people) with time to spare, and longer
+ * than a lock nobody keeps lasts, so one a stopped clear left runs out
+ * before anyone waiting for it gives up.
+ */
+export const CLEAR_LOCK_WAIT_IN_MS: number = 60_000;
+
+// How often a waiting clear asks for the lock again.
+const CLEAR_LOCK_RETRY_INTERVAL_IN_MS: number = 100;
+
+// One person a clear cleared, and what it removed: read under their lock.
+export interface ClearedPerson {
+  userId: ObjectID;
+  cleared: LocalSignInSettings;
+}
+
+// What readAndClear did with a batch of people, each under their lock.
+export interface ReadAndClearResult {
+  // Whom it cleared, each with what it removed - never nothing.
+  cleared: Array<ClearedPerson>;
+  /*
+   * Whom it found with nothing saved, and left alone: another clear
+   * removed what they had while this one waited for them.
+   */
+  foundEmpty: Array<ObjectID>;
+  sessionsEnded: number;
+}
+
+// The key of a person's lock, however their id is spelled.
+const lockKeyOf: (userId: ObjectID) => string = (userId: ObjectID): string => {
+  return userId.toString().toLowerCase();
+};
 
 /*
  * How many batches one clear of everyone runs at most: CLEAR_BATCH_SIZE
@@ -219,39 +301,86 @@ export default class LocalSignInClearing {
       );
     }
 
-    const cleared: LocalSignInSettings = await LocalSignInClearing.readSettings(
-      data.userId,
+    /*
+     * What they have is read under their lock (#10776), so a clear of them
+     * that came first has cleared it by now: this one then reads nothing,
+     * and records and emails nothing. Written all the same, as it always
+     * was: the master admin asked for this person, and their sessions not
+     * signed in with SSO end.
+     */
+    const result: {
+      cleared: LocalSignInSettings;
+      isWritten: boolean;
+      sessionsEnded: number;
+    } = await LocalSignInClearing.whileHoldingPeople(
+      [data.userId],
+      async (): Promise<{
+        cleared: LocalSignInSettings;
+        isWritten: boolean;
+        sessionsEnded: number;
+      }> => {
+        const read: LocalSignInSettings =
+          await LocalSignInClearing.readSettings(data.userId);
+
+        const written: {
+          clearedUserIds: Array<ObjectID>;
+          sessionsEnded: number;
+        } = await LocalSignInClearing.clearPeople({
+          userIds: [data.userId],
+          // Asked for this person by name: a master admin's goes too.
+          isMasterAdminIncluded: isMasterAdmin,
+        });
+
+        return {
+          cleared: read,
+          isWritten: written.clearedUserIds.length > 0,
+          sessionsEnded: written.sessionsEnded,
+        };
+      },
     );
 
-    const sessionsEnded: number = (
-      await LocalSignInClearing.clearPeople({
-        userIds: [data.userId],
-        // Asked for this person by name: a master admin's goes too.
-        isMasterAdminIncluded: isMasterAdmin,
-      })
-    ).sessionsEnded;
+    /*
+     * Made a master admin since they were read, so the write left them out
+     * and nothing was cleared: never recorded or emailed as if it was, and
+     * the master admin is told to confirm a master admin's clear.
+     */
+    if (!result.isWritten) {
+      throw new BadDataException(
+        CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE,
+      );
+    }
 
-    await AuditLogService.recordSignInSettingsCleared([
-      {
-        userId: data.userId,
-        clearedByUserId: data.clearedByUserId,
-        cleared: cleared,
-      },
-    ]);
+    const cleared: LocalSignInSettings = result.cleared;
+    const sessionsEnded: number = result.sessionsEnded;
 
     /*
-     * The person is told, at their own address (#9818), by a job a worker
-     * sends (#9991): queued in milliseconds, so a restart loses no email,
-     * and the clear, done and recorded, never waits for the mail service or
-     * fails with it. Nothing removed, nothing sent.
+     * Recorded only when it removed anything: a clear that found nothing -
+     * another clear of them came first - is no removal of this master
+     * admin's.
      */
-    await SignInSettingsClearedEmail.notify([
-      {
-        userId: data.userId,
-        cleared: cleared,
-        clearedBy: SignInSettingsClearedBy.ServerAdmin,
-      },
-    ]);
+    if (hasLocalSignInSettings(cleared)) {
+      await AuditLogService.recordSignInSettingsCleared([
+        {
+          userId: data.userId,
+          clearedByUserId: data.clearedByUserId,
+          cleared: cleared,
+        },
+      ]);
+
+      /*
+       * The person is told, at their own address (#9818), by a job a worker
+       * sends (#9991): queued in milliseconds, so a restart loses no email,
+       * and the clear, done and recorded, never waits for the mail service
+       * or fails with it. Nothing removed, nothing sent.
+       */
+      await SignInSettingsClearedEmail.notify([
+        {
+          userId: data.userId,
+          cleared: cleared,
+          clearedBy: SignInSettingsClearedBy.ServerAdmin,
+        },
+      ]);
+    }
 
     logger.info(
       `Sign-in settings cleared by master admin ${data.clearedByUserId.toString()} for user ${data.userId.toString()}${isMasterAdmin ? " (a master admin)" : ""}: ${sessionsEnded} session(s) ended.`,
@@ -322,32 +451,30 @@ export default class LocalSignInClearing {
         break;
       }
 
-      // Read before they are cleared, for the audit log.
-      const settingsByUser: Map<string, LocalSignInSettings> = new Map();
-
-      for (const userId of userIds) {
-        settingsByUser.set(
-          userId.toString(),
-          await LocalSignInClearing.readSettings(userId),
-        );
-      }
-
-      const result: { clearedUserIds: Array<ObjectID>; sessionsEnded: number } =
-        await LocalSignInClearing.clearPeople({
+      /*
+       * Read and cleared under their locks (#10776): somebody another clear
+       * cleared a moment ago reads as nothing, and is left alone.
+       */
+      const result: ReadAndClearResult = await LocalSignInClearing.readAndClear(
+        {
           userIds: userIds,
           isMasterAdminIncluded: false,
-        });
+        },
+      );
 
       sessionsEnded += result.sessionsEnded;
 
-      // Only the people it cleared: a master admin made one since is not.
+      /*
+       * Only the people it cleared, with what it removed: a master admin
+       * made one since is not, nor is anybody it found with nothing left.
+       */
       await AuditLogService.recordSignInSettingsCleared(
-        result.clearedUserIds.map(
-          (userId: ObjectID): SignInSettingsClearedAuditEvent => {
+        result.cleared.map(
+          (person: ClearedPerson): SignInSettingsClearedAuditEvent => {
             return {
-              userId: userId,
+              userId: person.userId,
               clearedByUserId: data.clearedByUserId,
-              cleared: settingsByUser.get(userId.toString())!,
+              cleared: person.cleared,
             };
           },
         ),
@@ -361,11 +488,11 @@ export default class LocalSignInClearing {
        */
       emailsQueued.push(
         SignInSettingsClearedEmail.notify(
-          result.clearedUserIds.map(
-            (userId: ObjectID): SignInSettingsClearedEmailEvent => {
+          result.cleared.map(
+            (person: ClearedPerson): SignInSettingsClearedEmailEvent => {
               return {
-                userId: userId,
-                cleared: settingsByUser.get(userId.toString())!,
+                userId: person.userId,
+                cleared: person.cleared,
                 clearedBy: SignInSettingsClearedBy.ServerAdmin,
               };
             },
@@ -373,7 +500,7 @@ export default class LocalSignInClearing {
         ),
       );
 
-      peopleCleared += result.clearedUserIds.length;
+      peopleCleared += result.cleared.length;
 
       if (rows.length < CLEAR_BATCH_SIZE) {
         break;
@@ -430,6 +557,158 @@ export default class LocalSignInClearing {
   private static getCoveredPeopleQuery(): SelectQueryBuilder<User> {
     return UserService.getQueryBuilder("person").where(
       COVERED_PEOPLE_WITH_SETTINGS_SQL,
+    );
+  }
+
+  /*
+   * A batch of a bulk clear (#10776): what each of these people has, read
+   * under their locks, and then cleared (clearPeople) - only those who have
+   * anything left, master admins left out unless `isMasterAdminIncluded`.
+   * Whom it cleared, each with what it removed, and whom it found with
+   * nothing saved and left alone: another clear removed it while this one
+   * waited for them. The clear of everyone and an owner's clear
+   * (ProjectSignInClearing.clearBatch) record, email and count exactly the
+   * people it cleared.
+   */
+  public static async readAndClear(data: {
+    userIds: Array<ObjectID>;
+    isMasterAdminIncluded: boolean;
+  }): Promise<ReadAndClearResult> {
+    return await LocalSignInClearing.whileHoldingPeople(
+      data.userIds,
+      async (): Promise<ReadAndClearResult> => {
+        const settingsByUser: Map<string, LocalSignInSettings> = new Map();
+        const withSettings: Array<ObjectID> = [];
+        const foundEmpty: Array<ObjectID> = [];
+
+        for (const userId of data.userIds) {
+          const settings: LocalSignInSettings =
+            await LocalSignInClearing.readSettings(userId);
+
+          if (hasLocalSignInSettings(settings)) {
+            settingsByUser.set(lockKeyOf(userId), settings);
+            withSettings.push(userId);
+          } else {
+            foundEmpty.push(userId);
+          }
+        }
+
+        if (withSettings.length === 0) {
+          return { cleared: [], foundEmpty: foundEmpty, sessionsEnded: 0 };
+        }
+
+        const result: {
+          clearedUserIds: Array<ObjectID>;
+          sessionsEnded: number;
+        } = await LocalSignInClearing.clearPeople({
+          userIds: withSettings,
+          isMasterAdminIncluded: data.isMasterAdminIncluded,
+        });
+
+        return {
+          cleared: result.clearedUserIds
+            .filter((userId: ObjectID): boolean => {
+              return settingsByUser.has(lockKeyOf(userId));
+            })
+            .map((userId: ObjectID): ClearedPerson => {
+              return {
+                userId: userId,
+                cleared: settingsByUser.get(lockKeyOf(userId))!,
+              };
+            }),
+          foundEmpty: foundEmpty,
+          sessionsEnded: result.sessionsEnded,
+        };
+      },
+    );
+  }
+
+  /*
+   * Runs `work` - a read of what these people have, and its clear - while
+   * this clear holds each of their locks (#10776, above), and gives them
+   * back however it ends. Refused, with nothing run, when another clear
+   * holds one of them for longer than CLEAR_LOCK_WAIT_IN_MS.
+   */
+  public static async whileHoldingPeople<T>(
+    userIds: Array<ObjectID>,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const locks: Array<SemaphoreMutex> =
+      await LocalSignInClearing.lockPeople(userIds);
+
+    try {
+      return await work();
+    } finally {
+      await LocalSignInClearing.releasePeople(locks);
+    }
+  }
+
+  /*
+   * Takes each person's lock, one after another in the order of their ids,
+   * each person once however their id is spelled: every clear takes them in
+   * that order, so two batches that share people never each wait for the
+   * other. A person another clear holds is waited for, up to
+   * CLEAR_LOCK_WAIT_IN_MS; longer, and every lock taken is given back and
+   * the clear refused. Valkey out of reach: the rest go unlocked, said once.
+   */
+  private static async lockPeople(
+    userIds: Array<ObjectID>,
+  ): Promise<Array<SemaphoreMutex>> {
+    const keys: Array<string> = Array.from(
+      new Set<string>(userIds.map(lockKeyOf)),
+    ).sort();
+
+    const locks: Array<SemaphoreMutex> = [];
+
+    for (const key of keys) {
+      try {
+        locks.push(
+          await Semaphore.lock({
+            key: key,
+            namespace: CLEAR_LOCK_NAMESPACE,
+            lockTimeout: CLEAR_LOCK_TIMEOUT_IN_MS,
+            acquireTimeout: CLEAR_LOCK_WAIT_IN_MS,
+            retryInterval: CLEAR_LOCK_RETRY_INTERVAL_IN_MS,
+            // Never thrown from the refresh timer, where nothing could catch it.
+            onLockLost: (err: Error): void => {
+              logger.warn(
+                `Clearing sign-in settings: the lock on user ${key} was lost while they were cleared.`,
+              );
+              logger.warn(err);
+            },
+          }),
+        );
+      } catch (err) {
+        if (err instanceof SemaphoreLockTimeoutError) {
+          await LocalSignInClearing.releasePeople(locks);
+          throw new BadDataException(CLEAR_SIGN_IN_SETTINGS_BUSY_MESSAGE);
+        }
+
+        logger.warn(
+          `Clearing sign-in settings: could not lock user ${key}; clearing ${keys.length - locks.length} of ${keys.length} people unlocked.`,
+        );
+        logger.warn(err);
+
+        break;
+      }
+    }
+
+    return locks;
+  }
+
+  // Gives these locks back. Never throws: a lock not given back runs out.
+  private static async releasePeople(
+    locks: Array<SemaphoreMutex>,
+  ): Promise<void> {
+    await Promise.all(
+      locks.map(async (lock: SemaphoreMutex): Promise<void> => {
+        try {
+          await Semaphore.release(lock);
+        } catch (err) {
+          logger.warn("Clearing sign-in settings: could not give a lock back.");
+          logger.warn(err);
+        }
+      }),
     );
   }
 

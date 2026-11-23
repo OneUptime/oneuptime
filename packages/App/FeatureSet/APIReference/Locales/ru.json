@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "Страница, которую вы ищете, не найдена.",
     "required": "Обязательно",
     "defaultValue": "По умолчанию",
+    "readOnly": "Только чтение",
     "or": "или",
     "copy": "Копировать",
     "copied": "Скопировано!",

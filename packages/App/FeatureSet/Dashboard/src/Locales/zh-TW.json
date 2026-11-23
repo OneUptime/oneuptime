@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "{{stack}} 堆疊",
   "{{count}} issues, one cause: {{cause}}": "{{count}} 個問題，同一個原因：{{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} 個問題，同一個原因：{{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "由使用者從問題清單中的群組發起，或透過核准 OneUptime AI 的提議發起（在其可於程式碼中變更的存放庫中）；由安全腳本的 “Fix the code with AI” 步驟發起；或由修正設為「無需詢問」的 AI 規則自動發起。",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "向 OneUptime AI 請求此拉取請求需要變更資料安全問題的權限。",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "透過雲端連線變更這些資料儲存區需要編輯資料儲存區的權限。",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "此群組中沒有可在此修正的內容：每個資料儲存區都未包含在其修正中。",
@@ -62630,5 +62629,18 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{count}} 處洩漏中有 {{value}} 處在合併前被發現。",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{count}} 處洩漏中有 {{value}} 處在合併前被發現。",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "當合併請求將密鑰或受限資料放入遙測、公開敏感資料儲存區，或以明文儲存密碼或 CVV 時，使其檢查失敗。",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "當拉取請求將密鑰或受限資料放入遙測、公開敏感資料儲存區，或以明文儲存密碼或 CVV 時，使其檢查失敗。"
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "當拉取請求將密鑰或受限資料放入遙測、公開敏感資料儲存區，或以明文儲存密碼或 CVV 時，使其檢查失敗。",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "由使用者從問題清單中的群組發起，或透過核准 OneUptime AI 的提議發起（在其可於程式碼中變更的存放庫中）；由安全腳本的 “Fix the code with AI” 步驟發起；或由修正設為「自動」的 AI 規則自動發起。",
+  "AI Analysis": "AI 分析",
+  "AI Proposed": "AI 已提議",
+  "AI Proposal Approved": "AI 提議已核准",
+  "AI Change Made": "AI 已進行變更",
+  "AI Proposal Dismissed": "AI 提議已駁回",
+  "AI Change Undone": "AI 變更已復原",
+  "AI Change Failed": "AI 變更失敗",
+  "AI Response": "AI 回應",
+  "Step Check": "步驟檢查",
+  "Their sign-in settings were already cleared.": "此人的登入設定已經被清除。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} 的登入設定已經被清除。",
+  "These people's sign-in settings were already cleared.": "這些人的登入設定已經被清除。"
 }

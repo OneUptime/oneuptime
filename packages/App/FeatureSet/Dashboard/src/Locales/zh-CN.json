@@ -62572,7 +62572,6 @@
   "the {{stack}} stack": "{{stack}} 堆栈",
   "{{count}} issues, one cause: {{cause}}": "{{count}} 个问题，同一个原因：{{cause}}",
   "{{count}} issues, one cause: {{cause}}_one": "{{count}} 个问题，同一个原因：{{cause}}",
-  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.": "由用户从问题列表中的组发起，或通过批准 OneUptime AI 的提议发起（在其可在代码中更改的存储库中）；由安全剧本的 “Fix the code with AI” 步骤发起；或由修复设为“无需询问”的 AI 规则自动发起。",
   "Asking OneUptime AI for this pull request takes permission to change Data Security issues.": "向 OneUptime AI 请求此拉取请求需要更改数据安全问题的权限。",
   "Changing these stores through their cloud connections takes permission to edit data stores.": "通过云连接更改这些数据存储需要编辑数据存储的权限。",
   "Nothing in this group can be fixed from here: every store is left out of its fix.": "此组中没有可在此修复的内容：每个数据存储都未包括在其修复中。",
@@ -62630,5 +62629,18 @@
   "{{value}} of {{count}} leaks were caught before they merged.": "{{count}} 处泄露中有 {{value}} 处在合并前被发现。",
   "{{value}} of {{count}} leaks were caught before they merged._one": "{{count}} 处泄露中有 {{value}} 处在合并前被发现。",
   "Fail a merge request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "当合并请求将密钥或受限数据放入遥测、公开敏感数据存储，或以明文存储密码或 CVV 时，使其检查失败。",
-  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "当拉取请求将密钥或受限数据放入遥测、公开敏感数据存储，或以明文存储密码或 CVV 时，使其检查失败。"
+  "Fail a pull request's check when it puts secrets or Restricted data in telemetry, makes a sensitive store public, or stores plain passwords or CVVs.": "当拉取请求将密钥或受限数据放入遥测、公开敏感数据存储，或以明文存储密码或 CVV 时，使其检查失败。",
+  "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.": "由用户从问题列表中的组发起，或通过批准 OneUptime AI 的提议发起（在其可在代码中更改的存储库中）；由安全剧本的 “Fix the code with AI” 步骤发起；或由修复设为“自动”的 AI 规则自动发起。",
+  "AI Analysis": "AI 分析",
+  "AI Proposed": "AI 已提议",
+  "AI Proposal Approved": "AI 提议已批准",
+  "AI Change Made": "AI 已做更改",
+  "AI Proposal Dismissed": "AI 提议已驳回",
+  "AI Change Undone": "AI 更改已撤消",
+  "AI Change Failed": "AI 更改失败",
+  "AI Response": "AI 响应",
+  "Step Check": "步骤检查",
+  "Their sign-in settings were already cleared.": "此人的登录设置已经被清除。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} 的登录设置已经被清除。",
+  "These people's sign-in settings were already cleared.": "这些人的登录设置已经被清除。"
 }

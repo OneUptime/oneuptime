@@ -1,3 +1,4 @@
+import { DELETED_BY_USER_ID_COLUMN } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
 import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddFixProductionCheck1804950000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804950000000-AddFixProductionCheck";
 import { AddExternalMcpServers1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddExternalMcpServers";
@@ -151,6 +152,8 @@ describe("the External MCP Servers migration", () => {
           !RecordActorUtil.isColumn(column)
         );
       })
+      // Dropped from every table later (DropDeletedByUserColumns, #10469).
+      .concat([DELETED_BY_USER_ID_COLUMN])
       .sort();
 
     expect(
