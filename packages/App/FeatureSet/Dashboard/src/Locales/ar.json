@@ -60149,7 +60149,7 @@
   "Query {{refId}} is left out.": "يُستبعد الاستعلام {{refId}}.",
   "Search sites by name": "ابحث في المواقع بالاسم",
   "Select a site type": "اختر نوع موقع",
-  "Sends only this query to your project's AI provider.": "يرسل هذا الاستعلام فقط إلى موفّر الذكاء الاصطناعي لمشروعك.",
+  "Sends only this query to your project's LLM provider.": "يرسل هذا الاستعلام فقط إلى موفّر LLM لمشروعك.",
   "Set Default Probe": "تعيين المسبار الافتراضي",
   "Set Parent Site": "تعيين الموقع الأصل",
   "Show Hierarchy": "إظهار التسلسل الهرمي",

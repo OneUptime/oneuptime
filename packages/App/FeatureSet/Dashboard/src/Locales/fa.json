@@ -60149,7 +60149,7 @@
   "Query {{refId}} is left out.": "پرس‌وجوی {{refId}} کنار گذاشته شد.",
   "Search sites by name": "جستجوی سایت‌ها بر اساس نام",
   "Select a site type": "یک نوع سایت انتخاب کنید",
-  "Sends only this query to your project's AI provider.": "فقط همین پرس‌وجو را به ارائه‌دهنده هوش مصنوعی پروژه شما می‌فرستد.",
+  "Sends only this query to your project's LLM provider.": "فقط همین پرس‌وجو را به ارائه‌دهنده LLM پروژه شما می‌فرستد.",
   "Set Default Probe": "تنظیم پراب پیش‌فرض",
   "Set Parent Site": "تنظیم سایت والد",
   "Show Hierarchy": "نمایش سلسله‌مراتب",

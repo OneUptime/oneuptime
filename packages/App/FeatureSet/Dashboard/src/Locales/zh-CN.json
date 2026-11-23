@@ -60149,7 +60149,7 @@
   "Query {{refId}} is left out.": "Query {{refId}} is left out.",
   "Search sites by name": "按名称搜索站点",
   "Select a site type": "选择站点类型",
-  "Sends only this query to your project's AI provider.": "Sends only this query to your project's AI provider.",
+  "Sends only this query to your project's LLM provider.": "Sends only this query to your project's LLM provider.",
   "Set Default Probe": "设置默认探测器",
   "Set Parent Site": "设置父站点",
   "Show Hierarchy": "显示层级",

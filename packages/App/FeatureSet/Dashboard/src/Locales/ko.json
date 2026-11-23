@@ -60149,7 +60149,7 @@
   "Query {{refId}} is left out.": "Query {{refId}} is left out.",
   "Search sites by name": "이름으로 사이트 검색",
   "Select a site type": "사이트 유형 선택",
-  "Sends only this query to your project's AI provider.": "Sends only this query to your project's AI provider.",
+  "Sends only this query to your project's LLM provider.": "Sends only this query to your project's LLM provider.",
   "Set Default Probe": "기본 프로브 설정",
   "Set Parent Site": "상위 사이트 설정",
   "Show Hierarchy": "계층 보기",
