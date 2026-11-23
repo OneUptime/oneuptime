@@ -83,9 +83,14 @@ import React, {
  */
 export const isMemberSavedSignInSettingsAsked: () => boolean =
   (): boolean => {
-    return HeldPermissionsUtil.holdsAnyOf(PermissionUtil.getHeldPermissions(), [
-      Permission.ProjectOwner,
-    ]);
+    return HeldPermissionsUtil.holdsAnyOf(
+      HeldPermissionsUtil.fromRows({
+        rows: PermissionUtil.getProjectPermissions()?.permissions || [],
+        globalPermissions:
+          PermissionUtil.getGlobalPermissions()?.globalPermissions || [],
+      }),
+      [Permission.ProjectOwner],
+    );
   };
 
 // Whether this row is the signed-in reader's own.
