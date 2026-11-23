@@ -32,7 +32,10 @@ import {
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  markAddressScrubbed,
   markClientAddressScrubbed,
+  nameAddressScrubRule,
   nameClientAddressScrubRule,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -40,6 +43,7 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 import { getHiddenAddressRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressRoute";
 import HiddenClientAddressText, {
   HIDDEN_CLIENT_ADDRESS_TEST_ID,
+  HIDDEN_TARGET_ADDRESS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressText";
 import SecurityEventDetailPanel from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailPanel";
 import SecurityEventWhatHappenedNext, {
@@ -264,6 +268,77 @@ describe("the event's drawer", () => {
 
     expect(onFilterBy).toHaveBeenCalledWith(
       "attributes.oneuptime.request.client_address_hidden",
+      "scrub-rule",
+    );
+  });
+
+  /*
+   * #10419: a firewall's connection whose destination a scrub rule hid says
+   * so on Target IP, and its own filter shows every event whose
+   * destination a rule hid; the source the event names stays its address.
+   */
+  test("Target IP says which scrub rule hid the destination, and filters to every such event", () => {
+    const onFilterBy: MockFunction = getJestMockFunction();
+    const attributes: JSONObject = {};
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Masked, value: "***.***.***.***" },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    nameAddressScrubRule(attributes, ScrubbedAddressRole.Target, {
+      id: RULE_ID,
+      name: "Mask IP addresses",
+    });
+
+    render(
+      inRouter(
+        <SecurityEventDetailPanel
+          securityEvent={Object.assign(new SecurityEvent(), {
+            time: new Date("2026-11-20T10:00:05.000Z"),
+            eventUid: "log:def:0",
+            severityName: OcsfSeverity.Low,
+            className: "Network Activity",
+            activityName: "Refuse",
+            message: "ms-rdp from 203.0.113.7 to ***.***.***.***:3389 blocked",
+            principalIp: "203.0.113.7",
+            targetIp: "",
+            targetPort: 3389,
+            observables: ["203.0.113.7"],
+            attributes,
+          })}
+          onClose={(): void => {}}
+          onFilterBy={(facetKey: string, value: string): void => {
+            onFilterBy(facetKey, value);
+          }}
+        />,
+      ),
+    );
+
+    const target: HTMLElement = screen.getByTestId(
+      HIDDEN_TARGET_ADDRESS_TEST_ID,
+    );
+    const row: HTMLElement = screen.getByText("Target IP").closest("div")!;
+
+    expect(target).toHaveTextContent("Hidden by the scrub rule Mask IP addresses");
+    expect(
+      within(row).getByRole("link", { name: "Mask IP addresses" }),
+    ).toBeInTheDocument();
+    expect(row).not.toHaveTextContent("***");
+    // The source is no hidden address.
+    expect(screen.queryByTestId(HIDDEN_CLIENT_ADDRESS_TEST_ID)).toBeNull();
+    expect(screen.getByText("Principal IP").closest("div")!).toHaveTextContent(
+      "203.0.113.7",
+    );
+
+    fireEvent.click(
+      within(row).getByRole("button", {
+        name: "Show events whose target address a scrub rule hid",
+      }),
+    );
+
+    expect(onFilterBy).toHaveBeenCalledWith(
+      "attributes.oneuptime.target_address_hidden",
       "scrub-rule",
     );
   });
