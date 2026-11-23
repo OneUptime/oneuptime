@@ -660,8 +660,6 @@ export default class ServiceHandler {
 
     // Remove unnecessary columns
     delete tableColumns["deletedAt"];
-    delete tableColumns["deletedByUserId"];
-    delete tableColumns["deletedByUser"];
     delete tableColumns["version"];
 
     // For columns with a modelType (Entity/EntityArray), resolve the related model's documentation path

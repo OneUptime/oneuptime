@@ -10369,23 +10369,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       rowsOfDelete = items;
 
       /*
-       * We are hard deleting anyway. So, this does not make sense. Please uncomment if
-       * we change the code to soft-delete.
-       */
-
-      /*
-       * await this._updateBy({
-       *     query: deleteBy.query,
-       *     data: {
-       *         deletedByUserId: deleteBy.props.userId,
-       *     } as any,
-       *     limit: deleteBy.limit,
-       *     skip: deleteBy.skip,
-       *     props: {
-       *         isRoot: true,
-       *         ignoreHooks: true,
-       *     },
-       * });
+       * Rows are deleted outright, so no row keeps who deleted it: the audit
+       * log's Delete entries do (who, when, and the record as it was). The
+       * deletedByUserId column no write ever filled went in #10469
+       * (Types/Database/RetiredColumns).
        */
 
       let numberOfDocsAffected: number = 0;
