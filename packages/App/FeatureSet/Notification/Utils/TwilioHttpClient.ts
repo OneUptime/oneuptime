@@ -1,5 +1,6 @@
 import logger from "Common/Server/Utils/Logger";
 import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import ProxyTunnelRefusal from "Common/Utils/ProxyTunnelRefusal";
 import type { InternalAxiosRequestConfig } from "axios";
 import fs from "fs";
 import http from "http";
@@ -32,6 +33,9 @@ import RequestClient from "twilio/lib/base/RequestClient";
  * for a Twilio host and NO_PROXY does not name it, HTTP_PROXY carries its
  * requests - the proxy an http request to that host and port would take -
  * and the server says so once in its log.
+ *
+ * A tunnel the proxy refuses fails as its refusal (ProxyTunnelRefusal),
+ * which never names the proxy: an SMS's or a call's log shows its error.
  *
  * OutboundAxiosRoutingGuard holds every Twilio client of the server to it.
  */
@@ -72,7 +76,35 @@ export default class TwilioHttpClient {
       },
     );
 
+    /*
+     * A tunnel the proxy refused fails as its refusal, which names where the
+     * request was going and what the proxy answered, never the proxy:
+     * Node's own error names its address, and an SMS's or a call's log
+     * shows its error to the project.
+     */
+    client.axios.interceptors.response.use(
+      undefined,
+      (error: unknown): Promise<never> => {
+        return Promise.reject(TwilioHttpClient.asProxyRefusal(error) || error);
+      },
+    );
+
     return client;
+  }
+
+  // A refused tunnel, in ProxyTunnelRefusal's words; null for another error.
+  public static asProxyRefusal(error: unknown): Error | null {
+    const words: string | null = ProxyTunnelRefusal.describe(error);
+
+    if (!words) {
+      return null;
+    }
+
+    const refusal: Error = new Error(words);
+
+    refusal.name = "OutboundProxyRefusal";
+
+    return refusal;
   }
 
   /*
@@ -186,9 +218,7 @@ export default class TwilioHttpClient {
     try {
       const url: URL = new URL(value);
 
-      return url.protocol === "https:" || url.protocol === "http:"
-        ? url
-        : null;
+      return url.protocol === "https:" || url.protocol === "http:" ? url : null;
     } catch {
       return null;
     }
