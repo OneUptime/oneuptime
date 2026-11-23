@@ -60805,5 +60805,7 @@
   "Your project's": "您项目的",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "您项目的 AI 上下文位于系统消息的开头：{{count}} 个字符，在“项目设置 → 人工智能 → AI 功能”中设置。",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "您项目的 AI 上下文位于系统消息的开头：{{count}} 个字符，在“项目设置 → 人工智能 → AI 功能”中设置。",
-  "App Service key": "App Service 密钥"
+  "App Service key": "App Service 密钥",
+  "Custom Role Audit Logs": "Custom Role Audit Logs",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
 }

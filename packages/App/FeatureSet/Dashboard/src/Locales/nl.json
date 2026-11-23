@@ -60805,5 +60805,7 @@
   "Your project's": "Van uw project",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "De AI-context van uw project staat als eerste in het systeembericht: {{count}} tekens, ingesteld onder Projectinstellingen → AI → AI-functies.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "De AI-context van uw project staat als eerste in het systeembericht: {{count}} teken, ingesteld onder Projectinstellingen → AI → AI-functies.",
-  "App Service key": "App Service-sleutel"
+  "App Service key": "App Service-sleutel",
+  "Custom Role Audit Logs": "Custom Role Audit Logs",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
 }

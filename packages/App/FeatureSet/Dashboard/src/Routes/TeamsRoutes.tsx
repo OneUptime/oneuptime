@@ -5,6 +5,7 @@ import TeamCustomFields from "../Pages/Teams/CustomFields";
 import TeamRoles from "../Pages/Teams/Roles";
 import TeamRoleView from "../Pages/Teams/RoleView";
 import TeamRoleViewLayout from "../Pages/Teams/RoleViewLayout";
+import TeamRoleViewAuditLogs from "../Pages/Teams/RoleViewAuditLogs";
 
 import TeamsViewLayout from "../Pages/Teams/View/Layout";
 import TeamsViewIndex from "../Pages/Teams/View/Index";
@@ -55,6 +56,15 @@ const TeamsRoutes: FunctionComponent<ComponentProps> = (
             <TeamRoleView
               {...props}
               pageRoute={RouteMap[PageMap.TEAM_ROLE_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS)}
+          element={
+            <TeamRoleViewAuditLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS] as Route}
             />
           }
         />

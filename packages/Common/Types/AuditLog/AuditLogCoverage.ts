@@ -265,6 +265,7 @@ export const AUDIT_LOG_ROOT_RESOURCE_TABLES: ReadonlySet<string> =
     "CloudAccount",
     "CloudResource",
     "CodeRepository",
+    "CustomRole",
     "Dashboard",
     "DataAsset",
     "DataPipeline",

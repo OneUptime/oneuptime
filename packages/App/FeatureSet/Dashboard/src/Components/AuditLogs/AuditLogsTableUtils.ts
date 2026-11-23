@@ -272,6 +272,13 @@ export const RESOURCE_META: { [key: string]: ResourceMeta } = {
     bgColor: "bg-cyan-50 border-cyan-100",
     viewRoute: PageMap.TEAM_VIEW,
   },
+  // What a custom role gives, and who changed it (#10139).
+  "Custom Role": {
+    icon: IconProp.Identification,
+    color: "text-cyan-700",
+    bgColor: "bg-cyan-50 border-cyan-100",
+    viewRoute: PageMap.TEAM_ROLE_VIEW,
+  },
   Probe: {
     icon: IconProp.Signal,
     color: "text-emerald-700",

@@ -60805,5 +60805,7 @@
   "Your project's": "De tu proyecto",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "El contexto de IA de tu proyecto va primero en el mensaje del sistema: {{count}} caracteres, configurado en Ajustes del proyecto → IA → Funciones de IA.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "El contexto de IA de tu proyecto va primero en el mensaje del sistema: {{count}} carácter, configurado en Ajustes del proyecto → IA → Funciones de IA.",
-  "App Service key": "Clave de App Service"
+  "App Service key": "Clave de App Service",
+  "Custom Role Audit Logs": "Custom Role Audit Logs",
+  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
 }
