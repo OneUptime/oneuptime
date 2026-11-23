@@ -332,8 +332,7 @@ export default class GoogleSecOpsClient {
      * every request of the server goes (OutboundFetch, #10720).
      */
     this.fetchImplementation =
-      data.fetchImplementation ||
-      (OutboundFetch.fetch as unknown as FetchLike);
+      data.fetchImplementation || (OutboundFetch.fetch as unknown as FetchLike);
     this.requestTimeoutInMs =
       typeof data.requestTimeoutInMs === "number" &&
       Number.isFinite(data.requestTimeoutInMs) &&

@@ -205,9 +205,7 @@ export class AwsChainHttpError extends Error {
   public constructor(
     message: string,
     isTimeout: boolean,
-    outboundProxy?:
-      | { isFailure: boolean; isRetryable: boolean }
-      | undefined,
+    outboundProxy?: { isFailure: boolean; isRetryable: boolean } | undefined,
   ) {
     super(message);
     this.name = "AwsChainHttpError";
