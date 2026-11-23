@@ -3590,9 +3590,15 @@ describe("where maintenance settings live", () => {
     });
     const routeMap: string = readDashboardSource("Utils/RouteMap.ts");
 
-    // Four Rules pages and eight Settings pages, Calendar Settings among them.
-    expect(keys.length).toBe(12);
+    /*
+     * Five Rules pages - the four rules and their Audit Logs (#10462) - and
+     * eight Settings pages, Calendar Settings among them.
+     */
+    expect(keys.length).toBe(13);
     expect(keys).toContain("SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CALENDAR");
+    expect(keys).toContain(
+      "SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RULES_AUDIT_LOGS",
+    );
 
     for (const key of keys) {
       const route: string =

@@ -1,4 +1,5 @@
 import EventStatBar, {
+  EVENT_STAT_BAR_FOOTER_CLASS_NAME,
   EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME,
   EventStatBarColumns,
   getEventStatBarColumnClassName,
@@ -460,6 +461,112 @@ describe("EventStatBar", () => {
 
     expect(screen.getByText(LONG_VALUE)).toHaveTextContent(LONG_VALUE);
     expect(screen.getByText(LONG_VALUE)).not.toHaveClass("truncate");
+  });
+});
+
+/*
+ * A page whose first card is its row of figures - a pipeline's, a data
+ * product's, a security case's - ends that card with the record's line
+ * (#10461): a row across the card's foot, under every cell, that is no cell.
+ */
+describe("EventStatBar's foot row", () => {
+  test("is drawn last, across the card's width, under a hairline like a cell", () => {
+    const { container } = render(
+      <EventStatBar
+        columns={4}
+        ariaLabel="Pipeline health"
+        footer={<span data-testid="record-line">ID 1a2b3c4d</span>}
+      >
+        <EventStatTile variant="segment" label="Last Run" value="2m ago" />
+        <EventStatTile variant="segment" label="Usually Takes" value="4m" />
+        <EventStatTile variant="segment" label="Schedule" value="Hourly" />
+        <EventStatTile variant="segment" label="Runs" value="48" />
+      </EventStatBar>,
+    );
+
+    const bar: HTMLElement = screen.getByRole("group", {
+      name: "Pipeline health",
+    });
+    const foot: HTMLElement = screen.getByTestId("event-stat-bar-footer");
+
+    // Inside the card, after every cell.
+    expect(bar.children).toHaveLength(5);
+    expect(bar.lastElementChild).toBe(foot);
+    expect(foot).toContainElement(screen.getByTestId("record-line"));
+    expect(foot.className).toBe(EVENT_STAT_BAR_FOOTER_CLASS_NAME);
+    // Across every column the cells take, however many share a row.
+    expect(foot).toHaveClass("col-span-full", "bg-white");
+    // The card's own background through the gap is the hairline above it.
+    expect(bar).toHaveClass("gap-px", "bg-gray-100");
+    expect(container).toContainElement(bar);
+  });
+
+  test("is no cell: the columns are the cells' alone", () => {
+    render(
+      <EventStatBar
+        columns={4}
+        ariaLabel="Case figures"
+        footer={<span>ID 1a2b3c4d</span>}
+      >
+        <EventStatTile variant="segment" label="Detections" value="3" />
+        <EventStatTile variant="segment" label="Open For" value="3h" />
+      </EventStatBar>,
+    );
+
+    // Two cells are two columns; the foot does not make them three.
+    expect(screen.getByRole("group", { name: "Case figures" })).toHaveClass(
+      "sm:grid-cols-2",
+    );
+    expect(screen.getByRole("group", { name: "Case figures" })).not.toHaveClass(
+      "sm:grid-cols-3",
+    );
+  });
+
+  test("lays out by the bar's own width too", () => {
+    const { container } = render(
+      <EventStatBar
+        columns={4}
+        isLaidOutByOwnWidth={true}
+        footer={<span>ID 1a2b3c4d</span>}
+      >
+        <EventStatTile variant="segment" label="Rows" value="12" />
+        <EventStatTile variant="segment" label="Size" value="3 MB" />
+        <EventStatTile variant="segment" label="Last Changed" value="1h" />
+        <EventStatTile variant="segment" label="Usually Changes" value="1d" />
+      </EventStatBar>,
+    );
+
+    const wrapper: HTMLElement = container.firstElementChild as HTMLElement;
+    const bar: HTMLElement = wrapper.firstElementChild as HTMLElement;
+
+    expect(wrapper).toHaveClass(EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME);
+    expect(bar.lastElementChild).toBe(
+      screen.getByTestId("event-stat-bar-footer"),
+    );
+  });
+
+  test("is not drawn without a foot, so a bar with none is as it was", () => {
+    render(
+      <EventStatBar columns={2} ariaLabel="Incident timing">
+        <EventStatTile variant="segment" label="Declared" value="Today" />
+        <EventStatTile variant="segment" label="Duration" value="3m" />
+      </EventStatBar>,
+    );
+
+    expect(screen.queryByTestId("event-stat-bar-footer")).toBeNull();
+    expect(
+      screen.getByRole("group", { name: "Incident timing" }).children,
+    ).toHaveLength(2);
+  });
+
+  test("a bar with no cells draws nothing, its foot included", () => {
+    const { container } = render(
+      <EventStatBar columns={3} footer={<span>ID 1a2b3c4d</span>}>
+        {null}
+      </EventStatBar>,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

@@ -98,7 +98,7 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | A runbook's **Settings** | Turn **Run this runbook** off without deleting the runbook. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
 | **Runbooks → Runners** | Install the [Runners](/docs/runbooks/agents) your runbook steps run on. |
-| **Runbooks → Settings** | Manage the **Global Variables** every runbook can [use](/docs/runbooks/variables), and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. |
+| **Runbooks → Settings** | Manage the **Global Variables** every runbook can [use](/docs/runbooks/variables), and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. **Rule Audit Logs** lists who created, changed or deleted those rules and the runbook rules of every product, and when. |
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
 

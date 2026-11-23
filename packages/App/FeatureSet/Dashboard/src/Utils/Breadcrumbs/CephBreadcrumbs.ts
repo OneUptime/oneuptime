@@ -176,6 +176,12 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Ceph",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Ceph",

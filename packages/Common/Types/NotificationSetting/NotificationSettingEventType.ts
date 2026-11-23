@@ -149,6 +149,14 @@ enum NotificationSettingEventType {
    */
   SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION = "Send notification when a step of a security case I am on stops holding",
   /*
+   * OneUptime AI handed a security case it was working to people, and why
+   * (SecurityCaseHandOff, #10352): told to the people on the case - its
+   * assignee and its team - or, when nobody is, to the people told about
+   * cases at its priority. Never held back in a rollup: a case nobody is
+   * working has to be picked up now.
+   */
+  SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION = "Send notification when OneUptime AI hands a security case to people",
+  /*
    * A scheduled hunt found security events (SecurityHuntNotifications): told
    * to the people the hunt names and the members of the teams it names, who
    * can read its project's hunts and security events.

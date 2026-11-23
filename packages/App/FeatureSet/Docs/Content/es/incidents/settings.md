@@ -35,7 +35,7 @@ Lo que OneUptime AI hace por su cuenta no se configura aquí: tiene una sección
 
 **Estado del incidente** y **Gravedad del incidente** se tratan a fondo en [Estados y severidades de incidentes](/docs/incidents/states-and-severities); el resto de esta página empieza en **Plantillas de incidente**. Los formularios que permiten a personas ajenas a tu equipo notificar incidentes son un producto propio: consulta [Formularios](/docs/forms/index). Las herramientas que abren incidentes por su cuenta, como [Huntress](/docs/integrations/huntress), se configuran como flujos de trabajo.
 
-Despliega **Reglas** y tienes ocho páginas más: **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA** y **Reglas de recordatorio**. Se tratan más abajo.
+Despliega **Reglas** y tienes nueve páginas más: **Reglas de agrupación**, **Reglas de guardia**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de SLA**, **Reglas de recordatorio** y **Registros de auditoría**: quién creó, cambió o eliminó cualquiera de estas reglas, qué cambió y cuándo, incluidas las reglas eliminadas. Las reglas se tratan más abajo.
 
 ## Plantillas de incidente
 

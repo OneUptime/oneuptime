@@ -78,6 +78,8 @@ En ressurs uten eget navn får navn etter det som navngir den i OneUptime: et un
 
 Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har også sin egen side **Revisjonslogger** i en sammenslått seksjon av sidemenyen, som **Avansert**. Den viser bare den ressursens oppføringer, sammen med oppføringene for det som hører til den: siden til et SLO viser også reglene og eierne.
 
+Reglene til et produkt har også en egen side, sist i menyseksjonen som viser dem: **Revisjonslogger** i en seksjon **Regler**, som **Hendelser → Regler → Revisjonslogger**, og **Revisjonslogger for regler** i en seksjon **Innstillinger** med eier- og etikettregler, som **Verter → Innstillinger → Revisjonslogger for regler**. Den viser alle reglene til produktet, også slettede. Runbook-regler er én type regel for varsler, hendelser og vedlikeholdshendelser, så historikken deres ligger under **Runbooks → Innstillinger → Revisjonslogger for regler**.
+
 ## Hva som registreres
 
 Alt folk oppretter, endrer eller sletter i et prosjekt, registreres: monitorer, hendelser, varsler, statussider, arbeidsflyter og trinnene deres, køer, dashbord, vaktpolicyer, team og hvem som er med i dem, API-nøkler og alle innstillinger. **Ressurstype** sier hva en oppføring gjelder, for eksempel `Monitor`, `Workflow` eller `Queue`.

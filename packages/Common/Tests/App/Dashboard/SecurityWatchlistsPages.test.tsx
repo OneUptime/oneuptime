@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import FieldType from "../../../UI/Components/Types/FieldType";
 import {
   afterEach,
   beforeEach,
@@ -155,6 +156,7 @@ type CapturedDetail = {
     fields: Array<{
       title: string;
       field: Record<string, unknown>;
+      fieldType?: FieldType | undefined;
       getElement?: ((item: unknown) => React.ReactElement) | undefined;
     }>;
   };
@@ -853,7 +855,7 @@ describe("a watchlist's page", () => {
       detail!.modelDetailProps.fields.map((field: { title: string }) => {
         return field.title;
       }),
-    ).toEqual(["Name", "Holds", "Values", "Read By", "Description"]);
+    ).toEqual(["Name", "Holds", "Values", "Read By", "Description", "ID"]);
 
     type DetailField = CapturedDetail["modelDetailProps"]["fields"][number];
 
@@ -866,6 +868,14 @@ describe("a watchlist's page", () => {
         },
       )!;
     };
+
+    /*
+     * The list's own ID, which the card draws as its line, saying who
+     * created the list and who last changed it (#10461).
+     */
+    expect(fieldTitled("ID").field).toEqual({ _id: true });
+    expect(fieldTitled("ID").fieldType).toBe(FieldType.ObjectID);
+    expect(fieldTitled("ID").getElement).toBeUndefined();
 
     const { container: name } = render(fieldTitled("Name").getElement!(saved));
     expect(within(name).getByText("vip_users")).toHaveClass("font-mono");
@@ -1444,7 +1454,7 @@ describe("a watchlist's page", () => {
       detail!.modelDetailProps.fields.map((field: { title: string }) => {
         return field.title;
       }),
-    ).toEqual(["Name", "Holds", "Values", "Read By", "Description"]);
+    ).toEqual(["Name", "Holds", "Values", "Read By", "Description", "ID"]);
 
     const values: {
       getElement?: ((item: unknown) => React.ReactElement) | undefined;

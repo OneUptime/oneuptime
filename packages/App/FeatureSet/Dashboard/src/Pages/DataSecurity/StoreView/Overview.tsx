@@ -966,6 +966,12 @@ const ScannedDataStoreOverview: FunctionComponent<
               title: "Last Found",
               fieldType: FieldType.DateTime,
             },
+            {
+              // The store's line: its ID, who added it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
         }}
       />

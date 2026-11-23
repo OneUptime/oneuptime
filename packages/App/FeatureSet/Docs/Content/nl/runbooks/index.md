@@ -98,7 +98,7 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | De **Instellingen** van een runbook | **Dit runbook uitvoeren** uitschakelen zonder het runbook te verwijderen. |
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |
 | **Runbooks → Runbook-agenten** | De [Runners](/docs/runbooks/agents) installeren waarop de stappen van uw runbooks draaien. |
-| **Runbooks → Instellingen** | Onder **Globale variabelen** de variabelen beheren die elk runbook kan [gebruiken](/docs/runbooks/variables), en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. |
+| **Runbooks → Instellingen** | Onder **Globale variabelen** de variabelen beheren die elk runbook kan [gebruiken](/docs/runbooks/variables), en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. **Auditlogboeken van regels** toont wie die regels en de runbook-regels van elk product heeft gemaakt, gewijzigd of verwijderd, en wanneer. |
 | **Incidenten / Waarschuwingen / Gepland onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
 | Een incident, waarschuwing of onderhoudsgebeurtenis → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |
 

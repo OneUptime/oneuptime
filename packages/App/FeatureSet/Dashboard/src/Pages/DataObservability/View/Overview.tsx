@@ -22,8 +22,10 @@ import {
   DataObservabilityCollector,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import DataStore from "Common/Models/DatabaseModels/DataStore";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import Card from "Common/UI/Components/Card/Card";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
@@ -95,6 +97,10 @@ const StoreOverviewPage: FunctionComponent<
         columns={3}
         ariaLabel="Database health"
         isLaidOutByOwnWidth={true}
+        footer={
+          // Who connected the database and who last changed it (#10461).
+          <RecordActivityLine modelType={DataStore} recordId={dataStoreId} />
+        }
       >
         <EventStatTile
           variant="segment"

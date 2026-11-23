@@ -169,6 +169,12 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 return <ApiKeyHint hint={item.apiKeyHint} />;
               },
             },
+            {
+              // The key's line: its ID, who created it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
           modelId: modelId,
         }}

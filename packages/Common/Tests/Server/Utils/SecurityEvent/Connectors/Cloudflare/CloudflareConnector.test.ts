@@ -23,6 +23,11 @@ import SecurityEventConnectorProvider from "../../../../../../Types/SecurityEven
 import { EDGE_SAMPLE_INTERVAL_ATTRIBUTE } from "../../../../../../Types/SecurityEvent/EdgeAction";
 import NormalizedSecurityEvent from "../../../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "../../../../../../Utils/Monitor/ProbeFailureCauses";
+import { HTTP_RETRY_MAX_ATTEMPTS } from "../../../../../../Server/Utils/DataSource/HttpRetry";
+import {
   MANAGED_RULE_BLOCK,
   SKIP_ALLOWLISTED_MONITOR,
 } from "../../../../../Utils/SecurityEvent/Connectors/CloudflareFixtures";
@@ -1197,5 +1202,104 @@ describe("CloudflareConnector - a 200 Cloudflare answers with something else", (
     await expect(fetchWindow(connector)).rejects.toThrow(
       "Cloudflare zones request returned an unrecognized response",
     );
+  });
+});
+
+/*
+ * A failure Cloudflare answered every time it was asked says how many times,
+ * in the sentence of the table of why a check failed (ProbeFailureCauses,
+ * TriedTimes), so a page draws it in the reader's language as it draws a
+ * probe's check that was asked again.
+ */
+/*
+ * The step's own sentence, then the table's: the message is word for word
+ * what writeProbeFailureCause writes for TriedTimes around it, with the
+ * times it was asked.
+ */
+function expectTheTablesAttempts(message: string, step: RegExp): void {
+  const said: string = message.slice(0, message.lastIndexOf(" Tried "));
+
+  expect(said).toMatch(step);
+  expect(message).toBe(
+    writeProbeFailureCause(ProbeFailureCause.TriedTimes, {
+      cause: said,
+      count: HTTP_RETRY_MAX_ATTEMPTS,
+    }),
+  );
+  expect(message.endsWith(` Tried ${HTTP_RETRY_MAX_ATTEMPTS} times.`)).toBe(
+    true,
+  );
+}
+
+describe("CloudflareConnector - a failure asked again says how many times, from the table", () => {
+  test("a REST step Cloudflare could not answer", async () => {
+    const { api, connector } = harness([zone({ id: ZONE_A })]);
+    api.script({
+      matches: (request: FakeRequest): boolean => {
+        return request.path.endsWith("/zones");
+      },
+      response: restError(503, 0, "Service unavailable"),
+      times: HTTP_RETRY_MAX_ATTEMPTS,
+    });
+
+    const error: unknown = await fetchWindow(connector).catch(
+      (thrown: unknown): unknown => {
+        return thrown;
+      },
+    );
+
+    expect(error).toBeInstanceOf(CloudflareApiError);
+    expectTheTablesAttempts(
+      (error as CloudflareApiError).message,
+      /^Cloudflare zones request failed \(HTTP 503\): Service unavailable \(0\)\.$/,
+    );
+  });
+
+  test("a firewall events query Cloudflare could not answer", async () => {
+    const { api, connector } = harness([
+      zone({ id: ZONE_A, events: [event(1, "a1")] }),
+    ]);
+    api.script({
+      matches: (request: FakeRequest): boolean => {
+        return request.operation === "OneUptimeFirewallEvents";
+      },
+      response: graphQlError("Service unavailable", 503),
+      times: HTTP_RETRY_MAX_ATTEMPTS,
+    });
+
+    const error: unknown = await fetchWindow(connector).catch(
+      (thrown: unknown): unknown => {
+        return thrown;
+      },
+    );
+
+    expect(error).toBeInstanceOf(CloudflareApiError);
+    expectTheTablesAttempts(
+      (error as CloudflareApiError).message,
+      /failed \(HTTP 503\): Service unavailable\.$/,
+    );
+  });
+
+  test("a failure asked once says nothing of attempts", async () => {
+    const { api, connector } = harness([zone({ id: ZONE_A })]);
+    api.script({
+      matches: (request: FakeRequest): boolean => {
+        return request.path.endsWith("/zones");
+      },
+      response: restError(400, 1001, "Invalid request"),
+      times: 1,
+    });
+
+    const error: unknown = await fetchWindow(connector).catch(
+      (thrown: unknown): unknown => {
+        return thrown;
+      },
+    );
+
+    expect(error).toBeInstanceOf(CloudflareApiError);
+    expect((error as CloudflareApiError).message).toMatch(
+      /^Cloudflare zones request failed \(HTTP 400\): Invalid request \(1001\)\.$/,
+    );
+    expect((error as CloudflareApiError).message).not.toContain("Tried");
   });
 });

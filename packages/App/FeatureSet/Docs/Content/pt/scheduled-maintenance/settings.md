@@ -19,6 +19,7 @@ Abra **Manutenção programada** no menu **Produtos** da barra superior. As seç
 | **Regras de runbook** | Inicia runbooks para os eventos que correspondem.                |
 | **Regras de Rótulos** | Adiciona rótulos aos eventos que correspondem.                   |
 | **Regras de lembrete** | Lembra os proprietários em intervalos até um evento ser concluído.  |
+| **Registros de auditoria** | Mostra quem criou, alterou ou excluiu qualquer uma destas regras, e quando. |
 
 A seção **Configurações** reúne **Estado da manutenção**, tratado em [Estados da manutenção](/docs/scheduled-maintenance/states), **Modelos de manutenção**, tratado em [Modelos e eventos recorrentes](/docs/scheduled-maintenance/templates), e depois **Modelos de notas**, **Aprovação de notas públicas**, **Campos personalizados**, **Medições**, **Configurações do calendário** e **Numeração**. **Configurações do calendário** é tratado em [Calendário de manutenção](/docs/scheduled-maintenance/calendar#calendários-externos), e o resto abaixo.
 

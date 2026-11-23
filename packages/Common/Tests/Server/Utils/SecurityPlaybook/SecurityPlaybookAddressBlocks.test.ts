@@ -202,6 +202,7 @@ async function blockTargets(data: {
   blockAction?: SecurityBlockAction;
   duration?: SecurityBlockDuration;
   personId?: ObjectID;
+  source?: SecurityBlockSource;
 }): Promise<PlaybookStepOutcome> {
   return await SecurityPlaybookAddressBlocks.block({
     projectId: PROJECT_ID,
@@ -214,6 +215,7 @@ async function blockTargets(data: {
     },
     targets: data.targets,
     personId: data.personId,
+    ...(data.source ? { source: data.source } : {}),
   });
 }
 
@@ -293,6 +295,24 @@ describe("blocking each target", () => {
 
     expect(asked[0]!.source).toBe(SecurityBlockSource.Person);
     expect(asked[0]!.props).toEqual({ isRoot: true, userId: PERSON_ID });
+  });
+
+  // OneUptime AI working the case (#10352): the Blocklist names it as the block's maker.
+  test("OneUptime AI's block is its own: made as OneUptime AI, from the case, as root", async () => {
+    outcomes.set(ADDRESS, {
+      status: SecurityBlockOutcomeStatus.Blocked,
+      block: madeBlock({ index: 1, value: ADDRESS }),
+    });
+
+    await blockTargets({
+      targets: [target(ADDRESS)],
+      source: SecurityBlockSource.OneUptimeAi,
+    });
+
+    expect(asked[0]!.source).toBe(SecurityBlockSource.OneUptimeAi);
+    expect(asked[0]!.securityCaseId).toEqual(CASE_ID);
+    expect(asked[0]!.securityPlaybookRunId).toEqual(RUN_ID);
+    expect(asked[0]!.props).toEqual({ isRoot: true });
   });
 
   test("a destination still applying it: done, saying where it is being applied", async () => {
