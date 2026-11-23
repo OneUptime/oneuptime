@@ -316,10 +316,12 @@ describe("hashed addresses", () => {
 
     const result: SecuritySignedInAddressCheck = await check();
 
-    expect(result.state).toBe(SecuritySignedInAddressState.CannotTell);
-    expect(result.reason).toContain(
-      "Your scrub rule Hide the client hides client addresses",
-    );
+    expect(result).toMatchObject({
+      state: SecuritySignedInAddressState.CannotTell,
+      reason: expect.stringContaining(
+        "Your scrub rule Hide the client hides client addresses",
+      ),
+    });
   });
 
   test("Named Attributes rules: only those naming an attribute the address is read from count, by exact key or prefix", () => {
