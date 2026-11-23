@@ -60805,7 +60805,5 @@
   "Your project's": "आपके प्रोजेक्ट का",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "आपके प्रोजेक्ट का AI संदर्भ सिस्टम संदेश में सबसे पहले आता है: {{count}} अक्षर, जो प्रोजेक्ट सेटिंग्स → एआई → AI सुविधाएं में सेट होता है।",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "आपके प्रोजेक्ट का AI संदर्भ सिस्टम संदेश में सबसे पहले आता है: {{count}} अक्षर, जो प्रोजेक्ट सेटिंग्स → एआई → AI सुविधाएं में सेट होता है।",
-  "App Service key": "App Service कुंजी",
-  "Custom Role Audit Logs": "Custom Role Audit Logs",
-  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
+  "App Service key": "App Service कुंजी"
 }

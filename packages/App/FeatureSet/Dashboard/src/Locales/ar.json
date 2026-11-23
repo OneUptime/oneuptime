@@ -60805,7 +60805,5 @@
   "Your project's": "خاص بمشروعك",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "يأتي سياق الذكاء الاصطناعي لمشروعك أولًا في رسالة النظام: {{count}} من الأحرف، ويُضبط في إعدادات المشروع ← الذكاء الاصطناعي ← ميزات الذكاء الاصطناعي.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "يأتي سياق الذكاء الاصطناعي لمشروعك أولًا في رسالة النظام: {{count}} حرف، ويُضبط في إعدادات المشروع ← الذكاء الاصطناعي ← ميزات الذكاء الاصطناعي.",
-  "App Service key": "مفتاح App Service",
-  "Custom Role Audit Logs": "سجلات تدقيق الدور المخصص",
-  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "كل تغيير أُجري على هذا الدور المخصص وأذوناته: من أجراه، ومتى، وما الذي تغيّر."
+  "App Service key": "مفتاح App Service"
 }

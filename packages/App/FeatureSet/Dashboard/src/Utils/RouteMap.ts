@@ -1659,7 +1659,6 @@ export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_CUSTOM_FIELDS]: "custom-fields",
   [PageMap.TEAM_ROLES]: "roles",
   [PageMap.TEAM_ROLE_VIEW]: `roles/${RouteParams.ModelID}`,
-  [PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]: `roles/${RouteParams.ModelID}/audit-logs`,
 
   [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
@@ -9674,12 +9673,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TEAM_ROLE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_ROLE_VIEW]
-    }`,
-  ),
-
-  [PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/teams/${
-      TeamsRoutePath[PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS]
     }`,
   ),
 

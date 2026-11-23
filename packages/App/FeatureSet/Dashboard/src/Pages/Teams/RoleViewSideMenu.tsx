@@ -21,8 +21,6 @@ export interface ComponentProps {
  *   - Custom Role > Overview: the role itself - what it gives, who has it,
  *     the workflows that run as it and deleting it - on one page, in the
  *     order they are used (the Enterprise RoleViewPage);
- *   - Custom Role > Audit Logs: every change made to the role and its
- *     permissions, as a team's Audit Logs page lists the team's;
  *   - Developer, folded: Terraform, Crossplane, API, CLI and AI Assistants
  *     for this role (#10139), where the API and CLI pages' Delete it step
  *     says what the workflows that run as it run as instead (#10031).
@@ -48,17 +46,6 @@ const TeamRoleViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Info,
-        },
-        {
-          // What the role gives and who changed it, last: it is deleted from its Overview.
-          link: {
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          },
-          icon: IconProp.List,
         },
       ],
     },

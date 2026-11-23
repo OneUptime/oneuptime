@@ -22,13 +22,6 @@ export function getTeamsBreadcrumbs(path: string): Array<Link> | undefined {
       "Roles",
       "View Role",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS, [
-      "Project",
-      "Teams",
-      "Roles",
-      "View Role",
-      "Audit Logs",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.TEAM_VIEW, [
       "Project",
       "Teams",

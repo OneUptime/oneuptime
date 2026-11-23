@@ -60805,7 +60805,5 @@
   "Your project's": "Dit projekts",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "Dit projekts AI-kontekst står først i systembeskeden: {{count}} tegn, angivet under Projektindstillinger → AI → AI-funktioner.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "Dit projekts AI-kontekst står først i systembeskeden: {{count}} tegn, angivet under Projektindstillinger → AI → AI-funktioner.",
-  "App Service key": "App Service-nøgle",
-  "Custom Role Audit Logs": "Custom Role Audit Logs",
-  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
+  "App Service key": "App Service-nøgle"
 }

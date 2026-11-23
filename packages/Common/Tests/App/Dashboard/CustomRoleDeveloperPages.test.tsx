@@ -299,7 +299,7 @@ afterEach(() => {
 });
 
 describe("a custom role's own page", () => {
-  test("is drawn under the role's own menu: Custom Role > Overview and Audit Logs, then Developer, folded", async () => {
+  test("is drawn under the role's own menu: Custom Role > Overview, then Developer, folded", async () => {
     visit(ROLE_URL);
 
     expect(await heading()).toHaveTextContent(
@@ -309,7 +309,6 @@ describe("a custom role's own page", () => {
     expect(sectionTitlesInOrder()).toEqual(["Custom Role", "Developer"]);
     expect(linksIn("Custom Role")).toEqual([
       { title: "Overview", href: ROLE_URL },
-      { title: "Audit Logs", href: `${ROLE_URL}/audit-logs` },
     ]);
     expect(activeLinkTitles()).toEqual(["Overview"]);
     expect(isExpanded("Developer")).toBe(false);

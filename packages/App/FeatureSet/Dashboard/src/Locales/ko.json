@@ -60805,7 +60805,5 @@
   "Your project's": "프로젝트 소유",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features.": "프로젝트의 AI 컨텍스트가 시스템 메시지의 맨 앞에 들어갑니다: {{count}}자, 프로젝트 설정 → AI → AI 기능에서 설정합니다.",
   "Your project's AI context comes first in the system message: {{count}} characters, set under Project Settings → AI → AI Features._one": "프로젝트의 AI 컨텍스트가 시스템 메시지의 맨 앞에 들어갑니다: {{count}}자, 프로젝트 설정 → AI → AI 기능에서 설정합니다.",
-  "App Service key": "App Service 키",
-  "Custom Role Audit Logs": "Custom Role Audit Logs",
-  "Every change made to this custom role and its permissions: who made it, when, and what changed.": "Every change made to this custom role and its permissions: who made it, when, and what changed."
+  "App Service key": "App Service 키"
 }
