@@ -80,6 +80,10 @@ const TYPED_FILTER_KEYS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "evaluate_over_time_minutes",
     "evaluate_over_time_type",
     "evaluate_over_time_no_data_policy",
+    // A percentile, and how a count of the window's checks is compared (#10355).
+    "evaluate_over_time_percentile",
+    "evaluate_over_time_count_filter_type",
+    "evaluate_over_time_count_value",
   ],
   serverMonitorOptions: ["disk_path"],
 };
@@ -94,6 +98,9 @@ const TYPED_FILTER_SAMPLES: Readonly<Record<string, unknown>> = {
     timeValueInMinutes: 5,
     evaluateOverTimeType: "Average",
     onNoDataPolicy: "Ignore",
+    percentile: 95,
+    countFilterType: "Greater Than",
+    countValue: 30,
   },
   serverMonitorOptions: { diskPath: "/" },
 };

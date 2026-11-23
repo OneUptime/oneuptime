@@ -71,7 +71,7 @@ Filtret **Anslutna sonder** passar en monitor som bevakar flera sonder och klara
 
 ### Vänta längre före en incident
 
-En sond är frånkopplad först efter tre minuters tystnad, så en snabb omstart öppnar ingenting. För att vänta längre kryssar du i **Utvärdera dessa kriterier över en tidsperiod** under filtret, väljer **Alla värden** under **Utvärdera** och ett fönster under **Under de senaste (i minuter)**. Med fem minuter måste en sond vara frånkopplad i ytterligare fem minuter innan incidenten deklareras.
+En sond är frånkopplad först efter tre minuters tystnad, så en snabb omstart öppnar ingenting. För att vänta längre kryssar du i **Utvärdera dessa kriterier över en tidsperiod** under filtret, väljer **Alla värden** under **Utvärdera** och ett fönster under **Under de senaste**. Med fem minuter måste en sond vara frånkopplad i ytterligare fem minuter innan incidenten deklareras.
 
 ## Mätvärden
 

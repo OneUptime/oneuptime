@@ -118,13 +118,14 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **DNS Is Online** and **DNS Response Time (in ms)**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
+**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **DNS Is Online** and **DNS Response Time (in ms)**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 minutes to 24 hours, under **For the last**.
 
 | Aggregate | Matches when |
 | --- | --- |
-| **Average**, **Sum**, **Maximum Value**, **Minimum Value** | That figure, over the window, meets the condition. **DNS Response Time (in ms)** only. |
+| **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **Percentile** | That figure, over the window, meets the condition, such as the p95 response time. **DNS Response Time (in ms)** only. |
 | **All Values** | Every check in the window meets the condition. |
 | **Any Value** | At least one check in the window meets the condition. |
+| **Count**, **Percentage**, **Status Changes** | How many checks met the condition, their share, or how often they changed between meeting it and not, compares with the number set under it. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
 

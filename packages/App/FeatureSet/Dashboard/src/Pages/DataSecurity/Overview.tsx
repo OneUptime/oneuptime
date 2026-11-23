@@ -87,11 +87,35 @@ const SEVERITY_BAR_COLORS: Readonly<Record<SecuritySeverity, string>> = {
   [SecuritySeverity.Low]: "#3b82f6",
 };
 
-// The trend's two series: issues opened and issues resolved, each day.
+/*
+ * The trend's series: issues opened, issues resolved, and - apart, in
+ * amber - the telemetry leaks only contained at ingest (#10368), which a
+ * rule hides while the code still writes them: no fix.
+ */
 const TREND_SERIES: Array<StackedSeries> = [
   { key: "opened", label: translationKey("Opened"), color: "#ef4444" },
   { key: "resolved", label: translationKey("Resolved"), color: "#22c55e" },
+  {
+    key: "contained",
+    label: translationKey("Contained at ingest"),
+    color: "#f59e0b",
+  },
 ];
+
+/*
+ * How the 30 days' resolved issues were resolved (#10368): fixed where they
+ * start, of them the fixes proven in production, and the leaks only
+ * contained at ingest - a figure each, under its label.
+ */
+export const FIXED_AT_SOURCE_LABEL: string = translationKey(
+  "Fixed where they start",
+);
+export const PROVEN_IN_PRODUCTION_LABEL: string = translationKey(
+  "Fixes proven in production",
+);
+export const ONLY_CONTAINED_LABEL: string = translationKey(
+  "Only contained at ingest",
+);
 
 const STORES_CHECKED: string = translationKey("stores checked");
 const STORES_CONTENT_SCANNED: string = translationKey(
@@ -123,12 +147,17 @@ export function getTrendDays(
 ): Array<DayCount> {
   return (trend || []).map((day: DataSecurityOverviewTrendDay): DayCount => {
     const opened: number = countOf(day.opened);
-    const resolved: number = countOf(day.resolved);
+    // Contained is counted among the resolved by the server: drawn apart here.
+    const contained: number = Math.min(
+      countOf(day.contained),
+      countOf(day.resolved),
+    );
+    const resolved: number = countOf(day.resolved) - contained;
 
     return {
       day: day.day,
-      total: opened + resolved,
-      byKey: { opened: opened, resolved: resolved },
+      total: opened + resolved + contained,
+      byKey: { opened: opened, resolved: resolved, contained: contained },
     };
   });
 }
@@ -430,13 +459,49 @@ const DataSecurityOverviewPage: FunctionComponent<
       <CardGrid columns={2} dataTestId={DATA_SECURITY_OVERVIEW_COVERAGE_ID}>
         <Card
           title="Issues in the Last 30 Days"
-          description="Issues opened and resolved each day."
+          description="Issues opened and resolved each day, the leaks only contained at ingest apart."
         >
           <StackedDayBars
             days={getTrendDays(overview.issueTrend)}
             series={TREND_SERIES}
             ariaLabel="Issues opened and resolved per day"
           />
+          {overview.resolutions &&
+          overview.resolutions.fixedAtSource + overview.resolutions.contained >
+            0 ? (
+            <dl
+              className="mt-4 grid grid-cols-1 gap-3 border-t border-gray-100 pt-3 sm:grid-cols-3"
+              data-testid="data-security-overview-resolutions"
+            >
+              {[
+                {
+                  label: FIXED_AT_SOURCE_LABEL,
+                  value: overview.resolutions.fixedAtSource,
+                },
+                {
+                  label: PROVEN_IN_PRODUCTION_LABEL,
+                  value: overview.resolutions.verifiedFixes,
+                },
+                {
+                  label: ONLY_CONTAINED_LABEL,
+                  value: overview.resolutions.contained,
+                },
+              ].map((fact: { label: string; value: number }): ReactElement => {
+                return (
+                  <div key={fact.label} className="min-w-0">
+                    <dt className="text-xs text-gray-500">
+                      {translator.translateText(fact.label)}
+                    </dt>
+                    <dd className="text-lg font-semibold tabular-nums text-gray-900">
+                      {translator.formatNumber(fact.value)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          ) : (
+            <></>
+          )}
         </Card>
         <Card
           headerLayout="stacked"

@@ -37,6 +37,7 @@ import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
 import FormDomainService from "./FormDomainService";
 import FormPrivateUserService from "./FormPrivateUserService";
+import FormPrivateUserSessionService from "./FormPrivateUserSessionService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -328,6 +329,7 @@ import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
 import DashboardPlaylistService from "./DashboardPlaylistService";
 import DashboardPrivateUserService from "./DashboardPrivateUserService";
+import DashboardPrivateUserSessionService from "./DashboardPrivateUserSessionService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -706,6 +708,11 @@ const services: Array<BaseService> = [
   FormSubmissionService,
   FormDomainService,
   FormPrivateUserService,
+  /*
+   * Its sessions are purged 30 days after they lapse (#10792): the
+   * hard-delete jobs read only this list.
+   */
+  FormPrivateUserSessionService,
   IncidentInternalNoteService,
   IncidentPostmortemActionItemService,
   IncidentOwnerTeamService,
@@ -921,6 +928,8 @@ const services: Array<BaseService> = [
   DashboardService,
   DashboardPlaylistService,
   DashboardPrivateUserService,
+  // Purged 30 days after they lapse, as FormPrivateUserSessionService (#10792).
+  DashboardPrivateUserSessionService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,

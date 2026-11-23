@@ -119,7 +119,7 @@ I criteri vengono verificati dall'alto verso il basso, e il primo che corrispond
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella di controllo sotto ogni filtro NTP. Attivala per giudicare una finestra di controlli passati invece dell'ultimo: scegli un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**. Solo i controlli a cui il server ha risposto hanno uno stratum, uno scostamento e una dispersione radice, quindi una finestra di silenzio non ha dati per quei filtri, e **Se nessun dato** decide cosa succede.
+**Valuta questo criterio su un periodo di tempo** è una casella di controllo sotto ogni filtro NTP. Attivala per giudicare una finestra di controlli passati invece dell'ultimo: scegli un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**. Solo i controlli a cui il server ha risposto hanno uno stratum, uno scostamento e una dispersione radice, quindi una finestra di silenzio non ha dati per quei filtri, e **Se nessun dato** decide cosa succede.
 
 ### Criteri di esempio
 
