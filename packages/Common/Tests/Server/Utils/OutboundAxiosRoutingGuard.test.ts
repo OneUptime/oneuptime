@@ -132,9 +132,9 @@ const AXIOS_LIBRARIES: Record<string, string> = {
   twilio:
     "SMS and calls: every Twilio client is handed a RequestClient whose axios instance routes each request (TwilioHttpClient), HTTP_PROXY kept as the fallback Twilio's own client read",
   botbuilder:
-    "its axios client calls Skills, which OneUptime never does; Teams goes through @azure/core-rest-pipeline",
+    "its axios client calls Skills (BotFrameworkHttpClient), which OneUptime never does; the Teams bot's own requests are routed by BotFrameworkRouting (#10763): its keys with OutboundFetch, its tokens and its replies on OutboundProxyAgents' agents",
   "botframework-connector":
-    "its axios client calls Skills, which OneUptime never does; Teams goes through @azure/core-rest-pipeline",
+    "its axios client calls Skills (BotFrameworkClientImpl), which OneUptime never does; the Teams bot's own requests are routed by BotFrameworkRouting (#10763): its keys with OutboundFetch, its tokens and its replies on OutboundProxyAgents' agents",
 };
 
 // How a hook that routes a library's requests reads in its file.
