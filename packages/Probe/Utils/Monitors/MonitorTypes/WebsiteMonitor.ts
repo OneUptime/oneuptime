@@ -484,7 +484,7 @@ export default class WebsiteMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err), [url])}`,
+            `Website Monitor - Probe is not online. Cannot ping ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
           );
           return null;
         }
@@ -499,7 +499,7 @@ export default class WebsiteMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err), [url])}`,
+          `Website Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))}`,
         );
 
         probeWebsiteResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -529,13 +529,12 @@ export default class WebsiteMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err), [url])} Response: ${MonitorLogUrl.scrub(
+        `Website Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${MonitorLogUrl.scrub(String(err))} Response: ${MonitorLogUrl.scrub(
           JSON.stringify({
             ...probeWebsiteResponse,
             // Its scheme and host alone: the server filled secrets into it (#10782).
             url: MonitorLogUrl.write(url),
           }),
-          [url],
         )}`,
         EXTERNAL_FAULT,
       );

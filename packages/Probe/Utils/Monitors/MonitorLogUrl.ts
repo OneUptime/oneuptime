@@ -12,6 +12,13 @@ import URL from "Common/Types/API/URL";
  * path, query, fragment or credentials, where a secret goes. The monitor
  * id beside it says which monitor it is.
  */
+
+// An http or https URL in a text, up to a space, a quote or a backslash.
+const URL_IN_TEXT: RegExp = /\bhttps?:\/\/[^\s"'<>\\]+/gi;
+
+// What ends a sentence after a URL rather than the URL itself.
+const TRAILING_PUNCTUATION: RegExp = /[.,;:!?)\]}]+$/;
+
 export default class MonitorLogUrl {
   public static write(url: URL | string | undefined | null): string {
     try {
@@ -26,31 +33,17 @@ export default class MonitorLogUrl {
 
   /*
    * A text for a log line - an error, a response written as JSON - with
-   * each of these URLs in it written as write() writes it: an error a
-   * request throws says the whole URL it was sent to ("Request failed to
-   * https://...?key=..."), secrets and all.
+   * every URL in it written as write() writes it: an error a request
+   * throws says the whole URL it was sent to ("Request failed to
+   * https://...?key=..."), secrets and all, and so may a redirect's next
+   * hop. Read in time in line with the text's length.
    */
-  public static scrub(
-    text: string,
-    urls: Array<URL | string | undefined | null>,
-  ): string {
-    let scrubbed: string = text;
+  public static scrub(text: string): string {
+    return text.replace(URL_IN_TEXT, (match: string): string => {
+      const trailing: string = TRAILING_PUNCTUATION.exec(match)?.[0] || "";
+      const url: string = trailing ? match.slice(0, -trailing.length) : match;
 
-    for (const url of urls) {
-      const whole: string = url ? String(url) : "";
-
-      if (!whole) {
-        continue;
-      }
-
-      const written: string = MonitorLogUrl.write(whole);
-
-      // As it is, and as JSON writes it inside a string.
-      for (const form of [whole, JSON.stringify(whole).slice(1, -1)]) {
-        scrubbed = scrubbed.split(form).join(written);
-      }
-    }
-
-    return scrubbed;
+      return `${MonitorLogUrl.write(url)}${trailing}`;
+    });
   }
 }

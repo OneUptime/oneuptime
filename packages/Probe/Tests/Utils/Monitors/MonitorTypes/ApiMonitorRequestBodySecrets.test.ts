@@ -661,6 +661,23 @@ describe("a URL as a log line writes it (#10782)", () => {
     );
   });
 
+  it("writes every URL in a text so, its sentence kept around it", () => {
+    expect(
+      MonitorLogUrl.scrub(
+        "Request failed to https://api.example.com/v1/hunter2?key=hunter2. socket hang up",
+      ),
+    ).toBe("Request failed to https://api.example.com. socket hang up");
+    // A URL the server normalized, and a redirect's next hop, the same way.
+    expect(
+      MonitorLogUrl.scrub(
+        '{"failureCause":"Request failed to https://api.example.com/?key=hunter2","next":"http://other.example.com:8080/a/hunter2"}',
+      ),
+    ).toBe(
+      '{"failureCause":"Request failed to https://api.example.com","next":"http://other.example.com:8080"}',
+    );
+    expect(MonitorLogUrl.scrub("no address here")).toBe("no address here");
+  });
+
   it("never the text itself when it is no URL", () => {
     for (const text of ["hunter2", "", undefined, null, "not a url hunter2"]) {
       expect(MonitorLogUrl.write(text)).toBe("(an address that is not a URL)");

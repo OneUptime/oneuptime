@@ -254,11 +254,7 @@ export default class ApiMonitor {
    * field that holds it - a token in an "X-Tenant" header, or a password
    * in a body's "pass", went into the log as it was (#10735, #10782).
    */
-  private static writeForLog(
-    response: APIResponse,
-    // The URLs the request went to, written out of what is logged.
-    urls: Array<URL | string>,
-  ): string {
+  private static writeForLog(response: APIResponse): string {
     return MonitorLogUrl.scrub(
       JSON.stringify({
         ...response,
@@ -266,7 +262,6 @@ export default class ApiMonitor {
         requestHeaders: undefined,
         requestBody: undefined,
       }),
-      urls,
     );
   }
 
@@ -684,10 +679,7 @@ export default class ApiMonitor {
        * Said in the logs below: a code the request carried is taken out,
        * and the URL it was sent to written by its scheme and host (#10782).
        */
-      const errorText: string = MonitorLogUrl.scrub(redact(String(err)), [
-        request.url,
-        url,
-      ]);
+      const errorText: string = MonitorLogUrl.scrub(redact(String(err)));
 
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -806,7 +798,6 @@ export default class ApiMonitor {
       logger.error(
         `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
           apiResponse,
-          [request.url, url],
         )}`,
         EXTERNAL_FAULT,
       );
