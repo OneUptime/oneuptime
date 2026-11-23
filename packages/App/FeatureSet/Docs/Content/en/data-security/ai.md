@@ -18,6 +18,8 @@ OneUptime AI also proposes owners for stores that have none, from what already p
 
 Out of the box, OneUptime AI asks before every change except one that only hides data, can be undone and is proven safe, and it never deletes data or pages anyone without asking. A change it made without asking is listed under **Done by AI**, with **Undo**. **Why AI did not act** lists the issues it looked at and left alone, and why. Every proposal, approval, dismissal and undo is on the issue's and the store's **Timeline**. With the switch off, Data Security works as it always does, and **Analyze Issue** and **Fix with AI** still work when you press them; with AI off for the project, neither does.
 
+OneUptime AI also gives its verdict on each finding that waits for a person: **Confirm it**, **Not sensitive** or **Cannot tell**, with your team's own decisions on findings like it as precedent (see [OneUptime AI's verdicts](/docs/data-security/data-types#oneuptime-ais-verdicts)). It never marks a finding as not sensitive, and confirms one on its own only where an AI rule's **Judge** is **Automatically**. From the findings your team marks as not sensitive, it proposes turning off a data type or leaving a location out of a store's scans, which always wait for you.
+
 On an issue's page, the **OneUptime AI** card above **How to Fix** shows the analysis and what was proposed for that issue, with the same buttons. The Data Security **Overview** says how many leaks OneUptime AI contained this week and how many proposals wait for you. What came of its changes is counted week by week under **Notes for OneUptime AI**: see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing).
 
 ### AI rules
@@ -43,6 +45,7 @@ Data Security reads your data itself, inside its scans, and keeps none of it. Wh
 | **Analysis of new issues** | The issue's title, severity and evidence, why its check matters and the steps that fix it; the store's name, kind, region, tags and configuration, its sensitivity, the names of its data types and about how many records it holds; who can reach the store: each grant's identity, level and how it is granted, and roughly when it was last used, and the services seen using it; copies of its data in other stores, its security cases, the response action that fixes it, and the repository and files that declare it; how many owners the store has, never who they are; for a telemetry issue, where each kind of data was found: the attribute, log body or prompt it sits in | Yes: a new or reopened Critical or High issue starts it, while **Work on new issues** is on |
 | **Fix with AI** | The issue as its check saw it, the store's name, kind, region and cloud ID, and for a telemetry issue where its data was found, as a request to the coding agent, which then reads the repository's own code to make the change | No: a person asks, in a repository they may change in **Code** |
 | **Suggestions for fields no detector placed** | The kind of store and the data types it may name; each field's name, the names of the fields beside it, and the shapes of its values, every letter as `a` or `A` and every digit as `9`; how many values were read, and how long they are | Yes: a store's content scan starts it |
+| **Verdicts on findings that wait for you** | Each finding's data type, its field's name and kind, how sure the scan was and its counts, rounded, with any sign of a wrong match; the store's name, kind and environment; your team's earlier decisions on findings like it: where each was, what was decided and the reason given, with any value in the reason left out | Yes: a store's scan starts it, for its Low findings, OneUptime AI's suggestions and findings that show a sign of a wrong match, while **Work on new issues** is on |
 | **Ask AI** | The stores, issues and access the person may read in Data Security; what was found where, each data type by its location, with counts and confidence | No: a person asks a question |
 | **Owners for data stores** | The store's name, kind, provider, environment and sensitivity, and the names of its data types; what points to an owner: its cloud tags, the services that use it, the code owners of the file that declares it and the changes made to it; the teams that evidence names, by name, and the people it names as numbered candidates only, never by their name or email address | Yes: a store with no owners starts it, once a day for new stores and when a cloud connection is first read, while **Work on new issues** is on |
 | **Names for issues with one cause** | What a group's stores share: the module, stack or tag that made them, the identity that created them, or their name pattern; the check they fail, how many issues the group holds, the kind of store and the code that declares them. Never the name of any one store in the group | Yes: a group of issues one mistake made starts it, when it forms or what its stores share changes, while **Work on new issues** is on |
@@ -62,11 +65,11 @@ A store's name, its cloud ID, its tags, the evidence a cloud answered and an att
 
 ### What is kept
 
-Each call's row in **Project Settings → AI → AI Logs** says which feature called which model, its tokens and its cost. It never keeps what was sent or answered: Project Members and Viewers read the AI Logs, and Data Security's records are for its owners and the Security roles. OneUptime's own telemetry never records what the analysis or the field suggestions sent either, even where the server's operator records what other AI calls send. The analysis itself is kept on its issue, for whoever may read the issue, and a line that rests on something a reader may not read is hidden from them.
+Each call's row in **Project Settings → AI → AI Logs** says which feature called which model, its tokens and its cost. It never keeps what was sent or answered: Project Members and Viewers read the AI Logs, and Data Security's records are for its owners and the Security roles. OneUptime's own telemetry never records what the analysis, the field suggestions or the verdicts on findings sent either, even where the server's operator records what other AI calls send. The analysis itself is kept on its issue, for whoever may read the issue, and a line that rests on something a reader may not read is hidden from them.
 
 When a call fails, the analysis and the field suggestions keep no word of the provider's error, which can quote what was sent. The coding agent behind Fix with AI and Fix the cause, and Ask AI's chat, still keep a failed call's provider error in its row.
 
-The owner proposals keep the same as Explain with AI: their calls' rows name the feature, the model, the tokens and the cost, never what was sent or answered, and no word of a failed call's error. So do the scrub rules OneUptime AI writes, and each rule it wrote is run on the records the data was seen in before it is proposed or made. So do the reads of a pull request's sensitive data, whose points are kept on its production review, in Code and in its comment.
+The owner proposals keep the same as Explain with AI: their calls' rows name the feature, the model, the tokens and the cost, never what was sent or answered, and no word of a failed call's error. So do the scrub rules OneUptime AI writes, and each rule it wrote is run on the records the data was seen in before it is proposed or made. So do the reads of a pull request's sensitive data, whose points are kept on its production review, in Code and in its comment. So do the verdicts on findings, each kept on its finding for whoever may read it.
 
 ## See it for yourself
 
@@ -81,7 +84,7 @@ The owner proposals keep the same as Explain with AI: their calls' rows name the
 
 Every Data Security AI feature runs on the model your project chose:
 
-- The analysis and the field suggestions run on the provider an AI rule picks for the work, else your project's default LLM provider, else the server's own.
+- The analysis, the field suggestions and the verdicts on findings run on the provider an AI rule picks for the work, else your project's default LLM provider, else the server's own.
 - **Fix with AI**'s coding agent runs on the provider an AI rule picks, else one of your project's own providers, else the server's own.
 - **Ask AI** runs on the provider picked in the chat, else your project's default.
 - A pull request's sensitive data read runs on the provider the repository picks for its production reviews, else your project's default LLM provider, else the server's own.
@@ -90,13 +93,13 @@ A self-hosted model runs all of them: Ollama, vLLM, or any OpenAI-compatible end
 
 ### With AI off
 
-With **Enable AI** off in **Project Settings → AI → AI Features**, OneUptime AI sends nothing, and Data Security keeps working as before: every page, check, scan and integration. No analysis and no AI button appear on an issue, and no field is asked about after a scan.
+With **Enable AI** off in **Project Settings → AI → AI Features**, OneUptime AI sends nothing, and Data Security keeps working as before: every page, check, scan and integration. No analysis and no AI button appear on an issue, no field is asked about after a scan, and no finding gets a verdict.
 
 ## How it is measured
 
 Every Data Security AI feature is measured on a fixed set of made-up cases, built the way the feature builds its input and scored on what a right answer says: an analysis with the right verdict, each of its lines resting on the facts it was given, that repeats nothing a store's name told it to say, the right data type for each field, a fix that changes what the check needs and nothing else, and an answer from what Ask AI read. The cases run against a pinned model every night, on every change to a Data Security AI prompt, and before every release, which needs each feature to meet its threshold.
 
-The owner proposals are scored on naming the owner the evidence points to, on picking nobody when it points to no one, and on being unsure where the evidence disagrees. The scrub rules are run on made-up values of each place, which the model never sees, and scored on hiding every value that holds the data and none of the others, and on writing no rule for a place no rule is right for. The pull request reads are scored on keeping each point that is a leak, leaving out what is not, and a fix that says what to change.
+The owner proposals are scored on naming the owner the evidence points to, on picking nobody when it points to no one, and on being unsure where the evidence disagrees. The scrub rules are run on made-up values of each place, which the model never sees, and scored on hiding every value that holds the data and none of the others, and on writing no rule for a place no rule is right for. The pull request reads are scored on keeping each point that is a leak, leaving out what is not, and a fix that says what to change. The verdicts on findings are scored on giving each finding the verdict its case allows, resting on the decisions of your team the case names: a card number your team marked not sensitive as order numbers on four stores is **Not sensitive**, and a secret nobody decided never is.
 
 To measure your own model on the same cases, run the eval from a checkout of OneUptime, with your model's key, if it needs one, in `AI_EVAL_LLM_API_KEY`:
 
@@ -111,6 +114,6 @@ In your project, **Verdicts Agreed** on **Project Settings → AI → AI Results
 :::cards
 - [Data Security Integrations](/docs/data-security/integrations): What OneUptime AI's analysis and Fix with AI do on an issue.
 - [LLM Providers](/docs/ai/llm-provider): Add your own model, a self-hosted one included.
-- [Sensitive Data Types](/docs/data-security/data-types): How the fields no detector placed are suggested.
+- [Sensitive Data Types](/docs/data-security/data-types): How the fields no detector placed are suggested, and how findings are judged.
 - [Data Security Checks and Issues](/docs/data-security/checks-and-issues): What every issue means, and how to fix it.
 :::

@@ -111,6 +111,17 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityAi";
 import { MIN_STORES_FOR_DATA_STORE_OWNER_RULE } from "Common/Types/DataSecurity/DataStoreOwnerProposal";
 import {
+  DATA_STORE_FINDING_VERDICT_LIMITS,
+  DATA_STORE_FINDING_VERDICT_TITLES,
+  DATA_STORE_FINDING_VERDICTS,
+  FindingWrongMatchSign,
+} from "Common/Types/DataSecurity/DataStoreFindingVerdict";
+import { SCAN_TUNING_LIMITS } from "Common/Types/DataSecurity/DataSecurityScanTuning";
+import {
+  getFindingNameKey,
+  getWrongMatchSigns,
+} from "Common/Utils/DataSecurity/FindingJudgement";
+import {
   ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
   DATA_SECURITY_RESPONSE_ACTION_CHECKS,
@@ -1254,6 +1265,122 @@ describe("Sensitive Data Types", () => {
     expect(section(page, "## How a value is found")).toContain(
       "**Confirm** on one that is right makes it High",
     );
+  });
+
+  /*
+   * OneUptime AI's verdicts on findings, Apply to Similar Findings and what
+   * the team's decisions say of the scans (#10372), as the product has
+   * them: the verdicts and buttons the Dashboard draws, the precedent's
+   * limit and the names it matches by, the signs of a wrong match, and the
+   * tuning's thresholds.
+   */
+  it("says what OneUptime AI's verdicts rest on, and what it decides on its own, as the product does", () => {
+    const verdicts: string = section(page, "## OneUptime AI's verdicts");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+    const aiCopy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiCopy.ts",
+    );
+
+    for (const verdict of DATA_STORE_FINDING_VERDICTS) {
+      expect(verdicts).toContain(
+        `**${DATA_STORE_FINDING_VERDICT_TITLES[verdict]}**`,
+      );
+    }
+
+    expect(copy).toContain('translationKey("Show the decisions")');
+    expect(verdicts).toContain("**Show the decisions**");
+    expect(copy).toContain(
+      '"Your team marked {{field}} not sensitive on {{count}} stores."',
+    );
+    expect(verdicts).toContain(
+      '"Your team marked `order_number` not sensitive on 4 stores"',
+    );
+
+    // At most ten decisions, the same name first, however it is written.
+    expect(DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent).toBe(10);
+    expect(verdicts).toContain("at most ten");
+    expect(verdicts).toContain(
+      "`order_number`, `orderNumber` and `public.orders.order_number` are all",
+    );
+
+    const key: string | null = getFindingNameKey({ location: "order_number" });
+
+    expect(key).not.toBeNull();
+
+    for (const location of ["orderNumber", "public.orders.order_number"]) {
+      expect({ location, key: getFindingNameKey({ location }) }).toEqual({
+        location,
+        key,
+      });
+    }
+
+    expect(getFindingNameKey({ location: "order_ref" })).not.toBe(key);
+
+    // The id fields it names are signs of a wrong match for a card number.
+    for (const location of ["order_number", "invoice_no", "ref_id"]) {
+      expect(verdicts).toContain(`\`${location}\``);
+      expect({
+        location,
+        signs: getWrongMatchSigns({
+          location,
+          dataTypeId: "credit-card-number",
+          confidence: "High",
+        }),
+      }).toEqual({
+        location,
+        signs: [FindingWrongMatchSign.IdFieldWithLuhnNumbers],
+      });
+    }
+
+    // What it may do on its own is a rule's, in the rule form's words.
+    expect(aiCopy).toContain(
+      '[DataSecurityAiWork.Judge]: translationKey("Judge")',
+    );
+    expect(aiCopy).toContain(
+      '[DataSecurityAiAutonomy.WithoutAsking]: translationKey("Automatically")',
+    );
+    expect(verdicts).toContain("whose **Judge** is **Automatically**");
+    expect(verdicts).toContain(
+      "**It never marks a finding as not sensitive**, under any rule.",
+    );
+    expect(verdicts).toContain(
+      `at most ${
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_FINDINGS_PER_VERDICT_REQUEST",
+        ) *
+        constant(
+          "Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+          "MAX_VERDICT_REQUESTS_PER_RUN",
+        )
+      } of a store's findings after a scan`,
+    );
+  });
+
+  it("names Apply to Similar Findings and the scans' tuning as the Dashboard and the code have them", () => {
+    const similar: string = section(page, "## Similar findings");
+    const tuning: string = section(
+      page,
+      "## What your decisions say of the scans",
+    );
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingVerdictCopy.ts",
+    );
+
+    expect(copy).toContain('title: translationKey("Apply to Similar Findings")');
+    expect(similar).toContain("**Apply to Similar Findings**");
+    expect(copy).toContain('notNow: translationKey("Not Now")');
+    expect(similar).toContain("**Not Now**");
+
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToTurnOff} findings, on at least ${SCAN_TUNING_LIMITS.minStoresToTurnOff} stores`,
+    );
+    expect(tuning).toContain(
+      `at least ${SCAN_TUNING_LIMITS.minFindingsToExclude} of them`,
+    );
+    expect(tuning).toContain("**Never Sensitive** is never proposed");
   });
 
   it("gives the scanner's own windows, context and field thresholds", () => {
