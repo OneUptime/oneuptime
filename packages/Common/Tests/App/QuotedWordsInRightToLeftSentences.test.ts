@@ -365,6 +365,12 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason:
       "A vendor template's table and columns, which the criterion's pickers name as the template does.",
   },
+  {
+    english: "Amazon SES's Authentication Type must be",
+    words: ["Access Key", "IAM Role"],
+    reason:
+      "The two values an API write may give amazonSesAuthenticationType, as the API takes them: the refusal answers a write that named neither, and CloudAwsRoleSignInFailuresInLocale holds every language to them as written (#10481).",
+  },
 ];
 
 interface Sentence {

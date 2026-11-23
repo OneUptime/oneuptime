@@ -94,13 +94,13 @@ describe("which columns record a person doing something", () => {
     expect(ATTRIBUTION_COLUMNS.length).toBeGreaterThan(1500);
 
     expect(attributionIn("Incident")).toEqual(
-      expect.arrayContaining([
-        "createdByUser",
-        "createdByUserId",
-        "deletedByUser",
-        "deletedByUserId",
-      ]),
+      expect.arrayContaining(["createdByUser", "createdByUserId"]),
     );
+    /*
+     * Who deleted a record is no column: records are deleted outright, and
+     * the audit log's Delete entries say who deleted one (#10469).
+     */
+    expect(attributionIn("Incident")).not.toContain("deletedByUserId");
     expect(attributionIn("Monitor")).toEqual(
       expect.arrayContaining(["archivedByUser", "archivedByUserId"]),
     );
@@ -293,7 +293,6 @@ describe("which columns record a person doing something", () => {
        */
       "closed",
       "created",
-      "deleted",
       "dismissed",
       /*
        * SecurityCaseTask.doneByUserId: who ticked a task on a security case
@@ -586,14 +585,29 @@ describe("the API offers each for reading only", () => {
       );
     }
 
+    /*
+     * A field as the spec writes it: its own schema, or the one it refers
+     * to - what created a record and who last modified it are each
+     * described once, by reference (ModelSchema.RECORD_ACTOR_SCHEMA_NAMES).
+     */
+    function resolved(field: JSONObject | undefined): JSONObject | undefined {
+      const ref: unknown = field?.["$ref"];
+
+      if (typeof ref !== "string") {
+        return field;
+      }
+
+      return schemas[ref.replace("#/components/schemas/", "")];
+    }
+
     test("a read schema marks each read-only, and no write schema has one", () => {
       const wrong: Array<string> = [];
       let readOnlySeen: number = 0;
 
       for (const entry of ATTRIBUTION_COLUMNS) {
-        const read: JSONObject | undefined = properties(
-          `${entry.table}ReadSchema`,
-        )[entry.column];
+        const read: JSONObject | undefined = resolved(
+          properties(`${entry.table}ReadSchema`)[entry.column],
+        );
 
         if (read) {
           if (read["readOnly"] !== true) {
