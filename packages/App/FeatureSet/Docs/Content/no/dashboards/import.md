@@ -76,7 +76,7 @@ Opptaksregler, varslingsregler over logger, Datadog-widgets som leser logger, tr
 
 ## Gjør om en spørring med OneUptime AI
 
-En spørring som ingen regel gjør om, viser **Convert with OneUptime AI**, som krever at AI er slått på for prosjektet. Bare den spørringen, med navnene på dashbordets variabler, sendes til prosjektets AI-leverandør. Svaret kontrolleres som enhver spørring og vises til deg: velg **Use This Query** for å bruke det. Ingenting opprettes før du oppretter dashbordet eller monitorene.
+En spørring som ingen regel gjør om, viser **Convert with OneUptime AI**, som krever at AI er slått på for prosjektet. Bare den spørringen, med navnene på dashbordets variabler, sendes til prosjektets [LLM-leverandør](/docs/ai/llm-provider). Svaret kontrolleres som enhver spørring og vises til deg: velg **Use This Query** for å bruke det. Ingenting opprettes før du oppretter dashbordet eller monitorene.
 
 ## Neste steg
 
