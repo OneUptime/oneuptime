@@ -763,7 +763,8 @@ router.post(
         MailService.sendMail(
           {
             toEmail: privateUser.email,
-            subject: "Password Reset Request for " + getDashboardName(dashboard),
+            subject:
+              "Password Reset Request for " + getDashboardName(dashboard),
             isSubjectLiteral: true,
             templateType: EmailTemplateType.PrivateUserForgotPassword,
             vars: {
@@ -878,9 +879,8 @@ router.post(
             templateType: EmailTemplateType.PrivateUserPasswordChanged,
             vars: {
               resourceName: getDashboardName(dashboard),
-              homeURL: await DashboardService.getPublicDashboardUrl(
-                dashboardId,
-              ),
+              homeURL:
+                await DashboardService.getPublicDashboardUrl(dashboardId),
               // When, from where and on which device the password was changed.
               ...RequestOriginUtil.getEmailVars({
                 origin: RequestOriginUtil.fromRequest(req),
@@ -968,10 +968,9 @@ router.post(
           sessionId: session.id,
         }))
       ) {
-        await DashboardPrivateUserSessionService.revokeSessionById(
-          session.id,
-          { reason: PRIVATE_USER_SIGN_IN_NO_LONGER_ACCEPTED_REASON },
-        );
+        await DashboardPrivateUserSessionService.revokeSessionById(session.id, {
+          reason: PRIVATE_USER_SIGN_IN_NO_LONGER_ACCEPTED_REASON,
+        });
 
         throw new BadDataException(DASHBOARD_SIGN_IN_CODE_INVALID_MESSAGE);
       }
@@ -1051,7 +1050,9 @@ router.post(
           },
         });
 
-      const toProvider: (provider: DashboardSSO | DashboardOIDC) => DashboardSignInProvider = (
+      const toProvider: (
+        provider: DashboardSSO | DashboardOIDC,
+      ) => DashboardSignInProvider = (
         provider: DashboardSSO | DashboardOIDC,
       ): DashboardSignInProvider => {
         return {

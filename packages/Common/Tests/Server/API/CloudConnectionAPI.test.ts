@@ -297,6 +297,8 @@ describe("POST /cloud-connection/test", () => {
           // Data Security reads nothing until it is chosen.
           dataSecurity: "off",
           dataSecurityResponse: "off",
+          // Nor is the blocklist kept in AWS WAF (#10344).
+          wafBlocklist: "off",
           authMethod: CloudConnectionAuthMethod.AwsAccessKey,
         },
         secrets: { secretAccessKey: NEW_SECRET },

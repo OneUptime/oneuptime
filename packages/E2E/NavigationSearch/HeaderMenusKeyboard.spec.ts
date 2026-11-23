@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -415,12 +416,10 @@ for (const width of [LAPTOP, PHONE]) {
     expect(await focusedName(page)).toBe(words.light);
 
     // Drawn from the right: Light is right of Dark, and Left goes on to it.
-    const lightBox: { x: number } | null = await profileMenu
-      .getByRole("menuitemradio", { name: words.light })
-      .boundingBox();
-    const darkBox: { x: number } | null = await profileMenu
-      .getByRole("menuitemradio", { name: words.dark })
-      .boundingBox();
+    const [lightBox, darkBox] = await boxesInOneFrame([
+      profileMenu.getByRole("menuitemradio", { name: words.light }),
+      profileMenu.getByRole("menuitemradio", { name: words.dark }),
+    ]);
 
     expect(lightBox!.x).toBeGreaterThan(darkBox!.x);
 

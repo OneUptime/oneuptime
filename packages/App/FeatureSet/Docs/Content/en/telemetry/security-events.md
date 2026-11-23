@@ -290,11 +290,12 @@ Events stored before OneUptime 14.0.84 leave the process fields empty and name t
 An IP Address scrub rule that redacts or masks your logs or traces hides the address an attack came from before Security Events reads them. The event is still stored, with no address, and wherever it would name the address it says a scrub rule hid it:
 
 - **Principal IP**, in the event's panel, names the rule that hid it when it can, as a link to the logs' or traces' **Scrub Rules**. The filter beside it shows every event whose address a scrub rule hid.
+- **Target IP** says the same when a rule hid where a connection went: a firewall's destination, or where data was sent. The filter beside it shows every event whose target address a scrub rule hid.
 - **What happened next** says the request came from an address a scrub rule hid, and **Campaigns** groups such requests into one row of their own.
 - A case whose events all lost their address says so on its **Response Plan**: in place of blocking the address, it tells you to find it in your load balancer's or firewall's logs and block it there, with **Open Scrub Rules**.
 - The **Overview** names the rule that hides the addresses Security Events reads, with **Open Scrub Rules** too.
 
-A rule that hashes keeps the address for Security Events, so the event names it, unless its token is older than 30 days or was made before tokens had a key: see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). To find these events, search `@oneuptime.request.client_address_hidden:scrub-rule`. What the rule left in the address's place, such as `[REDACTED]`, is in `oneuptime.request.client_address_scrubbed`.
+A rule that hashes keeps the address for Security Events, so the event names it, unless its token is older than 30 days or was made before tokens had a key: see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). To find these events, search `@oneuptime.request.client_address_hidden:scrub-rule`. What the rule left in the address's place, such as `[REDACTED]`, is in `oneuptime.request.client_address_scrubbed`. For a destination, search `@oneuptime.target_address_hidden:scrub-rule`.
 
 ## Explore security events
 

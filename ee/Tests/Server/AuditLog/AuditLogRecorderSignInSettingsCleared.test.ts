@@ -113,6 +113,7 @@ const STRANGERS_PROJECT: ObjectID = new ObjectID(
 
 const EVERYTHING: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: true,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 1,
   passkeyAndSecurityKeyCount: 2,
@@ -494,6 +495,33 @@ describe("what a clear's entry says", () => {
     expect(entriesIn(PROJECT_A)[0]!.changes).toEqual([
       { field: "password", oldValue: AUDIT_LOG_REDACTED_VALUE, newValue: null },
     ]);
+  });
+
+  /*
+   * #9992: a clear that removed only a password reset link that still
+   * worked - somebody the Require SSO card counted - made no entry at all,
+   * though a bulk clear counted them among the people it cleared.
+   */
+  test("a clear that removed only a password reset link is recorded, in every project of theirs, by who cleared it (#9992)", async () => {
+    await recorder.recordSignInSettingsCleared([
+      cleared({
+        cleared: { ...NO_LOCAL_SIGN_IN_SETTINGS, hasPasswordResetLink: true },
+      }),
+    ]);
+
+    for (const project of [PROJECT_A, PROJECT_B]) {
+      const entries: Array<AuditLog> = entriesIn(project);
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.action).toBe(AuditLogAction.Update);
+      expect(entries[0]!.changes).toEqual([
+        {
+          field: "passwordResetLink",
+          oldValue: AUDIT_LOG_REDACTED_VALUE,
+          newValue: null,
+        },
+      ]);
+    }
   });
 
   test("it is kept for the project's audit log retention", async () => {

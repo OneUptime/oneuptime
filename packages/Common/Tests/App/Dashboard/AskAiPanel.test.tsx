@@ -1540,6 +1540,8 @@ describe("what the question is about", () => {
           type: AIChatPageContextType.Incident,
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          // The page on screen, as its route: no id in it (#7062).
+          page: "/dashboard/:projectId/incidents/:id",
         },
       }),
     );
@@ -2484,6 +2486,8 @@ describe("the questions follow the incident on screen", () => {
           type: AIChatPageContextType.Incident,
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          // The page on screen, as its route: no id in it (#7062).
+          page: "/dashboard/:projectId/incidents/:id",
         },
       }),
     );

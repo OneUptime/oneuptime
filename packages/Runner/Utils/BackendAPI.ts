@@ -8,6 +8,8 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import {
+  getInfrastructureFixTaskContext,
+  InfrastructureFixTaskContext,
   ImplicatedSpan,
   PerformanceFinding,
 } from "Common/Types/AI/CodeFixTaskContext";
@@ -83,7 +85,7 @@ interface CodeRepositoriesResponse {
 }
 
 interface SubjectTaskDetailsResponse {
-  subjectType: "incident" | "alert" | "trace" | "service";
+  subjectType: "incident" | "alert" | "trace" | "service" | "infrastructure";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
@@ -97,6 +99,8 @@ interface SubjectTaskDetailsResponse {
   traceId?: string;
   findings?: Array<PerformanceFinding>;
   spanSummaries?: Array<ImplicatedSpan>;
+  // The fix of a group of Data Security issues' cause (FixInfrastructureCode) only.
+  infrastructureFix?: unknown;
 }
 
 interface RepositoryTokenResponse {
@@ -216,7 +220,7 @@ export interface CodeRepositoryInfo {
  * stack trace before the name-match / only-repository fallbacks).
  */
 export interface SubjectTaskDetails {
-  subjectType: "incident" | "alert" | "trace" | "service";
+  subjectType: "incident" | "alert" | "trace" | "service" | "infrastructure";
   subjectTitle: string;
   analysisMarkdown: string;
   serviceName: string | null;
@@ -233,6 +237,12 @@ export interface SubjectTaskDetails {
   traceId: string | null;
   performanceFindings: Array<PerformanceFinding>;
   spanSummaries: Array<ImplicatedSpan>;
+  /*
+   * The fix of a group of Data Security issues' cause (FixInfrastructureCode,
+   * #10370) only: the cause, and the stores and issues its pull request
+   * fixes. None for every other recipe.
+   */
+  infrastructureFix?: InfrastructureFixTaskContext | null | undefined;
 }
 
 export interface RepositoryToken {
@@ -718,6 +728,9 @@ export default class BackendAPI {
       traceId: data.traceId || null,
       performanceFindings: data.findings || [],
       spanSummaries: data.spanSummaries || [],
+      infrastructureFix: getInfrastructureFixTaskContext(
+        data.infrastructureFix,
+      ),
     };
   }
 

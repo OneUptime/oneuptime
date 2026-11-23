@@ -114,7 +114,7 @@ Sur la carte **Budgets des équipes et des étiquettes**, cliquez sur **Créer :
 Cliquez sur **Créer : Budget**. Le budget d'une équipe ou d'une étiquette ne peut pas dépasser celui de son projet : OneUptime le refuse et indique le maximum possible.
 :::
 
-- **Ce qu'il compte.** Les journaux, traces, métriques et profils de chaque service, hôte, cluster et autre ressource dont l'équipe est propriétaire ou qui porte l'étiquette, qu'ils soient envoyés par OpenTelemetry (OTLP) ou, pour les journaux, depuis Fluent Bit, Fluentd ou syslog. Les événements de sécurité ne comptent que sur les budgets du projet et de la clé.
+- **Ce qu'il compte.** Les journaux, traces, métriques et profils de chaque service, hôte, cluster et autre ressource dont l'équipe est propriétaire ou qui porte l'étiquette, qu'ils soient envoyés par OpenTelemetry (OTLP) ou, pour les journaux, depuis Fluent Bit, Fluentd ou syslog, y compris le syslog que les équipements réseau envoient à une sonde. Les événements de sécurité ne comptent que sur les budgets du projet et de la clé.
 - **À qui appartient une ressource.** Un service, un hôte ou une autre ressource appartient à une équipe quand l'équipe compte parmi ses propriétaires, et à une étiquette quand il porte cette étiquette : les mêmes propriétaires et étiquettes qui décident qui peut lire sa télémétrie. Une modification compte en moins d'une minute.
 - **Une fois épuisé, la télémétrie est supprimée.** Leur télémétrie de ce signal est supprimée jusqu'à la réinitialisation, et l'émetteur n'en est pas informé : il a reçu sa réponse à l'arrivée de la télémétrie. Ce qui est supprimé ne compte plus sur le budget du projet ni sur celui de la clé.
 - **Qui est prévenu.** Les Propriétaires du projet reçoivent un e-mail quand le budget dépasse le seuil d'avertissement, et quand il est épuisé.
@@ -135,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Les autres émetteurs HTTP reçoivent du JSON.** Fluent Bit, Fluentd, Syslog et les autres points de terminaison HTTP reçoivent `error`, `message` et `resetsAt`, ainsi que `retryAfterSeconds` en cas de limite de débit.
-- **MQTT et les flux cloud ne peuvent pas être prévenus.** La télémétrie qui arrive par MQTT ou depuis le flux d'un fournisseur cloud est abandonnée dès que son budget est épuisé. Aucune limite de débit ne s'y applique : elle ne pourrait pas être renvoyée.
+- **MQTT, les flux cloud et les sondes ne peuvent pas être prévenus.** La télémétrie qui arrive par MQTT ou depuis le flux d'un fournisseur cloud est abandonnée dès que son budget est épuisé, tout comme le syslog que les équipements réseau envoient à une sonde : les journaux de chaque équipement comptent sur le budget de son propre projet. Aucune limite de débit ne s'y applique : elle ne pourrait pas être renvoyée.
 - **Les services d'une équipe ou d'une étiquette non plus.** Une fois le budget d'une équipe ou d'une étiquette épuisé, leur télémétrie est acceptée, puis supprimée : voir [Donner à une équipe ou à une étiquette son propre budget](#donner-à-une-équipe-ou-à-une-étiquette-son-propre-budget).
 - **Les refus sont comptés.** Ce qu'un budget épuisé refuse ou abandonne est compté comme abandonné, et chaque requête qu'une limite de débit refuse, comme limitée : voir [Voir l'utilisation et les abandons du jour](#voir-lutilisation-et-les-abandons-du-jour).
 

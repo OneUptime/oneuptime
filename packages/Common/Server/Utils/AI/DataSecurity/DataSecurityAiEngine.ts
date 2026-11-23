@@ -728,6 +728,7 @@ export default class DataSecurityAiEngine {
           data.change.safety ||
           DATA_SECURITY_AI_PROPOSAL_KINDS[data.action.kind].safety,
         meetsDefaultConditions: data.change.meetsDefaultConditions,
+        canRunWithoutAsking: data.change.canRunWithoutAsking !== false,
         isNamedByRule: data.change.isNamedByRule === true,
         requireTwoApprovalsForRiskierChanges:
           data.requireTwoApprovalsForRiskierChanges,

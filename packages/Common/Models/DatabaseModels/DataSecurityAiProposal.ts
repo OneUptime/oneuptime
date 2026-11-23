@@ -1,4 +1,5 @@
 import DataSecurityIssue from "./DataSecurityIssue";
+import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataStore from "./DataStore";
 import Project from "./Project";
 import User from "./User";
@@ -233,6 +234,47 @@ export default class DataSecurityAiProposal extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    manyToOneRelationColumn: "dataSecurityIssueGroupId",
+    type: TableColumnType.Entity,
+    modelType: DataSecurityIssueGroup,
+    title: "Data Security Issue Group",
+    description:
+      "Relation to the group of issues one mistake made whose fix the proposal is (#10370); empty for any other proposal.",
+  })
+  @ManyToOne(
+    () => {
+      return DataSecurityIssueGroup;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "dataSecurityIssueGroupId" })
+  public dataSecurityIssueGroup?: DataSecurityIssueGroup = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Data Security Issue Group ID",
+    description:
+      "The group of issues whose cause the proposal fixes once (#10370): one pull request, or one approval for the stores made in the console. Such a proposal names no one issue.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataSecurityIssueGroupId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.ShortText,
     allowedValues: Object.values(DataSecurityAiProposalKind),
     required: true,
@@ -276,7 +318,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     canReadOnRelationQuery: true,
     title: "What It Changes",
     description:
-      "What kind of change it is, which decides what may run without asking: MaskOnly (hides data in OneUptime, undone by deleting what it made), OpensPullRequest, RecordsJudgement, ChangesAccess, Deletes or Pages. Deleting data and paging people always ask.",
+      "What kind of change it is, which decides what may run without asking: MaskOnly (hides data in OneUptime, undone by deleting what it made), OpensPullRequest, RecordsJudgement, ChangesAccess, Deletes, Pages, ChangesWhoIsTold or ChangesCloudSettings. Deleting data, paging people, changing who is told about a store and changing a cloud store's settings always ask.",
   })
   @Column({
     type: ColumnType.ShortText,

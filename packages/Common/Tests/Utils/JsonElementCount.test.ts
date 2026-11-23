@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { seededRandom } from "../Helpers/SeededRandom";
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
@@ -45,18 +46,6 @@ const parsedValues: (value: unknown) => number = (value: unknown): number => {
   }
 
   return 1;
-};
-
-// A deterministic stream of numbers, so a failing case can be run again.
-const random: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
 };
 
 // Text that is hard to step over: quotes, escapes, brackets, commas, colons.
@@ -144,7 +133,7 @@ describe("JsonElementCounter.count", () => {
   });
 
   test("equals what JSON.parse makes, over many generated documents, compact and indented", () => {
-    const next: () => number = random(9001);
+    const next: () => number = seededRandom(9001);
 
     for (let run: number = 0; run < 500; run++) {
       const document: unknown = generate(next, 0);
@@ -327,7 +316,7 @@ const tallyInPieces: (
 
 describe("JsonElementTally over bytes", () => {
   test("counts what the text counts, over many generated documents with characters beyond ASCII", () => {
-    const next: () => number = random(4242);
+    const next: () => number = seededRandom(4242);
 
     for (let run: number = 0; run < 500; run++) {
       const document: unknown = generate(next, 0);

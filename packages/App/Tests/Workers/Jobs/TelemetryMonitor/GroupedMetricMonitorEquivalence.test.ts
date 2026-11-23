@@ -1,6 +1,3 @@
-// Root causes and stored checks name times: the same in every zone.
-process.env["TZ"] = "UTC";
-
 import fs from "fs";
 import path from "path";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -61,6 +58,10 @@ import {
  * the code before #10108 (UPDATE_GROUPED_METRIC_GOLDEN=1), and is only ever
  * compared with since. A change that means to alter what an evaluation
  * decides rewrites it on purpose, and says why in its pull request.
+ *
+ * Its times - the fleet's, the window's, those a root cause and a stored
+ * check name - are instants written in UTC (Date.UTC, toISOString), so it
+ * reads the same in every zone the worker runs in.
  */
 
 const GOLDEN_PATH: string = path.join(

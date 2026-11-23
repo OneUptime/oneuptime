@@ -40,7 +40,7 @@ In **Altri campi**, imposta **Blocca indirizzi in AWS WAF** su **Attivato, e One
 Il comando mostrato dal modulo ora concede i set IP, e la regola quando è OneUptime ad aggiungerla. Eseguilo in AWS CloudShell, poi salva la connessione.
 
 ### Aggiungere le ACL web
-Apri **Eventi di sicurezza → Playbook → Blocklist**. In **WAF cloud**, fai clic su **Aggiungi ACL web**, scegli un'ACL web e da dove legge l'indirizzo del client, e aggiungila. OneUptime la configura subito, e il suo **Stato** indica **Applicata** quando la sua regola blocca i set.
+Apri **Eventi di sicurezza → Playbook → Blocklist**. In **WAF cloud**, fai clic su **Aggiungi WAF**, scegli un'ACL web e, in **Altri campi**, da dove legge l'indirizzo del client, e aggiungila. OneUptime la configura subito, e il suo **Stato** indica **Applicata** quando la sua regola blocca i set.
 :::
 
 Le ACL web provengono dall'inventario della connessione: un'ACL web che OneUptime non ha ancora letto compare dopo la lettura successiva. Finché un'ACL web applica la blocklist, l'impostazione della sua connessione non può essere disattivata né passare da OneUptime che aggiunge la regola all'aggiunta nel codice, e la connessione non può essere eliminata: rimuovi prima l'ACL web, così OneUptime toglie la sua regola.
@@ -102,7 +102,7 @@ In **Eventi di sicurezza → Playbook → Blocklist**, fai clic su **Rimuovi** s
 Modifica la connessione, imposta **Blocca indirizzi in AWS WAF** su **Disattivato** e salva. L'impostazione può essere disattivata quando nessuna ACL web della connessione applica la blocklist.
 :::
 
-Quando OneUptime non può più scrivere nell'ACL web, seleziona **Rimuovi solo da OneUptime** nella finestra **Rimuovi ACL web**. OneUptime rimuove l'ACL web dalla blocklist e nomina le regole e i set IP che ha lasciato in AWS WAF: continuano a bloccare ciò che contengono finché non li elimini lì. Una tua regola che fa ancora riferimento a un set lo mantiene anch'esso: OneUptime lo svuota e lo nomina.
+Quando OneUptime non può più scrivere nell'ACL web, seleziona **Rimuovi solo da OneUptime** nella finestra **Rimuovi WAF**. OneUptime rimuove l'ACL web dalla blocklist e nomina le regole e i set IP che ha lasciato in AWS WAF: continuano a bloccare ciò che contengono finché non li elimini lì. Una tua regola che fa ancora riferimento a un set lo mantiene anch'esso: OneUptime lo svuota e lo nomina.
 
 ## Risoluzione dei problemi
 

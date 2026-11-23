@@ -30,6 +30,7 @@ import {
   ImproveTracingTaskHandler,
   FixFromIncidentTaskHandler,
   FixPerformanceTaskHandler,
+  FixInfrastructureCodeTaskHandler,
   GitHubIssueFixTaskHandler,
   GitHubPullRequestRevisionTaskHandler,
   GitHubPullRequestReviewTaskHandler,
@@ -275,6 +276,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       registry.register(new ImproveTracingTaskHandler());
       registry.register(new FixFromIncidentTaskHandler());
       registry.register(new FixPerformanceTaskHandler());
+      registry.register(new FixInfrastructureCodeTaskHandler());
       registry.register(new GitHubIssueFixTaskHandler());
       registry.register(new GitHubPullRequestRevisionTaskHandler());
       registry.register(new GitHubPullRequestReviewTaskHandler());

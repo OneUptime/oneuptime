@@ -22,10 +22,27 @@ import {
   LOG_SCRUB_FIELDS,
   LOG_SCRUB_PATTERN_TYPES,
 } from "Common/Types/Telemetry/ScrubRule";
-import React, { FunctionComponent, ReactElement, useMemo } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { getLogScrubRuleFormFields } from "../../../Components/Telemetry/ScrubRuleForm";
+import {
+  doesFormRuleHideAddresses,
+  LOG_SCRUB_RULE_FORM_OPTIONS,
+  getLogScrubRuleFormFields,
+} from "../../../Components/Telemetry/ScrubRuleForm";
+import HashInsteadNotice, {
+  HashInsteadFormNote,
+} from "../../../Components/Telemetry/HashInstead/HashInsteadNotice";
+import {
+  ScrubRulesHidingAddressesState,
+  useScrubRulesHidingAddresses,
+} from "../../../Components/Telemetry/HashInstead/UseScrubRulesHidingAddresses";
+import { ScrubRuleHidingAddresses } from "Common/Types/Telemetry/ScrubRuleAddresses";
 import ScrubRulePatternPill from "../../../Components/Telemetry/ScrubRulePatternPill";
 import ScrubRuleReadersPreview, {
   ScrubRuleReadersPreviewRule,
@@ -35,6 +52,16 @@ import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { RowActionConfirmation } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { translatableTerm } from "Common/Types/Translator";
+import ScrubRuleProofBadge from "../../../Components/Telemetry/ScrubRuleCounts/ScrubRuleProofBadge";
+import ScrubRuleValueCountCell from "../../../Components/Telemetry/ScrubRuleCounts/ScrubRuleValueCountCell";
+import {
+  VALUES_CHANGED_DESCRIPTION,
+  VALUES_CHANGED_TITLE,
+} from "../../../Components/Telemetry/ScrubRuleCounts/ScrubRuleCountWords";
+import {
+  ScrubRuleValueCountsState,
+  useScrubRuleValueCounts,
+} from "../../../Components/Telemetry/ScrubRuleCounts/UseScrubRuleValueCounts";
 
 interface PillConfig {
   label: string;
@@ -72,7 +99,15 @@ const patternTypeConfig: Record<string, PillConfig> = {
     label: "IP Address",
     color: Cyan500,
     icon: IconProp.Globe,
-    tooltip: "Matches IPv4 addresses (e.g. 192.168.1.1)",
+    tooltip:
+      "Matches public IPv4 and IPv6 addresses, not private, loopback or link-local ones",
+  },
+  namedKeys: {
+    label: "Named Attributes",
+    color: Teal500,
+    icon: IconProp.Tag,
+    tooltip:
+      "Hides the whole value of the attributes it names, whatever the value holds",
   },
   sensitiveKeys: {
     label: "Sensitive Keys",
@@ -106,7 +141,8 @@ const scrubActionConfig: Record<string, PillConfig> = {
     label: "Hash",
     color: Purple500,
     icon: IconProp.Hashtag,
-    tooltip: "Replace with a deterministic SHA-256 hash",
+    tooltip:
+      "Replace with a token unique to this project: equal values still look alike, and no one can work back to the value",
   },
 };
 
@@ -149,8 +185,9 @@ A scrub rule finds sensitive data, such as email addresses, card numbers or pass
 | **Credit Card** | Card numbers | 4111-1111-1111-1111 |
 | **SSN** | US Social Security numbers | 123-45-6789 |
 | **Phone Number** | Phone numbers | +1 (555) 123-4567 |
-| **IP Address** | IPv4 addresses | 192.168.1.1 |
+| **IP Address** | Public IPv4 and IPv6 addresses, not private, loopback or link-local ones | 203.0.113.7 |
 | **Sensitive Attribute Keys** | The whole value of every attribute whose key looks sensitive: password, token, apiKey, authorization, cookie and more | \`password: "hunter2"\` → \`password: "[REDACTED]"\` |
+| **Named Attributes** | The whole value of the attributes you name, whatever it holds. A key names the attributes nested under it too | \`customer_name: "Jane Doe"\` → \`customer_name: "[REDACTED]"\` |
 | **Custom Regex** | Your own pattern | Anything your regular expression matches |
 
 A **Custom Regex** is written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b\`, not \`/secret/i\`), and matches case-sensitively. A pattern that is empty, does not compile, or matches empty text is refused when you save, since it would scrub nothing. A rule saved before that check without a usable pattern shows **Scrubs nothing** in the table: edit it to give it one.
@@ -161,11 +198,11 @@ A **Custom Regex** is written without slashes or flags (\`\\bSECRET-[A-Z0-9]+\\b
 |--------|--------------|-------------|
 | **Redact** | Replaces it with \`[REDACTED]\`. A new rule does this. | \`user@example.com\` → \`[REDACTED]\` |
 | **Mask** | Hides part of it, keeping its shape | \`user@example.com\` → \`u***@***.com\` |
-| **Hash** | Replaces it with its SHA-256 hash | \`user@example.com\` → \`a1b2c3d4...\` |
+| **Hash** | Replaces it with a token unique to this project | \`user@example.com\` → \`[HASH:a1b2c3d4...]\` |
 
 The action is under **More fields**.
 
-> **Tip:** Use **Hash** to follow one value across logs without showing it: the same value always gives the same hash.
+> **Tip:** Use **Hash** to follow one value across logs without showing it: the same value always gives the same token, and no one can work back to the value.
 
 ## Where It Looks
 
@@ -178,12 +215,44 @@ A new rule scrubs the logs of every service. Under **More fields**, pick one ser
 ## What It Changes for Others
 
 Before you save a rule, or turn one on, the form lists what reads the values it would hide: monitors, dashboards, saved views, recording rules and SLOs, and what Security Events would lose. From then on they read what the rule leaves: a monitor that filters on a hidden value stops matching it, and a chart grouped by it no longer shows the real values. The rule is saved either way; the list is there so you decide knowing.
+
+## What It Changed
+
+**Values Changed** says how many values each rule hid in the last 7 days. **By Service** opens which services and versions they came from: a version that no longer sends what the rule hides changes nothing more, which is how a leak fixed in the code shows here.
+
+## Rules Data Security Made
+
+A rule Data Security made for a finding - with **Scrub It**, or OneUptime AI on its own - names the attribute the data was found in, and was run on the records it was seen in before it was saved. **Proven** on its row says it hid the data in every value that held it. Change the rule and it is no longer the rule that was proven: the badge goes.
 `;
 
 const LogScrubRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The IP Address rules that keep Security Events from naming an
+   * attacker's address: each says so on its row, with Hash Instead, and the
+   * form says so under its actions (#10396).
+   */
+  const addressRules: ScrubRulesHidingAddressesState =
+    useScrubRulesHidingAddresses();
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+  // How many values each rule on the page changed this week (#10366).
+  const valueCounts: ScrubRuleValueCountsState = useScrubRuleValueCounts("log");
+
+  const hidingRuleOf: (
+    item: LogScrubRule,
+  ) => ScrubRuleHidingAddresses | undefined = (
+    item: LogScrubRule,
+  ): ScrubRuleHidingAddresses | undefined => {
+    const id: string = (item._id?.toString() || "").toLowerCase();
+
+    return addressRules.rules.find(
+      (rule: ScrubRuleHidingAddresses): boolean => {
+        return rule.signal === "log" && rule.ruleId === id;
+      },
+    );
+  };
 
   /*
    * One page that starts from what the rule scrubs: the pattern type, its
@@ -208,12 +277,22 @@ const LogScrubRules: FunctionComponent<
           />
         );
       },
+      (values: FormValues<LogScrubRule>): ReactElement | undefined => {
+        return doesFormRuleHideAddresses({
+          options: LOG_SCRUB_RULE_FORM_OPTIONS,
+          values,
+          signalsRead: addressRules.signalsRead,
+        }) ? (
+          <HashInsteadFormNote dataTestId="scrub-rule-form-address-note" />
+        ) : undefined;
+      },
     );
-  }, []);
+  }, [addressRules.signalsRead]);
 
   return (
     <ModelTable<LogScrubRule>
       modelType={LogScrubRule}
+      refreshToggle={refreshToggle}
       // Enable or Disable in each row's ⋯ menu: the one that changes the row.
       rowSwitch={{
         column: "isEnabled",
@@ -282,6 +361,15 @@ const LogScrubRules: FunctionComponent<
       }}
       noItemsMessage={"No scrub rules yet."}
       formFields={formFields}
+      onFetchSuccess={(rules: Array<LogScrubRule>) => {
+        valueCounts.setRuleIds(
+          rules
+            .map((rule: LogScrubRule): string => {
+              return rule._id?.toString() || "";
+            })
+            .filter(Boolean),
+        );
+      }}
       /*
        * The pattern itself, so a rule that scrubs nothing - a custom one
        * ingest cannot use - is flagged in its row (ScrubRulePatternPill).
@@ -296,6 +384,9 @@ const LogScrubRules: FunctionComponent<
         scrubAction: true,
         fieldsToScrub: true,
         serviceId: true,
+        // The attributes it names, and its proof (#10366).
+        attributeKeys: true,
+        proof: true,
       }}
       showRefreshButton={true}
       showViewIdButton={true}
@@ -348,6 +439,34 @@ const LogScrubRules: FunctionComponent<
                     {item.description}
                   </div>
                 )}
+                <div className="mt-1 empty:hidden">
+                  <ScrubRuleProofBadge
+                    signal="log"
+                    rule={{
+                      patternType: item.patternType,
+                      customRegex: item.customRegex,
+                      attributeKeys: item.attributeKeys,
+                      scrubAction: item.scrubAction,
+                      fieldsToScrub: item.fieldsToScrub,
+                      serviceId: item.serviceId,
+                      proof: item.proof,
+                    }}
+                  />
+                </div>
+                {hidingRuleOf(item) ? (
+                  <div className="mt-2">
+                    <HashInsteadNotice
+                      rule={hidingRuleOf(item)!}
+                      onSwitched={() => {
+                        addressRules.reload();
+                        setRefreshToggle(Date.now().toString());
+                      }}
+                      dataTestId="scrub-rule-hash-instead"
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
               </div>
             );
           },
@@ -364,6 +483,7 @@ const LogScrubRules: FunctionComponent<
                 patternType={item.patternType}
                 customRegex={item.customRegex}
                 fieldsToScrub={item.fieldsToScrub}
+                attributeKeys={item.attributeKeys}
                 patternTypes={patternTypeConfig}
                 knownPatternTypes={LOG_SCRUB_PATTERN_TYPES}
                 knownFieldsToScrub={LOG_SCRUB_FIELDS}
@@ -443,6 +563,28 @@ const LogScrubRules: FunctionComponent<
               <span className="text-sm text-gray-500">
                 {translator.translateText("Project-wide")}
               </span>
+            );
+          },
+        },
+        /*
+         * How many values the rule hid in the last week, by service and
+         * version, opened (#10366).
+         */
+        {
+          field: { _id: true },
+          id: "values-changed",
+          title: VALUES_CHANGED_TITLE,
+          description: VALUES_CHANGED_DESCRIPTION,
+          type: FieldType.Element,
+          disableSort: true,
+          getElement: (item: LogScrubRule): ReactElement => {
+            return (
+              <ScrubRuleValueCountCell
+                ruleName={item.name || ""}
+                isChecked={valueCounts.isChecked}
+                count={valueCounts.countOf(item._id?.toString() || "")}
+                dataTestId="scrub-rule-values-changed"
+              />
             );
           },
         },

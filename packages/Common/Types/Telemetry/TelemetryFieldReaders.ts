@@ -177,6 +177,8 @@ export interface ScrubRuleReadersRequest {
   fieldsToScrub?: string | undefined;
   // The service it is for; none for every service.
   serviceId?: string | null | undefined;
+  // The attributes it names (#10366): a Named Attributes rule's, or a pattern's only ones.
+  attributeKeys?: Array<string> | undefined;
 }
 
 export function getEmptyTelemetryFieldReadersByKind(

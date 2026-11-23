@@ -10,6 +10,7 @@ import {
 import RequestBodyJson from "../Utils/RequestBodyJson";
 import { RequestBodyLimit } from "../Utils/RequestBodyLimit";
 import { withAppRequestBodyLimit } from "../Utils/RequestBodyRefusal";
+import AppBodyParsers, { keepRawBody } from "./AppBodyParsers";
 import GzipRequestBodyMiddleware, {
   isJsonContentType,
 } from "./GzipRequestBody";
@@ -39,6 +40,12 @@ import RequestBodyParser from "./RequestBodyParser";
  *   - readUpload reads an upload (#10673) - a Pyroscope profile, source maps,
  *     dSYMs - in each of the forms its route takes: a multipart form, JSON,
  *     or the bytes themselves.
+ *   - readBody reads it as StartServer reads every other route's before
+ *     routing (AppBodyParsers, #10702): JSON and forms parsed, protobuf and
+ *     a gzip body as their bytes, anything else left unread. The telemetry
+ *     that collectors, agents and CI send - Fluent Bit and Fluentd, syslog,
+ *     Pyroscope's push and the rest - is read this way once its key is
+ *     right, and its handler gets the very body it got before.
  *
  * A body something already read - StartServer's parsers, a test's - is left
  * as it is: a stream is read once.
@@ -244,6 +251,117 @@ export default class RequestBodyAfterAuthentication {
         return next();
       }) as NextFunction);
     };
+  }
+
+  /*
+   * A BODY READ ONCE ITS CALLER'S KEY IS CHECKED, AS STARTSERVER READS ONE
+   * BEFORE ROUTING (#10702), held to `limit` as it is sent and once it
+   * inflates:
+   *
+   *   - JSON parsed, its values counted first, its text kept as rawBody
+   *     (what an ingestion budget measures, and a signature is checked over);
+   *   - a form parsed, its text kept as rawBody and rawFormUrlEncodedBody;
+   *   - protobuf kept as its bytes, in req.body;
+   *   - a gzip body inflated and kept as its bytes, whatever its type, a
+   *     JSON one's values counted as it inflates (GzipRequestBody);
+   *   - any other body left unread, as StartServer left it: the route finds
+   *     no body, and the connection is closed once it answers
+   *     (UnreadRequestBody).
+   *
+   * `parseGzipJson`, for a route that takes JSON alone: a gzip JSON body is
+   * parsed too, once inflated, as the same body sent uncompressed is - its
+   * values counted first, its inflated text kept as rawBody, refused 400
+   * when it is no JSON. StartServer hands every route a gzip JSON body as
+   * its bytes, which such a route read as no body at all.
+   *
+   * For a route whose key is in its headers or its path, checked before
+   * this runs (TelemetryIngest.forSurface takes it, to read the body between
+   * the key and the ingestion budget). A request refused before it - no
+   * key, a wrong one - has nothing of its body read, inflated or parsed:
+   * UnreadRequestBody closes the connection once the refusal is sent, which
+   * the client still reads.
+   */
+  public static readBody(
+    limit: RequestBodyLimit,
+    options?: { parseGzipJson?: boolean | undefined } | undefined,
+  ): RequestHandler {
+    const parseGzipJson: boolean = Boolean(options?.parseGzipJson);
+
+    return (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): void => {
+      if (RequestBodyAfterAuthentication.isRead(req)) {
+        return next();
+      }
+
+      AppBodyParsers.read(
+        req,
+        res,
+        ((err?: unknown): void => {
+          if (err) {
+            return next(err);
+          }
+
+          AppBodyParsers.readForm(
+            req,
+            res,
+            ((formErr?: unknown): void => {
+              if (formErr || !parseGzipJson) {
+                return next(formErr);
+              }
+
+              return next(
+                RequestBodyAfterAuthentication.parseInflatedJson(req, limit),
+              );
+            }) as NextFunction,
+            limit,
+          );
+        }) as NextFunction,
+        limit,
+      );
+    };
+  }
+
+  /*
+   * A gzip JSON body readBody left as its inflated bytes, parsed in place
+   * (parseJson) and its text kept as rawBody, as StartServer's JSON parser
+   * keeps it. Answers the error it is refused with, or nothing. Any other
+   * body - parsed already, protobuf, of no JSON type - is left as it is.
+   */
+  private static parseInflatedJson(
+    req: ExpressRequest,
+    limit: RequestBodyLimit,
+  ): Error | undefined {
+    const body: unknown = (req as { body?: unknown }).body;
+
+    if (
+      !(Buffer.isBuffer(body) || body instanceof Uint8Array) ||
+      !isJsonContentType(headerValueToString(req.headers["content-type"]))
+    ) {
+      return undefined;
+    }
+
+    const parsed: ParsedRequestBody = RequestBodyAfterAuthentication.parseJson(
+      req,
+      limit,
+    );
+
+    if ("error" in parsed) {
+      return parsed.error;
+    }
+
+    keepRawBody(
+      req as OneUptimeRequest,
+      Buffer.isBuffer(body)
+        ? body
+        : Buffer.from(body.buffer, body.byteOffset, body.byteLength),
+      ["rawBody"],
+    );
+    (req as { body?: unknown }).body = parsed.body;
+
+    return undefined;
   }
 
   /*

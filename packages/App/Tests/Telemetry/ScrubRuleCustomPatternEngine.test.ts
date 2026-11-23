@@ -15,6 +15,7 @@ import {
   TRACE_SCRUB_PATTERN_TYPES,
 } from "Common/Types/Telemetry/ScrubRule";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
+import { compileScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -116,9 +117,17 @@ describe.each(ENGINES)(
             knownFieldsToScrub: [],
           });
 
-          expect(getRegexForPattern(patternType, pattern) === null).toBe(
-            flagged,
-          );
+          /*
+           * A Named Attributes rule's pattern finds nothing in a value: its
+           * keys decide whether it scrubs anything, so the whole rule is
+           * compiled, as loadScrubRules compiles it (#10366).
+           */
+          const compiled: unknown =
+            patternType === LogScrubPatternType.NamedKeys
+              ? compileScrubRule({ patternType, customRegex: pattern })
+              : getRegexForPattern(patternType, pattern);
+
+          expect(compiled === null).toBe(flagged);
         }
       }
     });

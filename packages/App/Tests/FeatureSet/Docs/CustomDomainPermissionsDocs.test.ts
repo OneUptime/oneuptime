@@ -45,8 +45,13 @@ type Guide = {
   from: string;
   to: string;
   updatePermissions: Array<Permission>;
-  // The product whose records the domains are, for its levels (#10289).
+  /*
+   * The domain's product, and its levels on the update list (#10289): the
+   * permissions page describes a product's levels once for every product,
+   * so the guide leaves them to it.
+   */
   product: ProductKey;
+  productLevels: Array<Permission>;
   readPermission: Permission;
   readOnlyRoles: Array<Permission>;
   apiPath: string;
@@ -61,6 +66,7 @@ const GUIDES: Array<[string, Guide]> = [
       to: "## Powered by OneUptime",
       updatePermissions: new StatusPageDomain().getUpdatePermissions(),
       product: ProductKey.StatusPages,
+      productLevels: [],
       readPermission: Permission.ReadStatusPageDomain,
       readOnlyRoles: [Permission.Viewer, Permission.StatusPageViewer],
       apiPath: "/status-page-domain",
@@ -74,6 +80,7 @@ const GUIDES: Array<[string, Guide]> = [
       to: "## Branding",
       updatePermissions: new DashboardDomain().getUpdatePermissions(),
       product: ProductKey.Dashboards,
+      productLevels: [Permission.DashboardAdmin, Permission.DashboardMember],
       readPermission: Permission.ReadDashboardDomain,
       readOnlyRoles: [Permission.Viewer, Permission.SettingsViewer],
       apiPath: "/dashboard-domain",
@@ -87,11 +94,10 @@ describe.each(GUIDES)(
     const text: string = section(guide.page, guide.from, guide.to);
 
     it("names every permission and role that may edit the domain", () => {
-      /*
-       * But the product's levels (#10289), each of which edits the domain
-       * as the role it follows does: the permissions page describes them
-       * once, for every product.
-       */
+      expect(guide.updatePermissions).toEqual(
+        expect.arrayContaining(guide.productLevels),
+      );
+
       for (const permission of withoutProductLevels({
         permissions: guide.updatePermissions,
         product: guide.product,

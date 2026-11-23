@@ -187,7 +187,18 @@ function listSourceFiles(directory: string, out: Array<string> = []): string[] {
   return out;
 }
 
+/*
+ * The files parsed and kept: the one being scanned, and every file a
+ * constant is imported from (importedFiles), which a later select may name
+ * again. A scanned file no constant came from is let go once it is read
+ * (collectRelationSelectSites). Keeping every file's tree held about 3 GB,
+ * which a test worker's 4 GB heap (App's test script) has no room for
+ * after the suites it ran before: on 17.2.0's App Test shard 5 the worker
+ * running this guard died of it, and the shard waited for its answer until
+ * the job's cap.
+ */
 const parsedFiles: Map<string, ts.SourceFile> = new Map();
+const importedFiles: Set<string> = new Set();
 
 function parseFile(filePath: string): ts.SourceFile {
   const parsed: ts.SourceFile | undefined = parsedFiles.get(filePath);
@@ -252,12 +263,12 @@ function unwrapExpression(expression: ts.Expression): ts.Expression {
 /*
  * Every constant a file declares, at any depth - a select is often a
  * component's own `const select = { ... }` - by its name, in the order
- * written.
+ * written. Kept as long as the file's tree is (parsedFiles), and no longer.
  */
-const declarationsByFile: Map<
+const declarationsByFile: WeakMap<
   ts.SourceFile,
   Map<string, Array<ts.VariableDeclaration>>
-> = new Map();
+> = new WeakMap();
 
 function declarationsOf(
   sourceFile: ts.SourceFile,
@@ -338,14 +349,18 @@ function resolveConstant(
           statement.moduleSpecifier.text,
         );
 
-        return importedFile
-          ? resolveConstant(
-              (element.propertyName ?? element.name).text,
-              parseFile(importedFile),
-              null,
-              depth + 1,
-            )
-          : null;
+        if (!importedFile) {
+          return null;
+        }
+
+        importedFiles.add(importedFile);
+
+        return resolveConstant(
+          (element.propertyName ?? element.name).text,
+          parseFile(importedFile),
+          null,
+          depth + 1,
+        );
       }
     }
   }
@@ -800,6 +815,11 @@ export function collectRelationSelectSites(
 
     for (const filePath of listSourceFiles(directory)) {
       collectFromFile(parseFile(filePath), modelNames, sites);
+
+      // Read: let it go, unless a constant was imported from it (parsedFiles).
+      if (!importedFiles.has(filePath)) {
+        parsedFiles.delete(filePath);
+      }
     }
   }
 

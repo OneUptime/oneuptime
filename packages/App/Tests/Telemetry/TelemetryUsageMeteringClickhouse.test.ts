@@ -16,6 +16,10 @@ import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
+  EXCEPTION_SOURCE_ATTRIBUTE,
+  ExceptionSource,
+} from "Common/Types/Telemetry/ExceptionSource";
+import {
   afterAll,
   afterEach,
   beforeAll,
@@ -175,7 +179,16 @@ function spanRow(time: Date, name: string): JSONObject {
   };
 }
 
-function exceptionRow(time: Date, message: string): JSONObject {
+/*
+ * An exception occurrence, stamped with where it was found as the ingests
+ * stamp it (ExceptionSource), or with no source, as every row was written
+ * before exceptions were found in logs and the REST API's create still is.
+ */
+function exceptionRow(
+  time: Date,
+  message: string,
+  source?: ExceptionSource,
+): JSONObject {
   rowNumber++;
 
   return {
@@ -190,8 +203,8 @@ function exceptionRow(time: Date, message: string): JSONObject {
     message: message,
     stackTrace: `TypeError: ${message}\n    at checkout (app.js:${rowNumber}:1)`,
     fingerprint: `fingerprint-${rowNumber}`,
-    attributes: {},
-    attributeKeys: [],
+    attributes: source ? { [EXCEPTION_SOURCE_ATTRIBUTE]: source } : {},
+    attributeKeys: source ? [EXCEPTION_SOURCE_ATTRIBUTE] : [],
     retentionDate: retentionDate,
   };
 }
@@ -236,23 +249,34 @@ const SERVICES: Array<ConnectedService> = [
   ExceptionInstanceService,
 ];
 
-// The bytes ClickHouse itself says each resource's rows of a window take.
+/*
+ * The bytes ClickHouse itself says each resource's rows of a window take -
+ * of the exception table, only the rows found in logs, or every other one,
+ * when `foundInLogs` says which.
+ */
 async function bytesByEntity(
   client: ClickhouseClient,
   table: string,
   timestampColumn: string,
   projectId: ObjectID,
   start: Date,
+  foundInLogs?: boolean,
 ): Promise<Record<string, number>> {
+  const source: string =
+    foundInLogs === undefined
+      ? ""
+      : ` AND attributes[{sourceKey:String}] ${foundInLogs ? "=" : "!="} {logSource:String}`;
   const result: { data: Array<JSONObject> } = (await (
     await client.query({
-      query: `SELECT primaryEntityId, sum(byteSize(*)) AS bytes FROM ${database}.${table} WHERE projectId = {projectId:String} AND ${timestampColumn} >= {start:DateTime64(9)} AND ${timestampColumn} <= {end:DateTime64(9)} GROUP BY primaryEntityId`,
+      query: `SELECT primaryEntityId, sum(byteSize(*)) AS bytes FROM ${database}.${table} WHERE projectId = {projectId:String} AND ${timestampColumn} >= {start:DateTime64(9)} AND ${timestampColumn} <= {end:DateTime64(9)}${source} GROUP BY primaryEntityId`,
       query_params: {
         projectId: projectId.toString(),
         start: OneUptimeDate.toClickhouseDateTime64(start),
         end: OneUptimeDate.toClickhouseDateTime64(
           new Date(start.getTime() + DAY_MS - 1),
         ),
+        sourceKey: EXCEPTION_SOURCE_ATTRIBUTE,
+        logSource: ExceptionSource.Log,
       },
       format: "JSON",
     })
@@ -273,7 +297,7 @@ interface StagedRow {
   primaryEntityId: string;
   primaryEntityType: ServiceType | undefined;
   dataIngestedInGB: number;
-  // Of that, the exceptions (issue #6356): Traces rows only, else null.
+  // Of that, the exceptions (issues #6356, #6590): Traces and Logs rows only, else null.
   exceptionDataIngestedInGB: number | null;
   totalCostInUSD: number;
   isReportedToBillingProvider: boolean;
@@ -436,8 +460,19 @@ integration("Metering without billing against ClickHouse", () => {
 
     await ExceptionInstanceService.insertJsonRows(
       [
-        exceptionRow(at(YESTERDAY, 103), "card is undefined"),
+        // Found in the spans: one stamped so, one written with no source.
+        exceptionRow(
+          at(YESTERDAY, 103),
+          "card is undefined",
+          ExceptionSource.Span,
+        ),
         exceptionRow(at(YESTERDAY, 104), "amount is NaN"),
+        // Found in one of the service's logs (issue #6590).
+        exceptionRow(
+          at(YESTERDAY, 600),
+          "connection reset while charging the card",
+          ExceptionSource.Log,
+        ),
       ],
       { clickhouseSettings: { wait_for_async_insert: 1 } },
     );
@@ -533,6 +568,15 @@ integration("Metering without billing against ClickHouse", () => {
       PROJECT_ID,
       YESTERDAY,
     );
+    // And the exceptions found in those logs, billed with them (issue #6590).
+    const foundInLogs: Record<string, number> = await bytesByEntity(
+      client,
+      new ExceptionInstance().tableName,
+      "time",
+      PROJECT_ID,
+      YESTERDAY,
+      true,
+    );
 
     expect(Array.from(usage.keys()).sort()).toEqual(
       [SERVICE_ID, HOST_ID, PROJECT_ID.toString()].sort(),
@@ -541,7 +585,7 @@ integration("Metering without billing against ClickHouse", () => {
     for (const [entityId, resource] of usage) {
       expect({ entityId, bytes: resource.bytes }).toEqual({
         entityId,
-        bytes: expected[entityId],
+        bytes: expected[entityId]! + (foundInLogs[entityId] || 0),
       });
       expect(resource.bytes).toBeGreaterThan(0);
     }
@@ -575,12 +619,14 @@ integration("Metering without billing against ClickHouse", () => {
       PROJECT_ID,
       YESTERDAY,
     );
+    // Every exception not found in a log: stamped from a span, or with no source (issue #6590).
     const exceptions: Record<string, number> = await bytesByEntity(
       client,
       new ExceptionInstance().tableName,
       "time",
       PROJECT_ID,
       YESTERDAY,
+      false,
     );
 
     expect(spans[SERVICE_ID]).toBeGreaterThan(0);
@@ -600,7 +646,13 @@ integration("Metering without billing against ClickHouse", () => {
     ).toBe(spans[SERVICE_ID]);
   });
 
-  test("gives no other signal an exceptions part, though the exception table has rows that day", async () => {
+  /*
+   * Issue #6590: an exception is billed by the product that ingested the
+   * record it was found in. A logs day's exceptions part is the exceptions
+   * found in its logs, exactly as ClickHouse holds them, and none of the
+   * ones found in spans, which its traces bill: each row is billed once.
+   */
+  test("gives a logs day the exceptions found in its logs, and none of the ones found in spans", async () => {
     const usage: Map<string, TelemetryResourceUsage> =
       await TelemetryUsageBillingService.getTelemetryUsageByResource({
         projectId: PROJECT_ID,
@@ -609,12 +661,36 @@ integration("Metering without billing against ClickHouse", () => {
         endDate: OneUptimeDate.getEndOfDay(YESTERDAY, "UTC"),
       });
 
+    const foundInLogs: Record<string, number> = await bytesByEntity(
+      client,
+      new ExceptionInstance().tableName,
+      "time",
+      PROJECT_ID,
+      YESTERDAY,
+      true,
+    );
+    const foundInSpans: Record<string, number> = await bytesByEntity(
+      client,
+      new ExceptionInstance().tableName,
+      "time",
+      PROJECT_ID,
+      YESTERDAY,
+      false,
+    );
+
+    // The exception table has rows of both sources that day.
+    expect(foundInLogs[SERVICE_ID]).toBeGreaterThan(0);
+    expect(foundInSpans[SERVICE_ID]).toBeGreaterThan(0);
     expect(usage.size).toBeGreaterThan(0);
 
+    /*
+     * A resource that recorded no exception in its logs has a part all the
+     * same: none.
+     */
     for (const [entityId, resource] of usage) {
       expect({ entityId, exceptionBytes: resource.exceptionBytes }).toEqual({
         entityId,
-        exceptionBytes: undefined,
+        exceptionBytes: foundInLogs[entityId] || 0,
       });
     }
   });
@@ -671,15 +747,43 @@ integration("Metering without billing against ClickHouse", () => {
       );
     })!;
 
-    expect(serviceYesterday.dataIngestedInGB).toBe(
-      logBytes[SERVICE_ID]! / (1024 * 1024 * 1024),
+    const logExceptionBytes: Record<string, number> = await bytesByEntity(
+      client,
+      new ExceptionInstance().tableName,
+      "time",
+      PROJECT_ID,
+      YESTERDAY,
+      true,
     );
-    // A logs row records no exceptions part.
-    expect(serviceYesterday.exceptionDataIngestedInGB).toBeNull();
+
+    /*
+     * A logs row keeps everything its logs and the exceptions found in them
+     * take, as it is billed, and records the exceptions' part of it, as a
+     * traces row does (issue #6590).
+     */
+    expect(serviceYesterday.dataIngestedInGB).toBe(
+      (logBytes[SERVICE_ID]! + logExceptionBytes[SERVICE_ID]!) /
+        (1024 * 1024 * 1024),
+    );
+    expect(serviceYesterday.exceptionDataIngestedInGB).toBe(
+      logExceptionBytes[SERVICE_ID]! / (1024 * 1024 * 1024),
+    );
+
+    // The host's logs had no exception in them: a part of none.
+    expect(
+      staged.find((row: StagedRow) => {
+        return (
+          row.productType === ProductType.Logs &&
+          row.day === yesterdayDay &&
+          row.primaryEntityId === HOST_ID
+        );
+      })!.exceptionDataIngestedInGB,
+    ).toBe(0);
 
     /*
      * The traces row keeps everything its spans and exceptions take, as it
-     * is billed, and records the exceptions' part of it (issue #6356).
+     * is billed, and records the exceptions' part of it (issue #6356) - the
+     * ones found in spans, not the one its logs bill.
      */
     const spanBytes: Record<string, number> = await bytesByEntity(
       client,
@@ -694,6 +798,7 @@ integration("Metering without billing against ClickHouse", () => {
       "time",
       PROJECT_ID,
       YESTERDAY,
+      false,
     );
     const tracesYesterday: StagedRow = staged.find((row: StagedRow) => {
       return (

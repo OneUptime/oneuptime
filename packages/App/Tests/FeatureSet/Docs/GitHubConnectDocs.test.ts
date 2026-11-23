@@ -3,9 +3,8 @@ import {
   getConnectCallbackMessageKey,
 } from "../../../FeatureSet/Dashboard/src/Utils/Workspace/ConnectCallbackMessage";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
-import { PermissionHelper } from "Common/Types/Permission";
+import Permission, { PermissionHelper } from "Common/Types/Permission";
 import ProductKey from "Common/Types/Product/ProductKey";
-import { withoutProductLevels } from "./DocsProductLevels";
 import {
   ConnectCallbackError,
   ConnectProvider,
@@ -14,6 +13,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { writtenPermissionTitle } from "./DocsRoleNames";
+import { withoutProductLevels } from "./DocsProductLevels";
 
 /*
  * Connecting a GitHub App installation, as the self-hosted GitHub guide
@@ -89,15 +89,21 @@ describe("the self-hosted GitHub guide, in every language", () => {
   });
 
   test("names every permission that may connect, in bold, as the server's create list has them", () => {
+    const creators: Array<Permission> =
+      new CodeRepository().getCreatePermissions();
+
     /*
-     * Code's Admin level connects too, as Project Admin does (#10289): the
-     * permissions page describes the levels once, for every product.
+     * The Code product's levels (#10289) may add code repositories too,
+     * Code Admin as Project Admin and Code Member as Project Member: the
+     * permissions page describes them once for every product, as the other
+     * pages leave them to it.
      */
+    expect(creators).toEqual(
+      expect.arrayContaining([Permission.CodeAdmin, Permission.CodeMember]),
+    );
+
     const titles: Array<string> = PermissionHelper.getPermissionTitles(
-      withoutProductLevels({
-        permissions: new CodeRepository().getCreatePermissions(),
-        product: ProductKey.Code,
-      }),
+      withoutProductLevels({ permissions: creators, product: ProductKey.Code }),
     );
 
     expect(titles).toEqual(

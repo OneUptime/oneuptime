@@ -405,7 +405,7 @@ OneUptime 會就案件上的七件事通知相關人員。不需要任何人做�
 - **Run a runbook** 以案件作為輸入，啟動你的某個[運行手冊](/docs/runbooks/index)，Bash 步驟會把這些輸入讀作環境變數（參見[呼叫 Webhook](/docs/runbooks/triggers#呼叫-webhook)）。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 與 `ONEUPTIME_INPUT_HOST` 是案件所涉及的位址、使用者與主機，依與圍堵類步驟相同的規則選出，案件不涉及其中任何一個時為空。`ONEUPTIME_INPUT_IPS`、`ONEUPTIME_INPUT_USERS` 與 `ONEUPTIME_INPUT_HOSTS` 以 JSON 列出案件提到的所有對象，`ONEUPTIME_INPUT_CASE_NUMBER`、`ONEUPTIME_INPUT_CASE_TITLE` 與 `ONEUPTIME_INPUT_CASE_URL` 說明是哪個案件。受保護的使用者或主機絕不會在其中。運行手冊的執行紀錄會註明它是由 **Security playbook** 為該案件啟動的。
 - **Preserve the evidence** 把案件每個偵測的最新事件依原樣保存到案件的 **證據** 頁面，最多 100 個，將案件背後請求的工作階段重播保留到其保留期之後，並在案件上寫一則備註，連結每個請求的追蹤、每個重播與每個例外。記錄與追蹤的保存時間不能超過專案保留遙測資料的時間，因此請在此之前匯出你需要的內容。
 - **Post a status page announcement** 依你撰寫的原樣，把你寫的內容發布到你選擇的狀態頁上。不會加入案件中的任何內容。只有開啟 **通知訂閱者** 時，才會通知這些狀態頁的訂閱者。
-- **Fix the code with AI** 針對案件的請求所引發的每個例外（最多三個），請 OneUptime AI 提交一個修正它的提取要求。該步驟需要開啟 OneUptime AI、一個包含程式碼並透過 GitHub App 連接的程式碼存放庫，以及一個執行器。缺少這些時，該步驟會被略過並說明缺少什麼。每個提取要求都會保留在案件上，回應計畫的修正步驟會讀取它是否已發布並拒絕了攻擊：請參閱 [OneUptime 如何檢查一個步驟](#oneuptime-如何檢查一個步驟)。
+- **Fix the code with AI** 針對案件的請求所引發的每個例外（最多三個），請 OneUptime AI 提交一個修正它的提取要求。該步驟需要開啟 OneUptime AI、一個包含程式碼並透過 GitHub App 連接的程式碼存放庫，以及一個執行器。缺少這些時，該步驟會被略過並說明缺少什麼。每個提取要求都會保留在案件上，回應計畫的修正步驟會讀取它是否已發布並拒絕了攻擊：請參閱 [OneUptime 如何檢查一個步驟](#oneuptime-如何檢查一個步驟)。 對於問題由同一個錯誤造成的資料安全案件，它會改為請求修正其原因的唯一拉取請求，並把在主控台中建立的資料儲存區留給人員核准（請參閱 [同一原因的問題](/docs/data-security/checks-and-issues#同一原因的問題)）。
 
 ### 圍堵
 
@@ -462,7 +462,7 @@ Mattermost 收到的核准是不帶按鈕的文字。
 
 你的專案自身的位址永遠不會被封鎖：**受保護的實體** 中的項目、你的主機、Kubernetes 節點、雲端資源、網路裝置和端點、你的位址名稱和探測器、OneUptime Cloud 的探測器、不在網際網路上的範圍，以及你的應用程式前端的邊緣網路。會觸及其中之一的封鎖會被拒絕，並說明該位址是什麼；**受保護的實體** 會在 **自動保護** 下列出它們。專案自己的網域也永遠不會被封鎖：OneUptime、Microsoft Defender 和 CrowdStrike Falcon 的網域、你的監測器檢查的主機、你的狀態頁面的網域、你已驗證的網域、你的雲端資源的 DNS 名稱和區域，以及空檔案的雜湊。對它們的封鎖也會同樣被拒絕。當 OneUptime 無法判斷某個位址、網域或檔案是否受保護時，不會封鎖它。
 
-**生效於** 顯示封鎖生效的每個位置，以及封鎖在那裡是否持續生效。 防火牆或代理透過讀取[封鎖清單來源](/docs/telemetry/blocklist-feeds)來執行封鎖清單，這是一個它每隔幾分鐘擷取一次的秘密 URL。為 AWS 雲端連線開啟後，AWS WAF 也會在你選擇的 Web ACL 中執行封鎖（[在 AWS WAF 中封鎖位址](/docs/telemetry/cloud-aws-waf-blocklist)）。在沒有任何地方執行封鎖清單期間，頁面會說明這一點，封鎖會被記錄，但不會封鎖任何內容。每次封鎖、解除和到期都會記錄在專案的稽核日誌中；如果封鎖有對應的案件，也會記錄在該案件的時間軸上。案件位址的封鎖也會顯示在其 **回應計畫** 中，可在那裡用 **解除** 結束它；在 **攻擊活動** 的某一列上使用 **封鎖位址**，會封鎖該攻擊活動的位址。
+**生效於** 顯示封鎖生效的每個位置，以及封鎖在那裡是否持續生效。 防火牆或代理透過讀取[封鎖清單來源](/docs/telemetry/blocklist-feeds)來執行封鎖清單，這是一個它每隔幾分鐘擷取一次的秘密 URL。為 AWS 雲端連線開啟後，AWS WAF 也會在你選擇的 Web ACL 中執行封鎖（[在 AWS WAF 中封鎖位址](/docs/telemetry/cloud-aws-waf-blocklist)）。為 Azure 或 Google Cloud 雲端連線開啟後，Azure WAF 和 Cloud Armor 也會在你選擇的政策中執行封鎖（[在 Azure WAF 中封鎖位址](/docs/telemetry/cloud-azure-waf-blocklist)、[在 Cloud Armor 中封鎖位址](/docs/telemetry/cloud-armor-blocklist)）。在沒有任何地方執行封鎖清單期間，頁面會說明這一點，封鎖會被記錄，但不會封鎖任何內容。每次封鎖、解除和到期都會記錄在專案的稽核日誌中；如果封鎖有對應的案件，也會記錄在該案件的時間軸上。案件位址的封鎖也會顯示在其 **回應計畫** 中，可在那裡用 **解除** 結束它；在 **攻擊活動** 的某一列上使用 **封鎖位址**，會封鎖該攻擊活動的位址。
 
 ### 訊息
 

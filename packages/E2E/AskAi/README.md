@@ -25,7 +25,9 @@ the panel open, and an **Open details** button that opens one of the app's own s
 
 - `incident` (the default): incident #42 "Checkout latency above 2s", whose context the
   composer's pill names and whose own suggestions the start offers;
-- `home`: Home, with no page context, where one sentence says where answers come from;
+- `home`: Home, a page Ask AI knows (#7062): the pill names it and the start offers its own four
+  questions; with the pill removed, no page is behind it, and one sentence says where answers
+  come from;
 - `logs`: the logs explorer with an error pattern's **Explain with AI**, which opens a new
   conversation with a prepared question in the composer, unsent;
 - `setup`: a guided setup's first step, drawn by the Dashboard's own frame (`GuidedSetupFrame`) as

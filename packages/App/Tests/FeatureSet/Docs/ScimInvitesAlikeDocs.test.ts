@@ -15,6 +15,10 @@ import path from "path";
  * so wherever it said the old rule (IdentityDocsTranslations holds every
  * other language to it, and FormerMemberAccessDocs to the paragraph's
  * place), and ProjectSCIMAccountPolicy does what it says.
+ *
+ * The policy and the SCIM server are in ee/, which the App Test job
+ * deletes first: what they do is checked where the checkout has them, and
+ * the Enterprise Edition Test runs this suite with ee/ present.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -27,6 +31,13 @@ const SCIM_API: string = "ee/Server/Identity/API/SCIM.ts";
 
 function read(relativeToRepository: string): string {
   return fs.readFileSync(path.join(REPO_ROOT, relativeToRepository), "utf8");
+}
+
+// Whether the checkout has the ee/ files the policy check reads.
+function hasEe(): boolean {
+  return [POLICY, SCIM_API].every((file: string): boolean => {
+    return fs.existsSync(path.join(REPO_ROOT, file));
+  });
 }
 
 describe("the SCIM guide's rule for who joins at once (#9899)", () => {
@@ -67,6 +78,10 @@ describe("the SCIM guide's rule for who joins at once (#9899)", () => {
   });
 
   it("and the policy does what the guide says: no member at once for an account the connection made, the provider's name on every membership", () => {
+    if (!hasEe()) {
+      return;
+    }
+
     const policy: string = read(POLICY);
 
     expect(policy).not.toContain("userWasCreatedByScim");

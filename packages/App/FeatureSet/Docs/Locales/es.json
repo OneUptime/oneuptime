@@ -444,6 +444,8 @@
     "Stream Azure Monitor Metrics and Logs": "Transmitir métricas y registros de Azure Monitor",
     "Stream Google Cloud Logs": "Transmitir registros de Google Cloud",
     "Block Addresses in AWS WAF": "Bloquear direcciones en AWS WAF",
+    "Block Addresses in Azure WAF": "Bloquear direcciones en Azure WAF",
+    "Block Addresses in Cloud Armor": "Bloquear direcciones en Cloud Armor",
     "Cloud Costs and Savings": "Costos y ahorros en la nube",
     "Cloud Resources (IaaS & PaaS)": "Recursos en la nube (IaaS y PaaS)",
     "AI / LLM Observability": "Observabilidad de IA / LLM",

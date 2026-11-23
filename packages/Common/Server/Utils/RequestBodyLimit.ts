@@ -210,22 +210,43 @@ const createAndUpdate: (crudPath: string) => Array<string> = (
 /*
  * The telemetry routes StartServer reads the body of: the rest of the
  * telemetry router (OTLP, session replay, the compatible endpoints, the
- * Vercel log drain, the cloud streams, the uploads below) reads its own.
+ * Vercel log drain, the cloud streams, the uploads and the batches below)
+ * reads its own.
  */
-const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = [
-  "/fluentd/*",
-  "/syslog/*",
-  "/kubernetes-cost/*",
-  "/security-events/*",
-  "/change-events/*",
-  "/openlineage/*",
-  "/dbt/*",
-  "/android-agent/*",
-  "/opamp/*",
-  // Pyroscope's push.v1 protobuf; its /ingest is an upload, below.
-  "/pyroscope/*",
-  "/fivetran/*",
-  "/airbyte/*",
+const TELEMETRY_INGEST_PATHS: ReadonlyArray<string> = ["/security-events/*"];
+
+/*
+ * The batches collectors, agents and CI send, read once their ingest key is
+ * checked (#10702), as the uploads are: StartServer leaves the body unread,
+ * and the route reads it after the key with StartServer's own parsers
+ * (RequestBodyAfterAuthentication.readBody), so its handler gets the body
+ * it always did. Each client sends its key where the check reads it before
+ * the body:
+ *
+ *   - in a header, x-oneuptime-token: Fluentd's HTTP output and Fluent Bit's
+ *     (headers), rsyslog's omhttp and syslog-ng's HTTP destination, the
+ *     Kubernetes agent's cost poller, the host collector's OpAMP supervisor,
+ *     the Android agent, the OneUptime CLI's dbt upload;
+ *   - as Authorization: Bearer, which the route hands on as that header:
+ *     OpenLineage clients (api_key), Pyroscope's push (or Basic);
+ *   - in the URL: Airbyte's webhook carries the key itself, Fivetran's names
+ *     a key by its id and signs the body with it - the key is looked up from
+ *     the URL, and the body read to check the signature only for a key that
+ *     is there, and a request that carries one.
+ */
+const TELEMETRY_KEYED_INGEST_PATHS: ReadonlyArray<string> = [
+  "/fluentd/v1/logs",
+  "/syslog/v1/logs",
+  "/kubernetes-cost/ingest",
+  "/change-events/v1/ingest",
+  "/openlineage/api/v1/lineage",
+  "/dbt/v1/artifacts",
+  "/android-agent/v1/log-sessions",
+  "/opamp/v1",
+  // Pyroscope's push.v1 protobuf; its /ingest is an upload, above.
+  "/pyroscope/push.v1.PusherService/Push",
+  "/fivetran/v1/webhook/:ingestionKeyId",
+  "/airbyte/v1/webhook/:ingestionKey",
 ];
 
 /*
@@ -255,6 +276,13 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
     readsBodyAfterAuthentication: true,
     reason:
       "A Pyroscope profile, source maps from CI and an iOS app's dSYMs are uploads of up to 50 MB, as a multipart form or not, gzip-compressed or not. Each client sends its ingest key in a header, which is checked before a byte of the body is read: a request without the right key is refused with its body unread.",
+  },
+  {
+    paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_KEYED_INGEST_PATHS),
+    limit: LARGE_REQUEST_BODY_LIMIT,
+    readsBodyAfterAuthentication: true,
+    reason:
+      "Batches of logs, events, profiles and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each. Each client sends its ingest key in a header or the URL, which is checked before a byte of the body is read: a request without the right key is refused with its body unread.",
   },
   {
     paths: under(PROBE_INGEST_ROUTE_PREFIXES, [
@@ -302,7 +330,7 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
     paths: under(TELEMETRY_ROUTE_PREFIXES, TELEMETRY_INGEST_PATHS),
     limit: LARGE_REQUEST_BODY_LIMIT,
     reason:
-      "Batches of logs, events, profiles and dbt artifacts that collectors, agents and CI send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
+      "Batches of security events that collectors and SIEMs send, gzip-compressed or not, under /telemetry and at the root, as the ingress forwards each.",
   },
   {
     paths: ["/workflow/*", "/api/huntress/webhook/*"],

@@ -55,12 +55,6 @@ interface HeaderKind {
    * what the reader holds on it (PrivateRecordScope).
    */
   canBePrivate: boolean;
-  /*
-   * Whether a record that cannot be private still has its state buttons
-   * ask with what the reader holds on it: its labels or owners can keep a
-   * state change from them (RecordAccessScope, #10272, #10303).
-   */
-  asksRecordAccess?: boolean;
 }
 
 const KINDS: Array<HeaderKind> = [
@@ -105,7 +99,6 @@ const KINDS: Array<HeaderKind> = [
       'headerNoticeTone={overdueNotice?"warning":"neutral"}headerNotice={overdueNotice||props.publishingNotice}',
     lockSentence: "You do not have permission to change this event's state.",
     canBePrivate: false,
-    asksRecordAccess: true,
   },
 ];
 
@@ -127,20 +120,46 @@ describe.each(KINDS)("the $name header", (kind: HeaderKind) => {
       "",
     )}",),}`;
 
+    /*
+     * And with what the reader may do on the record the page is open on: a
+     * private record's buttons with what the reader holds on it, and a
+     * maintenance event's, which cannot be private, with what the server
+     * says its labels and owners leave the reader (#10272).
+     */
     expect(code).toContain(
       kind.canBePrivate
         ? `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,withPrivateRecordGateOptions(${sentence},privateRecordOptions,),)}`
-        : kind.asksRecordAccess
-          ? `stateChangeGate={PermissionGate.check(STATE_CHANGE_MODEL,ModelAction.Create,withPrivateRecordGateOptions(${sentence},recordGateOptions,),)}`
-          : `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,${sentence},)}`,
+        : `stateChangeGate={PermissionGate.check(STATE_CHANGE_MODEL,ModelAction.Create,withPrivateRecordGateOptions(${sentence},recordGateOptions,),)}`,
     );
     expect(code).toContain(
       `import${kind.timeline}from"Common/Models/DatabaseModels/${kind.timeline}";`,
     );
     expect(code).toContain(
-      kind.canBePrivate || kind.asksRecordAccess
-        ? 'importPermissionGate,{ModelAction,PermissionGateOptions,}from"Common/UI/Utils/PermissionGate";'
-        : 'importPermissionGate,{ModelAction}from"Common/UI/Utils/PermissionGate";',
+      'importPermissionGate,{ModelAction,PermissionGateOptions,}from"Common/UI/Utils/PermissionGate";',
+    );
+  });
+
+  /*
+   * Each record's view layout hands every gate on its pages what the server
+   * says the reader may do on that record - its labels, its owners and its
+   * privacy, by the server's own rule (RecordAccessScope, #10272) - through
+   * the private record hooks, so every kind's state buttons ask with it, a
+   * maintenance event's too: they lock a change the server would refuse,
+   * saying why. They ask about a row of the record's own state timeline.
+   */
+  test("asks with what the server says the reader may do on the record its page is open on", () => {
+    expect(code).toContain(
+      'import{usePrivateRecordGateOptions,withPrivateRecordGateOptions,}from"Common/UI/Utils/PrivateRecordScope";',
+    );
+    expect(code).toContain(
+      kind.canBePrivate
+        ? `constPRIVATE_RECORD_STATE_TIMELINE:${kind.timeline}=new${kind.timeline}();`
+        : `constSTATE_CHANGE_MODEL:${kind.timeline}=new${kind.timeline}();`,
+    );
+    expect(code).toContain(
+      kind.canBePrivate
+        ? "constprivateRecordOptions:PermissionGateOptions|undefined=usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);"
+        : "constrecordGateOptions:PermissionGateOptions|undefined=usePrivateRecordGateOptions(STATE_CHANGE_MODEL);",
     );
   });
 
@@ -162,22 +181,6 @@ describe.each(KINDS)("the $name header", (kind: HeaderKind) => {
         "constprivateRecordOptions:PermissionGateOptions|undefined=usePrivateRecordGateOptions(PRIVATE_RECORD_STATE_TIMELINE);",
       ),
     ).toBe(kind.canBePrivate);
-    expect(
-      code.includes(
-        'import{usePrivateRecordGateOptions,withPrivateRecordGateOptions,}from"Common/UI/Utils/PrivateRecordScope";',
-      ),
-    ).toBe(kind.canBePrivate || Boolean(kind.asksRecordAccess));
-    // A record that cannot be private asks what its labels and owners leave.
-    expect(
-      code.includes(
-        `constSTATE_CHANGE_MODEL:${kind.timeline}=new${kind.timeline}();`,
-      ),
-    ).toBe(Boolean(kind.asksRecordAccess));
-    expect(
-      code.includes(
-        "constrecordGateOptions:PermissionGateOptions|undefined=usePrivateRecordGateOptions(STATE_CHANGE_MODEL);",
-      ),
-    ).toBe(Boolean(kind.asksRecordAccess));
     // Every note the dialog offers is asked about the same way.
     expect(countOf(code, "noteGateOptions:privateRecordOptions,")).toBe(
       kind.canBePrivate ? countOf(code, "noteModel:new") : 0,
