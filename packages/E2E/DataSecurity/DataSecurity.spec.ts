@@ -48,6 +48,8 @@ const PATHS: Readonly<Record<string, string>> = {
   stores: `${BASE}/stores`,
   store: `${BASE}/stores/${BUCKET}`,
   inside: `${BASE}/stores/${BUCKET}/inside`,
+  // The orders database's findings OneUptime AI gave its verdict on (#10372).
+  ordersInside: `${BASE}/stores/${ORDERS_DB}/inside`,
   access: `${BASE}/stores/${BUCKET}/access`,
   storeTimeline: `${BASE}/stores/${BUCKET}/timeline`,
   issues: `${BASE}/issues`,
@@ -870,8 +872,20 @@ test.describe("who can reach the data", () => {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * A finding's row, and the line under it where what OneUptime AI says of
+ * it reads across the row - its suggestion's reason, its verdict (#10372,
+ * #6105): a <tr> of its own on a laptop, under the row's cells.
+ */
 function findingRow(page: Page, location: string): Locator {
-  return page.locator("tbody tr").filter({ hasText: location });
+  return page
+    .locator("tbody tr")
+    .filter({ hasNot: page.getByTestId("table-row-note") })
+    .filter({ hasText: location });
+}
+
+function findingNote(page: Page, location: string): Locator {
+  return findingRow(page, location).locator("xpath=following-sibling::tr[1]");
 }
 
 test.describe("OneUptime AI's suggestions on What's Inside", () => {
@@ -883,16 +897,18 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
     await open(page, PATHS["inside"]!);
 
     const suggested: Locator = findingRow(page, "geb_datum");
+    const why: Locator = findingNote(page, "geb_datum");
 
     await expect(suggested).toContainText("Date of birth");
-    // OneUptime AI's on a line of its own: being its suggestion says it is unsure.
+    /*
+     * OneUptime AI's, and why, across the row under its cells: being its
+     * suggestion says it is unsure.
+     */
     await expect(
-      suggested.getByTestId("data-store-finding-ai-suggestion"),
+      why.getByTestId("data-store-finding-ai-suggestion"),
     ).toContainText("Suggested by OneUptime AI");
     await expect(suggested).not.toContainText("Low confidence");
-    await expect(
-      suggested.getByTestId("data-store-finding-ai-reason"),
-    ).toHaveText(
+    await expect(why.getByTestId("data-store-finding-ai-reason")).toHaveText(
       "Geb. Datum is German for date of birth, and every value has the shape of a date.",
     );
     await expect(suggested).toContainText("No value matched");
@@ -901,7 +917,9 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
     // One a person confirmed already reads as theirs, and is not offered again.
     const confirmed: Locator = findingRow(page, "steuer_nr");
 
-    await expect(confirmed).toContainText("Suggested by OneUptime AI");
+    await expect(findingNote(page, "steuer_nr")).toContainText(
+      "Suggested by OneUptime AI",
+    );
     await expect(confirmed).toContainText("Confirmed");
     await expect(confirmed).not.toContainText("Low confidence");
     await screenshot(page, "inside-suggestions-1280");
@@ -943,7 +961,9 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
 
     const suggested: Locator = findingRow(page, "geb_datum");
 
-    await expect(suggested).toContainText("Suggested by OneUptime AI");
+    await expect(findingNote(page, "geb_datum")).toContainText(
+      "Suggested by OneUptime AI",
+    );
 
     const inline: Locator = suggested.getByRole("button", {
       name: "Confirm",
@@ -962,7 +982,7 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
     expect((await fixture(page)).updates).toEqual([]);
   });
 
-  test("in German, a suggestion's reason stays in OneUptime AI's words, inside its column", async ({
+  test("in German, a suggestion's reason stays in OneUptime AI's words, across its row", async ({
     page,
   }: {
     page: Page;
@@ -970,11 +990,201 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
     await open(page, PATHS["inside"]!, { lang: "de" });
 
     await expect(
-      findingRow(page, "geb_datum").getByTestId("data-store-finding-ai-reason"),
+      findingNote(page, "geb_datum").getByTestId(
+        "data-store-finding-ai-reason",
+      ),
     ).toBeVisible();
     await page.waitForLoadState("networkidle");
     await expectNoSidewaysScroll(page);
     await screenshot(page, "inside-suggestions-de-1280");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI's verdicts, and one decision for every finding like it
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
+  test("each finding that waits reads its verdict, why, and the team's decisions it rests on, across its row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["ordersInside"]!);
+
+    const orderNumbers: Locator = findingNote(page, "public.orders.order_number");
+    const verdict: Locator = orderNumbers.getByTestId(
+      "data-store-finding-ai-verdict",
+    );
+
+    await expect(verdict).toContainText("Not sensitive");
+    await expect(verdict).toContainText(
+      "These are shop order numbers that pass the Luhn check by chance",
+    );
+    await expect(
+      orderNumbers.getByTestId("data-store-finding-ai-precedent"),
+    ).toContainText("Your team marked order_number not sensitive on 4 stores.");
+    await expect(verdict).toContainText(
+      "An id field holding numbers that pass the Luhn check",
+    );
+
+    // The other two: a confirmation the team made elsewhere, and nothing to go on.
+    await expect(
+      findingNote(page, "public.newsletter_signups.contact"),
+    ).toContainText("Your team confirmed contact on 1 store.");
+    await expect(findingNote(page, "public.orders.ref_no")).toContainText(
+      "Cannot tell",
+    );
+    await page.waitForLoadState("networkidle");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "inside-verdicts-1280");
+
+    // Each decision, one glance away: its store as the reader may read it.
+    await orderNumbers
+      .getByRole("button", { name: "Show the decisions" })
+      .click();
+    await expect(orderNumbers).toContainText("analytics");
+    await expect(orderNumbers).toContainText("customer-exports");
+    await expect(orderNumbers.getByText("Another store")).toHaveCount(2);
+    await expect(orderNumbers).toContainText(
+      "Shopify order numbers. They pass Luhn by chance.",
+    );
+    await screenshot(page, "inside-verdicts-decisions-1280");
+  });
+
+  test("on a phone, the verdict is part of the finding's card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["ordersInside"]!, { width: 390 });
+
+    const verdict: Locator = page
+      .getByTestId("data-store-finding-ai-verdict")
+      .filter({ hasText: "Not sensitive" });
+
+    await expect(verdict).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "inside-verdicts-390");
+  });
+
+  test("on the dark theme", async ({ page }: { page: Page }) => {
+    await open(page, PATHS["ordersInside"]!, { theme: "dark" });
+
+    await expect(
+      findingNote(page, "public.orders.order_number"),
+    ).toContainText("Not sensitive");
+    await page.waitForLoadState("networkidle");
+    await screenshot(page, "inside-verdicts-dark-1280");
+  });
+
+  test("Mark as Not Sensitive starts from OneUptime AI's draft, and Apply to Similar Findings gives nine other stores the same decision", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["ordersInside"]!);
+
+    await rowAction(
+      page,
+      findingRow(page, "public.orders.order_number"),
+      "Not Sensitive",
+    );
+
+    const reasonDialog: Locator = page.getByRole("dialog");
+    const reason: Locator = reasonDialog.getByRole("textbox");
+
+    // The person's reason starts from the draft, and is theirs to change.
+    await expect(reason).toHaveValue(
+      "Shop order numbers that pass the Luhn check by chance, as on our other stores.",
+    );
+    await reason.fill("Shop order numbers, not cards: they pass Luhn by chance.");
+    await reasonDialog
+      .getByRole("button", { name: "Mark as Not Sensitive" })
+      .click();
+
+    const similar: Locator = page
+      .getByRole("dialog")
+      .filter({ hasText: "Apply to Similar Findings" });
+
+    await expect(similar).toContainText("10 of 10 ticked");
+    await expect(similar).toContainText(
+      "Each keeps your reason: Shop order numbers, not cards: they pass Luhn by chance.",
+    );
+    await expect(similar).toContainText("This store");
+    await screenshot(page, "apply-to-similar-1280");
+
+    // The refunds' column on this store is judged on its own.
+    await similar
+      .getByRole("checkbox", { name: /orders-db/ })
+      .uncheck();
+    await expect(similar).toContainText("9 of 10 ticked");
+    await similar
+      .getByRole("button", { name: "Mark 9 as Not Sensitive" })
+      .click();
+    await expect(similar).toBeHidden();
+
+    const state: FixtureState = await fixture(page);
+
+    expect(
+      state.updates.filter((update: RecordedUpdate): boolean => {
+        return update.modelName === "DataStoreFinding";
+      }),
+    ).toEqual([
+      {
+        modelName: "DataStoreFinding",
+        id: "40000000-0000-4000-8000-000000000020",
+        data: {
+          isSuppressed: true,
+          suppressedReason:
+            "Shop order numbers, not cards: they pass Luhn by chance.",
+        },
+      },
+    ]);
+
+    const applied: Array<RecordedApiRequest> = state.apiRequests.filter(
+      (request: RecordedApiRequest): boolean => {
+        return request.url.includes("/apply-to-similar");
+      },
+    );
+
+    expect(applied).toHaveLength(1);
+    expect((applied[0]!.body?.["findingIds"] as Array<string>).length).toBe(9);
+    expect(applied[0]!.body?.["findingIds"]).not.toContain(
+      "4f000000-0000-4000-8000-000000000001",
+    );
+  });
+
+  test("on a phone, Apply to Similar Findings is one list to tick through", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["ordersInside"]!, { width: 390 });
+
+    // The order numbers' card: the one whose line says what the team decided.
+    const card: Locator = page
+      .getByTestId("table-row-note")
+      .filter({ hasText: "Your team marked order_number" })
+      .locator("xpath=ancestor::div[contains(@class,'py-4')][1]");
+
+    await expect(card).toContainText("public.orders.order_number");
+    await rowAction(page, card, "Not Sensitive");
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Mark as Not Sensitive" })
+      .click();
+
+    const similar: Locator = page
+      .getByRole("dialog")
+      .filter({ hasText: "Apply to Similar Findings" });
+
+    await expect(similar).toContainText("10 of 10 ticked");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "apply-to-similar-390");
   });
 });
 

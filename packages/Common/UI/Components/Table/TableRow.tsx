@@ -1243,16 +1243,24 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
               .filter(Boolean)
               .join(" ")}
           >
+            {/* Under the grip and the select box: nothing, as they draw no value. */}
+            {leadingCellCount > 0 ? (
+              <td
+                colSpan={leadingCellCount}
+                className={props.isLastRow ? "" : TABLE_ROW_RULE_CLASS_NAME}
+              />
+            ) : (
+              <></>
+            )}
             <td
-              colSpan={
-                leadingCellCount +
-                renderedColumns.length +
-                (props.hasEndFiller ? 1 : 0)
-              }
+              colSpan={renderedColumns.length + (props.hasEndFiller ? 1 : 0)}
               data-testid={TABLE_ROW_NOTE_TEST_ID}
               className={[
                 TABLE_ROW_NOTE_CELL_CLASS_NAME,
-                getTableCellPaddingClassName({ isFirst: true, isLast: true }),
+                getTableCellPaddingClassName({
+                  isFirst: leadingCellCount === 0,
+                  isLast: true,
+                }),
                 props.isLastRow ? "" : TABLE_ROW_RULE_CLASS_NAME,
               ]
                 .filter(Boolean)

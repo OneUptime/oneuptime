@@ -18,6 +18,8 @@ OneUptime AI foreslår også eiere for datalagre som ikke har noen, ut fra det s
 
 Som standard spør OneUptime AI før hver endring, unntatt en som bare skjuler data, kan angres og er bevist trygg, og den sletter aldri data eller varsler noen uten å spørre. En endring den gjorde uten å spørre, står under **Gjort av AI**, med **Angre**. **Hvorfor AI ikke handlet** viser problemene den så på og lot være, og hvorfor. Hvert forslag, hver godkjenning, avvisning og angring står på problemets og datalagerets **Tidslinje**. Med bryteren slått av fungerer Datasikkerhet som alltid, og **Analyser problemet** og **Fiks med AI** virker fortsatt når du trykker på dem; med KI slått av for prosjektet virker ingen av dem.
 
+OneUptime AI gir også sin vurdering av hvert funn som venter på en person: **Bekreft det**, **Ikke sensitivt** eller **Kan ikke avgjøres**, med teamets egne beslutninger om lignende funn som presedens (se [Vurderingene fra OneUptime AI](/docs/data-security/data-types#vurderingene-fra-oneuptime-ai)). Den merker aldri et funn som ikke sensitivt, og bekrefter bare et funn på egen hånd der **Vurder** i en AI-regel er **Automatisk**. Ut fra funnene teamet ditt merker som ikke sensitive, foreslår den å slå av en datatype eller å holde et sted utenfor skanningene av et datalager, og disse forslagene venter alltid på deg.
+
 På siden til et problem viser kortet **OneUptime AI** over **Slik fikser du det** analysen og det som ble foreslått for problemet, med de samme knappene. **Oversikt** i datasikkerhet sier hvor mange lekkasjer OneUptime AI begrenset denne uken, og hvor mange forslag som venter på deg. **Oversikt** teller uke for uke hva som kom ut av endringene: se [Hvor godt OneUptime AI gjør det](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-gjør-det).
 
 ### AI-regler
@@ -43,6 +45,7 @@ Datasikkerhet leser dataene dine selv, i sine egne skanninger, og beholder ingen
 | **Analyse av nye problemer** | Problemets tittel, alvorlighetsgrad og bevis, hvorfor kontrollen betyr noe, og trinnene som fikser det; lagerets navn, type, region, tagger og konfigurasjon, følsomheten, navnene på datatypene og omtrent hvor mange poster det inneholder; hvem som kan nå lageret: identiteten, nivået og måten hver tildeling er gitt på, og omtrent når den sist ble brukt, og tjenestene som er sett bruke det; kopier av dataene i andre lagre, sikkerhetssakene, responshandlingen som fikser problemet, og repositoryet og filene som erklærer det; hvor mange eiere lageret har, aldri hvem de er; for et telemetriproblem, hvor hver type data ble funnet: attributtet, loggteksten eller prompten det står i | Ja: et nytt eller gjenåpnet problem med alvorlighetsgrad Kritisk eller Høy starter den, mens **Jobb med nye problemer** er slått på |
 | **Fiks med AI** | Problemet slik kontrollen så det, lagerets navn, type, region og sky-ID, og for et telemetriproblem hvor dataene ble funnet, som en forespørsel til kodeagenten, som deretter leser repositoryets egen kode for å gjøre endringen | Nei: en person spør, i et repository personen kan endre i **Code** |
 | **Forslag for felt som ingen detektor plasserte** | Typen datalager og datatypene AI kan nevne; navnet på hvert felt, navnene på feltene ved siden av og formene på verdiene, hver bokstav som `a` eller `A` og hvert siffer som `9`; hvor mange verdier som ble lest, og hvor lange de er | Ja: innholdsskanningen av et datalager starter dem |
+| **Vurderinger av funn som venter på deg** | Datatypen til hvert funn, navnet og typen på feltet, hvor sikker skanningen var og antallene, avrundet, med eventuelle tegn på feil treff; datalagerets navn, type og miljø; teamets tidligere beslutninger om lignende funn: hvor hvert av dem var, hva som ble bestemt, og begrunnelsen som ble gitt, med eventuelle verdier i begrunnelsen utelatt | Ja: skanningen av et datalager starter dem, for funnene med Lav konfidens, forslagene fra OneUptime AI og funn som viser tegn på feil treff, mens **Jobb med nye problemer** er slått på |
 | **Spør AI** | Datalagrene, problemene og tilgangene personen har lov til å lese i Datasikkerhet; hva som ble funnet hvor, hver datatype etter plassering, med antall og sikkerhet | Nei: en person stiller et spørsmål |
 | **Eiere for datalagre** | Datalagerets navn, type, leverandør, miljø og sensitivitet, og navnene på datatypene; hva som peker på en eier: skytaggene, tjenestene som bruker det, kodeeierne til filen som deklarerer det, og endringene som er gjort i det; teamene som bevisene nevner, ved navn, og personene de nevner, bare som nummererte kandidater, aldri ved navn eller e-postadresse | Ja: Et datalager uten eiere starter den, én gang om dagen for nye datalagre og når en skytilkobling leses for første gang, mens **Jobb med nye problemer** er slått på |
 | **Navn på problemer med én årsak** | Det gruppens datalagre har til felles: modulen, stacken eller taggen som laget dem, identiteten som opprettet dem, eller navnemønsteret deres; kontrollen de feiler, hvor mange problemer gruppen har, typen datalager og koden som deklarerer dem. Aldri navnet på et enkelt datalager i gruppen | Ja: en gruppe problemer som én feil laget, starter det når gruppen dannes eller det datalagrene har til felles endres, mens **Jobb med nye problemer** er slått på |
@@ -62,11 +65,11 @@ Et datalagers navn, sky-ID-en, taggene, bevisene en sky svarte med og nøkkelen 
 
 ### Hva som lagres
 
-Raden for hvert kall i **Prosjektinnstillinger → KI → AI-logger** sier hvilken funksjon som kalte hvilken modell, med tokenene og kostnaden. Den beholder aldri hva som ble sendt eller svart: alle med rollen Prosjektmedlem eller Leser leser AI-loggene, og postene i Datasikkerhet er for eierne deres og sikkerhetsrollene. OneUptimes egen telemetri registrerer heller aldri hva Forklar med AI eller feltforslagene sendte, selv der serverens operatør registrerer hva andre AI-kall sender. Selve analysen lagres på problemet, for alle som kan lese problemet, og en linje som bygger på noe en leser ikke kan lese, skjules for leseren.
+Raden for hvert kall i **Prosjektinnstillinger → KI → AI-logger** sier hvilken funksjon som kalte hvilken modell, med tokenene og kostnaden. Den beholder aldri hva som ble sendt eller svart: alle med rollen Prosjektmedlem eller Leser leser AI-loggene, og postene i Datasikkerhet er for eierne deres og sikkerhetsrollene. OneUptimes egen telemetri registrerer heller aldri hva Forklar med AI, feltforslagene eller vurderingene av funn sendte, selv der serverens operatør registrerer hva andre AI-kall sender. Selve analysen lagres på problemet, for alle som kan lese problemet, og en linje som bygger på noe en leser ikke kan lese, skjules for leseren.
 
 Når et kall mislykkes, beholder Forklar med AI og feltforslagene ikke et ord av leverandørens feil, som kan sitere det som ble sendt. Kodeagenten bak Fiks med AI og Rett årsaken, og chatten i Spør AI, beholder fortsatt leverandørfeilen fra et mislykket kall i raden sin.
 
-Eierforslagene tar vare på det samme som Forklar med AI: Radene for kallene deres nevner funksjonen, modellen, tokenene og kostnaden, aldri hva som ble sendt eller svart, og ikke et ord av feilen i et mislykket kall. Det samme gjør rensingsreglene OneUptime AI skriver, og hver regel den skrev, kjøres på postene dataene ble sett i før den foreslås eller lages. Det samme gjør lesingene av en pull requests sensitive data, der punktene tas vare på i produksjonsgjennomgangen, i Kode og i kommentaren.
+Eierforslagene tar vare på det samme som Forklar med AI: Radene for kallene deres nevner funksjonen, modellen, tokenene og kostnaden, aldri hva som ble sendt eller svart, og ikke et ord av feilen i et mislykket kall. Det samme gjør rensingsreglene OneUptime AI skriver, og hver regel den skrev, kjøres på postene dataene ble sett i før den foreslås eller lages. Det samme gjør lesingene av en pull requests sensitive data, der punktene tas vare på i produksjonsgjennomgangen, i Kode og i kommentaren. Det samme gjør vurderingene av funn, som hver lagres på funnet sitt for alle som kan lese det.
 
 ## Se det selv
 
@@ -81,7 +84,7 @@ Eierforslagene tar vare på det samme som Forklar med AI: Radene for kallene der
 
 Hver AI-funksjon i Datasikkerhet kjører på modellen prosjektet ditt valgte:
 
-- **Forklar med AI** og feltforslagene kjører på leverandøren en AI-regel velger for jobben, ellers på prosjektets standard-LLM-leverandør, ellers på serverens egen.
+- **Forklar med AI**, feltforslagene og vurderingene av funn kjører på leverandøren en AI-regel velger for jobben, ellers på prosjektets standard-LLM-leverandør, ellers på serverens egen.
 - Kodeagenten i **Fiks med AI** kjører på leverandøren en AI-regel velger, ellers på en av prosjektets egne leverandører, ellers på serverens egen.
 - **Spør AI** kjører på leverandøren som er valgt i chatten, ellers på prosjektets standard.
 - Lesingen av en pull requests sensitive data kjører på leverandøren repositoriet velger for produksjonsgjennomgangene sine, ellers på prosjektets standard-LLM-leverandør, ellers på serverens egen.
@@ -90,13 +93,13 @@ En selvhostet modell kjører dem alle: Ollama, vLLM eller et hvilket som helst O
 
 ### Med AI slått av
 
-Med **Aktiver AI** slått av under **Prosjektinnstillinger → KI → AI-funksjoner** sender OneUptime AI ingenting, og Datasikkerhet fortsetter å virke som før: hver side, kontroll, skanning og integrasjon. Ingen AI-knapp vises på et problem, og det spørres ikke om noe felt etter en skanning.
+Med **Aktiver AI** slått av under **Prosjektinnstillinger → KI → AI-funksjoner** sender OneUptime AI ingenting, og Datasikkerhet fortsetter å virke som før: hver side, kontroll, skanning og integrasjon. Ingen AI-knapp vises på et problem, det spørres ikke om noe felt etter en skanning, og ingen funn får en vurdering.
 
 ## Slik måles det
 
 Hver AI-funksjon i Datasikkerhet måles på et fast sett med oppdiktede tilfeller, bygget slik funksjonen bygger inndataene sine og vurdert ut fra hva et riktig svar sier: en forklaring som nevner rettingen og ikke gjentar noe et datalagers navn ba den si, riktig datatype for hvert felt, en retting som endrer det kontrollen trenger og ingenting annet, og et svar ut fra det Spør AI leste. Tilfellene kjøres mot en fastlåst modell hver natt, ved hver endring av en AI-prompt i Datasikkerhet og før hver utgivelse, som krever at hver funksjon når terskelen sin.
 
-Eierforslagene vurderes på om de nevner eieren bevisene peker på, velger ingen når de ikke peker på noen, og er usikre der bevisene er uenige. Rensingsreglene kjøres på oppdiktede verdier for hvert sted, som modellen aldri ser, og vurderes på om de skjuler hver verdi som inneholder dataene og ingen av de andre, og på om de ikke skriver noen regel for et sted ingen regel passer for. Lesingene av pull requests vurderes på om de beholder hvert punkt som er en lekkasje, utelater det som ikke er det, og skriver en retting som sier hva som skal endres.
+Eierforslagene vurderes på om de nevner eieren bevisene peker på, velger ingen når de ikke peker på noen, og er usikre der bevisene er uenige. Rensingsreglene kjøres på oppdiktede verdier for hvert sted, som modellen aldri ser, og vurderes på om de skjuler hver verdi som inneholder dataene og ingen av de andre, og på om de ikke skriver noen regel for et sted ingen regel passer for. Lesingene av pull requests vurderes på om de beholder hvert punkt som er en lekkasje, utelater det som ikke er det, og skriver en retting som sier hva som skal endres. Vurderingene av funn måles på om de gir hvert funn den vurderingen tilfellet tillater, ut fra beslutningene fra teamet ditt som tilfellet nevner: et kortnummer teamet ditt har merket som ikke sensitivt i fire datalagre, fordi det var ordrenumre, er **Ikke sensitivt**, og en hemmelighet ingen har tatt stilling til, er det aldri.
 
 For å måle din egen modell på de samme tilfellene kjører du evalueringen fra en utsjekk av OneUptime, med nøkkelen til modellen din, hvis den trenger en, i `AI_EVAL_LLM_API_KEY`:
 
@@ -111,6 +114,6 @@ I prosjektet ditt teller **Vurderinger bekreftet** under **Prosjektinnstillinger
 :::cards
 - [Integrasjoner for Datasikkerhet](/docs/data-security/integrations): Hva Forklar med AI og Fiks med AI gjør på et problem.
 - [LLM-leverandører](/docs/ai/llm-provider): Legg til din egen modell, også en selvhostet.
-- [Sensitive datatyper](/docs/data-security/data-types): Hvordan felt som ingen detektor kunne plassere, får forslag.
+- [Sensitive datatyper](/docs/data-security/data-types): Hvordan felt som ingen detektor kunne plassere, får forslag, og hvordan funn vurderes.
 - [Kontroller og problemer i Datasikkerhet](/docs/data-security/checks-and-issues): Hva hvert problem betyr, og hvordan du fikser det.
 :::

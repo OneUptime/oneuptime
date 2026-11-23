@@ -80,7 +80,7 @@ export const ApplyToSimilarModal: FunctionComponent<
           ? ApplyToSimilarCopy.notSensitiveDescription
           : ApplyToSimilarCopy.confirmDescription
       }
-      modalWidth={ModalWidth.Large}
+      modalWidth={ModalWidth.Medium}
       isLoading={isApplying}
       disableSubmitButton={ticked.size === 0}
       submitButtonText={translator.translatePlural(
@@ -120,7 +120,7 @@ export const ApplyToSimilarModal: FunctionComponent<
     >
       <div data-testid={APPLY_TO_SIMILAR_TEST_ID}>
         {isNotSensitive && props.similar.reason ? (
-          <p className="mb-3 text-sm text-gray-600 [overflow-wrap:anywhere]">
+          <p className="mb-4 rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700 [overflow-wrap:anywhere]">
             {translator.translateTemplate(ApplyToSimilarCopy.withReason, {
               reason: props.similar.reason,
             })}
@@ -214,17 +214,20 @@ export const ApplyToSimilarModal: FunctionComponent<
                       <></>
                     )}
                   </div>
-                  <code className="mt-0.5 block font-mono text-xs text-gray-700 [overflow-wrap:anywhere]">
-                    {finding.location}
-                  </code>
-                  {finding.storeKind ? (
-                    <span className="text-xs text-gray-500">
-                      {translator.translateText(finding.storeKind) ||
-                        finding.storeKind}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
+                  {/* Where, then what kind of store: one line, wrapping on a phone. */}
+                  <div className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs">
+                    <code className="min-w-0 font-mono text-gray-700 [overflow-wrap:anywhere]">
+                      {finding.location}
+                    </code>
+                    {finding.storeKind ? (
+                      <span className="text-gray-500">
+                        {translator.translateText(finding.storeKind) ||
+                          finding.storeKind}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
                 </div>
               </li>
             );

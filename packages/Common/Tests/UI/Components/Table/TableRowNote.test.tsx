@@ -154,6 +154,37 @@ describe("a row's note on a wide screen", () => {
     expect(rows[2]!.querySelector("td")!.className).not.toContain(firstRule);
   });
 
+  test("starts where the row's first value does: nothing under its select box", () => {
+    const { container } = render(
+      <table>
+        <TableBody<Row>
+          id="findings"
+          data={[{ _id: "1", name: "Card number", location: "a.b" }]}
+          columns={COLUMNS}
+          selectedItems={[]}
+          matchBulkSelectedItemByField="_id"
+          isBulkActionsEnabled={true}
+          getRowNote={note}
+          isMobile={false}
+        />
+      </table>,
+    );
+    const [row, noteRow] = Array.from(
+      container.querySelectorAll("tbody tr"),
+    ) as Array<HTMLTableRowElement>;
+    const cells: Array<HTMLTableCellElement> = Array.from(
+      noteRow!.querySelectorAll("td"),
+    );
+
+    // The row draws its select box, then its columns.
+    expect(row!.querySelectorAll("td")).toHaveLength(COLUMNS.length + 1);
+    expect(cells).toHaveLength(2);
+    expect(cells[0]!).toBeEmptyDOMElement();
+    expect(cells[0]!).toHaveAttribute("colspan", "1");
+    expect(cells[1]!).toHaveAttribute("data-testid", TABLE_ROW_NOTE_TEST_ID);
+    expect(cells[1]!).toHaveAttribute("colspan", String(COLUMNS.length));
+  });
+
   test("a row with nothing to say draws no line at all", () => {
     const container: HTMLElement = renderRows({
       rows: [{ _id: "1", name: "Card number", location: "a.b" }],

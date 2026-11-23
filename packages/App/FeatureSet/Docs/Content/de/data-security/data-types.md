@@ -7,6 +7,7 @@ Datensicherheit kennt 143 Arten sensibler Daten: Kartennummern, Bankkonten, nati
 - [Felder und Spalten](#felder-und-spalten): Wie eine ganze Spalte oder ein ganzes Attribut beurteilt wird.
 - [Jeder Datentyp](#integrierte-datentypen): Alle 143, nach Kategorie.
 - [Ihre eigenen Datentypen](#ihre-eigenen-datentypen): Personalnummern, Policennummern und das Feld Testen.
+- [Die Einschätzungen von OneUptime AI](#die-einschätzungen-von-oneuptime-ai): Eine Einschätzung zu jedem Fund, der auf Sie wartet, mit den Entscheidungen Ihres Teams als Präzedenzfällen.
 :::
 
 ## Wie ein Wert gefunden wird
@@ -63,7 +64,7 @@ Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwor
 
 Eine Spalte oder ein Feld, deren Name auf keinen Datentyp hinweist und deren Werte zu keinem Detektor passen, ist nicht als sicher bekannt: Es kann Ihre eigene Kundennummer sein oder eine Spalte, die in einer anderen Sprache benannt ist. Ist **KI aktivieren** im Projekt eingeschaltet, behält ein Inhaltsscan solche Felder, höchstens 200 pro Scan, und OneUptime AI wird gefragt, welchen der Datentypen des Projekts jedes davon enthält, höchstens 40 Felder eines Datenspeichers auf einmal. Es erfährt den Namen des Feldes, die Namen der Felder daneben und die Formen seiner Werte - jeder Buchstabe als `a` oder `A` geschrieben und jede Ziffer als `9`, sodass aus `AB-1234` die Form `AA-9999` wird - nie einen Wert. Nach Freitext, Feldern mit weniger als 5 Werten, kleinen ganzen Zahlen und Feldern, die als ID, Zeitpunkt oder Status benannt sind, wird nicht gefragt.
 
-Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert als **Von OneUptime AI vorgeschlagen**, mit seiner Begründung. Wie jeder Fund mit Konfidenz Niedrig zählt er für nichts, bis ein Mensch auf der Seite **Inhalt** des Datenspeichers **Bestätigen** wählt; **Als nicht sensibel markieren** lehnt ihn ab. Nach einer Antwort wird zu einem Feld 30 Tage lang nicht erneut gefragt, und zu einem Feld, das ein Mensch beurteilt hat, nie wieder.
+Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert als **Von OneUptime AI vorgeschlagen**, mit seiner Begründung, die in der Sprache Ihres Projekts geschrieben ist und über die ganze Zeile des Funds angezeigt wird. Wie jeder Fund mit Konfidenz Niedrig zählt er für nichts, bis ein Mensch auf der Seite **Inhalt** des Datenspeichers **Bestätigen** wählt; **Als nicht sensibel markieren** lehnt ihn ab. Nach einer Antwort wird zu einem Feld 30 Tage lang nicht erneut gefragt, und zu einem Feld, das ein Mensch beurteilt hat, nie wieder.
 
 ## Sensibilität
 
@@ -303,6 +304,42 @@ Ein Scan kann etwas finden, das nicht ist, wonach es aussieht: eine Spalte mit B
 - **Den Fund als nicht sensibel markieren.** Wählen Sie auf der Seite **Inhalt** des Datenspeichers am Fund **Als nicht sensibel markieren** und geben Sie an, warum. Er zählt nicht mehr für die Sensibilität des Datenspeichers oder seine Prüfungen, und der Datenspeicher wird sofort erneut geprüft. Der Fund bleibt markiert und mit Ihrem Grund am Datenspeicher, sodass die nächste Person sieht, was entschieden wurde.
 - **Den Wert zu Nie sensibel hinzufügen**, in den Einstellungen der Datensicherheit, für einen Wert, der nirgends je ein Fund ist, etwa `support@yourcompany.com`. Werte werden verglichen, nachdem der Scanner sie normalisiert hat, ohne Beachtung der Groß- und Kleinschreibung.
 - **Einen integrierten Datentyp ausschalten.** Unter **Integrierte Datentypen**, auf **Datensicherheit → Einstellungen → Datentypen**, hat jeder Datentyp einen Schalter, der speichert, sobald er umgelegt wird. Kein Scan des Projekts sucht nach einem Typ, der aus ist.
+
+## Die Einschätzungen von OneUptime AI
+
+Ist **KI aktivieren** im Projekt eingeschaltet und **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet, gibt OneUptime AI seine Einschätzung zu jedem Fund ab, der auf die Entscheidung einer Person wartet, nach jedem Scan seines Datenspeichers. Ein Fund wartet, wenn sich der Scan seiner nicht sicher war - ein Fund mit Konfidenz Niedrig oder einer der Vorschläge von OneUptime AI -, oder wenn ein Fund mit Konfidenz Mittel oder Hoch ein Anzeichen für einen falschen Treffer zeigt:
+
+- die meisten Treffer waren bekannte Testwerte;
+- der Name des Felds weist auf einen anderen Datentyp hin und nicht auf diesen;
+- ein ID-Feld wie `order_number`, `invoice_no` oder `ref_id` enthält einen Typ, der mit dem Luhn-Algorithmus geprüft wird, den jede zehnte beliebige Ziffernfolge besteht, und sein Name weist nicht auf diesen Typ hin.
+
+Die Einschätzung lautet **Bestätigen**, **Nicht sensibel** oder **Nicht feststellbar**, mit einer Begründung in der Sprache Ihres Projekts. Sie wird über die ganze Zeile des Funds angezeigt, auf der Seite **Inhalt** des Datenspeichers und unter **In Ihrer Telemetrie**, mit den Entscheidungen Ihres Teams, auf denen sie beruht, etwa „Ihr Team hat `order_number` in 4 Datenspeichern als nicht sensibel markiert“. **Entscheidungen anzeigen** listet jede davon auf: ihren Datenspeicher, ihr Feld und den Grund, den Ihr Team angegeben hat.
+
+### Die Entscheidungen Ihres Teams als Präzedenzfälle
+
+OneUptime AI erfährt die früheren Entscheidungen Ihres Teams zu Funden desselben Datentyps, höchstens zehn. Zuerst kommen die in einem Feld mit demselben Namen, in jedem beliebigen Datenspeicher: `order_number`, `orderNumber` und `public.orders.order_number` sind alle „order number“. Dabei kommt dieselbe Stelle zuerst, dann die neueste Entscheidung. Danach kommen Felder, deren Namen oder die für sie angegebenen Gründe dasselbe sagen, etwa `order_ref` mit dem Grund „Shopify order numbers“. Es erfährt, wo sich jeder Fund befand, was entschieden wurde und welcher Grund angegeben wurde, ohne die Werte, die in einem Grund stehen. Es erfährt nie einen Wert, eine maskierte Stichprobe oder einen Datensatz.
+
+Ein Fund in Freitext, etwa in einem Log-Text oder einer Nachricht, hat keinen Feldnamen, über den er sich abgleichen ließe. Seine Präzedenzfälle stammen von derselben Stelle in einem anderen Datenspeicher, etwa dem Log-Text eines anderen Dienstes.
+
+### Was OneUptime AI von sich aus entscheidet
+
+- **Es markiert einen Fund nie als nicht sensibel**, was auch immer eine Regel sagt. Das tut eine Person, mit ihrem eigenen Grund. Lautet die Einschätzung **Nicht sensibel**, beginnt **Als nicht sensibel markieren** mit dem Grund, den OneUptime AI vorformuliert hat und den Sie ändern können.
+- **Es bestätigt einen Fund von sich aus nur, wo eine KI-Regel es vorsieht**: eine KI-Regel der Datensicherheit, in der **Beurteilen** auf **Automatisch** steht, für den Datenspeicher und den Datentyp. Dazu braucht es außerdem die eigene Bestätigung eines ähnlichen Funds durch Ihr Team oder ein Feld, das nach dem Typ benannt ist. Die Bestätigung steht in der **Zeitachse** des Datenspeichers und unter **Von der KI erledigt** auf **Datensicherheit → KI**, und **Rückgängig** nimmt sie zurück.
+
+Sonst wartet die Einschätzung in der Zeile des Funds. Hat das Projekt KI-Regeln, erhält ein Fund nur dann eine Einschätzung, wenn eine Regel für seinen Datenspeicher und seinen Datentyp **Beurteilen** eingeschaltet hat; eine Regel, die auf bestimmte Prüfungen oder Schweregrade beschränkt ist, betrifft Probleme und beurteilt keinen Fund. OneUptime AI beurteilt nach einem Scan höchstens 40 Funde eines Datenspeichers, zuerst die, die es noch nie beurteilt hat, und den Rest nach dem nächsten Scan. Nach einem späteren Scan wird zu einem Fund nur dann erneut gefragt, wenn sich geändert hat, worauf seine Einschätzung beruht, etwa durch eine neue Entscheidung zu einem ähnlichen Fund.
+
+## Ähnliche Funde
+
+Nachdem Sie einen Fund bestätigt oder als nicht sensibel markiert haben, listet **Auf ähnliche Funde anwenden** die ähnlichen Funde auf, über die noch niemand entschieden hat: derselbe Datentyp, in einem Feld mit demselben Namen, in diesem Datenspeicher und in jedem anderen, den Sie lesen dürfen. Jeder davon ist ausgewählt. Wählen Sie jeden ab, den Sie einzeln beurteilen möchten, und die übrigen erhalten dieselbe Entscheidung, mit Ihrem Grund, als Ihre eigene Änderung; ein Fund, den Sie nicht ändern dürfen, bleibt, wie er war. **Jetzt nicht** lässt alle, wie sie sind. Ein Fund in Freitext hat nie ähnliche Funde: Was ein Text enthält, sagt nichts über einen anderen.
+
+## Was Ihre Entscheidungen über die Scans sagen
+
+Wenn Ihr Team Funde als nicht sensibel markiert, schlägt OneUptime AI unter **Wartet auf Sie** auf **Datensicherheit → KI** Änderungen an den Scans vor:
+
+- **Einen integrierten Datentyp ausschalten**, wenn jeder seiner Funde als nicht sensibel markiert wurde: mindestens 3 Funde, in mindestens 2 Datenspeichern. Ein Fund, den OneUptime AI nur vorgeschlagen hat, zählt nicht.
+- **Eine Stelle aus den Scans eines Datenspeichers ausnehmen**, wenn jeder Fund dort als nicht sensibel markiert wurde, mindestens 2 davon. Das wird für eine Datenbankspalte oder ein Telemetrie-Attribut vorgeschlagen, die ein Scan einzeln auslassen kann.
+
+Jeder Vorschlag wartet immer darauf, dass eine Person ihn genehmigt: Ein Scan, der nicht mehr hinsieht, verpasst die echten Daten, die später kommen. **Nie sensibel** wird nie vorgeschlagen, denn es enthält Werte, und OneUptime AI sieht nie einen.
 
 ## Nächste Schritte
 

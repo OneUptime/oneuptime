@@ -7,6 +7,7 @@ Datasikkerhed kender 143 slags følsomme data: kortnumre, bankkonti, nationale I
 - [Felter og kolonner](#felter-og-kolonner): Hvordan en hel kolonne eller attribut vurderes.
 - [Alle datatyper](#indbyggede-datatyper): Alle 143, efter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Medarbejder-ID'er, policenumre og feltet Test det.
+- [OneUptime AI's vurderinger](#oneuptime-ais-vurderinger): En vurdering af hvert fund, der venter på dig, med dit teams beslutninger som præcedens.
 :::
 
 ## Sådan findes en værdi
@@ -63,7 +64,7 @@ Et felt, hvis navn siger, at det indeholder en adgangskode - `password`, `passwo
 
 En kolonne eller et felt, hvis navn ikke peger på nogen datatype, og hvis værdier ikke matcher nogen detektor, vides ikke at være sikkert: det kan være dit eget kundenummer eller en kolonne navngivet på et andet sprog. Med projektets **Aktivér AI** slået til gemmer en indholdsscanning sådanne felter, højst 200 pr. scanning, og OneUptime AI bliver spurgt, hvilken af projektets datatyper hvert felt indeholder, højst 40 felter fra et datalager ad gangen. Den får feltets navn, navnene på felterne ved siden af og formerne på dets værdier - hvert bogstav skrevet som `a` eller `A` og hvert ciffer som `9`, så `AB-1234` bliver `AA-9999` - aldrig en værdi. Der spørges ikke om fritekst, felter med færre end 5 værdier, små heltal og felter navngivet som et id, et tidspunkt eller en status.
 
-Hver type, OneUptime AI nævner, er et fund med Lav, markeret **Foreslået af OneUptime AI** med sin begrundelse. Som ethvert fund med Lav tæller det ikke, før et menneske vælger **Bekræft** på datalagerets side **Indhold**; **Markér som ikke følsom** afviser det. Der spørges ikke igen om et felt, der har fået svar, i 30 dage, og aldrig igen om et felt, som et menneske har vurderet.
+Hver type, OneUptime AI nævner, er et fund med Lav, markeret **Foreslået af OneUptime AI** med sin begrundelse, skrevet på dit projekts sprog og vist på tværs af fundets række. Som ethvert fund med Lav tæller det ikke, før et menneske vælger **Bekræft** på datalagerets side **Indhold**; **Markér som ikke følsom** afviser det. Der spørges ikke igen om et felt, der har fået svar, i 30 dage, og aldrig igen om et felt, som et menneske har vurderet.
 
 ## Følsomhed
 
@@ -303,6 +304,42 @@ En scanning kan finde noget, der ikke er det, det ligner: en kolonne med ordrenu
 - **Markér fundet som ikke følsomt.** På datalagerets side **Indhold** vælger du **Markér som ikke følsom** på fundet og angiver hvorfor. Det tæller ikke længere med i datalagerets følsomhed eller dets kontroller, og datalageret kontrolleres igen med det samme. Fundet bliver på datalageret, markeret, med din begrundelse, så den næste person kan se, hvad der blev besluttet.
 - **Føj værdien til Aldrig følsom** i Datasikkerheds indstillinger for en værdi, der aldrig er et fund nogen steder, f.eks. `support@yourcompany.com`. Værdier sammenlignes, efter at scanneren har normaliseret dem, uden hensyn til store og små bogstaver.
 - **Slå en indbygget datatype fra.** Under **Indbyggede datatyper** på **Datasikkerhed → Indstillinger → Datatyper** har hver datatype en kontakt, som gemmes i det øjeblik, den slås om. Ingen scanning i projektet leder efter en type, der er slået fra.
+
+## OneUptime AI's vurderinger
+
+Med projektets **Aktivér AI** slået til og **Arbejd med nye problemer** slået til under **Datasikkerhed → AI** giver OneUptime AI sin vurdering af hvert fund, der venter på en person, efter hver scanning af dets datalager. Et fund venter, når scanningen ikke var sikker på det - et fund med Lav eller et af OneUptime AI's forslag - eller når et fund med Middel eller Høj viser tegn på et forkert match:
+
+- det meste af det, der matchede, var kendte testværdier;
+- feltets navn peger på en anden datatype og ikke på denne;
+- et id-felt, f.eks. `order_number`, `invoice_no` eller `ref_id`, indeholder en type, der kontrolleres med Luhn-algoritmen, som hver tiende tilfældige talrække består, og feltets navn peger ikke på den type.
+
+Vurderingen er **Bekræft det**, **Ikke følsom** eller **Kan ikke afgøres**, med en begrundelse på dit projekts sprog. Den vises på tværs af fundets række på datalagerets side **Indhold** og på **I din telemetri**, sammen med de beslutninger fra dit team, som den bygger på, f.eks. "Dit team markerede `order_number` som ikke følsomt i 4 datalagre". **Vis beslutningerne** viser hver af dem: datalageret, feltet og den begrundelse, dit team gav.
+
+### Dit teams beslutninger som præcedens
+
+OneUptime AI får dit teams tidligere beslutninger om fund af samme datatype, højst ti. Først kommer dem i et felt med samme navn, i et hvilket som helst datalager: `order_number`, `orderNumber` og `public.orders.order_number` er alle "order number". Det samme sted kommer først, derefter den nyeste beslutning. Så kommer felter, hvis navne eller de begrundelser, der blev givet for dem, siger det samme, f.eks. `order_ref` med begrundelsen "Shopify-ordrenumre". Den får at vide, hvor hvert fund var, hvad der blev besluttet, og den begrundelse, der blev givet, uden de værdier, en begrundelse måtte indeholde. Den får aldrig en værdi, en maskeret prøve eller en post.
+
+Et fund i fritekst, f.eks. en logtekst eller en besked, har intet feltnavn at sammenligne efter. Dets præcedens er det samme sted i et andet datalager, f.eks. en anden tjenestes logtekst.
+
+### Hvad OneUptime AI beslutter af sig selv
+
+- **Den markerer aldrig et fund som ikke følsomt**, uanset hvad en regel siger. Det gør en person, med sin egen begrundelse. Hvor vurderingen er **Ikke følsom**, starter **Markér som ikke følsom** med det udkast til en begrundelse, som OneUptime AI har skrevet, og som du kan ændre.
+- **Den bekræfter kun et fund af sig selv, hvor en AI-regel siger det**: en AI-regel for Datasikkerhed, hvis **Vurdér** er **Automatisk**, for datalageret og datatypen. Det kræver også dit teams egen bekræftelse af et lignende fund eller et felt, der er navngivet efter typen. Bekræftelsen står på datalagerets **Tidslinje** og under **Udført af AI** på **Datasikkerhed → AI**, og **Fortryd** tager den tilbage.
+
+Ellers venter vurderingen på fundets række. Hvor projektet har AI-regler, får et fund kun en vurdering, når en regel for dets datalager og datatype har **Vurdér** slået til; en regel, der er begrænset til bestemte kontroller eller alvorligheder, handler om problemer og vurderer ingen fund. OneUptime AI vurderer højst 40 af et datalagers fund efter en scanning, først dem, den aldrig har vurderet, og resten efter den næste scanning. Efter en senere scanning spørges der kun igen om et fund, når det, dets vurdering bygger på, er ændret, f.eks. ved en ny beslutning om et lignende fund.
+
+## Lignende fund
+
+Når du har bekræftet et fund eller markeret det som ikke følsomt, viser **Anvend på lignende fund** de lignende fund, som ingen har taget stilling til endnu: samme datatype, i et felt med samme navn, i dette datalager og i alle andre datalagre, du må læse. Hvert af dem er markeret. Fjern markeringen ved dem, du vil vurdere hver for sig, så får resten den samme beslutning, med din begrundelse, som din egen ændring; et fund, du ikke må ændre, forbliver, som det var. **Ikke nu** lader dem alle være, som de er. Et fund i fritekst har aldrig lignende fund: det, én tekst indeholder, siger intet om en anden.
+
+## Hvad dine beslutninger siger om scanningerne
+
+Når dit team markerer fund som ikke følsomme, foreslår OneUptime AI ændringer af scanningerne under **Venter på dig** på **Datasikkerhed → AI**:
+
+- **Slå en indbygget datatype fra**, når alle dens fund er markeret som ikke følsomme: mindst 3 fund i mindst 2 datalagre. Et fund, som OneUptime AI kun har foreslået, tæller ikke.
+- **Udelad en placering fra et datalagers scanninger**, når alle fund dér er markeret som ikke følsomme, mindst 2 af dem. Det foreslås for en databasekolonne eller en telemetriattribut, som en scanning kan udelade for sig.
+
+Hvert forslag venter altid på, at en person godkender det: en scanning, der holder op med at lede, overser de rigtige data, der kommer senere. Der foreslås aldrig noget til **Aldrig følsom**, fordi den indeholder værdier, og OneUptime AI ser aldrig en værdi.
 
 ## Næste trin
 

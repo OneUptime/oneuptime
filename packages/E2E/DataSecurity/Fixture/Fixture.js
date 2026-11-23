@@ -811,6 +811,239 @@ table(DataStoreFinding).push(
   },
 );
 
+/*
+ * OneUptime AI's verdicts on the orders database's findings that wait for
+ * a person (#10372): card numbers in an order number column, which the team
+ * marked not sensitive on four stores; email addresses in a column the team
+ * confirmed elsewhere; and an id column holding numbers that pass the Luhn
+ * check, with nothing to go on. Two of the stores cited are ones the reader
+ * may not read.
+ */
+const VERDICT_WRITTEN_AT = ago(2 * HOUR).toISOString();
+const UNREADABLE_STORE = (n) => {
+  return uuid("2f000000", n);
+};
+
+function verdictFinding(number, data) {
+  return {
+    _id: ID.finding(number),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    locationKind: "Column",
+    valueCount: 500,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isConfirmed: false,
+    isAiSuggested: false,
+    isConfirmedByAi: false,
+    aiVerdictAt: ago(2 * HOUR),
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+    ...data,
+    findingKey: `${data.dataTypeId}:${data.location}`,
+    aiVerdict: data.aiVerdictAnalysis.verdict,
+  };
+}
+
+table(DataStoreFinding).push(
+  verdictFinding(20, {
+    dataTypeId: "credit-card-number",
+    dataTypeName: "Card number",
+    dataCategory: DataCategory.Financial,
+    sensitivity: DataSensitivity.Restricted,
+    location: "public.orders.order_number",
+    confidence: "Low",
+    matchCount: 61,
+    matchPercent: 12,
+    distinctValues: 61,
+    maskedSamples: ["4532 **** **** 0366"],
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "NotSensitive",
+      reason:
+        "These are shop order numbers that pass the Luhn check by chance, like the order_number columns your team marked on other stores.",
+      draft:
+        "Shop order numbers that pass the Luhn check by chance, as on our other stores.",
+      precedent: [
+        {
+          findingId: ID.finding(90),
+          dataStoreId: ID.store(3),
+          location: "shop.orders.order_number",
+          decision: "NotSensitive",
+          reason: "Shopify order numbers. They pass Luhn by chance.",
+          isSameName: true,
+          decidedAt: ago(9 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(91),
+          dataStoreId: ID.store(1),
+          location: "exports/orders-2026-10-12.csv › order_number",
+          decision: "NotSensitive",
+          reason: "Order numbers in the nightly export, not cards.",
+          isSameName: true,
+          decidedAt: ago(12 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(92),
+          dataStoreId: UNREADABLE_STORE(1),
+          location: "public.orders.order_number",
+          decision: "NotSensitive",
+          reason: "The same order numbers, in the read replica.",
+          isSameName: true,
+          decidedAt: ago(20 * DAY).toISOString(),
+        },
+        {
+          findingId: ID.finding(93),
+          dataStoreId: UNREADABLE_STORE(2),
+          location: "billing.invoices.orderNumber",
+          decision: "NotSensitive",
+          reason: "Order numbers copied onto invoices.",
+          isSameName: true,
+          decidedAt: ago(31 * DAY).toISOString(),
+        },
+      ],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+  verdictFinding(21, {
+    dataTypeId: "email-address",
+    dataTypeName: "Email address",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "public.newsletter_signups.contact",
+    confidence: "Low",
+    matchCount: 212,
+    matchPercent: 42,
+    distinctValues: 208,
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "Confirm",
+      reason:
+        "Newsletter sign-ups are people who gave their email address, as in the contact column your team confirmed on analytics.",
+      draft: "",
+      precedent: [
+        {
+          findingId: ID.finding(94),
+          dataStoreId: ID.store(3),
+          location: "marketing.leads.contact",
+          decision: "Confirmed",
+          reason: "",
+          isSameName: true,
+          decidedAt: ago(6 * DAY).toISOString(),
+        },
+      ],
+      signs: [],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+  verdictFinding(22, {
+    dataTypeId: "us-npi",
+    dataTypeName: "US National Provider Identifier",
+    dataCategory: DataCategory.Health,
+    sensitivity: DataSensitivity.Confidential,
+    location: "public.orders.ref_no",
+    confidence: "Medium",
+    matchCount: 140,
+    matchPercent: 28,
+    distinctValues: 140,
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "CannotTell",
+      reason:
+        "Nobody on your team decided a finding like it, and an order's reference number says nothing of a healthcare provider. Look at a few values before you decide.",
+      draft: "",
+      precedent: [],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: VERDICT_WRITTEN_AT,
+    },
+  }),
+);
+
+/*
+ * The findings like the order numbers' that nobody decided yet: one more
+ * on the orders database, and nine on other stores - what Apply to Similar
+ * Findings lists after a person decides it (#10372).
+ */
+const SIMILAR_STORES = [
+  "orders-replica",
+  "orders-eu",
+  "orders-us",
+  "shop-archive",
+  "billing",
+  "returns",
+  "support-desk",
+  "warehouse-sync",
+  "exports-2025",
+];
+
+function similarFindings(findingId) {
+  const finding = table(DataStoreFinding).find((row) => {
+    return row._id === findingId;
+  });
+  const decision = finding?.isSuppressed
+    ? "NotSensitive"
+    : finding?.isConfirmed
+      ? "Confirmed"
+      : "";
+  if (!finding || finding._id !== ID.finding(20) || !decision) {
+    return {
+      findingId,
+      decision,
+      reason: "",
+      hasName: true,
+      findings: [],
+    };
+  }
+  return {
+    findingId,
+    decision,
+    reason: decision === "NotSensitive" ? finding.suppressedReason || "" : "",
+    hasName: true,
+    findings: [
+      {
+        findingId: uuid("4f000000", 1),
+        dataStoreId: ID.store(2),
+        storeName: "orders-db",
+        storeKind: DataStoreKind.AwsRdsInstance,
+        location: "public.refunds.order_number",
+        locationKind: "Column",
+        dataTypeId: "credit-card-number",
+        dataTypeName: "Card number",
+        confidence: "Low",
+        aiVerdict: "NotSensitive",
+        isSameStore: true,
+      },
+      ...SIMILAR_STORES.map((name, index) => {
+        return {
+          findingId: uuid("4f000000", index + 2),
+          dataStoreId: uuid("2e000000", index + 1),
+          storeName: name,
+          storeKind: DataStoreKind.AwsRdsInstance,
+          location:
+            index === 7
+              ? "sync.orders.orderNumber"
+              : "public.orders.order_number",
+          locationKind: "Column",
+          dataTypeId: "credit-card-number",
+          dataTypeName: "Card number",
+          confidence: index % 3 === 0 ? "Medium" : "Low",
+          aiVerdict: index % 2 === 0 ? "NotSensitive" : "",
+          isSameStore: false,
+        };
+      }),
+    ],
+  };
+}
+
 table(DataStoreAccess).push(
   {
     _id: ID.access(1),
@@ -3110,6 +3343,9 @@ const ROUTE = {
   approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
   dismissAiProposal: DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
   undoAiProposal: DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
+  // One decision for every finding like it (#10372).
+  similarFindings: DATA_SECURITY_API_ROUTES.similarFindings(":id"),
+  applyToSimilar: DATA_SECURITY_API_ROUTES.applyToSimilarFindings(":id"),
   // Issues with one cause (#10370).
   issueGroups: DATA_SECURITY_API_ROUTES.issueGroups,
   issueGroupFixPlan: DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
@@ -3258,6 +3494,33 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, scrub(scrubOf), {});
+  }
+
+  // The findings like one just decided, and the same decision on the ticked ones (#10372).
+  const similarTo = idOf(ROUTE.similarFindings, pathname);
+  if (method === "POST" && similarTo) {
+    return new HTTPResponse(200, similarFindings(similarTo), {});
+  }
+
+  const applyFrom = idOf(ROUTE.applyToSimilar, pathname);
+  if (method === "POST" && applyFrom) {
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    const ids = Array.isArray(body.findingIds) ? body.findingIds : [];
+    return new HTTPResponse(
+      200,
+      {
+        decision: similarFindings(applyFrom).decision,
+        applied: ids.length,
+        skipped: 0,
+      },
+      {},
+    );
   }
 
   // Issues with one cause (#10370): the groups, a group's fix, and a press of it.

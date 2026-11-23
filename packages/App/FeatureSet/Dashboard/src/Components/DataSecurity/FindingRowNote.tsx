@@ -436,6 +436,37 @@ const FindingRowNote: FunctionComponent<ComponentProps> = (
             )}
           </div>
 
+          {/*
+           * The signs of a wrong match it was judged with: sentences, which
+           * wrap on a phone where a chip would cut them short.
+           */}
+          {verdict.signs.length > 0 ? (
+            <ul className="mt-1 space-y-0.5">
+              {verdict.signs.map(
+                (sign: FindingWrongMatchSign): ReactElement => {
+                  return (
+                    <li
+                      key={sign}
+                      className="flex min-w-0 items-start gap-1.5 text-xs text-gray-600"
+                    >
+                      <Icon
+                        icon={IconProp.Flag}
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400"
+                      />
+                      <span className="min-w-0">
+                        {translator.translateText(
+                          FINDING_WRONG_MATCH_SIGN_TITLES[sign],
+                        )}
+                      </span>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          ) : (
+            <></>
+          )}
+
           {summaries.length > 0 ? (
             <div
               className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-600"
@@ -460,24 +491,6 @@ const FindingRowNote: FunctionComponent<ComponentProps> = (
                   setIsOpen(!isOpen);
                 }}
               />
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {verdict.signs.length > 0 ? (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {verdict.signs.map(
-                (sign: FindingWrongMatchSign): ReactElement => {
-                  return (
-                    <Pill
-                      key={sign}
-                      text={FINDING_WRONG_MATCH_SIGN_TITLES[sign]}
-                      isDotHidden={true}
-                    />
-                  );
-                },
-              )}
             </div>
           ) : (
             <></>
