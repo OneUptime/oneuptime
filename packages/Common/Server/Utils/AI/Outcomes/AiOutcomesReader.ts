@@ -333,6 +333,7 @@ export default class AiOutcomesReader {
               return {
                 createdAt: toDate(pullRequest.createdAt),
                 productionStatus: pullRequest.productionStatus,
+                productionCheck: pullRequest.productionCheck,
                 subjectKey: this.getFixTaskSubjectKey(fixTask),
                 ...(fixTask?.createdAt
                   ? { fixStartedAt: toDate(fixTask.createdAt) }
@@ -701,6 +702,8 @@ export default class AiOutcomesReader {
                 _id: true,
                 createdAt: true,
                 productionStatus: true,
+                // Each kind of fix is counted apart (#10368).
+                productionCheck: true,
                 aiRunId: true,
               },
               sort: { createdAt: SortOrder.Descending },
