@@ -1166,6 +1166,7 @@ import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddData
 import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
 import { AddCodeRepositoryProductionReviewFailOnLeak1809187470500 } from "./1809187470500-AddCodeRepositoryProductionReviewFailOnLeak";
+import { AddDataStoreFindingAiVerdicts1809187472372 } from "./1809187472372-AddDataStoreFindingAiVerdicts";
 
 export default [
   InitialMigration,
@@ -2336,4 +2337,5 @@ export default [
   AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
   AddScrubRuleNamedKeysAndProof1809187470400,
   AddCodeRepositoryProductionReviewFailOnLeak1809187470500,
+  AddDataStoreFindingAiVerdicts1809187472372,
 ];
