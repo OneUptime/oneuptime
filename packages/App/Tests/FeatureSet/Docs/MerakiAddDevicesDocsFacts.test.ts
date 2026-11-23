@@ -25,7 +25,6 @@ import {
 import Permission from "Common/Types/Permission";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
-import { withoutProductLevels } from "./DocsProductLevels";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -311,14 +310,8 @@ describe("Network Traffic: Add devices, held to the code", () => {
   });
 
   it("is for project owners and admins, as reading a connection is", () => {
-    /*
-     * Network's Admin level does too, as Project Admin does (#10289): the
-     * permissions page describes the levels once, for every product.
-     */
-    const update: Array<Permission> = withoutProductLevels({
-      permissions: new NetworkControllerConnection().getUpdatePermissions(),
-      product: ProductKey.Network,
-    });
+    const update: Array<Permission> =
+      new NetworkControllerConnection().getUpdatePermissions();
 
     /*
      * The Network product's Admin level (#10289) adds them too, as Project
