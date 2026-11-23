@@ -265,6 +265,8 @@ import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
 import SecurityBlocklistFeed from "./SecurityBlocklistFeed";
 import SecurityBlocklistFeedFetch from "./SecurityBlocklistFeedFetch";
+import SecurityAutomaticResponsePolicy from "./SecurityAutomaticResponsePolicy";
+import SecurityAutomaticResponseAction from "./SecurityAutomaticResponseAction";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
 import SecurityEventDestination from "./SecurityEventDestination";
@@ -798,6 +800,8 @@ const AllModelTypes: Array<{
   SecurityBlockCloudWaf,
   SecurityBlocklistFeed,
   SecurityBlocklistFeedFetch,
+  SecurityAutomaticResponsePolicy,
+  SecurityAutomaticResponseAction,
   SecurityEntityRisk,
   SecurityEntityCriticality,
   SecurityEventDestination,

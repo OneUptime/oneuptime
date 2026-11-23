@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Replace `<version>` with the release to run, such as `17.0.1`, and write the same image in `oneuptime-probe.yaml`, so that applying the file again keeps it.
+Replace `<version>` with the release to run, such as `17.1.0`, and write the same image in `oneuptime-probe.yaml`, so that applying the file again keeps it.
 :::
 
-The probe's page shows the release it runs, under **Probe Status**. A probe older than 17.0.1 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code): its page says so, and so does the form of a monitor it checks.
+The probe's page shows the release it runs, under **Probe Status**. A probe older than 17.1.0 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code): its page says so, and so does the form of a monitor it checks. The same goes for a probe too old to send an API monitor's request body that is a JSON array, a single value or text.
 
 ## Connecting through a proxy
 

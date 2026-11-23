@@ -70,7 +70,7 @@ Gardez ou changez les **Sondes** et l'**Intervalle de surveillance** (il commenc
 
 ### URL de l'API
 
-Le point de terminaison à appeler, sous forme d'URL complète avec son schéma, comme `https://api.example.com/v1/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`.
+Le point de terminaison à appeler, sous forme d'URL complète avec son schéma, comme `https://api.example.com/v1/health`. Vous pouvez placer un [secret de moniteur](/docs/monitor/monitor-secrets) dans l'URL sous la forme `{{monitorSecrets.NAME}}`. L'erreur d'une vérification échouée ne nomme l'URL que par son schéma, son hôte et son port, comme `https://api.example.com`, si bien que le secret n'est jamais affiché.
 
 ### Espaces réservés d'URL dynamiques
 
@@ -250,7 +250,7 @@ Le corps n'est pas du JSON une fois ses [secrets de moniteur](/docs/monitor/moni
 :::
 
 :::details La vérification indique que la sonde est trop ancienne pour envoyer le corps de la requête
-Le corps du moniteur est un tableau JSON, une valeur unique ou du **Texte**, et la sonde personnalisée qui le vérifie exécute une version antérieure à OneUptime 17.2.0, qui n'envoie qu'un objet JSON, donc la vérification n'a pas été exécutée sur elle. [Mettez à jour la sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde), ou vérifiez le moniteur depuis une autre sonde.
+Le corps du moniteur est un tableau JSON, une valeur unique ou du **Texte**, et la sonde personnalisée qui le vérifie exécute une version plus ancienne, qui n'envoie qu'un objet JSON, donc la vérification n'a pas été exécutée sur elle. Le formulaire du moniteur et la page de la sonde nomment une telle sonde. [Mettez à jour la sonde](/docs/probe/custom-probe#mettre-à-jour-une-sonde) vers la dernière version, ou vérifiez le moniteur depuis une autre sonde.
 :::
 
 ## Étapes suivantes

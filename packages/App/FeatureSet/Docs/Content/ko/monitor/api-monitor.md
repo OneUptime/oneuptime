@@ -70,7 +70,7 @@ sequenceDiagram
 
 ### API URL
 
-호출할 엔드포인트를 스킴을 포함한 전체 URL로 입력합니다(예: `https://api.example.com/v1/health`). URL에 [모니터 시크릿](/docs/monitor/monitor-secrets)을 `{{monitorSecrets.NAME}}` 형태로 넣을 수 있습니다.
+호출할 엔드포인트를 스킴을 포함한 전체 URL로 입력합니다(예: `https://api.example.com/v1/health`). URL에 [모니터 시크릿](/docs/monitor/monitor-secrets)을 `{{monitorSecrets.NAME}}` 형태로 넣을 수 있습니다. 검사가 실패했을 때의 오류에는 `https://api.example.com`처럼 URL의 스킴, 호스트, 포트만 표시되므로 시크릿은 표시되지 않습니다.
 
 ### 동적 URL 자리 표시자
 
@@ -250,7 +250,7 @@ API가 본문이 있거나 메서드가 `GET` 또는 `HEAD`가 아닌 요청을 
 :::
 
 :::details 프로브가 너무 오래되어 요청 본문을 보낼 수 없다고 확인 결과에 표시됨
-모니터의 본문이 JSON 배열, 단일 값 또는 **텍스트**이고, 이를 확인하는 사용자 지정 프로브가 JSON 객체만 보내는 OneUptime 17.2.0 이전 릴리스를 실행하므로, 그 프로브에서는 확인이 실행되지 않았습니다. [프로브를 업데이트](/docs/probe/custom-probe#프로브-업데이트)하거나 다른 프로브에서 모니터를 확인하세요.
+모니터의 본문이 JSON 배열, 단일 값 또는 **텍스트**이고, 이를 확인하는 사용자 지정 프로브가 JSON 객체만 보내는 이전 릴리스를 실행하므로, 그 프로브에서는 확인이 실행되지 않았습니다. 이런 프로브는 모니터의 양식과 프로브 페이지에 표시됩니다. [프로브를 최신 릴리스로 업데이트](/docs/probe/custom-probe#프로브-업데이트)하거나 다른 프로브에서 모니터를 확인하세요.
 :::
 
 ## 다음 단계

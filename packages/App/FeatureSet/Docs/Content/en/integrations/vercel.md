@@ -188,7 +188,7 @@ The same custom drain works on OneUptime Cloud, with `oneuptime.com` as the host
 Vercel shows OneUptime's answer to the drain's deliveries:
 
 - `403` with `x-vercel-signature` in the message: Vercel did not sign the delivery with the key it sends. For a custom drain, check its `x-oneuptime-token` header, and set its signing secret to the same key.
-- `401`: OneUptime knows no project with the key the drain sends: it was deleted, or mistyped in both places. Use a key from **Project Settings → Telemetry & APM → Ingestion Keys**.
+- `401`: OneUptime knows no project with the key the drain sends: it was deleted, or mistyped. Use a key from **Project Settings → Telemetry & APM → Ingestion Keys**.
 - `422`: the key was turned off. Turn it on again on the same page, or use another.
 :::
 

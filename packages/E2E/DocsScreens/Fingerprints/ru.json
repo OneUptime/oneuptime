@@ -232,8 +232,8 @@
       "button: Отправить мне тестовый вызов",
       "button: Пропустить тест"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: Проверить эту политику",
       "button: Пропустить тест"
     ],
-    "width": 768,
-    "height": 198
+    "width": 784,
+    "height": 227
   },
   "paging-summary": {
     "text": [
@@ -652,7 +652,7 @@
       "Лента инцидента",
       "Всё, что произошло с этим инцидентом: смены статуса, заметки, владельцы и каждое отправленное уведомление.",
       "Действия",
-      "понедельник, 14 сентября 2026 г.",
+      "Понедельник, 14 сентября 2026 г.",
       "Сегодня",
       "BST",
       "19:12",
@@ -687,7 +687,7 @@
       "heading: Лента инцидента",
       "button: Действия",
       "button: Дополнительные параметры",
-      "heading: понедельник, 14 сентября 2026 г.",
+      "heading: Понедельник, 14 сентября 2026 г.",
       "link: Incident #1042",
       "link: Incident #1042",
       "link: Incident #1042",
@@ -697,7 +697,7 @@
       "link: Orders DB connection pool"
     ],
     "width": 576,
-    "height": 950
+    "height": 972
   },
   "incident-resolve": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: Устранить",
+      "button: Переназначить роль Руководитель инцидента с Maya Chen",
       "button: Добавить Добавить владельцев",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"

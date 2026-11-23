@@ -8,6 +8,7 @@ OneUptime AI leser hver sikkerhetssak slik en analytiker ville gjort: sakens det
 - [Arbeid med en sak fra start til slutt](#arbeid-med-en-sak-fra-start-til-slutt): Begrens, sjekk, rett og lukk, med en person som godkjenner det du velger.
 - [Hva OneUptime AI får gjøre på en sak](#hva-oneuptime-ai-får-gjøre-på-en-sak): Av, Spør først eller På egen hånd, for hver type trinn.
 - [Når den overleverer en sak til personer](#når-den-overleverer-en-sak-til-personer): Hvorfor den stopper, og hvem som får vite det.
+- [La OneUptime AI reagere først](#la-oneuptime-ai-reagere-først): Varsle folk bare når OneUptime AI trenger dem.
 - [Kjør en playbook etter en vurdering](#kjør-en-playbook-etter-en-vurdering): Reager på en sak som leses som Sannsynligvis ondsinnet.
 - [Skriv et utkast til en deteksjonsregel](#skriv-et-utkast-til-en-deteksjonsregel): Beskriv hva som skal fanges, og les Sigma-regelen.
 - [Ask AI på sikkerhetssidene](#ask-ai-på-sikkerhetssidene): Spørsmål om saker og hendelser, med vanlige ord.
@@ -184,6 +185,44 @@ Personene på saken får vite det med en gang, eller, når ingen er på saken, p
 
 **Reager med KI** ber OneUptime AI om å arbeide med saken igjen, fra der saken står.
 
+En sak som holdes tilbake mens OneUptime AI reagerer først, når fram til folk én gang, med varslingen om den nye saken og grunnen til at OneUptime AI stoppet: se [La OneUptime AI reagere først](#la-oneuptime-ai-reagere-først).
+
+## La OneUptime AI reagere først
+
+Under **La OneUptime AI reagere først**, på **Produkter → Sikkerhetshendelser → KI → Innstillinger**, slår du på **Reager først**: da venter en ny sak som en deteksjon åpner med en prioritet under den du velger, på OneUptime AI før noen varsles. Den tilbys mens **Vurder nye saker** og **Arbeid med saker fra start til slutt** er slått på. Den starter slått av og lagres så snart du endrer den. Prosjekteier og Prosjektadministrator kan endre den.
+
+- **For saker under**: prioriteten en sak må ligge under for å bli holdt tilbake. Den er High til du velger en annen.
+- **Varsle folk likevel etter**: hvor lenge en sak høyst holdes tilbake, 5, 10, 15, 20 eller 30 minutter. Den starter på 10 minutter.
+
+Mens en sak holdes tilbake, venter varslingen om den nye saken, og det samme gjør trinnene **Tilkall vakten** i playbookene som starter på den av seg selv. Saken viser **OneUptime AI er i gang** sammen med når folk varsles, og **Tilkall nå** varsler dem med en gang. En playbook-kjøring der tilkallingen venter, står som **Venter på OneUptime AI**.
+
+Tilbakeholdelsen slutter så snart én av disse tingene skjer:
+
+| Når | Da |
+| --- | --- |
+| OneUptime AI begrenser saken, og OneUptime sjekker hvert trinn som begrenser den, eller saken lukkes | Ingen varsles. Kanalene som legger ut nye saker, får én oppsummering av hva OneUptime AI gjorde, og tilkallingstrinnene som ventet, hoppes over |
+| OneUptime AI trenger en person: den ber noen om å godkjenne et trinn, overleverer saken til personer eller kan ikke begynne å arbeide med den | Alle som saken ble holdt tilbake fra, varsles med en gang, med begrunnelsen og det OneUptime AI allerede har gjort, og tilkallingstrinnene som ventet, tilkaller |
+| Vurderingen leser ikke saken som Sannsynligvis ondsinnet, saken merkes som Begrenset før OneUptime kunne sjekke hvert trinn, eller tilbakeholdelsestiden går ut | Alle varsles med en gang, med begrunnelse |
+| Noen trykker på **Tilkall nå**, saken stiger til prioriteten du valgte, eller **Reager først** eller **Arbeid med saker fra start til slutt** slås av | Alle varsles med en gang |
+| En person tar saken: med **Overta**, ved å tildele den eller ved å flytte den videre | Personen har saken. Ingen andre varsles, kanalene får høre om den nye saken, og tilkallingstrinnene som ventet, hoppes over |
+
+En sak holdes aldri tilbake, og folk varsles som vanlig, når:
+
+- den har din høyeste prioritet, eller prioriteten du valgte eller en høyere;
+- 3 andre saker ble åpnet i de 5 minuttene før den, noe som ser ut som et aktivt angrep: sakene som holdes tilbake da, går også til personer;
+- noe av dataene dens leser som instruksjoner til en KI;
+- den gjelder en adresse, bruker eller vert fra en sak OneUptime AI har løst de siste 24 timene, siden det den gjorde, ikke holdt;
+- OneUptime AI ikke kan vurdere eller arbeide med den, for eksempel når prosjektet er tomt for AI-kreditter;
+- en person åpnet den, eller den er testangrepets sak.
+
+Sakens tidslinje sier hvorfor den ikke ble holdt tilbake, unntatt for en sak med prioriteten du valgte eller en høyere, en sak en person åpnet, og testangrepets sak. Varslingene for et responsmål holdes aldri tilbake.
+
+Til du setter blokkering av adresser og begrensning av kontoer og verter til **På egen hånd** under **Hva OneUptime AI får gjøre på en sak**, spør OneUptime AI først, og en sak når fram til folk så snart den spør. Med **Blokker adresser** på **På egen hånd**, bekreftet av en Sikkerhetsadministrator, kan den begrense en skanner uten at noen varsles.
+
+### Den ukentlige e-posten
+
+Hver mandag får Prosjekteiere og Sikkerhetsadministratorer som kan lese sikkerhetssaker, én e-post om hva OneUptime AI gjorde på prosjektets sikkerhetssaker uken før: sakene den reagerte først på og hvordan de endte; hvor raskt sakene den arbeidet med, ble begrenset; adressene den blokkerte og blokkeringene som ble opphevet igjen; trinnene den ba folk om å godkjenne og hvor raskt de svarte; og trinnene folk angret. Den inneholder bare tall, og en lenke til **Produkter → Sikkerhetshendelser → Oversikt**. En uke der OneUptime AI ikke gjorde noe, sendes ingen e-post.
+
 ## Avslutningsrapporten
 
 Når OneUptime AI lukker en sak, eller ber en person om å gjøre det, skriver den en avslutningsrapport ut fra det saken inneholder, ikke ut fra vurderingens ord: hva som skjedde, konsekvensene, hva som ble gjort, hva som ble rettet og hva man bør følge med på. Rapporten er sakens avslutningsnotat, den står på tidslinjen, og kortet viser den under **Avslutningsrapport**. Med **Lukk saken** på **Spør først** venter saken på at en person godkjenner lukkingen, med rapporten til å lese først.
@@ -242,6 +281,14 @@ En Prosjekteier eller noen med Manage Billing kan legge til kreditter under **Pr
 
 :::details Kortet sier at tekst i saken leser som instruksjoner til en KI
 Noe av sakens data, som en hendelsesmelding eller et brukernavn, ble skrevet for å styre en KI. OneUptime AI leste det som data og overlot avgjørelsen til deg: les deteksjonene og bevisene selv før du lukker saken.
+:::
+
+:::details Folk ble varslet mens OneUptime AI reagerte først
+Sakens tidslinje sier hvorfor tilbakeholdelsen sluttet: OneUptime AI ba noen om å godkjenne et trinn, overleverte saken til personer eller ble ikke ferdig innen **Varsle folk likevel etter**, eller noen trykket på **Tilkall nå**. Et trinn som spør først, når fram til folk så snart OneUptime AI spør: se **Hva OneUptime AI får gjøre på en sak**.
+:::
+
+:::details En ny sak ble ikke holdt tilbake
+Sjekk at **Reager først** er slått på, og at saken ligger under prioriteten som er valgt i **For saker under**. En sak med din høyeste prioritet, en sak en person åpnet, og testangrepets sak holdes aldri tilbake. I alle andre tilfeller sier sakens tidslinje hvorfor.
 :::
 
 :::details En playbook med KI-utløseren kjørte ikke

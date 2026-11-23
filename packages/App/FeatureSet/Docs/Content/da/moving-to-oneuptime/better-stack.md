@@ -58,7 +58,7 @@ Rapporten tæller, hvad der blev oprettet og ikke overført, og viser hvert elem
 | Status pages | Statussider | Hver side overføres med sine sektioner som grupper og de monitorer og heartbeats, den viser. Et element, du følger manuelt, bliver en manuel monitor. En side med adgangskode eller en IP-tilladelsesliste overføres som privat. |
 | Email subscribers | Statusside-abonnenter | Bekræftede e-mail-abonnenter overføres, når du bekræfter, at du må flytte dem, og følger de samme ressourcer. Ingen får en e-mail, og hver opdatering, de får fra OneUptime, har et link til at afmelde sig. |
 
-- **Status-, expected status code-, keyword- og keyword absence-monitorer** bliver webstedsmonitorer, eller API-monitorer, når de sender en anden metode, headers eller en JSON-body. En statusmonitor er oppe ved ethvert 2xx-svar, og en expected status code-monitor ved de koder, den nævner.
+- **Status-, expected status code-, keyword- og keyword absence-monitorer** bliver webstedsmonitorer, eller API-monitorer, når de sender en anden metode, headers eller en body. En statusmonitor er oppe ved ethvert 2xx-svar, og en expected status code-monitor ved de koder, den nævner.
 - **Ping- og TCP-monitorer** bliver ping- og portmonitorer. **SMTP-, POP- og IMAP-monitorer** bliver portmonitorer på deres port: OneUptime kontrollerer, at porten svarer, ikke mailsamtalen.
 - **DNS-monitorer** bliver DNS-monitorer for det navn, de slår op, hos den samme server.
 - **Heartbeats** bliver monitorer for indgående anmodninger, som går ned, når der ikke er kommet en anmodning i perioden og henstanden. Hver får en ny adresse i OneUptime.

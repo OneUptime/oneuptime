@@ -71,7 +71,7 @@ flowchart TB
 
 ### 网站 URL
 
-要检查的页面，以包含协议的完整 URL 表示：`https://example.com`、`https://example.com/pricing` 或 `http://example.com:8080/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [监视器密钥](/docs/monitor/monitor-secrets)，例如查询字符串中的令牌。
+要检查的页面，以包含协议的完整 URL 表示：`https://example.com`、`https://example.com/pricing` 或 `http://example.com:8080/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [监视器密钥](/docs/monitor/monitor-secrets)，例如查询字符串中的令牌。检查失败时，错误中只写出 URL 的协议、主机和端口，例如 `https://example.com`，因此密钥永远不会显示。
 
 ### 动态 URL 占位符
 

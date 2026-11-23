@@ -18,6 +18,9 @@ import SecurityBlockDestination, {
 import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "./SecurityBlockDestinations";
+import SecurityBlocklistFeedProtection, {
+  SecurityBlocklistFeedProtectionCheck,
+} from "./SecurityBlocklistFeedProtection";
 import SecurityBlocklistJobs from "./SecurityBlocklistJobs";
 import SecurityBlockTimeline, {
   blockEnforcedMarkdown,
@@ -32,10 +35,22 @@ import {
   SecurityBlockAction,
   SecurityBlockIndicatorType,
   SecurityBlockState,
+  SecurityBlockValue,
   getSecurityBlockValueKey,
   isSecurityBlockInForce,
+  readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import {
+  SecurityBlockChallengeDestination,
+  getSecurityBlockActionAt,
+} from "../../../Types/SecurityBlocklist/SecurityBlockChallenge";
 import { SecurityBlockEnforcementState } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { SecurityBlocklistFeedEntry } from "../../../Types/SecurityBlocklist/SecurityBlocklistFeed";
+import {
+  SECURITY_PROTECTED_RECORD_SOURCES,
+  SecurityAddressProtection,
+  describeSecurityAddressProtection,
+} from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import {
   SECURITY_BLOCK_REASON_FRAMES,
   SecurityBlockReason,
@@ -80,7 +95,26 @@ import {
  * A case's timeline hears when a destination first holds its block and
  * when one does not apply it, once each; a pass that changes nothing writes
  * nothing.
+ *
+ * What each destination is asked to do with a block is the block's action
+ * at that destination (getSecurityBlockActionAt, #10350): an automatic
+ * response policy's challenge is held as a block, for the same time, where
+ * the destination cannot challenge.
+ *
+ * A block is held back everywhere once the address it blocks becomes
+ * protected (#10640) - someone adds it to Protected Entities, a host comes
+ * up on it, a probe checks in from it: it was checked when it was made, and
+ * is checked again on every pass against everything the project protects,
+ * as a blocklist feed checks what it serves (SecurityBlocklistFeedProtection,
+ * read whole and kept a minute). It is taken off every destination that
+ * holds it, its rows say why ("Held back: ..."), and its case hears it
+ * once. When what the project protects cannot be read, a block held back
+ * stays held back and nothing else is held back new: the next pass reads
+ * again.
  */
+
+// What a held-back block's rows say first (#10640).
+export const SECURITY_BLOCK_HELD_BACK_PREFIX: string = "Held back: ";
 
 // How long one destination's lock lasts: longer than a pass over it takes.
 export const SECURITY_BLOCKLIST_LOCK_TIMEOUT_IN_MS: number = 3 * 60 * 1000;
@@ -162,11 +196,115 @@ export function isHeldExpiryCurrent(data: {
   );
 }
 
-function blockKey(block: SecurityBlock): string {
+// A block's key at one destination: its value, and what that destination does with it (#10350).
+function blockKeyAt(
+  block: SecurityBlock,
+  destination: SecurityBlockChallengeDestination,
+): string {
   return getHeldItemKey(
     block.value || "",
-    block.action || SecurityBlockAction.Block,
+    getSecurityBlockActionAt(block, destination),
   );
+}
+
+/*
+ * Why a block is held back now that what it blocks is protected (#10640),
+ * as its rows and its case say it: the record that protects it is never
+ * named, since everyone who reads the blocklist reads the rows, and the
+ * address is said to be one of the project's own, as a block refused to a
+ * reader who may not read that record is.
+ */
+export function describeSecurityBlockHeldBack(data: {
+  value: string;
+  protection: SecurityAddressProtection;
+}): string {
+  const protection: SecurityAddressProtection =
+    SECURITY_PROTECTED_RECORD_SOURCES.includes(data.protection.source)
+      ? {
+          ...data.protection,
+          name: undefined,
+          kind: undefined,
+          where: undefined,
+        }
+      : data.protection;
+
+  return `${SECURITY_BLOCK_HELD_BACK_PREFIX}${data.value} is protected now, so OneUptime took the block off. ${describeSecurityAddressProtection(
+    {
+      value: data.value,
+      protection,
+    },
+  )}`;
+}
+
+/*
+ * The blocks a pass holds back because what they block is protected now
+ * (#10640), by id, with why; null when what the project protects could not
+ * be read, so the rows already held back stay so and nothing new is.
+ * Pure, so the rule is pinned in a plain test.
+ */
+export function findSecurityBlocksHeldBack(data: {
+  blocks: ReadonlyArray<Pick<SecurityBlock, "id" | "value">>;
+  check: Pick<SecurityBlocklistFeedProtectionCheck, "isReadable" | "withheld">;
+}): Map<string, string> | null {
+  if (!data.check.isReadable) {
+    return null;
+  }
+
+  // An address can be blocked at the edge and, on its own, everywhere (#10346): both are held back.
+  const idsByValue: Map<string, Array<string>> = new Map();
+
+  for (const block of data.blocks) {
+    const read: SecurityBlockValue | null = readSecurityBlockValue(
+      block.value || "",
+    );
+
+    if (read && block.id) {
+      idsByValue.set(read.value, [
+        ...(idsByValue.get(read.value) || []),
+        block.id.toString(),
+      ]);
+    }
+  }
+
+  const heldBack: Map<string, string> = new Map();
+
+  for (const withheld of data.check.withheld) {
+    for (const id of idsByValue.get(withheld.entry.value) || []) {
+      heldBack.set(
+        id,
+        describeSecurityBlockHeldBack({
+          value: withheld.entry.value,
+          protection: withheld.protection,
+        }),
+      );
+    }
+  }
+
+  return heldBack;
+}
+
+// The address blocks as the protection check reads them: an entry each, by value.
+export function toSecurityBlockProtectionEntries(
+  blocks: ReadonlyArray<Pick<SecurityBlock, "value">>,
+): Array<SecurityBlocklistFeedEntry> {
+  const entries: Map<string, SecurityBlocklistFeedEntry> = new Map();
+
+  for (const block of blocks) {
+    const read: SecurityBlockValue | null = readSecurityBlockValue(
+      block.value || "",
+    );
+
+    if (read && !entries.has(read.value)) {
+      entries.set(read.value, {
+        value: read.value,
+        family: read.block.family,
+        block: read.block,
+        comment: "",
+      });
+    }
+  }
+
+  return Array.from(entries.values());
 }
 
 /*
@@ -223,6 +361,8 @@ export interface SecurityBlocklistDestinationPlan {
   toMoveEnd: Array<SecurityBlockEndMove>;
   // Blocks it cannot hold, with why.
   unsupported: Map<string, string>;
+  // Blocks held back because what they block is protected now (#10640), with why.
+  heldBack: Map<string, string>;
   // The same, as sentences, for a destination that words them (#10629).
   unsupportedSentences: Map<string, SecurityBlockReason>;
   // Blocks that do not fit.
@@ -231,13 +371,19 @@ export interface SecurityBlocklistDestinationPlan {
   waiting: Set<string>;
 }
 
-// A block as an entry a destination is asked to hold.
-function toEntry(block: SecurityBlock): SecurityBlockEntry {
+/*
+ * A block as an entry a destination is asked to hold: with what that
+ * destination does with it (getSecurityBlockActionAt, #10350).
+ */
+function toEntry(
+  block: SecurityBlock,
+  destination: SecurityBlockChallengeDestination,
+): SecurityBlockEntry {
   return {
     securityBlockId: block.id!,
     indicatorType: block.indicatorType || SecurityBlockIndicatorType.IpAddress,
     value: block.value || "",
-    action: block.action || SecurityBlockAction.Block,
+    action: getSecurityBlockActionAt(block, destination),
     expiresAt: block.expiresAt ? new Date(block.expiresAt) : null,
     comment: getSecurityBlockEntryComment(block),
   };
@@ -250,13 +396,22 @@ function toEntry(block: SecurityBlock): SecurityBlockEntry {
  * move to its block's. Pure, so the rules are pinned in a plain test.
  */
 export function planSecurityBlocklistDestination(data: {
-  destination: Pick<SecurityBlockDestination, "supports" | "moveEnds">;
+  destination: Pick<
+    SecurityBlockDestination,
+    "supports" | "canChallenge" | "moveEnds"
+  >;
   // The blocks in force, the oldest first.
   blocks: Array<SecurityBlock>;
   rowsByBlock: Map<string, SecurityBlockEnforcement>;
   held: Array<SecurityBlockHeldItem>;
   capacity: SecurityBlockCapacity;
   now: Date;
+  /*
+   * The blocks held back because what they block is protected now, with
+   * why (findSecurityBlocksHeldBack); null when that could not be read, so
+   * a block whose row says it is held back stays so. Left out: none.
+   */
+  heldBack?: Map<string, string> | null | undefined;
 }): SecurityBlocklistDestinationPlan {
   const heldKeys: Set<string> = new Set(
     data.held.map((item: SecurityBlockHeldItem): string => {
@@ -265,22 +420,43 @@ export function planSecurityBlocklistDestination(data: {
   );
 
   const unsupported: Map<string, string> = new Map();
+  const heldBack: Map<string, string> = new Map();
   const unsupportedSentences: Map<string, SecurityBlockReason> = new Map();
   const desired: Array<SecurityBlock> = [];
+  const keyOf: (block: SecurityBlock) => string = (
+    block: SecurityBlock,
+  ): string => {
+    return blockKeyAt(block, data.destination);
+  };
 
   for (const block of data.blocks) {
+    const id: string = block.id!.toString();
+    const rowError: string = data.rowsByBlock.get(id)?.error || "";
+    const heldBackReason: string | undefined =
+      data.heldBack === null
+        ? rowError.startsWith(SECURITY_BLOCK_HELD_BACK_PREFIX)
+          ? rowError
+          : undefined
+        : data.heldBack?.get(id);
+
+    // Protected now (#10640): taken off wherever it is held.
+    if (heldBackReason) {
+      heldBack.set(id, heldBackReason);
+      continue;
+    }
+
     const support: SecurityBlockSupport = data.destination.supports({
       indicatorType:
         block.indicatorType || SecurityBlockIndicatorType.IpAddress,
-      action: block.action || SecurityBlockAction.Block,
+      action: getSecurityBlockActionAt(block, data.destination),
       value: block.value || "",
     });
 
     if (!support.isSupported) {
-      unsupported.set(block.id!.toString(), support.reason);
+      unsupported.set(id, support.reason);
 
       if (support.reasonSentence) {
-        unsupportedSentences.set(block.id!.toString(), support.reasonSentence);
+        unsupportedSentences.set(id, support.reasonSentence);
       }
 
       continue;
@@ -289,16 +465,16 @@ export function planSecurityBlocklistDestination(data: {
     desired.push(block);
   }
 
-  const desiredKeys: Set<string> = new Set(desired.map(blockKey));
+  const desiredKeys: Set<string> = new Set(desired.map(keyOf));
   const heldDesired: number = desired.filter((block: SecurityBlock) => {
-    return heldKeys.has(blockKey(block));
+    return heldKeys.has(keyOf(block));
   }).length;
 
   const waiting: Set<string> = new Set();
   const candidates: Array<SecurityBlock> = [];
 
   for (const block of desired) {
-    if (heldKeys.has(blockKey(block))) {
+    if (heldKeys.has(keyOf(block))) {
       continue;
     }
 
@@ -348,7 +524,7 @@ export function planSecurityBlocklistDestination(data: {
 
     for (const block of desired) {
       const item: SecurityBlockHeldItem | undefined = heldByKey.get(
-        blockKey(block),
+        keyOf(block),
       );
 
       if (!item || item.expiresAt === undefined) {
@@ -360,18 +536,21 @@ export function planSecurityBlocklistDestination(data: {
         : null;
 
       if (!isHeldExpiryCurrent({ held: item.expiresAt, wanted })) {
-        toMoveEnd.push({ entry: toEntry(block), item });
+        toMoveEnd.push({ entry: toEntry(block, data.destination), item });
       }
     }
   }
 
   return {
-    toAdd: candidates.slice(0, room).map(toEntry),
+    toAdd: candidates.slice(0, room).map((block: SecurityBlock) => {
+      return toEntry(block, data.destination);
+    }),
     toRemove: data.held.filter((item: SecurityBlockHeldItem): boolean => {
       return !desiredKeys.has(getHeldItemKey(item.value, item.action));
     }),
     toMoveEnd,
     unsupported,
+    heldBack,
     unsupportedSentences,
     overflow,
     waiting,
@@ -464,6 +643,7 @@ export default class SecurityBlocklistReconciler {
           value: true,
           indicatorType: true,
           action: true,
+          challengeFallsBackToBlock: true,
           reach: true,
           state: true,
           expiresAt: true,
@@ -524,6 +704,12 @@ export default class SecurityBlocklistReconciler {
       failed: 0,
     };
 
+    // What is protected now holds its blocks back everywhere (#10640).
+    const heldBack: Map<string, string> | null =
+      found.destinations.length > 0 && blocks.length > 0
+        ? await this.findHeldBack({ projectId: data.projectId, blocks, now })
+        : new Map();
+
     for (const destination of found.destinations) {
       /*
        * Only the blocks it is asked to hold: an endpoint product holds an
@@ -546,6 +732,7 @@ export default class SecurityBlocklistReconciler {
             return row.destinationKey === destination.key;
           }),
           now,
+          heldBack,
         });
 
       if (outcome === "skipped") {
@@ -564,6 +751,40 @@ export default class SecurityBlocklistReconciler {
   }
 
   /*
+   * The project's active blocks that meet what it protects now (#10640), by
+   * id, with why: as a blocklist feed holds what it serves to it, with the
+   * same read, kept a minute per project. Null when what it protects could
+   * not be read: the blocks held back stay so, and nothing new is.
+   */
+  private static async findHeldBack(data: {
+    projectId: ObjectID;
+    blocks: Array<SecurityBlock>;
+    now: Date;
+  }): Promise<Map<string, string> | null> {
+    try {
+      const check: SecurityBlocklistFeedProtectionCheck =
+        await SecurityBlocklistFeedProtection.check({
+          projectId: data.projectId,
+          entries: toSecurityBlockProtectionEntries(data.blocks),
+          now: data.now,
+        });
+
+      if (!check.isReadable) {
+        logger.warn(
+          `SecurityBlocklistReconciler: what project ${data.projectId.toString()} protects could not be read; its blocks held back stay so until the next pass.`,
+        );
+      }
+
+      return findSecurityBlocksHeldBack({ blocks: data.blocks, check });
+    } catch (error) {
+      logger.warn(
+        `SecurityBlocklistReconciler: could not check project ${data.projectId.toString()}'s blocks against what it protects: ${this.errorText(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /*
    * One destination, under its lock. "skipped" when another pass holds it
    * or it waits for its retry; "failed" when the provider could not be
    * read or written.
@@ -576,6 +797,8 @@ export default class SecurityBlocklistReconciler {
     ended: Array<SecurityBlock>;
     rows: Array<SecurityBlockEnforcement>;
     now: Date;
+    // The blocks held back as protected now, with why (#10640); null: could not be read.
+    heldBack?: Map<string, string> | null | undefined;
   }): Promise<"done" | "skipped" | "failed"> {
     const { destination, now } = data;
 
@@ -701,6 +924,7 @@ export default class SecurityBlocklistReconciler {
     ended: Array<SecurityBlock>;
     rowsByBlock: Map<string, SecurityBlockEnforcement>;
     now: Date;
+    heldBack?: Map<string, string> | null | undefined;
   }): Promise<"done" | "failed"> {
     const { destination, now } = data;
 
@@ -749,6 +973,7 @@ export default class SecurityBlocklistReconciler {
         held,
         capacity,
         now,
+        heldBack: data.heldBack,
       });
 
     let removed: Array<SecurityBlockWriteResult> = [];
@@ -892,11 +1117,19 @@ export default class SecurityBlocklistReconciler {
       data.capacity.fullReason ||
       `${destination.name} is full (${data.capacity.limit ?? 0})`;
 
-    const activeKeys: Set<string> = new Set(data.blocks.map(blockKey));
+    const activeKeys: Set<string> = new Set(
+      data.blocks
+        .filter((block: SecurityBlock): boolean => {
+          return !plan.heldBack.has(block.id!.toString());
+        })
+        .map((block: SecurityBlock): string => {
+          return blockKeyAt(block, destination);
+        }),
+    );
 
     for (const block of data.blocks) {
       const id: string = block.id!.toString();
-      const key: string = blockKey(block);
+      const key: string = blockKeyAt(block, destination);
       const row: SecurityBlockEnforcement | undefined =
         data.rowsByBlock.get(id);
 
@@ -906,7 +1139,16 @@ export default class SecurityBlocklistReconciler {
 
       let target: RowTarget;
 
-      if (plan.unsupported.has(id)) {
+      if (plan.heldBack.has(id)) {
+        // In English, as its case's timeline says it (#10640).
+        target = {
+          state: SecurityBlockEnforcementState.Failed,
+          error: plan.heldBack.get(id)!,
+          errorReason: null,
+          failedAttempts: 0,
+          retryAt: null,
+        };
+      } else if (plan.unsupported.has(id)) {
         target = {
           state: SecurityBlockEnforcementState.Failed,
           error: `Not applied: ${plan.unsupported.get(id)}`,
@@ -1034,7 +1276,7 @@ export default class SecurityBlocklistReconciler {
 
     for (const block of data.ended) {
       const id: string = block.id!.toString();
-      const key: string = blockKey(block);
+      const key: string = blockKeyAt(block, destination);
       const row: SecurityBlockEnforcement | undefined =
         data.rowsByBlock.get(id);
 

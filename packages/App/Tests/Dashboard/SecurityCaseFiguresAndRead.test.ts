@@ -118,6 +118,8 @@ describe("what a case's pages read of it", () => {
         "lastDetectedAt",
         "acknowledgedAt",
         "containedAt",
+        // How soon an automatic response blocked its address (#10350): the Time to Contain figure.
+        "timeToBlockInSeconds",
         "closedAt",
         "createdAt",
         // Where the case stands against its targets: the header and Overview.
@@ -138,6 +140,9 @@ describe("what a case's pages read of it", () => {
         "aiTriageReport",
         "aiTriagedAt",
         "aiTriagePromptInjectionSuspected",
+        // Where OneUptime AI's work on the case stands, and when it took the case (#10352).
+        "aiResponseState",
+        "aiTookCaseAt",
       ].sort(),
     );
   });

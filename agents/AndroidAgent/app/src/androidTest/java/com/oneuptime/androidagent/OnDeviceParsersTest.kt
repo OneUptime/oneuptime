@@ -146,6 +146,58 @@ class OnDeviceParsersTest {
         assertEquals("order 4111111111111112", Redactor.redact("order 4111111111111112"))
     }
 
+    /*
+     * The token pattern reads each run of a token's characters a bounded
+     * number of times (#10786), and Android's engine is where its three
+     * differences from the server's copy matter (Redactor.kt says why).
+     */
+    @Test
+    fun tokensAreTakenOutOnAndroidOncePerRun() {
+        val jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+
+        // After a "-": the server's form, a back-reference, would start a match only at an "e" here and miss these.
+        assertEquals("trace-[token]", Redactor.redact("trace-$jwt"))
+        assertEquals("req a-b-[token].more", Redactor.redact("req a-b-$jwt.more"))
+        assertEquals("x-[token]", Redactor.redact("x-eyJab-$jwt"))
+        assertEquals("x$jwt", Redactor.redact("x$jwt"))
+
+        // The tokens \beyJ... finds under Android's own word boundary, and no others, whatever comes before and after.
+        val wordBoundaryToken = Regex("""\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}""")
+        val heads: List<String> =
+            listOf("", " ", "=", "x", "_", "-", "a-", "eyJab-", "é", "中", "é", "-́", "​", "x​", "١", "𝒜")
+        val tokens: List<String> =
+            listOf(jwt, "eyJabcde.fghij.klmno", "eyJabcd.efghi.jklmn", "eyJab-eyJabcde.fghij.klmno", "eyJ-eyJab.cdefg.hijkl", "eyJabcde.fghij")
+        val tails: List<String> = listOf("", " ", ".", ".more", "-x", "é", "́")
+        for (head in heads) {
+            for (token in tokens) {
+                for (tail in tails) {
+                    val text = head + token + tail
+                    assertEquals(text, wordBoundaryToken.replace(text, Redactor.TOKEN), Redactor.redactTokens(text))
+                }
+            }
+        }
+
+        // Read once more from each "eyJ" after a "-", these took minutes here.
+        val started: Long = System.nanoTime()
+        for (text in listOf("-eyJ-".repeat(40_000), "eyJab-".repeat(40_000), "eyJ".repeat(80_000))) {
+            assertEquals(text, Redactor.redact(text))
+        }
+        assertTrue((System.nanoTime() - started) / 1_000_000 < 10_000)
+
+        // On a segment this long, a counted repeat ran out of room, and the token after it was kept.
+        assertEquals("[token] then [token]", Redactor.redact("eyJ" + "a".repeat(255_000) + ".bbbbbbbbbb.cccccccccc then $jwt"))
+    }
+
+    // A new matcher for each match copied the whole text on Android: about four to six seconds for each of these.
+    @Test
+    fun aTextWithManyMatchesIsReadOnceOnAndroid() {
+        val started: Long = System.nanoTime()
+        assertEquals("1795076857467 ".repeat(18_000), Redactor.redact("1795076857467 ".repeat(18_000)))
+        assertEquals("password=[redacted] ".repeat(23_000), Redactor.redact("password=x ".repeat(23_000)))
+        assertEquals("[card number] ".repeat(15_000), Redactor.redact("4111111111111111 ".repeat(15_000)))
+        assertTrue((System.nanoTime() - started) / 1_000_000 < 5_000)
+    }
+
     @Test
     fun kernelFilesParseOnAndroid() {
         assertEquals(1024L, MemInfoParser.parse("MemTotal: 1 kB\nActive(anon): 2 kB")["MemTotal"])

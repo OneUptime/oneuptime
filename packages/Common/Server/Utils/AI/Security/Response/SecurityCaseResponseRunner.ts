@@ -9,6 +9,7 @@ import Semaphore, {
 import AIRunEventService from "../../../../Services/AIRunEventService";
 import AIRunService from "../../../../Services/AIRunService";
 import logger from "../../../Logger";
+import SecurityCaseAiHold from "../../../SecurityCase/SecurityCaseAiHold";
 import SecurityCaseHandOff from "../../../SecurityCase/SecurityCaseHandOff";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import AIInvestigationQueue from "../../SRE/InvestigationQueue";
@@ -86,6 +87,16 @@ export default class SecurityCaseResponseRunner {
         projectId: data.projectId,
         securityCaseId: data.securityCaseId,
         aiRunId: data.aiRunId,
+      });
+
+      /*
+       * A case OneUptime AI responds first to (#10353): whether this look
+       * resolved it, asked a person, or handed it over ends its hold now,
+       * not at the next minute's review. Never throws.
+       */
+      await SecurityCaseAiHold.reviewSoon({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
       });
 
       const completed: number = await AIRunService.attemptStatusTransition({
