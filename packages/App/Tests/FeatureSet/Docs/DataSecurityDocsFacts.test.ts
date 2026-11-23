@@ -3169,9 +3169,13 @@ describe("Data Security Integrations", () => {
       expect(rules).toContain(`**${name}**`);
     }
 
-    // The retired word is gone from the page, as it is from the Dashboard.
+    /*
+     * The retired word is gone from the page, as it is from the Dashboard:
+     * from the whole page, since a row of What OneUptime AI sees names a
+     * rule's Fix setting too (Fix the cause).
+     */
     expect(copy).not.toContain('translationKey("Without asking")');
-    expect(rules).not.toContain("**Without asking**");
+    expect(english(AI)).not.toContain("**Without asking**");
 
     // Suggest wins over Automatically, as the engine decides it.
     expect(rules).toContain("**Suggest** wins over **Automatically**");

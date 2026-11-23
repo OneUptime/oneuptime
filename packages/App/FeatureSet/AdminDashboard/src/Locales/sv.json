@@ -4484,5 +4484,15 @@
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Den här eskaleringsregeln larmar redan den som har jour i jourschemat ”{{schedule}}”, så schemat lades inte till igen.",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Eskaleringsregeln ”{{rule}}” i jourpolicyn ”{{policy}}” larmar redan nästa person i rotationen i jourschemat ”{{schedule}}”, så schemat lades inte till igen.",
   "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "Den här eskaleringsregeln larmar redan nästa person i rotationen i jourschemat ”{{schedule}}”, så schemat lades inte till igen.",
-  "No longer available": "Inte längre tillgänglig"
+  "No longer available": "Inte längre tillgänglig",
+  "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "Ett aktiverat drop-filter kasserar matchande loggar inom en minut, och det som läser dem får inga av dem. Aktivera dem ett i taget för att först se vad vart och ett skulle ta.",
+  "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "Ett aktiverat drop-filter kasserar matchande spans inom en minut, och det som läser dem får inga av dem. Aktivera dem ett i taget för att först se vad vart och ett skulle ta.",
+  "This scan is already queued to run. It starts when its probe picks it up.": "Den här skanningen står redan i kö. Den startar när dess sond plockar upp den.",
+  "This scan is already running. Run it again once this run finishes.": "Den här skanningen körs redan. Kör den igen när den här körningen är klar.",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "Den här skanningen finns inte längre. Uppdatera listan för att se de senaste skanningarna.",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Den här skanningens sond är inte ansluten till OneUptime, så skanningen kan inte köras nu. Starta sonden, eller välj en annan sond under Redigera.",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "Den här skanningens sond finns inte längre, så skanningen kan inte köras. Välj en annan sond under Redigera.",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "Den här skanningens sond, {{probe}}, är inte ansluten till OneUptime, så skanningen kan inte köras nu. Starta sonden, eller välj en annan sond under Redigera.",
+  "You may not edit this project's discovery scans, so you cannot run one.": "Du får inte redigera det här projektets identifieringsskanningar, så du kan inte köra någon.",
+  "Showing {{shown}} of {{total}}. Type to narrow the list.": "Visar {{shown}} av {{total}}. Skriv för att begränsa listan."
 }
