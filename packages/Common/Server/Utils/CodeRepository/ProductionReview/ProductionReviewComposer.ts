@@ -712,7 +712,7 @@ export default class ProductionReviewComposer {
 
     if ((section?.droppedCount || 0) > 0) {
       notes.push(
-        mdText`<sub>${githubSafeText(input.productName, 60)} AI read ${plural(section!.droppedCount, "more the rules found", "more the rules found")} as no leak, and left ${section!.droppedCount === 1 ? "it" : "them"} out.</sub>`,
+        mdText`<sub>${githubSafeText(input.productName, 60)} AI read ${plural(section!.droppedCount, "more point the rules found", "more points the rules found")} as no leak, and left ${section!.droppedCount === 1 ? "it" : "them"} out.</sub>`,
       );
     }
 

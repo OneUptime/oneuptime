@@ -758,6 +758,7 @@ function pullRequestReviewCall(
         return { path: file.filename, patch: file.patch };
       },
     ),
+    isFailOn: testCase.isFailOn === true,
   });
 
   return {

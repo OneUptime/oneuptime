@@ -10,8 +10,10 @@ import {
 import {
   ProductionReviewLeakJSON,
   ProductionReviewSensitiveDataJSON,
+  PUBLIC_STORE_CHECK_IDS,
   SENSITIVE_DATA_LIMITS,
   SensitiveDataAiNoteCode,
+  SensitiveDataLeakKind,
 } from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import ObjectID from "../../../../Types/ObjectID";
 import DataSecurityAiCall from "./DataSecurityAiCall";
@@ -197,10 +199,33 @@ export default class PullRequestLeakReview {
       });
   }
 
-  // The points as OneUptime AI is told them, each by its id.
+  /*
+   * Whether a point fails the check as the diff alone says: a known store's
+   * sensitivity decides it for the review, never for what OneUptime AI is
+   * told - a point on a public resource fails the check, as the rule says,
+   * whatever store it is.
+   */
+  public static failsCheckByTheDiff(
+    point: ProductionReviewLeakJSON,
+    isFailOn: boolean,
+  ): boolean {
+    if (point.kind === SensitiveDataLeakKind.Infrastructure && point.production?.store) {
+      return isFailOn && PUBLIC_STORE_CHECK_IDS.includes(point.checkId);
+    }
+
+    return point.failsCheck;
+  }
+
+  /*
+   * The points as OneUptime AI is told them, each by its id: what the diff
+   * shows of each, never what production knows - its sensitivity is the
+   * diff's own (toLeakPoint), and whether it may be left out is the diff's
+   * too.
+   */
   public static toCandidates(data: {
     points: Array<ProductionReviewLeakJSON>;
     files: Array<PullRequestLeakFile>;
+    isFailOn: boolean;
   }): Array<AiPullRequestCandidate> {
     return data.points.map(
       (point: ProductionReviewLeakJSON, index: number): AiPullRequestCandidate => {
@@ -223,7 +248,10 @@ export default class PullRequestLeakReview {
           sensitivity: point.sensitivity,
           sentence: point.text,
           fix: point.fix,
-          mayDrop: !point.failsCheck,
+          mayDrop: !PullRequestLeakReview.failsCheckByTheDiff(
+            point,
+            data.isFailOn,
+          ),
           lines: PullRequestLeakReview.linesAround(
             file?.patch || null,
             point.line,
@@ -267,6 +295,7 @@ export default class PullRequestLeakReview {
     pullRequestTitle: string;
     points: Array<ProductionReviewLeakJSON>;
     files: Array<PullRequestLeakFile>;
+    isFailOn: boolean;
   }): DataSecurityAiPrompt {
     return buildPullRequestReviewPrompt({
       instructions: PULL_REQUEST_LEAK_REVIEW_INSTRUCTIONS,
@@ -524,10 +553,19 @@ export default class PullRequestLeakReview {
       const call: Promise<AILogResponse> = DataSecurityAiCall.ask({
         projectId: data.projectId,
         aiRunId: data.aiRunId,
-        prompt: PullRequestLeakReview.buildPrompt({
+        // The builder's prompt: the points and their files' diff, never production.
+        prompt: buildPullRequestReviewPrompt({
+          instructions: PULL_REQUEST_LEAK_REVIEW_INSTRUCTIONS,
           pullRequestTitle: data.pullRequestTitle,
-          points,
-          files: data.files,
+          candidates: PullRequestLeakReview.toCandidates({
+            points,
+            files: data.files,
+            isFailOn: data.section.isFailOn,
+          }),
+          files: PullRequestLeakReview.toFileDiffs({
+            points,
+            files: data.files,
+          }),
         }),
         maxTokens: PULL_REQUEST_LEAK_REVIEW_MAX_TOKENS,
         temperature: 0,
