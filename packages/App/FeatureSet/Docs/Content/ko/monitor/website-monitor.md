@@ -71,7 +71,7 @@ flowchart TB
 
 ### 웹사이트 URL
 
-확인할 페이지를 스킴을 포함한 전체 URL로 입력합니다: `https://example.com`, `https://example.com/pricing`, `http://example.com:8080/health`. URL에 [모니터 시크릿](/docs/monitor/monitor-secrets)을 `{{monitorSecrets.NAME}}` 형태로 넣을 수 있습니다. 예를 들어 쿼리 문자열의 토큰입니다.
+확인할 페이지를 스킴을 포함한 전체 URL로 입력합니다: `https://example.com`, `https://example.com/pricing`, `http://example.com:8080/health`. URL에 [모니터 시크릿](/docs/monitor/monitor-secrets)을 `{{monitorSecrets.NAME}}` 형태로 넣을 수 있습니다. 예를 들어 쿼리 문자열의 토큰입니다. 검사가 실패했을 때의 오류에는 `https://example.com`처럼 URL의 스킴, 호스트, 포트만 표시되므로 시크릿은 표시되지 않습니다.
 
 ### 동적 URL 자리 표시자
 

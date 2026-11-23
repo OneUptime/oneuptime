@@ -71,7 +71,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### Nettsted-URL
 
-Siden som skal sjekkes, som fullstendig URL med skjema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`, for eksempel et token i spørrestrengen.
+Siden som skal sjekkes, som fullstendig URL med skjema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`, for eksempel et token i spørrestrengen. Feilen fra en mislykket sjekk nevner bare URL-ens skjema, vert og port, som `https://example.com`, så hemmeligheten vises aldri.
 
 ### Dynamiske URL-plassholdere
 

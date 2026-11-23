@@ -71,7 +71,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 
 ### Website-URL
 
-Die zu prüfende Seite, als vollständige URL mit Schema: `https://example.com`, `https://example.com/pricing` oder `http://example.com:8080/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen, zum Beispiel ein Token in der Abfragezeichenfolge.
+Die zu prüfende Seite, als vollständige URL mit Schema: `https://example.com`, `https://example.com/pricing` oder `http://example.com:8080/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen, zum Beispiel ein Token in der Abfragezeichenfolge. Der Fehler einer fehlgeschlagenen Prüfung nennt die URL nur mit Schema, Host und Port, etwa `https://example.com`, sodass das Geheimnis nie angezeigt wird.
 
 ### Dynamische URL-Platzhalter
 

@@ -71,7 +71,7 @@ Houd of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **Elke
 
 ### Website-URL
 
-De pagina die gecontroleerd wordt, als volledige URL met schema: `https://example.com`, `https://example.com/pricing` of `http://example.com:8080/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`, bijvoorbeeld een token in de querystring.
+De pagina die gecontroleerd wordt, als volledige URL met schema: `https://example.com`, `https://example.com/pricing` of `http://example.com:8080/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`, bijvoorbeeld een token in de querystring. De fout van een mislukte controle noemt de URL alleen met schema, host en poort, zoals `https://example.com`, dus het geheim wordt nooit getoond.
 
 ### Dynamische URL-plaatshouders
 
