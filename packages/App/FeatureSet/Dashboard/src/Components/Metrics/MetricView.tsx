@@ -29,6 +29,10 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricUtil from "./Utils/Metrics";
+import MetricTypeSearch, {
+  useMetricTypesHeldIn,
+} from "./Utils/MetricTypeSearch";
+import { getPublicDashboardContext } from "../Dashboard/Utils/PublicDashboardContext";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricCharts from "./MetricCharts";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -411,6 +415,31 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string>("");
 
+  /*
+   * The metrics the list's read asked for by name, once it was read: what
+   * the queries chart then (#10691).
+   */
+  const [namesReadWithList, setNamesReadWithList] = useState<
+    Array<string> | undefined
+  >(undefined);
+
+  /*
+   * The metrics the queries chart that the list does not have - picked
+   * from a search since, past the project's first 10,000 by name - read by
+   * their names (#10691): their units, kinds of counter and attributes.
+   */
+  useMetricTypesHeldIn({
+    holder: props.data.queryConfigs,
+    known: metricTypes,
+    asked: namesReadWithList,
+    isEnabled: namesReadWithList !== undefined && !getPublicDashboardContext(),
+    onRead: (found: Array<MetricType>): void => {
+      setMetricTypes((current: Array<MetricType>): Array<MetricType> => {
+        return MetricTypeSearch.merge(current, found);
+      });
+    },
+  });
+
   const [telemetryAttributesByMetric, setTelemetryAttributesByMetric] =
     useState<Record<string, Array<string>>>({});
   const [loadedMetricAttributes, setLoadedMetricAttributes] = useState<
@@ -591,15 +620,22 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
     try {
       setIsPageLoading(true);
 
+      const chartedNames: Array<string> = MetricTypeSearch.getMetricNamesIn(
+        props.data.queryConfigs,
+      );
+
       const {
         metricTypes,
       }: {
         metricTypes: Array<MetricType>;
       } = await MetricUtil.loadAllMetricsTypes({
         includeAttributes: false,
+        // The queries' own metrics, however they sort (#10691).
+        metricNames: chartedNames,
       });
 
       setMetricTypes(metricTypes);
+      setNamesReadWithList(chartedNames);
       setTelemetryAttributesByMetric({});
       setLoadedMetricAttributes(new Set());
       setLoadingMetricAttributes(new Set());
