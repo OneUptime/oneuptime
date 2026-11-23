@@ -20,6 +20,8 @@ import {
   readOpenLineageEvents,
 } from "Common/Server/Utils/DataObservability/OpenLineageEvent";
 import OpenLineageIngest from "Common/Server/Utils/DataObservability/OpenLineageIngest";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -66,13 +68,30 @@ const setOpenLineageProductType: RequestHandler = (
  * answer is synchronous, so a producer knows its events were taken. The
  * path is OpenLineage's own default endpoint (api/v1/lineage), under
  * OneUptime's /openlineage: a producer names only the base URL.
+ *
+ * The events are read once the key is right (#10702): StartServer leaves
+ * the body unread (RequestBodyLimit), and nothing of it is read or parsed
+ * for a request without the right key, which a producer sends as
+ * Authorization: Bearer. JSON, held to 50 MB and 1,000,000 values; a
+ * producer's gzip compression (its transport's compression: gzip) is read
+ * as the same events uncompressed are.
  */
+const readLineageBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
+  LARGE_REQUEST_BODY_LIMIT,
+  {
+    parseGzipJson: true,
+  },
+);
+
 router.post(
   "/openlineage/api/v1/lineage",
   TelemetryIngestionDisabled.middleware,
   readBearerIngestionKey,
   setOpenLineageProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.OpenLineage),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.OpenLineage,
+    readLineageBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

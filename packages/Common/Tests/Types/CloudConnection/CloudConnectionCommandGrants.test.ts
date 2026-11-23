@@ -48,6 +48,7 @@ import {
   GCP_DATA_SECURITY_CONTENT_ROLES,
   GCP_DATA_SECURITY_CONTENT_SERVICES,
   GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
+  GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES,
   GCP_DATA_SECURITY_RESPONSE_ROLE_ID,
   GCP_READ_ONLY_ROLES,
   GCP_SERVICES,
@@ -61,6 +62,14 @@ import {
   getCloudConnectionCommandSettings,
   getCloudConnectionSetupCommand,
 } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import {
+  AZURE_WAF_BLOCKLIST_ACTIONS,
+  AZURE_WAF_BLOCKLIST_ROLE,
+} from "../../../Types/CloudConnection/AzureWafBlocklist";
+import {
+  GCP_CLOUD_ARMOR_BLOCKLIST_PERMISSIONS,
+  GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID,
+} from "../../../Types/CloudConnection/CloudArmorBlocklist";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 
 /*
@@ -84,10 +93,17 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  *   - Close exposures and fix settings: the writes each responder makes
  *     (held to what it names by CloudConnectionCommandNeeds.test.ts), and
  *     nothing else;
- *   - Block addresses in AWS WAF (#10344), AWS only: listing the IP sets,
+ *   - Block addresses in AWS WAF (#10344): listing the IP sets,
  *     reading and writing the project's own, and reading what web ACLs
  *     sampled - with wafv2:UpdateWebACL only when OneUptime adds its rule
- *     itself (held to what the module calls by the same needs test).
+ *     itself (held to what the module calls by the same needs test);
+ *   - Block addresses in Azure WAF (#10348): the OneUptime WAF Blocklist
+ *     custom role, reading and writing the two kinds of WAF policy, and
+ *     nothing else;
+ *   - Block addresses in Cloud Armor (#10349): the
+ *     oneuptimeCloudArmorBlocklist custom role - security policies,
+ *     their operations, the project's tier and its address groups - and
+ *     the Compute Engine and Network Security APIs it calls.
  *
  * Then: every setting that changes a command is one the form asks with the
  * command (changesSetupCommand), and only those; what the words beside a
@@ -134,7 +150,7 @@ const WAYS: Array<CommandWay> = CloudConnectionCatalog.flatMap(
 interface CommandChoice {
   dataSecurity: CloudConnectionDataSecurityLevel;
   dataSecurityResponse: CloudConnectionDataSecurityResponse;
-  // AWS's alone: every other cloud's is off.
+  // Off or on everywhere; on AWS also "on, and I add the rule in code".
   wafBlocklist: CloudConnectionWafBlocklist;
 }
 
@@ -158,7 +174,7 @@ function choicesWith(
 // Every cloud's choices: Data Security's two settings, the blocklist off.
 const CHOICES: Array<CommandChoice> = choicesWith("off");
 
-// The AWS WAF choices beside them, which only AWS has.
+// The AWS WAF choices beside them: off, OneUptime adds its rule, the rule is added in code.
 const WAF_CHOICES: Array<CommandChoice> =
   CLOUD_CONNECTION_WAF_BLOCKLIST_CHOICES.flatMap(
     (wafBlocklist: CloudConnectionWafBlocklist): Array<CommandChoice> => {
@@ -166,9 +182,18 @@ const WAF_CHOICES: Array<CommandChoice> =
     },
   );
 
-// The choices of a way's cloud: AWS's every one, the others' without the blocklist.
+// Azure WAF's and Cloud Armor's: off or on, as their form offers it.
+const POLICY_WAF_CHOICES: Array<CommandChoice> = (
+  ["off", "rule"] as Array<CloudConnectionWafBlocklist>
+).flatMap((wafBlocklist: CloudConnectionWafBlocklist): Array<CommandChoice> => {
+  return choicesWith(wafBlocklist);
+});
+
+// The choices of a way's cloud, as its form offers them.
 function choicesOf(way: CommandWay): Array<CommandChoice> {
-  return way.definition.provider === CloudProvider.AWS ? WAF_CHOICES : CHOICES;
+  return way.definition.provider === CloudProvider.AWS
+    ? WAF_CHOICES
+    : POLICY_WAF_CHOICES;
 }
 
 function describeWay(way: CommandWay, choice?: CommandChoice): string {
@@ -519,8 +544,11 @@ function readAzureCommand(command: string): CommandGrant {
       continue;
     }
 
-    if (line.startsWith('RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" ')) {
-      // The custom role: its actions, nothing it may do to data, assignable where it is assigned.
+    if (
+      line.startsWith('RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" ') ||
+      line.startsWith('WAF_ROLE=$(jq -n --arg scope "$SCOPE" ')
+    ) {
+      // A custom role: its actions, nothing it may do to data, assignable where it is assigned.
       const actionsAt: number = line.indexOf("Actions: [") + "Actions: ".length;
       const actions: Array<string> = JSON.parse(
         line.slice(actionsAt, line.indexOf("]", actionsAt) + 1),
@@ -540,6 +568,8 @@ function readAzureCommand(command: string): CommandGrant {
       line === 'APP=$(echo "$OUT" | jq -r .appId)' ||
       line ===
         'az role definition create --role-definition "$RESPONSE_ROLE" > /dev/null 2>&1 || az role definition update --role-definition "$RESPONSE_ROLE" > /dev/null' ||
+      line ===
+        'az role definition create --role-definition "$WAF_ROLE" > /dev/null 2>&1 || az role definition update --role-definition "$WAF_ROLE" > /dev/null' ||
       line ===
         'END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)' ||
       line === `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`;
@@ -759,6 +789,7 @@ function expectedGrant(
 ): Pick<CommandGrant, "grants" | "policies"> {
   const content: boolean = choice.dataSecurity === "content";
   const responds: boolean = choice.dataSecurityResponse === "block";
+  const blocks: boolean = choice.wafBlocklist !== "off";
   const isOrganization: boolean =
     way.scope === CloudConnectionSetupScope.Organization;
 
@@ -810,6 +841,7 @@ function expectedGrant(
           AZURE_COST_ROLE,
           ...(content ? [AZURE_DATA_SECURITY_CONTENT_ROLE] : []),
           ...(responds ? [AZURE_DATA_SECURITY_RESPONSE_ROLE] : []),
+          ...(blocks ? [AZURE_WAF_BLOCKLIST_ROLE] : []),
         ]
           .map((role: string): string => {
             return `${role} on $SCOPE`;
@@ -822,6 +854,13 @@ function expectedGrant(
               ].sort(),
             }
           : {}),
+        ...(blocks
+          ? {
+              [`custom role ${AZURE_WAF_BLOCKLIST_ROLE}`]: [
+                ...AZURE_WAF_BLOCKLIST_ACTIONS,
+              ].sort(),
+            }
+          : {}),
       },
       policies: {},
     };
@@ -831,6 +870,9 @@ function expectedGrant(
   const customRole: string = isOrganization
     ? `organizations/$ORG_ID/roles/${GCP_DATA_SECURITY_RESPONSE_ROLE_ID}`
     : `projects/$PROJECT_ID/roles/${GCP_DATA_SECURITY_RESPONSE_ROLE_ID}`;
+  const blocklistRole: string = isOrganization
+    ? `organizations/$ORG_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`
+    : `projects/$PROJECT_ID/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID}`;
 
   return {
     grants: {
@@ -838,6 +880,7 @@ function expectedGrant(
         new Set<string>([
           ...GCP_SERVICES,
           ...(content ? GCP_DATA_SECURITY_CONTENT_SERVICES : []),
+          ...(blocks ? GCP_CLOUD_ARMOR_BLOCKLIST_SERVICES : []),
         ]),
       ).sort(),
       "service account": [
@@ -845,6 +888,7 @@ function expectedGrant(
         ...GCP_COST_ROLES,
         ...(content ? GCP_DATA_SECURITY_CONTENT_ROLES : []),
         ...(responds ? [customRole] : []),
+        ...(blocks ? [blocklistRole] : []),
       ]
         .map((role: string): string => {
           return `${role} on ${where}`;
@@ -854,6 +898,13 @@ function expectedGrant(
         ? {
             [`custom role ${GCP_DATA_SECURITY_RESPONSE_ROLE_ID} in ${where}`]: [
               ...GCP_DATA_SECURITY_RESPONSE_PERMISSIONS,
+            ].sort(),
+          }
+        : {}),
+      ...(blocks
+        ? {
+            [`custom role ${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID} in ${where}`]: [
+              ...GCP_CLOUD_ARMOR_BLOCKLIST_PERMISSIONS,
             ].sort(),
           }
         : {}),
@@ -880,6 +931,8 @@ describe("every way the form writes a command, with every choice", () => {
     expect(CHOICES).toHaveLength(6);
     // AWS's blocklist: off, OneUptime adds its rule, the rule is added in code.
     expect(WAF_CHOICES).toHaveLength(18);
+    // Azure WAF's and Cloud Armor's: off or on.
+    expect(POLICY_WAF_CHOICES).toHaveLength(12);
   });
 
   test("grants exactly what each choice needs: no more, no less, and nothing left unread", () => {
@@ -908,8 +961,8 @@ describe("every way the form writes a command, with every choice", () => {
       }
     }
 
-    // Three AWS ways with eighteen choices each, four others with six.
-    expect(checked).toBe(3 * 18 + 4 * 6);
+    // Three AWS ways with eighteen choices each, four others with twelve.
+    expect(checked).toBe(3 * 18 + 4 * 12);
   });
 
   test("a choice only adds: every line of the command with every setting off is still there, in order, but an organization's template, which carries the policies", () => {
@@ -1032,7 +1085,7 @@ describe("every way the form writes a command, with every choice", () => {
     }
   });
 
-  test("Block addresses in AWS WAF is in every AWS command, its rule's write only when OneUptime adds its rule, and in no other cloud's", () => {
+  test("Block addresses in AWS WAF is in every AWS command, its rule's write only when OneUptime adds its rule; Azure WAF's and Cloud Armor's roles are in their clouds' when on", () => {
     for (const way of WAYS) {
       const isAws: boolean = way.definition.provider === CloudProvider.AWS;
 
@@ -1044,20 +1097,26 @@ describe("every way the form writes a command, with every choice", () => {
         };
 
         if (!isAws) {
-          // Another cloud's form never saves it, and its command never reads it.
-          expect(
-            getCloudConnectionSetupCommand(
-              way.definition.provider,
-              way.method,
-              { ...ROLE_SETUP, scope: way.scope, wafBlocklist },
-            ),
-          ).toBe(
-            getCloudConnectionSetupCommand(
-              way.definition.provider,
-              way.method,
-              { ...ROLE_SETUP, scope: way.scope },
-            ),
-          );
+          // Either way of turning it on grants the cloud's one role, and nothing of AWS WAF's.
+          const command: string = getCloudConnectionSetupCommand(
+            way.definition.provider,
+            way.method,
+            { ...ROLE_SETUP, scope: way.scope, wafBlocklist },
+          )!;
+          const role: string =
+            way.definition.provider === CloudProvider.Azure
+              ? `--role "${AZURE_WAF_BLOCKLIST_ROLE}"`
+              : `/roles/${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID} --condition=None`;
+
+          expect({
+            way: describeWay(way, choice),
+            role: command.includes(role),
+            aws: command.includes("wafv2:"),
+          }).toEqual({
+            way: describeWay(way, choice),
+            role: wafBlocklist !== "off",
+            aws: false,
+          });
           continue;
         }
 
@@ -1105,9 +1164,11 @@ describe("every way the form writes a command, with every choice", () => {
       for (const items of Object.values(grant.grants)) {
         for (const item of items) {
           if (
-            ["wafv2:CreateIPSet", "wafv2:UpdateIPSet", "wafv2:DeleteIPSet"].includes(
-              item.split(" ")[0]!,
-            )
+            [
+              "wafv2:CreateIPSet",
+              "wafv2:UpdateIPSet",
+              "wafv2:DeleteIPSet",
+            ].includes(item.split(" ")[0]!)
           ) {
             expect(item).toBe(
               `${item.split(" ")[0]} on ${getAwsWafIpSetResource(EXTERNAL_ID)}`,
@@ -1304,7 +1365,9 @@ describe("the settings a command is written from, as a connection keeps them", (
       },
     );
 
-    expect(withWaf).toContain(`--policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} `);
+    expect(withWaf).toContain(
+      `--policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} `,
+    );
     expect(withWaf).toContain("wafv2:UpdateWebACL");
   });
 });
@@ -1380,7 +1443,7 @@ describe("every setting that changes a command is asked with it, and no other", 
     }
   });
 
-  test("they are what to read and Data Security's two settings on every cloud, and Block addresses in AWS WAF on AWS", () => {
+  test("they are what to read, Data Security's two settings and the blocklist's on every cloud", () => {
     for (const definition of CloudConnectionCatalog) {
       expect(
         definition.configFields
@@ -1396,9 +1459,7 @@ describe("every setting that changes a command is asked with it, and no other", 
           DATA_SECURITY_FIELD_KEY,
           DATA_SECURITY_RESPONSE_FIELD_KEY,
           READ_SCOPE_FIELD_KEY,
-          ...(definition.provider === CloudProvider.AWS
-            ? [WAF_BLOCKLIST_FIELD_KEY]
-            : []),
+          WAF_BLOCKLIST_FIELD_KEY,
         ].sort(),
       );
       // No secret is a command's setting: a secret is pasted after it runs.
@@ -1419,8 +1480,10 @@ describe("every setting that changes a command is asked with it, and no other", 
  * it grants beyond that. Held to the grants read back above: content
  * samples exactly when the command lets the connection read data, Data
  * security response exactly when it lets it write a data store, the
- * blocklist's IP sets exactly when it lets it write IP sets in AWS WAF, and
- * its rule exactly when it lets it write a web ACL.
+ * blocklist's IP sets exactly when it lets it write IP sets in AWS WAF,
+ * its rule exactly when it lets it write a web ACL, and OneUptime's rules in
+ * WAF policies exactly when it lets it write Azure WAF or Cloud Armor
+ * policies.
  */
 describe("what the words say a command grants beyond reading is what it grants", () => {
   const AWS_DATA_READS: Array<string> = [
@@ -1478,10 +1541,24 @@ describe("what the words say a command grants beyond reading is what it grants",
     return actionOf(item).startsWith("wafv2:");
   }
 
-  // A write to a data store: anything written but AWS WAF's.
+  // The blocklist's custom role on Azure or Google Cloud.
+  function isWafPolicyRole(identity: string): boolean {
+    return (
+      identity === `custom role ${AZURE_WAF_BLOCKLIST_ROLE}` ||
+      identity.startsWith(
+        `custom role ${GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID} in `,
+      )
+    );
+  }
+
+  // A write to a data store: anything written but the blocklist's.
   function writes(grant: CommandGrant): boolean {
     return Object.keys(grant.grants).some((identity: string): boolean => {
       const items: Array<string> = grant.grants[identity]!;
+
+      if (isWafPolicyRole(identity)) {
+        return false;
+      }
 
       if (identity.startsWith("custom role ")) {
         // A custom role of Azure's or Google Cloud's: anything but a read.
@@ -1509,6 +1586,20 @@ describe("what the words say a command grants beyond reading is what it grants",
     });
   }
 
+  // A write to an Azure WAF or Cloud Armor policy: the blocklist's custom role, and a write in it.
+  function writesWafPolicies(grant: CommandGrant): boolean {
+    return Object.keys(grant.grants).some((identity: string): boolean => {
+      return (
+        isWafPolicyRole(identity) &&
+        grant.grants[identity]!.some((permission: string): boolean => {
+          return (
+            permission.endsWith("/write") || permission.endsWith(".update")
+          );
+        })
+      );
+    });
+  }
+
   // A write to a web ACL.
   function writesWebAcls(grant: CommandGrant): boolean {
     return Object.values(grant.grants).some((items: Array<string>): boolean => {
@@ -1523,9 +1614,10 @@ describe("what the words say a command grants beyond reading is what it grants",
       for (const choice of choicesOf(way)) {
         const grant: CommandGrant = readCommand(way, commandFor(way, choice));
         const extras: Array<CloudConnectionAccessExtra> =
-          getCloudConnectionAccessExtras(
-            getCloudConnectionCommandSettings(savedConfig(way, choice)),
-          );
+          getCloudConnectionAccessExtras({
+            ...getCloudConnectionCommandSettings(savedConfig(way, choice)),
+            provider: way.definition.provider,
+          });
 
         expect({
           way: describeWay(way, choice),
@@ -1544,6 +1636,9 @@ describe("what the words say a command grants beyond reading is what it grants",
               : []),
             ...(writesWebAcls(grant)
               ? [CloudConnectionAccessExtra.WafRule]
+              : []),
+            ...(writesWafPolicies(grant)
+              ? [CloudConnectionAccessExtra.WafPolicyRules]
               : []),
           ],
         });

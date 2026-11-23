@@ -138,11 +138,28 @@ describe("readRequestBodyRefusal", () => {
       "utf8",
     );
 
-    // The JSON, form and protobuf parsers: each takes its route's bytes.
+    /*
+     * The JSON, form and protobuf parsers, StartServer's and a route's after
+     * its key (AppBodyParsers, #10702): each takes its route's bytes.
+     */
+    const parsers: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Middleware",
+        "AppBodyParsers.ts",
+      ),
+      "utf8",
+    );
+
     expect(startServer).not.toMatch(/limit:\s*"[^"]+"/);
-    expect(
-      Array.from(startServer.matchAll(/limit: limit\.bytes/g)),
-    ).toHaveLength(3);
+    expect(parsers).not.toMatch(/limit:\s*"[^"]+"/);
+    expect(Array.from(parsers.matchAll(/limit: limit\.bytes/g))).toHaveLength(
+      3,
+    );
     expect(UNEXPLAINED_ERROR_MESSAGES.tooLargeForOneUptime).toContain(
       "the 50 MB OneUptime takes in one request",
     );

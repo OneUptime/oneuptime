@@ -211,7 +211,8 @@ describe("closeConnectionInstead", () => {
     for (const later of [
       "app.use(CorsMiddleware);",
       "app.use(setDefaultHeaders);",
-      "GzipRequestBodyMiddleware.parseBody(req, res, next, limit)",
+      // The App's parsers, the gzip reader among them (AppBodyParsers).
+      "AppBodyParsers.read(req, res, next, getRequestBodyLimit(req.path));",
     ]) {
       expect(startServer.indexOf(later)).toBeGreaterThan(mounted);
     }

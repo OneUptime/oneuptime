@@ -15,10 +15,11 @@
  *
  * Steered by the query string:
  *   - page=incident  the page behind: an incident (#42 Checkout latency
- *                    above 2s) - the default; home, Home (no page context);
- *                    logs, the logs explorer with Explain with AI; setup,
- *                    a guided setup's first step, drawn by the Dashboard's
- *                    own frame, with its Describe it instead (issue #7245)
+ *                    above 2s) - the default; home, Home, a page Ask AI
+ *                    knows too (issue #7062); logs, the logs explorer
+ *                    with Explain with AI; setup, a guided setup's first
+ *                    step, drawn by the Dashboard's own frame, with its
+ *                    Describe it instead (issue #7245)
  *   - open=1         Ask AI is opened as the page loads
  *   - history=some   five past conversations (none by default);
  *                    many, twenty-five

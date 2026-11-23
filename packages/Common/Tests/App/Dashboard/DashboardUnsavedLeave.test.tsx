@@ -143,6 +143,10 @@ jest.mock(
 
     return {
       __esModule: true,
+      // The id of a widget's box: what the page scrolls a widget just added to.
+      getDashboardWidgetBoxId: (id: string): string => {
+        return `dashboard-component-${id}`;
+      },
       default: (props: {
         isEditMode?: boolean | undefined;
         dashboardViewConfig: { components: Array<Record<string, unknown>> };

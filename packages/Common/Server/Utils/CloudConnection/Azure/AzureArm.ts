@@ -607,12 +607,62 @@ export default class AzureArm {
     return await this.write("PUT", url, body, step);
   }
 
-  private async write(
-    method: "PATCH" | "PUT",
-    url: string,
-    body: JSONObject,
-    step: string,
-  ): Promise<JSONObject> {
+  /*
+   * A PUT of a resource Azure changes only whole, written only while it is
+   * as it was read (#10348): the ETag the read answered goes in If-Match,
+   * and Azure answers 412 when someone wrote it since - for the caller to
+   * read it again and make its change on that, never to write it blind.
+   * Answers its status (202 while Front Door applies a WAF policy) and its
+   * JSON. A throttled try is asked again: its If-Match makes the second try
+   * the same as the first. Held to the management host as a PATCH is.
+   */
+  public async putIfMatch(data: {
+    url: string;
+    body: JSONObject;
+    etag: string;
+    step: string;
+  }): Promise<{ statusCode: number; body: JSONObject }> {
+    this.assertManagementUrl(data.url, data.step);
+
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<{ statusCode: number; body: JSONObject }> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        const response: DataSourceHttpResponse = (
+          await this.send({
+            transport: this.options.transport,
+            method: "PUT",
+            url: data.url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              ...(data.etag ? { "If-Match": data.etag } : {}),
+            },
+            body: JSON.stringify(data.body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step: data.step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
+
+        return {
+          statusCode: response.statusCode,
+          body: readObject(response.bodyJson),
+        };
+      },
+    });
+  }
+
+  private assertManagementUrl(url: string, step: string): void {
     let host: string = "";
 
     try {
@@ -626,6 +676,15 @@ export default class AzureArm {
         `Azure ${step} must go to the connection's Resource Manager host.`,
       );
     }
+  }
+
+  private async write(
+    method: "PATCH" | "PUT",
+    url: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> {
+    this.assertManagementUrl(url, step);
 
     // A setting set twice is set once: a throttled try is asked again.
     return await withCloudRetries({

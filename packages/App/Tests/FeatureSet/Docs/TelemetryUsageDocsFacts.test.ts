@@ -698,8 +698,24 @@ describe("usage as a metric", () => {
       }).toEqual({ type, counted: false });
     }
 
+    // #10716: and the syslog a probe forwards, each device's in its project.
+    const probeSyslog: string = fs
+      .readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, "");
+
+    expect(probeSyslog).toContain(
+      "attribution:awaitTelemetryIngestAttribution.forBatch({",
+    );
+    expect(probeSyslog).toContain("awaitbudget.attribution?.settle();");
+
     expect(ENGLISH).toContain(
-      "- **What is counted.** The logs, traces, metrics and profiles sent over OTLP are counted, and so are the logs from Fluent Bit, Fluentd or syslog. Security events and session replays are not.",
+      "- **What is counted.** The logs, traces, metrics and profiles sent over OTLP are counted, and so are the logs from Fluent Bit, Fluentd or syslog, including the syslog network devices send to a probe. Security events and session replays are not.",
     );
   });
 

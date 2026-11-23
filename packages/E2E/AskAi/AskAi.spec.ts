@@ -58,6 +58,19 @@ const INCIDENT_SUGGESTIONS: Array<string> = [
   "What changed?",
   "Draft status update",
 ];
+/*
+ * Which of the incident's pages is open, sent as its route template (#10104):
+ * the server names the page, and no id of the address goes with it.
+ */
+const INCIDENT_PAGE_TEMPLATE: string = "/dashboard/:projectId/incidents/:id";
+// Home is a page Ask AI knows (#7062): the pill names it, and it asks its own.
+const HOME_CHIP: string = "Home";
+const HOME_SUGGESTIONS: Array<string> = [
+  "Where do I start?",
+  "What needs attention?",
+  "Get paged",
+  "Watch my website",
+];
 const GENERIC_SUGGESTIONS: Array<string> = [
   "Latency chart",
   "Error volume",
@@ -74,6 +87,7 @@ interface SentQuestion {
     type: string;
     entityId?: string;
     entityTitle?: string;
+    page?: string;
   } | null;
 }
 
@@ -567,7 +581,7 @@ test.describe("Ask AI beside the page", () => {
 
     await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
     await expect(asked).toBeVisible();
-    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(HOME_CHIP);
 
     await page.getByTestId("fixture-link-incident").click();
 
@@ -589,7 +603,7 @@ test.describe("Ask AI beside the page", () => {
     await page.getByTestId("fixture-link-home").click();
 
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
-      GENERIC_SUGGESTIONS,
+      HOME_SUGGESTIONS,
     );
 
     await page.getByTestId("fixture-link-incident").click();
@@ -607,6 +621,7 @@ test.describe("Ask AI beside the page", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);
@@ -1100,6 +1115,7 @@ test.describe("the start", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);
@@ -1131,7 +1147,7 @@ test.describe("the start", () => {
     );
   });
 
-  test("with no page behind it, one sentence says where answers come from", async ({
+  test("on Home, the pill names Home and the start asks Home's own questions; with no page behind it, one sentence says where answers come from", async ({
     page,
   }: {
     page: Page;
@@ -1139,10 +1155,14 @@ test.describe("the start", () => {
     await load(page, "page=home");
     await openAskAi(page);
 
-    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
-    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
-    await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
-      GENERIC_SUGGESTIONS,
+    // What the pill says is not said again under the question.
+    await expect(page.getByTestId("ai-chat-context")).toHaveText(HOME_CHIP);
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toHaveCount(0);
+    const chips: Locator = page.getByTestId("ai-chat-suggestion");
+    await expect(chips).toHaveText(HOME_SUGGESTIONS);
+    await expect(chips.first()).toHaveAttribute(
+      "title",
+      "Where do I start with OneUptime, and what should I set up first?",
     );
     await expect(composer(page)).toHaveAttribute(
       "placeholder",
@@ -1150,6 +1170,19 @@ test.describe("the start", () => {
     );
 
     await screenshot(page, "start-home-1280");
+
+    // The pill removed, no page is behind it.
+    await page.getByRole("button", { name: "Remove page context" }).click();
+
+    await expect(page.getByTestId("ai-chat-context")).toHaveCount(0);
+    await expect(askAi(page).getByText(HOME_SENTENCE)).toBeVisible();
+    await expect(chips).toHaveText(GENERIC_SUGGESTIONS);
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "Ask anything…",
+    );
+
+    await screenshot(page, "start-no-page-1280");
   });
 });
 
@@ -3255,6 +3288,7 @@ test.describe("on a resolved incident", () => {
           type: "Incident",
           entityId: INCIDENT_ID,
           entityTitle: "#42 Checkout latency above 2s",
+          page: INCIDENT_PAGE_TEMPLATE,
         },
       }),
     ]);

@@ -608,7 +608,16 @@ describe("useBulkOwnerActions", () => {
 
     const teamCall: any = getListCallsFor(Team)[0];
     expect(teamCall.query.projectId.toString()).toBe(PROJECT_ID);
-    expect(teamCall.select).toEqual({ _id: true, name: true });
+    /*
+     * With what tells a team apart from another of the same name: its
+     * description and when it was made (getSharedNameSelect, #10064).
+     */
+    expect(teamCall.select).toEqual({
+      _id: true,
+      name: true,
+      description: true,
+      createdAt: true,
+    });
     expect(teamCall.sort).toEqual({ name: SortOrder.Ascending });
   });
 

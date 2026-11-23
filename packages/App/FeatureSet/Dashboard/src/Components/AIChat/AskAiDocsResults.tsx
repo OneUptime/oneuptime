@@ -48,10 +48,7 @@ export const DOCS_RESULTS_UNDER_AN_ANSWER: number = 3;
 export const toDocsQuestion: (question: string) => string = (
   question: string,
 ): string => {
-  return question
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MAX_DOCS_QUESTION_CHARS);
+  return question.replace(/\s+/g, " ").trim().slice(0, MAX_DOCS_QUESTION_CHARS);
 };
 
 export interface ComponentProps {

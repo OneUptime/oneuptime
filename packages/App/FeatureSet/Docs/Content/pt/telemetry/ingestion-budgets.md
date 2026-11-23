@@ -114,7 +114,7 @@ No cartão **Orçamentos de equipes e rótulos**, clique em **Criar: Orçamento*
 Clique em **Criar: Orçamento**. O orçamento de uma equipe ou de um rótulo não pode ser maior que o do projeto: o OneUptime o recusa e diz qual é o máximo permitido.
 :::
 
-- **O que ele conta.** Os registros, traços, métricas e perfis de cada serviço, host, cluster e outro recurso de que a equipe é proprietária ou que tem o rótulo, sejam enviados pelo OpenTelemetry (OTLP) ou, no caso dos registros, pelo Fluent Bit, pelo Fluentd ou pelo syslog. Os eventos de segurança contam apenas nos orçamentos do projeto e da chave.
+- **O que ele conta.** Os registros, traços, métricas e perfis de cada serviço, host, cluster e outro recurso de que a equipe é proprietária ou que tem o rótulo, sejam enviados pelo OpenTelemetry (OTLP) ou, no caso dos registros, pelo Fluent Bit, pelo Fluentd ou pelo syslog, incluindo o syslog que os dispositivos de rede enviam a uma sonda. Os eventos de segurança contam apenas nos orçamentos do projeto e da chave.
 - **De quem é um recurso.** Um serviço, um host ou outro recurso é de uma equipe quando a equipe está entre os seus proprietários, e de um rótulo quando tem o rótulo: os mesmos proprietários e rótulos que decidem quem pode ler a sua telemetria. Uma alteração neles conta em menos de um minuto.
 - **Quando se esgota, a telemetria é descartada.** A telemetria desse sinal vinda deles é descartada até a redefinição, e o remetente não é avisado: ele recebeu a resposta quando a telemetria chegou. O que é descartado deixa de contar no orçamento do projeto ou da chave.
 - **Quem é avisado.** Os Proprietários do projeto recebem um e-mail quando o orçamento passa do limite de aviso, e quando ele se esgota.
@@ -135,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Outros remetentes HTTP recebem JSON.** Fluent Bit, Fluentd, syslog e os outros endpoints HTTP recebem `error`, `message` e `resetsAt`, e também `retryAfterSeconds` quando é um limite de taxa que recusa.
-- **MQTT e as transmissões de nuvem não podem ser avisados.** A telemetria que chega por MQTT ou pela transmissão de um provedor de nuvem é descartada assim que o orçamento dela se esgota. Nenhum limite de taxa se aplica a ela: ela não poderia ser enviada de novo.
+- **MQTT, as transmissões de nuvem e as sondas não podem ser avisados.** A telemetria que chega por MQTT ou pela transmissão de um provedor de nuvem é descartada assim que o orçamento dela se esgota, e também o syslog que os dispositivos de rede enviam a uma sonda: os registros de cada dispositivo contam no orçamento do próprio projeto dele. Nenhum limite de taxa se aplica a ela: ela não poderia ser enviada de novo.
 - **Nem os serviços de uma equipe ou de um rótulo.** Quando o orçamento de uma equipe ou de um rótulo se esgota, a telemetria deles é aceita e depois descartada: veja [Dar a uma equipe ou a um rótulo um orçamento próprio](#dar-a-uma-equipe-ou-a-um-rótulo-um-orçamento-próprio).
 - **As recusas são contadas.** O que um orçamento esgotado recusa ou descarta é contado como descartado, e cada requisição que um limite de taxa recusa, como limitada: veja [Ver o uso e os descartes de hoje](#ver-o-uso-e-os-descartes-de-hoje).
 

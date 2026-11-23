@@ -7,6 +7,7 @@ import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DeclaredCodeChanges from "../../AutoRemediation/DeclaredCodeChanges";
+import DataSecurityIssueGroupFix from "../../DataSecurity/DataSecurityIssueGroupFix";
 import { CodeFixAgentIdentity, CodeFixAgentSource } from "./CodeFixAgentAuth";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -320,6 +321,18 @@ export default class CodeFixPullRequestRecord {
      * channels, get the pull request (never throws).
      */
     await DeclaredCodeChanges.onPullRequestOpened({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      pullRequestUrl: fields.pullRequestUrl,
+      title: fields.title,
+    });
+
+    /*
+     * A task that fixes the cause of a group of Data Security issues once
+     * (#10370): each of the group's issues gets the pull request on its
+     * timeline (never throws).
+     */
+    await DataSecurityIssueGroupFix.onPullRequestOpened({
       projectId: data.projectId,
       aiRunId: data.aiRunId,
       pullRequestUrl: fields.pullRequestUrl,

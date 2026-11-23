@@ -26,6 +26,8 @@ import DbtIngest, {
   DbtIngestSummary,
 } from "Common/Server/Utils/DataObservability/DbtIngest";
 import { readBearerIngestionKey } from "./OpenLineageIngest";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -50,13 +52,27 @@ const setDbtProductType: RequestHandler = (
  * checks with their results, and the invocation a run of the project's
  * pipeline (DbtIngest). The answer says what was matched, so a CI log shows
  * at once when nothing was.
+ *
+ * The artifacts are read once the key is right (#10702): StartServer leaves
+ * the body unread (RequestBodyLimit), and nothing of it is read or parsed
+ * for a request without the right key, which the CLI sends in
+ * x-oneuptime-token (or CI as Authorization: Bearer). JSON, held to 50 MB
+ * and 1,000,000 values, gzip-compressed or not.
  */
+const readArtifactsBody: RequestHandler =
+  RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, {
+    parseGzipJson: true,
+  });
+
 router.post(
   "/dbt/v1/artifacts",
   TelemetryIngestionDisabled.middleware,
   readBearerIngestionKey,
   setDbtProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.DbtArtifacts),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.DbtArtifacts,
+    readArtifactsBody,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

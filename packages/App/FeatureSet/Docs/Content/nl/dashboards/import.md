@@ -76,7 +76,7 @@ Opnameregels, waarschuwingsregels over logs, Datadog-widgets die logs, traces of
 
 ## Een query omzetten met OneUptime AI
 
-Een query die geen regel omzet, toont **Convert with OneUptime AI**, waarvoor AI voor het project aan moet staan. Alleen die query, met de namen van de variabelen van het dashboard, gaat naar de AI-provider van uw project. Het antwoord wordt gecontroleerd zoals elke query en aan u getoond: kies **Use This Query** om het te gebruiken. Er wordt niets aangemaakt totdat u het dashboard of de monitors aanmaakt.
+Een query die geen regel omzet, toont **Convert with OneUptime AI**, waarvoor AI voor het project aan moet staan. Alleen die query, met de namen van de variabelen van het dashboard, gaat naar de [LLM-provider](/docs/ai/llm-provider) van uw project. Het antwoord wordt gecontroleerd zoals elke query en aan u getoond: kies **Use This Query** om het te gebruiken. Er wordt niets aangemaakt totdat u het dashboard of de monitors aanmaakt.
 
 ## Volgende stappen
 
