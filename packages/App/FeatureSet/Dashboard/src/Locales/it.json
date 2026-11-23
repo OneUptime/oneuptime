@@ -62690,5 +62690,7 @@
   "Step Check": "Controllo del passaggio",
   "Their sign-in settings were already cleared.": "Le sue impostazioni di accesso erano già state cancellate.",
   "{{name}}'s sign-in settings were already cleared.": "Le impostazioni di accesso di {{name}} erano già state cancellate.",
-  "These people's sign-in settings were already cleared.": "Le impostazioni di accesso di queste persone erano già state cancellate."
+  "These people's sign-in settings were already cleared.": "Le impostazioni di accesso di queste persone erano già state cancellate.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Il prodotto Eventi di sicurezza è disattivato su questo server, quindi OneUptime AI ha smesso di gestire il caso.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti."
 }

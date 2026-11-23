@@ -62690,5 +62690,7 @@
   "Step Check": "Verificação da etapa",
   "Their sign-in settings were already cleared.": "As configurações de login dessa pessoa já tinham sido apagadas.",
   "{{name}}'s sign-in settings were already cleared.": "As configurações de login de {{name}} já tinham sido apagadas.",
-  "These people's sign-in settings were already cleared.": "As configurações de login dessas pessoas já tinham sido apagadas."
+  "These people's sign-in settings were already cleared.": "As configurações de login dessas pessoas já tinham sido apagadas.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "O produto Eventos de segurança está desativado neste servidor, então o OneUptime AI parou de trabalhar no caso.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "O produto Eventos de segurança está desativado neste servidor. Um administrador do servidor pode ativá-lo em Painel de administração > Configurações > Produtos."
 }

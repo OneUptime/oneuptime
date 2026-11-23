@@ -62690,5 +62690,7 @@
   "Step Check": "Stapcontrole",
   "Their sign-in settings were already cleared.": "Hun aanmeldinstellingen waren al gewist.",
   "{{name}}'s sign-in settings were already cleared.": "De aanmeldinstellingen van {{name}} waren al gewist.",
-  "These people's sign-in settings were already cleared.": "De aanmeldinstellingen van deze mensen waren al gewist."
+  "These people's sign-in settings were already cleared.": "De aanmeldinstellingen van deze mensen waren al gewist.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server, dus OneUptime AI is gestopt met het behandelen van de zaak.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten."
 }

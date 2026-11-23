@@ -62690,5 +62690,7 @@
   "Step Check": "Проверка шага",
   "Their sign-in settings were already cleared.": "Настройки входа пользователя уже удалены.",
   "{{name}}'s sign-in settings were already cleared.": "Настройки входа пользователя {{name}} уже удалены.",
-  "These people's sign-in settings were already cleared.": "Настройки входа этих пользователей уже удалены."
+  "These people's sign-in settings were already cleared.": "Настройки входа этих пользователей уже удалены.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты»."
 }

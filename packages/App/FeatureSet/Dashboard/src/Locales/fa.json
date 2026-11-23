@@ -62690,5 +62690,7 @@
   "Step Check": "بررسی گام",
   "Their sign-in settings were already cleared.": "تنظیمات ورود این فرد پیش‌تر پاک شده بود.",
   "{{name}}'s sign-in settings were already cleared.": "تنظیمات ورود {{name}} پیش‌تر پاک شده بود.",
-  "These people's sign-in settings were already cleared.": "تنظیمات ورود این افراد پیش‌تر پاک شده بود."
+  "These people's sign-in settings were already cleared.": "تنظیمات ورود این افراد پیش‌تر پاک شده بود.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "رویدادهای امنیتی در این سرور خاموش شده است، بنابراین OneUptime AI رسیدگی به پرونده را متوقف کرد.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند."
 }

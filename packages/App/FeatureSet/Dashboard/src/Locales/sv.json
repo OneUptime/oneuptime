@@ -62690,5 +62690,7 @@
   "Step Check": "Stegkontroll",
   "Their sign-in settings were already cleared.": "Deras inloggningsinställningar hade redan rensats.",
   "{{name}}'s sign-in settings were already cleared.": "Inloggningsinställningarna för {{name}} hade redan rensats.",
-  "These people's sign-in settings were already cleared.": "Inloggningsinställningarna för de här personerna hade redan rensats."
+  "These people's sign-in settings were already cleared.": "Inloggningsinställningarna för de här personerna hade redan rensats.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produkten Säkerhetshändelser är avstängd på den här servern, så OneUptime AI slutade arbeta med ärendet.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produkten Säkerhetshändelser är avstängd på den här servern. En serveradministratör kan slå på den under Admin-instrumentpanel > Inställningar > Produkter."
 }

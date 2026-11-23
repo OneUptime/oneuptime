@@ -62690,5 +62690,7 @@
   "Step Check": "단계 검사",
   "Their sign-in settings were already cleared.": "이 사용자의 로그인 설정은 이미 지워졌습니다.",
   "{{name}}'s sign-in settings were already cleared.": "{{name}}님의 로그인 설정은 이미 지워졌습니다.",
-  "These people's sign-in settings were already cleared.": "이 사용자들의 로그인 설정은 이미 지워졌습니다."
+  "These people's sign-in settings were already cleared.": "이 사용자들의 로그인 설정은 이미 지워졌습니다.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "보안 이벤트가 이 서버에서 꺼져 있어 OneUptime AI가 케이스 처리를 멈췄습니다.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다."
 }

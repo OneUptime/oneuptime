@@ -62690,5 +62690,7 @@
   "Step Check": "Trinkontrol",
   "Their sign-in settings were already cleared.": "Deres loginindstillinger var allerede ryddet.",
   "{{name}}'s sign-in settings were already cleared.": "Loginindstillingerne for {{name}} var allerede ryddet.",
-  "These people's sign-in settings were already cleared.": "Loginindstillingerne for disse personer var allerede ryddet."
+  "These people's sign-in settings were already cleared.": "Loginindstillingerne for disse personer var allerede ryddet.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhedshændelser er slået fra på denne server, så OneUptime AI holdt op med at arbejde med sagen.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhedshændelser er slået fra på denne server. En serveradministrator kan slå det til under Admin-dashboard > Indstillinger > Produkter."
 }

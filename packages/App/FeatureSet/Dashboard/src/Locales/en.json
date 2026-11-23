@@ -62690,5 +62690,7 @@
   "Step Check": "Step Check",
   "Their sign-in settings were already cleared.": "Their sign-in settings were already cleared.",
   "{{name}}'s sign-in settings were already cleared.": "{{name}}'s sign-in settings were already cleared.",
-  "These people's sign-in settings were already cleared.": "These people's sign-in settings were already cleared."
+  "These people's sign-in settings were already cleared.": "These people's sign-in settings were already cleared.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products."
 }

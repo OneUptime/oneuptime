@@ -62690,5 +62690,7 @@
   "Step Check": "ステップのチェック",
   "Their sign-in settings were already cleared.": "このユーザーのサインイン設定はすでに消去されています。",
   "{{name}}'s sign-in settings were already cleared.": "{{name}} のサインイン設定はすでに消去されています。",
-  "These people's sign-in settings were already cleared.": "これらのユーザーのサインイン設定はすでに消去されています。"
+  "These people's sign-in settings were already cleared.": "これらのユーザーのサインイン設定はすでに消去されています。",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。"
 }

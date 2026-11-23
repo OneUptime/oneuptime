@@ -62690,5 +62690,7 @@
   "Step Check": "فحص الخطوة",
   "Their sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هذا الشخص.",
   "{{name}}'s sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى {{name}}.",
-  "These people's sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هؤلاء الأشخاص."
+  "These people's sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هؤلاء الأشخاص.",
+  "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم، لذا توقّف OneUptime AI عن العمل على الحالة.",
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات."
 }
