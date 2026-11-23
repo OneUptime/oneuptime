@@ -16,6 +16,10 @@ import MonitorUtil from "../../../../Utils/Monitors/Monitor";
 import ApiMonitor, {
   APIResponse,
 } from "../../../../Utils/Monitors/MonitorTypes/ApiMonitor";
+import WebsiteMonitor, {
+  ProbeWebsiteResponse,
+} from "../../../../Utils/Monitors/MonitorTypes/WebsiteMonitor";
+import MonitorLogUrl from "../../../../Utils/Monitors/MonitorLogUrl";
 import OnlineCheck from "../../../../Utils/OnlineCheck";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import logger from "Common/Server/Utils/Logger";
@@ -138,7 +142,7 @@ beforeAll(async () => {
         });
 
         // A request that fails before any answer: the socket is dropped.
-        if (request.url === "/drop") {
+        if ((request.url || "").startsWith("/drop")) {
           request.socket.destroy();
           return;
         }
@@ -571,6 +575,45 @@ describe("a secret's value never reaches a log or an error message", () => {
     expect(JSON.stringify(response)).not.toContain(MARK);
   });
 
+  it("not when the request fails, with a secret in its URL's path and query (#10782)", async () => {
+    const response: APIResponse | null = await ApiMonitor.ping(
+      URL.fromString(`${serverUrl}/drop/${MARK}?key=${MARK}-key`),
+      {
+        requestType: HTTPMethod.GET,
+        retry: 0,
+        timeout: new PositiveNumber(30000),
+        monitorId: MONITOR_ID,
+      },
+    );
+
+    expect(received).toHaveLength(1);
+    expect(response?.isOnline).toBe(false);
+    expect(logger.error).toHaveBeenCalled();
+
+    const logged: string = everythingLogged();
+
+    expect(logged).not.toContain(MARK);
+    // Each line still says which monitor, and where it was sent.
+    expect(logged).toContain(MONITOR_ID.toString());
+    expect(logged).toContain(serverUrl);
+  });
+
+  it("not when a Website monitor's request fails, with a secret in its URL", async () => {
+    const response: ProbeWebsiteResponse | null = await WebsiteMonitor.ping(
+      URL.fromString(`${serverUrl}/drop/${MARK}?token=${MARK}`),
+      {
+        retry: 0,
+        timeout: new PositiveNumber(30000),
+        monitorId: MONITOR_ID,
+      },
+    );
+
+    expect(received).toHaveLength(1);
+    expect(response?.isOnline).toBe(false);
+    expect(logger.error).toHaveBeenCalled();
+    expect(everythingLogged()).not.toContain(MARK);
+  });
+
   it("not when a header cannot carry a line break the value holds", async () => {
     const response: ProbeMonitorResponse = await probeStep(
       apiStep({
@@ -598,5 +641,29 @@ describe("a secret's value never reaches a log or an error message", () => {
     expect(response.failureCause).toBe(REQUEST_BODY_NOT_JSON);
     expect(everythingLogged()).not.toContain(MARK);
     expect(JSON.stringify(response)).not.toContain(MARK);
+  });
+});
+
+describe("a URL as a log line writes it (#10782)", () => {
+  it("is its scheme, host and port alone", () => {
+    expect(
+      MonitorLogUrl.write(
+        URL.fromString(
+          "https://api.example.com:8443/v1/tenant-hunter2/health?key=hunter2#top",
+        ),
+      ),
+    ).toBe("https://api.example.com:8443");
+    expect(MonitorLogUrl.write("http://user:hunter2@example.com/a?b=c")).toBe(
+      "http://example.com",
+    );
+    expect(MonitorLogUrl.write("https://example.com")).toBe(
+      "https://example.com",
+    );
+  });
+
+  it("never the text itself when it is no URL", () => {
+    for (const text of ["hunter2", "", undefined, null, "not a url hunter2"]) {
+      expect(MonitorLogUrl.write(text)).toBe("(an address that is not a URL)");
+    }
   });
 });

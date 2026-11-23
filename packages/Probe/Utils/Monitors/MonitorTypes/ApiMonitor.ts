@@ -1,4 +1,5 @@
 import OnlineCheck from "../../OnlineCheck";
+import MonitorLogUrl from "../MonitorLogUrl";
 import MonitorRetry from "../MonitorRetry";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -224,7 +225,7 @@ export default class ApiMonitor {
 
     // The monitor's own configuration, not a fault of OneUptime's.
     logger.error(
-      `API Monitor - ${data.options.monitorId?.toString()} ${data.requestType} ${data.url.toString()}: the request body is not valid JSON${position}, so the request was not sent.`,
+      `API Monitor - ${data.options.monitorId?.toString()} ${data.requestType} ${MonitorLogUrl.write(data.url)}: the request body is not valid JSON${position}, so the request was not sent.`,
       EXTERNAL_FAULT,
     );
 
@@ -247,18 +248,26 @@ export default class ApiMonitor {
 
   /*
    * A response as a log line writes it: without the request's headers and
-   * body. The server filled the monitor's secrets into both before it
-   * handed the probe the check, and the logger's redaction knows a secret
-   * only by the name of the field that holds it - a token in an
-   * "X-Tenant" header, or a password in a body's "pass", went into the
-   * log as it was (#10735).
+   * body, and with its URL's scheme and host alone. The server filled the
+   * monitor's secrets into all three before it handed the probe the check,
+   * and the logger's redaction knows a secret only by the name of the
+   * field that holds it - a token in an "X-Tenant" header, or a password
+   * in a body's "pass", went into the log as it was (#10735, #10782).
    */
-  private static writeForLog(response: APIResponse): string {
-    return JSON.stringify({
-      ...response,
-      requestHeaders: undefined,
-      requestBody: undefined,
-    });
+  private static writeForLog(
+    response: APIResponse,
+    // The URLs the request went to, written out of what is logged.
+    urls: Array<URL | string>,
+  ): string {
+    return MonitorLogUrl.scrub(
+      JSON.stringify({
+        ...response,
+        url: MonitorLogUrl.write(response.url),
+        requestHeaders: undefined,
+        requestBody: undefined,
+      }),
+      urls,
+    );
   }
 
   public static async ping(
@@ -368,7 +377,7 @@ export default class ApiMonitor {
     const attemptedAt: Date = new Date();
     try {
       logger.debug(
-        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} - Retry: ${
+        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - Retry: ${
           options.currentRetryCount
         }`,
       );
@@ -627,7 +636,7 @@ export default class ApiMonitor {
       };
 
       logger.debug(
-        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${url.toString()} succeeded with status ${apiResponse.statusCode}`,
+        `API Monitor - Pinging ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} succeeded with status ${apiResponse.statusCode}`,
       );
 
       return apiResponse;
@@ -671,8 +680,14 @@ export default class ApiMonitor {
         RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
           API.getFriendlyErrorMessage(err as Error),
       );
-      // Said in the logs below; a code the request carried is taken out.
-      const errorText: string = redact(String(err));
+      /*
+       * Said in the logs below: a code the request carried is taken out,
+       * and the URL it was sent to written by its scheme and host (#10782).
+       */
+      const errorText: string = MonitorLogUrl.scrub(redact(String(err)), [
+        request.url,
+        url,
+      ]);
 
       options.attempts.push({
         attemptNumber: options.currentRetryCount || 1,
@@ -724,7 +739,7 @@ export default class ApiMonitor {
       if (shouldVerifyProbeIsOnline && !options.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorWebsiteMonitors())) {
           logger.error(
-            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
+            `API Monitor - Probe is not online. Cannot ping  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
           );
           return null;
         }
@@ -761,7 +776,7 @@ export default class ApiMonitor {
           (err as any).toString().includes("exceeded"))
       ) {
         logger.debug(
-          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText}`,
+          `API Monitor - Timeout exceeded ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText}`,
         );
 
         apiResponse.failureCause = writeProbeTimeoutFailureCause(
@@ -789,8 +804,9 @@ export default class ApiMonitor {
        * offline response - so it must never open an Issue against OneUptime.
        */
       logger.error(
-        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${url.toString()} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
+        `API Monitor - Pinging  ${options.monitorId?.toString()} ${requestType} ${MonitorLogUrl.write(url)} - ERROR: ${errorText} Response: ${ApiMonitor.writeForLog(
           apiResponse,
+          [request.url, url],
         )}`,
         EXTERNAL_FAULT,
       );
