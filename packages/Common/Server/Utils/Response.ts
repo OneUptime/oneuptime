@@ -4,6 +4,10 @@ import {
   OneUptimeRequest,
   OneUptimeResponse,
 } from "./Express";
+import ClientRefusalLog, {
+  isClientErrorStatus,
+  isClientRefusal,
+} from "./ClientRefusalLog";
 import JsonToCsv from "./JsonToCsv";
 import logger, { getLogAttributesFromRequest } from "./Logger";
 import { sendUnexplainedError } from "./UnexplainedServerError";
@@ -144,10 +148,11 @@ export interface ErrorResponseOptions {
   /*
    * The request is refused for what its client sent - no ingestion key, a
    * wrong one, one switched off or over its rate - and nothing is wrong with
-   * the server. Logged at debug, not error: a refusal comes from anyone, and
-   * a client that keeps sending what is refused wrote one error-level line a
-   * request, at no cost to itself, raising error alerts and burying real
-   * errors (#10703).
+   * the server, and the caller logs or counts it itself: logged at debug
+   * alone, not counted by route (TelemetryIngest counts its own, #10703). A
+   * refusal of a client without it is told apart by its status and its
+   * Exception (ClientRefusalLog.isClientRefusal, #10768). A 5xx is logged
+   * at error whatever this says.
    */
   isClientRefusal?: boolean | undefined;
 }
@@ -472,10 +477,17 @@ export default class Response {
 
     /*
      * A refusal of what the client sent is no fault of the server's: logged
-     * at debug, where its caller logs or counts it as it chooses (#10703).
+     * at debug - where its caller logs or counts it as it chooses (#10703),
+     * or counted by its route, with a warn line a minute (ClientRefusalLog,
+     * #10768). It came from anyone, and a client that kept sending what is
+     * refused wrote one error-level line a request. Every 5xx, and every
+     * refusal whose Exception does not say the fault is the client's, is
+     * logged at error.
      */
-    if (options?.isClientRefusal) {
+    if (options?.isClientRefusal && isClientErrorStatus(status)) {
       logger.debug(error, getLogAttributesFromRequest(_req as any));
+    } else if (isClientRefusal(error, status)) {
+      ClientRefusalLog.log(_req, error, status);
     } else {
       logger.error(error, getLogAttributesFromRequest(_req as any));
     }
