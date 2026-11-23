@@ -1,4 +1,5 @@
 import MEMBER_SAVED_SIGN_IN_SETTINGS_COPY, {
+  MEMBER_SAVED_SIGN_IN_SETTINGS_ALREADY_CLEARED_TOAST_TEST_ID,
   MEMBER_SAVED_SIGN_IN_SETTINGS_CLEARED_TOAST_TEST_ID,
   MEMBER_SAVED_SIGN_IN_SETTINGS_LIST_TEST_ID,
 } from "./MemberSavedSignInSettingsCopy";
@@ -72,7 +73,11 @@ import React, {
  *
  * The clear is the bulk clear's, for one person: the same audit entry, the
  * same email. Once it is done, a toast says so and the list reads its rows
- * again, which asks the server again.
+ * again, which asks the server again. It waits, as every clear does, until
+ * the owner's session has confirmed it's theirs (#10775): the API client
+ * asks them and sends it again. When another clear of the person came
+ * first, the server clears and records nothing (#10776), and the toast says
+ * their settings were already cleared.
  */
 
 /*
@@ -185,16 +190,25 @@ export const fetchSavedSignInSettingsOfMembers: (
 
 /*
  * Clears one member's saved sign-in settings: how many people the server
- * cleared (one), or a throw - the error response itself, for the question
- * to say why.
+ * cleared - one, or none when another clear of them came first (#10776) -
+ * null when no answer could be read, or a throw - the error response
+ * itself, for the question to say why.
+ *
+ * The server clears only once the owner's session has confirmed it's
+ * theirs (#10775): until then it refuses, changing nothing, and the
+ * Dashboard's API client asks them (Confirm It's You, mounted in App.tsx)
+ * and sends the same clear again once they have, while the question waits.
+ * Cancelled, the refusal is thrown, and the question says why.
  */
 export const clearMemberSavedSignInSettings: (
   userId: string,
-) => Promise<number> = async (userId: string): Promise<number> => {
+) => Promise<number | null> = async (
+  userId: string,
+): Promise<number | null> => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   if (!projectId) {
-    return 0;
+    return null;
   }
 
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -218,7 +232,7 @@ export const clearMemberSavedSignInSettings: (
   const answer: ClearSavedSignInSettingsAnswer | null =
     readClearSavedSignInSettingsAnswer(response.data);
 
-  return answer ? answer.peopleCleared : 0;
+  return answer ? answer.peopleCleared : null;
 };
 
 /*
@@ -496,19 +510,42 @@ export const getClearMemberSavedSignInSettingsRowAction: (data: {
       }
 
       clearMemberSavedSignInSettings(userId)
-        .then((peopleCleared: number): void => {
+        .then((peopleCleared: number | null): void => {
           // Their chip goes at once; the list's read asks the server again.
           data.savedSignInSettings.forget(userId);
           context?.refresh();
 
-          // Never a toast for a clear the server did not say it made.
-          if (peopleCleared < 1) {
+          const translator: Translator = getGlobalTranslator();
+          const name: string = getMemberName(item);
+
+          // Nothing the server said it did: no toast at all.
+          if (peopleCleared === null) {
             onCompleteAction();
             return;
           }
 
-          const translator: Translator = getGlobalTranslator();
-          const name: string = getMemberName(item);
+          /*
+           * The server cleared nobody: another clear of them came first
+           * (#10776), and this one removed and recorded nothing. Never a
+           * success toast for a clear the server did not say it made.
+           */
+          if (peopleCleared < 1) {
+            Toast.info(
+              name
+                ? translator.translateTemplate(copy.alreadyCleared, {
+                    name: name,
+                  })
+                : translator.translateText(copy.alreadyClearedWithoutName) ||
+                    copy.alreadyClearedWithoutName,
+              {
+                dataTestId:
+                  MEMBER_SAVED_SIGN_IN_SETTINGS_ALREADY_CLEARED_TOAST_TEST_ID,
+              },
+            );
+
+            onCompleteAction();
+            return;
+          }
 
           Toast.success(
             name

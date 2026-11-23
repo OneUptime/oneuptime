@@ -269,6 +269,7 @@ OneUptime gir folk beskjed om sju ting på en sak. Ingen trenger å sette opp no
 - Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
 - Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
 - Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
+- Med **La OneUptime AI reagere først** slått på venter en ny sak på OneUptime AI hvis prioriteten ligger under den valgte: folk får høre om den først når OneUptime AI trenger dem, og da med en gang og med begrunnelse. Se [La OneUptime AI reagere først](/docs/telemetry/security-ai#la-oneuptime-ai-reagere-først).
 - En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup). Det samme gjelder et responsmål som er i ferd med å overskrides, eller er overskredet, et trinn som ikke lenger holder, og en sak OneUptime AI har overlevert til personer.
 - Sakens **Tidslinje** viser hvem som fikk beskjed, og når.
 
@@ -490,6 +491,7 @@ Hver kjøring vises på saken sin og under **Produkter → Sikkerhetshendelser �
 | Queued | Venter på en worker |
 | Kjører | Kjører stegene sine |
 | Waiting for Approval | Holdt tilbake før et steg som krever godkjenning |
+| Venter på OneUptime AI | Holdt tilbake før et steg **Tilkall vakten** mens [OneUptime AI reagerer først](/docs/telemetry/security-ai#la-oneuptime-ai-reagere-først) på kjøringens sak |
 | Vellykket | Alle steg kjørte eller ble hoppet over, eller et steg **Stopp kjøringen** avsluttet den |
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |

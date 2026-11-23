@@ -191,7 +191,7 @@ The **Sensitive data** section, first in a review, is about the change itself: w
 
 | The change | Makes a point when it |
 | --- | --- |
-| Code that writes telemetry | Writes a value to a log, a span's or an event's attribute, a metric's label or a prompt sent to an AI provider under a name that says it holds personal data, a secret or one of your project's own data types (`email`, `customer_ssn`, `password`, `apiKey`), or writes a whole request body, its headers or a user record. A name about the data rather than the data itself, such as `emailTemplate`, `isEmailVerified` or `hashedPassword`, makes none. |
+| Code that writes telemetry | Writes a value to a log, a span's or an event's attribute, a metric's label or a prompt sent to an LLM under a name that says it holds personal data, a secret or one of your project's own data types (`email`, `customer_ssn`, `password`, `apiKey`), or writes a whole request body, its headers or a user record. A name about the data rather than the data itself, such as `emailTemplate`, `isEmailVerified` or `hashedPassword`, makes none. |
 | Terraform, CloudFormation, Bicep, ARM, Kubernetes, Pulumi or CDK | Makes a data store public or shares its snapshot, turns off its encryption, backups, point-in-time recovery, versioning or access logging, or opens its firewall to every address: one rule for each [Data Security check](/docs/data-security/checks-and-issues) a file can show. |
 | A migration or a model | Adds a column whose name says it holds personal data, a password column that nothing in its name or the change says is hashed, a column of card numbers, or one of card security codes, which may never be stored. |
 

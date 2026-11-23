@@ -269,6 +269,7 @@ OneUptime 会就案例上的七件事通知相关人员。无需任何人做任�
 - 没有人会因为自己做的事而收到通知：手动打开案例、分配案例或启动运行的人不会收到相应通知。
 - 每个人对一个案例只会收到一次通知。一个以 Medium 打开、之后提升到 Critical 的案例，会在提升时通知选择了 High 或 Critical 的人，而不会再次通知选择了 Medium 的人，因为他们在案例打开时已经收到过通知。
 - 通过 **发送测试攻击** 发起的测试攻击会打开一个不通知任何人的案例。
+- 打开 **让 OneUptime AI 率先响应** 后，低于其所选优先级的新案例会先等待 OneUptime AI：只有在 OneUptime AI 需要人员时，相关人员才会收到通知，届时会立即收到，并附上原因。请参阅 [让 OneUptime AI 率先响应](/docs/telemetry/security-ai#让-oneuptime-ai-率先响应)。
 - Critical 案例和等待审批的步骤会立即发送，绝不会被压在 [邮件汇总](/docs/emails/notification-rollup) 中延后发送。即将错过或已错过的响应目标、不再有效的步骤，以及 OneUptime AI 移交给人员的案例，也是如此。
 - 案例的 **时间线** 会显示通知了谁以及何时通知。
 
@@ -490,6 +491,7 @@ Mattermost 收到的审批是不带按钮的文本。
 | Queued | 等待工作进程 |
 | Running | 正在运行其步骤 |
 | Waiting for Approval | 停在一个需要审批的步骤之前 |
+| 等待 OneUptime AI | 在 OneUptime AI 对其案例 [率先响应](/docs/telemetry/security-ai#让-oneuptime-ai-率先响应) 期间，停在一个 **呼叫值班人员** 步骤之前 |
 | Succeeded | 每个步骤都已运行或被跳过，或者由 **停止运行** 步骤结束了运行 |
 | Failed | 某个步骤失败，运行已停止 |
 | Cancelled | 有人取消了它，或拒绝了某个步骤 |

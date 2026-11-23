@@ -55,9 +55,10 @@ export interface LabelledReferences {
  * suggested, the audit log entry an audit log export's cursor stands at
  * (entries are kept in ClickHouse and carry no labels), the incident or
  * alert severity an on-call test page runs the On-Call Rules of
- * (severities carry no labels), and the monitor's fire drill an on-call
+ * (severities carry no labels), the monitor's fire drill an on-call
  * test page was part of (a drill has no record of its own: it is kept as
- * its tests alone).
+ * its tests alone), and the security case priority OneUptime AI responds
+ * first below (case priorities carry no labels).
  */
 export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
   new Set<string>([
@@ -80,6 +81,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
      * own, so the id names no labelled record to weigh the test by.
      */
     "OnCallDutyPolicyExecutionLog.testPageFireDrillId",
+    // The case priority OneUptime AI responds first below (#10353): a SecurityCasePriority.
+    "Project.securityCaseAiHoldBelowPriorityId",
   ]);
 
 /*
