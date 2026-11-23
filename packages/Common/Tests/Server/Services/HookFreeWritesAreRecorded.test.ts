@@ -573,6 +573,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": {
     "DataSecurityIssueReconciler.touch DataSecurityIssue": Why.Reported,
   },
+  /*
+   * A leak back in a version after its fix was verified (#10368): what the
+   * fix's watch read in the service's telemetry, noted on the issue for the
+   * reconciler, which reopens it with its Timeline line.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": {
+    "DataSecurityIssueResolutions.markCameBack DataSecurityIssue": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityProbeClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
   },
