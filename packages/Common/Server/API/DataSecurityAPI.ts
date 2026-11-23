@@ -84,6 +84,7 @@ import PendingInviteeProfiles, {
 } from "../Utils/TeamMember/PendingInviteeProfiles";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import FindingApplyToSimilar from "../Utils/DataSecurity/FindingApplyToSimilar";
 import DataSecurityIssueGroupFix, {
   CLOUD_FIX_PERMISSIONS,
   GROUP_PULL_REQUEST_PERMISSIONS,
@@ -197,6 +198,10 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    the stores declared as code, one approval for the stores made in the
  *    console - each part held to its own permission
  *    (DataSecurityIssueGroupFix).
+ *  - Apply to similar (#10372): the findings like one a person confirmed
+ *    or marked not sensitive, and the same decision, with their reason, on
+ *    the ones they keep ticked - for anyone who may change findings, each
+ *    read and changed with their own permissions (FindingApplyToSimilar).
  *
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
@@ -304,6 +309,15 @@ export const ISSUE_GROUP_FIX_PERMISSIONS: Array<Permission> = Array.from(
     ...CLOUD_FIX_PERMISSIONS,
   ]),
 );
+
+/*
+ * Who may apply a decision to the findings like one (#10372): who may
+ * change findings. Each finding is then read and changed with the
+ * person's own permissions, store by store.
+ */
+export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> = [
+  ...new DataStoreFinding().updateRecordPermissions,
+];
 
 const TREND_DAYS: number = 30;
 
@@ -999,6 +1013,45 @@ export default class DataSecurityAPI extends BaseAPI<
           proposalId: req.params["id"],
           reason: body["reason"],
         });
+      },
+    );
+
+    /*
+     * One decision settles every finding like it (#10372): the findings
+     * like the one decided, and the same decision on the ticked ones.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.similarFindings(":id"),
+      APPLY_TO_SIMILAR_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await FindingApplyToSimilar.listSimilar({
+          props,
+          projectId,
+          findingId: req.params["id"],
+        })) as unknown as JSONObject;
+      },
+    );
+
+    this.post(
+      DATA_SECURITY_API_ROUTES.applyToSimilarFindings(":id"),
+      APPLY_TO_SIMILAR_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+
+        return (await FindingApplyToSimilar.applyToSimilar({
+          props,
+          projectId,
+          findingId: req.params["id"],
+          findingIds: body["findingIds"],
+        })) as unknown as JSONObject;
       },
     );
 

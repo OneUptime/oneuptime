@@ -52,6 +52,8 @@ export const DATA_SECURITY_API_ROUTES: {
   issueGroups: string;
   issueGroupFixPlan: (groupId: string) => string;
   fixIssueGroup: (groupId: string) => string;
+  similarFindings: (findingId: string) => string;
+  applyToSimilarFindings: (findingId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -157,7 +159,59 @@ export const DATA_SECURITY_API_ROUTES: {
   fixIssueGroup: (groupId: string): string => {
     return `/data-security-issue-group/${groupId}/fix`;
   },
+  /*
+   * One decision settles every finding like it (#10372): the findings like
+   * one a person decided, that they may read and nobody decided yet; and
+   * the same decision on the ones they keep ticked, { findingIds }, with
+   * the reason they gave.
+   */
+  similarFindings: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/similar`;
+  },
+  applyToSimilarFindings: (findingId: string): string => {
+    return `/data-store-finding/${findingId}/apply-to-similar`;
+  },
 };
+
+/*
+ * A finding like one a person decided (#10372): the same data type in a
+ * field of the same name, nobody's decision yet, on a store the reader may
+ * read.
+ */
+export interface DataSecuritySimilarFinding {
+  findingId: string;
+  dataStoreId: string;
+  storeName: string;
+  storeKind: string;
+  location: string;
+  locationKind: string;
+  dataTypeId: string;
+  dataTypeName: string;
+  confidence: string;
+  // OneUptime AI's verdict on it, when it has one.
+  aiVerdict: string;
+  // On the same store as the finding decided, at another place.
+  isSameStore: boolean;
+}
+
+export interface DataSecuritySimilarFindings {
+  findingId: string;
+  // The decision on the finding: NotSensitive, Confirmed, or "" when none.
+  decision: string;
+  // The reason given, for a mark of not sensitive: what each one is given.
+  reason: string;
+  // Whether the finding has a field's name to be alike by: free text has none.
+  hasName: boolean;
+  findings: Array<DataSecuritySimilarFinding>;
+}
+
+export interface DataSecurityApplyToSimilarResult {
+  decision: string;
+  // Decided now.
+  applied: number;
+  // Left as they were: decided in between, no longer alike, or refused.
+  skipped: number;
+}
 
 export interface DataSecurityOverviewIssue {
   issueId: string;
