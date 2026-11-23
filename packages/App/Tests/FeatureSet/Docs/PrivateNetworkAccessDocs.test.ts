@@ -462,6 +462,32 @@ describe("the guide says which outbound connections go through a proxy", () => {
     }
   });
 
+  /*
+   * #10763: the Microsoft Teams bot's own requests - the keys it checks each
+   * message from Teams with, its tokens from Microsoft Entra ID and its
+   * replies - take the proxy too (BotFrameworkRouting).
+   */
+  test("names the Microsoft Teams bot's three requests among those that take the proxy", () => {
+    const paragraph: string = readPage("en").split("\n")[proxyParagraphLine()]!;
+
+    expect(paragraph).toContain(
+      "and AWS STS for the server's own AWS role. The Microsoft Teams bot goes through the proxy too: when it fetches the keys it checks each message from Teams with, when it gets its tokens from Microsoft, and when it replies. When the proxy refuses a request,",
+    );
+  });
+
+  test.each(LANGUAGES_WITH_PAGE)(
+    "%s names the Microsoft Teams bot beside its meetings, on the English paragraph's line",
+    (language: string) => {
+      const line: string =
+        readPage(language).split("\n")[proxyParagraphLine()] || "";
+
+      expect({
+        language,
+        microsoftTeams: line.split("Microsoft Teams").length - 1,
+      }).toEqual({ language, microsoftTeams: 2 });
+    },
+  );
+
   test.each(LANGUAGES_WITH_PAGE)(
     "%s names Twilio, Microsoft Graph and EKS Pod Identity, and a 407, on the English paragraph's line",
     (language: string) => {
