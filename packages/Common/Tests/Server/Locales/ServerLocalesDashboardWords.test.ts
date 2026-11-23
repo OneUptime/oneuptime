@@ -34,6 +34,11 @@ import {
   getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
 } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import {
+  getSharedNameMarksFor,
+  SharedNameOption,
+} from "../../../Types/Database/SharedNameMarks";
+import { SharedNameKind } from "../../../Types/Database/SharedNames";
 
 /*
  * SENTENCES THE SERVER AND THE DASHBOARD BOTH WRITE (#7247).
@@ -142,6 +147,49 @@ const sentencesTheFirstPolicyLooksUp: () => Set<string> = (): Set<string> => {
   return asked;
 };
 
+/*
+ * Every sentence a picker marks records that share a name with (#10314):
+ * the pill of each kind, and the day it was made, which tells twins apart
+ * when their descriptions do not. A chat's picker words them in the
+ * language on its reader's account, as the Dashboard's do.
+ */
+const sentencesTheSharedNameMarksLookUp: () => Set<string> =
+  (): Set<string> => {
+    const asked: Set<string> = new Set<string>();
+    const kinds: Array<SharedNameKind> = Object.values(
+      SharedNameKind,
+    ) as Array<SharedNameKind>;
+    // Two of each kind named alike, made on different days, neither described.
+    const options: Array<SharedNameOption> = kinds.flatMap(
+      (kind: SharedNameKind, index: number): Array<SharedNameOption> => {
+        return [1, 2].map((day: number): SharedNameOption => {
+          return {
+            value: `${kind}-${day}`,
+            label: "Production",
+            sharedName: {
+              kind: kind,
+              createdAt: new Date(Date.UTC(2026, 10, day + index * 2)),
+            },
+          };
+        });
+      },
+    );
+
+    getSharedNameMarksFor(options, {
+      translator: recordingTranslator(asked),
+      dates: {
+        writeDay: (date: Date): string => {
+          return date.toISOString().slice(0, 10);
+        },
+        writeMoment: (date: Date): string => {
+          return date.toISOString();
+        },
+      },
+    });
+
+    return asked;
+  };
+
 describe("the sentences the server and the Dashboard both write", () => {
   test("come from files the server's scan reads, a new monitor's criteria and a new status page's name among them", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
@@ -157,6 +205,10 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
       "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
     );
+    // What a chat's picker says of records that share a name (#10314).
+    expect(DASHBOARD_SHARED_TEXT_SOURCES).toContain(
+      "packages/Common/Types/Database/SharedNameMarks.ts",
+    );
 
     const scanned: Array<string> = listSourceFiles();
 
@@ -169,12 +221,24 @@ describe("the sentences the server and the Dashboard both write", () => {
     expect(fs.existsSync(DASHBOARD_LOCALES_DIRECTORY)).toBe(true);
   });
 
-  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name and the first on-call policy with its rules are written with, and nothing else", () => {
+  test("are every sentence a new monitor's default criteria, for every monitor type, a new status page's name, the first on-call policy with its rules and a picker's marks on records that share a name are written with, and nothing else", () => {
     const asked: Set<string> = new Set<string>([
       ...sentencesTheCriteriaLookUp(),
       ...sentencesTheStatusPageNameLooksUp(),
       ...sentencesTheFirstPolicyLooksUp(),
+      ...sentencesTheSharedNameMarksLookUp(),
     ]);
+
+    // Each kind's pill, and the day a twin was made (#10314).
+    expect(sentencesTheSharedNameMarksLookUp()).toEqual(
+      new Set<string>([
+        "Same name as another team",
+        "Same name as another label",
+        "Same name as another policy",
+        "Same name as another schedule",
+        "Created {{date}}",
+      ]),
+    );
 
     // The name Ask AI and the status page guided setup start a page with.
     expect(sentencesTheStatusPageNameLooksUp()).toEqual(
