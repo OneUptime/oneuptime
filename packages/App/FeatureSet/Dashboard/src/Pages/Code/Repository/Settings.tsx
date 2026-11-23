@@ -102,6 +102,9 @@ export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
 export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_TEST_ID: string =
   "production-review-llm-provider";
 
+export const CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID: string =
+  "code-repository-production-review-fail-on-leak";
+
 // The card's line under a pick the project can no longer use.
 export const CODE_REPOSITORY_PRODUCTION_REVIEW_LLM_PROVIDER_WARNING_TEST_ID: string =
   "production-review-llm-provider-warning";
@@ -156,6 +159,9 @@ export function getProductionReviewLlmProviderShown(
  *         pull requests against production on its own - on for
  *         repositories connected from now on, off for those connected
  *         before it existed;
+ *       - Sensitive Data Check: whether a review's check fails on a leak
+ *         of sensitive data (#10376) - off, so the check stays neutral,
+ *         until someone turns it on;
  *       - Runner: where AI works in it (CodeRepository.runnerId): a Runner
  *         of the project's own, or a global Runner when it picks none;
  *       - Pull Requests: where AI's pull requests open and how many may be
@@ -494,6 +500,37 @@ const CodeRepositorySettings: FunctionComponent<
               remember({ isProductionReviewEnabled: isOn });
             }}
             dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID}
+          />
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * One switch, saved the moment it is flipped: whether a production
+         * review's check fails on a leak of sensitive data (#10376). Unset
+         * - every repository, until someone turns it on - reads as off: the
+         * check stays neutral, as the server reads it.
+         */}
+        {repositorySettings.includes(
+          CodeRepositorySetting.ProductionReviewFailOnLeak,
+        ) ? (
+          <ModelSwitchCard<CodeRepository>
+            modelType={CodeRepository}
+            modelId={modelId}
+            column="isProductionReviewFailOnLeakEnabled"
+            cardId={CodeRepositorySetting.ProductionReviewFailOnLeak}
+            cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle}
+            title={PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchTitle}
+            getDescription={(): string => {
+              return inReviewHostWords(
+                PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription,
+                provider,
+              );
+            }}
+            onChange={(isOn: boolean): void => {
+              remember({ isProductionReviewFailOnLeakEnabled: isOn });
+            }}
+            dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_FAIL_ON_LEAK_TEST_ID}
           />
         ) : (
           <></>

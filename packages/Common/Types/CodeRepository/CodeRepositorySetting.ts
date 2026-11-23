@@ -20,6 +20,11 @@
 export enum CodeRepositorySetting {
   GitHubCommands = "github-commands",
   ProductionReview = "production-review",
+  /*
+   * Whether a production review's check fails on a leak of sensitive data
+   * (#10376): neutral until it is turned on.
+   */
+  ProductionReviewFailOnLeak = "production-review-fail-on-leak",
   Runner = "runner",
   PullRequests = "pull-requests",
   TriggerLabel = "trigger-label",

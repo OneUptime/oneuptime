@@ -38,6 +38,7 @@ import RunnerLiveStatus, {
 } from "Common/Types/Runner/RunnerLiveStatus";
 import {
   FOLDED_SECTION_OFF,
+  FOLDED_SECTION_ON,
   FoldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -102,6 +103,7 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
   [
     CodeRepositorySetting.GitHubCommands,
     CodeRepositorySetting.ProductionReview,
+    CodeRepositorySetting.ProductionReviewFailOnLeak,
     CodeRepositorySetting.Runner,
     CodeRepositorySetting.PullRequests,
     CodeRepositorySetting.TriggerLabel,
@@ -124,6 +126,7 @@ const GITHUB_ONLY_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
 
 const PRODUCTION_REVIEW_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
   CodeRepositorySetting.ProductionReview,
+  CodeRepositorySetting.ProductionReviewFailOnLeak,
   CodeRepositorySetting.ProductionReviewComment,
   CodeRepositorySetting.ProductionReviewLlmProvider,
 ];
@@ -187,6 +190,11 @@ export interface CodeRepositorySettingsValues {
    * it: a repository that never set it is off, as the server reads it.
    */
   isProductionReviewEnabled?: boolean | undefined;
+  /*
+   * Where Fail the Check on a Leak is (#10376): a repository that never
+   * set it is off - its check stays neutral - as the server reads it.
+   */
+  isProductionReviewFailOnLeakEnabled?: boolean | undefined;
   /*
    * The Runner the repository picks, as getRepositoryRunnerId reads it:
    * empty for none.
@@ -538,6 +546,18 @@ export function getRepositoryMoreSettingsItems(
       title: PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle,
       isOn: repository?.isProductionReviewEnabled,
     }),
+    /*
+     * Off is this switch's default: set, with "On", only once a repository
+     * asks its check to fail on a leak.
+     */
+    {
+      key: CodeRepositorySetting.ProductionReviewFailOnLeak,
+      title: PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle,
+      isSet: repository?.isProductionReviewFailOnLeakEnabled === true,
+      ...(repository?.isProductionReviewFailOnLeakEnabled === true
+        ? { value: FOLDED_SECTION_ON, translateValue: true }
+        : {}),
+    },
     getRepositoryRunnerItem(
       {
         runnerId: repository?.runnerId,

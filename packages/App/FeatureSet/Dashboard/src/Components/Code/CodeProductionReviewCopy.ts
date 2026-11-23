@@ -27,6 +27,7 @@ import {
   ProductionReviewSummaryJSON,
   ProductionReviewWhere,
 } from "Common/Types/CodeRepository/ProductionReview";
+import { SensitiveDataAiNoteCode } from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
 import {
   PluralTemplate,
   Translator,
@@ -454,6 +455,74 @@ export const PRODUCTION_REVIEW_SECTION_LABELS: Record<
   [ProductionReviewSection.Incidents]: translationKey("Incidents"),
   [ProductionReviewSection.Deploys]: translationKey("Deployments"),
   [ProductionReviewSection.Data]: translationKey("Data"),
+  [ProductionReviewSection.SensitiveData]: translationKey("Sensitive data"),
+};
+
+/*
+ * The Sensitive data section of a review (#10376): what the change writes
+ * of sensitive data to telemetry, leaves open in a store or adds a column
+ * for, read from the diff - each point named by the Data Security check it
+ * is the early form of, in the reader's language, with the rules' or
+ * OneUptime AI's own sentence under it.
+ */
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_COPY: {
+  title: string;
+  window: string;
+  failsCheck: string;
+  atLine: string;
+  heldBefore: string;
+  maskedBy: string;
+  masked: string;
+  store: string;
+  fix: string;
+  suggestedChange: string;
+  byRules: string;
+  byAi: string;
+} = {
+  title: translationKey("Sensitive data in these changes"),
+  window: translationKey("Read from the diff"),
+  failsCheck: translationKey("Fails the check"),
+  atLine: translationKey("{{path}}, line {{line}}"),
+  heldBefore: translationKey("Production has held this before"),
+  maskedBy: translationKey(
+    "Masked at ingest by {{rule}}, but written by the code.",
+  ),
+  masked: translationKey("Masked at ingest, but written by the code."),
+  store: translationKey(
+    "It is the store {{store}}, which holds {{sensitivity}} data.",
+  ),
+  fix: translationKey("Fix"),
+  suggestedChange: translationKey("Suggested change"),
+  byRules: translationKey("Found and worded by OneUptime's own rules."),
+  byAi: translationKey(
+    "Found by OneUptime's rules, and worded by OneUptime AI.",
+  ),
+};
+
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED: PluralTemplate = {
+  one: "OneUptime AI read {{count}} more point as no leak, and left it out.",
+  other: "OneUptime AI read {{count}} more points as no leak, and left them out.",
+};
+
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_MORE: PluralTemplate = {
+  one: "{{count}} more point the rules found is not listed.",
+  other: "{{count}} more points the rules found are not listed.",
+};
+
+// Why OneUptime AI did not word the section: its own note, in a sentence.
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES: Record<
+  SensitiveDataAiNoteCode,
+  string
+> = {
+  [SensitiveDataAiNoteCode.AiOff]: translationKey(
+    "OneUptime AI did not read these points: AI is turned off for this project.",
+  ),
+  [SensitiveDataAiNoteCode.DailyLimit]: translationKey(
+    "OneUptime AI already read this pull request, or this repository, as often as it may today.",
+  ),
+  [SensitiveDataAiNoteCode.Failed]: translationKey(
+    "OneUptime AI could not read these points this time.",
+  ),
 };
 
 // What a migration or dbt model does to a watched table: {{table}}, {{column}}, {{newName}}.
@@ -699,6 +768,9 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
   cardTitle: string;
   switchTitle: string;
   switchDescription: string;
+  failOnLeakCardTitle: string;
+  failOnLeakSwitchTitle: string;
+  failOnLeakSwitchDescription: string;
   contentCardTitle: string;
   contentCardDescription: string;
   contentFieldTitle: string;
@@ -710,6 +782,15 @@ export const PRODUCTION_REVIEW_SETTINGS_COPY: {
   switchTitle: translationKey("Review Pull Requests Against Production"),
   switchDescription: translationKey(
     "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.",
+  ),
+  /*
+   * Whether the review's check fails on a leak (#10376): what "on" does,
+   * in the order a reader weighs it - what fails, then what it is about.
+   */
+  failOnLeakCardTitle: translationKey("Sensitive Data Check"),
+  failOnLeakSwitchTitle: translationKey("Fail the Check on a Leak"),
+  failOnLeakSwitchDescription: translationKey(
+    "Fail a pull request's check when it writes secrets or Restricted data to telemetry, makes a sensitive store public, or stores plain passwords or card security codes.",
   ),
   contentCardTitle: translationKey("Production Review Comment"),
   contentCardDescription: translationKey(
@@ -1145,6 +1226,14 @@ export const PRODUCTION_REVIEW_MERGE_REQUEST_COPY: Record<string, string> = {
   ),
   [PRODUCTION_REVIEW_SETTINGS_COPY.contentCardDescription]: translationKey(
     "What a production review posts on a merge request.",
+  ),
+  [PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakSwitchDescription]: translationKey(
+    "Fail a merge request's check when it writes secrets or Restricted data to telemetry, makes a sensitive store public, or stores plain passwords or card security codes.",
+  ),
+  [PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES[
+    SensitiveDataAiNoteCode.DailyLimit
+  ]]: translationKey(
+    "OneUptime AI already read this merge request, or this repository, as often as it may today.",
   ),
   [PRODUCTION_REVIEW_CONTENT_COPY[ProductionReviewPullRequestContent.Link]
     .description]: translationKey(
