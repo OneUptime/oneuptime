@@ -446,20 +446,42 @@ describe("the monitor forms: a request body only a newer probe sends (#10788)", 
       expect(screen.getByText(BODY_HEADING)).toBeInTheDocument();
       expect(screen.getByText(HOW_TO_UPDATE)).toBeInTheDocument();
       expect(warning()?.textContent).not.toMatch(/\d+\.\d+\.\d+/);
-      // No secret needs reading to tell: none was asked for.
+      /*
+       * The body alone tells: the secrets are read only for a reference in
+       * it, which may name a one-time code secret.
+       */
       expect(
         listCalls.some((call: ListRead): boolean => {
           return call.modelType === MonitorSecret;
         }),
-      ).toBe(false);
+      ).toBe(body.includes("{{monitorSecrets."));
     },
   );
+
+  test("an object holding a Text secret needs no newer probe: nothing is said", async () => {
+    await draw(
+      <ProbesTooOldWarning
+        monitorSteps={apiSteps({
+          body: '{"key": "{{monitorSecrets.ApiKey}}"}',
+        })}
+        monitorType={MonitorType.API}
+        probeIds={[OLD_PROBE_ID]}
+      />,
+    );
+
+    // ApiKey may have been a one-time code secret: the secrets said it is not.
+    expect(warning()).not.toBeInTheDocument();
+    expect(
+      listCalls.some((call: ListRead): boolean => {
+        return call.modelType === MonitorSecret;
+      }),
+    ).toBe(true);
+  });
 
   test.each([
     ["no body", undefined],
     ["an empty body", "   "],
     ["a JSON object", '{"ping": true}'],
-    ["an object holding a secret", '{"key": "{{monitorSecrets.ApiKey}}"}'],
     ["a body that is no JSON, which no probe sends", "<ping/>"],
   ])(
     "say nothing, and read nothing, for %s",

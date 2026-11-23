@@ -26106,7 +26106,6 @@
   "It is paused in {{tool}}, so it starts unticked, and comes over paused.": "В {{tool}} он приостановлен, поэтому изначально не отмечен и переносится приостановленным.",
   "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.": "В {{tool}} он входит с паролем. Пароли не копируются: добавьте его в монитор как секрет монитора.",
   "Its logo and colors do not come over. Add them under Branding in OneUptime.": "Логотип и цвета не переносятся. Добавьте их в разделе «Брендинг» в OneUptime.",
-  "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.": "Тело его запроса — не JSON-объект, а OneUptime отправляет только такие, поэтому оно пропускается.",
   "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.": "Его заголовок {{header}} может содержать секрет, поэтому не копируется. Добавьте его в монитор как секрет монитора.",
   "Lane {{lane}}": "Канал {{lane}}",
   "Low alarm": "Нижний аварийный порог",
@@ -58234,7 +58233,6 @@
   "This log line in the Logs explorer, with its service's logs in the second around it": "Эта строка лога в обозревателе журналов вместе с журналами её сервиса за секунду вокруг неё",
   "This log line was not found. It may be past its retention, or in a service your role cannot read.": "Эта строка лога не найдена. Возможно, истёк срок её хранения или она относится к сервису, который ваша роль не может читать.",
   "This resource does not publish it.": "Этот ресурс не публикует эту метрику.",
-  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Чтобы обновить зонд, перезапустите его с последним образом зонда (OneUptime {{version}} или новее).",
   "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Слишком старый, чтобы создавать одноразовые коды. Мониторы, использующие секрет с одноразовым кодом, не проходят проверку на этом зонде, пока он не будет обновлён.",
   "Try again in a minute.": "Повторите попытку через минуту.",
   "Version 2": "Версия 2",
@@ -62337,7 +62335,6 @@
   "{{value}} is part of {{address}}.": "{{value}} входит в {{address}}.",
   "All issues": "Все проблемы",
   "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "Для «Войти снова» установите Honor Force Authentication в Yes в настройках SAML этого приложения в Okta.",
-  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "Тело его запроса — не JSON, а OneUptime отправляет только JSON, поэтому оно пропускается.",
   "Only issues that match conditions": "Только проблемы, соответствующие условиям",
   "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.": "Хранилище попадает в реестр, как только сканирование находит в нём персональные данные или как только ваш проект хранит события безопасности или сетевые потоки.",
   "Declared by OneUptime": "Указано OneUptime",
@@ -62639,5 +62636,10 @@
   "AI Change Undone": "Изменение ИИ отменено",
   "AI Change Failed": "Изменение ИИ не удалось",
   "AI Response": "Реагирование ИИ",
-  "Step Check": "Проверка шага"
+  "Step Check": "Проверка шага",
+  "Its form fields could not be read, so its request body is left out. Add the body to the monitor as text.": "Его поля формы не удалось прочитать, поэтому тело запроса пропускается. Добавьте тело в монитор как текст.",
+  "These probes are too old to send a request body that is a JSON array, a single value or text, so this monitor's check fails on them:": "Эти зонды слишком старые, чтобы отправить тело запроса, которое является массивом JSON, одним значением или текстом, поэтому проверка этого монитора на них завершается неудачей:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.": "Этой проверке нужен одноразовый код, а этот зонд слишком старый, чтобы его создать, поэтому проверка не выполнялась. Обновите зонд до последнего выпуска OneUptime.",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.": "Этот зонд слишком старый, чтобы отправить тело запроса, которое является массивом JSON, одним значением или текстом, поэтому проверка не выполнялась. Обновите зонд до последнего выпуска OneUptime.",
+  "To update a probe, start it again with the latest probe image.": "Чтобы обновить зонд, перезапустите его с последним образом зонда."
 }

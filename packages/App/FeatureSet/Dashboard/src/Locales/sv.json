@@ -26106,7 +26106,6 @@
   "It is paused in {{tool}}, so it starts unticked, and comes over paused.": "Den är pausad i {{tool}}, så den är avmarkerad från början och förs över pausad.",
   "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.": "Den loggar in med ett lösenord i {{tool}}. Lösenord kopieras inte: lägg till det i monitorn med en monitorhemlighet.",
   "Its logo and colors do not come over. Add them under Branding in OneUptime.": "Logotyp och färger förs inte över. Lägg till dem under Varumärke i OneUptime.",
-  "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.": "Dess begärandetext är inte ett JSON-objekt, den enda sort som OneUptime skickar, så den utelämnas.",
   "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.": "Dess {{header}}-header kan innehålla en hemlighet, så den kopieras inte. Lägg till den i monitorn med en monitorhemlighet.",
   "Lane {{lane}}": "Kanal {{lane}}",
   "Low alarm": "Lågt larm",
@@ -58234,7 +58233,6 @@
   "This log line in the Logs explorer, with its service's logs in the second around it": "Den här loggraden i loggutforskaren, med tjänstens loggar under sekunden runt den",
   "This log line was not found. It may be past its retention, or in a service your role cannot read.": "Loggraden hittades inte. Dess lagringstid kan ha gått ut, eller så hör den till en tjänst som din roll inte kan läsa.",
   "This resource does not publish it.": "Den här resursen publicerar det inte.",
-  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Uppdatera en sond genom att starta den igen med den senaste sondavbildningen (OneUptime {{version}} eller senare).",
   "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "För gammal för att skapa engångskoder. Monitorer som använder en engångskodshemlighet misslyckas med sin kontroll på den här sonden tills den har uppdaterats.",
   "Try again in a minute.": "Försök igen om en minut.",
   "Version 2": "Version 2",
@@ -62337,7 +62335,6 @@
   "{{value}} is part of {{address}}.": "{{value}} hör till {{address}}.",
   "All issues": "Alla problem",
   "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "För att använda Logga in igen ska du sätta Honor Force Authentication till Yes i den här appens SAML-inställningar i Okta.",
-  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "Dess begärandetext är inte JSON, det enda format som OneUptime skickar, så den utelämnas.",
   "Only issues that match conditions": "Endast problem som uppfyller villkoren",
   "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.": "Ett datalager kommer med i registret så snart en skanning hittar personuppgifter i det, eller så snart ditt projekt sparar säkerhetshändelser eller nätverksflöden.",
   "Declared by OneUptime": "Angivet av OneUptime",
@@ -62639,5 +62636,10 @@
   "AI Change Undone": "AI-ändring ångrad",
   "AI Change Failed": "AI-ändring misslyckades",
   "AI Response": "AI-respons",
-  "Step Check": "Stegkontroll"
+  "Step Check": "Stegkontroll",
+  "Its form fields could not be read, so its request body is left out. Add the body to the monitor as text.": "Dess formulärfält kunde inte läsas, så begärandetexten utelämnas. Lägg till begärandetexten i monitorn som text.",
+  "These probes are too old to send a request body that is a JSON array, a single value or text, so this monitor's check fails on them:": "De här sonderna är för gamla för att skicka en begärandetext som är en JSON-array, ett enda värde eller text, så den här monitorns kontroll misslyckas på dem:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.": "Den här kontrollen behöver en engångskod, och den här sonden är för gammal för att skapa en, så kontrollen kördes inte. Uppdatera sonden till den senaste OneUptime-versionen.",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.": "Den här sonden är för gammal för att skicka en begärandetext som är en JSON-array, ett enda värde eller text, så kontrollen kördes inte. Uppdatera sonden till den senaste OneUptime-versionen.",
+  "To update a probe, start it again with the latest probe image.": "Uppdatera en sond genom att starta den igen med den senaste sondavbildningen."
 }

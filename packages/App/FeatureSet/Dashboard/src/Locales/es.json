@@ -26106,7 +26106,6 @@
   "It is paused in {{tool}}, so it starts unticked, and comes over paused.": "Está en pausa en {{tool}}, así que empieza sin marcar y se trae en pausa.",
   "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.": "En {{tool}} inicia sesión con una contraseña. Las contraseñas no se copian: añádela al monitor con un secreto de monitor.",
   "Its logo and colors do not come over. Add them under Branding in OneUptime.": "Su logotipo y sus colores no se traen. Añádelos en Marca en OneUptime.",
-  "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.": "El cuerpo de su solicitud no es un objeto JSON, el único tipo que envía OneUptime, así que se omite.",
   "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.": "Su encabezado {{header}} puede contener un secreto, así que no se copia. Añádelo al monitor con un secreto de monitor.",
   "Lane {{lane}}": "Carril {{lane}}",
   "Low alarm": "Alarma baja",
@@ -58234,7 +58233,6 @@
   "This log line in the Logs explorer, with its service's logs in the second around it": "Esta línea de registro en el explorador de registros, con los registros de su servicio en el segundo alrededor",
   "This log line was not found. It may be past its retention, or in a service your role cannot read.": "No se encontró esta línea de registro. Puede que haya pasado su retención o que sea de un servicio que tu rol no puede leer.",
   "This resource does not publish it.": "Este recurso no la publica.",
-  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "Para actualizar una sonda, iníciela de nuevo con la imagen más reciente de la sonda (OneUptime {{version}} o posterior).",
   "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "Demasiado antigua para generar códigos de un solo uso. Los monitores que usan un secreto de código de un solo uso fallan su comprobación en esta sonda hasta que se actualice.",
   "Try again in a minute.": "Vuelve a intentarlo en un minuto.",
   "Version 2": "Versión 2",
@@ -62337,7 +62335,6 @@
   "{{value}} is part of {{address}}.": "{{value}} forma parte de {{address}}.",
   "All issues": "Todos los problemas",
   "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "Para Volver a iniciar sesión, pon Honor Force Authentication en Yes en la configuración SAML de esta aplicación en Okta.",
-  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "El cuerpo de su solicitud no es JSON, el único formato que envía OneUptime, así que se omite.",
   "Only issues that match conditions": "Solo los problemas que cumplen las condiciones",
   "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.": "Un almacén entra en el registro en cuanto un escaneo encuentra datos personales en él, o en cuanto tu proyecto conserva eventos de seguridad o flujos de red.",
   "Declared by OneUptime": "Declarado por OneUptime",
@@ -62639,5 +62636,10 @@
   "AI Change Undone": "Cambio de IA deshecho",
   "AI Change Failed": "Cambio de IA fallido",
   "AI Response": "Respuesta de IA",
-  "Step Check": "Comprobación del paso"
+  "Step Check": "Comprobación del paso",
+  "Its form fields could not be read, so its request body is left out. Add the body to the monitor as text.": "Sus campos de formulario no se pudieron leer, así que se omite el cuerpo de su solicitud. Añade el cuerpo al monitor como texto.",
+  "These probes are too old to send a request body that is a JSON array, a single value or text, so this monitor's check fails on them:": "Estas sondas son demasiado antiguas para enviar un cuerpo de solicitud que sea un array JSON, un único valor o texto, así que la comprobación de este monitor falla en ellas:",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.": "Esta comprobación necesita un código de un solo uso, y esta sonda es demasiado antigua para generarlo, así que la comprobación no se ejecutó. Actualice la sonda a la última versión de OneUptime.",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.": "Esta sonda es demasiado antigua para enviar un cuerpo de solicitud que sea un array JSON, un único valor o texto, así que la comprobación no se ejecutó. Actualice la sonda a la última versión de OneUptime.",
+  "To update a probe, start it again with the latest probe image.": "Para actualizar una sonda, iníciela de nuevo con la imagen más reciente de la sonda."
 }

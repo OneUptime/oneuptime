@@ -208,13 +208,18 @@ describe("ProbeReportedVersionUtil.getOneTimeCodes", () => {
   );
 
   test("compares releases as numbers, never as text", () => {
-    // As text, "17.0.10" sorts before "17.0.2", and "9.0.0" after "17.0.0".
-    expect(
-      ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
-        reportedVersion: "17.0.10",
-        lastAlive: CONNECTED_AT,
-      }),
-    ).toBe(false);
+    /*
+     * As text, "100.0.0" sorts before "17.1.0", the first release that
+     * makes codes, and "9.0.0" after it; "17.1.10" is the tenth patch.
+     */
+    for (const reportedVersion of ["100.0.0", "17.1.10"]) {
+      expect(
+        ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
+          reportedVersion,
+          lastAlive: CONNECTED_AT,
+        }),
+      ).toBe(false);
+    }
     expect(
       ProbeReportedVersionUtil.isTooOldForOneTimeCodes({
         reportedVersion: "9.0.0",

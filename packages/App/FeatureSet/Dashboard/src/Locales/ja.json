@@ -26106,7 +26106,6 @@
   "It is paused in {{tool}}, so it starts unticked, and comes over paused.": "{{tool}} で一時停止中のため、最初は選択されておらず、一時停止の状態で取り込まれます。",
   "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.": "{{tool}} ではパスワードでサインインしています。パスワードはコピーされないため、モニターシークレットでモニターに追加してください。",
   "Its logo and colors do not come over. Add them under Branding in OneUptime.": "ロゴと色は取り込まれません。OneUptime のブランディングで追加してください。",
-  "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.": "リクエスト本文が JSON オブジェクトではありません。OneUptime が送信できるのは JSON オブジェクトだけなので、本文は除外されます。",
   "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.": "{{header}} ヘッダーにはシークレットが含まれている可能性があるため、コピーされません。モニターシークレットでモニターに追加してください。",
   "Lane {{lane}}": "レーン {{lane}}",
   "Low alarm": "下限アラーム",
@@ -58234,7 +58233,6 @@
   "This log line in the Logs explorer, with its service's logs in the second around it": "このログ行と、その前後 1 秒間のサービスのログ (ログエクスプローラー)",
   "This log line was not found. It may be past its retention, or in a service your role cannot read.": "このログ行は見つかりませんでした。保持期間を過ぎたか、あなたのロールでは読み取れないサービスのログ行の可能性があります。",
   "This resource does not publish it.": "このリソースはこのメトリクスを公開していません。",
-  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "プローブを更新するには、最新のプローブイメージ（OneUptime {{version}} 以降）で起動し直してください。",
   "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "古すぎてワンタイムコードを生成できません。ワンタイムコードのシークレットを使うモニターは、このプローブが更新されるまで、このプローブでのチェックに失敗します。",
   "Try again in a minute.": "1 分後にもう一度お試しください。",
   "Version 2": "バージョン 2",
@@ -62337,7 +62335,6 @@
   "{{value}} is part of {{address}}.": "{{value}} は {{address}} の一部です。",
   "All issues": "すべての問題",
   "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "「もう一度サインイン」を使うには、Okta でこのアプリの SAML 設定にある Honor Force Authentication を Yes にしてください。",
-  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "リクエスト本文が JSON ではありません。OneUptime が送信できるのは JSON だけなので、本文は除外されます。",
   "Only issues that match conditions": "条件に一致する問題のみ",
   "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.": "スキャンで個人データが見つかったとき、またはプロジェクトがセキュリティイベントやネットワークフローを保持するようになったときに、データストアが記録に加わります。",
   "Declared by OneUptime": "OneUptime による宣言",
@@ -62639,5 +62636,10 @@
   "AI Change Undone": "AI による変更を取り消し",
   "AI Change Failed": "AI による変更が失敗",
   "AI Response": "AI 対応",
-  "Step Check": "ステップのチェック"
+  "Step Check": "ステップのチェック",
+  "Its form fields could not be read, so its request body is left out. Add the body to the monitor as text.": "フォームのフィールドを読み取れなかったため、リクエスト本文は除外されます。本文をテキストとしてモニターに追加してください。",
+  "These probes are too old to send a request body that is a JSON array, a single value or text, so this monitor's check fails on them:": "次のプローブは古すぎて、JSON 配列、単一の値、またはテキストのリクエストボディを送信できないため、このモニターのチェックはこれらのプローブで失敗します：",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.": "このチェックにはワンタイムコードが必要ですが、このプローブは古すぎてコードを生成できないため、チェックは実行されませんでした。プローブを OneUptime の最新リリースに更新してください。",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.": "このプローブは古すぎて、JSON 配列、単一の値、またはテキストのリクエストボディを送信できないため、チェックは実行されませんでした。プローブを OneUptime の最新リリースに更新してください。",
+  "To update a probe, start it again with the latest probe image.": "プローブを更新するには、最新のプローブイメージで起動し直してください。"
 }

@@ -26106,7 +26106,6 @@
   "It is paused in {{tool}}, so it starts unticked, and comes over paused.": "它在 {{tool}} 中已暫停，因此預設不勾選，匯入後也處於暫停狀態。",
   "It signs in with a password in {{tool}}. Passwords are not copied: add it to the monitor with a monitor secret.": "它在 {{tool}} 中使用密碼登入。密碼不會被複製：請用監測器密鑰將其新增到監測器。",
   "Its logo and colors do not come over. Add them under Branding in OneUptime.": "其標誌和顏色不會匯入。請在 OneUptime 的「品牌」中新增。",
-  "Its request body is not a JSON object, the only kind OneUptime sends, so it is left out.": "它的請求本文不是 JSON 物件，而 OneUptime 只傳送 JSON 物件，因此請求本文會被略過。",
   "Its {{header}} header may hold a secret, so it is not copied. Add it to the monitor with a monitor secret.": "它的 {{header}} 標頭可能包含機密資訊，因此不會被複製。請用監測器密鑰將其新增到監測器。",
   "Lane {{lane}}": "通道 {{lane}}",
   "Low alarm": "低警報",
@@ -58234,7 +58233,6 @@
   "This log line in the Logs explorer, with its service's logs in the second around it": "日誌瀏覽器中的這一行日誌，以及其服務在該行前後一秒內的日誌",
   "This log line was not found. It may be past its retention, or in a service your role cannot read.": "找不到此日誌行。它可能已超過保留期限，或屬於你的角色無法讀取的服務。",
   "This resource does not publish it.": "此資源未發布此指標。",
-  "To update a probe, start it again with the latest probe image (OneUptime {{version}} or later).": "若要更新探測器，請使用最新的探測器映像檔（OneUptime {{version}} 或更新版本）重新啟動它。",
   "Too old to make one-time codes. Monitors that use a one-time code secret fail their check on this probe until it is updated.": "版本過舊，無法產生一次性驗證碼。使用一次性驗證碼密鑰的監測器在此探測器上的檢查會失敗，直到它完成更新。",
   "Try again in a minute.": "請一分鐘後再試。",
   "Version 2": "版本 2",
@@ -62337,7 +62335,6 @@
   "{{value}} is part of {{address}}.": "{{value}} 屬於 {{address}}。",
   "All issues": "所有問題",
   "For Sign In Again, set Honor Force Authentication to Yes in this app's SAML settings in Okta.": "若要使用「重新登入」，請在 Okta 中將此應用程式 SAML 設定裡的 Honor Force Authentication 設為 Yes。",
-  "Its request body is not JSON, the only kind OneUptime sends, so it is left out.": "它的請求本文不是 JSON，而 OneUptime 只傳送 JSON，因此請求本文會被略過。",
   "Only issues that match conditions": "僅符合條件的問題",
   "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.": "掃描在資料儲存區中發現個人資料後，或您的專案保留安全事件或網路流量後，該資料儲存區即會加入紀錄。",
   "Declared by OneUptime": "由 OneUptime 宣告",
@@ -62639,5 +62636,10 @@
   "AI Change Undone": "AI 變更已復原",
   "AI Change Failed": "AI 變更失敗",
   "AI Response": "AI 回應",
-  "Step Check": "步驟檢查"
+  "Step Check": "步驟檢查",
+  "Its form fields could not be read, so its request body is left out. Add the body to the monitor as text.": "無法讀取它的表單欄位，因此請求本文會被略過。請將本文以文字形式新增到監測器。",
+  "These probes are too old to send a request body that is a JSON array, a single value or text, so this monitor's check fails on them:": "以下探測器版本過舊，無法傳送 JSON 陣列、單一值或文字形式的請求本文，因此此監測器在這些探測器上的檢查會失敗：",
+  "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.": "此檢查需要一次性驗證碼，而此探測器版本過舊，無法產生驗證碼，因此未執行檢查。請將探測器更新至最新的 OneUptime 版本。",
+  "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.": "此探測器版本過舊，無法傳送 JSON 陣列、單一值或文字形式的請求本文，因此未執行檢查。請將探測器更新至最新的 OneUptime 版本。",
+  "To update a probe, start it again with the latest probe image.": "若要更新探測器，請使用最新的探測器映像檔重新啟動它。"
 }
