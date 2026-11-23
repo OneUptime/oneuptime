@@ -5,7 +5,9 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
+import { isTextContentType } from "Common/Server/Middleware/RequestBodyAfterAuthentication";
 import Response from "Common/Server/Utils/Response";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
@@ -172,10 +174,18 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
       /*
        * A body of a type the route reads none of - Fluent Bit's default,
-       * msgpack - is left unread, as an empty object: it was stored as one
-       * log of "{}", answered 200, and the records were lost.
+       * msgpack - holds no records: left unread, it is an empty object, and
+       * it was stored as one log of "{}", answered 200, the records lost;
+       * gzip-compressed, its bytes were stored as lines of binary. A body
+       * kept as its bytes is read as its lines only when it is text.
        */
-      const entries: Array<JSONObject> = this.normalizeLogEntries(req.body);
+      const isBytes: boolean =
+        Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
+      const entries: Array<JSONObject> =
+        isBytes &&
+        !isTextContentType(headerValueToString(req.headers["content-type"]))
+          ? []
+          : this.normalizeLogEntries(req.body);
 
       if (entries.length === 0) {
         throw new BadRequestException(
