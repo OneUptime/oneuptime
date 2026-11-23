@@ -19,7 +19,9 @@ const urlFor: (path: string) => string = (path: string): string => {
 const SERVER: { timeout: number } = { timeout: 30000 };
 
 const desktopMenu: (page: Page) => Locator = (page: Page): Locator => {
-  return page.locator("aside[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "aside[role='navigation'][aria-label='Pages in this section']",
+  );
 };
 
 /*

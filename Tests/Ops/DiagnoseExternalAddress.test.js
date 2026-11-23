@@ -30,7 +30,15 @@ const REPO_ROOT = path.resolve(__dirname, "../..");
 const DIAGNOSE = path.join(REPO_ROOT, "HelmChart/Public/diagnose.sh");
 const SOURCE = fs.readFileSync(DIAGNOSE, "utf8");
 const PROOF = `${"0123456789abcdef".repeat(2)}.${"fedcba9876543210".repeat(4)}`;
-const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
+/*
+ * The clock the certificates here are dated by, read once: the date expected
+ * of a certificate is reckoned from the same moment as the certificate, never
+ * from a later reading that may fall on the next day.
+ */
+const NOW = Date.now();
 
 // The node script diagnose.sh hands the app pod for the address check.
 const addressScript = () => {
@@ -43,9 +51,22 @@ const addressScript = () => {
   return match[1];
 };
 
-// A date as the script's certificate line says it.
-const day = (offsetInDays) => {
-  return new Date(Date.now() + offsetInDays * DAY).toISOString().slice(0, 10);
+/*
+ * When a certificate with `daysLeft` days left expires: an hour past that many
+ * days, so the script, reading the clock a moment later, still counts
+ * `daysLeft` whole days. In the last hour of a UTC day that hour carries it
+ * into the next day.
+ */
+const expiry = (daysLeft) => {
+  return new Date(NOW + daysLeft * DAY + HOUR);
+};
+
+/*
+ * The date the script's certificate line names for a certificate with
+ * `daysLeft` days left: the day, in UTC, it expires.
+ */
+const day = (daysLeft) => {
+  return expiry(daysLeft).toISOString().slice(0, 10);
 };
 
 // A certificate as tls's getPeerCertificate() describes one.
@@ -59,10 +80,8 @@ const certificate = (data) => {
       given.altNames === undefined
         ? "DNS:oneuptime.example.com"
         : given.altNames,
-    valid_to: new Date(
-      Date.now() +
-        (given.daysLeft === undefined ? 60 : given.daysLeft) * DAY +
-        60 * 60 * 1000,
+    valid_to: expiry(
+      given.daysLeft === undefined ? 60 : given.daysLeft,
     ).toUTCString(),
   };
 };

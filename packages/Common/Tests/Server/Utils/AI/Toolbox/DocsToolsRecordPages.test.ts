@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
 import {
   ASK_AI_RECORD_KINDS,
@@ -193,7 +200,10 @@ describe("find_dashboard_page and one record's own page", () => {
     expect(result.rowCount).toBeGreaterThan(0);
 
     const data: JSONObject = JSON.parse(result.dataForLlm) as JSONObject;
-    expect(data["record"]).toEqual({ kind: "status-pages", name: "Acme Status" });
+    expect(data["record"]).toEqual({
+      kind: "status-pages",
+      name: "Acme Status",
+    });
     expect(String(data["citationOpens"])).toBe(
       'Status Page "Acme Status" > Branding > Custom Domains',
     );
@@ -306,7 +316,12 @@ describe("find_dashboard_page and one record's own page", () => {
     },
   );
 
-  test.each(["", "123", "../../settings", "33333333-3333-4333-8333-33333333333g"])(
+  test.each([
+    "",
+    "123",
+    "../../settings",
+    "33333333-3333-4333-8333-33333333333g",
+  ])(
     "a recordId that is no record's ID (%p) opens nothing and reads nothing",
     async (recordId: string) => {
       const read: ReturnType<typeof jest.fn> = readsOf(
@@ -490,9 +505,9 @@ describe("every kind Ask AI opens is read with the person's own permissions", ()
 
       expect(name).toBe("Named");
       expect(read).toHaveBeenCalledTimes(1);
-      expect(
-        (read.mock.calls[0]![0] as Parameters<FindOneById>[0]).props,
-      ).toBe(props);
+      expect((read.mock.calls[0]![0] as Parameters<FindOneById>[0]).props).toBe(
+        props,
+      );
       expect(typeof DASHBOARD_RECORD_READERS[kind]).toBe("function");
     },
   );
@@ -523,9 +538,9 @@ describe("find_dashboard_page's arguments for a record", () => {
     const recordType: JSONObject = properties["recordType"] as JSONObject;
 
     expect(recordType["enum"]).toEqual([...ASK_AI_RECORD_KINDS]);
-    expect(String((properties["recordId"] as JSONObject)["description"])).toContain(
-      "Never guess one",
-    );
+    expect(
+      String((properties["recordId"] as JSONObject)["description"]),
+    ).toContain("Never guess one");
     expect(FindDashboardPageTool.inputSchema["required"]).toEqual(["query"]);
   });
 
@@ -550,8 +565,8 @@ describe("find_dashboard_page's arguments for a record", () => {
 
     expect(outcome.success).toBe(true);
     expect(outcome.textForLlm).toContain("Escalation Rules");
-    expect(
-      (read.mock.calls[0]![0] as Parameters<FindOneById>[0]).props,
-    ).toBe(viewer.props);
+    expect((read.mock.calls[0]![0] as Parameters<FindOneById>[0]).props).toBe(
+      viewer.props,
+    );
   });
 });

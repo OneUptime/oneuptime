@@ -198,7 +198,9 @@ function curveOfSeries(
 async function expectCardFits(card: Locator): Promise<void> {
   const cardFit: { overflow: number; right: number; viewport: number } =
     await card.evaluate(
-      (element: Element): { overflow: number; right: number; viewport: number } => {
+      (
+        element: Element,
+      ): { overflow: number; right: number; viewport: number } => {
         return {
           overflow: element.scrollWidth - element.clientWidth,
           right: element.getBoundingClientRect().right,
@@ -414,7 +416,9 @@ test.describe("metrics explorer: a value axis over a narrow range reads apart (#
         timeout: 30000,
       });
       await expect(
-        card.locator(".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value"),
+        card.locator(
+          ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value",
+        ),
       ).not.toHaveCount(0, { timeout: 30000 });
 
       const chart: ChartReading = await readChart(card);
@@ -426,11 +430,15 @@ test.describe("metrics explorer: a value axis over a narrow range reads apart (#
         expect(tick, "a filesystem tick").toMatch(/^\d+\.\d+\s?GB$/);
       }
 
-      // Its axis is as wide as its widest tick: every tick inside the card,
-      // left of the plot, on a phone too.
-      const cardLeft: number = await card.evaluate((element: Element): number => {
-        return element.getBoundingClientRect().left;
-      });
+      /*
+       * Its axis is as wide as its widest tick: every tick inside the card,
+       * left of the plot, on a phone too.
+       */
+      const cardLeft: number = await card.evaluate(
+        (element: Element): number => {
+          return element.getBoundingClientRect().left;
+        },
+      );
       expect(axis!.left).toBeGreaterThanOrEqual(cardLeft);
       expect(axis!.right).toBeLessThanOrEqual(chart.plotLeft + 1);
       await expectCardFits(card);
