@@ -45,7 +45,10 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -450,10 +453,15 @@ const SecurityCaseAiResponseSection: FunctionComponent<ComponentProps> = (
               data-testid={`${SECURITY_CASE_AI_RESPONSE_TEST_ID}-hold`}
             >
               {translator.translateTemplate(holdEnded.sentence, {
+                /*
+                 * Nobody to name: OneUptime's own word, translated with the
+                 * sentence and cased for the middle of it.
+                 */
                 name:
                   holdEnded.name ||
-                  translator.translateText(SECURITY_CASE_AI_HOLD_SOMEONE) ||
-                  SECURITY_CASE_AI_HOLD_SOMEONE,
+                  translatableTerm(SECURITY_CASE_AI_HOLD_SOMEONE, {
+                    inSentence: true,
+                  }),
               })}
               {holdEnded.endedAt ? (
                 <span className="text-gray-500">
