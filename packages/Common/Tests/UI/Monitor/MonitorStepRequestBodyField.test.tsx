@@ -407,8 +407,6 @@ function mountEditor(step: MonitorStep): Array<MonitorStep> {
           monitorStatusDropdownOptions={[]}
           incidentSeverityDropdownOptions={[]}
           alertSeverityDropdownOptions={[]}
-          onCallPolicyDropdownOptions={[]}
-          labelDropdownOptions={[]}
           userDropdownOptions={[]}
           allMonitorSteps={new MonitorSteps()}
           probes={[]}

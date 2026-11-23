@@ -415,6 +415,11 @@ describe("a list's entity filter that searches the server", () => {
     );
   }
 
+  // What the filter holds as a link restores it: the labels' ids, as text.
+  function holding(ids: Array<string>): FilterData<Monitor> {
+    return { labels: ids } as unknown as FilterData<Monitor>;
+  }
+
   function chips(): Array<string> {
     return within(screen.getByTestId("entity-filter-search"))
       .queryAllByTestId("entity-dropdown-chip-label")
@@ -424,7 +429,7 @@ describe("a list's entity filter that searches the server", () => {
   }
 
   test("names a held label past the 10,000th by its id, and one deleted since as No longer available", async () => {
-    renderFilter({ labels: [LATE_LABEL_ID, DELETED_LABEL_ID] });
+    renderFilter(holding([LATE_LABEL_ID, DELETED_LABEL_ID]));
 
     await waitFor(() => {
       expect(chips()).toEqual(["WB1500KSK kiosks", "No longer available"]);
@@ -505,7 +510,7 @@ describe("a list's entity filter that searches the server", () => {
 
   test("a held value it was handed the name of is drawn at once, without reading it again", async () => {
     renderFilter(
-      { labels: [LATE_LABEL_ID] },
+      holding([LATE_LABEL_ID]),
       {
         ...LABELS_FILTER,
         filterDropdownOptions: [
