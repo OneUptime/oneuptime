@@ -17,19 +17,29 @@ import {
   CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
   CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
   HiddenClientAddress,
+  SCRUBBED_ADDRESS_ATTRIBUTES,
+  SCRUBBED_ADDRESS_ROLES,
   SCRUB_REDACTED_VALUE,
   ScrubbedAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  TARGET_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
+  clearAddressScrubbed,
   clearClientAddressScrubbed,
   doesScrubRuleReach,
   findScrubRuleHidingAddresses,
   findScrubRuleThatHid,
+  getScrubbedAddressMarkerAttributes,
   getScrubbedKindOfAction,
   getSignalOfScrubbedAddressPlace,
+  markAddressScrubbed,
   markClientAddressScrubbed,
+  nameAddressScrubRule,
   nameClientAddressScrubRule,
+  readHiddenAddress,
   readHiddenClientAddress,
+  readHiddenTargetAddress,
   readScrubbedAddress,
   readScrubbedValue,
   readSecurityAddressScrubRules,
@@ -431,6 +441,143 @@ describe("the marker an event keeps", () => {
       getSignalOfScrubbedAddressPlace(ScrubbedAddressPlace.SpanAttributes),
     ).toBe("trace");
     expect(CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE).toBe("scrub-rule");
+  });
+});
+
+/*
+ * An event's destination has a marker of its own (#10419): a firewall's
+ * denied connection or an outbound transfer names where it went (targetIp),
+ * and a scrub rule may hide that address as it hides the source.
+ */
+describe("the marker of each of an event's addresses", () => {
+  test("the principal's is the request attributes stored events already use; the target's its own", () => {
+    expect(SCRUBBED_ADDRESS_ROLES).toEqual([
+      ScrubbedAddressRole.Principal,
+      ScrubbedAddressRole.Target,
+    ]);
+    expect(SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Principal]).toEqual(
+      {
+        hidden: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+        scrubbed: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
+        scrubbedIn: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+        ruleId: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
+        rule: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
+      },
+    );
+    expect(TARGET_ADDRESS_SCRUB_MARKER_ATTRIBUTES).toEqual([
+      "oneuptime.target_address_hidden",
+      "oneuptime.target_address_scrubbed",
+      "oneuptime.target_address_scrubbed_in",
+      "oneuptime.target_address_scrub_rule_id",
+      "oneuptime.target_address_scrub_rule",
+    ]);
+    expect(
+      getScrubbedAddressMarkerAttributes(ScrubbedAddressRole.Principal),
+    ).toEqual(CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES);
+  });
+
+  test("a destination a rule hid says so, and the rule, apart from the source", () => {
+    const attributes: JSONObject = {};
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Hashed, value: KEYED_TOKEN },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    nameAddressScrubRule(attributes, ScrubbedAddressRole.Target, {
+      id: "rule-1",
+      name: " Hash IP addresses ",
+    });
+
+    expect(attributes).toEqual({
+      "oneuptime.target_address_hidden": "scrub-rule",
+      "oneuptime.target_address_scrubbed": KEYED_TOKEN,
+      "oneuptime.target_address_scrubbed_in": "log-body",
+      "oneuptime.target_address_scrub_rule_id": "rule-1",
+      "oneuptime.target_address_scrub_rule": "Hash IP addresses",
+    });
+    expect(readHiddenTargetAddress({ targetIp: "", attributes })).toEqual({
+      kind: ScrubbedAddressKind.Hashed,
+      value: KEYED_TOKEN,
+      place: ScrubbedAddressPlace.LogBody,
+      signal: "log",
+      ruleId: "rule-1",
+      ruleName: "Hash IP addresses",
+    });
+    // The source is no hidden address of this event.
+    expect(readHiddenClientAddress({ principalIp: "", attributes })).toBeNull();
+  });
+
+  test("each address's marker is read, named and cleared apart", () => {
+    const attributes: JSONObject = { "panos.src": "[REDACTED]" };
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Principal,
+      scrubbed: { kind: ScrubbedAddressKind.Redacted, value: "[REDACTED]" },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Masked, value: SCRUB_IPV6_MASK },
+      place: ScrubbedAddressPlace.LogAttributes,
+    });
+    nameAddressScrubRule(attributes, ScrubbedAddressRole.Principal, {
+      id: "rule-redact",
+      name: "Redact IPs",
+    });
+
+    expect(
+      readHiddenAddress({ attributes }, ScrubbedAddressRole.Principal),
+    ).toEqual(
+      expect.objectContaining({
+        kind: ScrubbedAddressKind.Redacted,
+        ruleName: "Redact IPs",
+      }),
+    );
+    expect(readHiddenAddress({ attributes }, ScrubbedAddressRole.Target)).toEqual(
+      expect.objectContaining({
+        kind: ScrubbedAddressKind.Masked,
+        value: SCRUB_IPV6_MASK,
+        place: ScrubbedAddressPlace.LogAttributes,
+        ruleId: "",
+      }),
+    );
+
+    // The vault named the destination: only its marker goes.
+    clearAddressScrubbed(attributes, ScrubbedAddressRole.Target);
+
+    expect(
+      readHiddenAddress({ attributes }, ScrubbedAddressRole.Target),
+    ).toBeNull();
+    expect(
+      readHiddenAddress({ attributes }, ScrubbedAddressRole.Principal)?.value,
+    ).toBe("[REDACTED]");
+
+    clearAddressScrubbed(attributes, ScrubbedAddressRole.Principal);
+
+    expect(attributes).toEqual({ "panos.src": "[REDACTED]" });
+  });
+
+  test("an event that names its destination says nothing hidden there, whatever its marker", () => {
+    const attributes: JSONObject = {};
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Hashed, value: KEYED_TOKEN },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+
+    expect(
+      readHiddenTargetAddress({ targetIp: "198.51.100.9", attributes }),
+    ).toBeNull();
+    // A source named says nothing of the destination.
+    expect(
+      readHiddenTargetAddress({
+        principalIp: "203.0.113.7",
+        attributes,
+      } as { targetIp?: string; attributes?: unknown }),
+    ).toEqual(expect.objectContaining({ value: KEYED_TOKEN }));
+    expect(readHiddenTargetAddress({})).toBeNull();
   });
 });
 
