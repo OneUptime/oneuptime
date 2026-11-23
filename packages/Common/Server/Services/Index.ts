@@ -36,6 +36,7 @@ import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
 import FormDomainService from "./FormDomainService";
+import FormPrivateUserService from "./FormPrivateUserService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -325,6 +326,7 @@ import DashboardOwnerTeamService from "./DashboardOwnerTeamService";
 import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
 import DashboardPlaylistService from "./DashboardPlaylistService";
+import DashboardPrivateUserService from "./DashboardPrivateUserService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -694,6 +696,7 @@ const services: Array<BaseService> = [
   FormService,
   FormSubmissionService,
   FormDomainService,
+  FormPrivateUserService,
   IncidentInternalNoteService,
   IncidentPostmortemActionItemService,
   IncidentOwnerTeamService,
@@ -908,6 +911,7 @@ const services: Array<BaseService> = [
   DashboardLabelRuleService,
   DashboardService,
   DashboardPlaylistService,
+  DashboardPrivateUserService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,
