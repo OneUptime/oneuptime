@@ -56,6 +56,8 @@ const SECURITY_EVENTS: Array<NotificationSettingEventType> = [
   NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
   NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+  // OneUptime AI handing a case to people (#10352).
+  NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
 ];
 
 const DATA_MIGRATIONS_DIR: string = path.resolve(

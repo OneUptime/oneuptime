@@ -226,7 +226,12 @@ next, and how to change it last.
   list's own filters (`LlmCallsRoute`), each failed call saying its error under its status. Enforced by
   [ErrorRateTilesOpenFailuresGuard](../../packages/App/Tests/Dashboard/ErrorRateTilesOpenFailuresGuard.test.ts).
 - **Raw IDs go in a small copy line, not the grid.** A record's own ID and when it was created sit in
-  one "ID" line under the other fields, with a copy button. Enforced by
+  one "ID" line under the other fields, with a copy button. Every record's own page ends its first
+  details card with that line, saying who created the record and who last modified it: fourteen
+  overviews and a dozen more record pages, an API key's among them, said neither (#10461). A
+  details card declares the `_id` field as `FieldType.ObjectID`; a page with no details card draws
+  `RecordActivityLine` at the foot of its first card. A page of something nobody creates or edits,
+  such as a trace, is listed in the guard with why. Enforced by
   [RecordIdLineGuard](../../packages/App/Tests/RecordIdLineGuard.test.ts).
 - **A record's details are edited in one place.** Enforced by
   [ResourceDetailsOnePlaceGuard](../../packages/Common/Tests/UI/Components/Forms/ResourceDetailsOnePlaceGuard.test.ts).

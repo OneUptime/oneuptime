@@ -111,6 +111,22 @@ import SecurityRiskiestEntitiesReader from "../Utils/SecurityEvent/EntityRisk/Se
 import { SecurityRiskiestEntities } from "../../Types/SecurityCase/SecurityEntityRisk";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import logger from "../Utils/Logger";
+import SecurityCaseResponse, {
+  SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES,
+  SecurityCaseResponseStartResult,
+} from "../Utils/AI/Security/Response/SecurityCaseResponse";
+import SecurityCaseResponseDecisions from "../Utils/AI/Security/Response/SecurityCaseResponseDecisions";
+import SecurityCaseResponseStatus from "../Utils/AI/Security/Response/SecurityCaseResponseStatus";
+import SecurityCaseAiAction from "../../Models/DatabaseModels/SecurityCaseAiAction";
+import SecurityCaseAiActionService from "../Services/SecurityCaseAiActionService";
+import {
+  SecurityAiOverviewActionRow,
+  SecurityAiOverviewCaseRow,
+  computeSecurityAiOverviewMeasures,
+} from "../../Utils/SecurityCase/SecurityAiOverviewMeasures";
+import DetectionRuleException from "../../Models/DatabaseModels/DetectionRuleException";
+import { SecurityCaseAiActionKind } from "../../Types/SecurityCase/SecurityCaseAi";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -1161,6 +1177,246 @@ export default class SecurityCaseAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * The case's OneUptime AI card, as the responder's log (#10352):
+     * whether OneUptime AI works the case, what it did, asked about or
+     * left and why, and what stops Respond with AI
+     * (SecurityCaseResponseStatus). For whoever may read the case.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-response`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage:
+              "Reading what OneUptime AI did on a case takes a Security role, or Project Owner or Project Admin.",
+          });
+
+          const securityCaseId: ObjectID = await this.readCaseForTriage({
+            caseId: req.params["caseId"],
+            projectId,
+            props,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            await SecurityCaseResponseStatus.read({
+              projectId,
+              securityCaseId,
+            }),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Respond with AI: a person asks OneUptime AI to work the case, within
+     * what the project lets it do. It writes on the case as OneUptime AI,
+     * so it takes a case the person may change (readCaseToChange), and
+     * everything OneUptime AI needs (SecurityCaseResponse). Answers with
+     * the run, or 400 with what stopped it.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-response/start`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const securityCase: SecurityCase = await this.readCaseToWorkWithAi({
+            caseId: req.params["caseId"],
+            projectId,
+            props,
+          });
+
+          const result: SecurityCaseResponseStartResult =
+            await SecurityCaseResponse.startForPerson({
+              projectId,
+              securityCaseId: securityCase.id!,
+            });
+
+          if (!result.started) {
+            throw new BadDataException(
+              SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES[result.code],
+            );
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            runId: result.runId.toString(),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Take Over: OneUptime AI stops working the case, which is the
+     * person's. Takes a case the person may change.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-response/take-over`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const securityCase: SecurityCase = await this.readCaseToWorkWithAi({
+            caseId: req.params["caseId"],
+            projectId,
+            props,
+          });
+
+          const isTakenOver: boolean =
+            await SecurityCaseResponseDecisions.takeOver({
+              projectId,
+              securityCaseId: securityCase.id!,
+              props,
+            });
+
+          if (!isTakenOver) {
+            throw new BadDataException(
+              "OneUptime AI is not working this case.",
+            );
+          }
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * A person's answer to what OneUptime AI asked on the card - take the
+     * case, mark a step done, an exception for the case's rule
+     * (SecurityCaseResponseDecisions). The rule's exception takes the
+     * right to create the rule's exceptions, and is created as the person;
+     * the rest take a case the person may change.
+     */
+    for (const decision of ["approve", "decline"] as const) {
+      this.router.post(
+        `${basePath}/:caseId/ai-response/actions/:actionId/${decision}`,
+        UserMiddleware.getUserMiddleware,
+        UserMiddleware.requireUserAuthentication,
+        ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+        async (
+          req: ExpressRequest,
+          res: ExpressResponse,
+          next: NextFunction,
+        ) => {
+          try {
+            const props: DatabaseCommonInteractionProps =
+              await CommonAPI.getDatabaseCommonInteractionProps(req);
+            const projectId: ObjectID =
+              CommonAPI.assertAuthenticatedProjectMember(props);
+            const actionId: string | undefined = req.params["actionId"];
+
+            if (!actionId || !ObjectID.isValidUUID(actionId)) {
+              throw new BadDataException("A valid action ID is required.");
+            }
+
+            const securityCaseId: ObjectID = await this.readCaseForTriage({
+              caseId: req.params["caseId"],
+              projectId,
+              props,
+            });
+
+            const action: SecurityCaseAiAction =
+              await SecurityCaseResponseDecisions.readAskedAction({
+                projectId,
+                securityCaseId,
+                actionId: new ObjectID(actionId),
+              });
+
+            if (action.kind === SecurityCaseAiActionKind.OfferRuleException) {
+              CommonAPI.assertCanCreateTable({
+                modelType: DetectionRuleException,
+                props,
+                errorMessage:
+                  "Accepting or dismissing a rule's exception takes a role that can edit detection rules.",
+              });
+            } else {
+              await this.readCaseToWorkWithAi({
+                caseId: securityCaseId.toString(),
+                projectId,
+                props,
+              });
+            }
+
+            if (decision === "approve") {
+              await SecurityCaseResponseDecisions.approve({
+                projectId,
+                securityCaseId,
+                actionId: action.id!,
+                props,
+              });
+            } else {
+              await SecurityCaseResponseDecisions.decline({
+                projectId,
+                securityCaseId,
+                actionId: action.id!,
+                props,
+              });
+            }
+
+            return Response.sendEmptySuccessResponse(req, res);
+          } catch (error) {
+            next(error);
+          }
+        },
+      );
+    }
+  }
+
+  /*
+   * The case a person asks OneUptime AI to work, takes over, or answers
+   * OneUptime AI's question on: a case they may change, with a role that
+   * can work security cases.
+   */
+  private async readCaseToWorkWithAi(data: {
+    caseId: string | undefined;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityCase> {
+    CommonAPI.assertPermittedInProject({
+      databaseProps: data.props,
+      allowedPermissions: new SecurityCase().getUpdatePermissions(),
+      errorMessage:
+        "Asking OneUptime AI to work a case takes a role that can work security cases.",
+    });
+
+    if (!data.caseId || !ObjectID.isValidUUID(data.caseId)) {
+      throw new BadDataException("A valid case ID is required.");
+    }
+
+    return await this.readCaseToChange({
+      caseId: new ObjectID(data.caseId),
+      projectId: data.projectId,
+      props: data.props,
+    });
   }
 
   /*
@@ -1314,6 +1570,9 @@ export default class SecurityCaseAPI extends BaseAPI<
       containedAt: true,
       closedAt: true,
       mitreTactics: true,
+      // How OneUptime AI worked the window's cases (#10352).
+      aiTookCaseAt: true,
+      aiClosedAt: true,
     };
 
     const [
@@ -1322,12 +1581,14 @@ export default class SecurityCaseAPI extends BaseAPI<
       detections,
       waitingRuns,
       riskiestEntities,
+      aiActions,
     ]: [
       Array<SecurityCase>,
       Array<SecurityCase>,
       Array<SecurityDetection>,
       number,
       SecurityRiskiestEntities | null,
+      Array<SecurityCaseAiAction>,
     ] = await Promise.all([
       SecurityCaseService.findBy({
         query: {
@@ -1381,6 +1642,32 @@ export default class SecurityCaseAPI extends BaseAPI<
        * Null when it could not be read - the card says so, not the page.
        */
       SecurityRiskiestEntitiesReader.read({ projectId, props }),
+      /*
+       * OneUptime AI's actions of the window (#10352): what it asked people
+       * and what they undid, of the cases the reader may read.
+       */
+      SecurityCaseAiActionService.findBy({
+        query: {
+          projectId,
+          createdAt: QueryHelper.greaterThanEqualTo(windowStart),
+        },
+        select: {
+          _id: true,
+          status: true,
+          askedAt: true,
+          decidedAt: true,
+          undoneAt: true,
+        },
+        skip: 0,
+        limit: SECURITY_OVERVIEW_ROW_LIMIT,
+        props,
+      }).catch((error: unknown): Array<SecurityCaseAiAction> => {
+        logger.error(
+          `SecurityCaseAPI: could not read OneUptime AI's actions for the overview of project ${projectId.toString()}:`,
+        );
+        logger.error(error);
+        return [];
+      }),
     ]);
 
     const toCaseRow: (row: SecurityCase) => OverviewCaseRow = (
@@ -1438,6 +1725,30 @@ export default class SecurityCaseAPI extends BaseAPI<
         casesInWindow.length >= SECURITY_OVERVIEW_ROW_LIMIT ||
         detections.length >= SECURITY_OVERVIEW_ROW_LIMIT,
       metrics: metrics as unknown as JSONObject,
+      // How OneUptime AI works the cases (#10352).
+      aiMeasures: computeSecurityAiOverviewMeasures({
+        cases: casesInWindow.map(
+          (row: SecurityCase): SecurityAiOverviewCaseRow => {
+            return {
+              createdAt: row.createdAt!,
+              containedAt: row.containedAt,
+              closedAt: row.closedAt,
+              aiTookCaseAt: row.aiTookCaseAt,
+              aiClosedAt: row.aiClosedAt,
+            };
+          },
+        ),
+        actions: aiActions.map(
+          (row: SecurityCaseAiAction): SecurityAiOverviewActionRow => {
+            return {
+              status: row.status || "",
+              askedAt: row.askedAt,
+              decidedAt: row.decidedAt,
+              undoneAt: row.undoneAt,
+            };
+          },
+        ),
+      }) as unknown as JSONObject,
       riskiestEntities: riskiestEntities as unknown as JSONObject | null,
       priorities: values.priorities.map(
         (priority: SecurityCasePriority): JSONObject => {

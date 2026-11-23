@@ -42,6 +42,10 @@ import {
 } from "../../Types/Retention/ResolvedRecordRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
+import {
+  SECURITY_CASE_AI_MODES,
+  SecurityCaseAiMode,
+} from "../../Types/SecurityCase/SecurityCaseAi";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -2677,6 +2681,285 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableAutomaticSecurityCaseTriage?: boolean = undefined;
+
+  /*
+   * OneUptime AI working a security case end to end (#10352): after a
+   * triage reads a case as Likely Malicious, or when a person presses
+   * Respond with AI on it, OneUptime AI takes the case and works its
+   * Response Plan within the limits below (securityCaseAi*Mode) - blocks,
+   * containment, the code fix, the check that each holds, and the close
+   * with a report - through the playbook engine, as a person would
+   * (Types/SecurityCase/SecurityCaseAi). On for new projects, like triaging
+   * new cases above; a project that existed before keeps it off until an
+   * owner turns it on, so an upgrade never lets OneUptime AI change
+   * anything unasked.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Security Case Response",
+    description:
+      "When enabled, OneUptime AI works each case its triage reads as Likely Malicious, and any case a person asks it to: it takes the case, contains it, checks that each step holds, asks for the fix and closes the case with a report, within what the project's Security Case AI settings allow. Everything it does is on the case's timeline as OneUptime AI's, and can be undone. On for new projects created in OneUptime; projects that existed before keep it off until someone turns it on. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticSecurityCaseResponse?: boolean = undefined;
+
+  /*
+   * What OneUptime AI may do on a case, one kind of action a column, each
+   * Off, Ask or On its own (Types/SecurityCase/SecurityCaseAi's
+   * SecurityCaseAiMode). Their database defaults are the recommended ones:
+   * they take effect only once enableAutomaticSecurityCaseResponse is on.
+   * Setting Edge, Accounts or Hosts to On its own takes a Security Admin's
+   * authority (ProjectService stamps who did, securityCaseAiOnItsOwnStamps),
+   * and Edge counts as On its own only once stamped.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Case",
+    description:
+      "What OneUptime AI may do to the case itself - take it, set its priority, mark steps done with their evidence, and move it to Contained once every containment step is verified: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.OnItsOwn,
+    example: SecurityCaseAiMode.OnItsOwn,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.OnItsOwn,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCaseMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Edge",
+    description:
+      "Whether OneUptime AI may block a case's address at the edge, for at most 24 hours: Off, Ask or OnItsOwn. OnItsOwn takes effect only once a Security Admin confirms it; until then OneUptime AI asks.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiEdgeMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Accounts",
+    description:
+      "Whether OneUptime AI may suspend a case's user or end their sessions, through the project's identity provider connection: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiAccountsMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Hosts",
+    description:
+      "Whether OneUptime AI may contain or isolate a case's host, through the project's EDR connection: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiHostsMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Code",
+    description:
+      "Whether OneUptime AI may ask Fix With AI for a pull request that fixes the route a case's attack reached: Off, Ask or OnItsOwn. A person always merges the pull request.",
+    defaultValue: SecurityCaseAiMode.OnItsOwn,
+    example: SecurityCaseAiMode.OnItsOwn,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.OnItsOwn,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCodeMode?: SecurityCaseAiMode = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    allowedValues: SECURITY_CASE_AI_MODES,
+    title: "Security Case AI: Close",
+    description:
+      "Whether OneUptime AI may close a case with a verdict and a closing report once every step is done and its detection has been quiet for 24 hours: Off, Ask or OnItsOwn.",
+    defaultValue: SecurityCaseAiMode.Ask,
+    example: SecurityCaseAiMode.Ask,
+  })
+  @Column({
+    nullable: false,
+    default: SecurityCaseAiMode.Ask,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public securityCaseAiCloseMode?: SecurityCaseAiMode = undefined;
+
+  /*
+   * Who let each containment kind of OneUptime AI's actions run on its own,
+   * and when (Types/SecurityCase/SecurityCaseAi's
+   * SecurityCaseAiOnItsOwnStamps): stamped by ProjectService when an owner
+   * sets Edge, Accounts or Hosts to On its own, taken away when they set it
+   * back. Each containment step OneUptime AI runs without asking carries
+   * its kind's stamp, as a playbook step saved with Needs Approval off
+   * does. Only OneUptime writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Security Case AI On Its Own Confirmations",
+    description:
+      "Who set each kind of containment OneUptime AI does on security cases (Edge, Accounts, Hosts) to On its own, and when. Written by OneUptime.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public securityCaseAiOnItsOwnStamps?: JSONObject = undefined;
 
   /*
    * Working on new Data Security issues (#10364): when a check opens an

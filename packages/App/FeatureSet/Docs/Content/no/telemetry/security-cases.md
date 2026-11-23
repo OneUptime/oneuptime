@@ -253,7 +253,7 @@ En Sikkerhetsadministrator administrerer de egendefinerte feltene og notatmalene
 
 ## Varslinger
 
-OneUptime gir folk beskjed om seks ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
+OneUptime gir folk beskjed om sju ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
 
 | Varsling | Hvem som får beskjed | Som standard |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime gir folk beskjed om seks ting på en sak. Ingen trenger å sette opp n
 | Responsmål for sikkerhetssak | De som er på saken: personen den er tildelt, og medlemmene av teamet dens. Er ingen på den, de som får beskjed om nye saker med prioriteten dens | E-post og push |
 | Oppgave i sikkerhetssak tildelt meg | Personen som får en oppgave i saken, med mindre vedkommende tok den selv | E-post og push |
 | Trinn i sikkerhetssak holder ikke lenger | De som er på saken, når et trinn OneUptime så utført, ikke lenger holder: personen den er tildelt, og medlemmene av teamet dens. Er ingen på den, de som får beskjed om nye saker med prioriteten dens | E-post og push |
+| OneUptime AI overleverte en sikkerhetssak til personer | De som er på saken, når OneUptime AI slutter å arbeide med den og sier hvorfor: personen den er tildelt, og medlemmene av teamet dens. Er ingen på den, de som får beskjed om nye saker med prioriteten dens | E-post og push |
 
 - Bare personer som kan se saken, får beskjed om den: Prosjekteiere, Prosjektadministratorer og rollene Sikkerhetsadministrator, Sikkerhetsmedlem og Sikkerhetsleser. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
 - Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
 - Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
 - Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
-- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup). Det samme gjelder et responsmål som er i ferd med å overskrides, eller er overskredet, og et trinn som ikke lenger holder.
+- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup). Det samme gjelder et responsmål som er i ferd med å overskrides, eller er overskredet, et trinn som ikke lenger holder, og en sak OneUptime AI har overlevert til personer.
 - Sakens **Tidslinje** viser hvem som fikk beskjed, og når.
 
 ### Velg hva du får beskjed om
@@ -303,7 +304,7 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhe
 
 Alle varslinger unntatt en oppgaves legges ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
 
-Steget **Oppdateringer** i en regel velger hvilke av disse meldingene den publiserer: **Nye saker og økte prioriteter**, **Tildelinger**, **Ventende godkjenninger** og **Responsmål**, én avkrysningsboks hver under **Velg oppdateringer**. **Bare viktige oppdateringer** publiserer alle unntatt tildelingene, for en kanal som bare skal høre det noen må gjøre noe med. En regel lagret før steget, og en ny regel, publiserer alle meldinger.
+Steget **Oppdateringer** i en regel velger hvilke av disse meldingene den publiserer: **Nye saker og økte prioriteter**, **Tildelinger**, **Ventende godkjenninger**, **Responsmål** og **Overlevert til personer av OneUptime AI**, én avkrysningsboks hver under **Velg oppdateringer**. **Bare viktige oppdateringer** publiserer alle unntatt tildelingene, for en kanal som bare skal høre det noen må gjøre noe med. En regel lagret før steget, og en ny regel, publiserer alle meldinger.
 
 ## Playbooks
 

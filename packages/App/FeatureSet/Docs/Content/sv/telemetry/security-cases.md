@@ -253,7 +253,7 @@ En Säkerhetsadministratör hanterar de anpassade fälten och anteckningsmallarn
 
 ## Aviseringar
 
-OneUptime berättar för personer om sex saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
+OneUptime berättar för personer om sju saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
 
 | Avisering | Vem som får veta | Som standard |
 | --- | --- | --- |
@@ -263,12 +263,13 @@ OneUptime berättar för personer om sex saker som händer i ett ärende. Ingen 
 | Svarsmål för säkerhetsärende | De som är på ärendet: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
 | Uppgift i säkerhetsärende tilldelad mig | Personen som får en uppgift i ärendet, om inte personen tog den själv | E-post och push |
 | Steg i säkerhetsärende håller inte längre | De som är på ärendet, när ett steg som OneUptime såg utfört inte längre håller: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
+| OneUptime AI lämnade över ett säkerhetsärende till personer | De som är på ärendet, när OneUptime AI slutar arbeta med det och säger varför: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen är på det, de som får veta om nya ärenden med dess prioritet | E-post och push |
 
 - Bara personer som kan se ärendet får veta om det: Projektägare, Projektadministratör och rollerna Säkerhetsadministratör, Säkerhetsmedlem och Säkerhetstittare. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
 - Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
 - Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
 - Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
-- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats, och ett steg som inte längre håller.
+- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup). Detsamma gäller ett svarsmål som håller på att missas eller har missats, ett steg som inte längre håller och ett ärende som OneUptime AI har lämnat över till personer.
 - Ärendets **Tidslinje** visar vem som fick veta, och när.
 
 ### Välj vad du får veta
@@ -303,7 +304,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Säkerh
 
 Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
 
-Steget **Uppdateringar** i en regel väljer vilka av dessa meddelanden den publicerar: **Nya ärenden och höjda prioriteter**, **Tilldelningar**, **Väntande godkännanden** och **Svarsmål**, en ruta var under **Välj uppdateringar**. **Bara viktiga uppdateringar** publicerar alla utom tilldelningarna, för en kanal som bara ska höra det någon måste agera på. En regel som sparades före steget, och en ny regel, publicerar alla meddelanden.
+Steget **Uppdateringar** i en regel väljer vilka av dessa meddelanden den publicerar: **Nya ärenden och höjda prioriteter**, **Tilldelningar**, **Väntande godkännanden**, **Svarsmål** och **Överlämnat till personer av OneUptime AI**, en ruta var under **Välj uppdateringar**. **Bara viktiga uppdateringar** publicerar alla utom tilldelningarna, för en kanal som bara ska höra det någon måste agera på. En regel som sparades före steget, och en ny regel, publicerar alla meddelanden.
 
 ## Playbooks
 

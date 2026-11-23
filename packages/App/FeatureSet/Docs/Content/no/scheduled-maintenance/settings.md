@@ -19,6 +19,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 | **Runbook-regler** | Starter runbooks for matchende hendelser.                           |
 | **Etikettregler**  | Legger til etiketter på matchende hendelser.                        |
 | **Påminnelsesregler** | Påminner eierne med et intervall til en hendelse er fullført.       |
+| **Revisjonslogger** | Viser hvem som opprettet, endret eller slettet en av disse reglene, og når. |
 
 Seksjonen **Innstillinger** rommer **Vedlikeholdsstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Vedlikeholdsmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 

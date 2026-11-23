@@ -97,6 +97,7 @@ import {
 } from "./SecurityCaseResponseTypes";
 import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -603,7 +604,8 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     entities,
     mitreTactics: securityCase.mitreTactics || [],
     mitreTechniques: securityCase.mitreTechniques || [],
-    isAssigned: Boolean(securityCase.assignedToUserId),
+    // Taken: by a person, or by OneUptime AI working it (#10352).
+    isAssigned: isSecurityCaseTaken(securityCase),
     hasIncident: Boolean(securityCase.incidentId),
     stage,
     hasContainedStatus: Boolean(

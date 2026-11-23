@@ -112,6 +112,7 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
+import { getRecordActivitySelect } from "../../../UI/Components/Detail/DetailRecordActivity";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { customDomainCaller } from "../../Server/API/CustomDomainCallers";
 import DashboardRequestsOverHttp, {
@@ -218,6 +219,28 @@ function setCaller(permissions: Array<Permission>): void {
 
 function selectSent(sent: SentRequest): JSONObject {
   return (sent.body as JSONObject)["select"] as JSONObject;
+}
+
+/*
+ * The issue's line reads who created it and who last modified it in a read
+ * of its own (RecordActivityLine, #10461): a select of those columns alone.
+ */
+const RECORD_LINE_COLUMNS: Array<string> = Object.keys(
+  getRecordActivitySelect(new DataSecurityIssue(), (): boolean => {
+    return true;
+  }),
+);
+
+function isRecordLineRead(sent: SentRequest): boolean {
+  return Object.keys(selectSent(sent) || {}).every(
+    (column: string): boolean => {
+      return RECORD_LINE_COLUMNS.includes(column);
+    },
+  );
+}
+
+function isPageRead(sent: SentRequest): boolean {
+  return !isRecordLineRead(sent);
 }
 
 beforeAll(async () => {
@@ -370,13 +393,35 @@ describe("a data security issue's page, for each reader of issues", () => {
       expect(screen.getAllByText(TITLE).length).toBeGreaterThan(0);
       expect(screen.getByText("On customer-exports")).toBeInTheDocument();
 
-      const reads: Array<SentRequest> = server.sentTo("POST", ISSUE_PATH);
+      const reads: Array<SentRequest> = server
+        .sentTo("POST", ISSUE_PATH)
+        .filter(isPageRead);
 
       expect(
         reads.map((sent: SentRequest): number => {
           return sent.status;
         }),
       ).toEqual([200]);
+
+      /*
+       * And its line - who created it and who last modified it - in one
+       * read of its own the server answered, for every reader of issues.
+       */
+      await waitFor(() => {
+        expect(
+          server
+            .sentTo("POST", ISSUE_PATH)
+            .filter(isRecordLineRead)
+            .map((sent: SentRequest): number => {
+              return sent.status;
+            }),
+        ).toEqual([200]);
+      });
+      expect(
+        within(screen.getByTestId("data-security-issue-header")).getByTestId(
+          "detail-record-line",
+        ),
+      ).toBeInTheDocument();
       expect(
         screen.queryByTestId("data-security-issue-parts-not-loaded"),
       ).not.toBeInTheDocument();
