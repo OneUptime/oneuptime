@@ -95,7 +95,7 @@ export const AI_RESULTS_NOT_READABLE_TITLE: string = translationKey(
 );
 
 export const AI_RESULTS_NOT_READABLE_DESCRIPTION: string = translationKey(
-  "These results count incidents, alerts, on-call pages, fixes and Data Security issues, and your role cannot read any of them. A Project Admin can give you access.",
+  "Your role cannot read the incidents, alerts, on-call pages, fixes or Data Security issues these results count. A Project Admin can give you access.",
 );
 
 export const AI_RESULTS_LOAD_ERROR: string = translationKey(
@@ -1474,6 +1474,13 @@ export const DATA_SECURITY_KIND_LABELS: Record<
   // Owners for stores that had none, and the owner rules that keep them (#10374).
   [DataSecurityAiProposalKind.SetStoreOwners]: translationKey("Store owners"),
   [DataSecurityAiProposalKind.CreateOwnerRule]: translationKey("Owner rules"),
+  // One fix for a group of issues one mistake made (#10370), in code or in its cloud.
+  [DataSecurityAiProposalKind.FixIssueGroupInCode]: translationKey(
+    "Pull requests for a cause",
+  ),
+  [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
+    "Cloud changes for a cause",
+  ),
 };
 
 export const BY_KIND_TITLE: string = translationKey("By kind");

@@ -121,6 +121,8 @@ const NOT_SECRETS: Record<string, string> = {
   "ApiKeyCustomRole.apiKeyId": "the API key row's id, not the key",
   "ApiKey.apiKeyHint":
     "the key's last four characters, never enough to use it: an entry says which key a reset replaced, and with which (#8903)",
+  "SecurityBlocklistFeed.secretHint":
+    "the feed secret's last four characters of 256 random bits, never enough to use it, and read by every role that reads the feed: an entry says which secret a rotation replaced, and with which (#10345)",
   "Monitor.incomingRequestWithoutSecretReason":
     "why the monitor's last request without a valid secret had none: No Secret or Wrong Secret, never what it sent",
   "StatusPage.enableMasterPassword": "a switch",

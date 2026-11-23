@@ -35,7 +35,7 @@ Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen secti
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina gaat verder vanaf **Incident-sjablonen**. Formulieren waarmee mensen buiten je team incidenten melden, zijn een eigen product: zie [Formulieren](/docs/forms/index). Tools die zelf incidenten openen, zoals [Huntress](/docs/integrations/huntress), stel je in als workflows.
 
-Klap **Regels** uit en je krijgt nog acht pagina's: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels** en **Herinneringsregels**. Die worden verderop behandeld.
+Klap **Regels** uit en je krijgt nog negen pagina's: **Groeperingsregels**, **Bereikbaarheidsregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **SLA-regels**, **Herinneringsregels** en **Auditlogboeken**: wie een van deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer, verwijderde regels inbegrepen. De regels worden verderop behandeld.
 
 ## Incidentsjablonen
 

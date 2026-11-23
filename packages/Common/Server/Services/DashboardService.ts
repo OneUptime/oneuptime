@@ -647,14 +647,12 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       const session: DashboardPrivateUserSession | null =
-        await DashboardPrivateUserSessionService.findSignedInSessionOnRequest(
-          {
-            req: data.req,
-            dashboardId: data.dashboardId,
-            requireSsoForLogin: dashboard.requireSsoForLogin,
-            withEmail: true,
-          },
-        );
+        await DashboardPrivateUserSessionService.findSignedInSessionOnRequest({
+          req: data.req,
+          dashboardId: data.dashboardId,
+          requireSsoForLogin: dashboard.requireSsoForLogin,
+          withEmail: true,
+        });
 
       const email: string = (
         session?.dashboardPrivateUser?.email?.toString() || ""

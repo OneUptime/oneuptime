@@ -297,17 +297,17 @@ OneUptime envía `ForceAuthn="true"` y lee cuándo inició sesión la persona de
 
 | Proveedor de identidad | Qué configurar |
 | --- | --- |
-| Okta | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y pon **Honor Force Authentication** en **Yes**. Con **No**, Okta ignora la solicitud. |
+| Okta | En la pestaña **General**, edita **SAML Settings**, haz clic en **Show Advanced Settings** y pon **Honor Force Authentication** en **Yes**. Con **No**, Okta ignora la solicitud. OneUptime te lo recuerda junto a un proveedor de Okta. |
 | Microsoft Entra ID | Nada: Entra ID respeta la solicitud, y su `AuthnInstant` es cuándo inició sesión la persona. |
-| Keycloak | Nada: Keycloak respeta la solicitud. Pero su `AuthnInstant` es cuándo responde, no cuándo inició sesión la persona, así que OneUptime no puede comprobar que Keycloak se lo volvió a pedir. Conecta Keycloak mediante OpenID Connect para que OneUptime lo compruebe por sí mismo. |
+| Keycloak | Nada: Keycloak respeta la solicitud, aunque la 26.8.2 y anteriores pueden saltársela cuando se reinicia el inicio de sesión en la página de inicio de sesión de Keycloak, algo que corrigen la 26.8.3 y la 27.0.0. Su `AuthnInstant` es cuándo responde, no cuándo inició sesión la persona, así que OneUptime no puede comprobar que Keycloak se lo volvió a pedir, y lo dice junto al proveedor. Conecta Keycloak mediante OpenID Connect para que OneUptime lo compruebe por sí mismo. |
 | Google Workspace | Nada que configurar. Google no dice si respeta la solicitud. Su `AuthnInstant` es la última vez que la persona inició sesión en Google, así que quien sigue con la sesión iniciada en Google la cierra primero. |
 @tab OpenID Connect
-OneUptime envía `prompt=login` y `max_age=0`, y lee cuándo inició sesión la persona del `auth_time` del token de ID.
+OneUptime envía `prompt=login` y `max_age=0`, o solo `prompt=login` a Microsoft Entra ID, y lee cuándo inició sesión la persona del `auth_time` del token de ID.
 
 | Proveedor de identidad | Qué configurar |
 | --- | --- |
 | Okta | Nada: Okta respeta ambos y siempre envía `auth_time`. |
-| Microsoft Entra ID | En **Token configuration** del registro de la aplicación, haz clic en **Add optional claim**, elige **ID** y añade `auth_time`: Entra ID solo lo envía como notificación opcional. Respeta `prompt=login`. |
+| Microsoft Entra ID | En **Token configuration** del registro de la aplicación, haz clic en **Add optional claim**, elige **ID** y añade `auth_time`: Entra ID solo lo envía como notificación opcional. Respeta `prompt=login`. OneUptime no le envía `max_age`, que Microsoft no documenta y que, según se ha informado, hace que Entra ID responda con un token de ID ya caducado. |
 | Keycloak | Mantén el ámbito de cliente `basic` en el cliente: incluye `auth_time`. Keycloak 25 y posteriores dan este ámbito a todos los clientes. |
 | Google Workspace | Activa **Session age claims** para el cliente OAuth, en **Google Auth Platform** > **Settings** > **Advanced Settings**; la aplicación debe estar publicada y verificada. Google no acepta ninguna de las dos solicitudes, así que OneUptime le pide `auth_time` en su lugar, y quien sigue con la sesión iniciada en Google la cierra primero. |
 :::
@@ -380,6 +380,8 @@ Una cuenta puede pertenecer a muchas organizaciones, así que solo puedes borrar
 - alguien que es miembro de un proyecto, o está invitado a uno, del que no eres propietario o que no gestiona el inicio de sesión con SSO;
 - alguien solo invitado a tu proyecto, que aún no se ha unido a él;
 - los administradores maestros, y tú: cambia los tuyos en tu **Perfil de usuario**.
+
+Para borrar a una sola persona, abra **Usuarios**: la fila de cada persona que puede borrar dice **Configuración de inicio de sesión guardada**, y **Borrar configuración de inicio de sesión** en su menú borra solo la de esa persona, con la misma regla, tras una pregunta que enumera lo que se elimina.
 
 Cada persona a la que se le borra recibe un correo que le indica lo que se eliminó y que ahora inicia sesión con SSO, y los registros de auditoría de tus proyectos registran el borrado como tuyo. Solo un **Propietario del proyecto** puede borrar, con la sesión iniciada en el panel: nunca con una clave de API.
 

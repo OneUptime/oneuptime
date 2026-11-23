@@ -3162,14 +3162,19 @@ describe("Data Security Integrations", () => {
       "Judge",
       "Off",
       "Suggest",
-      "Without asking",
+      // The autonomy that runs without approval, as the rules' form draws it (e76f1ced289).
+      "Automatically",
     ]) {
       expect(copy).toContain(`translationKey("${name}")`);
       expect(rules).toContain(`**${name}**`);
     }
 
-    // Suggest wins over Without asking, as the engine decides it.
-    expect(rules).toContain("**Suggest** wins over **Without asking**");
+    // The retired word is gone from the page, as it is from the Dashboard.
+    expect(copy).not.toContain('translationKey("Without asking")');
+    expect(rules).not.toContain("**Without asking**");
+
+    // Suggest wins over Automatically, as the engine decides it.
+    expect(rules).toContain("**Suggest** wins over **Automatically**");
     expect(source("Common/Types/DataSecurity/DataSecurityAi.ts")).toContain(
       "otherwise the careful answer wins - Suggest when any rule that",
     );

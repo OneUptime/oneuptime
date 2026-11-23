@@ -218,6 +218,10 @@ describe("who started the run", () => {
       "Triaged as Likely Malicious",
       "Started on its own when OneUptime AI read the case as likely malicious",
     ],
+    [
+      "OneUptime AI",
+      "Started on its own by OneUptime AI, which is working the case",
+    ],
     ["Manual", "Started by hand"],
     [undefined, "Started by hand"],
   ])("a run started by %s", (trigger: unknown, words: string) => {

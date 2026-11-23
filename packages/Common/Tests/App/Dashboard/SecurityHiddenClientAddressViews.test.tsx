@@ -14,10 +14,13 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
@@ -32,7 +35,10 @@ import {
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  markAddressScrubbed,
   markClientAddressScrubbed,
+  nameAddressScrubRule,
   nameClientAddressScrubRule,
 } from "../../../Utils/SecurityEvent/ScrubbedAddress";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -40,6 +46,7 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
 import { getHiddenAddressRulesRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressRoute";
 import HiddenClientAddressText, {
   HIDDEN_CLIENT_ADDRESS_TEST_ID,
+  HIDDEN_TARGET_ADDRESS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HiddenClientAddressText";
 import SecurityEventDetailPanel from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailPanel";
 import SecurityEventWhatHappenedNext, {
@@ -267,6 +274,79 @@ describe("the event's drawer", () => {
       "scrub-rule",
     );
   });
+
+  /*
+   * #10419: a firewall's connection whose destination a scrub rule hid says
+   * so on Target IP, and its own filter shows every event whose
+   * destination a rule hid; the source the event names stays its address.
+   */
+  test("Target IP says which scrub rule hid the destination, and filters to every such event", () => {
+    const onFilterBy: MockFunction = getJestMockFunction();
+    const attributes: JSONObject = {};
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Masked, value: "***.***.***.***" },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+    nameAddressScrubRule(attributes, ScrubbedAddressRole.Target, {
+      id: RULE_ID,
+      name: "Mask IP addresses",
+    });
+
+    render(
+      inRouter(
+        <SecurityEventDetailPanel
+          securityEvent={Object.assign(new SecurityEvent(), {
+            time: new Date("2026-11-20T10:00:05.000Z"),
+            eventUid: "log:def:0",
+            severityName: OcsfSeverity.Low,
+            className: "Network Activity",
+            activityName: "Refuse",
+            message: "ms-rdp from 203.0.113.7 to ***.***.***.***:3389 blocked",
+            principalIp: "203.0.113.7",
+            targetIp: "",
+            targetPort: 3389,
+            observables: ["203.0.113.7"],
+            attributes,
+          })}
+          onClose={(): void => {}}
+          onFilterBy={(facetKey: string, value: string): void => {
+            onFilterBy(facetKey, value);
+          }}
+        />,
+      ),
+    );
+
+    const target: HTMLElement = screen.getByTestId(
+      HIDDEN_TARGET_ADDRESS_TEST_ID,
+    );
+    const row: HTMLElement = screen.getByText("Target IP").closest("div")!;
+
+    expect(target).toHaveTextContent(
+      "Hidden by the scrub rule Mask IP addresses",
+    );
+    expect(
+      within(row).getByRole("link", { name: "Mask IP addresses" }),
+    ).toBeInTheDocument();
+    expect(row).not.toHaveTextContent("***");
+    // The source is no hidden address.
+    expect(screen.queryByTestId(HIDDEN_CLIENT_ADDRESS_TEST_ID)).toBeNull();
+    expect(screen.getByText("Principal IP").closest("div")!).toHaveTextContent(
+      "203.0.113.7",
+    );
+
+    fireEvent.click(
+      within(row).getByRole("button", {
+        name: "Show events whose target address a scrub rule hid",
+      }),
+    );
+
+    expect(onFilterBy).toHaveBeenCalledWith(
+      "attributes.oneuptime.target_address_hidden",
+      "scrub-rule",
+    );
+  });
 });
 
 describe("What happened next", () => {
@@ -453,6 +533,64 @@ describe("the Overview's card", () => {
     expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
       getHiddenAddressRulesRoute("trace")!.toString(),
     );
+  });
+
+  /*
+   * Security Events' setup item uses the switch the rules pages use
+   * (#10396): Hash Instead makes the rule hash, as the person who pressed
+   * it, and the card reads its figures again.
+   */
+  test("offers Hash Instead beside the way to the rule, which switches the rule and reads the card again", async () => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    const hashSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ScrubRuleAddressesApi, "hashInstead")
+      .mockResolvedValue({
+        signal: "log",
+        ruleId: RULE_ID,
+        ruleName: "Scrub IP addresses",
+        scrubAction: LogScrubAction.Hash,
+      });
+    const onChanged: MockFunction = getJestMockFunction();
+
+    render(
+      inRouter(
+        <SecurityOverviewStatus
+          queue={QUEUE}
+          status={status({
+            addressScrubRules: [
+              {
+                signal: "log",
+                ruleId: RULE_ID,
+                ruleName: "Scrub IP addresses",
+                scrubAction: LogScrubAction.Redact,
+              },
+            ],
+          })}
+          showPipeline={true}
+          hasStatusFailed={false}
+          isReading={false}
+          now={new Date("2026-11-20T12:00:00.000Z")}
+          onChanged={onChanged}
+          onTryAgain={(): void => {}}
+          onSetUp={(): void => {}}
+        />,
+      ),
+    );
+
+    const logs: HTMLElement = screen.getByTestId(
+      `${SECURITY_ADDRESS_SCRUB_TEST_ID}-log`,
+    );
+
+    expect(
+      within(logs).getByRole("button", { name: "Open Scrub Rules" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(logs).getByRole("button", { name: "Hash Instead" }));
+
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalledTimes(1);
+    });
+    expect(hashSpy).toHaveBeenCalledWith({ signal: "log", ruleId: RULE_ID });
   });
 
   test("says it while Get started is on the page too, and nothing without such a rule", () => {

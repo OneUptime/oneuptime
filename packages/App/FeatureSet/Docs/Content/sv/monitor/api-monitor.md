@@ -107,7 +107,7 @@ De här inställningarna är hopfällda under **Fler fält**. Den hopfällda rub
 | Fält | Standard | Vad det gör |
 | --- | --- | --- |
 | **Begärandehuvuden** | Inga | Huvuden som skickas, som par av namn och värde. Klicka på **Lägg till Begärandehuvud** för vart och ett. |
-| **Begärandekropp (i JSON)** | Ingen | Ett JSON-objekt som skickas som kropp, oftast med **POST**, **PUT** eller **PATCH**. Det måste vara giltig JSON. |
+| **Begärandekropp (i JSON)** | Ingen | Kroppen som skickas, oftast med **POST**, **PUT** eller **PATCH**: vilket JSON-värde som helst, till exempel ett objekt, en array, en sträng eller ett tal. Den skickas som du skriver den, som `application/json`, om du inte anger en `Content-Type` under **Begärandehuvuden**. Med `application/x-www-form-urlencoded` eller `multipart/form-data` skickas ett objekt som formulärfält. |
 | **Följ inte omdirigeringar** | Av | Bedöm det första svaret i stället för att följa omdirigeringar. Se [nedan](#följ-inte-omdirigeringar). |
 | **Tillåt självsignerade certifikat** | Av | Hoppa över valideringen av TLS-certifikatet för monitorns eget värdnamn. |
 | **Använd klientcertifikat (mTLS)** | Av | Visa upp ett klientcertifikat och en privat nyckel. Se [Klientcertifikat (mTLS)](#klientcertifikat-mtls). |
@@ -242,6 +242,10 @@ API:et omdirigerade en begäran med en kropp, eller med en annan metod än `GET`
 
 :::details Kontrollen misslyckas med "Remote response exceeded the allowed size."
 Sonden läser högst 512 KiB av ett svar, och det här är större. Anropa en slutpunkt som returnerar mindre, till exempel med en mindre sidstorlek.
+:::
+
+:::details Kontrollen misslyckas med "Begärandetexten är inte giltig JSON, så begäran skickades inte."
+Kroppen är inte JSON när dess [övervakningshemligheter](/docs/monitor/monitor-secrets) har fyllts i, så sonden skickade inte begäran. Rätta kroppen under **Fler fält**, eller värdet av en hemlighet som den använder: ett värde med ett `"` i bryter JSON-strängen som det står i.
 :::
 
 ## Nästa steg

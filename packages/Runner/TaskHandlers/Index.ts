@@ -22,6 +22,7 @@ export { default as ImproveLoggingTaskHandler } from "./ImproveLoggingTaskHandle
 export { default as ImproveTracingTaskHandler } from "./ImproveTracingTaskHandler";
 export { default as FixFromIncidentTaskHandler } from "./FixFromIncidentTaskHandler";
 export { default as FixPerformanceTaskHandler } from "./FixPerformanceTaskHandler";
+export { default as FixInfrastructureCodeTaskHandler } from "./FixInfrastructureCodeTaskHandler";
 export { default as GitHubTaskHandlerBase } from "./GitHubTaskHandlerBase";
 export { default as GitHubIssueFixTaskHandler } from "./GitHubIssueFixTaskHandler";
 export { default as GitHubPullRequestRevisionTaskHandler } from "./GitHubPullRequestRevisionTaskHandler";

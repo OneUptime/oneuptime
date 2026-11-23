@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import {
   SCRUB_HASH_TOKEN_HEX_LENGTH,
   SCRUB_HASH_TOKEN_PREFIX,
@@ -69,7 +70,10 @@ const PROJECT_KEY_DERIVATION_LABEL: string = "oneuptime-telemetry-scrub-hash";
  */
 const MAX_CACHED_PROJECT_KEYS: number = 10_000;
 
-const projectKeys: Map<string, Buffer> = new Map<string, Buffer>();
+const projectKeys: OldestKeyMap<string, Buffer> = new OldestKeyMap<
+  string,
+  Buffer
+>();
 
 // A project's id as its key is derived from it: one spelling of the UUID.
 function projectIdText(projectId: ObjectID | string): string {
@@ -96,7 +100,7 @@ function projectKeyOf(projectId: ObjectID | string): Buffer {
     .digest();
 
   if (projectKeys.size >= MAX_CACHED_PROJECT_KEYS) {
-    const oldest: string | undefined = projectKeys.keys().next().value;
+    const oldest: string | undefined = projectKeys.oldestKey();
 
     if (oldest !== undefined) {
       projectKeys.delete(oldest);

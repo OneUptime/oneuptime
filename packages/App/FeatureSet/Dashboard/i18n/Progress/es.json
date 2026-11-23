@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 61841,
+    "keys": 62240,
     "untranslated": 2306
   },
   "sameAsEnglish": [
@@ -487,6 +487,7 @@
     "Variables",
     "Vertical Pod Autoscalers",
     "Visual",
+    "WAF",
     "WARN",
     "Web",
     "Web, iOS, Android, React Native",

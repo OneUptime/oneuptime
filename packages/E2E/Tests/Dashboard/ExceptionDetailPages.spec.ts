@@ -660,7 +660,9 @@ test.describe("Exception detail pages", () => {
 
     await mobileToggle.click();
     await ctx.page
-      .locator("div[role='navigation'][aria-label='Pages in this section']:visible")
+      .locator(
+        "div[role='navigation'][aria-label='Pages in this section']:visible",
+      )
       .getByRole("link", { name: "Fix with AI", exact: true })
       .click();
     await expect(ctx.page).toHaveURL(

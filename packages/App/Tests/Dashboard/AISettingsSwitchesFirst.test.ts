@@ -605,7 +605,7 @@ describe("the pages draw switches first, and fold the limits", () => {
     },
   );
 
-  test("Security Events → AI → Settings is the notice and its one switch, triaging new cases", () => {
+  test("Security Events → AI → Settings is the notice, its two switches - triaging new cases and working them - and what OneUptime AI may do on a case", () => {
     const page: string = readDashboard(SECURITY_PAGE);
 
     expect(page).toContain(
@@ -620,7 +620,18 @@ describe("the pages draw switches first, and fold the limits", () => {
           return definition.column;
         },
       ),
-    ).toEqual(["enableAutomaticSecurityCaseTriage"]);
+    ).toEqual([
+      "enableAutomaticSecurityCaseTriage",
+      // Working a case end to end (#10352), within the card under the switches.
+      "enableAutomaticSecurityCaseResponse",
+    ]);
+    // The notice, then the switches, then what OneUptime AI may do on a case.
+    expect(page.indexOf("<ProjectAiNotice")).toBeLessThan(
+      page.indexOf("<ProjectAiSwitchesCard"),
+    );
+    expect(page.indexOf("<ProjectAiSwitchesCard")).toBeLessThan(
+      page.indexOf("<SecurityCaseAiLimitsCard"),
+    );
     /*
      * The card says what the Incidents' and Alerts' AI settings say: their
      * title, and that it works on its own and can be turned off. It used to

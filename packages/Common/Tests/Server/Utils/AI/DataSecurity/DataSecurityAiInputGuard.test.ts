@@ -110,6 +110,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataStoreOwnerPlanner.ts`,
   },
+  // Scrub rules for what Scrub It cannot cover (#10366), in the engine's job.
+  [DataSecurityAiFeature.WriteScrubRules]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ScrubRuleWriter.ts`,
+  },
   // A pull request's sensitive data (#10376), in its production review.
   [DataSecurityAiFeature.ReviewPullRequests]: {
     kind: "ask",
@@ -127,6 +132,18 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     file: TOOLS_FILE,
     // The chat whose next calls read the tools' rows.
     chatFile: "packages/Common/Server/Utils/AI/Chat/ChatAgentRunner.ts",
+  },
+  // A name for a group of issues one mistake made (#10370), after each grouping.
+  [DataSecurityAiFeature.NameIssueGroup]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataSecurityIssueGroupNaming.ts`,
+  },
+  // The group's one pull request (#10370): a task in Code, as Fix with AI's is.
+  [DataSecurityAiFeature.FixIssueGroup]: {
+    kind: "codeTask",
+    file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
+    agentFile:
+      "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
   },
 };
 
@@ -484,12 +501,38 @@ function receiverOf(call: ts.CallExpression, source: ts.SourceFile): string {
   );
 }
 
+/*
+ * A scanned file's AST is made when a rule first reads it, and let go when
+ * the next file's is made. Kept, the ASTs of the 12,000 files under
+ * SCAN_ROOTS came to 2.3 GB, which with the rest of what this suite loads
+ * filled the 4 GB heap of a Common Test worker (--max-old-space-size in
+ * packages/Common's npm test): the worker died out of memory, and Jest
+ * waited for the file it had been running until the job's 30-minute cap.
+ * Every rule reads one file's AST at a time, so the last one made is the
+ * only one kept.
+ */
+let lastParsed: SourceFile | null = null;
+
+function scanned(file: string, text: string): SourceFile {
+  return {
+    file,
+    text,
+    get source(): ts.SourceFile {
+      if (!lastParsed || lastParsed.file !== file) {
+        lastParsed = parse(file, text);
+      }
+
+      return lastParsed.source;
+    },
+  };
+}
+
 const SERVER_FILES: Array<SourceFile> = SCAN_ROOTS.flatMap(
   (root: string): Array<string> => {
     return listSourceFiles(path.join(REPOSITORY_ROOT, root));
   },
 ).map((full: string): SourceFile => {
-  return parse(
+  return scanned(
     path.relative(REPOSITORY_ROOT, full).split(path.sep).join("/"),
     fs.readFileSync(full, "utf8"),
   );
@@ -635,6 +678,39 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       "buildMessage: () => Promise<DataSecurityAiCodeRequest>;",
     );
     expect(task.text).toContain("message: request.text,");
+    expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
+  });
+
+  test("a group's one pull request is queued only where its fix is listed, with the request the builder made", () => {
+    // A FixInfrastructureCode run (#10370) is queued, not started from a chat turn.
+    const queuing: Array<string> = SERVER_FILES.filter(
+      (file: SourceFile): boolean => {
+        return (
+          DATA_SECURITY_FILE.test(file.file) &&
+          findCalls(file, "enqueueSubjectCodeFixRun").some(
+            (call: ts.CallExpression): boolean => {
+              return receiverOf(call, file.source) === "SubjectCodeFixRun";
+            },
+          )
+        );
+      },
+    ).map((file: SourceFile): string => {
+      return file.file;
+    });
+
+    expect(queuing).toEqual([
+      (FEATURE_CALLS[DataSecurityAiFeature.FixIssueGroup] as { file: string })
+        .file,
+    ]);
+
+    const task: SourceFile = serverFile(queuing[0]!);
+
+    expect(task.text).toContain(
+      "taskType: CodeFixTaskType.FixInfrastructureCode,",
+    );
+    expect(task.text).toContain(
+      "infrastructureFix: { ...data.fix, request: request.text },",
+    );
     expect(task.text).toContain("isDataSecurityAiCodeRequest(request)");
   });
 

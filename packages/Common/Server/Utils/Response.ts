@@ -140,6 +140,18 @@ const ALLOWED_MIME_TYPES: Set<string> = new Set<string>([
 // What an unrecognised fileType degrades to: opaque bytes, never a document.
 const FALLBACK_MIME_TYPE: string = "application/octet-stream";
 
+export interface ErrorResponseOptions {
+  /*
+   * The request is refused for what its client sent - no ingestion key, a
+   * wrong one, one switched off or over its rate - and nothing is wrong with
+   * the server. Logged at debug, not error: a refusal comes from anyone, and
+   * a client that keeps sending what is refused wrote one error-level line a
+   * request, at no cost to itself, raising error alerts and burying real
+   * errors (#10703).
+   */
+  isClientRefusal?: boolean | undefined;
+}
+
 export default class Response {
   @CaptureSpan()
   public static sendEmptySuccessResponse(
@@ -441,6 +453,7 @@ export default class Response {
     _req: ExpressRequest,
     res: ExpressResponse,
     error: Exception,
+    options?: ErrorResponseOptions | undefined,
   ): void {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
@@ -457,7 +470,15 @@ export default class Response {
       ? error.code
       : 500;
 
-    logger.error(error, getLogAttributesFromRequest(_req as any));
+    /*
+     * A refusal of what the client sent is no fault of the server's: logged
+     * at debug, where its caller logs or counts it as it chooses (#10703).
+     */
+    if (options?.isClientRefusal) {
+      logger.debug(error, getLogAttributesFromRequest(_req as any));
+    } else {
+      logger.error(error, getLogAttributesFromRequest(_req as any));
+    }
 
     /*
      * No message, or only "Server Error": the answer says what happened and

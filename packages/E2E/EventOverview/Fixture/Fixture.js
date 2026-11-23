@@ -614,6 +614,7 @@ import {
   leaveIsolatesOutOfCopiedText,
   setCodeApartWith,
 } from "Common/UI/Utils/CodeReadsAsWritten";
+import { answerRecordAccess } from "../../SuiteHelpers/RecordAccessAnswers";
 
 /*
  * ---------------------------------------------------------------------------
@@ -9747,6 +9748,37 @@ async function handleApi(method, options) {
 
   if (url.includes("/incident/subscriber-audience")) {
     return ok(subscriberAudience(body));
+  }
+
+  /*
+   * What Maya may do on the record its pages are open on (GET
+   * /<record>/record-access/:id, SuiteHelpers/RecordAccessAnswers), with
+   * the grants ?role= gives her. Her teams are those her permission rows
+   * name (?role=view-only-owner, editor-owner), and on a private record
+   * (?private=1) only Checkout SRE's rows reach it: the team owns #1042
+   * and episode #12.
+   */
+  if (method === "GET" && url.includes("/record-access/")) {
+    const access = answerRecordAccess({
+      url,
+      rowsOf: (modelType) => {
+        return tables.get(tableName(modelType))?.records || [];
+      },
+      reader: {
+        isMasterAdmin: UserUtil.isMasterAdmin(),
+        permissions: PermissionUtil.getAllPermissions(),
+        permissionRows: snapshotRows,
+        globalPermissions: GLOBAL_PERMISSIONS,
+        userId: people.maya.id,
+      },
+      unmodelled: (modelName) => {
+        fixture.unhandled.push({ kind: "record-access", modelName });
+      },
+    });
+
+    if (access) {
+      return ok(access);
+    }
   }
 
   /*

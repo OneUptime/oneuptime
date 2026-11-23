@@ -237,7 +237,7 @@ Il valore di ogni attributo di Group By è una [variabile di modello](/docs/moni
 - **Ogni criterio viene valutato**, come in un monitor metriche raggruppato, quindi gruppi diversi possono soddisfare criteri diversi allo stesso tempo. Un gruppo che soddisfa due criteri riceve comunque un solo avviso, quello del primo, quindi ordinate i criteri dal più grave al meno grave.
 - **Un gruppo esiste solo se ha registrato qualcosa nella finestra di tempo.** Per questo i criteri **Uguale a 0** e **Minore di** scattano solo per i gruppi che hanno registrato almeno una volta; per essere avvisati quando i log smettono del tutto di arrivare, usate un monitor senza Group By.
 - **Il rilevamento delle anomalie** (**Anomalmente alto**, **Anomalmente basso**, **Anomalo**) non viene valutato per gruppo (il suo riferimento copre l'intero monitor), quindi questi filtri non corrispondono mai su un monitor raggruppato.
-- Lo stato del monitor segue il primo criterio che un qualsiasi gruppo soddisfa. Quando nessun gruppo soddisfa alcun criterio, il monitor torna al suo stato predefinito.
+- Lo stato del monitor segue il primo criterio che un qualsiasi gruppo soddisfa. Un criterio che riporta soltanto il monitor al suo stato predefinito, senza aprire avvisi né incidenti, attende i gruppi che hanno soddisfatto un criterio che imposta un altro stato, finché ciascuno di essi non lo soddisfa o non registra nulla nella finestra temporale. Quando nessun gruppo soddisfa alcun criterio e non se ne attende nessuno, il monitor torna al suo stato predefinito.
 
 ## Risoluzione dei problemi
 

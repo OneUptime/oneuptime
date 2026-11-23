@@ -92,7 +92,7 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/API/DashboardAPI.ts": {
     role: "reader",
-    why: "every public dashboard route reads the stored config: /view-config through the sanitizer, and every route that serves what the page draws - the metric routes and the routes that select one list or SLO widget - as the public page draws it",
+    why: "every public dashboard route reads the stored config: /view-config through the sanitizer, every route that serves what the page draws - the metric routes and the routes that select one list or SLO widget - as the public page draws it, and /promql-query the Data Source widgets the page is served, with the queries they store",
   },
   "Common/Server/Utils/Dashboard/PublicDashboardViewConfig.ts": {
     role: "reader",
@@ -168,6 +168,11 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "other",
     why: "Duplicate copies the stored value as it is; the server's create reads it",
   },
+  "App/FeatureSet/Dashboard/src/Components/ObservabilityImport/ImportDashboardModal.tsx":
+    {
+      role: "other",
+      why: "writes the board an import from Grafana or Datadog builds into the dashboard it creates; the server's create reads it",
+    },
   "App/FeatureSet/Workers/DataMigrations/RepairKubernetesDashboardClusterCpuTile.ts":
     {
       role: "other",
@@ -305,11 +310,14 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       [DASHBOARD_API]: [
         "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
         "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+        "PublicDashboardViewConfig.getDrawnDataSourceWidgets(dashboard.dashboardViewConfig",
       ],
       [PUBLIC_SANITIZER]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(storedConfig)",
         "StoredDashboardViewConfig.read(PublicDashboardViewConfig.sanitize(",
+        // The Data Source widgets the page is served, with their stored queries.
+        "PublicDashboardViewConfig.getServedEntries(StoredDashboardViewConfig.getComponentEntries(StoredDashboardViewConfig.unwrap(dashboardViewConfig),),)",
       ],
       [RETIRED_METRIC_CHART_MOVES]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfigJSON)",
@@ -381,6 +389,15 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       .join("")
       .split(
         "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+      )
+      .join("")
+      /*
+       * /promql-query runs the queries a Data Source widget stores, which
+       * what the page is served leaves out (#10478): it reads the widgets
+       * the page is served, from the stored config through the reader.
+       */
+      .split(
+        "PublicDashboardViewConfig.getDrawnDataSourceWidgets(dashboard.dashboardViewConfig",
       )
       .join("");
 

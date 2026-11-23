@@ -139,6 +139,10 @@ const SOURCES: Record<string, string> = {
   providerFields: "packages/Common/UI/Components/Sso/SsoProviderFormFields.ts",
   samlFields: "packages/Common/UI/Components/Sso/SamlProviderFormFields.ts",
   oidcFields: "packages/Common/UI/Components/Sso/OidcProviderFormFields.ts",
+  // What Sign In Again needs of a SAML provider, said beside it (#10530).
+  samlSignInAgainAdvice: "packages/Common/Types/SSO/SamlSignInAgainAdvice.ts",
+  samlSignInAgainNote:
+    "packages/Common/UI/Components/Sso/SamlSignInAgainNote.tsx",
   modelTable: "packages/Common/UI/Components/ModelTable/BaseModelTable.tsx",
   serviceRoutes: "packages/Common/ServiceRoute.ts",
   uiConfig: "packages/Common/UI/Config.ts",
@@ -1214,8 +1218,14 @@ describe("the SSO guide", () => {
     expect(sso).toContain('ForceAuthn="${data.forceAuthn ? "true" : "false"}"');
     expect(sso).toContain('IsPassive="false"');
     expect(sso).toContain('"AuthnInstant",');
-    expect(readSource("oidcUtil")).toContain(
-      '...(data.isSignInAgain ? { prompt: "login", max_age: 0 } : {}),',
+
+    const oidc: string = readSource("oidcUtil");
+    expect(oidc).toContain(
+      '...(data.isSignInAgain ? { prompt: "login" } : {}),',
+    );
+    // max_age=0 to every provider but Microsoft Entra ID (#10529).
+    expect(oidc).toContain(
+      "...(data.isSignInAgain && !OIDCUtil.isMicrosoftEntraId(data.client)\n        ? { max_age: 0 }",
     );
     expect(readSource("signInAgainUtil")).toContain(
       'const value: unknown = claims?.["auth_time"];',
@@ -1225,7 +1235,92 @@ describe("the SSO guide", () => {
       'OneUptime sends `ForceAuthn="true"`, and reads when the person signed in from the assertion\'s `AuthnInstant`.',
     );
     expect(page).toContain(
-      "OneUptime sends `prompt=login` and `max_age=0`, and reads when the person signed in from the ID token's `auth_time`.",
+      "OneUptime sends `prompt=login` and `max_age=0`, or `prompt=login` alone to Microsoft Entra ID, and reads when the person signed in from the ID token's `auth_time`.",
+    );
+  });
+
+  /*
+   * Microsoft Entra ID as an OpenID Connect provider (#10529): Microsoft
+   * documents prompt=login and no max_age, and Microsoft Q&A's reports
+   * found max_age=0 brought an ID token that had already expired, so
+   * OneUptime sends Entra ID prompt=login alone, in each of its clouds -
+   * as the page says. Held from Microsoft's docs and those reports: no live
+   * tenant was asked.
+   */
+  it("says OneUptime sends Microsoft Entra ID no max_age, which Microsoft does not document, as the sign-in decides it (#10529)", () => {
+    const oidc: string = readSource("oidcUtil");
+
+    expect(oidc).toContain(
+      "public static isMicrosoftEntraId(client: Client): boolean {",
+    );
+    for (const host of [
+      "login.microsoftonline.com",
+      "login.microsoftonline.us",
+      "login.partner.microsoftonline.cn",
+      "sts.windows.net",
+    ]) {
+      expect(oidc).toContain(`  "${host}",`);
+    }
+
+    expect(english(SSO)).toContain(
+      "| Microsoft Entra ID | In the app registration's **Token configuration**, click **Add optional claim**, choose **ID** and add `auth_time`: Entra ID sends it only as an optional claim. It honors `prompt=login`. OneUptime sends it no `max_age`, which Microsoft does not document and which was reported to make Entra ID answer with an ID token that had already expired. |",
+    );
+  });
+
+  /*
+   * Keycloak over SAML (#10530): its AuthnInstant is when it answers, so
+   * OneUptime cannot check that it asked again, and says so beside a
+   * Keycloak provider - on Settings > SSO and on a server provider's page,
+   * from the same notice (Common/UI/Components/Sso/SamlSignInAgainNote),
+   * whose Learn more opens this very section. Keycloak honours ForceAuthn,
+   * except that 26.8.2 and earlier skip it when the sign-in is restarted
+   * with skip_logout=true (keycloak/keycloak#54339, fixed for 26.8.3 and
+   * 27.0.0).
+   */
+  it("says Keycloak over SAML cannot be checked, which releases skip the request, and that OneUptime says so beside the provider (#10530)", () => {
+    const advice: string = readSource("samlSignInAgainAdvice");
+    const note: string = readSource("samlSignInAgainNote");
+
+    expect(advice).toContain(
+      "const KEYCLOAK_REALM_PATH: RegExp = /(?:^|\\/)realms\\/[^/]+\\/?$/;",
+    );
+    expect(advice).toContain("which 26.8.2 and earlier skip when the");
+    expect(advice).toContain("fixed in 26.8.3 and 27.0.0");
+    expect(note).toContain(
+      '"Sign In Again can\'t be checked through Keycloak over SAML. Add this realm as an OIDC provider instead."',
+    );
+    expect(note).toContain(
+      '"/docs/identity/sso#signing-in-again-to-confirm-its-you"',
+    );
+    // Drawn beside a project's providers and the server's.
+    expect(readSource("projectSsoPage")).toContain(
+      "getSamlProviderNameColumn<ProjectSSO>(),",
+    );
+    expect(readSource("adminSsoPage")).toContain(
+      "getSamlProviderNameColumn<GlobalSSO>(),",
+    );
+    expect(readSource("globalSsoView")).toContain("<SamlSignInAgainNote");
+
+    // Learn more lands on this section's heading.
+    expect(english(SSO)).toContain(
+      "\n## Signing in again to confirm it's you\n",
+    );
+
+    expect(english(SSO)).toContain(
+      "| Keycloak | Nothing: Keycloak honors the request, though 26.8.2 and earlier can skip it when the sign-in is restarted on Keycloak's sign-in page, which 26.8.3 and 27.0.0 fix. Its `AuthnInstant` is when it answers, not when the person signed in, so OneUptime cannot check that Keycloak asked them again, and says so beside the provider. Connect Keycloak through OpenID Connect for a check OneUptime makes itself. |",
+    );
+  });
+
+  it("says OneUptime reminds an Okta provider's administrator of Honor Force Authentication, as the notice does (#10530)", () => {
+    expect(readSource("samlSignInAgainNote")).toContain(
+      '"For Sign In Again, set Honor Force Authentication to Yes in this app\'s SAML settings in Okta."',
+    );
+    expect(readSource("samlSignInAgainAdvice")).toContain(
+      'const OKTA_SAML_ISSUER_HOSTNAME: string = "www.okta.com";',
+    );
+
+    expect(english(SSO)).toContain(
+      "| Okta | On the **General** tab, edit **SAML Settings**, click **Show Advanced Settings** and set **Honor Force Authentication** to **Yes**. Set to **No**, Okta ignores the request. OneUptime reminds you of this beside an Okta provider. |",
     );
   });
 
@@ -1500,8 +1595,20 @@ describe("the Global SSO guide", () => {
       "if (isMasterAdmin && !data.isMasterAdminConfirmed) {",
     );
 
-    // Each person cleared is emailed (#9818), in the background.
-    expect(clearing).toContain("void SignInSettingsClearedEmail.notify(");
+    /*
+     * Each person cleared is emailed (#9818), by a job a worker sends
+     * (#9991): queued once cleared, never waited for to be sent.
+     */
+    expect(clearing).toContain("await SignInSettingsClearedEmail.notify([");
+    expect(
+      fs.readFileSync(
+        path.join(
+          REPO_DIR,
+          "packages/Common/Server/Utils/SignInSettingsClearedEmail.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("QueueName.Worker,");
 
     expect(page).toContain(
       "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, each person's projects record it in their audit logs, and each person is emailed what was removed and how they sign in now.",
@@ -1606,8 +1713,31 @@ describe("the Global SSO guide", () => {
       "- master admins, and you: change your own in your **User Profile**.",
     );
 
+    /*
+     * One person at a time, from Users (#9993): the row's chip and its
+     * action, by their words, and the same rule and batch as everyone's.
+     */
+    const memberCopy: string = repo(
+      `${DASHBOARD}/Components/User/MemberSavedSignInSettingsCopy.ts`,
+    );
+    expect(memberCopy).toContain(
+      'pill: translationKey("Sign-In Settings Saved")',
+    );
+    expect(memberCopy).toContain(
+      'action: translationKey("Clear Sign-In Settings")',
+    );
+    expect(rule).toContain("public static async clearMember(");
+    expect(rule).toContain(
+      "const batch: ClearedBatch = await ProjectSignInClearing.clearBatch({",
+    );
+    expect(page).toContain(
+      "To clear one person, open **Users**: the row of each person you may clear says **Sign-In Settings Saved**, and **Clear Sign-In Settings** in its menu clears that person alone, under the same rule, after a question that lists what goes.",
+    );
+
     // Emailed, audit-logged as the owner's, session-only and owners only.
-    expect(rule).toContain("void SignInSettingsClearedEmail.notify(");
+    expect(rule).toContain(
+      "const emailsQueued: Promise<void> = SignInSettingsClearedEmail.notify(",
+    );
     expect(rule).toContain("clearedByUserId: data.ownerUserId,");
     expect(routes).toContain(
       "CommonAPI.assertAuthenticatedProjectMember(props)",
@@ -1840,7 +1970,7 @@ describe("the Global SSO guide", () => {
     );
 
     expect(page).toContain(
-      'OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect, and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment.',
+      'OneUptime sends them back to the provider with `ForceAuthn="true"` for SAML, or `prompt=login` and `max_age=0` for OpenID Connect (`prompt=login` alone for Microsoft Entra ID), and counts it only when the provider says, in `AuthnInstant` or `auth_time`, that they signed in at or after that moment.',
     );
     expect(page).toContain(
       "What to set in Okta, Microsoft Entra ID, Keycloak and Google Workspace is on the [SSO](/docs/identity/sso#signing-in-again-to-confirm-its-you) page.",

@@ -297,17 +297,17 @@ OneUptime은 `ForceAuthn="true"`를 보내고, 로그인한 시간을 어설션�
 
 | ID 공급자 | 설정할 내용 |
 | --- | --- |
-| Okta | **General** 탭에서 **SAML Settings**를 편집하고 **Show Advanced Settings**를 클릭한 뒤 **Honor Force Authentication**을 **Yes**로 설정하세요. **No**로 두면 Okta는 요청을 무시합니다. |
+| Okta | **General** 탭에서 **SAML Settings**를 편집하고 **Show Advanced Settings**를 클릭한 뒤 **Honor Force Authentication**을 **Yes**로 설정하세요. **No**로 두면 Okta는 요청을 무시합니다. OneUptime은 Okta 공급자 옆에서 이를 알려 줍니다. |
 | Microsoft Entra ID | 없음: Entra ID는 요청을 따르며, `AuthnInstant`는 그 사람이 로그인한 시간입니다. |
-| Keycloak | 없음: Keycloak은 요청을 따릅니다. 하지만 `AuthnInstant`는 로그인한 시간이 아니라 응답한 시간이므로, OneUptime은 Keycloak이 다시 물었는지 확인할 수 없습니다. OneUptime이 직접 확인하도록 Keycloak은 OpenID Connect로 연결하세요. |
+| Keycloak | 없음: Keycloak은 요청을 따르지만, 26.8.2 이하는 Keycloak 로그인 페이지에서 로그인을 다시 시작하면 요청을 건너뛸 수 있으며, 26.8.3과 27.0.0에서 고쳐졌습니다. `AuthnInstant`는 로그인한 시간이 아니라 응답한 시간이므로, OneUptime은 Keycloak이 다시 물었는지 확인할 수 없고 이를 공급자 옆에 알려 줍니다. OneUptime이 직접 확인하도록 Keycloak은 OpenID Connect로 연결하세요. |
 | Google Workspace | 설정할 것이 없습니다. Google은 요청을 따르는지 밝히지 않습니다. `AuthnInstant`는 그 사람이 마지막으로 Google에 로그인한 시간이므로, 아직 Google에 로그인되어 있는 사람은 먼저 Google에서 로그아웃합니다. |
 @tab OpenID Connect
-OneUptime은 `prompt=login`과 `max_age=0`을 보내고, 로그인한 시간을 ID 토큰의 `auth_time`에서 읽습니다.
+OneUptime은 `prompt=login`과 `max_age=0`을 보내고(Microsoft Entra ID에는 `prompt=login`만), 로그인한 시간을 ID 토큰의 `auth_time`에서 읽습니다.
 
 | ID 공급자 | 설정할 내용 |
 | --- | --- |
 | Okta | 없음: Okta는 둘 다 따르며 항상 `auth_time`을 보냅니다. |
-| Microsoft Entra ID | 앱 등록의 **Token configuration**에서 **Add optional claim**을 클릭하고 **ID**를 선택한 뒤 `auth_time`을 추가하세요. Entra ID는 이를 선택적 클레임으로만 보냅니다. `prompt=login`은 따릅니다. |
+| Microsoft Entra ID | 앱 등록의 **Token configuration**에서 **Add optional claim**을 클릭하고 **ID**를 선택한 뒤 `auth_time`을 추가하세요. Entra ID는 이를 선택적 클레임으로만 보냅니다. `prompt=login`은 따릅니다. OneUptime은 `max_age`를 보내지 않습니다. Microsoft가 문서화하지 않았고, 이를 보내면 Entra ID가 이미 만료된 ID 토큰으로 응답한다는 보고가 있기 때문입니다. |
 | Keycloak | 클라이언트에 `basic` 클라이언트 스코프를 그대로 두세요. 여기에 `auth_time`이 들어 있습니다. Keycloak 25 이상은 모든 클라이언트에 이 스코프를 줍니다. |
 | Google Workspace | OAuth 클라이언트의 **Session age claims**를 **Google Auth Platform** > **Settings** > **Advanced Settings**에서 켜세요. 앱은 게시되고 인증되어 있어야 합니다. Google은 두 요청을 모두 받지 않으므로 OneUptime은 대신 `auth_time`을 요청하며, 아직 Google에 로그인되어 있는 사람은 먼저 Google에서 로그아웃합니다. |
 :::
@@ -380,6 +380,8 @@ SSO를 필수로 지정하면 프로젝트의 데이터가 ID 공급자 뒤에�
 - 직접 소유하지 않은 프로젝트나 SSO로 로그인을 관리하지 않는 프로젝트의 멤버이거나 그런 프로젝트에 초대받은 사람
 - 이 프로젝트에 초대만 받고 아직 참여하지 않은 사람
 - 마스터 관리자와 본인: 본인의 설정은 **사용자 프로필**에서 바꾸세요.
+
+한 사람만 지우려면 **사용자**를 여세요. 지울 수 있는 사람의 행에는 **로그인 설정 저장됨**이 표시되고, 행 메뉴의 **로그인 설정 지우기**는 같은 규칙에 따라, 삭제될 항목을 나열하는 확인 후 그 사람의 설정만 지웁니다.
 
 설정이 지워진 각 사람에게는 삭제된 항목과 이제 SSO로 로그인한다는 내용이 이메일로 발송되며, 프로젝트의 감사 로그에는 본인이 지운 것으로 기록됩니다. **프로젝트 소유자**만 대시보드에 로그인한 상태에서 지울 수 있으며, API 키로는 지울 수 없습니다.
 

@@ -297,17 +297,17 @@ OneUptime は `ForceAuthn="true"` を送り、サインインした時刻をア�
 
 | ID プロバイダー | 設定する内容 |
 | --- | --- |
-| Okta | **General** タブで **SAML Settings** を編集し、 **Show Advanced Settings** をクリックして **Honor Force Authentication** を **Yes** にします。 **No** のままだと、Okta は要求を無視します。 |
+| Okta | **General** タブで **SAML Settings** を編集し、 **Show Advanced Settings** をクリックして **Honor Force Authentication** を **Yes** にします。 **No** のままだと、Okta は要求を無視します。OneUptime は Okta のプロバイダーの横でこのことを知らせます。 |
 | Microsoft Entra ID | なし。Entra ID は要求に従い、その `AuthnInstant` はその人がサインインした時刻です。 |
-| Keycloak | なし。Keycloak は要求に従います。ただしその `AuthnInstant` はサインインした時刻ではなく応答した時刻なので、Keycloak がもう一度尋ねたかどうかを OneUptime は確かめられません。OneUptime 自身が確かめられるよう、Keycloak は OpenID Connect で接続してください。 |
+| Keycloak | なし。Keycloak は要求に従いますが、26.8.2 以前は Keycloak のサインインページでサインインがやり直されると要求を飛ばすことがあり、26.8.3 と 27.0.0 で修正されています。その `AuthnInstant` はサインインした時刻ではなく応答した時刻なので、Keycloak がもう一度尋ねたかどうかを OneUptime は確かめられず、そのことをプロバイダーの横に表示します。OneUptime 自身が確かめられるよう、Keycloak は OpenID Connect で接続してください。 |
 | Google Workspace | 設定は不要です。Google は要求に従うかどうかを明らかにしていません。その `AuthnInstant` はその人が最後に Google にサインインした時刻なので、まだ Google にサインインしている人は、先に Google からサインアウトします。 |
 @tab OpenID Connect
-OneUptime は `prompt=login` と `max_age=0` を送り、サインインした時刻を ID トークンの `auth_time` から読み取ります。
+OneUptime は `prompt=login` と `max_age=0` を送り (Microsoft Entra ID には `prompt=login` だけ)、サインインした時刻を ID トークンの `auth_time` から読み取ります。
 
 | ID プロバイダー | 設定する内容 |
 | --- | --- |
 | Okta | なし。Okta は両方に従い、常に `auth_time` を送ります。 |
-| Microsoft Entra ID | アプリ登録の **Token configuration** で **Add optional claim** をクリックし、 **ID** を選んで `auth_time` を追加します。Entra ID はこれを省略可能な要求としてのみ送ります。`prompt=login` には従います。 |
+| Microsoft Entra ID | アプリ登録の **Token configuration** で **Add optional claim** をクリックし、 **ID** を選んで `auth_time` を追加します。Entra ID はこれを省略可能な要求としてのみ送ります。`prompt=login` には従います。OneUptime は `max_age` を送りません。Microsoft はこれを文書化しておらず、これを送ると Entra ID がすでに期限切れの ID トークンを返すと報告されています。 |
 | Keycloak | クライアントに `basic` クライアントスコープを残してください。これに `auth_time` が含まれます。Keycloak 25 以降は、すべてのクライアントにこのスコープを付けます。 |
 | Google Workspace | OAuth クライアントの **Session age claims** を、 **Google Auth Platform** > **Settings** > **Advanced Settings** でオンにします。アプリは公開済みで確認済みである必要があります。Google はどちらの要求も受け付けないため、OneUptime は代わりに `auth_time` を求めます。まだ Google にサインインしている人は、先に Google からサインアウトします。 |
 :::
@@ -380,6 +380,8 @@ SSO を必須にすると、プロジェクトのデータは ID プロバイダ
 - 自分が所有していないプロジェクト、または SSO でサインインを管理していないプロジェクトのメンバーである人、またはそうしたプロジェクトに招待されている人。
 - 自分のプロジェクトに招待されただけで、まだ参加していない人。
 - マスター管理者と自分自身。自分の設定は **ユーザープロフィール** で変更してください。
+
+1 人だけを消去するには、**ユーザー** を開きます。消去できるユーザーの行には **サインイン設定が保存済み** と表示され、その行のメニューの **サインイン設定を消去** で、同じルールのもと、削除される内容を一覧で確認したうえで、そのユーザーの設定だけを消去できます。
 
 設定が消去された各ユーザーには、削除されたものと、今後は SSO でサインインすることがメールで届き、プロジェクトの監査ログには、その消去が自分によるものとして記録されます。消去できるのは、ダッシュボードにサインインしている **プロジェクト所有者** だけで、API キーでは消去できません。
 

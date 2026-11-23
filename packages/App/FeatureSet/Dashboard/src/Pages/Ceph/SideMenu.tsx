@@ -57,6 +57,19 @@ const CephSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Tag,
         },
+        /*
+         * Who changed the rules above, what and when (#10462): most of them
+         * have no page of their own to hold their history.
+         */
+        {
+          link: {
+            title: "Rule Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CEPH_SETTINGS_RULES_AUDIT_LOGS] as Route,
+            ),
+          },
+          icon: IconProp.List,
+        },
       ],
     },
     /*

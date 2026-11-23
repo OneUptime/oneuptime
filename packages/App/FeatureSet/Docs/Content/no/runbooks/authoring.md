@@ -102,7 +102,7 @@ Et utgående HTTP-kall, gjort av OneUptime Worker. Ingen Runner trengs.
 | **URL** | Endepunktet som skal kalles. | Tom |
 | **Overskrifter (JSON)** | Under **Flere felt**. Et JSON-objekt, for eksempel `{ "Authorization": "Bearer ..." }`. Headere som ikke er gyldig JSON, får trinnet til å feile. | Ingen |
 | **Tillat selvsignerte sertifikater** | Under **Flere felt**. Når den er på, tar trinnet ethvert sertifikat serveren viser, så et selvsignert fungerer, men det kontrollerer verken vertsnavnet eller gyldighetsdatoene, og alle på nettverksstien kan lese forespørselen, hemmeligheter inkludert, og endre svaret. | Av |
-| **CA-sertifikat** | Under **Flere felt**, så lenge **Tillat selvsignerte sertifikater** er av. Sertifikatet, i PEM, til CA-en som signerte serverens sertifikat, eller serverens eget når det er selvsignert. Trinnet stoler da bare på det sertifikatet, og kontrollerer fortsatt vertsnavnet og gyldighetsdatoene. | Ingen |
+| **CA-sertifikat** | Under **Flere felt**, så lenge **Tillat selvsignerte sertifikater** er av. Sertifikatet, i PEM, til CA-en som signerte serverens sertifikat, eller serverens eget når det er selvsignert, eller én [runbook-variabel](/docs/runbooks/variables) som inneholder det. Trinnet stoler da bare på det sertifikatet, og kontrollerer fortsatt vertsnavnet og gyldighetsdatoene. | Ingen |
 | **Brødtekst** | Vises for `POST`, `PUT`, `PATCH` og `DELETE`. Sendes som JSON når den kan leses som JSON, ellers som tekst. | Ingen |
 | **Tidsavbrudd for forespørsel** | Hvor lenge det ventes på svar fra endepunktet før trinnet feiler. | 30 sekunder |
 
@@ -118,10 +118,12 @@ Nyttig til: å åpne en PagerDuty-hendelse, poste til en Slack-webhook, kalle AP
 
 En server med et sertifikat den har signert selv, eller som din egen CA har signert, avvises til trinnet stoler på den, og ingenting sendes. Feilen til trinnet sier hva du må endre: "The server's certificate is self-signed, or signed by a CA OneUptime does not trust, so the request was not sent." Lim inn sertifikatet som signerte det, i **CA-sertifikat**: CA-ens, eller serverens eget når det er selvsignert. Trinnet kontrollerer da serverens sertifikat mot det, vertsnavn og gyldighetsdatoer inkludert, så en server som bare utgir seg for å være din, fortsatt avvises. Slå på **Tillat selvsignerte sertifikater** bare når du ikke kan lime inn et. Begge gjelder bare forespørselen til dette trinnet, aldri et annet trinn, en annen forespørsel fra OneUptime eller tilkoblingen til en utgående proxy.
 
+Når mange trinn kaller tjenester som din egen CA har signert, lagrer du sertifikatet dens i en [runbook-variabel](/docs/runbooks/variables) og skriver bare `{{global.variables.INTERNAL_CA}}` i **CA-sertifikat**. Trinnet leser variabelen hver gang det kjører, så når CA-en endres, endrer du variabelen én gang. En vanlig variabel er nok, siden et sertifikat ikke er en hemmelighet; en hemmelig fungerer også, og skjules i det trinnet registrerer. En variabel som ikke finnes, eller som ikke inneholder noe sertifikat, får trinnet til å feile før noe sendes, og feilen nevner variabelen. Så lenge **Tillat selvsignerte sertifikater** er på, leser ikke trinnet variabelen.
+
 > [!TIP]
 > For heller å stole på din egen CA for alle forespørsler på én gang, monitorer inkludert, setter en selvhostet installasjon `NODE_EXTRA_CA_CERTS` på containerne sine.
 
-Gjennom API-et og Terraform er bryteren `allowSelfSignedCertificates` i trinnets konfigurasjon, `true` eller `false`, og CA-sertifikatet er dens `caCertificate`, PEM-en som tekst. En lagring avvises når `caCertificate` ikke er et sertifikat eller inneholder en privat nøkkel.
+Gjennom API-et og Terraform er bryteren `allowSelfSignedCertificates` i trinnets konfigurasjon, `true` eller `false`, og CA-sertifikatet er dens `caCertificate`: PEM-en som tekst, eller én variabelreferanse alene. En lagring avvises når `caCertificate` er ingen av delene, eller inneholder en privat nøkkel.
 
 ```hcl
 config = {

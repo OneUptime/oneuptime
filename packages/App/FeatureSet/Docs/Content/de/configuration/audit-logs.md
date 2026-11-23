@@ -78,6 +78,8 @@ Eine Ressource ohne eigenen Namen wird nach dem benannt, was sie in OneUptime be
 
 Monitore, Vorfälle, Warnungen, Statusseiten, SLOs und viele andere Ressourcen haben auch eine eigene Seite **Audit-Protokolle**, in einem eingeklappten Abschnitt ihres Seitenmenüs wie **Erweitert**. Sie listet nur die Einträge dieser Ressource, mit denen dessen, was zu ihr gehört: Die Seite eines SLO zeigt auch seine Regeln und Owners.
 
+Auch die Regeln eines Produkts haben eine eigene Seite, am Ende des Menüabschnitts, der sie auflistet: **Audit-Protokolle** in einem Abschnitt **Regeln**, etwa **Vorfälle → Regeln → Audit-Protokolle**, und **Audit-Protokolle der Regeln** in einem Abschnitt **Einstellungen**, der Eigentümer- und Beschriftungsregeln enthält, etwa **Hosts → Einstellungen → Audit-Protokolle der Regeln**. Sie listet jede Regel dieses Produkts, auch gelöschte. Runbook-Regeln sind eine einzige Art von Regel für Warnungen, Vorfälle und Wartungsereignisse, daher steht ihr Verlauf unter **Runbooks → Einstellungen → Audit-Protokolle der Regeln**.
+
 ## Was erfasst wird
 
 Alles, was Personen in einem Projekt anlegen, ändern oder löschen, wird erfasst: Monitore, Vorfälle, Warnungen, Statusseiten, Workflows und ihre Schritte, Warteschlangen, Dashboards, Bereitschaftsrichtlinien, Teams und wer darin ist, API-Schlüssel und jede Einstellung. **Ressourcentyp** sagt, worum es in einem Eintrag geht, zum Beispiel `Monitor`, `Workflow` oder `Queue`.

@@ -2730,10 +2730,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       /*
        * The axis writes its values as the dashboards do, each on one line:
        * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
-       * "ms" (Ask AI's UI review, #5349).
+       * "ms" (Ask AI's UI review, #5349). It steps half a second a tick,
+       * with the figures that step needs (#10117): recharts' own steps
+       * read "650 ms", "1.3 s", "1.95 s", "2.6 s".
        */
-      await expect(chart).toContainText("2.6 s");
-      await expect(chart).toContainText("650 ms");
+      await expect(chart).toContainText("500 ms");
+      await expect(chart).toContainText("1.0 s");
+      await expect(chart).toContainText("2.5 s");
     },
   },
   {
@@ -5204,6 +5207,15 @@ function modePicker(page: Page): Locator {
   return conversation(page).getByTitle("Choose what the AI is allowed to do");
 }
 
+/*
+ * The picker's menu, drawn on the tooltip layer (LayeredPopover) and placed
+ * against the window, so no box the card sits in cuts it off (#9910): it is
+ * not inside the card's conversation, whose edges it is measured against.
+ */
+function modeMenu(page: Page): Locator {
+  return page.getByRole("menu", { name: "AI permissions" });
+}
+
 function modeCaption(page: Page): Locator {
   return conversation(page).getByTestId("investigation-conversation-mode");
 }
@@ -6504,9 +6516,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         );
 
         await modePicker(page).click();
-        const menu: Locator = conversation(page).getByRole("menu", {
-          name: "AI permissions",
-        });
+        const menu: Locator = modeMenu(page);
         await expect(menu).toBeVisible();
         await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
 
@@ -6539,7 +6549,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await openConversation(page, "");
 
       await modePicker(page).click();
-      await conversation(page)
+      await modeMenu(page)
         .getByRole("menuitemradio", { name: /^Read-only/ })
         .click();
 
@@ -6547,7 +6557,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await expect(modeCaption(page)).toHaveText(
         "Only reads and answers. It never changes anything.",
       );
-      await expect(conversation(page).getByRole("menu")).toHaveCount(0);
+      await expect(modeMenu(page)).toHaveCount(0);
 
       await composerBox(page).fill("What changed?");
       await sendButton(page).click();
@@ -6591,7 +6601,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
       for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
-        await conversation(page)
+        await modeMenu(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
           .click();
 
@@ -19985,7 +19995,8 @@ test.describe("at a glance: when, and what it touched", () => {
     );
     /*
      * The date and the time each hold together; the zone follows, smaller,
-     * after a space a narrow tile may break at.
+     * after a space a narrow tile may break at. A 12-hour clock writes no
+     * zero before the hour (#7652).
      */
     expect(
       await statBar
@@ -19993,7 +20004,7 @@ test.describe("at a glance: when, and what it touched", () => {
         .evaluate((value: Element): string => {
           return value.textContent || "";
         }),
-    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM UTC`);
+    ).toBe(`Sep${NO_BREAK_SPACE}14, 6:01${NO_BREAK_SPACE}PM UTC`);
     const zone: Locator = statBar.getByTestId("event-start-tile-zone");
     await expect(zone).toHaveText("UTC");
     const valueSize: number = await statBar

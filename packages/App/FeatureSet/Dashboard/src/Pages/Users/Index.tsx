@@ -102,6 +102,15 @@ import {
   useProjectRemovalReach,
 } from "../../Utils/ProjectRemovalReach";
 import ProjectRemovalBulkDetails from "../../Components/User/ProjectRemovalBulkDetails";
+import {
+  MemberSavedSignInSettings,
+  getClearMemberSavedSignInSettingsRowAction,
+  useMemberSavedSignInSettings,
+} from "../../Components/User/MemberSavedSignInSettings";
+import MEMBER_SAVED_SIGN_IN_SETTINGS_COPY, {
+  MEMBER_SAVED_SIGN_IN_SETTINGS_PILL_TEST_ID,
+} from "../../Components/User/MemberSavedSignInSettingsCopy";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -155,6 +164,16 @@ const Users: FunctionComponent<PageComponentProps> = (
    * says so, and which teams keep them, before it is pressed.
    */
   const removalReach: ProjectRemovalReach = useProjectRemovalReach();
+
+  /*
+   * While the project manages its people's sign-in with SSO, its owners see
+   * which members still have a password or second step saved that they may
+   * clear, and clear one person's from the row (#9993): asked of the server
+   * for the members a page shows, under the rule of the Require SSO card's
+   * clear of everyone (Components/User/MemberSavedSignInSettings).
+   */
+  const savedSignInSettings: MemberSavedSignInSettings =
+    useMemberSavedSignInSettings();
 
   /*
    * The team Invite User starts on: the project's members team, when the
@@ -468,11 +487,15 @@ const Users: FunctionComponent<PageComponentProps> = (
               return ModelAPI.getCommonHeaders();
             },
           }),
+          getClearMemberSavedSignInSettingsRowAction({
+            savedSignInSettings: savedSignInSettings,
+          }),
         ]}
         onFetchSuccess={(rows: Array<TeamMember>) => {
           membersNotSignedUp.onFetchSuccess(rows);
           removalReach.onFetchSuccess(rows);
           invitationEmailsNotSent.onFetchSuccess(rows);
+          savedSignInSettings.onFetchSuccess(rows);
         }}
         topContent={filterBar}
         emptyState={facetEmptyState}
@@ -657,6 +680,19 @@ const Users: FunctionComponent<PageComponentProps> = (
                       )}
                       isUserContent={true}
                       color={Yellow}
+                    />
+                  )}
+                  {/*
+                   * A password or second step they saved before the project
+                   * managed sign-in with SSO, which this owner may clear
+                   * (#9993): its Clear Sign-In Settings is in the row's menu.
+                   */}
+                  {savedSignInSettings.getSettings(item) && (
+                    <Pill
+                      text={MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.pill}
+                      tooltip={MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.pillTooltip}
+                      tone={PillTone.Warning}
+                      dataTestId={MEMBER_SAVED_SIGN_IN_SETTINGS_PILL_TEST_ID}
                     />
                   )}
                 </div>

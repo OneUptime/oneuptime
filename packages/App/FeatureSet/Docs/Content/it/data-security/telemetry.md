@@ -8,6 +8,7 @@ Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata 
 - [Cosa viene letto](#cosa-viene-letto): Gli attributi, i corpi, i messaggi e i prompt di ogni segnale.
 - [Come campiona una scansione](#come-campiona-una-scansione): I record più recenti di ogni servizio, ogni ora.
 - [Ripulisci](#ripulisci): Nascondi un risultato all'ingestione, nel servizio in cui è stato trovato.
+- [Contenuto in autonomia](#contenuto-in-autonomia): Un segreto nascosto senza che nessuno prema nulla, dove è dimostrato che è sicuro.
 - [Scarta questa metrica](#scarta-questa-metrica): Smetti di memorizzare le metriche il cui nome contiene dati sensibili.
 - [Cosa conta come ripulito](#cosa-conta-come-ripulito): Quando una regola di pulizia copre già un risultato.
 :::
@@ -101,14 +102,23 @@ Fai clic su **Ripulisci**. Una finestra di dialogo dice cosa farebbe la regola p
 La regola nasconde i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo.
 :::
 
-La regola prende il nome da ciò che nasconde, come «Data Security: Email address in log attributes of checkout», ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È una di queste:
+La regola prende il nome da ciò che nasconde, come «Data Security: Email address in log attributes of checkout», o «Data Security: Password or secret in db.password of checkout» per una regola che indica il suo attributo, ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È la regola più ristretta che nasconde i dati del risultato, la prima di queste che si adatta:
 
 | Risultato | Regola creata da Ripulisci |
 | --- | --- |
-| Indirizzo email, numero di carta, numero di Social Security USA, numero di telefono o indirizzo IP | Il pattern integrato di quel tipo. I numeri di carta, i numeri di Social Security e i numeri di telefono vengono mascherati, gli altri oscurati. |
-| Un valore sotto una chiave che sembra sensibile, come `password` o `token` | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
-| Qualsiasi altro tipo di dati che un pattern può trovare | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati, che oscura ogni valore con quella forma |
+| Indirizzo email, numero di carta, numero di Social Security USA, numero di telefono o indirizzo IP | Il pattern integrato di quel tipo, mascherato. Un indirizzo IP viene oscurato, oppure sottoposto a hash dove [Eventi di sicurezza](/docs/telemetry/security-events) legge quei record, così può ancora indicare l'indirizzo da bloccare. |
+| Qualsiasi altro tipo di dati che un pattern trova da solo, come un token GitHub | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati. Un segreto viene oscurato. |
+| Uno dei tuoi tipi di dati, con un pattern | Quel pattern, solo nell'attributo in cui è stato trovato |
+| Un tipo di dati che si distingue per le parole che lo circondano, come un routing number | La sua forma, solo nell'attributo in cui è stato trovato |
+| Un tipo di dati trovato dal nome del campo, come il nome di una persona sotto `customer_name`, o un valore sotto una chiave che indica un segreto | Una regola **Attributi indicati**, che nasconde l'intero valore di quell'attributo |
+| Un valore sotto una chiave che sembra sensibile, dove nulla di più ristretto lo nasconde | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
 | Qualsiasi tipo di dati nell'attributo di una metrica | Una regola della pipeline delle metriche **Oscura attributo** per il servizio, che sostituisce con `[REDACTED]` i valori dell'attributo con la forma del tipo di dati, oppure ogni valore dell'attributo quando nessun pattern trova il tipo di dati |
+
+### Dimostrata sui record del risultato
+
+Prima che la finestra di dialogo dica cosa farebbe la regola, OneUptime esegue ogni regola che potrebbe creare sui record in cui è stato visto il risultato, e sui record più recenti del suo servizio con un valore in quella posizione, con lo stesso codice che esegue l'ingestione, e chiede allo scanner cosa resta. La prima regola che nasconde i dati in ogni valore che li conteneva, e che modifica al massimo 5 su 100 degli altri valori in quel punto, è quella giusta. La finestra di dialogo dice su quanti record è stata eseguita, quanti valori contenevano i dati e quanti altri ne ha modificati. Un pattern che ne modificherebbe di più non viene mai offerto: viene offerta la regola che indica l'attributo, dicendo cos'altro modifica.
+
+La prova viene conservata con la regola, e l'elenco delle regole di pulizia mostra **Dimostrato** nella sua riga finché la regola non viene modificata. Dove non resta alcun record su cui eseguire una regola, come per un'eccezione o un replay di sessione, o per record oltre la loro conservazione, la regola viene creata così come è pianificata, e la finestra di dialogo lo dice.
 
 Una regola di log o di tracce vale per il servizio in cui è stato trovato il risultato: ripulisce i log o gli span di quel servizio, e quelli degli altri servizi restano come sono, così nulla di ciò che legge i loro cambia. La colonna **Ambito** dell'elenco delle regole di pulizia dice per quale servizio vale una regola. Un risultato nelle registrazioni di sessione di un'applicazione RUM crea una regola per tutti i servizi e le app del progetto, poiché le regole di log ripuliscono anche le registrazioni, e la finestra di dialogo lo dice. Se il servizio non esiste più, **Ripulisci** lo dice e non crea alcuna regola.
 
@@ -116,14 +126,35 @@ La finestra di dialogo nomina, ciascuno come link, i monitor, le dashboard con i
 
 Alcuni risultati non possono essere ripuliti da una regola, e **Ripulisci** dice perché. L'attributo di una metrica può sempre esserlo, poiché la sua regola può nascondere ogni valore dell'attributo:
 
-- Un tipo di dati trovato solo dai nomi dei campi, come il nome di una persona: nessun pattern può trovarlo. Rinomina l'attributo con una chiave che una regola delle chiavi sensibili nasconde, oppure smetti di inviarlo.
-- Un tipo di dati che si distingue dagli altri valori solo per le parole che lo circondano, come un routing number: una regola nasconderebbe molto più di quel tipo di dati.
+- Un tipo di dati trovato solo dai nomi dei campi nel corpo di un log, come il nome di una persona: nessuna regola può distinguerlo dal resto del messaggio. Invialo come attributo, che una regola **Attributi indicati** nasconde, oppure smetti di inviarlo.
+- Ogni regola provata nascondeva molto più dei dati: ognuna è stata eseguita sui record in cui sono stati visti, e modificava troppi altri valori. Smetti di inviarli nel codice che li scrive.
 - Una dicitura di classificazione di un documento: nascondere la parola non nasconderebbe il documento.
-- Uno dei tuoi tipi di dati: aggiungi tu una regola di pulizia personalizzata con il suo pattern.
 - I dettagli propri di una sessione (`sessions.*`): l'ingestione dei replay di sessione non esegue regole di pulizia.
 - Il nome di una metrica (`name`): lo imposta il codice che crea la metrica, e una regola della pipeline può solo rinominare una metrica per intero. Rinomina la metrica e invia invece come attributo ciò che varia nel suo nome. Nel frattempo, **Scarta questa metrica** può smettere di memorizzare quelle metriche.
 
 **Ripulisci** crea la regola a tuo nome, con i tuoi permessi: possono premerlo i Proprietari del progetto e gli Amministratori del progetto, e anche un team che può creare regole di pulizia dei log, regole di pulizia delle tracce per span, eccezioni e chiamate IA, e regole della pipeline delle metriche per le metriche.
+
+## Contenuto in autonomia
+
+Mentre OneUptime AI lavora sui problemi di Sicurezza dei dati (vedi [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai)), un problema di telemetria viene contenuto senza che nessuno prema nulla, dove è dimostrato che è sicuro. Per ogni posizione che il problema conta, OneUptime AI pianifica la regola che creerebbe **Ripulisci**, dimostrata allo stesso modo, e la crea in autonomia solo quando valgono tutte queste condizioni:
+
+- **I dati sono un segreto**, come una password, un token o una chiave.
+- **La regola è dimostrata** sui record in cui sono stati visti i dati: ha nascosto i dati in ogni valore che li conteneva.
+- **Non modifica nient'altro lì**: nessuno degli altri valori nella sua posizione.
+- **Nulla legge ciò che nasconde**: nessun monitor, dashboard, vista salvata, regola di registrazione o SLO, e nulla di cui ha bisogno Eventi di sicurezza.
+- **Vale per il servizio** in cui sono stati visti i dati.
+
+Tutto il resto viene invece proposto, in **Sicurezza dei dati → IA** e nella pagina del problema, dicendo come è stata dimostrata la regola e cosa legge ciò che nasconderebbe: dati personali, una regola i cui valori sono letti da qualcosa, una che modifica altri valori, una per cui non restava alcun record su cui eseguirla, una per tutti i servizi, la regola della pipeline di una metrica, e qualsiasi posizione la cui regola precedente una persona ha annullato o ignorato. Una regola IA di Sicurezza dei dati che imposta **Contenimento** su **Automaticamente** per un problema permette di nascondere in autonomia anche i dati personali dimostrati. Nessuna regola permette di eseguire in autonomia una modifica che non è dimostrata sicura.
+
+Dove nessuna delle regole di **Ripulisci** può nascondere i dati, come per uno dei tuoi tipi di dati senza pattern, OneUptime AI ne scrive una: un pattern per i dati, o l'attributo da nascondere per intero. Le vengono indicati il tipo di dati, dove si trova, i nomi degli attributi accanto e le forme dei valori, come `AA-9999` per `AB-1234`, mai un valore, e ciò che scrive viene dimostrato sui record come qualsiasi altra regola prima di essere proposto o creato.
+
+Una modifica che OneUptime AI ha fatto in autonomia:
+
+- **È nella cronologia del problema**, con le regole che ha creato, come è stata dimostrata ciascuna, e **Annulla**, che le elimina. **Sicurezza dei dati → IA** ha lo stesso **Annulla**. Una posizione di cui annulli la regola non viene mai più contenuta in autonomia: OneUptime AI la propone invece.
+- **Viene inviata per email** ai proprietari dell'archivio e ai proprietari del servizio.
+- **Dice di ruotare un segreto.** Nascondere un segreto ferma solo le nuove copie: il segreto funziona ancora, e i record memorizzati prima della regola lo mantengono fino alla fine della loro conservazione. La cronologia e l'email dicono dove è stato visto.
+
+I nuovi risultati in un servizio il cui problema è già aperto vengono contenuti allo stesso modo, appena la scansione oraria li trova.
 
 ## Scarta questa metrica
 
@@ -145,7 +176,9 @@ Un risultato viene contrassegnato come ripulito solo quando l'ingestione eseguir
 - **La parte giusta.** I **Campi da rimuovere** della regola includono la parte del record in cui si trova il risultato, oppure la regola li lascia al loro valore predefinito.
 - **Il servizio giusto.** Una regola di log o di tracce per un servizio copre solo i risultati di quel servizio. Una regola senza servizio copre quelli di tutti i servizi.
 - **Un pattern che trova il tipo.** Un **Tipo di pattern** integrato trova il proprio tipo di dati: **Indirizzo email** trova gli indirizzi email, **Numero di carta di credito** i numeri di carta, **SSN (numero di previdenza sociale USA)** i numeri di Social Security USA, **Numero di telefono** i numeri di telefono e **Indirizzo IP** gli indirizzi IP. **Chiavi di attributi sensibili** copre ogni valore sotto una chiave che sembra sensibile, qualunque sia il valore.
-- **I tuoi pattern personalizzati non contano mai.** Una **Regex personalizzata** copre un risultato solo quando è esattamente il pattern che **Ripulisci** crea per il suo tipo. Un risultato conserva solo campioni mascherati, su cui nessun pattern può essere provato, quindi OneUptime non potrebbe dimostrare che il tuo pattern nasconde i dati, e un risultato considerato ripulito per errore è una fuga che nessuno guarda.
+- **Una regola dimostrata sui record del risultato.** Una regola che OneUptime ha creato e dimostrato sui record in cui è stato visto un risultato copre quel risultato, qualunque sia il suo pattern, finché resta la regola che è stata dimostrata: modificane il pattern, gli attributi, l'azione, i campi o il servizio, e non lo copre più.
+- **Una regola di attributi indicati** copre un risultato in un attributo che indica, o in uno annidato sotto di esso.
+- **Altrimenti, i tuoi pattern personalizzati non contano mai.** Una **Regex personalizzata** che hai scritto tu copre un risultato solo quando è esattamente il pattern che **Ripulisci** crea per il suo tipo. Un risultato conserva solo campioni mascherati, su cui nessun pattern può essere provato, quindi OneUptime non potrebbe dimostrare che il tuo pattern nasconde i dati, e un risultato considerato ripulito per errore è una fuga che nessuno guarda.
 - **L'attributo di una metrica.** Una regola della pipeline delle metriche **Oscura attributo** o **Rimuovi attributo** sulla chiave di quell'attributo, per il servizio del risultato o per l'intero progetto, lo copre quando non ha filtri, o ha esattamente il filtro che crea **Ripulisci**. Un filtro scritto da te non conta mai, per lo stesso motivo.
 - **Il nome di una metrica.** Una regola della pipeline delle metriche **Scarta** per il servizio del risultato o per l'intero progetto lo copre quando ha esattamente il filtro che crea **Scarta questa metrica**, o nessun filtro, nel qual caso non memorizza nessuna metrica del servizio. Una regola così senza filtri copre ogni risultato in quelle metriche.
 

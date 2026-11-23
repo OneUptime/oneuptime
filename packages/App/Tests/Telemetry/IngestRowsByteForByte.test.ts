@@ -12,6 +12,29 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
   };
 });
 
+/*
+ * A Hash rule's token is keyed by the install's ENCRYPTION_SECRET through
+ * the project's own key (ScrubHashToken, #10394): fixed for the run, as the
+ * clock and the ids are, so the goldens hold whatever a machine's config.env
+ * sets.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const ObjectIDClass: new (id: string) => unknown = (
+    jest.requireActual("Common/Types/ObjectID") as {
+      default: new (id: string) => unknown;
+    }
+  ).default;
+
+  return {
+    __esModule: true,
+    ...(jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
+    EncryptionSecret: new ObjectIDClass("ingest-rows-byte-for-byte-secret"),
+  };
+});
+
 import fs from "fs";
 import path from "path";
 import zlib from "zlib";
@@ -172,6 +195,11 @@ function compileRules(
 ): never {
   return specs.map((spec: RuleSpec) => {
     const rule: LogScrubRule | TraceScrubRule = makeRule();
+    /*
+     * As loadScrubRules reads a rule (#10443): with its project, whose key a
+     * Hash rule's token is made with. Without one, Hash redacts instead.
+     */
+    rule.projectId = PROJECT_ID;
     rule.name = `rule ${spec.patternType}`;
     rule.patternType = spec.patternType;
     rule.scrubAction = spec.action;
@@ -457,6 +485,27 @@ describe("ingest stores the same rows, byte for byte", () => {
       expect(written).toBe(expected);
     });
   }
+
+  test("a Hash rule leaves its project's own token, never a redaction: ingest reads each rule with its project (#10443)", async () => {
+    for (const name of ["logs-protobuf-scrubbed", "traces-protobuf-scrubbed"]) {
+      const testCase: Case = CASES.find((item: Case): boolean => {
+        return item.name === name;
+      })!;
+      const tokens: Array<string> =
+        (await ingest(testCase)).match(/\[HASHED:[0-9a-f]+\]/g) || [];
+
+      // The card numbers the creditCard rule hashes.
+      expect({ name, hashed: tokens.length > 0 }).toEqual({
+        name,
+        hashed: true,
+      });
+
+      // Keyed, 16 hex characters: never the older 8 of an unkeyed hash.
+      for (const token of tokens) {
+        expect(token).toMatch(/^\[HASHED:[0-9a-f]{16}\]$/);
+      }
+    }
+  });
 
   test("the batches reach every kind of row: logs, spans, metric points and exceptions from logs and spans", async () => {
     const tables: Map<string, number> = new Map();

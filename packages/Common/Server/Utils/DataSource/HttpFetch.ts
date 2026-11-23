@@ -222,6 +222,8 @@ export default class DataSourceHttpFetch {
       },
       httpAgent: httpAgent,
       httpsAgent: httpsAgent,
+      // The agents go through the outbound proxy themselves.
+      proxy: false,
     };
 
     try {

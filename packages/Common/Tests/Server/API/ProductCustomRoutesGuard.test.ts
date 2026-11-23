@@ -406,6 +406,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Network],
     leftAlone: {},
   },
+  // Run Again on a discovery scan (#10334): it queues a sweep, a write.
+  "packages/Common/Server/API/NetworkDeviceDiscoveryScanRunAPI.ts": {
+    products: [ProductKey.Network],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/NetworkDeviceNamingAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {
@@ -1189,8 +1194,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         /*
          * #9820: a project's owners counting and clearing the sign-in
          * settings its people saved before it managed sign-in with SSO.
+         * #9993: and, from the project's Users list, which of the people
+         * it shows still have some (a POST that only reads, for the ids
+         * it names), and the clear of one of them - of no one product, as
+         * Users is always on.
          */
-        "packages/Common/Server/API/ProjectAPI.ts": 9,
+        "packages/Common/Server/API/ProjectAPI.ts": 11,
         "packages/Common/Server/API/ProjectOIDC.ts": 1,
         "packages/Common/Server/API/ProjectSSO.ts": 1,
         "packages/Common/Server/API/ProjectProductsAPI.ts": 2,

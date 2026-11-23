@@ -546,10 +546,10 @@ describe("external calendars", () => {
      * that dial what it approved, or hand it to the proxy.
      */
     expect(EXTERNAL_FETCH).toContain(
-      "DataSourceEgressGuard.assertUrlAllowedAndPinForNodeHttp(url, {",
+      "DataSourceEgressGuard.assertUrlAllowedAndPin(url, {",
     );
     expect(EGRESS_GUARD).toMatch(
-      /public static async assertUrlAllowedAndPinForNodeHttp\([\s\S]{0,300}?\{\s*const \{ url, addresses \} = await this\.assertUrlAllowed\(urlString, options\);/,
+      /public static async assertUrlAllowedAndPin\([\s\S]{0,300}?\{\s*const \{ url, addresses \} = await this\.assertUrlAllowed\(urlString, options\);/,
     );
     expect(EGRESS_GUARD).toContain("metadata lives at 169.254.169.254");
     expect(EGRESS_GUARD).toContain("blocked when billing is enabled");

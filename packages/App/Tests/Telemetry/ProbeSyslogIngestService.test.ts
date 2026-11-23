@@ -350,6 +350,7 @@ describe("a vendor's line from a device the probe polls", () => {
       droppedUnmatched: 0,
       malformed: 0,
       droppedByFilter: 0,
+      droppedByBudget: 0,
     });
 
     const row: JSONObject = onlyRow();

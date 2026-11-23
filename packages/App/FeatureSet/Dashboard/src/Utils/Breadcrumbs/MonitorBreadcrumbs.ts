@@ -197,6 +197,10 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Rules",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.MONITORS_SETTINGS_RULES_AUDIT_LOGS,
+      ["Project", "Monitors", "Rules", "Audit Logs"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Monitors",

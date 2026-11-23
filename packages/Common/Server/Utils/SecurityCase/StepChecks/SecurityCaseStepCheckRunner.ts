@@ -29,6 +29,7 @@ import {
   readPlaybookRuns,
 } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanBuilder";
 import {
+  isSecurityCaseTaken,
   readResponsePlaybooks,
   readResponseStepChecks,
   readResponseTasks,
@@ -77,6 +78,8 @@ import {
 } from "./StepCheck";
 import { createStepCheckEvidence } from "./StepCheckEvidenceReaders";
 import { STEP_CHECKS, getStepCheck } from "./StepCheckRegistry";
+import SecurityCaseResponseNudge from "../../AI/Security/Response/SecurityCaseResponseNudge";
+import { isSecurityCaseAiResponseActive } from "../../../../Types/SecurityCase/SecurityCaseAi";
 
 /*
  * THE EVERY-MINUTE CHECK OF SECURITY CASES' RESPONSE PLAN STEPS (#10340).
@@ -134,6 +137,8 @@ const CASE_SELECT: {
   lastDetectedAt: true;
   closedAt: true;
   nextStepCheckAt: true;
+  aiResponseState: true;
+  aiTookCaseAt: true;
 } = {
   _id: true,
   projectId: true,
@@ -151,6 +156,8 @@ const CASE_SELECT: {
   lastDetectedAt: true,
   closedAt: true,
   nextStepCheckAt: true,
+  aiResponseState: true,
+  aiTookCaseAt: true,
 };
 
 // English, for the timeline: every reader sees the same entry.
@@ -470,6 +477,22 @@ export default class SecurityCaseStepCheckRunner {
         now,
       });
 
+      /*
+       * A case OneUptime AI is working (#10352) waits on what its steps'
+       * checks find - a block holding, the case contained - so it looks at
+       * the case again once they are written.
+       */
+      if (
+        outcome.checkedStepKeys.length > 0 &&
+        isSecurityCaseAiResponseActive(securityCase.aiResponseState)
+      ) {
+        await SecurityCaseResponseNudge.lookNow({
+          projectId: securityCase.projectId,
+          securityCaseId: securityCase.id,
+          now,
+        });
+      }
+
       return outcome;
     } catch (error) {
       // A run that broke is tried again soon, not left for half an hour.
@@ -586,7 +609,8 @@ export default class SecurityCaseStepCheckRunner {
       entities: readSecurityEntities(securityCase.entities),
       mitreTactics: securityCase.mitreTactics || [],
       mitreTechniques: securityCase.mitreTechniques || [],
-      isAssigned: Boolean(securityCase.assignedToUserId),
+      // Taken: by a person, or by OneUptime AI working it (#10352).
+      isAssigned: isSecurityCaseTaken(securityCase),
       hasIncident: Boolean(securityCase.incidentId),
       stage,
       hasContainedStatus: Boolean(containedStatus),

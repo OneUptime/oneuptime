@@ -1,4 +1,4 @@
-import { AddCodeRepositoryProductionReviewFailOnLeak1809187440200 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187440200-AddCodeRepositoryProductionReviewFailOnLeak";
+import { AddCodeRepositoryProductionReviewFailOnLeak1809187470500 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470500-AddCodeRepositoryProductionReviewFailOnLeak";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -51,29 +51,29 @@ function timestampOf(migration: MigrationClass): number {
 describe("the Fail the Check on a Leak migration", () => {
   test("names itself after its timestamp", () => {
     expect(
-      new AddCodeRepositoryProductionReviewFailOnLeak1809187440200().name,
-    ).toBe("AddCodeRepositoryProductionReviewFailOnLeak1809187440200");
+      new AddCodeRepositoryProductionReviewFailOnLeak1809187470500().name,
+    ).toBe("AddCodeRepositoryProductionReviewFailOnLeak1809187470500");
   });
 
   test("is registered once, after every migration before it", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddCodeRepositoryProductionReviewFailOnLeak1809187440200,
+      AddCodeRepositoryProductionReviewFailOnLeak1809187470500,
     );
 
     expect(at).toBeGreaterThan(0);
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
         return (
-          candidate === AddCodeRepositoryProductionReviewFailOnLeak1809187440200
+          candidate === AddCodeRepositoryProductionReviewFailOnLeak1809187470500
         );
       }),
     ).toHaveLength(1);
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddCodeRepositoryProductionReviewFailOnLeak1809187440200),
+        timestampOf(AddCodeRepositoryProductionReviewFailOnLeak1809187470500),
       );
     }
   });
@@ -89,7 +89,7 @@ describe("the Fail the Check on a Leak migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddCodeRepositoryProductionReviewFailOnLeak1809187440200)}-`,
+          `${timestampOf(AddCodeRepositoryProductionReviewFailOnLeak1809187470500)}-`,
         );
       }),
     ).toHaveLength(1);
@@ -98,7 +98,7 @@ describe("the Fail the Check on a Leak migration", () => {
   test("adds the switch, nullable, with nothing to backfill - and down takes it away", async () => {
     expect(
       await record(
-        new AddCodeRepositoryProductionReviewFailOnLeak1809187440200(),
+        new AddCodeRepositoryProductionReviewFailOnLeak1809187470500(),
         "up",
       ),
     ).toEqual([
@@ -106,7 +106,7 @@ describe("the Fail the Check on a Leak migration", () => {
     ]);
     expect(
       await record(
-        new AddCodeRepositoryProductionReviewFailOnLeak1809187440200(),
+        new AddCodeRepositoryProductionReviewFailOnLeak1809187470500(),
         "down",
       ),
     ).toEqual([

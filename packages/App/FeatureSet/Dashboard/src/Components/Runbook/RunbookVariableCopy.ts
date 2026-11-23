@@ -150,13 +150,14 @@ export const EVERY_RUNNER_TEXT: string = translationKey("Every Runner");
 
 /*
  * Under an HTTP request step's URL and body: it names variables as a script
- * does ({{reference}} is drawn as code). OneUptime sends the request
- * itself, so a secret is filled in too - no Runner is involved - and is
- * hidden in what the step records. Why a secret reaches it (no Runner's
- * list applies) is the docs' to explain; the step says what happens.
+ * does ({{reference}} is drawn as code), in its URL, headers and body, and
+ * in its CA certificate (#10441). OneUptime sends the request itself, so a
+ * secret is filled in too - no Runner is involved - and is hidden in what
+ * the step records. Why a secret reaches it (no Runner's list applies) is
+ * the docs' to explain; the step says what happens.
  */
 export const HTTP_STEP_VARIABLES_HELP: string = translationKey(
-  "Use a variable in the URL, the headers or the body as {{reference}}. Secrets are filled in too, and hidden in what the step records.",
+  "Use a variable in the URL, headers, body or CA certificate as {{reference}}. Secrets are filled in too, and hidden in what the step records.",
 );
 
 // The Value column of a secret: it is never shown.

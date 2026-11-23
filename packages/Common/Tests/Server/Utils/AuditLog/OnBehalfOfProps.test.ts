@@ -30,6 +30,9 @@ const GRANT_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const WORKFLOW_ID: ObjectID = new ObjectID(
   "55555555-5555-4555-8555-555555555555",
 );
+const SESSION_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
 
 // Everything a request's props can carry.
 function everything(): DatabaseCommonInteractionProps {
@@ -72,6 +75,7 @@ function everything(): DatabaseCommonInteractionProps {
       givenByName: "Terraform",
     },
     readAudience: readAudienceOf({ projectId: PROJECT_ID }),
+    sessionId: SESSION_ID,
   };
 }
 
@@ -99,6 +103,8 @@ const NOT_IDENTITY: Readonly<Record<string, string>> = {
     "what a workflow's step may do to who has access: root asks nothing, and what it ran as is carried by workflowRunAsAudit",
   readAudience:
     "the readers a run of OneUptime's own reads for (ReadAudienceScope): it only narrows what a read returns, and names nobody who acted",
+  sessionId:
+    "the session a change to the person's own sign-in waits on (Reauthentication): root asks nothing of it, and their user already names who acted",
 };
 
 // The members DatabaseCommonInteractionProps declares, read from its source.

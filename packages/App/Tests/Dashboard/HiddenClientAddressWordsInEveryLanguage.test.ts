@@ -29,7 +29,9 @@ const SENTENCES: ReadonlyArray<string> = Object.values(Copy).filter(
 
 describe("the words for an address a scrub rule hid", () => {
   test("are each an English key the Dashboard's locales hold", () => {
-    expect(SENTENCES).toHaveLength(12);
+    // Target IP's filter is the thirteenth (#10419).
+    expect(SENTENCES).toHaveLength(13);
+    expect(SENTENCES).toContain(Copy.FILTER_BY_HIDDEN_TARGET_ADDRESS);
 
     const english: Record<string, string> = readDashboardLocale("en");
 
@@ -108,6 +110,19 @@ describe("the words for an address a scrub rule hid", () => {
         same:
           words[Copy.SCRUB_RULE_REDACTS_THEM] ===
           words[Copy.SCRUB_RULE_MASKS_THEM],
+      }).toEqual({ language, same: false });
+    }
+  });
+
+  test("tell a hidden source's filter from a hidden destination's in every language (#10419)", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect({
+        language,
+        same:
+          words[Copy.FILTER_BY_HIDDEN_ADDRESS] ===
+          words[Copy.FILTER_BY_HIDDEN_TARGET_ADDRESS],
       }).toEqual({ language, same: false });
     }
   });

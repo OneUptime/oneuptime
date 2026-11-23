@@ -153,7 +153,10 @@ export default abstract class PrivateUserSessionServiceBase<
 > extends DatabaseService<TModel> {
   protected readonly kind: PrivateUserSessionKind;
 
-  public constructor(modelType: { new (): TModel }, kind: PrivateUserSessionKind) {
+  public constructor(
+    modelType: { new (): TModel },
+    kind: PrivateUserSessionKind,
+  ) {
     super(modelType);
     this.kind = kind;
 
@@ -692,16 +695,16 @@ export default abstract class PrivateUserSessionServiceBase<
       await this.getRepository()
         .manager.getRepository(this.kind.privateUserModel)
         .update(
-        {
-          _id: data.privateUserId.toString(),
-          projectId: data.projectId,
-          [this.kind.columns.resource]: data.resourceId,
-          deletedAt: IsNull(),
-        } as never,
-        {
-          lastActive: OneUptimeDate.getCurrentDate(),
-        } as never,
-      );
+          {
+            _id: data.privateUserId.toString(),
+            projectId: data.projectId,
+            [this.kind.columns.resource]: data.resourceId,
+            deletedAt: IsNull(),
+          } as never,
+          {
+            lastActive: OneUptimeDate.getCurrentDate(),
+          } as never,
+        );
     } catch {
       logger.warn(
         `Failed to record sign-in activity for ${this.kind.name} private user ${data.privateUserId.toString()}`,

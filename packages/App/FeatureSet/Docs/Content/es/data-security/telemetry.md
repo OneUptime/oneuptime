@@ -8,6 +8,7 @@ No hay nada que configurar: la telemetría de cada servicio se escanea cada hora
 - [Qué se lee](#qué-se-lee): Los atributos, cuerpos, mensajes y prompts de cada señal.
 - [Cómo muestrea un escaneo](#cómo-muestrea-un-escaneo): Las entradas más recientes de cada servicio, cada hora.
 - [Depurar](#depurar): Oculta un hallazgo en la ingesta, en el servicio donde se encontró.
+- [Contenido por su cuenta](#contenido-por-su-cuenta): Un secreto oculto sin que nadie pulse nada, donde está demostrado que es seguro.
 - [Descartar esta métrica](#descartar-esta-métrica): Deja de almacenar las métricas cuyos nombres contienen datos sensibles.
 - [Qué cuenta como depurado](#qué-cuenta-como-depurado): Cuándo una regla de depuración ya cubre un hallazgo.
 :::
@@ -101,14 +102,23 @@ Haz clic en **Depurar**. Un diálogo dice qué haría la regla antes de crear na
 La regla oculta los datos nuevos antes de guardarlos. Los datos ya guardados se quedan hasta que termina su retención, así que corrige el código que los escribe: el hallazgo nombra el servicio y el atributo.
 :::
 
-La regla se nombra por lo que oculta, como «Data Security: Email address in log attributes of checkout», y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es una de estas:
+La regla se nombra por lo que oculta, como «Data Security: Email address in log attributes of checkout», o «Data Security: Password or secret in db.password of checkout» para una regla que nombra su atributo, y aparece junto a tus demás reglas de depuración (consulta [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Es la regla más estrecha que oculta los datos del hallazgo, la primera de estas que encaja:
 
 | Hallazgo | Regla que crea Depurar |
 | --- | --- |
-| Dirección de correo electrónico, número de tarjeta, número de la Seguridad Social de EE. UU., número de teléfono o dirección IP | El patrón integrado de ese tipo. Los números de tarjeta, los números de la Seguridad Social y los números de teléfono se enmascaran, y el resto se oculta por completo. |
-| Un valor bajo una clave que parece sensible, como `password` o `token` | Una regla de **Claves de atributos sensibles**, que oculta el valor completo de cada atributo de ese tipo |
-| Cualquier otro tipo de datos que un patrón pueda encontrar | Una regla de **Expresión regular personalizada** creada a partir de los propios patrones del tipo de datos, que oculta cada valor con su forma |
+| Dirección de correo electrónico, número de tarjeta, número de la Seguridad Social de EE. UU., número de teléfono o dirección IP | El patrón integrado de ese tipo, enmascarado. Una dirección IP se oculta por completo, o se convierte en hash donde [Eventos de seguridad](/docs/telemetry/security-events) lee esas entradas, para que pueda seguir nombrando la dirección que hay que bloquear. |
+| Cualquier otro tipo de datos que un patrón encuentra por sí solo, como un token de GitHub | Una regla de **Expresión regular personalizada** creada a partir de los propios patrones del tipo de datos. Un secreto se oculta por completo. |
+| Uno de tus propios tipos de datos, con un patrón | Ese patrón, solo en el atributo en el que se encontró |
+| Un tipo de datos que se distingue por las palabras que lo rodean, como un número de ruta bancaria | Su forma, solo en el atributo en el que se encontró |
+| Un tipo de datos encontrado por el nombre del campo, como el nombre de una persona bajo `customer_name`, o un valor bajo una clave que nombra un secreto | Una regla de **Atributos indicados**, que oculta el valor completo de ese atributo |
+| Un valor bajo una clave que parece sensible, donde nada más estrecho lo oculta | Una regla de **Claves de atributos sensibles**, que oculta el valor completo de cada atributo de ese tipo |
 | Cualquier tipo de datos en el atributo de una métrica | Una regla de canalización de métricas **Ocultar atributo** para el servicio, que sustituye por `[REDACTED]` los valores del atributo con la forma del tipo de datos, o cada valor del atributo cuando ningún patrón encuentra el tipo de datos |
+
+### Demostrada en las entradas del hallazgo
+
+Antes de que el diálogo diga qué haría la regla, OneUptime ejecuta cada regla que podría crear sobre las entradas en las que se vio el hallazgo, y sobre las entradas más recientes de su servicio con un valor en ese lugar, con el mismo código que ejecuta la ingesta, y pregunta al escáner qué queda. La primera regla que oculta los datos en cada valor que los contenía, y que cambia como máximo 5 de cada 100 de los demás valores de ese lugar, es la elegida. El diálogo dice en cuántas entradas se ejecutó, cuántos valores contenían los datos y cuántos otros cambió. Un patrón que cambiaría más nunca se ofrece: se ofrece la regla que nombra el atributo, diciendo qué más cambia.
+
+La prueba se guarda con la regla, y la lista de reglas de depuración muestra **Demostrado** en su fila hasta que se cambia la regla. Donde no queda ninguna entrada sobre la que ejecutar una regla, como en una excepción o una reproducción de sesión, o en entradas que ya pasaron su retención, la regla se crea tal como está planeada, y el diálogo lo dice.
 
 Una regla de registros o de trazas es para el servicio donde se encontró el hallazgo: depura los registros o los spans de ese servicio, y los de los demás servicios se quedan como están, así que nada de lo que lee los suyos cambia. La columna **Alcance** de la lista de reglas de depuración dice para qué servicio es una regla. Un hallazgo en las grabaciones de sesión de una aplicación RUM crea una regla para todos los servicios y aplicaciones del proyecto, ya que las reglas de registros también depuran las grabaciones, y el diálogo lo dice. Si el servicio ya no existe, **Depurar** lo dice y no crea ninguna regla.
 
@@ -116,14 +126,35 @@ El diálogo nombra, cada uno como un enlace, los monitores, los paneles con sus 
 
 Algunos hallazgos no se pueden depurar con una regla, y **Depurar** dice por qué. El atributo de una métrica siempre se puede depurar, ya que su regla puede ocultar cada valor del atributo:
 
-- Un tipo de datos encontrado solo por los nombres de campo, como el nombre de una persona: ningún patrón puede encontrarlo. Cambia el nombre del atributo a una clave que oculte una regla de claves sensibles, o deja de enviarlo.
-- Un tipo de datos que solo se distingue de otros valores por las palabras que lo rodean, como un número de ruta bancaria: una regla ocultaría mucho más que ese tipo de datos.
+- Un tipo de datos encontrado solo por los nombres de campo en el cuerpo de un registro, como el nombre de una persona: ninguna regla puede distinguirlo del resto del mensaje. Envíalo como atributo, que oculta una regla de **Atributos indicados**, o deja de enviarlo.
+- Todas las reglas probadas ocultaban mucho más que los datos: cada una se ejecutó sobre las entradas en las que se vieron, y cambiaba demasiados valores más. Deja de enviarlos en el código que los escribe.
 - Una marca de documento: ocultar la palabra no ocultaría el documento.
-- Uno de tus propios tipos de datos: añade tú mismo una regla de depuración personalizada con su patrón.
 - Los propios detalles de una sesión (`sessions.*`): la ingesta de reproducciones de sesiones no ejecuta reglas de depuración.
 - El nombre de una métrica (`name`): lo establece el código que crea la métrica, y una regla de canalización solo puede renombrar una métrica entera. Cambia el nombre de la métrica y, en su lugar, envía como atributo lo que varía en su nombre. Mientras tanto, **Descartar esta métrica** puede dejar de almacenar esas métricas.
 
 **Depurar** crea la regla en tu nombre, con tus propios permisos: pueden pulsarlo los roles Propietario del proyecto y Administrador del proyecto, y también un equipo que pueda crear reglas de depuración de registros, reglas de depuración de trazas para los spans, las excepciones y las llamadas de IA, y reglas de canalización de métricas para las métricas.
+
+## Contenido por su cuenta
+
+Mientras la IA de OneUptime trabaja en los problemas de Seguridad de datos (consulta [OneUptime AI en Seguridad de datos](/docs/data-security/ai)), un problema de telemetría se contiene sin que nadie pulse nada, donde está demostrado que es seguro. Para cada lugar que cuenta el problema, la IA de OneUptime planifica la regla que crearía **Depurar**, demostrada de la misma forma, y solo la crea por su cuenta cuando se cumple todo esto:
+
+- **Los datos son un secreto**, como una contraseña, un token o una clave.
+- **La regla está demostrada** en las entradas en las que se vieron los datos: ocultó los datos en cada valor que los contenía.
+- **No cambia nada más allí**: ninguno de los demás valores de su lugar.
+- **Nada lee lo que oculta**: ningún monitor, panel, vista guardada, regla de grabación ni SLO, y nada que necesite Eventos de seguridad.
+- **Es para el servicio** en el que se vieron los datos.
+
+Todo lo demás se propone en su lugar, en **Seguridad de datos → IA** y en la página del problema, diciendo cómo se demostró la regla y qué lee lo que ocultaría: datos personales, una regla cuyos valores lee algo, una que cambia otros valores, una para la que no quedaba ninguna entrada en la que ejecutarla, una para todos los servicios, la regla de canalización de una métrica, y cualquier lugar cuya regla anterior una persona deshizo o descartó. Una regla de IA de Seguridad de datos que pone **Contener** en **Automáticamente** para un problema permite que también se oculten por su cuenta datos personales demostrados. Ninguna regla permite que se ejecute por su cuenta un cambio del que no está demostrado que sea seguro.
+
+Donde ninguna de las reglas de **Depurar** puede ocultar los datos, como en uno de tus propios tipos de datos sin patrón, la IA de OneUptime escribe una: un patrón para los datos, o el atributo que hay que ocultar entero. Se le dice el tipo de datos, dónde está, los nombres de los atributos de al lado y las formas de los valores, como `AA-9999` para `AB-1234`, nunca un valor, y lo que escribe se demuestra en las entradas como cualquier otra regla antes de proponerlo o crearlo.
+
+Un cambio que la IA de OneUptime hizo por su cuenta:
+
+- **Está en la cronología del problema**, con las reglas que creó, cómo se demostró cada una, y **Deshacer**, que las elimina. **Seguridad de datos → IA** tiene el mismo **Deshacer**. Un lugar cuya regla deshaces nunca vuelve a contenerse por su cuenta: la IA de OneUptime lo propone en su lugar.
+- **Se envía por correo electrónico** a los propietarios del almacén y a los propietarios del servicio.
+- **Dice que hay que rotar un secreto.** Ocultar un secreto solo detiene las copias nuevas: el secreto sigue funcionando, y las entradas guardadas antes de la regla lo conservan hasta que termina su retención. La cronología y el correo electrónico dicen dónde se vio.
+
+Los hallazgos nuevos en un servicio cuyo problema ya está abierto se contienen de la misma forma, en cuanto el escaneo de cada hora los encuentra.
 
 ## Descartar esta métrica
 
@@ -145,7 +176,9 @@ Un hallazgo se marca como depurado solo cuando la ingesta le aplicaría una regl
 - **La parte correcta.** Los **Campos a depurar** de la regla incluyen la parte de la entrada en la que está el hallazgo, o la regla los deja en su valor por defecto.
 - **El servicio correcto.** Una regla de registros o de trazas para un servicio solo cubre los hallazgos de ese servicio. Una regla sin servicio cubre los de todos los servicios.
 - **Un patrón que encuentra el tipo.** Un **Tipo de patrón** integrado encuentra su propio tipo de datos: **Dirección de correo electrónico** encuentra direcciones de correo electrónico, **Número de tarjeta de crédito** números de tarjeta, **SSN (número de la Seguridad Social)** números de la Seguridad Social de EE. UU., **Número de teléfono** números de teléfono y **Dirección IP** direcciones IP. **Claves de atributos sensibles** cubre cada valor bajo una clave que parece sensible, sea cual sea el valor.
-- **Tus propios patrones personalizados nunca cuentan.** Una **Expresión regular personalizada** cubre un hallazgo solo cuando es exactamente el patrón que crea **Depurar** para su tipo. Un hallazgo solo conserva muestras enmascaradas, sobre las que no se puede probar ningún patrón, así que OneUptime no podría demostrar que tu patrón oculta los datos, y un hallazgo marcado como depurado por error es una fuga que nadie mira.
+- **Una regla demostrada en las entradas del hallazgo.** Una regla que OneUptime creó y demostró en las entradas en las que se vio un hallazgo cubre ese hallazgo, sea cual sea su patrón, mientras siga siendo la regla que se demostró: cambia su patrón, sus atributos, su acción, sus campos o su servicio, y deja de cubrirlo.
+- **Una regla de atributos indicados** cubre un hallazgo en un atributo que nombra, o en uno anidado bajo él.
+- **Por lo demás, tus propios patrones personalizados nunca cuentan.** Una **Expresión regular personalizada** que escribiste tú cubre un hallazgo solo cuando es exactamente el patrón que crea **Depurar** para su tipo. Un hallazgo solo conserva muestras enmascaradas, sobre las que no se puede probar ningún patrón, así que OneUptime no podría demostrar que tu patrón oculta los datos, y un hallazgo marcado como depurado por error es una fuga que nadie mira.
 - **El atributo de una métrica.** Una regla de canalización de métricas **Ocultar atributo** o **Eliminar atributo** sobre la clave de ese atributo, para el servicio del hallazgo o para todo el proyecto, lo cubre cuando no tiene ningún filtro, o tiene exactamente el filtro que crea **Depurar**. Un filtro que escribiste tú nunca cuenta, por la misma razón.
 - **El nombre de una métrica.** Una regla de canalización de métricas **Descartar** para el servicio del hallazgo o para todo el proyecto lo cubre cuando tiene exactamente el filtro que crea **Descartar esta métrica**, o ningún filtro, con lo que no almacena ninguna métrica del servicio. Una regla así sin filtro cubre todos los hallazgos en esas métricas.
 

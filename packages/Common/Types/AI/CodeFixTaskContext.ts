@@ -280,6 +280,190 @@ export interface ProductionReviewTaskContext {
   failedAttempts?: number | undefined;
 }
 
+/*
+ * The fix of a group of Data Security issues' cause, once
+ * (CodeFixTaskType.FixInfrastructureCode, #10370): what its Runner is
+ * handed and its pull request says. Names, ids and the request as Data
+ * Security's input builder wrote it - never a value, a sample or a record.
+ */
+export interface InfrastructureFixTaskContext {
+  // The group of issues whose cause it fixes.
+  groupId: string;
+  checkId: string;
+  // What the pull request is called: "Turn on access logging in the static-site module".
+  title: string;
+  // The group's cause, in English: "the static-site module".
+  cause: string;
+  // The request the coding agent reads (DataSecurityAiInput.buildFixIssueGroupRequest).
+  request: string;
+  // The code that declares the stores: its kind and the files named after them.
+  codeKind?: string | undefined;
+  paths?: Array<string> | undefined;
+  // The stores and issues it fixes, for the pull request's description.
+  stores: Array<InfrastructureFixStore>;
+  // How many stores the group's fix is for; more than `stores` lists when it was long.
+  storeCount: number;
+  // Where the group's issues are in OneUptime.
+  issuesUrl?: string | undefined;
+}
+
+export interface InfrastructureFixStore {
+  name: string;
+  kind?: string | undefined;
+  region?: string | undefined;
+  issueId: string;
+  // Its issue's page in OneUptime.
+  issueUrl?: string | undefined;
+}
+
+// The most stores a fix's context lists, and the longest text it keeps.
+export const MAX_INFRASTRUCTURE_FIX_STORES: number = 200;
+const MAX_INFRASTRUCTURE_FIX_TEXT: number = 20_000;
+const MAX_INFRASTRUCTURE_FIX_NAME: number = 300;
+
+function readFixText(value: unknown, max: number): string {
+  return typeof value === "string" ? value.slice(0, max) : "";
+}
+
+/*
+ * A fix's context as a run carries it, read defensively, or null when it
+ * is not one: no group, no request, or no store.
+ */
+export function getInfrastructureFixTaskContext(
+  value: unknown,
+): InfrastructureFixTaskContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const groupId: string = readFixText(raw["groupId"], 100);
+  const request: string = readFixText(
+    raw["request"],
+    MAX_INFRASTRUCTURE_FIX_TEXT,
+  );
+  const stores: Array<InfrastructureFixStore> = (
+    Array.isArray(raw["stores"]) ? (raw["stores"] as Array<unknown>) : []
+  )
+    .slice(0, MAX_INFRASTRUCTURE_FIX_STORES)
+    .map((item: unknown): InfrastructureFixStore | null => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) {
+        return null;
+      }
+
+      const store: Record<string, unknown> = item as Record<string, unknown>;
+      const name: string = readFixText(
+        store["name"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const issueId: string = readFixText(store["issueId"], 100);
+
+      if (!name || !issueId) {
+        return null;
+      }
+
+      const kind: string = readFixText(
+        store["kind"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const region: string = readFixText(
+        store["region"],
+        MAX_INFRASTRUCTURE_FIX_NAME,
+      );
+      const issueUrl: string = readFixText(store["issueUrl"], 2000);
+
+      return {
+        name,
+        issueId,
+        ...(kind ? { kind } : {}),
+        ...(region ? { region } : {}),
+        ...(issueUrl ? { issueUrl } : {}),
+      };
+    })
+    .filter(
+      (
+        store: InfrastructureFixStore | null,
+      ): store is InfrastructureFixStore => {
+        return store !== null;
+      },
+    );
+
+  if (!groupId || !request.trim() || stores.length === 0) {
+    return null;
+  }
+
+  const codeKind: string = readFixText(raw["codeKind"], 100);
+  const paths: Array<string> = (
+    Array.isArray(raw["paths"]) ? (raw["paths"] as Array<unknown>) : []
+  )
+    .map((path: unknown): string => {
+      return readFixText(path, 500);
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  const issuesUrl: string = readFixText(raw["issuesUrl"], 2000);
+  const storeCount: unknown = raw["storeCount"];
+
+  return {
+    groupId,
+    checkId: readFixText(raw["checkId"], 100),
+    title:
+      readFixText(raw["title"], MAX_INFRASTRUCTURE_FIX_NAME) ||
+      "Fix the cause of Data Security issues",
+    cause: readFixText(raw["cause"], MAX_INFRASTRUCTURE_FIX_NAME),
+    request,
+    stores,
+    storeCount:
+      typeof storeCount === "number" &&
+      Number.isSafeInteger(storeCount) &&
+      storeCount >= stores.length
+        ? storeCount
+        : stores.length,
+    ...(codeKind ? { codeKind } : {}),
+    ...(paths.length > 0 ? { paths } : {}),
+    ...(issuesUrl ? { issuesUrl } : {}),
+  };
+}
+
+/*
+ * The folder an infrastructure fix starts in: the deepest one every file
+ * that declares its stores is in ("modules/static-site"), or null for the
+ * repository's root.
+ */
+export function getInfrastructureFixFolder(
+  paths: ReadonlyArray<string> | undefined,
+): string | null {
+  const folders: Array<Array<string>> = (paths || [])
+    .map((path: string): Array<string> => {
+      return path.split("/").filter(Boolean).slice(0, -1);
+    })
+    .filter((parts: Array<string>): boolean => {
+      return parts.length > 0;
+    });
+
+  if (folders.length === 0 || folders.length !== (paths || []).length) {
+    return null;
+  }
+
+  const shared: Array<string> = [];
+
+  for (let index: number = 0; index < folders[0]!.length; index++) {
+    const part: string = folders[0]![index]!;
+
+    if (
+      !folders.every((parts: Array<string>): boolean => {
+        return parts[index] === part;
+      })
+    ) {
+      break;
+    }
+
+    shared.push(part);
+  }
+
+  return shared.length > 0 ? shared.join("/") : null;
+}
+
 export interface CodeFixTaskContext {
   /*
    * FixFromIncident: the exact investigation whose published RootCause is
@@ -326,6 +510,11 @@ export interface CodeFixTaskContext {
    * task's first turn only.
    */
   declaredCodeChange?: DeclaredCodeChangeTaskContext | undefined;
+  /*
+   * The fix of a group of Data Security issues' cause, once
+   * (CodeFixTaskType.FixInfrastructureCode, #10370).
+   */
+  infrastructureFix?: InfrastructureFixTaskContext | undefined;
   /*
    * GitHubPullRequestProductionReview: what the pull request's review was
    * asked to do, and what it keeps between reviews. `github` names a

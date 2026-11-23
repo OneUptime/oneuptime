@@ -229,6 +229,7 @@ Eén Host-monitor bewaakt elke schijf die de host meldt. De sjablonen High Files
 | Waar | Wat het voor elke schijf toont |
 | --- | --- |
 | De pagina **Metrieken** van de monitor | Eén lijn per schijf, genoemd naar `mountpoint` en `device`. |
+| De pagina **Overzicht** van de monitor | **Reeksen** toont elke schijf die de laatste controle las: de laatste waarde, de criteria waaraan de schijf voldoet en het open incident of de open waarschuwing. |
 | **Monitoringlogboeken** | De kolom **Waargenomen** telt de reeksen die elke controle las: één per schijf. |
 | **Incidenten** en **Waarschuwingen** | Eén per schijf, met vermelding van de mount en het apparaat van de schijf. |
 | De tabel **Bestandssystemen** van de host | Elke schijf die de collector meldt, wat uw monitoren ook bewaken. |
@@ -238,7 +239,7 @@ Elk criterium wordt voor elke schijf gecontroleerd:
 - Zolang het incident van een schijf open is, opent het criterium dat het opende, geen ander incident voor die schijf. Een andere schijf die eraan voldoet, opent een eigen incident.
 - Een schijf die aan twee criteria voldoet, zoals één boven 98% en één boven 90%, krijgt één incident, van het eerste van de twee in de lijst. Zet het strengere vooraan.
 - Het incident van een schijf wordt opgelost zodra die schijf niet meer voldoet aan het criterium dat het opende, wat de andere schijven ook doen.
-- De monitor heeft één status, bepaald door het eerste criterium in de lijst waaraan een schijf voldoet. Voldoet geen enkele schijf aan een criterium dat afgaat, dan is één schijf op of onder de hersteldrempel genoeg voor het criterium dat herstelt, dus de herstelmarge van 10% geldt niet op een host met een schijf die nooit bijna vol raakt.
+- De monitor heeft één status. Een criterium dat hem naar een andere status zet, zoals **Offline**, bepaalt die zodra één schijf eraan voldoet. Het criterium dat de monitor terugbrengt naar zijn **Standaard monitorstatus** wacht op de schijven die aan zo'n criterium voldeden, en komt overeen zodra elk van hen eraan voldoet, wat de andere schijven ook doen. Een schijf die van 96% naar 89% zakt, houdt de monitor dus **Offline** tot hij op of onder 81% zit, de herstelmarge van 10%, ook al wordt zijn incident opgelost zodra hij niet meer boven 90% zit. **Reeksen** toont die schijf als **Houdt de status vast**. Een schijf die niet meer wordt gemeld, houdt de status niet meer vast.
 
 Om alleen bepaalde schijven te bewaken, opent u **Geavanceerd** en voegt u in **Filteren op attributen** een filter op `mountpoint` toe aan de query onder **Selecteer metrieken**: **is een van** de schijven die u wilt bewaken, of **is geen van** de schijven die u wilt weglaten. Laat **Groeperen op** staan en schrijf elke schijf zoals die in de tabel **Bestandssystemen** staat, bijvoorbeeld `C:` of `/var`. Om een schijf helemaal niet meer te verzamelen, zodat die ook van de pagina's van de host verdwijnt, stelt u `include_mount_points` of `exclude_mount_points` in bij de scraper `filesystem` van de collector ([Hostmetrics](/docs/telemetry/host-otel-collector#hostmetrics)).
 

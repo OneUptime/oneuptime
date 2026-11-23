@@ -7,11 +7,14 @@ import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
+  RequestHandler,
 } from "Common/Server/Utils/Express";
 import HostCollectorAgent, {
   HostCollectorMessageResult,
 } from "Common/Server/Utils/HostCollector/HostCollectorAgent";
 import logger from "Common/Server/Utils/Logger";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 /*
  * OpAMP over HTTP for the hosts OneUptime manages: the supervisor the host
@@ -54,10 +57,21 @@ function sendText(res: ExpressResponse, status: number, message: string): void {
  * /telemetry and /, it answers at the address the installers write
  * (HOST_COLLECTOR_OPAMP_PATH, /telemetry/opamp/v1) and at /opamp/v1, where
  * hosts installed before still ask.
+ *
+ * The message is read once the key is right (#10702): StartServer leaves
+ * the body unread (RequestBodyLimit), and nothing of it is read or
+ * inflated for a request without the right key, which the supervisor sends
+ * in x-oneuptime-token. Protobuf, kept as its bytes, gzip-compressed or not.
  */
+const readAgentToServer: RequestHandler =
+  RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT);
+
 router.post(
   "/opamp/v1",
-  TelemetryIngest.forSurface(TelemetryIngestSurface.HostCollectorManagement),
+  TelemetryIngest.forSurface(
+    TelemetryIngestSurface.HostCollectorManagement,
+    readAgentToServer,
+  ),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
