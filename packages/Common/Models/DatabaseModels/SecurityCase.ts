@@ -32,10 +32,7 @@ import {
   SecurityCaseAiResponseState,
   SecurityCaseHandOffReason,
 } from "../../Types/SecurityCase/SecurityCaseAi";
-import {
-  SECURITY_CASE_AI_HOLD_OUTCOMES,
-  SecurityCaseAiHoldOutcome,
-} from "../../Types/SecurityCase/SecurityCaseAiHold";
+import { SecurityCaseAiHoldOutcome } from "../../Types/SecurityCase/SecurityCaseAiHold";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -1263,7 +1260,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_AI_HOLD_OUTCOMES,
+    allowedValues: Object.values(SecurityCaseAiHoldOutcome),
     title: "AI Hold Outcome",
     description:
       "Whether OneUptime AI is responding first to the case before anyone is alerted (Holding), and how that ended: Resolved with nobody alerted, handed to people (NeedsApproval, HandedOff, TimeRanOut and the rest), or stopped by a person (PageNow, TakenByPerson) or a priority rise (RoseInPriority). Empty for a case never held.",
