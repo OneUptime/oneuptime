@@ -6,6 +6,7 @@ import {
 } from "../../../../Server/Utils/ToolImport/Types";
 import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import DnsRecordType from "../../../../Types/Monitor/DnsMonitor/DnsRecordType";
+import MonitorRequestBodyFormat from "../../../../Types/Monitor/MonitorRequestBodyFormat";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import { UPTIMEROBOT_HOST } from "../../../../Types/ToolImport/ToolImportCatalog";
 import {
@@ -207,6 +208,97 @@ describe("UptimeRobotAdapter: what an UptimeRobot account becomes", () => {
         timeout: 90,
       }),
       makeToolImportNote(ToolImportNoteCode.MonitorPaused),
+    ]);
+  });
+
+  test("key-value data comes over as the form UptimeRobot posts, under a form's Content-Type; fields it cannot read are left out and said (#10787)", async () => {
+    const formMonitor: (
+      id: number,
+      data: unknown,
+      headers?: Record<string, string>,
+    ) => Record<string, unknown> = (
+      id: number,
+      data: unknown,
+      headers?: Record<string, string>,
+    ): Record<string, unknown> => {
+      return {
+        id: id,
+        friendlyName: `Form ${id}`,
+        url: "https://example.com/login",
+        type: "HTTP",
+        interval: 300,
+        timeout: 30,
+        status: "UP",
+        httpMethodType: "POST",
+        customHttpHeaders: headers || {},
+        postValueType: "KEY_VALUE",
+        postValueData: data,
+        tags: [],
+      };
+    };
+
+    const snapshot: ToolImportSnapshot = await read(
+      new FixtureApi([
+        {
+          path: "/v3/user/me",
+          answers: [json({ email: "ops@acme.com", fullName: "Ops" })],
+        },
+        {
+          path: "/v3/monitors",
+          answers: [
+            json(
+              uptimeRobotPage([
+                formMonitor(301, { user: "ops", remember: 1 }),
+                formMonitor(302, [
+                  { key: "q", value: "a b&c" },
+                  { key: "lang", value: "en" },
+                ]),
+                formMonitor(303, "already=written&as=text"),
+                formMonitor(
+                  304,
+                  { user: "ops" },
+                  { "content-type": "multipart/form-data" },
+                ),
+                formMonitor(305, { nested: { a: 1 } }),
+              ]),
+            ),
+          ],
+        },
+        { path: "/v3/psps", answers: [json(uptimeRobotPage([]))] },
+        {
+          path: "/v3/maintenance-windows",
+          answers: [json(uptimeRobotPage([]))],
+        },
+      ]),
+    );
+
+    expect(monitorOf(snapshot, 301)).toMatchObject({
+      monitorType: MonitorType.API,
+      httpMethod: HTTPMethod.POST,
+      requestBody: "user=ops&remember=1",
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+      requestHeaders: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    expect(monitorOf(snapshot, 302).requestBody).toBe("q=a+b%26c&lang=en");
+    expect(monitorOf(snapshot, 303)).toMatchObject({
+      requestBody: "already=written&as=text",
+      requestBodyFormat: MonitorRequestBodyFormat.Text,
+    });
+    // The monitor's own Content-Type is the one sent.
+    expect(monitorOf(snapshot, 304).requestHeaders).toEqual({
+      "content-type": "multipart/form-data",
+    });
+
+    for (const id of [301, 302, 303, 304]) {
+      expect(codes(monitorOf(snapshot, id).notes)).toEqual([]);
+    }
+
+    const unreadable: ImportedMonitor = monitorOf(snapshot, 305);
+
+    expect(unreadable.requestBody).toBeUndefined();
+    expect(unreadable.requestBodyFormat).toBeUndefined();
+    expect(codes(unreadable.notes)).toEqual([
+      ToolImportNoteCode.MonitorBodyLeftOut,
     ]);
   });
 

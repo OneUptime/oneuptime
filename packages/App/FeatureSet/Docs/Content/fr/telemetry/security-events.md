@@ -51,6 +51,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **Approbations** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Réponse automatique** | Playbooks | Les politiques qui soumettent à un défi ou bloquent une adresse qui attaque dès la détection, chacune avec sa période d'essai et ses garde-fous |
 | **Liste de blocage** | Playbooks | Les adresses que votre projet bloque, jusqu'à quand, et où chaque blocage est appliqué |
 | **Flux de liste de blocage** | Playbooks | Les URL secrètes depuis lesquelles vos pare-feu et proxies lisent la liste de blocage, et leurs récupérations |
 | **Entités protégées** | Playbooks | Les utilisateurs, les hôtes et les adresses qu'aucun playbook ne confine et qu'aucun blocage ne touche |

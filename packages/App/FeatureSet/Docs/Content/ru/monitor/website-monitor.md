@@ -71,7 +71,7 @@ flowchart TB
 
 ### URL веб-сайта
 
-Страница для проверки в виде полного URL со схемой: `https://example.com`, `https://example.com/pricing` или `http://example.com:8080/health`. В URL можно вставить [секрет монитора](/docs/monitor/monitor-secrets) как `{{monitorSecrets.NAME}}`, например токен в строке запроса.
+Страница для проверки в виде полного URL со схемой: `https://example.com`, `https://example.com/pricing` или `http://example.com:8080/health`. В URL можно вставить [секрет монитора](/docs/monitor/monitor-secrets) как `{{monitorSecrets.NAME}}`, например токен в строке запроса. В ошибке неудачной проверки URL указывается только схемой, хостом и портом, например `https://example.com`, поэтому секрет никогда не показывается.
 
 ### Динамические плейсхолдеры в URL
 

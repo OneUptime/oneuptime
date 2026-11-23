@@ -14,7 +14,7 @@ import {
  * beside its probeCapabilities), and OneUptime keeps what it last said in
  * Probe.reportedVersion, with the probe's liveness stamp:
  *
- *   - the release, written canonically ("17.0.1"), when the probe sent one;
+ *   - the release, written canonically ("17.1.0"), when the probe sent one;
  *   - what it sent, cut to MAX_REPORTED_PROBE_VERSION_LENGTH, when that is
  *     no release: a probe built without APP_VERSION says "unknown";
  *   - nothing, when a request that says what the probe can do
@@ -201,7 +201,7 @@ export default class ProbeReportedVersionUtil {
    *     nobody but OneUptime can update them, so none is ever flagged;
    *   - a probe that says its release does from
    *     FIRST_PROBE_VERSION_WITH_TOTP_CODES on, its pre-releases included
-   *     (17.0.1-rc.1 is built from the code 17.0.1 ships), and does not
+   *     (17.1.0-rc.1 is built from the code 17.1.0 ships), and does not
    *     before it;
    *   - a test or pre-release build of an older release cannot be told:
    *     main's test builds said 17.0.0-test and made codes (#9778);

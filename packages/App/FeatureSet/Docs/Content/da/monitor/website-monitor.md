@@ -71,7 +71,7 @@ Behold eller ret **Sonder** og **Overvågningsinterval** (det starter på **Hver
 
 ### Websteds-URL
 
-Siden, der skal tjekkes, som fuld URL med skema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`, for eksempel et token i forespørgselsstrengen.
+Siden, der skal tjekkes, som fuld URL med skema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan sætte en [monitorhemmelighed](/docs/monitor/monitor-secrets) ind i URL'en som `{{monitorSecrets.NAME}}`, for eksempel et token i forespørgselsstrengen. Fejlen fra et mislykket tjek nævner kun URL'ens skema, vært og port, som `https://example.com`, så hemmeligheden vises aldrig.
 
 ### Dynamiske URL-pladsholdere
 

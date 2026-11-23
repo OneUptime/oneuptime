@@ -70,7 +70,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 
 ### API-URL
 
-Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen.
+Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen. Der Fehler einer fehlgeschlagenen Prüfung nennt die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass das Geheimnis nie angezeigt wird.
 
 ### Dynamische URL-Platzhalter
 
@@ -250,7 +250,7 @@ Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor
 :::
 
 :::details Die Prüfung meldet, dass die Sonde zu alt ist, um den Anfragetext zu senden
-Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem Release vor OneUptime 17.2.0, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) oder prüfen Sie den Monitor von einer anderen Sonde aus.
+Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem älteren Release, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. Das Formular des Monitors und die Seite der Sonde nennen eine solche Sonde. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) auf das neueste Release, oder prüfen Sie den Monitor von einer anderen Sonde aus.
 :::
 
 ## Nächste Schritte

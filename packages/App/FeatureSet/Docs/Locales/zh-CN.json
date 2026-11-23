@@ -461,6 +461,7 @@
     "Get Started with Security": "安全入门",
     "Security Events (SIEM)": "安全事件(SIEM)",
     "Security Cases and Playbooks (SOAR)": "安全案例与剧本(SOAR)",
+    "Automatic Response": "自动响应",
     "Blocklist Feeds for Firewalls and Proxies": "适用于防火墙和代理的封禁列表源",
     "Entity Risk (Risk-Based Alerting)": "实体风险（基于风险的警报）",
     "Connected Signals": "关联信号",
