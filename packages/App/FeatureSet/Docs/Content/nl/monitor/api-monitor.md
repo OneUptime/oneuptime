@@ -70,7 +70,7 @@ Houd of wijzig de **Sondes** en het **Bewakingsinterval** (het begint bij **Elke
 
 ### API-URL
 
-Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`.
+Het endpoint dat wordt aangeroepen, als volledige URL met schema, zoals `https://api.example.com/v1/health`. U kunt een [monitorgeheim](/docs/monitor/monitor-secrets) in de URL zetten als `{{monitorSecrets.NAME}}`. De fout van een mislukte controle noemt de URL alleen met schema, host en poort, zoals `https://api.example.com`, dus het geheim wordt nooit getoond.
 
 ### Dynamische URL-plaatshouders
 
@@ -250,7 +250,7 @@ De body is geen JSON zodra de [monitorgeheimen](/docs/monitor/monitor-secrets) e
 :::
 
 :::details De controle meldt dat de sonde te oud is om de body te versturen
-De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een release ouder dan OneUptime 17.2.0, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) of controleer de monitor vanaf een andere sonde.
+De body van de monitor is een JSON-array, één waarde of **Tekst**, en de aangepaste sonde die hem controleert, draait een oudere release, die alleen een JSON-object verstuurt, dus de controle is niet op die sonde uitgevoerd. Het formulier van de monitor en de pagina van de sonde noemen zo'n sonde. [Werk de sonde bij](/docs/probe/custom-probe#een-sonde-bijwerken) naar de nieuwste release of controleer de monitor vanaf een andere sonde.
 :::
 
 ## Volgende stappen

@@ -57,7 +57,7 @@ The report counts what was created and not brought over, and lists every item wi
 | Monitors | Monitors | Each monitor becomes a monitor of the same kind, with the same address, interval and timeout, and the same status codes that count as up. |
 | Public status pages | Status pages | Each page shows the same monitors: the ones it names, the ones with its tags, or all of them, with uptime and history bars as it showed them. A page with a password comes over private. |
 
-- **HTTP(S) and keyword monitors** become website monitors, or API monitors when they send another method, headers or a JSON body. A keyword monitor goes down when its keyword appears or is missing, as it did in UptimeRobot, and matches it exactly, capital letters included.
+- **HTTP(S) and keyword monitors** become website monitors, or API monitors when they send another method, headers or a body. A keyword monitor goes down when its keyword appears or is missing, as it did in UptimeRobot, and matches it exactly, capital letters included.
 - **Ping and port monitors** become ping and port monitors.
 - **Heartbeat monitors** become incoming request monitors, which go down when no request has come for the interval and the grace period. Each has a new address in OneUptime.
 - **DNS and API monitors** become DNS and API monitors.

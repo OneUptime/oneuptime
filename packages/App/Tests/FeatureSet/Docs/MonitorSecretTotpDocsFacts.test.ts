@@ -208,24 +208,24 @@ describe("a probe too old to make one-time codes", () => {
   const CUSTOM_PROBE_PAGE: string = readPage("en", "probe/custom-probe");
 
   it("names the first release that makes them, as the probe and the server read it", () => {
-    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.1.0");
     expect(section()).toContain(
-      "so a custom probe needs OneUptime 17.0.1 or later.",
+      "so a custom probe needs OneUptime 17.1.0 or later.",
     );
     expect(CUSTOM_PROBE_PAGE).toContain(
-      "A probe older than 17.0.1 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code)",
+      "A probe older than 17.1.0 cannot make the codes of a [one-time code secret](/docs/monitor/monitor-secrets#signing-in-with-a-one-time-code)",
     );
   });
 
   it("says a check that needs a code does not run on an older probe, and fails saying to update it", () => {
     expect(ONE_TIME_CODE_STEP_NOT_RUN_MESSAGE).toBe(
-      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.",
     );
     expect(section()).toContain(
       "On an older one, a check that needs a code does not run, and fails with a sentence saying to update the probe;",
     );
     expect(SECRETS_PAGE).toContain(
-      ":::details The check says the probe is too old to make one-time codes\nThe probe runs a release older than OneUptime 17.0.1, which cannot make one-time codes, so the check did not run on it.",
+      ":::details The check says the probe is too old to make one-time codes\nThe probe runs a release older than OneUptime 17.1.0, which cannot make one-time codes, so the check did not run on it.",
     );
   });
 
