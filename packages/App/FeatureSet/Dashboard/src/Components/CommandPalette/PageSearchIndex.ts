@@ -2817,8 +2817,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "what oneuptime ai may do",
               // OneUptime AI responding first to new cases (#10353).
               "respond first",
-              "hold alerts",
-              "alert only when needed",
+              "hold new cases",
+              "wait before paging",
               "page now",
             ],
             settings: ["Work cases end to end", "Let OneUptime AI respond first"],
