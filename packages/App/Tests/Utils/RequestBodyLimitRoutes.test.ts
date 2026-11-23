@@ -406,7 +406,9 @@ describe("the paths the App's own clients send large bodies to", () => {
    * itself once its key is right - the key check reads it, before the
    * ingestion budget (TelemetryIngest.forSurface's reader), or a reader
    * mounted after it (the uploads). One that read it nowhere would find no
-   * body at all, from every client.
+   * body at all, from every client. OTLP/HTTP and the Vercel log drain,
+   * which StartServer leaves to their own readers by their paths, read
+   * theirs in the key check too (#10814): they read it before the key.
    */
   test("every telemetry route whose body StartServer leaves unread reads it once the key is right", () => {
     const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
@@ -435,14 +437,15 @@ describe("the paths the App's own clients send large bodies to", () => {
       )) {
         const path: string = route[1]!;
         const chain: string = route[2]!;
+        const isOtlpOrVercelDrain: boolean =
+          path.includes("/otlp/v1/") || isVercelLogDrainPath(path);
 
         if (
-          path.includes("/otlp/v1/") ||
-          path.includes("/session-replay/v1/") ||
-          isVercelLogDrainPath(path) ||
-          isCloudStreamPath(path) ||
-          isCompatibleIngestPath(path) ||
-          !readsBodyAfterAuthentication(path)
+          !isOtlpOrVercelDrain &&
+          (path.includes("/session-replay/v1/") ||
+            isCloudStreamPath(path) ||
+            isCompatibleIngestPath(path) ||
+            !readsBodyAfterAuthentication(path))
         ) {
           continue;
         }
@@ -474,6 +477,11 @@ describe("the paths the App's own clients send large bodies to", () => {
         "/source-maps/v1/upload",
         "/dsyms/v1/upload",
         "/security-events/v1/ingest",
+        "/otlp/v1/traces",
+        "/otlp/v1/metrics",
+        "/otlp/v1/logs",
+        "/otlp/v1/profiles",
+        "/vercel/v1/logs",
       ]),
     );
   });
