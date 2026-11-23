@@ -86,7 +86,7 @@ Cliquez sur **Créer une politique** sous les politiques prêtes à l'emploi. Un
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Techniques ATT&CK** | Les techniques qu'une détection doit porter, séparées par des virgules, comme `T1110, T1190`. Une technique couvre ses sous-techniques. |
-| **Action** | **Bloquer** ou **Défi**. |
+| **Action** | Sous **Plus de champs** : **Bloquer** ou **Défi**. |
 | **Durée du premier blocage** | Sous **Plus de champs** : 1 heure, 24 heures ou 7 jours. Une adresse qui revient est bloquée plus longtemps. |
 | **Règles de détection** | Sous **Plus de champs** : ou une détection faite par l'une de ces règles. |
 | **Uniquement les adresses que votre renseignement sur les menaces répertorie** | Sous **Plus de champs** : n'agit que sur les adresses que votre renseignement sur les menaces répertorie. Seul, agit sur toute détection concernant l'une d'elles. |

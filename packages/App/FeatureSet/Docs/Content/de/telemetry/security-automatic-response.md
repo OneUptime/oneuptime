@@ -86,7 +86,7 @@ Klicken Sie unter den vorgefertigten Richtlinien auf **Richtlinie erstellen**. E
 | Feld | Was es tut |
 | --- | --- |
 | **ATT&CK-Techniken** | Die Techniken, die eine Erkennung tragen muss, durch Kommas getrennt, etwa `T1110, T1190`. Eine Technik umfasst ihre Untertechniken. |
-| **Aktion** | **Sperren** oder **Challenge**. |
+| **Aktion** | Unter **Weitere Felder**: **Sperren** oder **Challenge**. |
 | **Erste Sperre dauert** | Unter **Weitere Felder**: 1 Stunde, 24 Stunden oder 7 Tage. Eine Adresse, die wiederkommt, wird länger gesperrt. |
 | **Erkennungsregeln** | Unter **Weitere Felder**: oder eine Erkennung durch eine dieser Regeln. |
 | **Nur Adressen, die Ihre Threat Intel auflistet** | Unter **Weitere Felder**: reagiert nur auf Adressen, die Ihre Threat Intel auflistet. Allein reagiert sie auf jede Erkennung zu einer solchen. |

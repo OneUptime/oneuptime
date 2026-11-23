@@ -285,6 +285,8 @@ const AutomaticResponsePolicyModal: FunctionComponent<ComponentProps> = (
               },
             ],
             required: true,
+            // Block, unless a person chooses Challenge: three rows in sight (Docs/ux/README.md#steps).
+            collapsibleSection: MORE_FIELDS,
           },
           {
             field: { [DURATION_FIELD]: true },

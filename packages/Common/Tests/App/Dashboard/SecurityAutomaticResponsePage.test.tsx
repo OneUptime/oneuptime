@@ -819,7 +819,7 @@ describe("a project's own policy", () => {
 
     const form: CapturedForm = forms[forms.length - 1]!;
     expect(form.title).toBe("Create Policy");
-    // Three fields in sight; the rest folded under More fields.
+    // Two fields in sight, and the rest - the action too, Block unless chosen - folded under More fields.
     expect(
       form.formProps.fields
         .filter((field: { collapsibleSection?: unknown }): boolean => {
@@ -828,7 +828,7 @@ describe("a project's own policy", () => {
         .map((field: { title?: string }): string | undefined => {
           return field.title;
         }),
-    ).toEqual(["Name", "ATT&CK Techniques", "Action"]);
+    ).toEqual(["Name", "ATT&CK Techniques"]);
 
     await act(async () => {
       await form.onSubmit({

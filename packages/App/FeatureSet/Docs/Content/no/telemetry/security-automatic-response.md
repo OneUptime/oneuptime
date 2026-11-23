@@ -86,7 +86,7 @@ Klikk på **Opprett policy** under de ferdige policyene. En egen policy trenger 
 | Felt | Hva det gjør |
 | --- | --- |
 | **ATT&CK-teknikker** | Teknikkene en deteksjon må ha, atskilt med komma, som `T1110, T1190`. En teknikk dekker underteknikkene sine. |
-| **Handling** | **Blokker** eller **Utfordring**. |
+| **Handling** | Under **Flere felt**: **Blokker** eller **Utfordring**. |
 | **Første blokkering varer** | Under **Flere felt**: 1 time, 24 timer eller 7 dager. En adresse som kommer tilbake, blokkeres lenger. |
 | **Deteksjonsregler** | Under **Flere felt**: eller en deteksjon fra én av disse reglene. |
 | **Bare adresser som trusselsinformasjonen din lister opp** | Under **Flere felt**: reagerer bare på adresser som trusselsinformasjonen din lister opp. Alene reagerer den på enhver deteksjon om en slik. |

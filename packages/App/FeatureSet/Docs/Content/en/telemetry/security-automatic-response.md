@@ -86,7 +86,7 @@ Click **Create Policy** under the ready policies. A policy of your own needs a *
 | Field | What it does |
 | --- | --- |
 | **ATT&CK Techniques** | The techniques a detection must carry, separated by commas, such as `T1110, T1190`. A technique covers its sub-techniques. |
-| **Action** | **Block** or **Challenge**. |
+| **Action** | Under **More fields**: **Block** or **Challenge**. |
 | **First Block Lasts** | Under **More fields**: 1 hour, 24 hours or 7 days. An address that comes back is blocked for longer. |
 | **Detection Rules** | Under **More fields**: or a detection made by one of these rules. |
 | **Only Addresses Your Threat Intel Lists** | Under **More fields**: acts only on addresses your threat intel lists. On its own, acts on any detection about one. |

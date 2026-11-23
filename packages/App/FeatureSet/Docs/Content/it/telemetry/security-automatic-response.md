@@ -86,7 +86,7 @@ Fai clic su **Crea criterio** sotto i criteri pronti. Un criterio tuo ha bisogno
 | Campo | Cosa fa |
 | --- | --- |
 | **Tecniche ATT&CK** | Le tecniche che un rilevamento deve avere, separate da virgole, come `T1110, T1190`. Una tecnica comprende le sue sottotecniche. |
-| **Azione** | **Blocca** o **Verifica**. |
+| **Azione** | In **Altri campi**: **Blocca** o **Verifica**. |
 | **Il primo blocco dura** | In **Altri campi**: 1 ora, 24 ore o 7 giorni. Un indirizzo che torna viene bloccato più a lungo. |
 | **Regole di rilevamento** | In **Altri campi**: oppure un rilevamento di una di queste regole. |
 | **Solo indirizzi elencati dalla tua Threat Intel** | In **Altri campi**: agisce solo sugli indirizzi elencati dalla tua Threat Intel. Da sola, agisce su qualsiasi rilevamento su uno di essi. |

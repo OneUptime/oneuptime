@@ -38,7 +38,7 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import { DELETE_QUESTION_TEMPLATE } from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -177,7 +177,8 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
           <ErrorMessage message={READ_FAILED} onRefreshClick={refresh} />
         </div>
       ) : (
-        <ComponentLoader />
+        // The three ready policies' cards, as they load.
+        <CardListSkeleton count={3} lines={3} />
       );
     }
 

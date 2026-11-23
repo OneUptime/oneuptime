@@ -86,7 +86,7 @@ Clique em **Criar política** abaixo das políticas prontas. Uma política sua p
 | Campo | O que faz |
 | --- | --- |
 | **Técnicas do ATT&CK** | As técnicas que uma detecção precisa ter, separadas por vírgulas, como `T1110, T1190`. Uma técnica abrange suas subtécnicas. |
-| **Ação** | **Bloquear** ou **Desafio**. |
+| **Ação** | Em **Mais campos**: **Bloquear** ou **Desafio**. |
 | **O primeiro bloqueio dura** | Em **Mais campos**: 1 hora, 24 horas ou 7 dias. Um endereço que volta é bloqueado por mais tempo. |
 | **Regras de detecção** | Em **Mais campos**: ou uma detecção feita por uma destas regras. |
 | **Só endereços que sua inteligência de ameaças lista** | Em **Mais campos**: só age sobre endereços que sua inteligência de ameaças lista. Sozinha, age sobre qualquer detecção sobre um deles. |

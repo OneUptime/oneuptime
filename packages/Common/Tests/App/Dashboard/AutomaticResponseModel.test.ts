@@ -1,4 +1,5 @@
 /** @timezone UTC */
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import { describe, expect, test } from "@jest/globals";
 import {
   GUARDRAIL_LADDER,
@@ -547,7 +548,7 @@ describe("time to block", () => {
     expect(formatTimeToBlock(120, english)).toBe("2m");
     expect(formatTimeToBlock(2 * 3600 + 5 * 60, english)).toBe("2h 5m");
     expect(formatTimeToBlock(3600, english)).toBe("1h");
-    expect(formatTimeToBlock(null, english)).toBe("-");
+    expect(formatTimeToBlock(null, english)).toBe(EMPTY_VALUE_MARK);
   });
 
   test("a day with no block has no point", () => {

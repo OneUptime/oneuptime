@@ -86,7 +86,7 @@ Klik på **Opret politik** under de færdige politikker. En egen politik skal ha
 | Felt | Hvad det gør |
 | --- | --- |
 | **ATT&CK-teknikker** | De teknikker, en detektion skal have, adskilt med kommaer, såsom `T1110, T1190`. En teknik dækker sine underteknikker. |
-| **Handling** | **Blokér** eller **Udfordring**. |
+| **Handling** | Under **Flere felter**: **Blokér** eller **Udfordring**. |
 | **Første blokering varer** | Under **Flere felter**: 1 time, 24 timer eller 7 dage. En adresse, der kommer igen, blokeres længere. |
 | **Detektionsregler** | Under **Flere felter**: eller en detektion fra én af disse regler. |
 | **Kun adresser, som din trusselsinformation viser** | Under **Flere felter**: reagerer kun på adresser, som din trusselsinformation viser. Alene reagerer den på enhver detektion om en sådan. |

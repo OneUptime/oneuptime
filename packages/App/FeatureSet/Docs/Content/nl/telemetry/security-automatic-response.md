@@ -86,7 +86,7 @@ Klik op **Beleid maken** onder de kant-en-klare beleidsregels. Een eigen beleid 
 | Veld | Wat het doet |
 | --- | --- |
 | **ATT&CK-technieken** | De technieken die een detectie moet hebben, gescheiden door komma's, zoals `T1110, T1190`. Een techniek omvat de subtechnieken. |
-| **Actie** | **Blokkeren** of **Challenge**. |
+| **Actie** | Onder **Meer velden**: **Blokkeren** of **Challenge**. |
 | **Eerste blokkering duurt** | Onder **Meer velden**: 1 uur, 24 uur of 7 dagen. Een adres dat terugkomt, wordt langer geblokkeerd. |
 | **Detectieregels** | Onder **Meer velden**: of een detectie van een van deze regels. |
 | **Alleen adressen die je dreigingsinformatie vermeldt** | Onder **Meer velden**: reageert alleen op adressen die je dreigingsinformatie vermeldt. Op zichzelf reageert het op elke detectie over zo'n adres. |

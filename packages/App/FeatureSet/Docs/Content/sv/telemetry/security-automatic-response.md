@@ -86,7 +86,7 @@ Klicka på **Skapa policy** under de färdiga policyerna. En egen policy behöve
 | Fält | Vad det gör |
 | --- | --- |
 | **ATT&CK-tekniker** | Teknikerna som en detektion måste ha, separerade med kommatecken, som `T1110, T1190`. En teknik omfattar sina undertekniker. |
-| **Åtgärd** | **Blockera** eller **Utmaning**. |
+| **Åtgärd** | Under **Fler fält**: **Blockera** eller **Utmaning**. |
 | **Första blockeringen varar** | Under **Fler fält**: 1 timme, 24 timmar eller 7 dagar. En adress som kommer tillbaka blockeras längre. |
 | **Detektionsregler** | Under **Fler fält**: eller en detektion från en av de här reglerna. |
 | **Bara adresser som din hotinformation listar** | Under **Fler fält**: reagerar bara på adresser som din hotinformation listar. Ensam reagerar den på alla detektioner om en sådan. |

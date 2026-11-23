@@ -1,3 +1,4 @@
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   ACTS_ON_RULES,
   ACTS_ON_TECHNIQUES,
@@ -491,7 +492,7 @@ export function formatTimeToBlock(
   translator: Translator,
 ): string {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   const whole: number = Math.round(seconds);
