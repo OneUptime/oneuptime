@@ -98,6 +98,21 @@ var monitorStepsEvaluateOverTimeTypeValues = []string{
 	"Minimum Value",
 	"All Values",
 	"Any Value",
+	"Percentile",
+	"Count",
+	"Percentage",
+	"Status Changes",
+}
+
+// How a counted window's number is compared (CriteriaFilterUtil.COUNT_COMPARISONS
+// in Common/Types/Monitor/CriteriaFilter.ts): "Greater Than" 30 failed checks.
+var monitorStepsCountComparisonValues = []string{
+	"Greater Than",
+	"Greater Than Or Equal To",
+	"Less Than",
+	"Less Than Or Equal To",
+	"Equal To",
+	"Not Equal To",
 }
 
 // NoDataPolicy enum (Common/Types/Monitor/CriteriaFilter.ts). Governs what
@@ -273,6 +288,7 @@ var (
 	monitorStepsScreenSizeTypeValidator       = stringvalidator.OneOf(monitorStepsScreenSizeTypeValues...)
 	monitorStepsBrowserTypeValidator          = stringvalidator.OneOf(monitorStepsBrowserTypeValues...)
 	monitorStepsEvaluateOverTimeTypeValidator = stringvalidator.OneOf(monitorStepsEvaluateOverTimeTypeValues...)
+	monitorStepsCountComparisonValidator      = stringvalidator.OneOf(monitorStepsCountComparisonValues...)
 	monitorStepsNoDataPolicyValidator         = stringvalidator.OneOf(monitorStepsNoDataPolicyValues...)
 	monitorStepsCheckOnValidator              = stringvalidator.OneOf(monitorStepsCheckOnValues...)
 	monitorStepsFilterTypeValidator           = stringvalidator.OneOf(monitorStepsFilterTypeValues...)
@@ -329,18 +345,21 @@ var monitorStepsSubConfigs = []monitorStepsSubConfig{
 
 func monitorStepsFilterAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"check_on":                          types.StringType,
-		"filter_type":                       types.StringType,
-		"value":                             types.StringType,
-		"evaluate_over_time":                types.BoolType,
-		"evaluate_over_time_minutes":        types.Int64Type,
-		"evaluate_over_time_type":           types.StringType,
-		"evaluate_over_time_no_data_policy": types.StringType,
-		"disk_path":                         types.StringType,
-		"metric_monitor_options":            types.StringType,
-		"snmp_monitor_options":              types.StringType,
-		"database_monitor_options":          types.StringType,
-		"custom_code_monitor_options":       types.StringType,
+		"check_on":                             types.StringType,
+		"filter_type":                          types.StringType,
+		"value":                                types.StringType,
+		"evaluate_over_time":                   types.BoolType,
+		"evaluate_over_time_minutes":           types.Int64Type,
+		"evaluate_over_time_type":              types.StringType,
+		"evaluate_over_time_no_data_policy":    types.StringType,
+		"evaluate_over_time_percentile":        types.Int64Type,
+		"evaluate_over_time_count_filter_type": types.StringType,
+		"evaluate_over_time_count_value":       types.Int64Type,
+		"disk_path":                            types.StringType,
+		"metric_monitor_options":               types.StringType,
+		"snmp_monitor_options":                 types.StringType,
+		"database_monitor_options":             types.StringType,
+		"custom_code_monitor_options":          types.StringType,
 	}
 }
 
@@ -645,6 +664,21 @@ func monitorStepsFilterSchema() schema.NestedAttributeObject {
 				MarkdownDescription: "What the filter does while the evaluation window does not hold enough data to judge it — for example a monitor that has just been created. `Ignore` (the default) does not match, `Trigger` treats the missing data as the failure, and `Treat As Zero` compares the window as a single zero.",
 				Optional:            true,
 				Validators:          []validator.String{monitorStepsNoDataPolicyValidator},
+			},
+			"evaluate_over_time_percentile": schema.Int64Attribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Percentile`: which percentile of the window's values is compared with the filter's value, from 1 to 99 (95 when unset).",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.Between(1, 99)},
+			},
+			"evaluate_over_time_count_filter_type": schema.StringAttribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Count`, `Percentage` or `Status Changes`: how the number of checks that met the filter's condition (their share of the window's checks, in %, for `Percentage`; the times it changed between met and not met, for `Status Changes`) is compared with `evaluate_over_time_count_value`. `Greater Than` when unset.",
+				Optional:            true,
+				Validators:          []validator.String{monitorStepsCountComparisonValidator},
+			},
+			"evaluate_over_time_count_value": schema.Int64Attribute{
+				MarkdownDescription: "With `evaluate_over_time_type` `Count`, `Percentage` or `Status Changes`: the number `evaluate_over_time_count_filter_type` compares with, such as `30` failed checks. 0 when unset.",
+				Optional:            true,
+				Validators:          []validator.Int64{int64validator.AtLeast(0)},
 			},
 			"disk_path": schema.StringAttribute{
 				MarkdownDescription: "Disk path for `Disk Usage (in %)` filters on Server monitors (e.g. `/` or `C:`).",
@@ -1242,6 +1276,15 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_no_data_policy"); ok {
 		evalOpts["onNoDataPolicy"] = v
 	}
+	if v, ok := monitorStepsAttrInt64(attrs, "evaluate_over_time_percentile"); ok {
+		evalOpts["percentile"] = v
+	}
+	if v, ok := monitorStepsAttrString(attrs, "evaluate_over_time_count_filter_type"); ok {
+		evalOpts["countFilterType"] = v
+	}
+	if v, ok := monitorStepsAttrInt64(attrs, "evaluate_over_time_count_value"); ok {
+		evalOpts["countValue"] = v
+	}
 	if len(evalOpts) > 0 {
 		out["evaluateOverTimeOptions"] = evalOpts
 	}
@@ -1719,6 +1762,15 @@ func monitorStepsFilterFromAPI(v interface{}, diags *diag.Diagnostics) (types.Ob
 		}
 		if s, ok := monitorStepsAPIString(opts["onNoDataPolicy"]); ok {
 			attrs["evaluate_over_time_no_data_policy"] = types.StringValue(s)
+		}
+		if n, ok := monitorStepsAPIInt64(opts["percentile"]); ok {
+			attrs["evaluate_over_time_percentile"] = types.Int64Value(n)
+		}
+		if s, ok := monitorStepsAPIString(opts["countFilterType"]); ok {
+			attrs["evaluate_over_time_count_filter_type"] = types.StringValue(s)
+		}
+		if n, ok := monitorStepsAPIInt64(opts["countValue"]); ok {
+			attrs["evaluate_over_time_count_value"] = types.Int64Value(n)
 		}
 	}
 	if opts, ok := m["serverMonitorOptions"].(map[string]interface{}); ok {

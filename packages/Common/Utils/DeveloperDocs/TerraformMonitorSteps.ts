@@ -325,6 +325,19 @@ function filterToHcl(
       "evaluate_over_time_no_data_policy",
       unwrapApiString(overTime["onNoDataPolicy"]),
     );
+    // A percentile, and how a count of the window's checks is compared (#10355).
+    attributes.addNumber(
+      "evaluate_over_time_percentile",
+      apiInteger(overTime["percentile"]),
+    );
+    attributes.addString(
+      "evaluate_over_time_count_filter_type",
+      unwrapApiString(overTime["countFilterType"]),
+    );
+    attributes.addNumber(
+      "evaluate_over_time_count_value",
+      apiInteger(overTime["countValue"]),
+    );
   }
 
   const serverOptions: unknown = filter["serverMonitorOptions"];
