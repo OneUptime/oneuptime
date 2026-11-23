@@ -1,4 +1,5 @@
-import Service from "Common/Models/DatabaseModels/Service";
+import { TELEMETRY_SERVICE_PICKER } from "../../Form/Monitor/TelemetryScopePickers";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import {
@@ -32,7 +33,6 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   filter: LogRecordingRuleFilter;
-  services: Array<Service>;
   attributeKeys: Array<string>;
   isLoadingAttributeKeys: boolean;
   onChange: (filter: LogRecordingRuleFilter) => void;
@@ -43,41 +43,18 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * The services the rule reads, searched on the server as they are typed
+   * in (TELEMETRY_SERVICE_PICKER, #10646). The editor read the project's
+   * first 10,000 by name: a service past them could not be picked, and one
+   * the rule held read as its raw id. What the rule holds is read by its
+   * ids; one deleted since reads "No longer available", to take out.
+   */
   const selectedServiceIds: Array<string> = (
     props.filter.telemetryServiceIds || []
   ).map((id: string): string => {
     return id.toLowerCase();
   });
-
-  /*
-   * Every project service, and any id the rule names that is no longer one
-   * (a deleted service) - so it can still be seen and removed.
-   */
-  const serviceOptions: Array<DropdownOption> = useMemo(() => {
-    const options: Array<DropdownOption> = props.services
-      .filter((service: Service): boolean => {
-        return Boolean(service.id);
-      })
-      .map((service: Service): DropdownOption => {
-        return {
-          label: service.name || service.id!.toString(),
-          isUserContent: true,
-          value: service.id!.toString().toLowerCase(),
-        };
-      });
-
-    for (const id of selectedServiceIds) {
-      if (
-        !options.some((option: DropdownOption): boolean => {
-          return option.value === id;
-        })
-      ) {
-        options.push({ label: id, value: id });
-      }
-    }
-
-    return options;
-  }, [props.services, props.filter.telemetryServiceIds]);
 
   const severityOptions: Array<DropdownOption> = useMemo(() => {
     return DropdownUtil.getDropdownOptionsFromEnum(LogSeverity);
@@ -119,16 +96,24 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div>
           <FieldLabelElement title="Services" />
-          <Dropdown
+          <EntityDropdown
+            modelType={TELEMETRY_SERVICE_PICKER.type}
+            labelField={TELEMETRY_SERVICE_PICKER.labelField}
+            valueField={TELEMETRY_SERVICE_PICKER.valueField}
+            notFoundLabel={TELEMETRY_SERVICE_PICKER.notFoundLabel}
             isMultiSelect={true}
-            ariaLabel="Services"
+            ariaLabel={translator.translateText("Services")}
             placeholder="All services"
-            options={serviceOptions}
-            value={serviceOptions.filter((option: DropdownOption): boolean => {
-              return selectedServiceIds.includes(option.value.toString());
-            })}
+            className="relative w-full"
+            value={selectedServiceIds}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              update({ telemetryServiceIds: toValues(value) });
+              update({
+                telemetryServiceIds: toValues(value).map(
+                  (id: string): string => {
+                    return id.toLowerCase();
+                  },
+                ),
+              });
             }}
           />
         </div>

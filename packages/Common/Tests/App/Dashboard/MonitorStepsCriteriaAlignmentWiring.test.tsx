@@ -18,7 +18,9 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Label from "../../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -142,9 +144,9 @@ function alertSeverity(
 let alertSeverities: Array<AlertSeverity> = [];
 
 /*
- * The criteria form fetches statuses, severities, on-call policies, labels,
- * teams and incident roles on mount. Only the first three shape what it
- * seeds; the rest just have to answer.
+ * The criteria form fetches statuses, severities, probes, people and
+ * incident roles on mount. Only the first three shape what it seeds; the
+ * rest just have to answer. Never on-call policies or labels (#10690).
  */
 function mockModelApi(): void {
   jest
@@ -279,6 +281,40 @@ async function mountWith(data: {
     },
   };
 }
+
+describe("what the criteria form reads as it opens (#10690)", () => {
+  beforeEach(() => {
+    alertSeverities = [alertSeverity()];
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+    mockModelApi();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("never the project's on-call policies or labels: the criteria's pickers search them, and read the ones they hold by id", async () => {
+    await mountWith({
+      initialValue: seededStepsFor(MonitorType.Website),
+      monitorType: MonitorType.Website,
+    });
+
+    const kinds: Array<unknown> = (
+      jest.mocked(ModelAPI.getList).mock.calls as Array<
+        [{ modelType: unknown }]
+      >
+    ).map(([request]: [{ modelType: unknown }]): unknown => {
+      return request.modelType;
+    });
+
+    // What the form still reads: the short lists it seeds criteria from.
+    expect(kinds).toContain(MonitorStatus);
+    expect(kinds).toContain(IncidentSeverity);
+    expect(kinds).not.toContain(OnCallDutyPolicy);
+    expect(kinds).not.toContain(Label);
+  });
+});
 
 describe("the criteria form keeps its criteria in step with the monitor type", () => {
   beforeEach(() => {

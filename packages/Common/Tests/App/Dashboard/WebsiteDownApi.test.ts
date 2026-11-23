@@ -1733,6 +1733,11 @@ describe("a status page to show it on (#7053)", () => {
 
     expect(call.modelType).toBe(StatusPage);
     expect(String(call.query["projectId"])).toBe(id(500).toString());
+    /*
+     * Asked for live pages only (#10646): archived pages used up the read,
+     * so a project with many of them was offered fewer, or none.
+     */
+    expect(call.query["isArchived"]).toBe(false);
     expect(call.limit).toBe(STATUS_PAGES_READ_LIMIT);
     expect(call.select).toEqual({ _id: true, name: true, isArchived: true });
     expect(call.sort).toEqual({ name: SortOrder.Ascending });
@@ -1743,19 +1748,47 @@ describe("a status page to show it on (#7053)", () => {
     { id: id(2).toString(), name: "Internal" },
   ];
 
+  /*
+   * The project's live pages, every one - past the ones step 4 read first
+   * too (#10646): a page that shows the monitor is read by its id.
+   */
+  const LIVE_PAGES: Array<{ id: string; name: string }> = [
+    ...PAGES,
+    { id: id(42).toString(), name: "Zulu Status" },
+  ];
+
   const showing: (statusPageIds: Array<string>) => void = (
     statusPageIds: Array<string>,
   ): void => {
-    getListSpy.mockResolvedValue(
-      list(
+    getListSpy.mockImplementation((async (options: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+    }) => {
+      if (options.modelType === StatusPage) {
+        const asked: Array<string> = (
+          (options.query["_id"] as Includes | undefined)?.values || []
+        ).map((value: unknown): string => {
+          return String(value).toLowerCase();
+        });
+
+        return list(
+          LIVE_PAGES.filter((page: { id: string }): boolean => {
+            return asked.includes(page.id.toLowerCase());
+          }).map((page: { id: string; name: string }) => {
+            return model(StatusPage, { _id: page.id, name: page.name });
+          }),
+        );
+      }
+
+      return list(
         statusPageIds.map((statusPageId: string, index: number) => {
           return model(StatusPageResource, {
             _id: id(100 + index).toString(),
             statusPageId: new ObjectID(statusPageId),
           });
         }),
-      ),
-    );
+      );
+    }) as never);
   };
 
   test("the page that shows the monitor, read by the monitor", async () => {
@@ -1790,7 +1823,7 @@ describe("a status page to show it on (#7053)", () => {
     ).toEqual(PAGES[1]);
   });
 
-  test("none shows it, or a page not offered: null", async () => {
+  test("none shows it: null, and no page is read", async () => {
     showing([]);
 
     expect(
@@ -1800,6 +1833,19 @@ describe("a status page to show it on (#7053)", () => {
       }),
     ).toBeNull();
 
+    expect(
+      getListSpy.mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as { modelType: unknown }).modelType === StatusPage;
+      }),
+    ).toHaveLength(0);
+  });
+
+  /*
+   * #10646: the page was looked for among the ones step 4 read first, so a
+   * monitor on a page past them was taken for one no page showed, and
+   * added again.
+   */
+  test("a page past the ones the step read first shows it: found, read by its id and named", async () => {
     showing([id(42).toString()]);
 
     expect(
@@ -1808,7 +1854,50 @@ describe("a status page to show it on (#7053)", () => {
         statusPages: PAGES,
         preferredStatusPageId: id(42).toString(),
       }),
+    ).toEqual({ id: id(42).toString(), name: "Zulu Status" });
+
+    const pageRead: {
+      query: Record<string, unknown>;
+      limit: number;
+    } = getListSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as {
+          modelType: unknown;
+          query: Record<string, unknown>;
+          limit: number;
+        };
+      })
+      .find((options: { modelType: unknown }): boolean => {
+        return options.modelType === StatusPage;
+      })!;
+
+    expect(pageRead.query["_id"]).toBeInstanceOf(Includes);
+    // An archived page is offline: it shows nobody anything.
+    expect(pageRead.query["isArchived"]).toBe(false);
+    expect(pageRead.limit).toBe(1);
+  });
+
+  test("a page deleted or archived since: null, so the step asks again", async () => {
+    showing([id(77).toString()]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+        preferredStatusPageId: id(77).toString(),
+      }),
     ).toBeNull();
+  });
+
+  test("several pages show it, none the run's: the first by name", async () => {
+    showing([id(42).toString(), id(2).toString()]);
+
+    expect(
+      await WebsiteDownApi.findStatusPageShowing({
+        monitorId: id(99).toString(),
+        statusPages: PAGES,
+      }),
+    ).toEqual(PAGES[1]);
   });
 
   test("no page offered: nothing is read", async () => {

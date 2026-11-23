@@ -249,11 +249,17 @@ describe("BaseModelTable in-search label chips", () => {
       });
 
       /*
-       * Before the label list lands the chip is captioned with the raw id —
-       * that is the documented behaviour here, because the constraint IS
-       * applied and dropping it from a shared link would be worse.
+       * The chip is read by its id (#10646). This label is not there to
+       * read, so once the read lands it says so - and it stays, because the
+       * constraint IS applied and dropping it from a shared link would be
+       * worse.
        */
-      expect(view.queryByLabelText(`Remove ${LABEL_ID}`)).not.toBeNull();
+      await waitFor(() => {
+        expect(
+          view.queryByLabelText("Remove No longer available"),
+        ).not.toBeNull();
+      });
+      expect(view.getAllByTestId("table-search-label-chip")).toHaveLength(1);
     });
 
     test("the labels key stays on the URL", async () => {
@@ -504,7 +510,7 @@ describe("BaseModelTable in-search label chips", () => {
     const view: ReturnType<typeof render> = renderTable(WITH_LABEL_FILTERS);
 
     await waitFor(() => {
-      expect(view.queryByLabelText(`Remove ${LABEL_ID}`)).not.toBeNull();
+      expect(view.queryAllByTestId("table-search-label-chip")).toHaveLength(1);
     });
 
     await act(async () => {
@@ -514,7 +520,7 @@ describe("BaseModelTable in-search label chips", () => {
     });
 
     await waitFor(() => {
-      expect(view.queryByLabelText(`Remove ${LABEL_ID}`)).toBeNull();
+      expect(view.queryAllByTestId("table-search-label-chip")).toHaveLength(0);
     });
 
     await waitFor(() => {

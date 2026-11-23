@@ -555,6 +555,10 @@ function stepToHcl(
     requestHeadersToHcl(step["requestHeaders"], context),
   );
   attributes.addString("request_body", unwrapApiString(step["requestBody"]));
+  attributes.addString(
+    "request_body_format",
+    unwrapApiString(step["requestBodyFormat"]),
+  );
   attributes.addBool(
     "do_not_follow_redirects",
     apiBool(step["doNotFollowRedirects"]),

@@ -510,6 +510,227 @@ describe("getFormTemplateAnswers", () => {
   });
 });
 
+/*
+ * #10692: a multi-select answer naming one record deleted since was refused
+ * whole - a template that answered "API, Website" lost both once Website was
+ * deleted - on the public page, the Templates page and Duplicate Form alike.
+ * It keeps the entries its question still offers now.
+ */
+describe("a multi-select template answer, one of its records deleted since (#10692)", () => {
+  const built: BuiltPublicForm = build();
+  const MONITOR_DELETED: string = "0b0b0b0b-0000-4000-8000-0000000000dd";
+
+  // A question of the form's own, choosing several of its options.
+  const TEAMS_FIELDS: Array<FormField> = [
+    {
+      id: "teams",
+      source: FormFieldSource.Question,
+      type: CustomFieldType.MultiSelectDropdown,
+      dropdownOptions: "Payments\nSearch",
+      label: "Teams",
+      isRequired: false,
+    },
+  ];
+
+  test("keeps the records its question still offers, in the template's order", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: {
+          answers: { monitors: [MONITOR_WEB, MONITOR_DELETED, MONITOR_API] },
+        },
+        fields: built.allFields,
+      }),
+    ).toEqual({ monitors: [MONITOR_WEB, MONITOR_API] });
+  });
+
+  test("a record the question does not offer is left out the same way: another project's never reaches the page", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: { answers: { monitors: [MONITOR_API, MONITOR_SECRET] } },
+        fields: built.allFields,
+      }),
+    ).toEqual({ monitors: [MONITOR_API] });
+  });
+
+  test("an id written in capitals still finds its record, and is kept as the record's", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: {
+          answers: { monitors: [MONITOR_DELETED, MONITOR_WEB.toUpperCase()] },
+        },
+        fields: built.allFields,
+      }),
+    ).toEqual({ monitors: [MONITOR_WEB] });
+  });
+
+  test("left out whole only when none of its records is left", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: {
+          answers: { monitors: [MONITOR_DELETED, MONITOR_SECRET], title: "x" },
+        },
+        fields: built.allFields,
+      }),
+    ).toEqual({ title: "x" });
+  });
+
+  test("a choice taken off a question of the form's own keeps the rest of the answer", () => {
+    const teams: BuiltPublicForm = build({
+      fields: TEAMS_FIELDS,
+      templates: [],
+    });
+
+    expect(
+      getFormTemplateAnswers({
+        template: { answers: { teams: ["Payments", "Billing", " Search "] } },
+        fields: teams.allFields,
+      }),
+    ).toEqual({ teams: ["Payments", "Search"] });
+  });
+
+  test("a list longer than the question could have choices is still refused unread", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: {
+          answers: {
+            monitors: [
+              MONITOR_API,
+              ...Array.from({ length: 200 }, (_value: unknown, i: number) => {
+                return `gone-${i}`;
+              }),
+            ],
+          },
+        },
+        fields: built.allFields,
+      }),
+    ).toEqual({});
+  });
+
+  test("a list holding a list is still refused, never read into", () => {
+    expect(
+      getFormTemplateAnswers({
+        template: {
+          answers: { monitors: [MONITOR_API, [MONITOR_WEB]] as never },
+        },
+        fields: built.allFields,
+      }),
+    ).toEqual({});
+  });
+
+  test("the public page is told the records still there, and fills them in", () => {
+    const page: BuiltPublicForm = build({
+      templates: [
+        {
+          id: "kiosk",
+          name: "Kiosk down",
+          answers: { monitors: [MONITOR_API, MONITOR_DELETED] },
+        },
+      ],
+    });
+
+    expect(page.form.templates).toEqual([
+      { id: "kiosk", name: "Kiosk down", answers: { monitors: [MONITOR_API] } },
+    ]);
+  });
+
+  test("a hidden multi-select question is answered on submission with the records still there", () => {
+    const hidden: BuiltPublicForm = build({
+      fields: [{ ...TEAMS_FIELDS[0]!, isHidden: true } as FormField],
+      templates: [],
+    });
+
+    expect(
+      getFormTemplateAnswers({
+        template: { answers: { teams: ["Billing", "Search"] } },
+        fields: hidden.hiddenFields,
+      }),
+    ).toEqual({ teams: ["Search"] });
+  });
+
+  describe("when the templates are written", () => {
+    const HELD: FormTemplate = {
+      id: "kiosk",
+      name: "Kiosk down",
+      answers: { monitors: [MONITOR_API, MONITOR_DELETED] },
+    };
+
+    test("an answer that keeps a record it held, deleted since, and adds another, is taken", () => {
+      expect(
+        validateFormTemplateAnswers({
+          templates: [
+            {
+              ...HELD,
+              answers: {
+                monitors: [MONITOR_API, MONITOR_DELETED, MONITOR_WEB],
+              },
+            },
+          ],
+          fields: built.allFields,
+          heldTemplates: [HELD],
+        }),
+      ).toBeNull();
+    });
+
+    test("what the write adds is still judged: a record the form does not offer is refused beside a held one", () => {
+      expect(
+        validateFormTemplateAnswers({
+          templates: [
+            {
+              ...HELD,
+              answers: { monitors: [MONITOR_DELETED, MONITOR_SECRET] },
+            },
+          ],
+          fields: built.allFields,
+          heldTemplates: [HELD],
+        }),
+      ).toBe(
+        'Template 1 ("Kiosk down"): Affected Monitors must be chosen from the options the form lists.',
+      );
+    });
+
+    test("another template's held records are not this one's: each is judged on what it held", () => {
+      expect(
+        validateFormTemplateAnswers({
+          templates: [
+            HELD,
+            {
+              id: "other",
+              name: "Other",
+              answers: { monitors: [MONITOR_DELETED] },
+            },
+          ],
+          fields: built.allFields,
+          heldTemplates: [HELD],
+        }),
+      ).toBe(
+        'Template 2 ("Other"): Affected Monitors must be chosen from the options the form lists.',
+      );
+    });
+
+    test("a new template is judged whole, as before", () => {
+      expect(
+        validateFormTemplateAnswers({
+          templates: [HELD],
+          fields: built.allFields,
+        }),
+      ).toBe(
+        'Template 1 ("Kiosk down"): Affected Monitors must be chosen from the options the form lists.',
+      );
+    });
+
+    test("what is taken reads back with the records still there", () => {
+      expect(
+        getFormTemplateAnswers({
+          template: {
+            answers: { monitors: [MONITOR_API, MONITOR_DELETED, MONITOR_WEB] },
+          },
+          fields: built.allFields,
+        }),
+      ).toEqual({ monitors: [MONITOR_API, MONITOR_WEB] });
+    });
+  });
+});
+
 describe("validateFormTemplateAnswers - what the server checks when templates are written", () => {
   const built: BuiltPublicForm = build();
 

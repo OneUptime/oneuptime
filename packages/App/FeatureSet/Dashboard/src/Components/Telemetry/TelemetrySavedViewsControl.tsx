@@ -19,13 +19,9 @@ import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import ModelAPI, {
-  ListResult as ModelListResult,
-} from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Select from "Common/Types/BaseDatabase/Select";
 import Query from "Common/Types/BaseDatabase/Query";
-import Sort from "Common/Types/BaseDatabase/Sort";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -41,8 +37,16 @@ import {
   InitialSavedViewResolution,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
+import SavedViewReads, { FirstSavedViews } from "./SavedViewReads";
 
-const SAVED_VIEWS_LIMIT: number = 100;
+// What a saved view is read with.
+const SAVED_VIEW_SELECT: Record<string, true> = {
+  name: true,
+  query: true,
+  isDefault: true,
+};
+
+const SAVED_VIEW_SEARCH_DEBOUNCE_MS: number = 250;
 
 /*
  * Structural shape that both MetricSavedView and TraceSavedView satisfy. The
@@ -139,9 +143,22 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
   const translator: Translator = useTranslator();
 
   const [savedViews, setSavedViews] = useState<Array<T>>([]);
+  // How many views the explorer has: the list reads its first ones.
+  const [savedViewCount, setSavedViewCount] = useState<number>(0);
+  // What a search of the views found, past the first ones (#10646).
+  const [foundViews, setFoundViews] = useState<Array<T>>([]);
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
     null,
   );
+  // The view applied, for a read that must hold it.
+  const selectedSavedViewIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  selectedSavedViewIdRef.current = selectedSavedViewId;
+  const searchTimerRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+  const searchSequenceRef: React.MutableRefObject<number> = useRef<number>(0);
   const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -199,47 +216,124 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     return view.id?.toString() || "";
   };
 
-  const fetchSavedViews: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (!projectId) {
-        setSavedViews([]);
-        setHasFetchedOnce(true);
-        return;
-      }
+  // The explorer's own views: its project, and the host's narrowing.
+  const getViewsQuery: (projectId: ObjectID) => Query<T> = (
+    projectId: ObjectID,
+  ): Query<T> => {
+    return {
+      ...(additionalQueryRef.current || {}),
+      projectId: projectId,
+    } as Query<T>;
+  };
 
-      setIsLoading(true);
+  /*
+   * The first views by name, and what they do not hold (#10646): the view
+   * the link named (the first time), the one applied, any the caller names
+   * (a view just saved), and the project's default - each read by itself,
+   * so a view past the first ones is neither taken for one deleted nor
+   * dropped from the link.
+   */
+  const fetchSavedViews: (holdIds?: Array<string>) => Promise<void> =
+    useCallback(
+      async (holdIds?: Array<string>): Promise<void> => {
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        if (!projectId) {
+          setSavedViews([]);
+          setHasFetchedOnce(true);
+          return;
+        }
 
-      try {
-        const result: ModelListResult<T> = await ModelAPI.getList<T>({
-          modelType: modelType,
-          query: {
-            ...(additionalQueryRef.current || {}),
-            projectId: projectId,
-          } as Query<T>,
-          limit: SAVED_VIEWS_LIMIT,
-          skip: 0,
-          select: {
-            name: true,
-            query: true,
-            isDefault: true,
-          } as Select<T>,
-          sort: { name: SortOrder.Ascending } as Sort<T>,
-        });
+        setIsLoading(true);
 
-        setSavedViews(result.data);
-      } catch (err) {
-        reportError(API.getFriendlyMessage(err));
-      } finally {
-        setIsLoading(false);
-        setHasFetchedOnce(true);
-      }
-      // additionalQueryKey stands in for additionalQueryRef's semantic value.
-    }, [modelType, reportError, additionalQueryKey]);
+        try {
+          const query: Query<T> = getViewsQuery(projectId);
+          const first: FirstSavedViews<T> = await SavedViewReads.readFirst<T>({
+            modelType: modelType,
+            query: query,
+            select: SAVED_VIEW_SELECT as Select<T>,
+          });
+          const held: Array<T> = await SavedViewReads.readHeld<T>({
+            modelType: modelType,
+            query: query,
+            select: SAVED_VIEW_SELECT as Select<T>,
+            known: first.views,
+            count: first.count,
+            ids: [
+              ...(hasAppliedInitialDefault.current ? [] : [initialSavedViewId]),
+              selectedSavedViewIdRef.current,
+              ...(holdIds || []),
+            ],
+            readsDefault: true,
+          });
+
+          setSavedViews(SavedViewReads.merge<T>(first.views, held));
+          setSavedViewCount(first.count);
+        } catch (err) {
+          reportError(API.getFriendlyMessage(err));
+        } finally {
+          setIsLoading(false);
+          setHasFetchedOnce(true);
+        }
+        // additionalQueryKey stands in for additionalQueryRef's semantic value.
+      },
+      [modelType, reportError, additionalQueryKey],
+    );
 
   useEffect(() => {
     void fetchSavedViews();
   }, [fetchSavedViews]);
+
+  /*
+   * What is typed into the list's search, searched on the server once the
+   * explorer has more views than were read (#10646).
+   */
+  const searchSavedViews: (text: string) => void = useCallback(
+    (text: string): void => {
+      if (searchTimerRef.current !== null) {
+        window.clearTimeout(searchTimerRef.current);
+      }
+
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const trimmed: string = text.trim();
+
+      if (!projectId || !trimmed || savedViewCount <= savedViews.length) {
+        return;
+      }
+
+      const sequence: number = ++searchSequenceRef.current;
+
+      searchTimerRef.current = window.setTimeout(() => {
+        SavedViewReads.search<T>({
+          modelType: modelType,
+          query: getViewsQuery(projectId),
+          select: SAVED_VIEW_SELECT as Select<T>,
+          text: trimmed,
+        })
+          .then((found: Array<T>) => {
+            if (sequence === searchSequenceRef.current) {
+              setFoundViews(found);
+            }
+          })
+          .catch(() => {
+            // The views read first are still listed.
+          });
+      }, SAVED_VIEW_SEARCH_DEBOUNCE_MS);
+    },
+    [modelType, savedViewCount, savedViews.length],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current !== null) {
+        window.clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Every view the control knows: the ones read, and what a search found.
+  const knownViews: Array<T> = useMemo(() => {
+    return SavedViewReads.merge<T>(savedViews, foundViews);
+  }, [savedViews, foundViews]);
 
   const applySavedView: (
     view: T,
@@ -369,17 +463,17 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       return;
     }
 
-    const exists: boolean = savedViews.some((view: T): boolean => {
+    const exists: boolean = knownViews.some((view: T): boolean => {
       return getViewId(view) === selectedSavedViewId;
     });
 
     if (!exists) {
       setSelectedSavedViewId(null);
     }
-  }, [savedViews, selectedSavedViewId]);
+  }, [knownViews, selectedSavedViewId]);
 
   const savedViewOptions: Array<SavedViewOption> = useMemo(() => {
-    return [...savedViews]
+    return [...knownViews]
       .sort((left: T, right: T): number => {
         if (Boolean(left.isDefault) !== Boolean(right.isDefault)) {
           return left.isDefault ? -1 : 1;
@@ -393,15 +487,15 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           isDefault: Boolean(view.isDefault),
         };
       });
-  }, [savedViews]);
+  }, [knownViews]);
 
   const findById: (viewId: string) => T | undefined = useCallback(
     (viewId: string): T | undefined => {
-      return savedViews.find((view: T): boolean => {
+      return knownViews.find((view: T): boolean => {
         return getViewId(view) === viewId;
       });
     },
-    [savedViews],
+    [knownViews],
   );
 
   const selectedView: T | undefined = useMemo(() => {
@@ -510,7 +604,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
           }}
           onSuccess={async (item: T) => {
             setShowCreateModal(false);
-            await fetchSavedViews();
+            // Held by its id, wherever its name sorts.
+            await fetchSavedViews(item.id ? [item.id.toString()] : []);
             applySavedView(item);
           }}
           formProps={{
@@ -596,6 +691,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
 
       <SavedViewsDropdown
         savedViews={savedViewOptions}
+        totalCount={savedViewCount}
+        onSearchTextChange={searchSavedViews}
         selectedSavedViewId={selectedSavedViewId}
         onSelect={(viewId: string) => {
           const view: T | undefined = findById(viewId);

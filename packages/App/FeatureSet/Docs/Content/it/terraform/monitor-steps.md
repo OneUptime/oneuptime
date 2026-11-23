@@ -165,6 +165,7 @@ Ogni elemento di `monitor_steps` è una cosa da controllare:
 | `request_type` | string | Sito web, API | Il metodo HTTP: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` o `PATCH`. Il server usa `GET` se non è impostato. |
 | `request_headers` | map(string) | Sito web, API | Le intestazioni da inviare: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Il corpo della richiesta, come testo. |
+| `request_body_format` | string | API | Come viene inviato `request_body`: `json`, il predefinito, per qualsiasi valore JSON; `text` per un corpo inviato esattamente come è scritto, come XML o campi di un modulo. |
 | `do_not_follow_redirects` | bool | Sito web, API | Fermarsi alla prima risposta invece di seguire i reindirizzamenti. |
 | `allow_self_signed_certificates` | bool | Sito web, API | Accettare un certificato TLS autofirmato. |
 | `tls_client_certificate` | string | Sito web, API | Un certificato client per il TLS reciproco: PEM, oppure un riferimento `{{monitorSecrets.name}}`. |
