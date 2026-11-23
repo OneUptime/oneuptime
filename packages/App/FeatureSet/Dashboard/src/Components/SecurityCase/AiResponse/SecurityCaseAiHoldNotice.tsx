@@ -1,4 +1,5 @@
 import SecurityCaseApi from "../SecurityCaseApi";
+import { shouldAttemptRead } from "../../../Utils/OverviewSection";
 import { AI_HOLD_NOTICE_TITLE, PAGE_NOW_TITLE } from "../../AI/AiHoldNotice";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import OneUptimeDate from "Common/Types/Date";
@@ -74,10 +75,18 @@ const SecurityCaseAiHoldNotice: FunctionComponent<ComponentProps> = (
   // Whether the last read found the case held, to tell the page once it is not.
   const wasHeldRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
+  /*
+   * Page now's lock: only a definite refusal locks it. Right after a fresh
+   * sign-in the permission snapshot has not landed, the gate cannot decide,
+   * and the button asks the server, as the incident's notice does.
+   */
   const gate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
     ModelAction.Update,
   );
+  const pageNowLockedReason: string | undefined = shouldAttemptRead(gate)
+    ? undefined
+    : gate.disabledReason;
 
   const readHold: () => Promise<void> = useCallback(async (): Promise<void> => {
     readCountRef.current += 1;
@@ -179,10 +188,10 @@ const SecurityCaseAiHoldNotice: FunctionComponent<ComponentProps> = (
             buttonStyle: ButtonStyleType.PRIMARY,
             icon: IconProp.Call,
             isLoading: isPaging,
-            disabled: isPaging || !gate.isAllowed,
-            tooltip: gate.isAllowed ? undefined : gate.disabledReason,
+            disabled: isPaging || Boolean(pageNowLockedReason),
+            tooltip: pageNowLockedReason,
             onClick: () => {
-              if (!gate.isAllowed) {
+              if (pageNowLockedReason) {
                 return;
               }
 
