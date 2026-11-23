@@ -135,9 +135,7 @@ afterAll(() => {
 
 afterEach(async () => {
   BotFrameworkOpenIdMetadata.getSdkCache().clear();
-  (
-    AppCredentials as unknown as { cache: Map<string, unknown> }
-  ).cache.clear();
+  (AppCredentials as unknown as { cache: Map<string, unknown> }).cache.clear();
   (MicrosoftTeamsUtil as unknown as { cachedAdapter: unknown }).cachedAdapter =
     null;
   await OutboundFetch.destroySharedDispatchers();

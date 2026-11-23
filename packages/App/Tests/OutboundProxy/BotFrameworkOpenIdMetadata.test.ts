@@ -117,7 +117,10 @@ function verifies(pem: string, key: SigningKey): boolean {
 
 describe("through the outbound proxy", () => {
   test.each([
-    ["a user name and password holding @, : and %", RESERVED_CHARACTER_CREDENTIALS],
+    [
+      "a user name and password holding @, : and %",
+      RESERVED_CHARACTER_CREDENTIALS,
+    ],
     ["plain ones", PLAIN_CREDENTIALS],
   ])(
     "both documents are asked of the proxy, signed in with %s as written, decoded",
@@ -319,7 +322,8 @@ describe("a fetch the outbound proxy refuses", () => {
   });
 
   test("a proxy setting this server cannot use fails before anything is sent, naming no password", async () => {
-    process.env["HTTPS_PROXY"] = `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
+    process.env["HTTPS_PROXY"] =
+      `socks5://${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.user)}:${encodeURIComponent(RESERVED_CHARACTER_CREDENTIALS.password)}@${PROXY_HOST_NAME}:1080`;
 
     const refusal: Error = await failureOf(
       new BotFrameworkOpenIdMetadata(
@@ -371,9 +375,9 @@ describe("answers as the SDK's own OpenIdMetadata answers", () => {
     expect(theSdks).not.toBeNull();
     expect(verifies(theSdks!.key, key)).toBe(true);
     expect(verifies(ours!.key, key)).toBe(true);
-    expect(
-      crypto.createPublicKey(ours!.key).export({ format: "jwk" }),
-    ).toEqual(crypto.createPublicKey(theSdks!.key).export({ format: "jwk" }));
+    expect(crypto.createPublicKey(ours!.key).export({ format: "jwk" })).toEqual(
+      crypto.createPublicKey(theSdks!.key).export({ format: "jwk" }),
+    );
     expect(ours!.endorsements).toEqual(theSdks!.endorsements);
   });
 
@@ -399,7 +403,11 @@ describe("answers as the SDK's own OpenIdMetadata answers", () => {
       response.end(
         JSON.stringify(
           String(request.url).endsWith(KEY_SET_PATH)
-            ? { keys: [{ kid: "key-1", kty: "EC", crv: "P-256", x: "x", y: "y" }] }
+            ? {
+                keys: [
+                  { kid: "key-1", kty: "EC", crv: "P-256", x: "x", y: "y" },
+                ],
+              }
             : { jwks_uri: server.url(KEY_SET_PATH) },
         ),
       );
@@ -407,7 +415,9 @@ describe("answers as the SDK's own OpenIdMetadata answers", () => {
 
     const url: string = server.url(OPEN_ID_CONFIGURATION_PATH);
 
-    expect(await new BotFrameworkOpenIdMetadata(url).getKey("key-1")).toBeNull();
+    expect(
+      await new BotFrameworkOpenIdMetadata(url).getKey("key-1"),
+    ).toBeNull();
     expect(await new OpenIdMetadata(url).getKey("key-1")).toBeNull();
   });
 
@@ -518,11 +528,9 @@ describe("answers as the SDK's own OpenIdMetadata answers", () => {
     );
 
     const found: Array<BotFrameworkSigningKey | null> = await Promise.all(
-      [1, 2, 3, 4, 5].map(
-        (): Promise<BotFrameworkSigningKey | null> => {
-          return metadata.getKey("key-1");
-        },
-      ),
+      [1, 2, 3, 4, 5].map((): Promise<BotFrameworkSigningKey | null> => {
+        return metadata.getKey("key-1");
+      }),
     );
 
     expect(
@@ -547,7 +555,8 @@ describe("routeEveryDocument puts it in the SDK's cache", () => {
 
     BotFrameworkOpenIdMetadata.routeEveryDocument();
 
-    const cache: Map<string, unknown> = BotFrameworkOpenIdMetadata.getSdkCache();
+    const cache: Map<string, unknown> =
+      BotFrameworkOpenIdMetadata.getSdkCache();
 
     expect(Array.from(cache.keys()).sort()).toEqual([...DOCUMENTS].sort());
 
@@ -560,7 +569,8 @@ describe("routeEveryDocument puts it in the SDK's cache", () => {
   });
 
   test("in place of the SDK's own metadata; again, it changes nothing", () => {
-    const cache: Map<string, unknown> = BotFrameworkOpenIdMetadata.getSdkCache();
+    const cache: Map<string, unknown> =
+      BotFrameworkOpenIdMetadata.getSdkCache();
     const theSdks: OpenIdMetadata = new OpenIdMetadata(DOCUMENTS[0]!);
 
     cache.set(DOCUMENTS[0]!, theSdks);
