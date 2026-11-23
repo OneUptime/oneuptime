@@ -95,16 +95,6 @@ const serverWrittenColumnAccess: {
   update: [],
 };
 
-const hiddenColumnAccess: {
-  create: Array<Permission>;
-  read: Array<Permission>;
-  update: Array<Permission>;
-} = {
-  create: [],
-  read: [],
-  update: [],
-};
-
 @EnableMCP()
 @EnableWorkflow({
   create: true,

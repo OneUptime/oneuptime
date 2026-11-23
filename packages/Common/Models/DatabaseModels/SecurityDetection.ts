@@ -3,7 +3,6 @@ import Project from "./Project";
 import SecurityCase from "./SecurityCase";
 import SecurityEventConnection from "./SecurityEventConnection";
 import ThreatIntelFeed from "./ThreatIntelFeed";
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

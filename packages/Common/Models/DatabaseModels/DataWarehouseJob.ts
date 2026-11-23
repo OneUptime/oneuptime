@@ -70,16 +70,6 @@ const serverWrittenColumnAccess: {
   update: [],
 };
 
-const hiddenColumnAccess: {
-  create: Array<Permission>;
-  read: Array<Permission>;
-  update: Array<Permission>;
-} = {
-  create: [],
-  read: [],
-  update: [],
-};
-
 // A count past a 32-bit number, stored as BIGINT and read back as a number.
 const bigNumberTransformer: {
   to: (value: number | null | undefined) => string | null | undefined;

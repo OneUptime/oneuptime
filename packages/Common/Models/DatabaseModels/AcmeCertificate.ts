@@ -1,4 +1,3 @@
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -8,8 +7,7 @@ import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import IconProp from "../../Types/Icon/IconProp";
-import ObjectID from "../../Types/ObjectID";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index } from "typeorm";
 
 @TableAccessControl({
   create: [],

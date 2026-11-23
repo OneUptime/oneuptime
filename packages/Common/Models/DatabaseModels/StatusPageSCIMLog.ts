@@ -1,7 +1,6 @@
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import StatusPageSCIM from "./StatusPageSCIM";
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";

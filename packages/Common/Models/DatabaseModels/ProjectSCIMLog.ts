@@ -1,6 +1,5 @@
 import Project from "./Project";
 import ProjectSCIM from "./ProjectSCIM";
-import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
