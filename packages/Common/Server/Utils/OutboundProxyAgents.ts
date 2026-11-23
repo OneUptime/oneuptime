@@ -196,8 +196,19 @@ export default class OutboundProxyAgents {
    * scheme: the proxy getProxyFor chose, or none at all.
    */
   public static getProxyEnvFor(url: URL): NodeProxyEnv {
-    const proxy: URL | null = this.getProxyFor(url);
+    return OutboundProxyAgents.getProxyEnvThrough(
+      url,
+      OutboundProxyAgents.getProxyFor(url),
+    );
+  }
 
+  /*
+   * The proxyEnv of an agent that sends a request to `url` through `proxy`
+   * (a proxy getProxyFor chose), or directly for null: for a client whose
+   * route is decided with a rule of its own on top, as Twilio's keeps
+   * HTTP_PROXY as a fallback (Notification/Utils/TwilioHttpClient).
+   */
+  public static getProxyEnvThrough(url: URL, proxy: URL | null): NodeProxyEnv {
     if (!proxy) {
       return {};
     }
@@ -251,11 +262,10 @@ export default class OutboundProxyAgents {
     let agent: http.Agent | undefined = this.sharedAgents.get(key);
 
     if (!agent) {
-      const proxyEnv: NodeProxyEnv = !proxy
-        ? {}
-        : isHttps
-          ? { https_proxy: proxy.href }
-          : { http_proxy: proxy.href };
+      const proxyEnv: NodeProxyEnv = OutboundProxyAgents.getProxyEnvThrough(
+        url,
+        proxy,
+      );
 
       agent = isHttps
         ? new https.Agent({ ...SHARED_AGENT_OPTIONS, proxyEnv })

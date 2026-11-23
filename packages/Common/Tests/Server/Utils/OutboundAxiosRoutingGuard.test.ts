@@ -1,3 +1,12 @@
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import {
+  EE_PRESENT,
+  REPOSITORY_ROOT,
+  SEARCHED,
+  codeOf,
+  relative,
+  serverSourceFiles,
+} from "../TestingUtils/ServerSourceFiles";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -15,7 +24,8 @@ import path from "path";
  *
  * This reads every server source file of the checkout - Common's server,
  * utilities and types, the App's server feature sets, ee's server, the
- * probe and the Runner - and fails on:
+ * probe, the Runner and the rest TestingUtils/ServerSourceFiles lists, which
+ * OutboundFetchRoutingGuard reads too - and fails on:
  *
  *   - a file that sends with axios and is not in ROUTED_SENDERS, which names
  *     how each one routes and is checked to still say so. A new sender
@@ -26,44 +36,6 @@ import path from "path";
  *     not in AXIOS_LIBRARIES, which says how each one's requests are routed
  *     (or why they need none). A new one is looked at before it ships.
  */
-
-const PACKAGES_ROOT: string = path.join(__dirname, "..", "..", "..", "..");
-const REPOSITORY_ROOT: string = path.join(PACKAGES_ROOT, "..");
-const EE_PRESENT: boolean = fs.existsSync(path.join(REPOSITORY_ROOT, "ee"));
-
-const SEARCHED: Array<string> = [
-  path.join(PACKAGES_ROOT, "Common", "Server"),
-  path.join(PACKAGES_ROOT, "Common", "Utils"),
-  path.join(PACKAGES_ROOT, "Common", "Types"),
-  path.join(PACKAGES_ROOT, "App", "FeatureSet"),
-  path.join(PACKAGES_ROOT, "App", "Utils"),
-  path.join(PACKAGES_ROOT, "Probe"),
-  path.join(PACKAGES_ROOT, "Runner"),
-  path.join(PACKAGES_ROOT, "TestServer"),
-  path.join(PACKAGES_ROOT, "Nginx"),
-  path.join(REPOSITORY_ROOT, "ee", "Server"),
-];
-
-const SKIPPED_FOLDERS: Array<string> = [
-  "node_modules",
-  "build",
-  "dist",
-  "Tests",
-  "Scripts",
-];
-
-// Browser code: a browser sends through its own machine's proxy, if any.
-const SKIPPED_PATHS: Array<string> = [
-  "Dashboard",
-  "AdminDashboard",
-  "StatusPage",
-  "Accounts",
-  "PublicDashboard",
-  "BrowserRecorder",
-  "MobileRecorder",
-].map((name: string): string => {
-  return path.join(PACKAGES_ROOT, "App", "FeatureSet", name);
-});
 
 /*
  * Every server file that sends with axios, how it routes, and the words in
@@ -158,7 +130,7 @@ const AXIOS_LIBRARIES: Record<string, string> = {
   "@sendgrid/client":
     "SendGrid's mail: the client a send uses is routed (SendGridMailProvider.routeThroughOutboundProxy)",
   twilio:
-    "sends with proxy: false, on an https-proxy-agent of its own for HTTP_PROXY, which decodes the password",
+    "SMS and calls: every Twilio client is handed a RequestClient whose axios instance routes each request (TwilioHttpClient), HTTP_PROXY kept as the fallback Twilio's own client read",
   botbuilder:
     "its axios client calls Skills, which OneUptime never does; Teams goes through @azure/core-rest-pipeline",
   "botframework-connector":
@@ -176,7 +148,18 @@ const LIBRARY_HOOKS: Record<string, Array<string>> = {
       "SendGridMailProvider.routeThroughOutboundProxy(SendgridMail);",
       "SendGridMailProvider.routeThroughOutboundProxy(mailer);",
     ],
+  "packages/App/FeatureSet/Notification/Utils/TwilioHttpClient.ts": [
+    "client.axios.interceptors.request.use(",
+    "return TwilioHttpClient.route({",
+    "const proxy: URL | null = OutboundProxyAgents.getProxyFor(url);",
+  ],
 };
+
+/*
+ * What every Twilio client of the server is handed, so its requests are
+ * routed (#10721): Twilio's own client reads HTTP_PROXY alone.
+ */
+const TWILIO_HTTP_CLIENT: string = "httpClient: TwilioHttpClient.create()";
 
 // The lockfiles of the server's packages.
 const LOCKFILES: Array<string> = [
@@ -188,47 +171,6 @@ const LOCKFILES: Array<string> = [
 
 const AXIOS_METHODS: string =
   "(?:get|post|put|patch|delete|head|options|request|postForm|putForm|patchForm|create)";
-
-function sourceFiles(folder: string): Array<string> {
-  const files: Array<string> = [];
-
-  if (!fs.existsSync(folder)) {
-    return files;
-  }
-
-  for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-    const child: string = path.join(folder, entry.name);
-
-    if (entry.isDirectory()) {
-      if (
-        !SKIPPED_FOLDERS.includes(entry.name) &&
-        !SKIPPED_PATHS.includes(child)
-      ) {
-        files.push(...sourceFiles(child));
-      }
-      continue;
-    }
-
-    if (
-      (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) &&
-      !entry.name.endsWith(".d.ts") &&
-      !entry.name.includes(".test.")
-    ) {
-      files.push(child);
-    }
-  }
-
-  return files;
-}
-
-function relative(file: string): string {
-  return path.relative(REPOSITORY_ROOT, file).split(path.sep).join("/");
-}
-
-// The code of a file, its comments left out.
-function codeOf(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-}
 
 /*
  * The names a file gives axios's default export: import axios from "axios".
@@ -264,7 +206,7 @@ function sendsWithAxios(code: string): boolean {
   });
 }
 
-const SERVER_FILES: Array<string> = SEARCHED.flatMap(sourceFiles);
+const SERVER_FILES: Array<string> = serverSourceFiles();
 
 const ROUTED_BY_HAND: string = "OutboundProxyAgents.routeAxiosRequest({";
 
@@ -302,6 +244,60 @@ function configsRoutedByHandIn(code: string): Array<string> {
 
 // A url property, written out or as shorthand.
 const URL_PROPERTY: RegExp = /(^|[{,\s])url\s*[:,}]/;
+
+// The names a file gives twilio's default export: import Twilio from "twilio".
+function twilioNamesIn(code: string): Array<string> {
+  const names: Array<string> = [];
+  const importDefault: RegExp =
+    /^import\s+(?!type\b)([A-Za-z_$][\w$]*)\s*(?:,\s*\{[^}]*\})?\s+from\s+["']twilio["']/gm;
+  let match: RegExpExecArray | null = importDefault.exec(code);
+
+  while (match) {
+    names.push(match[1]!);
+    match = importDefault.exec(code);
+  }
+
+  return names;
+}
+
+/*
+ * The arguments of each Twilio client a file makes - Twilio(...) or
+ * new Twilio.Twilio(...) - read to their closing parenthesis.
+ */
+function twilioClientArgumentsIn(code: string): Array<string> {
+  const clients: Array<string> = [];
+
+  for (const name of twilioNamesIn(code)) {
+    const call: RegExp = new RegExp(
+      `(?<![\\w$.])${escapeRegExp(name)}\\s*(?:\\.Twilio\\s*)?\\(`,
+      "g",
+    );
+    let match: RegExpExecArray | null = call.exec(code);
+
+    while (match) {
+      const start: number = match.index + match[0].length - 1;
+      let depth: number = 0;
+      let end: number = start;
+
+      for (; end < code.length; end++) {
+        if (code[end] === "(") {
+          depth++;
+        } else if (code[end] === ")") {
+          depth--;
+
+          if (depth === 0) {
+            break;
+          }
+        }
+      }
+
+      clients.push(code.slice(start, end + 1));
+      match = call.exec(code);
+    }
+  }
+
+  return clients;
+}
 
 const SENDERS_FOUND: Array<string> = SERVER_FILES.filter(
   (file: string): boolean => {
@@ -445,6 +441,71 @@ describe("the server's libraries that send with axios", () => {
         });
       }
     }
+  });
+
+  /*
+   * Twilio's own client reads HTTP_PROXY alone and decides once for every
+   * host (#10721): a Twilio client made without the http client that
+   * routes its requests sends SMS and calls past HTTPS_PROXY and NO_PROXY.
+   */
+  test("every Twilio client is handed the http client that routes its requests", () => {
+    const clients: Array<{ file: string; routed: boolean }> =
+      SERVER_FILES.flatMap(
+        (file: string): Array<{ file: string; routed: boolean }> => {
+          return twilioClientArgumentsIn(
+            codeOf(fs.readFileSync(file, "utf8")),
+          ).map((clientArguments: string): { file: string; routed: boolean } => {
+            return {
+              file: relative(file),
+              routed: clientArguments.includes(TWILIO_HTTP_CLIENT),
+            };
+          });
+        },
+      );
+
+    // SMS, calls, the call provider's numbers, and a voicemail's message.
+    expect(clients.length).toBeGreaterThanOrEqual(4);
+    expect({
+      unrouted: clients.filter((client: { routed: boolean }): boolean => {
+        return !client.routed;
+      }),
+      fix: `Hand the client { ${TWILIO_HTTP_CLIENT} } as its third argument.`,
+    }).toEqual({
+      unrouted: [],
+      fix: `Hand the client { ${TWILIO_HTTP_CLIENT} } as its third argument.`,
+    });
+  });
+});
+
+describe("the guard reads a Twilio client as it is written", () => {
+  test.each([
+    'import Twilio from "twilio";\nconst client = Twilio(sid, token);',
+    'import Twilio from "twilio";\nthis.client = new Twilio.Twilio(sid, token);',
+  ])("an unrouted client: %s", (source: string) => {
+    const clients: Array<string> = twilioClientArgumentsIn(codeOf(source));
+
+    expect(clients).toHaveLength(1);
+    expect(clients[0]!.includes(TWILIO_HTTP_CLIENT)).toBe(false);
+  });
+
+  test("a routed client, its arguments read whole", () => {
+    const clients: Array<string> = twilioClientArgumentsIn(
+      codeOf(
+        'import Twilio from "twilio";\nconst client = Twilio(\n  config.accountSid,\n  config.authToken,\n  { httpClient: TwilioHttpClient.create() },\n);',
+      ),
+    );
+
+    expect(clients).toHaveLength(1);
+    expect(clients[0]!.includes(TWILIO_HTTP_CLIENT)).toBe(true);
+  });
+
+  test.each([
+    'import Twilio from "twilio";\nconst client: Twilio.Twilio | null = null;',
+    'import { validateRequest } from "twilio";\nvalidateRequest(token, signature, url, params);',
+    'import Twilio from "twilio";\nconst response = new Twilio.twiml.VoiceResponse();',
+    'import Twilio from "twilio";\n// Twilio(sid, token) is how it used to read',
+  ])("not a client: %s", (source: string) => {
+    expect(twilioClientArgumentsIn(codeOf(source))).toEqual([]);
   });
 });
 
