@@ -112,6 +112,7 @@ import ObjectID from "../../../Types/ObjectID";
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
+import { EventEmitter } from "events";
 
 type MockFn = jest.Mock;
 
@@ -253,7 +254,12 @@ afterEach(() => {
 });
 
 describe("a route that reads its body once the key is right", () => {
-  test.each([TelemetryIngestSurface.Fluent, TelemetryIngestSurface.Syslog])(
+  test.each([
+    TelemetryIngestSurface.Fluent,
+    TelemetryIngestSurface.Syslog,
+    // #10795: its batches were read by StartServer, before the key.
+    TelemetryIngestSurface.SecurityEvents,
+  ])(
     "%s: the key, then the body, then the budget in Refuse mode - which measures the body read, exactly",
     async (surface: TelemetryIngestSurface) => {
       const result: Run = await run({ surface, readBody: reader });
@@ -358,6 +364,139 @@ describe("a route that reads its body once the key is right", () => {
   });
 });
 
+/*
+ * #10814: OTLP's parseBody answers a body over its cap (413) and a coding
+ * the worker cannot undo (415) itself, and the Vercel drain's signature
+ * check a delivery Vercel did not sign (403), and none goes on: a reader's
+ * own answer, or a connection that closes while it reads, ends the request.
+ * Nothing waits for a next() that never comes.
+ */
+describe("a reader that answers the request itself", () => {
+  // A response that tells when it is sent, as Node's does.
+  const answerable: () => EventEmitter = (): EventEmitter => {
+    return Object.assign(new EventEmitter(), {
+      headersSent: false,
+      setHeader: (): void => {},
+    });
+  };
+
+  const runWith: (data: {
+    surface: TelemetryIngestSurface;
+    readBody: RequestHandler;
+    res: EventEmitter;
+  }) => Promise<MockFn> = async (data: {
+    surface: TelemetryIngestSurface;
+    readBody: RequestHandler;
+    res: EventEmitter;
+  }): Promise<MockFn> => {
+    const next: MockFn = jest.fn() as unknown as MockFn;
+
+    await TelemetryIngest.forSurface(data.surface, data.readBody)(
+      {
+        headers: { "x-oneuptime-token": TOKEN },
+        id: "answered-by-its-reader",
+      } as unknown as ExpressRequest,
+      data.res as unknown as ExpressResponse,
+      next as unknown as NextFunction,
+    );
+
+    return next;
+  };
+
+  test.each([
+    ["OTLP's 413 or 415", TelemetryIngestSurface.OtelLogs, "finish"],
+    ["the Vercel drain's 403", TelemetryIngestSurface.VercelLogDrain, "finish"],
+    [
+      "a connection closed while the body is read",
+      TelemetryIngestSurface.OtelTraces,
+      "close",
+    ],
+  ])(
+    "%s: the request ends there - nothing passed on, no budget asked",
+    async (_what: string, surface: TelemetryIngestSurface, event: string) => {
+      const res: EventEmitter = answerable();
+      const answering: RequestHandler = (): void => {
+        steps.push("read");
+        // As the reader answers: later, and it never goes on.
+        void Promise.resolve().then((): void => {
+          res.emit(event);
+        });
+      };
+
+      const next: MockFn = await runWith({
+        surface,
+        readBody: answering,
+        res,
+      });
+
+      expect(steps).toEqual(["key", "read"]);
+      expect(admit).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    },
+  );
+
+  test("once the reader went on, its answer later is the route's: the request is passed on once, to the budget", async () => {
+    const res: EventEmitter = answerable();
+
+    const next: MockFn = await runWith({
+      surface: TelemetryIngestSurface.OtelLogs,
+      readBody: (
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        goOn: NextFunction,
+      ): void => {
+        steps.push("read");
+        (req as { body?: unknown }).body = Buffer.from(BATCH);
+        goOn();
+      },
+      res,
+    });
+
+    // The route answers, as it does once it took the export.
+    res.emit("finish");
+    res.emit("close");
+
+    expect(steps).toEqual([
+      "key",
+      "read",
+      `budget:${TelemetryIngestionBudgetAdmissionMode.Refuse}`,
+    ]);
+    expect(measured).toEqual([
+      { bytes: Buffer.byteLength(BATCH), isExact: true },
+    ]);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  test("a reader that refuses the body with an error still passes it to the error handler", async () => {
+    const res: EventEmitter = answerable();
+    const refusal: Error = Object.assign(new Error("not a body"), {
+      status: 400,
+    });
+
+    const next: MockFn = await runWith({
+      surface: TelemetryIngestSurface.VercelLogDrain,
+      readBody: (
+        _req: ExpressRequest,
+        _res: ExpressResponse,
+        goOn: NextFunction,
+      ): void => {
+        steps.push("read");
+        goOn(refusal);
+      },
+      res,
+    });
+
+    // The error handler's answer, after: it changes nothing here.
+    res.emit("finish");
+
+    expect(steps).toEqual(["key", "read"]);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledWith(refusal);
+    expect(admit).not.toHaveBeenCalled();
+  });
+});
+
 describe("a request refused for its key has nothing of its body read", () => {
   test.each([
     ["no key", {}, "NotAuthenticatedException"],
@@ -453,17 +592,21 @@ describe("a request refused for its key has nothing of its body read", () => {
   });
 });
 
-describe("a route whose body StartServer reads (Security Events)", () => {
-  test("is measured by the budget as it arrived, as before: no reader is given", async () => {
+/*
+ * OTLP/HTTP's raw bytes are read by its own middleware before the guard
+ * (OtelRequestMiddleware), so it is given no reader. Security Events was
+ * given none too, while StartServer read its batches (#10795).
+ */
+describe("a route whose body was read before the guard (OTLP/HTTP)", () => {
+  test("is measured by the budget as it arrived: no reader is given", async () => {
     const req: Record<string, unknown> = {
       headers: { "x-oneuptime-token": TOKEN },
-      id: "security-events",
-      body: JSON.parse(BATCH),
-      rawBody: BATCH,
+      id: "otlp-logs",
+      body: Buffer.from(BATCH),
     };
     const next: MockFn = jest.fn() as unknown as MockFn;
 
-    await TelemetryIngest.forSurface(TelemetryIngestSurface.SecurityEvents)(
+    await TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs)(
       req as unknown as ExpressRequest,
       {
         headersSent: false,

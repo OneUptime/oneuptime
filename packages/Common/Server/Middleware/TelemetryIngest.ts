@@ -151,6 +151,13 @@ const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
 const CLIENT_REFUSAL: ErrorResponseOptions = { isClientRefusal: true };
 
 /*
+ * What a route's body reader resolves with when it answered the request
+ * itself, or the connection closed, before it went on (readBodyAfterKey):
+ * the request is over, and nothing more runs.
+ */
+const ANSWERED_BY_READER: unique symbol = Symbol("answered by its reader");
+
+/*
  * Readable name used when a legacy call site did not name its surface. See
  * isAuthorizedServiceMiddleware for why such call sites are treated as
  * server-only.
@@ -429,6 +436,12 @@ export default class TelemetryIngest {
    * nothing of its body read, inflated or parsed: its refusal is sent and
    * the connection closed under the rest (UnreadRequestBody), which the
    * client still reads.
+   *
+   * The reader goes on (next()), refuses the body (next(err), answered by
+   * the error handler), or answers the request itself and goes no further,
+   * as OTLP's parseBody does a body over its cap and the Vercel drain's
+   * signature check a delivery Vercel did not sign (#10814): its answer ends
+   * the request.
    */
   public static forSurface(
     surface: TelemetryIngestSurface,
@@ -877,6 +890,17 @@ export default class TelemetryIngest {
           res,
         );
 
+        /*
+         * A reader that answered the request itself - OTLP's 413 for a body
+         * over its cap, or 415 for a coding the worker cannot undo; the
+         * Vercel drain's 403 for a delivery Vercel did not sign - or whose
+         * connection closed first ends it here: nothing more is counted or
+         * run (#10814).
+         */
+        if (readError === ANSWERED_BY_READER) {
+          return;
+        }
+
         if (readError) {
           return next(readError);
         }
@@ -990,8 +1014,12 @@ export default class TelemetryIngest {
 
   /*
    * Run a route's body reader and resolve with what it passed on: nothing
-   * once the body is read, or the error it was refused with. Never
-   * rejects: a reader that throws is refused with what it threw.
+   * once the body is read, or the error it was refused with - or
+   * ANSWERED_BY_READER once the request was answered, or its connection
+   * closed, before the reader went on: a reader that answers its own
+   * refusal goes no further (OTLP's parseBody, the Vercel drain's signature
+   * check), and would otherwise leave this waiting. What comes first wins.
+   * Never rejects: a reader that throws is refused with what it threw.
    */
   private static readBodyAfterKey(
     readBody: RequestHandler,
@@ -999,14 +1027,54 @@ export default class TelemetryIngest {
     res: ExpressResponse,
   ): Promise<unknown> {
     return new Promise<unknown>((resolve: (err: unknown) => void): void => {
+      let isSettled: boolean = false;
+
+      const settle: (outcome: unknown) => void = (outcome: unknown): void => {
+        if (isSettled) {
+          return;
+        }
+
+        isSettled = true;
+        resolve(outcome);
+      };
+
+      TelemetryIngest.onceAnswered(res, (): void => {
+        settle(ANSWERED_BY_READER);
+      });
+
       try {
         readBody(req, res, ((err?: unknown): void => {
-          resolve(err);
+          settle(err);
         }) as NextFunction);
       } catch (err) {
-        resolve(err);
+        settle(err);
       }
     });
+  }
+
+  /*
+   * Calls `answered` once the response is sent ("finish") or its connection
+   * closes ("close"), whichever is first. Reached through a runtime check,
+   * as setRetryAfterHeader is: unit tests hand this middleware a bare
+   * response object.
+   */
+  private static onceAnswered(
+    res: ExpressResponse,
+    answered: () => void,
+  ): void {
+    const once: unknown = (res as unknown as Record<string, unknown>)["once"];
+
+    if (typeof once !== "function") {
+      return;
+    }
+
+    for (const event of ["finish", "close"]) {
+      (once as (event: string, listener: () => void) => void).call(
+        res,
+        event,
+        answered,
+      );
+    }
   }
 
   /*
