@@ -5,6 +5,11 @@ import {
   timesRoleNamedAsDrawn,
   writtenPermissionTitle,
 } from "./FeatureSet/Docs/DocsRoleNames";
+import {
+  PermissionGroup,
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -97,9 +102,33 @@ const NOT_A_ROLE_PHRASES: ReadonlyArray<KeptEnglish> = [
   },
 ];
 
+/*
+ * A product's Viewer level (#10289) is a permission of its own, not the
+ * Viewer role it follows: "Cloud Viewer" reads Cloud's records as Viewer
+ * reads them. Each language names a level as one name, as its role picker
+ * names the area roles ("Cloudseer" beside "Monitorseer" in Danish,
+ * "Molntittare" beside "Monitortittare" in Swedish), so its "Viewer" is not
+ * the Viewer role's. Read from the levels themselves, so a new product's
+ * level is one too.
+ */
+const PRODUCT_LEVEL_PHRASES: ReadonlyArray<KeptEnglish> =
+  PermissionHelper.getAllPermissionProps()
+    .filter((props: PermissionProps): boolean => {
+      return (
+        props.group === PermissionGroup.ProductAccess &&
+        props.title.endsWith(" Viewer")
+      );
+    })
+    .map((props: PermissionProps): KeptEnglish => {
+      return {
+        text: props.title,
+        why: "a product's Viewer level, a permission of its own (#10289), named as one name",
+      };
+    });
+
 // The text whose role words are the built-in roles.
 function roleWords(text: string): string {
-  return NOT_A_ROLE_PHRASES.reduce(
+  return [...NOT_A_ROLE_PHRASES, ...PRODUCT_LEVEL_PHRASES].reduce(
     (words: string, phrase: KeptEnglish): string => {
       return words.split(phrase.text).join(" ");
     },
