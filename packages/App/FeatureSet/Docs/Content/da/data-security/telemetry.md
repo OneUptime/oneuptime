@@ -8,6 +8,7 @@ Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre
 - [Hvad der læses](#hvad-der-læses): Attributterne, brødteksterne, beskederne og prompterne i hvert signal.
 - [Sådan tager en scanning prøver](#sådan-tager-en-scanning-prøver): De nyeste poster fra hver tjeneste, hver time.
 - [Rens](#rens): Skjul et fund ved indtagelse, i den tjeneste, det blev fundet i.
+- [Inddæmmet af sig selv](#inddæmmet-af-sig-selv): En hemmelighed skjult, uden at nogen trykker på noget, hvor det er bevist sikkert.
 - [Kassér denne metrik](#kassér-denne-metrik): Stop med at gemme de metrikker, hvis navne indeholder følsomme data.
 - [Hvad der tæller som renset](#hvad-der-tæller-som-renset): Når en rensningsregel allerede dækker et fund.
 :::
@@ -101,14 +102,23 @@ Klik på **Rens**. En dialog siger, hvad reglen ville gøre, før noget oprettes
 Reglen skjuler nye data, før de gemmes. Data, der allerede er gemt, bliver liggende, indtil deres opbevaring udløber, så ret den kode, der skriver dem: fundet nævner tjenesten og attributten.
 :::
 
-Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in log attributes of checkout", og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er en af disse:
+Reglen er opkaldt efter det, den skjuler, f.eks. "Data Security: Email address in log attributes of checkout", eller "Data Security: Password or secret in db.password of checkout" for en regel, der navngiver sin attribut, og står sammen med dine andre rensningsregler (se [Drop-filtre og rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Den er den smalleste regel, der skjuler fundets data, den første af disse, der passer:
 
 | Fund | Regel, som Rens opretter |
 | --- | --- |
-| E-mailadresse, kortnummer, amerikansk socialsikringsnummer, telefonnummer eller IP-adresse | Typens indbyggede mønster. Kortnumre, socialsikringsnumre og telefonnumre maskeres, resten erstattes helt. |
-| En værdi under en nøgle, der ligner noget følsomt, f.eks. `password` eller `token` | En regel af typen **Følsomme attributnøgler**, som erstatter hele værdien af hver sådan attribut |
-| Enhver anden datatype, et mønster kan finde | En regel af typen **Brugerdefineret regex**, lavet ud fra datatypens egne mønstre, som erstatter hver værdi af samme form |
+| E-mailadresse, kortnummer, amerikansk socialsikringsnummer, telefonnummer eller IP-adresse | Typens indbyggede mønster, maskeret. En IP-adresse erstattes helt, eller hashes, hvor [Sikkerhedshændelser](/docs/telemetry/security-events) læser de poster, så den stadig kan nævne den adresse, der skal blokeres. |
+| Enhver anden datatype, et mønster finder af sig selv, f.eks. et GitHub-token | En regel af typen **Brugerdefineret regex**, lavet ud fra datatypens egne mønstre. En hemmelighed erstattes helt. |
+| En af dine egne datatyper, med et mønster | Det mønster, kun i den attribut, det blev fundet i |
+| En datatype, der kan skelnes ved ordene omkring den, f.eks. et routingnummer | Dens form, kun i den attribut, den blev fundet i |
+| En datatype, der findes ud fra feltets navn, f.eks. en persons navn under `customer_name`, eller en værdi under en nøgle, der nævner en hemmelighed | En regel af typen **Navngivne attributter**, som skjuler hele værdien af den attribut |
+| En værdi under en nøgle, der ligner noget følsomt, hvor intet smallere skjuler den | En regel af typen **Følsomme attributnøgler**, som erstatter hele værdien af hver sådan attribut |
 | Enhver datatype i en metriks attribut | En metrik-pipelineregel af typen **Redigér attribut bort** for tjenesten, som erstatter attributtens værdier af datatypens form med `[REDACTED]`, eller hver værdi af attributten, hvor intet mønster finder datatypen |
+
+### Bevist på de poster, det blev set i
+
+Før dialogen siger, hvad reglen ville gøre, kører OneUptime hver regel, den kunne oprette, på de poster, fundet blev set i, og på de nyeste poster fra dens tjeneste med en værdi på det sted, med den samme kode, som indtagelsen kører, og spørger scanneren, hvad der er tilbage. Den første regel, der skjuler dataene i hver værdi, der indeholdt dem, og højst ændrer 5 ud af 100 af de andre værdier der, er den, der vælges. Dialogen siger, hvor mange poster den blev kørt på, hvor mange værdier der indeholdt dataene, og hvor mange andre den ændrede. Et mønster, der ville ændre mere, tilbydes aldrig: Det gør reglen, der navngiver attributten, og den siger, hvad den ellers ændrer.
+
+Beviset gemmes sammen med reglen, og listen over rensningsregler viser **Bevist** i dens række, indtil reglen ændres. Hvor der ikke er nogen post tilbage at køre en regel på, f.eks. en undtagelses eller en sessionsafspilnings, eller poster, der er ude over deres opbevaring, oprettes reglen, som den er planlagt, og dialogen siger det.
 
 En regel for logs eller traces gælder for den tjeneste, fundet blev fundet i: den renser den tjenestes logs eller spans, og andre tjenesters forbliver, som de er, så intet, der læser deres, ændres. Kolonnen **Omfang** i listen over rensningsregler siger, hvilken tjeneste en regel gælder for. Et fund i en RUM-applikations sessionsoptagelser opretter en regel for alle projektets tjenester og apps, da regler for logs også renser optagelser, og dialogen siger det. Findes tjenesten ikke længere, siger **Rens** det og opretter ingen regel.
 
@@ -116,14 +126,35 @@ Dialogen nævner, hver som et link, de monitorer, dashboards med deres widgets, 
 
 Nogle fund kan ikke renses af en regel, og **Rens** siger hvorfor. En metriks attribut kan altid renses, da dens regel kan skjule hver værdi af attributten:
 
-- En datatype, der kun findes ud fra feltnavne, f.eks. en persons navn: intet mønster kan finde den. Omdøb attributten til en nøgle, som en regel for følsomme nøgler skjuler, eller stop med at sende den.
-- En datatype, der kun kan skelnes fra andre værdier ved ordene omkring den, f.eks. et routingnummer: en regel ville skjule langt mere end den datatype.
+- En datatype, der kun findes ud fra feltnavne i en logs tekst, f.eks. en persons navn: Ingen regel kan skelne den fra resten af beskeden. Send den som en attribut, som en regel af typen **Navngivne attributter** skjuler, eller stop med at sende den.
+- Hver regel, der blev prøvet, skjulte langt mere end dataene: Hver blev kørt på de poster, de blev set i, og ændrede for meget andet. Stop med at sende dem i den kode, der skriver dem.
 - En dokumentmærkning: at skjule ordet ville ikke skjule dokumentet.
-- En af dine egne datatyper: tilføj selv en brugerdefineret rensningsregel med dens mønster.
 - En sessions egne detaljer (`sessions.*`): indtagelse af sessionsafspilninger kører ingen rensningsregler.
 - En metriks navn (`name`): den kode, der opretter metrikken, sætter det, og en pipelineregel kan kun omdøbe en metrik som helhed. Omdøb metrikken, og send det, der varierer i dens navn, som en attribut i stedet. Indtil da kan **Kassér denne metrik** stoppe med at gemme de metrikker.
 
 **Rens** opretter reglen som dig, med dine egne tilladelser: Projektejere og Projektadministratorer kan trykke på den, og det kan et team også, der må oprette logrensningsregler, trace-rensningsregler for spans, undtagelser og AI-kald og metrik-pipelineregler for metrikker.
+
+## Inddæmmet af sig selv
+
+Mens OneUptime AI arbejder med problemer i Datasikkerhed (se [OneUptime AI i Datasikkerhed](/docs/data-security/ai)), inddæmmes et telemetriproblem, uden at nogen trykker på noget, hvor det er bevist sikkert. For hvert sted, problemet tæller, planlægger OneUptime AI den regel, **Rens** ville oprette, bevist på samme måde, og opretter den kun af sig selv, når alt dette gælder:
+
+- **Dataene er en hemmelighed**, f.eks. en adgangskode, et token eller en nøgle.
+- **Reglen er bevist** på de poster, dataene blev set i: Den skjulte dataene i hver værdi, der indeholdt dem.
+- **Den ændrer intet andet der**: ingen af de andre værdier på dens sted.
+- **Intet læser det, den skjuler**: ingen monitor, dashboard, gemt visning, optagelsesregel eller SLO, og intet, Sikkerhedshændelser har brug for.
+- **Den gælder for den tjeneste**, dataene blev set i.
+
+Alt andet foreslås i stedet, på **Datasikkerhed → AI** og på problemets side, med hvordan reglen blev bevist, og hvad der læser det, den ville skjule: persondata, en regel, noget læser, en, der ændrer andre værdier, en uden nogen post at køre på, en for alle tjenester, en metriks pipelineregel og ethvert sted, hvis tidligere regel en person fortrød eller afviste. En AI-regel for Datasikkerhed, der sætter **Inddæm** til **Automatisk** for et problem, lader også beviste persondata blive skjult af sig selv. Ingen regel lader en ændring, der ikke er bevist sikker, køre af sig selv.
+
+Hvor ingen af **Rens**' regler kan skjule dataene, f.eks. en af dine egne datatyper uden mønster, skriver OneUptime AI en: et mønster for dataene eller den attribut, der skal skjules helt. Den får datatypen, hvor den står, navnene på attributterne ved siden af og værdiernes former, f.eks. `AA-9999` for `AB-1234`, aldrig en værdi, og det, den skriver, bevises på posterne som enhver anden regel, før det foreslås eller oprettes.
+
+En ændring, OneUptime AI har lavet af sig selv:
+
+- **Står på problemets tidslinje**, med de regler, den oprettede, hvordan hver blev bevist, og **Fortryd**, som sletter dem. **Datasikkerhed → AI** har den samme **Fortryd**. Et sted, hvis regel du fortryder, inddæmmes aldrig af sig selv igen: OneUptime AI foreslår det i stedet.
+- **Sendes som e-mail** til datalagerets ejere og tjenestens ejere.
+- **Siger, at en hemmelighed skal roteres.** At skjule en hemmelighed stopper kun nye kopier: Hemmeligheden virker stadig, og de poster, der blev gemt før reglen, beholder den, indtil deres opbevaring udløber. Tidslinjen og e-mailen siger, hvor den blev set.
+
+Nye fund i en tjeneste, hvis problem allerede er åbent, inddæmmes på samme måde, så snart den timelige scanning finder dem.
 
 ## Kassér denne metrik
 
@@ -145,7 +176,9 @@ Et fund markeres kun som renset, når indtagelsen ville køre en aktiveret regel
 - **Den rigtige del.** Reglens **Felter, der skal renses** omfatter den del af posten, fundet ligger i, eller reglen lader dem stå på standard.
 - **Den rigtige tjeneste.** En regel for logs eller traces for én tjeneste dækker kun den tjenestes fund. En regel uden tjeneste dækker alle tjenesters.
 - **Et mønster, der finder typen.** En indbygget **Mønstertype** finder sin egen datatype: **E-mailadresse** finder e-mailadresser, **Kreditkortnummer** kortnumre, **SSN (CPR-nummer)** amerikanske socialsikringsnumre, **Telefonnummer** telefonnumre og **IP-adresse** IP-adresser. **Følsomme attributnøgler** dækker hver værdi under en nøgle, der ligner noget følsomt, uanset hvad værdien er.
-- **Dine egne brugerdefinerede mønstre tæller aldrig.** En **Brugerdefineret regex** dækker kun et fund, når den er præcis det mønster, **Rens** opretter for dets type. Et fund gemmer kun maskerede prøver, som intet mønster kan afprøves på, så OneUptime kan ikke bevise, at dit mønster skjuler dataene, og et fund, der fejlagtigt kaldes renset, er en lækage, ingen kigger på.
+- **En regel, der er bevist på fundets poster.** En regel, som OneUptime oprettede og beviste på de poster, et fund blev set i, dækker det fund, uanset dens mønster, så længe den er den regel, der blev bevist: Ændr dens mønster, dens attributter, dens handling, dens felter eller dens tjeneste, og den dækker det ikke længere.
+- **En regel af typen Navngivne attributter** dækker et fund i en attribut, den navngiver, eller i en, der ligger under den.
+- **Ellers tæller dine egne brugerdefinerede mønstre aldrig.** En **Brugerdefineret regex**, du selv har skrevet, dækker kun et fund, når den er præcis det mønster, **Rens** opretter for dets type. Et fund gemmer kun maskerede prøver, som intet mønster kan afprøves på, så OneUptime kan ikke bevise, at dit mønster skjuler dataene, og et fund, der fejlagtigt kaldes renset, er en lækage, ingen kigger på.
 - **En metriks attribut.** En metrik-pipelineregel af typen **Redigér attribut bort** eller **Fjern attribut** for den attributs nøgle, for fundets tjeneste eller hele projektet, dækker det, når den ikke har noget filter, eller præcis det filter, **Rens** opretter. Et filter, du selv har skrevet, tæller aldrig, af samme grund.
 - **En metriks navn.** En metrik-pipelineregel af typen **Kassér** for fundets tjeneste eller hele projektet dækker det, når den har præcis det filter, **Kassér denne metrik** opretter, eller slet intet filter, hvor den ikke gemmer nogen af tjenestens metrikker. Sådan en regel uden filter dækker hvert fund i de metrikker.
 

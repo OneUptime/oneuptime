@@ -15,9 +15,15 @@ import {
   SecurityLogLine,
   buildLogSecurityEvent,
   readAttribute,
-  readIpAddress,
 } from "./SecurityLogLine";
 import { writeOwnValue } from "../../LookupTable";
+import {
+  ClientAddressReading,
+  NO_CLIENT_ADDRESS,
+  TrustedProxies,
+  markClientAddressTrust,
+  resolveClientAddress,
+} from "../ClientAddressTrust";
 
 /*
  * Kubernetes API server audit events (audit.k8s.io), one JSON document per
@@ -242,6 +248,36 @@ function describeTarget(record: JSONObject): string {
   return object ? `${kind} ${object}` : kind;
 }
 
+/*
+ * Who sent the request, as only the API server could have written it
+ * (#10416, #10419). Kubernetes lists in sourceIPs the hops of the
+ * X-Forwarded-For the request carried, then its X-Real-Ip, then the
+ * connection's own address when it is not the last of them - "all but the
+ * last IP can be arbitrarily set by the client". So the last is the
+ * client, unless it is a proxy the project trusts: then the rightmost hop
+ * before it that is none (ClientAddressTrust). What the client wrote first
+ * is only its claim, never the event's address, and never a token the
+ * address vault resolves. A hop a scrub rule hid is read as what it left.
+ */
+export function readKubernetesClientAddress(
+  record: JSONObject,
+  trustedProxies?: TrustedProxies | undefined,
+): ClientAddressReading {
+  const sourceIps: Array<string> = readStringArray(record, "sourceIPs");
+
+  if (sourceIps.length === 0) {
+    return NO_CLIENT_ADDRESS;
+  }
+
+  return resolveClientAddress(
+    {
+      peer: sourceIps[sourceIps.length - 1],
+      forwardedFor: sourceIps.slice(0, -1).join(", "),
+    },
+    trustedProxies,
+  );
+}
+
 export function readKubernetesAuditRecord(
   line: SecurityLogLine,
 ): JSONObject | null {
@@ -286,9 +322,12 @@ export default class KubernetesAuditLogParser {
     const isDenied: boolean = code !== null && code >= 400;
     const subresource: string = readString(record, "objectRef.subresource");
     const target: string = describeTarget(record);
-    const sourceIp: string = readIpAddress(
-      readStringArray(record, "sourceIPs")[0] || "",
+    const client: ClientAddressReading = readKubernetesClientAddress(
+      record,
+      line.trustedProxies,
     );
+    // The verified address, or what a scrub rule left of it (buildLogSecurityEvent marks it).
+    const sourceIp: string = client.address || client.scrubbed?.value || "";
     const cluster: string = readAttribute(line.attributes, [
       "k8s.cluster.name",
       "resource.k8s.cluster.name",
@@ -304,6 +343,11 @@ export default class KubernetesAuditLogParser {
     ) {
       severity = OcsfSeverity.Medium;
     }
+
+    const attributes: JSONObject = boundedAttributes(record);
+
+    // How the address was known, and what the request claimed beside it.
+    markClientAddressTrust(attributes, client);
 
     const who: string = username || "Someone";
     const message: string = isDenied
@@ -327,7 +371,7 @@ export default class KubernetesAuditLogParser {
         principalIp: sourceIp,
         targetHost: cluster,
         targetResource: target,
-        attributes: boundedAttributes(record),
+        attributes,
         eventUid: auditId ? `k8s-audit:${auditId}` : undefined,
       }),
     ];

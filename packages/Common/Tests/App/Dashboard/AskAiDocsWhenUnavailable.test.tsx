@@ -125,9 +125,8 @@ describe("the docs Ask AI shows in its place", () => {
       />,
     );
 
-    const links: Array<HTMLElement> = await screen.findAllByTestId(
-      "ask-ai-docs-result",
-    );
+    const links: Array<HTMLElement> =
+      await screen.findAllByTestId("ask-ai-docs-result");
 
     expect(asked).toHaveLength(1);
     expect(questionOf(asked[0]!)).toBe(
@@ -196,7 +195,10 @@ describe("the docs Ask AI shows in its place", () => {
     docsAnswer([]);
 
     render(
-      <AskAiDocsResults question="zzqx flux capacitor" isInPlaceOfAskAi={true} />,
+      <AskAiDocsResults
+        question="zzqx flux capacitor"
+        isInPlaceOfAskAi={true}
+      />,
     );
 
     expect(await screen.findByTestId("ask-ai-docs-no-match")).toHaveTextContent(
@@ -207,7 +209,10 @@ describe("the docs Ask AI shows in its place", () => {
     docsAnswer("fails");
 
     render(
-      <AskAiDocsResults question="add a phone number" isInPlaceOfAskAi={true} />,
+      <AskAiDocsResults
+        question="add a phone number"
+        isInPlaceOfAskAi={true}
+      />,
     );
 
     expect(
@@ -392,7 +397,9 @@ describe("an answer Ask AI could not give: why, and the docs under it", () => {
       />,
     );
 
-    expect(screen.getByText("The LLM provider did not answer.")).toBeInTheDocument();
+    expect(
+      screen.getByText("The LLM provider did not answer."),
+    ).toBeInTheDocument();
     expect(asked).toEqual([]);
     expect(screen.queryByTestId("ask-ai-docs-results")).toBeNull();
   });
@@ -422,7 +429,7 @@ describe("a refused question, wired", () => {
       "setRefused({ question: content, error: refusal });",
     );
     expect(chat).toContain(
-      "refused && error && refused.error === error ? refused.question : \"\"",
+      'refused && error && refused.error === error ? refused.question : ""',
     );
     expect(chat).toContain("setRefused(null);");
   });

@@ -71,27 +71,32 @@ const ForbiddenPage: React.LazyExoticComponent<
   });
 });
 
-const SignInPage: React.LazyExoticComponent<AllPagesModule["SignInPage"]> =
-  lazy(() => {
-    return import("./Pages/AllPages").then((m: AllPagesModule) => {
-      return { default: m.SignInPage };
-    });
-  });
+/*
+ * The pages of a dashboard that asks its visitors to sign in (#10250): each
+ * a file of its own, loaded when it is drawn, not with the dashboard's
+ * pages - so a dashboard that asks nobody to sign in, as most do, downloads
+ * none of them before it draws (packages/Common/Scripts/first-load-budgets.js).
+ */
+type SignInPageModule = typeof import("./Pages/SignIn/SignIn");
+type ForgotPasswordPageModule = typeof import("./Pages/SignIn/ForgotPassword");
+type ResetPasswordPageModule = typeof import("./Pages/SignIn/ResetPassword");
+
+const SignInPage: React.LazyExoticComponent<SignInPageModule["default"]> = lazy(
+  () => {
+    return import("./Pages/SignIn/SignIn");
+  },
+);
 
 const ForgotPasswordPage: React.LazyExoticComponent<
-  AllPagesModule["ForgotPasswordPage"]
+  ForgotPasswordPageModule["default"]
 > = lazy(() => {
-  return import("./Pages/AllPages").then((m: AllPagesModule) => {
-    return { default: m.ForgotPasswordPage };
-  });
+  return import("./Pages/SignIn/ForgotPassword");
 });
 
 const ResetPasswordPage: React.LazyExoticComponent<
-  AllPagesModule["ResetPasswordPage"]
+  ResetPasswordPageModule["default"]
 > = lazy(() => {
-  return import("./Pages/AllPages").then((m: AllPagesModule) => {
-    return { default: m.ResetPasswordPage };
-  });
+  return import("./Pages/SignIn/ResetPassword");
 });
 
 /*

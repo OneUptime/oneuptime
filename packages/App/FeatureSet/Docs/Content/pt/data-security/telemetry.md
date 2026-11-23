@@ -8,6 +8,7 @@ Não há nada a configurar: a telemetria de cada serviço é varrida a cada hora
 - [O que é lido](#o-que-é-lido): Os atributos, corpos, mensagens e prompts de cada sinal.
 - [Como uma varredura coleta amostras](#como-uma-varredura-coleta-amostras): Os registros mais recentes de cada serviço, a cada hora.
 - [Limpar](#limpar): Oculte uma descoberta na ingestão, no serviço em que foi encontrada.
+- [Contido por conta própria](#contido-por-conta-própria): Um segredo oculto sem que ninguém pressione nada, quando isso está comprovadamente seguro.
 - [Descartar esta métrica](#descartar-esta-métrica): Pare de armazenar as métricas cujos nomes contêm dados sensíveis.
 - [O que conta como limpo](#o-que-conta-como-limpo): Quando uma regra de limpeza já cobre uma descoberta.
 :::
@@ -101,14 +102,23 @@ Clique em **Limpar**. Uma caixa de diálogo diz o que a regra faria antes de qua
 A regra oculta os dados novos antes que sejam armazenados. Os dados já armazenados ficam até o fim da retenção, então corrija o código que os grava: a descoberta nomeia o serviço e o atributo.
 :::
 
-A regra recebe o nome do que oculta, como "Data Security: Email address in log attributes of checkout", e aparece junto com as suas outras regras de limpeza (veja [Filtros de descarte e regras de limpeza](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Ela é uma destas:
+A regra recebe o nome do que oculta, como "Data Security: Email address in log attributes of checkout", ou "Data Security: Password or secret in db.password of checkout" para uma regra que nomeia o seu atributo, e aparece junto com as suas outras regras de limpeza (veja [Filtros de descarte e regras de limpeza](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). É a regra mais estreita que oculta os dados da descoberta, a primeira destas que serve:
 
 | Descoberta | Regra que Limpar cria |
 | --- | --- |
-| Endereço de e-mail, número de cartão, número de Seguro Social dos EUA, número de telefone ou endereço IP | O padrão integrado desse tipo. Números de cartão, números de Seguro Social e números de telefone são mascarados, o resto é suprimido por inteiro. |
-| Um valor sob uma chave que parece sensível, como `password` ou `token` | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
-| Qualquer outro tipo de dados que um padrão consegue encontrar | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados, que suprime todo valor com esse formato |
+| Endereço de e-mail, número de cartão, número de Seguro Social dos EUA, número de telefone ou endereço IP | O padrão integrado desse tipo, mascarado. Um endereço IP é suprimido, ou passa por hash onde os [Eventos de segurança](/docs/telemetry/security-events) leem esses registros, para que ainda possam dizer qual endereço bloquear. |
+| Qualquer outro tipo de dados que um padrão encontra sozinho, como um token do GitHub | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados. Um segredo é suprimido. |
+| Um dos seus próprios tipos de dados, com um padrão | Esse padrão, só no atributo em que foi encontrado |
+| Um tipo de dados que se distingue pelas palavras ao redor, como um número de roteamento bancário | O formato dele, só no atributo em que foi encontrado |
+| Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name`, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
+| Um valor sob uma chave que parece sensível, quando nada mais estreito o oculta | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
 | Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo com o formato do tipo de dados, ou todo valor do atributo quando nenhum padrão encontra o tipo de dados |
+
+### Comprovada nos registros em que foi vista
+
+Antes de o diálogo dizer o que a regra faria, o OneUptime executa cada regra que poderia criar nos registros em que a descoberta foi vista, e nos registros mais recentes do serviço dela com um valor nesse lugar, com o mesmo código que a ingestão executa, e pergunta ao scanner o que sobrou. A primeira regra que oculta os dados em cada valor que os continha, e altera no máximo 5 em cada 100 dos outros valores ali, é a escolhida. O diálogo diz em quantos registros ela foi executada, quantos valores continham os dados e quantos outros ela alterou. Um padrão que alteraria mais nunca é oferecido: a regra que nomeia o atributo é, dizendo o que mais ela altera.
+
+A prova fica guardada com a regra, e a lista de regras de limpeza mostra **Comprovada** na linha dela até que a regra seja alterada. Quando não resta nenhum registro em que executar uma regra, como os de uma exceção ou de um replay de sessão, ou registros que já passaram da retenção, a regra é criada como foi planejada, e o diálogo diz isso.
 
 Uma regra de logs ou de traces vale para o serviço em que a descoberta foi encontrada: ela limpa os logs ou spans desse serviço, e os dos outros serviços ficam como estão, então nada do que lê os deles muda. A coluna **Escopo** da lista de regras de limpeza diz para qual serviço uma regra vale. Uma descoberta nas gravações de sessão de uma aplicação RUM cria uma regra para todos os serviços e aplicativos do projeto, já que as regras de logs também limpam as gravações, e a caixa de diálogo diz isso. Se o serviço não existir mais, **Limpar** diz isso e não cria nenhuma regra.
 
@@ -116,14 +126,35 @@ A caixa de diálogo nomeia, cada um como um link, os monitores, os painéis com 
 
 Algumas descobertas não podem ser limpas por uma regra, e **Limpar** diz por quê. O atributo de uma métrica sempre pode ser limpo, já que a regra dele pode ocultar todo valor do atributo:
 
-- Um tipo de dados encontrado só pelos nomes de campo, como o nome de uma pessoa: nenhum padrão consegue encontrá-lo. Renomeie o atributo para uma chave que uma regra de chaves sensíveis oculta, ou pare de enviá-lo.
-- Um tipo de dados que só se distingue de outros valores pelas palavras ao redor, como um número de roteamento bancário: uma regra ocultaria muito mais do que esse tipo de dados.
+- Um tipo de dados encontrado só pelos nomes de campo no corpo de um log, como o nome de uma pessoa: nenhuma regra consegue distingui-lo do resto da mensagem. Envie-o como atributo, que uma regra **Atributos nomeados** oculta, ou pare de enviá-lo.
+- Cada regra testada ocultou muito mais do que os dados: cada uma foi executada nos registros em que eles foram vistos e alterou demais o resto. Pare de enviá-los no código que os escreve.
 - Uma marcação de documento: ocultar a palavra não ocultaria o documento.
-- Um dos seus próprios tipos de dados: adicione você mesmo uma regra de limpeza personalizada com o padrão dele.
 - Os detalhes da própria sessão (`sessions.*`): a ingestão de replays de sessão não executa regras de limpeza.
 - O nome de uma métrica (`name`): quem o define é o código que cria a métrica, e uma regra de pipeline só consegue renomear uma métrica por inteiro. Renomeie a métrica e envie como atributo o que varia no nome dela. Até lá, **Descartar esta métrica** pode parar de armazenar essas métricas.
 
 **Limpar** cria a regra em seu nome, com as suas próprias permissões: Proprietários do projeto e Administradores do projeto podem pressioná-lo, assim como uma equipe que pode criar regras de limpeza de logs, regras de limpeza de traces para spans, exceções e chamadas de IA, e regras de pipeline de métricas para métricas.
+
+## Contido por conta própria
+
+Enquanto o OneUptime AI trabalha nos problemas de Segurança de dados (veja [OneUptime AI na Segurança de dados](/docs/data-security/ai)), um problema de telemetria é contido sem que ninguém pressione nada, quando isso está comprovadamente seguro. Para cada lugar que o problema conta, o OneUptime AI planeja a regra que **Limpar** criaria, comprovada da mesma forma, e só a cria por conta própria quando tudo isto vale:
+
+- **Os dados são um segredo**, como uma senha, um token ou uma chave.
+- **A regra está comprovada** nos registros em que os dados foram vistos: ela ocultou os dados em cada valor que os continha.
+- **Ela não altera mais nada ali**: nenhum dos outros valores no lugar dela.
+- **Nada lê o que ela oculta**: nenhum monitor, painel, visualização salva, regra de gravação ou SLO, e nada de que os Eventos de segurança precisem.
+- **Ela vale para o serviço** em que os dados foram vistos.
+
+Todo o resto é proposto, em **Segurança de dados → IA** e na página do problema, dizendo como a regra foi comprovada e o que lê o que ela ocultaria: dados pessoais, uma regra que algo lê, uma que altera outros valores, uma sem nenhum registro em que ser executada, uma para todos os serviços, a regra de pipeline de uma métrica, e qualquer lugar cuja regra anterior uma pessoa desfez ou dispensou. Uma regra de IA de Segurança de dados que define **Conter** como **Automaticamente** para um problema permite que dados pessoais comprovados também sejam ocultados por conta própria. Nenhuma regra permite que uma mudança que não está comprovadamente segura seja feita por conta própria.
+
+Quando nenhuma das regras do **Limpar** consegue ocultar os dados, como um dos seus próprios tipos de dados sem padrão, o OneUptime AI escreve uma: um padrão para os dados, ou o atributo a ocultar por inteiro. Ele recebe o tipo de dados, onde ele está, os nomes dos atributos ao lado e as formas dos valores, como `AA-9999` para `AB-1234`, nunca um valor, e o que ele escreve é comprovado nos registros como qualquer outra regra antes de ser proposto ou criado.
+
+Uma mudança que o OneUptime AI fez por conta própria:
+
+- **Fica na linha do tempo do problema**, com as regras que criou, como cada uma foi comprovada e **Desfazer**, que as exclui. **Segurança de dados → IA** tem o mesmo **Desfazer**. Um lugar cuja regra você desfaz nunca mais é contido por conta própria: o OneUptime AI o propõe.
+- **É enviada por e-mail** aos proprietários do repositório de dados e aos proprietários do serviço.
+- **Diz para rotacionar um segredo.** Ocultar um segredo só impede novas cópias: o segredo continua funcionando, e os registros armazenados antes da regra o mantêm até o fim da sua retenção. A linha do tempo e o e-mail dizem onde ele foi visto.
+
+Novas descobertas em um serviço cujo problema já está aberto são contidas da mesma forma, assim que a varredura de hora em hora as encontra.
 
 ## Descartar esta métrica
 
@@ -145,7 +176,9 @@ Uma descoberta só é marcada como limpa quando a ingestão executaria sobre ela
 - **A parte certa.** Os **Campos a depurar** da regra incluem a parte do registro em que a descoberta está, ou a regra os deixa no padrão.
 - **O serviço certo.** Uma regra de logs ou de traces para um serviço cobre apenas as descobertas desse serviço. Uma regra sem serviço cobre as de todos os serviços.
 - **Um padrão que encontra o tipo.** Um **Tipo de padrão** integrado encontra o próprio tipo de dados: **Endereço de e-mail** encontra endereços de e-mail, **Número do cartão de crédito** números de cartão, **SSN (Número de Seguro Social)** números de Seguro Social dos EUA, **Número de telefone** números de telefone e **Endereço IP** endereços IP. **Chaves de atributos sensíveis** cobre todo valor sob uma chave que parece sensível, seja qual for o valor.
-- **Os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
+- **Uma regra comprovada nos registros da descoberta.** Uma regra que o OneUptime criou e comprovou nos registros em que uma descoberta foi vista cobre essa descoberta, qualquer que seja o padrão dela, enquanto for a regra que foi comprovada: altere o padrão, os atributos, a ação, os campos ou o serviço dela, e ela deixa de cobrir.
+- **Uma regra Atributos nomeados** cobre uma descoberta em um atributo que ela nomeia, ou em um aninhado sob ele.
+- **Fora isso, os seus próprios padrões personalizados nunca contam.** Um **Regex personalizado** que você escreveu só cobre uma descoberta quando é exatamente o padrão que **Limpar** cria para o tipo dela. Uma descoberta guarda só amostras mascaradas, nas quais nenhum padrão pode ser testado, então o OneUptime não conseguiria provar que o seu padrão oculta os dados, e uma descoberta dada como limpa por engano é um vazamento que ninguém olha.
 - **O atributo de uma métrica.** Uma regra de pipeline de métricas **Ocultar Atributo** ou **Remover Atributo** da chave desse atributo, para o serviço da descoberta ou para o projeto inteiro, cobre a descoberta quando não tem filtro, ou quando tem exatamente o filtro que **Limpar** cria. Um filtro escrito por você nunca conta, pelo mesmo motivo.
 - **O nome de uma métrica.** Uma regra de pipeline de métricas **Descartar** para o serviço da descoberta ou para o projeto inteiro cobre a descoberta quando tem exatamente o filtro que **Descartar esta métrica** cria, ou nenhum filtro, caso em que não armazena nenhuma métrica do serviço. Uma regra assim sem filtro cobre todas as descobertas nessas métricas.
 

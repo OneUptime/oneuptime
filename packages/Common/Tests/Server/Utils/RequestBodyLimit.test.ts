@@ -83,7 +83,7 @@ describe("the large routes", () => {
     ["/telemetry/fluentd/v1/logs", LARGE_REQUEST_BODY_LIMIT],
     ["/telemetry/dbt/v1/artifacts", LARGE_REQUEST_BODY_LIMIT],
     ["/syslog/v1/logs", LARGE_REQUEST_BODY_LIMIT],
-    // Pyroscope's push.v1 protobuf, read by StartServer as before.
+    // Pyroscope's push.v1 protobuf, read once its key is right (#10702).
     ["/pyroscope/push.v1.PusherService/Push", LARGE_REQUEST_BODY_LIMIT],
     [
       "/telemetry/pyroscope/push.v1.PusherService/Push",
@@ -225,6 +225,24 @@ describe("the routes that parse their body only after their caller's key is chec
     },
   );
 
+  const batches: Array<string> = TELEMETRY_ROUTE_PREFIXES.flatMap(
+    (prefix: string): Array<string> => {
+      return [
+        `${prefix}/fluentd/v1/logs`,
+        `${prefix}/syslog/v1/logs`,
+        `${prefix}/kubernetes-cost/ingest`,
+        `${prefix}/change-events/v1/ingest`,
+        `${prefix}/openlineage/api/v1/lineage`,
+        `${prefix}/dbt/v1/artifacts`,
+        `${prefix}/android-agent/v1/log-sessions`,
+        `${prefix}/opamp/v1`,
+        `${prefix}/pyroscope/push.v1.PusherService/Push`,
+        `${prefix}/fivetran/v1/webhook/:ingestionKeyId`,
+        `${prefix}/airbyte/v1/webhook/:ingestionKey`,
+      ];
+    },
+  );
+
   test("are a probe's collections, under every prefix, and a forwarding pod's rows", () => {
     expect(collections).toHaveLength(6);
 
@@ -257,8 +275,44 @@ describe("the routes that parse their body only after their caller's key is chec
     }
   });
 
+  /*
+   * #10702: the batches collectors, agents and CI send - Fluent Bit and
+   * Fluentd, syslog, Pyroscope's push, Kubernetes cost, change events,
+   * OpenLineage, dbt, the Android agent, OpAMP, Fivetran and Airbyte - were
+   * read before their key was checked: JSON parsed, gzip inflated, for
+   * anyone. Each client sends its key in a header or the URL, so the body is
+   * read once the key is right, held to a large route's 50 MB.
+   */
+  test("are the batches collectors, agents and CI send, under both telemetry prefixes, each held to a large route's limit", () => {
+    expect(batches).toHaveLength(22);
+
+    for (const path of batches) {
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: true });
+      expect(getRequestBodyLimit(path)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    }
+  });
+
+  test("leave Security Events as it is: read by StartServer before routing, held to a large route's limit", () => {
+    for (const prefix of TELEMETRY_ROUTE_PREFIXES) {
+      const path: string = `${prefix}/security-events/v1/ingest`;
+
+      expect({
+        path,
+        afterAuthentication: readsBodyAfterAuthentication(path),
+      }).toEqual({ path, afterAuthentication: false });
+      expect(getRequestBodyLimit(path)).toBe(LARGE_REQUEST_BODY_LIMIT);
+    }
+  });
+
   test("are matched as the routers match: in any case, with a trailing slash or not", () => {
     for (const path of [
+      "/Fluentd/V1/Logs/",
+      "/TELEMETRY/SYSLOG/V1/LOGS",
+      "/telemetry/pyroscope/push.v1.pusherservice/push",
+      "/Airbyte/V1/Webhook/a-key/",
       "/Probe-Ingest/Probe/VMware/Collection",
       "/probe-ingest/probe/vmware/collection/",
       "/INGESTOR/PROBE/OPENSTACK/COLLECTION/",
@@ -287,9 +341,12 @@ describe("the routes that parse their body only after their caller's key is chec
       "/telemetry-writer",
       "/api/file",
       "/api/monitor/get-list",
-      "/fluentd/v1/logs",
-      // Pyroscope's push.v1 protobuf is no upload: StartServer reads it.
-      "/pyroscope/push.v1.PusherService/Push",
+      "/fluentd/v1/logs/extra",
+      "/syslog/v1",
+      "/security-events/v1/ingest",
+      "/telemetry/security-events/v1/ingest",
+      "/fivetran/v1/webhook",
+      "/pyroscope/push.v1.PusherService/Push/extra",
       "/pyroscope/ingest/extra",
       "/source-maps/v1",
       "/dsyms",
@@ -312,7 +369,12 @@ describe("the routes that parse their body only after their caller's key is chec
       listed.flatMap((route: RequestBodyRoute): ReadonlyArray<string> => {
         return route.paths;
       }),
-    ).toEqual([...uploads, ...collections, "/telemetry-writer/insert"]);
+    ).toEqual([
+      ...uploads,
+      ...batches,
+      ...collections,
+      "/telemetry-writer/insert",
+    ]);
 
     // Each says why, and how its caller is known first.
     for (const route of listed) {

@@ -298,8 +298,13 @@ describe("a section's key metrics not reported", () => {
     };
 
     expect(listed()).toEqual([
-      // Its health check never reported: Availability, before Traffic.
-      `# Availability (${count("availability", 0)})`,
+      /*
+       * No Availability and no Storage: its health check comes every five
+       * minutes and its file system every six hours, and the list's last
+       * hour - read by a connection that may wait the longest between
+       * reads - may hold neither's newest point, so neither is counted as
+       * not reported (#10026).
+       */
       `# Traffic (${count("traffic", 1)})`,
       "azure_requests_total",
       `# Errors (${count("errors", 1)})`,
@@ -310,7 +315,6 @@ describe("a section's key metrics not reported", () => {
       "azure_cputime_total",
       `# Memory (${count("memory", 1)})`,
       "azure_memoryworkingset_average",
-      `# Storage (${count("storage", 0)})`,
       `# Network (${count("network", 0)})`,
       `# Connections (${count("connections", 0)})`,
       `# Backlog (${count("backlog", 0)})`,

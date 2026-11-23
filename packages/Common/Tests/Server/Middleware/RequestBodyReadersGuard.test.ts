@@ -135,6 +135,18 @@ const SHARED_READS: ReadonlyArray<[string, string]> = [
     "The token, revocation and authorization endpoints' forms (RFC 6749), held to 64 KB.",
   ],
   [
+    "packages/Common/Server/Middleware/AppBodyParsers.ts: ExpressJson",
+    "Every route's JSON, held to the route's limit: before routing (StartServer), or once the key is right on a route that checks it first (#10702).",
+  ],
+  [
+    "packages/Common/Server/Middleware/AppBodyParsers.ts: ExpressRaw",
+    "Every route's protobuf, held to the route's limit: before routing (StartServer), or once the key is right on a route that checks it first (#10702).",
+  ],
+  [
+    "packages/Common/Server/Middleware/AppBodyParsers.ts: ExpressUrlEncoded",
+    "Every route's forms, held to the route's limit: before routing (StartServer), or once the key is right on a route that checks it first (#10702).",
+  ],
+  [
     "packages/Common/Server/Middleware/MultipartFormData.ts: ExpressRaw",
     "A multipart body's bytes, held to its route's limit, for multer to parse.",
   ],
@@ -153,18 +165,6 @@ const SHARED_READS: ReadonlyArray<[string, string]> = [
   [
     "packages/Common/Server/Middleware/WebhookRequestBody.ts: ExpressText",
     "A webhook's text/plain and +json bodies (Amazon SNS, CloudEvents).",
-  ],
-  [
-    "packages/Common/Server/Utils/StartServer.ts: ExpressJson",
-    "Every route's JSON, before routing, held to the route's limit.",
-  ],
-  [
-    "packages/Common/Server/Utils/StartServer.ts: ExpressRaw",
-    "Every route's protobuf, before routing, held to the route's limit.",
-  ],
-  [
-    "packages/Common/Server/Utils/StartServer.ts: ExpressUrlEncoded",
-    "Every route's forms, before routing, held to the route's limit.",
   ],
   [
     "packages/Probe/API/IncomingRequestIngress.ts: ExpressJson",
@@ -418,6 +418,7 @@ describe("every body the server reads itself is read through RequestBodyParser",
       expect.arrayContaining([
         FACTORIES_FILE,
         "packages/Common/Server/Utils/StartServer.ts",
+        "packages/Common/Server/Middleware/AppBodyParsers.ts",
         "packages/Common/Server/Middleware/RequestBodyParser.ts",
         "packages/Common/Server/Middleware/MultipartFormData.ts",
         "packages/App/FeatureSet/MCP/Handlers/RouteHandler.ts",

@@ -155,6 +155,7 @@ beforeEach(() => {
     {
       cleared: {
         hasPassword: true,
+        hasPasswordResetLink: false,
         isTwoFactorAuthEnabled: true,
         authenticatorAppCount: 1,
         passkeyAndSecurityKeyCount: 1,

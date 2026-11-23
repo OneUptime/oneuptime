@@ -145,7 +145,13 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A role that changes telemetry settings.",
     // Whose records a rule scrubs, and what it breaks (issue #10433).
     "A rule can be for one service.",
+    // The attributes a rule names, what each rule changed, its proof (issue #10366).
+    "A rule can name the attributes it reads.",
+    "The list says what each rule changed.",
+    "A rule Data Security proved says so.",
     "The form says what a rule would change for others.",
+    // What a Redact or Mask IP Address rule takes from Security Events (issue #10396).
+    "An IP Address rule that redacts or masks says what it costs Security Events.",
     // What an IP Address rule hides and keeps (issue #10393).
     "An IP Address rule hides the addresses that are personal data.",
     // A Hash token's key, and the tokens made before it (issue #10394).

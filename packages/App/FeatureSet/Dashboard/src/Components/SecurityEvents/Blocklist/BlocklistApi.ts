@@ -218,6 +218,7 @@ export async function readBlockEnforcements(
         appliedAt: true,
         lastConfirmedAt: true,
         error: true,
+        errorReason: true,
       },
       limit: 1000,
       skip: 0,

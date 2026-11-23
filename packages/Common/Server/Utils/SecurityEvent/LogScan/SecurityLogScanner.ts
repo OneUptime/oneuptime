@@ -587,9 +587,11 @@ export default class SecurityLogScanner {
     });
 
     /*
-     * A client address a Hash rule hid - in the line's client field, or in
-     * the trace it was followed into - names the address behind its token,
-     * when Security Events' address vault holds it (#10395).
+     * An address a Hash rule hid - the field a format reads the source or
+     * the destination from (#10419), or the trace a line was followed into -
+     * names the address behind its token, when Security Events' address
+     * vault holds it (#10395): every token of the page, of every format, in
+     * one lookup.
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
       projectId: data.projectId,
@@ -597,8 +599,8 @@ export default class SecurityLogScanner {
     });
 
     /*
-     * A client address a scrub rule hid that is still hidden names the
-     * project's rule that did (#10397).
+     * An address a scrub rule hid that is still hidden names the project's
+     * rule that did (#10397).
      */
     await ScrubbedClientAddresses.nameScrubRules({
       projectId: data.projectId,

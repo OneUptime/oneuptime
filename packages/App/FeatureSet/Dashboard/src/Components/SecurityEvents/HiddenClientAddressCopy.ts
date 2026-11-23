@@ -26,6 +26,11 @@ export const FILTER_BY_HIDDEN_ADDRESS: string = translationKey(
   "Show events whose address a scrub rule hid",
 );
 
+// Target IP's, for a destination a scrub rule hid (#10419).
+export const FILTER_BY_HIDDEN_TARGET_ADDRESS: string = translationKey(
+  "Show events whose target address a scrub rule hid",
+);
+
 // Who sent the request, in What happened next, where "From 203.0.113.7" would be.
 export const FROM_A_HIDDEN_ADDRESS: string = translationKey(
   "From an address a scrub rule hid",

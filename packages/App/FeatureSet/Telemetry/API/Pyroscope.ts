@@ -109,17 +109,32 @@ router.post(
 );
 
 /*
+ * A push, read once the ingest key is right (#10702), as /ingest's upload
+ * is: StartServer leaves the body unread (RequestBodyLimit), and nothing of
+ * it is read or inflated for a request without the right key. Every SDK
+ * sends the key in a header (Authorization, mapped above, or a custom
+ * header). The protobuf is kept as its bytes, gzip-encoded or not (current
+ * pyroscope-rs SDKs push application/proto with Content-Encoding: gzip),
+ * held to 50 MB as sent and once inflated. The ingestion budget does not
+ * measure it there: the push is counted as it is queued, at the size it is
+ * stored with (TelemetryIngestionBudgetHttp's DEFERRED_BODY_SURFACES).
+ */
+const readPushBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
+  LARGE_REQUEST_BODY_LIMIT,
+);
+
+/*
  * The Pyroscope push protocol: a protobuf-encoded push.v1.PushRequest posted
  * to /pyroscope/push.v1.PusherService/Push. Grafana Alloy's pyroscope.write,
  * pyroscope-dotnet v0.14+ and pyroscope-rs based SDKs use it, most of them
- * as Content-Type application/proto (see StartServer's protobuf parser).
+ * as Content-Type application/proto (see AppBodyParsers' protobuf types).
  */
 router.post(
   "/pyroscope/push.v1.PusherService/Push",
   pushIngestionDisabledMiddleware,
   mapAuthorizationTokenMiddleware,
   setProfilesProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.Pyroscope, readPushBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,

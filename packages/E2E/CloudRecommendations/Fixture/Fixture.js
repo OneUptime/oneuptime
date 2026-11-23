@@ -85,6 +85,7 @@ import {
   PROJECT_ID,
   RESOURCE_IDS,
   buildAccount,
+  buildConnection,
   buildResources,
   uuid,
 } from "./Data";
@@ -135,6 +136,7 @@ const project = Object.assign(new Project(), {
 
 const resources = buildResources(LOADED_AT);
 const account = buildAccount(LOADED_AT);
+const connection = buildConnection();
 
 function resourceNamed(id) {
   return resources.find((row) => {
@@ -455,6 +457,11 @@ function matches(record, query) {
 
 const store = {
   CloudAccount: [account],
+  /*
+   * How often the connection reads the account's metrics, which each
+   * recommended monitor's window follows (#10028).
+   */
+  CloudConnection: [connection],
   CloudResource: resources,
   Monitor: initialMonitors(),
   RecommendationDismissal: dismissals,

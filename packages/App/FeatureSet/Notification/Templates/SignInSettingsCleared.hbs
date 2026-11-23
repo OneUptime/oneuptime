@@ -21,8 +21,16 @@
   reader's language (Utils/EmailLanguage.ts).
 --}}
 
+{{!--
+  A project's name is read when the email is written (#9991): a project
+  deleted since the clear has none, and is named nowhere.
+--}}
 {{#if clearedByProjectOwner}}
+{{#if projectName}}
 {{> InfoBlock info=(ttHtml "An owner of {{project}} cleared the sign-in settings saved on your {{product}} account." project=projectName product=productName)}}
+{{else}}
+{{> InfoBlock info=(ttHtml "A project owner cleared the sign-in settings saved on your {{product}} account." product=productName)}}
+{{/if}}
 {{else}}
 {{> InfoBlock info=(ttHtml "A server admin cleared the sign-in settings saved on your {{product}} account." product=productName)}}
 {{/if}}
@@ -40,6 +48,7 @@
 <table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
   <tr><td class="st-Gutter" style="padding: 0 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 24px; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
     {{#if removedPassword}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{t "Your password, and any password reset or sign-in link sent to you"}}</div>{{/if}}
+    {{#if removedPasswordResetLink}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{t "The password reset link sent to you, which no longer works"}}</div>{{/if}}
     {{#if removedPasskeyCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} passkey or security key" "{{count}} passkeys and security keys" removedPasskeyCount}}</div>{{/if}}
     {{#if removedAuthenticatorAppCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} authenticator app" "{{count}} authenticator apps" removedAuthenticatorAppCount}}</div>{{/if}}
     {{#if removedBackupCodeCount}}<div class="st-RemovedSetting" style="margin: 0 0 6px;">&bull;&nbsp;{{tp "{{count}} backup code" "{{count}} backup codes" removedBackupCodeCount}}</div>{{/if}}
@@ -71,7 +80,7 @@
 
 {{> VerticalSpace this}}
 
-{{#if clearedByProjectOwner}}
+{{#if projectName}}
 {{> InfoBlock info=(ttHtml "If you did not expect this, contact the owners of {{project}}." project=projectName)}}
 {{else if @root.isSelfHosted}}
 {{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}

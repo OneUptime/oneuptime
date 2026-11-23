@@ -31,6 +31,13 @@ enum AnalyticsTableName {
    */
   SecurityAddressVault = "SecurityAddressVaultV1",
   /*
+   * How many values each log or trace scrub rule changed, by service and
+   * service.version, an hour a row (#10366): what shows a rule that never
+   * fires, and what proves a leak stopped at its source (#10368). See
+   * Models/AnalyticsModels/ScrubRuleValueCount.
+   */
+  ScrubRuleValueCount = "ScrubRuleValueCountV1",
+  /*
    * Deploy/config-change markers posted by CI/CD, rendered as dashed
    * vertical lines on metric charts. Peer of LogItemV3 in layout (tenant
    * projectId, per-row retentionDate TTL, attributes Map + keys sidecar)

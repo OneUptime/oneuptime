@@ -8,6 +8,7 @@ Det finns inget att konfigurera: varje tjänsts telemetri skannas varje timme, o
 - [Vad som läses](#vad-som-läses): Attributen, kropparna, meddelandena och promptarna i varje signal.
 - [Hur en skanning tar prov](#hur-en-skanning-tar-prov): De nyaste posterna för varje tjänst, varje timme.
 - [Rensa](#rensa): Dölj ett fynd vid intaget, i tjänsten där det hittades.
+- [Begränsat på egen hand](#begränsat-på-egen-hand): En hemlighet dold utan att någon trycker på något, där det är bevisat säkert.
 - [Kassera det här mätvärdet](#kassera-det-här-mätvärdet): Sluta lagra de mätvärden vars namn innehåller känsliga data.
 - [Vad som räknas som rensat](#vad-som-räknas-som-rensat): När en rensningsregel redan täcker ett fynd.
 :::
@@ -101,14 +102,23 @@ Klicka på **Rensa**. En dialogruta säger vad regeln skulle göra innan något 
 Regeln döljer nya data innan de lagras. Data som redan har lagrats finns kvar tills lagringstiden tar slut, så åtgärda koden som skriver dem: fyndet anger tjänsten och attributet.
 :::
 
-Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in log attributes of checkout”, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är en av dessa:
+Regeln namnges efter det den döljer, till exempel ”Data Security: Email address in log attributes of checkout”, eller ”Data Security: Password or secret in db.password of checkout” för en regel som namnger sitt attribut, och listas bland dina andra rensningsregler (se [Kasseringsfilter och rensningsregler](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). Den är den smalaste regel som döljer fyndets data, den första av dessa som passar:
 
 | Fynd | Regel som Rensa skapar |
 | --- | --- |
-| E-postadress, kortnummer, amerikanskt socialförsäkringsnummer, telefonnummer eller IP-adress | Det inbyggda mönstret för den typen. Kortnummer, socialförsäkringsnummer och telefonnummer maskeras, resten döljs helt. |
-| Ett värde under en nyckel som ser känslig ut, till exempel `password` eller `token` | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
-| Varje annan datatyp som ett mönster kan hitta | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster, som döljer varje värde med den formen |
+| E-postadress, kortnummer, amerikanskt socialförsäkringsnummer, telefonnummer eller IP-adress | Det inbyggda mönstret för den typen, maskerat. En IP-adress döljs helt, eller hashas där [Säkerhetshändelser](/docs/telemetry/security-events) läser de posterna, så att den fortfarande kan nämna adressen som ska blockeras. |
+| Varje annan datatyp som ett mönster hittar på egen hand, till exempel en GitHub-token | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster. En hemlighet döljs helt. |
+| En av dina egna datatyper, med ett mönster | Det mönstret, bara i attributet där det hittades |
+| En datatyp som skiljs ut genom orden runt den, till exempel ett routingnummer | Dess form, bara i attributet där den hittades |
+| En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
+| Ett värde under en nyckel som ser känslig ut, där inget smalare döljer det | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
 | Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som har datatypens form med `[REDACTED]`, eller varje värde i attributet där inget mönster hittar datatypen |
+
+### Bevisad på posterna där det sågs
+
+Innan dialogen säger vad regeln skulle göra kör OneUptime varje regel som den kunde skapa på posterna där fyndet sågs, och på de nyaste posterna från dess tjänst med ett värde på den platsen, med samma kod som intaget kör, och frågar skannern vad som är kvar. Den första regel som döljer dessa data i varje värde som innehöll dem, och ändrar högst 5 av 100 av de andra värdena där, är den som väljs. Dialogen säger hur många poster den kördes på, hur många värden som innehöll dessa data och hur många andra den ändrade. Ett mönster som skulle ändra mer erbjuds aldrig: Det gör regeln som namnger attributet, och den säger vad mer den ändrar.
+
+Beviset sparas med regeln, och listan över rensningsregler visar **Bevisad** på dess rad tills regeln ändras. Där ingen post finns kvar att köra en regel på, till exempel ett undantags eller en sessionsuppspelnings, eller poster som har passerat sin lagringstid, skapas regeln som den är planerad, och dialogen säger det.
 
 En regel för loggar eller spår gäller för tjänsten där fyndet hittades: den rensar den tjänstens loggar eller spans, och andra tjänsters förblir som de är, så inget som läser deras ändras. Kolumnen **Omfattning** i listan över rensningsregler säger vilken tjänst en regel gäller för. Ett fynd i en RUM-applikations sessionsinspelningar skapar en regel för alla tjänster och appar i projektet, eftersom regler för loggar också rensar inspelningar, och dialogrutan säger det. Om tjänsten inte längre finns säger **Rensa** det och skapar ingen regel.
 
@@ -116,14 +126,35 @@ Dialogrutan nämner, var och en som en länk, de monitorer, instrumentpaneler me
 
 Vissa fynd kan inte rensas av en regel, och **Rensa** säger varför. Ett mätvärdes attribut kan alltid rensas, eftersom dess regel kan dölja varje värde i attributet:
 
-- En datatyp som bara hittas utifrån fältnamn, till exempel en persons namn: inget mönster kan hitta den. Byt namn på attributet till en nyckel som en regel för känsliga nycklar döljer, eller sluta skicka det.
-- En datatyp som bara skiljs från andra värden genom orden runt den, till exempel ett routingnummer: en regel skulle dölja mycket mer än den datatypen.
+- En datatyp som bara hittas utifrån fältnamn i en loggs text, till exempel en persons namn: ingen regel kan skilja den från resten av meddelandet. Skicka den som ett attribut, som en regel av typen **Namngivna attribut** döljer, eller sluta skicka den.
+- Varje regel som prövades dolde mycket mer än dessa data: Var och en kördes på posterna där de sågs och ändrade för mycket annat. Sluta skicka dem i koden som skriver dem.
 - En dokumentmärkning: att dölja ordet skulle inte dölja dokumentet.
-- En av dina egna datatyper: lägg själv till en anpassad rensningsregel med dess mönster.
 - En sessions egna uppgifter (`sessions.*`): intaget av sessionsuppspelningar kör inga rensningsregler.
 - Ett mätvärdes namn (`name`): koden som skapar mätvärdet sätter det, och en pipelineregel kan bara byta namn på ett mätvärde i sin helhet. Byt namn på mätvärdet och skicka det som varierar i namnet som ett attribut i stället. Till dess kan **Kassera det här mätvärdet** sluta lagra de mätvärdena.
 
 **Rensa** skapar regeln i ditt namn, med dina egna behörigheter: rollerna Projektägare och Projektadministratör kan klicka på den, och det kan även ett team som får skapa loggrensningsregler, spårrensningsregler för spans, undantag och AI-anrop, och pipelineregler för mätvärden.
+
+## Begränsat på egen hand
+
+Medan OneUptime AI arbetar med problem i Datasäkerhet (se [OneUptime AI i Datasäkerhet](/docs/data-security/ai)) begränsas ett telemetriproblem utan att någon trycker på något, där det är bevisat säkert. För varje plats som problemet räknar planerar OneUptime AI den regel som **Rensa** skulle skapa, bevisad på samma sätt, och skapar den bara på egen hand när allt detta gäller:
+
+- **Dessa data är en hemlighet**, till exempel ett lösenord, en token eller en nyckel.
+- **Regeln är bevisad** på posterna där dessa data sågs: Den dolde dessa data i varje värde som innehöll dem.
+- **Den ändrar inget annat där**: inget av de andra värdena på dess plats.
+- **Inget läser det den döljer**: ingen övervakare, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
+- **Den gäller för tjänsten** där dessa data sågs.
+
+Allt annat föreslås i stället, på **Datasäkerhet → AI** och på problemets sida, med hur regeln bevisades och vad som läser det den skulle dölja: personuppgifter, en regel som något läser, en som ändrar andra värden, en utan någon post att köras på, en för alla tjänster, ett mätvärdes pipelineregel, och varje plats där en person ångrade eller avfärdade en tidigare regel. En AI-regel för Datasäkerhet som sätter **Begränsa** till **Automatiskt** för ett problem låter också bevisade personuppgifter döljas på egen hand. Ingen regel låter en ändring som inte är bevisat säker köras på egen hand.
+
+Där ingen av reglerna från **Rensa** kan dölja dessa data, till exempel en av dina egna datatyper utan mönster, skriver OneUptime AI en: ett mönster för dessa data, eller attributet som ska döljas helt. Den får datatypen, var den finns, namnen på attributen bredvid och formerna på värdena, till exempel `AA-9999` för `AB-1234`, aldrig ett värde, och det den skriver bevisas på posterna som vilken annan regel som helst innan det föreslås eller skapas.
+
+En ändring som OneUptime AI gjorde på egen hand:
+
+- **Finns på problemets tidslinje**, med reglerna den skapade, hur var och en bevisades, och **Ångra**, som tar bort dem. **Datasäkerhet → AI** har samma **Ångra**. En plats vars regel du ångrar begränsas aldrig på egen hand igen: OneUptime AI föreslår den i stället.
+- **Skickas med e-post** till datalagrets ägare och tjänstens ägare.
+- **Säger att en hemlighet ska roteras.** Att dölja en hemlighet stoppar bara nya kopior: Hemligheten fungerar fortfarande, och posterna som lagrades före regeln behåller den tills deras lagringstid löper ut. Tidslinjen och e-postmeddelandet säger var den sågs.
+
+Nya fynd i en tjänst vars problem redan är öppet begränsas på samma sätt så snart skanningen varje timme hittar dem.
 
 ## Kassera det här mätvärdet
 
@@ -145,7 +176,9 @@ Ett fynd markeras som rensat bara när intaget skulle köra en aktiverad regel �
 - **Rätt del.** Regelns **Fält att rensa** omfattar den del av posten som fyndet finns i, eller så lämnar regeln dem som standard.
 - **Rätt tjänst.** En regel för loggar eller spår för en tjänst täcker bara den tjänstens fynd. En regel utan tjänst täcker alla tjänsters.
 - **Ett mönster som hittar typen.** En inbyggd **Mönstertyp** hittar sin egen datatyp: **E-postadress** hittar e-postadresser, **Kreditkortsnummer** kortnummer, **Personnummer (Social Security Number)** amerikanska socialförsäkringsnummer, **Telefonnummer** telefonnummer och **IP-adress** IP-adresser. **Känsliga attributnycklar** täcker varje värde under en nyckel som ser känslig ut, oavsett vad värdet är.
-- **Dina egna anpassade mönster räknas aldrig.** En **Anpassad regex** täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
+- **En regel som är bevisad på fyndets poster.** En regel som OneUptime skapade och bevisade på posterna där ett fynd sågs täcker det fyndet, oavsett mönster, så länge den är regeln som bevisades: Ändra dess mönster, dess attribut, dess åtgärd, dess fält eller dess tjänst, så täcker den det inte längre.
+- **En regel av typen Namngivna attribut** täcker ett fynd i ett attribut som den namnger, eller i ett som ligger under det.
+- **Annars räknas dina egna anpassade mönster aldrig.** En **Anpassad regex** som du själv skrev täcker ett fynd bara när den är exakt det mönster som **Rensa** skapar för dess typ. Ett fynd sparar bara maskerade prov, som inget mönster kan provas mot, så OneUptime kan inte bevisa att ditt mönster döljer dessa data, och ett fynd som felaktigt kallas rensat är en läcka som ingen tittar på.
 - **Ett mätvärdes attribut.** En pipelineregel för mätvärden av typen **Maskera attribut** eller **Ta bort attribut** för attributets nyckel, för fyndets tjänst eller hela projektet, täcker fyndet när den inte har något filter, eller exakt det filter som **Rensa** skapar. Ett filter som du har skrivit själv räknas aldrig, av samma skäl.
 - **Ett mätvärdes namn.** En pipelineregel för mätvärden av typen **Kassera** för fyndets tjänst eller hela projektet täcker fyndet när den har exakt det filter som **Kassera det här mätvärdet** skapar, eller inget filter alls, och då lagrar den inga av tjänstens mätvärden. En sådan regel utan filter täcker alla fynd i de mätvärdena.
 

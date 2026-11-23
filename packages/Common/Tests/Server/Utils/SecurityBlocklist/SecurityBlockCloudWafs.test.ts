@@ -492,7 +492,7 @@ describe("Check Again - and the check as soon as a web ACL is picked", () => {
 
     await expect(check(row)).rejects.toThrow(
       new BadDataException(
-        "OneUptime is writing these IP sets right now. Try again in a minute.",
+        "OneUptime is writing this WAF right now. Try again in a minute.",
       ),
     );
     expect(fake.calls).toHaveLength(0);
@@ -508,7 +508,7 @@ describe("Check Again - and the check as soon as a web ACL is picked", () => {
         projectId: new ObjectID("22222222-2222-4222-8222-222222222222"),
         cloudWafId: new ObjectID(row._id!),
       }),
-    ).rejects.toThrow("This web ACL no longer enforces your blocklist.");
+    ).rejects.toThrow("This WAF no longer enforces your blocklist.");
     expect(fake.calls).toHaveLength(0);
   });
 });
@@ -675,7 +675,7 @@ describe("Remove", () => {
     locks.busy.add(LOCK_KEY);
 
     await expect(remove(row)).rejects.toThrow(
-      "OneUptime is writing these IP sets right now. Try again in a minute.",
+      "OneUptime is writing this WAF right now. Try again in a minute.",
     );
     expect(stored(row)).toBeDefined();
     expect(rulesOf("prod-alb")).toHaveLength(2);

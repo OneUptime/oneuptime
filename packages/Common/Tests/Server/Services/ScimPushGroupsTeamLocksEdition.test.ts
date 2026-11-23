@@ -309,6 +309,23 @@ describe("SCIM Push Groups team locks by edition", () => {
       });
     };
 
+    /*
+     * An invitation that is not locked: its create goes on with the member
+     * it was given. A membership's create always hands on what it sends once
+     * the member is made (TeamMemberCreateCarryForward, #10180), so its
+     * carryForward is never null, locked or not.
+     */
+    const inviteGoesOn: () => unknown = (): unknown => {
+      return expect.objectContaining({
+        createBy: expect.objectContaining({
+          data: expect.objectContaining({
+            teamId: TEAM_ID,
+            userId: INVITEE_ID,
+          }),
+        }),
+      });
+    };
+
     const removeMember: (props: Record<string, unknown>) => Promise<unknown> = (
       props: Record<string, unknown>,
     ): Promise<unknown> => {
@@ -389,7 +406,7 @@ describe("SCIM Push Groups team locks by edition", () => {
         editionCase.apply();
 
         await expect(inviteMember(userProps())).resolves.toEqual(
-          expect.objectContaining({ carryForward: null }),
+          inviteGoesOn(),
         );
         expect(scimCount).not.toHaveBeenCalled();
       },
@@ -462,9 +479,7 @@ describe("SCIM Push Groups team locks by edition", () => {
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("missing"));
 
-      await expect(inviteMember(userProps())).resolves.toEqual(
-        expect.objectContaining({ carryForward: null }),
-      );
+      await expect(inviteMember(userProps())).resolves.toEqual(inviteGoesOn());
 
       fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
 
