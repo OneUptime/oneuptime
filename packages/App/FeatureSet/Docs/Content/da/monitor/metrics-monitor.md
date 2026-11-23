@@ -194,6 +194,10 @@ Uden Group By er den samme monitor én skalar: forespørgslen samler alle værte
 
 Hver advarsel pr. gruppe følger sin egen gruppe. Når vært A falder under tærsklen igen, løses dens advarsel af sig selv, og advarslen for vært B forbliver åben, indtil vært B kommer sig. Når én gruppe kommer sig, lukker det aldrig en anden gruppes advarsel.
 
+### Hver serie på oversigten
+
+Monitorens **Oversigt** viser i **Serier** hver serie, det seneste tjek læste: seriens labels, som dens advarsler navngiver dem, dens seneste værdi, de kriterier, den opfylder, og dens åbne hændelse eller advarsel. En serie, der holder monitorens status, viser **Holder status**. En monitor med mange serier viser 50 af dem, dem, der holder status eller opfylder et kriterium, først, og siger, hvor mange der er.
+
 ### Hvad hver advarsel gemmer
 
 Hver advarsel eller hændelse, der åbnes for én gruppe, gemmer kun den kontrol, der åbnede den, for netop den gruppe: dens serie, dens punkter og evalueringsoversigten. Ingen gemt kontrol er større end 256 KB, og logfilerne for en kontrol, der måtte beskæres for at passe, siger det.
@@ -207,6 +211,7 @@ Advarsler og hændelser, der blev åbnet før dette, gemte alle evalueringens gr
 
 - **Grupperede monitorer evaluerer alle kriterier.** Alvorlighedsniveauer kan derfor udløses for forskellige grupper på samme tid: med "Critical: større end 95" over "Warning: større end 80" åbner en vært på 96 % en kritisk advarsel, mens en vært på 85 % åbner en almindelig advarsel i samme tjek. En vært, der overskrider begge niveauer, får stadig præcis én advarsel, fra det første kriterium, der matcher, så **sorter kriterierne med det alvorligste først**.
 - **Ugrupperede monitorer stopper ved det første kriterium, der matcher.** Kun det ene kriterium udløses, endnu en grund til at sætte advarselskriteriet over det sunde: et bredt sundt kriterium øverst matcher i næsten hvert tjek og forhindrer, at advarselskriteriet under det nogensinde evalueres.
+- **En grupperet monitors status kommer tilbage med de serier, der ændrede den.** Monitoren har én status, der sættes af det første kriterium, der matcher. Et kriterium, der kun bringer den tilbage til dens **Standardstatus for monitor** og ikke åbner nogen advarsel eller hændelse, venter på de serier, der opfyldte et kriterium, som satte en anden status, og matcher, når hver af dem opfylder det: en vært, der aldrig var tæt på tærsklen, bringer ikke monitoren tilbage. Indtil da beholder monitoren sin status, selv når intet kriterium matcher, så et sundt kriterium lidt under tærsklen forhindrer, at en serie, der svinger omkring den, får status til at skifte. Hver series advarsel løses stadig for sig.
 
 | Vært | Disk brugt | Critical (> 95) | Warning (> 80) | Givet advarsel |
 | --- | --- | --- | --- | --- |

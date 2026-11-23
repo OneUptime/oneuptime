@@ -194,6 +194,10 @@ Without Group By, the same monitor is a single scalar: the query collapses every
 
 Each per-group alert tracks its own group. When host A drops back under the threshold its alert resolves on its own, and host B's alert stays open until host B recovers. One group recovering never closes another group's alert.
 
+### Each series on the Overview
+
+The monitor's **Overview** lists each series its last check read in **Series**: the series' labels, as its alerts name them, its latest value, the criteria it meets and its open incident or alert. A series that keeps the monitor's status reads **Keeps the status**. A monitor with many series lists 50 of them, those that keep the status or meet a criteria first, and says how many there are.
+
 ### What each alert keeps
 
 Each alert or incident opened for one group keeps the check that opened it for that group only: its series, its points and the evaluation summary. No kept check is larger than 256 KB, and the logs of one that had to be trimmed to fit say so.
@@ -207,6 +211,7 @@ Alerts and incidents opened before this kept every group of the evaluation, up t
 
 - **Grouped monitors evaluate every criteria.** Severity bands can therefore fire on different groups at the same time: with "Critical — greater than 95" above "Warning — greater than 80", a host at 96% opens a critical alert while a host at 85% opens a warning alert on the same check. A host that breaches both bands still gets exactly one alert — from the first matching criteria, so **order the criteria most severe first**.
 - **Ungrouped monitors stop at the first matching criteria.** Only that one criteria fires, which is another reason to put the alerting criteria above the healthy one: a broad healthy criteria placed first matches on nearly every check and prevents the alerting criteria below it from ever being evaluated.
+- **A grouped monitor's status comes back with the series that changed it.** The monitor has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no alert or incident, waits for the series that met a criteria setting another status, and matches once each of them meets it: a host that was never near the threshold does not bring the monitor back. Until then the monitor keeps its status, even when no criteria matches, so a healthy criteria a little below the threshold keeps a series that hovers at it from flipping the status. Each series' alert still resolves on its own.
 
 | Host | Disk used | Critical (> 95) | Warning (> 80) | Alert raised |
 | --- | --- | --- | --- | --- |

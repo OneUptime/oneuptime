@@ -411,6 +411,11 @@ export enum CodeTaskOriginType {
   CodeHostPullRequest = "CodeHostPullRequest",
   // A security case: Fix With AI asked for the fix from it (#10347).
   SecurityCase = "SecurityCase",
+  /*
+   * Data Security issues one mistake made: the fix of their cause, once
+   * (#10370). Its label is the cause: "the static-site module".
+   */
+  DataSecurityIssueGroup = "DataSecurityIssueGroup",
   Unknown = "Unknown",
 }
 

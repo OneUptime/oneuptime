@@ -184,6 +184,12 @@ export function getPodmanBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_RULES_AUDIT_LOGS, [
+      "Project",
+      "Podman",
+      "Settings",
+      "Rule Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PODMAN_SETTINGS_LABEL_RULE_VIEW, [
       "Project",
       "Podman",

@@ -48,6 +48,11 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
      */
     NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
     /*
+     * A case OneUptime AI handed to people (#10352): nobody is working it
+     * until a person picks it up.
+     */
+    NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
+    /*
      * A public note waiting for the person's approval: it is published only
      * once somebody approves it, and the customers it is written for are
      * waiting for it - often in the middle of an incident. Held back five

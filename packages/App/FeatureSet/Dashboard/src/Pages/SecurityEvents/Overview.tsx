@@ -12,6 +12,9 @@ import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
 import RiskiestEntities from "../../Components/SecurityOverview/RiskiestEntities";
+import SecurityAiOverviewBar, {
+  isSecurityAiOverviewBarShown,
+} from "../../Components/SecurityOverview/SecurityAiOverviewBar";
 import SecurityGettingStarted, {
   forgetSecurityGetStartedDismissed,
   isSecurityGetStartedDismissed,
@@ -580,6 +583,19 @@ const SecurityOverviewPage: FunctionComponent<
                   />,
                 ]}
               </EventStatBar>
+
+              {/*
+               * How OneUptime AI worked the cases (#10352), drawn as the case
+               * figures are, once it worked or asked about one in the window.
+               */}
+              {isSecurityAiOverviewBarShown(overview.aiMeasures) ? (
+                <SecurityAiOverviewBar
+                  measures={overview.aiMeasures}
+                  caseWindowInDays={overview.caseWindowInDays}
+                />
+              ) : (
+                <></>
+              )}
 
               {/*
                * Rows of cards (CardGrid): every card fills its cell, so each row

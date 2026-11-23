@@ -31,6 +31,8 @@ Um critério que corresponde mas não altera nenhum status ainda decide a verifi
 
 > [!NOTE]
 > Um monitor que abre um incidente ou alerta por host, contêiner, disco ou interface julga todos os critérios a cada verificação, de modo que dois hosts podem corresponder a dois critérios diferentes ao mesmo tempo. É um monitor cuja consulta tem um **Agrupar Por**, como um monitor de métricas ou de logs, ou um critério que indica `*` para cada disco ou interface. Um monitor de requisições recebidas que agrupa incidentes por um campo do payload ainda para na primeira correspondência.
+>
+> Um monitor assim ainda tem um único status, definido pelo primeiro critério que corresponde. Um critério que apenas o traz de volta ao seu **Status Padrão do Monitor**, sem abrir incidente nem alerta, espera pelos hosts que atenderam a um critério que define outro status: corresponde quando cada um deles o atende, faça o que fizerem os outros hosts. Até lá, o monitor mantém seu status, mesmo quando nenhum critério corresponde, enquanto os incidentes e alertas de cada host continuam se resolvendo cada um por conta própria.
 
 ## O que um critério contém
 

@@ -51,6 +51,12 @@ export enum SecurityCaseFeedEventType {
   ResponseTarget = "ResponseTarget",
   // A Response Plan step OneUptime saw done stopped holding (SecurityCaseStepCheckRunner).
   StepCheck = "StepCheck",
+  /*
+   * OneUptime AI working the case (#10352): it took the case, marked a step
+   * done, left one for a person, asked a person, closed the case with its
+   * report, or handed the case to people.
+   */
+  AiResponse = "AiResponse",
 }
 
 /*

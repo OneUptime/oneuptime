@@ -27,6 +27,37 @@ import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlayb
 import SecurityPlaybookRunStatus, {
   isFinishedSecurityPlaybookRunStatus,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import {
+  SECURITY_CASE_AI_AREA_COPY,
+  SECURITY_CASE_AI_MODE_LABELS,
+  SECURITY_CASE_AI_OFF_MEANING,
+  SecurityCaseAiLimitsCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/AISettings/SecurityCaseAiLimitsCopy";
+import {
+  SECURITY_CASE_AI_RESPONSE_STAGE_COPY,
+  SecurityCaseAiResponseCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/AiResponse/SecurityCaseAiResponseCopy";
+import { SecurityCaseAiResponseStage } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/AiResponse/SecurityCaseAiResponseModel";
+import { UPDATES_COPY } from "../../../FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleUpdatesCopy";
+import {
+  SECURITY_CASE_AI_ACTIONS_ON_ITS_OWN_PER_HOUR,
+  SECURITY_CASE_AI_ALWAYS_ASKS,
+  SECURITY_CASE_AI_AREAS,
+  SECURITY_CASE_AI_BLOCK_DURATION,
+  SECURITY_CASE_AI_DEFAULT_MODES,
+  SECURITY_CASE_AI_MODE_COLUMNS,
+  SECURITY_CASE_AI_QUIET_WINDOW_HOURS,
+  SECURITY_CASE_HAND_OFFS_TOLD_NOBODY,
+  SecurityCaseAiActionKind,
+  SecurityCaseAiActionReason,
+  SecurityCaseAiArea,
+  SecurityCaseAiMode,
+  SecurityCaseHandOffReason,
+} from "Common/Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_AI_ACTION_REASON_SENTENCES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
+import { SecurityBlockDuration } from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { NotificationRuleUpdateKind } from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -83,6 +114,10 @@ function section(markdown: string, heading: string): string {
   return lines
     .slice(start.line, next ? next.line - 1 : lines.length)
     .join("\n");
+}
+
+function sectionOf(heading: string): string {
+  return section(englishPage(), heading);
 }
 
 function rowsOf(heading: string): Array<Array<string>> {
@@ -227,7 +262,10 @@ describe("OneUptime AI in Security docs", () => {
           return [definition.column, definition.title];
         },
       ),
-    ).toEqual([["enableAutomaticSecurityCaseTriage", "Triage new cases"]]);
+    ).toEqual([
+      ["enableAutomaticSecurityCaseTriage", "Triage new cases"],
+      ["enableAutomaticSecurityCaseResponse", "Work cases end to end"],
+    ]);
     expect(page).toContain(
       "Open **Products → Security Events → AI → Settings** and turn on **Triage new cases**",
     );
@@ -457,5 +495,268 @@ describe("OneUptime AI in Security docs", () => {
       flat(source("Common/Server/Utils/AI/Security/SecurityCaseTriage.ts")),
     ).toContain('return { started: false, code: "already_triaging" };');
     expect(page).toContain("A case has one triage at a time");
+  });
+  it("turns working cases on beside triage, on for new projects and off for a project created before", () => {
+    const projectService: string = source(
+      "Common/Server/Services/ProjectService.ts",
+    );
+    const defaults: string = projectService.slice(
+      projectService.indexOf("export const NEW_PROJECT_AI_DEFAULT_COLUMNS"),
+    );
+
+    expect(defaults.slice(0, defaults.indexOf("];"))).toContain(
+      '"enableAutomaticSecurityCaseResponse"',
+    );
+    expect(
+      new Project().getTableColumnMetadata(
+        "enableAutomaticSecurityCaseResponse",
+      ).defaultValue,
+    ).toBe(false);
+    expect(
+      new Project().getColumnAccessControlFor(
+        "enableAutomaticSecurityCaseResponse",
+      )?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+
+    const section: string = flat(sectionOf("Work a case end to end"));
+
+    expect(section).toContain(
+      "On the same page, turn on **Work cases end to end**: OneUptime AI then takes each case its triage reads as Likely Malicious and works it, within what you allow under **What OneUptime AI may do on a case**. New projects start with it on; a project created before keeps it off until someone turns it on. Project Owner and Project Admin can change it.",
+    );
+    expect(SecurityCaseAiLimitsCopy.cardTitle).toBe(
+      "What OneUptime AI may do on a case",
+    );
+  });
+
+  it("says when Respond with AI is not offered, as the start turns it down", () => {
+    const starter: string = flat(
+      source(
+        "Common/Server/Utils/AI/Security/Response/SecurityCaseResponse.ts",
+      ),
+    );
+
+    for (const code of ["inconclusive", "steering_text", "highest_priority"]) {
+      expect(starter).toContain(`return "${code}";`);
+    }
+
+    // The switch is the project's: with it off, nobody's Respond with AI starts a run.
+    expect(starter).toContain(
+      'if (!limits.isOn) { return "response_disabled"; }',
+    );
+    expect(SecurityCaseAiResponseCopy.respondButton).toBe("Respond with AI");
+    expect(flat(sectionOf("Work a case end to end"))).toContain(
+      "It is not offered on a case whose triage was Inconclusive, whose data reads like instructions to an AI, or that is at your highest priority: those are a person's.",
+    );
+  });
+
+  it("names every row of What OneUptime AI may do on a case, and where new projects start, as the card and the columns have them", () => {
+    const rows: Array<Array<string>> = rowsOf(
+      "What OneUptime AI may do on a case",
+    );
+    const project: Project = new Project();
+
+    expect(
+      rows.map((row: Array<string>): [string, string] => {
+        return [row[0] as string, row[2] as string];
+      }),
+    ).toEqual(
+      SECURITY_CASE_AI_AREAS.map(
+        (area: SecurityCaseAiArea): [string, string] => {
+          return [
+            `**${SECURITY_CASE_AI_AREA_COPY[area].title}**`,
+            SECURITY_CASE_AI_MODE_LABELS[SECURITY_CASE_AI_DEFAULT_MODES[area]],
+          ];
+        },
+      ),
+    );
+
+    // Each column starts where the table says.
+    for (const area of SECURITY_CASE_AI_AREAS) {
+      expect(
+        project.getTableColumnMetadata(SECURITY_CASE_AI_MODE_COLUMNS[area])
+          .defaultValue,
+      ).toBe(SECURITY_CASE_AI_DEFAULT_MODES[area]);
+    }
+  });
+
+  it("says what each of the three choices means, in the card's words", () => {
+    const section: string = flat(
+      sectionOf("What OneUptime AI may do on a case"),
+    );
+
+    expect(section).toContain(
+      `- **${SECURITY_CASE_AI_MODE_LABELS[SecurityCaseAiMode.Off]}**: ${SECURITY_CASE_AI_OFF_MEANING}`,
+    );
+    expect(section).toContain(
+      `- **${SECURITY_CASE_AI_MODE_LABELS[SecurityCaseAiMode.Ask]}**: it asks a person`,
+    );
+    expect(section).toContain(
+      `- **${SECURITY_CASE_AI_MODE_LABELS[SecurityCaseAiMode.OnItsOwn]}**: it does it without asking`,
+    );
+    expect(section).toContain(
+      `**${SecurityCaseAiLimitsCopy.edgeConfirmButton}** is a Security Admin's confirmation`,
+    );
+    // Who may change a row: the columns' own update list.
+    for (const area of SECURITY_CASE_AI_AREAS) {
+      expect(
+        new Project().getColumnAccessControlFor(
+          SECURITY_CASE_AI_MODE_COLUMNS[area],
+        )?.update,
+      ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
+    }
+  });
+
+  it("states the limits no setting goes past, as the code sets them", () => {
+    const section: string = flat(
+      sectionOf("What OneUptime AI may do on a case"),
+    );
+
+    expect(SECURITY_CASE_AI_ACTIONS_ON_ITS_OWN_PER_HOUR).toBe(10);
+    expect(section).toContain(
+      "takes at most 10 actions on its own an hour, across all your cases, and then hands the next case to people;",
+    );
+    expect(SECURITY_CASE_AI_BLOCK_DURATION).toBe(SecurityBlockDuration.OneDay);
+    expect(section).toContain("- blocks for 24 hours at most;");
+    expect(SECURITY_CASE_AI_ALWAYS_ASKS).toEqual([
+      SecurityCaseAiActionKind.DeclareIncident,
+      SecurityCaseAiActionKind.OfferRuleException,
+    ]);
+    expect(section).toContain(
+      "- always asks before it declares an incident or adds a rule exception;",
+    );
+    expect(SECURITY_CASE_AI_QUIET_WINDOW_HOURS).toBe(24);
+    expect(flat(sectionOf("What it does"))).toContain(
+      "the case's detection has been quiet for 24 hours",
+    );
+  });
+
+  it("names the card's stages and buttons as the card draws them", () => {
+    const rows: Array<Array<string>> = rowsOf("Its log on the case");
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return boldSpans(row[0] as string)[0] as string;
+      }),
+    ).toEqual(
+      [
+        SecurityCaseAiResponseStage.NotWorking,
+        SecurityCaseAiResponseStage.Working,
+        SecurityCaseAiResponseStage.WaitingForPeople,
+        SecurityCaseAiResponseStage.HandedToPeople,
+        SecurityCaseAiResponseStage.Finished,
+      ].map((stage: SecurityCaseAiResponseStage): string => {
+        return SECURITY_CASE_AI_RESPONSE_STAGE_COPY[stage].title;
+      }),
+    );
+
+    const section: string = flat(sectionOf("Its log on the case"));
+
+    for (const word of [
+      SecurityCaseAiResponseCopy.sectionTitle,
+      SecurityCaseAiResponseCopy.respondButton,
+      SecurityCaseAiResponseCopy.takeOverButton,
+      SecurityCaseAiResponseCopy.approveButton,
+      SecurityCaseAiResponseCopy.declineButton,
+      SecurityCaseAiResponseCopy.closingReportTitle,
+    ]) {
+      expect(section).toContain(`**${word}**`);
+    }
+
+    // The reasons it quotes are the log's own.
+    for (const reason of [
+      SecurityCaseAiActionReason.OnItsOwn,
+      SecurityCaseAiActionReason.SettingAsks,
+      SecurityCaseAiActionReason.NoWayToDoIt,
+    ]) {
+      expect(section).toContain(
+        `**${SECURITY_CASE_AI_ACTION_REASON_SENTENCES[reason]}**`,
+      );
+    }
+
+    expect(
+      SecurityCaseAiResponseCopy.trackRecord.other
+        .replace("{{held}}", "14")
+        .replace("{{count}}", "15"),
+    ).toBe("It held on 14 of 15 similar cases.");
+    expect(section).toContain('"It held on 14 of 15 similar cases."');
+  });
+
+  it("lists every reason OneUptime AI hands a case to people, and Take Over tells nobody", () => {
+    // Each reason, by the words the page gives it: a new reason fails to compile here.
+    const said: Record<SecurityCaseHandOffReason, string> = {
+      [SecurityCaseHandOffReason.SteeringText]:
+        "some of the case's data reads like instructions to an AI",
+      [SecurityCaseHandOffReason.HighestPriority]:
+        "the case is at your highest priority",
+      [SecurityCaseHandOffReason.ProtectedTarget]:
+        "what its next step acts on is protected",
+      [SecurityCaseHandOffReason.BreakerTripped]:
+        "it has acted on its own as often as it may in an hour",
+      [SecurityCaseHandOffReason.AiOff]:
+        "AI is off for the project or for security cases",
+      [SecurityCaseHandOffReason.NoLlmProvider]: "there is no LLM provider",
+      [SecurityCaseHandOffReason.OutOfCredits]:
+        "the project is out of AI credits or reached its daily AI limit",
+      [SecurityCaseHandOffReason.NotLikelyMalicious]:
+        "its triage could not tell whether the case is real",
+      [SecurityCaseHandOffReason.DidNotHold]: "a step it took does not hold",
+      [SecurityCaseHandOffReason.StepFailed]:
+        "a step it started did not finish",
+      [SecurityCaseHandOffReason.Declined]:
+        "a person turned down or undid a step it took",
+      [SecurityCaseHandOffReason.CannotTell]: "it cannot tell what to do next",
+      [SecurityCaseHandOffReason.OnlyPeopleCanDo]:
+        "everything left on the case is a person's to do",
+      [SecurityCaseHandOffReason.TakenOver]:
+        "**Take Over** hands the case over without telling anyone",
+    };
+    const section: string = flat(sectionOf("When it hands a case to people"));
+
+    for (const words of Object.values(said)) {
+      expect(section).toContain(words);
+    }
+
+    expect(SECURITY_CASE_HAND_OFFS_TOLD_NOBODY).toEqual([
+      SecurityCaseHandOffReason.TakenOver,
+    ]);
+  });
+
+  it("names where people hear of a hand-off as their settings and the workspace rules name it", () => {
+    const settings: string = flat(
+      source(`${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`),
+    );
+    const section: string = flat(sectionOf("When it hands a case to people"));
+
+    expect(settings).toContain(
+      'label: "OneUptime AI handed a security case to people",',
+    );
+    expect(section).toContain(
+      "**OneUptime AI handed a security case to people**, under **User Settings → Notification Settings**",
+    );
+    expect(
+      UPDATES_COPY[NotificationRuleEventType.SecurityCase].kinds[
+        NotificationRuleUpdateKind.AI
+      ]?.title,
+    ).toBe("Handed to people by OneUptime AI");
+    expect(section).toContain("under **Handed to people by OneUptime AI**.");
+  });
+
+  it("names the Overview's figures as the Overview draws them", () => {
+    const bar: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityOverview/SecurityAiOverviewBar.tsx`,
+      ),
+    );
+    const section: string = flat(sectionOf("How it is measured"));
+
+    for (const label of [
+      "Resolved by OneUptime AI",
+      "Time to Contain with AI",
+      "Time to Close with AI",
+      "Approvals Asked",
+    ]) {
+      expect(bar).toContain(`translator.translateText("${label}")`);
+      expect(section).toContain(`**${label}**`);
+    }
   });
 });

@@ -1,4 +1,3 @@
-import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
@@ -29,6 +28,9 @@ import ScrubIpAddress from "Common/Utils/Telemetry/ScrubIpAddress";
  * found by the rule's own function - so a search for anything else, or for
  * a private address, sends nothing. It never claims what the server did not
  * say: no answer yet, a failed answer or a newer search reads as no note.
+ *
+ * Free of React, so the App's tests, which run with no React installed,
+ * load it as the explorers do: the explorers' hook is useHashedAddressSearch.
  */
 
 // The texts worth asking about: those holding an address, each once, as many and as long as one question takes.
@@ -101,55 +103,3 @@ export const askHashedAddressSearch: (data: {
 
   return readHashedAddressSearchAnswer(response.data);
 };
-
-/*
- * The addresses a search also matched by their hash token, for its note:
- * empty until the server answers, and whenever it named none.
- */
-const useHashedAddressSearch: (data: {
-  signal: HashedAddressSignal;
-  texts: ReadonlyArray<string>;
-}) => Array<string> = (data: {
-  signal: HashedAddressSignal;
-  texts: ReadonlyArray<string>;
-}): Array<string> => {
-  const question: Array<string> = useMemo((): Array<string> => {
-    return getHashedAddressSearchQuestion(data.texts);
-  }, [JSON.stringify(data.texts)]);
-
-  const questionKey: string = `${data.signal}:${JSON.stringify(question)}`;
-  const [answer, setAnswer] = useState<{
-    key: string;
-    addresses: Array<string>;
-  } | null>(null);
-  const latestKey: MutableRefObject<string> = useRef<string>(questionKey);
-
-  latestKey.current = questionKey;
-
-  useEffect((): void => {
-    if (question.length === 0) {
-      return;
-    }
-
-    askHashedAddressSearch({ signal: data.signal, texts: question })
-      .then((addresses: Array<string>): void => {
-        // A newer search's question replaced this one: its answer is not this search's.
-        if (latestKey.current === questionKey) {
-          setAnswer({ key: questionKey, addresses });
-        }
-      })
-      .catch((): void => {
-        if (latestKey.current === questionKey) {
-          setAnswer({ key: questionKey, addresses: [] });
-        }
-      });
-  }, [questionKey]);
-
-  if (question.length === 0 || !answer || answer.key !== questionKey) {
-    return [];
-  }
-
-  return answer.addresses;
-};
-
-export default useHashedAddressSearch;

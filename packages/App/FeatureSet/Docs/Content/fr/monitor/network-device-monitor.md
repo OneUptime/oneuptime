@@ -67,7 +67,7 @@ Le menu Réseau garde en vue ce que vous ouvrez tous les jours : **Vue d'ensembl
 | Section | Pages |
 | --- | --- |
 | **Topologie** | **Topologie de l'équipement**, **Équipements découverts**, **Matrice de latence**, **Liens du site**, **Liens d'équipements** |
-| **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de nommage**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens** |
+| **Règles** | **Règles d'import automatique**, **Règles d'attribution des sites**, **Règles de nommage**, **Règles de propriétaire**, **Règles d'étiquettes**, **Règles de liens**, **Journaux d'audit** |
 | **Paramètres** | **Politiques d'alerte**, **Identifiants SNMP**, **Rôles d'équipement**, **Types de site**, **Noms d'adresse**, **Modèles de collecte d'OID** |
 | **Avancé** | **Parcours SNMP**, **Appareils archivés** |
 

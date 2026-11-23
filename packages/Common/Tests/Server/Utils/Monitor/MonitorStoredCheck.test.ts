@@ -174,6 +174,53 @@ describe("a record about one series of a grouped metric monitor", () => {
     }
   });
 
+  test("leaves out the evaluation's list of every series it read (#10062), which a record of one series does not need", () => {
+    const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
+    const withTable: DataToProcess = {
+      ...fleet.check,
+      evaluationSummary: {
+        evaluatedAt: new Date(),
+        criteriaResults: [],
+        events: [],
+        series: {
+          count: 10,
+          rows: [
+            {
+              fingerprint: fingerprintOf(3),
+              labels: seriesLabels(3),
+              valueKind: "Metric",
+              metCriteriaIds: [],
+            },
+          ],
+        },
+      },
+    } as unknown as DataToProcess;
+
+    const scoped: JSONObject = stored({
+      check: withTable,
+      seriesFingerprint: fingerprintOf(3),
+    });
+    const summary: JSONObject = scoped["evaluationSummary"] as JSONObject;
+
+    expect(summary).toBeDefined();
+    expect(summary["series"]).toBeUndefined();
+    expect(summary["criteriaResults"]).toEqual([]);
+
+    // The whole monitor's record - a change of its status - keeps it.
+    const whole: JSONObject = stored({ check: withTable });
+    expect(
+      ((whole["evaluationSummary"] as JSONObject)["series"] as JSONObject)[
+        "count"
+      ],
+    ).toBe(10);
+
+    // The check handed in is left as it was.
+    expect(
+      (withTable as unknown as { evaluationSummary: JSONObject })
+        .evaluationSummary["series"],
+    ).toBeDefined();
+  });
+
   test("never changes the check it was handed: the next record still reads it", () => {
     const fleet: GroupedMetricCheck = groupedMetricCheck({ seriesCount: 10 });
     const before: string = JSON.stringify(fleet.check);

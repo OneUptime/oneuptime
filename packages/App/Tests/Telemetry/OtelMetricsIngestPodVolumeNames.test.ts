@@ -277,7 +277,9 @@ describe("a claim's volume, named the semantic conventions way, at ingest", () =
     for (const row of rows) {
       const attributes: string = JSON.stringify(row["attributes"]);
       // The names every reader of a volume reads...
-      expect(attributes).toContain('"resource.k8s.volume.type":"persistentVolumeClaim"');
+      expect(attributes).toContain(
+        '"resource.k8s.volume.type":"persistentVolumeClaim"',
+      );
       expect(attributes).toContain('"resource.k8s.volume.name":"data"');
       expect(attributes).toContain(
         '"resource.k8s.persistentvolumeclaim.name":"data-web4"',
@@ -351,12 +353,16 @@ describe("a generic ephemeral volume, named the semantic conventions way, at ing
     expect(writtenClaims(spies)[0]!.name).toBe("web4-scratch");
     for (const row of storedVolumeRows(spies)) {
       const attributes: string = JSON.stringify(row["attributes"]);
-      expect(attributes).toContain('"resource.k8s.volume.type":"persistentVolumeClaim"');
+      expect(attributes).toContain(
+        '"resource.k8s.volume.type":"persistentVolumeClaim"',
+      );
       expect(attributes).toContain(
         '"resource.k8s.persistentvolumeclaim.name":"web4-scratch"',
       );
       // What the collector said of the pod's spec stays as it said it.
-      expect(attributes).toContain('"resource.k8s.pod.volume.type":"ephemeral"');
+      expect(attributes).toContain(
+        '"resource.k8s.pod.volume.type":"ephemeral"',
+      );
     }
   });
 

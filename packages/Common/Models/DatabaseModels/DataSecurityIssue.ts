@@ -1,5 +1,6 @@
 import ServerOwned from "../../Types/Database/ServerOwned";
 import Alert from "./Alert";
+import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataStore from "./DataStore";
 import Incident from "./Incident";
 import Project from "./Project";
@@ -679,6 +680,52 @@ export default class DataSecurityIssue extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incidentId?: ObjectID = undefined;
+
+  /*
+   * The group of issues of the same check whose stores share what made
+   * them (#10370), so the cause is fixed once. Written by the grouping;
+   * kept once the issue resolves, so the group says how many are fixed.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "dataSecurityIssueGroupId",
+    type: TableColumnType.Entity,
+    modelType: DataSecurityIssueGroup,
+    title: "Data Security Issue Group",
+    description:
+      "Relation to the group of issues one mistake made that this issue is in, if any.",
+  })
+  @ManyToOne(
+    () => {
+      return DataSecurityIssueGroup;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "dataSecurityIssueGroupId" })
+  public dataSecurityIssueGroup?: DataSecurityIssueGroup = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Data Security Issue Group ID",
+    description:
+      "The group of issues of the same check whose stores share what made them, so the cause is fixed once: one pull request, or one approval. Empty for an issue in no group.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public dataSecurityIssueGroupId?: ObjectID = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

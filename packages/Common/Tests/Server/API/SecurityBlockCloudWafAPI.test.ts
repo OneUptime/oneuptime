@@ -66,6 +66,7 @@ jest.mock("../../../Server/Utils/Logger");
 import SecurityBlockCloudWafAPI, {
   CLOUD_WAF_REFUSED_MESSAGE,
   SECURITY_BLOCK_CLOUD_WAF_CANDIDATES_ROUTE,
+  SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
 } from "../../../Server/API/SecurityBlockCloudWafAPI";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import CloudConnectionService from "../../../Server/Services/CloudConnectionService";
@@ -99,6 +100,7 @@ import {
   SecurityBlockCloudWafLeftKind,
   SecurityBlockCloudWafStatus,
 } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
+import { SecurityBlockCloudWafKind } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWafKind";
 import { customDomainCaller } from "./CustomDomainCallers";
 import {
   InMemoryTable,
@@ -609,6 +611,7 @@ describe("changing and removing one", () => {
           _id: PICKED_ID,
           status: SecurityBlockCloudWafStatus.WaitingForRule,
           statusMessage: "prod-alb has no rule that blocks the sets yet.",
+          statusReason: null,
           ruleDetails: null,
           checkedAt: "2026-11-21T10:00:00.000Z",
         },
@@ -655,7 +658,7 @@ describe("changing and removing one", () => {
       params: { cloudWafId: "not-an-id" },
     });
 
-    expect(refusal?.message).toBe("A valid web ACL ID is required.");
+    expect(refusal?.message).toBe("A valid WAF ID is required.");
   });
 });
 
@@ -696,22 +699,44 @@ describe("the web ACLs that may be picked", () => {
     ]);
     expect(byName.get("prod-alb")).toEqual({
       cloudResourceId: WEB_ACL_ID,
+      cloudProvider: CloudProvider.AWS,
+      kind: SecurityBlockCloudWafKind.AwsWebAcl,
       name: "prod-alb",
       region: "eu-west-1",
       accountId: "123456789012",
       isCloudFront: false,
+      cloudArmorPolicyType: null,
+      // Where it can read the client's address, the address that connected first.
+      clientAddresses: [
+        SecurityBlockClientAddress.SourceIp,
+        SecurityBlockClientAddress.XForwardedFor,
+        SecurityBlockClientAddress.CfConnectingIp,
+        SecurityBlockClientAddress.TrueClientIp,
+      ],
       connectionId: CONNECTION_ID,
       connectionName: "Production",
       isBlockingOn: true,
       isListed: true,
+      refusal: "",
+      refusalReason: null,
       isPicked: true,
     });
     expect(byName.get("metrics-only")!["isListed"]).toBe(false);
     expect(byName.get("staging-alb")!["isBlockingOn"]).toBe(false);
     expect(byName.get("staging-alb")!["isPicked"]).toBe(false);
     expect(answer["connections"]).toEqual([
-      { _id: CONNECTION_ID, name: "Production", isBlockingOn: true },
-      { _id: OFF_CONNECTION_ID, name: "Staging", isBlockingOn: false },
+      {
+        _id: CONNECTION_ID,
+        name: "Production",
+        provider: CloudProvider.AWS,
+        isBlockingOn: true,
+      },
+      {
+        _id: OFF_CONNECTION_ID,
+        name: "Staging",
+        provider: CloudProvider.AWS,
+        isBlockingOn: false,
+      },
     ]);
   });
 
@@ -728,4 +753,363 @@ describe("the web ACLs that may be picked", () => {
       expect(refusal?.message).toBe(CLOUD_WAF_REFUSED_MESSAGE);
     },
   );
+});
+
+describe("whether a connection may write a policy, and Put It Back", () => {
+  const RESOURCE: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6a09";
+
+  test.each(WRITERS)(
+    "a %s asks whether the connection may write a policy, and gets each permission and the lines that grant what is missing",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const checkAccess: MockedFn = jest
+        .spyOn(SecurityBlockCloudWafs, "checkAccess")
+        .mockResolvedValue({
+          checks: [
+            {
+              permission:
+                "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+              isGranted: false,
+            },
+          ],
+          isGranted: false,
+          command: "az role assignment create ...",
+          shell: "azure",
+        } as never) as unknown as MockedFn;
+
+      const { refusal } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body: { cloudResourceId: RESOURCE },
+      });
+
+      expect(refusal).toBeNull();
+
+      const asked: { projectId: ObjectID; cloudResourceId: ObjectID } =
+        checkAccess.mock.calls[0]![0] as {
+          projectId: ObjectID;
+          cloudResourceId: ObjectID;
+        };
+
+      // The caller's own project, never one the body names.
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.cloudResourceId.toString()).toBe(RESOURCE);
+      expect(answered()).toEqual({
+        checks: [
+          {
+            permission:
+              "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+            isGranted: false,
+          },
+        ],
+        isGranted: false,
+        command: "az role assignment create ...",
+        shell: "azure",
+      });
+    },
+  );
+
+  test("a policy that is not named is refused before anything is asked", async () => {
+    props = caller(Permission.ProjectAdmin);
+
+    const checkAccess: MockedFn = jest.spyOn(
+      SecurityBlockCloudWafs,
+      "checkAccess",
+    ) as unknown as MockedFn;
+
+    for (const body of [{}, { cloudResourceId: "not-an-id" }]) {
+      const { refusal } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body,
+      });
+
+      expect(refusal?.message).toBe("Pick the policy to check.");
+    }
+
+    expect(checkAccess).not.toHaveBeenCalled();
+  });
+
+  test.each(WRITERS)(
+    "a %s puts OneUptime's rules back",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const back: SecurityBlockCloudWaf = new SecurityBlockCloudWaf();
+      back._id = PICKED_ID;
+      back.status = SecurityBlockCloudWafStatus.Enforcing;
+      back.checkedAt = new Date("2026-11-22T10:00:00.000Z");
+
+      const putBack: MockedFn = jest
+        .spyOn(SecurityBlockCloudWafs, "putBack")
+        .mockResolvedValue(back) as unknown as MockedFn;
+
+      const { refusal } = await call({
+        method: "post",
+        uri: "/security-block-cloud-waf/:cloudWafId/put-back",
+        params: { cloudWafId: PICKED_ID },
+      });
+
+      expect(refusal).toBeNull();
+      expect(
+        (
+          putBack.mock.calls[0]![0] as { projectId: ObjectID }
+        ).projectId.toString(),
+      ).toBe(PROJECT_ID.toString());
+      expect(answered()["cloudWaf"]).toEqual({
+        _id: PICKED_ID,
+        status: SecurityBlockCloudWafStatus.Enforcing,
+        statusMessage: null,
+        statusReason: null,
+        ruleDetails: null,
+        checkedAt: "2026-11-22T10:00:00.000Z",
+      });
+    },
+  );
+
+  test.each(NOT_WRITERS)(
+    "a %s may neither ask nor put back",
+    async (_who: string, permission: Permission) => {
+      props = caller(permission);
+
+      const checkAccess: MockedFn = jest.spyOn(
+        SecurityBlockCloudWafs,
+        "checkAccess",
+      ) as unknown as MockedFn;
+      const putBack: MockedFn = jest.spyOn(
+        SecurityBlockCloudWafs,
+        "putBack",
+      ) as unknown as MockedFn;
+
+      const asked: { refusal: Exception | null } = await call({
+        method: "post",
+        uri: SECURITY_BLOCK_CLOUD_WAF_CHECK_ACCESS_ROUTE,
+        body: { cloudResourceId: RESOURCE },
+      });
+      const backed: { refusal: Exception | null } = await call({
+        method: "post",
+        uri: "/security-block-cloud-waf/:cloudWafId/put-back",
+        params: { cloudWafId: PICKED_ID },
+      });
+
+      for (const { refusal } of [asked, backed]) {
+        expect(refusal).toBeInstanceOf(NotAuthorizedException);
+        expect(refusal?.message).toBe(CLOUD_WAF_REFUSED_MESSAGE);
+      }
+
+      expect(checkAccess).not.toHaveBeenCalled();
+      expect(putBack).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("picking an Azure WAF or Cloud Armor policy", () => {
+  const SUBSCRIPTION: string = "d0cfe6b2-9ac0-4464-9919-dccaee2e48c0";
+  const FRONT_DOOR_ID: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6a21";
+  const ARMOR_ID: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6a22";
+  const NETWORK_ARMOR_ID: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6a23";
+  const AZURE_CONNECTION_ID: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6c21";
+  const GCP_CONNECTION_ID: string = "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6c22";
+  const FRONT_DOOR_POLICY: string = `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-edge/providers/Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/edgewaf`;
+  let granted: boolean;
+  let checkAccess: MockedFn;
+
+  beforeEach(() => {
+    granted = true;
+    useInMemoryTable(
+      CloudResourceService as unknown as DatabaseService<BaseModel>,
+      [
+        {
+          _id: FRONT_DOOR_ID,
+          projectId: PROJECT_ID.toString(),
+          name: "edgewaf",
+          cloudProvider: CloudProvider.Azure,
+          cloudResourceType:
+            "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+          // As Resource Graph answers it: lowered.
+          providerResourceId: FRONT_DOOR_POLICY.toLowerCase(),
+          cloudRegion: "global",
+          cloudAccountId: SUBSCRIPTION,
+          cloudConnectionId: AZURE_CONNECTION_ID,
+          cloudProperties: {},
+          isArchived: false,
+          version: 1,
+        },
+        {
+          _id: ARMOR_ID,
+          projectId: PROJECT_ID.toString(),
+          name: "prod-lb",
+          cloudProvider: CloudProvider.GCP,
+          cloudResourceType: "compute.googleapis.com/SecurityPolicy",
+          providerResourceId:
+            "//compute.googleapis.com/projects/acme-prod/global/securityPolicies/prod-lb",
+          cloudRegion: "global",
+          cloudAccountId: "acme-prod",
+          cloudConnectionId: GCP_CONNECTION_ID,
+          cloudProperties: { type: "CLOUD_ARMOR" },
+          isArchived: false,
+          version: 1,
+        },
+        {
+          _id: NETWORK_ARMOR_ID,
+          projectId: PROJECT_ID.toString(),
+          name: "nlb-edge",
+          cloudProvider: CloudProvider.GCP,
+          cloudResourceType: "compute.googleapis.com/SecurityPolicy",
+          providerResourceId:
+            "//compute.googleapis.com/projects/acme-prod/regions/europe-west1/securityPolicies/nlb-edge",
+          cloudRegion: "europe-west1",
+          cloudAccountId: "acme-prod",
+          cloudConnectionId: GCP_CONNECTION_ID,
+          cloudProperties: { type: "CLOUD_ARMOR_NETWORK" },
+          isArchived: false,
+          version: 1,
+        },
+      ],
+    );
+    useInMemoryTable(
+      CloudConnectionService as unknown as DatabaseService<BaseModel>,
+      [
+        {
+          _id: AZURE_CONNECTION_ID,
+          projectId: PROJECT_ID.toString(),
+          name: "Production Azure",
+          provider: CloudProvider.Azure,
+          config: { authMethod: "azure-client-secret", wafBlocklist: "rule" },
+          version: 1,
+        },
+        {
+          _id: GCP_CONNECTION_ID,
+          projectId: PROJECT_ID.toString(),
+          name: "Production GCP",
+          provider: CloudProvider.GCP,
+          config: {
+            authMethod: "gcp-service-account-key",
+            wafBlocklist: "rule",
+          },
+          version: 1,
+        },
+      ],
+    );
+    checkAccess = jest
+      .spyOn(SecurityBlockCloudWafs, "checkAccess")
+      .mockImplementation((async () => {
+        return {
+          checks: [
+            {
+              permission:
+                "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+              isGranted: granted,
+            },
+          ],
+          isGranted: granted,
+          command: "",
+          shell: "azure",
+        };
+      }) as never) as unknown as MockedFn;
+  });
+
+  test("an Azure WAF policy is picked once its connection may write it: its id and cloud from the inventory, the address that connected unless told otherwise", async () => {
+    props = caller(Permission.SecurityAdmin);
+
+    const { refusal } = await pick(FRONT_DOOR_ID, {
+      clientAddress: SecurityBlockClientAddress.ForwardedClient,
+    });
+
+    expect(refusal).toBeNull();
+    expect(checkAccess).toHaveBeenCalledTimes(1);
+
+    const row: StoredRow = wafs.rows[0]!;
+
+    expect(row["cloudProvider"]).toBe(CloudProvider.Azure);
+    expect(String(row["wafId"]).toLowerCase()).toBe(
+      FRONT_DOOR_POLICY.toLowerCase(),
+    );
+    expect(row["name"]).toBe("edgewaf");
+    expect(row["clientAddress"]).toBe(
+      SecurityBlockClientAddress.ForwardedClient,
+    );
+  });
+
+  test("a policy its connection may not write yet is refused, naming what is missing", async () => {
+    props = caller(Permission.SecurityAdmin);
+    granted = false;
+
+    const { refusal } = await pick(FRONT_DOOR_ID);
+
+    expect(refusal?.message).toBe(
+      SECURITY_BLOCK_CLOUD_WAF_MESSAGES.noAccess({
+        name: "edgewaf",
+        permission:
+          "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies/write",
+      }),
+    );
+    expect(wafs.rows).toHaveLength(0);
+  });
+
+  test("a header only AWS WAF reads is not where an Azure WAF or Cloud Armor policy reads the client's address", async () => {
+    props = caller(Permission.SecurityAdmin);
+
+    for (const id of [FRONT_DOOR_ID, ARMOR_ID]) {
+      const { refusal } = await pick(id, {
+        clientAddress: SecurityBlockClientAddress.CfConnectingIp,
+      });
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+    }
+
+    expect(wafs.rows).toHaveLength(0);
+  });
+
+  test("a Cloud Armor policy is picked by its name, project and place", async () => {
+    props = caller(Permission.ProjectOwner);
+
+    const { refusal } = await pick(ARMOR_ID, {
+      clientAddress: SecurityBlockClientAddress.UserIp,
+    });
+
+    expect(refusal).toBeNull();
+
+    const row: StoredRow = wafs.rows[0]!;
+
+    expect(row["cloudProvider"]).toBe(CloudProvider.GCP);
+    expect(row["wafId"]).toBe(
+      "projects/acme-prod/global/securityPolicies/prod-lb",
+    );
+    expect(row["region"]).toBe("global");
+    expect(row["clientAddress"]).toBe(SecurityBlockClientAddress.UserIp);
+  });
+
+  test("a network edge security policy is refused, saying why, and listed with that reason in words a reader's language has", async () => {
+    props = caller(Permission.ProjectOwner);
+
+    const { refusal } = await pick(NETWORK_ARMOR_ID);
+
+    expect(refusal?.message).toBe(
+      SECURITY_BLOCK_CLOUD_WAF_MESSAGES.networkPolicy({ name: "nlb-edge" }),
+    );
+    expect(checkAccess).not.toHaveBeenCalled();
+
+    await call({
+      method: "post",
+      uri: SECURITY_BLOCK_CLOUD_WAF_CANDIDATES_ROUTE,
+    });
+
+    const network: JSONObject = (
+      answered()["candidates"] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["name"] === "nlb-edge";
+    })!;
+
+    expect(network["isListed"]).toBe(false);
+    expect(network["refusal"]).toBe(
+      SECURITY_BLOCK_CLOUD_WAF_MESSAGES.networkPolicy({ name: "nlb-edge" }),
+    );
+    expect(network["refusalReason"]).toEqual({
+      template:
+        "{{policy}} is a network edge security policy, whose rules match packets rather than requests, so OneUptime does not keep the blocklist in it. Pick a backend or edge security policy.",
+      values: { policy: "nlb-edge" },
+    });
+  });
 });

@@ -279,6 +279,8 @@ describe("CodeFixTaskTypeHelper", () => {
         CodeFixTaskType.ImproveLogging,
         CodeFixTaskType.ImproveTracing,
         CodeFixTaskType.FixFromIncident,
+        // The cause of a group of Data Security issues, fixed once (#10370).
+        CodeFixTaskType.FixInfrastructureCode,
       ]);
     });
 

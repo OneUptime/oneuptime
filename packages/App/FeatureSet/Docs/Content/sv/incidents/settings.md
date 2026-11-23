@@ -35,7 +35,7 @@ Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget a
 
 **Incidentstatus** och **Incidentallvar** beskrivs ingående i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan fortsätter från **Incidentmallar**. Formulär som låter folk utanför ditt team rapportera incidenter är en egen produkt: se [Formulär](/docs/forms/index). Verktyg som själva öppnar incidenter, som [Huntress](/docs/integrations/huntress), konfigureras som arbetsflöden.
 
-Fäll ut **Regler**, så får du åtta sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler** och **Påminnelseregler**. De beskrivs längre ner.
+Fäll ut **Regler**, så får du nio sidor till: **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **SLA-regler**, **Påminnelseregler** och **Granskningsloggar**: vem som skapade, ändrade eller tog bort någon av dessa regler, vad som ändrades och när, även borttagna regler. Reglerna beskrivs längre ner.
 
 ## Incidentmallar
 

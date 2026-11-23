@@ -1052,17 +1052,28 @@ describe("StartServer routes the gzip branch through this middleware", () => {
     "utf-8",
   );
 
+  /*
+   * The App's parsers (AppBodyParsers), which StartServer reads every body
+   * with, and a route that checks its key first after the key (#10702).
+   */
+  const parsersSource: string = fs.readFileSync(
+    path.join(__dirname, "../../../Server/Middleware/AppBodyParsers.ts"),
+    "utf-8",
+  );
+
   test("the gzip branch calls GzipRequestBodyMiddleware.parseBody, with the route's limit", () => {
-    expect(startServerSource).toContain(
+    expect(parsersSource).toContain(
       "GzipRequestBodyMiddleware.parseBody(req, res, next, limit)",
     );
     expect(startServerSource).toContain(
-      "const limit: RequestBodyLimit = getRequestBodyLimit(req.path);",
+      "AppBodyParsers.read(req, res, next, getRequestBodyLimit(req.path));",
     );
   });
 
   test("StartServer no longer inflates a request body itself", () => {
-    expect(startServerSource).not.toContain("zlib.gunzip(");
-    expect(startServerSource).not.toMatch(/^import zlib from "zlib";$/m);
+    for (const source of [startServerSource, parsersSource]) {
+      expect(source).not.toContain("zlib.gunzip(");
+      expect(source).not.toMatch(/^import zlib from "zlib";$/m);
+    }
   });
 });

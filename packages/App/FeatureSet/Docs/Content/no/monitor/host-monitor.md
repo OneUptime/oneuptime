@@ -229,6 +229,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | Hvor | Hva det viser for hver disk |
 | --- | --- |
 | Monitorens side **Målinger** | Én linje per disk, oppkalt etter diskens `mountpoint` og `device`. |
+| Monitorens side **Oversikt** | **Serier** viser hver disk den siste sjekken leste: siste verdi, kriteriene den oppfyller og den åpne hendelsen eller varselet. |
 | **Overvåkingslogger** | Kolonnen **Observert** teller seriene hver sjekk leste: én per disk. |
 | **Hendelser** og **Varsler** | Én per disk, som nevner diskens montering og enhet. |
 | Vertens tabell **Filsystemer** | Alle disker collectoren rapporterer, uansett hva monitorene dine overvåker. |
@@ -238,7 +239,7 @@ Hvert kriterium kontrolleres for hver disk:
 - Mens hendelsen til en disk er åpen, åpner kriteriet som åpnet den, ingen annen for den disken. En annen disk som oppfyller det, åpner sin egen.
 - En disk som oppfyller to kriterier, for eksempel ett over 98 % og ett over 90 %, får én hendelse, fra det første av dem i listen. Sett det strengeste først.
 - Hendelsen til en disk løses når den disken ikke lenger oppfyller kriteriet som åpnet den, uansett hva de andre diskene gjør.
-- Monitoren har én status, satt av det første kriteriet i listen som noen disk oppfyller. Når ingen disk oppfyller et kriterium som utløses, er én disk på eller under gjenopprettingsterskelen nok for kriteriet som gjenoppretter, så gjenopprettingsmarginen på 10 % gjelder ikke på en vert med en disk som aldri er nær full.
+- Monitoren har én status. Et kriterium som endrer den til en annen status, for eksempel **Offline**, setter den så snart én disk oppfyller det. Kriteriet som bringer monitoren tilbake til **Standard monitorstatus** venter på diskene som oppfylte et slikt kriterium, og samsvarer når hver av dem oppfyller det, uansett hva de andre diskene gjør. En disk som faller fra 96 % til 89 %, holder derfor monitoren **Offline** til den er på eller under 81 %, gjenopprettingsmarginen på 10 %, selv om hendelsen dens løses så snart den ikke lenger er over 90 %. **Serier** viser den disken som **Holder statusen**. En disk som ikke lenger rapporteres, holder ikke lenger statusen.
 
 For å overvåke bare noen av diskene åpner du **Avansert** og legger til et filter på `mountpoint` i **Filtrer etter attributter** for spørringen under **Velg målinger**: **er en av** diskene som skal overvåkes, eller **er ingen av** diskene som skal utelates. Behold **Grupper etter**, og skriv hver disk slik tabellen **Filsystemer** viser den, for eksempel `C:` eller `/var`. For å slutte å samle inn en disk helt, slik at den også forsvinner fra vertens sider, angir du `include_mount_points` eller `exclude_mount_points` i collectorens skraper `filesystem` ([Vertsmålinger](/docs/telemetry/host-otel-collector#vertsmålinger)).
 

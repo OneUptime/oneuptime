@@ -136,7 +136,7 @@ Source maps sparas i 90 dagar efter uppladdning och raderas sedan automatiskt. E
 ## Säkerhet
 
 - Maps laddas upp via en autentiserad slutpunkt och lagras i ditt OneUptime-projekt: de hämtas aldrig från din webbplats, så dolda source maps förblir dolda.
-- Det råa innehållet i en map (som innehåller din ursprungliga källkod när den byggs med `sourcesContent`) kan bara läsas tillbaka av Projektägare och Projektadministratörer och av alla med behörigheten **Read Telemetry Source Map**. Andra teammedlemmar ser bara de upplösta ramarna och de få kodraderna kring varje kraschplats i undantag som de redan har åtkomst till.
+- Det råa innehållet i en map (som innehåller din ursprungliga källkod när den byggs med `sourcesContent`) kan bara läsas tillbaka av Projektägare och Projektadministratörer, av alla som har Tjänster på [nivån Administratör](/docs/permissions/index#produktnivåer) (`ServiceAdmin`) och av alla med behörigheten **Read Telemetry Source Map**. Andra teammedlemmar ser bara de upplösta ramarna och de få kodraderna kring varje kraschplats i undantag som de redan har åtkomst till.
 - När en tjänst raderas raderas även dess source maps.
 
 ## Felsökning

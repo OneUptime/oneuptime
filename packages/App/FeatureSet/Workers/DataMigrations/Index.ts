@@ -146,6 +146,7 @@ import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillIncidentCallTranscriptSignInAccount from "./BackfillIncidentCallTranscriptSignInAccount";
 import BackfillSecurityCaseNextStepCheckAt from "./BackfillSecurityCaseNextStepCheckAt";
 import AddSecurityCaseStepRegressedNotificationSettingsForUsers from "./AddSecurityCaseStepRegressedNotificationSettingsForUsers";
+import AddSecurityCaseAiHandOffNotificationSettingsForUsers from "./AddSecurityCaseAiHandOffNotificationSettingsForUsers";
 import RequireTokenToAcknowledgeOnCallPages from "./RequireTokenToAcknowledgeOnCallPages";
 import KeepManagedDeviceCheckInMonitorsOnAndroid from "./KeepManagedDeviceCheckInMonitorsOnAndroid";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
@@ -1613,6 +1614,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the two slots kept last.
    */
   new WithholdAuditRecordNamesInSecurityEvents(),
+  /*
+   * OneUptime AI working security cases end to end (#10352): every existing
+   * member gets the setting for OneUptime AI handing a case to people, with
+   * email and push on, as the other security case notices have. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

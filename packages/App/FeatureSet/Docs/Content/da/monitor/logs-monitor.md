@@ -237,7 +237,7 @@ Værdien af hver Group By-attribut er en [skabelonvariabel](/docs/monitor/incide
 - **Alle kriterier evalueres**, som på en grupperet metrik-monitor, så forskellige grupper kan opfylde forskellige kriterier samtidig. En gruppe, der opfylder to kriterier, får stadig kun én advarsel, fra det første; sorter derfor kriterierne fra mest til mindst alvorlige.
 - **En gruppe findes kun, hvis den har logget noget i tidsvinduet.** Kriterier som **Lig med 0** og **Mindre end** udløses derfor kun for grupper, der har logget mindst én gang; for at få en advarsel, når logs helt holder op med at komme, bruger du en monitor uden Group By.
 - **Anomalidetektion** (**Unormalt høj**, **Unormalt lav**, **Unormal**) evalueres ikke pr. gruppe (dens baseline dækker hele monitoren), så de filtre matcher aldrig på en grupperet monitor.
-- Monitorens status følger det første kriterium, som en gruppe opfylder. Når ingen gruppe opfylder et kriterium, går monitoren tilbage til sin standardstatus.
+- Monitorens status følger det første kriterium, som en gruppe opfylder. Et kriterium, der kun bringer monitoren tilbage til dens standardstatus og ikke åbner nogen advarsel eller hændelse, venter på de grupper, der opfyldte et kriterium, som satte en anden status, indtil hver af dem opfylder det eller ikke logger noget i tidsvinduet. Når ingen gruppe opfylder et kriterium, og der ikke ventes på nogen, går monitoren tilbage til sin standardstatus.
 
 ## Fejlfinding
 

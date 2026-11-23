@@ -11,6 +11,8 @@ import DataSourceHttpRetry, {
   HttpRetryReason,
   HttpRetryVerdict,
 } from "../../../DataSource/HttpRetry";
+// How many times it asked, from the table of why a check failed, in the reader's language.
+import { withAttempts } from "../../../DataSource/HttpFailure";
 import {
   REDACTED,
   redactLogString,
@@ -1755,7 +1757,6 @@ export default class CloudflareClient {
       messages.join("; ") ||
       this.redactBody(response.bodyText || "") ||
       "no error message";
-    const tried: string = attempts > 1 ? ` Tried ${attempts} times.` : "";
     let kind: CloudflareFailureKind = CloudflareFailureKind.BadRequest;
 
     if (status === 429) {
@@ -1780,7 +1781,10 @@ export default class CloudflareClient {
     }
 
     return new CloudflareApiError({
-      message: `${step} failed (HTTP ${status}): ${this.scrub(redactLogString(said))}.${tried}`,
+      message: withAttempts(
+        `${step} failed (HTTP ${status}): ${this.scrub(redactLogString(said))}.`,
+        attempts,
+      ),
       kind,
       statusCode: status,
       codes,
@@ -1798,7 +1802,6 @@ export default class CloudflareClient {
       messages.join("; ") ||
       this.redactBody(response.bodyText || "") ||
       "no error message";
-    const tried: string = attempts > 1 ? ` Tried ${attempts} times.` : "";
     const unauthorizedZoneTags: Array<string> = [];
 
     for (const message of messages) {
@@ -1828,7 +1831,10 @@ export default class CloudflareClient {
     }
 
     return new CloudflareApiError({
-      message: `${CLOUDFLARE_ANALYTICS_STEP} failed${status ? ` (HTTP ${status})` : ""}: ${this.scrub(redactLogString(said)).substring(0, 500)}.${tried}`,
+      message: withAttempts(
+        `${CLOUDFLARE_ANALYTICS_STEP} failed${status ? ` (HTTP ${status})` : ""}: ${this.scrub(redactLogString(said)).substring(0, 500)}.`,
+        attempts,
+      ),
       kind,
       statusCode: status,
       waitInMs:

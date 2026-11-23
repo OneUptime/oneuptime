@@ -24,6 +24,14 @@ import {
   getStoreViewRoute,
 } from "../../Components/DataSecurity/IssueListRoute";
 import IssueMoment from "../../Components/DataSecurity/IssueMoment";
+import DataSecurityApi from "../../Components/DataSecurity/DataSecurityApi";
+import IssueGroupFixModal from "../../Components/DataSecurity/IssueGroupFixModal";
+import IssueGroups from "../../Components/DataSecurity/IssueGroups";
+import {
+  GROUP_BY_CAUSE,
+  GROUP_BY_CAUSE_TOOLTIP,
+  NO_OTHER_ISSUES,
+} from "../../Components/DataSecurity/IssueGroupsCopy";
 import { VERDICT_TONES } from "../../Components/DataSecurity/IssueAiAnalysisCopy";
 import UserElement from "../../Components/User/User";
 import PageMap from "../../Utils/PageMap";
@@ -32,7 +40,16 @@ import useAiOffered from "../../Utils/UseAiOffered";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  DataSecurityIssueGroupJSON,
+  DataSecurityIssueGroupsJSON,
+  isGroupByCauseOnByDefault,
+} from "Common/Types/DataSecurity/DataSecurityIssueGroup";
 import {
   DATA_SECURITY_AI_VERDICT_TITLES,
   DATA_SECURITY_AI_VERDICTS,
@@ -61,13 +78,23 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Toggle from "Common/UI/Components/Toggle/Toggle";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -114,6 +141,52 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
+ * Group by cause (#10370): the reader's own choice, kept in this browser -
+ * unset, it starts on once one group holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE
+ * issues.
+ */
+const GROUP_BY_CAUSE_KEY: string = "data-security-issues-group-by-cause";
+
+function readGroupByCauseChoice(): boolean | null {
+  try {
+    const value: unknown = LocalStorage.getItem(GROUP_BY_CAUSE_KEY);
+
+    return value === true || value === "true"
+      ? true
+      : value === false || value === "false"
+        ? false
+        : null;
+  } catch {
+    return null;
+  }
+}
+
+function keepGroupByCauseChoice(value: boolean): void {
+  try {
+    LocalStorage.setItem(GROUP_BY_CAUSE_KEY, value ? "true" : "false");
+  } catch {
+    // A browser that keeps nothing still switches: for this visit.
+  }
+}
+
+// The most of the grouped issues the filters match read at once, the riskiest first.
+const MAX_GROUP_MEMBERS_READ: number = 1000;
+
+// What the groups fold under them: the issues the list's filters match, by group.
+interface GroupMembersRead {
+  membersByGroup: Map<string, Array<DataSecurityIssue>>;
+  // Groups the project's list left out (fixed a while ago) that a filter brought in.
+  moreGroups: Array<DataSecurityIssueGroupJSON>;
+  cutAt?: number | undefined;
+}
+
+function hasNarrowingFilter(query: Query<DataSecurityIssue>): boolean {
+  return Object.keys(query).some((key: string): boolean => {
+    return key !== "projectId" && key !== "dataSecurityIssueGroupId";
+  });
+}
+
+/*
  * Everything wrong with the project's data stores, riskiest first: how bad
  * it is, what is wrong, on which store, and its risk score - what fits a
  * laptop's card beside the side menu. The data that makes it matter, who is
@@ -128,6 +201,14 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
  * While the project's AI is on, the list filters by OneUptime AI's verdict
  * (#10369), and shows it in Columns: what it judged likely by design or a
  * wrong finding is a filter away, for a person to decide.
+ *
+ * Group by cause (#10370) puts the issues one mistake made together above
+ * the rows - "40 issues, one cause: the static-site module" - each with its
+ * stores folded under it, how many are fixed and Fix the Cause; the rows
+ * are then the issues in no group. It starts on once a group holds five
+ * issues, and the reader's choice is kept in their browser. The filters
+ * narrow both alike (onQueryChange). A reader whose read of issues is held
+ * to labels gets no groups, and the list they had.
  */
 const DataSecurityIssuesPage: FunctionComponent<
   PageComponentProps
@@ -147,6 +228,171 @@ const DataSecurityIssuesPage: FunctionComponent<
     },
   });
 
+  /*
+   * Group by cause (#10370): the project's groups of issues one mistake
+   * made, for a reader of its issues across the whole project - none for
+   * anyone else, whose list stays as it was.
+   */
+  const [groups, setGroups] = useState<DataSecurityIssueGroupsJSON | null>(
+    null,
+  );
+  const [groupByCauseChoice, setGroupByCauseChoice] = useState<boolean | null>(
+    readGroupByCauseChoice,
+  );
+  const [listQuery, setListQuery] = useState<Query<DataSecurityIssue> | null>(
+    null,
+  );
+  const [members, setMembers] = useState<GroupMembersRead | null>(null);
+  const [fixingGroup, setFixingGroup] =
+    useState<DataSecurityIssueGroupJSON | null>(null);
+  // A group a link asked for: an issue's analysis points at its group's fix.
+  const linkedGroupId: string =
+    Navigation.getQueryStringByName("fixGroup") ||
+    Navigation.getQueryStringByName("group") ||
+    "";
+  const hasOpenedLinkedFix: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    DataSecurityApi.getIssueGroups()
+      .then((answer: DataSecurityIssueGroupsJSON) => {
+        if (isCurrent) {
+          setGroups(answer);
+        }
+      })
+      .catch(() => {
+        // Groups are a way to read the list: without them it is listed flat.
+        if (isCurrent) {
+          setGroups({ groups: [], largestGroupSize: 0 });
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [refreshCount]);
+
+  const hasGroups: boolean = Boolean(groups && groups.groups.length > 0);
+  const isGroupedByCause: boolean =
+    hasGroups &&
+    (Boolean(linkedGroupId) ||
+      (groupByCauseChoice ??
+        isGroupByCauseOnByDefault(groups?.largestGroupSize || 0)));
+
+  // The grouped issues the list's filters match, read as the list reads its rows.
+  useEffect(() => {
+    if (!isGroupedByCause || !listQuery || !groups) {
+      setMembers(null);
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    const read: () => Promise<void> = async (): Promise<void> => {
+      const query: Query<DataSecurityIssue> = {
+        ...listQuery,
+        dataSecurityIssueGroupId: new NotNull(),
+      } as Query<DataSecurityIssue>;
+      const result: ListResult<DataSecurityIssue> =
+        await ModelAPI.getList<DataSecurityIssue>({
+          modelType: DataSecurityIssue,
+          query,
+          limit: MAX_GROUP_MEMBERS_READ,
+          skip: 0,
+          select: {
+            _id: true,
+            title: true,
+            status: true,
+            severity: true,
+            riskScore: true,
+            dataStoreId: true,
+            dataSecurityIssueGroupId: true,
+            dataStore: { name: true, kind: true },
+          },
+          sort: { riskScore: SortOrder.Descending },
+        });
+      const membersByGroup: Map<string, Array<DataSecurityIssue>> = new Map();
+
+      for (const issue of result.data) {
+        const groupId: string =
+          issue.dataSecurityIssueGroupId?.toString().toLowerCase() || "";
+
+        if (groupId) {
+          membersByGroup.set(groupId, [
+            ...(membersByGroup.get(groupId) || []),
+            issue,
+          ]);
+        }
+      }
+
+      const listed: Set<string> = new Set(
+        groups.groups.map((group: DataSecurityIssueGroupJSON): string => {
+          return group.groupId;
+        }),
+      );
+      const missing: Array<string> = Array.from(membersByGroup.keys()).filter(
+        (groupId: string): boolean => {
+          return !listed.has(groupId);
+        },
+      );
+      const moreGroups: Array<DataSecurityIssueGroupJSON> =
+        missing.length > 0
+          ? (await DataSecurityApi.getIssueGroups({ groupIds: missing })).groups
+          : [];
+
+      if (isCurrent) {
+        setMembers({
+          membersByGroup,
+          moreGroups,
+          cutAt:
+            result.count > result.data.length ? result.data.length : undefined,
+        });
+      }
+    };
+
+    read().catch(() => {
+      if (isCurrent) {
+        setMembers({ membersByGroup: new Map(), moreGroups: [] });
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isGroupedByCause, JSON.stringify(listQuery), groups, refreshCount]);
+
+  // The groups drawn: each with an issue the filters match, the most open first.
+  const groupsDrawn: Array<DataSecurityIssueGroupJSON> =
+    isGroupedByCause && groups && members
+      ? [...groups.groups, ...members.moreGroups].filter(
+          (group: DataSecurityIssueGroupJSON): boolean => {
+            return (members.membersByGroup.get(group.groupId) || []).length > 0;
+          },
+        )
+      : [];
+
+  // A link to a group's fix opens it once the group is read.
+  useEffect(() => {
+    const asked: string = Navigation.getQueryStringByName("fixGroup") || "";
+
+    if (!asked || hasOpenedLinkedFix.current || !groups) {
+      return;
+    }
+
+    const group: DataSecurityIssueGroupJSON | undefined = groups.groups.find(
+      (candidate: DataSecurityIssueGroupJSON): boolean => {
+        return candidate.groupId === asked.toLowerCase();
+      },
+    );
+
+    if (group && group.openIssueCount > 0) {
+      hasOpenedLinkedFix.current = true;
+      setFixingGroup(group);
+    }
+  }, [groups]);
+
   const bulkActions: Array<
     BulkActionButtonSchema<DataSecurityIssue> | ModalTableBulkDefaultActions
   > = [...listActions.bulkActions, ModalTableBulkDefaultActions.Delete];
@@ -158,7 +404,39 @@ const DataSecurityIssuesPage: FunctionComponent<
         id="data-security-issues-table"
         name="Data Security > Issues"
         userPreferencesKey={DATA_SECURITY_ISSUES_TABLE_ID}
-        query={projectId ? { projectId: projectId } : {}}
+        query={
+          projectId
+            ? {
+                projectId: projectId,
+                // Grouped by cause, the rows are the issues in no group (#10370).
+                ...(isGroupedByCause
+                  ? { dataSecurityIssueGroupId: new IsNull() }
+                  : {}),
+              }
+            : {}
+        }
+        onQueryChange={(query: Query<DataSecurityIssue>) => {
+          const withoutGroup: Query<DataSecurityIssue> = { ...query };
+
+          delete (withoutGroup as Record<string, unknown>)[
+            "dataSecurityIssueGroupId"
+          ];
+          setListQuery(withoutGroup);
+        }}
+        topContent={
+          groupsDrawn.length > 0 ? (
+            <IssueGroups
+              groups={groupsDrawn}
+              membersByGroup={members?.membersByGroup || new Map()}
+              isFiltered={listQuery ? hasNarrowingFilter(listQuery) : false}
+              cutAt={members?.cutAt}
+              focusedGroupId={linkedGroupId.toLowerCase() || undefined}
+              onFix={(group: DataSecurityIssueGroupJSON) => {
+                setFixingGroup(group);
+              }}
+            />
+          ) : undefined
+        }
         // The open issues first; the Status filter shows the rest.
         initialFilterData={
           {
@@ -187,8 +465,28 @@ const DataSecurityIssuesPage: FunctionComponent<
           title: "Issues",
           description:
             "What is wrong with your data stores, riskiest first. Open one to see why it matters and how to fix it.",
+          rightElement: hasGroups ? (
+            <Toggle
+              title={GROUP_BY_CAUSE}
+              tooltip={GROUP_BY_CAUSE_TOOLTIP}
+              value={isGroupedByCause}
+              dataTestId="data-security-issues-group-by-cause"
+              onChange={(value: boolean) => {
+                keepGroupByCauseChoice(value);
+                setGroupByCauseChoice(value);
+
+                if (!value && linkedGroupId) {
+                  Navigation.setQueryString({ group: null, fixGroup: null });
+                }
+              }}
+            />
+          ) : undefined,
         }}
-        noItemsMessage="No issues. Every check passes on the stores Data Security reads."
+        noItemsMessage={
+          groupsDrawn.length > 0
+            ? NO_OTHER_ISSUES
+            : "No issues. Every check passes on the stores Data Security reads."
+        }
         showRefreshButton={true}
         searchableFields={["title"]}
         // What a row's moves read: where it stands, and its acceptance.
@@ -510,6 +808,23 @@ const DataSecurityIssuesPage: FunctionComponent<
 
       {/* Accept Risk's dialog, for a row or the issues selected. */}
       {listActions.modals}
+
+      {/* One fix for a group of issues one mistake made (#10370). */}
+      {fixingGroup ? (
+        <IssueGroupFixModal
+          group={fixingGroup}
+          onClose={() => {
+            setFixingGroup(null);
+          }}
+          onFixed={() => {
+            setRefreshCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
     </>
   );
 };

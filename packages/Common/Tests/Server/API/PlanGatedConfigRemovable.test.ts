@@ -47,6 +47,7 @@ import UserType from "../../../Types/UserType";
 import { mockRouter } from "./Helpers";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
+import { FindOperator } from "typeorm";
 import {
   afterAll,
   afterEach,
@@ -371,8 +372,22 @@ const stubRepository: (target: Subject) => void = (target: Subject): void => {
       Object.assign(record, stored);
       return [record];
     },
-    count: async (): Promise<number> => {
-      return 1;
+    /*
+     * The one stored record, unless the count leaves it out by its _id: a
+     * rename's check that no other record of its kind holds the name
+     * (#10318) counts the others, and there are none.
+     */
+    count: async (options?: {
+      where?: Record<string, unknown>;
+    }): Promise<number> => {
+      const id: unknown = options?.where?.["_id"];
+      const leavesItOut: boolean =
+        id instanceof FindOperator &&
+        Object.values(id.objectLiteralParameters || {}).includes(
+          RECORD_ID.toString(),
+        );
+
+      return leavesItOut ? 0 : 1;
     },
     update: async (
       _where: unknown,
