@@ -18,6 +18,7 @@ import { CloudProvider } from "../../../../Types/Cloud/CloudPlatform";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 import CloudConnectionService from "../../../Services/CloudConnectionService";
 import CloudResourceService from "../../../Services/CloudResourceService";
 import DataSourceHttpFetch from "../../DataSource/HttpFetch";
@@ -112,10 +113,13 @@ async function readPart<T>(
 }
 
 export default class AzureAppServiceSiteActivity {
-  private static cache: Map<
+  private static cache: OldestKeyMap<
     string,
     { readAtMs: number; activity: AppServiceSiteActivity }
-  > = new Map();
+  > = new OldestKeyMap<
+    string,
+    { readAtMs: number; activity: AppServiceSiteActivity }
+  >();
 
   // Forget every read kept: tests start each from nothing.
   public static clearCache(): void {
@@ -306,7 +310,7 @@ export default class AzureAppServiceSiteActivity {
     key: string,
     entry: { readAtMs: number; activity: AppServiceSiteActivity },
   ): void {
-    const cache: Map<
+    const cache: OldestKeyMap<
       string,
       { readAtMs: number; activity: AppServiceSiteActivity }
     > = AzureAppServiceSiteActivity.cache;
@@ -316,7 +320,7 @@ export default class AzureAppServiceSiteActivity {
 
     // The oldest go first once there are too many.
     while (cache.size > MAX_CACHED_SITES) {
-      const oldest: string | undefined = cache.keys().next().value;
+      const oldest: string | undefined = cache.oldestKey();
 
       if (oldest === undefined) {
         break;

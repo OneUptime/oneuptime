@@ -2,6 +2,7 @@ import TelemetryDsymService from "../../Services/TelemetryDsymService";
 import logger from "../Logger";
 import CaptureSpan from "./CaptureSpan";
 import ObjectID from "../../../Types/ObjectID";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import {
   AppleCrashReport,
   parseAppleCrashReport,
@@ -61,7 +62,7 @@ function weightOf(table: AppleSymbolTable | null): number {
 }
 
 export default class AppleSymbolication {
-  private static cache: Map<string, CachedTable> = new Map<
+  private static cache: OldestKeyMap<string, CachedTable> = new OldestKeyMap<
     string,
     CachedTable
   >();
@@ -93,7 +94,7 @@ export default class AppleSymbolication {
     }
 
     while (this.cacheWeight + weight > CACHE_WEIGHT_LIMIT) {
-      const oldest: string | undefined = this.cache.keys().next().value;
+      const oldest: string | undefined = this.cache.oldestKey();
 
       if (oldest === undefined) {
         break;
