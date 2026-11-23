@@ -4483,5 +4483,6 @@
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "值班策略“{{policy}}”的升级规则“{{rule}}”已在呼叫值班计划“{{schedule}}”的当前值班者，因此没有再次添加该计划。",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”的当前值班者，因此没有再次添加该计划。",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "值班策略“{{policy}}”的升级规则“{{rule}}”已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。",
-  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。"
+  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升级规则已在呼叫值班计划“{{schedule}}”轮换中的下一个人，因此没有再次添加该计划。",
+  "No longer available": "已不可用"
 }
