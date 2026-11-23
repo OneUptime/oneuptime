@@ -1124,7 +1124,12 @@ test.describe("a public form's file questions", () => {
         .locator("xpath=..")
         .getByText("Chosen files"),
     ).toHaveCount(1);
+    /*
+     * The page asked whether the form asks its visitors to sign in
+     * (#10249), then read the form - and sent nothing of the files.
+     */
     expect((await formFixture(page)).requests).toEqual([
+      `GET /api/form/public/${FORM_KEY}/sign-in-state`,
       `GET /api/form/public/${FORM_KEY}`,
     ]);
     await screenshot(page, "form-chosen-1280");
