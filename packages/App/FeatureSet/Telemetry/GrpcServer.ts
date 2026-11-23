@@ -37,6 +37,9 @@ import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
 import TelemetryIngestionKeyLastUsed from "Common/Server/Utils/Telemetry/TelemetryIngestionKeyLastUsed";
+import TelemetryIngestUnknownKeyRefusals, {
+  UnknownIngestionKeyRefusal,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestUnknownKeyRefusals";
 
 const GRPC_PORT: number = 4317;
 
@@ -246,8 +249,18 @@ export async function authenticateGrpcRequestWithPolicy(
   }
 
   if (!oneuptimeToken) {
-    logger.error("gRPC: Missing metadata: x-oneuptime-token", {
+    /*
+     * At debug, and counted, as the HTTP ingest middleware does (#10703):
+     * a call with no key comes from anyone, and an error-level line a call
+     * cost the caller nothing. The counts are logged at warn at most once a
+     * minute (TelemetryIngestUnknownKeyRefusals).
+     */
+    logger.debug("gRPC: Missing metadata: x-oneuptime-token", {
       service: "telemetry",
+    });
+    TelemetryIngestUnknownKeyRefusals.record({
+      refusal: UnknownIngestionKeyRefusal.Missing,
+      surface: TelemetryIngestSurface.Grpc,
     });
     return {
       refusal: {
@@ -281,10 +294,15 @@ export async function authenticateGrpcRequestWithPolicy(
     /*
      * Deliberately do NOT log the presented token: it is a secret (or a
      * typo away from someone else's secret) and log lines routinely land
-     * in third-party sinks. Log only that authentication failed.
+     * in third-party sinks. Log only that authentication failed - at
+     * debug, and counted, as a missing token is (#10703).
      */
-    logger.error("gRPC: Invalid service token.", {
+    logger.debug("gRPC: Invalid service token.", {
       service: "telemetry",
+    });
+    TelemetryIngestUnknownKeyRefusals.record({
+      refusal: UnknownIngestionKeyRefusal.Unknown,
+      surface: TelemetryIngestSurface.Grpc,
     });
     return {
       refusal: {

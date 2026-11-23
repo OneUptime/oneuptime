@@ -26,6 +26,8 @@ import SyncWebhookIngest, {
   FIVETRAN_SIGNATURE_HEADER,
   isSignedByFivetran,
 } from "Common/Server/Utils/DataObservability/SyncWebhooks";
+import RequestBodyAfterAuthentication from "Common/Server/Middleware/RequestBodyAfterAuthentication";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -47,7 +49,25 @@ const router: ExpressRouter = Express.getRouter();
  * (SyncWebhookIngest). The answer is synchronous, so the tool knows the
  * delivery was taken, and an event that is no sync is taken too, so a tool
  * never retries it.
+ *
+ * Neither body is read before its key is known (#10702): StartServer
+ * leaves them unread (RequestBodyLimit). Airbyte's is read once the key in
+ * its URL is right. Fivetran's key proves itself only by the body's
+ * signature, so its body is read - JSON, held to 50 MB - once the key its
+ * URL names is found and the delivery carries a signature: a delivery that
+ * names no key, or carries none, is refused unread, as it would have been
+ * refused once read.
  */
+
+// A delivery's JSON, as StartServer read it before routing.
+const readSyncBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
+  LARGE_REQUEST_BODY_LIMIT,
+  { parseGzipJson: true },
+);
+
+// Fivetran's: its signature is over the bytes as sent.
+const readFivetranBody: RequestHandler =
+  RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT);
 
 const setSyncProductType: RequestHandler = (
   req: ExpressRequest,
@@ -64,13 +84,25 @@ const setSyncProductType: RequestHandler = (
  * URL names. An unknown key and a wrong signature are refused alike, so
  * the URL tells nothing of which keys exist; 403, not 401, so Fivetran
  * shows the webhook as failing rather than retrying a delivery that will
- * never be taken.
+ * never be taken. The body is read only to check the signature over it, of
+ * a delivery that names a key and carries a signature (see above).
  */
 const verifyFivetranDelivery: RequestHandler = async (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
 ): Promise<void> => {
+  const refuse: () => void = (): void => {
+    logger.warn(
+      "Refused a Fivetran webhook delivery: it is not signed with the ingestion key its URL names.",
+      getLogAttributesFromRequest(req as RequestLike),
+    );
+    res.status(403).json({
+      message:
+        "This delivery is not signed with the ingestion key the URL names. Set the Fivetran webhook's secret to the ingestion key whose ID is in the URL.",
+    });
+  };
+
   try {
     const keyId: string = String(req.params["ingestionKeyId"] || "");
     const key: TelemetryIngestionKey | null = ObjectID.isValidUUID(keyId)
@@ -82,27 +114,28 @@ const verifyFivetranDelivery: RequestHandler = async (
       : null;
     const secret: string = key?.secretKey?.toString() || "";
 
-    if (
-      !secret ||
-      !isSignedByFivetran({
-        rawBody: (req as OneUptimeRequest).rawBody || "",
-        signature: req.headers[FIVETRAN_SIGNATURE_HEADER],
-        secret,
-      })
-    ) {
-      logger.warn(
-        "Refused a Fivetran webhook delivery: it is not signed with the ingestion key its URL names.",
-        getLogAttributesFromRequest(req as RequestLike),
-      );
-      res.status(403).json({
-        message:
-          "This delivery is not signed with the ingestion key the URL names. Set the Fivetran webhook's secret to the ingestion key whose ID is in the URL.",
-      });
-      return;
+    if (!secret || !req.headers[FIVETRAN_SIGNATURE_HEADER]) {
+      return refuse();
     }
 
-    req.headers["x-oneuptime-token"] = secret;
-    next();
+    readFivetranBody(req, res, ((err?: unknown): void => {
+      if (err) {
+        return next(err);
+      }
+
+      if (
+        !isSignedByFivetran({
+          rawBody: (req as OneUptimeRequest).rawBody || "",
+          signature: req.headers[FIVETRAN_SIGNATURE_HEADER],
+          secret,
+        })
+      ) {
+        return refuse();
+      }
+
+      req.headers["x-oneuptime-token"] = secret;
+      next();
+    }) as NextFunction);
   } catch (err) {
     next(err);
   }
@@ -140,7 +173,8 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   verifyFivetranDelivery,
   setSyncProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.SyncWebhooks),
+  // Read already, by its signature's check: passed over.
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SyncWebhooks, readSyncBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -165,7 +199,7 @@ router.post(
   TelemetryIngestionDisabled.middleware,
   readPathIngestionKey,
   setSyncProductType,
-  TelemetryIngest.forSurface(TelemetryIngestSurface.SyncWebhooks),
+  TelemetryIngest.forSurface(TelemetryIngestSurface.SyncWebhooks, readSyncBody),
   async (
     req: ExpressRequest,
     res: ExpressResponse,
