@@ -68,6 +68,8 @@ describe("the places of a repository's settings", () => {
       "pull-requests",
       "trigger-label",
       "production-review-comment",
+      // Fail the Check on a Leak (#10376): with the review's other options.
+      "production-review-fail-on-leak",
       "production-review-llm-provider",
       "commands",
       "branches",

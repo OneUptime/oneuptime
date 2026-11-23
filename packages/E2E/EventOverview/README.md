@@ -36,6 +36,13 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   Payments team, incident episode #12 by Checkout SRE and Sam Rivera, and Maya Chen holds
   Incident Commander on #1042 and #12 (`?commander=`). The eight owner tables answer the way
   the Owners pages read them.
+- **What the reader may do on a record** (`GET /<record>/record-access/:id`, asked once by each
+  record's view layout): answered by `SuiteHelpers/RecordAccessAnswers` as the server works it
+  out. Maya's grants (`?role=`) all reach the whole project, so what they allow is allowed and
+  the rest refused as a permission she does not hold; a private record (`?private=1`) is
+  changed only through Checkout SRE's rows, so with `?role=view-only-owner` every change of
+  #1042 and #12 is refused as private, naming Checkout SRE. The default master admin is refused
+  nothing.
 - **Prior incidents #1017, #1029, #1036**: resolved, same project, openable on the same
   incident route; the AI report links to them.
 - **AI investigation** for #1042 and **Alert #311**: a completed run with 10 tool calls

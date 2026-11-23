@@ -2,15 +2,11 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Label from "Common/Models/DatabaseModels/Label";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites, {
@@ -109,6 +105,7 @@ import {
   WHO_JOINS_SECTION_TITLE,
 } from "./NotificationRuleCopy";
 import NotificationRuleSummary from "./NotificationRuleSummary";
+import { RuleInvitees, useRuleInvitees } from "../WorkspaceRuleHeldRecords";
 import {
   canRuleCreateChannel,
   ChannelRecordEventType,
@@ -165,9 +162,11 @@ export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
   onChange?: undefined | ((value: IncidentNotificationRule) => void);
   eventType: NotificationRuleEventType;
-  // Not needed: a Monitors condition searches the server (#10646).
-  monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
+  /*
+   * The short lists a condition picks from whole. Its monitors, labels,
+   * SLOs and policies are searched on the server, and the ones it holds
+   * read by their ids (RecordConditionPicker, #10646, #10689).
+   */
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -176,13 +175,14 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
-  // An SLO rule's: the project's SLOs, to pick the ones it is for.
-  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
-  // An on-call rule's: the project's policies, to pick the ones it is for.
-  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
   monitorStatus: Array<MonitorStatus>;
   workspaceType: WorkspaceType;
-  teams: Array<Team>;
+  /*
+   * The teams, people and schedules the page has named already - those its
+   * shown rules hold - for the summary to name who joins the channel. Any
+   * other the rule holds is read by its id (useRuleInvitees, #10689).
+   */
+  teams?: Array<Team> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   /*
@@ -210,8 +210,8 @@ export interface ComponentProps {
    * the teams left to pick from. Undefined for any other connection.
    */
   mattermostConnection?: MattermostRuleTeams | undefined;
-  users: Array<User>;
-  // For the summary to name the schedules whose on-call person joins.
+  users?: Array<User> | undefined;
+  // The schedules whose on-call person joins, as `teams` above.
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   /*
    * The project's number prefixes and a monitor's or on-call policy's name,
@@ -329,8 +329,6 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         return (
           <NotificationRuleConditions
             eventType={props.eventType}
-            monitors={props.monitors}
-            labels={props.labels}
             alertStates={props.alertStates}
             alertSeverities={props.alertSeverities}
             incidentSeverities={props.incidentSeverities}
@@ -338,9 +336,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             scheduledMaintenanceStates={props.scheduledMaintenanceStates}
             securityCasePriorities={props.securityCasePriorities}
             securityCaseStatuses={props.securityCaseStatuses}
-            serviceLevelObjectives={props.serviceLevelObjectives}
-            onCallDutyPolicies={props.onCallDutyPolicies}
-            // Which of an owners condition's picks are teams.
+            // Teams known already, among an owners condition's picks.
             teams={props.teams}
             monitorStatus={props.monitorStatus}
             // "And" or "Or" between the conditions, as Match Condition says.
@@ -886,6 +882,18 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   const isDestination: boolean =
     props.part === NotificationRuleFormPart.Destination;
 
+  /*
+   * Who the rule invites, named for the summary: those the page knows, and
+   * any other - one just picked, one past the project's first 10,000 - read
+   * by its id (#10689). Only the Destination half has the summary.
+   */
+  const invitees: RuleInvitees = useRuleInvitees({
+    rule: isDestination ? props.value : undefined,
+    users: props.users,
+    teams: props.teams,
+    onCallSchedules: props.onCallSchedules,
+  });
+
   // The Destination half shows a rule as it acts (getDestinationValues).
   const formValue: IncidentNotificationRule | undefined = isDestination
     ? getDestinationValues({ rule: props.value, eventType: props.eventType })
@@ -924,9 +932,9 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             rule={props.value}
             eventType={props.eventType}
             workspaceType={props.workspaceType}
-            users={props.users}
-            teams={props.teams}
-            onCallSchedules={props.onCallSchedules}
+            users={invitees.users}
+            teams={invitees.teams}
+            onCallSchedules={invitees.onCallSchedules}
             microsoftTeamsTeams={props.microsoftTeamsTeams}
             microsoftTeamsChats={props.microsoftTeamsChats}
             slackWorkspaces={props.slackWorkspaces}

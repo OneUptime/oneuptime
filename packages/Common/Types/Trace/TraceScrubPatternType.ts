@@ -12,6 +12,13 @@ enum TraceScrubPatternType {
    * value included; span names have no keys to match.
    */
   SensitiveKeys = "sensitiveKeys",
+  /*
+   * Key-targeted too: scrubs the WHOLE value of the attributes it names
+   * (LogScrubRule.attributeKeys) - by exact key or by a dotted prefix,
+   * customer_name, user.full_name, request.headers - whatever the value is
+   * (#10366). For a type found by field names alone, which no pattern finds.
+   */
+  NamedKeys = "namedKeys",
   Custom = "custom",
 }
 

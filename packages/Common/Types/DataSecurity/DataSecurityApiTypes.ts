@@ -391,6 +391,51 @@ export interface DataSecurityScrubRulePlan {
   // The service the rule is for; none for every service and app of the project.
   serviceId?: string | undefined;
   serviceName?: string | undefined;
+  /*
+   * An IP Address rule that hashes rather than redacts, because Security
+   * Events reads the addresses there (#10396): the dialog says what that
+   * keeps, in one line.
+   */
+  hashesForSecurityEvents?: boolean | undefined;
+  /*
+   * The attributes it names (#10366): a Named Attributes rule's, or the
+   * only ones a pattern reads.
+   */
+  attributeKeys?: Array<string> | undefined;
+  // How it was proven on the finding's own records: counts, never a value (#10366).
+  proof?: DataSecurityScrubProofSummary | undefined;
+}
+
+/*
+ * A rule's proof as a page says it (#10366): how many records it was run
+ * on - the finding's own among them - in how many values it hid the data,
+ * and how many of the place's other values it changed. Counts only.
+ */
+export interface DataSecurityScrubProofSummary {
+  recordsRead: number;
+  findingRecordsRead: number;
+  valuesWithData: number;
+  valuesStillWithData: number;
+  otherValues: number;
+  otherValuesChanged: number;
+}
+
+export function toScrubProofSummary(proof: {
+  recordsRead: number;
+  findingRecordsRead: number;
+  valuesWithData: number;
+  valuesStillWithData: number;
+  otherValues: number;
+  otherValuesChanged: number;
+}): DataSecurityScrubProofSummary {
+  return {
+    recordsRead: proof.recordsRead,
+    findingRecordsRead: proof.findingRecordsRead,
+    valuesWithData: proof.valuesWithData,
+    valuesStillWithData: proof.valuesStillWithData,
+    otherValues: proof.otherValues,
+    otherValuesChanged: proof.otherValuesChanged,
+  };
 }
 
 export interface DataSecurityScrubImpact {

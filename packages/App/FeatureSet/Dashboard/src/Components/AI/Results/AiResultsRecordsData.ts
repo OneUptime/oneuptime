@@ -13,6 +13,10 @@ import {
   AiOutcomesRecords,
   isAiOutcomesPartOutcome,
 } from "Common/Types/AI/AiOutcomes";
+import {
+  DataSecurityCheckInfo,
+  getDataSecurityCheck,
+} from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import {
   getGlobalTranslator,
@@ -49,6 +53,7 @@ export const AI_RESULTS_RECORDS_CLICK_HINTS: Record<AiOutcomesPart, string> = {
   [AiOutcomesPart.IssueVerdicts]: translationKey("Show the issues"),
   [AiOutcomesPart.DataSecurityChanges]: translationKey("Show the issues"),
   [AiOutcomesPart.DataSecurityProposals]: translationKey("Show the issues"),
+  [AiOutcomesPart.Leaks]: translationKey("Show the pull requests and issues"),
 };
 
 /*
@@ -96,6 +101,10 @@ export const AI_RESULTS_RECORDS_COUNTS: Record<AiOutcomesPart, PluralTemplate> =
       one: "{{count}} proposal by OneUptime AI over the last 12 weeks.",
       other:
         "{{count}} proposals by OneUptime AI over the last 12 weeks, newest first.",
+    },
+    [AiOutcomesPart.Leaks]: {
+      one: "{{count}} leak over the last 12 weeks.",
+      other: "{{count}} leaks over the last 12 weeks, newest first.",
     },
   };
 
@@ -211,6 +220,7 @@ function readRecord(value: unknown): AiOutcomesRecord | null {
     "proposalKind",
     "issueVerdict",
     "issueStatus",
+    "checkId",
   ];
 
   const record: AiOutcomesRecord = { id, at };
@@ -383,6 +393,15 @@ export function getRecordFacts(
       humanVerdict: record.humanVerdict || null,
       autoGrade: record.autoGrade || null,
     });
+  }
+
+  // A leak (#10376): the Data Security check it fails, as the catalog titles it.
+  if (part === AiOutcomesPart.Leaks) {
+    const check: DataSecurityCheckInfo | undefined = record.checkId
+      ? getDataSecurityCheck(record.checkId)
+      : undefined;
+
+    return check ? [check.title] : [];
   }
 
   return [];

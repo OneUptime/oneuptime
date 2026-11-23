@@ -21,6 +21,10 @@ import {
   PushNotificationRelayServerEnabled,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
+import http from "http";
+import https from "https";
+import OutboundProxyAgents from "../Utils/OutboundProxyAgents";
+import ProxyTunnelRefusal from "../../Utils/ProxyTunnelRefusal";
 import {
   Expo,
   ExpoPushErrorTicket,
@@ -335,9 +339,39 @@ export const EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS: number = 30 * 1000;
 
 export default class PushNotificationService {
   public static isWebPushInitialized = false;
-  private static expoClient: Expo = new Expo(
-    ExpoAccessToken ? { accessToken: ExpoAccessToken } : undefined,
-  );
+  /*
+   * Expo sends with node-fetch, on the agent it is handed, and node-fetch
+   * takes a function of the URL as one: each of Expo's requests goes out on
+   * the route decided for its URL (expoAgentFor).
+   */
+  private static expoClient: Expo = new Expo({
+    ...(ExpoAccessToken ? { accessToken: ExpoAccessToken } : {}),
+    httpAgent: PushNotificationService.expoAgentFor as unknown as http.Agent,
+  });
+
+  /*
+   * The agent a request to Expo goes out on: through the outbound proxy, or
+   * directly, as every request of the server goes (OutboundProxyAgents,
+   * #10720). Expo's client was handed none, so its node-fetch sent on Node's
+   * global agent, which reads no HTTPS_PROXY: on a server that reaches the
+   * internet only through a proxy, no push reached a phone. Decided for
+   * each request, and each redirect, as node-fetch asks for each.
+   */
+  public static expoAgentFor(url: { href: string }): http.Agent {
+    return OutboundProxyAgents.getSharedAgentFor(new globalThis.URL(url.href));
+  }
+
+  /*
+   * The agent a web push goes out on, for the same reason: web-push sends on
+   * the agent it is handed, and on Node's global one without. The endpoint
+   * is an https address of a browser's push service
+   * (assertWebPushEndpointIsAllowed).
+   */
+  public static getWebPushAgent(endpoint: string): https.Agent {
+    return OutboundProxyAgents.getSharedAgentFor(
+      new globalThis.URL(endpoint),
+    ) as https.Agent;
+  }
 
   /*
    * The send's own failure when Expo says the token is gone, directly or
@@ -1355,6 +1389,10 @@ export default class PushNotificationService {
         payload,
         {
           TTL: 24 * 60 * 60, // 24 hours
+          // Through the outbound proxy, or directly (getWebPushAgent).
+          agent: PushNotificationService.getWebPushAgent(
+            subscriptionObject.endpoint,
+          ),
         },
       );
 
@@ -1386,8 +1424,14 @@ export default class PushNotificationService {
         );
       }
 
+      /*
+       * A tunnel the outbound proxy refused is said as its refusal, which
+       * names where the push was going and never the proxy.
+       */
       throw new PushSendFailure(
-        error?.message || "Failed to send web push notification",
+        ProxyTunnelRefusal.describe(error) ||
+          error?.message ||
+          "Failed to send web push notification",
         PushNotificationService.getWebPushFailureOwner(error),
       );
     }
@@ -1707,10 +1751,13 @@ export default class PushNotificationService {
 
       /*
        * Expo could not be reached, or refused this server's access token:
-       * the server's - or, asked to slow down, a throttle.
+       * the server's - or, asked to slow down, a throttle. A tunnel the
+       * outbound proxy refused is said as its refusal, never naming it.
        */
       throw new PushSendFailure(
-        error?.message || "Failed to send Expo push notification",
+        ProxyTunnelRefusal.describe(error) ||
+          error?.message ||
+          "Failed to send Expo push notification",
         (error as { statusCode?: unknown } | null)?.statusCode === 429
           ? PushFailureOwner.Throttled
           : PushFailureOwner.Server,

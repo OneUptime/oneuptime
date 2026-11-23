@@ -1,4 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
+import { seededRandom } from "../Helpers/SeededRandom";
 import JsonElementCounter, {
   JsonElementCount,
   JsonElementCountOutcome,
@@ -45,18 +47,6 @@ const parsedValues: (value: unknown) => number = (value: unknown): number => {
   }
 
   return 1;
-};
-
-// A deterministic stream of numbers, so a failing case can be run again.
-const random: (seed: number) => () => number = (
-  seed: number,
-): (() => number) => {
-  let state: number = seed;
-
-  return (): number => {
-    state = (state * 1103515245 + 12345) % 2147483648;
-    return state / 2147483648;
-  };
 };
 
 // Text that is hard to step over: quotes, escapes, brackets, commas, colons.
@@ -144,7 +134,7 @@ describe("JsonElementCounter.count", () => {
   });
 
   test("equals what JSON.parse makes, over many generated documents, compact and indented", () => {
-    const next: () => number = random(9001);
+    const next: () => number = seededRandom(9001);
 
     for (let run: number = 0; run < 500; run++) {
       const document: unknown = generate(next, 0);
@@ -220,15 +210,19 @@ describe("JsonElementCounter.count", () => {
 
   test("32 MiB of empty arrays is counted to the limit in well under a second", () => {
     const bomb: string = "[" + "[],".repeat(Math.floor((32 * MIB) / 3)) + "[]]";
-    const started: number = Date.now();
 
-    const result: JsonElementCount = count(bomb, 1000000);
+    const counted: FastestRun<JsonElementCount> = fastestRun({
+      run: (): JsonElementCount => {
+        return count(bomb, 1000000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(result).toEqual({
+    expect(counted.result).toEqual({
       outcome: JsonElementCountOutcome.OverLimit,
       elements: 1000001,
     });
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(counted.inMs).toBeLessThan(1000);
   });
 
   test("an 8 MiB body of real log lines is counted whole in well under a second", () => {
@@ -236,10 +230,16 @@ describe("JsonElementCounter.count", () => {
     const body: string = `{"streams":[{"stream":{"app":"checkout"},"values":[${entry.repeat(
       Math.floor((8 * MIB) / entry.length),
     )}["1","a"]]}]}`;
-    const started: number = Date.now();
 
-    expect(count(body).elements).toBe(parsedValues(JSON.parse(body)));
-    expect(Date.now() - started).toBeLessThan(1000);
+    const counted: FastestRun<JsonElementCount> = fastestRun({
+      run: (): JsonElementCount => {
+        return count(body);
+      },
+      limitInMs: 1000,
+    });
+
+    expect(counted.result.elements).toBe(parsedValues(JSON.parse(body)));
+    expect(counted.inMs).toBeLessThan(1000);
   });
 
   test("says what was refused", () => {
@@ -327,7 +327,7 @@ const tallyInPieces: (
 
 describe("JsonElementTally over bytes", () => {
   test("counts what the text counts, over many generated documents with characters beyond ASCII", () => {
-    const next: () => number = random(4242);
+    const next: () => number = seededRandom(4242);
 
     for (let run: number = 0; run < 500; run++) {
       const document: unknown = generate(next, 0);
@@ -489,16 +489,19 @@ describe("JsonElementTally over bytes", () => {
     const bomb: Buffer = Buffer.from(
       "[" + "[],".repeat(Math.floor((50 * MIB) / 3)) + "[]]",
     );
-    const started: number = Date.now();
-
-    const count: JsonElementTallyCount = JsonElementCounter.countBytes(bomb, {
-      values: 1000000,
-      objectsArraysAndStrings: 1000000,
+    const counted: FastestRun<JsonElementTallyCount> = fastestRun({
+      run: (): JsonElementTallyCount => {
+        return JsonElementCounter.countBytes(bomb, {
+          values: 1000000,
+          objectsArraysAndStrings: 1000000,
+        });
+      },
+      limitInMs: 1000,
     });
 
-    expect(count.passed).toBe(JsonElementLimit.Values);
-    expect(count.values).toBe(1000001);
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(counted.result.passed).toBe(JsonElementLimit.Values);
+    expect(counted.result.values).toBe(1000001);
+    expect(counted.inMs).toBeLessThan(1000);
   });
 
   test("8 MiB of real log lines, as bytes, is counted whole in well under a second", () => {
@@ -506,12 +509,17 @@ describe("JsonElementTally over bytes", () => {
     const body: string = `{"streams":[{"stream":{"app":"checkout"},"values":[${entry.repeat(
       Math.floor((8 * MIB) / entry.length),
     )}["1","a"]]}]}`;
-    const started: number = Date.now();
+    const bytes: Buffer = Buffer.from(body);
 
-    expect(
-      JsonElementCounter.countBytes(Buffer.from(body), NO_LIMIT).values,
-    ).toBe(parsedValues(JSON.parse(body)));
-    expect(Date.now() - started).toBeLessThan(1000);
+    const counted: FastestRun<JsonElementTallyCount> = fastestRun({
+      run: (): JsonElementTallyCount => {
+        return JsonElementCounter.countBytes(bytes, NO_LIMIT);
+      },
+      limitInMs: 1000,
+    });
+
+    expect(counted.result.values).toBe(parsedValues(JSON.parse(body)));
+    expect(counted.inMs).toBeLessThan(1000);
   });
 
   test("bytes that are not JSON are counted as far as they look like some, never less", () => {

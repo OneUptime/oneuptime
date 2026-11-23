@@ -11,6 +11,14 @@ import {
   ScrubRuleCustomRegexCheck,
   ScrubRuleCustomRegexProblem,
 } from "../../Types/Telemetry/ScrubRule";
+import {
+  checkScrubRuleKeys,
+  readScrubRuleKeys,
+  MAX_SCRUB_RULE_KEY_LENGTH,
+  MAX_SCRUB_RULE_KEYS,
+  SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
+  ScrubRuleKeysProblem,
+} from "../../Types/Telemetry/ScrubRuleKeys";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { isSqlExpressionValue } from "./DropFilterValidation";
@@ -51,6 +59,8 @@ export interface ScrubRuleCandidate {
   patternType?: unknown;
   customRegex?: unknown;
   fieldsToScrub?: unknown;
+  // The attributes it names (#10366): a Named Attributes rule needs one.
+  attributeKeys?: unknown;
 }
 
 export interface ScrubRuleValidationOptions {
@@ -65,7 +75,20 @@ export interface ScrubRuleValidationOptions {
 // The columns that decide whether a rule scrubs anything.
 export const SCRUB_RULE_VALIDATED_COLUMNS: ReadonlyArray<
   keyof ScrubRuleCandidate
-> = ["patternType", "customRegex", "fieldsToScrub"];
+> = ["patternType", "customRegex", "fieldsToScrub", "attributeKeys"];
+
+// Why a rule's attribute keys are refused, in words the person can act on (#10366).
+export function getScrubRuleKeysRefusal(problem: ScrubRuleKeysProblem): string {
+  switch (problem) {
+    case ScrubRuleKeysProblem.Missing:
+      return "A Named Attributes rule hides the attributes it names, and this one names none, so it would scrub nothing. Enter at least one attribute key, such as customer_name.";
+    case ScrubRuleKeysProblem.TooMany:
+      return `A rule names at most ${MAX_SCRUB_RULE_KEYS} attributes. Name a prefix they share instead, such as request.headers, or split them into several rules.`;
+    case ScrubRuleKeysProblem.TooLong:
+    default:
+      return `An attribute key is at most ${MAX_SCRUB_RULE_KEY_LENGTH} characters long.`;
+  }
+}
 
 export function getScrubRuleCustomRegexRefusal(
   check: ScrubRuleCustomRegexCheck,
@@ -137,9 +160,23 @@ export function validateScrubRule(
   /*
    * A sensitive-keys rule reads attribute keys, so ingest runs it on
    * attributes whatever its fields say - and the form does not ask for them.
+   * A Named Attributes rule reads the attributes its fields name.
    */
   if (candidate.patternType !== SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
     validateScrubRuleFieldsToScrub(candidate.fieldsToScrub, options);
+  }
+
+  const keysProblem: ScrubRuleKeysProblem | null = checkScrubRuleKeys({
+    patternType: candidate.patternType,
+    attributeKeys: candidate.attributeKeys,
+  });
+
+  if (keysProblem) {
+    throw new BadDataException(getScrubRuleKeysRefusal(keysProblem));
+  }
+
+  if (candidate.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE) {
+    return;
   }
 
   if (candidate.patternType !== SCRUB_RULE_CUSTOM_PATTERN_TYPE) {
@@ -155,6 +192,24 @@ export function validateScrubRule(
   }
 }
 
+/*
+ * The attributes a rule names, kept as a list (#10366): the rule form
+ * sends them as text, one a line, and an API caller may send a list or a
+ * text between commas. Each key once, trimmed, as ingest reads them. A raw
+ * SQL expression is left as it is, for the update's own check.
+ */
+export function normalizeScrubRuleKeys(data: { attributeKeys?: unknown }): void {
+  if (
+    data.attributeKeys === undefined ||
+    data.attributeKeys === null ||
+    isSqlExpressionValue(data.attributeKeys)
+  ) {
+    return;
+  }
+
+  data.attributeKeys = readScrubRuleKeys(data.attributeKeys);
+}
+
 // A rule as a create hands it to the service's onBeforeCreate.
 export function validateScrubRuleCreate(
   data: ScrubRuleCandidate,
@@ -165,6 +220,7 @@ export function validateScrubRuleCreate(
       patternType: data.patternType,
       customRegex: data.customRegex,
       fieldsToScrub: data.fieldsToScrub,
+      attributeKeys: data.attributeKeys,
     },
     options,
   );
@@ -201,6 +257,7 @@ export async function validateScrubRuleUpdate<
     patternType: (data.updateBy.data as ScrubRuleCandidate).patternType,
     customRegex: (data.updateBy.data as ScrubRuleCandidate).customRegex,
     fieldsToScrub: (data.updateBy.data as ScrubRuleCandidate).fieldsToScrub,
+    attributeKeys: (data.updateBy.data as ScrubRuleCandidate).attributeKeys,
   };
 
   const touchesValidatedColumns: boolean = SCRUB_RULE_VALIDATED_COLUMNS.some(
@@ -229,6 +286,7 @@ export async function validateScrubRuleUpdate<
     patternType: true,
     customRegex: true,
     fieldsToScrub: true,
+    attributeKeys: true,
   } as Select<TModel>);
 
   for (const stored of storedRows) {
@@ -245,6 +303,10 @@ export async function validateScrubRuleUpdate<
         incoming.fieldsToScrub !== undefined
           ? incoming.fieldsToScrub
           : stored.fieldsToScrub,
+      attributeKeys:
+        incoming.attributeKeys !== undefined
+          ? incoming.attributeKeys
+          : stored.attributeKeys,
     };
 
     validateScrubRule(merged, data.options);

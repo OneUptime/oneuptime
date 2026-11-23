@@ -273,14 +273,27 @@ describe("the pure view-model", () => {
     expect(
       importsOf(readRaw(COMMON_ROOT, "UI", "Utils", "ErrorInSentence.ts")),
     ).toEqual([
+      "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
       "../../Types/DataObservability/DataCheckRefusals",
       "../../Types/Database/UniqueName",
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Exception/UnexplainedError",
       "../../Types/Translator",
       "../../Utils/Monitor/MonitorTemplateLinkRefusal",
+      "../../Utils/NetworkDiscovery/DiscoveryScanRun",
       "./SentenceSeparator",
     ]);
+    // An AWS role that lets OneUptime in without the project's external ID (#10405, #10425).
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "CloudConnection",
+          "AwsRoleExternalIdRefusal.ts",
+        ),
+      ),
+    ).toEqual(["../Exception/RefusalWithValues", "../Translator"]);
     // A data check's refusals (#7530), said in the reader's words the same way.
     expect(
       importsOf(
@@ -318,6 +331,34 @@ describe("the pure view-model", () => {
       "../../Types/Exception/RefusalWithValues",
       "../../Types/Translator",
     ]);
+    /*
+     * A discovery scan's Run Again refusals (#10698), with the scan's
+     * statuses they name, which import nothing.
+     */
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanRun.ts",
+        ),
+      ),
+    ).toEqual([
+      "../../Types/Exception/RefusalWithValues",
+      "../../Types/Translator",
+      "./DiscoveryScanStatus",
+    ]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Utils",
+          "NetworkDiscovery",
+          "DiscoveryScanStatus.ts",
+        ),
+      ),
+    ).toEqual([]);
     /*
      * The sentence joiner is a module of its own, which imports nothing
      * (SentenceSeparator): joined through DeleteConsequences, the error

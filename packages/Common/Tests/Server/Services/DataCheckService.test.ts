@@ -241,6 +241,9 @@ describe("changing a check, as each person the table lets edit one", () => {
     ["a project member", [Permission.ProjectMember]],
     ["a telemetry admin", [Permission.TelemetryAdmin]],
     ["a telemetry member", [Permission.TelemetryMember]],
+    // Data Observability's own levels that change it (#10289).
+    ["a Data Observability admin", [Permission.DataObservabilityAdmin]],
+    ["a Data Observability member", [Permission.DataObservabilityMember]],
     [
       "someone holding Edit Data Asset",
       [Permission.EditDataAsset, Permission.ReadDataAsset],

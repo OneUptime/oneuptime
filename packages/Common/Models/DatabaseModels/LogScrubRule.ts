@@ -19,6 +19,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import ListOrderColumn from "../../Types/Database/ListOrderColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { LOG_SCRUB_RULE_DEFAULTS } from "../../Types/Telemetry/ScrubRule";
@@ -372,6 +373,82 @@ export default class LogScrubRule extends BaseModel {
     default: LOG_SCRUB_RULE_DEFAULTS.fieldsToScrub,
   })
   public fieldsToScrub?: string = undefined;
+
+  /*
+   * The attributes the rule names (#10366): a Named Attributes rule hides
+   * the whole value of each; any other pattern looks for its matches only
+   * in their values. A key names an attribute exactly, or by a dotted
+   * prefix (Types/Telemetry/ScrubRuleKeys). None for a rule that reads every
+   * attribute, as every rule saved before a rule could name one.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectLogScrubRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectLogScrubRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectLogScrubRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Attribute Keys",
+    description:
+      "The attributes this rule reads, each by its key or a dotted prefix of it (customer_name, request.headers). A Named Attributes rule hides the whole value of each; any other pattern looks for its matches only in their values. Empty for every attribute.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public attributeKeys?: Array<string> = undefined;
+
+  /*
+   * How OneUptime proved the rule hides a finding's data (#10366): the
+   * records it was run on, through the code ingest runs, and what was left
+   * (Types/Telemetry/ScrubRuleProof). Only OneUptime writes it - a proof a
+   * person could type would mark a leak scrubbed that nobody had proven -
+   * and it counts only while the rule is still the rule that was proven.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectLogScrubRule,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Proof",
+    description:
+      "Written by OneUptime: how this rule was proven to hide what Data Security found, on the very logs it was found in - the records read, the values that held the data and the share of other values it changed. It counts only while the rule is unchanged.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public proof?: JSONObject = undefined;
 
   /*
    * The service whose logs the rule scrubs (#10433): a rule for one service

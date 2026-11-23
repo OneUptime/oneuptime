@@ -595,20 +595,50 @@ describe("which routes treat an undecodable access token as anonymous", () => {
     );
   };
 
-  it("mounts the public variant on every public dashboard route", () => {
+  /*
+   * One dashboard route is the exception: import/convert-query-with-ai
+   * converts a query of a dashboard being imported with OneUptime AI, for a
+   * signed-in person who may create dashboards (#10248). No public
+   * dashboard calls it, it requires authentication, and it must stay
+   * strict.
+   */
+  it("mounts the public variant on every public dashboard route, and only there", () => {
     const { custom, inherited }: SplitRoutes = splitRoutes({
       router: new DashboardAPI().getRouter(),
       inheritedRouter: new BaseAPI(Dashboard, DashboardService).getRouter(),
     });
 
-    expect(custom.length).toBeGreaterThan(0);
+    const authenticatedRoutes: Array<string> = [
+      "POST /dashboard/import/convert-query-with-ai",
+    ];
+
+    expect(custom.length).toBeGreaterThan(authenticatedRoutes.length);
 
     for (const route of custom) {
-      expect([route.key, mountsPublic(route), mountsStrict(route)]).toEqual([
+      const isAuthenticated: boolean = authenticatedRoutes.includes(route.key);
+
+      expect([
         route.key,
-        true,
-        false,
+        mountsPublic(route),
+        mountsStrict(route),
+        route.handlers.includes(
+          UserMiddleware.requireUserAuthentication as RouteHandler,
+        ),
+      ]).toEqual([
+        route.key,
+        !isAuthenticated,
+        isAuthenticated,
+        isAuthenticated,
       ]);
+    }
+
+    for (const key of authenticatedRoutes) {
+      expect([
+        key,
+        custom.some((route: RegisteredRoute) => {
+          return route.key === key;
+        }),
+      ]).toEqual([key, true]);
     }
 
     for (const route of inherited) {

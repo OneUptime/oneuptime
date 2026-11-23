@@ -459,11 +459,15 @@ describe("Data Security > Scans, for each reader of scans", () => {
       cloudConnection: { name: true, config: true },
     };
 
+    /*
+     * Cloud's product levels read a connection's configuration as the roles
+     * they follow do (#10289), so the refusal names them last.
+     */
     for (const reader of [...SECURITY_TIERS_AND_OWNERS.slice(2), SCAN_READER]) {
       expect(
         serverCheckOf(DataSecurityScan, withConfig, reader.permissions),
       ).toThrow(
-        "You do not have permissions to read config of Cloud Connection through cloudConnection on Data Security Scan. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource.",
+        "You do not have permissions to read config of Cloud Connection through cloudConnection on Data Security Scan. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Cloud Resource, Cloud Admin, Cloud Member, Cloud Viewer.",
       );
     }
 

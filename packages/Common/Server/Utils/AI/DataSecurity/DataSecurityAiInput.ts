@@ -47,6 +47,11 @@ import {
   MAX_DATA_STORE_OWNER_EVIDENCE,
 } from "../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
+import {
+  MAX_SCRUB_RULE_WRITER_PLACES,
+  ScrubRuleWriterPlace,
+  ScrubRuleWriterShape,
+} from "../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
@@ -86,7 +91,10 @@ import ToolResultSerializer from "../Toolbox/Serializer";
  *   - service names and code locations (#10367);
  *   - who may own a store (#10374): the teams the evidence names, by name,
  *     and the people only as numbered candidates - never a person's name
- *     or email address - with where each piece of evidence came from.
+ *     or email address - with where each piece of evidence came from;
+ *   - a pull request's diff and what a production review's rules found
+ *     in it (#10376): the repository's own code, cleaned as below - never
+ *     what production holds of it.
  *
  * It has no way to add a value, a masked sample, a record, a connection
  * string or a secret: what it takes is typed as the columns it may read
@@ -1995,6 +2003,105 @@ export function buildSuggestFieldTypesPrompt(data: {
 
 /*
  * ---------------------------------------------------------------------------
+ * Scrub rules for what Scrub It cannot cover (#10366)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * One place OneUptime AI writes a rule for, as it is told it: its data
+ * type by id and name, where it sits and the names around it - each the
+ * customer's text - and the shapes of its values, which are OneUptime's.
+ * Never a value: the shapes were made from the records by plain code
+ * (DataSecurity/Telemetry/TelemetryScrubShapes).
+ */
+export function scrubRulePlaceFacts(
+  place: ScrubRuleWriterPlace,
+  index: number,
+  marks: AiInputMarks,
+): JSONObject {
+  const path: string = `places[${index}]`;
+
+  return withoutEmpty({
+    ref: place.ref.slice(0, 10),
+    dataType: [
+      place.dataTypeId.slice(0, MAX_WORD_LENGTH),
+      customerText(
+        place.dataTypeName,
+        MAX_WORD_LENGTH,
+        `${path}.dataType`,
+        marks,
+      ),
+    ],
+    category: place.category.slice(0, MAX_WORD_LENGTH),
+    foundBy: place.foundBy,
+    signal: place.signal,
+    location: customerText(
+      place.location,
+      MAX_UNPLACED_LOCATION_LENGTH,
+      `${path}.location`,
+      marks,
+    ),
+    key: place.attributeKey
+      ? customerText(
+          place.attributeKey,
+          MAX_UNPLACED_LOCATION_LENGTH,
+          `${path}.key`,
+          marks,
+        )
+      : "",
+    kind: customerText(
+      place.locationKind,
+      MAX_WORD_LENGTH,
+      `${path}.kind`,
+      marks,
+    ),
+    neighbours: place.neighbours
+      .slice(0, MAX_FIELD_NEIGHBOURS)
+      .map((name: string, neighbour: number): string => {
+        return customerText(
+          name,
+          MAX_NEIGHBOUR_LENGTH,
+          `${path}.neighbours[${neighbour}]`,
+          marks,
+        );
+      }),
+    shapes: place.shapes
+      .slice(0, MAX_FIELD_SHAPES)
+      .map((shape: ScrubRuleWriterShape): Array<string | number> => {
+        // A shape is OneUptime's: letters as a or A, digits as 9.
+        return [shape.shape, shape.share];
+      }),
+    values: place.valueCount,
+    averageLength: place.averageLength,
+  });
+}
+
+/*
+ * The scrub rules OneUptime AI writes (#10366): the instructions, and each
+ * place by its reference.
+ */
+export function buildWriteScrubRulesPrompt(data: {
+  instructions: string;
+  places: ReadonlyArray<ScrubRuleWriterPlace>;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return prompt({
+    feature: DataSecurityAiFeature.WriteScrubRules,
+    instructions: data.instructions,
+    facts: {
+      places: data.places
+        .slice(0, MAX_SCRUB_RULE_WRITER_PLACES)
+        .map((place: ScrubRuleWriterPlace, index: number): JSONObject => {
+          return scrubRulePlaceFacts(place, index, marks);
+        }),
+    },
+    marks,
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Owners for a store (#10374)
  * ---------------------------------------------------------------------------
  */
@@ -2579,6 +2686,213 @@ export function buildFixIssueGroupRequest(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * A pull request's Sensitive data section (#10376)
+ * ---------------------------------------------------------------------------
+ *
+ * A production review's rules read a pull request's diff for sensitive
+ * data the change writes to telemetry, leaves open in a store or adds a
+ * column for (Server/Utils/CodeRepository/ProductionReview/SensitiveData).
+ * OneUptime AI reads what they found beside the diff, to word, order and
+ * drop it. It is sent what the diff shows and OneUptime's own words of
+ * each rule - never what production holds: where the project's telemetry
+ * held the data, the store a resource is, what a store holds. The diff is
+ * the repository's code, written by the pull request's author: every line
+ * of it is held to a length, with what looks like a secret, an email
+ * address or an IP address left out, and text in it that reads like
+ * instructions is marked.
+ */
+
+// The most of a pull request's diff one read sends, and of one file's.
+export const MAX_PULL_REQUEST_DIFF_LENGTH: number = 16_000;
+export const MAX_PULL_REQUEST_FILE_DIFF_LENGTH: number = 4_000;
+// The most one of a candidate's lines, and its title, take.
+const MAX_CANDIDATE_LINE_LENGTH: number = 300;
+const MAX_PULL_REQUEST_TITLE_LENGTH: number = 200;
+// The lines around a candidate's own that go with it.
+export const MAX_CANDIDATE_LINES: number = 5;
+
+// One candidate the rules found, as OneUptime AI reads it.
+export interface AiPullRequestCandidate {
+  // The id the answer names it by: "L1".
+  id: string;
+  // Telemetry, Infrastructure or Migration (SensitiveDataLeakKind).
+  kind: string;
+  // The Data Security check that would find it after it merged.
+  checkId: string;
+  file: string;
+  line: number;
+  // The name the rule read, and what it sits in.
+  subject: string;
+  where?: string | undefined;
+  // An infrastructure setting's value as the diff writes it.
+  value?: string | undefined;
+  // The kinds of data its name points at, by name.
+  dataTypes: ReadonlyArray<string>;
+  sensitivity: string;
+  // OneUptime's own sentence for it, and its fix.
+  sentence: string;
+  fix: string;
+  // False: the repository's check fails on it, so it may be worded, never dropped.
+  mayDrop: boolean;
+  // Its line as the change writes it, with the lines just around it.
+  lines: ReadonlyArray<string>;
+}
+
+// One file's diff, as the read sends it.
+export interface AiPullRequestFileDiff {
+  path: string;
+  patch: string;
+}
+
+/*
+ * Code a pull request's author wrote, as OneUptime AI is told it: its
+ * lines kept, each held to a length, what looks like a secret, an email
+ * address or an IP address left out with any embedded file, and the whole
+ * held to `maxLength`. Recorded in `marks` at `path` when it reads like
+ * instructions to an AI.
+ */
+export function customerCode(
+  value: unknown,
+  maxLength: number,
+  path: string,
+  marks: AiInputMarks,
+): string {
+  if (typeof value !== "string" || value.length === 0) {
+    return "";
+  }
+
+  const lines: Array<string> = value
+    .slice(0, maxLength * 2)
+    .split("\n")
+    .map((line: string): string => {
+      return line.slice(0, MAX_CANDIDATE_LINE_LENGTH);
+    });
+  const text: string = lines.join("\n");
+
+  marks.record(path, text.replace(/\s+/g, " "));
+
+  return PromptText.field(
+    ToolResultSerializer.redactAndOmitEmbeddedData(text).text,
+    { maxLength },
+  );
+}
+
+/*
+ * The read of a pull request's Sensitive data section: the candidates the
+ * rules found, each by an id the answer names it by, the diff of their
+ * files, and the pull request's title.
+ */
+export function buildPullRequestReviewPrompt(data: {
+  instructions: string;
+  pullRequestTitle: string;
+  candidates: ReadonlyArray<AiPullRequestCandidate>;
+  files: ReadonlyArray<AiPullRequestFileDiff>;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+  let diffLength: number = 0;
+  const diff: Array<JSONObject> = [];
+
+  data.files.forEach((file: AiPullRequestFileDiff, index: number): void => {
+    if (diffLength >= MAX_PULL_REQUEST_DIFF_LENGTH) {
+      return;
+    }
+
+    const patch: string = customerCode(
+      file.patch,
+      Math.min(
+        MAX_PULL_REQUEST_FILE_DIFF_LENGTH,
+        MAX_PULL_REQUEST_DIFF_LENGTH - diffLength,
+      ),
+      `diff[${index}].patch`,
+      marks,
+    );
+
+    diffLength += patch.length;
+    diff.push({
+      file: customerText(
+        file.path,
+        MAX_CODE_PATH_LENGTH,
+        `diff[${index}].file`,
+        marks,
+      ),
+      patch,
+    });
+  });
+
+  return prompt({
+    feature: DataSecurityAiFeature.ReviewPullRequests,
+    instructions: data.instructions,
+    facts: withoutEmpty({
+      pullRequestTitle: customerText(
+        data.pullRequestTitle,
+        MAX_PULL_REQUEST_TITLE_LENGTH,
+        "pullRequestTitle",
+        marks,
+      ),
+      candidates: data.candidates.map(
+        (candidate: AiPullRequestCandidate, index: number): JSONObject => {
+          const at: string = `candidates[${index}]`;
+
+          return withoutEmpty({
+            id: candidate.id.slice(0, MAX_WORD_LENGTH),
+            kind: candidate.kind.slice(0, MAX_WORD_LENGTH),
+            check: candidate.checkId.slice(0, MAX_WORD_LENGTH),
+            file: customerText(
+              candidate.file,
+              MAX_CODE_PATH_LENGTH,
+              `${at}.file`,
+              marks,
+            ),
+            line: Math.max(0, Math.floor(candidate.line)),
+            name: customerText(
+              candidate.subject,
+              MAX_WORD_LENGTH,
+              `${at}.name`,
+              marks,
+            ),
+            in: customerText(
+              candidate.where,
+              MAX_WORD_LENGTH,
+              `${at}.in`,
+              marks,
+            ),
+            value: customerText(
+              candidate.value,
+              MAX_WORD_LENGTH,
+              `${at}.value`,
+              marks,
+            ),
+            dataTypes: candidate.dataTypes
+              .slice(0, 3)
+              .map((name: string, typeIndex: number): string => {
+                return customerText(
+                  name,
+                  MAX_WORD_LENGTH,
+                  `${at}.dataTypes[${typeIndex}]`,
+                  marks,
+                );
+              }),
+            sensitivity: candidate.sensitivity.slice(0, MAX_WORD_LENGTH),
+            rule: candidate.sentence,
+            fix: candidate.fix,
+            mayDrop: candidate.mayDrop,
+            lines: customerCode(
+              candidate.lines.slice(0, MAX_CANDIDATE_LINES).join("\n"),
+              MAX_CANDIDATE_LINE_LENGTH * MAX_CANDIDATE_LINES,
+              `${at}.lines`,
+              marks,
+            ),
+          });
+        },
+      ),
+      diff,
+    }),
+    marks,
+  });
+}
+
+/*
  * Whether a value is a prompt this file made: for the one call
  * (DataSecurityAiCall) to refuse anything else that reached it past the
  * type, and for tests.
@@ -2628,6 +2942,10 @@ const DataSecurityAiInput: {
   buildStoreOwnersPrompt: typeof buildStoreOwnersPrompt;
   buildNameIssueGroupPrompt: typeof buildNameIssueGroupPrompt;
   buildFixIssueGroupRequest: typeof buildFixIssueGroupRequest;
+  buildWriteScrubRulesPrompt: typeof buildWriteScrubRulesPrompt;
+  scrubRulePlaceFacts: typeof scrubRulePlaceFacts;
+  buildPullRequestReviewPrompt: typeof buildPullRequestReviewPrompt;
+  customerCode: typeof customerCode;
   ownerCandidateFacts: typeof ownerCandidateFacts;
   ownerEvidenceFacts: typeof ownerEvidenceFacts;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
@@ -2655,6 +2973,10 @@ const DataSecurityAiInput: {
   buildStoreOwnersPrompt,
   buildNameIssueGroupPrompt,
   buildFixIssueGroupRequest,
+  buildWriteScrubRulesPrompt,
+  scrubRulePlaceFacts,
+  buildPullRequestReviewPrompt,
+  customerCode,
   ownerCandidateFacts,
   ownerEvidenceFacts,
   isDataSecurityAiPrompt,

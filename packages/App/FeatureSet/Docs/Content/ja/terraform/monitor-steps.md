@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | ウェブサイト、API | HTTP メソッド: `GET`、`POST`、`PUT`、`DELETE`、`HEAD`、`PATCH`。未設定ならサーバーは `GET` を使います。 |
 | `request_headers` | map(string) | ウェブサイト、API | 送信するヘッダー: `{ "Accept" = "application/json" }`。 |
 | `request_body` | string | API | テキストで書いたリクエストボディ。 |
+| `request_body_format` | string | API | `request_body` の送り方。`json`（既定）は任意の JSON 値、`text` は XML やフォームのフィールドなど、書いたとおりに送るボディです。 |
 | `do_not_follow_redirects` | bool | ウェブサイト、API | リダイレクトをたどらず、最初の応答で止めます。 |
 | `allow_self_signed_certificates` | bool | ウェブサイト、API | 自己署名の TLS 証明書を受け入れます。 |
 | `tls_client_certificate` | string | ウェブサイト、API | 相互 TLS 用のクライアント証明書: PEM、または `{{monitorSecrets.name}}` の参照。 |

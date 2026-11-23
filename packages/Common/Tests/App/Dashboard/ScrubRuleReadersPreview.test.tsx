@@ -11,6 +11,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import ScrubRuleReadersApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/FieldReaders/ScrubRuleReadersApi";
+import ScrubRuleAddressesApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/HashInstead/ScrubRuleAddressesApi";
+import ScrubRuleValueCountsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleCounts/ScrubRuleValueCountsApi";
 import ScrubRuleReadersPreview, {
   getScrubRuleReadersRequest,
   readRuleServiceId,
@@ -115,6 +117,20 @@ beforeEach(() => {
   readersSpy = jest
     .spyOn(ScrubRuleReadersApi, "getReaders")
     .mockResolvedValue(monitorReads());
+  /*
+   * What the rules pages read beside their rules: the IP Address rules
+   * hiding addresses from Security Events (#10396), and what each rule
+   * changed (#10366). None, and nothing counted.
+   */
+  jest
+    .spyOn(ScrubRuleAddressesApi, "getRulesHidingAddresses")
+    .mockResolvedValue({ isChecked: true, signalsRead: [], rules: [] });
+  jest.spyOn(ScrubRuleValueCountsApi, "getCounts").mockResolvedValue({
+    since: new Date().toISOString(),
+    days: 7,
+    isChecked: true,
+    rules: [],
+  });
 });
 
 afterEach(() => {

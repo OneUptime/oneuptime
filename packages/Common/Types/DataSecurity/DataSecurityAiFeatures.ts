@@ -59,6 +59,19 @@ export enum DataSecurityAiFeature {
    * file that declares its stores (#10370): a task in Code.
    */
   FixIssueGroup = "FixIssueGroup",
+  /*
+   * The scrub rules for telemetry findings no rule of Scrub It's can hide:
+   * a pattern or the attributes to hide, from the data type, its place,
+   * the names around it and the shapes of its values - each proven on the
+   * records the finding was seen in before it is offered (#10366).
+   */
+  WriteScrubRules = "WriteScrubRules",
+  /*
+   * The Sensitive data section of a pull request's production review
+   * (#10376): OneUptime AI words, orders and drops what the rules found the
+   * change writes to telemetry, does to a store or adds a column for.
+   */
+  ReviewPullRequests = "ReviewPullRequests",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -75,6 +88,11 @@ export enum DataSecurityAiModelSource {
   CodeAgent = "CodeAgent",
   // Ask AI's: the provider picked in the chat, else the project's default.
   Chat = "Chat",
+  /*
+   * A production review's: the provider the repository picks for its
+   * production reviews, else the project's default, else the server's.
+   */
+  ProductionReview = "ProductionReview",
 }
 
 export interface DataSecurityAiFeatureInfo {
@@ -332,6 +350,61 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: true,
       modelSource: DataSecurityAiModelSource.CodeAgent,
+    },
+    {
+      feature: DataSecurityAiFeature.WriteScrubRules,
+      title: translationKey("Scrub rules for what Scrub It cannot cover"),
+      startedBy: translationKey(
+        "A telemetry issue OneUptime AI contains, for the data no rule of Scrub It's can hide, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "Each finding's data type, its category and whether it is found by its values or by a field's name",
+        ),
+        translationKey(
+          "Where it sits: the attribute or the log body, and the names of the attributes beside it",
+        ),
+        translationKey(
+          "The shapes of its values, such as AA-9999 for the value AB-1234, and how many values were read",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of the field, nor a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "Each rule it wrote, proven on the records the finding was seen in, in Data Security > AI until a person approves or dismisses it - or made on its own, as your AI rules allow.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.ReviewPullRequests,
+      title: translationKey("Sensitive data in pull requests"),
+      startedBy: translationKey(
+        "A pull request's production review, when its rules find sensitive data in the change: written to telemetry, a store left open, or a new column.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "What the rules found in the pull request's diff: the file and line, the name written, the kind of data it names and the check it would fail",
+        ),
+        translationKey(
+          "The diff of those files and the pull request's title, with what looks like a secret, an email address or an IP address left out",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "What production holds: where your telemetry held the data, a store's name or what a store holds",
+        ),
+        translationKey("A sample of what was found, not even a masked one"),
+      ],
+      keeps: translationKey(
+        "The points, on the pull request's production review in Code and in its comment.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProductionReview,
     },
   ];
 

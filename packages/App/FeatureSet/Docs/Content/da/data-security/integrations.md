@@ -93,6 +93,14 @@ Et datalager uden ejere kan få dem fra OneUptime AI. Den læser, hvad der aller
 
 Se [Arbejdsgangsudløsere](/docs/workflows/triggers) for de felter, hver udløser sender videre.
 
+## Pull requests
+
+En lækage er billigst at rette, før den merges. I et repositorie forbundet under **Kode** med produktionsgennemgange slået til har hver pull requests gennemgang et afsnit **Følsomme data**, læst fra dens diff: kode, der skriver personoplysninger eller en hemmelighed til telemetri, infrastrukturkode, der gør et datalager offentligt eller slår dets kryptering, backups eller logning fra, og migreringer, der tilføjer kolonner til personoplysninger, adgangskoder eller kortdata. Hvert punkt nævner den datasikkerhedskontrol, ændringen ville fejle, når den er udrullet, og dine egne datatyper læses ud fra deres navnehints, sådan som scanningerne læser dem. Se [Produktionsgennemgang af pull requests](/docs/ai/ai-agent#produktionsgennemgang-af-pull-requests).
+
+Det, Datasikkerhed ved, gør de punkter skarpere, i et privat repositories kommentar og i Kode for dem, der må læse Datasikkerheds fund: hvor tjenestens telemetri indeholdt den samme type data inden for de seneste 7 dage, den rensningsregel, der maskerer dem ved indtag, og det datalager, en ressource er, med dets følsomhed. Et datalager markeret **Offentlig med vilje** giver intet punkt for at være offentligt. Et offentligt repositories kommentar siger kun, hvad diffen viser.
+
+**Lækager fanget før merge** på **Projektindstillinger → AI → AI-resultater** tæller de lækager, gennemgange fangede i pull requests, rettet dér eller endnu ikke, ved siden af de problemer, scanningerne åbnede for de samme kontroller, efter koden blev udrullet.
+
 ## OneUptime AI
 
 To handlinger på et problem beder OneUptime AI om hjælp. Begge sender OneUptime AI problemets titel og alvorlighed, datalagerets navn, type, region og cloud-id, dets følsomhed og datatyper, hver ved sit navn - dine egne datatyper ved det navn, du gav dem - beviserne, hvorfor kontrollen betyder noget, og rettelsen til datalagerets cloud - aldrig et funds prøver. Begge kører under projektets kontakter og grænser for OneUptime AI. Hvad hver af dem sender, hvad den aldrig sender, og den model, den kører på, står på [OneUptime AI i Datasikkerhed](/docs/data-security/ai).

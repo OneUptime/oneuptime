@@ -23,6 +23,15 @@ import {
 import TelemetryRuleNotice from "./TelemetryRuleNotice";
 import DropMetricModal from "./DropMetricModal";
 import ScrubItModal from "./ScrubItModal";
+import HashInsteadNotice from "../Telemetry/HashInstead/HashInsteadNotice";
+import {
+  ScrubRulesHidingAddressesState,
+  useScrubRulesHidingAddresses,
+} from "../Telemetry/HashInstead/UseScrubRulesHidingAddresses";
+import {
+  findHidingRuleOfRecords,
+  ScrubRuleHidingAddresses,
+} from "Common/Types/Telemetry/ScrubRuleAddresses";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
@@ -38,7 +47,11 @@ import {
   DataSecurityScrubResult,
   DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { isMetricNameFinding } from "Common/Types/DataSecurity/TelemetryScrubTarget";
+import {
+  getScrubTarget,
+  isMetricNameFinding,
+  ScrubTarget,
+} from "Common/Types/DataSecurity/TelemetryScrubTarget";
 import {
   FINDING_FRESHNESS_IN_DAYS,
   getTelemetryCheckIdOfDataType,
@@ -46,7 +59,10 @@ import {
   isFindingCounted,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
-import { getDataStoreKindInfo } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  getDataStoreKindInfo,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -138,6 +154,9 @@ interface ScrubNotice {
   // A Drop rule Drop This Metric made, rather than Scrub It's rule.
   isDrop?: boolean | undefined;
 }
+
+// The data type an IP Address rule hides (#10396).
+const IP_ADDRESS_DATA_TYPE: string = "ip-address";
 
 export interface ComponentProps {
   issue: DataSecurityIssue;
@@ -442,6 +461,12 @@ const FindingBlock: FunctionComponent<{
   storeKind?: string | null | undefined;
   // The service or RUM application the store's telemetry is sent under.
   ownerName: string;
+  /*
+   * The IP Address rule that hides this finding's addresses from Security
+   * Events too, when one does (#10396): said under it, with Hash Instead.
+   */
+  addressRule?: ScrubRuleHidingAddresses | undefined;
+  onAddressRuleSwitched?: (() => void) | undefined;
 }> = (props: {
   finding: DataStoreFinding;
   namer: DataTypeNamer;
@@ -455,6 +480,8 @@ const FindingBlock: FunctionComponent<{
   onDropMetric: () => void;
   storeKind?: string | null | undefined;
   ownerName: string;
+  addressRule?: ScrubRuleHidingAddresses | undefined;
+  onAddressRuleSwitched?: (() => void) | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const finding: DataStoreFinding = props.finding;
@@ -516,6 +543,25 @@ const FindingBlock: FunctionComponent<{
           <></>
         )}
       </div>
+
+      {/*
+       * Scrubbed by an IP Address rule that redacts or masks where Security
+       * Events reads the addresses: it says so, with Hash Instead (#10396).
+       */}
+      {finding.isScrubbed && props.addressRule ? (
+        <div className="mt-2">
+          <HashInsteadNotice
+            rule={props.addressRule}
+            namesRule={true}
+            onSwitched={() => {
+              props.onAddressRuleSwitched?.();
+            }}
+            dataTestId="data-security-issue-finding-hash-instead"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
 
       {/*
        * No rule reaches this place - a metric's name, a session's own
@@ -611,6 +657,41 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
   const [notice, setNotice] = useState<ScrubNotice | null>(null);
   // The finding in a metric's name whose metrics the reader is asked about dropping.
   const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
+  /*
+   * The IP Address rules that keep Security Events from naming the
+   * addresses they hide (#10396): read for a store of logs or traces only.
+   */
+  const addressRules: ScrubRulesHidingAddressesState =
+    useScrubRulesHidingAddresses({
+      isEnabled:
+        props.store?.kind === DataStoreKind.TelemetryLogs ||
+        props.store?.kind === DataStoreKind.TelemetryTraces,
+    });
+  const addressRuleOf: (
+    finding: DataStoreFinding,
+  ) => ScrubRuleHidingAddresses | undefined = (
+    finding: DataStoreFinding,
+  ): ScrubRuleHidingAddresses | undefined => {
+    const target: ScrubTarget | null = getScrubTarget(
+      props.store?.kind,
+      (finding.location || "").trim(),
+    );
+
+    if (
+      finding.dataTypeId !== IP_ADDRESS_DATA_TYPE ||
+      !target ||
+      (target.signal !== "log" && target.signal !== "trace")
+    ) {
+      return undefined;
+    }
+
+    return (
+      findHidingRuleOfRecords(addressRules.rules, {
+        signal: target.signal,
+        serviceId: props.store?.serviceId?.toString() || null,
+      }) || undefined
+    );
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -756,6 +837,13 @@ const IssueTelemetryFindings: FunctionComponent<ComponentProps> = (
               }}
               storeKind={props.store?.kind}
               ownerName={ownerName}
+              addressRule={addressRuleOf(finding)}
+              onAddressRuleSwitched={() => {
+                addressRules.reload();
+                setReadCount((count: number): number => {
+                  return count + 1;
+                });
+              }}
             />
           );
         })}

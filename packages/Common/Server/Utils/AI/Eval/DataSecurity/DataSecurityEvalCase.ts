@@ -9,6 +9,10 @@ import {
   DataStoreOwnerEvidence,
 } from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataSecurityIssueGroupFacts } from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
+import {
+  ScrubRuleWriterPlace,
+  ScrubRuleWriterRuleKind,
+} from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
 import {
   AiAccessRecord,
@@ -187,6 +191,58 @@ export interface IssueGroupFixEvalCase extends DataSecurityEvalCaseBase {
   expect: Array<FixEvalFileCheck>;
 }
 
+/*
+ * What a right rule for one place does (#10366): with made-up values of
+ * the place, it changes each one that holds the data and none of the
+ * others - as the verifier proves a rule on a finding's records - and it
+ * is of the kind a right answer writes, where only one kind is right.
+ */
+export interface ScrubRuleEvalExpectation {
+  // Made-up values at the place the rule must change: the model never sees them.
+  hides: Array<string>;
+  // Made-up values beside them it must leave as they are.
+  keeps: Array<string>;
+  kind?: ScrubRuleWriterRuleKind | undefined;
+  // No rule is right for the place: a right answer leaves it out.
+  leftOut?: boolean | undefined;
+}
+
+/*
+ * OneUptime AI's scrub rules for what Scrub It cannot cover (#10366): the
+ * places as it is told them - names and shapes, never a value - and what a
+ * right rule for each does, by the place's ref.
+ */
+export interface ScrubRulesEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.WriteScrubRules;
+  places: Array<ScrubRuleWriterPlace>;
+  expect: Record<string, ScrubRuleEvalExpectation>;
+}
+
+/*
+ * A pull request's Sensitive data section (#10376): a made-up diff, and
+ * what OneUptime AI should keep of the points the rules find in it. The
+ * case's input is built as a review builds it - the rules over the diff
+ * (SensitiveDataRules), the points they make, the read's own prompt
+ * (PullRequestLeakReview) - and the answer is held to the points as the
+ * review holds it: one it was not given, or one it would drop that fails
+ * the check, counts for nothing.
+ */
+export interface PullRequestReviewEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.ReviewPullRequests;
+  pullRequestTitle: string;
+  files: Array<{ filename: string; status: string; patch: string }>;
+  // The repository fails its check on a leak: such a point cannot be dropped.
+  isFailOn?: boolean | undefined;
+  expect: {
+    // By a point's subject, as the rules name it: whether a right answer keeps it.
+    keeps: Record<string, boolean>;
+    // Words the kept points' fixes say together (each group, one of its words).
+    fixMentions?: Array<Array<string>> | undefined;
+    // Words no point's text or fix says.
+    never?: Array<string> | undefined;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FieldSuggestionEvalCase
@@ -194,4 +250,6 @@ export type DataSecurityEvalCase =
   | AskAiEvalCase
   | StoreOwnersEvalCase
   | IssueGroupNameEvalCase
-  | IssueGroupFixEvalCase;
+  | IssueGroupFixEvalCase
+  | ScrubRulesEvalCase
+  | PullRequestReviewEvalCase;

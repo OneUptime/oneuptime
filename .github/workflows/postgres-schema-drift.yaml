@@ -5097,7 +5097,12 @@ jobs:
       # rule's monitors condition, searched and named by id the same way;
       # a telemetry step's services and inventory items, by name or key;
       # a monitor's on-call policies, an OpenStack cloud's projects, an
-      # infrastructure monitor's host and a metric query's metric.
+      # infrastructure monitor's host and a metric query's metric. #10689:
+      # a workspace rule's labels, SLOs and policies conditions searched,
+      # a policy name's words, and what the shown rules hold - owners'
+      # teams and people, who joins a channel - named by their ids; the
+      # project's people paged past their first 10,000 memberships, and
+      # labels searched as they are typed.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5115,6 +5120,8 @@ jobs:
           Tests/Server/API/StatusPageSetupSearchPostgres.test.ts
           Tests/Server/API/FormPickerSearchPostgres.test.ts
           Tests/Server/API/WorkspaceRuleMonitorSearchPostgres.test.ts
+          Tests/Server/API/WorkspaceRuleRecordSearchPostgres.test.ts
+          Tests/Server/API/ProjectPeopleAndLabelSearchPostgres.test.ts
           Tests/Server/API/TelemetryStepScopeSearchPostgres.test.ts
           Tests/Server/API/MonitorAndCloudPickerSearchPostgres.test.ts
           --forceExit

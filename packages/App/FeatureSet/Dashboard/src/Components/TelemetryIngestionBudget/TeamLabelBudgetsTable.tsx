@@ -21,6 +21,7 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import LabelElement from "Common/UI/Components/Label/Label";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
@@ -216,7 +217,13 @@ const fetchTeamOrLabelOptions: (
       }),
       ModelAPI.getList<Label>({
         modelType: Label,
-        query: { projectId: projectId },
+        /*
+         * A new budget's pick: archived labels are left out, as every
+         * picker leaves them (the server refuses a budget for one).
+         */
+        query: ArchivedValuePicker.getPickerQuery(Label, {
+          projectId: projectId,
+        }),
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         select: {
