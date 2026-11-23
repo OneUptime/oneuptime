@@ -183,9 +183,7 @@ describe("AskAiPageButtons and a page of one record", () => {
     const button: HTMLElement = screen.getByRole("button");
     expect(button).toHaveTextContent("Go to Custom Domains");
     expect(button).toHaveTextContent("Acme Status");
-    expect(screen.getByTestId("ask-ai-page-button-record").tagName).toBe(
-      "BDI",
-    );
+    expect(screen.getByTestId("ask-ai-page-button-record").tagName).toBe("BDI");
 
     fireEvent.click(button);
     expect(navigateMock).toHaveBeenCalledWith(domains.target);

@@ -314,8 +314,9 @@ const deriveProducts: (
   return products;
 };
 
-const DERIVED_PRODUCTS: Record<string, Array<ProductKey>> =
-  deriveProducts(DERIVED);
+const DERIVED_PRODUCTS: Record<string, Array<ProductKey>> = deriveProducts(
+  DERIVED,
+);
 
 if (process.env["UPDATE_AI_DASHBOARD_PAGES"] === "1") {
   fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(DERIVED, null, 2)}\n`);
@@ -354,7 +355,10 @@ describe("Ask AI's catalog of the Dashboard's pages", () => {
       expect({
         path: page.path,
         products: [...getProductsOfDashboardPage(page.path)],
-      }).toEqual({ path: page.path, products: getProductsOfPath(routeOf(page)) });
+      }).toEqual({
+        path: page.path,
+        products: getProductsOfPath(routeOf(page)),
+      });
     }
   });
 

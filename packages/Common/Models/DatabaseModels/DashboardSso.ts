@@ -67,7 +67,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Dashboard SSO",
   pluralName: "Dashboard SSO",
   icon: IconProp.Lock,
-  tableDescription: "Configure SAML single sign-on for a dashboard that asks its visitors to sign in",
+  tableDescription:
+    "Configure SAML single sign-on for a dashboard that asks its visitors to sign in",
 })
 @OwnedThrough("dashboardId", Dashboard)
 @Entity({
@@ -162,8 +163,7 @@ export default class DashboardSSO extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Dashboard,
     title: "Dashboard",
-    description:
-      "Relation to the dashboard this provider signs people in to.",
+    description: "Relation to the dashboard this provider signs people in to.",
   })
   @ManyToOne(
     () => {
