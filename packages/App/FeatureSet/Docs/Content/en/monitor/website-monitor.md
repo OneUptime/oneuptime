@@ -71,7 +71,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 ### Website URL
 
-The page to check, as a full URL with its scheme: `https://example.com`, `https://example.com/pricing` or `http://example.com:8080/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`, for example a token in the query string.
+The page to check, as a full URL with its scheme: `https://example.com`, `https://example.com/pricing` or `http://example.com:8080/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`, for example a token in the query string. A failed check's error names the URL by its scheme, host and port alone, such as `https://example.com`, so the secret is never shown.
 
 ### Dynamic URL placeholders
 

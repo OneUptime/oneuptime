@@ -71,7 +71,7 @@ Behåll eller ändra **Sonder** och **Övervakningsintervall** (det börjar på 
 
 ### Webbplats-URL
 
-Sidan som ska kontrolleras, som fullständig URL med schema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`, till exempel en token i frågesträngen.
+Sidan som ska kontrolleras, som fullständig URL med schema: `https://example.com`, `https://example.com/pricing` eller `http://example.com:8080/health`. Du kan lägga in en [övervakningshemlighet](/docs/monitor/monitor-secrets) i URL:en som `{{monitorSecrets.NAME}}`, till exempel en token i frågesträngen. Felet från en misslyckad kontroll nämner bara URL:ens schema, värd och port, som `https://example.com`, så hemligheten visas aldrig.
 
 ### Dynamiska URL-platshållare
 

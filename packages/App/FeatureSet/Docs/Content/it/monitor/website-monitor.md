@@ -71,7 +71,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 
 ### URL sito web
 
-La pagina da controllare, come URL completo con lo schema: `https://example.com`, `https://example.com/pricing` o `http://example.com:8080/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`, per esempio un token nella stringa di query.
+La pagina da controllare, come URL completo con lo schema: `https://example.com`, `https://example.com/pricing` o `http://example.com:8080/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`, per esempio un token nella stringa di query. L'errore di un controllo non riuscito indica l'URL solo con schema, host e porta, come `https://example.com`, quindi il segreto non viene mai mostrato.
 
 ### Segnaposto dinamici nell'URL
 
