@@ -487,6 +487,40 @@ export default class ServerMonitorCriteria {
    * Disk usage: the disk the Disk Path names, or with "*" every disk the
    * agent reported.
    */
+  /*
+   * The paths the agent reports the disks a filter names under: every disk
+   * in the report for "*", else the one disk the typed path is (or the path
+   * as the agent would write it, when the report does not have it). What a
+   * window of a disk's checks is read by (CheckWindowCounts, #10355).
+   */
+  public static getAgentDiskPaths(input: {
+    serverResponse: ServerMonitorResponse;
+    diskPath: string | undefined;
+  }): Array<string> {
+    const allDiskMetrics: Array<BasicDiskMetrics> = (
+      input.serverResponse.basicInfrastructureMetrics?.diskMetrics || []
+    ).filter((disk: BasicDiskMetrics | null | undefined): boolean => {
+      return Boolean(disk);
+    });
+
+    if (PerEntityCriteriaFanOut.isWildcard(input.diskPath)) {
+      return allDiskMetrics.map((disk: BasicDiskMetrics): string => {
+        return disk.diskPath;
+      });
+    }
+
+    const diskMetric: BasicDiskMetrics | undefined =
+      ServerMonitorCriteria.findDiskMetric({
+        diskMetrics: allDiskMetrics,
+        diskPath: input.diskPath,
+      });
+
+    return [
+      diskMetric?.diskPath ||
+        ServerMonitorCriteria.toAgentDiskPath(input.diskPath),
+    ];
+  }
+
   private static async isDiskUsageCriteriaFilterMet(input: {
     serverResponse: ServerMonitorResponse;
     criteriaFilter: CriteriaFilter;

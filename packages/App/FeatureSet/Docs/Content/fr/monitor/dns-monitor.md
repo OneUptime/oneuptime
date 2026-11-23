@@ -118,13 +118,14 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **DNS en ligne** et **Temps de réponse DNS (en ms)**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **DNS en ligne** et **Temps de réponse DNS (en ms)**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 minutes à 24 heures, sous **Pour les dernières**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. **Temps de réponse DNS (en ms)** seulement. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Centile** | Cette valeur, sur la fenêtre, remplit la condition, comme le temps de réponse p95. **Temps de réponse DNS (en ms)** seulement. |
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Comptage**, **Pourcentage**, **Changements d'état** | Le nombre de vérifications qui ont rempli la condition, leur part, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, est comparé au nombre défini en dessous. |
 
 L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 

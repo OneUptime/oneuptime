@@ -377,7 +377,7 @@ Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign
 
 Tærskler er heltal. Skriv `90`, ikke `90.5` — procenter og sekunder sammenlignes som heltal.
 
-**Database er online** og **Databasemetrik** kan kontrolleres over tid: Sæt flueben ved **Evaluér disse kriterier over en periode**, vælg derefter under **Evaluér**, hvordan værdierne vurderes (for eksempel **Alle værdier**), og udfyld **For de seneste (i minutter)**. Over tid afgør filterets indstilling **Hvis ingen data**, hvad en manglende værdi betyder; lad den stå på **Ignore**, så en manglende rettighed stadig ikke kan tilkalde nogen.
+**Database er online** og **Databasemetrik** kan kontrolleres over tid: Sæt flueben ved **Evaluér disse kriterier over en periode**, vælg derefter under **Evaluér**, hvordan værdierne vurderes (for eksempel **Alle værdier**), og udfyld **For de seneste**. Over tid afgør filterets indstilling **Hvis ingen data**, hvad en manglende værdi betyder; lad den stå på **Ignore**, så en manglende rettighed stadig ikke kan tilkalde nogen.
 
 ### Variabler til JavaScript-udtryk
 

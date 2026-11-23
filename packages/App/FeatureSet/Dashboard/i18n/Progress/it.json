@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 62469,
-    "untranslated": 8239
+    "keys": 62857,
+    "untranslated": 8238
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -272,6 +272,7 @@
     "Pattern {{number}}: {{problem}}",
     "Payload",
     "Peer",
+    "Percentile",
     "Perf",
     "Ping",
     "Pipeline",

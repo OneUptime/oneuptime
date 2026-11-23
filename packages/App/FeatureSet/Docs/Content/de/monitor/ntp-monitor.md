@@ -119,7 +119,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter jedem NTP-Filter. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu bewerten: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten. Nur Prüfungen, auf die der Server geantwortet hat, haben ein Stratum, eine Abweichung und eine Root-Streuung. Ein Fenster ohne Antworten hat für diese Filter also keine Daten, und **Bei keinen Daten** entscheidet, was passiert.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter jedem NTP-Filter. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu bewerten: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden. Nur Prüfungen, auf die der Server geantwortet hat, haben ein Stratum, eine Abweichung und eine Root-Streuung. Ein Fenster ohne Antworten hat für diese Filter also keine Daten, und **Bei keinen Daten** entscheidet, was passiert.
 
 ### Beispielkriterien
 
