@@ -3651,6 +3651,12 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         section: "Site",
         title: "Scheduled Maintenance",
       },
+      // Who owns the site (#10188), as its menu's Manage section names it.
+      {
+        page: PageMap.NETWORK_SITE_VIEW_OWNERS,
+        section: "Manage",
+        title: "Owners",
+      },
       {
         page: PageMap.NETWORK_SITE_VIEW_SETTINGS,
         section: "Manage",
