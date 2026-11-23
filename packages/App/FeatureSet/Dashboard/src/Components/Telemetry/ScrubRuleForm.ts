@@ -538,7 +538,7 @@ export type ScrubRuleReadersFooter = (
  */
 export type ScrubRuleActionFooter = (
   values: FormValues<LogScrubRule>,
-) => ReactElement | undefined;
+) => ScrubRuleFooterElement;
 
 /*
  * Whether the rule as the form holds it would keep Security Events from
@@ -772,7 +772,7 @@ const getScrubRuleFormFields: (
         ? {
             getFooterElement: (
               values: FormValues<LogScrubRule>,
-            ): ReactElement | undefined => {
+            ): ScrubRuleFooterElement => {
               return actionFooter(values);
             },
           }
