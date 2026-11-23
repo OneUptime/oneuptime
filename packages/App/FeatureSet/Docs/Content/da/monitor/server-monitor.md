@@ -232,7 +232,7 @@ Kriterier afgør, hvornår monitoren er online, forringet eller offline, og hvor
 
 ### Evaluér over en periode
 
-**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Er online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maksimumværdi, Minimumværdi, Alle værdier, Vilkårlig værdi) over det vindue, som **For de seneste (i minutter)** angiver – i stedet for værdien fra den seneste kontrol. På et **Er online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
+**Evaluér disse kriterier over en periode** er et separat afkrydsningsfelt i kriterieformularen og ikke en filterbetingelse. Det findes for **Er online** og for hver numerisk filtertype. Slå det til for at sammenligne en aggregeret værdi – valgt under **Evaluér** (Gennemsnit, Sum, Maksimumværdi, Minimumværdi, Percentil, Alle værdier, Vilkårlig værdi, Antal, Procentdel, Statusskift) over det vindue, som **For de seneste** angiver – i stedet for værdien fra den seneste kontrol. På et **Er online**-filter er vinduet, hvor længe agenten må være tavs, før serveren regnes for offline.
 
 **Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller er holdt op med at blive registreret, har ikke nok historik til at sige noget om de sidste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "giv mig besked, så snart en enkelt kontrol overskrider grænsen", og den udløses stadig med det samme.
 

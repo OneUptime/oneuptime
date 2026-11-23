@@ -105,17 +105,18 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwortzeit (in ms)**, **Paketverlust (in %)**, **Jitter (in ms)** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwortzeit (in ms)**, **Paketverlust (in %)**, **Jitter (in ms)** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Perzentil** | Dieser Wert über das Fenster die Bedingung erfüllt, etwa die p95-Antwortzeit. Nur für numerische Filter. |
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**.
+**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. Oder OneUptime zählt sie mit **Anzahl**, **Prozentsatz** oder **Statuswechsel**.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 

@@ -5,13 +5,14 @@ Les critères d'un moniteur décident de ce que signifie chaque vérification : 
 :::cards
 - [Comment les critères décident](#comment-les-critères-décident): De haut en bas, et la première correspondance l'emporte.
 - [Ce que contient un critère](#ce-que-contient-un-critère): Des filtres, une condition de correspondance, des actions et des paramètres.
+- [Juger une fenêtre de vérifications](#juger-une-fenêtre-de-vérifications): Compter les vérifications échouées, repérer l'instabilité, lire un centile.
 - [Modifier les critères d'un moniteur](#modifier-les-critères-dun-moniteur): Modifier, ajouter, réordonner et tester des critères.
 - [Statuts de moniteur](#statuts-de-moniteur): Les statuts intégrés, et vos propres statuts.
 :::
 
 ## Comment les critères décident
 
-À chaque vérification d'un moniteur, ses critères jugent le résultat du haut de la liste vers le bas. Le premier critère dont les filtres correspondent décide de ce qui se passe, et les critères en dessous ne sont pas examinés pour cette vérification. Si aucun ne correspond, le moniteur passe à son **État du moniteur par défaut**.
+À chaque vérification d'un moniteur, ses critères jugent le résultat du haut de la liste vers le bas. Le premier critère dont les filtres correspondent décide de ce qui se passe, et les critères en dessous ne sont pas examinés pour cette vérification. Si aucun ne correspond, le moniteur passe à son **État du moniteur par défaut**. Il garde plutôt son état tant qu'un critère qui le ramène n'a pas encore correspondu : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
 
 ```mermaid title="Comment chaque vérification est jugée"
 flowchart TB
@@ -43,7 +44,7 @@ Ouvrez un critère : il a un nom et trois sections, chacune se repliant en un r�
 | **Nom des critères** | Le nom dans la liste des critères, et dans la cause racine de chaque incident et alerte que le critère ouvre. **Ajouter un critère** nomme un nouveau critère d'après ses filtres, et le nom les suit jusqu'à ce que vous en saisissiez un vous-même. |
 | **Filtres** | Ce que la vérification doit montrer, sous forme d'un ou plusieurs filtres. Les moniteurs Kubernetes et de métriques les appellent **Règles d'alerte**. |
 | **Actions** | Ce qui se passe quand les filtres correspondent : changer le statut, créer une alerte, déclarer un incident, ou toute combinaison. |
-| **Paramètres** | **Activer ce critère**, une **Description** facultative et, sur les moniteurs de requêtes entrantes, **Regrouper les incidents et alertes par un champ de la charge utile**. |
+| **Paramètres** | **Activer ce critère**, une **Description** facultative, quand il se rétablit et quand il est jugé et, sur les moniteurs de requêtes entrantes, **Regrouper les incidents et alertes par un champ de la charge utile**. |
 
 ### Filtres
 
@@ -51,7 +52,7 @@ Un filtre lit une donnée de la vérification et la compare : un **Type de filtr
 
 À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Au moins un** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
 
-Les filtres qui mesurent chaque vérification, comme **En ligne**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **Toutes les valeurs**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
+Les filtres qui mesurent chaque vérification, comme **En ligne**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **Toutes les valeurs**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. La fenêtre peut durer jusqu'à 24 heures et compter les vérifications, comme l'explique [Juger une fenêtre de vérifications](#juger-une-fenêtre-de-vérifications). Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
 
 ### Actions
 
@@ -70,6 +71,54 @@ Un incident ou une alerte demande un titre, une **Gravité** et, repliés, une d
 **Activer ce critère** est activé pour tout nouveau critère. Désactivez-le pour garder un critère sans l'utiliser : il est ignoré à chaque vérification, ne change aucun statut, n'ouvre rien, et son en-tête affiche **Désactivé**.
 
 **Regrouper les incidents et alertes par un champ de la charge utile** ouvre un incident par valeur trouvée dans une requête entrante, de sorte qu'une seule adresse de webhook peut garder plusieurs incidents ouverts. Voir [Activer le regroupement des incidents](/docs/monitor/incoming-request-monitor#activer-le-regroupement-dincidents).
+
+**Se rétablir uniquement quand une condition propre est remplie** et **Évaluer ce critère uniquement certains jours et à certaines heures** sont désactivés pour un nouveau critère. Voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit) et [Seulement certains jours et à certaines heures](#seulement-certains-jours-et-à-certaines-heures).
+
+## Juger une fenêtre de vérifications
+
+Avec **Évaluer ce critère sur une période donnée** coché, **Évaluer** indique comment les vérifications de la fenêtre sont jugées, et **Pour les dernières** la durée de la fenêtre, de 2 minutes à 24 heures. La condition du filtre lui-même, comme **En ligne** réglé sur **Faux**, indique ce que chaque vérification doit montrer.
+
+| Évaluer | Correspond quand |
+| --- | --- |
+| **Toutes les valeurs** | Chaque vérification de la fenêtre a rempli la condition. |
+| **Au moins une valeur** | Au moins une vérification de la fenêtre a rempli la condition. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, calculée sur les valeurs de la fenêtre, remplit la condition, comme un temps de réponse moyen supérieur à 300 ms. |
+| **Centile** | Le centile choisi sous **Centile**, de p50 à p99, remplit la condition : p95 au-dessus de 300 ms signifie que les 5 % de vérifications les plus lentes dépassent 300 ms. |
+| **Comptage** | Le nombre de vérifications qui ont rempli la condition se compare comme réglé sous **Vérifications correspondantes** : **Supérieur à** 30, par exemple. |
+| **Pourcentage** | Leur part des vérifications de la fenêtre se compare comme réglé sous **Part des vérifications correspondantes** : **Supérieur à** 10 %, par exemple. |
+| **Changements d'état** | Le nombre de fois où les vérifications sont passées de remplir la condition à ne pas la remplir, ou l'inverse, se compare comme réglé sous **Nombre de changements**. Un appareil qui tombe puis revient change deux fois. |
+
+Une phrase sous les réglages de la fenêtre relit le filtre tel qu'il est réglé : « Vérifier si "En ligne" est faux sur plus de 30 vérifications de la dernière période de 8 heures ».
+
+- **Chaque sonde à part.** **Comptage**, **Pourcentage** et **Changements d'état** comptent les vérifications de la sonde qui a fait la vérification : un moniteur vérifié depuis trois sondes ne compte pas trois fois plus vite, et ses sondes doivent ensuite être d'accord comme pour tout critère.
+- **Une fenêtre pas encore pleine.** Tant que les vérifications ne remontent pas jusqu'au début de la fenêtre, un moniteur qui vient de démarrer a moins de vérifications qu'il n'en aura. **Comptage** et **Changements d'état** correspondent tôt lorsqu'ils dépassent déjà **Supérieur à** ou **Supérieur ou égal à**, puisque d'autres vérifications ne peuvent que les augmenter ; le reste attend une fenêtre pleine.
+- **Une fenêtre sans vérifications.** Tant que la fenêtre n'a pas de vérifications, ou n'est pas encore pleine, **En l'absence de données** décide : **Ignore** attend, **Déclencheur** correspond, et **Treat As Zero** la juge comme si les vérifications manquantes n'avaient pas rempli la condition.
+
+Les moyennes et les centiles lisent les valeurs des vérifications de toutes les sondes, comme **Moyenne** l'a toujours fait. **Comptage**, **Pourcentage** et **Changements d'état** sont proposés pour chaque filtre auquel une fenêtre est proposée : sur les moniteurs Website, API, Ping, IP et Port, pour le CPU, la mémoire, les disques et la charge d'un serveur, pour **Appareil SNMP en ligne** et le temps de réponse d'un équipement réseau, et sur les moniteurs DNS, NTP, de base de données, de page de statut externe et d'état des sondes. **En ligne** d'un moniteur de serveur n'est pas compté : il est jugé sur le temps écoulé depuis le dernier rapport du serveur. Les moniteurs de métriques et autres moniteurs de télémétrie jugent plutôt la plage de temps de leur requête, avec l'agrégation propre à la requête, qui lit aussi les centiles.
+
+### Exemple : un point d'accès en panne, et un autre instable
+
+Un moniteur Ping vérifie un point d'accès de bureau chaque minute. Avant que les fenêtres puissent compter les vérifications, un point d'accès qui décrochait sans cesse ressemblait à un point d'accès en panne, ou à rien du tout. Ces trois critères, dans cet ordre, distinguent les deux :
+
+| Critère | Filtre | Évaluer | Change l'état en |
+| --- | --- | --- | --- |
+| Le point d'accès est en panne | **En ligne** est **Faux** | **Toutes les valeurs**, **Pour les dernières** 5 minutes | **Hors ligne**, et déclare un incident de panne |
+| Le point d'accès est instable | **En ligne** est **Faux** | **Changements d'état**, **Supérieur à** 5, **Pour les dernières** 1 heure | **Dégradé**, et déclare un incident d'instabilité |
+| Le point d'accès est en ligne | **En ligne** est **Vrai** | Pas sur une période | **Opérationnel** |
+
+Pour le deuxième, activez **Se rétablir uniquement quand une condition propre est remplie** avec **Changements d'état**, **Inférieur ou égal à** 1, **Pour les dernières** 1 heure : l'incident d'instabilité reste ouvert jusqu'à ce que le point d'accès soit stable pendant une heure, au lieu de se fermer dès la première minute où il répond. Pour alerter quand il échoue à plus de 30 pings en 8 heures, réglez plutôt le deuxième critère sur **Comptage**, **Supérieur à** 30, **Pour les dernières** 8 heures.
+
+## Quand un critère se rétablit
+
+Un critère cesse d'agir dès que ses filtres ne correspondent plus : à cette vérification, son incident et son alerte se résolvent, quand **Résoudre automatiquement l'incident** et **Résoudre automatiquement l'alerte** sont activés, et le moniteur passe au critère suivant qui correspond.
+
+**Se rétablir uniquement quand une condition propre est remplie** maintient le critère en vigueur après que ses filtres ne correspondent plus, jusqu'à ce que les filtres sous **Rétabli quand** correspondent. Ils partent de l'inverse des filtres du critère, sur les 10 dernières minutes, et peuvent utiliser tout ce qu'offre un filtre, comme une fenêtre qui compte les vérifications. Un critère est en vigueur tant que le moniteur a l'état qu'il définit ou qu'un incident ou une alerte qu'il a déclaré est ouvert. Tant qu'il tient, il compte comme une correspondance à sa place dans la liste : un critère au-dessus de lui qui correspond prend quand même le relais.
+
+Quand aucun critère ne correspond, un moniteur qu'un critère a fait quitter son **État du moniteur par défaut** garde l'état qu'il a, tant qu'il a aussi un critère qui le ramène seulement à cet état sans rien ouvrir. C'est la marge de rétablissement : les modèles se déclenchent au-dessus de 90 % et reviennent à 81 % ou moins, donc à 89 % le moniteur reste où il est. Ses incidents et alertes se résolvent quand même lorsque leur propre critère ne correspond plus. Un moniteur sans un tel critère passe à son **État du moniteur par défaut**, comme toujours.
+
+## Seulement certains jours et à certaines heures
+
+**Évaluer ce critère uniquement certains jours et à certaines heures** définit les jours, **Heure de début** et **Heure de fin**, ainsi que **Fuseau horaire**, qui part du vôtre. En dehors de ces heures, le critère est ignoré comme un critère désactivé : il ne correspond à rien, donc ce qu'il a ouvert se résout, et le journal d'évaluation indique qu'il était hors de ses heures. Les heures se lisent sur l'horloge de ce fuseau horaire, donc 08:00 reste 08:00 après le changement d'heure, et des heures qui finissent plus tôt qu'elles ne commencent courent jusqu'au lendemain matin.
 
 ## Quand les incidents et les alertes s'ouvrent et se ferment
 

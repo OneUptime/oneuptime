@@ -56,9 +56,11 @@ import ts from "typescript";
  *     two switches first and ask nothing, and write nothing, when either is
  *     off (DataStoreOwnerRunsAndRules.test);
  *   - an issue that closes settles what OneUptime AI proposed for it
- *     (DataSecurityAiProposals.onIssuesClosed, from the issue service and
- *     the reconciler): it proves or expires proposals already written and
- *     asks no model, so with AI off it has nothing to do but that.
+ *     (DataSecurityAiProposals.onIssuesClosed, from the issue service, the
+ *     reconciler, and a fix followed to production that closes it -
+ *     DataSecurityIssueResolutions, #10368): it proves or expires proposals
+ *     already written and asks no model, so with AI off it has nothing to do
+ *     but that.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -145,6 +147,12 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
+      uses: ["DataSecurityAiProposals.onIssuesClosed"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": [
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiProposals",
       uses: ["DataSecurityAiProposals.onIssuesClosed"],

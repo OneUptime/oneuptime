@@ -87,7 +87,7 @@ const UI_LABELS: Array<string> = [
   "Actions",
   "Evaluate this criteria over a period of time",
   "Evaluate",
-  "For the last (in minutes)",
+  "For the last",
   "If No Data",
   "Average",
   "Synchronized",

@@ -71,7 +71,7 @@ Le filtre **Sondes connectées** convient à un moniteur qui surveille plusieurs
 
 ### Attendre plus longtemps avant un incident
 
-Une sonde n'est déconnectée qu'après trois minutes de silence, donc un redémarrage rapide n'ouvre rien. Pour attendre plus longtemps, cochez **Évaluer ce critère sur une période donnée** sous le filtre, choisissez **Toutes les valeurs** sous **Évaluer** et une période sous **Pour les dernières (en minutes)**. Avec cinq minutes, une sonde doit rester déconnectée cinq minutes de plus avant que l'incident soit déclaré.
+Une sonde n'est déconnectée qu'après trois minutes de silence, donc un redémarrage rapide n'ouvre rien. Pour attendre plus longtemps, cochez **Évaluer ce critère sur une période donnée** sous le filtre, choisissez **Toutes les valeurs** sous **Évaluer** et une période sous **Pour les dernières**. Avec cinq minutes, une sonde doit rester déconnectée cinq minutes de plus avant que l'incident soit déclaré.
 
 ## Métriques
 

@@ -634,10 +634,16 @@ describe("expired, lifted and protected addresses are never served", () => {
     expect(bodyOf(await fetchFeed(1))).toBe("192.0.2.1\n");
     expect(feed.servedValues).toEqual([]);
 
+    /*
+     * And the reconciler holds both back at the feed, as at every
+     * destination (#10640): each row says why, and neither is enforced.
+     */
     await reconcile(1);
-    expect(rowOf(1)!.state).toBe(SecurityBlockEnforcementState.Pending);
-    expect(rowOf(2)!.state).toBe(SecurityBlockEnforcementState.Pending);
-    expect(isEnforced(1, at(1))).toBe(false);
+    for (const index of [1, 2]) {
+      expect(rowOf(index)!.state).toBe(SecurityBlockEnforcementState.Failed);
+      expect(rowOf(index)!.error).toMatch(/^Held back: /);
+      expect(isEnforced(index, at(1))).toBe(false);
+    }
   });
 
   test("when what protects an address cannot be read, nothing new is served: the firewall keeps its list", async () => {

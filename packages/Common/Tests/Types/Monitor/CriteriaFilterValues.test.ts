@@ -450,9 +450,9 @@ describe("CriteriaFilterValues.getUnreadableErrors", () => {
       expect.stringMatching(
         /^Criteria "HTTP 5xx": filters\[1\]\.filterType "GreaterThn" is not a value OneUptime reads there\. Use one of "Equal To", "Not Equal To", "Greater Than", .* or "Forecast Below"\.$/,
       ),
-      `Criteria "HTTP 5xx": filters[1].metricMonitorOptions.metricAggregationType "Median" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values" or "Any Value".`,
+      `Criteria "HTTP 5xx": filters[1].metricMonitorOptions.metricAggregationType "Median" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values", "Any Value", "Percentile", "Count", "Percentage" or "Status Changes".`,
       `Criteria "HTTP 5xx": filters[1].metricMonitorOptions.onNoDataPolicy "Alert" is not a value OneUptime reads there. Use one of "Ignore", "Treat As Zero" or "Trigger".`,
-      `Criteria "HTTP 5xx": filters[1].evaluateOverTimeOptions.evaluateOverTimeType "P99" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values" or "Any Value".`,
+      `Criteria "HTTP 5xx": filters[1].evaluateOverTimeOptions.evaluateOverTimeType "P99" is not a value OneUptime reads there. Use one of "Average", "Sum", "Maximum Value", "Minimum Value", "All Values", "Any Value", "Percentile", "Count", "Percentage" or "Status Changes".`,
       `Criteria "HTTP 5xx": filters[1].evaluateOverTimeOptions.onNoDataPolicy "Page" is not a value OneUptime reads there. Use one of "Ignore", "Treat As Zero" or "Trigger".`,
     ]);
   });

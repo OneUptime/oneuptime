@@ -55,6 +55,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FixProductionTelemetry from "./FixProductionTelemetry";
 import {
+  CHECK_EVERY_MINUTES,
   FIX_PRODUCTION_THRESHOLDS,
   FixProductionVerdict,
   decideDeployWait,
@@ -65,7 +66,9 @@ import {
 } from "./FixProductionVerdict";
 import PerformanceFixWatch from "./PerformanceFixWatch";
 import RecurrenceFixWatch from "./RecurrenceFixWatch";
+import StoreConfigurationFixWatch from "./StoreConfigurationFixWatch";
 import TelemetryFixWatch from "./TelemetryFixWatch";
+import TelemetryLeakFixWatch from "./TelemetryLeakFixWatch";
 import OldestKeyMap from "../../../../Utils/OldestKeyMap";
 
 /*
@@ -91,7 +94,13 @@ import OldestKeyMap from "../../../../Utils/OldestKeyMap";
  *        - Recurrence: the incidents or alerts its monitor raises
  *          (RecurrenceFixWatch);
  *        - Telemetry: the spans, attributes and log text it adds
- *          (TelemetryFixWatch).
+ *          (TelemetryFixWatch);
+ *        - TelemetryLeak: a Data Security leak the code writes, in the new
+ *          version - its scrub rules' counter and its records
+ *          (TelemetryLeakFixWatch, #10368);
+ *        - StoreConfiguration: a store's configuration read again after a
+ *          fix in its infrastructure code merged - no deploy to wait for,
+ *          but an apply (StoreConfigurationFixWatch, #10368).
  *   3. Verified, Regressed or Unverifiable is final. A verified exception
  *      fix resolves the exception and a regressed one reopens it; each check
  *      does the same for what it watched (an insight, an incident).
@@ -151,6 +160,11 @@ const knownCompares: OldestKeyMap<string, string> = new OldestKeyMap<
   string,
   string
 >();
+
+// The checks run every CHECK_EVERY_MINUTES: the first of each hour.
+export function isFirstCheckOfTheHour(now: Date): boolean {
+  return now.getUTCMinutes() < CHECK_EVERY_MINUTES;
+}
 
 // A recorded deploy that contains the fix.
 export interface FixDeploy {
@@ -237,6 +251,14 @@ export default class FixProductionVerifier {
         );
       }
     }
+
+    /*
+     * A verified fix of a telemetry leak is watched after, about hourly,
+     * for the leak coming back (#10368): with the time this run has left.
+     */
+    if (isFirstCheckOfTheHour(run.now)) {
+      await TelemetryLeakFixWatch.watchVerifiedFixes(run);
+    }
   }
 
   // One fix's check, by what its recipe is watched for.
@@ -256,6 +278,10 @@ export default class FixProductionVerifier {
         return RecurrenceFixWatch.verify(fix, run);
       case FixProductionCheck.Telemetry:
         return TelemetryFixWatch.verify(fix, run);
+      case FixProductionCheck.TelemetryLeak:
+        return TelemetryLeakFixWatch.verify(fix, run);
+      case FixProductionCheck.StoreConfiguration:
+        return StoreConfigurationFixWatch.verify(fix, run);
       default:
         // A check a newer server wrote: left for that server.
         logger.debug(

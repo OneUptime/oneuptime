@@ -232,7 +232,7 @@ I criteri decidono quando il monitor è online, degradato od offline, e quando a
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella di controllo a parte nel modulo dei criteri, non una condizione del filtro. È disponibile per **Online** e per ogni tipo di filtro numerico. Attivatela per confrontare un aggregato – scelto in **Valuta** (Media, Somma, Valore massimo, Valore minimo, Tutti i valori, Qualsiasi valore) sulla finestra impostata da **Per gli ultimi (in minuti)** – invece del valore dell'ultimo controllo. Su un filtro **Online**, la finestra è il tempo per cui l'agente può restare in silenzio prima che il server conti come offline.
+**Valuta questo criterio su un periodo di tempo** è una casella di controllo a parte nel modulo dei criteri, non una condizione del filtro. È disponibile per **Online** e per ogni tipo di filtro numerico. Attivatela per confrontare un aggregato – scelto in **Valuta** (Media, Somma, Valore massimo, Valore minimo, Percentile, Tutti i valori, Qualsiasi valore, Conteggio, Percentuale, Cambi di stato) sulla finestra impostata da **Nell'ultimo periodo di** – invece del valore dell'ultimo controllo. Su un filtro **Online**, la finestra è il tempo per cui l'agente può restare in silenzio prima che il server conti come offline.
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 

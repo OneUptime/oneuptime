@@ -377,7 +377,7 @@ Contadores que terminam em `total` são cumulativos desde que o servidor foi ini
 
 Os limites são números inteiros. Escreva `90`, não `90.5` — porcentagens e segundos são comparados como inteiros.
 
-**Banco de dados online** e **Métrica do banco de dados** podem ser verificados ao longo do tempo: marque **Avaliar este critério durante um período de tempo**, depois escolha como **Avaliar** os valores (por exemplo **Todos os valores**) e **Nos últimos (em minutos)**. Ao longo do tempo, a configuração **Se não houver dados** do filtro decide o que um valor ausente significa; deixe-a em **Ignore** para que uma permissão ausente continue sem conseguir acionar ninguém.
+**Banco de dados online** e **Métrica do banco de dados** podem ser verificados ao longo do tempo: marque **Avaliar este critério durante um período de tempo**, depois escolha como **Avaliar** os valores (por exemplo **Todos os valores**) e **No último período de**. Ao longo do tempo, a configuração **Se não houver dados** do filtro decide o que um valor ausente significa; deixe-a em **Ignore** para que uma permissão ausente continue sem conseguir acionar ninguém.
 
 ### Variáveis das expressões JavaScript
 

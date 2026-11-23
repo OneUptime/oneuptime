@@ -377,7 +377,7 @@ Tellere som slutter på `total`, er kumulative siden serveren startet. Sammenlig
 
 Terskler er heltall. Skriv `90`, ikke `90.5` — prosenter og sekunder sammenlignes som heltall.
 
-**Databasen er tilkoblet** og **Databasemåling** kan kontrolleres over tid: kryss av for **Evaluer disse kriteriene over en tidsperiode**, velg deretter under **Evaluer** hvordan verdiene skal vurderes (for eksempel **Alle verdier**), og fyll inn **For de siste (i minutter)**. Over tid avgjør filterets innstilling **Hvis ingen data** hva en manglende verdi betyr; la den stå på **Ignore**, slik at en manglende rettighet fortsatt ikke kan tilkalle noen.
+**Databasen er tilkoblet** og **Databasemåling** kan kontrolleres over tid: kryss av for **Evaluer disse kriteriene over en tidsperiode**, velg deretter under **Evaluer** hvordan verdiene skal vurderes (for eksempel **Alle verdier**), og fyll inn **For de siste**. Over tid avgjør filterets innstilling **Hvis ingen data** hva en manglende verdi betyr; la den stå på **Ignore**, slik at en manglende rettighet fortsatt ikke kan tilkalle noen.
 
 ### Variabler for JavaScript-uttrykk
 

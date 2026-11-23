@@ -53,6 +53,7 @@ import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../Pages/SecurityEvents/PlaybookRuns";
 import SecurityProtectedEntitiesPage from "../Pages/SecurityEvents/ProtectedEntities";
+import SecurityAutomaticResponsePage from "../Pages/SecurityEvents/AutomaticResponse";
 import SecurityBlocklistPage from "../Pages/SecurityEvents/Blocklist";
 import SecurityBlocklistFeedsPage from "../Pages/SecurityEvents/BlocklistFeeds";
 import SecurityBlocklistFeedViewPage from "../Pages/SecurityEvents/BlocklistFeedView";
@@ -362,6 +363,18 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        {/* The policies that challenge or block as a detection is made (#10350). */}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_AUTOMATIC_RESPONSE] || ""
+          }
+          element={
+            <SecurityAutomaticResponsePage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_AUTOMATIC_RESPONSE] as Route}
+            />
+          }
+        />
         <PageRoute
           path={SecurityEventsRoutePath[PageMap.SECURITY_BLOCKLIST] || ""}
           element={

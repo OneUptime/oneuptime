@@ -573,6 +573,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts": {
     "DataSecurityIssueReconciler.touch DataSecurityIssue": Why.Reported,
   },
+  /*
+   * A leak back in a version after its fix was verified (#10368): what the
+   * fix's watch read in the service's telemetry, noted on the issue for the
+   * reconciler, which reopens it with its Timeline line.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": {
+    "DataSecurityIssueResolutions.markCameBack DataSecurityIssue": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityProbeClaim.ts": {
     "(module) DataStore": Why.Bookkeeping,
   },
@@ -690,6 +698,25 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "ExternalCalendarRefresher.readCalendar ScheduledMaintenanceExternalCalendar":
         Why.Reported,
+    },
+  /*
+   * Automatic response (#10350): when a policy's block took hold, and how
+   * long after its address's first request, stamped on the case beside the
+   * block the engine made and recorded; and a policy's trial run finishing
+   * on its own once its week is over.
+   */
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRecorder.ts":
+    {
+      "SecurityAutomaticResponseRecorder.recordIfHeld SecurityCase":
+        Why.FollowOn,
+    },
+  "packages/Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseTrial.ts":
+    {
+      "SecurityAutomaticResponseTrial.finishDueTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
+      // A running trial's week standing still while Security Events is off (#10816).
+      "SecurityAutomaticResponseTrial.pauseRunningTrials SecurityAutomaticResponsePolicy":
+        Why.Automation,
     },
   // Where a web ACL stands, as AWS WAF answers OneUptime's check of it (#10344).
   "packages/Common/Server/Utils/SecurityBlocklist/AwsWafBlockDestination.ts": {

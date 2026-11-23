@@ -80,6 +80,9 @@ const NAMED_CHECKS: Array<FixProductionCheck> = [
   FixProductionCheck.Performance,
   FixProductionCheck.Recurrence,
   FixProductionCheck.Telemetry,
+  // A Data Security fix: a telemetry leak's code, a store's infrastructure code (#10368).
+  FixProductionCheck.TelemetryLeak,
+  FixProductionCheck.StoreConfiguration,
 ];
 
 const DECIDED_STATUSES: Array<FixProductionStatus> = [
@@ -363,6 +366,8 @@ export class Service extends ProjectReferencesService<Model> {
         [FixProductionCheck.Performance]: toOutcome(named[0]!),
         [FixProductionCheck.Recurrence]: toOutcome(named[1]!),
         [FixProductionCheck.Telemetry]: toOutcome(named[2]!),
+        [FixProductionCheck.TelemetryLeak]: toOutcome(named[3]!),
+        [FixProductionCheck.StoreConfiguration]: toOutcome(named[4]!),
       };
     };
 

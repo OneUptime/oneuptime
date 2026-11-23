@@ -1,6 +1,7 @@
 import {
   CheckOn,
   CriteriaFilterUtil,
+  EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -320,14 +321,28 @@ describe("the Probe Status checks", () => {
           MonitorType.ProbeStatus,
         ),
       ).toBe(true);
-      // Counts, not yes/no samples: every aggregate is on offer.
+      /*
+       * Counts, not yes/no samples: every aggregate is on offer, a
+       * percentile, and the counts of the window's checks (#10355).
+       */
       expect(CriteriaFilterUtil.isBooleanSeries(checkOn)).toBe(false);
       expect(
         CriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
           { checkOn: checkOn, filterType: FilterType.GreaterThan, value: 0 },
           MonitorType.ProbeStatus,
-        ).length,
-      ).toBe(6);
+        ),
+      ).toEqual([
+        EvaluateOverTimeType.Average,
+        EvaluateOverTimeType.Sum,
+        EvaluateOverTimeType.MaximumValue,
+        EvaluateOverTimeType.MunimumValue,
+        EvaluateOverTimeType.Percentile,
+        EvaluateOverTimeType.AllValues,
+        EvaluateOverTimeType.AnyValue,
+        EvaluateOverTimeType.Count,
+        EvaluateOverTimeType.Percentage,
+        EvaluateOverTimeType.StatusChanges,
+      ]);
     }
   });
 });

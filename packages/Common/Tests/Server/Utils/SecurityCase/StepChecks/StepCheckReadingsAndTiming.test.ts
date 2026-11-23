@@ -1,4 +1,5 @@
 import { getAddressWindow } from "../../../../../Server/Utils/SecurityCase/StepChecks/AddressStepChecks";
+import { buildSignedInUsersStatement } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressFacts";
 import {
   AddressCoverage,
   AddressRequestsSourceReading,
@@ -6,6 +7,7 @@ import {
   buildLogRequestsStatement,
   buildSpanRequestsStatement,
   getAddressCoverage,
+  getAddressRequestSpellings,
   getLogJsonClientNeedles,
   isProxyAddress,
   mergeSourceReadings,
@@ -302,7 +304,10 @@ describe("the app's requests from an address, as ClickHouse is asked for them", 
     const statement: Statement = buildSpanRequestsStatement(input);
 
     expect(statement.query).not.toContain("203.0.113.7");
-    expect(Object.values(statement.query_params)).toContain(input.address);
+    expect(Object.values(statement.query_params)).toContainEqual([
+      input.address,
+      `::ffff:${input.address}`,
+    ]);
     expect(Object.values(statement.query_params)).toContain("client.address");
     expect(Object.values(statement.query_params)).toContain("http.client_ip");
     // A read that runs out of time fails, so it is never read as "no requests".
@@ -331,6 +336,64 @@ describe("the app's requests from an address, as ClickHouse is asked for them", 
     expect(getLogJsonClientNeedles("203.0.113.7")).toContain(
       '"client_ip": "203.0.113.7"',
     );
+  });
+
+  /*
+   * Telemetry keeps a client's address as the app wrote it (#10744): an
+   * IPv6 client is found whether its spans and lines write it compressed,
+   * in full or in capitals, and an IPv4 one also as a dual-stack server
+   * maps it - whichever spelling the case holds.
+   */
+  test("an address is looked for in every spelling a source writes it in", () => {
+    const ipv6: Array<string> = [
+      "2001:db8::7",
+      "2001:db8:0:0:0:0:0:7",
+      "2001:DB8::7",
+      "2001:DB8:0:0:0:0:0:7",
+    ];
+
+    for (const written of ["2001:db8::7", "2001:0DB8:0:0:0:0:0:7"]) {
+      expect(getAddressRequestSpellings(written)).toEqual(ipv6);
+
+      const spans: Statement = buildSpanRequestsStatement({
+        ...input,
+        address: written,
+      });
+      const logs: Statement = buildLogRequestsStatement({
+        ...input,
+        address: written,
+      });
+
+      expect(Object.values(spans.query_params)).toContainEqual(ipv6);
+      expect(Object.values(logs.query_params)).toContainEqual(ipv6);
+      // And the identity provider's sign-ins from it.
+      expect(
+        Object.values(
+          buildSignedInUsersStatement({
+            projectId: input.projectId,
+            address: written,
+            start: input.start,
+            end: input.end,
+          }).query_params,
+        ),
+      ).toContainEqual(ipv6);
+
+      for (const spelling of ipv6) {
+        expect(Object.values(logs.query_params)).toContain(`${spelling} `);
+        expect(Object.values(logs.query_params)).toContainEqual(
+          getLogJsonClientNeedles(spelling),
+        );
+      }
+    }
+
+    expect(getAddressRequestSpellings("::ffff:203.0.113.7")).toEqual([
+      "203.0.113.7",
+      "::ffff:203.0.113.7",
+    ]);
+    // A value that is not one address is looked for as given.
+    expect(getAddressRequestSpellings("1.1.1.1' OR 1=1 --")).toEqual([
+      "1.1.1.1' OR 1=1 --",
+    ]);
   });
 
   test("a row read back: ClickHouse's epoch for no rows is no moment, and a count is whole", () => {

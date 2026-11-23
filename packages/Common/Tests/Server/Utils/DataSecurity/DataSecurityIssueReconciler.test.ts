@@ -23,6 +23,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import SecuritySeverity from "../../../../Types/SecuritySeverity";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution from "../../../../Types/DataSecurity/DataSecurityIssueResolution";
 import {
   DataSecurityCheckInfo,
   DataSecurityCheckStatus,
@@ -289,17 +290,18 @@ describe("resolveIssuesOfArchivedStore", () => {
     expect((findBy.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
       isRoot: true,
     });
+    // Resolved as Store archived (#10368), what a change waited on dropped.
+    const archived: JSONObject = {
+      status: DataSecurityIssueStatus.Resolved,
+      resolvedAt: NOW,
+      resolution: DataSecurityIssueResolution.StoreArchived,
+      resolutionDetails: { at: NOW.toISOString() },
+      pendingResolution: null,
+    };
+
     expect(updates()).toEqual([
-      {
-        id: first.id,
-        data: { status: DataSecurityIssueStatus.Resolved, resolvedAt: NOW },
-        props: { isRoot: true },
-      },
-      {
-        id: second.id,
-        data: { status: DataSecurityIssueStatus.Resolved, resolvedAt: NOW },
-        props: { isRoot: true },
-      },
+      { id: first.id, data: archived, props: { isRoot: true } },
+      { id: second.id, data: archived, props: { isRoot: true } },
     ]);
     expect(feeds()[0]).toEqual({
       projectId: PROJECT_ID,
@@ -879,6 +881,10 @@ describe("a resolved issue whose check fails again", () => {
           resolvedAt: null,
           acceptedReason: null,
           acceptedUntil: null,
+          // It forgets how it resolved (#10368).
+          resolution: null,
+          resolutionDetails: null,
+          pendingResolution: null,
           reopenCount: 3,
         },
         props: { isRoot: true },
@@ -1183,6 +1189,10 @@ describe("a passing check", () => {
           resolvedAt: NOW,
           acceptedReason: null,
           acceptedUntil: null,
+          // How (#10368): its check passes, for no change OneUptime made.
+          resolution: DataSecurityIssueResolution.CheckPassed,
+          resolutionDetails: { at: NOW.toISOString() },
+          pendingResolution: null,
         },
         props: { isRoot: true },
       },
@@ -1223,6 +1233,9 @@ describe("a passing check", () => {
       resolvedAt: NOW,
       acceptedReason: null,
       acceptedUntil: null,
+      resolution: DataSecurityIssueResolution.CheckPassed,
+      resolutionDetails: { at: NOW.toISOString() },
+      pendingResolution: null,
     });
     expect(feeds()[0]!.displayColor).toBe(Green500);
     expect(output.resolvedCount).toBe(1);
@@ -1307,6 +1320,10 @@ describe("an issue whose check no longer runs on the store", () => {
           resolvedAt: NOW,
           acceptedReason: null,
           acceptedUntil: null,
+          // No longer checked is no fix (#10368).
+          resolution: DataSecurityIssueResolution.NoLongerChecked,
+          resolutionDetails: { at: NOW.toISOString() },
+          pendingResolution: null,
         },
         props: { isRoot: true },
       },

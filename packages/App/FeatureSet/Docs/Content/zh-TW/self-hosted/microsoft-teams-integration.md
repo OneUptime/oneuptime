@@ -253,7 +253,7 @@ OneUptime 的 [私人網路存取設定](/docs/self-hosted/private-network-acces
 
 ### 輸出存取和 IP 限制
 
-允許 OneUptime 應用程式進行 DNS 解析和輸出 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的驗證和頻道端點，以及為交談提供的連接器服務 URL。商業雲端的備援連接器是 `https://smba.trafficmanager.net/teams/`；交談的服務 URL 可能不同。請遵循 [Microsoft 的防火牆指引](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，並在測試期間檢查被封鎖的流量；這不是一份完整的主機名稱清單。 在[美國政府雲端](#美國政府雲端)中，這些是該雲端自己的主機。
+允許 OneUptime 應用程式進行 DNS 解析和輸出 HTTPS。使用 `graph.microsoft.com`、`login.microsoftonline.com`、Bot Framework 的驗證和頻道端點，以及為交談提供的連接器服務 URL。商業雲端的備援連接器是 `https://smba.trafficmanager.net/teams/`；交談的服務 URL 可能不同。請遵循 [Microsoft 的防火牆指引](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)，並在測試期間檢查被封鎖的流量；這不是一份完整的主機名稱清單。 在[美國政府雲端](#美國政府雲端)中，這些是該雲端自己的主機。在對外代理伺服器之後，機器人也和伺服器的其他部分一樣，經代理伺服器存取上述所有位址，`NO_PROXY` 中的主機除外：請參閱[私有網路存取](/docs/self-hosted/private-network-access)。
 
 Microsoft 不支援為 Bot Framework 輸入流量使用固定的 IP 允許清單，因為其來源位址會變動。Teams 用戶端的媒體 IP 範圍並不代表機器人 Webhook 的來源。請保持 Bot Framework 驗證為啟用狀態，而不是把來源 IP 當作身分證明。
 
