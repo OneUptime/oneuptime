@@ -202,6 +202,8 @@ const EVALUATE_OVER_TIME_TYPES: ValueSet<EvaluateOverTimeType> =
       minimum: EvaluateOverTimeType.MunimumValue,
       any: EvaluateOverTimeType.AnyValue,
       all: EvaluateOverTimeType.AllValues,
+      percent: EvaluateOverTimeType.Percentage,
+      flapping: EvaluateOverTimeType.StatusChanges,
     },
   });
 
@@ -403,12 +405,17 @@ export default class CriteriaFilterValues {
     if (asObject(written["evaluateOverTimeOptions"])) {
       read["evaluateOverTimeOptions"] = withValueRead({
         options: withValueRead({
-          options: written["evaluateOverTimeOptions"],
-          key: "evaluateOverTimeType",
-          set: EVALUATE_OVER_TIME_TYPES,
+          options: withValueRead({
+            options: written["evaluateOverTimeOptions"],
+            key: "evaluateOverTimeType",
+            set: EVALUATE_OVER_TIME_TYPES,
+          }),
+          key: "onNoDataPolicy",
+          set: NO_DATA_POLICIES,
         }),
-        key: "onNoDataPolicy",
-        set: NO_DATA_POLICIES,
+        // How a counted window's number is compared: "more than" 30.
+        key: "countFilterType",
+        set: FILTER_TYPES,
       }) as JSONObject;
     }
 
@@ -427,12 +434,19 @@ export default class CriteriaFilterValues {
     criteriaName: string;
     filterCondition: unknown;
     filters: unknown;
+    /*
+     * Where the filters and their condition are written, for the words:
+     * "filters" and "filterCondition" unless said otherwise - a criteria's
+     * recovery condition is "recoveryFilters" and "recoveryFilterCondition".
+     */
+    filtersPath?: string | undefined;
+    filterConditionPath?: string | undefined;
   }): Array<string> {
     const errors: Array<string | null> = [
       getUnreadableValueError({
         set: FILTER_CONDITIONS,
         value: data.filterCondition,
-        path: "filterCondition",
+        path: data.filterConditionPath || "filterCondition",
         criteriaName: data.criteriaName,
       }),
     ];
@@ -448,7 +462,7 @@ export default class CriteriaFilterValues {
         return;
       }
 
-      const at: string = `filters[${index}]`;
+      const at: string = `${data.filtersPath || "filters"}[${index}]`;
       const metricMonitorOptions: JSONObject | undefined = asObject(
         filter["metricMonitorOptions"],
       );
@@ -491,6 +505,12 @@ export default class CriteriaFilterValues {
           set: NO_DATA_POLICIES,
           value: evaluateOverTimeOptions?.["onNoDataPolicy"],
           path: `${at}.evaluateOverTimeOptions.onNoDataPolicy`,
+          criteriaName: data.criteriaName,
+        }),
+        getUnreadableValueError({
+          set: FILTER_TYPES,
+          value: evaluateOverTimeOptions?.["countFilterType"],
+          path: `${at}.evaluateOverTimeOptions.countFilterType`,
           criteriaName: data.criteriaName,
         }),
       );
