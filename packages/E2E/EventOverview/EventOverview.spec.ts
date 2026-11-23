@@ -2730,10 +2730,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       /*
        * The axis writes its values as the dashboards do, each on one line:
        * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
-       * "ms" (Ask AI's UI review, #5349).
+       * "ms" (Ask AI's UI review, #5349). It steps half a second a tick,
+       * with the figures that step needs (#10117): recharts' own steps
+       * read "650 ms", "1.3 s", "1.95 s", "2.6 s".
        */
-      await expect(chart).toContainText("2.6 s");
-      await expect(chart).toContainText("650 ms");
+      await expect(chart).toContainText("500 ms");
+      await expect(chart).toContainText("1.0 s");
+      await expect(chart).toContainText("2.5 s");
     },
   },
   {
