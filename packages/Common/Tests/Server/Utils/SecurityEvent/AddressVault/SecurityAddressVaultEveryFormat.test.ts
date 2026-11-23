@@ -230,7 +230,9 @@ beforeEach(() => {
         return { eventsMatched: 0, valuesLookedUp: 0 } as never;
       },
     );
-  jest.spyOn(RealTimeDetections, "screen").mockResolvedValue(undefined as never);
+  jest
+    .spyOn(RealTimeDetections, "screen")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(SecurityEventService, "insertJsonRows")
     .mockImplementation(async (rows: Array<JSONObject>): Promise<void> => {
@@ -454,7 +456,9 @@ describe("every format", () => {
     SCRUBBED_ADDRESS_FORMATS.flatMap(
       (
         format: ScrubbedAddressFormat,
-      ): Array<[string, string, ScrubbedAddressFormat, ScrubbedAddressPair]> => {
+      ): Array<
+        [string, string, ScrubbedAddressFormat, ScrubbedAddressPair]
+      > => {
         return SCRUBBED_ADDRESS_PAIRS.filter(
           (pair: ScrubbedAddressPair): boolean => {
             return pair.kind !== ScrubbedAddressKind.Hashed;
@@ -486,7 +490,10 @@ describe("every format", () => {
           ? "Redact IP addresses"
           : "Mask IP addresses";
 
-      rules = [logRule(LogScrubAction.Hash, "Hash IP addresses"), logRule(action, name)];
+      rules = [
+        logRule(LogScrubAction.Hash, "Hash IP addresses"),
+        logRule(action, name),
+      ];
 
       await store(eventsOf(lineWithScrubbed(format, pair)));
 
@@ -550,9 +557,11 @@ describe("one vault lookup a page, however many formats it holds", () => {
       inserted.map((row: JSONObject): unknown => {
         return row["principalIp"];
       }),
-    ).toEqual(SCRUBBED_ADDRESS_FORMATS.map((): string => {
-      return SOURCE_ADDRESS;
-    }));
+    ).toEqual(
+      SCRUBBED_ADDRESS_FORMATS.map((): string => {
+        return SOURCE_ADDRESS;
+      }),
+    );
   });
 
   test("and one ClickHouse query, through the vault's one read", async () => {
@@ -678,7 +687,9 @@ describe("the vault names only what the line would have named unscrubbed", () =>
 
     expect(vault).not.toHaveBeenCalled();
     expect(inserted[0]!["principalIp"]).toBe("192.0.2.44");
-    expect(JSON.stringify(inserted[0])).not.toContain(`"${DESTINATION_ADDRESS}"`);
+    expect(JSON.stringify(inserted[0])).not.toContain(
+      `"${DESTINATION_ADDRESS}"`,
+    );
   });
 
   test("a Kubernetes request's hashed X-Forwarded-For is its claim: never looked up, never named", async () => {
@@ -856,15 +867,18 @@ describe("an OpenStack request's events, its address hashed", () => {
       });
     jest
       .spyOn(LogScrubRuleService, "findBy")
-      .mockResolvedValue([logRule(LogScrubAction.Hash, "Hash IP addresses")] as never);
+      .mockResolvedValue([
+        logRule(LogScrubAction.Hash, "Hash IP addresses"),
+      ] as never);
     jest.spyOn(OpenStackCloudService, "findBy").mockResolvedValue([] as never);
-    jest
-      .spyOn(GlobalCache, "getStrings")
-      .mockImplementation((async (_namespace: string, keys: Array<string>) => {
-        return keys.map((): null => {
-          return null;
-        });
-      }) as never);
+    jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
+      _namespace: string,
+      keys: Array<string>,
+    ) => {
+      return keys.map((): null => {
+        return null;
+      });
+    }) as never);
     jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined as never);
     vaultHolds(BOTH_KNOWN);
 
@@ -915,7 +929,9 @@ describe("an OpenStack request's events, its address hashed", () => {
     );
 
     expect(notification[0]!.principalIp).toBe("");
-    expect(readHiddenAddress(notification[0]!, ScrubbedAddressRole.Principal)).toBeNull();
+    expect(
+      readHiddenAddress(notification[0]!, ScrubbedAddressRole.Principal),
+    ).toBeNull();
 
     await store([...notification, ...auditFilter]);
 

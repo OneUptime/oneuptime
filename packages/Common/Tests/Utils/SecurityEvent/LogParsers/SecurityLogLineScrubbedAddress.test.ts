@@ -195,7 +195,10 @@ describe("readEventAddress and readEventHost", () => {
       address: "not-an-address",
       scrubbed: null,
     });
-    expect(readEventAddress(undefined)).toEqual({ address: "", scrubbed: null });
+    expect(readEventAddress(undefined)).toEqual({
+      address: "",
+      scrubbed: null,
+    });
   });
 
   test("a host is never what a rule left", () => {

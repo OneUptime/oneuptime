@@ -505,7 +505,9 @@ export const SCRUBBED_ADDRESS_FORMATS: ReadonlyArray<ScrubbedAddressFormat> = [
     roles: PRINCIPAL,
     line: ({ source }: { source: string }): SecurityLogLine => {
       return logLine(
-        batchOf([anonymousStorageRecord({ callerIpAddress: `${source}:52314` })]),
+        batchOf([
+          anonymousStorageRecord({ callerIpAddress: `${source}:52314` }),
+        ]),
       );
     },
   },

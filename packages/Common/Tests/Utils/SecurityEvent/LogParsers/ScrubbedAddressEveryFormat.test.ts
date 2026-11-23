@@ -85,7 +85,9 @@ function scrubbedOf(
   pair: ScrubbedAddressPair,
   role: ScrubbedAddressRole,
 ): string {
-  return role === ScrubbedAddressRole.Principal ? pair.source : pair.destination;
+  return role === ScrubbedAddressRole.Principal
+    ? pair.source
+    : pair.destination;
 }
 
 const FORMAT_CASES: Array<[string, ScrubbedAddressFormat]> =
@@ -95,20 +97,21 @@ const FORMAT_CASES: Array<[string, ScrubbedAddressFormat]> =
     },
   );
 
-const HIDDEN_CASES: Array<[string, string, ScrubbedAddressFormat, ScrubbedAddressPair]> =
-  SCRUBBED_ADDRESS_FORMATS.flatMap(
-    (
-      format: ScrubbedAddressFormat,
-    ): Array<[string, string, ScrubbedAddressFormat, ScrubbedAddressPair]> => {
-      return SCRUBBED_ADDRESS_PAIRS.map(
-        (
-          pair: ScrubbedAddressPair,
-        ): [string, string, ScrubbedAddressFormat, ScrubbedAddressPair] => {
-          return [format.name, pair.label, format, pair];
-        },
-      );
-    },
-  );
+const HIDDEN_CASES: Array<
+  [string, string, ScrubbedAddressFormat, ScrubbedAddressPair]
+> = SCRUBBED_ADDRESS_FORMATS.flatMap(
+  (
+    format: ScrubbedAddressFormat,
+  ): Array<[string, string, ScrubbedAddressFormat, ScrubbedAddressPair]> => {
+    return SCRUBBED_ADDRESS_PAIRS.map(
+      (
+        pair: ScrubbedAddressPair,
+      ): [string, string, ScrubbedAddressFormat, ScrubbedAddressPair] => {
+        return [format.name, pair.label, format, pair];
+      },
+    );
+  },
+);
 
 describe("one line of every format", () => {
   test("covers each format Security Events reads its addresses from", () => {
@@ -393,9 +396,7 @@ describe("an address wins wherever a record names it", () => {
     });
 
     expect(event.principalIp).toBe("2001:db8::7");
-    expect(
-      readHiddenAddress(event, ScrubbedAddressRole.Principal),
-    ).toBeNull();
+    expect(readHiddenAddress(event, ScrubbedAddressRole.Principal)).toBeNull();
   });
 
   test("a FortiGate SSL VPN line's hidden srcip leaves its remote address", () => {
@@ -406,9 +407,7 @@ describe("an address wins wherever a record names it", () => {
     });
 
     expect(event.principalIp).toBe("10.10.0.4");
-    expect(
-      readHiddenAddress(event, ScrubbedAddressRole.Principal),
-    ).toBeNull();
+    expect(readHiddenAddress(event, ScrubbedAddressRole.Principal)).toBeNull();
   });
 
   test("a token anywhere but the address's field is never the event's", () => {

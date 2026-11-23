@@ -412,8 +412,7 @@ export function nameAddressScrubRule(
   const name: string = (rule.name || "").trim();
 
   if (name) {
-    attributes[keys.rule] =
-      name.length > 255 ? `${name.slice(0, 254)}…` : name;
+    attributes[keys.rule] = name.length > 255 ? `${name.slice(0, 254)}…` : name;
   } else {
     delete attributes[keys.rule];
   }

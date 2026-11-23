@@ -455,15 +455,13 @@ describe("the marker of each of an event's addresses", () => {
       ScrubbedAddressRole.Principal,
       ScrubbedAddressRole.Target,
     ]);
-    expect(SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Principal]).toEqual(
-      {
-        hidden: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
-        scrubbed: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
-        scrubbedIn: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
-        ruleId: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
-        rule: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
-      },
-    );
+    expect(SCRUBBED_ADDRESS_ATTRIBUTES[ScrubbedAddressRole.Principal]).toEqual({
+      hidden: SECURITY_REQUEST_ATTRIBUTES.clientAddressHidden,
+      scrubbed: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbed,
+      scrubbedIn: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubbedIn,
+      ruleId: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRuleId,
+      rule: SECURITY_REQUEST_ATTRIBUTES.clientAddressScrubRule,
+    });
     expect(TARGET_ADDRESS_SCRUB_MARKER_ATTRIBUTES).toEqual([
       "oneuptime.target_address_hidden",
       "oneuptime.target_address_scrubbed",
@@ -534,7 +532,9 @@ describe("the marker of each of an event's addresses", () => {
         ruleName: "Redact IPs",
       }),
     );
-    expect(readHiddenAddress({ attributes }, ScrubbedAddressRole.Target)).toEqual(
+    expect(
+      readHiddenAddress({ attributes }, ScrubbedAddressRole.Target),
+    ).toEqual(
       expect.objectContaining({
         kind: ScrubbedAddressKind.Masked,
         value: SCRUB_IPV6_MASK,

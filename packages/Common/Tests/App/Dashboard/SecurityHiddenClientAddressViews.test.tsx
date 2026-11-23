@@ -320,7 +320,9 @@ describe("the event's drawer", () => {
     );
     const row: HTMLElement = screen.getByText("Target IP").closest("div")!;
 
-    expect(target).toHaveTextContent("Hidden by the scrub rule Mask IP addresses");
+    expect(target).toHaveTextContent(
+      "Hidden by the scrub rule Mask IP addresses",
+    );
     expect(
       within(row).getByRole("link", { name: "Mask IP addresses" }),
     ).toBeInTheDocument();
