@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand. Les modifications des règles de runbook se trouvent sous Runbooks > Paramètres > Journaux d'audit des règles.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand : les règles de runbook des alertes, des incidents et des événements de maintenance, ainsi que les règles de propriétaire et d'étiquettes des runbooks.",
-  "vCenter Rule Audit Logs": "Journaux d'audit des règles vCenter"
+  "vCenter Rule Audit Logs": "Journaux d'audit des règles vCenter",
+  "A password reset link that still works": "Un lien de réinitialisation du mot de passe encore valide",
+  "Clear {{name}}'s saved sign-in settings?": "Effacer les paramètres de connexion enregistrés de {{name}} ?",
+  "Cleared their sign-in settings.": "Ses paramètres de connexion ont été effacés.",
+  "Cleared {{name}}'s sign-in settings.": "Les paramètres de connexion de {{name}} ont été effacés.",
+  "Sign-In Settings Saved": "Paramètres de connexion enregistrés",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "A encore un mot de passe ou une authentification à deux facteurs enregistrés dans OneUptime, que ses projets n'utilisent pas.",
+  "Their password, and any password reset or sign-in link": "Son mot de passe, ainsi que tout lien de réinitialisation du mot de passe ou de connexion",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Les paramètres de connexion ci-dessous sont supprimés, ses appareils non connectés via SSO sont déconnectés, et la personne reçoit un e-mail. Cette action est irréversible.",
+  "Two-factor authentication, which is turned off": "L'authentification à deux facteurs, qui est désactivée",
+  "{{count}} authenticator apps": "{{count}} applications d'authentification",
+  "{{count}} authenticator apps_one": "{{count}} application d'authentification",
+  "{{count}} backup codes": "{{count}} codes de secours",
+  "{{count}} backup codes_one": "{{count}} code de secours",
+  "{{count}} passkeys and security keys": "{{count}} clés d'accès et clés de sécurité",
+  "{{count}} passkeys and security keys_one": "{{count}} clé d'accès ou clé de sécurité"
 }

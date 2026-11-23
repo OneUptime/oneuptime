@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer. Wijzigingen van runbook-regels staan onder Runbooks > Instellingen > Auditlogboeken van regels.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Wie deze regels heeft gemaakt, gewijzigd of verwijderd, wat er is gewijzigd en wanneer: de runbook-regels van waarschuwingen, incidenten en onderhoudsgebeurtenissen, en de eigenaars- en labelregels van de runbooks.",
-  "vCenter Rule Audit Logs": "Auditlogboeken van vCenter-regels"
+  "vCenter Rule Audit Logs": "Auditlogboeken van vCenter-regels",
+  "A password reset link that still works": "Een wachtwoordherstellink die nog werkt",
+  "Clear {{name}}'s saved sign-in settings?": "Opgeslagen aanmeldinstellingen van {{name}} wissen?",
+  "Cleared their sign-in settings.": "Hun aanmeldinstellingen zijn gewist.",
+  "Cleared {{name}}'s sign-in settings.": "De aanmeldinstellingen van {{name}} zijn gewist.",
+  "Sign-In Settings Saved": "Aanmeldinstellingen opgeslagen",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Heeft nog een wachtwoord of tweefactorauthenticatie opgeslagen in OneUptime, die hun projecten niet gebruiken.",
+  "Their password, and any password reset or sign-in link": "Hun wachtwoord en elke wachtwoordherstellink of inloglink",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "De aanmeldinstellingen hieronder worden verwijderd, hun apparaten die niet met SSO zijn aangemeld worden afgemeld, en ze krijgen een e-mail. Dit kan niet ongedaan worden gemaakt.",
+  "Two-factor authentication, which is turned off": "Tweefactorauthenticatie, die wordt uitgeschakeld",
+  "{{count}} authenticator apps": "{{count}} authenticator-apps",
+  "{{count}} authenticator apps_one": "{{count}} authenticator-app",
+  "{{count}} backup codes": "{{count}} back-upcodes",
+  "{{count}} backup codes_one": "{{count}} back-upcode",
+  "{{count}} passkeys and security keys": "{{count}} passkeys en beveiligingssleutels",
+  "{{count}} passkeys and security keys_one": "{{count}} passkey of beveiligingssleutel"
 }

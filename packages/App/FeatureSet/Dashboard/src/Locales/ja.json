@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです。Runbook ルールの変更は Runbook > 設定 > ルールの監査ログにあります。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "これらのルールを誰が作成、変更、削除したか、何を変更したか、いつ変更したかです：アラート、インシデント、メンテナンスイベントの Runbook ルールと、Runbook の所有者ルールおよびラベルルールです。",
-  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ"
+  "vCenter Rule Audit Logs": "vCenter ルールの監査ログ",
+  "A password reset link that still works": "まだ有効なパスワードリセットリンク",
+  "Clear {{name}}'s saved sign-in settings?": "{{name}} の保存済みサインイン設定を消去しますか？",
+  "Cleared their sign-in settings.": "このユーザーのサインイン設定を消去しました。",
+  "Cleared {{name}}'s sign-in settings.": "{{name}} のサインイン設定を消去しました。",
+  "Sign-In Settings Saved": "サインイン設定が保存済み",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "所属するプロジェクトでは使われていないパスワードまたは 2 要素認証が、OneUptime に保存されたままです。",
+  "Their password, and any password reset or sign-in link": "パスワード、およびパスワードリセットリンクやサインインリンク",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "以下のサインイン設定が削除され、SSO 以外でサインインしたデバイスはサインアウトされ、本人にメールが送信されます。この操作は元に戻せません。",
+  "Two-factor authentication, which is turned off": "2 要素認証（オフになります）",
+  "{{count}} authenticator apps": "{{count}} 個の認証アプリ",
+  "{{count}} authenticator apps_one": "{{count}} 個の認証アプリ",
+  "{{count}} backup codes": "{{count}} 個のバックアップコード",
+  "{{count}} backup codes_one": "{{count}} 個のバックアップコード",
+  "{{count}} passkeys and security keys": "{{count}} 個のパスキーとセキュリティキー",
+  "{{count}} passkeys and security keys_one": "{{count}} 個のパスキーまたはセキュリティキー"
 }

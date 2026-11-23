@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Quién creó, cambió o eliminó estas reglas, qué cambió y cuándo.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Quién creó, cambió o eliminó estas reglas, qué cambió y cuándo. Los cambios de las reglas de runbook están en Runbooks > Ajustes > Registros de auditoría de las reglas.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Quién creó, cambió o eliminó estas reglas, qué cambió y cuándo: las reglas de runbook de alertas, incidentes y eventos de mantenimiento, y las reglas de propietario y de etiquetas de los runbooks.",
-  "vCenter Rule Audit Logs": "Registros de auditoría de las reglas de vCenter"
+  "vCenter Rule Audit Logs": "Registros de auditoría de las reglas de vCenter",
+  "A password reset link that still works": "Un enlace de restablecimiento de contraseña que aún funciona",
+  "Clear {{name}}'s saved sign-in settings?": "¿Borrar la configuración de inicio de sesión guardada de {{name}}?",
+  "Cleared their sign-in settings.": "Se borró su configuración de inicio de sesión.",
+  "Cleared {{name}}'s sign-in settings.": "Se borró la configuración de inicio de sesión de {{name}}.",
+  "Sign-In Settings Saved": "Configuración de inicio de sesión guardada",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Todavía tiene una contraseña o la autenticación de dos factores guardada en OneUptime, que sus proyectos no usan.",
+  "Their password, and any password reset or sign-in link": "Su contraseña y cualquier enlace de restablecimiento de contraseña o de inicio de sesión",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Se elimina la configuración de inicio de sesión de abajo, se cierra la sesión de sus dispositivos que no iniciaron sesión con SSO y se le envía un correo electrónico. Esto no se puede deshacer.",
+  "Two-factor authentication, which is turned off": "La autenticación de dos factores, que queda desactivada",
+  "{{count}} authenticator apps": "{{count}} aplicaciones de autenticación",
+  "{{count}} authenticator apps_one": "{{count}} aplicación de autenticación",
+  "{{count}} backup codes": "{{count}} códigos de respaldo",
+  "{{count}} backup codes_one": "{{count}} código de respaldo",
+  "{{count}} passkeys and security keys": "{{count}} llaves de acceso y llaves de seguridad",
+  "{{count}} passkeys and security keys_one": "{{count}} llave de acceso o llave de seguridad"
 }

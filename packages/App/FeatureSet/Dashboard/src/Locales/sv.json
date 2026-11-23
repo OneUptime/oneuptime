@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när. Ändringar av runbook-regler finns under Runbooks > Inställningar > Granskningsloggar för regler.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Vem som skapade, ändrade eller tog bort dessa regler, vad de ändrade och när: runbook-reglerna för larm, incidenter och underhållshändelser, och runbookarnas ägar- och etikettregler.",
-  "vCenter Rule Audit Logs": "Granskningsloggar för vCenter-regler"
+  "vCenter Rule Audit Logs": "Granskningsloggar för vCenter-regler",
+  "A password reset link that still works": "En länk för återställning av lösenord som fortfarande fungerar",
+  "Clear {{name}}'s saved sign-in settings?": "Rensa de sparade inloggningsinställningarna för {{name}}?",
+  "Cleared their sign-in settings.": "Deras inloggningsinställningar har rensats.",
+  "Cleared {{name}}'s sign-in settings.": "Inloggningsinställningarna för {{name}} har rensats.",
+  "Sign-In Settings Saved": "Inloggningsinställningar sparade",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Har fortfarande ett lösenord eller tvåfaktorsautentisering sparat i OneUptime, som deras projekt inte använder.",
+  "Their password, and any password reset or sign-in link": "Lösenordet och alla länkar för återställning av lösenord eller inloggningslänkar",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Inloggningsinställningarna nedan raderas, enheter som inte loggat in med SSO loggas ut, och personen får ett e-postmeddelande. Det går inte att ångra.",
+  "Two-factor authentication, which is turned off": "Tvåfaktorsautentisering, som stängs av",
+  "{{count}} authenticator apps": "{{count}} autentiseringsappar",
+  "{{count}} authenticator apps_one": "{{count}} autentiseringsapp",
+  "{{count}} backup codes": "{{count}} reservkoder",
+  "{{count}} backup codes_one": "{{count}} reservkod",
+  "{{count}} passkeys and security keys": "{{count}} passnycklar och säkerhetsnycklar",
+  "{{count}} passkeys and security keys_one": "{{count}} passnyckel eller säkerhetsnyckel"
 }

@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Wer diese Regeln erstellt, geändert oder gelöscht hat, was geändert wurde und wann.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Wer diese Regeln erstellt, geändert oder gelöscht hat, was geändert wurde und wann. Änderungen an Runbook-Regeln finden Sie unter Runbooks > Einstellungen > Audit-Protokolle der Regeln.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Wer diese Regeln erstellt, geändert oder gelöscht hat, was geändert wurde und wann: die Runbook-Regeln von Warnungen, Vorfällen und Wartungsereignissen sowie die Eigentümer- und Beschriftungsregeln der Runbooks.",
-  "vCenter Rule Audit Logs": "Audit-Protokolle der vCenter-Regeln"
+  "vCenter Rule Audit Logs": "Audit-Protokolle der vCenter-Regeln",
+  "A password reset link that still works": "Ein Link zum Zurücksetzen des Passworts, der noch gültig ist",
+  "Clear {{name}}'s saved sign-in settings?": "Gespeicherte Anmeldeeinstellungen von {{name}} löschen?",
+  "Cleared their sign-in settings.": "Die Anmeldeeinstellungen dieser Person wurden gelöscht.",
+  "Cleared {{name}}'s sign-in settings.": "Die Anmeldeeinstellungen von {{name}} wurden gelöscht.",
+  "Sign-In Settings Saved": "Anmeldeeinstellungen gespeichert",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Hat noch ein Passwort oder eine Zwei-Faktor-Authentifizierung in OneUptime gespeichert, die ihre Projekte nicht nutzen.",
+  "Their password, and any password reset or sign-in link": "Das Passwort und alle Links zum Zurücksetzen des Passworts oder zur Anmeldung",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Die unten aufgeführten Anmeldeeinstellungen werden gelöscht, nicht per SSO angemeldete Geräte der Person werden abgemeldet, und sie erhält eine E-Mail. Das lässt sich nicht rückgängig machen.",
+  "Two-factor authentication, which is turned off": "Zwei-Faktor-Authentifizierung, die damit deaktiviert wird",
+  "{{count}} authenticator apps": "{{count}} Authenticator-Apps",
+  "{{count}} authenticator apps_one": "{{count}} Authenticator-App",
+  "{{count}} backup codes": "{{count}} Backup-Codes",
+  "{{count}} backup codes_one": "{{count}} Backup-Code",
+  "{{count}} passkeys and security keys": "{{count}} Passkeys und Sicherheitsschlüssel",
+  "{{count}} passkeys and security keys_one": "{{count}} Passkey oder Sicherheitsschlüssel"
 }

@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다. 런북 규칙의 변경 사항은 런북 > 설정 > 규칙 감사 로그에 있습니다.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다: 경고, 인시던트, 유지 관리 이벤트의 런북 규칙과 런북의 소유자 규칙 및 레이블 규칙입니다.",
-  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그"
+  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그",
+  "A password reset link that still works": "아직 유효한 비밀번호 재설정 링크",
+  "Clear {{name}}'s saved sign-in settings?": "{{name}}님의 저장된 로그인 설정을 지우시겠습니까?",
+  "Cleared their sign-in settings.": "이 사용자의 로그인 설정을 지웠습니다.",
+  "Cleared {{name}}'s sign-in settings.": "{{name}}님의 로그인 설정을 지웠습니다.",
+  "Sign-In Settings Saved": "로그인 설정 저장됨",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "속한 프로젝트에서 사용하지 않는 비밀번호나 2단계 인증이 아직 OneUptime에 저장되어 있습니다.",
+  "Their password, and any password reset or sign-in link": "비밀번호, 그리고 비밀번호 재설정 링크나 로그인 링크",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "아래 로그인 설정이 삭제되고, SSO로 로그인하지 않은 기기는 로그아웃되며, 본인에게 이메일이 발송됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "Two-factor authentication, which is turned off": "2단계 인증(꺼짐)",
+  "{{count}} authenticator apps": "인증 앱 {{count}}개",
+  "{{count}} authenticator apps_one": "인증 앱 {{count}}개",
+  "{{count}} backup codes": "백업 코드 {{count}}개",
+  "{{count}} backup codes_one": "백업 코드 {{count}}개",
+  "{{count}} passkeys and security keys": "패스키 및 보안 키 {{count}}개",
+  "{{count}} passkeys and security keys_one": "패스키 또는 보안 키 {{count}}개"
 }

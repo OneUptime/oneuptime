@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى. تغييرات قواعد أدلة التشغيل في أدلة التشغيل > الإعدادات > سجلات التدقيق للقواعد.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "من أنشأ هذه القواعد أو غيّرها أو حذفها، وما الذي غيّره ومتى: قواعد أدلة التشغيل للتنبيهات والحوادث وأحداث الصيانة، وقواعد المالكين والتسميات لأدلة التشغيل.",
-  "vCenter Rule Audit Logs": "سجلات التدقيق لقواعد vCenter"
+  "vCenter Rule Audit Logs": "سجلات التدقيق لقواعد vCenter",
+  "A password reset link that still works": "رابط لإعادة تعيين كلمة المرور لا يزال صالحًا",
+  "Clear {{name}}'s saved sign-in settings?": "هل تريد مسح إعدادات تسجيل الدخول المحفوظة لدى {{name}}؟",
+  "Cleared their sign-in settings.": "مُسحت إعدادات تسجيل الدخول لدى هذا الشخص.",
+  "Cleared {{name}}'s sign-in settings.": "مُسحت إعدادات تسجيل الدخول لدى {{name}}.",
+  "Sign-In Settings Saved": "إعدادات تسجيل دخول محفوظة",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "لا تزال لديه كلمة مرور أو مصادقة ثنائية محفوظة في OneUptime لا تستخدمها مشاريعه.",
+  "Their password, and any password reset or sign-in link": "كلمة المرور وأي رابط لإعادة تعيين كلمة المرور أو لتسجيل الدخول",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "تُحذف إعدادات تسجيل الدخول أدناه، ويُسجَّل خروج أجهزته التي لم تسجّل الدخول عبر SSO، ويُرسل إليه بريد إلكتروني. لا يمكن التراجع عن ذلك.",
+  "Two-factor authentication, which is turned off": "المصادقة الثنائية، التي تُوقف",
+  "{{count}} authenticator apps": "تطبيقات المصادقة: {{count}}",
+  "{{count}} authenticator apps_one": "{{count}} تطبيق مصادقة",
+  "{{count}} backup codes": "الرموز الاحتياطية: {{count}}",
+  "{{count}} backup codes_one": "{{count}} رمز احتياطي",
+  "{{count}} passkeys and security keys": "مفاتيح المرور ومفاتيح الأمان: {{count}}",
+  "{{count}} passkeys and security keys_one": "{{count}} مفتاح مرور أو مفتاح أمان"
 }

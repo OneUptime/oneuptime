@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando. As alterações das regras de runbook estão em Runbooks > Configurações > Registros de auditoria das regras.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Quem criou, alterou ou excluiu estas regras, o que alterou e quando: as regras de runbook de alertas, incidentes e eventos de manutenção, e as regras de proprietário e de rótulos dos runbooks.",
-  "vCenter Rule Audit Logs": "Registros de auditoria das regras de vCenter"
+  "vCenter Rule Audit Logs": "Registros de auditoria das regras de vCenter",
+  "A password reset link that still works": "Um link de redefinição de senha que ainda funciona",
+  "Clear {{name}}'s saved sign-in settings?": "Limpar as configurações de login salvas de {{name}}?",
+  "Cleared their sign-in settings.": "As configurações de login dessa pessoa foram apagadas.",
+  "Cleared {{name}}'s sign-in settings.": "As configurações de login de {{name}} foram apagadas.",
+  "Sign-In Settings Saved": "Configurações de login salvas",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Ainda tem uma senha ou autenticação de dois fatores salva no OneUptime, que os projetos dela não usam.",
+  "Their password, and any password reset or sign-in link": "A senha e qualquer link de redefinição de senha ou de login",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "As configurações de login abaixo são excluídas, os dispositivos dela que não entraram com SSO são desconectados e ela recebe um e-mail. Isso não pode ser desfeito.",
+  "Two-factor authentication, which is turned off": "A autenticação de dois fatores, que fica desativada",
+  "{{count}} authenticator apps": "{{count}} aplicativos autenticadores",
+  "{{count}} authenticator apps_one": "{{count}} aplicativo autenticador",
+  "{{count}} backup codes": "{{count}} códigos de backup",
+  "{{count}} backup codes_one": "{{count}} código de backup",
+  "{{count}} passkeys and security keys": "{{count}} chaves de acesso e chaves de segurança",
+  "{{count}} passkeys and security keys_one": "{{count}} chave de acesso ou chave de segurança"
 }

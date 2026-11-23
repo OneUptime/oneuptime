@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når. Endringer i runbook-regler finner du under Runbooks > Innstillinger > Revisjonslogger for regler.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Hvem som opprettet, endret eller slettet disse reglene, hva de endret og når: runbook-reglene for varsler, hendelser og vedlikeholdshendelser, og runbookenes eier- og etikettregler.",
-  "vCenter Rule Audit Logs": "Revisjonslogger for vCenter-regler"
+  "vCenter Rule Audit Logs": "Revisjonslogger for vCenter-regler",
+  "A password reset link that still works": "En lenke for tilbakestilling av passord som fortsatt virker",
+  "Clear {{name}}'s saved sign-in settings?": "Fjerne de lagrede påloggingsinnstillingene til {{name}}?",
+  "Cleared their sign-in settings.": "Påloggingsinnstillingene deres er fjernet.",
+  "Cleared {{name}}'s sign-in settings.": "Påloggingsinnstillingene til {{name}} er fjernet.",
+  "Sign-In Settings Saved": "Påloggingsinnstillinger lagret",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Har fortsatt et passord eller tofaktorautentisering lagret i OneUptime, som prosjektene deres ikke bruker.",
+  "Their password, and any password reset or sign-in link": "Passordet og enhver lenke for tilbakestilling av passord eller påloggingslenke",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Påloggingsinnstillingene nedenfor slettes, enheter som ikke er logget på med SSO, logges av, og personen får en e-post. Dette kan ikke angres.",
+  "Two-factor authentication, which is turned off": "Tofaktorautentisering, som slås av",
+  "{{count}} authenticator apps": "{{count}} autentiseringsapper",
+  "{{count}} authenticator apps_one": "{{count}} autentiseringsapp",
+  "{{count}} backup codes": "{{count}} reservekoder",
+  "{{count}} backup codes_one": "{{count}} reservekode",
+  "{{count}} passkeys and security keys": "{{count}} passnøkler og sikkerhetsnøkler",
+  "{{count}} passkeys and security keys_one": "{{count}} passnøkkel eller sikkerhetsnøkkel"
 }

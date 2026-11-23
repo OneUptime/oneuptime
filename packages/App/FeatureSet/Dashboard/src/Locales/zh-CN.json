@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改。运行手册规则的更改位于 运行手册 > 设置 > 规则审计日志。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "谁创建、更改或删除了这些规则，更改了什么以及何时更改：警报、事件和维护事件的运行手册规则，以及运行手册的所有者规则和标签规则。",
-  "vCenter Rule Audit Logs": "vCenter 规则审计日志"
+  "vCenter Rule Audit Logs": "vCenter 规则审计日志",
+  "A password reset link that still works": "仍然有效的密码重置链接",
+  "Clear {{name}}'s saved sign-in settings?": "要清除 {{name}} 已保存的登录设置吗？",
+  "Cleared their sign-in settings.": "已清除此人的登录设置。",
+  "Cleared {{name}}'s sign-in settings.": "已清除 {{name}} 的登录设置。",
+  "Sign-In Settings Saved": "已保存登录设置",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "仍在 OneUptime 中保存着其项目不使用的密码或双因素身份验证。",
+  "Their password, and any password reset or sign-in link": "密码，以及所有密码重置链接或登录链接",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "下方的登录设置将被删除，未通过 SSO 登录的设备将被退出登录，此人会收到一封电子邮件。此操作无法撤销。",
+  "Two-factor authentication, which is turned off": "双因素身份验证（将被关闭）",
+  "{{count}} authenticator apps": "{{count}} 个身份验证器应用",
+  "{{count}} authenticator apps_one": "{{count}} 个身份验证器应用",
+  "{{count}} backup codes": "{{count}} 个备用代码",
+  "{{count}} backup codes_one": "{{count}} 个备用代码",
+  "{{count}} passkeys and security keys": "{{count}} 个通行密钥和安全密钥",
+  "{{count}} passkeys and security keys_one": "{{count}} 个通行密钥或安全密钥"
 }

@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی. تغییرهای قواعد رانبوک در رانبوک‌ها > تنظیمات > گزارش‌های ممیزی قواعد است.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "چه کسی این قواعد را ایجاد، تغییر یا حذف کرد، چه چیزی را تغییر داد و چه زمانی: قواعد رانبوک هشدارها، حوادث و رویدادهای تعمیر و نگهداری، و قواعد مالکیت و برچسب رانبوک‌ها.",
-  "vCenter Rule Audit Logs": "گزارش‌های ممیزی قواعد vCenter"
+  "vCenter Rule Audit Logs": "گزارش‌های ممیزی قواعد vCenter",
+  "A password reset link that still works": "پیوند بازنشانی رمز عبوری که هنوز کار می‌کند",
+  "Clear {{name}}'s saved sign-in settings?": "تنظیمات ورود ذخیره‌شدهٔ {{name}} پاک شود؟",
+  "Cleared their sign-in settings.": "تنظیمات ورود این فرد پاک شد.",
+  "Cleared {{name}}'s sign-in settings.": "تنظیمات ورود {{name}} پاک شد.",
+  "Sign-In Settings Saved": "تنظیمات ورود ذخیره‌شده",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "هنوز رمز عبور یا احراز هویت دومرحله‌ای ذخیره‌شده در OneUptime دارد که پروژه‌هایش از آن استفاده نمی‌کنند.",
+  "Their password, and any password reset or sign-in link": "رمز عبور او و هر پیوند بازنشانی رمز عبور یا پیوند ورود",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "تنظیمات ورود زیر حذف می‌شوند، دستگاه‌هایی از او که بدون SSO وارد شده‌اند خارج می‌شوند و به او ایمیل زده می‌شود. این کار برگشت‌پذیر نیست.",
+  "Two-factor authentication, which is turned off": "احراز هویت دومرحله‌ای، که خاموش می‌شود",
+  "{{count}} authenticator apps": "{{count}} برنامهٔ احراز هویت",
+  "{{count}} authenticator apps_one": "{{count}} برنامهٔ احراز هویت",
+  "{{count}} backup codes": "{{count}} کد پشتیبان",
+  "{{count}} backup codes_one": "{{count}} کد پشتیبان",
+  "{{count}} passkeys and security keys": "{{count}} کلید عبور و کلید امنیتی",
+  "{{count}} passkeys and security keys_one": "{{count}} کلید عبور یا کلید امنیتی"
 }

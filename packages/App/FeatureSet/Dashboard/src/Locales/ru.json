@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Кто создал, изменил или удалил эти правила, что изменилось и когда.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Кто создал, изменил или удалил эти правила, что изменилось и когда. Изменения правил сборников инструкций — в разделе Сборники инструкций > Настройки > Журналы аудита правил.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Кто создал, изменил или удалил эти правила, что изменилось и когда: правила сборников инструкций для оповещений, инцидентов и событий обслуживания, а также правила владельцев и меток сборников инструкций.",
-  "vCenter Rule Audit Logs": "Журналы аудита правил vCenter"
+  "vCenter Rule Audit Logs": "Журналы аудита правил vCenter",
+  "A password reset link that still works": "Ссылка для сброса пароля, которая ещё действует",
+  "Clear {{name}}'s saved sign-in settings?": "Удалить сохранённые настройки входа пользователя {{name}}?",
+  "Cleared their sign-in settings.": "Настройки входа пользователя удалены.",
+  "Cleared {{name}}'s sign-in settings.": "Настройки входа пользователя {{name}} удалены.",
+  "Sign-In Settings Saved": "Сохранены настройки входа",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "В OneUptime всё ещё сохранены пароль или двухфакторная аутентификация, которые не используются в его проектах.",
+  "Their password, and any password reset or sign-in link": "Пароль и все ссылки для сброса пароля или для входа",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Настройки входа ниже удаляются, его устройства, вошедшие без SSO, выходят из системы, а он получает письмо. Это нельзя отменить.",
+  "Two-factor authentication, which is turned off": "Двухфакторная аутентификация, которая отключается",
+  "{{count}} authenticator apps": "Приложений-аутентификаторов: {{count}}",
+  "{{count}} authenticator apps_one": "{{count}} приложение-аутентификатор",
+  "{{count}} backup codes": "Резервных кодов: {{count}}",
+  "{{count}} backup codes_one": "{{count}} резервный код",
+  "{{count}} passkeys and security keys": "Ключей доступа и ключей безопасности: {{count}}",
+  "{{count}} passkeys and security keys_one": "{{count}} ключ доступа или ключ безопасности"
 }

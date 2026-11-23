@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Who created, changed or deleted these rules, what they changed and when.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.",
-  "vCenter Rule Audit Logs": "vCenter Rule Audit Logs"
+  "vCenter Rule Audit Logs": "vCenter Rule Audit Logs",
+  "A password reset link that still works": "A password reset link that still works",
+  "Clear {{name}}'s saved sign-in settings?": "Clear {{name}}'s saved sign-in settings?",
+  "Cleared their sign-in settings.": "Cleared their sign-in settings.",
+  "Cleared {{name}}'s sign-in settings.": "Cleared {{name}}'s sign-in settings.",
+  "Sign-In Settings Saved": "Sign-In Settings Saved",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.",
+  "Their password, and any password reset or sign-in link": "Their password, and any password reset or sign-in link",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.",
+  "Two-factor authentication, which is turned off": "Two-factor authentication, which is turned off",
+  "{{count}} authenticator apps": "{{count}} authenticator apps",
+  "{{count}} authenticator apps_one": "{{count}} authenticator app",
+  "{{count}} backup codes": "{{count}} backup codes",
+  "{{count}} backup codes_one": "{{count}} backup code",
+  "{{count}} passkeys and security keys": "{{count}} passkeys and security keys",
+  "{{count}} passkeys and security keys_one": "{{count}} passkey or security key"
 }

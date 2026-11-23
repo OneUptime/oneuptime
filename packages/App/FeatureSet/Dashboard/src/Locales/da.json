@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Hvem der oprettede, ændrede eller slettede disse regler, hvad de ændrede og hvornår.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Hvem der oprettede, ændrede eller slettede disse regler, hvad de ændrede og hvornår. Ændringer af runbook-regler findes under Runbooks > Indstillinger > Auditlogs for regler.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Hvem der oprettede, ændrede eller slettede disse regler, hvad de ændrede og hvornår: runbook-reglerne for advarsler, hændelser og vedligeholdelseshændelser og runbookenes ejer- og etiketregler.",
-  "vCenter Rule Audit Logs": "Auditlogs for vCenter-regler"
+  "vCenter Rule Audit Logs": "Auditlogs for vCenter-regler",
+  "A password reset link that still works": "Et link til nulstilling af adgangskode, der stadig virker",
+  "Clear {{name}}'s saved sign-in settings?": "Ryd de gemte loginindstillinger for {{name}}?",
+  "Cleared their sign-in settings.": "Deres loginindstillinger er ryddet.",
+  "Cleared {{name}}'s sign-in settings.": "Loginindstillingerne for {{name}} er ryddet.",
+  "Sign-In Settings Saved": "Loginindstillinger gemt",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "Har stadig en adgangskode eller tofaktorgodkendelse gemt i OneUptime, som deres projekter ikke bruger.",
+  "Their password, and any password reset or sign-in link": "Adgangskoden og ethvert link til nulstilling af adgangskode eller login-link",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "Loginindstillingerne nedenfor slettes, enheder, der ikke er logget ind med SSO, logges ud, og personen får en e-mail. Det kan ikke fortrydes.",
+  "Two-factor authentication, which is turned off": "Tofaktorgodkendelse, som slås fra",
+  "{{count}} authenticator apps": "{{count}} godkendelsesapps",
+  "{{count}} authenticator apps_one": "{{count}} godkendelsesapp",
+  "{{count}} backup codes": "{{count}} backupkoder",
+  "{{count}} backup codes_one": "{{count}} backupkode",
+  "{{count}} passkeys and security keys": "{{count}} adgangsnøgler og sikkerhedsnøgler",
+  "{{count}} passkeys and security keys_one": "{{count}} adgangsnøgle eller sikkerhedsnøgle"
 }

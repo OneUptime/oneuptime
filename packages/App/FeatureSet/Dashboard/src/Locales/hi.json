@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब।",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब। रनबुक नियमों के बदलाव रनबुक > सेटिंग्स > नियमों के ऑडिट लॉग में हैं।",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "इन नियमों को किसने बनाया, बदला या हटाया, क्या बदला और कब: अलर्ट, घटनाओं और रखरखाव इवेंट के रनबुक नियम, और रनबुक के स्वामी और लेबल नियम।",
-  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग"
+  "vCenter Rule Audit Logs": "vCenter नियमों के ऑडिट लॉग",
+  "A password reset link that still works": "पासवर्ड रीसेट लिंक जो अब भी काम करता है",
+  "Clear {{name}}'s saved sign-in settings?": "{{name}} की सहेजी गई साइन-इन सेटिंग्स हटाएँ?",
+  "Cleared their sign-in settings.": "उनकी साइन-इन सेटिंग्स हटा दी गईं।",
+  "Cleared {{name}}'s sign-in settings.": "{{name}} की साइन-इन सेटिंग्स हटा दी गईं।",
+  "Sign-In Settings Saved": "साइन-इन सेटिंग्स सहेजी हुई हैं",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "OneUptime में अब भी पासवर्ड या दो-कारक प्रमाणीकरण सहेजा हुआ है, जिसका उनके प्रोजेक्ट इस्तेमाल नहीं करते।",
+  "Their password, and any password reset or sign-in link": "उनका पासवर्ड, और कोई भी पासवर्ड रीसेट या साइन-इन लिंक",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "नीचे दी गई साइन-इन सेटिंग्स हटा दी जाती हैं, SSO के बिना साइन इन किए गए उनके डिवाइस साइन आउट कर दिए जाते हैं, और उन्हें ईमेल भेजा जाता है। इसे पहले जैसा नहीं किया जा सकता।",
+  "Two-factor authentication, which is turned off": "दो-कारक प्रमाणीकरण, जो बंद कर दिया जाता है",
+  "{{count}} authenticator apps": "{{count}} ऑथेंटिकेटर ऐप",
+  "{{count}} authenticator apps_one": "{{count}} ऑथेंटिकेटर ऐप",
+  "{{count}} backup codes": "{{count}} बैकअप कोड",
+  "{{count}} backup codes_one": "{{count}} बैकअप कोड",
+  "{{count}} passkeys and security keys": "{{count}} पासकी और सुरक्षा कुंजियाँ",
+  "{{count}} passkeys and security keys_one": "{{count}} पासकी या सुरक्षा कुंजी"
 }

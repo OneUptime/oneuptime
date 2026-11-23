@@ -62322,5 +62322,20 @@
   "Who created, changed or deleted these rules, what they changed and when.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更。運行手冊規則的變更位於「運行手冊」>「設定」>「規則稽核日誌」。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更：警示、事件和維護事件的運行手冊規則，以及運行手冊的擁有者規則和標籤規則。",
-  "vCenter Rule Audit Logs": "vCenter 規則稽核日誌"
+  "vCenter Rule Audit Logs": "vCenter 規則稽核日誌",
+  "A password reset link that still works": "仍然有效的密碼重設連結",
+  "Clear {{name}}'s saved sign-in settings?": "要清除 {{name}} 已儲存的登入設定嗎？",
+  "Cleared their sign-in settings.": "已清除此人的登入設定。",
+  "Cleared {{name}}'s sign-in settings.": "已清除 {{name}} 的登入設定。",
+  "Sign-In Settings Saved": "已儲存登入設定",
+  "Still has a password or two-factor authentication saved in OneUptime, which their projects don't use.": "仍在 OneUptime 中保存著其專案不使用的密碼或雙重驗證。",
+  "Their password, and any password reset or sign-in link": "密碼，以及所有密碼重設連結或登入連結",
+  "This deletes the sign-in settings below, signs out their devices not signed in with SSO, and emails them. It can't be undone.": "下方的登入設定將被刪除，未透過 SSO 登入的裝置將被登出，此人會收到一封電子郵件。此操作無法復原。",
+  "Two-factor authentication, which is turned off": "雙重驗證（將被關閉）",
+  "{{count}} authenticator apps": "{{count}} 個驗證器應用程式",
+  "{{count}} authenticator apps_one": "{{count}} 個驗證器應用程式",
+  "{{count}} backup codes": "{{count}} 個備用代碼",
+  "{{count}} backup codes_one": "{{count}} 個備用代碼",
+  "{{count}} passkeys and security keys": "{{count}} 個通行密鑰和安全金鑰",
+  "{{count}} passkeys and security keys_one": "{{count}} 個通行密鑰或安全金鑰"
 }
