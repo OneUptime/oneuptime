@@ -148,7 +148,13 @@ const DEPLOYMENT_FILES: Array<string> = [
   "HelmChart/Public/oneuptime/values.yaml",
   ...fs
     .readdirSync(
-      path.join(REPOSITORY_ROOT, "HelmChart", "Public", "oneuptime", "templates"),
+      path.join(
+        REPOSITORY_ROOT,
+        "HelmChart",
+        "Public",
+        "oneuptime",
+        "templates",
+      ),
     )
     .filter((name: string): boolean => {
       return name.endsWith(".yaml") || name.endsWith(".tpl");
@@ -161,7 +167,12 @@ const DEPLOYMENT_FILES: Array<string> = [
 const FETCH: string = "fetch";
 
 // The names a script calls the global object by.
-const GLOBAL_OBJECTS: Array<string> = ["globalThis", "global", "window", "self"];
+const GLOBAL_OBJECTS: Array<string> = [
+  "globalThis",
+  "global",
+  "window",
+  "self",
+];
 
 // Whether a binding name - an identifier or a pattern - declares fetch.
 function bindsFetch(name: ts.BindingName | undefined): boolean {
@@ -346,7 +357,9 @@ function isReadAsValue(node: ts.Identifier): boolean {
 
 // Whether an expression names the global object (and no local of that name).
 function isGlobalObject(expression: ts.Expression): boolean {
-  return ts.isIdentifier(expression) && GLOBAL_OBJECTS.includes(expression.text);
+  return (
+    ts.isIdentifier(expression) && GLOBAL_OBJECTS.includes(expression.text)
+  );
 }
 
 function parse(fileName: string, text: string): ts.SourceFile {
@@ -682,7 +695,7 @@ describe("the guard reads a fetch as it is written", () => {
     "const { fetch } = clients;\nfetch();",
     "for (const fetch of fetches) { fetch(); }",
     'if (typeof fetch !== "function") {}',
-    "await OutboundFetch.fetch(url, { method: \"POST\" });",
+    'await OutboundFetch.fetch(url, { method: "POST" });',
   ])("not Node's fetch: %s", (source: string) => {
     expect(globalFetchUsesIn("Example.ts", source)).toEqual([]);
   });

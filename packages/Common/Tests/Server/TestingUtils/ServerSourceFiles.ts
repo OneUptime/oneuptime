@@ -14,7 +14,13 @@ import path from "path";
  * any, nor tests and scripts.
  */
 
-export const PACKAGES_ROOT: string = path.join(__dirname, "..", "..", "..", "..");
+export const PACKAGES_ROOT: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+);
 export const REPOSITORY_ROOT: string = path.join(PACKAGES_ROOT, "..");
 export const EE_PRESENT: boolean = fs.existsSync(
   path.join(REPOSITORY_ROOT, "ee"),

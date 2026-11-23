@@ -454,12 +454,14 @@ describe("the server's libraries that send with axios", () => {
         (file: string): Array<{ file: string; routed: boolean }> => {
           return twilioClientArgumentsIn(
             codeOf(fs.readFileSync(file, "utf8")),
-          ).map((clientArguments: string): { file: string; routed: boolean } => {
-            return {
-              file: relative(file),
-              routed: clientArguments.includes(TWILIO_HTTP_CLIENT),
-            };
-          });
+          ).map(
+            (clientArguments: string): { file: string; routed: boolean } => {
+              return {
+                file: relative(file),
+                routed: clientArguments.includes(TWILIO_HTTP_CLIENT),
+              };
+            },
+          );
         },
       );
 
