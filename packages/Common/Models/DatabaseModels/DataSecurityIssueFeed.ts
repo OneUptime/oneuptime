@@ -63,6 +63,23 @@ export enum DataSecurityIssueFeedEventType {
   AiProposalDismissed = "AiProposalDismissed",
   AiChangeUndone = "AiChangeUndone",
   AiChangeFailed = "AiChangeFailed",
+  /*
+   * A telemetry issue resolved as contained at ingest (#10368): a scrub
+   * rule hides its data before it is stored, but the code still writes
+   * it. Not fixed, so not drawn as Resolved is.
+   */
+  Contained = "Contained",
+  /*
+   * The issue's fix followed to production (#10368): its pull request
+   * merged and shipped in a deploy; production proved it (Fixed in pull
+   * request #n, deployed in version x, verified at time t); it merged and,
+   * a day later, the store still failed its check (merged, not applied);
+   * or the data came back - after the fix shipped, or in a later version.
+   */
+  FixShipped = "FixShipped",
+  FixVerified = "FixVerified",
+  FixNotApplied = "FixNotApplied",
+  FixRegressed = "FixRegressed",
 }
 
 /*

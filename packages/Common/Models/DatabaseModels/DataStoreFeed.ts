@@ -52,6 +52,14 @@ export enum DataStoreFeedEventType {
   AiProposalDismissed = "AiProposalDismissed",
   AiChangeUndone = "AiChangeUndone",
   AiChangeFailed = "AiChangeFailed",
+  /*
+   * A fix of one of the store's issues followed to production (#10368), as
+   * the issue's timeline says it: verified, merged and not applied, or
+   * the data back after it.
+   */
+  IssueFixVerified = "IssueFixVerified",
+  IssueFixNotApplied = "IssueFixNotApplied",
+  IssueFixRegressed = "IssueFixRegressed",
 }
 
 @EnableDocumentation()

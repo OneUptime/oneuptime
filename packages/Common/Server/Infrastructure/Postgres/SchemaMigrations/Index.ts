@@ -1165,6 +1165,7 @@ import { AddCloudWafAndEnforcementReasons1809187455000 } from "./1809187455000-A
 import { AddDataSecurityIssueGroups1809187470370 } from "./1809187470370-AddDataSecurityIssueGroups";
 import { AddDataSecurityIssueGroupIndexesAndKeys1809187470380 } from "./1809187470380-AddDataSecurityIssueGroupIndexesAndKeys";
 import { AddScrubRuleNamedKeysAndProof1809187470400 } from "./1809187470400-AddScrubRuleNamedKeysAndProof";
+import { AddDataSecurityIssueResolution1809187471368 } from "./1809187471368-AddDataSecurityIssueResolution";
 
 export default [
   InitialMigration,
@@ -2334,4 +2335,5 @@ export default [
   AddDataSecurityIssueGroups1809187470370,
   AddDataSecurityIssueGroupIndexesAndKeys1809187470380,
   AddScrubRuleNamedKeysAndProof1809187470400,
+  AddDataSecurityIssueResolution1809187471368,
 ];
