@@ -59,7 +59,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import Toast from "Common/UI/Utils/Toast";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -177,6 +177,31 @@ const RuleSlot: FunctionComponent<{ name: string }> = (props: {
   );
 };
 
+/*
+ * Of the slots given, those the sentence holds. TranslatedSentence draws a
+ * sentence only whole - each slot it is given, once - so one with no place
+ * in this sentence (a commit, in a sentence naming a version) is left out.
+ */
+const slotsOf: (
+  template: string | PluralTemplate,
+  slots: Record<string, ReactNode>,
+) => Record<string, ReactNode> = (
+  template: string | PluralTemplate,
+  slots: Record<string, ReactNode>,
+): Record<string, ReactNode> => {
+  const english: string =
+    typeof template === "string" ? template : template.other;
+  const held: Record<string, ReactNode> = {};
+
+  for (const name of Object.keys(slots)) {
+    if (english.includes(`{{${name}}}`)) {
+      held[name] = slots[name];
+    }
+  }
+
+  return held;
+};
+
 // The line of a fix OneUptime followed to production.
 const FixedLine: FunctionComponent<{
   template: string;
@@ -192,11 +217,11 @@ const FixedLine: FunctionComponent<{
   return (
     <TranslatedSentence
       template={props.template}
-      slots={{
+      slots={slotsOf(props.template, {
         pullRequest: <PullRequestSlot fix={fix} />,
         version: <VersionSlot text={fix?.version || ""} />,
         commit: <VersionSlot text={(fix?.commitSha || "").slice(0, 7)} />,
-      }}
+      })}
       values={{ time: timeOf(props.details.at, props.resolvedAt) }}
     />
   );
@@ -249,18 +274,18 @@ const RuleLine: FunctionComponent<{
       />
     );
   } else {
+    const changedTemplate: PluralTemplate = rule.lastChangedVersion
+      ? RULE_CHANGED_LATELY
+      : RULE_CHANGED_LATELY_NO_VERSION;
+
     sentence = (
       <TranslatedSentence
-        template={
-          rule.lastChangedVersion
-            ? RULE_CHANGED_LATELY
-            : RULE_CHANGED_LATELY_NO_VERSION
-        }
+        template={changedTemplate}
         count={rule.valuesChanged}
-        slots={{
+        slots={slotsOf(changedTemplate, {
           rule: ruleSlot,
           version: <VersionSlot text={rule.lastChangedVersion || ""} />,
-        }}
+        })}
         values={{
           count: translator.formatNumber(rule.valuesChanged),
           days: translator.formatNumber(props.days),
@@ -409,13 +434,13 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
         <p className="font-medium">
           <TranslatedSentence
             template={getCameBackTemplate(details)}
-            slots={{
+            slots={slotsOf(getCameBackTemplate(details), {
               pullRequest: <PullRequestSlot fix={details.regression?.fix} />,
               version: <VersionSlot text={details.regression?.version || ""} />,
               fixedVersion: (
                 <VersionSlot text={details.regression?.fix?.version || ""} />
               ),
-            }}
+            })}
           />
         </p>
         <p className="mt-0.5">{translator.translateText(CAME_BACK_STAYS_OPEN)}</p>
