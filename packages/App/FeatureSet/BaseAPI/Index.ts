@@ -727,6 +727,10 @@ import SecurityPlaybookService, {
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
+import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
+import SecurityAutomaticResponseActionService, {
+  Service as SecurityAutomaticResponseActionServiceType,
+} from "Common/Server/Services/SecurityAutomaticResponseActionService";
 import SecurityBlockCloudWafAPI from "Common/Server/API/SecurityBlockCloudWafAPI";
 import SecurityBlockEnforcementService, {
   Service as SecurityBlockEnforcementServiceType,
@@ -1989,6 +1993,7 @@ import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStep
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityAutomaticResponseAction from "Common/Models/DatabaseModels/SecurityAutomaticResponseAction";
 import SecurityBlocklistFeedFetch from "Common/Models/DatabaseModels/SecurityBlocklistFeedFetch";
 import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
 import DataSecurityAPI from "Common/Server/API/DataSecurityAPI";
@@ -4875,6 +4880,23 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityBlockAPI().getRouter(),
+    );
+
+    // Automatic response policies, their page's overview, and what each did (#10350).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityAutomaticResponsePolicyAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityAutomaticResponseAction,
+        SecurityAutomaticResponseActionServiceType
+      >(
+        SecurityAutomaticResponseAction,
+        SecurityAutomaticResponseActionService,
+      ).getRouter(),
     );
 
     app.use(
