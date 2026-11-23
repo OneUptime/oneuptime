@@ -5207,6 +5207,15 @@ function modePicker(page: Page): Locator {
   return conversation(page).getByTitle("Choose what the AI is allowed to do");
 }
 
+/*
+ * The picker's menu, drawn on the tooltip layer (LayeredPopover) and placed
+ * against the window, so no box the card sits in cuts it off (#9910): it is
+ * not inside the card's conversation, whose edges it is measured against.
+ */
+function modeMenu(page: Page): Locator {
+  return page.getByRole("menu", { name: "AI permissions" });
+}
+
 function modeCaption(page: Page): Locator {
   return conversation(page).getByTestId("investigation-conversation-mode");
 }
@@ -6507,9 +6516,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
         );
 
         await modePicker(page).click();
-        const menu: Locator = conversation(page).getByRole("menu", {
-          name: "AI permissions",
-        });
+        const menu: Locator = modeMenu(page);
         await expect(menu).toBeVisible();
         await expect(modePicker(page)).toHaveAttribute("aria-expanded", "true");
 
@@ -6542,7 +6549,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await openConversation(page, "");
 
       await modePicker(page).click();
-      await conversation(page)
+      await modeMenu(page)
         .getByRole("menuitemradio", { name: /^Read-only/ })
         .click();
 
@@ -6550,7 +6557,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       await expect(modeCaption(page)).toHaveText(
         "Only reads and answers. It never changes anything.",
       );
-      await expect(conversation(page).getByRole("menu")).toHaveCount(0);
+      await expect(modeMenu(page)).toHaveCount(0);
 
       await composerBox(page).fill("What changed?");
       await sendButton(page).click();
@@ -6594,7 +6601,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
       for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
-        await conversation(page)
+        await modeMenu(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })
           .click();
 
