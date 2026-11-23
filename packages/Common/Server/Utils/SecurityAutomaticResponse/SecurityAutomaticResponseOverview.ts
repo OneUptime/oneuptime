@@ -27,12 +27,18 @@ import {
   summarizeTimeToBlock,
 } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseSummary";
 import { SecurityAutomaticResponseRule } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
+import {
+  SecurityBlockIndicatorType,
+  SecurityBlockReach,
+} from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { canSecurityBlockDestinationChallenge } from "../../../Types/SecurityBlocklist/SecurityBlockChallenge";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import SecurityAutomaticResponseActionService from "../../Services/SecurityAutomaticResponseActionService";
 import SecurityAutomaticResponsePolicyService from "../../Services/SecurityAutomaticResponsePolicyService";
 import logger from "../Logger";
-import SecurityBlockDestination from "../SecurityBlocklist/SecurityBlockDestination";
+import SecurityBlockDestination, {
+  isSecurityBlockForDestination,
+} from "../SecurityBlocklist/SecurityBlockDestination";
 import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../SecurityBlocklist/SecurityBlockDestinations";
@@ -98,6 +104,50 @@ export function sortSecurityAutomaticResponsePolicies(
       );
     },
   );
+}
+
+/*
+ * The destinations that enforce a policy's blocks, and whether each can
+ * challenge: those that hold an address blocked at the edge, as a policy
+ * blocks one. An endpoint product holds an address only when it is blocked
+ * everywhere (#10346), which a policy never asks, so it is not one.
+ */
+export function describeSecurityAutomaticResponseDestinations(
+  destinations: ReadonlyArray<
+    Pick<
+      SecurityBlockDestination,
+      "name" | "provider" | "canChallenge" | "enforcesOnEveryMachine"
+    >
+  >,
+): Array<JSONObject> {
+  return destinations
+    .filter(
+      (
+        destination: Pick<SecurityBlockDestination, "enforcesOnEveryMachine">,
+      ): boolean => {
+        return isSecurityBlockForDestination({
+          destination,
+          block: {
+            indicatorType: SecurityBlockIndicatorType.IpAddress,
+            reach: SecurityBlockReach.Edge,
+          },
+        });
+      },
+    )
+    .map(
+      (
+        destination: Pick<
+          SecurityBlockDestination,
+          "name" | "provider" | "canChallenge"
+        >,
+      ): JSONObject => {
+        return {
+          name: destination.name,
+          provider: destination.provider,
+          canChallenge: canSecurityBlockDestinationChallenge(destination),
+        };
+      },
+    );
 }
 
 export default class SecurityAutomaticResponseOverview {
@@ -330,7 +380,7 @@ export default class SecurityAutomaticResponseOverview {
     return { acted: acted || 0, spared: spared || 0 };
   }
 
-  // The destinations that enforce the blocklist, and whether each can challenge.
+  // The destinations that enforce a policy's blocks, and whether each can challenge.
   private static async readDestinations(
     projectId: ObjectID,
   ): Promise<{ destinations: Array<JSONObject>; cannotTell: boolean }> {
@@ -339,14 +389,8 @@ export default class SecurityAutomaticResponseOverview {
         await SecurityBlockDestinations.findForProject(projectId);
 
       return {
-        destinations: found.destinations.map(
-          (destination: SecurityBlockDestination): JSONObject => {
-            return {
-              name: destination.name,
-              provider: destination.provider,
-              canChallenge: canSecurityBlockDestinationChallenge(destination),
-            };
-          },
+        destinations: describeSecurityAutomaticResponseDestinations(
+          found.destinations,
         ),
         cannotTell: found.failedProviders.length > 0,
       };

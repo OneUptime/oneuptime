@@ -221,6 +221,15 @@ describe("getSecurityAutomaticResponsePolicyProblem", () => {
         writes: all,
       }),
     ).toBe(SECURITY_AUTOMATIC_RESPONSE_MESSAGES.notAnAction);
+    // A file's action is never an address's (#10346).
+    expect(
+      getSecurityAutomaticResponsePolicyProblem({
+        name: "Port scans",
+        blockAction: "BlockAndQuarantine",
+        matchConditions: { mitreTechniques: ["T1046"] },
+        writes: all,
+      }),
+    ).toBe(SECURITY_AUTOMATIC_RESPONSE_MESSAGES.notAnAction);
     expect(
       getSecurityAutomaticResponsePolicyProblem({
         name: "Port scans",

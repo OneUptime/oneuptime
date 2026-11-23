@@ -14,7 +14,11 @@ import SecurityAutomaticResponse, {
   SECURITY_AUTOMATIC_RESPONSE_DECIDE_JOB,
   SecurityAutomaticResponseRecordedDetection,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
-import { sortSecurityAutomaticResponsePolicies } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
+import {
+  describeSecurityAutomaticResponseDestinations,
+  sortSecurityAutomaticResponsePolicies,
+} from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
+import { SecurityBlockDestinationProvider } from "../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityAutomaticResponseRules, {
   SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES,
@@ -639,6 +643,45 @@ describe("the page's order", () => {
       SecurityAutomaticResponsePolicyKind.KnownBadAddresses,
       "2026-11-01T00:00:00.000Z",
       "2026-11-02T00:00:00.000Z",
+    ]);
+  });
+
+  /*
+   * A policy blocks an address at the edge, so the page names the edge's
+   * destinations, and whether each can challenge; an endpoint product
+   * holds an address only when it is blocked everywhere (#10346), which a
+   * policy never asks, so it is not one of them.
+   */
+  test("the page names the destinations that hold a policy's blocks, and whether each can challenge", () => {
+    expect(
+      describeSecurityAutomaticResponseDestinations([
+        {
+          name: "Cloudflare",
+          provider: SecurityBlockDestinationProvider.Cloudflare,
+          canChallenge: true,
+        },
+        {
+          name: "Palo Alto feed",
+          provider: SecurityBlockDestinationProvider.Feed,
+          canChallenge: false,
+        },
+        {
+          name: "Microsoft Defender",
+          provider: SecurityBlockDestinationProvider.MicrosoftDefender,
+          enforcesOnEveryMachine: true,
+        },
+      ]),
+    ).toEqual([
+      {
+        name: "Cloudflare",
+        provider: SecurityBlockDestinationProvider.Cloudflare,
+        canChallenge: true,
+      },
+      {
+        name: "Palo Alto feed",
+        provider: SecurityBlockDestinationProvider.Feed,
+        canChallenge: false,
+      },
     ]);
   });
 });

@@ -30,7 +30,7 @@ import {
   isSecurityAutomaticResponseMode,
   readSecurityAutomaticResponseMatch,
 } from "../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
-import { isSecurityBlockAction } from "../../Types/SecurityBlocklist/SecurityBlock";
+import { SECURITY_BLOCK_ADDRESS_ACTIONS } from "../../Types/SecurityBlocklist/SecurityBlock";
 
 /*
  * AUTOMATIC RESPONSE POLICIES (#10350): what a policy is, and who may change
@@ -181,10 +181,13 @@ export function getSecurityAutomaticResponsePolicyProblem(data: {
     return SECURITY_AUTOMATIC_RESPONSE_MESSAGES.nameRequired;
   }
 
+  // An address's action at the edge: never a file's BlockAndQuarantine (#10346).
   if (
     data.writes.includes("blockAction") &&
     data.blockAction !== undefined &&
-    !isSecurityBlockAction(data.blockAction)
+    !(SECURITY_BLOCK_ADDRESS_ACTIONS as ReadonlyArray<unknown>).includes(
+      data.blockAction,
+    )
   ) {
     return SECURITY_AUTOMATIC_RESPONSE_MESSAGES.notAnAction;
   }

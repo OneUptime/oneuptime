@@ -237,7 +237,7 @@ export default class SecurityAutomaticResponsePolicy extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     required: true,
-    allowedValues: Object.values(SecurityBlockAction),
+    allowedValues: [SecurityBlockAction.Block, SecurityBlockAction.Challenge],
     title: "Action",
     description:
       "What the policy does to the address: Block, or Challenge (people pass a challenge, scripts do not). Where an edge cannot challenge, a challenge is enforced there as a block for the same time.",

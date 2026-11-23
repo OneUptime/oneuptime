@@ -306,7 +306,7 @@ export default class SecurityAutomaticResponseAction extends BaseModel {
     type: TableColumnType.ShortText,
     computed: true,
     canReadOnRelationQuery: true,
-    allowedValues: Object.values(SecurityBlockAction),
+    allowedValues: [SecurityBlockAction.Block, SecurityBlockAction.Challenge],
     title: "Action",
     description: "What the policy did, or would have done: Block or Challenge.",
   })

@@ -95,6 +95,10 @@ const LEFT_OUT_ENUMS: Readonly<Record<string, string>> = {
  * the enum stays one for the columns that take all of it.
  */
 const DELIBERATE_SUBSETS: Readonly<Record<string, string>> = {
+  "SecurityAutomaticResponseAction.blockAction":
+    "what an automatic response policy did to an address: it challenges or blocks one at the edge, never a file, so never BlockAndQuarantine, which SecurityBlockAction has for a file a person or a playbook blocks on every machine (#10346)",
+  "SecurityAutomaticResponsePolicy.blockAction":
+    "an automatic response policy challenges or blocks the address a detection is about at the edge, never a file, so never BlockAndQuarantine, which SecurityBlockAction has for a file a person or a playbook blocks on every machine (#10346)",
   "SecurityAutomaticResponsePolicy.duration":
     "an automatic block always ends: a policy's first block lasts 1 hour, 24 hours or 7 days, and the repeat-offender ladder climbs no further than 7 days (SECURITY_REPEAT_OFFENDER_LADDER), while a person's block of the same SecurityBlockDuration may also last 30 days or until lifted",
   "AutoRemediationRule.dataSecurityAnalyze":
