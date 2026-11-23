@@ -604,6 +604,27 @@ function toResultSet(body: Buffer, queryId: string): Record<string, unknown> {
   };
 }
 
+/*
+ * A fake answer to an exec: the response stream, chunk by chunk, each on a
+ * later turn of the event loop, as a socket hands a body over.
+ */
+function toExecResult(body: Buffer, queryId: string): Record<string, unknown> {
+  const chunkSize: number = 64 * 1024;
+
+  async function* chunks(): AsyncGenerator<Buffer> {
+    for (let offset: number = 0; offset < body.length; offset += chunkSize) {
+      await nextTurn();
+      yield body.subarray(offset, offset + chunkSize);
+    }
+  }
+
+  return {
+    query_id: queryId,
+    response_headers: {},
+    stream: Readable.from(chunks()),
+  };
+}
+
 // A read's aggregation, as its statement opens: "SELECT max(".
 const AGGREGATION_PATTERN: RegExp = /^SELECT\s+([a-zA-Z]+)\(/;
 
@@ -611,6 +632,9 @@ const EMPTY_ANSWER: Buffer = Buffer.from(
   JSON.stringify({ meta: [], data: [], rows: 0 }),
   "utf8",
 );
+
+// The same, as JSONCompactEachRowWithNames: the names line alone.
+const EMPTY_ROWS_ANSWER: Buffer = Buffer.from('["value","time"]\n', "utf8");
 
 interface InstalledStubs {
   restore: () => void;
@@ -986,6 +1010,34 @@ export function installFleetStubs(
       clickhouse.readBytes += body.length;
       await sleep(CLICKHOUSE_READ_LATENCY_MS);
       return toResultSet(body, `fleet-${clickhouse.reads}`);
+    },
+    /*
+     * A read grouped by attribute keys asks for its rows as they arrive
+     * (JSONCompactEachRowWithNames, #10316): the same rows, its body in the
+     * chunks a socket hands them over in.
+     */
+    exec: async (params: {
+      query: string;
+      query_params?: Record<string, unknown>;
+    }): Promise<Record<string, unknown>> => {
+      clickhouse.reads++;
+      const metricName: string | null = nameOf(params.query_params);
+      const aggregation: string | undefined = AGGREGATION_PATTERN.exec(
+        params.query,
+      )?.[1];
+      let body: Buffer | undefined =
+        metricName && aggregation
+          ? fleet.valueRowAnswers.get(readKey(metricName, aggregation))
+          : undefined;
+
+      if (!body) {
+        clickhouse.unexpectedReads.push(params.query.substring(0, 160));
+        body = EMPTY_ROWS_ANSWER;
+      }
+
+      clickhouse.readBytes += body.length;
+      await sleep(CLICKHOUSE_READ_LATENCY_MS);
+      return toExecResult(body, `fleet-${clickhouse.reads}`);
     },
   };
 
