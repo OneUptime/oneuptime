@@ -202,4 +202,23 @@ export default interface MonitorEvaluationSummary {
    * not judge series on its own.
    */
   series?: MonitorEvaluationSeries | undefined;
+  /*
+   * How long the evaluation took, in milliseconds of wall-clock time: from
+   * when it began - a telemetry check's first read - until its monitor log
+   * entry was written (#10317). Absent from a summary captured before the
+   * evaluation ended (an incident's or an alert's), and from older ones.
+   */
+  durationInMs?: number | undefined;
+  /*
+   * How many series its criteria judged: every series of a grouped check,
+   * those that read no data among them (MonitorStoredCheck.countSeries).
+   * Absent for a check that is not split into series.
+   */
+  seriesJudged?: number | undefined;
+  /*
+   * How often its monitor is evaluated, in milliseconds, when it runs on a
+   * schedule: what durationInMs is weighed against
+   * (MonitorEvaluationTime.isSlow).
+   */
+  intervalInMs?: number | undefined;
 }

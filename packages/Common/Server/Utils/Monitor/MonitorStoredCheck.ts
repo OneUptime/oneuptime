@@ -364,6 +364,32 @@ export default class MonitorStoredCheck {
     return bounded as unknown as DataToProcess;
   }
 
+  /*
+   * How many series a grouped check judged: the length of its series list,
+   * as boundSeries counts the series a check had
+   * (LoggedSeries.seriesInEvaluation) - every one, those that read no data
+   * among them. Undefined for a check that is not split into series.
+   */
+  public static countSeries(
+    check: DataToProcess | null | undefined,
+  ): number | undefined {
+    if (!MonitorStoredCheck.isPlainObject(check)) {
+      return undefined;
+    }
+
+    const source: JSONObject = check as unknown as JSONObject;
+
+    for (const field of SERIES_LIST_FIELDS) {
+      const list: unknown = source[field];
+
+      if (Array.isArray(list)) {
+        return list.length;
+      }
+    }
+
+    return undefined;
+  }
+
   // A series list in the order the log keeps it: the series acted on first.
   private static orderForLog(input: {
     list: ReadonlyArray<unknown>;

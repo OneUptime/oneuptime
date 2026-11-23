@@ -23,6 +23,7 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import MonitorEvaluationClock from "Common/Server/Utils/Monitor/MonitorEvaluationClock";
 import GroupedSeriesGone from "Common/Server/Utils/Monitor/GroupedSeriesGone";
 import ReceivingCoverage, {
   TelemetryEvaluationPlan,
@@ -469,6 +470,11 @@ export const processTelemetryMonitorEvaluationFromQueue: (
 ) => Promise<void> = async (
   data: TelemetryMonitorEvaluationJobData,
 ): Promise<void> => {
+  /*
+   * The evaluation begins with its reads, which come before
+   * monitorResource: its log entry's time counts them (#10317).
+   */
+  const evaluationStartedAtMs: number = MonitorEvaluationClock.now();
   const monitorId: ObjectID = new ObjectID(data.monitorId);
   const monitor: Monitor | null = await MonitorService.findOneById({
     id: monitorId,
@@ -577,7 +583,9 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
   }
 
-  await MonitorResourceUtil.monitorResource(response);
+  await MonitorResourceUtil.monitorResource(response, {
+    evaluationStartedAtMs: evaluationStartedAtMs,
+  });
 };
 
 type MonitorTelemetryMonitorFunction = (data: {
