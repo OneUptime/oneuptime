@@ -70,7 +70,7 @@ Behold eller endre **Sonder** og **Overvåkingsintervall** (det starter på **Hv
 
 ### API-URL
 
-Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`.
+Endepunktet som skal kalles, som fullstendig URL med skjema, som `https://api.example.com/v1/health`. Du kan sette en [monitorhemmelighet](/docs/monitor/monitor-secrets) inn i URL-en som `{{monitorSecrets.NAME}}`. Feilen fra en mislykket sjekk nevner bare URL-ens skjema, vert og port, som `https://api.example.com`, så hemmeligheten vises aldri.
 
 ### Dynamiske URL-plassholdere
 
@@ -194,17 +194,18 @@ Monitorer som ble opprettet før OneUptime endret disse standardene, beholder kr
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Svarhode**, **Verdi for svarhode**, **JavaScript-uttrykk** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Svarhode**, **Verdi for svarhode**, **JavaScript-uttrykk** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 minutter til 24 timer under **For de siste**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Persentil** | Den verdien over vinduet oppfyller betingelsen, for eksempel p95-responstiden. Bare numeriske filtre. |
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
-En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Er tidsavbrudd for forespørsel** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **Alle verdier** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
+En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Er tidsavbrudd for forespørsel** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Eller OneUptime teller den med **Antall**, **Prosentandel** eller **Statusskifter**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **Alle verdier** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
 
 Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 
@@ -250,7 +251,7 @@ Brødteksten er ikke JSON når [monitorhemmelighetene](/docs/monitor/monitor-sec
 :::
 
 :::details Sjekken sier at sonden er for gammel til å sende brødteksten
-Monitorens brødtekst er en JSON-matrise, én enkelt verdi eller **Tekst**, og den egendefinerte sonden som sjekker den, kjører en utgivelse eldre enn OneUptime 17.2.0, som bare sender et JSON-objekt, så sjekken ble ikke kjørt på den. [Oppdater sonden](/docs/probe/custom-probe#oppdater-en-sonde), eller sjekk monitoren fra en annen sonde.
+Monitorens brødtekst er en JSON-matrise, én enkelt verdi eller **Tekst**, og den egendefinerte sonden som sjekker den, kjører en eldre utgivelse, som bare sender et JSON-objekt, så sjekken ble ikke kjørt på den. Monitorens skjema og sondens side navngir en slik sonde. [Oppdater sonden](/docs/probe/custom-probe#oppdater-en-sonde) til den nyeste utgivelsen, eller sjekk monitoren fra en annen sonde.
 :::
 
 ## Neste steg

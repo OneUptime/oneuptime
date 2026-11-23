@@ -326,8 +326,8 @@ export default class Probe extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Reported Version",
     description:
-      "The OneUptime release this probe last said it runs. Set by OneUptime from the probe's own requests. Empty until the probe connects, and for a probe older than 17.0.1, which does not say.",
-    example: "17.0.1",
+      "The OneUptime release this probe last said it runs. Set by OneUptime from the probe's own requests. Empty until the probe connects, and for a probe older than 17.1.0, which does not say.",
+    example: "17.1.0",
   })
   @Column({
     nullable: true,

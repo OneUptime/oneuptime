@@ -48,6 +48,9 @@ describe("a playbook's Trigger picker", () => {
       // Never offered: the runs OneUptime AI starts while it works a case (#10352).
       [SecurityPlaybookTrigger.OneUptimeAi]:
         "Each step OneUptime AI takes while it works a case.",
+      // Never offered either: the runs an automatic response policy starts (#10350).
+      [SecurityPlaybookTrigger.AutomaticResponse]:
+        "Each challenge or block an automatic response policy makes as an attack is detected.",
     });
   });
 

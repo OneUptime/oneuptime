@@ -83,6 +83,8 @@ I segreti vengono compilati prima che venga eseguito lo script di un monitor Mon
 
 Se un monitor richiama un segreto che non può usare, il riferimento resta com'è e non viene sostituito con il valore.
 
+Quando il controllo di un monitor API, Sito web o Pagina di stato esterna non riesce, il suo errore indica l'URL solo con schema, host e porta, come `https://api.example.com`, quindi un segreto nell'URL non viene mai mostrato.
+
 Quando testate un monitor prima di salvarlo, vengono compilati solo i segreti disponibili per **Tutti i monitor**, perché un nuovo monitor non è in nessun elenco e non ha ancora etichette. Dopo aver salvato il monitor, i test usano ogni segreto che il monitor può usare.
 
 ## Accedere con un codice monouso
@@ -128,7 +130,7 @@ return {
 La sonda non consegna mai un codice a cui restano meno di cinque secondi, o meno di un terzo del periodo quando il periodo è più breve: attende invece il codice successivo, al massimo cinque secondi, e non conta quell'attesa nel tempo di esecuzione del controllo. Ogni codice generato da un controllo viene mostrato come asterischi, per esempio `******`, nei suoi messaggi di log, nel suo risultato, nel suo errore e nei nomi dei suoi screenshot. Uno screenshot è un'immagine della pagina, quindi scattatelo prima che il codice venga digitato o dopo che la pagina è andata avanti.
 
 > [!NOTE]
-> La sonda genera i codici, quindi una sonda personalizzata richiede OneUptime 17.0.1 o successiva. Su una più vecchia, un controllo che richiede un codice non viene eseguito e fallisce con una frase che chiede di aggiornare la sonda; il modulo del monitor e la pagina della sonda indicano una sonda troppo vecchia, e [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda) spiega come. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
+> La sonda genera i codici, quindi una sonda personalizzata richiede OneUptime 17.1.0 o successiva. Su una più vecchia, un controllo che richiede un codice non viene eseguito e fallisce con una frase che chiede di aggiornare la sonda; il modulo del monitor e la pagina della sonda indicano una sonda troppo vecchia, e [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda) spiega come. Anche l'orologio della sonda deve essere giusto, perché una sonda sfasata di un minuto genera codici che il sito ha già superato.
 
 ## Risoluzione dei problemi
 
@@ -149,7 +151,7 @@ Verificate che il **Codice attuale** corrispondesse alla vostra app di autentica
 :::
 
 :::details Il controllo dice che la sonda è troppo vecchia per generare codici monouso
-La sonda esegue una versione precedente a OneUptime 17.0.1, che non può generare codici monouso, quindi il controllo non è stato eseguito su di essa. Aggiornate la sonda (vedete [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda)) oppure fate controllare il monitor da sonde con la 17.0.1 o successiva.
+La sonda esegue una versione precedente a OneUptime 17.1.0, che non può generare codici monouso, quindi il controllo non è stato eseguito su di essa. Aggiornate la sonda (vedete [Aggiornare una sonda](/docs/probe/custom-probe#aggiornare-una-sonda)) oppure fate controllare il monitor da sonde con la 17.1.0 o successiva.
 :::
 
 ## Passaggi successivi

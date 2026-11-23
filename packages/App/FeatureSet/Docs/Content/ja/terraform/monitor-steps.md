@@ -288,7 +288,7 @@ criteria = [
 
 フィルターには `check_on` (何を見るか)、`filter_type` (どう比較するか)、`value` (何と比較するか。文字列で書きます。`True` や `False` のような真偽のチェックでは書きません) があります。
 
-フィルターは、最新のチェックの代わりに時間枠を判定することもできます。`evaluate_over_time = true` を設定し、`evaluate_over_time_minutes` に時間枠の長さを、`evaluate_over_time_type` に時間枠の読み方を指定します: `Average`、`Sum`、`Maximum Value`、`Minimum Value`、`All Values`、`Any Value`。
+フィルターは、最新のチェックの代わりに時間枠を判定することもできます。`evaluate_over_time = true` を設定し、`evaluate_over_time_minutes` に時間枠の長さを、`evaluate_over_time_type` に時間枠の読み方を指定します: `Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage`、`Status Changes`。`Percentile` は `evaluate_over_time_percentile` のパーセンタイルをフィルターの値と比較します (未設定なら 95)。`Count`、`Percentage`、`Status Changes` は、プローブごとに、条件を満たした期間内のチェックの数、その割合 (%)、または条件を満たす状態と満たさない状態の間で変化した回数を数え、その数を `evaluate_over_time_count_filter_type` の指定どおりに `evaluate_over_time_count_value` と比較します (未設定なら `Greater Than` 0)。
 
 `All Values` は時間枠内のすべてのチェックがルールに違反したことを意味するので、時間枠がデータで埋まってはじめて一致します。作成したばかりのモニターは、最初のチェックで一致するのではなく、時間枠が埋まるのを待ちます。時間枠はモニターの `monitoring_interval` の 2 倍以上にしてください。そうしないと時間枠にはチェックが 1 回しか入らず、「すべての値」は「いずれかの値」と同じ意味になります。`Any Value` は、ルールに違反したチェックが 1 回あれば一致します。これは意図した動作です。
 

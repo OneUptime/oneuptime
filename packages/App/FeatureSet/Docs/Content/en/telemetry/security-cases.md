@@ -269,6 +269,7 @@ OneUptime tells people about seven things on a case. Nobody has to set anything 
 - Nobody is told about what they did: the person who opens a case by hand, assigns it or starts a run is not notified of it.
 - Each person hears about a case once. A case that opens at Medium and later rises to Critical reaches the people who chose High or Critical when it rises, and not again the people who chose Medium, who heard about it when it opened.
 - The test attack from **Send a test attack** opens a case that notifies nobody.
+- With **Let OneUptime AI respond first** on, a new case below the priority it holds waits for OneUptime AI: people hear of it only once OneUptime AI needs them, at once and with why. See [Let OneUptime AI respond first](/docs/telemetry/security-ai#let-oneuptime-ai-respond-first).
 - A Critical case and a step waiting for approval are sent at once, never held back in an [email rollup](/docs/emails/notification-rollup). So is a response target about to be missed, or missed, a step that stopped holding, and a case OneUptime AI handed to people.
 - The case's **Timeline** says who was told, and when.
 
@@ -462,7 +463,7 @@ The undo steps act on the users or hosts the case is about, like the steps they 
 
 Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app. A block that would meet one is refused, saying what the address is, and **Protected Entities** lists them under **Protected Automatically**. Nor are its own domains blocked: OneUptime's, Microsoft Defender's and CrowdStrike Falcon's, the hosts your monitors check, your status pages' and verified domains, and your cloud resources' DNS names and zones, nor the hash of an empty file. A block of one is refused the same way. When OneUptime cannot tell whether an address, a domain or a file is protected, it does not block it.
 
-**Enforced At** shows each place a block is enforced, and whether it holds there. A firewall or a proxy enforces it by reading a [blocklist feed](/docs/telemetry/blocklist-feeds), a secret URL it fetches every few minutes. AWS WAF enforces it in the web ACLs you pick, once you turn it on for an AWS cloud connection: [Block Addresses in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). Azure WAF and Cloud Armor enforce it in the policies you pick, once you turn it on for an Azure or Google Cloud connection: [Block Addresses in Azure WAF](/docs/telemetry/cloud-azure-waf-blocklist) and [Block Addresses in Cloud Armor](/docs/telemetry/cloud-armor-blocklist). While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case. A block of a case's address is on its **Response Plan** too, where **Lift** ends it, and **Block Address** on a row of **Campaigns** blocks that campaign's address.
+**Enforced At** shows each place a block is enforced, and whether it holds there. A firewall or a proxy enforces it by reading a [blocklist feed](/docs/telemetry/blocklist-feeds), a secret URL it fetches every few minutes. AWS WAF enforces it in the web ACLs you pick, once you turn it on for an AWS cloud connection: [Block Addresses in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). Azure WAF and Cloud Armor enforce it in the policies you pick, once you turn it on for an Azure or Google Cloud connection: [Block Addresses in Azure WAF](/docs/telemetry/cloud-azure-waf-blocklist) and [Block Addresses in Cloud Armor](/docs/telemetry/cloud-armor-blocklist). While nothing enforces the blocklist, the page says so, and a block is recorded but blocks nothing. Each block, lift and expiry is kept in the project's audit log, and on its case's timeline when it has a case. A block of a case's address is on its **Response Plan** too, where **Lift** ends it, and **Block Address** on a row of **Campaigns** blocks that campaign's address. To block scanners and password guessing as they are detected, before anybody triages the case, turn on an [automatic response](/docs/telemetry/security-automatic-response) policy.
 
 ### Messages
 
@@ -490,6 +491,7 @@ Every run is listed on its case and under **Products → Security Events → Pla
 | Queued | Waiting for a worker |
 | Running | Running its steps |
 | Waiting for Approval | Held before a step that needs approval |
+| Waiting for OneUptime AI | Held before a **Page on-call** step while [OneUptime AI responds first](/docs/telemetry/security-ai#let-oneuptime-ai-respond-first) to its case |
 | Succeeded | Every step ran or was skipped, or a **Stop the run** step ended it |
 | Failed | A step failed and the run stopped |
 | Cancelled | Someone cancelled it, or rejected a step |

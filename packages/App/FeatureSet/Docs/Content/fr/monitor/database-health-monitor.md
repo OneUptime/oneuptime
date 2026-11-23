@@ -377,7 +377,7 @@ Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du
 
 Les seuils sont des nombres entiers. Écrivez `90`, pas `90.5` — les pourcentages et les secondes sont comparés comme des entiers.
 
-**Base de données en ligne** et **Métrique de base de données** peuvent être vérifiées dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **Toutes les valeurs**) et **Pour les dernières (en minutes)**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
+**Base de données en ligne** et **Métrique de base de données** peuvent être vérifiées dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **Toutes les valeurs**) et **Pour les dernières**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
 
 ### Variables des expressions JavaScript
 

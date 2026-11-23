@@ -2758,6 +2758,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["run history", "soar runs"],
           },
           {
+            page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+            title: "Automatic Response",
+            icon: IconProp.HandRaised,
+            keywords: [
+              "auto block",
+              "block scanners",
+              "block brute force",
+              "fail2ban",
+              "challenge bots",
+            ],
+          },
+          {
             page: PageMap.SECURITY_BLOCKLIST,
             title: "Blocklist",
             icon: IconProp.NoSymbol,
@@ -2815,8 +2827,16 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "block on its own",
               // The card under the switches: What OneUptime AI may do on a case.
               "what oneuptime ai may do",
+              // OneUptime AI responding first to new cases (#10353).
+              "respond first",
+              "hold new cases",
+              "wait before paging",
+              "page now",
             ],
-            settings: ["Work cases end to end"],
+            settings: [
+              "Work cases end to end",
+              "Let OneUptime AI respond first",
+            ],
           },
         ],
       },

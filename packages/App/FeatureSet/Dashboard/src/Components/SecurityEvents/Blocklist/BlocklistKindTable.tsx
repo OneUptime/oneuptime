@@ -227,6 +227,12 @@ const BlocklistKindTable: FunctionComponent<ComponentProps> = (
           source: true,
           securityCaseId: true,
           createdAt: true,
+          // Who made an automatic response policy's block (#10350).
+          securityAutomaticResponsePolicy: {
+            _id: true,
+            name: true,
+            kind: true,
+          },
         }}
         columns={[
           {

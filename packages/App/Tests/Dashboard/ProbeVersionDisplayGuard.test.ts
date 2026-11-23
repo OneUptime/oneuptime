@@ -65,10 +65,10 @@ const DISPLAYS: Record<string, number> = {
 
 // Files that read a probe's release without drawing it, each with why.
 const READERS: Record<string, string> = {
-  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes.ts":
-    "reads it to name, in the monitor forms, the probes too old to make one-time codes; the probe's name is drawn, not its release",
-  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbesWarning.tsx":
-    "asks for it with the project's probes, for OneTimeCodeProbes to read",
+  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/ProbesTooOld.ts":
+    "reads it to name, in the monitor forms, the probes too old for what the monitor's steps need; the probe's name is drawn, not its release",
+  "packages/App/FeatureSet/Dashboard/src/Components/Monitor/ProbesTooOldWarning.tsx":
+    "asks for it with the project's probes, for ProbesTooOld to read",
 };
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;

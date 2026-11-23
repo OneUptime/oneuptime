@@ -1,8 +1,6 @@
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import ProbeCapability, {
-  FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
-} from "Common/Types/Probe/ProbeCapability";
+import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
 import {
   ProbeFailureCause,
@@ -25,15 +23,17 @@ import { ProbeStepNeed } from "./ProbeStepGate";
  * None of those probes declares ProbeCapability.AnyRequestBody, so such a
  * probe is not handed the step (ProbeStepGate): its result is written for
  * it, offline, with a sentence saying the probe is too old to send such a
- * body and to update it (ProbeFailureCause.ProbeTooOldForRequestBody).
- * Which body needs a newer probe is MonitorRequestBody's to say, read as
- * the step is handed over, its secrets filled in.
+ * body and to update it to the latest release
+ * (ProbeFailureCause.ProbeTooOldForRequestBody). It names no release: the
+ * first that sends such a body is the one after 17.2.0, whose number is
+ * not known until it is cut (ProbeCapability). Which body needs a newer
+ * probe is MonitorRequestBody's to say, read as the step is handed over,
+ * its secrets filled in.
  */
 
 // The error a step kept from a probe too old to send its body says.
 export const REQUEST_BODY_STEP_NOT_RUN_MESSAGE: string = writeProbeFailureCause(
   ProbeFailureCause.ProbeTooOldForRequestBody,
-  { version: FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY },
 );
 
 export const ANY_REQUEST_BODY_NEED: ProbeStepNeed = {

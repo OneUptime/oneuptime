@@ -83,6 +83,8 @@ Hemmeligheter fylles inn før skriptet til en monitor av typen Syntetisk monitor
 
 Hvis en monitor viser til en hemmelighet den ikke kan bruke, blir henvisningen stående som den er og erstattes ikke med verdien.
 
+Når sjekken av en API-, Nettsted- eller Ekstern statusside-monitor feiler, nevner feilen bare URL-ens skjema, vert og port, som `https://api.example.com`, så en hemmelighet i URL-en vises aldri.
+
 Når du tester en monitor før du lagrer den, fylles bare hemmeligheter som er tilgjengelige for **Alle monitorer**, inn, fordi en ny monitor ikke står på noen liste og ikke har noen etiketter ennå. Etter at du har lagret monitoren, bruker testene hver hemmelighet som monitoren kan bruke.
 
 ## Logg inn med en engangskode
@@ -128,7 +130,7 @@ return {
 Sonden deler aldri ut en kode med mindre enn fem sekunder igjen, eller en tredjedel av perioden når perioden er kortere: den venter i stedet på neste kode, høyst fem sekunder, og holder den ventetiden utenfor sjekkens kjøretid. Hver kode en sjekk genererer, vises som stjerner, for eksempel `******`, i loggmeldingene, resultatet, feilen og navnene på skjermbildene til sjekken. Et skjermbilde er et bilde av siden, så ta det før koden skrives inn, eller etter at siden har gått videre.
 
 > [!NOTE]
-> Det er sonden som genererer kodene, så en egendefinert sonde trenger OneUptime 17.0.1 eller nyere. På en eldre kjører ikke en sjekk som trenger en kode, men feiler med en setning som ber deg oppdatere sonden; monitorens skjema og sondens side navngir en sonde som er for gammel, og [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde) forklarer hvordan. Sondens klokke må også gå riktig, for en sonde som går ett minutt feil, genererer koder som nettstedet allerede har gått videre fra.
+> Det er sonden som genererer kodene, så en egendefinert sonde trenger OneUptime 17.1.0 eller nyere. På en eldre kjører ikke en sjekk som trenger en kode, men feiler med en setning som ber deg oppdatere sonden; monitorens skjema og sondens side navngir en sonde som er for gammel, og [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde) forklarer hvordan. Sondens klokke må også gå riktig, for en sonde som går ett minutt feil, genererer koder som nettstedet allerede har gått videre fra.
 
 ## Feilsøking
 
@@ -149,7 +151,7 @@ Sjekk at **Gjeldende kode** stemte med autentiseringsappen din da du lagret hemm
 :::
 
 :::details Sjekken sier at sonden er for gammel til å generere engangskoder
-Sonden kjører en versjon eldre enn OneUptime 17.0.1, som ikke kan generere engangskoder, så sjekken ble ikke kjørt på den. Oppdater sonden (se [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde)), eller la sonder med 17.0.1 eller nyere sjekke monitoren.
+Sonden kjører en versjon eldre enn OneUptime 17.1.0, som ikke kan generere engangskoder, så sjekken ble ikke kjørt på den. Oppdater sonden (se [Oppdater en sonde](/docs/probe/custom-probe#oppdater-en-sonde)), eller la sonder med 17.1.0 eller nyere sjekke monitoren.
 :::
 
 ## Neste steg

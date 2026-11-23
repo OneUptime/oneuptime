@@ -13,8 +13,10 @@ import {
   toUnsupportedMonitor,
 } from "../../../../../Types/ToolImport/ToolImportMonitorMapping";
 import {
+  FORM_BODY_CONTENT_TYPE,
   OBJECT_KEYS,
   readStatusCodeRanges,
+  XML_BODY_CONTENT_TYPE,
 } from "../../../../../Types/ToolImport/ToolImportMonitorRules";
 import {
   makeToolImportNote,
@@ -80,6 +82,20 @@ import { ToolImportFileAdapter } from "../../Types";
  *    - are named as left out. Groups are folders, not checks: their
  *    monitors come over on their own.
  */
+
+/*
+ * How Uptime Kuma sends an HTTP monitor's body, by its httpBodyEncoding:
+ * JSON when it is unset or "json" (parsed, and sent as application/json);
+ * "form" and "xml" as written, under a form's or XML's Content-Type, which
+ * the monitor's own headers override (Uptime Kuma's server/model/monitor.js).
+ * The import sends the same: JSON as JSON, a form or XML as text, byte for
+ * byte, under the same Content-Type (#10787).
+ */
+export const UPTIME_KUMA_BODY_CONTENT_TYPES: ReadonlyMap<string, string> =
+  new Map<string, string>([
+    ["form", FORM_BODY_CONTENT_TYPE],
+    ["xml", XML_BODY_CONTENT_TYPE],
+  ]);
 
 // The deepest a backup's JSON is ever nested: well below this.
 export const MAX_JSON_DEPTH: number = 32;
@@ -288,6 +304,12 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
         );
       }
 
+      // A form or XML is sent as written, under its Content-Type.
+      const bodyContentType: string | undefined =
+        UPTIME_KUMA_BODY_CONTENT_TYPES.get(
+          asString(raw["httpBodyEncoding"]).trim().toLowerCase(),
+        );
+
       const monitor: ImportedMonitor = toHttpMonitor({
         sourceId: id,
         name: name,
@@ -297,6 +319,8 @@ export default class UptimeKumaAdapter implements ToolImportFileAdapter {
         method: asString(raw["method"]) || "GET",
         headers: readJsonHeaders(raw["headers"]),
         body: asString(raw["body"]) || undefined,
+        isBodySentAsWritten: Boolean(bodyContentType),
+        bodyContentType: bodyContentType,
         followRedirects:
           asNumber(raw["maxredirects"]) === 0 ? false : undefined,
         timeoutSeconds: asNumber(raw["timeout"]) || undefined,

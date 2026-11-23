@@ -269,6 +269,7 @@ OneUptime avvisa le persone di sette cose su un caso. Nessuno deve configurare n
 - Nessuno viene avvisato di ciò che ha fatto: chi apre un caso a mano, lo assegna o avvia un'esecuzione non riceve una notifica al riguardo.
 - Ogni persona viene avvisata di un caso una sola volta. Un caso che si apre con priorità Medium e poi sale a Critico raggiunge, quando sale, le persone che hanno scelto Alta e Critica o Solo Critica, e non di nuovo quelle che hanno scelto Media e superiori, già avvisate quando si è aperto.
 - L'attacco di prova di **Invia un attacco di prova** apre un caso che non avvisa nessuno.
+- Con **Lascia che OneUptime AI risponda per primo** attivo, un nuovo caso al di sotto della priorità scelta attende OneUptime AI: le persone ne vengono avvisate solo quando OneUptime AI ha bisogno di loro, subito e con il motivo. Vedi [Lascia che OneUptime AI risponda per primo](/docs/telemetry/security-ai#lascia-che-oneuptime-ai-risponda-per-primo).
 - Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup). Lo stesso vale per un obiettivo di risposta che sta per essere mancato, o è stato mancato, per un passaggio che non regge più e per un caso che OneUptime AI ha affidato alle persone.
 - La **Cronologia** del caso indica chi è stato avvisato, e quando.
 
@@ -462,7 +463,7 @@ I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso
 
 Gli indirizzi del tuo progetto non vengono mai bloccati: le voci di **Entità protette**, i tuoi host, nodi Kubernetes, risorse cloud, dispositivi di rete ed endpoint, i tuoi nomi indirizzo e le tue sonde, le sonde di OneUptime Cloud, gli intervalli che non sono su internet e la rete perimetrale davanti alla tua app. Un blocco che ne toccherebbe uno viene rifiutato, indicando che cosa è l'indirizzo, e **Entità protette** li elenca sotto **Protezione automatica**. Non vengono mai bloccati nemmeno i suoi domini: quelli di OneUptime, di Microsoft Defender e di CrowdStrike Falcon, gli host che i tuoi monitor controllano, i domini delle tue pagine di stato, i tuoi domini verificati e i nomi DNS e le zone delle tue risorse cloud, né l'hash di un file vuoto. Un blocco di uno di essi viene rifiutato allo stesso modo. Quando OneUptime non riesce a stabilire se un indirizzo, un dominio o un file è protetto, non lo blocca.
 
-**Applicato su** mostra ogni punto in cui un blocco viene applicato e se lì regge. Un firewall o un proxy lo applica leggendo un [feed della blocklist](/docs/telemetry/blocklist-feeds), un URL segreto che recupera ogni pochi minuti. AWS WAF lo applica nelle web ACL che scegli, una volta attivato per una connessione cloud AWS: [Bloccare indirizzi in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). Azure WAF e Cloud Armor lo applicano nelle policy che scegli, una volta attivato per una connessione cloud Azure o Google Cloud: [Bloccare indirizzi in Azure WAF](/docs/telemetry/cloud-azure-waf-blocklist) e [Bloccare indirizzi in Cloud Armor](/docs/telemetry/cloud-armor-blocklist). Finché nulla applica la blocklist, la pagina lo dice, e un blocco viene registrato ma non blocca nulla. Ogni blocco, revoca e scadenza resta nel log di audit del progetto e, quando c'è un caso, nella cronologia del suo caso. Un blocco dell'indirizzo di un caso compare anche nel suo **Piano di risposta**, dove **Revoca** lo termina, e **Blocca indirizzo** su una riga di **Campagne** blocca l'indirizzo di quella campagna.
+**Applicato su** mostra ogni punto in cui un blocco viene applicato e se lì regge. Un firewall o un proxy lo applica leggendo un [feed della blocklist](/docs/telemetry/blocklist-feeds), un URL segreto che recupera ogni pochi minuti. AWS WAF lo applica nelle web ACL che scegli, una volta attivato per una connessione cloud AWS: [Bloccare indirizzi in AWS WAF](/docs/telemetry/cloud-aws-waf-blocklist). Azure WAF e Cloud Armor lo applicano nelle policy che scegli, una volta attivato per una connessione cloud Azure o Google Cloud: [Bloccare indirizzi in Azure WAF](/docs/telemetry/cloud-azure-waf-blocklist) e [Bloccare indirizzi in Cloud Armor](/docs/telemetry/cloud-armor-blocklist). Finché nulla applica la blocklist, la pagina lo dice, e un blocco viene registrato ma non blocca nulla. Ogni blocco, revoca e scadenza resta nel log di audit del progetto e, quando c'è un caso, nella cronologia del suo caso. Un blocco dell'indirizzo di un caso compare anche nel suo **Piano di risposta**, dove **Revoca** lo termina, e **Blocca indirizzo** su una riga di **Campagne** blocca l'indirizzo di quella campagna. Per bloccare scanner e tentativi di indovinare le password appena vengono rilevati, prima che qualcuno esamini il caso, attiva un criterio di [risposta automatica](/docs/telemetry/security-automatic-response).
 
 ### Messaggi
 
@@ -487,9 +488,10 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Eventi di sicurezza
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
-| Queued | In attesa di un worker |
+| In coda | In attesa di un worker |
 | In esecuzione | Sta eseguendo i suoi passi |
-| Waiting for Approval | Ferma prima di un passo che richiede approvazione |
+| In attesa di approvazione | Ferma prima di un passo che richiede approvazione |
+| In attesa di OneUptime AI | Ferma prima di un passo **Allerta la reperibilità** mentre [OneUptime AI risponde per primo](/docs/telemetry/security-ai#lascia-che-oneuptime-ai-risponda-per-primo) al suo caso |
 | Riuscito | Ogni passo è stato eseguito, o saltato, oppure un passo **Ferma l'esecuzione** l'ha terminata |
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |

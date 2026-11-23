@@ -58,7 +58,7 @@ Het rapport telt wat is aangemaakt en niet overgenomen, en toont elk item met ee
 | Status pages | Statuspagina's | Elke pagina wordt overgenomen met haar secties als groepen en de monitoren en heartbeats die ze toont. Een item dat u met de hand bijhoudt, wordt een handmatige monitor. Een pagina met een wachtwoord of een IP-allowlist wordt privé overgenomen. |
 | Email subscribers | Statuspagina-abonnees | Bevestigde e-mailabonnees worden overgenomen zodra u bevestigt dat u ze mag overzetten, en volgen dezelfde bronnen. Er wordt niemand gemaild, en elke update die ze van OneUptime krijgen, bevat een link om zich af te melden. |
 
-- **Status-, expected-status-code-, keyword- en keyword-absence-monitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een JSON-body sturen. Een statusmonitor is beschikbaar bij elk 2xx-antwoord, en een expected-status-code-monitor bij de codes die hij noemt.
+- **Status-, expected-status-code-, keyword- en keyword-absence-monitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een body sturen. Een statusmonitor is beschikbaar bij elk 2xx-antwoord, en een expected-status-code-monitor bij de codes die hij noemt.
 - **Ping- en TCP-monitoren** worden ping- en poortmonitoren. **SMTP-, POP- en IMAP-monitoren** worden poortmonitoren op hun poort: OneUptime controleert of de poort antwoordt, niet het mailgesprek.
 - **DNS-monitoren** worden DNS-monitoren voor de naam die ze opvragen, bij dezelfde server.
 - **Heartbeats** worden inkomende-verzoekmonitoren, die uitvallen als er gedurende de periode en de respijttijd geen verzoek is gekomen. Elk heeft een nieuw adres in OneUptime.

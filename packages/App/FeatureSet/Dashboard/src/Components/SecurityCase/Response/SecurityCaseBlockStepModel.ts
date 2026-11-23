@@ -1,16 +1,25 @@
 import {
   BLOCK_LINE_BLOCKED,
   BLOCK_LINE_BLOCKED_BY,
+  BLOCK_LINE_BLOCKED_BY_POLICY,
+  BLOCK_LINE_BLOCKED_BY_POLICY_AFTER,
   BLOCK_LINE_BLOCKED_BY_UNTIL_LIFTED,
   BLOCK_LINE_BLOCKED_UNTIL_LIFTED,
   BLOCK_LINE_CHALLENGED,
   BLOCK_LINE_CHALLENGED_BY,
+  BLOCK_LINE_CHALLENGED_BY_POLICY,
+  BLOCK_LINE_CHALLENGED_BY_POLICY_AFTER,
   BLOCK_LINE_CHALLENGED_BY_UNTIL_LIFTED,
   BLOCK_LINE_CHALLENGED_UNTIL_LIFTED,
   BLOCK_LINE_NOT_ENFORCED,
   BLOCK_LINE_PENDING,
 } from "./SecurityCaseResponseCopy";
 import { writeCheckTime } from "./SecurityCaseResponseChecks";
+import {
+  formatTimeToBlock,
+  getPolicyDisplayName,
+} from "../../SecurityEvents/AutomaticResponse/AutomaticResponseModel";
+import { SecurityAutomaticResponsePolicyKind } from "Common/Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
 import {
   SecurityBlockAction,
   SecurityBlockDuration,
@@ -107,6 +116,22 @@ export function getEnforcedBlockTemplate(block: ResponseAddressBlock): string {
   const isChallenge: boolean = block.action === SecurityBlockAction.Challenge;
   const hasName: boolean = Boolean(block.createdByName);
 
+  // An automatic response policy's block always ends: the ladder's longest is 7 days (#10350).
+  if (block.policyName && block.expiresAt) {
+    const hasTimeToBlock: boolean =
+      typeof block.timeToBlockInSeconds === "number";
+
+    if (isChallenge) {
+      return hasTimeToBlock
+        ? BLOCK_LINE_CHALLENGED_BY_POLICY_AFTER
+        : BLOCK_LINE_CHALLENGED_BY_POLICY;
+    }
+
+    return hasTimeToBlock
+      ? BLOCK_LINE_BLOCKED_BY_POLICY_AFTER
+      : BLOCK_LINE_BLOCKED_BY_POLICY;
+  }
+
   if (!block.expiresAt) {
     if (isChallenge) {
       return hasName
@@ -145,6 +170,19 @@ export function writeAddressBlockLine(data: {
       time: writeCheckTime(since, now),
       name: block.createdByName || "",
       until: block.expiresAt ? writeCheckTime(block.expiresAt, now) : "",
+      // A ready policy's name in the reader's words, a project's own as written.
+      policy: block.policyName
+        ? getPolicyDisplayName(
+            {
+              kind:
+                (block.policyKind as SecurityAutomaticResponsePolicyKind) ||
+                SecurityAutomaticResponsePolicyKind.Custom,
+              name: block.policyName,
+            },
+            translator,
+          )
+        : "",
+      after: formatTimeToBlock(block.timeToBlockInSeconds, translator),
     });
   }
 
