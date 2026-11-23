@@ -47,6 +47,7 @@ import {
   findLocalRangeProtection,
   findProtectionAmong,
 } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import { readSecurityAddress } from "../../../Types/SecurityBlocklist/SecurityAddressSpellings";
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
@@ -232,8 +233,15 @@ function protectionsOf(data: {
       continue;
     }
 
-    const block: NetworkAddressBlock | null =
-      NetworkAddressBlockUtil.parse(value);
+    /*
+     * An address however the record wrote it - in brackets, with a port or
+     * a zone too, which a parse of it alone refuses (#10744) - and a range
+     * as it is: a protection missed lets a block take the project's own
+     * site down.
+     */
+    const block: NetworkAddressBlock | null = NetworkAddressBlockUtil.parse(
+      readSecurityAddress(value) || value,
+    );
 
     if (!block || seen.has(block.text)) {
       continue;

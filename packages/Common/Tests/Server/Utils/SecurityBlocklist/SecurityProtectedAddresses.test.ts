@@ -879,6 +879,61 @@ describe("SecurityProtectedAddresses.findProtection", () => {
     expect(input?.limit).toBe(PROTECTED_ADDRESS_ROWS_PER_SOURCE + 1);
   });
 
+  /*
+   * A record's address however its source wrote it (#10744) - in brackets,
+   * with a port, mapped, written out, in capitals - protects the address as
+   * the blocklist writes it, whichever spelling a block of it was typed in.
+   * A parse of the value alone refused one in brackets or with a port, so
+   * that record protected nothing.
+   */
+  test("a host's address however its agent wrote it protects every spelling of a block of it", async () => {
+    const web: Host = host({
+      name: "web-6",
+      addresses:
+        "[2001:db8::7]:22, 2001:0DB8:0:0:0:0:0:8 [::ffff:35.205.11.131]:8080",
+    });
+
+    for (const [typed, kept] of [
+      ["2001:db8::7", "2001:db8::7"],
+      ["2001:db8:0:0:0:0:0:7", "2001:db8::7"],
+      ["2001:DB8::7", "2001:db8::7"],
+      ["2001:db8::8", "2001:db8::8"],
+      ["2001:0db8:0000:0000:0000:0000:0000:0008", "2001:db8::8"],
+      ["35.205.11.131", "35.205.11.131"],
+      ["::ffff:35.205.11.131", "35.205.11.131"],
+    ] as Array<[string, string]>) {
+      install({ hosts: [web] });
+
+      expect({ typed, check: await find(typed) }).toEqual({
+        typed,
+        check: {
+          protection: {
+            source: SecurityProtectedAddressSource.Host,
+            protectedValue: kept,
+            name: "web-6",
+            recordId: idOf(web),
+          },
+          unreadSources: [],
+        },
+      });
+    }
+  });
+
+  test("a network device polled at its address and a port is that address's", async () => {
+    const switchWithPort: NetworkDevice = device({
+      name: "core-sw-2",
+      hostname: "35.205.11.131:161",
+    });
+    install({ devices: [switchWithPort] });
+
+    expect((await find("35.205.11.131")).protection).toEqual({
+      source: SecurityProtectedAddressSource.NetworkDevice,
+      protectedValue: "35.205.11.131",
+      name: "core-sw-2",
+      recordId: idOf(switchWithPort),
+    });
+  });
+
   test("a host with no name is named by its identifier", async () => {
     const unnamed: Host = host({
       identifier: "ip-10-0-4-12.internal",
