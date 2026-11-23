@@ -47,19 +47,20 @@ export interface SigningKey {
   keyId: string;
   privateKey: crypto.KeyObject;
   // The key as a key set publishes it (kty, n, e).
-  publicJwk: crypto.JsonWebKey;
+  publicJwk: Record<string, unknown>;
 }
 
 export function createSigningKey(keyId: string): SigningKey {
-  const pair: crypto.KeyPairKeyObjectResult = crypto.generateKeyPairSync(
-    "rsa",
-    { modulusLength: 2048 },
-  );
+  const pair: { publicKey: crypto.KeyObject; privateKey: crypto.KeyObject } =
+    crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
 
   return {
     keyId: keyId,
     privateKey: pair.privateKey,
-    publicJwk: pair.publicKey.export({ format: "jwk" }),
+    publicJwk: pair.publicKey.export({ format: "jwk" }) as Record<
+      string,
+      unknown
+    >,
   };
 }
 
