@@ -223,6 +223,7 @@ import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
+import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import Name from "Common/Types/Name";
@@ -230,6 +231,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TimeRange from "Common/Types/Time/TimeRange";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -2238,7 +2240,42 @@ const REQUEST_SHAPE_FIELDS = new Set([
   "facetKeys",
   "chartType",
   "metric",
+  // The reader's zone, which a day's bar starts in (histogramBars).
+  "timezone",
 ]);
+
+/*
+ * Where a histogram's bars start (#7923, TelemetryHistogramBuckets). The
+ * explorers name the reader's zone (`timezone`), read as the server reads
+ * it: a zone the Timezone list holds - any other the server refuses, and it
+ * lands on `unhandled` here. A bar of exactly a day starts at that zone's
+ * midnight, and the answer names the zone, in its current name
+ * (`bucketTimezone`); every other bar starts on the epoch's grid, whatever
+ * the zone.
+ */
+function histogramBars(body, bucketSizeInMinutes, url) {
+  const bucketMs = bucketSizeInMinutes * MINUTE;
+  let zone = null;
+  if (body.timezone !== undefined && body.timezone !== null) {
+    if (!TimezoneAlias.isListedName(body.timezone)) {
+      fixture.unhandled.push({ kind: "api", url, timezone: body.timezone });
+    } else if (bucketMs === DAY) {
+      zone = TimezoneAlias.getCanonicalTimezone(body.timezone);
+    }
+  }
+  return {
+    startOf: (time) => {
+      return zone
+        ? OneUptimeDate.getStartOfCalendarUnit(
+            new Date(time),
+            "day",
+            zone,
+          ).getTime()
+        : Math.floor(time / bucketMs) * bucketMs;
+    },
+    answer: zone ? { bucketTimezone: zone } : {},
+  };
+}
 
 function bodyFilter(filters, body, url) {
   const active = [];
@@ -2272,15 +2309,16 @@ function bodyWindow(body) {
  * The server's histogram (TraceAggregationService / LogAggregationService
  * .getHistogram): the rows whose minute starts inside the window (the start
  * rounded down to its minute, the end exclusive), re-bucketed on
- * toStartOfInterval(minute, INTERVAL bucketSize SECOND), one entry per
- * bucket and series that has rows, in time order.
+ * toStartOfInterval(minute, INTERVAL bucketSize SECOND) - a day's bar at the
+ * reader's midnight (histogramBars) - one entry per bucket and series that
+ * has rows, in time order.
  */
 function histogramOf(options) {
   const { start, end } = bodyWindow(options.body);
   const bucketSizeInMinutes =
     Number(options.body.bucketSizeInMinutes) ||
     defaultBucketSizeInMinutes(start, end);
-  const bucketMs = bucketSizeInMinutes * MINUTE;
+  const bars = histogramBars(options.body, bucketSizeInMinutes, options.url);
   const matches = bodyFilter(options.filters, options.body, options.url);
   const counts = new Map();
   for (
@@ -2288,7 +2326,7 @@ function histogramOf(options) {
     minute < end;
     minute += MINUTE
   ) {
-    const bucket = Math.floor(minute / bucketMs) * bucketMs;
+    const bucket = bars.startOf(minute);
     for (const row of rowsOfMinute(options.generated, minute)) {
       if (!matches(row)) {
         continue;
@@ -2316,7 +2354,7 @@ function histogramOf(options) {
         count: entry.count,
       };
     });
-  return { bucketSizeInMinutes, buckets };
+  return { bucketSizeInMinutes, buckets, ...bars.answer };
 }
 
 function countBy(rows, valueOf) {
@@ -2505,9 +2543,11 @@ function spanAnalytics(body, url) {
     fixture.unhandled.push({ kind: "api", url, groupBy: body.groupBy });
   }
   const { start, end } = bodyWindow(body);
-  const bucketMs =
-    (Number(body.bucketSizeInMinutes) ||
-      defaultBucketSizeInMinutes(start, end)) * MINUTE;
+  const bars = histogramBars(
+    body,
+    Number(body.bucketSizeInMinutes) || defaultBucketSizeInMinutes(start, end),
+    url,
+  );
   const filterable = { ...body };
   delete filterable.groupBy;
   const matches = bodyFilter(SPAN_BODY_FILTERS, filterable, url);
@@ -2517,7 +2557,7 @@ function spanAnalytics(body, url) {
     minute < end;
     minute += MINUTE
   ) {
-    const bucket = Math.floor(minute / bucketMs) * bucketMs;
+    const bucket = bars.startOf(minute);
     for (const row of rowsOfMinute(GENERATED_TABLES[tableName(Span)], minute)) {
       if (!matches(row)) {
         continue;
@@ -2543,6 +2583,7 @@ function spanAnalytics(body, url) {
           groupValues: {},
         };
       }),
+    ...bars.answer,
   };
 }
 
@@ -2633,7 +2674,12 @@ const EXPLORER_ENDPOINTS = [
       });
       entry.bucketSizeInMinutes = result.bucketSizeInMinutes;
       entry.buckets = result.buckets.length;
-      return { buckets: result.buckets };
+      return {
+        buckets: result.buckets,
+        ...(result.bucketTimezone
+          ? { bucketTimezone: result.bucketTimezone }
+          : {}),
+      };
     },
   },
   {
@@ -2730,10 +2776,10 @@ const EXPLORER_ENDPOINTS = [
       const bucketSizeInMinutes =
         Number(body.bucketSizeInMinutes) ||
         defaultBucketSizeInMinutes(start, end);
-      const bucketMs = bucketSizeInMinutes * MINUTE;
+      const bars = histogramBars(body, bucketSizeInMinutes, url);
       const counts = new Map();
       exceptionGroupsIn(body, url).forEach((row) => {
-        const bucket = Math.floor(toTime(row.lastSeenAt) / bucketMs) * bucketMs;
+        const bucket = bars.startOf(toTime(row.lastSeenAt));
         counts.set(bucket, (counts.get(bucket) || 0) + row.occuranceCount);
       });
       const buckets = Array.from(counts.entries())
@@ -2749,7 +2795,7 @@ const EXPLORER_ENDPOINTS = [
         });
       entry.bucketSizeInMinutes = bucketSizeInMinutes;
       entry.buckets = buckets.length;
-      return { buckets };
+      return { buckets, ...bars.answer };
     },
   },
   {
