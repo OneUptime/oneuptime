@@ -2815,8 +2815,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "block on its own",
               // The card under the switches: What OneUptime AI may do on a case.
               "what oneuptime ai may do",
+              // OneUptime AI responding first to new cases (#10353).
+              "respond first",
+              "hold alerts",
+              "alert only when needed",
+              "page now",
             ],
-            settings: ["Work cases end to end"],
+            settings: ["Work cases end to end", "Let OneUptime AI respond first"],
           },
         ],
       },
