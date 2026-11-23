@@ -217,6 +217,8 @@ export default class GuidedSetupRun extends BaseModel {
     title: "Revision",
     description:
       "How many changes the run has kept: a device holding an older revision holds an older run.",
+    defaultValue: 0,
+    isDefaultValueColumn: true,
     example: "3",
   })
   @Column({

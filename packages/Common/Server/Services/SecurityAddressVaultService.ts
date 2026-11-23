@@ -103,10 +103,12 @@ export class SecurityAddressVaultService extends AnalyticsDatabaseService<Securi
   /*
    * The oldest a row may have been last seen and still name its address:
    * exactly the vault's 30 days, whether or not the day it was written in
-   * has been dropped yet.
+   * has been dropped yet. A length of time, as the table's TTL counts it,
+   * never the server's own calendar: 30 x 24 hours in every zone, across a
+   * clock change too (#8236).
    */
   public static getOldestNameableTime(now: Date): Date {
-    return OneUptimeDate.addRemoveDays(
+    return OneUptimeDate.addRemoveDurationInDays(
       now,
       -SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
     );
