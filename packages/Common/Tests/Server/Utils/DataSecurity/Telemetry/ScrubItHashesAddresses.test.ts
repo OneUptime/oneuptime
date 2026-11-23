@@ -72,7 +72,8 @@ function plan(data: {
     dataTypeId: data.dataTypeId,
     location: data.location,
     target: targetOf(data.kind, data.location),
-    securityEventsSources: data.sources,
+    // Left out when the test names none: what Security Events reads is not known.
+    ...(data.sources ? { securityEventsSources: data.sources } : {}),
     serviceId: CHECKOUT,
   });
 }

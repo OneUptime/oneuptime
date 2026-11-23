@@ -148,7 +148,8 @@ function finding(
 function context(
   overrides: {
     issue?: Partial<DataSecurityIssue>;
-    store?: Partial<DataStore>;
+    // A column set to undefined is one the store has none of: its service, say.
+    store?: { [Key in keyof DataStore]?: DataStore[Key] | undefined };
   } = {},
 ): DataSecurityAiIssueContext {
   return {
@@ -237,10 +238,10 @@ function proofOf(data: {
   findingId: string;
   dataTypeId: string;
   location: string;
-  attributeKeys?: Array<string>;
-  patternType?: string;
-  scrubAction?: string;
-  changed?: number;
+  attributeKeys?: Array<string> | undefined;
+  patternType?: string | undefined;
+  scrubAction?: string | undefined;
+  changed?: number | undefined;
 }): ScrubRuleProof {
   return {
     version: SCRUB_RULE_PROOF_VERSION,
@@ -780,21 +781,23 @@ describe("planning the change", () => {
     ];
     jest
       .spyOn(ScrubIt, "planProvenScrubItRule")
-      .mockImplementation(async (data: { findingId?: string | null }) => {
-        return data.findingId === PASSWORD_FINDING
-          ? namedKeysRule({
-              findingId: PASSWORD_FINDING,
-              dataTypeId: "generic-secret",
-              key: "db.password",
-              dataTypeName: "Password",
-            })
-          : namedKeysRule({
-              findingId: API_KEY_FINDING,
-              dataTypeId: "sendgrid-api-key",
-              key: "api_key",
-              dataTypeName: "SendGrid API key",
-            });
-      });
+      .mockImplementation(
+        async (data: Parameters<typeof ScrubIt.planProvenScrubItRule>[0]) => {
+          return data.findingId === PASSWORD_FINDING
+            ? namedKeysRule({
+                findingId: PASSWORD_FINDING,
+                dataTypeId: "generic-secret",
+                key: "db.password",
+                dataTypeName: "Password",
+              })
+            : namedKeysRule({
+                findingId: API_KEY_FINDING,
+                dataTypeId: "sendgrid-api-key",
+                key: "api_key",
+                dataTypeName: "SendGrid API key",
+              });
+        },
+      );
 
     const changes: Array<DataSecurityAiPlannedChange> = changesOf(
       await ScrubTelemetryAction.plan(
@@ -846,23 +849,25 @@ describe("planning the change", () => {
     ];
     jest
       .spyOn(ScrubIt, "planProvenScrubItRule")
-      .mockImplementation(async (data: { findingId?: string | null }) => {
-        return data.findingId === PASSWORD_FINDING
-          ? namedKeysRule({
-              findingId: PASSWORD_FINDING,
-              dataTypeId: "generic-secret",
-              key: "db.password",
-              dataTypeName: "Password",
-            })
-          : namedKeysRule({
-              findingId: EMAIL_FINDING,
-              dataTypeId: "email-address",
-              key: "user.email",
-              dataTypeName: "Email address",
-              scrubAction: LogScrubAction.Mask,
-              proven: false,
-            });
-      });
+      .mockImplementation(
+        async (data: Parameters<typeof ScrubIt.planProvenScrubItRule>[0]) => {
+          return data.findingId === PASSWORD_FINDING
+            ? namedKeysRule({
+                findingId: PASSWORD_FINDING,
+                dataTypeId: "generic-secret",
+                key: "db.password",
+                dataTypeName: "Password",
+              })
+            : namedKeysRule({
+                findingId: EMAIL_FINDING,
+                dataTypeId: "email-address",
+                key: "user.email",
+                dataTypeName: "Email address",
+                scrubAction: LogScrubAction.Mask,
+                proven: false,
+              });
+        },
+      );
 
     const changes: Array<DataSecurityAiPlannedChange> = changesOf(
       await ScrubTelemetryAction.plan(context()),
@@ -1071,7 +1076,7 @@ describe("OneUptime AI's rules, where none of Scrub It's fits", () => {
     const planned: SpyInstance<typeof ScrubIt.planProvenScrubItRule> = jest
       .spyOn(ScrubIt, "planProvenScrubItRule")
       .mockImplementation(
-        async (data: { onlyCandidates?: ReadonlyArray<unknown> }) => {
+        async (data: Parameters<typeof ScrubIt.planProvenScrubItRule>[0]) => {
           if (!data.onlyCandidates) {
             throw new BadDataException(
               "No rule OneUptime can make hides this data without hiding far more than it.",

@@ -15,7 +15,7 @@ import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSou
 import SecurityTelemetrySourceService from "../../../../Server/Services/SecurityTelemetrySourceService";
 import TraceScrubRuleService from "../../../../Server/Services/TraceScrubRuleService";
 import FindBy from "../../../../Server/Types/Database/FindBy";
-import UpdateOneById from "../../../../Server/Types/Database/UpdateOneById";
+import UpdateByID from "../../../../Server/Types/Database/UpdateByID";
 import {
   describeHashInstead,
   findScrubRulesHidingAddressesFor,
@@ -316,8 +316,8 @@ describe("Hash Instead", () => {
     });
     expect(update).toHaveBeenCalledTimes(1);
 
-    const call: UpdateOneById<LogScrubRule> = update.mock
-      .calls[0]![0] as UpdateOneById<LogScrubRule>;
+    const call: UpdateByID<LogScrubRule> = update.mock
+      .calls[0]![0] as UpdateByID<LogScrubRule>;
 
     expect(call.props).toBe(PROPS);
     expect(call.id.toString()).toBe(RULE_ID);
@@ -337,9 +337,9 @@ describe("Hash Instead", () => {
       props: PROPS,
     });
 
-    expect(
-      (update.mock.calls[0]![0] as UpdateOneById<LogScrubRule>).data,
-    ).toEqual({ scrubAction: LogScrubAction.Hash });
+    expect((update.mock.calls[0]![0] as UpdateByID<LogScrubRule>).data).toEqual(
+      { scrubAction: LogScrubAction.Hash },
+    );
   });
 
   test("a rule that already hashes stays as it is", async () => {
@@ -416,7 +416,7 @@ describe("Hash Instead", () => {
     });
 
     expect(
-      (traceUpdate.mock.calls[0]![0] as UpdateOneById<TraceScrubRule>).data,
+      (traceUpdate.mock.calls[0]![0] as UpdateByID<TraceScrubRule>).data,
     ).toEqual({ scrubAction: LogScrubAction.Hash });
     expect(update).not.toHaveBeenCalled();
   });
