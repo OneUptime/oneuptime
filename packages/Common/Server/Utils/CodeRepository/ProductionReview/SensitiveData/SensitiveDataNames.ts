@@ -624,13 +624,20 @@ export class SensitiveNameMatcher {
     }
 
     const found: Map<string, NamedDataType> = new Map<string, NamedDataType>();
+    let hasSecret: boolean = false;
 
     for (const types of byHint.values()) {
       const named: NamedDataType = SensitiveNameMatcher.oneNameFor(types);
+      const isSecret: boolean =
+        named.category === DataCategory.SecretsAndCredentials;
 
-      if (!found.has(named.id)) {
-        found.set(named.id, named);
+      // A name of a secret is one secret, however many hints name it.
+      if (found.has(named.id) || (isSecret && hasSecret)) {
+        continue;
       }
+
+      hasSecret = hasSecret || isSecret;
+      found.set(named.id, named);
     }
 
     return Array.from(found.values()).sort(

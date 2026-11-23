@@ -106,10 +106,45 @@ export function readNewLines(lines: Array<PatchLine>): Array<PatchLine> {
   });
 }
 
+// What a comment of its own line starts with, in any language: //, #, --, /*, <!--, ;
+const COMMENT_PUNCTUATION: string = "/#*-;<!%'";
+
 /*
- * Whether a line, or the line above it in the file, carries the marker
- * that says it is no leak (NOT_SENSITIVE_MARKER): written by the author,
- * where every reviewer of the diff reads it.
+ * Whether a line is a comment that carries the marker and nothing before
+ * it: `// oneuptime:not-sensitive` on a line of its own, which marks the
+ * line under it.
+ */
+function isMarkerComment(text: string): boolean {
+  const at: number = text.toLowerCase().indexOf(NOT_SENSITIVE_MARKER);
+
+  if (at < 0) {
+    return false;
+  }
+
+  let hasPunctuation: boolean = false;
+
+  for (let index: number = 0; index < at; index++) {
+    const character: string = text.charAt(index);
+
+    if (character === " " || character === "\t") {
+      continue;
+    }
+
+    if (!COMMENT_PUNCTUATION.includes(character)) {
+      return false;
+    }
+
+    hasPunctuation = true;
+  }
+
+  return hasPunctuation;
+}
+
+/*
+ * Whether a line carries the marker that says it is no leak
+ * (NOT_SENSITIVE_MARKER), or a comment of its own just above it does:
+ * written by the author, where every reviewer of the diff reads it. A
+ * marker at the end of a line marks that line only.
  */
 export function isMarkedNotSensitive(
   newLines: Array<PatchLine>,
@@ -131,7 +166,7 @@ export function isMarkedNotSensitive(
     above &&
       above.hunk === here.hunk &&
       above.newLine === here.newLine - 1 &&
-      above.text.toLowerCase().includes(NOT_SENSITIVE_MARKER),
+      isMarkerComment(above.text),
   );
 }
 
@@ -213,24 +248,33 @@ const TEST_NAME_PARTS: ReadonlyArray<string> = [
   ".e2e.",
 ];
 
+// Read lower case: login_test.go.
 const TEST_NAME_ENDINGS: ReadonlyArray<string> = [
   "_test.go",
   "_test.py",
   "_spec.rb",
   "_test.rb",
-  "test.java",
-  "tests.java",
-  "test.kt",
-  "tests.kt",
-  "test.cs",
-  "tests.cs",
-  "spec.scala",
-  "test.scala",
   "_test.exs",
   "_test.dart",
-  "test.swift",
-  "tests.swift",
-  "test.php",
+];
+
+/*
+ * Read as written, so a class's name ends in its own word: LoginTest.java
+ * is a test, Contest.java and Latest.php are not.
+ */
+const TEST_CLASS_ENDINGS: ReadonlyArray<string> = [
+  "Test.java",
+  "Tests.java",
+  "IT.java",
+  "Test.kt",
+  "Tests.kt",
+  "Test.cs",
+  "Tests.cs",
+  "Spec.scala",
+  "Test.scala",
+  "Test.swift",
+  "Tests.swift",
+  "Test.php",
 ];
 
 /*
@@ -241,6 +285,7 @@ const TEST_NAME_ENDINGS: ReadonlyArray<string> = [
 export function isTestPath(path: string): boolean {
   const segments: Array<string> = segmentsOf(path);
   const name: string = fileNameOf(path);
+  const writtenName: string = path.slice(path.lastIndexOf("/") + 1);
 
   if (
     segments.slice(0, -1).some((segment: string): boolean => {
@@ -250,7 +295,7 @@ export function isTestPath(path: string): boolean {
     return true;
   }
 
-  if (
+  return (
     name === "conftest.py" ||
     name === "tests.py" ||
     name.startsWith("test_") ||
@@ -259,12 +304,11 @@ export function isTestPath(path: string): boolean {
     }) ||
     TEST_NAME_ENDINGS.some((ending: string): boolean => {
       return name.endsWith(ending);
+    }) ||
+    TEST_CLASS_ENDINGS.some((ending: string): boolean => {
+      return writtenName.endsWith(ending);
     })
-  ) {
-    return true;
-  }
-
-  return false;
+  );
 }
 
 // Folders and names of code that a tool wrote.
