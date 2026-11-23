@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import MonitorUrlInText from "Common/Utils/Monitor/MonitorUrlInText";
 
 /*
  * A MONITOR'S URL AS A LOG LINE WRITES IT (#10782).
@@ -11,24 +12,14 @@ import URL from "Common/Types/API/URL";
  * names a monitor's URL by its scheme, host and port alone - never its
  * path, query, fragment or credentials, where a secret goes. The monitor
  * id beside it says which monitor it is.
+ *
+ * What a check reports names a URL the same way (#10785): both are
+ * Common's MonitorUrlInText, which the server applies to what it takes in
+ * too.
  */
-
-// An http or https URL in a text, up to a space, a quote or a backslash.
-const URL_IN_TEXT: RegExp = /\bhttps?:\/\/[^\s"'<>\\]+/gi;
-
-// What ends a sentence after a URL rather than the URL itself.
-const TRAILING_PUNCTUATION: RegExp = /[.,;:!?)\]}]+$/;
-
 export default class MonitorLogUrl {
   public static write(url: URL | string | undefined | null): string {
-    try {
-      const parsed: globalThis.URL = new globalThis.URL(String(url ?? ""));
-
-      return `${parsed.protocol}//${parsed.host}`;
-    } catch {
-      // Never the text itself: it may be a secret's value.
-      return "(an address that is not a URL)";
-    }
+    return MonitorUrlInText.write(url);
   }
 
   /*
@@ -36,14 +27,14 @@ export default class MonitorLogUrl {
    * every URL in it written as write() writes it: an error a request
    * throws says the whole URL it was sent to ("Request failed to
    * https://...?key=..."), secrets and all, and so may a redirect's next
-   * hop. Read in time in line with the text's length.
+   * hop. `sent` are the URLs the check sent, found exactly first
+   * (MonitorUrlInText.writeUrls). Read in time in line with the text's
+   * length.
    */
-  public static scrub(text: string): string {
-    return text.replace(URL_IN_TEXT, (match: string): string => {
-      const trailing: string = TRAILING_PUNCTUATION.exec(match)?.[0] || "";
-      const url: string = trailing ? match.slice(0, -trailing.length) : match;
-
-      return `${MonitorLogUrl.write(url)}${trailing}`;
-    });
+  public static scrub(
+    text: string,
+    sent?: ReadonlyArray<string | undefined | null> | undefined,
+  ): string {
+    return MonitorUrlInText.writeUrls(text, sent);
   }
 }

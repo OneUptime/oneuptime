@@ -218,8 +218,6 @@ const MESSAGE_QUEUE_ROOT_ONLY_COLUMNS: Array<string> = [
   "archivedAt",
   "archivedByUser",
   "archivedByUserId",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 const PERMISSION_PROPS: Array<PermissionProps> =
@@ -1073,12 +1071,13 @@ describe("Queues (MessageQueue) models", () => {
     );
 
     /*
-     * Who created, archived or deleted it is OneUptime's to say
-     * (UserAttribution): read as declared, written by no request, and
-     * computed, so DatabaseService's own stamps pass the column check while
-     * a value a request sends is taken out before the hooks run.
+     * Who created or archived it is OneUptime's to say (UserAttribution):
+     * read as declared, written by no request, and computed, so
+     * DatabaseService's own stamps pass the column check while a value a
+     * request sends is taken out before the hooks run. Who deleted it is
+     * no column at all: a queue is deleted outright (#10469).
      */
-    test("who created, archived or deleted it is written by no request", () => {
+    test("who created or archived it is written by no request", () => {
       const columns: Array<string> = UserAttribution.getColumns(model);
 
       expect(columns).toEqual(
@@ -1087,10 +1086,9 @@ describe("Queues (MessageQueue) models", () => {
           "createdByUserId",
           "archivedByUser",
           "archivedByUserId",
-          "deletedByUser",
-          "deletedByUserId",
         ]),
       );
+      expect(columns).not.toContain("deletedByUserId");
 
       for (const column of columns) {
         const accessControl: ColumnAccessControl = columnAccess(model, column);
@@ -1316,7 +1314,6 @@ describe("Queues (MessageQueue) models", () => {
       for (const [property, idColumn] of [
         ["createdByUser", "createdByUserId"],
         ["archivedByUser", "archivedByUserId"],
-        ["deletedByUser", "deletedByUserId"],
       ] as Array<[string, string]>) {
         expect(relationArgs(MessageQueue, property).options.onDelete).toBe(
           "SET NULL",
@@ -1806,7 +1803,8 @@ describe("Queues (MessageQueue) models", () => {
       }
     });
 
-    test("deletedBy columns are hidden on rule tables, like every rule table", () => {
+    // A rule is deleted outright, so nothing says who deleted one (#10469).
+    test("no rule table says who deleted a rule", () => {
       for (const modelType of [
         MessageQueueLabelRule,
         MessageQueueOwnerRule,
@@ -1814,11 +1812,7 @@ describe("Queues (MessageQueue) models", () => {
         const model: BaseModel = new modelType();
 
         for (const column of ["deletedByUser", "deletedByUserId"]) {
-          expect(columnAccess(model, column)).toEqual({
-            create: [],
-            read: [],
-            update: [],
-          });
+          expect([column, model.hasColumn(column)]).toEqual([column, false]);
         }
       }
     });

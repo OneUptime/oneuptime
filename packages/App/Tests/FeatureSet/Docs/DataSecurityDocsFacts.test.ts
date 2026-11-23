@@ -92,6 +92,7 @@ import {
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -2463,11 +2464,14 @@ describe("Data Security Compliance", () => {
     expect(stores[1]?.[2]).toBe(
       `${NETWORK_FLOW_RETENTION_IN_DAYS} days after a flow arrives`,
     );
+    // The record keeps the figure on its word's line; the table writes a space.
     expect(stores[2]?.[2]).toBe(
       getDeclaredRetentionText({
         basis: DeclaredStoreRetentionBasis.AddressVault,
         retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
-      }),
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
     );
 
     // Who can read: the tables' own readers, or nobody but Security Events' scans.
@@ -3027,6 +3031,49 @@ describe("Data Security Integrations", () => {
     );
   });
 
+  /*
+   * A pull request's production review reads its diff for what Data
+   * Security would find once it ships (#10376): what Data Security knows
+   * sharpens the points only where it may be read, and AI Results counts
+   * what was caught against what the scans found after.
+   */
+  it("says what a pull request's review reads for Data Security, and where what it knows is said", () => {
+    const pullRequests: string = section(page, "## Pull requests");
+    const sensitiveData: string = source(
+      "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+    ).replace(/\s+/g, " ");
+    const types: string = source(
+      "Common/Types/CodeRepository/ProductionReviewSensitiveData.ts",
+    );
+
+    expect(pullRequests).toContain(
+      "](/docs/ai/ai-agent#production-review-of-pull-requests)",
+    );
+    // The project's own data types, by their name hints.
+    expect(sensitiveData).toContain("DataSecurityCustomDataTypeService");
+    expect(pullRequests).toContain(
+      "your own data types are read by their name hints, as the scans read them",
+    );
+    // Held before: the service's telemetry findings of the last 7 days.
+    expect(types).toContain("heldBeforeDays: 7,");
+    expect(pullRequests).toContain(
+      "where the service's telemetry held the same kind of data in the last 7 days",
+    );
+    // Public By Design: no point for being public.
+    expect(sensitiveData).toContain(
+      "store.isPublicByDesign === true && PUBLIC_BY_DESIGN_CHECK_IDS.includes(candidate.checkId)",
+    );
+    expect(pullRequests).toContain(
+      "A store marked **Public By Design** makes no point for being public.",
+    );
+    expect(pullRequests).toContain(
+      "A public repository's comment says only what the diff shows.",
+    );
+    expect(pullRequests).toContain(
+      "**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**",
+    );
+  });
+
   it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
     // On OneUptime AI's own page; Integrations points there.
     const onItsOwn: string = section(english(AI), "## On its own");
@@ -3126,9 +3173,13 @@ describe("Data Security Integrations", () => {
       expect(rules).toContain(`**${name}**`);
     }
 
-    // The retired word is gone from the page, as it is from the Dashboard.
+    /*
+     * The retired word is gone from the page, as it is from the Dashboard:
+     * from the whole page, since a row of What OneUptime AI sees names a
+     * rule's Fix setting too (Fix the cause).
+     */
     expect(copy).not.toContain('translationKey("Without asking")');
-    expect(rules).not.toContain("**Without asking**");
+    expect(english(AI)).not.toContain("**Without asking**");
 
     // Suggest wins over Automatically, as the engine decides it.
     expect(rules).toContain("**Suggest** wins over **Automatically**");

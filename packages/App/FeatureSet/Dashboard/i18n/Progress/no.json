@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62240,
+    "keys": 62469,
     "untranslated": 8309
   },
   "sameAsEnglish": [
@@ -276,6 +276,7 @@
     "Send (Enter)",
     "Send test",
     "Send {{command}}",
+    "Sensitive data",
     "Server",
     "Server / VM",
     "Server: {{server}}",
@@ -299,6 +300,7 @@
     "Stripe Payments API",
     "Sum",
     "System",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

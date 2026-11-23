@@ -383,7 +383,7 @@ En konto kan høre til mange organisationer, så du kan kun rydde indstillingern
 
 For at rydde én person skal du åbne **Brugere**: Rækken for hver person, du må rydde, viser **Loginindstillinger gemt**, og **Ryd loginindstillinger** i dens menu rydder kun den persons, efter samme regel og efter et spørgsmål, der viser, hvad der fjernes.
 
-Hver person, hvis indstillinger ryddes, får en e-mail om, hvad der blev fjernet, og at vedkommende nu logger ind med SSO, og dine projekters auditlogs registrerer rydningen som din. Kun en **Projektejer** kan rydde, logget ind i dashboardet: aldrig med en API-nøgle.
+Hver person, hvis indstillinger ryddes, får en e-mail om, hvad der blev fjernet, og at vedkommende nu logger ind med SSO, og dine projekters auditlogs registrerer rydningen som din. Kun en **Projektejer** kan rydde, logget ind i dashboardet: aldrig med en API-nøgle. Når du rydder, bliver du først bedt om at [bekræfte, at det er dig](/docs/introduction/your-account#bekræft-at-det-er-dig).
 
 ## Slå en udbyder fra eller slet den
 

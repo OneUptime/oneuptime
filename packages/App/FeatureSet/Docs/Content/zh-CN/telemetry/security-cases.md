@@ -269,6 +269,7 @@ OneUptime 会就案例上的七件事通知相关人员。无需任何人做任�
 - 没有人会因为自己做的事而收到通知：手动打开案例、分配案例或启动运行的人不会收到相应通知。
 - 每个人对一个案例只会收到一次通知。一个以 Medium 打开、之后提升到 Critical 的案例，会在提升时通知选择了 High 或 Critical 的人，而不会再次通知选择了 Medium 的人，因为他们在案例打开时已经收到过通知。
 - 通过 **发送测试攻击** 发起的测试攻击会打开一个不通知任何人的案例。
+- 打开 **让 OneUptime AI 率先响应** 后，低于其所选优先级的新案例会先等待 OneUptime AI：只有在 OneUptime AI 需要人员时，相关人员才会收到通知，届时会立即收到，并附上原因。请参阅 [让 OneUptime AI 率先响应](/docs/telemetry/security-ai#让-oneuptime-ai-率先响应)。
 - Critical 案例和等待审批的步骤会立即发送，绝不会被压在 [邮件汇总](/docs/emails/notification-rollup) 中延后发送。即将错过或已错过的响应目标、不再有效的步骤，以及 OneUptime AI 移交给人员的案例，也是如此。
 - 案例的 **时间线** 会显示通知了谁以及何时通知。
 
@@ -462,7 +463,7 @@ Mattermost 收到的审批是不带按钮的文本。
 
 你的项目自身的地址永远不会被封禁：**受保护的实体** 中的条目、你的主机、Kubernetes 节点、云资源、网络设备和端点、你的地址名称和探测器、OneUptime Cloud 的探测器、不在互联网上的范围，以及你的应用前端的边缘网络。会触及其中之一的封禁会被拒绝，并说明该地址是什么；**受保护的实体** 会在 **自动保护** 下列出它们。项目自己的域名也永远不会被封禁：OneUptime、Microsoft Defender 和 CrowdStrike Falcon 的域名、你的监视器检查的主机、你的状态页的域名、你已验证的域名、你的云资源的 DNS 名称和区域，以及空文件的哈希。对它们的封禁也会同样被拒绝。当 OneUptime 无法判断某个地址、域名或文件是否受保护时，不会封禁它。
 
-**生效于** 显示封禁生效的每个位置，以及封禁在那里是否持续生效。 防火墙或代理通过读取[封禁列表源](/docs/telemetry/blocklist-feeds)来执行封禁列表，这是一个它每隔几分钟获取一次的秘密 URL。为 AWS 云连接开启后，AWS WAF 也会在你选择的 Web ACL 中执行封禁（[在 AWS WAF 中封禁地址](/docs/telemetry/cloud-aws-waf-blocklist)）。为 Azure 或 Google Cloud 云连接开启后，Azure WAF 和 Cloud Armor 也会在你选择的策略中执行封禁（[在 Azure WAF 中封禁地址](/docs/telemetry/cloud-azure-waf-blocklist)、[在 Cloud Armor 中封禁地址](/docs/telemetry/cloud-armor-blocklist)）。在没有任何地方执行封禁列表期间，页面会说明这一点，封禁会被记录，但不会封禁任何内容。每次封禁、解除和过期都会记录在项目的审计日志中；如果封禁有对应的案例，也会记录在该案例的时间线上。案例地址的封禁也会显示在其 **响应计划** 中，可在那里用 **解除** 结束它；在 **攻击活动** 的某一行上使用 **封禁地址**，会封禁该攻击活动的地址。
+**生效于** 显示封禁生效的每个位置，以及封禁在那里是否持续生效。 防火墙或代理通过读取[封禁列表源](/docs/telemetry/blocklist-feeds)来执行封禁列表，这是一个它每隔几分钟获取一次的秘密 URL。为 AWS 云连接开启后，AWS WAF 也会在你选择的 Web ACL 中执行封禁（[在 AWS WAF 中封禁地址](/docs/telemetry/cloud-aws-waf-blocklist)）。为 Azure 或 Google Cloud 云连接开启后，Azure WAF 和 Cloud Armor 也会在你选择的策略中执行封禁（[在 Azure WAF 中封禁地址](/docs/telemetry/cloud-azure-waf-blocklist)、[在 Cloud Armor 中封禁地址](/docs/telemetry/cloud-armor-blocklist)）。在没有任何地方执行封禁列表期间，页面会说明这一点，封禁会被记录，但不会封禁任何内容。每次封禁、解除和过期都会记录在项目的审计日志中；如果封禁有对应的案例，也会记录在该案例的时间线上。案例地址的封禁也会显示在其 **响应计划** 中，可在那里用 **解除** 结束它；在 **攻击活动** 的某一行上使用 **封禁地址**，会封禁该攻击活动的地址。 要在任何人分诊案例之前，在检测到扫描器和密码猜测时立即封禁，请开启 [自动响应](/docs/telemetry/security-automatic-response) 策略。
 
 ### 消息
 
@@ -490,6 +491,7 @@ Mattermost 收到的审批是不带按钮的文本。
 | Queued | 等待工作进程 |
 | Running | 正在运行其步骤 |
 | Waiting for Approval | 停在一个需要审批的步骤之前 |
+| 等待 OneUptime AI | 在 OneUptime AI 对其案例 [率先响应](/docs/telemetry/security-ai#让-oneuptime-ai-率先响应) 期间，停在一个 **呼叫值班人员** 步骤之前 |
 | Succeeded | 每个步骤都已运行或被跳过，或者由 **停止运行** 步骤结束了运行 |
 | Failed | 某个步骤失败，运行已停止 |
 | Cancelled | 有人取消了它，或拒绝了某个步骤 |

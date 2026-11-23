@@ -70,7 +70,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 
 ### URL API
 
-L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`.
+L'endpoint da chiamare, come URL completo con lo schema, come `https://api.example.com/v1/health`. Potete inserire un [segreto del monitor](/docs/monitor/monitor-secrets) nell'URL come `{{monitorSecrets.NAME}}`. L'errore di un controllo non riuscito indica l'URL solo con schema, host e porta, come `https://api.example.com`, quindi il segreto non viene mai mostrato.
 
 ### Segnaposto dinamici nell'URL
 
@@ -250,7 +250,7 @@ Il corpo non è JSON una volta inseriti i suoi [segreti del monitor](/docs/monit
 :::
 
 :::details Il controllo dice che la sonda è troppo vecchia per inviare il corpo della richiesta
-Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione precedente a OneUptime 17.2.0, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) oppure controllate il monitor da un'altra sonda.
+Il corpo del monitor è un array JSON, un singolo valore o **Testo**, e la sonda personalizzata che lo controlla esegue una versione più vecchia, che invia solo un oggetto JSON, quindi il controllo non è stato eseguito su di essa. Il modulo del monitor e la pagina della sonda indicano una sonda del genere. [Aggiornate la sonda](/docs/probe/custom-probe#aggiornare-una-sonda) all'ultima versione oppure controllate il monitor da un'altra sonda.
 :::
 
 ## Passaggi successivi

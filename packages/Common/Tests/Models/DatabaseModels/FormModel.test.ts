@@ -212,8 +212,6 @@ const FORM_COLUMNS: Array<string> = [
   "requireSsoForLogin",
   "createdByUser",
   "createdByUserId",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 // The columns a form editor changes once the form exists.
@@ -677,18 +675,20 @@ describe("Form: who may build, read and change a form", () => {
   });
 
   /*
-   * Who created or deleted a form is OneUptime's to say (UserAttribution):
-   * DatabaseService takes both out of every write it does not make itself,
-   * and the column check skips them as computed, so a client that still
-   * sends one is not refused for it - and the value is never stored.
+   * Who created a form is OneUptime's to say (UserAttribution):
+   * DatabaseService takes it out of every write it does not make itself,
+   * and the column check skips it as computed, so a client that still sends
+   * one is not refused for it - and the value is never stored. Who deleted
+   * one is no column at all: a form is deleted outright (#10469).
    */
-  test("nobody can set who deleted a form", () => {
+  test("nobody can set who created a form", () => {
     const model: Form = new Form();
 
-    expect(model.getTableColumnMetadata("deletedByUserId").computed).toBe(true);
+    expect(model.getTableColumnMetadata("createdByUserId").computed).toBe(true);
     expect(UserAttribution.getColumns(model)).toEqual(
-      expect.arrayContaining(["deletedByUser", "deletedByUserId"]),
+      expect.arrayContaining(["createdByUser", "createdByUserId"]),
     );
+    expect(model.hasColumn("deletedByUserId")).toBe(false);
   });
 });
 
@@ -845,17 +845,6 @@ describe("Form columns", () => {
         update: [],
       });
       expect(model.getTableColumnMetadata(column).computed).toBe(true);
-    },
-  );
-
-  test.each(["deletedByUser", "deletedByUserId"])(
-    "%s cannot be written or read through the API",
-    (column: string) => {
-      expect(access(model, column)).toEqual({
-        create: [],
-        read: [],
-        update: [],
-      });
     },
   );
 
@@ -1100,12 +1089,6 @@ describe("Form columns", () => {
     {
       relation: "createdByUser",
       idColumn: "createdByUserId",
-      modelType: User,
-      onDelete: "SET NULL",
-    },
-    {
-      relation: "deletedByUser",
-      idColumn: "deletedByUserId",
       modelType: User,
       onDelete: "SET NULL",
     },

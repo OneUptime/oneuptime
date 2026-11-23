@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Vervang `<version>` door de versie die moet draaien, zoals `17.0.1`, en zet dezelfde image in `oneuptime-probe.yaml`, zodat die blijft als u het bestand opnieuw toepast.
+Vervang `<version>` door de versie die moet draaien, zoals `17.1.0`, en zet dezelfde image in `oneuptime-probe.yaml`, zodat die blijft als u het bestand opnieuw toepast.
 :::
 
-De pagina van de sonde toont onder **Sondestatus** de versie die hij draait. Een sonde ouder dan 17.0.1 kan de codes van een [geheim voor eenmalige codes](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code) niet maken: zijn pagina zegt dat, en ook het formulier van een monitor die hij controleert.
+De pagina van de sonde toont onder **Sondestatus** de versie die hij draait. Een sonde ouder dan 17.1.0 kan de codes van een [geheim voor eenmalige codes](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code) niet maken: zijn pagina zegt dat, en ook het formulier van een monitor die hij controleert. Hetzelfde geldt voor een sonde die te oud is om de body van het verzoek van een API-monitor te versturen die een JSON-array, één waarde of tekst is.
 
 ## Verbinden via een proxy
 

@@ -57,7 +57,7 @@ O relatório conta o que foi criado e não trazido, e lista cada item com um lin
 | Monitors | Monitores | Cada monitor vira um monitor do mesmo tipo, com o mesmo endereço, intervalo e tempo limite, e os mesmos códigos de status que contam como disponível. |
 | Public status pages | Páginas de status | Cada página mostra os mesmos monitores: os que ela nomeia, os que têm suas tags ou todos, com disponibilidade e barras de histórico como ela mostrava. Uma página com senha é trazida como privada. |
 
-- **Monitores HTTP(S) e de palavra-chave** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo JSON. Um monitor de palavra-chave cai quando a palavra-chave aparece ou falta, como no UptimeRobot, e a compara exatamente, incluindo maiúsculas.
+- **Monitores HTTP(S) e de palavra-chave** viram monitores de site, ou monitores de API quando enviam outro método, cabeçalhos ou um corpo. Um monitor de palavra-chave cai quando a palavra-chave aparece ou falta, como no UptimeRobot, e a compara exatamente, incluindo maiúsculas.
 - **Monitores de ping e de porta** viram monitores de ping e de porta.
 - **Monitores de heartbeat** viram monitores de requisições recebidas, que caem quando nenhuma requisição chega durante o intervalo e o período de tolerância. Cada um tem um novo endereço no OneUptime.
 - **Monitores DNS e de API** viram monitores DNS e de API.

@@ -614,12 +614,37 @@ describe("what it says of a database resource is what the API does", () => {
     }).toThrow("Invalid column on Incident - nope. Column does not exist.");
 
     expect(() => {
-      runDatabaseQuery(modelType, { deletedByUserId: A_UUID });
-    }).toThrow("You do not have permissions to query on - deletedByUserId.");
+      runDatabaseQuery(modelType, { aiInvestigationDecision: A_UUID });
+    }).toThrow(
+      "You do not have permissions to query on - aiInvestigationDecision.",
+    );
 
+    expect(
+      describeResource("Incident").fields["aiInvestigationDecision"],
+    ).toBeUndefined();
+    // Nor who deleted it, which no record ever held (#10469).
     expect(
       describeResource("Incident").fields["deletedByUserId"],
     ).toBeUndefined();
+  });
+
+  /*
+   * What created a record and who last modified it are fields an agent may
+   * filter and sort by, read only, as the API reference shows them (#10527).
+   */
+  test("describes what created an incident and who last modified it", () => {
+    const fields: Description["fields"] = describeResource("Incident").fields;
+
+    for (const field of [
+      "createdByActorType",
+      "createdByActorId",
+      "lastModifiedAt",
+      "lastModifiedByActorType",
+      "lastModifiedByActorId",
+      "lastModifiedByUserId",
+    ]) {
+      expect([field, Boolean(fields[field])]).toEqual([field, true]);
+    }
   });
 
   test("the example of every record is a query the API takes", () => {

@@ -170,7 +170,6 @@ const monitorModelSchema: any = {
       description: "User who created this monitor",
     },
     deletedAt: dateTimeWrapper,
-    deletedByUserId: { type: "string", description: "User who deleted it" },
     version: { type: "number", description: "Object version" },
     priority: { type: "number", description: "Sort priority" },
     isPaused: { type: "boolean", description: "Is monitoring paused" },

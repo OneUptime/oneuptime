@@ -93,6 +93,14 @@ A store with no owners can get them from OneUptime AI. It reads what already poi
 
 See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger passes on.
 
+## Pull requests
+
+A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+
+What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days, the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
+
+**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**, counts the leaks reviews caught in pull requests, fixed there or not yet, beside the issues the scans opened on the same checks after the code shipped.
+
 ## OneUptime AI
 
 Two actions on an issue ask OneUptime AI for help. Both send OneUptime AI the issue's title and severity, the store's name, kind and region, its sensitivity and data types, each by its name - one of your own data types by the name you gave it - the evidence, why the check matters and the steps that fix it - never a finding's samples. For a telemetry issue they send where each kind of data was found too: the data type and the attribute, log body or prompt it sits in, never a sample or a record. Both run under the project's OneUptime AI switches and limits. What each sends, what it never sends and the model it runs on are on [OneUptime AI in Data Security](/docs/data-security/ai).

@@ -1128,6 +1128,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         section: "Custom Role",
         title: "Overview",
       },
+      {
+        page: PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS,
+        section: "Custom Role",
+        title: "Audit Logs",
+      },
     ],
   },
   {

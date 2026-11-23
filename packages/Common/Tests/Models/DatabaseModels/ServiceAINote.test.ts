@@ -98,10 +98,11 @@ describe("ServiceAINote", () => {
     }
   });
 
-  test("who wrote a note is OneUptime's to write, never the request's; who deleted it is never written", () => {
-    expect(note.getColumnAccessControlFor("deletedByUserId")?.create).toEqual(
+  test("who wrote a note is OneUptime's to write, never the request's; who deleted it is no column", () => {
+    expect(note.getColumnAccessControlFor("createdByUserId")?.create).toEqual(
       [],
     );
+    expect(note.hasColumn("deletedByUserId")).toBe(false);
     // With Services' levels (#10289), which follow the project-wide roles.
     expect(note.getColumnAccessControlFor("note")?.update).toEqual([
       ...SERVICE_AI_NOTE_UPDATE_PERMISSIONS,

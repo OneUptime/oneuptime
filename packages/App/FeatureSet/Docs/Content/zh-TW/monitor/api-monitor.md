@@ -70,7 +70,7 @@ sequenceDiagram
 
 ### API URL
 
-要呼叫的端點，以包含通訊協定的完整 URL 表示，例如 `https://api.example.com/v1/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [監測器密鑰](/docs/monitor/monitor-secrets)。
+要呼叫的端點，以包含通訊協定的完整 URL 表示，例如 `https://api.example.com/v1/health`。您可以用 `{{monitorSecrets.NAME}}` 的形式在 URL 中放入 [監測器密鑰](/docs/monitor/monitor-secrets)。檢查失敗時，錯誤中只寫出 URL 的通訊協定、主機和連接埠，例如 `https://api.example.com`，因此密鑰永遠不會顯示。
 
 ### 動態 URL 預留位置
 
@@ -250,7 +250,7 @@ API 把帶有內文、或方法不是 `GET` 或 `HEAD` 的請求重新導向到�
 :::
 
 :::details 檢查顯示探測器版本過舊，無法傳送請求內文
-監測器的內文是 JSON 陣列、單一值或 **文字**，而檢查它的自訂探測器執行的是早於 OneUptime 17.2.0 的版本，只能傳送 JSON 物件，因此未在該探測器上執行檢查。請[更新探測器](/docs/probe/custom-probe#更新探測器)，或從其他探測器檢查該監測器。
+監測器的內文是 JSON 陣列、單一值或 **文字**，而檢查它的自訂探測器執行的是較舊的版本，只能傳送 JSON 物件，因此未在該探測器上執行檢查。監測器的表單和探測器的頁面會列出這樣的探測器。請[更新探測器](/docs/probe/custom-probe#更新探測器)至最新版本，或從其他探測器檢查該監測器。
 :::
 
 ## 後續步驟

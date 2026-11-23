@@ -57,7 +57,7 @@ El informe cuenta lo que se creó y no se trajo, y muestra cada elemento con un 
 | Monitors | Monitores | Cada monitor se convierte en un monitor del mismo tipo, con la misma dirección, intervalo y tiempo de espera, y los mismos códigos de estado que cuentan como disponible. |
 | Public status pages | Páginas de estado | Cada página muestra los mismos monitores: los que nombra, los que tienen sus etiquetas o todos, con la disponibilidad y las barras de historial como las mostraba. Una página con contraseña se trae como privada. |
 
-- **Los monitores HTTP(S) y de palabra clave** se convierten en monitores de sitio web, o en monitores de API cuando envían otro método, encabezados o un cuerpo JSON. Un monitor de palabra clave cae cuando su palabra clave aparece o falta, como en UptimeRobot, y la busca exactamente, mayúsculas incluidas.
+- **Los monitores HTTP(S) y de palabra clave** se convierten en monitores de sitio web, o en monitores de API cuando envían otro método, encabezados o un cuerpo. Un monitor de palabra clave cae cuando su palabra clave aparece o falta, como en UptimeRobot, y la busca exactamente, mayúsculas incluidas.
 - **Los monitores de ping y de puerto** se convierten en monitores de ping y de puerto.
 - **Los monitores de latido** se convierten en monitores de solicitudes entrantes, que caen cuando no llega ninguna solicitud durante el intervalo y el periodo de gracia. Cada uno tiene una dirección nueva en OneUptime.
 - **Los monitores DNS y de API** se convierten en monitores DNS y de API.

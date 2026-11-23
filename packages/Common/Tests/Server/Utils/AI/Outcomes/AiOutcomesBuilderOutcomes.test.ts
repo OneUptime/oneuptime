@@ -256,10 +256,24 @@ describe("what a record request may name", () => {
       AiOutcomesPart.DataSecurityChanges,
       AiOutcomesPart.DataSecurityProposals,
       AiOutcomesPart.IssueVerdicts,
+      // Leaks caught before they merged, against those found after (#10376).
+      AiOutcomesPart.Leaks,
     ]);
     expect(AI_OUTCOMES_DATA_SECURITY_PARTS).toEqual(
       AI_OUTCOMES_PARTS.slice(4, 7),
     );
+  });
+
+  test("a leak's outcomes are exactly the keys of its counts (#10376)", () => {
+    const outcomes: AiOutcomes = build({ leakRows: [] });
+
+    expect([...AI_OUTCOMES_PART_OUTCOMES[AiOutcomesPart.Leaks]].sort()).toEqual(
+      Object.keys(outcomes.leaks!).sort(),
+    );
+    expect(isAiOutcomesPartOutcome(AiOutcomesPart.Leaks, "foundAfter")).toBe(
+      true,
+    );
+    expect(isAiOutcomesPartOutcome(AiOutcomesPart.Leaks, "agreed")).toBe(false);
   });
 
   test("Data Security's outcomes are exactly the keys of its counts (#10364)", () => {
@@ -552,5 +566,67 @@ describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
     ).toBe(0);
     expect(build({ issueVerdictRows: null }).issueVerdicts).toBeNull();
     expect("issueVerdicts" in build({})).toBe(false);
+  });
+});
+
+describe("leaks caught before they merged (#10376)", () => {
+  test("each leak counts under its outcome, in the week it was caught or found", () => {
+    const outcomes: AiOutcomes = build({
+      leakRows: [
+        { createdAt: IN_WINDOW, isCaught: true, fixedAt: NOW },
+        { createdAt: IN_WINDOW, isCaught: true },
+        { createdAt: IN_WINDOW, isCaught: false },
+        // Before the window: counted nowhere.
+        {
+          createdAt: new Date(WINDOW_START.getTime() - DAY),
+          isCaught: true,
+        },
+      ],
+    });
+
+    expect(outcomes.leaks).toEqual({ fixed: 1, open: 1, foundAfter: 1 });
+
+    const week: AiOutcomes["weeks"][number] =
+      outcomes.weeks[outcomes.weeks.length - 1]!;
+
+    expect(week.leaksCaught).toBe(2);
+    expect(week.leaksCounted).toBe(3);
+    expect(
+      outcomes.weeks.slice(0, -1).every((each: AiOutcomes["weeks"][number]) => {
+        return !each.leaksCounted;
+      }),
+    ).toBe(true);
+  });
+
+  test("a caught leak is fixed when a later review no longer found it, open until then; one a scan found is found after", () => {
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: true,
+        fixedAt: NOW,
+      }),
+    ).toBe("fixed");
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: true,
+      }),
+    ).toBe("open");
+    expect(
+      AiOutcomesBuilder.getLeakOutcome({
+        createdAt: IN_WINDOW,
+        isCaught: false,
+      }),
+    ).toBe("foundAfter");
+  });
+
+  test("a reader who may not read them gets no leak numbers; a server that counts none sends none", () => {
+    expect(build({ leakRows: null }).leaks).toBeNull();
+    expect("leaks" in build({})).toBe(false);
+    expect(build({ leakRows: [] }).leaks).toEqual({
+      fixed: 0,
+      open: 0,
+      foundAfter: 0,
+    });
   });
 });

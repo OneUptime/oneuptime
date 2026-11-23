@@ -232,8 +232,8 @@
       "button: Send meg et testoppkall",
       "button: Hopp over testen"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "website-down-summary": {
     "text": [
@@ -393,8 +393,8 @@
       "button: Test denne policyen",
       "button: Hopp over testen"
     ],
-    "width": 768,
-    "height": 178
+    "width": 784,
+    "height": 207
   },
   "paging-summary": {
     "text": [
@@ -728,6 +728,7 @@
     "outline": [
       "heading: Checkout API p95 latency above 2s",
       "button: Løs",
+      "button: Tildel Hendelsesleder fra Maya Chen på nytt",
       "button: Legg til Legg til eiere",
       "link: Checkout API p95 latency",
       "link: Orders DB connection pool"
