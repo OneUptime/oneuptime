@@ -8,7 +8,6 @@ import {
   CLOUD_APP_AZURE_INSTANCES_HINT,
   CLOUD_APP_AZURE_METRICS_NEED_CONNECTION,
   CLOUD_APP_AZURE_METRICS_NEXT_READ,
-  CLOUD_APP_AZURE_METRICS_NOT_READ,
   CLOUD_APP_AZURE_MONITOR_CONNECTED_HINT,
   CLOUD_APP_AZURE_MONITOR_HINT,
   CLOUD_APP_AZURE_NO_CONNECTION,
@@ -21,7 +20,7 @@ import {
   CLOUD_APP_AZURE_SITE_NAME_HINT,
   CLOUD_APP_AZURE_SITE_NOT_FOUND,
   CLOUD_APP_AZURE_SITE_READ,
-  CLOUD_APP_AZURE_SLOT,
+  CLOUD_APP_AZURE_SLOT_NOT_FOUND,
   CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ,
   CLOUD_APP_AZURE_SUBSCRIPTION_NOT_READ_HINT,
   CLOUD_APP_AZURE_CONNECTION_FAILING,
@@ -34,6 +33,13 @@ import {
   CLOUD_APP_NOT_ON_PLATFORM_NOTE,
   CLOUD_APP_NOT_REPORTED_NOTE,
   CLOUD_APP_OPEN_CONNECTIONS,
+  CLOUD_APP_PLATFORM_CONNECT_HINT,
+  CLOUD_APP_PLATFORM_NO_CONNECTION,
+  CLOUD_APP_PLATFORM_NOT_FOUND,
+  CLOUD_APP_PLATFORM_NOT_FOUND_HINT,
+  CLOUD_APP_PLATFORM_READ,
+  CLOUD_APP_PLATFORM_READ_HINT,
+  CLOUD_APP_PLATFORM_ROW_LABELS,
   CLOUD_APP_PLATFORMS_WITHOUT_USAGE,
   CLOUD_APP_REVISION_HINT,
   CLOUD_APP_ROW_CHECKING,
@@ -63,6 +69,7 @@ import {
   CloudAppArrivalSource,
   CloudAppArrivalState,
   CloudAppAzureMonitorLookup,
+  CloudAppPlatformMonitorLookup,
   CloudAppSetupAction,
   CloudAppSetupInput,
   CloudAppSetupRow,
@@ -102,6 +109,7 @@ import {
 } from "../../../Types/Cloud/AppServiceSiteActivity";
 import { CloudAppTelemetrySignal } from "../../../Types/Cloud/CloudAppTelemetrySignal";
 import {
+  CloudProvider,
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatform,
   ManagedCloudPlatformDescriptor,
@@ -559,56 +567,49 @@ describe("the CPU and Memory tiles' note", () => {
 });
 
 describe("when the CPU and Memory tiles give way to the platform's section", () => {
-  test("only on a platform without usage, once its section shows, and neither tile has a number", () => {
+  test("once the section below shows the provider's CPU and memory, and neither tile has a number", () => {
     const shows: (fields: {
-      cloudPlatform?: string | null | undefined;
       hasCpuReading?: boolean;
       hasMemoryReading?: boolean;
-      hasPlatformSection?: boolean;
+      hasPlatformUsage?: boolean;
     }) => boolean = (fields: {
-      cloudPlatform?: string | null | undefined;
       hasCpuReading?: boolean;
       hasMemoryReading?: boolean;
-      hasPlatformSection?: boolean;
+      hasPlatformUsage?: boolean;
     }): boolean => {
       return showsCloudAppUsageTiles({
-        cloudPlatform:
-          "cloudPlatform" in fields
-            ? fields.cloudPlatform
-            : ManagedCloudPlatform.AzureAppService,
         hasCpuReading: fields.hasCpuReading ?? false,
         hasMemoryReading: fields.hasMemoryReading ?? false,
-        hasPlatformSection: fields.hasPlatformSection ?? true,
+        hasPlatformUsage: fields.hasPlatformUsage ?? true,
       });
     };
 
-    // The issue's app, its site connected: the section has its CPU and memory.
+    // The section has its CPU and memory: the tiles would only say "Not reported".
     expect(shows({})).toBe(false);
-    // Not connected (or the look-up failed): the tiles say why they are empty.
-    expect(shows({ hasPlatformSection: false })).toBe(true);
+    // Not connected (or the look-up failed, or an App Engine section with neither): the tiles say why they are empty.
+    expect(shows({ hasPlatformUsage: false })).toBe(true);
     // A number is never hidden.
     expect(shows({ hasCpuReading: true })).toBe(true);
     expect(shows({ hasMemoryReading: true })).toBe(true);
-    // A platform whose instances report usage keeps its tiles, section or not.
-    expect(shows({ cloudPlatform: ManagedCloudPlatform.AwsEcs })).toBe(true);
-    expect(shows({ cloudPlatform: null })).toBe(true);
-    expect(shows({ cloudPlatform: "" })).toBe(true);
   });
 
-  test("every platform without usage gives way, every other keeps its tiles", () => {
+  test("whatever the platform: the rule reads what is shown, not where it runs (#6794)", () => {
     for (const descriptor of MANAGED_CLOUD_PLATFORMS) {
-      expect({
-        platform: descriptor.platform,
-        shows: showsCloudAppUsageTiles({
-          cloudPlatform: descriptor.platform,
-          hasCpuReading: false,
-          hasMemoryReading: false,
-          hasPlatformSection: true,
-        }),
-      }).toEqual({
-        platform: descriptor.platform,
-        shows: !CLOUD_APP_PLATFORMS_WITHOUT_USAGE.has(descriptor.platform),
-      });
+      for (const hasPlatformUsage of [true, false]) {
+        expect({
+          platform: descriptor.platform,
+          hasPlatformUsage,
+          shows: showsCloudAppUsageTiles({
+            hasCpuReading: false,
+            hasMemoryReading: false,
+            hasPlatformUsage,
+          }),
+        }).toEqual({
+          platform: descriptor.platform,
+          hasPlatformUsage,
+          shows: !hasPlatformUsage,
+        });
+      }
     }
   });
 });
@@ -1178,22 +1179,49 @@ describe("the Azure Monitor connection's row, link by link", () => {
     });
   });
 
-  test("an app of a deployment slot: not available, and why", () => {
+  test("an app of a deployment slot whose subscription holds no such slot: the slot is what is missing, never the site (#6793)", () => {
     const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
       setupInput({ azureMonitor: read({ slot: "staging" }) }),
     );
 
     expect(viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitor))).toEqual({
-      status: CloudAppSetupStatus.NotAvailable,
-      statusLabel: "Not available",
-      tone: "off",
-      text: "It runs in deployment slot staging, which Azure Monitor reports as a resource of its own that OneUptime does not read yet.",
-      hint: undefined,
+      status: CloudAppSetupStatus.NeedsSetup,
+      statusLabel: "Needs setup",
+      tone: "setup",
+      text: `Subscription ${SUBSCRIPTION} is connected, but holds no deployment slot staging of ${SITE}.`,
+      hint: CLOUD_APP_AZURE_SITE_NAME_HINT,
       action: undefined,
     });
     expect(
       viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitorMetrics)).text,
-    ).toBe(CLOUD_APP_AZURE_METRICS_NOT_READ);
+    ).toBe(CLOUD_APP_AZURE_METRICS_NEED_CONNECTION);
+  });
+
+  test("an app of a deployment slot whose slot is read: connected, its metrics its slot's (#6793)", () => {
+    const slot: CloudResource = site({
+      name: `${SITE}/staging`,
+      providerResourceId: `${SITE_ID}/slots/staging`,
+    });
+    const rows: Array<CloudAppSetupRow> = getCloudAppSetupRows(
+      setupInput({
+        azureMonitor: read({
+          slot: "staging",
+          site: slot,
+          matchedBy: CloudAppSiteMatch.Name,
+        }),
+      }),
+    );
+
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitor))).toEqual(
+      expect.objectContaining({
+        status: CloudAppSetupStatus.Received,
+        statusLabel: "Connected",
+        text: `The connection Azure production reads ${SITE}/staging in subscription ${SUBSCRIPTION}.`,
+      }),
+    );
+    expect(
+      viewOf(rowOf(rows, CloudAppSetupRowKey.AzureMonitorMetrics)).status,
+    ).toBe(CloudAppSetupStatus.Received);
   });
 
   test("every state the chain can be in has a row that says it", () => {
@@ -1202,7 +1230,6 @@ describe("the Azure Monitor connection's row, link by link", () => {
       CloudAppAzureMonitorLookup
     > = {
       [CloudAppAzureMonitorState.Connected]: CONNECTED,
-      [CloudAppAzureMonitorState.Slot]: read({ slot: "staging" }),
       [CloudAppAzureMonitorState.NoConnection]: read({
         account: null,
         connection: null,
@@ -1622,9 +1649,10 @@ describe("when the page leads with its Setup check", () => {
     expect(
       incomplete({ ...appService, azureMonitor: { status: "failed" } }),
     ).toBe(false);
+    // A slot no connection reads needs setting up, as a site does (#6793).
     expect(
       incomplete({ ...appService, azureMonitor: read({ slot: "staging" }) }),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -1852,10 +1880,16 @@ describe("the words, in every language", () => {
     CLOUD_APP_AZURE_SITE_NAME_HINT,
     CLOUD_APP_AZURE_SITE_ELSEWHERE,
     CLOUD_APP_AZURE_SITE_ELSEWHERE_HINT,
-    CLOUD_APP_AZURE_SLOT,
+    CLOUD_APP_AZURE_SLOT_NOT_FOUND,
     CLOUD_APP_AZURE_METRICS_NEXT_READ,
     CLOUD_APP_AZURE_METRICS_NEED_CONNECTION,
-    CLOUD_APP_AZURE_METRICS_NOT_READ,
+    CLOUD_APP_PLATFORM_READ,
+    CLOUD_APP_PLATFORM_READ_HINT,
+    ...Object.values(CLOUD_APP_PLATFORM_ROW_LABELS),
+    ...Object.values(CLOUD_APP_PLATFORM_NO_CONNECTION),
+    ...Object.values(CLOUD_APP_PLATFORM_CONNECT_HINT),
+    ...Object.values(CLOUD_APP_PLATFORM_NOT_FOUND),
+    ...Object.values(CLOUD_APP_PLATFORM_NOT_FOUND_HINT),
     CLOUD_APP_AZURE_INSTANCES.other,
     CLOUD_APP_AZURE_INSTANCES_HINT,
     CLOUD_APP_AZURE_DEPLOYMENT,
@@ -1916,7 +1950,16 @@ describe("the words, in every language", () => {
         [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{site}}"],
         [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{other}}"],
         [CLOUD_APP_AZURE_SITE_ELSEWHERE, "{{subscription}}"],
-        [CLOUD_APP_AZURE_SLOT, "{{slot}}"],
+        [CLOUD_APP_AZURE_SLOT_NOT_FOUND, "{{slot}}"],
+        [CLOUD_APP_AZURE_SLOT_NOT_FOUND, "{{site}}"],
+        [CLOUD_APP_AZURE_SLOT_NOT_FOUND, "{{subscription}}"],
+        [CLOUD_APP_PLATFORM_READ, "{{resource}}"],
+        [CLOUD_APP_PLATFORM_READ_HINT, "{{service}}"],
+        ...Object.values(CLOUD_APP_PLATFORM_NOT_FOUND).map(
+          (template: string): [string, string] => {
+            return [template, "{{name}}"];
+          },
+        ),
         [CLOUD_APP_AZURE_INSTANCES.other, "{{count}}"],
         [CLOUD_APP_AZURE_DEPLOYMENT, "{{deployment}}"],
         [CLOUD_APP_AZURE_DEPLOYMENT, "{{time}}"],
@@ -1960,5 +2003,201 @@ describe("the words, in every language", () => {
         });
       }
     }
+  });
+});
+
+/*
+ * #6794: an app of another platform its provider measures - a Container
+ * App, a Cloud Run, App Engine, App Runner or ECS service - has a row for
+ * its platform's monitoring, named after the service its section is:
+ * Checking while it is looked up, Connected once the resource it runs as is
+ * found, Not connected with what to connect - or what is looked for, and
+ * how - while none is. A look-up that failed leaves the row out.
+ */
+describe("the platform monitoring row off App Service (#6794)", () => {
+  function platformLink(fields: {
+    platform: string;
+    provider: CloudProvider;
+    name?: string;
+    cluster?: string;
+    resource?: CloudResource | null;
+    connections?: number | null;
+  }): CloudAppPlatformMonitorLookup {
+    return {
+      status: "read",
+      link: {
+        platform: fields.platform,
+        provider: fields.provider,
+        name: fields.name ?? "checkout",
+        cluster: fields.cluster ?? "",
+        resource: fields.resource ?? null,
+        connections: fields.connections ?? null,
+      },
+    };
+  }
+
+  function rowsFor(
+    platform: string,
+    platformMonitor: CloudAppPlatformMonitorLookup,
+  ): Array<CloudAppSetupRow> {
+    return getCloudAppSetupRows(
+      setupInput({ app: { cloudPlatform: platform }, platformMonitor }),
+    );
+  }
+
+  const PLATFORMS: Array<[string, CloudProvider, string]> = [
+    [
+      ManagedCloudPlatform.AzureContainerApps,
+      CloudProvider.Azure,
+      "Azure Monitor connection",
+    ],
+    [
+      ManagedCloudPlatform.GcpCloudRun,
+      CloudProvider.GCP,
+      "Google Cloud Monitoring connection",
+    ],
+    [
+      ManagedCloudPlatform.GcpAppEngine,
+      CloudProvider.GCP,
+      "Google Cloud Monitoring connection",
+    ],
+    [
+      ManagedCloudPlatform.AwsAppRunner,
+      CloudProvider.AWS,
+      "Amazon CloudWatch connection",
+    ],
+    [
+      ManagedCloudPlatform.AwsEcs,
+      CloudProvider.AWS,
+      "Amazon CloudWatch connection",
+    ],
+  ];
+
+  test("Checking while it is looked up, named after its platform's service, first of the rows", () => {
+    for (const [platform, , label] of PLATFORMS) {
+      const rows: Array<CloudAppSetupRow> = rowsFor(platform, {
+        status: "checking",
+      });
+
+      expect(keysOf(rows)[0]).toBe(CloudAppSetupRowKey.PlatformMonitor);
+      expect({
+        platform,
+        label: rows[0]!.label,
+        view: viewOf(rows[0]!),
+      }).toEqual({
+        platform,
+        label,
+        view: {
+          status: CloudAppSetupStatus.Checking,
+          statusLabel: "Checking…",
+          tone: "waiting",
+          text: "Checking…",
+          hint: undefined,
+          action: undefined,
+        },
+      });
+    }
+  });
+
+  test("Connected once the resource it runs as is found: its name, and its service measuring it below", () => {
+    const resource: CloudResource = Object.assign(new CloudResource(), {
+      name: "checkout (Cloud Run Service)",
+    });
+    const rows: Array<CloudAppSetupRow> = rowsFor(
+      ManagedCloudPlatform.GcpCloudRun,
+      platformLink({
+        platform: ManagedCloudPlatform.GcpCloudRun,
+        provider: CloudProvider.GCP,
+        resource,
+      }),
+    );
+
+    expect(viewOf(rowOf(rows, CloudAppSetupRowKey.PlatformMonitor))).toEqual({
+      status: CloudAppSetupStatus.Received,
+      statusLabel: "Connected",
+      tone: "ok",
+      text: "OneUptime reads checkout (Cloud Run Service).",
+      hint: "Its numbers, as Google Cloud Monitoring measures them, are below.",
+      action: undefined,
+    });
+    expect(isCloudAppSetupIncomplete([rowOf(rows, CloudAppSetupRowKey.PlatformMonitor)])).toBe(
+      false,
+    );
+  });
+
+  test("Not connected with no connection of its cloud: what to connect, and the way there", () => {
+    for (const [platform, provider] of PLATFORMS) {
+      const row: CloudAppSetupRow = rowOf(
+        rowsFor(
+          platform,
+          platformLink({ platform, provider, connections: 0 }),
+        ),
+        CloudAppSetupRowKey.PlatformMonitor,
+      );
+
+      expect({ platform, view: viewOf(row) }).toEqual({
+        platform,
+        view: {
+          status: CloudAppSetupStatus.NeedsSetup,
+          statusLabel: "Not connected",
+          tone: "setup",
+          text: CLOUD_APP_PLATFORM_NO_CONNECTION[provider],
+          hint: CLOUD_APP_PLATFORM_CONNECT_HINT[provider],
+          action: CloudAppSetupAction.ConnectCloud,
+        },
+      });
+    }
+  });
+
+  test("Not connected when a connection reads none of its name: what is looked for, and how it is tied", () => {
+    const expected: Record<string, string> = {
+      [ManagedCloudPlatform.AzureContainerApps]:
+        "No Container App named checkout is read yet.",
+      [ManagedCloudPlatform.GcpCloudRun]:
+        "No Cloud Run service named checkout is read yet.",
+      [ManagedCloudPlatform.GcpAppEngine]:
+        "No App Engine service named checkout is read yet.",
+      [ManagedCloudPlatform.AwsAppRunner]:
+        "No App Runner service named checkout is read yet.",
+      [ManagedCloudPlatform.AwsEcs]:
+        "No ECS service in cluster prod that runs task definition checkout is read yet.",
+    };
+
+    for (const [platform, provider] of PLATFORMS) {
+      for (const connections of [2, null]) {
+        const row: CloudAppSetupRow = rowOf(
+          rowsFor(
+            platform,
+            platformLink({ platform, provider, cluster: "prod", connections }),
+          ),
+          CloudAppSetupRowKey.PlatformMonitor,
+        );
+
+        expect({ platform, connections, view: viewOf(row) }).toEqual({
+          platform,
+          connections,
+          view: {
+            status: CloudAppSetupStatus.NeedsSetup,
+            statusLabel: "Not connected",
+            tone: "setup",
+            text: expected[platform],
+            hint: CLOUD_APP_PLATFORM_NOT_FOUND_HINT[platform],
+            action: CloudAppSetupAction.OpenConnections,
+          },
+        });
+        expect(isCloudAppSetupIncomplete([row])).toBe(true);
+      }
+    }
+  });
+
+  test("a look-up that failed leaves the row out; an App Service app's rows are App Service's own", () => {
+    expect(
+      keysOf(
+        rowsFor(ManagedCloudPlatform.AwsEcs, { status: "failed" }),
+      ).includes(CloudAppSetupRowKey.PlatformMonitor),
+    ).toBe(false);
+    expect(
+      keysOf(getCloudAppSetupRows(setupInput({ azureMonitor: CONNECTED }))),
+    ).toEqual(APP_SERVICE_ROWS);
   });
 });

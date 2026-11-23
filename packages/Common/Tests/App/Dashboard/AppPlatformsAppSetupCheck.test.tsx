@@ -774,17 +774,58 @@ describe("the site's look-up", () => {
     );
   });
 
-  test("an app of a staging slot is not looked up, and the row says why", async () => {
-    mockReads.sites = [siteRow()];
+  test("an app of a staging slot looks up its own slot, and shows that slot's numbers (#6793)", async () => {
+    const slotId: string = `${SITE_ID}/slots/staging`;
+    mockReads.sites = [
+      siteRow({
+        _id: "76200000-0000-4000-8000-000000000002",
+        name: `${SITE}/staging`,
+        cloudResourceType: "Microsoft.Web/sites/slots",
+        providerResourceId: slotId,
+        telemetryAttributes: { "azuremonitor.resource_id": slotId },
+      }),
+    ];
+    mockReads.accounts = [account()];
+    mockReads.connections = [connection()];
+    mockReads.metricValues = { azure_requests_total: 30 };
 
     await renderTab({ app: metricsOnlyApp({ groupName: "staging" }) });
 
-    expect(mockReads.siteRequests).toHaveLength(0);
+    const query: Record<string, unknown> = mockReads.siteRequests[0]!.query;
+    expect(query["cloudResourceType"]).toBe("Microsoft.Web/sites/slots");
+    expect((query["providerResourceId"] as EndsWith<string>).toString()).toBe(
+      `/providers/microsoft.web/sites/${SITE}/slots/staging`,
+    );
+
+    const section: HTMLElement = screen.getByTestId("cloud-app-azure-monitor");
+    const tiles: Array<DrawnTile> = Array.from(
+      within(section).getByTestId("cloud-app-azure-monitor-tiles").children,
+    ).map(drawnTile);
+    expect(tileOf(tiles, "Requests").value).toBe("30");
+    expect(
+      screen.getByTestId("cloud-app-azure-monitor-open").getAttribute("href"),
+    ).toContain("76200000-0000-4000-8000-000000000002");
+    expect(rowOf("azure-monitor")).toEqual(
+      expect.objectContaining({
+        status: "received",
+        text: `The connection Azure production reads ${SITE}/staging in subscription ${SUBSCRIPTION}.`,
+      }),
+    );
+  });
+
+  test("an app of a staging slot never shows the site's numbers: with no slot read, no section, and the row names the slot (#6793)", async () => {
+    mockReads.sites = [siteRow()];
+    mockReads.accounts = [account()];
+    mockReads.connections = [connection()];
+    mockReads.metricValues = { azure_requests_total: 9000 };
+
+    await renderTab({ app: metricsOnlyApp({ groupName: "staging" }) });
+
     expect(screen.queryByTestId("cloud-app-azure-monitor")).toBeNull();
     expect(rowOf("azure-monitor")).toEqual(
       expect.objectContaining({
-        status: "not-available",
-        text: "It runs in deployment slot staging, which Azure Monitor reports as a resource of its own that OneUptime does not read yet.",
+        status: "needs-setup",
+        text: `Subscription ${SUBSCRIPTION} is connected, but holds no deployment slot staging of ${SITE}.`,
       }),
     );
   });

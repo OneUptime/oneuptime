@@ -92,12 +92,16 @@ function settings(): CloudConnectionSettings {
 }
 
 interface FakeSiteOptions {
+  // The site's id, or a slot's: where Azure answers its three reads.
+  siteId?: string;
   instances?: FakeResponse;
   deployments?: FakeResponse;
   config?: FakeResponse;
 }
 
 function fakeAzure(options: FakeSiteOptions = {}): FakeProviderApi {
+  const id: string = options.siteId || SITE_ID;
+
   return createFakeProviderApi([
     {
       host: "login.microsoftonline.com",
@@ -109,7 +113,7 @@ function fakeAzure(options: FakeSiteOptions = {}): FakeProviderApi {
     },
     {
       host: "management.azure.com",
-      path: `${SITE_ID}/instances`,
+      path: `${id}/instances`,
       respond: (): FakeResponse => {
         return (
           options.instances ||
@@ -129,7 +133,7 @@ function fakeAzure(options: FakeSiteOptions = {}): FakeProviderApi {
     },
     {
       host: "management.azure.com",
-      path: `${SITE_ID}/deployments`,
+      path: `${id}/deployments`,
       respond: (): FakeResponse => {
         return (
           options.deployments ||
@@ -156,7 +160,7 @@ function fakeAzure(options: FakeSiteOptions = {}): FakeProviderApi {
     },
     {
       host: "management.azure.com",
-      path: `${SITE_ID}/config/web`,
+      path: `${id}/config/web`,
       respond: (): FakeResponse => {
         return (
           options.config ||
@@ -477,6 +481,38 @@ describe("who may ask, and how often", () => {
       "Only an Azure App Service app has instances and deployments to read.",
     );
     expect(fake.requests).toEqual([]);
+  });
+
+  test("a deployment slot's instances, deployments and image, at the slot's own id - never the site's (#6793)", async () => {
+    const slotId: string = `${SITE_ID}/slots/staging`;
+    site = Object.assign(new CloudResource(), {
+      _id: SITE_ROW.toString(),
+      cloudProvider: CloudProvider.Azure,
+      cloudResourceType: "Microsoft.Web/sites/slots",
+      providerResourceId: slotId,
+      cloudConnectionId: new ObjectID(CONNECTION_ID),
+    });
+    const fake: FakeProviderApi = fakeAzure({ siteId: slotId });
+
+    const activity: AppServiceSiteActivity = await read(fake);
+
+    expect(activity.instances.items).toEqual([
+      { id: INSTANCE, state: AppServiceInstanceState.Ready },
+    ]);
+    expect(activity.image).toBe("otel/opentelemetry-collector-contrib:0.118.0");
+    expect(
+      armRequests(fake)
+        .map((url: URL): string => {
+          return decodeURIComponent(url.pathname);
+        })
+        .sort(),
+    ).toEqual(
+      [
+        `${slotId}/instances`,
+        `${slotId}/deployments`,
+        `${slotId}/config/web`,
+      ].sort(),
+    );
   });
 
   test("a site no connection reads, or whose connection is off, says how to fix it", async () => {

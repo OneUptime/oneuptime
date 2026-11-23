@@ -9,12 +9,16 @@ import {
   CloudPlatformResourceCandidate,
   formatAppServiceCpuTime,
   getAppServiceStoredMetricName,
+  getCloudAppPlatformCandidateQuery,
+  getCloudAppPlatformResourceType,
   getCloudAppSiteName,
   getCloudAppSlotName,
   hasCloudAppPlatformResource,
   matchCloudAppPlatformResource,
   summarizeAppServiceSeries,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
+import EndsWith from "../../../Types/BaseDatabase/EndsWith";
+import Search from "../../../Types/BaseDatabase/Search";
 import {
   getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
@@ -40,8 +44,11 @@ import {
  *     as ARM matches ids (without regard to case); else by the site's name,
  *     which is the app's service.name and unique across Azure;
  *   - never another resource that shares the name's start (a plan, a
- *     second site "checkout-api-v2"), and never for a deployment slot other
- *     than production, whose numbers the site's are not;
+ *     second site "checkout-api-v2"); an app of a deployment slot other
+ *     than production gets its own slot (#6793), never the site, whose
+ *     numbers are the production slot's;
+ *   - the rows the page reads while none is kept, each platform's by its
+ *     own type and what names its resource (#6794);
  *   - each metric read under the name the connection stores it by, the
  *     aggregation Azure calls primary, unless the site's own reading says
  *     which;
@@ -87,19 +94,26 @@ describe("which apps have a site to look up", () => {
     ).toBe(true);
   });
 
-  test("an app on another platform, or one with no name to go by, does not", () => {
-    for (const platform of Object.values(ManagedCloudPlatform)) {
-      if (platform === ManagedCloudPlatform.AzureAppService) {
-        continue;
-      }
+  test("an app of every platform whose provider measures what it runs as does (#6794); one with no name to go by, or of a platform with none, does not", () => {
+    const withResource: ReadonlySet<string> = new Set<string>([
+      ManagedCloudPlatform.AzureAppService,
+      ManagedCloudPlatform.AzureContainerApps,
+      ManagedCloudPlatform.GcpCloudRun,
+      ManagedCloudPlatform.GcpAppEngine,
+      ManagedCloudPlatform.AwsAppRunner,
+      ManagedCloudPlatform.AwsEcs,
+    ]);
 
+    for (const platform of Object.values(ManagedCloudPlatform)) {
       expect({
         platform,
         has: hasCloudAppPlatformResource({
           name: "checkout-api",
+          // An ECS app is kept apart by its cluster, which ties it to a service.
+          groupName: "prod",
           cloudPlatform: platform,
         }),
-      }).toEqual({ platform, has: false });
+      }).toEqual({ platform, has: withResource.has(platform) });
     }
 
     expect(hasCloudAppPlatformResource(appServiceApp({ name: "   " }))).toBe(
@@ -107,7 +121,23 @@ describe("which apps have a site to look up", () => {
     );
   });
 
-  test("an app of the production slot does, and an app of another slot does not", () => {
+  test("an ECS app names its cluster, or it has no service to look up", () => {
+    expect(
+      hasCloudAppPlatformResource({
+        name: "checkout",
+        cloudPlatform: ManagedCloudPlatform.AwsEcs,
+      }),
+    ).toBe(false);
+    expect(
+      hasCloudAppPlatformResource({
+        name: "checkout",
+        groupName: "  ",
+        cloudPlatform: ManagedCloudPlatform.AwsEcs,
+      }),
+    ).toBe(false);
+  });
+
+  test("an app of the production slot does, and an app of another slot does too: its own slot (#6793)", () => {
     expect(
       hasCloudAppPlatformResource(appServiceApp({ groupName: "production" })),
     ).toBe(true);
@@ -116,7 +146,19 @@ describe("which apps have a site to look up", () => {
     ).toBe(true);
     expect(
       hasCloudAppPlatformResource(appServiceApp({ groupName: "staging" })),
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  test("the type it runs as: the site for production, the slot type for any other slot", () => {
+    expect(getCloudAppPlatformResourceType(appServiceApp())).toBe(
+      "Microsoft.Web/sites",
+    );
+    expect(
+      getCloudAppPlatformResourceType(appServiceApp({ groupName: "Production" })),
+    ).toBe("Microsoft.Web/sites");
+    expect(
+      getCloudAppPlatformResourceType(appServiceApp({ groupName: "staging" })),
+    ).toBe("Microsoft.Web/sites/slots");
   });
 });
 
@@ -250,16 +292,52 @@ describe("finding the app's site among what the connection lists", () => {
     ).toBe("newer");
   });
 
-  test("an app of another slot has none: the site's numbers are the production slot's", () => {
+  test("an app of another slot gets its own slot - never the site, though its cloud.resource_id names the site (#6793)", () => {
+    expect(
+      labelOf(
+        matchCloudAppPlatformResource({
+          app: appServiceApp({
+            groupName: "staging",
+            providerResourceId: siteId("checkout-api"),
+          }),
+          candidates: [SITE, SLOT],
+        }),
+      ),
+    ).toBe("staging slot");
+
+    // With no slot read, none: never the site's numbers on a staging app.
     expect(
       matchCloudAppPlatformResource({
         app: appServiceApp({
           groupName: "staging",
           providerResourceId: siteId("checkout-api"),
         }),
-        candidates: [SITE, SLOT],
+        candidates: [SITE, SITE_V2, PLAN],
       }),
     ).toBeNull();
+  });
+
+  test("never another slot of the site, nor the slot of a site that only starts alike", () => {
+    const qa: Row = row("qa slot", `${siteId("checkout-api")}/slots/qa`);
+    const otherSite: Row = row(
+      "v2 staging slot",
+      `${siteId("checkout-api-v2")}/slots/staging`,
+    );
+
+    expect(
+      matchCloudAppPlatformResource({
+        app: appServiceApp({ groupName: "staging" }),
+        candidates: [qa, otherSite, SITE],
+      }),
+    ).toBeNull();
+    expect(
+      labelOf(
+        matchCloudAppPlatformResource({
+          app: appServiceApp({ groupName: "Staging" }),
+          candidates: [qa, otherSite, SLOT, SITE],
+        }),
+      ),
+    ).toBe("staging slot");
   });
 
   test("rows with no id, or an id that is not ARM's, are passed over; with no match there is none", () => {
@@ -577,5 +655,122 @@ describe("the site's CPU time, as a reader says a duration", () => {
         expect(part).toMatch(/^[1-9]\d*[dhms]$/);
       }
     }
+  });
+});
+
+/*
+ * The rows the page reads while the server keeps none (#6793, #6794): each
+ * platform's by its own type, narrowed by what names the resource - the end
+ * of its id, or its account and Region where the id cannot be told from
+ * its end - and never a type another platform's app runs as.
+ */
+describe("the rows the page reads to find the resource", () => {
+  function endOf(query: Record<string, unknown>): string {
+    const id: unknown = query["providerResourceId"];
+
+    return id instanceof EndsWith || id instanceof Search
+      ? id.toString()
+      : "";
+  }
+
+  test("an App Service site by its id's end, a slot by its own: never one of the other", () => {
+    const site: Record<string, unknown> = getCloudAppPlatformCandidateQuery(
+      appServiceApp(),
+    ) as Record<string, unknown>;
+    const slot: Record<string, unknown> = getCloudAppPlatformCandidateQuery(
+      appServiceApp({ groupName: "staging" }),
+    ) as Record<string, unknown>;
+
+    expect(site["cloudResourceType"]).toBe("Microsoft.Web/sites");
+    expect(endOf(site)).toBe("/providers/microsoft.web/sites/checkout-api");
+    expect(site["isArchived"]).toBe(false);
+    expect(slot["cloudResourceType"]).toBe("Microsoft.Web/sites/slots");
+    expect(endOf(slot)).toBe(
+      "/providers/microsoft.web/sites/checkout-api/slots/staging",
+    );
+  });
+
+  test("each other platform's by its own type and what names its resource", () => {
+    const of: (
+      cloudPlatform: string,
+      fields?: { groupName?: string; providerResourceId?: string },
+    ) => Record<string, unknown> = (
+      cloudPlatform: string,
+      fields: { groupName?: string; providerResourceId?: string } = {},
+    ): Record<string, unknown> => {
+      return getCloudAppPlatformCandidateQuery(
+        { name: "checkout", cloudPlatform, ...fields },
+        { cloudAccountId: "123456789012", cloudRegion: "us-east-1" },
+      ) as Record<string, unknown>;
+    };
+
+    const containerApp: Record<string, unknown> = of(
+      ManagedCloudPlatform.AzureContainerApps,
+    );
+    expect([containerApp["cloudProvider"], containerApp["cloudResourceType"], endOf(containerApp)]).toEqual([
+      "azure",
+      "Microsoft.App/containerApps",
+      "/providers/microsoft.app/containerapps/checkout",
+    ]);
+
+    const run: Record<string, unknown> = of(ManagedCloudPlatform.GcpCloudRun);
+    expect([run["cloudProvider"], run["cloudResourceType"], endOf(run)]).toEqual([
+      "gcp",
+      "cloud_run_revision",
+      "/services/checkout",
+    ]);
+
+    const appEngine: Record<string, unknown> = of(
+      ManagedCloudPlatform.GcpAppEngine,
+    );
+    expect([appEngine["cloudResourceType"], endOf(appEngine)]).toEqual([
+      "gae_app",
+      "/services/checkout",
+    ]);
+
+    // An App Runner ARN ends with its id: the account's Region holds few.
+    const appRunner: Record<string, unknown> = of(
+      ManagedCloudPlatform.AwsAppRunner,
+    );
+    expect([
+      appRunner["cloudProvider"],
+      appRunner["cloudResourceType"],
+      appRunner["cloudAccountId"],
+      appRunner["cloudRegion"],
+      appRunner["providerResourceId"],
+    ]).toEqual([
+      "aws",
+      "AWS::AppRunner::Service",
+      "123456789012",
+      "us-east-1",
+      undefined,
+    ]);
+
+    // Every service of the app's cluster: the one running its family is its.
+    const ecs: Record<string, unknown> = of(ManagedCloudPlatform.AwsEcs, {
+      groupName: "prod",
+    });
+    expect([ecs["cloudResourceType"], endOf(ecs)]).toEqual([
+      "AWS::ECS::Service",
+      ":service/prod/",
+    ]);
+  });
+
+  test("none for an app with nothing to look up", () => {
+    expect(
+      getCloudAppPlatformCandidateQuery({
+        name: "checkout",
+        cloudPlatform: ManagedCloudPlatform.AwsEcs,
+      }),
+    ).toBeNull();
+    expect(
+      getCloudAppPlatformCandidateQuery({
+        name: "checkout",
+        cloudPlatform: ManagedCloudPlatform.AwsElasticBeanstalk,
+      }),
+    ).toBeNull();
+    expect(
+      getCloudAppPlatformCandidateQuery(appServiceApp({ name: " " })),
+    ).toBeNull();
   });
 });

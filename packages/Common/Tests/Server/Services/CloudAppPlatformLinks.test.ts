@@ -41,9 +41,14 @@ import ObjectID from "../../../Types/ObjectID";
  *     longer lists it) lets the app go, and a site moved to another
  *     resource group or subscription, which gets a new id and a new row,
  *     takes its place;
- *   - when the app is discovered or names another site, after each Azure
- *     read, and once an hour - writing only the links that change, and
- *     never failing what called it.
+ *   - when the app is discovered or names another site, after each read,
+ *     and once an hour - writing only the links that change, and never
+ *     failing what called it.
+ *
+ * Since #6793 and #6794 an app of a deployment slot keeps its own slot,
+ * never the site, and an app of every other platform its provider measures
+ * - a Container App, a Cloud Run, App Engine, App Runner or ECS service -
+ * keeps the resource it runs as, each among its own type's rows alone.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -224,13 +229,48 @@ describe("which site each app keeps (getCloudAppPlatformLinkChanges)", () => {
     ).toEqual([]);
   });
 
-  test("an app of another deployment slot keeps none: the site's numbers are production's", () => {
+  test("an app of another deployment slot lets the site go: the site's numbers are production's (#6793)", () => {
     expect(
       changesFor({
         apps: [app({ groupName: "staging", keptSiteId: SITE_ROW })],
-        sites: [site(SITE_ROW, siteId("checkout-api"))],
+        sites: [
+          site(SITE_ROW, siteId("checkout-api"), {
+            cloudResourceType: "Microsoft.Web/sites",
+          }),
+        ],
       }),
     ).toEqual([{ appId: APP_ID, siteId: "" }]);
+  });
+
+  test("an app of another deployment slot keeps its own slot - never the site, another slot, or a slot of another site (#6793)", () => {
+    const slotRow: string = "7b000000-0000-4000-8000-000000000030";
+
+    expect(
+      changesFor({
+        apps: [
+          app({
+            groupName: "staging",
+            // The detectors name the site for every slot.
+            providerResourceId: siteId("checkout-api"),
+            keptSiteId: SITE_ROW,
+          }),
+        ],
+        sites: [
+          site(SITE_ROW, siteId("checkout-api"), {
+            cloudResourceType: "Microsoft.Web/sites",
+          }),
+          site("qa", `${siteId("checkout-api")}/slots/qa`, {
+            cloudResourceType: "Microsoft.Web/sites/slots",
+          }),
+          site("v2", `${siteId("checkout-api-v2")}/slots/staging`, {
+            cloudResourceType: "Microsoft.Web/sites/slots",
+          }),
+          site(slotRow, `${siteId("checkout-api")}/slots/staging`, {
+            cloudResourceType: "Microsoft.Web/sites/slots",
+          }),
+        ],
+      }),
+    ).toEqual([{ appId: APP_ID, siteId: slotRow }]);
   });
 
   test("an app whose environment names no subscription takes the one site of its name", () => {
@@ -261,11 +301,178 @@ describe("which site each app keeps (getCloudAppPlatformLinkChanges)", () => {
   });
 });
 
+/*
+ * #6794: every managed platform's app keeps the resource it runs as, each
+ * among the rows of its own type alone - an App Runner service and an ECS
+ * service of one name are never a Cloud Run app's.
+ */
+describe("each platform's app keeps the resource it runs as (#6794)", () => {
+  const GCP_ENVIRONMENT: string = "7b000000-0000-4000-8000-000000000040";
+  const AWS_ENVIRONMENT: string = "7b000000-0000-4000-8000-000000000041";
+  const AZURE_ENVIRONMENT: string = ENVIRONMENT_ID;
+  const environments: Map<string, CloudAppPlatformEnvironment> = new Map<
+    string,
+    CloudAppPlatformEnvironment
+  >([
+    ...ENVIRONMENTS,
+    [
+      GCP_ENVIRONMENT,
+      { cloudAccountId: "shop-prod", cloudRegion: "us-central1" },
+    ],
+    [
+      AWS_ENVIRONMENT,
+      { cloudAccountId: "123456789012", cloudRegion: "us-east-1" },
+    ],
+  ]);
+
+  // One row of each type, each named "checkout".
+  const ROWS: Array<CloudAppSiteCandidate> = [
+    site(
+      "container-app",
+      `/subscriptions/${SUBSCRIPTION}/resourceGroups/rg-apps/providers/Microsoft.App/containerApps/checkout`,
+      { cloudResourceType: "Microsoft.App/containerApps" },
+    ),
+    site(
+      "cloud-run",
+      "//run.googleapis.com/projects/shop-prod/locations/us-central1/services/checkout",
+      { cloudResourceType: "cloud_run_revision", cloudAccountId: "shop-prod" },
+    ),
+    site(
+      "cloud-run-europe",
+      "//run.googleapis.com/projects/shop-prod/locations/europe-west1/services/checkout",
+      { cloudResourceType: "cloud_run_revision", cloudAccountId: "shop-prod" },
+    ),
+    site(
+      "app-engine",
+      "//appengine.googleapis.com/apps/shop-prod/services/checkout",
+      { cloudResourceType: "gae_app", cloudAccountId: "shop-prod" },
+    ),
+    site(
+      "app-runner",
+      "arn:aws:apprunner:us-east-1:123456789012:service/checkout/8fe1e10304f84fd2b0df550fe98a71fa",
+      { cloudResourceType: "AWS::AppRunner::Service" },
+    ),
+    site(
+      "ecs-web",
+      "arn:aws:ecs:us-east-1:123456789012:service/prod/web",
+      {
+        cloudResourceType: "AWS::ECS::Service",
+        cloudProperties: {
+          TaskDefinition:
+            "arn:aws:ecs:us-east-1:123456789012:task-definition/checkout:12",
+        },
+      },
+    ),
+    site(
+      "ecs-checkout-other-family",
+      "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout",
+      {
+        cloudResourceType: "AWS::ECS::Service",
+        cloudProperties: {
+          TaskDefinition:
+            "arn:aws:ecs:us-east-1:123456789012:task-definition/payments:3",
+        },
+      },
+    ),
+  ];
+
+  function platformApp(
+    id: string,
+    cloudPlatform: string,
+    environmentId: string,
+    fields: Partial<CloudAppLinkSource> = {},
+  ): CloudAppLinkSource {
+    return app({
+      id,
+      name: "checkout",
+      cloudPlatform,
+      environmentId,
+      ...fields,
+    });
+  }
+
+  test("every app keeps its own type's row of its name, where it runs", () => {
+    expect(
+      getCloudAppPlatformLinkChanges({
+        apps: [
+          platformApp("a1", "azure_container_apps", AZURE_ENVIRONMENT),
+          platformApp("a2", "gcp_cloud_run", GCP_ENVIRONMENT),
+          platformApp("a3", "gcp_app_engine", GCP_ENVIRONMENT),
+          platformApp("a4", "aws_app_runner", AWS_ENVIRONMENT),
+          platformApp("a5", "aws_ecs", AWS_ENVIRONMENT, { groupName: "prod" }),
+        ],
+        sites: ROWS,
+        environments,
+      }),
+    ).toEqual([
+      { appId: "a1", siteId: "container-app" },
+      { appId: "a2", siteId: "cloud-run" },
+      { appId: "a3", siteId: "app-engine" },
+      { appId: "a4", siteId: "app-runner" },
+      // The service that runs its family, never the one named as it.
+      { appId: "a5", siteId: "ecs-web" },
+    ]);
+  });
+
+  test("an app of a platform with no resource, or with nothing to go by, keeps none", () => {
+    expect(
+      getCloudAppPlatformLinkChanges({
+        apps: [
+          platformApp("b1", "aws_elastic_beanstalk", AWS_ENVIRONMENT, {
+            keptSiteId: "app-runner",
+          }),
+          // No cluster: no ECS service is its.
+          platformApp("b2", "aws_ecs", AWS_ENVIRONMENT, { keptSiteId: "ecs-web" }),
+          platformApp("b3", "gcp_cloud_run", GCP_ENVIRONMENT, {
+            name: "orders",
+            keptSiteId: "cloud-run",
+          }),
+        ],
+        sites: ROWS,
+        environments,
+      }),
+    ).toEqual([
+      { appId: "b1", siteId: "" },
+      { appId: "b2", siteId: "" },
+      { appId: "b3", siteId: "" },
+    ]);
+  });
+
+  test("a resource gone from its account lets its app go, and one in another account or Region is never its", () => {
+    expect(
+      getCloudAppPlatformLinkChanges({
+        apps: [
+          platformApp("c1", "aws_app_runner", AWS_ENVIRONMENT, {
+            keptSiteId: "app-runner",
+          }),
+        ],
+        sites: [
+          site(
+            "app-runner-west",
+            "arn:aws:apprunner:us-west-2:123456789012:service/checkout/aaaa",
+            { cloudResourceType: "AWS::AppRunner::Service" },
+          ),
+        ],
+        environments,
+      }),
+    ).toEqual([{ appId: "c1", siteId: "" }]);
+  });
+});
+
 interface FindArgs {
   query: Record<string, unknown>;
   select: Record<string, unknown>;
   limit: number;
   props: { isRoot?: boolean };
+}
+
+// The values a QueryHelper.any filter holds.
+function anyOf(filter: unknown): Array<string> {
+  const parameters: Record<string, unknown> =
+    (filter as { objectLiteralParameters?: Record<string, unknown> })
+      .objectLiteralParameters || {};
+
+  return (Object.values(parameters)[0] as Array<string>) || [];
 }
 
 function appRow(fields: Partial<CloudApp> = {}): CloudApp {
@@ -330,7 +537,7 @@ function harness(data: {
 }
 
 describe("CloudAppService.linkPlatformResources", () => {
-  test("reads the project's App Service apps, their environments and its live sites, as root", async () => {
+  test("reads the project's apps of every platform with a resource, their environments and its live sites, as root", async () => {
     const run: Harness = harness({
       apps: [appRow()],
       sites: [siteRow(SITE_ROW, siteId("checkout-api"))],
@@ -341,10 +548,21 @@ describe("CloudAppService.linkPlatformResources", () => {
     ).toBe(1);
 
     const apps: FindArgs = run.appFind.mock.calls[0]![0] as never;
-    expect(apps.query).toEqual({
-      projectId: PROJECT_ID,
-      cloudPlatform: "azure_app_service",
-    });
+    expect(Object.keys(apps.query).sort()).toEqual([
+      "cloudPlatform",
+      "projectId",
+    ]);
+    expect(apps.query["projectId"]).toBe(PROJECT_ID);
+    expect(anyOf(apps.query["cloudPlatform"]).sort()).toEqual(
+      [
+        "aws_app_runner",
+        "aws_ecs",
+        "azure_app_service",
+        "azure_container_apps",
+        "gcp_app_engine",
+        "gcp_cloud_run",
+      ].sort(),
+    );
     expect(apps.props).toEqual({ isRoot: true });
     expect(apps.limit).toBe(LIMIT_MAX);
     expect(apps.select).toEqual(
@@ -356,14 +574,16 @@ describe("CloudAppService.linkPlatformResources", () => {
       }),
     );
 
-    const sites: FindArgs = run.resourceFind.mock.calls
+    const sites: Array<FindArgs> = run.resourceFind.mock.calls
       .map((call: Array<unknown>): FindArgs => {
         return call[0] as FindArgs;
       })
-      .find((args: FindArgs): boolean => {
+      .filter((args: FindArgs): boolean => {
         return args.query["cloudResourceKind"] === CloudResourceKind.Resource;
-      })!;
-    expect(sites.query).toEqual({
+      });
+    // The one type its apps run as, read once.
+    expect(sites).toHaveLength(1);
+    expect(sites[0]!.query).toEqual({
       projectId: PROJECT_ID,
       cloudResourceKind: CloudResourceKind.Resource,
       cloudProvider: "azure",
@@ -371,7 +591,54 @@ describe("CloudAppService.linkPlatformResources", () => {
       // A site gone from its subscription is no app's.
       isArchived: false,
     });
-    expect(sites.props).toEqual({ isRoot: true });
+    expect(sites[0]!.props).toEqual({ isRoot: true });
+    expect(sites[0]!.select["cloudProperties"]).toBeUndefined();
+  });
+
+  test("reads each type its apps run as once - a slot's, an ECS service's with its task definition (#6793, #6794)", async () => {
+    const run: Harness = harness({
+      apps: [
+        appRow(),
+        appRow({ _id: OTHER_APP_ID, groupName: "staging" }),
+        appRow({
+          _id: "7b000000-0000-4000-8000-000000000012",
+          name: "checkout",
+          cloudPlatform: "aws_ecs",
+          groupName: "prod",
+        }),
+        appRow({
+          _id: "7b000000-0000-4000-8000-000000000013",
+          name: "payments",
+          cloudPlatform: "aws_ecs",
+          groupName: "prod",
+        }),
+      ],
+      sites: [],
+    });
+
+    await CloudAppService.linkPlatformResources({ projectId: PROJECT_ID });
+
+    const sites: Array<FindArgs> = run.resourceFind.mock.calls
+      .map((call: Array<unknown>): FindArgs => {
+        return call[0] as FindArgs;
+      })
+      .filter((args: FindArgs): boolean => {
+        return args.query["cloudResourceKind"] === CloudResourceKind.Resource;
+      });
+
+    expect(
+      sites.map((args: FindArgs) => {
+        return [
+          args.query["cloudProvider"],
+          args.query["cloudResourceType"],
+          args.select["cloudProperties"] === true,
+        ];
+      }),
+    ).toEqual([
+      ["azure", "Microsoft.Web/sites", false],
+      ["azure", "Microsoft.Web/sites/slots", false],
+      ["aws", "AWS::ECS::Service", true],
+    ]);
   });
 
   test("writes the link it found, pinned to the app and its project", async () => {
@@ -473,27 +740,41 @@ describe("CloudAppService.linkPlatformResourcesSafely", () => {
     expect(String(logged.mock.calls[0]![0])).toContain("Postgres is away");
   });
 
-  test("an app of another platform reads nothing", async () => {
+  test("an app of a platform with no resource reads nothing; every platform with one links (#6794)", async () => {
     const link: SpyInstance<typeof CloudAppService.linkPlatformResources> = jest
       .spyOn(CloudAppService, "linkPlatformResources")
       .mockResolvedValue(1);
 
-    await CloudAppService.linkPlatformResourcesSafely({
-      projectId: PROJECT_ID,
-      cloudPlatform: "aws_ecs",
-    });
+    for (const platform of [
+      "aws_elastic_beanstalk",
+      "azure_container_instances",
+    ]) {
+      await CloudAppService.linkPlatformResourcesSafely({
+        projectId: PROJECT_ID,
+        cloudPlatform: platform,
+      });
+    }
     expect(link).not.toHaveBeenCalled();
 
-    await CloudAppService.linkPlatformResourcesSafely({
-      projectId: PROJECT_ID,
-      cloudPlatform: "azure_app_service",
-    });
-    expect(link).toHaveBeenCalledTimes(1);
+    for (const platform of [
+      "azure_app_service",
+      "azure_container_apps",
+      "gcp_cloud_run",
+      "gcp_app_engine",
+      "aws_ecs",
+      "aws_app_runner",
+    ]) {
+      await CloudAppService.linkPlatformResourcesSafely({
+        projectId: PROJECT_ID,
+        cloudPlatform: platform,
+      });
+    }
+    expect(link).toHaveBeenCalledTimes(6);
   });
 });
 
-describe("CloudAppService.findProjectIdsWithAppServiceApps", () => {
-  test("the projects that hold an App Service app, each once, valid ids only", async () => {
+describe("CloudAppService.findProjectIdsWithPlatformResourceApps", () => {
+  test("the projects that hold an app of a platform with a resource, each once, valid ids only", async () => {
     const queries: Array<{ sql: string; parameters: Array<unknown> }> = [];
 
     jest.spyOn(CloudAppService, "getRepository").mockReturnValue({
@@ -510,7 +791,7 @@ describe("CloudAppService.findProjectIdsWithAppServiceApps", () => {
     } as never);
 
     const ids: Array<ObjectID> =
-      await CloudAppService.findProjectIdsWithAppServiceApps();
+      await CloudAppService.findProjectIdsWithPlatformResourceApps();
 
     expect(
       ids.map((id: ObjectID): string => {
@@ -518,8 +799,18 @@ describe("CloudAppService.findProjectIdsWithAppServiceApps", () => {
       }),
     ).toEqual([PROJECT_ID.toString()]);
     expect(queries[0]!.sql).toContain('SELECT DISTINCT "projectId"');
+    expect(queries[0]!.sql).toContain('"cloudPlatform" = ANY($1)');
     expect(queries[0]!.sql).toContain('"deletedAt" IS NULL');
-    expect(queries[0]!.parameters).toEqual(["azure_app_service"]);
+    expect((queries[0]!.parameters[0] as Array<string>).slice().sort()).toEqual(
+      [
+        "aws_app_runner",
+        "aws_ecs",
+        "azure_app_service",
+        "azure_container_apps",
+        "gcp_app_engine",
+        "gcp_cloud_run",
+      ].sort(),
+    );
   });
 });
 
@@ -592,18 +883,47 @@ describe("CloudAppService.recordApp ties an App Service app to its site (#10407)
     ).toEqual([APP_ID]);
   });
 
-  test("an app of another platform is never looked up", async () => {
+  test("an app of a platform with no resource is never looked up", async () => {
     created();
 
     await CloudAppService.recordApp({
       projectId: PROJECT_ID,
       cloudResourceId: new ObjectID(ENVIRONMENT_ID),
-      cloudPlatform: "aws_ecs",
+      cloudPlatform: "aws_elastic_beanstalk",
       identity: IDENTITY,
       now: NOW,
     });
 
     expect(link).not.toHaveBeenCalled();
+  });
+
+  test("a new app of every other platform with a resource is tied at once too (#6794)", async () => {
+    for (const platform of [
+      "azure_container_apps",
+      "gcp_cloud_run",
+      "gcp_app_engine",
+      "aws_ecs",
+      "aws_app_runner",
+    ]) {
+      jest.restoreAllMocks();
+      link = jest
+        .spyOn(CloudAppService, "linkPlatformResources")
+        .mockResolvedValue(1);
+      created();
+
+      await CloudAppService.recordApp({
+        projectId: PROJECT_ID,
+        cloudResourceId: new ObjectID(ENVIRONMENT_ID),
+        cloudPlatform: platform,
+        identity: IDENTITY,
+        now: NOW,
+      });
+
+      expect({ platform, calls: link.mock.calls.length }).toEqual({
+        platform,
+        calls: 1,
+      });
+    }
   });
 
   test("its telemetry naming another site ties it again; the same site, whatever its case, does not", async () => {

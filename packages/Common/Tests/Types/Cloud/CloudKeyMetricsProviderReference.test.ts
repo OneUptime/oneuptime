@@ -18,8 +18,12 @@ import {
   GcpKeyMetric,
   GcpRetiredKeyMetric,
   GcpTypeKeyMetrics,
+  getAwsKeyMetricOfStoredName,
   getAwsKeyMetrics,
+  getAwsNamespaceOfType,
   getAwsProbeMetricNames,
+  getAzureKeyMetricNames,
+  getAzureKeyMetricOfStoredName,
   getAzureReadMetricNames,
   getGcpStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
@@ -30,6 +34,11 @@ import {
 } from "../../../Server/Utils/CloudConnection/Azure/AzureCloudConnector";
 import { AzureMetricDefinition } from "../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import { CloudKeyMetricCondition } from "../../../Types/Cloud/CloudKeyMetricCondition";
+import {
+  CLOUD_APP_PLATFORM_PROFILES,
+  getCloudAppPlatformListReads,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformMetrics";
+import { APP_SERVICE_METRICS } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
 
 /*
  * EVERY KEY METRIC, HELD TO ITS CLOUD'S OWN REFERENCE.
@@ -1207,5 +1216,121 @@ describe("AWS key metrics, as each service's CloudWatch metrics page documents t
       "CpuUtilization",
       "SystemCpuUtilization",
     ]);
+  });
+});
+
+/*
+ * #6793, #6794: an app's platform section and its lists read the metrics a
+ * connection stores for the resource the app runs as. A name the
+ * connection never stores reads nothing, silently, so each is held to the
+ * type's key metrics - and the label a request count is read by, to the
+ * labels Cloud Monitoring documents for it.
+ */
+describe("a platform section reads its resource type's key metrics (#6793, #6794)", () => {
+  function isKeyMetricOf(type: string, provider: string, stored: string): boolean {
+    if (provider === "azure") {
+      return getAzureKeyMetricOfStoredName(type, stored) !== null;
+    }
+
+    if (provider === "gcp") {
+      return (
+        GCP_KEY_METRICS.find((entry: GcpTypeKeyMetrics): boolean => {
+          return entry.resourceType === type;
+        })?.metrics.some((metric: GcpKeyMetric): boolean => {
+          return getGcpStoredMetricName(metric) === stored;
+        }) || false
+      );
+    }
+
+    const keyed: { namespace: string } | null =
+      getAwsKeyMetricOfStoredName(stored);
+
+    return Boolean(keyed && keyed.namespace === getAwsNamespaceOfType(type));
+  }
+
+  test("every metric a platform section or a list reads is one of its type's key metrics", () => {
+    for (const profile of CLOUD_APP_PLATFORM_PROFILES) {
+      for (const read of profile.reads({})) {
+        expect({
+          type: profile.type,
+          stored: read.storedName,
+          keyMetric: isKeyMetricOf(
+            profile.type,
+            profile.provider,
+            read.storedName,
+          ),
+        }).toEqual({
+          type: profile.type,
+          stored: read.storedName,
+          keyMetric: true,
+        });
+      }
+    }
+
+    for (const type of ["Microsoft.Web/sites", "Microsoft.Web/sites/slots"]) {
+      for (const read of getCloudAppPlatformListReads({ type, readings: {} })) {
+        expect({
+          type,
+          stored: read.storedName,
+          keyMetric: isKeyMetricOf(type, "azure", read.storedName),
+        }).toEqual({ type, stored: read.storedName, keyMetric: true });
+      }
+    }
+  });
+
+  test("a request count read by its response code is read by a label Cloud Monitoring documents for it", () => {
+    const labelled: Array<[string, string]> = [];
+
+    for (const profile of CLOUD_APP_PLATFORM_PROFILES) {
+      for (const read of profile.reads({})) {
+        if (!read.errorLabel) {
+          continue;
+        }
+
+        labelled.push([read.storedName, read.errorLabel.attribute]);
+        expect({
+          metric: read.storedName,
+          label: read.errorLabel.attribute,
+          documented: (gcpReferenceOf(read.storedName).labels || []).includes(
+            read.errorLabel.attribute,
+          ),
+        }).toEqual({
+          metric: read.storedName,
+          label: read.errorLabel.attribute,
+          documented: true,
+        });
+      }
+    }
+
+    expect(labelled).toEqual([
+      ["run.googleapis.com/request_count", "response_code_class"],
+      ["appengine.googleapis.com/http/server/response_count", "response_code"],
+    ]);
+  });
+
+  test("an App Service slot is read for every metric its site's section shows, each one a diagnostic setting exports", () => {
+    const slot: AzureReference["types"][string] = azureReferenceOf(
+      "Microsoft.Web/sites/slots",
+    );
+
+    for (const definition of Object.values(APP_SERVICE_METRICS)) {
+      expect({
+        metric: definition.metricName,
+        read: getAzureKeyMetricNames("Microsoft.Web/sites/slots").includes(
+          definition.metricName,
+        ),
+        exported: slot.metrics[definition.metricName]?.dsExport,
+        aggregation: slot.metrics[definition.metricName]?.aggregations.some(
+          (aggregation: string): boolean => {
+            return aggregation.toLowerCase() === definition.aggregation;
+          },
+        ),
+      }).toEqual({
+        metric: definition.metricName,
+        read: true,
+        exported: true,
+        aggregation: true,
+      });
+    }
   });
 });

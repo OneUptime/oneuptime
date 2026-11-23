@@ -233,6 +233,8 @@ function siteRow(id: string, name: string): CloudResource {
   return Object.assign(new CloudResource(), {
     _id: id,
     cloudResourceKind: CloudResourceKind.Resource,
+    // The type the app runs as: a kept row of another is not its (#6793).
+    cloudResourceType: "Microsoft.Web/sites",
     telemetryAttributes: { "azuremonitor.resource_id": armId(name) },
     cloudReadings: {},
   });
