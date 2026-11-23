@@ -113,6 +113,12 @@ const SecurityCaseNoteTemplateViewPage: FunctionComponent<
               title: copy.descriptionTitle,
               fieldType: FieldType.LongText,
             },
+            {
+              // The template's line: its ID, who created it and who last changed it.
+              field: { _id: true },
+              title: "ID",
+              fieldType: FieldType.ObjectID,
+            },
           ],
           modelId: modelId,
           onItemLoaded: (item: SecurityCaseNoteTemplate) => {

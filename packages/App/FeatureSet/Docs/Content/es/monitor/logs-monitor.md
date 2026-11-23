@@ -237,7 +237,7 @@ El valor de cada atributo de Group By es una [variable de plantilla](/docs/monit
 - **Se evalúan todos los criterios**, como en un monitor de métricas agrupado, así que distintos grupos pueden cumplir distintos criterios a la vez. Un grupo que cumple dos criterios sigue recibiendo una sola alerta, la del primero, así que ordena los criterios del más grave al menos grave.
 - **Un grupo solo existe si registró algo en la ventana de tiempo.** Por eso los criterios **Igual a 0** y **Menor que** solo se disparan en grupos que registraron al menos una vez; para alertar cuando los registros dejan de llegar del todo, usa un monitor sin Group By.
 - **La detección de anomalías** (**Anómalamente alto**, **Anómalamente bajo**, **Anómalo**) no se evalúa por grupo (su referencia abarca todo el monitor), así que esos filtros nunca coinciden en un monitor agrupado.
-- El estado del monitor sigue al primer criterio que cumple algún grupo. Cuando ningún grupo cumple ningún criterio, el monitor vuelve a su estado predeterminado.
+- El estado del monitor sigue al primer criterio que cumple algún grupo. Un criterio que solo devuelve el monitor a su estado predeterminado, sin abrir ninguna alerta ni incidente, espera a los grupos que cumplieron un criterio que fija otro estado, hasta que cada uno de ellos lo cumple o no registra nada en la ventana de tiempo. Cuando ningún grupo cumple ningún criterio y no se espera a ninguno, el monitor vuelve a su estado predeterminado.
 
 ## Solución de problemas
 

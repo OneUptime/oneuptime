@@ -22,7 +22,9 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
-import SecurityPlaybookTrigger from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import SecurityPlaybookTrigger, {
+  SECURITY_PLAYBOOK_TRIGGERS,
+} from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -205,7 +207,8 @@ export default class SecurityPlaybook extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    allowedValues: Object.values(SecurityPlaybookTrigger),
+    // A playbook's: never OneUptime AI's own runs' (SecurityPlaybookTrigger.OneUptimeAi).
+    allowedValues: SECURITY_PLAYBOOK_TRIGGERS,
     canReadOnRelationQuery: true,
     title: "Trigger",
     description:

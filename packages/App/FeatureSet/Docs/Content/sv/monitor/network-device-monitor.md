@@ -67,7 +67,7 @@ Nätverk-menyn håller det du öppnar varje dag synligt: **Översikt**, **Enhete
 | Avsnitt | Sidor |
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Upptäckta enheter**, **Latensmatris**, **Platslänkar**, **Enhetslänkar** |
-| **Regler** | **Regler för automatisk import**, **Regler för platstilldelning**, **Namngivningsregler**, **Ägarregler**, **Etikettregler**, **Länkregler** |
+| **Regler** | **Regler för automatisk import**, **Regler för platstilldelning**, **Namngivningsregler**, **Ägarregler**, **Etikettregler**, **Länkregler**, **Granskningsloggar** |
 | **Inställningar** | **Larmpolicyer**, **SNMP-autentiseringsuppgifter**, **Enhetsroller**, **Platstyper**, **Adressnamn**, **Mallar för OID-insamling** |
 | **Avancerad** | **SNMP-walk**, **Arkiverade enheter** |
 
@@ -575,7 +575,7 @@ Skriv intervallet i **Skanningsmål**, kontrollera **Sond** och välj **Skanning
 Bara en SNMP-skanning ber om autentiseringsuppgifter: väljer du **SNMP** tillkommer steget **SNMP-autentiseringsuppgifter**, med de uppsättningar autentiseringsuppgifter som ska provas. En [ICMP-skanning](#icmp-skanningar) har inget andra steg, och **Starta skanning** finns på första sidan.
 
 ### Starta skanningen
-Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en ICMP-skanning, hur många som svarade på ping.
+Klicka på **Starta skanning**. Sonden skannar intervallet och rapporterar hur många värdar den skannade och hur många som svarade: hur många som svarade på SNMP, eller, vid en ICMP-skanning, hur många som svarade på ping. Om du vill skanna intervallet igen senare klickar du på **Kör igen** på skanningen.
 
 ### Importera det den hittade
 Klicka på **Granska resultat** på skanningen, välj de värdar som ska importeras och klicka på **Nästa**. Välj hur ofta de kontrolleras och om var och en får en monitor, och importera dem sedan; se [Import av det en skanning hittade](#import-av-det-en-skanning-hittade).
@@ -595,7 +595,7 @@ Hopfällda under **Fler fält** i första steget, för de skanningar som behöve
 | Namn | Vad skanningen är till för, så att du kan skilja den från andra skanningar. Listan visar skanningsmålet när detta är tomt. | Tomt |
 | Slå upp Windows-namn (NetBIOS) | Fråga varje värd som saknar SNMP-systemnamn efter dess NetBIOS-namn, dess Windows-datornamn, via UDP 137. Det namnet vinner över värdens omvända DNS-namn. Bara privata adresser och anpassade sonder; se [Så namnges upptäckta enheter](#så-namnges-upptäckta-enheter). | På |
 | Name devices by their short hostname | Namnge importerade enheter efter första delen av ett fullständigt kvalificerat värdnamn: `core-sw-01` i stället för `core-sw-01.corp.example.com`. | Av |
-| Repeat this scan | Kör skanningen igen med ett intervall, **Intervall för ny skanning (minuter)**, på minst 15 minuter, för att hålla discovery igång; se [regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import). Värdar som en upprepad skanning hittar väntar på din granskning om inte en regel för automatisk import matchar dem. | Av |
+| Repeat this scan | Kör skanningen igen med ett intervall, **Intervall för ny skanning (minuter)**, på minst 15 minuter, för att hålla discovery igång; se [regler för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import). Värdar som en upprepad skanning hittar väntar på din granskning om inte en regel för automatisk import matchar dem. Avstängd visar skanningen **Vid behov** och körs igen varje gång du klickar på **Kör igen**. | Av |
 
 ### Notation för skanningsmål
 
@@ -647,6 +647,12 @@ När värdarna du importerar omfattar SNMP-värdar erbjuder importens steg **Öv
 3. Steget **Importera** räknar enheter och monitorer var för sig, allteftersom var och en skapas, redan finns eller misslyckas. I slutet länkar det till det som skapades och visar under orsaken varje värd det inte importerade och varje enhet det importerade utan dess monitor. Ett nytt försök provar bara de misslyckade värdarna igen och skapar aldrig något två gånger. **Stoppa importen** stannar efter värden som importeras nu och behåller det som skapades.
 
 Importen körs på servern och agerar för din räkning: varje enhet och varje monitor skapas med dina behörigheter, och det du inte får skapa listas med orsaken. Du kan stänga dialogrutan när som helst: skanningens rad visar hur långt importen har kommit, och **Visa förlopp** öppnar den igen. **Importera fler enheter** börjar om med de värdar som är kvar. En import tar upp till 5 000 värdar; importera en större skanning i delar, per subnät eller efter vad värdarna svarade på. Ett projekts importer körs en i taget: en som begärs medan en annan körs väntar på den.
+
+### Köra en skanning igen
+
+En skanning är inte förbrukad efter sin första körning. Om du vill skanna samma intervall igen, till exempel efter att nya enheter har installerats, klickar du på **Kör igen** på skanningens rad, under när den senast kördes. Samma skanning körs igen med sitt eget mål, sin sond, sin skanningsmetod och sina autentiseringsuppgifter, så ingen andra skanning skapas: dess rad visar **I kö**, sedan **Skannar**, och den nya körningens resultat ersätter de tidigare allteftersom de kommer. Enheter som du redan har importerat förblir som de är. En skanning som inte upprepas visar **Vid behov** i listan och körs varje gång du klickar på **Kör igen**.
+
+**Kör igen** visas så snart en körning är slut, slutförd eller misslyckad: så länge en skanning står i kö eller pågår står dess förlopp där knappen annars står, och en andra körning avvisas. En körning avvisas också så länge skanningens sond inte är ansluten till OneUptime, så att skanningen behåller sina senaste resultat; starta sonden, eller välj en annan sond under **Redigera**. En skanning som upprepas behåller sitt schema: den upprepas lika ofta som förut, och dess nästa körning räknas från när den här är klar. Att köra en skanning kräver behörighet att redigera identifieringsskanningar; dess rad visar vem som körde den senast, och granskningsloggarna registrerar varje körning som den personens. En API-nyckel med den behörigheten kan också köra en skanning, med `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### Så namnges upptäckta enheter
 
@@ -731,7 +737,7 @@ I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker var
 
 Regler har inget eget schema och behöver inget. Aktiverade regler körs själva mot varje skannings resultat när de kommer in, inklusive de delresultat som en lång skanning laddar upp medan den fortfarande pågår, så värdar importeras inom en minut efter att de hittats i stället för i slutet av intervallet. Slå på **Upprepa den här skanningen** på en discovery-skanning så blir paret ett stående arrangemang: skanningen skannar sitt intervall igen med ditt intervall, och varje ny värd den hittar importeras utan att någon trycker på något.
 
-Att spara en regel tillämpar den också på resultat som projektet redan har: en regel som du skriver eller aktiverar i dag når värdar som upptäckts under de senaste 24 timmarna inom ungefär en minut, så en regel som skrivs efter en enstaka skanning blir inte stående och väntar på en skanning som aldrig körs igen. Äldre resultat lämnas orörda, eftersom att importera en miljö som upptäcktes förra månaden är ett beslut, inte en bieffekt av att spara en regel. Regelns två knappar är sättet att fatta det beslutet, och de når varje skanning i projektet, hur gammal den än är:
+Att spara en regel tillämpar den också på resultat som projektet redan har: en regel som du skriver eller aktiverar i dag når värdar som upptäckts under de senaste 24 timmarna inom ungefär en minut, så en regel som skrivs efter en skanning blir inte stående och väntar på att skanningen körs igen. Äldre resultat lämnas orörda, eftersom att importera en miljö som upptäcktes förra månaden är ett beslut, inte en bieffekt av att spara en regel. Om du vill importera det som ett intervall innehåller i dag klickar du på **Kör igen** på dess skanning: de nya resultaten är färska, och reglerna importerar dem inom en minut efter att de kommit. Om du vill importera de gamla resultaten som de är använder du regelns två knappar, som når varje skanning i projektet, hur gammal den än är:
 
 - **Provkörning** utvärderar varje färdig skanning och rapporterar vad regeln skulle importera och övervaka. Inget skrivs, så det är det säkra sättet att se vad en regel skulle göra anspråk på innan du aktiverar den i en miljö i drift. En avaktiverad regel kan provköras; bara en riktig körning kräver att den är aktiverad, och därför börjar en regel som skapas i instrumentpanelen med **Aktiverad** avslaget: gör en provkörning och slå sedan på den.
 - **Kör regel** gör samma utvärdering och utför importen.

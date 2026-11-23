@@ -19,6 +19,12 @@ enum SecurityPlaybookTrigger {
   DetectionAdded = "Detection Added",
   TriagedAsLikelyMalicious = "Triaged as Likely Malicious",
   Manual = "Manual",
+  /*
+   * A run OneUptime AI started while working the case (#10352): one step,
+   * no playbook (SecurityPlaybookRunService.startAiStepRun). Never a
+   * playbook's trigger - it is not in SECURITY_PLAYBOOK_TRIGGERS.
+   */
+  OneUptimeAi = "OneUptime AI",
 }
 
 export const SECURITY_PLAYBOOK_TRIGGERS: ReadonlyArray<SecurityPlaybookTrigger> =
@@ -42,6 +48,11 @@ export function isAiSecurityPlaybookTrigger(value: unknown): boolean {
     typeof value === "string" &&
     (AI_SECURITY_PLAYBOOK_TRIGGERS as ReadonlyArray<string>).includes(value)
   );
+}
+
+// A run OneUptime AI started while working the case (#10352).
+export function isOneUptimeAiRun(run: { trigger?: unknown }): boolean {
+  return run.trigger === SecurityPlaybookTrigger.OneUptimeAi;
 }
 
 export function isSecurityPlaybookTrigger(

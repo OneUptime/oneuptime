@@ -237,7 +237,7 @@ Every group-by attribute's value is a [template variable](/docs/monitor/incident
 - **Every criteria is evaluated**, as on a grouped metrics monitor, so different groups can meet different criteria at once. A group that meets two criteria still gets one alert, from the first, so order the criteria most severe first.
 - **A group only exists when it logged something in the time window.** **Equal To 0** and **Less Than** criteria therefore only fire for groups that logged at least once; to alert when logs stop arriving altogether, use a monitor without Group By.
 - **Anomaly detection** (**Anomalously High**, **Anomalously Low**, **Anomalous**) is not evaluated per group - its baseline covers the whole monitor - so those filters never match on a grouped monitor.
-- The monitor's status follows the first criteria any group meets. When no group meets any criteria, the monitor returns to its default status.
+- The monitor's status follows the first criteria any group meets. A criteria that only brings the monitor back to its default status, opening no alert or incident, waits for the groups that met a criteria setting another status, until each of them meets it or logs nothing in the time window. When no group meets any criteria and none is waited for, the monitor returns to its default status.
 
 ## Troubleshooting
 

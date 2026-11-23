@@ -847,17 +847,25 @@ describe("where today's usage and drops are shown", () => {
   });
 
   test("the banner is above each explorer's data", () => {
-    for (const [layout, signal] of [
-      ["Pages/Logs/Layout.tsx", "Logs"],
-      ["Pages/Traces/Layout.tsx", "Traces"],
-      ["Pages/Metrics/Layout.tsx", "Metrics"],
-      ["Pages/Profiles/Layout.tsx", "Profiles"],
-      ["Pages/SecurityEvents/Layout.tsx", "SecurityEvents"],
-    ] as Array<[string, string]>) {
+    for (const [layout, signal, props] of [
+      ["Pages/Logs/Layout.tsx", "Logs", ""],
+      ["Pages/Traces/Layout.tsx", "Traces", ""],
+      ["Pages/Metrics/Layout.tsx", "Metrics", ""],
+      ["Pages/Profiles/Layout.tsx", "Profiles", ""],
+      /*
+       * Its banner shares the page's one read of today's budgets with the
+       * banners of the logs and traces Security Events reads (#10431).
+       */
+      [
+        "Pages/SecurityEvents/Layout.tsx",
+        "SecurityEvents",
+        " fetchStatus={readBudgets}",
+      ],
+    ] as Array<[string, string, string]>) {
       const source: string = compact(readDashboardSource(layout));
       const banner: number = source.indexOf(
         compact(
-          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}} />`,
+          `<TelemetryIngestionBudgetExplorerBanner signal={ProductType.${signal}}${props} />`,
         ),
       );
 

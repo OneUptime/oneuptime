@@ -88,6 +88,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import IssueAiCard from "../../../Components/DataSecurity/IssueAiCard";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import API from "Common/UI/Utils/API/API";
@@ -697,6 +698,13 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           ) : (
             <></>
           )}
+
+          {/* The issue's line: its ID, who created it and who last changed it. */}
+          <RecordActivityLine
+            modelType={DataSecurityIssue}
+            recordId={view.issueId}
+            className="border-t border-gray-100 pt-3"
+          />
         </div>
       </Card>
 

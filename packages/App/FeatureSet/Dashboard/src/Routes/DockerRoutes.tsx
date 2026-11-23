@@ -36,6 +36,7 @@ import DockerHostDelete from "../Pages/Docker/View/Delete";
 import DockerHostDocumentation from "../Pages/Docker/View/Documentation";
 import DockerSettingsOwnerRules from "../Pages/Docker/Settings/OwnerRules";
 import DockerSettingsLabelRules from "../Pages/Docker/Settings/LabelRules";
+import DockerRulesAuditLogs from "../Pages/Docker/Settings/RulesAuditLogs";
 import DockerArchived from "../Pages/Docker/Archived";
 import DockerHostLabelRule from "Common/Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostOwnerRule from "Common/Models/DatabaseModels/DockerHostOwnerRule";
@@ -94,6 +95,18 @@ const DockerRoutes: FunctionComponent<ComponentProps> = (
             <DockerSettingsLabelRules
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_SETTINGS_LABEL_RULES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={DockerRoutePath[PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS] || ""}
+          element={
+            <DockerRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SETTINGS_RULES_AUDIT_LOGS] as Route
+              }
             />
           }
         />

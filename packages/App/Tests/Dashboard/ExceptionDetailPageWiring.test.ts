@@ -267,6 +267,29 @@ describe("exception detail page wiring", () => {
     expect(exceptionExplorer.split("<ExceptionAssignee")).toHaveLength(2);
   });
 
+  /*
+   * Who created the exception and who last modified it (#10461): its line,
+   * at the foot of the header over its Overview - the page's first card -
+   * and over no other section, where it would only say it again.
+   */
+  test("the Overview's header ends with the exception's line, and no other section's", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx")
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/(^|[^:])\/\/[^\n]*/g, "$1"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "recordLine={props.section===ExceptionDetailSection.Overview?(<RecordActivityLinemodelType={TelemetryException}recordId={props.telemetryExceptionId}/>):undefined}",
+    );
+    expect(exceptionExplorer.split("<RecordActivityLine")).toHaveLength(2);
+    expect(
+      dense(readSource("Components", "Exceptions", "ExceptionSummary.tsx")),
+    ).toContain(
+      '{props.recordLine?(<divclassName="border-tborder-gray-100px-4py-3sm:px-5"data-testid={EXCEPTION_SUMMARY_TEST_IDS.recordLine}>{props.recordLine}</div>):(<></>)}',
+    );
+  });
+
   test("the Overview no longer repeats the header in a Details card", () => {
     const exceptionExplorer: string = readSource(
       "Components",

@@ -140,7 +140,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { APP_API_URL } from "Common/UI/Config";
-import useHashedAddressSearch from "../Telemetry/HashedAddressSearch";
+import useHashedAddressSearch from "../Telemetry/useHashedAddressSearch";
 import {
   HashedAddressSignal,
   getHashedAddressSearchTexts,

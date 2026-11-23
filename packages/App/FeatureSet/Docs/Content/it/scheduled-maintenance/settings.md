@@ -19,6 +19,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 | **Regole di runbook** | Avvia runbook per gli eventi che corrispondono.                  |
 | **Regole etichette** | Aggiunge etichette agli eventi che corrispondono.                 |
 | **Regole dei promemoria** | Ricorda l'evento ai proprietari a intervalli finché non è completato. |
+| **Log di audit** | Elenca chi ha creato, modificato o eliminato una di queste regole, e quando. |
 
 La sezione **Impostazioni** contiene **Stato della manutenzione**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di manutenzione**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
 

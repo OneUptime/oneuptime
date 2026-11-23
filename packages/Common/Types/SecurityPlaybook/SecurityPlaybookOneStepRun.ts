@@ -29,6 +29,38 @@ export const ONE_STEP_RUN_ACTIONS: ReadonlyArray<SecurityPlaybookActionType> = [
   SecurityPlaybookActionType.BlockAddress,
 ];
 
+/*
+ * The actions OneUptime AI runs on a case it works, one step a run with no
+ * playbook (SecurityPlaybookRunService.startAiStepRun, #10352): the case's
+ * own priority and status, an incident, a block and its lift, the fix in
+ * code, and the containment of an account or a host - each through the
+ * engine's own path for it, with its approvals, protected checks, timeline,
+ * audit and undo.
+ */
+export const AI_STEP_RUN_ACTIONS: ReadonlyArray<SecurityPlaybookActionType> = [
+  SecurityPlaybookActionType.SetCasePriority,
+  SecurityPlaybookActionType.SetCaseStatus,
+  SecurityPlaybookActionType.DeclareIncident,
+  SecurityPlaybookActionType.BlockAddress,
+  SecurityPlaybookActionType.LiftAddressBlock,
+  SecurityPlaybookActionType.FixWithAi,
+  SecurityPlaybookActionType.SuspendOktaUser,
+  SecurityPlaybookActionType.EndOktaSessions,
+  SecurityPlaybookActionType.DisableEntraIdUser,
+  SecurityPlaybookActionType.SignOutEntraIdUser,
+  SecurityPlaybookActionType.SuspendGoogleWorkspaceUser,
+  SecurityPlaybookActionType.SignOutGoogleWorkspaceUser,
+  SecurityPlaybookActionType.ContainCrowdStrikeHost,
+  SecurityPlaybookActionType.IsolateDefenderDevice,
+];
+
+export function isAiStepRunAction(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    (AI_STEP_RUN_ACTIONS as ReadonlyArray<string>).includes(value)
+  );
+}
+
 export function isOneStepRunAction(value: unknown): boolean {
   return (
     typeof value === "string" &&

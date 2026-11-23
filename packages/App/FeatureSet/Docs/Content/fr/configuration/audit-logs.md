@@ -78,6 +78,8 @@ Une ressource sans nom propre est nommée par ce qui la nomme dans OneUptime : u
 
 Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien d'autres ressources ont aussi leur propre page **Journaux d'audit**, dans une section repliée de leur menu latéral comme **Avancé**. Elle ne liste que les entrées de cette ressource, avec celles de ce qui lui appartient : la page d'un SLO montre aussi ses règles et ses propriétaires.
 
+Les règles d'un produit ont elles aussi leur propre page, à la fin de la section du menu qui les liste : **Journaux d'audit** dans une section **Règles**, comme **Incidents → Règles → Journaux d'audit**, et **Journaux d'audit des règles** dans une section **Paramètres** qui contient des règles de propriétaire et d'étiquettes, comme **Hôtes → Paramètres → Journaux d'audit des règles**. Elle liste toutes les règles de ce produit, y compris les règles supprimées. Les règles de runbook sont un seul type de règle pour les alertes, les incidents et les événements de maintenance : leur historique se trouve donc sous **Runbooks → Paramètres → Journaux d'audit des règles**.
+
 ## Ce qui est enregistré
 
 Tout ce que les personnes créent, modifient ou suppriment dans un projet est enregistré : moniteurs, incidents, alertes, pages de statut, flux de travail et leurs étapes, files d'attente, tableaux de bord, politiques d'astreinte, équipes et qui en fait partie, clés d'API et chaque réglage. **Type de ressource** indique sur quoi porte une entrée, par exemple `Monitor`, `Workflow` ou `Queue`.

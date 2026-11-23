@@ -67,7 +67,7 @@ Netværk-menuen holder det, du åbner hver dag, synligt: **Oversigt**, **Enheder
 | Sektion | Sider |
 | --- | --- |
 | **Topologi** | **Enhedstopologi**, **Opdagede enheder**, **Latensmatrix**, **Lokationslinks**, **Enhedslinks** |
-| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Navngivningsregler**, **Ejerregler**, **Etiketregler**, **Linkregler** |
+| **Regler** | **Regler for automatisk import**, **Regler for lokationstildeling**, **Navngivningsregler**, **Ejerregler**, **Etiketregler**, **Linkregler**, **Auditlogs** |
 | **Indstillinger** | **Advarselspolitikker**, **SNMP-loginoplysninger**, **Enhedsroller**, **Lokationstyper**, **Adressenavne**, **Skabeloner til OID-indsamling** |
 | **Avanceret** | **SNMP-walk**, **Arkiverede enheder** |
 
@@ -575,7 +575,7 @@ Skriv området i **Scanmål**, kontrollér **Sonde**, og vælg **Scanningsmetode
 Kun en SNMP-scanning beder om loginoplysninger: vælger du **SNMP**, kommer trinnet **SNMP-loginoplysninger** til, med de sæt loginoplysninger, der skal prøves. En [ICMP-scanning](#icmp-scanninger) har intet andet trin, og **Start scanning** står på første side.
 
 ### Start scanningen
-Klik på **Start scanning**. Sonden scanner området og rapporterer, hvor mange værter den scannede, og hvor mange der svarede: hvor mange der svarede på SNMP, eller, ved en ICMP-scanning, hvor mange der svarede på ping.
+Klik på **Start scanning**. Sonden scanner området og rapporterer, hvor mange værter den scannede, og hvor mange der svarede: hvor mange der svarede på SNMP, eller, ved en ICMP-scanning, hvor mange der svarede på ping. For at scanne området igen senere skal du klikke på **Kør igen** på scanningen.
 
 ### Importér det, den fandt
 Klik på **Gennemgå resultater** på scanningen, vælg de værter, der skal importeres, og klik på **Næste**. Vælg, hvor ofte de tjekkes, og om hver får en monitor, og importér dem så; se [Import af det, en scanning fandt](#import-af-det-en-scanning-fandt).
@@ -595,7 +595,7 @@ Foldet sammen under **Flere felter** på første trin, til de scanninger, der ha
 | Navn | Hvad scanningen er til, så du kan skelne den fra andre scanninger. Listen viser scanmålet, når dette er tomt. | Tom |
 | Slå Windows-navne op (NetBIOS) | Spørg hver vært uden SNMP-systemnavn om dens NetBIOS-navn, dens Windows-computernavn, over UDP 137. Det navn vinder over værtens reverse DNS-navn. Kun private adresser og brugerdefinerede sonder; se [Sådan navngives fundne enheder](#sådan-navngives-fundne-enheder). | Til |
 | Name devices by their short hostname | Navngiv importerede enheder efter den første del af et fuldt kvalificeret værtsnavn: `core-sw-01` i stedet for `core-sw-01.corp.example.com`. | Fra |
-| Repeat this scan | Kør scanningen igen med et interval, **Interval for ny scanning (minutter)**, på mindst 15 minutter, for at holde discovery i gang; se [auto-importregler](#importér-automatisk-med-auto-importregler). Værter, som en gentaget scanning finder, venter på din gennemgang, medmindre en auto-importregel matcher dem. | Fra |
+| Repeat this scan | Kør scanningen igen med et interval, **Interval for ny scanning (minutter)**, på mindst 15 minutter, for at holde discovery i gang; se [auto-importregler](#importér-automatisk-med-auto-importregler). Værter, som en gentaget scanning finder, venter på din gennemgang, medmindre en auto-importregel matcher dem. Slået fra viser scanningen **Efter behov** og kører igen, hver gang du klikker på **Kør igen**. | Fra |
 
 ### Notation for scanmål
 
@@ -647,6 +647,12 @@ Når de værter, du importerer, omfatter SNMP-værter, tilbyder trinnet **Overv�
 3. Trinnet **Importér** tæller enheder og monitorer hver for sig, efterhånden som hver oprettes, findes i forvejen eller mislykkes. Til sidst linker det til det, det oprettede, og viser under årsagen hver vært, det ikke importerede, og hver enhed, det importerede uden dens monitor. Et nyt forsøg prøver kun de mislykkede værter igen og opretter aldrig noget to gange. **Stop importen** stopper efter den vært, der importeres nu, og beholder det, der blev oprettet.
 
 Importen kører på serveren og handler på dine vegne: hver enhed og hver monitor oprettes med dine tilladelser, og det, du ikke må oprette, vises med årsagen. Du kan lukke dialogen når som helst: scanningens række viser, hvor langt importen er nået, og **Se forløb** åbner den igen. **Importér flere enheder** starter forfra med de værter, der er tilbage. Én import tager op til 5.000 værter; importér en større scanning i dele, efter subnet eller efter, hvad værterne svarede på. Et projekts importer kører én ad gangen: en, der bestilles, mens en anden kører, venter på den.
+
+### Kør en scanning igen
+
+En scanning er ikke brugt op efter sin første kørsel. For at scanne det samme område igen, for eksempel efter at nye enheder er installeret, skal du klikke på **Kør igen** i scanningens række, under hvornår den sidst kørte. Den samme scanning kører igen med sit eget mål, sin sonde, sin scanningsmetode og sine loginoplysninger, så der oprettes ingen anden scanning: dens række viser **I kø**, derefter **Scanner**, og den nye kørsels resultater erstatter de tidligere, efterhånden som de kommer. Enheder, du allerede har importeret, forbliver, som de er. En scanning, der ikke gentages, viser **Efter behov** på listen og kører, hver gang du klikker på **Kør igen**.
+
+**Kør igen** vises, så snart en kørsel er slut, fuldført eller mislykket: så længe en scanning står i kø eller kører, står dens fremskridt i stedet for knappen, og en ekstra kørsel afvises. En kørsel afvises også, så længe scanningens sonde ikke er forbundet til OneUptime, så scanningen beholder sine seneste resultater; start sonden, eller vælg en anden sonde under **Rediger**. En scanning, der gentages, beholder sin tidsplan: den gentages lige så ofte som før, og dens næste kørsel regnes fra, når denne slutter. At køre en scanning kræver tilladelse til at redigere opdagelsesscanninger; dens række viser, hvem der sidst kørte den, og auditlogs registrerer hver kørsel som vedkommendes. En API-nøgle med den tilladelse kan også køre en scanning, med `POST /api/network-device-discovery-scan/<scan ID>/run`.
 
 ### Sådan navngives fundne enheder
 
@@ -731,7 +737,7 @@ I en regel bestemmer **Tjek hvert**, hvor ofte scanningens sonde poller hver enh
 
 Regler har ingen egen tidsplan og behøver ingen. Aktiverede regler kører af sig selv mod hver scannings resultater, efterhånden som de kommer, inklusive de delresultater, en lang scanning uploader, mens den stadig kører, så værter importeres inden for et minut efter at være fundet i stedet for ved slutningen af området. Slå **Gentag denne scanning** til på en discovery-scanning, og parret bliver en stående ordning: scanningen scanner sit område igen med dit interval, og hver ny vært, den finder, importeres, uden at nogen trykker på noget.
 
-At gemme en regel anvender den også på resultater, projektet allerede har: en regel, du skriver eller aktiverer i dag, når værter fundet inden for de seneste 24 timer inden for cirka et minut, så en regel, der skrives efter en enkeltstående scanning, ikke bliver stående og venter på en scanning, der aldrig kører igen. Ældre resultater lades være, fordi det at importere et miljø, der blev fundet i sidste måned, er en beslutning, ikke en bivirkning af at gemme en regel. Reglens to knapper er måden at træffe den beslutning på, og de når hver scanning i projektet, uanset hvor gammel:
+At gemme en regel anvender den også på resultater, projektet allerede har: en regel, du skriver eller aktiverer i dag, når værter fundet inden for de seneste 24 timer inden for cirka et minut, så en regel, der skrives efter en scanning, ikke bliver stående og venter på, at scanningen kører igen. Ældre resultater lades være, fordi det at importere et miljø, der blev fundet i sidste måned, er en beslutning, ikke en bivirkning af at gemme en regel. For at importere det, et område indeholder i dag, skal du klikke på **Kør igen** på dets scanning: de nye resultater er friske, og reglerne importerer dem inden for et minut, efter at de er kommet. For at importere de gamle resultater, som de er, skal du bruge reglens to knapper, der når hver scanning i projektet, uanset hvor gammel:
 
 - **Prøvekørsel** vurderer hver færdig scanning og rapporterer, hvad reglen ville importere og overvåge. Intet skrives, så det er den sikre måde at se, hvad en regel ville gøre krav på, før du aktiverer den på et miljø i drift. En deaktiveret regel kan prøvekøres; kun en rigtig kørsel kræver, at den er aktiveret, og derfor starter en regel, der oprettes i dashboardet, med **Aktiveret** slået fra: lav en prøvekørsel, og slå den så til.
 - **Kør regel** udfører den samme vurdering og gennemfører importen.

@@ -78,6 +78,8 @@ En resurs utan eget namn får namn efter det som namnger den i OneUptime: ett un
 
 Monitorer, incidenter, larm, statussidor, SLO:er och många andra resurser har också en egen sida **Granskningsloggar** i ett hopfällt avsnitt av sin sidomeny, som **Avancerad**. Den visar bara den resursens poster, tillsammans med posterna för det som hör till den: ett SLO:s sida visar också dess regler och ägare.
 
+Ett produkts regler har också en egen sida, sist i det menyavsnitt som listar dem: **Granskningsloggar** i ett avsnitt **Regler**, som **Incidenter → Regler → Granskningsloggar**, och **Granskningsloggar för regler** i ett avsnitt **Inställningar** med ägar- och etikettregler, som **Värdar → Inställningar → Granskningsloggar för regler**. Den listar alla produktens regler, även borttagna. Runbook-regler är en enda sorts regel för larm, incidenter och underhållshändelser, så deras historik finns under **Runbooks → Inställningar → Granskningsloggar för regler**.
+
 ## Vad som registreras
 
 Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: monitorer, incidenter, larm, statussidor, arbetsflöden och deras steg, köer, instrumentpaneler, jourpolicyer, team och vilka som är med i dem, API-nycklar och varje inställning. **Resurstyp** säger vad en post gäller, till exempel `Monitor`, `Workflow` eller `Queue`.
