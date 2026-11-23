@@ -128,13 +128,20 @@ export default class ProxyTunnelRefusal {
     });
   }
 
+  /*
+   * The words of a refusal. They keep every word that names a secret clear
+   * of a ":" or "=" after it: a log line, and a meeting's error, read
+   * "password: <word>" as a password and redact the word that follows
+   * (Server/Utils/LogRedaction), which turned "password: it answered 407"
+   * into "password: [REDACTED] answered 407".
+   */
   private static phrase(data: {
     destination: string;
     answer: string | null;
     refusedCredentials: boolean;
   }): string {
     if (data.refusedCredentials) {
-      return `The outbound proxy did not take OneUptime's user name and password: it answered ${data.answer}, so the request to ${data.destination} was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`;
+      return `The outbound proxy answered ${data.answer}: it did not take OneUptime's user name and password, so the request to ${data.destination} was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.`;
     }
 
     return data.answer

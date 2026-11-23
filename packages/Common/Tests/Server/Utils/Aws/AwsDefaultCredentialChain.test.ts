@@ -799,7 +799,7 @@ describe("a web identity token, traded at STS (IAM roles for service accounts)",
   test.each([
     {
       refusal:
-        "The outbound proxy did not take OneUptime's user name and password: it answered 407 Proxy Authentication Required, so the request to sts.eu-west-1.amazonaws.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
+        "The outbound proxy answered 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to sts.eu-west-1.amazonaws.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
       isRetryable: false,
     },
     {
