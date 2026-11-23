@@ -269,6 +269,7 @@ OneUptime avisa a las personas de siete cosas de un caso. Nadie tiene que config
 - A nadie se le avisa de lo que hizo: quien abre un caso a mano, lo asigna o inicia una ejecución no recibe una notificación de ello.
 - Cada persona se entera de un caso una sola vez. Un caso que se abre con prioridad Medium y después sube a Crítico llega, al subir, a las personas que eligieron Alta y Crítica o Solo Crítica, y no otra vez a las que eligieron Media y superior, que ya se enteraron cuando se abrió.
 - El ataque de prueba de **Enviar un ataque de prueba** abre un caso que no avisa a nadie.
+- Con **Dejar que OneUptime AI responda primero** activado, un caso nuevo por debajo de la prioridad elegida espera a OneUptime AI: las personas solo se enteran de él cuando OneUptime AI las necesita, de inmediato y con el motivo. Consulta [Dejar que OneUptime AI responda primero](/docs/telemetry/security-ai#dejar-que-oneuptime-ai-responda-primero).
 - Un caso Crítico y un paso que espera aprobación se envían al instante, nunca se retienen en un [resumen de correos](/docs/emails/notification-rollup). Lo mismo ocurre con un objetivo de respuesta a punto de incumplirse o incumplido, con un paso que dejó de sostenerse y con un caso que OneUptime AI derivó a personas.
 - La **Cronología** del caso indica a quién se avisó y cuándo.
 
@@ -490,6 +491,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | En cola | Esperando a un worker |
 | En ejecución | Ejecutando sus pasos |
 | Esperando aprobación | Retenida antes de un paso que necesita aprobación |
+| Esperando a OneUptime AI | Retenida antes de un paso **Avisar a la guardia** mientras [OneUptime AI responde primero](/docs/telemetry/security-ai#dejar-que-oneuptime-ai-responda-primero) a su caso |
 | Completado con éxito | Todos los pasos se ejecutaron o se omitieron, o un paso **Detener la ejecución** la terminó |
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |

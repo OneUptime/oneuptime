@@ -269,6 +269,7 @@ OneUptime prévient les personnes concernées de sept choses sur un dossier. Per
 - Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
 - Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
 - L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
+- Avec **Laisser OneUptime AI répondre en premier** activé, un nouveau dossier en dessous de la priorité choisie attend OneUptime AI : les personnes n'en sont prévenues qu'une fois que OneUptime AI a besoin d'elles, tout de suite et avec la raison. Voir [Laisser OneUptime AI répondre en premier](/docs/telemetry/security-ai#laisser-oneuptime-ai-répondre-en-premier).
 - Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup). De même pour un objectif de réponse sur le point d'être manqué, ou manqué, pour une étape qui ne tient plus, et pour un dossier que OneUptime AI a confié à des personnes.
 - La **Chronologie** du dossier indique qui a été prévenu, et quand.
 
@@ -490,6 +491,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | En file d'attente | En attente d'un worker |
 | En cours d'exécution | Exécute ses étapes |
 | En attente d'approbation | Retenue avant une étape qui demande une approbation |
+| En attente de OneUptime AI | Retenue avant une étape **Alerter l'astreinte** pendant que [OneUptime AI répond en premier](/docs/telemetry/security-ai#laisser-oneuptime-ai-répondre-en-premier) à son dossier |
 | Réussi | Chaque étape s'est exécutée ou a été sautée, ou une étape **Arrêter l'exécution** y a mis fin |
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |

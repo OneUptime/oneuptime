@@ -269,6 +269,7 @@ O OneUptime avisa as pessoas sobre sete coisas em um caso. Ninguém precisa conf
 - Ninguém é avisado sobre o que fez: a pessoa que abre um caso manualmente, o atribui ou inicia uma execução não é notificada disso.
 - Cada pessoa fica sabendo de um caso uma vez só. Um caso que abre como Medium e depois sobe para Crítico chega, quando sobe, às pessoas que escolheram High ou Crítico, e não de novo às que escolheram Medium, que já souberam dele quando ele abriu.
 - O ataque de teste de **Enviar um ataque de teste** abre um caso que não notifica ninguém.
+- Com **Deixar o OneUptime AI responder primeiro** ligado, um caso novo abaixo da prioridade escolhida aguarda o OneUptime AI: as pessoas só ficam sabendo dele quando o OneUptime AI precisa delas, na hora e com o motivo. Veja [Deixar o OneUptime AI responder primeiro](/docs/telemetry/security-ai#deixar-o-oneuptime-ai-responder-primeiro).
 - Um caso Crítico e uma etapa aguardando aprovação são enviados na hora, nunca retidos em um [resumo de e-mails](/docs/emails/notification-rollup). O mesmo vale para uma meta de resposta prestes a ser perdida, ou perdida, para uma etapa que deixou de se sustentar e para um caso que o OneUptime AI entregou às pessoas.
 - A **Linha do tempo** do caso diz quem foi avisado, e quando.
 
@@ -490,6 +491,7 @@ Cada execução aparece no caso dela e em **Produtos → Eventos de segurança �
 | Queued | Aguardando um worker |
 | Em execução | Executando as etapas dela |
 | Waiting for Approval | Parada antes de uma etapa que precisa de aprovação |
+| Aguardando o OneUptime AI | Parada antes de uma etapa **Acionar o plantão** enquanto o [OneUptime AI responde primeiro](/docs/telemetry/security-ai#deixar-o-oneuptime-ai-responder-primeiro) ao caso dela |
 | Bem-sucedido | Todas as etapas rodaram, ou foram puladas, ou uma etapa **Parar a execução** a encerrou |
 | Falhou | Uma etapa falhou e a execução parou |
 | Cancelado | Alguém a cancelou, ou rejeitou uma etapa |

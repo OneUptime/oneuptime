@@ -269,6 +269,7 @@ OneUptime brengt mensen op de hoogte van zeven dingen op een zaak. Niemand hoeft
 - Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
 - Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
 - De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
+- Met **OneUptime AI eerst laten reageren** aan wacht een nieuwe zaak onder de gekozen prioriteit op OneUptime AI: mensen horen er pas van zodra OneUptime AI ze nodig heeft, dan meteen en met de reden. Zie [OneUptime AI eerst laten reageren](/docs/telemetry/security-ai#oneuptime-ai-eerst-laten-reageren).
 - Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup). Dat geldt ook voor een reactiedoel dat bijna wordt gemist, of is gemist, voor een stap die geen stand meer houdt en voor een zaak die OneUptime AI aan mensen heeft overgedragen.
 - De **Tijdlijn** van de zaak laat zien wie het hoorde, en wanneer.
 
@@ -490,6 +491,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Queued | Wacht op een worker |
 | Actief | Voert haar stappen uit |
 | Waiting for Approval | Stilgezet vóór een stap die goedkeuring nodig heeft |
+| Wacht op OneUptime AI | Stilgezet vóór een stap **Bereikbaarheidsdienst oproepen** terwijl [OneUptime AI eerst reageert](/docs/telemetry/security-ai#oneuptime-ai-eerst-laten-reageren) op haar zaak |
 | Geslaagd | Elke stap is uitgevoerd of overgeslagen, of een stap **De uitvoering stoppen** heeft haar beëindigd |
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |

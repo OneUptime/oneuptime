@@ -8,6 +8,7 @@ OneUptime AI legge ogni caso di sicurezza come farebbe un analista: i suoi rilev
 - [Gestire un caso dall'inizio alla fine](#gestire-un-caso-dallinizio-alla-fine): Contenere, verificare, correggere e chiudere, con una persona che approva ciò che scegli.
 - [Cosa può fare OneUptime AI su un caso](#cosa-può-fare-oneuptime-ai-su-un-caso): Disattivato, Chiedi prima o In autonomia, per ogni tipo di passaggio.
 - [Quando affida un caso alle persone](#quando-affida-un-caso-alle-persone): Perché si ferma e chi ne viene informato.
+- [Lascia che OneUptime AI risponda per primo](#lascia-che-oneuptime-ai-risponda-per-primo): Avvisare le persone solo quando OneUptime AI ne ha bisogno.
 - [Eseguire un playbook dopo una classificazione](#eseguire-un-playbook-dopo-una-classificazione): Agire su un caso letto come Probabilmente dannoso.
 - [Scrivere la bozza di una regola di rilevamento](#scrivere-la-bozza-di-una-regola-di-rilevamento): Descrivi che cosa rilevare e leggi la regola Sigma.
 - [Ask AI nelle pagine di sicurezza](#ask-ai-nelle-pagine-di-sicurezza): Domande su casi ed eventi, con parole semplici.
@@ -184,6 +185,44 @@ Le persone che seguono il caso lo sanno subito o, quando nessuno lo segue, le pe
 
 **Rispondi con l'IA** chiede a OneUptime AI di gestire di nuovo il caso, dal punto in cui si trova.
 
+Un caso trattenuto mentre OneUptime AI risponde per primo raggiunge le persone una sola volta, con l'avviso del nuovo caso e il motivo per cui OneUptime AI si è fermato: vedi [Lascia che OneUptime AI risponda per primo](#lascia-che-oneuptime-ai-risponda-per-primo).
+
+## Lascia che OneUptime AI risponda per primo
+
+In **Lascia che OneUptime AI risponda per primo**, in **Prodotti → Eventi di sicurezza → IA → Impostazioni**, attiva **Rispondi per primo**: da quel momento un nuovo caso aperto da un rilevamento al di sotto della priorità che scegli attende OneUptime AI prima che qualcuno venga avvisato. L'opzione è disponibile mentre **Classifica i nuovi casi** e **Gestisci i casi dall'inizio alla fine** sono attivi. Parte disattivata e si salva appena la cambi. Proprietario del progetto e Amministratore del progetto possono cambiarla.
+
+- **Per i casi al di sotto di**: la priorità al di sotto della quale deve trovarsi un caso per essere trattenuto. È impostata su Alto finché non ne scegli un'altra.
+- **Avvisa comunque le persone dopo**: per quanto tempo al massimo un caso viene trattenuto, 5, 10, 15, 20 o 30 minuti. Parte da 10 minuti.
+
+Mentre un caso è trattenuto, l'avviso del nuovo caso attende, e così i passaggi **Allerta la reperibilità** dei playbook che partono da soli sul caso. Il caso mostra **OneUptime AI se ne sta occupando**, con l'ora in cui le persone vengono avvisate, e **Chiama ora** le avvisa subito. Un'esecuzione di playbook la cui chiamata attende è **In attesa di OneUptime AI**.
+
+L'attesa finisce appena succede una di queste cose:
+
+| Quando | Allora |
+| --- | --- |
+| OneUptime AI contiene il caso e OneUptime verifica ogni passaggio di contenimento, oppure il caso viene chiuso | Nessuno viene avvisato. I canali che pubblicano i nuovi casi ricevono un solo riepilogo di ciò che ha fatto OneUptime AI, e i passaggi di chiamata che attendevano vengono saltati |
+| OneUptime AI ha bisogno di una persona: chiede a qualcuno di approvare un passaggio, affida il caso alle persone o non riesce a iniziare a gestirlo | Vengono avvisate subito tutte le persone il cui avviso era stato trattenuto, con il motivo e ciò che OneUptime AI ha già fatto, e i passaggi di chiamata che attendevano vengono eseguiti |
+| La sua classificazione non legge il caso come Probabilmente dannoso, il caso viene segnato come Contenuto prima che OneUptime abbia potuto verificare ogni passaggio, o il tempo di attesa scade | Vengono avvisati tutti subito, con il motivo |
+| Qualcuno preme **Chiama ora**, il caso sale alla priorità che hai scelto, oppure **Rispondi per primo** o **Gestisci i casi dall'inizio alla fine** viene disattivato | Vengono avvisati tutti subito |
+| Una persona prende in carico il caso: con **Prendi il controllo**, assegnandolo o facendolo avanzare | Il caso è suo. Nessun altro viene avvisato, i canali vengono informati del nuovo caso e i passaggi di chiamata che attendevano vengono saltati |
+
+Un caso non viene mai trattenuto, e le persone vengono avvisate come al solito, quando:
+
+- ha la tua priorità più alta, o la priorità che hai scelto o una superiore;
+- 3 altri casi si sono aperti nei 5 minuti precedenti, il che sembra un attacco in corso: anche i casi trattenuti in quel momento passano alle persone;
+- una parte dei suoi dati sembra un insieme di istruzioni rivolte a un'IA;
+- riguarda un indirizzo, un utente o un host di un caso che OneUptime AI ha risolto nelle ultime 24 ore, perché ciò che ha fatto non ha retto;
+- OneUptime AI non può classificarlo o gestirlo, per esempio quando il progetto ha esaurito i crediti IA;
+- l'ha aperto una persona, o è il caso dell'attacco di prova.
+
+La cronologia del caso dice perché non è stato trattenuto, tranne per un caso con la priorità che hai scelto o una superiore, un caso aperto da una persona e il caso dell'attacco di prova. Gli avvisi di un obiettivo di risposta non vengono mai trattenuti.
+
+Bloccare indirizzi e contenere account e host chiedono prima finché non li imposti su **In autonomia** in **Cosa può fare OneUptime AI su un caso**, e un caso raggiunge le persone appena OneUptime AI chiede. Con **Blocca indirizzi** su **In autonomia**, confermato da un Amministratore della sicurezza, può contenere uno scanner senza che nessuno venga avvisato.
+
+### L'email settimanale
+
+Ogni lunedì, i Proprietari del progetto e gli Amministratori della sicurezza che possono leggere i casi di sicurezza ricevono una sola email con ciò che OneUptime AI ha fatto sui casi di sicurezza del progetto nella settimana precedente: i casi a cui ha risposto per primo e come sono finiti, quanto presto sono stati contenuti i casi che ha gestito, gli indirizzi che ha bloccato e i blocchi poi revocati, i passaggi che ha chiesto alle persone di approvare e quanto presto hanno risposto, e i passaggi che le persone hanno annullato. Contiene solo numeri, e un link a **Prodotti → Eventi di sicurezza → Panoramica**. Una settimana in cui OneUptime AI non ha fatto nulla non invia nessuna email.
+
 ## Il report di chiusura
 
 Quando OneUptime AI chiude un caso, o chiede a una persona di farlo, scrive un report di chiusura da ciò che il caso contiene, non dalle parole della classificazione: cosa è successo, l'impatto, cosa è stato fatto, cosa è stato corretto e cosa tenere d'occhio. Il report è la nota di chiusura del caso, è nella cronologia, e la scheda lo mostra in **Report di chiusura**. Con **Chiudi il caso** su **Chiedi prima**, il caso attende che una persona approvi la chiusura, con il report da leggere prima.
@@ -242,6 +281,14 @@ Un Proprietario del progetto o qualcuno con Manage Billing può aggiungere credi
 
 :::details La scheda dice che un testo del caso sembra un insieme di istruzioni per un'IA
 Una parte dei dati del caso, come il messaggio di un evento o un nome utente, è stata scritta per manipolare un'IA. OneUptime AI l'ha letta come dati e ha lasciato a te la decisione: leggi tu i rilevamenti e le prove prima di chiudere il caso.
+:::
+
+:::details Le persone sono state avvisate mentre OneUptime AI rispondeva per primo
+La cronologia del caso dice perché l'attesa è finita: OneUptime AI ha chiesto a qualcuno di approvare un passaggio, ha affidato il caso alle persone o non ha finito entro il tempo di **Avvisa comunque le persone dopo**, oppure qualcuno ha premuto **Chiama ora**. Un passaggio che chiede prima raggiunge le persone appena OneUptime AI chiede: vedi **Cosa può fare OneUptime AI su un caso**.
+:::
+
+:::details Un nuovo caso non è stato trattenuto
+Controlla che **Rispondi per primo** sia attivo, e che il caso sia al di sotto della priorità scelta in **Per i casi al di sotto di**. Un caso con la tua priorità più alta, un caso aperto da una persona e il caso dell'attacco di prova non vengono mai trattenuti. Per qualsiasi altro motivo, la cronologia del caso dice perché.
 :::
 
 :::details Un playbook con il trigger IA non è partito
