@@ -10,6 +10,8 @@ import {
   TelemetryAdminDocsPageEntry,
 } from "./TelemetryAdminDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { withoutProductLevels } from "./DocsProductLevels";
+import ProductKey from "Common/Types/Product/ProductKey";
 import {
   MenuSection,
   PACKAGES_DIR,
@@ -3478,9 +3480,29 @@ describe("Topology (telemetry/topology)", () => {
       Permission.ReadTelemetryService,
     );
 
-    expect(permissionTitles(new InventoryItem().readRecordPermissions)).toEqual(
-      [...TOPOLOGY_READ_ROLES, permission],
+    /*
+     * The Inventory product's levels (#10289) read it too, Inventory Admin
+     * as Project Admin and Inventory Viewer as Viewer: the permissions page
+     * describes them once for every product, as the other pages leave them
+     * to it.
+     */
+    const readers: Array<Permission> = new InventoryItem()
+      .readRecordPermissions;
+
+    expect(readers).toEqual(
+      expect.arrayContaining([
+        Permission.InventoryAdmin,
+        Permission.InventoryViewer,
+      ]),
     );
+    expect(
+      permissionTitles(
+        withoutProductLevels({
+          permissions: readers,
+          product: ProductKey.Inventory,
+        }),
+      ),
+    ).toEqual([...TOPOLOGY_READ_ROLES, permission]);
     expect(page).toContain(
       `**A role that reads telemetry.** ${writtenList(TOPOLOGY_READ_ROLES, "or")}, or a custom role with the ${permission} permission.`,
     );
