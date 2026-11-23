@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "場所: 属性またはログ本文と、その横にある属性の名前",
   "You need permission to edit scrub rules to switch this rule to Hash.": "このルールをハッシュに切り替えるには、スクラブルールを編集する権限が必要です。",
   "e.g. customer_name": "例: customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} は IP アドレスをハッシュするようになりました。セキュリティイベントはどのアドレスをブロックすべきかを示せます。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} は IP アドレスをハッシュするようになりました。セキュリティイベントはどのアドレスをブロックすべきかを示せます。",
+  "Their sign-in settings were already cleared.": "このユーザーのサインイン設定はすでに消去されています。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} のサインイン設定はすでに消去されています。",
+  "These people's sign-in settings were already cleared.": "これらのユーザーのサインイン設定はすでに消去されています。"
 }

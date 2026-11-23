@@ -70,6 +70,17 @@ export const MEMBER_SAVED_SIGN_IN_SETTINGS_COPY: {
   // Said once the server has cleared them.
   cleared: translationKey("Cleared {{name}}'s sign-in settings."),
   clearedWithoutName: translationKey("Cleared their sign-in settings."),
+  /*
+   * Said when the server cleared nothing: another clear of them - another
+   * owner's, a server admin's, or this one sent twice - came first, and
+   * this one removed nothing and recorded nothing (#10776).
+   */
+  alreadyCleared: translationKey(
+    "{{name}}'s sign-in settings were already cleared.",
+  ),
+  alreadyClearedWithoutName: translationKey(
+    "Their sign-in settings were already cleared.",
+  ),
 };
 
 // The data-testids of the chip, the question's list and the success toast.
@@ -81,5 +92,8 @@ export const MEMBER_SAVED_SIGN_IN_SETTINGS_LIST_TEST_ID: string =
 
 export const MEMBER_SAVED_SIGN_IN_SETTINGS_CLEARED_TOAST_TEST_ID: string =
   "member-saved-sign-in-settings-cleared";
+
+export const MEMBER_SAVED_SIGN_IN_SETTINGS_ALREADY_CLEARED_TOAST_TEST_ID: string =
+  "member-saved-sign-in-settings-already-cleared";
 
 export default MEMBER_SAVED_SIGN_IN_SETTINGS_COPY;

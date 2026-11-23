@@ -136,6 +136,8 @@ let asked: Array<Asked> = [];
 let counts: Array<number | Error | "refused"> = [];
 let clearAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse;
 let toasts: Array<string> = [];
+// The info toasts: what a clear that cleared nobody says (#10776).
+let infos: Array<string> = [];
 
 const COUNT_PATH: string = getProjectSavedSignInSettingsRoute(PROJECT_ID);
 const CLEAR_PATH: string = getProjectClearSavedSignInSettingsRoute(PROJECT_ID);
@@ -144,6 +146,7 @@ beforeEach(() => {
   asked = [];
   counts = [];
   toasts = [];
+  infos = [];
   clearAnswer = new HTTPResponse<JSONObject>(200, { peopleCleared: 3 }, {});
 
   const answer: (request: {
@@ -215,6 +218,11 @@ beforeEach(() => {
       return "toast";
     },
   );
+
+  getJestSpyOn(Toast, "info").mockImplementation((title: unknown): string => {
+    infos.push(String(title));
+    return "toast";
+  });
 
   getItemMock.mockReset();
   updateByIdMock.mockReset();
@@ -455,7 +463,34 @@ describe("clearing them", () => {
     await openAndConfirm();
 
     expect(toasts).toEqual([]);
+    expect(infos).toEqual([]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  /*
+   * #10776: another clear of the same people - another owner's, a server
+   * admin's, or this dialog sent twice - came first, so the server cleared
+   * and recorded nobody, and said so.
+   */
+  test("an answer that cleared nobody says their settings were already cleared, never a clear of 0 people", async () => {
+    counts = [3, 0];
+    clearAnswer = new HTTPResponse<JSONObject>(200, { peopleCleared: 0 }, {});
+
+    await renderIn();
+    await openAndConfirm();
+
+    expect(toasts).toEqual([]);
+    expect(infos).toEqual([
+      "These people's sign-in settings were already cleared.",
+    ]);
+    expect(infos[0]).toBe(PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared);
+
+    // The count is read again, and nobody is left to clear.
+    expect(asked[asked.length - 1]!.method).toBe(HTTPMethod.GET);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(PROJECT_SAVED_SIGN_IN_SETTINGS_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 
   test("a refusal stays in the dialog, saying why, and nothing else changes", async () => {
@@ -587,6 +622,34 @@ describe("in every language", () => {
         within(dialog).getByTestId("confirm-modal-description"),
       ).toHaveTextContent(
         String(entries[PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.confirmDescription]),
+      );
+    },
+  );
+
+  test.each(
+    DASHBOARD_LANGUAGES.filter((locale: string): boolean => {
+      return locale !== "en";
+    }),
+  )(
+    "%s says a clear that cleared nobody in its own words (#10776)",
+    async (locale: string) => {
+      counts = [3, 0];
+      clearAnswer = new HTTPResponse<JSONObject>(
+        200,
+        { peopleCleared: 0 },
+        {},
+      );
+      const entries: Locale = readLocale(locale);
+
+      await renderIn(locale);
+      await openAndConfirm();
+
+      expect(infos).toHaveLength(1);
+      expect(infos[0]).toBe(
+        String(entries[PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared]),
+      );
+      expect(infos[0]).not.toBe(
+        PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared,
       );
     },
   );

@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Waar het staat: het attribuut of de logtekst, en de namen van de attributen ernaast",
   "You need permission to edit scrub rules to switch this rule to Hash.": "U hebt toestemming nodig om opschoonregels te bewerken om deze regel naar Hash over te zetten.",
   "e.g. customer_name": "bijv. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasht nu IP-adressen. Beveiligingsgebeurtenissen kan u vertellen welk adres u moet blokkeren."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasht nu IP-adressen. Beveiligingsgebeurtenissen kan u vertellen welk adres u moet blokkeren.",
+  "Their sign-in settings were already cleared.": "Hun aanmeldinstellingen waren al gewist.",
+  "{{name}}'s sign-in settings were already cleared.": "De aanmeldinstellingen van {{name}} waren al gewist.",
+  "These people's sign-in settings were already cleared.": "De aanmeldinstellingen van deze mensen waren al gewist."
 }

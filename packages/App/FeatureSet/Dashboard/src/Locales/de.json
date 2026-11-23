@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Wo der Fund steht: das Attribut oder der Protokolltext und die Namen der Attribute daneben",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Sie benötigen die Berechtigung, Bereinigungsregeln zu bearbeiten, um diese Regel auf Hash umzustellen.",
   "e.g. customer_name": "z. B. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasht jetzt IP-Adressen. Sicherheitsereignisse kann Ihnen sagen, welche Adresse Sie blockieren sollten."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasht jetzt IP-Adressen. Sicherheitsereignisse kann Ihnen sagen, welche Adresse Sie blockieren sollten.",
+  "Their sign-in settings were already cleared.": "Die Anmeldeeinstellungen dieser Person wurden bereits gelöscht.",
+  "{{name}}'s sign-in settings were already cleared.": "Die Anmeldeeinstellungen von {{name}} wurden bereits gelöscht.",
+  "These people's sign-in settings were already cleared.": "Die Anmeldeeinstellungen dieser Personen wurden bereits gelöscht."
 }

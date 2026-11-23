@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "यह कहाँ है: विशेषता या लॉग बॉडी, और उसके पास की विशेषताओं के नाम",
   "You need permission to edit scrub rules to switch this rule to Hash.": "इस नियम को हैश पर स्विच करने के लिए आपको स्क्रब नियम संपादित करने की अनुमति चाहिए।",
   "e.g. customer_name": "उदा. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} अब IP पतों को हैश करता है। सुरक्षा इवेंट बता सकता है कि कौन-सा पता ब्लॉक करना है।"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} अब IP पतों को हैश करता है। सुरक्षा इवेंट बता सकता है कि कौन-सा पता ब्लॉक करना है।",
+  "Their sign-in settings were already cleared.": "उनकी साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} की साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।",
+  "These people's sign-in settings were already cleared.": "इन लोगों की साइन-इन सेटिंग्स पहले ही हटाई जा चुकी थीं।"
 }

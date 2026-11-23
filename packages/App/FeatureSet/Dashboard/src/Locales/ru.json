@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Где находится: атрибут или тело журнала, и имена соседних атрибутов",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Чтобы переключить это правило на хеширование, нужно разрешение на изменение правил очистки.",
   "e.g. customer_name": "напр. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "«{{rule}}» теперь хеширует IP-адреса. «События безопасности» могут подсказать, какой адрес заблокировать."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "«{{rule}}» теперь хеширует IP-адреса. «События безопасности» могут подсказать, какой адрес заблокировать.",
+  "Their sign-in settings were already cleared.": "Настройки входа пользователя уже удалены.",
+  "{{name}}'s sign-in settings were already cleared.": "Настройки входа пользователя {{name}} уже удалены.",
+  "These people's sign-in settings were already cleared.": "Настройки входа этих пользователей уже удалены."
 }

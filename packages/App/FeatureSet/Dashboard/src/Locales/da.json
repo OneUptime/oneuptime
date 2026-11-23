@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "Hvor den sidder: attributten eller logbeskeden, og navnene på attributterne ved siden af",
   "You need permission to edit scrub rules to switch this rule to Hash.": "Du skal have tilladelse til at redigere rensningsregler for at skifte denne regel til Hash.",
   "e.g. customer_name": "f.eks. customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasher nu IP-adresser. Sikkerhedshændelser kan fortælle dig, hvilken adresse du skal blokere."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} hasher nu IP-adresser. Sikkerhedshændelser kan fortælle dig, hvilken adresse du skal blokere.",
+  "Their sign-in settings were already cleared.": "Deres loginindstillinger var allerede ryddet.",
+  "{{name}}'s sign-in settings were already cleared.": "Loginindstillingerne for {{name}} var allerede ryddet.",
+  "These people's sign-in settings were already cleared.": "Loginindstillingerne for disse personer var allerede ryddet."
 }

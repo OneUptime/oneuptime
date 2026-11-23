@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "所在位置：属性或日志正文，以及旁边属性的名称",
   "You need permission to edit scrub rules to switch this rule to Hash.": "您需要编辑清理规则的权限，才能将此规则切换为哈希。",
   "e.g. customer_name": "例如 customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 现在会对 IP 地址进行哈希处理。安全事件可以告诉您应封禁哪个地址。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 现在会对 IP 地址进行哈希处理。安全事件可以告诉您应封禁哪个地址。",
+  "Their sign-in settings were already cleared.": "此人的登录设置已经被清除。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} 的登录设置已经被清除。",
+  "These people's sign-in settings were already cleared.": "这些人的登录设置已经被清除。"
 }

@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "موضعها: السمة أو نص السجل، وأسماء السمات المجاورة لها",
   "You need permission to edit scrub rules to switch this rule to Hash.": "تحتاج إلى إذن بتعديل قواعد التنقية لتحويل هذه القاعدة إلى «تجزئة».",
   "e.g. customer_name": "مثل: customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "تُجزّئ القاعدة {{rule}} عناوين IP الآن. وتستطيع «الأحداث الأمنية» أن تخبرك بالعنوان الذي يجب حظره."
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "تُجزّئ القاعدة {{rule}} عناوين IP الآن. وتستطيع «الأحداث الأمنية» أن تخبرك بالعنوان الذي يجب حظره.",
+  "Their sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هذا الشخص.",
+  "{{name}}'s sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى {{name}}.",
+  "These people's sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هؤلاء الأشخاص."
 }

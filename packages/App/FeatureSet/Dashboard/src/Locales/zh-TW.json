@@ -62572,5 +62572,8 @@
   "Where it sits: the attribute or the log body, and the names of the attributes beside it": "所在位置：屬性或日誌內文，以及旁邊屬性的名稱",
   "You need permission to edit scrub rules to switch this rule to Hash.": "您需要編輯清理規則的權限，才能將此規則切換為雜湊。",
   "e.g. customer_name": "例如 customer_name",
-  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 現在會對 IP 位址進行雜湊。安全事件可以告訴您應封鎖哪個位址。"
+  "{{rule}} now hashes IP addresses. Security Events can tell you which address to block.": "{{rule}} 現在會對 IP 位址進行雜湊。安全事件可以告訴您應封鎖哪個位址。",
+  "Their sign-in settings were already cleared.": "此人的登入設定已經被清除。",
+  "{{name}}'s sign-in settings were already cleared.": "{{name}} 的登入設定已經被清除。",
+  "These people's sign-in settings were already cleared.": "這些人的登入設定已經被清除。"
 }

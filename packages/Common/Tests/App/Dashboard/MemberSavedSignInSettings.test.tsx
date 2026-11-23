@@ -157,6 +157,7 @@ import {
   getSavedSignInSettingLines,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/User/MemberSavedSignInSettings";
 import MEMBER_SAVED_SIGN_IN_SETTINGS_COPY, {
+  MEMBER_SAVED_SIGN_IN_SETTINGS_ALREADY_CLEARED_TOAST_TEST_ID,
   MEMBER_SAVED_SIGN_IN_SETTINGS_CLEARED_TOAST_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/User/MemberSavedSignInSettingsCopy";
 import { RowActionConfirmation } from "../../../UI/Components/ActionButton/ActionButtonSchema";
@@ -807,16 +808,87 @@ describe("the clear", () => {
     expect(toastSpy).not.toHaveBeenCalled();
   });
 
-  test("an answer that clears nobody is no success: no toast, and the list is read again", async () => {
+  /*
+   * #10776: another clear of Alice - another owner's, a server admin's, or
+   * this question sent twice - came first, so the server removed and
+   * recorded nothing, and answered that it cleared nobody.
+   */
+  test("an answer that clears nobody is no success: it says their settings were already cleared, and the list is read again", async () => {
     clearAnswer = async (): Promise<unknown> => {
       return new HTTPResponse<JSONObject>(200, { peopleCleared: 0 }, {});
     };
+    const infoSpy: SpyInstance<typeof Toast.info> = jest
+      .spyOn(Toast, "info")
+      .mockReturnValue("toast") as unknown as SpyInstance<typeof Toast.info>;
 
     const outcome: ClearOutcome = await clearAlice();
 
     expect(outcome.completed).toHaveBeenCalledTimes(1);
+    expect(outcome.failed).not.toHaveBeenCalled();
     expect(outcome.refresh).toHaveBeenCalledTimes(1);
     expect(toastSpy).not.toHaveBeenCalled();
+
+    expect(infoSpy).toHaveBeenCalledTimes(1);
+    expect(infoSpy.mock.calls[0]![0]).toBe(
+      "Alice Smith's sign-in settings were already cleared.",
+    );
+    expect(
+      (infoSpy.mock.calls[0]![1] as { dataTestId?: string }).dataTestId,
+    ).toBe(MEMBER_SAVED_SIGN_IN_SETTINGS_ALREADY_CLEARED_TOAST_TEST_ID);
+
+    // Their chip goes, as after any clear: nothing of theirs is left.
+    await waitFor(() => {
+      expect(isOffered(ALICE_ROW)).toBe(false);
+    });
+  });
+
+  test("a row with no name to say is told in the nameless words", async () => {
+    clearAnswer = async (): Promise<unknown> => {
+      return new HTTPResponse<JSONObject>(200, { peopleCleared: 0 }, {});
+    };
+    const infoSpy: SpyInstance<typeof Toast.info> = jest
+      .spyOn(Toast, "info")
+      .mockReturnValue("toast") as unknown as SpyInstance<typeof Toast.info>;
+
+    await renderUsers();
+    await rowsFetched();
+
+    const nameless: TeamMember = row({ userId: ALICE_ID, name: "" });
+    nameless.user!.email = undefined;
+    const completed: Mock<() => void> = jest.fn();
+
+    await act(async (): Promise<void> => {
+      clearAction().onClick(
+        nameless,
+        completed as unknown as () => void,
+        jest.fn() as unknown as (error: Error) => void,
+        { refresh: jest.fn() as unknown as () => void },
+      );
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(completed).toHaveBeenCalledTimes(1);
+    });
+
+    expect(infoSpy.mock.calls[0]![0]).toBe(
+      MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.alreadyClearedWithoutName,
+    );
+  });
+
+  test("an answer that cannot be read says nothing at all", async () => {
+    clearAnswer = async (): Promise<unknown> => {
+      return new HTTPResponse<JSONObject>(200, { cleared: "yes" }, {});
+    };
+    const infoSpy: SpyInstance<typeof Toast.info> = jest
+      .spyOn(Toast, "info")
+      .mockReturnValue("toast") as unknown as SpyInstance<typeof Toast.info>;
+
+    const outcome: ClearOutcome = await clearAlice();
+
+    expect(outcome.completed).toHaveBeenCalledTimes(1);
+    expect(toastSpy).not.toHaveBeenCalled();
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -833,6 +905,8 @@ describe("in every Dashboard language", () => {
     MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.twoFactorAuth,
     MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.cleared,
     MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.clearedWithoutName,
+    MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared,
+    MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.alreadyClearedWithoutName,
     MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.passkeys.other,
     `${MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.passkeys.other}_one`,
     MEMBER_SAVED_SIGN_IN_SETTINGS_COPY.authenticatorApps.other,
