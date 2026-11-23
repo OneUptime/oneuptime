@@ -19985,7 +19985,8 @@ test.describe("at a glance: when, and what it touched", () => {
     );
     /*
      * The date and the time each hold together; the zone follows, smaller,
-     * after a space a narrow tile may break at.
+     * after a space a narrow tile may break at. A 12-hour clock writes no
+     * zero before the hour (#7652).
      */
     expect(
       await statBar
@@ -19993,7 +19994,7 @@ test.describe("at a glance: when, and what it touched", () => {
         .evaluate((value: Element): string => {
           return value.textContent || "";
         }),
-    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM UTC`);
+    ).toBe(`Sep${NO_BREAK_SPACE}14, 6:01${NO_BREAK_SPACE}PM UTC`);
     const zone: Locator = statBar.getByTestId("event-start-tile-zone");
     await expect(zone).toHaveText("UTC");
     const valueSize: number = await statBar
