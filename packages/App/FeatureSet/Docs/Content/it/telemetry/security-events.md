@@ -291,11 +291,12 @@ Gli eventi memorizzati prima di OneUptime 14.0.84 lasciano vuoti i campi del pro
 Una regola di indirizzo IP che cancella o maschera i tuoi log o le tue tracce nasconde l'indirizzo da cui è arrivato un attacco prima che Eventi di sicurezza li legga. L'evento viene comunque salvato, senza indirizzo, e ovunque nominerebbe l'indirizzo dice che una regola di mascheramento l'ha nascosto:
 
 - **IP di origine**, nel pannello dell'evento, nomina la regola che l'ha nascosto quando può, come link alle **Regole di mascheramento** dei log o delle tracce. Il filtro accanto mostra ogni evento il cui indirizzo è stato nascosto da una regola di mascheramento.
+- **IP di destinazione** dice lo stesso quando una regola ha nascosto dove è andata una connessione: la destinazione di un firewall, o dove sono stati inviati dei dati. Il filtro accanto mostra ogni evento il cui indirizzo di destinazione è stato nascosto da una regola di mascheramento.
 - **Cosa è successo dopo** dice che la richiesta è arrivata da un indirizzo nascosto da una regola di mascheramento, e **Campagne** raggruppa queste richieste in una riga a sé.
 - Un caso i cui eventi hanno perso tutti il loro indirizzo lo dice nel suo **Piano di risposta**: invece di bloccare l'indirizzo, ti dice di trovarlo nei log del tuo bilanciatore di carico o del tuo firewall e di bloccarlo lì, con **Apri le regole di mascheramento**.
 - **Panoramica** nomina la regola che nasconde gli indirizzi letti da Eventi di sicurezza, anche lì con **Apri le regole di mascheramento**.
 
-Una regola che applica l'hash conserva l'indirizzo per Eventi di sicurezza, così l'evento lo nomina, a meno che il suo token non abbia più di 30 giorni o sia stato creato prima che i token avessero una chiave: vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili). Per trovare questi eventi, cerca `@oneuptime.request.client_address_hidden:scrub-rule`. Ciò che la regola ha lasciato al posto dell'indirizzo, come `[REDACTED]`, si trova in `oneuptime.request.client_address_scrubbed`.
+Una regola che applica l'hash conserva l'indirizzo per Eventi di sicurezza, così l'evento lo nomina, a meno che il suo token non abbia più di 30 giorni o sia stato creato prima che i token avessero una chiave: vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili). Per trovare questi eventi, cerca `@oneuptime.request.client_address_hidden:scrub-rule`. Ciò che la regola ha lasciato al posto dell'indirizzo, come `[REDACTED]`, si trova in `oneuptime.request.client_address_scrubbed`. Per una destinazione, cerca `@oneuptime.target_address_hidden:scrub-rule`.
 
 ## Esplorare gli eventi di sicurezza
 

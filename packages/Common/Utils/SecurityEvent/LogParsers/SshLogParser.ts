@@ -12,7 +12,7 @@ import {
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
   buildLogSecurityEvent,
-  readIpAddress,
+  readIpAddressOnly,
   readLogHost,
   readPort,
   readWord,
@@ -134,7 +134,7 @@ function readSource(text: string, from: number): SshSource | null {
 
   const ipStart: number = fromIndex + FROM.length;
   const word: string = readWord(text, ipStart);
-  const ip: string = readIpAddress(word);
+  const ip: string = readIpAddressOnly(word);
   const scrubbed: ScrubbedAddress | null = ip
     ? null
     : readScrubbedAddress(word);

@@ -51,6 +51,10 @@ import {
   isSecurityBlockClientAddress,
 } from "../../../Types/SecurityBlocklist/SecurityBlockCloudWaf";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SecurityBlockReason,
+  toSecurityBlockReasonJson,
+} from "../../../Types/SecurityBlocklist/SecurityBlockReason";
 
 /*
  * THE BLOCKLIST ENFORCED IN AN AWS WAF WEB ACL (#10344): one destination a
@@ -128,7 +132,10 @@ export function getCloudWafRuleDetails(data: {
 /*
  * Writes where a web ACL stands on its row - when it changed, the last
  * check is more than AWS_WAF_STATUS_REFRESH_IN_MS old, or a person asked
- * (isForced) - and on the row the caller holds.
+ * (isForced) - and on the row the caller holds. A WAF that says why as a
+ * sentence the Dashboard words (#10629: Azure WAF, Cloud Armor) passes it
+ * as reason: kept beside the English message, and drawn in the reader's
+ * language.
  */
 export async function recordCloudWafState(data: {
   row: SecurityBlockCloudWaf;
@@ -137,16 +144,22 @@ export async function recordCloudWafState(data: {
   details: JSONObject;
   now: Date;
   isForced?: boolean | undefined;
+  reason?: SecurityBlockReason | null | undefined;
 }): Promise<void> {
   const { row } = data;
   const message: string = data.message.slice(
     0,
     SECURITY_BLOCK_CLOUD_WAF_MESSAGE_MAX_LENGTH,
   );
+  const reason: JSONObject | null = data.reason
+    ? toSecurityBlockReasonJson(data.reason)
+    : null;
   const isChanged: boolean =
     row.status !== data.status ||
     (row.statusMessage || "") !== message ||
-    JSON.stringify(row.ruleDetails || {}) !== JSON.stringify(data.details);
+    JSON.stringify(row.ruleDetails || {}) !== JSON.stringify(data.details) ||
+    (data.reason !== undefined &&
+      JSON.stringify(row.statusReason || null) !== JSON.stringify(reason));
   const isStale: boolean =
     !row.checkedAt ||
     data.now.getTime() - new Date(row.checkedAt).getTime() >=
@@ -163,6 +176,7 @@ export async function recordCloudWafState(data: {
       statusMessage: message || null,
       ruleDetails: data.details,
       checkedAt: data.now,
+      ...(data.reason !== undefined ? { statusReason: reason } : {}),
     } as unknown as PartialEntity<SecurityBlockCloudWaf>,
   });
 
@@ -170,6 +184,12 @@ export async function recordCloudWafState(data: {
   row.statusMessage = message;
   row.ruleDetails = data.details;
   row.checkedAt = data.now;
+
+  if (reason) {
+    row.statusReason = reason;
+  } else if (data.reason !== undefined) {
+    delete row.statusReason;
+  }
 }
 
 export interface AwsWafBlockDestinationData {

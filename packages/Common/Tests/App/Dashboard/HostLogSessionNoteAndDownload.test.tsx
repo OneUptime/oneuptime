@@ -62,10 +62,15 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 const apiGetMock: MockFunction = getJestMockFunction();
 
+/*
+ * The real client imports Confirm It's You (Reauthentication), which imports
+ * this mock back while the real client is still loading: its
+ * getFriendlyMessage is read when it is called, not while the mock is made.
+ */
 jest.mock("../../../UI/Utils/API/API", () => {
-  const actual: { default: { getFriendlyMessage: unknown } } =
+  const actual: { default: { getFriendlyMessage: (err: unknown) => string } } =
     jest.requireActual("../../../UI/Utils/API/API") as {
-      default: { getFriendlyMessage: unknown };
+      default: { getFriendlyMessage: (err: unknown) => string };
     };
   return {
     __esModule: true,
@@ -73,7 +78,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
       get: (...args: Array<unknown>) => {
         return apiGetMock(...args);
       },
-      getFriendlyMessage: actual.default.getFriendlyMessage,
+      getFriendlyMessage: (err: unknown): string => {
+        return actual.default.getFriendlyMessage(err);
+      },
     },
   };
 });

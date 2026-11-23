@@ -95,7 +95,10 @@ fixes the browser clock to `2026-09-21T12:00:00Z`, so "Past 30 Minutes" is alway
   `toStartOfInterval(minute, bucket)`, one `{ time: "YYYY-MM-DD HH:MM:SS", series |
 severity, count }` per bucket and series that has rows, in time order; the logs
   answer also names its `bucketSizeInMinutes` (the server's default for the window
-  when the request names none). checkout-api's calls to payments-worker time out in
+  when the request names none). The explorers name the reader's zone (`timezone`,
+  #7923), read as the server reads it - one the Timezone list does not hold lands on
+  `unhandled` - and a bar of exactly a day starts at that zone's midnight, the answer
+  naming the zone (`bucketTimezone`). checkout-api's calls to payments-worker time out in
   a burst at 11:43. The `Log` table's two Kubernetes warning events are listed and
   counted with the generated lines.
 - One saved logs view, "Checkout errors" (`dataset.logSavedViewId`): checkout-api's

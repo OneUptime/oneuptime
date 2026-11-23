@@ -444,6 +444,8 @@
     "Stream Azure Monitor Metrics and Logs": "Strøm Azure Monitor-målinger og -logger",
     "Stream Google Cloud Logs": "Strøm Google Cloud-logger",
     "Block Addresses in AWS WAF": "Blokker adresser i AWS WAF",
+    "Block Addresses in Azure WAF": "Blokker adresser i Azure WAF",
+    "Block Addresses in Cloud Armor": "Blokker adresser i Cloud Armor",
     "Cloud Costs and Savings": "Skykostnader og besparelser",
     "Cloud Resources (IaaS & PaaS)": "Skyressurser (IaaS og PaaS)",
     "AI / LLM Observability": "AI- / LLM-observerbarhet",

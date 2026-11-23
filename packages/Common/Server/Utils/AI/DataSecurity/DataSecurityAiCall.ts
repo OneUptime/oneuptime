@@ -5,6 +5,8 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogResponse,
 } from "../../../Services/AIService";
@@ -71,6 +73,12 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.ProposeStoreOwners](): string {
     return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;
+  },
+  get [DataSecurityAiFeature.NameIssueGroup](): string {
+    return AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE;
+  },
+  get [DataSecurityAiFeature.WriteScrubRules](): string {
+    return AI_DATA_SECURITY_SCRUB_RULES_FEATURE;
   },
 };
 

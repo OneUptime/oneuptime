@@ -105,11 +105,15 @@ async function openMonitor(page: Page): Promise<void> {
 }
 
 function desktopMenu(page: Page): Locator {
-  return page.locator("aside[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "aside[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 function phoneMenu(page: Page): Locator {
-  return page.locator("div[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "div[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 /*

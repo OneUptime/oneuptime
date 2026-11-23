@@ -62,6 +62,9 @@ export async function readCountedTelemetryFindings(data: {
         isConfirmed: true,
         isAiSuggested: true,
         isScrubbed: true,
+        // What OneUptime AI's containment reads: a secret, and when it was last seen (#10366).
+        dataCategory: true,
+        lastSeenAt: true,
       },
       sort: { matchCount: SortOrder.Descending },
       skip: 0,

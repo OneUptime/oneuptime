@@ -178,6 +178,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The issues one mistake made (#10370): a group's headline, "40 issues,
+   * one cause: the static-site module", and the words its cause is said
+   * with, as the Issues list and an issue's analysis draw them. The server
+   * keeps the same file's English for its proposals and pull requests. Only
+   * the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.

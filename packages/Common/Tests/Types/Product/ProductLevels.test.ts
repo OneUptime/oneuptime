@@ -38,8 +38,8 @@ import {
 import {
   getProductsOfRecordTable,
   PRODUCT_RECORD_TABLES,
-  TABLES_OF_NO_PRODUCT,
 } from "../../../Types/Product/ProductRecordTables";
+import { TABLES_OF_NO_PRODUCT } from "../../../Types/Product/TablesOfNoProduct";
 import { describe, expect, test } from "@jest/globals";
 
 /*

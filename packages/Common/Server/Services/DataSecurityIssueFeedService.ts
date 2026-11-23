@@ -44,6 +44,8 @@ export class Service extends ProjectReferencesService<DataSecurityIssueFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    // The OneUptime AI proposal the entry is about: its Undo is drawn on it (#10366).
+    dataSecurityAiProposalId?: ObjectID | undefined;
   }): Promise<void> {
     try {
       if (!data.feedInfoInMarkdown) {
@@ -64,6 +66,10 @@ export class Service extends ProjectReferencesService<DataSecurityIssueFeed> {
 
       if (data.userId) {
         item.userId = data.userId;
+      }
+
+      if (data.dataSecurityAiProposalId) {
+        item.dataSecurityAiProposalId = data.dataSecurityAiProposalId;
       }
 
       await this.create({

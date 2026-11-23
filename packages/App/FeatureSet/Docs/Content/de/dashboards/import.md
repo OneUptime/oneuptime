@@ -76,7 +76,7 @@ Aufzeichnungsregeln, Alarmregeln über Logs, Datadog-Widgets, die Logs, Traces o
 
 ## Eine Abfrage mit OneUptime AI umwandeln
 
-Eine Abfrage, die keine Regel umwandelt, zeigt **Convert with OneUptime AI**; dafür muss KI für das Projekt eingeschaltet sein. Nur diese Abfrage, mit den Namen der Variablen des Dashboards, geht an den KI-Anbieter Ihres Projekts. Die Antwort wird wie jede Abfrage geprüft und Ihnen gezeigt: Wählen Sie **Use This Query**, um sie zu verwenden. Nichts wird erstellt, bevor Sie das Dashboard oder die Monitore erstellen.
+Eine Abfrage, die keine Regel umwandelt, zeigt **Convert with OneUptime AI**; dafür muss KI für das Projekt eingeschaltet sein. Nur diese Abfrage, mit den Namen der Variablen des Dashboards, geht an den [LLM-Anbieter](/docs/ai/llm-provider) Ihres Projekts. Die Antwort wird wie jede Abfrage geprüft und Ihnen gezeigt: Wählen Sie **Use This Query**, um sie zu verwenden. Nichts wird erstellt, bevor Sie das Dashboard oder die Monitore erstellen.
 
 ## Nächste Schritte
 

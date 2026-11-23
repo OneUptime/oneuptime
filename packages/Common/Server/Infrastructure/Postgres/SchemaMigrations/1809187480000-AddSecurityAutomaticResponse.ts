@@ -18,14 +18,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *   - "SecurityCase"."blockedAt" and "timeToBlockInSeconds".
  *
  * The index and keys generated for the existing tables are built online,
- * in AddSecurityAutomaticResponseIndexesAndKeys1809187460010: the
+ * in AddSecurityAutomaticResponseIndexesAndKeys1809187480010: the
  * blocklist's reconciler reads "SecurityBlock" every minute, and playbook
  * runs are written as cases open.
  */
-export class AddSecurityAutomaticResponse1809187460000
+export class AddSecurityAutomaticResponse1809187480000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityAutomaticResponse1809187460000";
+  public name: string = "AddSecurityAutomaticResponse1809187480000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

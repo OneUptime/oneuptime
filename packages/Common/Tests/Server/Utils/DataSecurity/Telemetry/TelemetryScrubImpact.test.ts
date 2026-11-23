@@ -31,7 +31,10 @@ import TraceSavedViewService from "../../../../../Server/Services/TraceSavedView
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
 import FindBy from "../../../../../Server/Types/Database/FindBy";
 import FindOneBy from "../../../../../Server/Types/Database/FindOneBy";
-import { getScrubItImpact } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
+import {
+  findScrubRuleReaders,
+  getScrubItImpact,
+} from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
 import { SCRUB_SERVICE_GONE } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import AggregationType from "../../../../../Types/BaseDatabase/AggregationType";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -139,33 +142,33 @@ beforeEach(() => {
   jest
     .spyOn(MetricPipelineRuleService, "findBy")
     .mockResolvedValue([] as never);
-  jest
-    .spyOn(ServiceService, "findOneBy")
-    .mockImplementation((async (
-      findOneBy: FindOneBy<Service>,
-    ): Promise<Service | null> => {
-      const id: string = String(
-        (findOneBy.query as Record<string, unknown>)["_id"],
-      ).toLowerCase();
+  jest.spyOn(ServiceService, "findOneBy").mockImplementation((async (
+    findOneBy: FindOneBy<Service>,
+  ): Promise<Service | null> => {
+    const id: string = String(
+      (findOneBy.query as Record<string, unknown>)["_id"],
+    ).toLowerCase();
 
-      if (id !== CHECKOUT) {
-        return null;
-      }
+    if (id !== CHECKOUT) {
+      return null;
+    }
 
-      const service: Service = new Service(new ObjectID(id));
-      service.name = "checkout";
+    const service: Service = new Service(new ObjectID(id));
+    service.name = "checkout";
 
-      return service;
-    }) as never);
+    return service;
+  }) as never);
   jest.spyOn(DataStoreService, "findBy").mockImplementation((async () => {
     const store: DataStore = new DataStore(new ObjectID(LOGS_STORE));
     store.kind = DataStoreKind.TelemetryLogs;
 
     return [store];
   }) as never);
-  jest.spyOn(DataStoreFindingService, "findBy").mockImplementation((async () => {
-    return findings;
-  }) as never);
+  jest
+    .spyOn(DataStoreFindingService, "findBy")
+    .mockImplementation((async () => {
+      return findings;
+    }) as never);
   jest
     .spyOn(SecurityLogSourceService, "findOneBy")
     .mockImplementation((async () => {
@@ -233,7 +236,8 @@ describe("the rule Scrub It would make", () => {
     expect(impact.rule).toEqual({
       signal: "log",
       name: "Data Security: Email address in log attributes of checkout",
-      scrubAction: "redact",
+      // Personal data is masked, as a finding's samples are (#10366).
+      scrubAction: "mask",
       patternType: "email",
       fieldsToScrub: "attributes",
       dataTypeName: "Email address",
@@ -292,10 +296,14 @@ describe("the rule Scrub It would make", () => {
     });
   });
 
-  test("a finding no rule can hide, or of a service that is gone: why, in Scrub It's words", async () => {
+  test("a type found by its field's name gets the rule that hides that attribute whole (#10366); one in a body, or of a service that is gone, says why in Scrub It's words", async () => {
     const nameOnly: DataSecurityScrubImpact = await impactOf({
       dataTypeId: "person-name",
       location: "attributes.customer.first_name",
+    });
+    const nameInBody: DataSecurityScrubImpact = await impactOf({
+      dataTypeId: "person-name",
+      location: "body",
     });
     const gone: DataSecurityScrubImpact = await impactOf({
       dataTypeId: "email-address",
@@ -303,8 +311,17 @@ describe("the rule Scrub It would make", () => {
       serviceId: PAYMENTS,
     });
 
-    expect(nameOnly.isAvailable).toBe(false);
-    expect(nameOnly.unavailableReason).toContain("found by field names");
+    expect(nameOnly.isAvailable).toBe(true);
+    expect(nameOnly.rule).toEqual(
+      expect.objectContaining({
+        patternType: "namedKeys",
+        attributeKeys: ["customer.first_name"],
+        scrubAction: "mask",
+        name: "Data Security: Person name in customer.first_name of checkout",
+      }),
+    );
+    expect(nameInBody.isAvailable).toBe(false);
+    expect(nameInBody.unavailableReason).toContain("found by field names");
     expect(gone).toEqual({
       isAvailable: false,
       unavailableReason: SCRUB_SERVICE_GONE,
@@ -441,7 +458,7 @@ describe("what the rule would take away", () => {
     ).toEqual(["Errors per contact"]);
   });
 
-  test("Security Events, reading the project's logs, loses the address to block to an IP Address rule", async () => {
+  test("Security Events, reading the project's logs, keeps the address to block: Scrub It hashes it there (#10396)", async () => {
     securityLogSource = new SecurityLogSource(ObjectID.generate());
 
     const ip: DataSecurityScrubImpact = await impactOf({
@@ -449,12 +466,14 @@ describe("what the rule would take away", () => {
       location: "attributes.client.address",
     });
 
+    expect(ip.rule?.scrubAction).toBe("hash");
+    expect(ip.rule?.hashesForSecurityEvents).toBe(true);
+    // A Hash rule takes nothing from it: its address vault names each address.
     expect(ip.readers!.securityEvents).toEqual({
       isChecked: true,
       sources: [SecurityEventsTelemetrySource.Logs],
-      loses: [SecurityEventsFieldNeed.ClientAddresses],
+      loses: [],
     });
-    expect(isAnyTelemetryFieldRead(ip.readers!)).toBe(true);
 
     const card: DataSecurityScrubImpact = await impactOf({
       dataTypeId: "credit-card-number",
@@ -475,5 +494,29 @@ describe("what the rule would take away", () => {
       sources: [],
       loses: [],
     });
+    // Nothing needs the address: it is redacted, as it always was.
+    expect(impact.rule?.scrubAction).toBe("redact");
+    expect(impact.rule?.hashesForSecurityEvents).toBeUndefined();
+  });
+
+  test("a Redact IP Address rule written by hand, on logs Security Events reads, still says what it would lose", async () => {
+    securityLogSource = new SecurityLogSource(ObjectID.generate());
+
+    const readers: TelemetryFieldReaders = await findScrubRuleReaders({
+      projectId: PROJECT_ID,
+      rule: {
+        signal: "log",
+        patternType: "ipAddress",
+        scrubAction: "redact",
+        fieldsToScrub: "attributes",
+        serviceId: CHECKOUT,
+      },
+      props: PROPS,
+    });
+
+    expect(readers.securityEvents.loses).toEqual([
+      SecurityEventsFieldNeed.ClientAddresses,
+    ]);
+    expect(isAnyTelemetryFieldRead(readers)).toBe(true);
   });
 });

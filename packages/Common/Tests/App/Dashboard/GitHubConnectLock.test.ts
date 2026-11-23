@@ -110,6 +110,9 @@ const MAY_CONNECT: Array<Permission> = [
   Permission.ProjectMember,
   Permission.SettingsAdmin,
   Permission.SettingsMember,
+  // Code's own levels that change it (#10289).
+  Permission.CodeAdmin,
+  Permission.CodeMember,
   Permission.CreateCodeRepository,
 ];
 
@@ -117,6 +120,7 @@ const MAY_CONNECT: Array<Permission> = [
 const MAY_NOT_CONNECT: Array<Permission> = [
   Permission.Viewer,
   Permission.SettingsViewer,
+  Permission.CodeViewer,
   Permission.ReadCodeRepository,
   Permission.EditCodeRepository,
   Permission.DeleteCodeRepository,

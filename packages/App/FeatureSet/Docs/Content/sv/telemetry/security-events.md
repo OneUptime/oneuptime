@@ -291,11 +291,12 @@ Händelser som lagrades före OneUptime 14.0.84 lämnar processfälten tomma och
 En IP-adressregel som raderar eller maskerar dina loggar eller spår döljer adressen som en attack kom från innan Säkerhetshändelser läser dem. Händelsen sparas ändå, utan adress, och överallt där den skulle namnge adressen säger den att en scrub-regel dolde den:
 
 - **Käll-IP** i händelsens panel namnger regeln som dolde adressen när den kan, som en länk till **Scrub-regler** för loggarna eller spåren. Filtret bredvid visar varje händelse vars adress en scrub-regel dolde.
+- **Mål-IP** säger detsamma när en regel dolde vart en anslutning gick: en brandväggs destination, eller vart data skickades. Filtret bredvid visar varje händelse vars måladress en scrub-regel dolde.
 - **Vad som hände sedan** säger att förfrågan kom från en adress som en scrub-regel dolde, och **Kampanjer** samlar sådana förfrågningar i en egen rad.
 - Ett ärende vars händelser alla har tappat sin adress säger det i sin **Responsplan**: i stället för att blockera adressen ber den dig hitta den i loggarna från din lastbalanserare eller brandvägg och blockera den där, med **Öppna scrub-regler**.
 - **Översikt** namnger regeln som döljer adresserna som Säkerhetshändelser läser, också med **Öppna scrub-regler**.
 
-En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen namnger den, om inte dess token är äldre än 30 dagar eller skapades innan tokens hade en nyckel: se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). Sök efter `@oneuptime.request.client_address_hidden:scrub-rule` för att hitta dessa händelser. Det regeln lämnade i adressens ställe, till exempel `[REDACTED]`, finns i `oneuptime.request.client_address_scrubbed`.
+En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen namnger den, om inte dess token är äldre än 30 dagar eller skapades innan tokens hade en nyckel: se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). Sök efter `@oneuptime.request.client_address_hidden:scrub-rule` för att hitta dessa händelser. Det regeln lämnade i adressens ställe, till exempel `[REDACTED]`, finns i `oneuptime.request.client_address_scrubbed`. Sök efter `@oneuptime.target_address_hidden:scrub-rule` för en destination.
 
 ## Utforska säkerhetshändelser
 

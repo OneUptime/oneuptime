@@ -36,6 +36,7 @@ import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
 import FormDomainService from "./FormDomainService";
+import FormPrivateUserService from "./FormPrivateUserService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -326,6 +327,7 @@ import DashboardOwnerTeamService from "./DashboardOwnerTeamService";
 import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
 import DashboardPlaylistService from "./DashboardPlaylistService";
+import DashboardPrivateUserService from "./DashboardPrivateUserService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -430,6 +432,7 @@ import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityAddressVaultService from "./SecurityAddressVaultService";
+import ScrubRuleValueCountService from "./ScrubRuleValueCountService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
@@ -459,6 +462,7 @@ import DataStoreLabelRuleService from "./DataStoreLabelRuleService";
 import DataSecurityFlowService from "./DataSecurityFlowService";
 import DataSecurityIssueService from "./DataSecurityIssueService";
 import DataSecurityIssueFeedService from "./DataSecurityIssueFeedService";
+import DataSecurityIssueGroupService from "./DataSecurityIssueGroupService";
 import DataSecurityAiProposalService from "./DataSecurityAiProposalService";
 import DataSecurityAiDecisionService from "./DataSecurityAiDecisionService";
 import DataSecurityScanService from "./DataSecurityScanService";
@@ -701,6 +705,7 @@ const services: Array<BaseService> = [
   FormService,
   FormSubmissionService,
   FormDomainService,
+  FormPrivateUserService,
   IncidentInternalNoteService,
   IncidentPostmortemActionItemService,
   IncidentOwnerTeamService,
@@ -915,6 +920,7 @@ const services: Array<BaseService> = [
   DashboardLabelRuleService,
   DashboardService,
   DashboardPlaylistService,
+  DashboardPrivateUserService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,
@@ -1080,6 +1086,7 @@ const services: Array<BaseService> = [
   DataSecurityFlowService,
   DataSecurityIssueService,
   DataSecurityIssueFeedService,
+  DataSecurityIssueGroupService,
   DataSecurityAiProposalService,
   DataSecurityAiDecisionService,
   DataSecurityScanService,
@@ -1326,6 +1333,13 @@ export const AnalyticsServices: Array<
    * live update is ever built for it.
    */
   SecurityAddressVaultService,
+  /*
+   * How many values each scrub rule changed, by service and version, an
+   * hour a row (#10366). Here so boot creates its table: the model is kept
+   * out of the AnalyticsModels registry, and its rows are read through the
+   * scrub rule lists' own route.
+   */
+  ScrubRuleValueCountService,
   ChangeEventService,
 ];
 

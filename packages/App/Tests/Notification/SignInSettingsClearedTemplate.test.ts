@@ -56,11 +56,39 @@ const SIGN_IN_URL: string = "https://oneuptime.example.com/accounts/login";
 
 const EVERYTHING: LocalSignInSettings = {
   hasPassword: true,
+  hasPasswordResetLink: true,
   isTwoFactorAuthEnabled: true,
   authenticatorAppCount: 2,
   passkeyAndSecurityKeyCount: 3,
   backupCodeCount: 8,
 };
+
+// The languages the server writes in besides English.
+const SERVER_LANGUAGES: ReadonlyArray<string> = [
+  "de",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "da",
+  "no",
+  "sv",
+  "ru",
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+  "hi",
+  "fa",
+  "ar",
+];
+
+const RESET_LINK_LINE: string =
+  "The password reset link sent to you, which no longer works";
+
+const UNNAMED_OWNER_LINE: string =
+  "A project owner cleared the sign-in settings saved on your OneUptime account.";
 
 const data: (
   overrides?: Partial<SignInSettingsClearedEmailData>,
@@ -145,6 +173,22 @@ describe("who cleared them, and when", () => {
     expect(text).not.toContain("A server admin");
   });
 
+  test("a project deleted since the clear (#9991): 'a project owner', no gap where its name was, never a server admin", () => {
+    const text: string = visibleText(
+      render(
+        data({
+          clearedBy: SignInSettingsClearedBy.ProjectOwner,
+          projectName: "",
+        } as Partial<SignInSettingsClearedEmailData>),
+      ),
+    );
+
+    expect(text).toContain(UNNAMED_OWNER_LINE);
+    expect(text).not.toContain("An owner of");
+    expect(text).not.toContain("A server admin");
+    expect(text).not.toContain("contact the owners of");
+  });
+
   test("a project's name is escaped wherever it is drawn: its owners wrote it", () => {
     const html: string = render(
       data({
@@ -174,12 +218,41 @@ describe("what was removed", () => {
     );
   });
 
+  test("a reset link beside a password is named in the password's line, not in one of its own (#9992)", () => {
+    const text: string = visibleText(render(data()));
+
+    expect(text).toContain(
+      "Your password, and any password reset or sign-in link sent to you",
+    );
+    expect(text).not.toContain(RESET_LINK_LINE);
+  });
+
+  test("a reset link alone - all that a person had - is the one line (#9992)", () => {
+    const text: string = visibleText(
+      render(
+        data({
+          cleared: {
+            ...NO_LOCAL_SIGN_IN_SETTINGS,
+            hasPasswordResetLink: true,
+          },
+        }),
+      ),
+    );
+
+    expect(text).toContain("What was removed");
+    expect(text).toContain(RESET_LINK_LINE);
+    expect(text).not.toContain("Your password");
+    expect(text).not.toContain("passkey");
+    expect(text).not.toContain("which is now turned off");
+  });
+
   test("one of each reads as one", () => {
     const text: string = visibleText(
       render(
         data({
           cleared: {
             hasPassword: false,
+            hasPasswordResetLink: false,
             isTwoFactorAuthEnabled: false,
             authenticatorAppCount: 1,
             passkeyAndSecurityKeyCount: 1,
@@ -311,6 +384,22 @@ describe("who to ask", () => {
     expect(text).not.toContain("server's admin");
   });
 
+  test("a project deleted since the clear: the server's admin on a self-hosted server, support on Cloud", () => {
+    const ownerOfNoProject: SignInSettingsClearedEmailData = data({
+      clearedBy: SignInSettingsClearedBy.ProjectOwner,
+      projectName: "",
+    } as Partial<SignInSettingsClearedEmailData>);
+
+    expect(visibleText(render(ownerOfNoProject))).toContain(
+      "If you did not expect this, contact your server's admin.",
+    );
+    expect(
+      visibleText(render(ownerOfNoProject, { isSelfHosted: "" })),
+    ).toContain(
+      "If you did not expect this, contact support at support@oneuptime.com.",
+    );
+  });
+
   test("a renamed Cloud installation names no support address", () => {
     const text: string = visibleText(
       render(data(), { isSelfHosted: "", isBrandRenamed: "true" }),
@@ -345,28 +434,41 @@ describe("in the reader's language", () => {
   });
 
   test("every language the server writes in words the email's title", () => {
-    for (const language of [
-      "de",
-      "fr",
-      "es",
-      "it",
-      "pt",
-      "nl",
-      "da",
-      "no",
-      "sv",
-      "ru",
-      "ja",
-      "ko",
-      "zh-CN",
-      "zh-TW",
-      "hi",
-      "fa",
-      "ar",
-    ]) {
+    for (const language of SERVER_LANGUAGES) {
       expect(
         visibleText(render(data(), getEmailLanguageVariables(language))),
       ).not.toContain("Your sign-in settings were cleared");
+    }
+  });
+
+  test("every language words a reset link's line (#9992), and a deleted project's owner (#9991)", () => {
+    for (const language of SERVER_LANGUAGES) {
+      const resetLinkOnly: string = visibleText(
+        render(
+          data({
+            cleared: {
+              ...NO_LOCAL_SIGN_IN_SETTINGS,
+              hasPasswordResetLink: true,
+            },
+          }),
+          getEmailLanguageVariables(language),
+        ),
+      );
+
+      const ownerOfNoProject: string = visibleText(
+        render(
+          data({
+            clearedBy: SignInSettingsClearedBy.ProjectOwner,
+            projectName: "",
+          } as Partial<SignInSettingsClearedEmailData>),
+          getEmailLanguageVariables(language),
+        ),
+      );
+
+      expect(resetLinkOnly).not.toContain(RESET_LINK_LINE);
+      expect(ownerOfNoProject).not.toContain(UNNAMED_OWNER_LINE);
+      // The product's name stays as the installation calls itself.
+      expect(ownerOfNoProject).toContain("OneUptime");
     }
   });
 });

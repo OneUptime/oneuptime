@@ -369,6 +369,7 @@
     "Version {{number}}",
     "Version {{version}}",
     "Vital",
+    "WAF",
     "Webhook",
     "Webhooks",
     "[\".customer-name\", \"#invoice-total\"]",

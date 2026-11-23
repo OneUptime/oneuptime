@@ -6,7 +6,6 @@ import WriteOnlyCredentialChanges from "../Utils/AuditLog/WriteOnlyCredentialCha
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { isAwsRegion } from "../../Types/Cloud/AwsRegionCode";
 import { isAwsRoleArn } from "../../Types/Cloud/AwsRoleArn";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
 import {
   AMAZON_SES_AUTHENTICATION_TYPE_INVALID,
   AMAZON_SES_ROLE_ARN_INVALID,
@@ -167,15 +166,11 @@ export class Service extends DatabaseService<Model> {
       select[column] = true;
     }
 
-    const configs: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: select,
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    // The configs the update writes, and the update held to them.
+    const configs: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      select,
+    );
 
     // Nothing stored to weigh it against: the write alone.
     if (configs.length === 0) {

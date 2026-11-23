@@ -984,6 +984,14 @@ const DocsNav: NavGroup[] = [
         title: "Block Addresses in AWS WAF",
         url: "/docs/telemetry/cloud-aws-waf-blocklist",
       },
+      {
+        title: "Block Addresses in Azure WAF",
+        url: "/docs/telemetry/cloud-azure-waf-blocklist",
+      },
+      {
+        title: "Block Addresses in Cloud Armor",
+        url: "/docs/telemetry/cloud-armor-blocklist",
+      },
     ],
   },
   {

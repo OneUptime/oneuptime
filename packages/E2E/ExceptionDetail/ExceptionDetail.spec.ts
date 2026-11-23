@@ -137,7 +137,9 @@ async function screenshot(page: Page, name: string): Promise<void> {
 }
 
 function sideMenu(page: Page): Locator {
-  return page.locator("aside[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "aside[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 /*
@@ -487,7 +489,9 @@ test.describe("navigation", () => {
     await expect(toggle).toContainText("Investigate / Logs");
     await toggle.click();
     await page
-      .locator("div[role='navigation'][aria-label='Pages in this section']:visible")
+      .locator(
+        "div[role='navigation'][aria-label='Pages in this section']:visible",
+      )
       .getByRole("link", { name: "Fix with AI", exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${BASE}/ai-assistance$`));

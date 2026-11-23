@@ -125,6 +125,10 @@ function declaredColumns(model: unknown): Array<string> {
       return !(model === SecurityBlock && column === "reach");
     })
     .filter((column: string): boolean => {
+      // Added to SecurityBlockEnforcement later (AddCloudWafAndEnforcementReasons, #10629).
+      return !(model === SecurityBlockEnforcement && column === "errorReason");
+    })
+    .filter((column: string): boolean => {
       // Added to SecurityBlock later (AddSecurityAutomaticResponse, #10350).
       return !(
         model === SecurityBlock &&

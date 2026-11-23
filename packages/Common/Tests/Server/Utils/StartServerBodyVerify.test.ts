@@ -369,45 +369,60 @@ describe("options through the real express parsers", () => {
  * actually runs.
  */
 describe("StartServer wires the exported options into its middlewares", () => {
-  const startServerSource: string = fs.readFileSync(
-    path.resolve(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "Server",
-      "Utils",
-      "StartServer.ts",
-    ),
-    "utf8",
-  );
+  const serverSource: (folder: string, file: string) => string = (
+    folder: string,
+    file: string,
+  ): string => {
+    return fs.readFileSync(
+      path.resolve(__dirname, "..", "..", "..", "Server", folder, file),
+      "utf8",
+    );
+  };
+
+  const startServerSource: string = serverSource("Utils", "StartServer.ts");
+
+  /*
+   * The parsers are the App's (AppBodyParsers), which StartServer reads every
+   * body with before routing, and a route that checks its key first reads
+   * its body with after the key (#10702).
+   */
+  const parsersSource: string = serverSource("Middleware", "AppBodyParsers.ts");
+
+  test("StartServer reads every body it reads with the App's parsers, for the route's limit", () => {
+    expect(startServerSource).toMatch(
+      /AppBodyParsers\.read\(req, res, next, getRequestBodyLimit\(req\.path\)\);/,
+    );
+    expect(startServerSource).toMatch(/AppBodyParsers\.readForm\(\s*req,/);
+  });
 
   /*
    * Each is body-parser's, made by RequestBodyParser so that a body over the
    * limit is refused without the rest of it read (#10598).
    */
   test("json middleware is built from createJsonBodyParserOptions, for the route's limit", () => {
-    expect(startServerSource).toMatch(
+    expect(parsersSource).toMatch(
       /RequestBodyParser\.create\(\s*ExpressJson,\s*createJsonBodyParserOptions\(limit\),?\s*\)/,
     );
   });
 
   test("urlencoded middleware is built from createUrlEncodedBodyParserOptions, for the route's limit", () => {
-    expect(startServerSource).toMatch(
+    expect(parsersSource).toMatch(
       /RequestBodyParser\.create\(\s*ExpressUrlEncoded,\s*createUrlEncodedBodyParserOptions\(limit\),?\s*\)/,
     );
   });
 
   test("the protobuf parser is body-parser's raw one, read the same way", () => {
-    expect(startServerSource).toMatch(
+    expect(parsersSource).toMatch(
       /RequestBodyParser\.create\(ExpressRaw, \{\s*type: PROTOBUF_CONTENT_TYPES,\s*limit: limit\.bytes,\s*\}\)/,
     );
   });
 
   test("no body-parser parser is called on its own, to read past its limit", () => {
-    expect(startServerSource).not.toMatch(
-      /\b(ExpressJson|ExpressUrlEncoded|ExpressRaw)\(/,
-    );
+    for (const source of [startServerSource, parsersSource]) {
+      expect(source).not.toMatch(
+        /\b(ExpressJson|ExpressUrlEncoded|ExpressRaw)\(/,
+      );
+    }
   });
 
   /*

@@ -17,6 +17,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE } from "Common/Types/Telemetry/ScrubRule";
+import { SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE } from "Common/Types/Telemetry/ScrubRuleKeys";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -108,6 +109,53 @@ const STORED_STAYS: string = translationKey(
 export const ALREADY_SCRUBBED: string = translationKey(
   "The scrub rule {{name}} already hides this data.",
 );
+
+/*
+ * The attributes the rule names (#10366): the ones it hides whole, or the
+ * only ones its pattern reads - the one the data was found in.
+ */
+const HIDES_ATTRIBUTES: string = translationKey("Hides the whole value of");
+const ONLY_IN_ATTRIBUTES: string = translationKey("Only in");
+
+/*
+ * What the rule was proven on before it is made (#10366): the records the
+ * finding was seen in, run through the code ingest runs. Counts only.
+ */
+export const SCRUB_IT_PROVEN: string = translationKey(
+  "Proven on {{records}} records the data was seen in: it hid the data in all {{hidden}} values that held it, and changed {{changed}} of the {{others}} other values there.",
+);
+export const SCRUB_IT_NOT_PROVEN: string = translationKey(
+  "There was no record left to run it on, so it is made as it is planned.",
+);
+
+/*
+ * An IP address Security Events reads is hashed, not redacted (#10396):
+ * what that keeps, in one line, where the action's own words would be.
+ */
+export const SCRUB_IT_HASHES_FOR_SECURITY_EVENTS: string = translationKey(
+  "People will see a token instead of the address. Security Events still sees the address, so it can tell you which one to block.",
+);
+
+// What the dialog says under the rule's action: why it hashes, or what the action leaves.
+export function getScrubItActionNote(
+  plan: Pick<
+    DataSecurityScrubRulePlan,
+    "signal" | "patternType" | "hashesForSecurityEvents"
+  >,
+  action: RadioButton | undefined,
+): string | undefined {
+  if (plan.hashesForSecurityEvents) {
+    return SCRUB_IT_HASHES_FOR_SECURITY_EVENTS;
+  }
+
+  if (plan.patternType === SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE) {
+    return plan.signal === "log"
+      ? LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
+      : SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY;
+  }
+
+  return action?.description;
+}
 
 export interface ComponentProps {
   findingId: ObjectID;
@@ -348,13 +396,7 @@ const ScrubItModal: FunctionComponent<ComponentProps> = (
                 <Labelled
                   label={SCRUB_ACTION}
                   value={action.title}
-                  note={
-                    isSensitiveKeys
-                      ? plan.signal === "log"
-                        ? LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
-                        : SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY
-                      : action.description
-                  }
+                  note={getScrubItActionNote(plan, action)}
                   dataTestId="data-security-scrub-it-action-words"
                 />
               </FactLine>
@@ -375,6 +417,39 @@ const ScrubItModal: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {(plan.attributeKeys || []).length > 0 ? (
+              <FactLine
+                icon={IconProp.Tag}
+                dataTestId="data-security-scrub-it-keys"
+              >
+                <Labelled
+                  label={
+                    plan.patternType === SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE
+                      ? HIDES_ATTRIBUTES
+                      : ONLY_IN_ATTRIBUTES
+                  }
+                  value={(plan.attributeKeys || []).join(", ")}
+                  dataTestId="data-security-scrub-it-keys-words"
+                />
+              </FactLine>
+            ) : (
+              <></>
+            )}
+            <FactLine
+              icon={IconProp.CheckCircle}
+              dataTestId="data-security-scrub-it-proof"
+            >
+              <span>
+                {plan.proof
+                  ? translator.translateTemplate(SCRUB_IT_PROVEN, {
+                      records: String(plan.proof.recordsRead),
+                      hidden: String(plan.proof.valuesWithData),
+                      changed: String(plan.proof.otherValuesChanged),
+                      others: String(plan.proof.otherValues),
+                    })
+                  : translator.translateText(SCRUB_IT_NOT_PROVEN)}
+              </span>
+            </FactLine>
             <FactLine
               icon={IconProp.Database}
               dataTestId="data-security-scrub-it-stored"

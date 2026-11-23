@@ -170,6 +170,7 @@
     "VMware vCenter",
     "Valkey",
     "Vital",
+    "WAF",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

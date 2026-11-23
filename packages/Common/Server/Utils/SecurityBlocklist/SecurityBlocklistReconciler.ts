@@ -29,6 +29,7 @@ import SecurityBlockTimeline, {
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PartialEntity from "../../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityBlockAction,
@@ -50,6 +51,14 @@ import {
   SecurityAddressProtection,
   describeSecurityAddressProtection,
 } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SECURITY_BLOCK_REASON_FRAMES,
+  SecurityBlockReason,
+  frameSecurityBlockFailure,
+  frameSecurityBlockReason,
+  securityBlockReason,
+  toSecurityBlockReasonJson,
+} from "../../../Types/SecurityBlocklist/SecurityBlockReason";
 
 /*
  * KEEPS THE BLOCKLIST TRUE AT EVERY DESTINATION (#10338).
@@ -354,6 +363,8 @@ export interface SecurityBlocklistDestinationPlan {
   unsupported: Map<string, string>;
   // Blocks held back because what they block is protected now (#10640), with why.
   heldBack: Map<string, string>;
+  // The same, as sentences, for a destination that words them (#10629).
+  unsupportedSentences: Map<string, SecurityBlockReason>;
   // Blocks that do not fit.
   overflow: Set<string>;
   // Blocks waiting for their retry after the provider refused them.
@@ -410,6 +421,7 @@ export function planSecurityBlocklistDestination(data: {
 
   const unsupported: Map<string, string> = new Map();
   const heldBack: Map<string, string> = new Map();
+  const unsupportedSentences: Map<string, SecurityBlockReason> = new Map();
   const desired: Array<SecurityBlock> = [];
   const keyOf: (block: SecurityBlock) => string = (
     block: SecurityBlock,
@@ -442,6 +454,11 @@ export function planSecurityBlocklistDestination(data: {
 
     if (!support.isSupported) {
       unsupported.set(id, support.reason);
+
+      if (support.reasonSentence) {
+        unsupportedSentences.set(id, support.reasonSentence);
+      }
+
       continue;
     }
 
@@ -534,6 +551,7 @@ export function planSecurityBlocklistDestination(data: {
     toMoveEnd,
     unsupported,
     heldBack,
+    unsupportedSentences,
     overflow,
     waiting,
   };
@@ -543,6 +561,8 @@ export function planSecurityBlocklistDestination(data: {
 interface RowTarget {
   state: SecurityBlockEnforcementState;
   error: string | null;
+  // The error as a sentence the Dashboard words (#10629); null when the destination gave none.
+  errorReason?: SecurityBlockReason | null | undefined;
   providerRef?: string | null | undefined;
   appliedAt?: Date | null | undefined;
   lastConfirmedAt?: Date | null | undefined;
@@ -919,6 +939,11 @@ export default class SecurityBlocklistReconciler {
         await this.recordDestinationFailure({
           ...data,
           error: `${destination.name} is not ready to hold blocks: ${this.errorText(error)}`,
+          errorReason: frameSecurityBlockFailure({
+            frame: SECURITY_BLOCK_REASON_FRAMES.notReady,
+            destination: destination.name,
+            error,
+          }),
         });
         return "failed";
       }
@@ -931,6 +956,11 @@ export default class SecurityBlocklistReconciler {
       await this.recordDestinationFailure({
         ...data,
         error: `Could not read ${destination.name}: ${this.errorText(error)}`,
+        errorReason: frameSecurityBlockFailure({
+          frame: SECURITY_BLOCK_REASON_FRAMES.couldNotRead,
+          destination: destination.name,
+          error,
+        }),
       });
       return "failed";
     }
@@ -983,6 +1013,11 @@ export default class SecurityBlocklistReconciler {
       await this.recordDestinationFailure({
         ...data,
         error: `Could not write to ${destination.name}: ${this.errorText(error)}`,
+        errorReason: frameSecurityBlockFailure({
+          frame: SECURITY_BLOCK_REASON_FRAMES.couldNotWrite,
+          destination: destination.name,
+          error,
+        }),
       });
       return "failed";
     }
@@ -990,6 +1025,7 @@ export default class SecurityBlocklistReconciler {
     // What it holds now, read from it: what apply said is a request, this is the fact.
     let confirmed: Array<SecurityBlockHeldItem> | null = held;
     let readBackError: string | null = null;
+    let readBackReason: SecurityBlockReason | null = null;
 
     if (
       plan.toAdd.length > 0 ||
@@ -1001,6 +1037,11 @@ export default class SecurityBlocklistReconciler {
       } catch (error) {
         confirmed = null;
         readBackError = `Could not read ${destination.name} back: ${this.errorText(error)}`;
+        readBackReason = frameSecurityBlockFailure({
+          frame: SECURITY_BLOCK_REASON_FRAMES.couldNotReadBack,
+          destination: destination.name,
+          error,
+        });
       }
     }
 
@@ -1010,6 +1051,7 @@ export default class SecurityBlocklistReconciler {
       capacity,
       confirmed,
       readBackError,
+      readBackReason,
       applied,
       removed,
       endsMoved,
@@ -1030,6 +1072,7 @@ export default class SecurityBlocklistReconciler {
     capacity: SecurityBlockCapacity;
     confirmed: Array<SecurityBlockHeldItem> | null;
     readBackError: string | null;
+    readBackReason?: SecurityBlockReason | null | undefined;
     applied: Array<SecurityBlockWriteResult>;
     removed: Array<SecurityBlockWriteResult>;
     endsMoved: Array<SecurityBlockWriteResult>;
@@ -1097,9 +1140,11 @@ export default class SecurityBlocklistReconciler {
       let target: RowTarget;
 
       if (plan.heldBack.has(id)) {
+        // In English, as its case's timeline says it (#10640).
         target = {
           state: SecurityBlockEnforcementState.Failed,
           error: plan.heldBack.get(id)!,
+          errorReason: null,
           failedAttempts: 0,
           retryAt: null,
         };
@@ -1107,6 +1152,10 @@ export default class SecurityBlocklistReconciler {
         target = {
           state: SecurityBlockEnforcementState.Failed,
           error: `Not applied: ${plan.unsupported.get(id)}`,
+          errorReason: frameSecurityBlockReason(
+            SECURITY_BLOCK_REASON_FRAMES.notApplied,
+            plan.unsupportedSentences?.get(id),
+          ),
           failedAttempts: 0,
           retryAt: null,
         };
@@ -1114,6 +1163,10 @@ export default class SecurityBlocklistReconciler {
         target = {
           state: SecurityBlockEnforcementState.Failed,
           error: `Not applied: ${fullReason}`,
+          errorReason: frameSecurityBlockReason(
+            SECURITY_BLOCK_REASON_FRAMES.notApplied,
+            data.capacity.fullSentence,
+          ),
           failedAttempts: 0,
           retryAt: null,
         };
@@ -1147,6 +1200,7 @@ export default class SecurityBlocklistReconciler {
                */
               state: SecurityBlockEnforcementState.Failed,
               error: item.notInForceReason,
+              errorReason: item.notInForceSentence || null,
               providerRef,
               failedAttempts: 0,
               retryAt: null,
@@ -1176,6 +1230,10 @@ export default class SecurityBlocklistReconciler {
         target = {
           state: SecurityBlockEnforcementState.Failed,
           error: `Not applied: ${appliedByKey.get(key)!.error || `${destination.name} refused it`}`,
+          errorReason: frameSecurityBlockReason(
+            SECURITY_BLOCK_REASON_FRAMES.notApplied,
+            appliedByKey.get(key)!.errorSentence,
+          ),
           failedAttempts: attempts,
           retryAt: new Date(
             now.getTime() + getSecurityBlocklistRetryDelayInMs(attempts),
@@ -1190,6 +1248,7 @@ export default class SecurityBlocklistReconciler {
               ? SecurityBlockEnforcementState.Applied
               : SecurityBlockEnforcementState.Pending,
           error: data.readBackError,
+          errorReason: data.readBackReason || null,
           failedAttempts: attempts,
           retryAt: new Date(
             now.getTime() + getSecurityBlocklistRetryDelayInMs(attempts),
@@ -1256,6 +1315,15 @@ export default class SecurityBlocklistReconciler {
               : removal && !removal.isDone
                 ? `Not removed: ${removal.error || `${destination.name} refused it`}`
                 : null,
+          errorReason:
+            data.confirmed === null
+              ? data.readBackReason || null
+              : removal && !removal.isDone
+                ? frameSecurityBlockReason(
+                    SECURITY_BLOCK_REASON_FRAMES.notRemoved,
+                    removal.errorSentence,
+                  )
+                : null,
           failedAttempts: attempts,
           retryAt: failed
             ? new Date(
@@ -1293,6 +1361,7 @@ export default class SecurityBlocklistReconciler {
     rowsByBlock: Map<string, SecurityBlockEnforcement>;
     now: Date;
     error: string;
+    errorReason?: SecurityBlockReason | null | undefined;
   }): Promise<void> {
     logger.warn(`SecurityBlocklistReconciler: ${data.error}`);
 
@@ -1320,6 +1389,7 @@ export default class SecurityBlocklistReconciler {
               ? (row.state as SecurityBlockEnforcementState)
               : SecurityBlockEnforcementState.Pending,
           error: data.error,
+          errorReason: data.errorReason || null,
           failedAttempts: attempts,
           retryAt: new Date(
             data.now.getTime() + getSecurityBlocklistRetryDelayInMs(attempts),
@@ -1370,6 +1440,15 @@ export default class SecurityBlocklistReconciler {
         data: {
           state: SecurityBlockEnforcementState.Removed,
           error: `${row.destinationName || "The destination"} no longer enforces the blocklist.`,
+          // Whatever the destination, a sentence of names alone: worded in the reader's language (#10629).
+          errorReason: row.destinationName
+            ? toSecurityBlockReasonJson(
+                securityBlockReason(
+                  SECURITY_BLOCK_REASON_FRAMES.noLongerEnforces,
+                  { destination: row.destinationName },
+                ),
+              )
+            : null,
           retryAt: null,
         } as unknown as PartialEntity<SecurityBlockEnforcement>,
       });
@@ -1409,6 +1488,10 @@ export default class SecurityBlocklistReconciler {
 
       if (target.error) {
         created.error = target.error.slice(0, 500);
+      }
+
+      if (target.errorReason) {
+        created.errorReason = toSecurityBlockReasonJson(target.errorReason);
       }
 
       if (target.providerRef) {
@@ -1452,6 +1535,14 @@ export default class SecurityBlocklistReconciler {
         (target.error ? target.error.slice(0, 500) : null)
       ) {
         changes["error"] = target.error ? target.error.slice(0, 500) : null;
+      }
+
+      const reason: JSONObject | null = target.errorReason
+        ? toSecurityBlockReasonJson(target.errorReason)
+        : null;
+
+      if (JSON.stringify(row.errorReason || null) !== JSON.stringify(reason)) {
+        changes["errorReason"] = reason;
       }
 
       if (

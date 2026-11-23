@@ -24,6 +24,8 @@ import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import ScrubRuleReadersAPI from "Common/Server/API/ScrubRuleReadersAPI";
+import ScrubRuleAddressesAPI from "Common/Server/API/ScrubRuleAddressesAPI";
+import ScrubRuleValueCountsAPI from "Common/Server/API/ScrubRuleValueCountsAPI";
 import DropFilterImpactAPI from "Common/Server/API/DropFilterImpactAPI";
 import DropFilterAPI from "Common/Server/API/DropFilterAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
@@ -5530,6 +5532,19 @@ const BaseAPIFeatureSet: FeatureSet = {
      * Events that read what it hides (#10433).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleReadersAPI);
+
+    /*
+     * The IP Address scrub rules that keep Security Events from naming an
+     * attacker's address, and Hash Instead, which switches one to Hash
+     * (#10396).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleAddressesAPI);
+
+    /*
+     * How many values each scrub rule changed in the last week, by service
+     * and version, for the scrub rule lists (#10366).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ScrubRuleValueCountsAPI);
 
     /*
      * What a drop or sample filter being written or turned on would take

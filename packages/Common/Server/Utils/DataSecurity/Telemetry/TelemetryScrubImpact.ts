@@ -6,6 +6,7 @@ import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import {
   DataSecurityScrubImpact,
   DataSecurityScrubRulePlan,
+  toScrubProofSummary,
 } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import {
@@ -41,11 +42,10 @@ import {
   CoveringScrubRule,
   findCoveringScrubRule,
   getScrubCoverage,
-  planScrubItRule,
   readFindingServiceId,
   readScrubbableTarget,
-  ScrubItRule,
 } from "./TelemetryScrubCoverage";
+import { planProvenScrubItRule, ProvenScrubItRule } from "./TelemetryScrubIt";
 
 /*
  * WHAT A SCRUB RULE WOULD TAKE AWAY, BEFORE IT IS MADE OR TURNED ON (#10433).
@@ -233,6 +233,8 @@ export async function getScrubItImpact(data: {
   location: string;
   serviceId?: ObjectID | string | null | undefined;
   storeKey?: string | null | undefined;
+  // The finding: the rule is proven on the records it was seen in (#10366).
+  findingId?: string | null | undefined;
   // The reader's: only what they may read is named; the rest is counted.
   props: DatabaseCommonInteractionProps;
 }): Promise<DataSecurityScrubImpact> {
@@ -288,7 +290,8 @@ export async function getScrubItImpact(data: {
       };
     }
 
-    const planned: ScrubItRule = await planScrubItRule({
+    // The proven, narrow rule a press would make (#10366).
+    const planned: ProvenScrubItRule = await planProvenScrubItRule({
       ...data,
       dataTypeId,
       location,
@@ -302,6 +305,20 @@ export async function getScrubItImpact(data: {
       fieldsToScrub: planned.plan.fieldsToScrub,
       dataTypeName: planned.dataTypeName,
     };
+
+    // Hashed, not redacted, where Security Events reads the address (#10396).
+    if (planned.plan.hashesForSecurityEvents) {
+      plan.hashesForSecurityEvents = true;
+    }
+
+    if ((planned.plan.attributeKeys || []).length > 0) {
+      plan.attributeKeys = [...planned.plan.attributeKeys!];
+    }
+
+    // What it was proven on, in counts: never a value.
+    if (planned.proof) {
+      plan.proof = toScrubProofSummary(planned.proof);
+    }
 
     if (planned.scope.serviceId) {
       plan.serviceId = planned.scope.serviceId.toString();
@@ -318,6 +335,7 @@ export async function getScrubItImpact(data: {
         fieldsToScrub: planned.plan.fieldsToScrub,
         serviceId: planned.scope.serviceId,
         dataTypeId,
+        attributeKeys: planned.plan.attributeKeys,
       },
       // The attribute the finding was seen in holds the type, whatever else does.
       knownKeys:

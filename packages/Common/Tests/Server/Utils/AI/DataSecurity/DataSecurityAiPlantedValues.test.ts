@@ -49,6 +49,17 @@ import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwner
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import DataStoreOwnerPlanner from "../../../../../Server/Utils/AI/DataSecurity/DataStoreOwnerPlanner";
+import ScrubRuleWriter from "../../../../../Server/Utils/AI/DataSecurity/ScrubRuleWriter";
+import { ContentScanOptions } from "../../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
+import {
+  readScrubPlanFindingRecord,
+  ScrubPlanFindingRecord,
+} from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubPlan";
+import { describeScrubPlace } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes";
+import { getScrubTarget } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import { ScrubRuleWriterPlace } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import { ScrubTarget } from "../../../../../Types/DataSecurity/TelemetryScrubTarget";
 import {
   DATA_STORE_FOR_OWNER_PLAN_SELECT,
   DataStoreForOwnerPlan,
@@ -86,6 +97,10 @@ import LLMService, {
   LLMCompletionRequest,
 } from "../../../../../Server/Utils/LLM/LLMService";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
+import DataSecurityIssueGroupService from "../../../../../Server/Services/DataSecurityIssueGroupService";
+import DataSecurityIssueGroupNaming from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
+import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
+import { DeclaredCodeOwnerReason } from "../../../../../Utils/AiRemediation/DeclaredCodeChange";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataStoreFinding from "../../../../../Models/DatabaseModels/DataStoreFinding";
 import LlmLog from "../../../../../Models/DatabaseModels/LlmLog";
@@ -159,6 +174,57 @@ const BUCKET_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a1";
 const TELEMETRY_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a2";
 const INFRA_ID: string = "10365000-0000-4000-8000-0000000000c1";
 const RUN_ID: ObjectID = new ObjectID("10365000-0000-4000-8000-0000000000f1");
+// A group of issues one mistake made, the bucket's among them (#10370).
+const GROUP_ID: string = "10370000-0000-4000-8000-0000000000d1";
+
+function groupRow(): StoredRow {
+  return {
+    _id: GROUP_ID,
+    projectId: PROJECT_ID.toString(),
+    groupKey: "public-read|aws|tag:module=card-exports",
+    checkId: "public-read",
+    cause: "DeclaredCode",
+    facts: {
+      cause: "DeclaredCode",
+      checkId: "public-read",
+      tag: ["module", "card-exports"],
+      tagRole: "Module",
+      code: {
+        repositoryId: INFRA_ID,
+        repositoryName: "acme/infra",
+        paths: ["modules/card-exports/main.tf"],
+        codeKind: "Terraform",
+        reason: "has-named-file",
+      },
+      storeKind: "AWS S3 Bucket",
+      provider: "aws",
+      managedAsCode: "Terraform",
+    },
+    name: null,
+    nameFactsHash: null,
+    issueCount: 1,
+    openIssueCount: 1,
+    codeTaskId: null,
+  };
+}
+
+// The bucket, declared by the module, and its issue in the group.
+function useIssueGroupTables(): void {
+  useInMemoryTable(asService(DataSecurityIssueGroupService), [groupRow()]);
+  useInMemoryTable(
+    asService(DataSecurityIssueService),
+    issueRows().map((row: StoredRow): StoredRow => {
+      return row["_id"] === BUCKET_ISSUE_ID
+        ? { ...row, dataSecurityIssueGroupId: GROUP_ID }
+        : row;
+    }),
+  );
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID, {
+      cloudTags: { module: "card-exports", "managed-by": "terraform" },
+    }),
+  ]);
+}
 
 // An analysis of an issue, as OneUptime AI answers one (#10369).
 const ANALYSIS_ANSWER: string = JSON.stringify({
@@ -573,7 +639,108 @@ async function post(
   return await server.request("POST", `/api${route}`, body);
 }
 
-// Each feature's run over the planted rows, and everything it sent.
+// What a scan reads with: the limits its sample is cut to.
+const SCAN_OPTIONS: ContentScanOptions = {
+  limits: {
+    maxObjects: 2000,
+    maxBytesPerObject: 65536,
+    maxBytesTotal: 52428800,
+    maxRowsPerTable: 1000,
+    maxTables: 200,
+    deadline: new Date(Date.now() + 60 * 60 * 1000),
+  },
+  customDetectors: [],
+  extraHints: [],
+  disabledDataTypeIds: new Set<string>(),
+  allowedValues: new Set<string>(),
+  exclusions: [],
+  fingerprintKey: "planted-values",
+};
+
+// The records a scrub rule is proven on, with a value planted in each (#10366).
+function plantedLogRows(): Array<JSONObject> {
+  // Enough values for a place to be described at all (MIN_UNPLACED_VALUES).
+  return Array.from({ length: 6 }, (_value: unknown, index: number) => {
+    return {
+      ownerId: "10365000-0000-4000-8000-0000000000e9",
+      recordTime: 1795000000000 + index,
+      readLogId:
+        index === 0
+          ? PLANTED["sampleRecordLog"]
+          : `10365000-0000-4000-8000-00000000070${index}`,
+      readAttributes: [
+        [
+          "user.email",
+          index % 2 === 0 ? PLANTED["logBody"] : PLANTED["maskedSample"],
+        ],
+      ],
+    } as JSONObject;
+  });
+}
+
+/*
+ * Each feature's run over the planted rows, and everything it sent.
+ * The group's two features (#10370), over the same planted rows.
+ */
+const nameIssueGroupRun: () => Promise<string> = async (): Promise<string> => {
+  useIssueGroupTables();
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+    id: PROJECT_ID,
+    enableAi: true,
+    enableAutomaticDataSecurityAi: true,
+  } as unknown as Project);
+  completion.mockResolvedValue({
+    content: JSON.stringify({
+      name: "the card-exports module leaves its buckets public",
+      facts: ["F1", "F2"],
+    }),
+    usage: { promptTokens: 200, completionTokens: 20, totalTokens: 220 },
+  });
+
+  await DataSecurityIssueGroupNaming.nameGroups({
+    projectId: PROJECT_ID,
+    groupIds: [new ObjectID(GROUP_ID)],
+  });
+
+  expect(completion).toHaveBeenCalledTimes(1);
+
+  return sentToTheModel();
+};
+
+const fixIssueGroupRun: () => Promise<string> = async (): Promise<string> => {
+  useIssueGroupTables();
+  jest
+    .spyOn(DataSecurityAiProposalService, "expireWaitingForGroup")
+    .mockResolvedValue(0);
+  jest.spyOn(DeclaredCodeOwner, "findCandidates").mockResolvedValue([
+    {
+      repository: {
+        id: INFRA_ID,
+        name: "infra",
+        organizationName: "acme",
+        repositoryName: "infra",
+      },
+      reason: DeclaredCodeOwnerReason.HasNamedFile,
+      matchedPaths: ["modules/card-exports/main.tf"],
+      score: 10,
+    },
+  ] as never);
+  const queued: SpyInstance<typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun> =
+    jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+  const sent: SentRequest = await post(
+    DATA_SECURITY_API_ROUTES.fixIssueGroup(GROUP_ID),
+    { parts: ["PullRequest"], codeRepositoryId: INFRA_ID },
+  );
+
+  expect(sent.status).toBe(200);
+  expect(queued).toHaveBeenCalledTimes(1);
+
+  return JSON.stringify(queued.mock.calls[0]![0]);
+};
+
 const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   [DataSecurityAiFeature.ExplainIssue]: async (): Promise<string> => {
     completion.mockResolvedValue({
@@ -693,6 +860,58 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * Scrub rules for what Scrub It cannot cover (#10366): the finding's own
+   * records - every value at its place planted - read into shapes, then
+   * the writer's call.
+   */
+  [DataSecurityAiFeature.WriteScrubRules]: async (): Promise<string> => {
+    jest
+      .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+      .mockResolvedValue(null);
+    completion.mockResolvedValue({
+      content: '{"rules":[]}',
+      usage: { promptTokens: 300, completionTokens: 20, totalTokens: 320 },
+    });
+
+    const target: ScrubTarget = getScrubTarget(
+      DataStoreKind.TelemetryLogs,
+      "attributes.user.email",
+    )!;
+    const record: ScrubPlanFindingRecord | null =
+      await readScrubPlanFindingRecord({
+        projectId: PROJECT_ID,
+        findingId: "10365000-0000-4000-8000-0000000000d1",
+        kind: DataStoreKind.TelemetryLogs,
+        target: target as ScrubTarget & { signal: "log" },
+      });
+
+    expect(record).not.toBeNull();
+
+    const place: ScrubRuleWriterPlace | null = await describeScrubPlace({
+      projectId: PROJECT_ID,
+      ref: "P1",
+      finding: record!,
+      dataTypeName: "Email address",
+      serviceId: "10365000-0000-4000-8000-0000000000e9",
+      options: SCAN_OPTIONS,
+      readRows: async (): Promise<Array<JSONObject>> => {
+        return plantedLogRows();
+      },
+      readNeighbours: async (): Promise<Array<string>> => {
+        return ["http.route", "user.id"];
+      },
+    });
+
+    expect(place).not.toBeNull();
+    expect(
+      (await ScrubRuleWriter.write({ projectId: PROJECT_ID, places: [place!] }))
+        .kind,
+    ).toBe("written");
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
   [DataSecurityAiFeature.AskAi]: async (): Promise<string> => {
     const ctx: ToolContext = { projectId: PROJECT_ID, props: { isRoot: true } };
     const results: Array<ToolExecutionResult> = [
@@ -721,6 +940,8 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
       })
       .join("\n");
   },
+  [DataSecurityAiFeature.NameIssueGroup]: nameIssueGroupRun,
+  [DataSecurityAiFeature.FixIssueGroup]: fixIssueGroupRun,
 };
 
 // What each feature is for, which its input must still carry.
@@ -753,6 +974,21 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "acme-card-exports",
     "Payments",
     "cloud tag",
+  ],
+  // The group's facts, never a store's name (#10370).
+  [DataSecurityAiFeature.NameIssueGroup]: ["card-exports", "Terraform"],
+  // The module, and each store and issue its one pull request fixes.
+  [DataSecurityAiFeature.FixIssueGroup]: [
+    "acme-card-exports",
+    "modules/card-exports/main.tf",
+    "FixInfrastructureCode",
+  ],
+  // The place, its type, the names beside it and the values' shapes - never a value.
+  [DataSecurityAiFeature.WriteScrubRules]: [
+    "attributes.user.email",
+    "Email address",
+    "http.route",
+    "aaaaa@aaaaaaa.aaa",
   ],
 };
 

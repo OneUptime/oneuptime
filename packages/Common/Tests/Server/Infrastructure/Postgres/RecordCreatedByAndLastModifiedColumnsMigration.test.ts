@@ -114,14 +114,19 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityCaseAiAction",
     migration: "1809187452000-AddSecurityCaseAiResponse.ts",
   },
+  // The groups of Data Security issues fixed at their one cause (#10370).
+  {
+    table: "DataSecurityIssueGroup",
+    migration: "1809187470370-AddDataSecurityIssueGroups.ts",
+  },
   // Automatic response's policies, and what each did (#10350).
   {
     table: "SecurityAutomaticResponsePolicy",
-    migration: "1809187460000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187480000-AddSecurityAutomaticResponse.ts",
   },
   {
     table: "SecurityAutomaticResponseAction",
-    migration: "1809187460000-AddSecurityAutomaticResponse.ts",
+    migration: "1809187480000-AddSecurityAutomaticResponse.ts",
   },
 ];
 

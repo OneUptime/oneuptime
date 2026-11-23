@@ -381,6 +381,8 @@ En konto kan høre til mange organisasjoner, så du kan bare fjerne innstillinge
 - noen som bare er invitert til prosjektet ditt og ikke har blitt med ennå;
 - master-admins, og deg selv: endre dine egne i **Brukerprofil**.
 
+For å fjerne én person åpner du **Brukere**: Raden til hver person du kan fjerne, viser **Påloggingsinnstillinger lagret**, og **Fjern påloggingsinnstillinger** i menyen dens fjerner bare den personens, etter samme regel og etter et spørsmål som viser hva som fjernes.
+
 Hver person som får innstillingene fjernet, får en e-post om hva som ble fjernet og at vedkommende nå logger på med SSO, og revisjonsloggene til prosjektene dine registrerer fjerningen som din. Bare en **Prosjekteier** kan fjerne, pålogget i dashbordet: aldri med en API-nøkkel.
 
 ## Slå av eller slette en leverandør

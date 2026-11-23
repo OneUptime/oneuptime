@@ -444,6 +444,8 @@
     "Stream Azure Monitor Metrics and Logs": "Azure Monitor のメトリクスとログのストリーミング",
     "Stream Google Cloud Logs": "Google Cloud のログのストリーミング",
     "Block Addresses in AWS WAF": "AWS WAF でアドレスをブロックする",
+    "Block Addresses in Azure WAF": "Azure WAF でアドレスをブロックする",
+    "Block Addresses in Cloud Armor": "Cloud Armor でアドレスをブロックする",
     "Cloud Costs and Savings": "クラウドのコストと節約",
     "Cloud Resources (IaaS & PaaS)": "クラウドリソース (IaaS と PaaS)",
     "AI / LLM Observability": "AI / LLM オブザーバビリティ",

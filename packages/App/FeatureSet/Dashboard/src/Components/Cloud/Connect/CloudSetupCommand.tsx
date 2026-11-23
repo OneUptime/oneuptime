@@ -123,6 +123,9 @@ export const ACCESS_EXTRA_LINES: Readonly<
   [CloudConnectionAccessExtra.WafRule]: translationKey(
     "OneUptime may also add its rule to the web ACLs you pick, and changes no rule of yours.",
   ),
+  [CloudConnectionAccessExtra.WafPolicyRules]: translationKey(
+    "Your blocklist may also keep OneUptime's own rules in the WAF policies you pick, and changes no rule of yours.",
+  ),
 };
 
 const ACCESS_EXTRA_ICONS: Readonly<
@@ -132,6 +135,7 @@ const ACCESS_EXTRA_ICONS: Readonly<
   [CloudConnectionAccessExtra.DataSecurityResponse]: IconProp.Wrench,
   [CloudConnectionAccessExtra.WafIpSets]: IconProp.NoSymbol,
   [CloudConnectionAccessExtra.WafRule]: IconProp.ShieldCheck,
+  [CloudConnectionAccessExtra.WafPolicyRules]: IconProp.ShieldCheck,
 };
 
 export interface ComponentProps {
@@ -177,6 +181,7 @@ const CloudSetupCommand: FunctionComponent<ComponentProps> = (
       dataSecurity: props.dataSecurity,
       dataSecurityResponse: props.dataSecurityResponse,
       wafBlocklist: props.wafBlocklist,
+      provider: props.definition.provider,
     });
   const isOrganization: boolean =
     props.scope === CloudConnectionSetupScope.Organization;

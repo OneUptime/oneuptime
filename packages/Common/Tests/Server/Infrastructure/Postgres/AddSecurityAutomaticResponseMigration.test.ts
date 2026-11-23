@@ -1,5 +1,5 @@
-import { AddSecurityAutomaticResponse1809187460000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187460000-AddSecurityAutomaticResponse";
-import { AddSecurityAutomaticResponseIndexesAndKeys1809187460010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187460010-AddSecurityAutomaticResponseIndexesAndKeys";
+import { AddSecurityAutomaticResponse1809187480000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-AddSecurityAutomaticResponse";
+import { AddSecurityAutomaticResponseIndexesAndKeys1809187480010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480010-AddSecurityAutomaticResponseIndexesAndKeys";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -66,10 +66,10 @@ function createTableOf(statements: Array<string>, table: string): string {
   return found!;
 }
 
-describe("AddSecurityAutomaticResponse1809187460000", () => {
+describe("AddSecurityAutomaticResponse1809187480000", () => {
   test("a policy starts off, and a block holds a challenge as a block only when a policy says so", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityAutomaticResponse1809187460000(),
+      new AddSecurityAutomaticResponse1809187480000(),
       "up",
     );
     const policy: string = createTableOf(up, "SecurityAutomaticResponsePolicy");
@@ -84,7 +84,7 @@ describe("AddSecurityAutomaticResponse1809187460000", () => {
 
   test("what a policy did goes with the policy and the case, and outlives the block and the run", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityAutomaticResponse1809187460000(),
+      new AddSecurityAutomaticResponse1809187480000(),
       "up",
     );
     const keyTo: (column: string) => string | undefined = (
@@ -110,7 +110,7 @@ describe("AddSecurityAutomaticResponse1809187460000", () => {
 
   test("the tables that hold data get nullable columns, or one with a constant default, and nothing else", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityAutomaticResponse1809187460000(),
+      new AddSecurityAutomaticResponse1809187480000(),
       "up",
     );
     const busy: Array<string> = ["SecurityBlock", "SecurityPlaybookRun", "SecurityCase"];
@@ -132,7 +132,7 @@ describe("AddSecurityAutomaticResponse1809187460000", () => {
 
   test("down() drops what up() made", async () => {
     const down: Array<string> = await recordQueries(
-      new AddSecurityAutomaticResponse1809187460000(),
+      new AddSecurityAutomaticResponse1809187480000(),
       "down",
     );
 
@@ -148,10 +148,10 @@ describe("AddSecurityAutomaticResponse1809187460000", () => {
   });
 });
 
-describe("AddSecurityAutomaticResponseIndexesAndKeys1809187460010", () => {
+describe("AddSecurityAutomaticResponseIndexesAndKeys1809187480010", () => {
   test("builds the blocklist's index and the blocklist's and the runs' keys online, outside a transaction, keeping a block and a run when their policy goes", async () => {
-    const migration: AddSecurityAutomaticResponseIndexesAndKeys1809187460010 =
-      new AddSecurityAutomaticResponseIndexesAndKeys1809187460010();
+    const migration: AddSecurityAutomaticResponseIndexesAndKeys1809187480010 =
+      new AddSecurityAutomaticResponseIndexesAndKeys1809187480010();
     const handed: Array<{ step: string; statement: string }> = [];
 
     for (const step of ["createIndex", "addForeignKey"] as const) {
@@ -199,10 +199,10 @@ describe("the order they run in", () => {
       return migration.name;
     });
     const tables: number = names.indexOf(
-      "AddSecurityAutomaticResponse1809187460000",
+      "AddSecurityAutomaticResponse1809187480000",
     );
     const keys: number = names.indexOf(
-      "AddSecurityAutomaticResponseIndexesAndKeys1809187460010",
+      "AddSecurityAutomaticResponseIndexesAndKeys1809187480010",
     );
 
     expect(tables).toBeGreaterThan(-1);
@@ -213,7 +213,7 @@ describe("the order they run in", () => {
     });
 
     for (const stamp of stamps.slice(0, tables)) {
-      expect(stamp).toBeLessThan(1809187460000);
+      expect(stamp).toBeLessThan(1809187480000);
     }
   });
 });

@@ -444,6 +444,8 @@
     "Stream Azure Monitor Metrics and Logs": "جریان‌دادن متریک‌ها و لاگ‌های Azure Monitor",
     "Stream Google Cloud Logs": "جریان‌دادن لاگ‌های Google Cloud",
     "Block Addresses in AWS WAF": "مسدود کردن نشانی‌ها در AWS WAF",
+    "Block Addresses in Azure WAF": "مسدود کردن نشانی‌ها در Azure WAF",
+    "Block Addresses in Cloud Armor": "مسدود کردن نشانی‌ها در Cloud Armor",
     "Cloud Costs and Savings": "هزینه‌ها و صرفه‌جویی‌های ابر",
     "Cloud Resources (IaaS & PaaS)": "منابع ابری (IaaS و PaaS)",
     "AI / LLM Observability": "مشاهده‌پذیری هوش مصنوعی / LLM",
