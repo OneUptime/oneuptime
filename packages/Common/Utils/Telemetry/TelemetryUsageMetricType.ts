@@ -1,4 +1,5 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 import TelemetryUsageMetricType from "../../Types/Telemetry/TelemetryUsageMetricType";
 
 /*
@@ -74,12 +75,13 @@ class TelemetryUsageMetricTypeUtil {
   /*
    * Doubles as the MetricType catalog description, so it has to make sense
    * to someone who finds the series in a metric picker with no Usage page in
-   * front of them.
+   * front of them. A figure and its minutes are held together, so a narrow
+   * picker never ends a line with "5".
    */
   public static getDescription(metricType: TelemetryUsageMetricType): string {
     switch (metricType) {
       case TelemetryUsageMetricType.UsageBytes:
-        return `Telemetry bytes a service or resource sent in ${TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES} minutes, decompressed, counted as they arrived, as ingestion budgets count them. One series per signal and resource: filter on the signal, resourceType and resourceName attributes. Written every ${TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES} minutes while the project publishes its usage as metrics, and only for what sent anything. Not counted as usage, nor billed.`;
+        return `Telemetry bytes a service or resource sent in ${TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES}${NO_BREAK_SPACE}minutes, decompressed, counted as they arrived, as ingestion budgets count them. One series per signal and resource: filter on the signal, resourceType and resourceName attributes. Written every ${TELEMETRY_USAGE_METRIC_INTERVAL_MINUTES}${NO_BREAK_SPACE}minutes while the project publishes its usage as metrics, and only for what sent anything. Not counted as usage, nor billed.`;
       default:
         throw new Error("Invalid TelemetryUsageMetricType value");
     }
