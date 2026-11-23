@@ -9,12 +9,13 @@ import DetectionRuleRetrohuntPanel from "../Retrohunt/DetectionRuleRetrohuntPane
 import { RUN_ON_PAST_EVENTS } from "../Retrohunt/RetrohuntCopy";
 import { buildRetrohuntRequest } from "../Retrohunt/RetrohuntModel";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
-import Dropdown, {
+import {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import { DropdownChange } from "Common/UI/Components/Dropdown/DropdownChange";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -30,8 +31,20 @@ import React, {
   useState,
 } from "react";
 
-// The rules the dialog offers: a project has a few hundred at most.
-export const LATE_ARRIVALS_RULES_LIMIT: number = 500;
+/*
+ * The rules the dialog offers: the project's, searched on the server as the
+ * picker is typed in, 50 by name (EntityDropdown). It read the first 500 by
+ * name, so a rule past them could not be run on past events (#10646).
+ */
+export const LATE_ARRIVALS_RULE_PICKER: {
+  modelType: typeof DetectionRule;
+  labelField: string;
+  valueField: string;
+} = {
+  modelType: DetectionRule,
+  labelField: "name",
+  valueField: "_id",
+};
 
 export interface ComponentProps {
   // The period Run on Past Events starts on: the one that reaches back to the late events.
@@ -49,10 +62,12 @@ const LateArrivalsRetrohuntModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [rules, setRules] = useState<Array<DropdownOption>>([]);
+  // Whether the project has a rule at all: one read, of one rule.
+  const [hasRules, setHasRules] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [ruleId, setRuleId] = useState<string>("");
+  const [chosen, setChosen] = useState<DropdownOption | null>(null);
+  const ruleId: string = chosen ? String(chosen.value) : "";
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -64,33 +79,17 @@ const LateArrivalsRetrohuntModal: FunctionComponent<ComponentProps> = (
       },
       select: {
         _id: true,
-        name: true,
       },
-      sort: {
-        name: SortOrder.Ascending,
-      },
+      sort: {},
       skip: 0,
-      limit: LATE_ARRIVALS_RULES_LIMIT,
+      limit: 1,
     })
       .then((result: ListResult<DetectionRule>) => {
         if (!isCurrent) {
           return;
         }
 
-        setRules(
-          result.data
-            .filter((rule: DetectionRule): boolean => {
-              return Boolean(rule._id);
-            })
-            .map((rule: DetectionRule): DropdownOption => {
-              return {
-                value: rule._id!.toString(),
-                label: rule.name || "",
-                // A name a person gave: drawn as written, never looked up.
-                isUserContent: true,
-              };
-            }),
-        );
+        setHasRules(result.data.length > 0);
         setIsLoading(false);
       })
       .catch((err: unknown) => {
@@ -106,12 +105,6 @@ const LateArrivalsRetrohuntModal: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, []);
-
-  const chosen: DropdownOption | undefined = rules.find(
-    (option: DropdownOption): boolean => {
-      return option.value === ruleId;
-    },
-  );
 
   return (
     <Modal
@@ -134,7 +127,7 @@ const LateArrivalsRetrohuntModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {!isLoading && !error && rules.length === 0 ? (
+        {!isLoading && !error && !hasRules ? (
           <p
             className="text-sm text-gray-600"
             data-testid={LATE_ARRIVALS_TEST_IDS.noRules}
@@ -145,16 +138,30 @@ const LateArrivalsRetrohuntModal: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {!isLoading && !error && rules.length > 0 ? (
-          <Dropdown
-            options={rules}
-            value={chosen}
+        {!isLoading && !error && hasRules ? (
+          <EntityDropdown
+            {...LATE_ARRIVALS_RULE_PICKER}
+            className="relative w-full"
+            value={chosen || undefined}
             placeholder={LATE_ARRIVALS_CHOOSE_RULE}
-            ariaLabel={LATE_ARRIVALS_RULE_LABEL}
+            ariaLabel={translator.translateText(LATE_ARRIVALS_RULE_LABEL)}
             isClearable={false}
             dataTestId={LATE_ARRIVALS_TEST_IDS.rule}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              setRuleId(typeof value === "string" ? value : "");
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+              change: DropdownChange,
+            ) => {
+              if (typeof value !== "string" || !value) {
+                setChosen(null);
+                return;
+              }
+
+              // A rule's name is a person's: drawn as written.
+              setChosen({
+                value: value,
+                label: change.selectedOptions[0]?.label || value,
+                isUserContent: true,
+              });
             }}
           />
         ) : (

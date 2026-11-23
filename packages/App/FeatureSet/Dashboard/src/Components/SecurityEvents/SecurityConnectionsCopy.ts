@@ -2,10 +2,13 @@ import SecurityLogFormat, {
   SecurityLogFormatGroup,
 } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import {
+  BLOCK_INDICATORS_KEY,
+  CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY,
   ENTRA_BACKGROUND_SIGN_INS_KEY,
   GOOGLE_WORKSPACE_DRIVE_KEY,
   MICROSOFT_365_AUDIT_KEY,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityEventDestinationScope from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import SecurityEventDestinationProvider from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -294,37 +297,64 @@ export const SECURITY_EVENT_DESTINATION_FIELD_TEXTS: Record<
 
 /*
  * The connection form's provider options (ConnectorField.isOption), by the
- * catalog's field key: asked on the form's last step with the connection's
- * other options. The form draws the catalog's own words; these only put
- * them in the locale files.
+ * catalog's connector and field key: asked on the form's last step with the
+ * connection's other options. A connector's options are listed under it,
+ * since two connectors may ask one option in words of their own: Microsoft
+ * Defender and CrowdStrike both block through BLOCK_INDICATORS_KEY
+ * (#10346). The form draws the catalog's own words; these only put them in
+ * the locale files.
  */
-export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
-  string,
-  SecurityConnectionsText
+export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Partial<
+  Record<
+    SecurityEventConnectorProvider,
+    Record<string, SecurityConnectionsText>
+  >
 > = {
-  closeAlertsWhenCaseCloses: {
-    title: translationKey("Close alerts when their case closes"),
-    description: translationKey(
-      "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
-    ),
+  [SecurityEventConnectorProvider.GoogleSecOps]: {
+    [CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY]: {
+      title: translationKey("Close alerts when their case closes"),
+      description: translationKey(
+        "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+      ),
+    },
   },
-  [ENTRA_BACKGROUND_SIGN_INS_KEY]: {
-    title: translationKey("Background and app sign-ins"),
-    description: translationKey(
-      "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
-    ),
+  [SecurityEventConnectorProvider.MicrosoftEntraId]: {
+    [ENTRA_BACKGROUND_SIGN_INS_KEY]: {
+      title: translationKey("Background and app sign-ins"),
+      description: translationKey(
+        "Also import failed sign-ins apps make in the background: non-interactive user sign-ins and service principal sign-ins.",
+      ),
+    },
+    [MICROSOFT_365_AUDIT_KEY]: {
+      title: translationKey("Microsoft 365 audit log"),
+      description: translationKey(
+        "Also import Exchange, SharePoint, OneDrive and Teams activity. The app registration needs the ActivityFeed.Read permission of the Office 365 Management APIs.",
+      ),
+    },
   },
-  [MICROSOFT_365_AUDIT_KEY]: {
-    title: translationKey("Microsoft 365 audit log"),
-    description: translationKey(
-      "Also import Exchange, SharePoint, OneDrive and Teams activity. The app registration needs the ActivityFeed.Read permission of the Office 365 Management APIs.",
-    ),
+  [SecurityEventConnectorProvider.GoogleWorkspace]: {
+    [GOOGLE_WORKSPACE_DRIVE_KEY]: {
+      title: translationKey("Drive activity"),
+      description: translationKey(
+        "Also import files shared outside the organization, made public or downloaded in Google Drive.",
+      ),
+    },
   },
-  [GOOGLE_WORKSPACE_DRIVE_KEY]: {
-    title: translationKey("Drive activity"),
-    description: translationKey(
-      "Also import files shared outside the organization, made public or downloaded in Google Drive.",
-    ),
+  [SecurityEventConnectorProvider.MicrosoftDefenderXdr]: {
+    [BLOCK_INDICATORS_KEY]: {
+      title: translationKey("Block domains, addresses and files with Defender"),
+      description: translationKey(
+        "OneUptime adds Defender indicators for what you block. Needs the WindowsDefenderATP permission Ti.ReadWrite.All, with admin consent.",
+      ),
+    },
+  },
+  [SecurityEventConnectorProvider.CrowdStrikeFalcon]: {
+    [BLOCK_INDICATORS_KEY]: {
+      title: translationKey("Block files with CrowdStrike"),
+      description: translationKey(
+        "OneUptime adds custom IOCs that stop a file running on every computer. Needs the IOC Management: Read and Write scopes.",
+      ),
+    },
   },
 };
 

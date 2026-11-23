@@ -159,8 +159,11 @@ const NOT_TYPE_CHANGES: ReadonlySet<string> = new Set([
   "RESTART",
 ]);
 
-// The step that undoes a migration: everything from it on is left out.
-const DOWN_STEP: RegExp =
+/*
+ * The step that undoes a migration: everything from it on is left out -
+ * here, and by the Sensitive data section's migration rules.
+ */
+export const DOWN_STEP: RegExp =
   /\b(?:public\s+)?(?:async\s+)?down\s*\(|\bdef\s+down(?:grade)?\b|\bdown\s*:\s*(?:async\s*)?(?:\(|function)|\bexports\.down\b|--\s*\+migrate\s+down|--\s*migrate:down/i;
 
 const MIGRATION_DIRECTORY: RegExp =

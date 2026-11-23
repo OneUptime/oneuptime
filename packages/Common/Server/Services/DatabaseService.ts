@@ -82,6 +82,9 @@ import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import WriteProgress from "../Utils/Database/WriteProgress";
+import RetiredColumns, {
+  RetiredColumnsQuery,
+} from "../Utils/Database/RetiredColumns";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
 import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -9480,6 +9483,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     upTo,
   }: CountBy<TBaseModel>): Promise<PositiveNumber> {
     try {
+      // A column the model no longer has, read as empty (RetiredColumns).
+      const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+        RetiredColumns.readQuery(this.model, query);
+
+      if (retired.matchesNothing) {
+        return new PositiveNumber(0);
+      }
+
+      query = retired.query;
+
       if (groupBy && Object.keys(groupBy).length > 0) {
         throw new BadDataException("Group By is not supported for countBy");
       }
@@ -9897,6 +9910,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     hardDeletes.add(deleteBy);
 
     try {
+      // A query on a column the model no longer has (RetiredColumns).
+      if (this.takeOutRetiredColumnsOfDelete(deleteBy).matchesNothing) {
+        return 0;
+      }
+
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
         DatabaseRequestType.Delete,
@@ -10271,6 +10289,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       this.setTelemetryContextFromProps(deleteBy.props);
 
+      // A query on a column the model no longer has (RetiredColumns).
+      if (this.takeOutRetiredColumnsOfDelete(deleteBy).matchesNothing) {
+        return 0;
+      }
+
       deleteBy.props = await this.checkCallerBeforeHooks(
         deleteBy.props,
         DatabaseRequestType.Delete,
@@ -10369,23 +10392,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       rowsOfDelete = items;
 
       /*
-       * We are hard deleting anyway. So, this does not make sense. Please uncomment if
-       * we change the code to soft-delete.
-       */
-
-      /*
-       * await this._updateBy({
-       *     query: deleteBy.query,
-       *     data: {
-       *         deletedByUserId: deleteBy.props.userId,
-       *     } as any,
-       *     limit: deleteBy.limit,
-       *     skip: deleteBy.skip,
-       *     props: {
-       *         isRoot: true,
-       *         ignoreHooks: true,
-       *     },
-       * });
+       * Rows are deleted outright, so no row keeps who deleted it: the audit
+       * log's Delete entries do (who, when, and the record as it was). The
+       * deletedByUserId column no write ever filled went in #10469
+       * (Types/Database/RetiredColumns).
        */
 
       let numberOfDocsAffected: number = 0;
@@ -11616,12 +11626,99 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     };
   }
 
+  /*
+   * A read that still names a column every record had and no model has now
+   * - who deleted it (RetiredColumns, #10469) - reads as it always did: the
+   * select and the sort leave it out (the API answers it as null), and a
+   * query reads it as empty on every record, so a condition that holds for
+   * an empty column is dropped, and any other means nothing matches.
+   * Replaced on the read, never changed in place: the caller's own objects
+   * stay as they are, and a read that names none is left alone.
+   */
+  private takeOutRetiredColumnsOfRead(
+    findBy: FindBy<TBaseModel>,
+  ): RetiredColumnsQuery<Query<TBaseModel>> {
+    const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+      RetiredColumns.readQuery(this.model, findBy.query);
+
+    if (retired.query !== findBy.query) {
+      findBy.query = retired.query;
+    }
+
+    const select: FindBy<TBaseModel>["select"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.select,
+    );
+
+    if (select !== findBy.select) {
+      findBy.select = select;
+    }
+
+    const sort: FindBy<TBaseModel>["sort"] = RetiredColumns.takeOutOfSort(
+      this.model,
+      findBy.sort,
+    );
+
+    if (sort !== findBy.sort) {
+      findBy.sort = sort;
+    }
+
+    const groupBy: FindBy<TBaseModel>["groupBy"] = RetiredColumns.takeOut(
+      this.model,
+      findBy.groupBy,
+    );
+
+    if (groupBy !== findBy.groupBy) {
+      findBy.groupBy = groupBy;
+    }
+
+    return retired;
+  }
+
+  /*
+   * An update's data without a value for a column every record had and no
+   * model has now (RetiredColumns, #10469): dropped, as a value for a column
+   * only OneUptime writes is (UserAttribution), so a client that still sends
+   * one keeps working. A copy when it names one; a model instance has no
+   * such field.
+   */
+  private takeOutRetiredColumnsOfWrite<TData>(data: TData): TData {
+    if (data instanceof BaseModel) {
+      return data;
+    }
+
+    return RetiredColumns.takeOut(this.model, data);
+  }
+
+  /*
+   * A delete's query read as takeOutRetiredColumnsOfRead reads a read's:
+   * one that cannot match deletes nothing, and one that holds for every
+   * record deletes what the rest of it names - never more than it did.
+   */
+  private takeOutRetiredColumnsOfDelete(
+    deleteBy: DeleteBy<TBaseModel>,
+  ): RetiredColumnsQuery<Query<TBaseModel>> {
+    const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+      RetiredColumns.readQuery(this.model, deleteBy.query);
+
+    if (retired.query !== deleteBy.query) {
+      deleteBy.query = retired.query;
+    }
+
+    return retired;
+  }
+
   private async _findBy(
     findBy: FindBy<TBaseModel>,
     withDeleted?: boolean | undefined,
   ): Promise<Array<TBaseModel>> {
     try {
       this.setTelemetryContextFromProps(findBy.props);
+
+      // What it names that the model no longer has. See the helper.
+      if (this.takeOutRetiredColumnsOfRead(findBy).matchesNothing) {
+        return [];
+      }
 
       const narrowed: {
         findBy: FindBy<TBaseModel>;
@@ -12100,6 +12197,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     try {
       this.setTelemetryContextFromProps(updateBy.props);
+
+      /*
+       * A column the model no longer has (RetiredColumns): a value for it is
+       * dropped, and a query on it is read as it is empty on every record.
+       */
+      updateBy.data = this.takeOutRetiredColumnsOfWrite(updateBy.data);
+
+      const retired: RetiredColumnsQuery<Query<TBaseModel>> =
+        RetiredColumns.readQuery(this.model, updateBy.query);
+
+      if (retired.matchesNothing) {
+        return 0;
+      }
+
+      updateBy.query = retired.query;
 
       // A model becomes the columns it writes before anything judges it.
       updateBy.data = this.sanitizeUpdateData(updateBy.data);
@@ -13463,6 +13575,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     if (!updateById.id) {
       throw new BadDataException("updateById.id is required");
     }
+
+    // A value for a column the model no longer has is dropped (RetiredColumns).
+    updateById.data = this.takeOutRetiredColumnsOfWrite(updateById.data);
 
     // Entries to add to its lists and take off them, as whole lists. See the helper.
     const listWrite: ListWriteOfUpdate<TBaseModel> | null =

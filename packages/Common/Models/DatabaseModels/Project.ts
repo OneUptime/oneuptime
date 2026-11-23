@@ -42,11 +42,13 @@ import {
 } from "../../Types/Retention/ResolvedRecordRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
-import {
-  SECURITY_CASE_AI_MODES,
-  SecurityCaseAiMode,
-} from "../../Types/SecurityCase/SecurityCaseAi";
-import { SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT } from "../../Types/SecurityCase/SecurityCaseAiHold";
+/*
+ * The modes alone (SecurityCaseAiMode), not SecurityCaseAi: every page that
+ * draws a project would load its blocks and verdicts with them. The same
+ * for how long OneUptime AI holds a case's alerts (SecurityCaseAiHoldMinutes).
+ */
+import { SecurityCaseAiMode } from "../../Types/SecurityCase/SecurityCaseAiMode";
+import { SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT } from "../../Types/SecurityCase/SecurityCaseAiHoldMinutes";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -601,64 +603,6 @@ export default class Project extends TenantModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    title: "Deleted by User",
-    // Lazy: User imports Project back (User.sampleProject; see modelTypeThunk).
-    modelTypeThunk: () => {
-      return User;
-    },
-    description:
-      "Relation to User who deleted this object (if this object was deleted by a User)",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      cascade: false,
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ReadProject,
-      Permission.UnAuthorizedSsoUser,
-      Permission.ProjectUser,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted by User ID",
-    description:
-      "User ID who deleted this object (if this object was deleted by a User)",
-    example: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2751,7 +2695,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Case",
     description:
       "What OneUptime AI may do to the case itself - take it, set its priority, mark steps done with their evidence, and move it to Contained once every containment step is verified: Off, Ask or OnItsOwn.",
@@ -2783,7 +2727,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Edge",
     description:
       "Whether OneUptime AI may block a case's address at the edge, for at most 24 hours: Off, Ask or OnItsOwn. OnItsOwn takes effect only once a Security Admin confirms it; until then OneUptime AI asks.",
@@ -2815,7 +2759,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Accounts",
     description:
       "Whether OneUptime AI may suspend a case's user or end their sessions, through the project's identity provider connection: Off, Ask or OnItsOwn.",
@@ -2847,7 +2791,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Hosts",
     description:
       "Whether OneUptime AI may contain or isolate a case's host, through the project's EDR connection: Off, Ask or OnItsOwn.",
@@ -2879,7 +2823,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Code",
     description:
       "Whether OneUptime AI may ask Fix With AI for a pull request that fixes the route a case's attack reached: Off, Ask or OnItsOwn. A person always merges the pull request.",
@@ -2911,7 +2855,7 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.ShortText,
-    allowedValues: SECURITY_CASE_AI_MODES,
+    allowedValues: Object.values(SecurityCaseAiMode),
     title: "Security Case AI: Close",
     description:
       "Whether OneUptime AI may close a case with a verdict and a closing report once every step is done and its detection has been quiet for 24 hours: Off, Ask or OnItsOwn.",

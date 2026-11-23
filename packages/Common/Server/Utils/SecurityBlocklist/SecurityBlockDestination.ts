@@ -6,6 +6,7 @@ import {
   getSecurityBlockReach,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
 import { SecurityBlockDestinationProvider } from "../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { SecurityBlockReason } from "../../../Types/SecurityBlocklist/SecurityBlockReason";
 
 /*
  * A PLACE THAT ENFORCES THE BLOCKLIST (#10338): Cloudflare's lists, an AWS
@@ -108,6 +109,8 @@ export interface SecurityBlockHeldItem {
    * removed meanwhile.
    */
   notInForceReason?: string | undefined;
+  // The same, as a sentence the Dashboard words in the reader's language (#10629).
+  notInForceSentence?: SecurityBlockReason | undefined;
 }
 
 // An entry to move the end of, and the item at the provider that holds it.
@@ -123,6 +126,8 @@ export type SecurityBlockSupport =
       isSupported: false;
       // Shown on the block as "Not applied: <reason>": "Azure WAF cannot challenge".
       reason: string;
+      // The same, as a sentence the Dashboard words in the reader's language (#10629).
+      reasonSentence?: SecurityBlockReason | undefined;
     };
 
 // How many entries a destination holds at most.
@@ -134,6 +139,8 @@ export interface SecurityBlockCapacity {
    * WAF IP set is full (10,000)". Without one: "<name> is full (<limit>)".
    */
   fullReason?: string | undefined;
+  // The same, as a sentence the Dashboard words in the reader's language (#10629).
+  fullSentence?: SecurityBlockReason | undefined;
 }
 
 // What became of one entry a destination was asked to add or remove.
@@ -144,6 +151,8 @@ export interface SecurityBlockWriteResult {
   providerRef?: string | undefined;
   // Why it was not done, in the provider's words after OneUptime's.
   error?: string | undefined;
+  // The same, as a sentence the Dashboard words in the reader's language (#10629).
+  errorSentence?: SecurityBlockReason | undefined;
 }
 
 export default interface SecurityBlockDestination {

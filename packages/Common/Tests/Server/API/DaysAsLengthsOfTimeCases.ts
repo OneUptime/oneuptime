@@ -11,6 +11,7 @@ import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import SecurityDetectionService from "../../../Server/Services/SecurityDetectionService";
 import SecurityEntityRiskService from "../../../Server/Services/SecurityEntityRiskService";
 import SecurityPlaybookRunService from "../../../Server/Services/SecurityPlaybookRunService";
+import { SecurityAddressVaultService } from "../../../Server/Services/SecurityAddressVaultService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import DataObservabilityAttentionReader from "../../../Server/Utils/DataObservability/DataObservabilityAttentionReader";
 import DataSecurityEvaluator from "../../../Server/Utils/DataSecurity/DataSecurityEvaluator";
@@ -30,6 +31,7 @@ import {
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
+import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../../../Models/AnalyticsModels/SecurityAddressVault";
 import { SCHEMA_CHANGE_WINDOW_IN_DAYS } from "../../../Types/DataObservability/DataObservabilityApiTypes";
 import { DataSecurityOverview } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import {
@@ -670,6 +672,20 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
             return now.getTime() - date.getTime();
           }),
         ).toEqual([ENTITY_RISK_HISTORY_IN_DAYS * DAY_MS]);
+      },
+    );
+  });
+
+  describe("the Security Events address vault names an address for 30 days", () => {
+    test.each(moments.map(windowLabel))(
+      "from %s, the oldest an address may have been seen and still be named is 30 x 24 hours ago",
+      (iso: string) => {
+        const now: Date = new Date(iso);
+
+        expect(
+          now.getTime() -
+            SecurityAddressVaultService.getOldestNameableTime(now).getTime(),
+        ).toBe(SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS * DAY_MS);
       },
     );
   });

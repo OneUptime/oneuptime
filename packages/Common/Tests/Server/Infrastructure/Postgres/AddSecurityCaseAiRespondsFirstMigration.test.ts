@@ -1,5 +1,5 @@
-import { AddSecurityCaseAiRespondsFirst1809187453000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187453000-AddSecurityCaseAiRespondsFirst";
-import { AddSecurityCaseAiHoldUntilIndex1809187453010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187453010-AddSecurityCaseAiHoldUntilIndex";
+import { AddSecurityCaseAiRespondsFirst1809187490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187490000-AddSecurityCaseAiRespondsFirst";
+import { AddSecurityCaseAiHoldUntilIndex1809187490010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187490010-AddSecurityCaseAiHoldUntilIndex";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
@@ -112,7 +112,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityCaseAiRespondsFirst1809187453000()[direction](
+  await new AddSecurityCaseAiRespondsFirst1809187490000()[direction](
     queryRunner,
   );
 
@@ -136,7 +136,7 @@ function declaredColumn(entry: AddedColumn): ColumnMetadataArgs {
   return found as ColumnMetadataArgs;
 }
 
-describe("AddSecurityCaseAiRespondsFirst1809187453000", () => {
+describe("AddSecurityCaseAiRespondsFirst1809187490000", () => {
   test("up() adds each column, in this order, as TypeORM generated it", async () => {
     expect(await recordQueries("up")).toEqual(
       COLUMNS.map((entry: AddedColumn): string => {
@@ -211,7 +211,7 @@ describe("AddSecurityCaseAiRespondsFirst1809187453000", () => {
   });
 });
 
-describe("AddSecurityCaseAiHoldUntilIndex1809187453010", () => {
+describe("AddSecurityCaseAiHoldUntilIndex1809187490010", () => {
   test("builds the model's index of when a hold runs out, online and outside a transaction", () => {
     const index: IndexMetadataArgs | undefined = getMetadataArgsStorage()
       .indices.filter((entry: IndexMetadataArgs): boolean => {
@@ -226,14 +226,14 @@ describe("AddSecurityCaseAiHoldUntilIndex1809187453010", () => {
       });
 
     expect(index).toBeDefined();
-    expect(new AddSecurityCaseAiHoldUntilIndex1809187453010().transaction).toBe(
+    expect(new AddSecurityCaseAiHoldUntilIndex1809187490010().transaction).toBe(
       false,
     );
 
     const source: string = fs.readFileSync(
       path.join(
         MIGRATIONS_DIR,
-        "1809187453010-AddSecurityCaseAiHoldUntilIndex.ts",
+        "1809187490010-AddSecurityCaseAiHoldUntilIndex.ts",
       ),
       "utf8",
     );
@@ -251,25 +251,25 @@ describe("where they run", () => {
   test("both are registered after OneUptime AI working cases, the columns right before their index", () => {
     const previous: number = registeredNames.indexOf(PREVIOUS_CLASS_NAME);
     const columns: number = registeredNames.indexOf(
-      new AddSecurityCaseAiRespondsFirst1809187453000().name,
+      new AddSecurityCaseAiRespondsFirst1809187490000().name,
     );
 
     expect(previous).toBeGreaterThanOrEqual(0);
     expect(columns).toBeGreaterThan(previous);
     expect(registeredNames[columns + 1]).toBe(
-      new AddSecurityCaseAiHoldUntilIndex1809187453010().name,
+      new AddSecurityCaseAiHoldUntilIndex1809187490010().name,
     );
   });
 
   test("each class's name ends with the timestamp its file starts with", () => {
     for (const [file, name] of [
       [
-        "1809187453000-AddSecurityCaseAiRespondsFirst.ts",
-        new AddSecurityCaseAiRespondsFirst1809187453000().name,
+        "1809187490000-AddSecurityCaseAiRespondsFirst.ts",
+        new AddSecurityCaseAiRespondsFirst1809187490000().name,
       ],
       [
-        "1809187453010-AddSecurityCaseAiHoldUntilIndex.ts",
-        new AddSecurityCaseAiHoldUntilIndex1809187453010().name,
+        "1809187490010-AddSecurityCaseAiHoldUntilIndex.ts",
+        new AddSecurityCaseAiHoldUntilIndex1809187490010().name,
       ],
     ] as Array<[string, string]>) {
       expect(fs.existsSync(path.join(MIGRATIONS_DIR, file))).toBe(true);

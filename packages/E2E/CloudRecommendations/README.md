@@ -22,7 +22,9 @@ npm run test-cloud-recommendations-ui
 ## Dataset
 
 An "Acme Commerce" workspace with one AWS account, `Production`, that a
-connection reads (`Fixture/Data.js`): an Application Load Balancer, `web-alb`,
+connection reads every 10 minutes, AWS's default, and streams nothing, so each
+recommended monitor's window is its template's (#10028). The account holds
+(`Fixture/Data.js`) an Application Load Balancer, `web-alb`,
 in front of three EC2 instances (`web-3` so new its metrics have not arrived),
 two RDS instances (`orders-db`, whose inventory lists its class, engine,
 allocated storage and a parameter group of the team's own, and `reports-db`,

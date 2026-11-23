@@ -151,11 +151,15 @@ async function openRunbook(
 }
 
 function desktopMenu(page: Page): Locator {
-  return page.locator("aside[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "aside[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 function phoneMenu(page: Page): Locator {
-  return page.locator("div[role='navigation'][aria-label='Pages in this section']");
+  return page.locator(
+    "div[role='navigation'][aria-label='Pages in this section']",
+  );
 }
 
 // A section's toggle, by its heading's text (CSS draws it in capitals).

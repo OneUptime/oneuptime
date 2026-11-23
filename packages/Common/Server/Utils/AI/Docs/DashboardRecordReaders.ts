@@ -55,10 +55,15 @@ import WorkflowService from "../../../Services/WorkflowService";
  * may read that has none.
  */
 
-export type DashboardRecordReader = (data: {
+// The record to read, and the props of whoever asked.
+export type DashboardRecordToRead = {
   id: ObjectID;
   props: DatabaseCommonInteractionProps;
-}) => Promise<string | null>;
+};
+
+export type DashboardRecordReader = (
+  data: DashboardRecordToRead,
+) => Promise<string | null>;
 
 // A name as read, or "" for none.
 const nameOf: (name: string | undefined | null) => string = (
@@ -70,7 +75,9 @@ const nameOf: (name: string | undefined | null) => string = (
 export const DASHBOARD_RECORD_READERS: Readonly<
   Record<AskAiRecordKind, DashboardRecordReader>
 > = {
-  [AskAiRecordKind.StatusPage]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.StatusPage]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: StatusPage | null = await StatusPageService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -78,7 +85,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Monitor]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Monitor]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Monitor | null = await MonitorService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -86,7 +95,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Incident]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Incident]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Incident | null = await IncidentService.findOneById({
       id: data.id,
       select: {
@@ -107,7 +118,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
         })
       : null;
   },
-  [AskAiRecordKind.Alert]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Alert]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Alert | null = await AlertService.findOneById({
       id: data.id,
       select: {
@@ -128,7 +141,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
         })
       : null;
   },
-  [AskAiRecordKind.OnCallPolicy]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.OnCallPolicy]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: OnCallDutyPolicy | null =
       await OnCallDutyPolicyService.findOneById({
         id: data.id,
@@ -137,7 +152,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
       });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.OnCallSchedule]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.OnCallSchedule]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: OnCallDutyPolicySchedule | null =
       await OnCallDutyPolicyScheduleService.findOneById({
         id: data.id,
@@ -147,7 +164,7 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     return record ? nameOf(record.name) : null;
   },
   [AskAiRecordKind.IncomingCallPolicy]: async (
-    data,
+    data: DashboardRecordToRead,
   ): Promise<string | null> => {
     const record: IncomingCallPolicy | null =
       await IncomingCallPolicyService.findOneById({
@@ -157,7 +174,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
       });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.MaintenanceEvent]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.MaintenanceEvent]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: ScheduledMaintenance | null =
       await ScheduledMaintenanceService.findOneById({
         id: data.id,
@@ -179,7 +198,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
         })
       : null;
   },
-  [AskAiRecordKind.Service]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Service]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Service | null = await ServiceService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -187,7 +208,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Team]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Team]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Team | null = await TeamService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -195,7 +218,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Workflow]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Workflow]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Workflow | null = await WorkflowService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -203,7 +228,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Dashboard]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Dashboard]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Dashboard | null = await DashboardService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -211,7 +238,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Runbook]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Runbook]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Runbook | null = await RunbookService.findOneById({
       id: data.id,
       select: { _id: true, name: true },
@@ -219,7 +248,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
     });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Slo]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Slo]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: ServiceLevelObjective | null =
       await ServiceLevelObjectiveService.findOneById({
         id: data.id,
@@ -228,7 +259,9 @@ export const DASHBOARD_RECORD_READERS: Readonly<
       });
     return record ? nameOf(record.name) : null;
   },
-  [AskAiRecordKind.Form]: async (data): Promise<string | null> => {
+  [AskAiRecordKind.Form]: async (
+    data: DashboardRecordToRead,
+  ): Promise<string | null> => {
     const record: Form | null = await FormService.findOneById({
       id: data.id,
       select: { _id: true, name: true },

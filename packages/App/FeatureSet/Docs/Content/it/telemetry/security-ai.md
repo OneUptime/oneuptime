@@ -120,7 +120,7 @@ Un passaggio che la regola di rilevamento del caso aggiunge di suo, e tutto ciò
 
 Ogni passaggio che OneUptime AI esegue passa per il motore dei playbook, come un'esecuzione di un solo passaggio nella pagina **Playbook** del caso, con **OneUptime AI** come trigger. Quindi attende l'approvazione, lascia stare le entità protette, compare nella cronologia del caso, resta nel log di audit e si può annullare, come un passaggio eseguito da chiunque, e la cronologia dice che era di OneUptime AI. Un passaggio su cui chiede attende l'approvazione di una persona, sul caso, nella sua pagina **Playbook** o con un tocco in Slack o Microsoft Teams.
 
-### Il suo registro sul caso
+### Il suo log sul caso
 
 Sotto la classificazione, la scheda **OneUptime AI** dice come OneUptime AI sta gestendo il caso, in **Gestione del caso**:
 

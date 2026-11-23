@@ -17,12 +17,16 @@ import SecurityEventRequestOutcome, {
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import { resolveClientAddress } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { RequestTraceAssessment } from "Common/Utils/SecurityEvent/RequestOutcome";
+import SecurityLogParser from "Common/Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import WebAttackLogParser from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
   HiddenClientAddress,
   ScrubbedAddressKind,
   ScrubbedAddressPlace,
+  ScrubbedAddressRole,
+  markAddressScrubbed,
   markClientAddressScrubbed,
+  nameAddressScrubRule,
   nameClientAddressScrubRule,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
@@ -497,6 +501,7 @@ describe("an event's Principal IP", () => {
         ruleId: RULE_ID,
         ruleName: "Scrub IP addresses",
       } as HiddenClientAddress,
+      hiddenAddressRole: ScrubbedAddressRole.Principal,
       facetKey: "attributes.oneuptime.request.client_address_hidden",
       facetValue: "scrub-rule",
     });
@@ -531,6 +536,131 @@ describe("an event's Principal IP", () => {
 
     expect(fields.buildHiddenPrincipalIpField(parsed)?.hiddenAddress).toEqual(
       expect.objectContaining({ value: "[REDACTED]", signal: "log" }),
+    );
+  });
+});
+
+/*
+ * An event's destination a scrub rule hid (#10419): a firewall's denied
+ * connection, an outbound transfer. Target IP says so where it would name
+ * the address, with the rule, and filters to every such event.
+ */
+describe("an event's Target IP", () => {
+  const TOKEN: string = "[HASHED:3f9a1c0be27d4e5a]";
+
+  function securityEvent(fields: Partial<SecurityEvent>): SecurityEvent {
+    return Object.assign(new SecurityEvent(), fields);
+  }
+
+  function targetHidden(ruleName?: string): { [key: string]: string } {
+    const attributes: JSONObject = {};
+
+    markAddressScrubbed(attributes, {
+      role: ScrubbedAddressRole.Target,
+      scrubbed: { kind: ScrubbedAddressKind.Hashed, value: TOKEN },
+      place: ScrubbedAddressPlace.LogBody,
+    });
+
+    if (ruleName) {
+      nameAddressScrubRule(attributes, ScrubbedAddressRole.Target, {
+        id: RULE_ID,
+        name: ruleName,
+      });
+    }
+
+    return attributes as { [key: string]: string };
+  }
+
+  test("says a scrub rule hid it, with the rule, and filters to every event whose destination a rule hid", () => {
+    const built: ReturnType<Fields["buildSecurityEventOverviewFields"]> =
+      fields.buildSecurityEventOverviewFields(
+        securityEvent({
+          className: "Network Activity",
+          principalIp: "203.0.113.7",
+          targetIp: "",
+          attributes: targetHidden("Hash IP addresses"),
+        }),
+      );
+
+    expect(
+      built.map((field: (typeof built)[number]): string => {
+        return field.label;
+      }),
+    ).toEqual(["Event Class", "Principal IP", "Target IP"]);
+    expect(built[2]).toEqual({
+      label: "Target IP",
+      value: copy.HIDDEN_BY_A_SCRUB_RULE,
+      isValueTranslated: true,
+      hiddenAddress: {
+        kind: ScrubbedAddressKind.Hashed,
+        value: TOKEN,
+        place: ScrubbedAddressPlace.LogBody,
+        signal: "log",
+        ruleId: RULE_ID,
+        ruleName: "Hash IP addresses",
+      } as HiddenClientAddress,
+      hiddenAddressRole: ScrubbedAddressRole.Target,
+      facetKey: "attributes.oneuptime.target_address_hidden",
+      facetValue: "scrub-rule",
+    });
+    // The source the event names is its address, as it always was.
+    expect(built[1]).toEqual({
+      label: "Principal IP",
+      value: "203.0.113.7",
+      facetKey: "principalIp",
+    });
+  });
+
+  test("is the address once the vault names it, and left out when the event says nothing of one", () => {
+    expect(
+      fields.buildSecurityEventOverviewFields(
+        securityEvent({ targetIp: "198.51.100.9", attributes: targetHidden() }),
+      ),
+    ).toEqual([
+      { label: "Target IP", value: "198.51.100.9", facetKey: "targetIp" },
+    ]);
+    expect(
+      fields.buildSecurityEventOverviewFields(
+        securityEvent({ targetIp: "", attributes: {} }),
+      ),
+    ).toEqual([]);
+    expect(fields.buildHiddenTargetIpField(securityEvent({}))).toBeNull();
+    // A hidden source says nothing of the destination.
+    expect(
+      fields.buildHiddenTargetIpField(
+        securityEvent({ attributes: hiddenAttributes({}) }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a firewall line Check a log line reads, its destination hidden, says so too", () => {
+    const parsed: NormalizedSecurityEvent = SecurityLogParser.parse({
+      body: `CEF:0|Palo Alto Networks|PAN-OS|10.1.0|deny|TRAFFIC|1|rt=1730282400000 src=192.0.2.10 dst=${TOKEN} spt=50000 dpt=443 proto=tcp act=deny`,
+      attributes: {},
+      time: new Date("2026-11-20T10:00:05.000Z"),
+    })[0]!;
+
+    expect(parsed.targetIp).toBe("");
+    expect(fields.buildHiddenTargetIpField(parsed)).toEqual(
+      expect.objectContaining({
+        label: "Target IP",
+        hiddenAddressRole: ScrubbedAddressRole.Target,
+        hiddenAddress: expect.objectContaining({
+          kind: ScrubbedAddressKind.Hashed,
+          value: TOKEN,
+          signal: "log",
+        }),
+      }),
+    );
+    expect(fields.buildHiddenPrincipalIpField(parsed)).toBeNull();
+  });
+
+  test("its filter says what it shows: events whose target address a scrub rule hid", () => {
+    expect(copy.FILTER_BY_HIDDEN_TARGET_ADDRESS).toBe(
+      "Show events whose target address a scrub rule hid",
+    );
+    expect(copy.FILTER_BY_HIDDEN_TARGET_ADDRESS).not.toBe(
+      copy.FILTER_BY_HIDDEN_ADDRESS,
     );
   });
 });
@@ -768,6 +898,8 @@ describe("Security Events' setup", () => {
         signal: "log",
         sentence: copy.LOG_ADDRESSES_SCRUBBED,
         ruleSentence: copy.SCRUB_RULE_REDACTS_THEM,
+        // The rule Hash Instead switches (#10396).
+        ruleId: "l-1",
         ruleName: "Scrub IP addresses",
         rulesPage: PageMap.LOGS_SETTINGS_SCRUB_RULES,
       },
@@ -775,6 +907,7 @@ describe("Security Events' setup", () => {
         signal: "trace",
         sentence: copy.TRACE_ADDRESSES_SCRUBBED,
         ruleSentence: copy.SCRUB_RULE_MASKS_THEM,
+        ruleId: "t-1",
         ruleName: "Mask IPs in spans",
         rulesPage: PageMap.TRACES_SETTINGS_SCRUB_RULES,
       },

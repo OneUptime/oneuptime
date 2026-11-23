@@ -92,21 +92,27 @@ const MONITOR_TEMPLATE_COLUMNS: Array<string> = [
  * on the column, which PermissionCatalogueCoverage flags as a cross-model
  * mis-key. Provisioning the monitors the template describes happens at run time
  * as a root operation, not under the rule editor's monitor permissions.
+ *
+ * The rule is a record of the Network product, so a team given Network at
+ * Admin writes it as Project Admin does (#10289).
  */
 const TEMPLATE_CREATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.CreateNetworkDeviceAutoImportRule,
+  Permission.NetworkAdmin,
 ];
 const TEMPLATE_UPDATE_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.EditNetworkDeviceAutoImportRule,
+  Permission.NetworkAdmin,
 ];
 /*
  * Which template a rule applies is read with the rule itself, like every
  * other column of it: whoever may read the rule sees its template. The
- * template's own fields stay with the template's permissions.
+ * template's own fields stay with the template's permissions. Network's
+ * levels read it as the roles they follow do (#10289).
  */
 const RULE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -114,6 +120,9 @@ const RULE_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectMember,
   Permission.Viewer,
   Permission.ReadNetworkDeviceAutoImportRule,
+  Permission.NetworkAdmin,
+  Permission.NetworkMember,
+  Permission.NetworkViewer,
 ];
 
 function makeCreateBy(

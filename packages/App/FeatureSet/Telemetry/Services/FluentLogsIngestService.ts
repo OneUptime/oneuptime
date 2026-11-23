@@ -5,7 +5,9 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  headerValueToString,
 } from "Common/Server/Utils/Express";
+import { isTextContentType } from "Common/Server/Middleware/RequestBodyAfterAuthentication";
 import Response from "Common/Server/Utils/Response";
 import { EventLoopBudget } from "Common/Server/Utils/EventLoop";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
@@ -155,13 +157,39 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           },
         });
 
-      req.body = req.body?.toJSON ? req.body.toJSON() : req.body;
+      /*
+       * A text body - plain lines, gzip-compressed or not - is its bytes:
+       * read as its lines (normalizeLogEntries). Newline-delimited JSON
+       * comes as the values of its lines, read by the route (#10769). A
+       * Buffer never goes through toJSON - { type: "Buffer", data: [...] },
+       * stored as one log of its bytes as numbers.
+       */
+      if (
+        req.body?.toJSON &&
+        !Buffer.isBuffer(req.body) &&
+        !(req.body instanceof Uint8Array)
+      ) {
+        req.body = req.body.toJSON();
+      }
 
-      const entries: Array<JSONObject> = this.normalizeLogEntries(req.body);
+      /*
+       * A body of a type the route reads none of - Fluent Bit's default,
+       * msgpack - holds no records: left unread, it is an empty object, and
+       * it was stored as one log of "{}", answered 200, the records lost;
+       * gzip-compressed, its bytes were stored as lines of binary. A body
+       * kept as its bytes is read as its lines only when it is text.
+       */
+      const isBytes: boolean =
+        Buffer.isBuffer(req.body) || req.body instanceof Uint8Array;
+      const entries: Array<JSONObject> =
+        isBytes &&
+        !isTextContentType(headerValueToString(req.headers["content-type"]))
+          ? []
+          : this.normalizeLogEntries(req.body);
 
       if (entries.length === 0) {
         throw new BadRequestException(
-          "No fluent log entries found in request.",
+          "The request holds no log records OneUptime reads. Send them as JSON, newline-delimited JSON or lines of text: set Fluent Bit's format to json_lines or json.",
         );
       }
 
@@ -584,6 +612,14 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
       if (obj["entries"] !== undefined) {
         return this.normalizeLogEntries(obj["entries"]);
+      }
+
+      /*
+       * A record with no field says nothing: no log. It is also what an
+       * unread body is left as (see ingestFluentLogs).
+       */
+      if (Object.keys(obj).length === 0) {
+        return [];
       }
 
       // This object IS a log entry - preserve it with all its fields

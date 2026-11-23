@@ -290,7 +290,8 @@ describe("one queue's side menu", () => {
       },
     );
 
-    expect(developerHrefs).toHaveLength(4);
+    // Terraform, Crossplane, API, CLI and AI Assistants.
+    expect(developerHrefs).toHaveLength(5);
     expect(viewPages).toHaveLength(10);
     expect(hrefs).toHaveLength(10);
     expect(new Set(hrefs).size).toBe(10);

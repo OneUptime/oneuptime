@@ -459,7 +459,6 @@ describe("Storage Array database models", () => {
         "isArchived",
         "archivedAt",
         "archivedByUserId",
-        "deletedByUserId",
         "labels",
         "retainTelemetryDataForDays",
         "telemetryRetentionConfig",
@@ -659,7 +658,6 @@ describe("Storage Array database models", () => {
         "metricsUpdatedAt",
         "lastSeenAt",
         "createdByUserId",
-        "deletedByUserId",
         ...RESOURCE_DECIMAL_COLUMNS,
       ]) {
         expect(columns).toContain(column);

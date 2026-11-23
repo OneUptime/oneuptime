@@ -170,33 +170,17 @@ export function isSecurityCaseAiHoldHandedOff(
 
 // ---------- The setting ----------
 
-// How long a case is held when the project picked none, and the bounds of any.
-export const SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT: number = 10;
-export const SECURITY_CASE_AI_HOLD_MINUTES_MIN: number = 1;
-export const SECURITY_CASE_AI_HOLD_MINUTES_MAX: number = 30;
-
-// The hold times the settings page offers.
-export const SECURITY_CASE_AI_HOLD_MINUTES_CHOICES: ReadonlyArray<number> = [
-  5, 10, 15, 20, 30,
-];
-
 /*
- * The hold time a project's column gives: whole minutes within the bounds,
- * the default for none - a value written through the API never holds a
- * case longer than the most.
+ * How long a case is held, and its bounds: a module of their own, which the
+ * project's model reads without the rest of these rules (SecurityCaseAiHoldMinutes).
  */
-export function getSecurityCaseAiHoldMinutes(
-  value: number | null | undefined,
-): number {
-  if (value === null || value === undefined || !Number.isFinite(value)) {
-    return SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT;
-  }
-
-  return Math.min(
-    SECURITY_CASE_AI_HOLD_MINUTES_MAX,
-    Math.max(SECURITY_CASE_AI_HOLD_MINUTES_MIN, Math.round(value)),
-  );
-}
+export {
+  SECURITY_CASE_AI_HOLD_MINUTES_CHOICES,
+  SECURITY_CASE_AI_HOLD_MINUTES_DEFAULT,
+  SECURITY_CASE_AI_HOLD_MINUTES_MAX,
+  SECURITY_CASE_AI_HOLD_MINUTES_MIN,
+  getSecurityCaseAiHoldMinutes,
+} from "./SecurityCaseAiHoldMinutes";
 
 /*
  * What looks like an active attack: this many other cases opened in the

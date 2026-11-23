@@ -26,11 +26,13 @@ import { LocalSignInSettings } from "../SSO/LocalSignInClearing";
  *     filtering the audit log by their email finds every clear they made;
  *   - its fields are what was removed, before and after
  *     (getSignInSettingsClearedChanges): the password as changed, never its
- *     value; two-factor authentication from on to off; and how many
- *     authenticator apps, passkeys and security keys, and backup codes
- *     there were, to none. A field with nothing to remove is left out.
+ *     value; a password reset link that still worked, as removed, never its
+ *     token (#9992: a clear that removed only that made no entry at all);
+ *     two-factor authentication from on to off; and how many authenticator
+ *     apps, passkeys and security keys, and backup codes there were, to
+ *     none. A field with nothing to remove is left out.
  *
- * Nothing secret reaches an entry: no hash, secret, key or code.
+ * Nothing secret reaches an entry: no hash, secret, key, code or token.
  */
 
 // The resource of every entry: the person whose settings were cleared.
@@ -40,6 +42,7 @@ export const AUDIT_LOG_SIGN_IN_SETTINGS_CLEARED_RESOURCE_TYPE: string =
 // The fields of an entry, as its changes name them.
 export enum SignInSettingsClearedField {
   Password = "password",
+  PasswordResetLink = "passwordResetLink",
   TwoFactorAuth = "enableTwoFactorAuth",
   AuthenticatorApps = "authenticatorApps",
   PasskeysAndSecurityKeys = "passkeysAndSecurityKeys",
@@ -68,6 +71,15 @@ export const getSignInSettingsClearedChanges: (
   if (cleared.hasPassword) {
     changes.push({
       field: SignInSettingsClearedField.Password,
+      oldValue: AUDIT_LOG_REDACTED_VALUE,
+      newValue: null,
+    });
+  }
+
+  // A link that still worked, as the password is: removed, never its token.
+  if (cleared.hasPasswordResetLink) {
+    changes.push({
+      field: SignInSettingsClearedField.PasswordResetLink,
       oldValue: AUDIT_LOG_REDACTED_VALUE,
       newValue: null,
     });

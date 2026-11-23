@@ -2,9 +2,11 @@ import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { withoutProductLevels } from "./DocsProductLevels";
 
 /*
  * Who may press a custom domain's Check now, order its certificate or
@@ -43,6 +45,13 @@ type Guide = {
   from: string;
   to: string;
   updatePermissions: Array<Permission>;
+  /*
+   * The domain's product, and its levels on the update list (#10289): the
+   * permissions page describes a product's levels once for every product,
+   * so the guide leaves them to it.
+   */
+  product: ProductKey;
+  productLevels: Array<Permission>;
   readPermission: Permission;
   readOnlyRoles: Array<Permission>;
   apiPath: string;
@@ -56,6 +65,8 @@ const GUIDES: Array<[string, Guide]> = [
       from: "## Who can check and reissue",
       to: "## Powered by OneUptime",
       updatePermissions: new StatusPageDomain().getUpdatePermissions(),
+      product: ProductKey.StatusPages,
+      productLevels: [],
       readPermission: Permission.ReadStatusPageDomain,
       readOnlyRoles: [Permission.Viewer, Permission.StatusPageViewer],
       apiPath: "/status-page-domain",
@@ -68,6 +79,8 @@ const GUIDES: Array<[string, Guide]> = [
       from: "### Who can check and reissue",
       to: "## Branding",
       updatePermissions: new DashboardDomain().getUpdatePermissions(),
+      product: ProductKey.Dashboards,
+      productLevels: [Permission.DashboardAdmin, Permission.DashboardMember],
       readPermission: Permission.ReadDashboardDomain,
       readOnlyRoles: [Permission.Viewer, Permission.SettingsViewer],
       apiPath: "/dashboard-domain",
@@ -81,7 +94,14 @@ describe.each(GUIDES)(
     const text: string = section(guide.page, guide.from, guide.to);
 
     it("names every permission and role that may edit the domain", () => {
-      for (const permission of guide.updatePermissions) {
+      expect(guide.updatePermissions).toEqual(
+        expect.arrayContaining(guide.productLevels),
+      );
+
+      for (const permission of withoutProductLevels({
+        permissions: guide.updatePermissions,
+        product: guide.product,
+      })) {
         const title: string = PermissionHelper.getTitle(permission);
 
         expect([title, text.includes(title)]).toEqual([title, true]);

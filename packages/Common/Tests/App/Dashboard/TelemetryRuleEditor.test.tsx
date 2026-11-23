@@ -147,8 +147,6 @@ const Harness: React.FunctionComponent<{
         { value: INCIDENT_SEVERITY, label: "Critical" },
       ]}
       alertSeverityDropdownOptions={[{ value: ALERT_SEVERITY, label: "High" }]}
-      onCallPolicyDropdownOptions={[]}
-      labelDropdownOptions={[]}
       userDropdownOptions={[]}
       seriesAttributeKeys={[]}
       showErrors={props.showErrors}

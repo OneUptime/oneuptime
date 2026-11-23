@@ -51,6 +51,10 @@ export enum SecurityBlockDestinationProvider {
   Cloudflare = "Cloudflare",
   // One web ACL of an AWS account, through its cloud connection (#10344).
   AwsWaf = "AwsWaf",
+  // One Application Gateway or Front Door WAF policy, through an Azure cloud connection (#10348).
+  AzureWaf = "AzureWaf",
+  // One Google Cloud Armor security policy, through a Google Cloud connection (#10349).
+  CloudArmor = "CloudArmor",
   // A blocklist feed a firewall reads (#10345): it holds what the firewall fetched last.
   Feed = "Feed",
   // Microsoft Defender for Endpoint's indicators, on every machine (#10346).

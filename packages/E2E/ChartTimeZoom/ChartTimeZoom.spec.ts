@@ -460,24 +460,29 @@ function zoomOf(plan: DragPlan, current: TimeWindow): TimeWindow {
   };
 }
 
-// "Sep 21, 11:34 AM" — TimeRangePickerDropdown's custom label, en-US.
-function shortDateTime(time: number): string {
+// "11:34 AM" — a time of the fixture's day, en-US.
+function shortTime(time: number): string {
   const date: Date = new Date(time);
   const hours: number = date.getUTCHours();
   const minutes: string = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${hours % 12 || 12}:${minutes} ${hours < 12 ? "AM" : "PM"}`;
+}
+
+// "Sep 21, 11:34 AM" — TimeRangePickerDropdown's custom label, en-US.
+function shortDateTime(time: number): string {
+  const date: Date = new Date(time);
   const month: string = date.toLocaleString("en-US", {
     month: "short",
     timeZone: "UTC",
   });
-  return `${month} ${date.getUTCDate()}, ${hours % 12 || 12}:${minutes} ${
-    hours < 12 ? "AM" : "PM"
-  }`;
+  return `${month} ${date.getUTCDate()}, ${shortTime(time)}`;
 }
 
 /*
  * "Sep 21, 2026, 11:14:00 AM UTC" — the EmbeddedMetricCard picker's custom
- * label (RangeStartAndEndDateView), en-US. The zone abbreviation is the
- * browser's, so any single word is accepted there.
+ * label (RangeStartAndEndDateView), en-US: English's long date, its day and
+ * hour without a zero (#7652). The zone abbreviation is the browser's, so
+ * any single word is accepted there.
  */
 function longDateTimePattern(time: number): string {
   const date: Date = new Date(time);
@@ -489,11 +494,19 @@ function longDateTimePattern(time: number): string {
   const pad: (value: number) => string = (value: number): string => {
     return String(value).padStart(2, "0");
   };
-  return `${month} ${pad(date.getUTCDate())} ${date.getUTCFullYear()}, ${pad(
-    hours % 12 || 12,
-  )}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} ${
+  return `${month} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${
+    hours % 12 || 12
+  }:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} ${
     hours < 12 ? "AM" : "PM"
   } \\S+`;
+}
+
+// Whether a window starts and ends on one day of the browser's clock, UTC.
+function isOneDay(window: TimeWindow): boolean {
+  return (
+    new Date(window.start).toISOString().slice(0, 10) ===
+    new Date(window.end).toISOString().slice(0, 10)
+  );
 }
 
 function customLabel(
@@ -501,7 +514,13 @@ function customLabel(
   window: TimeWindow,
 ): string | RegExp {
   if (subject.picker === "page") {
-    return `${shortDateTime(window.start)} – ${shortDateTime(window.end)}`;
+    /*
+     * A window within one day names its day once, the end its time alone
+     * (OneUptimeDate.getLocalDateTimeRangeEnds, #7281).
+     */
+    return `${shortDateTime(window.start)} – ${
+      isOneDay(window) ? shortTime(window.end) : shortDateTime(window.end)
+    }`;
   }
   return new RegExp(
     `^${longDateTimePattern(window.start)} - ${longDateTimePattern(

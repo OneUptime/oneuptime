@@ -215,7 +215,6 @@ describe("AddIncidentAlert1794900000000", () => {
         "incidentId",
         "alertId",
         "createdByUserId",
-        "deletedByUserId",
       ]),
     );
 

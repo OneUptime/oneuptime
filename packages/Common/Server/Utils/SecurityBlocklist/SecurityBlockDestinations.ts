@@ -12,6 +12,8 @@ import {
 import logger from "../Logger";
 import { CLOUDFLARE_BLOCK_DESTINATION_SOURCE } from "../SecurityEvent/Connectors/Cloudflare/CloudflareBlockDestination";
 import { AwsWafBlockDestinationSource } from "./AwsWafBlockDestination";
+import { AzureWafBlockDestinationSource } from "./AzureWafBlockDestination";
+import { CloudArmorBlockDestinationSource } from "./CloudArmorBlockDestination";
 import SecurityBlockDestination from "./SecurityBlockDestination";
 import SecurityBlocklistFeedDestination from "./SecurityBlocklistFeedDestination";
 import {
@@ -85,6 +87,10 @@ export function getSecurityBlockDestinationSources(): ReadonlyArray<SecurityBloc
       CLOUDFLARE_BLOCK_DESTINATION_SOURCE,
       // The AWS WAF web ACLs a project picked, through their cloud connections (#10344).
       new AwsWafBlockDestinationSource(),
+      // The Azure WAF policies a project picked: Application Gateway and Front Door (#10348).
+      new AzureWafBlockDestinationSource(),
+      // The Google Cloud Armor security policies a project picked (#10349).
+      new CloudArmorBlockDestinationSource(),
       // The blocklist feeds a project made, which its firewalls read (#10345).
       {
         provider: SecurityBlockDestinationProvider.Feed,

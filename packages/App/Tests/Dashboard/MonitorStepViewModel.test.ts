@@ -18,6 +18,7 @@ import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import { LlmAnswerIssue } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
@@ -589,6 +590,48 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     expect(getRow(MonitorType.API, "requestHeaders")?.value).toEqual({
       Authorization: "Bearer token",
     });
+  });
+
+  it("shows a JSON body as JSON, with no format row: JSON is the default", () => {
+    expect(getRow(MonitorType.API, "requestBody")?.valueType).toBe(
+      MonitorStepViewValueType.JSON,
+    );
+    expect(getRow(MonitorType.API, "requestBodyFormat")).toBeUndefined();
+  });
+
+  it("shows a text body as written, and that it is sent as text (#10736)", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorStep: buildStep({
+        monitorDestination: URL.fromString("https://api.example.com/soap"),
+        requestType: HTTPMethod.POST,
+        requestBody: "<ping/>",
+        requestBodyFormat: MonitorRequestBodyFormat.Text,
+      }),
+      monitorType: MonitorType.API,
+    });
+    const keys: Array<string> = rows.map((row: MonitorStepViewRow): string => {
+      return row.key;
+    });
+    const body: MonitorStepViewRow | undefined = rows.find(
+      (row: MonitorStepViewRow): boolean => {
+        return row.key === "requestBody";
+      },
+    );
+    const format: MonitorStepViewRow | undefined = rows.find(
+      (row: MonitorStepViewRow): boolean => {
+        return row.key === "requestBodyFormat";
+      },
+    );
+
+    expect(body?.valueType).toBe(MonitorStepViewValueType.Code);
+    expect(body?.value).toBe("<ping/>");
+    expect(format?.value).toBe("Text");
+    // Said in the reader's words.
+    expect(format?.translateValue).toBe(true);
+    // Just before the body it describes.
+    expect(keys.indexOf("requestBodyFormat")).toBe(
+      keys.indexOf("requestBody") - 1,
+    );
   });
 
   it("shows configured retries and names the inherited default when omitted", () => {

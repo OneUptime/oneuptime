@@ -16,12 +16,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     stands - holding, then how it ended - when it runs out, when it ended
  *     and who ended it. Empty on every existing case. The index the
  *     every-minute review reads ("aiHoldUntil") is built online, in
- *     AddSecurityCaseAiHoldUntilIndex1809187453010.
+ *     AddSecurityCaseAiHoldUntilIndex1809187490010.
  */
-export class AddSecurityCaseAiRespondsFirst1809187453000
+export class AddSecurityCaseAiRespondsFirst1809187490000
   implements MigrationInterface
 {
-  public name: string = "AddSecurityCaseAiRespondsFirst1809187453000";
+  public name: string = "AddSecurityCaseAiRespondsFirst1809187490000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

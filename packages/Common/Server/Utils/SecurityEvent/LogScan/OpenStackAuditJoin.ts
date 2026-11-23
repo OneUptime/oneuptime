@@ -13,6 +13,11 @@ import {
   describeOpenStackProject,
   describeOpenStackUser,
 } from "../../../../Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
+import {
+  CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES,
+  clearClientAddressScrubbed,
+  readHiddenClientAddress,
+} from "../../../../Utils/SecurityEvent/ScrubbedAddress";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import OpenStackResourceService from "../../../Services/OpenStackResourceService";
@@ -199,11 +204,14 @@ export default class OpenStackAuditJoin {
   /*
    * Who and from where, for the events of a request that did not say: the notification a
    * request causes is written while its audit filter's event is, so they meet in one page.
+   * When a scrub rule hid the audit filter's address, the request's other events say so too
+   * (#10419): the address vault then names them all, or each says a rule hid it. An event
+   * that names the address wins over one that hid it.
    */
   private static fillFromSameRequest(
     events: Array<NormalizedSecurityEvent>,
   ): void {
-    const addresses: Map<string, NormalizedSecurityEvent> = new Map();
+    const sources: Map<string, NormalizedSecurityEvent> = new Map();
 
     for (const event of events) {
       const request: string = readText(
@@ -211,34 +219,45 @@ export default class OpenStackAuditJoin {
         OpenStackAuditAttribute.RequestId,
       );
 
+      if (!request) {
+        continue;
+      }
+
       if (
-        request &&
         readText(event.attributes, OpenStackAuditAttribute.InitiatorAddress)
       ) {
-        addresses.set(request, event);
+        sources.set(request, event);
+      } else if (readHiddenClientAddress(event) && !sources.has(request)) {
+        sources.set(request, event);
       }
     }
 
-    if (addresses.size === 0) {
+    if (sources.size === 0) {
       return;
     }
 
     for (const event of events) {
-      const source: NormalizedSecurityEvent | undefined = addresses.get(
+      const source: NormalizedSecurityEvent | undefined = sources.get(
         readText(event.attributes, OpenStackAuditAttribute.RequestId),
       );
 
       if (
         !source ||
+        source === event ||
         readText(event.attributes, OpenStackAuditAttribute.InitiatorAddress)
       ) {
         continue;
       }
 
-      event.attributes[OpenStackAuditAttribute.InitiatorAddress] = readText(
+      const sourceAddress: string = readText(
         source.attributes,
         OpenStackAuditAttribute.InitiatorAddress,
       );
+
+      if (sourceAddress) {
+        event.attributes[OpenStackAuditAttribute.InitiatorAddress] =
+          sourceAddress;
+      }
 
       for (const key of [
         OpenStackAuditAttribute.InitiatorId,
@@ -255,6 +274,18 @@ export default class OpenStackAuditJoin {
       if (!event.principalIp && source.principalIp) {
         event.principalIp = source.principalIp;
         event.observables = [...(event.observables || []), source.principalIp];
+        // It names the request's address now: nothing says it was hidden.
+        clearClientAddressScrubbed(event.attributes);
+      } else if (
+        !event.principalIp &&
+        !readHiddenClientAddress(event) &&
+        readHiddenClientAddress(source)
+      ) {
+        for (const key of CLIENT_ADDRESS_SCRUB_MARKER_ATTRIBUTES) {
+          if (source.attributes[key] !== undefined) {
+            event.attributes[key] = source.attributes[key]!;
+          }
+        }
       }
     }
   }

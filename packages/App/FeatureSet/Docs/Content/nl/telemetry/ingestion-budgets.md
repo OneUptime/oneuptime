@@ -114,7 +114,7 @@ Klik op de kaart **Team- en labelbudgetten** op **Budget aanmaken**. Kies het te
 Klik op **Budget aanmaken**. Het budget van een team of een label kan niet hoger zijn dan dat van zijn project: OneUptime weigert het en zegt wat het maximum is.
 :::
 
-- **Wat het telt.** De logboeken, traces, metrieken en profielen van elke service, host, cluster en andere resource waarvan het team eigenaar is of die het label heeft, of ze nu via OpenTelemetry (OTLP) worden verstuurd of, bij logboeken, vanuit Fluent Bit, Fluentd of syslog. Beveiligingsgebeurtenissen tellen alleen mee voor de budgetten van het project en de sleutel.
+- **Wat het telt.** De logboeken, traces, metrieken en profielen van elke service, host, cluster en andere resource waarvan het team eigenaar is of die het label heeft, of ze nu via OpenTelemetry (OTLP) worden verstuurd of, bij logboeken, vanuit Fluent Bit, Fluentd of syslog, inclusief de syslog die netwerkapparaten naar een sonde sturen. Beveiligingsgebeurtenissen tellen alleen mee voor de budgetten van het project en de sleutel.
 - **Van wie een resource is.** Een service, host of andere resource is van een team als het team een van de eigenaren is, en van een label als die het label heeft: dezelfde eigenaren en labels die bepalen wie de telemetrie ervan mag lezen. Een wijziging daarin telt binnen een minuut.
 - **Is het op, dan wordt de telemetrie verwijderd.** Hun telemetrie van dat signaal wordt tot de reset verwijderd, en de afzender hoort er niets van: die kreeg zijn antwoord toen de telemetrie binnenkwam. Wat wordt verwijderd, telt niet meer mee voor het budget van het project of de sleutel.
 - **Wie het hoort.** De Projecteigenaren krijgen een e-mail wanneer het budget de waarschuwingsdrempel passeert, en wanneer het op is.
@@ -135,7 +135,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 ```
 
 - **Andere HTTP-afzenders krijgen JSON.** Fluent Bit, Fluentd, syslog en de andere HTTP-endpoints krijgen `error`, `message` en `resetsAt`, en bij een snelheidslimiet ook `retryAfterSeconds`.
-- **MQTT en cloudstreams kunnen het niet te horen krijgen.** Telemetrie die via MQTT of uit de stream van een cloudprovider binnenkomt, wordt verworpen zodra het budget ervan op is. Er geldt geen snelheidslimiet voor: ze zou niet opnieuw kunnen worden verzonden.
+- **MQTT, cloudstreams en sondes kunnen het niet te horen krijgen.** Telemetrie die via MQTT of uit de stream van een cloudprovider binnenkomt, wordt verworpen zodra het budget ervan op is, en dat geldt ook voor de syslog die netwerkapparaten naar een sonde sturen: de logboeken van elk apparaat tellen mee voor het budget van zijn eigen project. Er geldt geen snelheidslimiet voor: ze zou niet opnieuw kunnen worden verzonden.
 - **De services van een team of een label evenmin.** Zodra het budget van een team of een label op is, wordt hun telemetrie aangenomen en daarna verwijderd: zie [Een team of een label een eigen budget geven](#een-team-of-een-label-een-eigen-budget-geven).
 - **Weigeringen worden geteld.** Wat een opgebruikt budget weigert of verwerpt, wordt geteld als verworpen, en elk verzoek dat een snelheidslimiet weigert als beperkt: zie [Het gebruik en de verworpen gegevens van vandaag bekijken](#het-gebruik-en-de-verworpen-gegevens-van-vandaag-bekijken).
 

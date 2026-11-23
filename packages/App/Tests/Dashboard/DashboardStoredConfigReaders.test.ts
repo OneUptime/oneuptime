@@ -92,7 +92,7 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   },
   "Common/Server/API/DashboardAPI.ts": {
     role: "reader",
-    why: "every public dashboard route reads the stored config: /view-config through the sanitizer, and every route that serves what the page draws - the metric routes and the routes that select one list or SLO widget - as the public page draws it",
+    why: "every public dashboard route reads the stored config: /view-config through the sanitizer, every route that serves what the page draws - the metric routes and the routes that select one list or SLO widget - as the public page draws it, and /promql-query the Data Source widgets the page is served, with the queries they store",
   },
   "Common/Server/Utils/Dashboard/PublicDashboardViewConfig.ts": {
     role: "reader",
@@ -114,6 +114,14 @@ const KNOWN_FILES: Record<string, KnownFile> = {
   "Common/Server/Utils/Telemetry/MetricReaders.ts": {
     role: "reader",
     why: "reads a project's dashboards to name the ones, and the widgets on them, that read a metric something would take away, such as the metrics Data Security would drop (#9757, #9946)",
+  },
+  "Common/Utils/Telemetry/TelemetryFieldReferences.ts": {
+    role: "reader",
+    why: "reads a dashboard's stored layout to name the widgets that read a log or span field, and the queries they run, so a scrub rule or a drop filter says which charts it would change (#10601, #10694), as MetricReaders reads it for a metric",
+  },
+  "Common/Server/Utils/Telemetry/TelemetryFieldReaders.ts": {
+    role: "reader",
+    why: "takes a project's dashboards out of storage to name the ones that read a log or span field (#10601, #10694); TelemetryFieldReferences reads each",
   },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
@@ -168,6 +176,11 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "other",
     why: "Duplicate copies the stored value as it is; the server's create reads it",
   },
+  "App/FeatureSet/Dashboard/src/Components/ObservabilityImport/ImportDashboardModal.tsx":
+    {
+      role: "other",
+      why: "writes the board an import from Grafana or Datadog builds into the dashboard it creates; the server's create reads it",
+    },
   "App/FeatureSet/Workers/DataMigrations/RepairKubernetesDashboardClusterCpuTile.ts":
     {
       role: "other",
@@ -249,6 +262,10 @@ const RETIRED_METRIC_READS: string =
 const RETIRED_METRIC_CHART_MIGRATION: string =
   "App/FeatureSet/Workers/DataMigrations/MoveChartsAndSlosOffRetiredCloudMetrics.ts";
 const METRIC_READERS: string = "Common/Server/Utils/Telemetry/MetricReaders.ts";
+const TELEMETRY_FIELD_REFERENCES: string =
+  "Common/Utils/Telemetry/TelemetryFieldReferences.ts";
+const TELEMETRY_FIELD_READERS: string =
+  "Common/Server/Utils/Telemetry/TelemetryFieldReaders.ts";
 const CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
 const WIDGET_CARD: string =
@@ -305,11 +322,14 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       [DASHBOARD_API]: [
         "PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig)",
         "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+        "PublicDashboardViewConfig.getDrawnDataSourceWidgets(dashboard.dashboardViewConfig",
       ],
       [PUBLIC_SANITIZER]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(storedConfig)",
         "StoredDashboardViewConfig.read(PublicDashboardViewConfig.sanitize(",
+        // The Data Source widgets the page is served, with their stored queries.
+        "PublicDashboardViewConfig.getServedEntries(StoredDashboardViewConfig.getComponentEntries(StoredDashboardViewConfig.unwrap(dashboardViewConfig),),)",
       ],
       [RETIRED_METRIC_CHART_MOVES]: [
         "StoredDashboardViewConfig.unwrap(dashboardViewConfigJSON)",
@@ -328,6 +348,16 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
         "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(config)",
         "StoredDashboardViewConfig.withArgumentsRead(entry)",
+      ],
+      [TELEMETRY_FIELD_REFERENCES]: [
+        "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
+        "StoredDashboardViewConfig.getComponentEntries(config)",
+        "StoredDashboardViewConfig.withArgumentsRead(entry)",
+      ],
+      // It hands each stored config to TelemetryFieldReferences, which reads it.
+      [TELEMETRY_FIELD_READERS]: [
+        "findDashboardFieldReferences(dashboard.dashboardViewConfig",
+        "findDashboardTelemetryQueries(dashboard.dashboardViewConfig",
       ],
     };
 
@@ -381,6 +411,15 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
       .join("")
       .split(
         "PublicDashboardViewConfig.getDrawnConfig(dashboard.dashboardViewConfig",
+      )
+      .join("")
+      /*
+       * /promql-query runs the queries a Data Source widget stores, which
+       * what the page is served leaves out (#10478): it reads the widgets
+       * the page is served, from the stored config through the reader.
+       */
+      .split(
+        "PublicDashboardViewConfig.getDrawnDataSourceWidgets(dashboard.dashboardViewConfig",
       )
       .join("");
 

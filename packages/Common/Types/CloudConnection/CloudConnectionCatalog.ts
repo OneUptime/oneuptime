@@ -327,6 +327,34 @@ function wafBlocklistField(): CloudConnectionField {
 }
 
 /*
+ * Azure (#10348) and Google Cloud (#10349): the same setting, on or off.
+ * Their policies hold OneUptime's addresses in its own rules, which no
+ * rule of a team's could reference, so there is no "in code" choice: a
+ * team that keeps a policy in Terraform tells it to leave OneUptime's
+ * rules alone (the docs say how). "On" is stored as "rule", the AWS choice
+ * that also writes the WAF, so every reader of the setting reads it alike.
+ */
+function cloudWafBlocklistField(data: {
+  title: string;
+  description: string;
+}): CloudConnectionField {
+  return {
+    key: WAF_BLOCKLIST_FIELD_KEY,
+    title: data.title,
+    description: data.description,
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "On", value: "rule" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
+/*
  * AWS: the setting that says whether the connection reads what each
  * resource costs, from Cost Explorer's resource-level data (opt-in in the
  * account's Cost Management preferences, for the last 14 days). Off until
@@ -567,6 +595,11 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readIntervalField(5),
       dataSecurityField(),
       dataSecurityResponseField(),
+      cloudWafBlocklistField({
+        title: "Block addresses in Azure WAF",
+        description:
+          "Lets your blocklist block addresses in Application Gateway and Front Door WAF policies you pick, with rules of its own. The command changes with it.",
+      }),
       {
         key: AZURE_SECRET_EXPIRES_AT_KEY,
         title: "Client secret expires",
@@ -649,6 +682,11 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       readIntervalField(5),
       dataSecurityField(),
       dataSecurityResponseField(),
+      cloudWafBlocklistField({
+        title: "Block addresses in Cloud Armor",
+        description:
+          "Lets your blocklist block addresses in the Cloud Armor security policies you pick, through rules of its own. The command changes with it.",
+      }),
     ],
     secretFields: [
       {

@@ -44,8 +44,6 @@ const OWN_COLUMNS: Array<string> = [
   "isEnabled",
   "createdByUser",
   "createdByUserId",
-  "deletedByUser",
-  "deletedByUserId",
 ];
 
 function typeormColumn(propertyName: string): ColumnMetadataArgs {

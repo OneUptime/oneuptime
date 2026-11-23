@@ -76,6 +76,7 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -765,10 +766,22 @@ function valuesOf(value) {
   return [String(plain(value))];
 }
 
-// A query's plain values and its Includes must match, as the server would.
+/*
+ * A query's plain values, its Includes and its NotNull must match, as the
+ * server would. NotNull holds a column to rows that have a value in it: the
+ * cluster's recommendations count the nodes whose row holds an image disk
+ * reading (KubernetesImageDisk), and these nodes keep their images on their
+ * root filesystem, as most nodes do, so their rows hold none.
+ */
 function matches(record, query) {
   for (const [field, wanted] of Object.entries(query || {})) {
     if (field === "projectId") {
+      continue;
+    }
+    if (wanted instanceof NotNull) {
+      if (record[field] === undefined || record[field] === null) {
+        return false;
+      }
       continue;
     }
     if (wanted instanceof Includes) {

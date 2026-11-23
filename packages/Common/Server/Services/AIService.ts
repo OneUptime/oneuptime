@@ -233,6 +233,43 @@ export const AI_DATA_SECURITY_STORE_OWNERS_FEATURE: string =
   "AI Data Security Store Owners";
 
 /*
+ * The LlmLog feature name for OneUptime AI's name for a group of Data
+ * Security issues one mistake made (DataSecurityIssueGroupNaming, #10370):
+ * one constrained call per group whose facts changed, written from those
+ * facts only, after the grouping that follows an evaluation - with no one
+ * pressing it, and one evaluation can form several groups, so the daily
+ * budget covers it. Its AI Logs rows keep no previews, as every Data
+ * Security call's do not.
+ */
+export const AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE: string =
+  "AI Data Security Issue Group Name";
+
+/*
+ * The LlmLog feature name for the scrub rules OneUptime AI writes for the
+ * telemetry findings no rule of Scrub It's can hide (ScrubRuleWriter,
+ * #10366): one constrained call per issue it contains, from each finding's
+ * data type, place, the names around it and the shapes of its values -
+ * never a value. Started by an issue that opens, or a new finding of one,
+ * so the daily budget covers it. Its AI Logs rows keep no previews, as
+ * every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_SCRUB_RULES_FEATURE: string =
+  "AI Data Security Scrub Rules";
+
+/*
+ * The LlmLog feature name for OneUptime AI's read of the Sensitive data
+ * section of a pull request's production review (PullRequestLeakReview,
+ * #10376): one constrained call per
+ * review whose rules found sensitive data in the change, started by every
+ * push to a pull request of a repository with Production Review on - so
+ * storm-shaped, with no human in the loop. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not: the diff it reads is the
+ * repository's, and the AI Logs are every Project Member's to read.
+ */
+export const AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE: string =
+  "AI Data Security Pull Request Review";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -396,6 +433,23 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * connection's first read can find hundreds.
    */
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+  /*
+   * OneUptime AI's name for a group of Data Security issues
+   * (DataSecurityIssueGroupNaming): one constrained call per group whose
+   * facts changed, after each grouping.
+   */
+  AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  /*
+   * The scrub rules OneUptime AI writes for what Scrub It cannot cover
+   * (ScrubRuleWriter, #10366): one constrained call per issue it contains.
+   */
+  AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+  /*
+   * The Sensitive data section of a pull request's production review
+   * (PullRequestLeakReview): one constrained call per review
+   * whose rules found something, and every push can start one.
+   */
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

@@ -313,6 +313,57 @@ describe("the model each feature runs on", () => {
     }
   });
 
+  /*
+   * A select of a column nobody may read is refused to every reader, and
+   * the refusal would say the reader may not read the providers at all.
+   * isGlobalLlm is such a column: selected, every reader but a server
+   * administrator was told so, the project's owner included.
+   */
+  test("read with the reader's permissions, of columns a reader may read: never isGlobalLlm", async () => {
+    world.defaultProvider = null;
+
+    await read();
+
+    const model: LlmProvider = new LlmProvider();
+    const readersColumns: Array<Array<string>> = (
+      LlmProviderService.findOneBy as unknown as jest.SpyInstance
+    ).mock.calls
+      .map(
+        (
+          call: Array<unknown>,
+        ): {
+          select: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        } => {
+          return call[0] as {
+            select: Record<string, unknown>;
+            props: DatabaseCommonInteractionProps;
+          };
+        },
+      )
+      .filter((args: { props: DatabaseCommonInteractionProps }): boolean => {
+        return args.props === READER;
+      })
+      .map((args: { select: Record<string, unknown> }): Array<string> => {
+        return Object.keys(args.select);
+      });
+
+    // The default and one of the project's own.
+    expect(readersColumns).toHaveLength(2);
+
+    for (const columns of readersColumns) {
+      expect(columns).not.toContain("isGlobalLlm");
+      expect(
+        columns.filter((column: string): boolean => {
+          return (
+            column !== "_id" &&
+            (model.getColumnAccessControlFor(column)?.read || []).length === 0
+          );
+        }),
+      ).toEqual([]);
+    }
+  });
+
   test("an OpenAI-compatible endpoint, such as the bundled vLLM, is self-hosted; a hosted provider is not", () => {
     expect(
       toModelSummary({

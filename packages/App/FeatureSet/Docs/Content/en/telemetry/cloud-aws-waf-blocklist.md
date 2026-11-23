@@ -40,7 +40,7 @@ Under **More fields**, set **Block addresses in AWS WAF** to **On, and OneUptime
 The command the form shows now grants the IP sets, and the rule when OneUptime adds it. Run it in AWS CloudShell, then save the connection.
 
 ### Add the web ACLs
-Open **Security Events → Playbooks → Blocklist**. Under **Cloud WAFs**, click **Add Web ACL**, pick a web ACL and where it reads the client's address, and add it. OneUptime sets it up at once, and its **Status** says **Enforcing** when its rule blocks the sets.
+Open **Security Events → Playbooks → Blocklist**. Under **Cloud WAFs**, click **Add WAF**, pick a web ACL and, under **More fields**, where it reads the client's address, and add it. OneUptime sets it up at once, and its **Status** says **Enforcing** when its rule blocks the sets.
 :::
 
 The web ACLs come from the connection's inventory: one OneUptime has not read yet is listed after the next read. While a web ACL enforces the blocklist, its connection's setting cannot be turned off or moved from OneUptime adding its rule to adding it in code, and the connection cannot be deleted: remove the web ACL first, so OneUptime takes its rule out.
@@ -102,7 +102,7 @@ On **Security Events → Playbooks → Blocklist**, click **Remove** on the web 
 Edit the connection, set **Block addresses in AWS WAF** to **Off**, and save. The setting can be turned off once no web ACL of the connection enforces the blocklist.
 :::
 
-When OneUptime may no longer write the web ACL, check **Remove From OneUptime Only** in the **Remove Web ACL** dialog. OneUptime removes the web ACL from the blocklist and names the rules and IP sets it left in AWS WAF: they keep blocking what they hold until you delete them there. A rule of yours that still references a set keeps it too: OneUptime empties it, and names it.
+When OneUptime may no longer write the web ACL, check **Remove From OneUptime Only** in the **Remove WAF** dialog. OneUptime removes the web ACL from the blocklist and names the rules and IP sets it left in AWS WAF: they keep blocking what they hold until you delete them there. A rule of yours that still references a set keeps it too: OneUptime empties it, and names it.
 
 ## Troubleshooting
 

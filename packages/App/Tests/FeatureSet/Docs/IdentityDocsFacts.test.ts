@@ -1595,8 +1595,20 @@ describe("the Global SSO guide", () => {
       "if (isMasterAdmin && !data.isMasterAdminConfirmed) {",
     );
 
-    // Each person cleared is emailed (#9818), in the background.
-    expect(clearing).toContain("void SignInSettingsClearedEmail.notify(");
+    /*
+     * Each person cleared is emailed (#9818), by a job a worker sends
+     * (#9991): queued once cleared, never waited for to be sent.
+     */
+    expect(clearing).toContain("await SignInSettingsClearedEmail.notify([");
+    expect(
+      fs.readFileSync(
+        path.join(
+          REPO_DIR,
+          "packages/Common/Server/Utils/SignInSettingsClearedEmail.ts",
+        ),
+        "utf8",
+      ),
+    ).toContain("QueueName.Worker,");
 
     expect(page).toContain(
       "- The **Require SSO** card says how many of them still have a password or two-factor authentication saved, which would sign them in again if SSO stopped being required. **Clear Sign-In Settings** deletes their passwords, passkeys, security keys, authenticator apps and backup codes, turns two-factor authentication off and ends the sessions they signed in to without SSO, after asking. It cannot be undone, master admins keep theirs, each person's projects record it in their audit logs, and each person is emailed what was removed and how they sign in now.",
@@ -1701,8 +1713,31 @@ describe("the Global SSO guide", () => {
       "- master admins, and you: change your own in your **User Profile**.",
     );
 
+    /*
+     * One person at a time, from Users (#9993): the row's chip and its
+     * action, by their words, and the same rule and batch as everyone's.
+     */
+    const memberCopy: string = repo(
+      `${DASHBOARD}/Components/User/MemberSavedSignInSettingsCopy.ts`,
+    );
+    expect(memberCopy).toContain(
+      'pill: translationKey("Sign-In Settings Saved")',
+    );
+    expect(memberCopy).toContain(
+      'action: translationKey("Clear Sign-In Settings")',
+    );
+    expect(rule).toContain("public static async clearMember(");
+    expect(rule).toContain(
+      "const batch: ClearedBatch = await ProjectSignInClearing.clearBatch({",
+    );
+    expect(page).toContain(
+      "To clear one person, open **Users**: the row of each person you may clear says **Sign-In Settings Saved**, and **Clear Sign-In Settings** in its menu clears that person alone, under the same rule, after a question that lists what goes.",
+    );
+
     // Emailed, audit-logged as the owner's, session-only and owners only.
-    expect(rule).toContain("void SignInSettingsClearedEmail.notify(");
+    expect(rule).toContain(
+      "const emailsQueued: Promise<void> = SignInSettingsClearedEmail.notify(",
+    );
     expect(rule).toContain("clearedByUserId: data.ownerUserId,");
     expect(routes).toContain(
       "CommonAPI.assertAuthenticatedProjectMember(props)",

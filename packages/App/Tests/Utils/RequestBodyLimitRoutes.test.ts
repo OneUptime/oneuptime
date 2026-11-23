@@ -9,6 +9,7 @@ import getRequestBodyLimit, {
   INCOMING_REQUEST_ROUTE_PREFIXES,
   LARGE_REQUEST_BODY_LIMIT,
   MCP_OAUTH_REQUEST_BODY_LIMIT,
+  OPAMP_REQUEST_BODY_LIMIT,
   ORDINARY_REQUEST_BODY_LIMIT,
   PROBE_INGEST_ROUTE_PREFIXES,
   REPORT_REQUEST_BODY_LIMIT,
@@ -196,11 +197,15 @@ describe("the paths the App's own clients send large bodies to", () => {
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
-      "telemetry the StartServer parsers read",
+      "Security Events, which the StartServer parsers read",
+      [...under(TELEMETRY_ROUTE_PREFIXES, "/security-events/v1/ingest")],
+      LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "the batches read once their ingest key is checked (#10702): Fluent, syslog, Pyroscope's push and the rest",
       [
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fluentd/v1/logs"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/syslog/v1/logs"),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/security-events/v1/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/kubernetes-cost/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/change-events/v1/ingest"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/openlineage/api/v1/lineage"),
@@ -209,12 +214,16 @@ describe("the paths the App's own clients send large bodies to", () => {
           TELEMETRY_ROUTE_PREFIXES,
           "/pyroscope/push.v1.PusherService/Push",
         ),
-        ...under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/android-agent/v1/log-sessions"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/fivetran/v1/webhook/id"),
         ...under(TELEMETRY_ROUTE_PREFIXES, "/airbyte/v1/webhook/key"),
       ],
       LARGE_REQUEST_BODY_LIMIT,
+    ],
+    [
+      "a host collector's OpAMP messages, read once their key is checked and held to an OpAMP message's 1 MiB (#10770)",
+      under(TELEMETRY_ROUTE_PREFIXES, "/opamp/v1"),
+      OPAMP_REQUEST_BODY_LIMIT,
     ],
     [
       "the uploads read once their ingest key is checked (#10673): a profile, source maps, dSYMs",
@@ -371,8 +380,87 @@ describe("the paths the App's own clients send large bodies to", () => {
 
     expect(checked).toEqual(
       expect.arrayContaining([
+        "/security-events/v1/ingest",
+        "/telemetry/security-events/v1/ingest",
+      ]),
+    );
+    // Read once their key is right (#10702), so not by StartServer.
+    expect(checked).not.toContain("/telemetry/fluentd/v1/logs");
+    expect(checked).not.toContain("/pyroscope/push.v1.PusherService/Push");
+  });
+
+  /*
+   * #10702: a telemetry route StartServer leaves the body of unread reads it
+   * itself once its key is right - the key check reads it, before the
+   * ingestion budget (TelemetryIngest.forSurface's reader), or a reader
+   * mounted after it (the uploads). One that read it nowhere would find no
+   * body at all, from every client.
+   */
+  test("every telemetry route whose body StartServer leaves unread reads it once the key is right", () => {
+    const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
+    const read: Array<string> = [];
+
+    // The key check, given the route's reader: it reads between the key and the budget.
+    const READS_IN_THE_KEY_CHECK: RegExp =
+      /TelemetryIngest\.forSurface\( ?TelemetryIngestSurface\.\w+, \w+,? ?\)/;
+    // The key check, then a reader mounted after it: the uploads.
+    const READS_AFTER_THE_KEY_CHECK: RegExp =
+      /TelemetryIngest\.forSurface\( ?TelemetryIngestSurface\.\w+ ?\), read\w+,/;
+
+    // The routers mounted on the telemetry prefixes, whose key is an ingest key.
+    for (const mounted of telemetryIndex.matchAll(
+      /app\.use\(TELEMETRY_PREFIXES, (\w+)\);/g,
+    )) {
+      const imported: RegExpMatchArray | null = telemetryIndex.match(
+        new RegExp(`import ${mounted[1]} from "\\./API/([\\w/]+)";`),
+      );
+      const source: string = readSource(
+        `FeatureSet/Telemetry/API/${imported![1]}.ts`,
+      ).replace(/\s+/g, " ");
+
+      for (const route of source.matchAll(
+        /router\.(?:post|put|patch)\( "([^"]+)",(.*?)async \(/g,
+      )) {
+        const path: string = route[1]!;
+        const chain: string = route[2]!;
+
+        if (
+          path.includes("/otlp/v1/") ||
+          path.includes("/session-replay/v1/") ||
+          isVercelLogDrainPath(path) ||
+          isCloudStreamPath(path) ||
+          isCompatibleIngestPath(path) ||
+          !readsBodyAfterAuthentication(path)
+        ) {
+          continue;
+        }
+
+        expect({
+          path,
+          readsItsBody:
+            READS_IN_THE_KEY_CHECK.test(chain) ||
+            READS_AFTER_THE_KEY_CHECK.test(chain),
+        }).toEqual({ path, readsItsBody: true });
+        read.push(path);
+      }
+    }
+
+    expect(read).toEqual(
+      expect.arrayContaining([
+        "/fluentd/v1/logs",
+        "/syslog/v1/logs",
+        "/kubernetes-cost/ingest",
+        "/change-events/v1/ingest",
+        "/openlineage/api/v1/lineage",
+        "/dbt/v1/artifacts",
+        "/android-agent/v1/log-sessions",
+        "/opamp/v1",
         "/pyroscope/push.v1.PusherService/Push",
-        "/telemetry/fluentd/v1/logs",
+        "/fivetran/v1/webhook/:ingestionKeyId",
+        "/airbyte/v1/webhook/:ingestionKey",
+        "/pyroscope/ingest",
+        "/source-maps/v1/upload",
+        "/dsyms/v1/upload",
       ]),
     );
   });
@@ -433,6 +521,29 @@ describe("the paths the App's own clients send large bodies to", () => {
     expect(mcpRoutes).toContain(
       "{ limit: getRequestBodyLimit(mcpEndpoint).bytes }",
     );
+
+    /*
+     * OpAMP's reader, after the key, reads the limit its route is listed
+     * with (#10770): the message's own 1 MiB, the most its handler takes.
+     */
+    const opamp: string = readSource(
+      "FeatureSet/Telemetry/API/HostCollectorOpAmp.ts",
+    );
+
+    expect(opamp).toContain(
+      "RequestBodyAfterAuthentication.readBody(OPAMP_REQUEST_BODY_LIMIT)",
+    );
+    expect(opamp).toContain(
+      "export const MAX_OPAMP_MESSAGE_BYTES: number = OPAMP_MESSAGE_MAX_BYTES;",
+    );
+    expect(opamp).not.toContain("LARGE_REQUEST_BODY_LIMIT");
+
+    for (const endpoint of ["/telemetry/opamp/v1", "/opamp/v1"]) {
+      expect({ endpoint, limit: getRequestBodyLimit(endpoint) }).toEqual({
+        endpoint,
+        limit: OPAMP_REQUEST_BODY_LIMIT,
+      });
+    }
 
     // The webhook text readers: their routes' 50 MB, as StartServer's.
     const sizeNamed: (file: string, name: string) => number = (

@@ -39,8 +39,19 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * reference (hideColumnInDocumentation), but in each resource's own model
  * schema, which lists every column a reader may read - 1.78 MB in all, to
  * 26,435,798 bytes. This leaves room for about 6% more.
+ *
+ * Lowered on 2026-11-23, back to 25,000,000 (#10527). The spec was 27.0 MB,
+ * and three changes took it to 23.9 MB while it came to document those
+ * columns on every resource: each of the six is described once, as a
+ * schema of its own every resource refers to (ModelSchema
+ * .RECORD_ACTOR_SCHEMA_NAMES), where its words and its permissions were on
+ * each resource; a read-only field no longer carries the permissions
+ * sentence that said "Create: [No access], Update: [No access]" of it (3.4
+ * MB on 11,397 fields); and who deleted a record, which no record ever
+ * held, is gone from every resource (#10469). This leaves room for about
+ * 5% more.
  */
-const MAX_SPEC_BYTES: number = 28_000_000;
+const MAX_SPEC_BYTES: number = 25_000_000;
 
 /*
  * The budget for what is sent: 995,447 bytes gzipped on 2026-11-16, 1,948
@@ -49,8 +60,12 @@ const MAX_SPEC_BYTES: number = 28_000_000;
  * Raised on 2026-11-20, from 1,100,000: the spec had grown to 1,106,661
  * bytes gzipped, past it, and the record actor columns (#10290, above) took
  * it to 1,237,436. This leaves room for about 5% more.
+ *
+ * Lowered on 2026-11-23, from 1,300,000: the same three changes (#10527,
+ * above) took it from 1,284,511 bytes to 1,110,163, with those columns
+ * documented. This leaves room for about 8% more.
  */
-const MAX_SPEC_GZIP_BYTES: number = 1_300_000;
+const MAX_SPEC_GZIP_BYTES: number = 1_200_000;
 
 /*
  * How far above the spec a budget may sit. A budget much bigger than what it

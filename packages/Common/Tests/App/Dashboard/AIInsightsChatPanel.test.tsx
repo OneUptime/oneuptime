@@ -407,6 +407,8 @@ describe("module insights in Ask AI", () => {
           type: AIChatPageContextType.TelemetryService,
           entityId: ENTITY_ID,
           entityTitle: "Checkout API",
+          // Which of the service's pages is open: its Traces (#10104).
+          page: "/dashboard/:projectId/service/:id/traces",
         },
       }),
     );
@@ -648,6 +650,7 @@ describe("asynchronous module context changes", () => {
       type: AIChatPageContextType.TelemetryService,
       entityId: ENTITY_ID,
       entityTitle: "Checkout API",
+      page: "/dashboard/:projectId/service/:id",
     });
     expect(getItemMock).toHaveBeenCalledWith(
       expect.objectContaining({ modelType: Service }),

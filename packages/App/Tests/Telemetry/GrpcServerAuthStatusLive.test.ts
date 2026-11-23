@@ -592,6 +592,12 @@ interface RefusalCase {
    * token.
    */
   expectedLogLine: string;
+  /*
+   * The level it is logged at: error for a key OneUptime knows, refused;
+   * debug for a missing or unknown token, which comes from anyone and is
+   * counted instead (#10703, TelemetryIngestUnknownKeyRefusals).
+   */
+  expectedLogLevel: "error" | "debug";
 }
 
 type RefusedPolicyCaseFunction = (data: {
@@ -618,6 +624,7 @@ const refusedPolicyCase: RefusedPolicyCaseFunction = (data: {
     policy,
     expectedCode: data.expectedCode,
     expectedLogLine: `gRPC: Ingestion key ${policy.ingestionKeyId.toString()} refused: ${data.loggedReason}.`,
+    expectedLogLevel: "error",
   };
 };
 
@@ -631,6 +638,7 @@ const buildRefusalCases: BuildRefusalCasesFunction = (): Array<RefusalCase> => {
       policy: null,
       expectedCode: grpc.status.UNAUTHENTICATED,
       expectedLogLine: "gRPC: Missing metadata: x-oneuptime-token",
+      expectedLogLevel: "debug",
     },
     {
       reason: "unknown token",
@@ -638,6 +646,7 @@ const buildRefusalCases: BuildRefusalCasesFunction = (): Array<RefusalCase> => {
       policy: null,
       expectedCode: grpc.status.UNAUTHENTICATED,
       expectedLogLine: "gRPC: Invalid service token.",
+      expectedLogLevel: "debug",
     },
     refusedPolicyCase({
       reason: "disabled key",
@@ -1303,9 +1312,20 @@ describe.each(signals)("live gRPC $name Export", (signal: Signal) => {
        * The caller is told the problem; the key id and the guard's reason
        * code are only in the server log.
        */
-      expect(logger.error).toHaveBeenCalledWith(refusal.expectedLogLine, {
-        service: "telemetry",
-      });
+      expect(logger[refusal.expectedLogLevel]).toHaveBeenCalledWith(
+        refusal.expectedLogLine,
+        {
+          service: "telemetry",
+        },
+      );
+
+      // A missing or unknown token is never an error-level line (#10703).
+      if (refusal.expectedLogLevel === "debug") {
+        expect(logger.error).not.toHaveBeenCalledWith(
+          refusal.expectedLogLine,
+          expect.anything(),
+        );
+      }
 
       assertNothingEnqueued();
     },
@@ -1706,9 +1726,21 @@ describe("live gRPC refusal reply depends on the reason alone", () => {
     for (const token of presentedTokens) {
       expect(transcript).not.toContain(token);
     }
-    // The transcript is not vacuous: every refusal was logged.
+    /*
+     * The transcript is not vacuous: every refusal was logged - a key
+     * OneUptime knows at error, a missing or unknown token at debug, which
+     * comes from anyone and is counted instead (#10703).
+     */
     expect(
-      (logger.error as unknown as MockedFn).mock.calls.length,
+      (logger.error as unknown as MockedFn).mock.calls.length +
+        (logger.debug as unknown as MockedFn).mock.calls.filter(
+          (call: Array<unknown>): boolean => {
+            return (
+              call[0] === "gRPC: Missing metadata: x-oneuptime-token" ||
+              call[0] === "gRPC: Invalid service token."
+            );
+          },
+        ).length,
     ).toBeGreaterThanOrEqual(totalObserved);
     assertNothingEnqueued();
   });

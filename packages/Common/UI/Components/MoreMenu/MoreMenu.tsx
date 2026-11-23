@@ -124,13 +124,14 @@ export const PORTALED_MENU_WIDTH: string = "14rem";
 
 /*
  * A wide menu's width (isMenuWide), on the element itself for the same
- * reason, in-place or portalled: room for a label of about 35 characters
- * beside its icon on one line ("Azure activity and Entra ID logs"), which
- * 14rem breaks in two.
+ * reason, in-place or portalled: room for a label of about 38 characters
+ * beside its icon on one line ("Azure Key Vault, Storage and SQL logs",
+ * which 20rem broke in two, as 14rem breaks "Azure activity and Entra ID
+ * logs"), and still inside a 390px phone's screen.
  */
-export const WIDE_MENU_WIDTH: string = "20rem";
+export const WIDE_MENU_WIDTH: string = "21rem";
 // WIDE_MENU_WIDTH in pixels, for a measurement that finds no width at all.
-const WIDE_MENU_FALLBACK_WIDTH_PX: number = 320;
+const WIDE_MENU_FALLBACK_WIDTH_PX: number = 336;
 // A wide menu never runs past the viewport's edges on a narrow phone.
 export const WIDE_MENU_MAX_WIDTH: string = "calc(100vw - 1rem)";
 

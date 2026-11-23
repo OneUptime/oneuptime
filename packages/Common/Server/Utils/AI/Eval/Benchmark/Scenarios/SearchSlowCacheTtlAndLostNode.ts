@@ -50,7 +50,7 @@ const scenario: BenchmarkScenario = {
     "Description: p95 latency of GET /api/search above 3,000 ms for 5 minutes (Search API monitor).",
     "Severity: SEV-2",
     "Current state: Created",
-    "Declared at: Oct 14 2026, 11:12 UTC",
+    "Declared at: Oct 14, 2026, 11:12 UTC",
     "Affected monitors: Search API",
     "Labels: search, storefront",
     "",
