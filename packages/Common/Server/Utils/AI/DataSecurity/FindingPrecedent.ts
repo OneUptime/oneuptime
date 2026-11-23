@@ -2,17 +2,20 @@ import {
   DATA_STORE_FINDING_VERDICT_LIMITS,
   DataStoreFindingDecision,
   DataStoreFindingPrecedent,
-} from "../../../Types/DataSecurity/DataStoreFindingVerdict";
+  getPersonDecision,
+} from "../../../../Types/DataSecurity/DataStoreFindingVerdict";
 import {
   areFindingsSimilar,
   FindingSimilarityFacts,
   getFindingNameKey,
   getFindingNameWords,
-} from "../../../Utils/DataSecurity/FindingJudgement";
+} from "../../../../Utils/DataSecurity/FindingJudgement";
 import MeaningSearch, {
   MeaningSearchCandidate,
   MeaningSearchMatch,
-} from "../AI/MeaningSearch";
+} from "../MeaningSearch";
+
+export { getPersonDecision };
 
 /*
  * THE TEAM'S OWN DECISIONS THAT A VERDICT RESTS ON (#10372).
@@ -57,24 +60,6 @@ export interface PrecedentCandidate extends FindingSimilarityFacts {
 export interface PrecedentSubject extends FindingSimilarityFacts {
   id: string;
   dataStoreId: string;
-}
-
-// What a person decided about a finding, or null when nobody did.
-export function getPersonDecision(
-  candidate: Pick<
-    PrecedentCandidate,
-    "isSuppressed" | "isConfirmed" | "isConfirmedByAi"
-  >,
-): DataStoreFindingDecision | null {
-  if (candidate.isSuppressed === true) {
-    return DataStoreFindingDecision.NotSensitive;
-  }
-
-  if (candidate.isConfirmed === true && candidate.isConfirmedByAi !== true) {
-    return DataStoreFindingDecision.Confirmed;
-  }
-
-  return null;
 }
 
 function timeOf(value: Date | string | null | undefined): number {

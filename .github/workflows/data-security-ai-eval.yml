@@ -52,7 +52,7 @@ on:
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts
-      - packages/Common/Server/Utils/DataSecurity/FindingPrecedent.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingPrecedent.ts
       - packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts
       - packages/Common/Utils/DataSecurity/FindingJudgement.ts
       - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts

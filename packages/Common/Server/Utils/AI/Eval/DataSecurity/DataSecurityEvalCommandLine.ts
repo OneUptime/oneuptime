@@ -104,7 +104,7 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     features: [DataSecurityAiFeature.JudgeFindings],
   },
   {
-    path: "packages/Common/Server/Utils/DataSecurity/FindingPrecedent.ts",
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingPrecedent.ts",
     features: [DataSecurityAiFeature.JudgeFindings],
   },
   {

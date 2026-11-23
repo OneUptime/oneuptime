@@ -94,6 +94,27 @@ export function isDataStoreFindingDecision(
 }
 
 /*
+ * What a person decided about a finding, or null when nobody did. A
+ * finding confirmed and then marked not sensitive no longer counts: it is
+ * not sensitive. OneUptime AI's own confirmation is nobody's decision.
+ */
+export function getPersonDecision(finding: {
+  isSuppressed?: boolean | null | undefined;
+  isConfirmed?: boolean | null | undefined;
+  isConfirmedByAi?: boolean | null | undefined;
+}): DataStoreFindingDecision | null {
+  if (finding.isSuppressed === true) {
+    return DataStoreFindingDecision.NotSensitive;
+  }
+
+  if (finding.isConfirmed === true && finding.isConfirmedByAi !== true) {
+    return DataStoreFindingDecision.Confirmed;
+  }
+
+  return null;
+}
+
+/*
  * A sign that a Medium or High finding matched wrongly, which makes it
  * wait for a person as a Low one does (FindingJudgement.getWrongMatchSigns).
  * Stored with a verdict: never rename one.

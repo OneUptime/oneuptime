@@ -7,7 +7,10 @@ import {
   DataSecuritySimilarFinding,
   DataSecuritySimilarFindings,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
-import { DataStoreFindingDecision } from "../../../Types/DataSecurity/DataStoreFindingVerdict";
+import {
+  DataStoreFindingDecision,
+  getPersonDecision,
+} from "../../../Types/DataSecurity/DataStoreFindingVerdict";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
@@ -21,7 +24,6 @@ import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { getPersonDecision } from "./FindingPrecedent";
 
 /*
  * ONE DECISION SETTLES EVERY FINDING LIKE IT (#10372).

@@ -47,7 +47,7 @@ import { MAX_FINDINGS_PER_STORE } from "../../DataSecurity/DataSecurityFindingWr
 import {
   PrecedentCandidate,
   selectFindingPrecedent,
-} from "../../DataSecurity/FindingPrecedent";
+} from "./FindingPrecedent";
 import logger from "../../Logger";
 import ProjectLanguage from "../../Notification/ProjectLanguage";
 import CaptureSpan from "../../Telemetry/CaptureSpan";

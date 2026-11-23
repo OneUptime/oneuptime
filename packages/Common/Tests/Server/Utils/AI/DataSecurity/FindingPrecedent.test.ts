@@ -4,12 +4,12 @@ import {
   PrecedentCandidate,
   PrecedentSubject,
   selectFindingPrecedent,
-} from "../../../../Server/Utils/DataSecurity/FindingPrecedent";
+} from "../../../../../Server/Utils/AI/DataSecurity/FindingPrecedent";
 import {
   DATA_STORE_FINDING_VERDICT_LIMITS,
   DataStoreFindingDecision,
   DataStoreFindingPrecedent,
-} from "../../../../Types/DataSecurity/DataStoreFindingVerdict";
+} from "../../../../../Types/DataSecurity/DataStoreFindingVerdict";
 
 /*
  * THE TEAM'S OWN DECISIONS A VERDICT RESTS ON (#10372): the findings alike

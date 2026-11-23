@@ -121,6 +121,16 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion",
       uses: ["DataSecurityFieldSuggestion.suggestForStore"],
     },
+    // OneUptime AI's verdicts on findings (#10372): the switch is asked in the run.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/FindingVerdicts",
+      uses: ["DataSecurityFindingVerdicts.judgeStore"],
+    },
+    // The scans' tuning (#10372): asks no model, under the same switches.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityScanTuning",
+      uses: ["DataSecurityScanTuning.proposeForProject"],
+    },
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiEngine",
       uses: ["DataSecurityAiEngine.evaluateIssue"],
