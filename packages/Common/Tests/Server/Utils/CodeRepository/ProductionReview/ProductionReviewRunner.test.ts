@@ -32,6 +32,19 @@ import ProductionReviewFindings, {
 import ProductionReviewQueue from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import ProductionReviewRepositoryProfile from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewRepositoryProfile";
 import ProductionReviewScope from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope";
+import ProductionReviewSensitiveData from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData";
+import PullRequestLeakReview, {
+  PullRequestLeakReviewResult,
+} from "../../../../../Server/Utils/AI/DataSecurity/PullRequestLeakReview";
+import {
+  ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataJSON,
+  SensitiveDataAiNoteCode,
+  SensitiveDataLeakKind,
+  SensitiveDataSink,
+} from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import GitHubConversation, {
   GitHubPullRequestDetails,
 } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubConversation";
@@ -172,6 +185,89 @@ function pullRequest(
     ...change,
   };
 }
+
+/*
+ * The Sensitive data section (#10376): a point the rules found in the
+ * pull request's diff, with what production knows of it.
+ */
+function leakPoint(
+  change: Partial<ProductionReviewLeakJSON> = {},
+): ProductionReviewLeakJSON {
+  return {
+    key: "a1b2c3d4e5f60718",
+    kind: SensitiveDataLeakKind.Telemetry,
+    checkId: "sensitive-data-in-telemetry",
+    sink: SensitiveDataSink.Log,
+    path: "src/billing/charge.ts",
+    line: 41,
+    subject: "email",
+    where: "logger.info",
+    dataTypeIds: ["email-address"],
+    dataTypeNames: ["Email address"],
+    sensitivity: DataSensitivity.Confidential,
+    severity: SecuritySeverity.High,
+    isBlocking: false,
+    failsCheck: false,
+    text: "Writes an email address to a log: `email`, in `logger.info`.",
+    fix: "Leave `email` out, or write a hash of it when you need to tell values apart.",
+    isAiWorded: false,
+    suggestion: {
+      startLine: 41,
+      endLine: 41,
+      original: ['  logger.info("charge", { email });'],
+      replacement: ['  logger.info("charge");'],
+      isByAi: false,
+    },
+    production: {
+      heldBefore: [
+        {
+          serviceId: "8b5b7f2e-2c3d-4c6a-9e1f-5a6b7c8d9e01",
+          serviceName: "billing-worker",
+          storeKind: "Logs",
+          location: "attributes.customer.email",
+          dataTypeName: "Email address",
+          lastSeenAt: "2026-10-21T10:00:00.000Z",
+        },
+      ],
+    },
+    ...change,
+  };
+}
+
+function leakSection(
+  points: Array<ProductionReviewLeakJSON>,
+  change: Partial<ProductionReviewSensitiveDataJSON> = {},
+): ProductionReviewSensitiveDataJSON {
+  return {
+    points,
+    moreCount: 0,
+    droppedCount: 0,
+    isFailOn: points.some((point: ProductionReviewLeakJSON): boolean => {
+      return point.failsCheck;
+    }),
+    isAiRead: false,
+    ...change,
+  };
+}
+
+let sensitiveFind: jest.SpyInstance;
+let leakRead: jest.SpyInstance;
+
+beforeEach(() => {
+  // No leak, unless a test says: the rules' own tests read real diffs.
+  sensitiveFind = jest
+    .spyOn(ProductionReviewSensitiveData, "find")
+    .mockResolvedValue(leakSection([]));
+  leakRead = jest
+    .spyOn(PullRequestLeakReview, "read")
+    .mockImplementation(
+      async (data: {
+        section: ProductionReviewSensitiveDataJSON;
+      }): Promise<PullRequestLeakReviewResult> => {
+        return { section: { ...data.section, isAiRead: true } };
+      },
+    );
+});
 
 function findingsOf(
   report: ProductionReviewReport,
@@ -953,6 +1049,181 @@ describe("ProductionReviewRunner", () => {
     });
   });
 
+  describe("the Sensitive data section (#10376)", () => {
+    test("a leak can fail the check only once the repository turns its switch on", async () => {
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(sensitiveFind.mock.calls[0]![0]).toMatchObject({
+        isFailOn: false,
+      });
+
+      sensitiveFind.mockClear();
+      repository.isProductionReviewFailOnLeakEnabled = true;
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(sensitiveFind.mock.calls[0]![0]).toMatchObject({ isFailOn: true });
+    });
+
+    test("comes first in the comment, read by OneUptime AI beside What to watch, in one daily read", async () => {
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      const body: string = postedBody();
+
+      expect(body.indexOf("**Sensitive data**")).toBeGreaterThan(0);
+      expect(body.indexOf("**Sensitive data**")).toBeLessThan(
+        body.indexOf("**What to watch**"),
+      );
+      expect(aiRead).toHaveBeenCalledTimes(1);
+      expect(leakRead).toHaveBeenCalledTimes(1);
+      // The read is handed the section and the diff - nothing else.
+      expect(Object.keys(leakRead.mock.calls[0]![0]).sort()).toEqual(
+        [
+          "aiRunId",
+          "files",
+          "pickedLlmProviderId",
+          "projectId",
+          "pullRequestTitle",
+          "section",
+        ].sort(),
+      );
+
+      const { update, outcome } = finished();
+
+      // Both reads take one of the day's reads.
+      expect(update["aiReadsToday"]).toBe(1);
+      expect(typeof update["sensitiveDataAiInputHash"]).toBe("string");
+      expect(outcome!.productionReview!.sensitiveData).toMatchObject({
+        isAiRead: true,
+        points: [{ key: "a1b2c3d4e5f60718" }],
+      });
+    });
+
+    test("the leaks it posted are remembered on the pull request's task, for AI Results", async () => {
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(finished().update["caughtLeaks"]).toEqual([
+        {
+          key: "a1b2c3d4e5f60718",
+          kind: SensitiveDataLeakKind.Telemetry,
+          checkId: "sensitive-data-in-telemetry",
+          isBlocking: false,
+          at: "2026-10-22T10:00:00.000Z",
+        },
+      ]);
+    });
+
+    test("with nothing from production, a leak is still posted - and only its read is asked", async () => {
+      find.mockResolvedValue(findingsOf(emptyReport()));
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(createComment).toHaveBeenCalledTimes(1);
+      expect(postedBody()).toContain("Writes an email address to a log");
+      expect(aiRead).not.toHaveBeenCalled();
+      expect(leakRead).toHaveBeenCalledTimes(1);
+    });
+
+    test("AI off: the rules' own words stand, and the section says why", async () => {
+      jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(leakRead).not.toHaveBeenCalled();
+      expect(finished().outcome!.productionReview!.sensitiveData).toMatchObject(
+        { aiNote: SensitiveDataAiNoteCode.AiOff, isAiRead: false },
+      );
+    });
+
+    test("the day's reads used up: neither read is asked", async () => {
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(
+        claimedRun({
+          aiReadDay: "2026-10-22",
+          aiReadsToday: PRODUCTION_REVIEW_LIMITS.maxAiReadsPerPullRequestPerDay,
+        }),
+      );
+
+      expect(aiRead).not.toHaveBeenCalled();
+      expect(leakRead).not.toHaveBeenCalled();
+      expect(finished().outcome!.productionReview!.sensitiveData!.aiNote).toBe(
+        SensitiveDataAiNoteCode.DailyLimit,
+      );
+    });
+
+    test("the same points and diff as the last read: its words are kept, nothing is asked again", async () => {
+      const point: ProductionReviewLeakJSON = leakPoint();
+
+      sensitiveFind.mockResolvedValue(leakSection([point]));
+      find.mockResolvedValue(findingsOf(emptyReport()));
+
+      const hash: string = PullRequestLeakReview.getInputHash({
+        pullRequestTitle: "fix: guard the card before charging",
+        points: [point],
+        files: [
+          {
+            path: "src/billing/charge.ts",
+            patch:
+              "@@ -40,2 +40,5 @@ export function chargeCard(card) {\n-  const id = card.id;\n+  if (!card) {\n+    throw new Error('no card');\n+  }\n+  const id = card.id;",
+          },
+        ],
+      });
+      const previous: ProductionReviewReport = emptyReport({
+        sensitiveData: leakSection(
+          [{ ...point, text: "Logs the customer's email.", isAiWorded: true }],
+          { isAiRead: true },
+        ),
+      });
+      const run: AIRun = claimedRun({}, {
+        filesChanged: [],
+        summary: "",
+        productionReview: previous,
+      } as unknown as CodeTaskOutcome);
+
+      run.taskContext!.productionReview!.sensitiveDataAiInputHash = hash;
+
+      await ProductionReviewRunner.review(run);
+
+      expect(leakRead).not.toHaveBeenCalled();
+      expect(postedBody()).toContain("Logs the customer's email.");
+    });
+
+    test("a public repository: the section from the diff alone, beside the link", async () => {
+      isPublic.mockResolvedValue(true);
+      sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      const body: string = postedBody();
+
+      expect(body).toContain("**Sensitive data**");
+      expect(body).toContain("Writes an email address to a log");
+      expect(body).toContain("Open the production review");
+      // Nothing production knows: the service, where it held the data.
+      expect(body).not.toContain("billing-worker");
+      expect(body).not.toContain("attributes.customer.email");
+      expect(body).not.toContain("TypeError");
+    });
+
+    test("a section that could not be read is said, and the review stands", async () => {
+      sensitiveFind.mockRejectedValue(new Error("Postgres is away"));
+
+      await ProductionReviewRunner.review(claimedRun());
+
+      expect(createComment).toHaveBeenCalledTimes(1);
+      expect(finished().outcome!.productionReview!.unreadSections).toContain(
+        "SensitiveData",
+      );
+    });
+  });
+
   describe("runClaimed and runDueReviews", () => {
     test("a review that throws is tried again later, never thrown on", async () => {
       pullRequestDetails.mockRejectedValue(new Error("GitHub answered 502"));
@@ -1232,6 +1503,78 @@ describe("ProductionReviewRunner: the review's GitHub check run", () => {
       ProductionReviewPosting.Review,
     );
     expect(finished().update["checkRunId"]).toBeUndefined();
+  });
+
+  test("a leak the repository asked its check to fail on fails it (#10376)", async () => {
+    sensitiveFind.mockResolvedValue(
+      leakSection([leakPoint({ isBlocking: true, failsCheck: true })]),
+    );
+
+    await ProductionReviewRunner.review(run());
+
+    expect(written().content).toMatchObject({
+      conclusion: GitHubCheckConclusion.Failure,
+      title: "Sensitive data in these changes fails this check",
+    });
+    expect(written().content.summary).toContain("**Sensitive data**");
+  });
+
+  test("the same leak with the switch off leaves the check neutral", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    await ProductionReviewRunner.review(run());
+
+    expect(written().content.conclusion).toBe(GitHubCheckConclusion.Neutral);
+  });
+
+  test("a point's suggested change goes on its line once, in one review its author can commit from", async () => {
+    const review: jest.SpyInstance = jest
+      .spyOn(GitHubConversation, "createPullRequestReview")
+      .mockResolvedValue(undefined as never);
+
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    await ProductionReviewRunner.review(run());
+
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(review.mock.calls[0]![0]).toMatchObject({
+      installationId: "4242",
+      organizationName: "acme",
+      repositoryName: "checkout",
+      pullRequestNumber: 42,
+      commitSha: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+      isOnlyItsComments: true,
+      comments: [{ path: "src/billing/charge.ts", line: 41 }],
+    });
+    expect(
+      (review.mock.calls[0]![0] as { comments: Array<{ body: string }> })
+        .comments[0]!.body,
+    ).toContain('```suggestion\n  logger.info("charge");\n```');
+    expect(finished().update["suggestedLeakKeys"]).toEqual([
+      "a1b2c3d4e5f60718",
+    ]);
+
+    // The next push shows it again: it is not suggested twice.
+    review.mockClear();
+    finish.mockClear();
+
+    await ProductionReviewRunner.review(
+      run({ commentId: 6000, suggestedLeakKeys: ["a1b2c3d4e5f60718"] }),
+    );
+
+    expect(review).not.toHaveBeenCalled();
+  });
+
+  test("a suggestion GitHub refuses never fails the review", async () => {
+    jest
+      .spyOn(GitHubConversation, "createPullRequestReview")
+      .mockRejectedValue(new Error("422 line must be part of the diff"));
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    await ProductionReviewRunner.review(run());
+
+    expect(createComment).toHaveBeenCalledTimes(1);
+    expect(finished().update["suggestedLeakKeys"]).toBeUndefined();
   });
 
   test("a renamed product names the check as it is renamed", async () => {
@@ -1641,6 +1984,70 @@ describe("ProductionReviewRunner: a merge request on GitLab, a pull request on F
     // The pull request was read, its diff split file by file.
     expect(finished().outcome!.productionReview!.changedFileCount).toBe(1);
     expect(connected.refused()).toBe(0);
+  });
+
+  test("GitLab, with the switch on: the merge request's commit gets a failed status on a leak that fails the check (#10376)", async () => {
+    sensitiveFind.mockResolvedValue(
+      leakSection([leakPoint({ isBlocking: true, failsCheck: true })]),
+    );
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: [
+        ...gitLabRoutes(),
+        {
+          method: "POST",
+          path: `/projects/4217/statuses/${SHA}`,
+          answer: () => {
+            return { status: 201, json: { id: 1 } };
+          },
+        },
+      ],
+      repository: {
+        isProductionReviewEnabled: true,
+        isProductionReviewFailOnLeakEnabled: true,
+      },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    const status: { body?: string } | undefined = connected.host.requests.find(
+      (request: { method: string; url?: string; path?: string }) => {
+        return (
+          request.method === "POST" &&
+          `${request.url || request.path || ""}`.includes("/statuses/")
+        );
+      },
+    );
+
+    expect(status).toBeDefined();
+    expect(JSON.parse(status!.body!)).toMatchObject({
+      state: "failed",
+      name: "OneUptime production review",
+      description: "Sensitive data in these changes fails this check",
+    });
+  });
+
+  test("GitLab, with the switch off: no status is written - nothing new appears", async () => {
+    sensitiveFind.mockResolvedValue(
+      leakSection([leakPoint({ isBlocking: true })]),
+    );
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes(),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(
+      connected.host.requests.filter(
+        (request: { method: string; url?: string; path?: string }) => {
+          return `${request.url || request.path || ""}`.includes("/statuses/");
+        },
+      ),
+    ).toHaveLength(0);
   });
 
   test("the failure kept after a retry says the host's word", () => {

@@ -3,6 +3,7 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
@@ -96,7 +97,9 @@ type TableName =
   | "dataSecurityProposals"
   | "dataSecurityDecisions"
   | "dataSecurityIssues"
-  | "dataStores";
+  | "dataStores"
+  // The repositories whose production reviews caught leaks (#10376).
+  | "codeRepositories";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -139,6 +142,7 @@ function install(
       dataSecurityDecisions: [],
       dataSecurityIssues: [],
       dataStores: [],
+      codeRepositories: [],
       ...tables,
     },
     access: {
@@ -153,6 +157,7 @@ function install(
       dataSecurityDecisions: "read",
       dataSecurityIssues: "read",
       dataStores: "read",
+      codeRepositories: "read",
       ...access,
     },
     readableIncidentIds: readable.incidentIds
@@ -246,6 +251,9 @@ function install(
   jest
     .spyOn(DataStoreService, "findBy")
     .mockImplementation(find("dataStores") as never);
+  jest
+    .spyOn(CodeRepositoryService, "findBy")
+    .mockImplementation(find("codeRepositories") as never);
   jest
     .spyOn(InvestigationReportSummary, "getForRuns")
     .mockResolvedValue(new Map<string, string>());
@@ -612,6 +620,10 @@ describe("a number opens exactly what it counts", () => {
         .proposals as unknown as Record<string, number>,
       [AiOutcomesPart.IssueVerdicts]:
         outcomes.issueVerdicts as unknown as Record<string, number>,
+      [AiOutcomesPart.Leaks]: outcomes.leaks as unknown as Record<
+        string,
+        number
+      >,
     };
 
     let opened: number = 0;
@@ -1650,6 +1662,233 @@ describe("OneUptime AI's verdicts on Data Security issues (#10369)", () => {
       await expect(
         readRecords(AiOutcomesPart.IssueVerdicts, "agreed"),
       ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+});
+
+describe("leaks caught before they merged, against those found after (#10376)", () => {
+  // A pull request's production review task, with the leaks it posted.
+  function review(
+    caughtLeaks: Array<Record<string, unknown>>,
+    overrides: Partial<FakeRow> = {},
+  ): FakeRow {
+    return {
+      _id: nextId(95),
+      projectId: PROJECT_ID,
+      createdAt: daysAgo(10),
+      updatedAt: daysAgo(1),
+      runType: AIRunType.CodeFix,
+      codeFixTaskType: CodeFixTaskType.GitHubPullRequestProductionReview,
+      status: AIRunStatus.Completed,
+      title: "Log signups",
+      taskContext: {
+        github: {
+          codeRepositoryId: uuid(96, 1),
+          installationId: "4242",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          commandType: "ProductionReview",
+          instruction: "",
+          pullRequestNumber: 42,
+        },
+        productionReview: {
+          requestNumber: 2,
+          requestedAt: daysAgo(1).toISOString(),
+          headSha: "0f1e2d3c4b5a",
+          caughtLeaks,
+        },
+      },
+      ...overrides,
+    };
+  }
+
+  function leak(
+    key: string,
+    checkId: string,
+    at: Date,
+    fixedAt?: Date,
+  ): Record<string, unknown> {
+    return {
+      key,
+      kind: "Telemetry",
+      checkId,
+      isBlocking: false,
+      at: at.toISOString(),
+      ...(fixedAt ? { fixedAt: fixedAt.toISOString() } : {}),
+    };
+  }
+
+  function foundIssue(
+    checkId: string,
+    firstDetectedAt: Date,
+    overrides: Partial<FakeRow> = {},
+  ): FakeRow {
+    return {
+      _id: nextId(97),
+      projectId: PROJECT_ID,
+      createdAt: firstDetectedAt,
+      firstDetectedAt,
+      checkId,
+      title: "Sensitive data is reaching your telemetry",
+      status: DataSecurityIssueStatus.Open,
+      ...overrides,
+    };
+  }
+
+  function leakyProject(): Partial<Tables> {
+    return {
+      codeRepositories: [
+        { _id: uuid(96, 1), projectId: PROJECT_ID, createdAt: daysAgo(200) },
+      ],
+      runs: [
+        review([
+          leak("a1", "sensitive-data-in-telemetry", daysAgo(5), daysAgo(4)),
+          leak("a2", "secrets-in-telemetry", daysAgo(5)),
+          // Caught before the window: not counted.
+          leak("a3", "public-read", daysAgo(120)),
+        ]),
+        review([], {
+          title: "Add a password column",
+          taskContext: {
+            codeHostPullRequest: {
+              codeRepositoryId: uuid(96, 2),
+              provider: "GitLab",
+              pullRequestNumber: 7,
+              pullRequestUrl:
+                "https://gitlab.com/acme/checkout/-/merge_requests/7",
+            },
+            productionReview: {
+              requestNumber: 1,
+              requestedAt: daysAgo(3).toISOString(),
+              headSha: "9a8b7c",
+              caughtLeaks: [
+                leak("b1", "plaintext-passwords", daysAgo(3), daysAgo(2)),
+              ],
+            },
+          },
+        }),
+        // Another project's review: not counted.
+        review([leak("c1", "secrets-in-telemetry", daysAgo(2))], {
+          projectId: OTHER_PROJECT_ID,
+        }),
+      ],
+      dataSecurityIssues: [
+        foundIssue("sensitive-data-in-telemetry", daysAgo(6)),
+        foundIssue("public-read", daysAgo(20)),
+        // A check no pull request's rules catch early: not a leak here.
+        foundIssue("mfa-not-enforced", daysAgo(6)),
+        // Found before the window: not counted.
+        foundIssue("public-read", daysAgo(120)),
+      ],
+    };
+  }
+
+  test("counted from the reviews' caught leaks and the scans' issues of the window: fixed, open, found after", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    const outcomes: AiOutcomes = await readOutcomes();
+
+    expect(outcomes.leaks).toEqual({ fixed: 2, open: 1, foundAfter: 2 });
+  });
+
+  test("each part opens what it counts: a caught leak its pull request and check, a found one its issue", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    const fixed: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.Leaks,
+      "fixed",
+    );
+
+    expect(fixed.total).toBe(2);
+    expect(
+      fixed.records.map((record: AiOutcomesRecord) => {
+        return {
+          checkId: record.checkId,
+          number: record.pullRequestNumber,
+          title: record.pullRequestTitle,
+          url: record.pullRequestUrl,
+        };
+      }),
+    ).toEqual([
+      {
+        checkId: "plaintext-passwords",
+        number: 7,
+        title: "Add a password column",
+        url: "https://gitlab.com/acme/checkout/-/merge_requests/7",
+      },
+      {
+        checkId: "sensitive-data-in-telemetry",
+        number: 42,
+        title: "Log signups",
+        url: undefined,
+      },
+    ]);
+
+    const found: AiOutcomesRecords = await readRecords(
+      AiOutcomesPart.Leaks,
+      "foundAfter",
+    );
+
+    expect(found.total).toBe(2);
+    expect(
+      found.records.map((record: AiOutcomesRecord) => {
+        return {
+          checkId: record.checkId,
+          isItsIssue: record.dataSecurityIssue?.id === record.id,
+          title: record.dataSecurityIssue?.title,
+        };
+      }),
+    ).toEqual([
+      {
+        checkId: "sensitive-data-in-telemetry",
+        isItsIssue: true,
+        title: "Sensitive data is reaching your telemetry",
+      },
+      {
+        checkId: "public-read",
+        isItsIssue: true,
+        title: "Sensitive data is reaching your telemetry",
+      },
+    ]);
+  });
+
+  test("the reviews are read as OneUptime; the repositories and the issues under the caller's props", async () => {
+    install(leakyProject(), {}, READABLE);
+
+    await readOutcomes();
+
+    expect(
+      callsTo("codeRepositories").map((call: Call): boolean => {
+        return call.props === CALLER;
+      }),
+    ).toEqual([true]);
+    expect(
+      callsTo("dataSecurityIssues").every((call: Call): boolean => {
+        return call.props === CALLER;
+      }),
+    ).toBe(true);
+    expect(
+      callsTo("runs").every((call: Call): boolean => {
+        return Boolean(call.props.isRoot);
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    ["codeRepositories", "notAuthorized"],
+    ["codeRepositories", "paymentRequired"],
+    ["dataSecurityIssues", "notAuthorized"],
+  ] as Array<[TableName, Access]>)(
+    "a caller who may not read %s (%s) gets no leak numbers, not zeros, and opens none",
+    async (table: TableName, access: Access) => {
+      install(leakyProject(), { [table]: access }, READABLE);
+
+      const outcomes: AiOutcomes = await readOutcomes();
+
+      expect(outcomes.leaks).toBeNull();
+      await expect(readRecords(AiOutcomesPart.Leaks, "fixed")).rejects.toThrow(
+        NotAuthorizedException,
+      );
     },
   );
 });

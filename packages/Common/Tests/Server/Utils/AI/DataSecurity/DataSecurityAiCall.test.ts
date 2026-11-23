@@ -2,6 +2,7 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
   LLM_LOG_PREVIEW_NOT_KEPT,
@@ -273,6 +274,9 @@ describe("what every Data Security call keeps", () => {
       // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
       [DataSecurityAiFeature.ProposeStoreOwners]:
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
+      // Its read of a pull request's sensitive data (#10376): autonomous, so budgeted.
+      [DataSecurityAiFeature.ReviewPullRequests]:
+        AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
     });
   });
 
@@ -451,6 +455,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.Chat,
       // Owners for data stores: the one Data Security call, as Explain's.
       DataSecurityAiModelSource.ProjectProvider,
+      // A pull request's sensitive data: the repository's pick for its reviews.
+      DataSecurityAiModelSource.ProductionReview,
     ]);
   });
 });

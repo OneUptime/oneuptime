@@ -24,7 +24,10 @@ import { describe, expect, test } from "@jest/globals";
 
 const matcher: SensitiveNameMatcher = new SensitiveNameMatcher();
 
-function idsOf(name: string, using: SensitiveNameMatcher = matcher): Array<string> {
+function idsOf(
+  name: string,
+  using: SensitiveNameMatcher = matcher,
+): Array<string> {
   return using.match(name).map((type: NamedDataType): string => {
     return type.id;
   });
@@ -138,9 +141,11 @@ describe("hints too common in code are the scans' to read", () => {
 
   test("every left-out hint is one the catalog has", () => {
     const hints: Set<string> = new Set<string>(
-      DATA_TYPE_CATALOG.flatMap((type: { nameHints: ReadonlyArray<string> }) => {
-        return [...type.nameHints];
-      }),
+      DATA_TYPE_CATALOG.flatMap(
+        (type: { nameHints: ReadonlyArray<string> }) => {
+          return [...type.nameHints];
+        },
+      ),
     );
 
     for (const hint of CODE_AMBIGUOUS_HINTS) {
@@ -219,9 +224,9 @@ describe("the head rule itself", () => {
 
   test("a plural is read where it is allowed", () => {
     expect(isHeadOf(["emails"], ["email"])).toBe(true);
-    expect(
-      isHeadOf(["passwords"], ["password"], { allowsPlural: false }),
-    ).toBe(false);
+    expect(isHeadOf(["passwords"], ["password"], { allowsPlural: false })).toBe(
+      false,
+    );
   });
 
   test("a name too long to be a name is none", () => {
