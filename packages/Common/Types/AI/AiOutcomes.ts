@@ -443,8 +443,11 @@ export const AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES: ReadonlyArray<AiOutcomesIssueVe
   ["agreed", "disagreed", "waiting", "cannotTell"];
 
 // Where a leak was counted (#10376): AiOutcomesLeaks' keys.
-export const AI_OUTCOMES_LEAK_OUTCOMES: ReadonlyArray<keyof AiOutcomesLeaks> =
-  ["fixed", "open", "foundAfter"];
+export const AI_OUTCOMES_LEAK_OUTCOMES: ReadonlyArray<keyof AiOutcomesLeaks> = [
+  "fixed",
+  "open",
+  "foundAfter",
+];
 
 export const AI_OUTCOMES_PART_OUTCOMES: Record<
   AiOutcomesPart,

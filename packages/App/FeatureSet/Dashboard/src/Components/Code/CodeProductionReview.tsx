@@ -1537,10 +1537,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
             </p>
             <ul className="mt-1 space-y-1">
               {held.map(
-                (
-                  place: ProductionReviewLeakHeldBeforeJSON,
-                  index: number,
-                ) => {
+                (place: ProductionReviewLeakHeldBeforeJSON, index: number) => {
                   return (
                     <li key={`${place.serviceId}-${place.location}-${index}`}>
                       <CodeMetaList
@@ -1573,10 +1570,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                             translator.translateText(place.dataTypeName) ||
                               place.dataTypeName,
                           ),
-                          fact(
-                            "seen",
-                            <CodeTimeAgo date={place.lastSeenAt} />,
-                          ),
+                          fact("seen", <CodeTimeAgo date={place.lastSeenAt} />),
                         ]}
                       />
                     </li>
@@ -1620,9 +1614,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                       production.store.dataStoreId,
                     )}
                   >
-                    <span className="font-medium">
-                      {production.store.name}
-                    </span>
+                    <span className="font-medium">{production.store.name}</span>
                   </RowName>
                 ),
                 sensitivity:

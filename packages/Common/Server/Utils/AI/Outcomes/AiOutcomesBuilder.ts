@@ -639,9 +639,7 @@ export default class AiOutcomesBuilder {
   }
 
   // Where a leak counts (#10376): fixed or still open in its pull request, or found after.
-  public static getLeakOutcome(
-    row: AiOutcomesLeakRow,
-  ): keyof AiOutcomesLeaks {
+  public static getLeakOutcome(row: AiOutcomesLeakRow): keyof AiOutcomesLeaks {
     if (!row.isCaught) {
       return "foundAfter";
     }

@@ -587,9 +587,8 @@ export default class ProductionReviewRunner {
     now: Date;
     update: ProductionReviewContextUpdate;
   }): Promise<void> {
-    const wantsProductionRead: boolean = ProductionReviewUtil.hasProductionSignal(
-      data.report,
-    );
+    const wantsProductionRead: boolean =
+      ProductionReviewUtil.hasProductionSignal(data.report);
     const section: ProductionReviewSensitiveDataJSON | undefined =
       data.report.sensitiveData;
     const wantsLeakRead: boolean =
@@ -746,16 +745,15 @@ export default class ProductionReviewRunner {
     }
 
     if (needsLeakRead && data.report.sensitiveData) {
-      const read: PullRequestLeakReviewResult = await PullRequestLeakReview.read(
-        {
+      const read: PullRequestLeakReviewResult =
+        await PullRequestLeakReview.read({
           projectId,
           aiRunId: data.run.id!,
           pullRequestTitle: data.report.pullRequest.title,
           section: data.report.sensitiveData,
           files: leakFiles,
           pickedLlmProviderId: data.pickedLlmProviderId,
-        },
-      );
+        });
 
       data.report.sensitiveData = read.section;
 

@@ -527,8 +527,8 @@ export default class ProductionReviewComposer {
     const hasProduction: boolean =
       ProductionReviewUtil.hasProductionSignal(report);
     const hasSensitiveData: boolean =
-      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData)
-        .length > 0;
+      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData).length >
+      0;
 
     if (ProductionReviewSensitiveDataUtil.failsCheck(report.sensitiveData)) {
       return {
@@ -718,7 +718,7 @@ export default class ProductionReviewComposer {
 
     if (failing > 0) {
       notes.push(
-        mdText`<sub>No leak after all? Write ${FeedMarkdown.code("oneuptime:not-sensitive")} on its line, or on the line above it, and say why in the review.</sub>`,
+        mdText`<sub>No leak after all? Write ${FeedMarkdown.code("oneuptime:not-sensitive")} on its line, or in a comment on the line above it, and say why in the review.</sub>`,
       );
     }
 

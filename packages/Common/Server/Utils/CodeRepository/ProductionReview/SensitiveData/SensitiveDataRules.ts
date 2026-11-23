@@ -162,7 +162,8 @@ export default class SensitiveDataRules {
       );
     }
 
-    const ordered: Array<SensitiveDataCandidate> = found.sort(compareCandidates);
+    const ordered: Array<SensitiveDataCandidate> =
+      found.sort(compareCandidates);
 
     return {
       candidates: ordered.slice(0, SENSITIVE_DATA_LIMITS.maxPoints),

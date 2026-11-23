@@ -501,7 +501,8 @@ export const PRODUCTION_REVIEW_SENSITIVE_DATA_COPY: {
 
 export const PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED: PluralTemplate = {
   one: "OneUptime AI read {{count}} more point as no leak, and left it out.",
-  other: "OneUptime AI read {{count}} more points as no leak, and left them out.",
+  other:
+    "OneUptime AI read {{count}} more points as no leak, and left them out.",
 };
 
 export const PRODUCTION_REVIEW_SENSITIVE_DATA_MORE: PluralTemplate = {

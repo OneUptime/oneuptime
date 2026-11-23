@@ -297,7 +297,9 @@ class Tokenizer {
 
       // Comments: to the end of the line, or the end of a block.
       if (
-        (this.language.slashComments && character === "/" && following === "/") ||
+        (this.language.slashComments &&
+          character === "/" &&
+          following === "/") ||
         (this.language.hashComments &&
           character === "#" &&
           !(this.language.hashBraceInStrings && following === "{"))
@@ -306,7 +308,11 @@ class Tokenizer {
         continue;
       }
 
-      if (this.language.slashComments && character === "/" && following === "*") {
+      if (
+        this.language.slashComments &&
+        character === "/" &&
+        following === "*"
+      ) {
         this.column += 2;
         this.skipBlockComment();
         continue;
@@ -352,11 +358,19 @@ class Tokenizer {
         const number: string = text.slice(this.column, end);
         this.column = end;
 
-        return { kind: CodeTokenKind.Number, text: number, line, column, parts: [] };
+        return {
+          kind: CodeTokenKind.Number,
+          text: number,
+          line,
+          column,
+          parts: [],
+        };
       }
 
       for (const punctuation of LONG_PUNCTUATION) {
-        if ((this.lines[this.line] || "").startsWith(punctuation, this.column)) {
+        if (
+          (this.lines[this.line] || "").startsWith(punctuation, this.column)
+        ) {
           this.column += punctuation.length;
 
           return {
@@ -617,12 +631,17 @@ class Tokenizer {
       return "$name";
     }
 
-    if (this.language.hashBraceInStrings && character === "#" && following === "{") {
+    if (
+      this.language.hashBraceInStrings &&
+      character === "#" &&
+      following === "{"
+    ) {
       return "#{";
     }
 
     if (
-      (this.language.prefixedBraceStrings || this.language.bareBraceInStrings) &&
+      (this.language.prefixedBraceStrings ||
+        this.language.bareBraceInStrings) &&
       character === "{"
     ) {
       // "{{" is a brace, written twice.
@@ -634,7 +653,11 @@ class Tokenizer {
       return "{";
     }
 
-    if (this.language.dollarInStrings && character === "{" && following === "$") {
+    if (
+      this.language.dollarInStrings &&
+      character === "{" &&
+      following === "$"
+    ) {
       // PHP's "{$user->email}".
       return "{";
     }

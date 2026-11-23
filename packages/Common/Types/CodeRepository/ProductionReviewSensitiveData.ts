@@ -159,9 +159,9 @@ export const PRODUCTION_REVIEW_LEAK_CHECK_IDS: ReadonlyArray<string> = [
 ];
 
 /*
- * Written on a line, or on the line above it, it says the line is no leak:
- * the rules leave it alone, and every reviewer of the diff sees that the
- * author said so. Matched in lower case.
+ * Written on a line, or in a comment of its own on the line above it, it
+ * says the line is no leak: the rules leave it alone, and every reviewer of
+ * the diff sees that the author said so. Matched in lower case.
  */
 export const NOT_SENSITIVE_MARKER: string = "oneuptime:not-sensitive";
 
@@ -461,8 +461,10 @@ export class ProductionReviewSensitiveDataUtil {
       seen.add(leak.key);
 
       if (posted.has(leak.key)) {
-        const { fixedAt: _fixedAt, ...open } = leak;
+        // Posted again: open again, whenever it was fixed.
+        const open: ProductionReviewCaughtLeak = { ...leak };
 
+        delete open.fixedAt;
         merged.push(open);
       } else {
         merged.push({ ...leak, fixedAt: leak.fixedAt || at });

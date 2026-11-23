@@ -378,11 +378,7 @@ function blockNameOf(header: string): string {
   return normalizeKey(name).slice(0, 200);
 }
 
-function readQuoted(
-  text: string,
-  quote: string,
-  count: number,
-): Array<string> {
+function readQuoted(text: string, quote: string, count: number): Array<string> {
   const found: Array<string> = [];
   let from: number = 0;
 
@@ -987,7 +983,9 @@ function setToLike(
   return (rawValue: string): string => {
     const raw: string = trimRawValue(rawValue);
     const first: string =
-      raw.startsWith('"') || raw.startsWith("'") ? raw.charAt(1) : raw.charAt(0);
+      raw.startsWith('"') || raw.startsWith("'")
+        ? raw.charAt(1)
+        : raw.charAt(0);
     const isCapitalized: boolean = first >= "A" && first <= "Z";
 
     return asWritten(rawValue, isCapitalized ? capitalized : lower);
@@ -1754,7 +1752,10 @@ function toCandidate(data: {
     SENSITIVE_DATA_LIMITS.maxSubjectLength,
   );
   const raw: string = trimRawValue(data.setting.rawValue);
-  const shownValue: string = raw.slice(0, SENSITIVE_DATA_LIMITS.maxSubjectLength);
+  const shownValue: string = raw.slice(
+    0,
+    SENSITIVE_DATA_LIMITS.maxSubjectLength,
+  );
   const safe: string | null = data.rule.safeValue
     ? data.rule.safeValue(data.setting.rawValue)
     : null;

@@ -564,9 +564,7 @@ function withoutLeadingUnderscores(name: string): string {
 }
 
 function isLogReceiver(receiver: string): boolean {
-  const last: string = withoutLeadingUnderscores(
-    toLower(lastPartOf(receiver)),
-  );
+  const last: string = withoutLeadingUnderscores(toLower(lastPartOf(receiver)));
 
   return LOG_RECEIVERS.has(last) || last.endsWith("logger");
 }
@@ -1509,9 +1507,7 @@ function toCandidate(data: {
   const keyTypes: Array<NamedDataType> = value.key
     ? data.matcher.match(value.key)
     : [];
-  const valueName: string | null = value.chain
-    ? lastPartOf(value.chain)
-    : null;
+  const valueName: string | null = value.chain ? lastPartOf(value.chain) : null;
   const valueTypes: Array<NamedDataType> = valueName
     ? data.matcher.match(valueName)
     : [];
@@ -1545,7 +1541,9 @@ function toCandidate(data: {
   const sensitivity: DataSensitivity = highestSensitivity(types);
   const isSecret: boolean = isAnySecret(types);
   const subject: string = (
-    keyTypes.length > 0 && value.key ? value.key : value.chain || value.key || ""
+    keyTypes.length > 0 && value.key
+      ? value.key
+      : value.chain || value.key || ""
   ).slice(0, SENSITIVE_DATA_LIMITS.maxSubjectLength);
 
   if (!subject) {

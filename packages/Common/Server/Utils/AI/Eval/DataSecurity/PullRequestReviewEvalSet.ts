@@ -49,7 +49,10 @@ export interface PullRequestEvalDiff {
 }
 
 // A new file's diff: every line added, from line 1.
-export function addedFile(filename: string, lines: Array<string>): EvalDiffFile {
+export function addedFile(
+  filename: string,
+  lines: Array<string>,
+): EvalDiffFile {
   return {
     filename,
     status: "added",

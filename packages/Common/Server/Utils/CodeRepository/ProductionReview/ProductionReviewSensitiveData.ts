@@ -115,7 +115,11 @@ function providerOfResource(type: string): DataStoreProvider | null {
     return DataStoreProvider.Aws;
   }
 
-  if (lower.startsWith("azurerm") || lower.startsWith("microsoft.") || lower.startsWith("azure")) {
+  if (
+    lower.startsWith("azurerm") ||
+    lower.startsWith("microsoft.") ||
+    lower.startsWith("azure")
+  ) {
     return DataStoreProvider.Azure;
   }
 
@@ -697,7 +701,8 @@ export default class ProductionReviewSensitiveData {
       const store: DataStore | undefined = storesById.get(
         finding.dataStoreId?.toString() || "",
       );
-      const serviceId: string = store?.serviceId?.toString().toLowerCase() || "";
+      const serviceId: string =
+        store?.serviceId?.toString().toLowerCase() || "";
       const service: CodeAgentScopedService | undefined = services.find(
         (each: CodeAgentScopedService): boolean => {
           return each.id === serviceId;

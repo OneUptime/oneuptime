@@ -250,7 +250,8 @@ const LINE_PATTERNS: ReadonlyArray<{
   },
   // TypeORM's migrations: new TableColumn({ name: "ssn", type: "varchar" })
   {
-    pattern: /\bname\s{0,10}:\s{0,10}["'`](\w{1,120})["'`]\s{0,10},\s{0,10}type\s{0,10}:/,
+    pattern:
+      /\bname\s{0,10}:\s{0,10}["'`](\w{1,120})["'`]\s{0,10},\s{0,10}type\s{0,10}:/,
     read: (match: RegExpMatchArray): NewColumn => {
       return { table: null, column: match[1]! };
     },
@@ -363,7 +364,10 @@ function readSqlName(
 ): { name: string; end: number } | null {
   let index: number = from;
 
-  while (index < text.length && (text.charAt(index) === " " || text.charAt(index) === "\t")) {
+  while (
+    index < text.length &&
+    (text.charAt(index) === " " || text.charAt(index) === "\t")
+  ) {
     index++;
   }
 
@@ -402,7 +406,10 @@ function readSqlName(
 }
 
 // A table's name after CREATE TABLE or ALTER TABLE: its last part, schema left off.
-function readTableName(text: string, from: number): { name: string; end: number } | null {
+function readTableName(
+  text: string,
+  from: number,
+): { name: string; end: number } | null {
   let index: number = from;
   const lower: string = text.toLowerCase();
 
@@ -417,7 +424,10 @@ function readTableName(text: string, from: number): { name: string; end: number 
   let read: { name: string; end: number } | null = readSqlName(text, index);
 
   while (read && text.charAt(read.end) === ".") {
-    const next: { name: string; end: number } | null = readSqlName(text, read.end + 1);
+    const next: { name: string; end: number } | null = readSqlName(
+      text,
+      read.end + 1,
+    );
 
     if (!next) {
       break;
@@ -444,7 +454,10 @@ function readColumnDefinitions(
 
   const flush: () => void = (): void => {
     if (depth === 1) {
-      const name: { name: string; end: number } | null = readSqlName(segment, 0);
+      const name: { name: string; end: number } | null = readSqlName(
+        segment,
+        0,
+      );
       const rest: string = name ? segment.slice(name.end).trim() : "";
 
       if (
@@ -535,7 +548,8 @@ export function readSqlColumns(
     const lower: string = text.toLowerCase();
 
     if (createTable !== null) {
-      const read: { columns: Array<string>; depth: number } = readColumnDefinitions(text, depth);
+      const read: { columns: Array<string>; depth: number } =
+        readColumnDefinitions(text, depth);
 
       for (const column of read.columns) {
         found.push({ column, table: createTable, line });
@@ -560,10 +574,8 @@ export function readSqlColumns(
       const open: number = table ? text.indexOf("(", table.end) : -1;
 
       if (table && open >= 0) {
-        const read: { columns: Array<string>; depth: number } = readColumnDefinitions(
-          text.slice(open + 1),
-          1,
-        );
+        const read: { columns: Array<string>; depth: number } =
+          readColumnDefinitions(text.slice(open + 1), 1);
 
         for (const column of read.columns) {
           found.push({ column, table: table.name, line });
@@ -617,7 +629,10 @@ export function readSqlColumns(
           }
         }
 
-        const name: { name: string; end: number } | null = readSqlName(text, at);
+        const name: { name: string; end: number } | null = readSqlName(
+          text,
+          at,
+        );
 
         if (name && !NOT_COLUMN_WORDS.has(name.name.toLowerCase())) {
           found.push({ column: name.name, table: table.name, line });
@@ -682,7 +697,11 @@ export function readNewColumns(
       return line.text;
     }),
   )) {
-    columns.push({ column: sql.column, table: sql.table, index: added[sql.line]!.index });
+    columns.push({
+      column: sql.column,
+      table: sql.table,
+      index: added[sql.line]!.index,
+    });
   }
 
   let isAfterColumnDecorator: boolean = false;
@@ -774,9 +793,11 @@ export function isPlaintextPasswordName(name: string): boolean {
 export function isCardSecurityCodeName(name: string): boolean {
   const words: Array<string> = SensitiveNameMatcher.wordsOf(name);
 
-  return CARD_SECURITY_CODE_HINTS.some((hint: ReadonlyArray<string>): boolean => {
-    return isHeadOf(words, hint, { allowsPlural: false });
-  });
+  return CARD_SECURITY_CODE_HINTS.some(
+    (hint: ReadonlyArray<string>): boolean => {
+      return isHeadOf(words, hint, { allowsPlural: false });
+    },
+  );
 }
 
 function catalogType(id: string): NamedDataType | null {

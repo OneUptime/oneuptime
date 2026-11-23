@@ -170,10 +170,7 @@ export default class PullRequestLeakReview {
    * The lines around a point's own, as its file's patch has them after the
    * change: two before, the line, two after.
    */
-  public static linesAround(
-    patch: string | null,
-    line: number,
-  ): Array<string> {
+  public static linesAround(patch: string | null, line: number): Array<string> {
     const lines: Array<PatchLine> = readPatchLines(patch).filter(
       (each: PatchLine): boolean => {
         return each.kind !== PatchLineKind.Removed;
@@ -209,7 +206,10 @@ export default class PullRequestLeakReview {
     point: ProductionReviewLeakJSON,
     isFailOn: boolean,
   ): boolean {
-    if (point.kind === SensitiveDataLeakKind.Infrastructure && point.production?.store) {
+    if (
+      point.kind === SensitiveDataLeakKind.Infrastructure &&
+      point.production?.store
+    ) {
       return isFailOn && PUBLIC_STORE_CHECK_IDS.includes(point.checkId);
     }
 
@@ -228,7 +228,10 @@ export default class PullRequestLeakReview {
     isFailOn: boolean;
   }): Array<AiPullRequestCandidate> {
     return data.points.map(
-      (point: ProductionReviewLeakJSON, index: number): AiPullRequestCandidate => {
+      (
+        point: ProductionReviewLeakJSON,
+        index: number,
+      ): AiPullRequestCandidate => {
         const file: PullRequestLeakFile | undefined = data.files.find(
           (each: PullRequestLeakFile): boolean => {
             return each.path === point.path;

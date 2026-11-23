@@ -608,8 +608,8 @@ export class ProductionReviewUtil {
   ): boolean {
     return (
       ProductionReviewUtil.hasProductionSignal(report) ||
-      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData)
-        .length > 0
+      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData).length >
+        0
     );
   }
 

@@ -346,7 +346,10 @@ const GENERATED_HEADERS: ReadonlyArray<string> = [
  * A file is generated when its folder or name says so, or when the first
  * lines of a patch that starts at its top say so.
  */
-export function isGeneratedPath(path: string, lines: Array<PatchLine>): boolean {
+export function isGeneratedPath(
+  path: string,
+  lines: Array<PatchLine>,
+): boolean {
   const segments: Array<string> = segmentsOf(path);
   const name: string = fileNameOf(path);
 

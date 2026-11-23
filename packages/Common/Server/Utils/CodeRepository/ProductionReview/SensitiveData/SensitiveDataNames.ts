@@ -70,15 +70,13 @@ export interface ProjectDataTypeHints {
  * address, an advertising id, a location, a user name, a gender - are left
  * to the scans, which read the values.
  */
-export const CODE_CONFIDENTIAL_TYPE_IDS: ReadonlySet<string> = new Set<string>(
-  [
-    "email-address",
-    "phone-number",
-    "person-name",
-    "postal-address",
-    "date-of-birth",
-  ],
-);
+export const CODE_CONFIDENTIAL_TYPE_IDS: ReadonlySet<string> = new Set<string>([
+  "email-address",
+  "phone-number",
+  "person-name",
+  "postal-address",
+  "date-of-birth",
+]);
 
 /*
  * Hints that, in code, name something else as often as the data: a word
@@ -529,9 +527,7 @@ function isSecretToken(words: ReadonlyArray<string>): boolean {
   const before: ReadonlyArray<string> = words.slice(0, -1);
 
   return !before.some((word: string): boolean => {
-    return (
-      TOKEN_NOT_SECRET_BEFORE.has(word) || SOMETHING_ELSE_BEFORE.has(word)
-    );
+    return TOKEN_NOT_SECRET_BEFORE.has(word) || SOMETHING_ELSE_BEFORE.has(word);
   });
 }
 
