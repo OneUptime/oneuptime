@@ -166,6 +166,8 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
     SecurityBlockDestinationProvider.Cloudflare;
   public readonly name: string;
   public readonly connectionId: ObjectID;
+  // Its challenge list's rule, and the IP Access Rules fallback, answer with a Managed Challenge (#10350).
+  public readonly canChallenge: boolean = true;
 
   private settings: CloudflareBlockingSettings;
   private status: CloudflareBlockingStatus | null;

@@ -283,6 +283,17 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
       },
       {
         /*
+         * The policies that challenge or block an attacking address as
+         * the detection is made, under guardrails, each with its trial
+         * run (Types/SecurityAutomaticResponse) - beside the blocklist
+         * their blocks go on.
+         */
+        page: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+        title: "Automatic Response",
+        icon: IconProp.HandRaised,
+      },
+      {
+        /*
          * What the project blocks now - each address or range, why, until
          * when and where it is enforced (Types/SecurityBlocklist) - beside
          * the entities no block or playbook may touch.

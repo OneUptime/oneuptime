@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62717,
+    "keys": 62857,
     "untranslated": 8262
   },
   "sameAsEnglish": [
@@ -159,6 +159,7 @@
     "StatusPage",
     "Stripe Payments API",
     "Swarm ID",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

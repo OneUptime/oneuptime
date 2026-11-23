@@ -127,8 +127,20 @@ function declaredColumns(model: unknown): Array<string> {
     .filter((column: string): boolean => {
       // Added to SecurityBlockEnforcement later (AddCloudWafAndEnforcementReasons, #10629).
       return !(model === SecurityBlockEnforcement && column === "errorReason");
+    })
+    .filter((column: string): boolean => {
+      // Added to SecurityBlock later (AddSecurityAutomaticResponse, #10350).
+      return !(
+        model === SecurityBlock && AUTOMATIC_RESPONSE_COLUMNS.includes(column)
+      );
     });
 }
+
+// What automatic response (#10350) added to a block: the policy that made it, and whether its challenge is held as a block where an edge cannot challenge.
+const AUTOMATIC_RESPONSE_COLUMNS: ReadonlyArray<string> = [
+  "securityAutomaticResponsePolicyId",
+  "challengeFallsBackToBlock",
+];
 
 // The model's own indexes (@Index on the class), as the generator words each.
 function declaredIndexes(model: unknown): Array<{
@@ -143,6 +155,12 @@ function declaredIndexes(model: unknown): Array<{
     .filter((index: IndexMetadataArgs): boolean => {
       // One active block per value and reach is built later (AddSecurityBlockValueReachIndex, #10346).
       return !(index.columns as Array<string>).includes("reach");
+    })
+    .filter((index: IndexMetadataArgs): boolean => {
+      // The blocks a policy made are found by it later (AddSecurityAutomaticResponseIndexesAndKeys, #10350).
+      return !(index.columns as Array<string>).some((column: string) => {
+        return AUTOMATIC_RESPONSE_COLUMNS.includes(column);
+      });
     })
     .map((index: IndexMetadataArgs) => {
       return {

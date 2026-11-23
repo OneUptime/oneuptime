@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62717,
+    "keys": 62857,
     "untranslated": 1426
   },
   "sameAsEnglish": [
@@ -245,6 +245,7 @@
     "Shift + Enter",
     "Stripe Payments API",
     "Swarm ID",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

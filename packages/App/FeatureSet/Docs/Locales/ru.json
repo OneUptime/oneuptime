@@ -461,6 +461,7 @@
     "Get Started with Security": "Начало работы с безопасностью",
     "Security Events (SIEM)": "События безопасности (SIEM)",
     "Security Cases and Playbooks (SOAR)": "Кейсы безопасности и плейбуки (SOAR)",
+    "Automatic Response": "Автоматическое реагирование",
     "Blocklist Feeds for Firewalls and Proxies": "Фиды списка блокировки для межсетевых экранов и прокси",
     "Entity Risk (Risk-Based Alerting)": "Риск сущностей (оповещения на основе риска)",
     "Connected Signals": "Связанные сигналы",

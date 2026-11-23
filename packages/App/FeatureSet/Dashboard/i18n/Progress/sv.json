@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62717,
+    "keys": 62857,
     "untranslated": 8297
   },
   "sameAsEnglish": [
@@ -328,6 +328,7 @@
     "Stripe Payments API",
     "Switch",
     "System",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",
