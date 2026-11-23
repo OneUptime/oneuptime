@@ -67,6 +67,7 @@ import StatusPagesSettingsCustomFields from "../Pages/StatusPages/Settings/Statu
 import StatusPagesSettingsOwnerRules from "../Pages/StatusPages/Settings/StatusPageOwnerRules";
 
 import StatusPagesSettingsLabelRules from "../Pages/StatusPages/Settings/StatusPageLabelRules";
+import StatusPageRulesAuditLogs from "../Pages/StatusPages/Settings/StatusPageRulesAuditLogs";
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
@@ -289,6 +290,24 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STATUS_PAGES_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StatusPagesRoutePath[
+              PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS
+            ] || ""
+          }
+          element={
+            <StatusPageRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STATUS_PAGES_SETTINGS_RULES_AUDIT_LOGS
+                ] as Route
               }
             />
           }

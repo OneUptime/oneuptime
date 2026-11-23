@@ -13,6 +13,7 @@ import StorageArrays from "../Pages/StorageArray/StorageArrays";
 import StorageArraysDocumentation from "../Pages/StorageArray/Documentation";
 import StorageArraysSettingsOwnerRules from "../Pages/StorageArray/Settings/OwnerRules";
 import StorageArraysSettingsLabelRules from "../Pages/StorageArray/Settings/LabelRules";
+import StorageArrayRulesAuditLogs from "../Pages/StorageArray/Settings/RulesAuditLogs";
 import StorageArraysArchived from "../Pages/StorageArray/Archived";
 import StorageArrayOverview from "../Pages/StorageArray/View/Index";
 import StorageArrayVolumes from "../Pages/StorageArray/View/Volumes";
@@ -117,6 +118,24 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            StorageArrayRoutePath[
+              PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS
+            ] || ""
+          }
+          element={
+            <StorageArrayRulesAuditLogs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.STORAGE_ARRAYS_SETTINGS_RULES_AUDIT_LOGS
+                ] as Route
               }
             />
           }

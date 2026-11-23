@@ -582,6 +582,12 @@ const EVENT_LIBRARY: Record<
       description:
         "A step of a security case you are on that OneUptime saw done stops holding, such as a blocked address getting through again. When nobody is on the case, you hear it for cases at your chosen priority.",
     },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION]:
+    {
+      label: "OneUptime AI handed a security case to people",
+      description:
+        "OneUptime AI stops working a security case you are on and says why. When nobody is on the case, you hear it for cases at your chosen priority.",
+    },
   [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION]: {
     label: "Hunt found security events",
     description:
@@ -1008,7 +1014,7 @@ const security: Array<SectionDef> = [
   buildSection(
     translationKey("Security Cases"),
     translationKey(
-      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, tasks for me, and steps that stop holding.",
+      "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, tasks for me, steps that stop holding, and cases OneUptime AI hands to people.",
     ),
     [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
@@ -1017,6 +1023,7 @@ const security: Array<SectionDef> = [
       NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_STEP_REGRESSED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_AI_HANDED_OFF_NOTIFICATION,
     ],
   ),
   // Keys of their own, so the card says them in the reader's language.

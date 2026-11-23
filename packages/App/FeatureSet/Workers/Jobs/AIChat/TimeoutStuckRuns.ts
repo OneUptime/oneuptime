@@ -89,12 +89,17 @@ RunCron(
          * persisted on the suggestion BEFORE it runs, and a retried attempt
          * that finds executed commands settles what happened instead of
          * running the loop again (RemediationExecutionRunner's
-         * interrupted-execution check).
+         * interrupted-execution check). So are OneUptime AI's runs on a
+         * security case: every action it starts is recorded on the case
+         * before the playbook engine takes it (SecurityCaseAiAction), and a
+         * retried look reads how each went instead of starting it again
+         * (SecurityCaseResponseRunner).
          */
         if (
           run.runType === AIRunType.Investigation ||
           run.runType === AIRunType.RemediationPlan ||
-          run.runType === AIRunType.RemediationExecution
+          run.runType === AIRunType.RemediationExecution ||
+          run.runType === AIRunType.SecurityCaseResponse
         ) {
           /*
            * The subject fields let the queue hand a terminally-staled

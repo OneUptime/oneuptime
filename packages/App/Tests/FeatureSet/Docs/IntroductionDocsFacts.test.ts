@@ -1635,11 +1635,20 @@ describe("Core Concepts", () => {
       expect({ rule: rule, where: where }).toEqual({ rule: rule, where: true });
     }
 
-    // Every rule Incidents lists has its family.
-    for (const rule of menuSection(
+    /*
+     * Every rule Incidents lists has its family. The section's last entry,
+     * Audit Logs, is no kind of rule: it is their history (#10462).
+     */
+    const incidentRules: Array<string> = menuSection(
       dashboard("Pages/Incidents/SideMenu.tsx"),
       "Rules",
-    ).items) {
+    ).items;
+
+    expect(incidentRules[incidentRules.length - 1]).toBe("Audit Logs");
+
+    for (const rule of incidentRules.filter((item: string): boolean => {
+      return item !== "Audit Logs";
+    })) {
       expect({ rule: rule, named: rules.includes(rule) }).toEqual({
         rule: rule,
         named: true,

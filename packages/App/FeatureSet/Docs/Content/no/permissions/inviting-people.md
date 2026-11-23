@@ -71,7 +71,7 @@ Den som logger inn, eller registrerer seg på en annen måte, godtar på ett av 
 
 | Hvor personen er | Hva personen ser | Hva personen klikker på |
 | --- | --- | --- |
-| Ennå ikke i noe prosjekt | Invitasjonen, på siden personen kommer til etter innlogging | **Accept & Join** eller **Decline** |
+| Ennå ikke i noe prosjekt | Invitasjonen, på siden personen kommer til etter innlogging | **Accept & Join** eller **Avslå** |
 | Allerede i et annet prosjekt | Den ventende invitasjonen ved bjellen øverst til høyre, som åpner **Prosjektinvitasjoner** | **Godta** eller **Avvis** |
 
 Når personen godtar, er den med i prosjektet med en gang, med teamets tillatelser og varslingsoppsettet alle medlemmer starter med: se [Det du starter med](/docs/notifications/index#dette-starter-du-med). Å avslå sletter invitasjonen, så det trengs en ny for å bli med senere.

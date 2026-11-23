@@ -139,6 +139,24 @@ export const QUEUE_TTL_MINUTES: number = 30;
 // How many queued runs one poller tick sends to the workers.
 const POLLER_BATCH_SIZE: number = 10;
 
+// The kinds of run the queue holds, expires and sends to the workers.
+export const QUEUED_RUN_TYPES: Array<AIRunType> = [
+  AIRunType.Investigation,
+  AIRunType.RemediationPlan,
+  AIRunType.RemediationExecution,
+  AIRunType.SecurityCaseResponse,
+];
+
+/*
+ * The runs a server shutting down never hands back while it executes them:
+ * they change things outside the run, which its attempt does not fence
+ * (handBackRunsInFlight).
+ */
+export const RUNS_NEVER_HANDED_BACK: ReadonlyArray<AIRunType> = [
+  AIRunType.RemediationExecution,
+  AIRunType.SecurityCaseResponse,
+];
+
 // The name of an AIInvestigation job; its data names the run it is for.
 const RUN_JOB_NAME: string = "ProcessQueuedRun";
 
@@ -227,6 +245,13 @@ export default class AIInvestigationQueue {
      * with insight triage.
      */
     subjectSecurityCaseId?: ObjectID | undefined;
+    /*
+     * Only with subjectSecurityCaseId: a run of OneUptime AI working the
+     * case end to end (SecurityCaseResponseRunner, #10352) rather than its
+     * triage. Its starter has made sure the case has no other one queued
+     * or running (SecurityCaseResponse.start).
+     */
+    isSecurityCaseResponse?: boolean | undefined;
     onNotEnqueued?:
       | ((
           code: InvestigationNotStartedCode,
@@ -326,7 +351,9 @@ export default class AIInvestigationQueue {
 
     const runType: AIRunType = data.subjectAutoRemediationSuggestionId
       ? data.remediationRunType || AIRunType.RemediationPlan
-      : AIRunType.Investigation;
+      : data.subjectSecurityCaseId && data.isSecurityCaseResponse
+        ? AIRunType.SecurityCaseResponse
+        : AIRunType.Investigation;
 
     /*
      * OneUptime AI starts nothing on a product switched off on the server
@@ -653,10 +680,14 @@ export default class AIInvestigationQueue {
          * A remediation execution stays, for the stale sweep to requeue and
          * its interrupted-execution check to settle: its commands change
          * things and are not fenced by the attempt, so this server's
-         * execution could start one after another server took the run.
+         * execution could start one after another server took the run. So
+         * does OneUptime AI's run on a security case (#10352): it starts
+         * blocks, containment and closes through the playbook engine, which
+         * no attempt fences either, and its next attempt reads how each one
+         * it recorded went instead of starting it again.
          */
         .filter((run: RunInFlight): boolean => {
-          return run.runType !== AIRunType.RemediationExecution;
+          return !RUNS_NEVER_HANDED_BACK.includes(run.runType as AIRunType);
         })
         .map((run: RunInFlight): Promise<void> => {
           return this.handBack(run);
@@ -685,11 +716,7 @@ export default class AIInvestigationQueue {
 
     const expiredRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
-        runType: QueryHelper.any([
-          AIRunType.Investigation,
-          AIRunType.RemediationPlan,
-          AIRunType.RemediationExecution,
-        ]),
+        runType: QueryHelper.any(QUEUED_RUN_TYPES),
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(expiryThreshold),
         /*
@@ -747,11 +774,7 @@ export default class AIInvestigationQueue {
 
     const queuedRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
-        runType: QueryHelper.any([
-          AIRunType.Investigation,
-          AIRunType.RemediationPlan,
-          AIRunType.RemediationExecution,
-        ]),
+        runType: QueryHelper.any(QUEUED_RUN_TYPES),
         status: AIRunStatus.Queued,
         // A run waiting before its next attempt is not sent before it is due.
         retryAt: QueryHelper.lessThanEqualToOrNull(now),
@@ -1377,6 +1400,27 @@ export default class AIInvestigationQueue {
     }
 
     /*
+     * One write-capable run per security case at a time (#10352): a run of
+     * OneUptime AI working a case waits while another of the case's runs
+     * is executing - the starter queues one at a time, and this holds it
+     * should two ever be queued.
+     */
+    if (
+      run.runType === AIRunType.SecurityCaseResponse &&
+      run.triggeredBySecurityCaseId &&
+      (await this.isSecurityCaseResponseRunning({
+        projectId: run.projectId,
+        securityCaseId: run.triggeredBySecurityCaseId,
+        exceptRunId: run.id,
+      }))
+    ) {
+      logger.debug(
+        `AI: leaving run ${run.id.toString()} queued — OneUptime AI is already working security case ${run.triggeredBySecurityCaseId.toString()} in another run.`,
+      );
+      return false;
+    }
+
+    /*
      * Each subject lane owns its own concurrency pool. Insight triage and any
      * future subjectless queue work have no setting, so no cap.
      */
@@ -1593,6 +1637,30 @@ export default class AIInvestigationQueue {
     return attempt;
   }
 
+  // Whether another of a security case's response runs is executing now.
+  public static async isSecurityCaseResponseRunning(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    exceptRunId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    const running: number = (
+      await AIRunService.countBy({
+        query: {
+          projectId: data.projectId,
+          runType: AIRunType.SecurityCaseResponse,
+          triggeredBySecurityCaseId: data.securityCaseId,
+          status: AIRunStatus.Running,
+          ...(data.exceptRunId
+            ? { _id: QueryHelper.notEquals(data.exceptRunId) }
+            : {}),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    return running > 0;
+  }
+
   // Route a claimed run to its subject's executor.
   private static async dispatch(
     run: QueuedRunRef,
@@ -1628,6 +1696,40 @@ export default class AIInvestigationQueue {
         aiRunId: run.id,
         projectId: run.projectId,
         suggestionId: run.triggeredByAutoRemediationSuggestionId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
+    /*
+     * OneUptime AI working a security case (#10352). It carries the case in
+     * triggeredBySecurityCaseId as its triage does, so it is routed on its
+     * type before the triage below.
+     */
+    if (run.runType === AIRunType.SecurityCaseResponse) {
+      if (!run.triggeredBySecurityCaseId) {
+        await AIRunService.attemptStatusTransition({
+          aiRunId: run.id,
+          fromStatus: AIRunStatus.Running,
+          expectedAttemptCount: attempt,
+          set: {
+            status: AIRunStatus.Error,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage:
+              "Queued security case response has no case to work on.",
+          },
+        });
+        return;
+      }
+
+      const securityCaseResponseRunner: typeof import("../Security/Response/SecurityCaseResponseRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Security/Response/SecurityCaseResponseRunner").default;
+
+      await securityCaseResponseRunner.executeRun({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        securityCaseId: run.triggeredBySecurityCaseId,
         attemptCount: attempt,
       });
       return;

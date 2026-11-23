@@ -63,6 +63,9 @@ export const SECURITY_CASE_VIEW_SELECT: Select<SecurityCase> = {
   aiTriageReport: true,
   aiTriagedAt: true,
   aiTriagePromptInjectionSuspected: true,
+  // Where OneUptime AI stands on the case it works (#10352).
+  aiResponseState: true,
+  aiTookCaseAt: true,
 };
 
 /*
