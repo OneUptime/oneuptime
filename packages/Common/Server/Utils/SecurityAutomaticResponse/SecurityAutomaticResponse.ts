@@ -54,6 +54,10 @@ import {
 } from "../../../Types/SecurityCase/SecurityDetectionMatchedEvents";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { SecurityPlaybookActionType } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import {
+  OneStepRunRead,
+  readOneStepRun,
+} from "../../../Types/SecurityPlaybook/SecurityPlaybookOneStepRun";
 import { SecurityPlaybookStep } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   SecurityPlaybookTargetReason,
@@ -75,7 +79,9 @@ import SecurityAutomaticResponsePolicyService from "../../Services/SecurityAutom
 import SecurityBlockService from "../../Services/SecurityBlockService";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
-import SecurityPlaybookRunService from "../../Services/SecurityPlaybookRunService";
+import SecurityPlaybookRunService, {
+  UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES,
+} from "../../Services/SecurityPlaybookRunService";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -106,8 +112,10 @@ import SecuritySignedInAddresses, {
  *   1. what it matches, with every fact read: every request the detection
  *      matched so far turned away (Scanners), threat intel listing the
  *      address (Known-Bad Addresses), the address the requests' own;
- *   2. once an address: one already blocked, or decided about lately, is
- *      left as it is;
+ *   2. once an address: one already blocked, one whose block is on its
+ *      way on the case - a person's or OneUptime AI's one-step run of
+ *      Block Address waiting or running (#10342, #10352) - or one decided
+ *      about lately, is left as it is;
  *   3. never a protected or own address (#10338): SecurityBlockService's
  *      check, as the blocklist makes it; one it cannot check is left for a
  *      person;
@@ -488,6 +496,58 @@ export default class SecurityAutomaticResponse {
     }
   }
 
+  /*
+   * Whether a block of the address is on its way on the case already: a
+   * one-step run of Block Address on it - a person's from the case
+   * (#10342), or OneUptime AI's as it works the case (#10352) - waiting
+   * for its approval or running. The policy leaves the address to that
+   * run, as it leaves one blocked already: a run of its own would be
+   * refused beside it, and the block is coming.
+   */
+  private static async isBlockOnItsWay(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    address: string;
+  }): Promise<boolean> {
+    const keyOf: (value: string) => string = (value: string): string => {
+      return (
+        readSecurityBlockValue(value)?.value || value.trim().toLowerCase()
+      );
+    };
+    const wanted: string = keyOf(data.address);
+
+    const runs: Array<SecurityPlaybookRun> =
+      await SecurityPlaybookRunService.findBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          securityPlaybookId: QueryHelper.isNull(),
+          status: new Includes(UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES),
+        },
+        select: {
+          _id: true,
+          securityPlaybookId: true,
+          steps: true,
+          stepResults: true,
+        },
+        skip: 0,
+        limit: 100,
+        props: { isRoot: true },
+      });
+
+    return runs.some((run: SecurityPlaybookRun): boolean => {
+      const read: OneStepRunRead | null = readOneStepRun(run);
+
+      return Boolean(
+        read &&
+          read.action === SecurityPlaybookActionType.BlockAddress &&
+          read.values.some((value: string): boolean => {
+            return keyOf(value) === wanted;
+          }),
+      );
+    });
+  }
+
   private static async decideLocked(
     projectId: ObjectID,
     job: SecurityAutomaticResponseJobData,
@@ -702,6 +762,17 @@ export default class SecurityAutomaticResponse {
     }
 
     if (check.coveredBy) {
+      return null;
+    }
+
+    // Nor one whose block is on its way on the case already.
+    if (
+      await this.isBlockOnItsWay({
+        projectId,
+        securityCaseId: detection.securityCaseId,
+        address: check.value.value,
+      })
+    ) {
       return null;
     }
 

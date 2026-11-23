@@ -488,6 +488,10 @@ beforeEach(() => {
     offenceCount: 0,
     last: null,
   } as never);
+  // Nothing else blocks the address on the case: no person's or OneUptime AI's run of it.
+  jest
+    .spyOn(SecurityPlaybookRunService, "findBy")
+    .mockResolvedValue([] as never);
   jest
     .spyOn(SecurityPlaybookRunService, "startOneStepRun")
     .mockImplementation((async (request: OneStepRunRequest) => {

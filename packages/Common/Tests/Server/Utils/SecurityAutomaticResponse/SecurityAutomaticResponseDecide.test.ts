@@ -53,8 +53,13 @@ import {
   doesStepNeedApproval,
   parseSecurityPlaybookSteps,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStep";
-import { SecurityPlaybookTargetState } from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
-import { JSONObject } from "../../../../Types/JSON";
+import {
+  SecurityPlaybookTargetReason,
+  SecurityPlaybookTargetState,
+} from "../../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
+import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import {
   afterEach,
   beforeEach,
@@ -121,6 +126,8 @@ let listed: boolean;
 let paged: Array<{ title: string; descriptionInMarkdown: string }>;
 let startedRuns: Array<OneStepRunRequest>;
 let runFailure: Error | null;
+// The case's unfinished runs with no playbook: a person's or OneUptime AI's one-step runs.
+let oneStepRunsOnTheCase: Array<SecurityPlaybookRun>;
 
 function readValue(value: string): SecurityBlockValue {
   return readSecurityBlockValue(value)!;
@@ -205,6 +212,7 @@ beforeEach(() => {
   paged = [];
   startedRuns = [];
   runFailure = null;
+  oneStepRunsOnTheCase = [];
 
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
@@ -291,6 +299,14 @@ beforeEach(() => {
         return true;
       },
     );
+  jest
+    .spyOn(SecurityPlaybookRunService, "findBy")
+    .mockImplementation((async (data: {
+      query: { securityCaseId: ObjectID };
+    }) => {
+      expect(data.query.securityCaseId.toString()).toBe(CASE_ID.toString());
+      return oneStepRunsOnTheCase;
+    }) as never);
   jest
     .spyOn(SecurityPlaybookRunService, "startOneStepRun")
     .mockImplementation(async (request: OneStepRunRequest) => {
@@ -520,6 +536,79 @@ describe("never a protected or own address", () => {
     covering.value = "35.205.11.0/24";
     covering.indicatorType = SecurityBlockIndicatorType.IpRange;
     check = { ...check, coveredBy: covering };
+
+    expect(await decide()).toBeNull();
+    expect(created).toHaveLength(0);
+    expect(startedRuns).toHaveLength(0);
+  });
+
+  /*
+   * OneUptime AI working the case (#10352), or a person from it (#10342),
+   * may be blocking the address already, in a one-step run of its own
+   * waiting for approval or running. The policy leaves the address to that
+   * run: one of its own would be refused beside it, and its block is
+   * coming. A run of another address, or of another action, is no reason.
+   */
+  test("an address a one-step run on the case is blocking already is left to that run, recording nothing", async () => {
+    const runOf: (data: {
+      action: SecurityPlaybookActionType;
+      value: string;
+    }) => SecurityPlaybookRun = (data: {
+      action: SecurityPlaybookActionType;
+      value: string;
+    }): SecurityPlaybookRun => {
+      const run: SecurityPlaybookRun = new SecurityPlaybookRun(RUN_ID);
+      run.trigger = SecurityPlaybookTrigger.OneUptimeAi;
+      run.steps = [
+        {
+          id: "step-1",
+          action: data.action,
+          config: {},
+          requiresApproval: true,
+          continueOnFailure: false,
+          onlyIfThreatIntelMatched: false,
+        },
+      ] as unknown as JSONArray;
+      run.stepResults = [
+        {
+          stepId: "step-1",
+          status: "Pending",
+          targets: [
+            {
+              type: SecurityEntityType.IpAddress,
+              value: data.value,
+              reason: SecurityPlaybookTargetReason.GroupedOn,
+              state: SecurityPlaybookTargetState.Proposed,
+            },
+          ],
+        },
+      ] as unknown as JSONArray;
+      return run;
+    };
+
+    // Another address, and another action on this one: no reason to wait.
+    oneStepRunsOnTheCase = [
+      runOf({
+        action: SecurityPlaybookActionType.BlockAddress,
+        value: "203.0.113.9",
+      }),
+      runOf({
+        action: SecurityPlaybookActionType.SuspendOktaUser,
+        value: ADDRESS,
+      }),
+    ];
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+
+    created = [];
+    startedRuns = [];
+    oneStepRunsOnTheCase = [
+      runOf({
+        action: SecurityPlaybookActionType.BlockAddress,
+        value: ADDRESS,
+      }),
+    ];
 
     expect(await decide()).toBeNull();
     expect(created).toHaveLength(0);
