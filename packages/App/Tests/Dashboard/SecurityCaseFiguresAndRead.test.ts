@@ -140,6 +140,9 @@ describe("what a case's pages read of it", () => {
         "aiTriageReport",
         "aiTriagedAt",
         "aiTriagePromptInjectionSuspected",
+        // Where OneUptime AI's work on the case stands, and when it took the case (#10352).
+        "aiResponseState",
+        "aiTookCaseAt",
       ].sort(),
     );
   });
