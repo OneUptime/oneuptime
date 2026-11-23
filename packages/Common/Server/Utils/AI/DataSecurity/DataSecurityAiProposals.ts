@@ -304,7 +304,9 @@ export default class DataSecurityAiProposals {
    * The proposals that are for the same thing as a new one, of its kind:
    * an issue's; a store's owners, whatever issue they hang on (#10374);
    * an owner rule's, by the rule it is - its plan key - since each rule is
-   * a thing of its own.
+   * a thing of its own; a store's findings OneUptime AI confirms (#10372);
+   * and a data type to turn off or a location to leave out, each by what
+   * it changes - its plan key.
    */
   public static getSameSubjectQuery(data: {
     projectId: ObjectID;
@@ -327,11 +329,29 @@ export default class DataSecurityAiProposals {
       };
     }
 
-    if (data.kind === DataSecurityAiProposalKind.CreateOwnerRule) {
+    if (
+      data.kind === DataSecurityAiProposalKind.CreateOwnerRule ||
+      data.kind === DataSecurityAiProposalKind.TurnOffDataType ||
+      data.kind === DataSecurityAiProposalKind.AddScanExclusion
+    ) {
       return {
         projectId: data.projectId,
         kind: data.kind,
         planKey: data.planKey.slice(0, 100),
+      };
+    }
+
+    if (data.kind === DataSecurityAiProposalKind.ConfirmFindings) {
+      if (!data.store?.id) {
+        throw new BadDataException(
+          "A proposal to confirm findings is for a store.",
+        );
+      }
+
+      return {
+        projectId: data.projectId,
+        kind: data.kind,
+        dataStoreId: data.store.id,
       };
     }
 
@@ -440,14 +460,17 @@ export default class DataSecurityAiProposals {
 
     /*
      * A newer plan of the same kind replaces the one still waiting - but
-     * every owner rule is a thing of its own, and replaces none. A kind
-     * that plans changes in lanes - Scrub It rules that may run on their
-     * own beside those that must wait (#10366) - replaces only the waiting
-     * one of the same lane: the planKey's text before its first ":".
+     * every owner rule, data type to turn off and location to leave out is
+     * a thing of its own, and replaces none. A kind that plans changes in
+     * lanes - Scrub It rules that may run on their own beside those that
+     * must wait (#10366) - replaces only the waiting one of the same lane:
+     * the planKey's text before its first ":".
      */
     const lane: string = getDataSecurityAiPlanLane(data.change.planKey);
     const replaced: Array<DataSecurityAiProposal> =
-      kind === DataSecurityAiProposalKind.CreateOwnerRule
+      kind === DataSecurityAiProposalKind.CreateOwnerRule ||
+      kind === DataSecurityAiProposalKind.TurnOffDataType ||
+      kind === DataSecurityAiProposalKind.AddScanExclusion
         ? []
         : earlier.filter((proposal: DataSecurityAiProposal): boolean => {
             return getDataSecurityAiPlanLane(proposal.planKey || "") === lane;

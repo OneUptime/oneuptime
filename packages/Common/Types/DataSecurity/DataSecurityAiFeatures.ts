@@ -43,6 +43,12 @@ export enum DataSecurityAiFeature {
   AnalyzeIssue = "AnalyzeIssue",
   FixIssue = "FixIssue",
   SuggestFieldTypes = "SuggestFieldTypes",
+  /*
+   * A verdict on each finding that waits for a person - Confirm, Not
+   * sensitive or Cannot tell - with the team's earlier decisions on
+   * findings like it as precedent (#10372).
+   */
+  JudgeFindings = "JudgeFindings",
   AskAi = "AskAi",
   /*
    * Owners for the stores that have none, from the evidence of who owns
@@ -244,6 +250,32 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       neverSends: [translationKey("A value of the field, nor a masked one")],
       keeps: translationKey(
         "Each suggestion, as a Low finding until a person confirms it.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.JudgeFindings,
+      title: translationKey("Verdicts on findings that wait for you"),
+      startedBy: translationKey(
+        "A store's scan, for its Low findings, OneUptime AI's suggestions and findings that show a sign of a wrong match, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "Each finding's data type, its field's name and kind, how sure the scan was and its counts, rounded, with any sign of a wrong match",
+        ),
+        translationKey("The store's name, kind and environment"),
+        translationKey(
+          "Your team's earlier decisions on findings like it: where each was, what was decided and the reason given, with any value in the reason left out",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of the field, nor a masked one"),
+        translationKey("A record the data was seen in"),
+      ],
+      keeps: translationKey(
+        "Each verdict on its finding, until a person decides. It never marks a finding not sensitive, and confirms one on its own only where an AI rule says so.",
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,

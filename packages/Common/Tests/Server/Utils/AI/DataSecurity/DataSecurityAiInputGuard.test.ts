@@ -105,6 +105,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/FieldSuggestion.ts`,
   },
+  // Verdicts on the findings that wait for a person (#10372), after a store's scan.
+  [DataSecurityAiFeature.JudgeFindings]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/FindingVerdicts.ts`,
+  },
   // Owners for a store with none (#10374), in the engine's and the daily run's jobs.
   [DataSecurityAiFeature.ProposeStoreOwners]: {
     kind: "ask",

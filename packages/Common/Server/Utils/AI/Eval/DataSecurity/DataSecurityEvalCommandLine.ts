@@ -94,6 +94,27 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts",
     features: [DataSecurityAiFeature.SuggestFieldTypes],
   },
+  // Verdicts on findings (#10372): what each is told, and how its answer is held.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/DataSecurity/FindingPrecedent.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Utils/DataSecurity/FindingJudgement.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
   {
     path: "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
     features: [DataSecurityAiFeature.AskAi],

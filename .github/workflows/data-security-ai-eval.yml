@@ -50,6 +50,11 @@ on:
       - packages/Common/Types/DataSecurity/DataSecurityIssueAnalysis.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts
       - packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts
+      - packages/Common/Server/Utils/DataSecurity/FindingPrecedent.ts
+      - packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts
+      - packages/Common/Utils/DataSecurity/FindingJudgement.ts
       - packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts
       - packages/Common/Server/Utils/AI/Toolbox/Serializer.ts
       - packages/Common/Types/DataSecurity/DataSecurityCheckCatalog.ts
@@ -68,7 +73,7 @@ on:
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests. Empty: all of them."
         required: false
         default: ""
       cases:

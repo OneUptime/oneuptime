@@ -46,6 +46,11 @@ import {
   MAX_DATA_STORE_OWNER_CANDIDATES,
   MAX_DATA_STORE_OWNER_EVIDENCE,
 } from "../../../../Types/DataSecurity/DataStoreOwnerProposal";
+import {
+  DATA_STORE_FINDING_VERDICT_LIMITS,
+  DataStoreFindingDecision,
+  FindingWrongMatchSign,
+} from "../../../../Types/DataSecurity/DataStoreFindingVerdict";
 import { DataStoreExposure } from "../../../../Types/DataSecurity/DataStorePosture";
 import {
   MAX_SCRUB_RULE_WRITER_PLACES,
@@ -64,6 +69,7 @@ import {
   UnplacedField,
   UnplacedValueShape,
 } from "../../../../Utils/DataSecurity/UnplacedFields";
+import { findSensitiveValues } from "../../../../Utils/DataSecurity/TextScanner";
 import { AiContextActivity } from "../../../../Types/AI/AiContext";
 import { LLMMessage } from "../../LLM/LLMService";
 import { withAiContext } from "../AiContext/AiContextPrompt";
@@ -94,7 +100,10 @@ import ToolResultSerializer from "../Toolbox/Serializer";
  *     or email address - with where each piece of evidence came from;
  *   - a pull request's diff and what a production review's rules found
  *     in it (#10376): the repository's own code, cleaned as below - never
- *     what production holds of it.
+ *     what production holds of it;
+ *   - the decisions people made on findings like one that waits for a
+ *     person (#10372): what they decided, where, and the reason they gave,
+ *     with every value a detector finds in it left out (personText).
  *
  * It has no way to add a value, a masked sample, a record, a connection
  * string or a secret: what it takes is typed as the columns it may read
@@ -2003,6 +2012,339 @@ export function buildSuggestFieldTypesPrompt(data: {
 
 /*
  * ---------------------------------------------------------------------------
+ * Verdicts on the findings that wait for a person (#10372)
+ * ---------------------------------------------------------------------------
+ *
+ * OneUptime AI is told each finding by its facts - its data type, where it
+ * sits, how sure the scan was, its counts in buckets, its signs of a wrong
+ * match - with its store's kind, name and environment, and the precedent
+ * chosen for it (FindingPrecedent): each earlier decision on a finding like
+ * it, by a reference (P1, P2...), with its location, its store's kind and
+ * environment, and the reason the person gave. Never a value, a masked
+ * sample or a record: a finding's masked samples and sample records are
+ * never read for it, and a person's reason - their own words, which can
+ * quote a value ("test cards like 4111 1111 1111 1111") - goes in with
+ * every value a detector finds in it, and every long run of digits, left
+ * out (personText).
+ */
+
+// The most of a person's reason OneUptime AI is told.
+export const MAX_PRECEDENT_REASON_LENGTH: number = 300;
+
+// A run of digits a person's reason may quote: an id, an account, a card.
+const LONG_DIGIT_RUN: RegExp = /\d(?:[\s.\-/]?\d){5,}/g;
+
+export type AiVerdictFindingRecord = AiReadable<
+  DataStoreFinding,
+  | "_id"
+  | "id"
+  | "dataTypeId"
+  | "dataTypeName"
+  | "dataCategory"
+  | "sensitivity"
+  | "location"
+  | "locationKind"
+  | "confidence"
+  | "valueCount"
+  | "matchPercent"
+  | "matchCount"
+  | "distinctValues"
+  | "testValueCount"
+  | "isFreeText"
+  | "isNameHinted"
+  | "isFoundByName"
+  | "isAiSuggested"
+  | "isScrubbed"
+>;
+
+// One earlier decision on a finding like it, as the verdict is told it.
+export interface AiFindingPrecedent {
+  ref: string;
+  decision: DataStoreFindingDecision;
+  location: string;
+  // Found by the field's name, rather than ranked by meaning.
+  isSameName: boolean;
+  // The person's reason, for a mark of not sensitive.
+  reason: string;
+  storeKind?: string | undefined;
+  storeEnvironment?: string | undefined;
+  isSameStore?: boolean | undefined;
+}
+
+// One finding OneUptime AI judges, with what it is judged from.
+export interface AiFindingToJudge {
+  ref: string;
+  finding: AiVerdictFindingRecord;
+  signs: ReadonlyArray<FindingWrongMatchSign>;
+  // The data types its field's name points at instead, by name.
+  nameSaysInstead: ReadonlyArray<string>;
+  precedent: ReadonlyArray<AiFindingPrecedent>;
+}
+
+// What each sign is called in the data OneUptime AI reads.
+const SIGN_WORDS: Readonly<Record<FindingWrongMatchSign, string>> = {
+  [FindingWrongMatchSign.MostlyTestValues]: "mostMatchesAreTestValues",
+  [FindingWrongMatchSign.NamePointsElsewhere]:
+    "fieldNamePointsAtAnotherDataType",
+  [FindingWrongMatchSign.IdFieldWithLuhnNumbers]:
+    "idFieldHoldingNumbersThatPassTheLuhnCheck",
+};
+
+/*
+ * A person's words, as OneUptime AI is told them: every value a detector
+ * finds in them, and every long run of digits, replaced by the name of what
+ * it is - "test cards like [a credit-card-number value]" - then cleaned and
+ * held to a length as any text the customer wrote (customerText).
+ */
+export function personText(
+  value: unknown,
+  maxLength: number,
+  path: string,
+  marks: AiInputMarks,
+): string {
+  if (typeof value !== "string" || value.length === 0) {
+    return "";
+  }
+
+  // Never read more than a few times what can go in.
+  const read: string = value.slice(0, maxLength * 4);
+  let text: string = "";
+  let at: number = 0;
+
+  for (const match of findSensitiveValues(read)) {
+    if (match.start < at) {
+      continue;
+    }
+
+    text += `${read.slice(at, match.start)}[a ${match.dataTypeId} value]`;
+    at = match.end;
+  }
+
+  text += read.slice(at);
+
+  return customerText(
+    text.replace(LONG_DIGIT_RUN, "[a number]"),
+    maxLength,
+    path,
+    marks,
+  );
+}
+
+/*
+ * How much of a field's values matched, in a bucket: a scan that reads a
+ * few values more changes nothing (the confidence thresholds, FieldClassifier).
+ */
+export function matchShareBucket(percent: number | null | undefined): string {
+  const share: number = typeof percent === "number" ? percent : 0;
+
+  if (share >= 60) {
+    return "60% or more";
+  }
+
+  if (share >= 25) {
+    return "25% to 60%";
+  }
+
+  if (share >= 10) {
+    return "10% to 25%";
+  }
+
+  return share > 0 ? "under 10%" : "none";
+}
+
+// Whether the matches were real or well-known test values, in words.
+function testValuesWords(finding: AiVerdictFindingRecord): string {
+  const tests: number = finding.testValueCount || 0;
+
+  if (tests === 0) {
+    return "none";
+  }
+
+  return tests > (finding.matchCount || 0)
+    ? "more than real matches"
+    : "fewer than real matches";
+}
+
+function precedentFacts(
+  precedent: AiFindingPrecedent,
+  path: string,
+  marks: AiInputMarks,
+): JSONObject {
+  return withoutEmpty({
+    ref: precedent.ref.slice(0, 10),
+    decision:
+      precedent.decision === DataStoreFindingDecision.NotSensitive
+        ? "markedNotSensitive"
+        : "confirmed",
+    location: customerText(
+      precedent.location,
+      MAX_FINDING_LOCATION_LENGTH,
+      `${path}.location`,
+      marks,
+    ),
+    foundBy: precedent.isSameName ? "the same field name" : "a name like it",
+    store: withoutEmpty({
+      kind: precedent.storeKind || "",
+      environment: precedent.storeEnvironment || "",
+      sameStore: precedent.isSameStore ? true : undefined,
+    }),
+    reason: personText(
+      precedent.reason,
+      MAX_PRECEDENT_REASON_LENGTH,
+      `${path}.reason`,
+      marks,
+    ),
+  });
+}
+
+/*
+ * One finding as OneUptime AI judges it - its counts in buckets, so the
+ * hourly scan of a service's telemetry changes nothing it was told - with
+ * the precedent chosen for it. `withRef: false` leaves its reference out:
+ * what its verdict's hash is of, wherever in a request it went.
+ */
+export function findingToJudgeFacts(
+  item: AiFindingToJudge,
+  index: number,
+  dataTypeNamer: DataTypeNamer,
+  marks: AiInputMarks,
+  options: { withRef?: boolean | undefined } = {},
+): JSONObject {
+  const path: string = `findings[${index}]`;
+  const finding: AiVerdictFindingRecord = item.finding;
+  const dataTypeId: string = finding.dataTypeId || "";
+
+  return withoutEmpty({
+    ref: options.withRef === false ? undefined : item.ref.slice(0, 10),
+    dataType: [
+      dataTypeId.slice(0, MAX_WORD_LENGTH),
+      customerText(
+        dataTypeNamer.nameOf(dataTypeId, finding.dataTypeName),
+        MAX_ISSUE_VALUE_LENGTH,
+        `${path}.dataType`,
+        marks,
+      ),
+    ],
+    category: finding.dataCategory || "",
+    sensitivity: finding.sensitivity || "",
+    location: customerText(
+      finding.location,
+      MAX_FINDING_LOCATION_LENGTH,
+      `${path}.location`,
+      marks,
+    ),
+    kind: customerText(
+      finding.locationKind,
+      MAX_WORD_LENGTH,
+      `${path}.kind`,
+      marks,
+    ),
+    confidence: finding.confidence || "",
+    valuesRead: roundDataSecurityCount(finding.valueCount) ?? 0,
+    valuesThatMatched: matchShareBucket(finding.matchPercent),
+    differentValues: roundDataSecurityCount(finding.distinctValues) ?? 0,
+    testValues: testValuesWords(finding),
+    inFreeText: Boolean(finding.isFreeText),
+    fieldNameSaysThisType: Boolean(finding.isNameHinted),
+    foundByFieldNameOnly: Boolean(finding.isFoundByName),
+    suggestedByOneUptimeAi: Boolean(finding.isAiSuggested),
+    scrubbedAtIngest: finding.isScrubbed ? true : undefined,
+    fieldNameSaysInstead: item.nameSaysInstead
+      .slice(0, 5)
+      .map((name: string, nameIndex: number): string => {
+        return customerText(
+          name,
+          MAX_ISSUE_VALUE_LENGTH,
+          `${path}.fieldNameSaysInstead[${nameIndex}]`,
+          marks,
+        );
+      }),
+    signsOfAWrongMatch: item.signs.map((sign: FindingWrongMatchSign) => {
+      return SIGN_WORDS[sign];
+    }),
+    precedent: item.precedent
+      .slice(0, DATA_STORE_FINDING_VERDICT_LIMITS.maxPrecedent)
+      .map(
+        (precedent: AiFindingPrecedent, precedentIndex: number): JSONObject => {
+          return precedentFacts(
+            precedent,
+            `${path}.precedent[${precedentIndex}]`,
+            marks,
+          );
+        },
+      ),
+  });
+}
+
+// The store a finding is on, as its verdict is told it.
+export function verdictStoreFacts(
+  store: AiStoreRecord,
+  marks: AiInputMarks,
+): JSONObject {
+  return withoutEmpty({
+    name: customerText(store.name, MAX_ISSUE_VALUE_LENGTH, "store.name", marks),
+    kind: store.kind || "",
+    provider: store.provider || "",
+    environment: store.environment || "",
+  });
+}
+
+/*
+ * What one finding's verdict is written from, with no reference: its
+ * facts and its store's, as the prompt tells them. Its hash decides
+ * whether the finding is judged again.
+ */
+export function findingVerdictData(data: {
+  store: AiStoreRecord;
+  item: AiFindingToJudge;
+  dataTypeNamer?: DataTypeNamer | undefined;
+}): JSONObject {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return {
+    store: verdictStoreFacts(data.store, marks),
+    finding: findingToJudgeFacts(
+      data.item,
+      0,
+      data.dataTypeNamer || DataTypeNamer.withoutCustomTypes(),
+      marks,
+      { withRef: false },
+    ),
+  };
+}
+
+/*
+ * The verdicts on a store's findings that wait for a person: the
+ * instructions, the store, and each finding by its reference, with its
+ * precedent.
+ */
+export function buildJudgeFindingsPrompt(data: {
+  instructions: string;
+  store: AiStoreRecord;
+  findings: ReadonlyArray<AiFindingToJudge>;
+  dataTypeNamer?: DataTypeNamer | undefined;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+  const namer: DataTypeNamer =
+    data.dataTypeNamer || DataTypeNamer.withoutCustomTypes();
+
+  return prompt({
+    feature: DataSecurityAiFeature.JudgeFindings,
+    instructions: data.instructions,
+    facts: {
+      store: verdictStoreFacts(data.store, marks),
+      findings: data.findings.map(
+        (item: AiFindingToJudge, index: number): JSONObject => {
+          return findingToJudgeFacts(item, index, namer, marks);
+        },
+      ),
+    },
+    marks,
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Scrub rules for what Scrub It cannot cover (#10366)
  * ---------------------------------------------------------------------------
  */
@@ -2938,6 +3280,11 @@ const DataSecurityAiInput: {
   analysisFacts: typeof analysisFacts;
   buildAnalyzeIssuePrompt: typeof buildAnalyzeIssuePrompt;
   buildSuggestFieldTypesPrompt: typeof buildSuggestFieldTypesPrompt;
+  personText: typeof personText;
+  matchShareBucket: typeof matchShareBucket;
+  findingToJudgeFacts: typeof findingToJudgeFacts;
+  findingVerdictData: typeof findingVerdictData;
+  buildJudgeFindingsPrompt: typeof buildJudgeFindingsPrompt;
   buildFixIssueRequest: typeof buildFixIssueRequest;
   buildStoreOwnersPrompt: typeof buildStoreOwnersPrompt;
   buildNameIssueGroupPrompt: typeof buildNameIssueGroupPrompt;
@@ -2969,6 +3316,11 @@ const DataSecurityAiInput: {
   analysisFacts,
   buildAnalyzeIssuePrompt,
   buildSuggestFieldTypesPrompt,
+  personText,
+  matchShareBucket,
+  findingToJudgeFacts,
+  findingVerdictData,
+  buildJudgeFindingsPrompt,
   buildFixIssueRequest,
   buildStoreOwnersPrompt,
   buildNameIssueGroupPrompt,

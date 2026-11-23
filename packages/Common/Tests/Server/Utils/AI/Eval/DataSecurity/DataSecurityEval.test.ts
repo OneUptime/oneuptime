@@ -21,6 +21,8 @@ import {
   AskAiEvalCase,
   DataSecurityEvalCase,
   FieldSuggestionEvalCase,
+  FindingVerdictEvalCase,
+  FindingVerdictEvalFinding,
   FixEvalCase,
   PullRequestReviewEvalCase,
   ScrubRulesEvalCase,
@@ -48,6 +50,7 @@ import {
   DataSecurityAnalysisPart,
 } from "../../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import DataTypeNamer from "../../../../../../Types/DataSecurity/DataTypeNamer";
+import { DataStoreFindingVerdict } from "../../../../../../Types/DataSecurity/DataStoreFindingVerdict";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -363,8 +366,42 @@ function goodPullRequestAnswer(testCase: PullRequestReviewEvalCase): string {
   });
 }
 
+/*
+ * The verdicts a right answer gives (#10372): each finding the first
+ * verdict its case allows, citing what the case names, with a reason.
+ */
+function goodVerdictAnswer(
+  testCase: FindingVerdictEvalCase,
+  pick: (entry: FindingVerdictEvalFinding) => DataStoreFindingVerdict = (
+    entry: FindingVerdictEvalFinding,
+  ): DataStoreFindingVerdict => {
+    return entry.expect[0]!;
+  },
+): string {
+  return JSON.stringify({
+    findings: testCase.findings.map(
+      (entry: FindingVerdictEvalFinding, index: number) => {
+        const verdict: DataStoreFindingVerdict = pick(entry);
+
+        return {
+          ref: `F${index + 1}`,
+          verdict,
+          reason: "What the team decided on findings like it says so.",
+          precedent: entry.cites || [],
+          draft:
+            verdict === DataStoreFindingVerdict.NotSensitive
+              ? "Order numbers, not card numbers."
+              : null,
+        };
+      },
+    ),
+  });
+}
+
 function goodAnswer(testCase: DataSecurityEvalCase): string {
   switch (testCase.feature) {
+    case DataSecurityAiFeature.JudgeFindings:
+      return goodVerdictAnswer(testCase);
     case DataSecurityAiFeature.ExplainIssue:
     case DataSecurityAiFeature.AnalyzeIssue:
       return goodAnalysis(testCase);
@@ -389,6 +426,105 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodPullRequestAnswer(testCase);
   }
 }
+
+describe("verdicts on the findings that wait for a person (#10372)", () => {
+  function verdictCase(id: string): FindingVerdictEvalCase {
+    return casesOf<FindingVerdictEvalCase>(
+      DataSecurityAiFeature.JudgeFindings,
+    ).find((testCase: FindingVerdictEvalCase): boolean => {
+      return testCase.id === id;
+    })!;
+  }
+
+  test("the set has the issue's scenario, a split team, a secret, and an instruction in a name", () => {
+    const ids: Array<string> = casesOf<FindingVerdictEvalCase>(
+      DataSecurityAiFeature.JudgeFindings,
+    ).map((testCase: FindingVerdictEvalCase): string => {
+      return testCase.id;
+    });
+
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "verdict-low-card-dismissed-on-four-stores",
+        "verdict-team-decided-both-ways",
+        "verdict-secret-nobody-decided",
+        "verdict-instruction-in-the-store-name",
+      ]),
+    );
+    expect(
+      verdictCase("verdict-low-card-dismissed-on-four-stores").findings[0]!
+        .precedent,
+    ).toHaveLength(4);
+  });
+
+  test("is asked as the product asks it, in the case's language, with no value of a reason", () => {
+    const german: FindingVerdictEvalCase = verdictCase(
+      "verdict-low-card-dismissed-on-four-stores-in-german",
+    );
+
+    expect(buildEvalCall(german).messages[0]!.content).toContain("in German");
+
+    const ssn: string = JSON.stringify(
+      buildEvalCall(verdictCase("verdict-ssn-in-a-phone-column")).messages,
+    );
+
+    // The reason quotes a number shaped like an SSN: it never goes in.
+    expect(ssn).not.toContain("555-12-3456");
+  });
+
+  test("a Not sensitive where the team kept the data fails, and says which", () => {
+    const testCase: FindingVerdictEvalCase = verdictCase(
+      "verdict-secret-nobody-decided",
+    );
+    const score: { passed: boolean; notes: Array<string> } = scoreAnswer(
+      testCase,
+      goodVerdictAnswer(testCase, (): DataStoreFindingVerdict => {
+        return DataStoreFindingVerdict.NotSensitive;
+      }),
+    );
+
+    expect(score.passed).toBe(false);
+    expect(score.notes[0]).toContain("NotSensitive, where Confirm or CannotTell");
+  });
+
+  test("a right verdict that cites none of the team's decisions the case names fails", () => {
+    const testCase: FindingVerdictEvalCase = verdictCase(
+      "verdict-low-card-dismissed-on-four-stores",
+    );
+    const answer: string = JSON.stringify({
+      findings: [
+        {
+          ref: "F1",
+          verdict: "NotSensitive",
+          reason: "It looks like an order number.",
+          precedent: [],
+          draft: null,
+        },
+      ],
+    });
+
+    expect(scoreAnswer(testCase, answer)).toMatchObject({
+      passed: false,
+      notes: ["F1: cites none of P1, P2, P3, P4"],
+    });
+  });
+
+  test("a precedent it was not given counts for nothing", () => {
+    const testCase: FindingVerdictEvalCase = verdictCase("verdict-tracking-numbers");
+    const answer: string = JSON.stringify({
+      findings: [
+        {
+          ref: "F1",
+          verdict: "NotSensitive",
+          reason: "Tracking numbers.",
+          precedent: ["P7"],
+        },
+      ],
+    });
+
+    expect(scoreAnswer(testCase, answer).passed).toBe(false);
+  });
+});
 
 describe("scrub rules for what Scrub It cannot cover (#10366)", () => {
   function scrubCase(id: string): ScrubRulesEvalCase {

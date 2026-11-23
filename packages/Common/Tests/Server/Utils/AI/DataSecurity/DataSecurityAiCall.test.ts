@@ -1,5 +1,6 @@
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
@@ -273,6 +274,9 @@ describe("what every Data Security call keeps", () => {
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
       [DataSecurityAiFeature.SuggestFieldTypes]:
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+      // Its verdicts on the findings that wait for a person (#10372): autonomous, so budgeted.
+      [DataSecurityAiFeature.JudgeFindings]:
+        AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
       // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
       [DataSecurityAiFeature.ProposeStoreOwners]:
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
@@ -459,6 +463,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.CodeAgent,
+      DataSecurityAiModelSource.ProjectProvider,
+      // Verdicts on findings (#10372): the one Data Security call, as the suggestions'.
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.Chat,
       // Owners for data stores: the one Data Security call, as Explain's.
