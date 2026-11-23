@@ -556,11 +556,11 @@ export default class ProjectSignInClearing {
   private static async readProject(
     projectId: ObjectID,
   ): Promise<Project | null> {
+    // Its name is not read here: an email reads it when it is written (#9991).
     return await ProjectService.findOneById({
       id: projectId,
       select: {
         _id: true,
-        name: true,
         requireSsoForLogin: true,
         manageSignInWithSso: true,
       },
