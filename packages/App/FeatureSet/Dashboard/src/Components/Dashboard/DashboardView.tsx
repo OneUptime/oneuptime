@@ -246,13 +246,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
   ): Promise<void> => {
     /*
      * The metrics the board charts, however they sort: named as the board
-     * is read, the list read meanwhile.
+     * is read, the list read meanwhile. A board that could not be read
+     * charts nothing (the page says why).
      */
-    const chartedNames: Promise<Array<string>> = boardRead.then(
-      (config: DashboardViewConfig | null): Array<string> => {
+    const chartedNames: Promise<Array<string>> = boardRead
+      .then((config: DashboardViewConfig | null): Array<string> => {
         return MetricTypeSearch.getMetricNamesIn(config);
-      },
-    );
+      })
+      .catch((): Array<string> => {
+        return [];
+      });
 
     /*
      * Telemetry attribute keys are only used by ArgumentsForm inside the edit
@@ -268,11 +271,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       });
 
     setMetricTypes(metricTypes);
-    setNamesReadWithList(
-      await chartedNames.catch((): Array<string> => {
-        return [];
-      }),
-    );
+    setNamesReadWithList(await chartedNames);
   };
 
   const telemetryAttributesRequestedRef: React.MutableRefObject<boolean> =
