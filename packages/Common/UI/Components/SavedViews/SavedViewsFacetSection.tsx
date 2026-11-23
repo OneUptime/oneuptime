@@ -34,6 +34,13 @@ export interface SavedViewsFacetSectionProps {
   onClear?: (() => void) | undefined;
   title?: string | undefined;
   initialVisibleCount?: number | undefined;
+  /*
+   * How many views the host has, when it hands over only its first ones,
+   * and what is typed into the search box, for it to search the rest on
+   * the server (#10646). Unset, the views handed over are all there are.
+   */
+  totalCount?: number | undefined;
+  onSearchTextChange?: ((text: string) => void) | undefined;
 }
 
 const DEFAULT_TITLE: string = translationKey("Saved Views");
@@ -55,8 +62,9 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
 
   const title: string = props.title || DEFAULT_TITLE;
 
+  // Every view the host has (totalCount, #10646), not only the ones read.
   const showSearch: boolean = shouldShowSavedViewsSearch(
-    props.savedViews.length,
+    Math.max(props.totalCount ?? 0, props.savedViews.length),
   );
 
   /*
@@ -138,6 +146,8 @@ const SavedViewsFacetSection: FunctionComponent<SavedViewsFacetSectionProps> = (
                 })}
                 onChange={(text: string) => {
                   setSearchText(text);
+                  // A host that reads its first views only searches the rest.
+                  props.onSearchTextChange?.(text);
                 }}
               />
             </div>

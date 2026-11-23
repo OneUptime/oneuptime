@@ -1,5 +1,8 @@
 import VersionUtil, { ParsedVersion } from "../../Utils/VersionUtil";
-import { FIRST_PROBE_VERSION_WITH_TOTP_CODES } from "./ProbeCapability";
+import {
+  FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
+  FIRST_PROBE_VERSION_WITH_TOTP_CODES,
+} from "./ProbeCapability";
 
 /*
  * THE RELEASE A PROBE RUNS, AS THE PROBE SAYS IT (OneUptime issue #9759).
@@ -85,6 +88,11 @@ export enum ProbeOneTimeCodes {
 export enum ProbeFeature {
   // The one-time codes of one-time code (TOTP) monitor secrets (#9703).
   OneTimeCodes = "OneTimeCodes",
+  /*
+   * An API monitor's request body that is a JSON array, a single value or
+   * text (#9737, #10736, ProbeCapability.AnyRequestBody).
+   */
+  AnyRequestBody = "AnyRequestBody",
 }
 
 // The first release of each feature.
@@ -92,6 +100,7 @@ export const PROBE_FEATURE_FIRST_RELEASES: Readonly<
   Record<ProbeFeature, string>
 > = {
   [ProbeFeature.OneTimeCodes]: FIRST_PROBE_VERSION_WITH_TOTP_CODES,
+  [ProbeFeature.AnyRequestBody]: FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
 };
 
 // Whether a probe has a feature, as far as OneUptime can tell.

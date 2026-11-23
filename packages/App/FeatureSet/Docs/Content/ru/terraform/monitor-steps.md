@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | Веб-сайт, API | HTTP-метод: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` или `PATCH`. Если он не задан, сервер использует `GET`. |
 | `request_headers` | map(string) | Веб-сайт, API | Заголовки для отправки: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Тело запроса в виде текста. |
+| `request_body_format` | string | API | Как отправляется `request_body`: `json`, по умолчанию, для любого значения JSON; `text` для тела запроса, которое отправляется точно так, как написано, например XML или поля формы. |
 | `do_not_follow_redirects` | bool | Веб-сайт, API | Остановиться на первом ответе вместо перехода по перенаправлениям. |
 | `allow_self_signed_certificates` | bool | Веб-сайт, API | Принимать самоподписанный сертификат TLS. |
 | `tls_client_certificate` | string | Веб-сайт, API | Клиентский сертификат для взаимного TLS: PEM или ссылка `{{monitorSecrets.name}}`. |

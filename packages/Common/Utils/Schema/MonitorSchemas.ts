@@ -207,6 +207,8 @@ export function getMonitorStepSchema(): ZodSchema {
       requestType: Zod.any(),
       requestHeaders: Zod.any().optional(),
       requestBody: Zod.string().optional(),
+      // How the body is sent (#10736): JSON when left out, or text as written.
+      requestBodyFormat: Zod.enum(["json", "text"]).optional(),
       doNotFollowRedirects: Zod.boolean().optional(),
       allowSelfSignedCertificates: Zod.boolean().optional(),
       tlsClientCertificate: Zod.string().optional(),

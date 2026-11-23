@@ -115,6 +115,14 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "reader",
     why: "reads a project's dashboards to name the ones, and the widgets on them, that read a metric something would take away, such as the metrics Data Security would drop (#9757, #9946)",
   },
+  "Common/Utils/Telemetry/TelemetryFieldReferences.ts": {
+    role: "reader",
+    why: "reads a dashboard's stored layout to name the widgets that read a log or span field, and the queries they run, so a scrub rule or a drop filter says which charts it would change (#10601, #10694), as MetricReaders reads it for a metric",
+  },
+  "Common/Server/Utils/Telemetry/TelemetryFieldReaders.ts": {
+    role: "reader",
+    why: "takes a project's dashboards out of storage to name the ones that read a log or span field (#10601, #10694); TelemetryFieldReferences reads each",
+  },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx": {
     role: "handed-a-read-config",
     why: "draws the board DashboardView or the public page read",
@@ -254,6 +262,10 @@ const RETIRED_METRIC_READS: string =
 const RETIRED_METRIC_CHART_MIGRATION: string =
   "App/FeatureSet/Workers/DataMigrations/MoveChartsAndSlosOffRetiredCloudMetrics.ts";
 const METRIC_READERS: string = "Common/Server/Utils/Telemetry/MetricReaders.ts";
+const TELEMETRY_FIELD_REFERENCES: string =
+  "Common/Utils/Telemetry/TelemetryFieldReferences.ts";
+const TELEMETRY_FIELD_READERS: string =
+  "Common/Server/Utils/Telemetry/TelemetryFieldReaders.ts";
 const CANVAS: string =
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/Index.tsx";
 const WIDGET_CARD: string =
@@ -336,6 +348,16 @@ describe("every reader of a dashboard's stored config goes through StoredDashboa
         "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
         "StoredDashboardViewConfig.getComponentEntries(config)",
         "StoredDashboardViewConfig.withArgumentsRead(entry)",
+      ],
+      [TELEMETRY_FIELD_REFERENCES]: [
+        "StoredDashboardViewConfig.unwrap(asStored(dashboardViewConfig)",
+        "StoredDashboardViewConfig.getComponentEntries(config)",
+        "StoredDashboardViewConfig.withArgumentsRead(entry)",
+      ],
+      // It hands each stored config to TelemetryFieldReferences, which reads it.
+      [TELEMETRY_FIELD_READERS]: [
+        "findDashboardFieldReferences(dashboard.dashboardViewConfig",
+        "findDashboardTelemetryQueries(dashboard.dashboardViewConfig",
       ],
     };
 

@@ -30,4 +30,8 @@ export const PROBE_UPDATE_COPY: {
 export const PROBE_MISSED_FEATURE_COPY: Readonly<Record<ProbeFeature, string>> =
   {
     [ProbeFeature.OneTimeCodes]: ONE_TIME_CODE_PROBES_COPY.probeTooOld,
+    // An array, a single value or text as an API monitor's body (#10737).
+    [ProbeFeature.AnyRequestBody]: translationKey(
+      "Too old to send a request body that is a JSON array, a single value or text. API monitors with such a body fail their check on this probe until it is updated.",
+    ),
   };

@@ -42,7 +42,11 @@ import {
 } from "../../Types/Retention/ResolvedRecordRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
-import { SecurityCaseAiMode } from "../../Types/SecurityCase/SecurityCaseAi";
+/*
+ * The modes alone (SecurityCaseAiMode), not SecurityCaseAi: every page that
+ * draws a project would load its blocks and verdicts with them.
+ */
+import { SecurityCaseAiMode } from "../../Types/SecurityCase/SecurityCaseAiMode";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*

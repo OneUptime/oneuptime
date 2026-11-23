@@ -37,7 +37,7 @@ const scenario: BenchmarkScenario = {
     "Description: Search API check failed twice in a row: GET /api/search?q=shoes returned 502 (Search API monitor).",
     "Severity: SEV-1",
     "Current state: Created",
-    "Declared at: Aug 17 2026, 10:42 UTC",
+    "Declared at: Aug 17, 2026, 10:42 UTC",
     "Affected monitors: Search API",
     "Labels: search, storefront",
     "",

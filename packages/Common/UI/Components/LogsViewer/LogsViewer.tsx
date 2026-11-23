@@ -266,6 +266,13 @@ export interface ComponentProps {
   selectedColumns?: Array<string> | undefined;
   onSelectedColumnsChange?: ((columns: Array<string>) => void) | undefined;
   savedViews?: Array<LogsSavedViewOption> | undefined;
+  /*
+   * How many saved views the host has, when it hands over only its first
+   * ones, and what is typed into a saved-view search, for it to search the
+   * rest on the server (#10646).
+   */
+  savedViewCount?: number | undefined;
+  onSavedViewSearch?: ((text: string) => void) | undefined;
   selectedSavedViewId?: string | null;
   onSavedViewSelect?: ((viewId: string) => void) | undefined;
   // Deselect the active saved view and reset the explorer to its default.
@@ -1547,6 +1554,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     viewMode: currentViewMode,
     onViewModeChange: handleViewModeChange,
     savedViews: props.savedViews,
+    savedViewCount: props.savedViewCount,
+    onSavedViewSearch: props.onSavedViewSearch,
     selectedSavedViewId: props.selectedSavedViewId,
     onSavedViewSelect: props.onSavedViewSelect,
     onClearSavedView: props.onClearSavedView,
@@ -1714,6 +1723,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               onRemoveFilter={props.onRemoveFilter || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
+              savedViewCount={props.savedViewCount}
+              onSavedViewSearch={props.onSavedViewSearch}
               selectedSavedViewId={props.selectedSavedViewId}
               onSavedViewSelect={props.onSavedViewSelect}
               onClearSavedView={props.onClearSavedView}

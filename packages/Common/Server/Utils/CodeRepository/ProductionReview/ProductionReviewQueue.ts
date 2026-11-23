@@ -125,6 +125,9 @@ export interface ProductionReviewContextUpdate {
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;
   aiInputHash?: string | undefined;
+  sensitiveDataAiInputHash?: string | undefined;
+  caughtLeaks?: ProductionReviewTaskContext["caughtLeaks"];
+  suggestedLeakKeys?: Array<string> | undefined;
 }
 
 export type ProductionReviewFinishOutcome =

@@ -165,6 +165,7 @@ Hvert element i `monitor_steps` er én ting som skal sjekkes:
 | `request_type` | string | Nettsted, API | HTTP-metoden: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` eller `PATCH`. Serveren bruker `GET` når den ikke er angitt. |
 | `request_headers` | map(string) | Nettsted, API | Headere som skal sendes: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Forespørselens body, som tekst. |
+| `request_body_format` | string | API | Hvordan `request_body` sendes: `json`, standarden, for en hvilken som helst JSON-verdi; `text` for en brødtekst som sendes nøyaktig slik den er skrevet, for eksempel XML eller skjemafelt. |
 | `do_not_follow_redirects` | bool | Nettsted, API | Stopp ved det første svaret i stedet for å følge omdirigeringer. |
 | `allow_self_signed_certificates` | bool | Nettsted, API | Godta et selvsignert TLS-sertifikat. |
 | `tls_client_certificate` | string | Nettsted, API | Et klientsertifikat for gjensidig TLS: PEM eller en henvisning `{{monitorSecrets.name}}`. |

@@ -165,6 +165,7 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 | `request_type` | string | Webbplats, API | HTTP-metoden: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` eller `PATCH`. Servern använder `GET` när den inte är angiven. |
 | `request_headers` | map(string) | Webbplats, API | Headrar som ska skickas: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | Begärans body, som text. |
+| `request_body_format` | string | API | Hur `request_body` skickas: `json`, standard, för vilket JSON-värde som helst; `text` för en kropp som skickas exakt som den är skriven, till exempel XML eller formulärfält. |
 | `do_not_follow_redirects` | bool | Webbplats, API | Stanna vid det första svaret i stället för att följa omdirigeringar. |
 | `allow_self_signed_certificates` | bool | Webbplats, API | Godta ett självsignerat TLS-certifikat. |
 | `tls_client_certificate` | string | Webbplats, API | Ett klientcertifikat för ömsesidig TLS: PEM, eller en hänvisning `{{monitorSecrets.name}}`. |

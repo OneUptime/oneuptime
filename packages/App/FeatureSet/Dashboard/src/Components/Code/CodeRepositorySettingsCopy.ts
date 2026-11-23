@@ -38,6 +38,7 @@ import RunnerLiveStatus, {
 } from "Common/Types/Runner/RunnerLiveStatus";
 import {
   FOLDED_SECTION_OFF,
+  FOLDED_SECTION_ON,
   FoldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -106,6 +107,8 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
     CodeRepositorySetting.PullRequests,
     CodeRepositorySetting.TriggerLabel,
     CodeRepositorySetting.ProductionReviewComment,
+    // With the review's other options: never in sight before More settings.
+    CodeRepositorySetting.ProductionReviewFailOnLeak,
     CodeRepositorySetting.ProductionReviewLlmProvider,
     CodeRepositorySetting.Commands,
   ];
@@ -124,6 +127,7 @@ const GITHUB_ONLY_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
 
 const PRODUCTION_REVIEW_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
   CodeRepositorySetting.ProductionReview,
+  CodeRepositorySetting.ProductionReviewFailOnLeak,
   CodeRepositorySetting.ProductionReviewComment,
   CodeRepositorySetting.ProductionReviewLlmProvider,
 ];
@@ -187,6 +191,11 @@ export interface CodeRepositorySettingsValues {
    * it: a repository that never set it is off, as the server reads it.
    */
   isProductionReviewEnabled?: boolean | undefined;
+  /*
+   * Where Fail the Check on a Leak is (#10376): a repository that never
+   * set it is off - its check stays neutral - as the server reads it.
+   */
+  isProductionReviewFailOnLeakEnabled?: boolean | undefined;
   /*
    * The Runner the repository picks, as getRepositoryRunnerId reads it:
    * empty for none.
@@ -586,6 +595,18 @@ export function getRepositoryMoreSettingsItems(
             value: PRODUCTION_REVIEW_CONTENT_COPY[reviewContent].title,
             translateValue: true,
           }
+        : {}),
+    },
+    /*
+     * Off is this switch's default: set, with "On", only once a repository
+     * asks its check to fail on a leak (#10376).
+     */
+    {
+      key: CodeRepositorySetting.ProductionReviewFailOnLeak,
+      title: PRODUCTION_REVIEW_SETTINGS_COPY.failOnLeakCardTitle,
+      isSet: repository?.isProductionReviewFailOnLeakEnabled === true,
+      ...(repository?.isProductionReviewFailOnLeakEnabled === true
+        ? { value: FOLDED_SECTION_ON, translateValue: true }
         : {}),
     },
     getProductionReviewLlmProviderItem(

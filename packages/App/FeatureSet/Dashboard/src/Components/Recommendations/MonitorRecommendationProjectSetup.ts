@@ -1,6 +1,5 @@
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
-import Label from "Common/Models/DatabaseModels/Label";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -8,12 +7,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { MonitorRecommendationSeverityOption } from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import {
-  getSharedNameFacts,
-  getSharedNameSelect,
-} from "Common/UI/Utils/SharedNameOptions";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -44,7 +38,11 @@ export const CREATE_MONITORS_LOCKED_SENTENCE: string = translationKey(
  *   - the statuses a monitor's criteria set (operational and offline), and
  *     the most severe incident and alert severity, which every template
  *     writes into its criteria;
- *   - the severities, on-call policies and labels the create panel offers.
+ *   - the severities the create panel offers, and whether the project has
+ *     an on-call policy at all. Its on-call policies and labels are searched
+ *     on the server as they are picked (CriteriaRecordPicker, #10646): the
+ *     panel offered the project's first 10,000 of each, and one past them
+ *     could not be picked.
  *
  * A project without one of the four ids cannot create a monitor at all, so
  * the read fails with what to add and where, rather than a monitor whose
@@ -76,8 +74,8 @@ export interface MonitorRecommendationProjectSetup {
   defaults: MonitorRecommendationProjectDefaults;
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   alertSeverityOptions: Array<MonitorRecommendationSeverityOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
+  // Whether the project has an on-call policy to page anyone with.
+  hasOnCallPolicies: boolean;
 }
 
 export async function loadMonitorRecommendationProjectSetup(
@@ -156,27 +154,17 @@ export async function loadMonitorRecommendationProjectSetup(
     );
   }
 
+  // One live policy is enough to know there is one to page anyone with.
   const onCallPolicyList: ListResult<OnCallDutyPolicy> = await ModelAPI.getList(
     {
       modelType: OnCallDutyPolicy,
-      query: {},
-      limit: LIMIT_PER_PROJECT,
+      query: { isArchived: false },
+      limit: 1,
       skip: 0,
-      // What tells policies of one name apart (#10064).
-      select: { name: true, ...getSharedNameSelect(OnCallDutyPolicy) },
-      sort: { name: SortOrder.Ascending },
+      select: { _id: true },
+      sort: {},
     },
   );
-
-  const labelList: ListResult<Label> = await ModelAPI.getList({
-    modelType: Label,
-    // A new monitor is set up with values that can be picked.
-    query: { isArchived: false },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: { name: true, ...getSharedNameSelect(Label) },
-    sort: { name: SortOrder.Ascending },
-  });
 
   return {
     defaults: picked.defaults,
@@ -200,23 +188,6 @@ export async function loadMonitorRecommendationProjectSetup(
         };
       },
     ),
-    onCallPolicyDropdownOptions: onCallPolicyList.data.map(
-      (item: OnCallDutyPolicy): DropdownOption => {
-        return {
-          value: item._id!,
-          label: item.name!,
-          isUserContent: true,
-          sharedName: getSharedNameFacts(item),
-        };
-      },
-    ),
-    labelDropdownOptions: labelList.data.map((item: Label): DropdownOption => {
-      return {
-        value: item._id!,
-        label: item.name!,
-        isUserContent: true,
-        sharedName: getSharedNameFacts(item),
-      };
-    }),
+    hasOnCallPolicies: onCallPolicyList.data.length > 0,
   };
 }

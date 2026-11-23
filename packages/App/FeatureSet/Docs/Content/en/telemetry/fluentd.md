@@ -104,6 +104,8 @@ Add a `<match>` section that sends records to OneUptime. Replace `YOUR_SERVICE_T
 
 `json_array true` sends each buffer chunk as one JSON array, and `flush_interval 10s` sends the buffer every 10 seconds. `chunk_limit_size 900k` keeps each request under 1 MB, the most OneUptime accepts on this endpoint.
 
+Fluentd's own default works as well: without `content_type` and `json_array true`, it sends newline-delimited JSON, one record a line, and OneUptime reads each line as the record it is, with `compress gzip` or without.
+
 `@type file` keeps the batches still to send in the folder `path` names, so a restart of Fluentd loses none of them; a buffer in memory, Fluentd's default, loses what it holds. Fluentd's user must be able to write that folder: `/var/log/fluent` is fluent-package's, `/var/log/td-agent` td-agent's, and `/fluentd/log` the `fluent/fluentd` image's. `total_limit_size 512m` keeps at most 512 MB there; when it is full, Fluentd takes no more records until a batch is sent.
 
 `retryable_response_codes 429,502,503,504` sends a batch again when OneUptime is busy (`429`) or restarting (`502`, `503`, `504`); without it, Fluentd drops a batch on any answer but `503`. `retry_max_interval 30s` waits at most 30 seconds between tries, and `retry_timeout 72h` drops a batch it still cannot send after 72 hours. The `record_transformer` filter adds the time Fluentd gave each record, as `fluentd_time`: the HTTP output sends only the record, and OneUptime reads a log's time from it.

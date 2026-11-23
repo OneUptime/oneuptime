@@ -31,8 +31,6 @@ const BUILDERS: Array<string> = [
   "packages/Common/UI/Components/ModelTable/BaseModelTable.tsx",
   // Teams, schedules and policies picked as people are.
   "packages/Common/UI/Components/PeoplePicker/PeoplePickerKinds.ts",
-  // Add Labels and Remove Labels.
-  "packages/Common/UI/Components/BulkUpdate/BulkLabelActions.tsx",
   // The facet chips: Labels, and the Owner chip's teams.
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners.tsx",
   // A monitor's criteria: its on-call policies and labels.
@@ -47,8 +45,6 @@ const BUILDERS: Array<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/EntityFilterDropdown.tsx",
   // The On-Call guided setup's policy to page (#10314).
   "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallSetupApi.ts",
-  // A record's Affected Resources: the Labels tab (#10314).
-  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
   /*
    * A Project Labels variable's allowed labels, while the dashboard's editor
    * picks them (#10314): what is saved keeps the name and id alone.
@@ -57,6 +53,30 @@ const BUILDERS: Array<string> = [
   // The re-read of lists that come with names alone (#10314).
   "packages/Common/UI/Utils/SharedNameFactsReads.ts",
 ];
+
+/*
+ * A picker's Labels tab, searched on the server as it is typed in
+ * (useLabelSearch, #10646): the search reads what tells twins apart, and the
+ * tab hands each label's facts to the marks it draws.
+ */
+const LABEL_SEARCH: string =
+  "packages/Common/UI/Components/EntityDropdown/LabelSearch.ts";
+
+const LABELS_TABS: Array<string> = [
+  "packages/Common/UI/Components/EntityDropdown/EntityDropdown.tsx",
+  // A record's Affected Resources: the Labels tab (#10314).
+  "packages/App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker.tsx",
+];
+
+/*
+ * Add Labels and Remove Labels (#10646): Add Labels' picker is a form's
+ * server-searched record field (EntityDropdown, a builder above), and Remove
+ * Labels' options - the labels the items have, read through a relation,
+ * which takes no description - read what tells twins apart again on their
+ * own (SharedNameFactsReads) and hand it to each option.
+ */
+const BULK_LABELS: string =
+  "packages/Common/UI/Components/BulkUpdate/BulkLabelActions.tsx";
 
 /*
  * Lists that come with their records' names alone - a schedule's shifts
@@ -190,6 +210,34 @@ describe("the builders of the four kinds' options", () => {
       });
     },
   );
+
+  test("the Labels tabs' search reads what tells twins apart", () => {
+    expect(read(LABEL_SEARCH)).toContain("getSharedNameSelect(");
+  });
+
+  test.each(LABELS_TABS)(
+    "%s searches its Labels tab's labels on the server and hands each its facts",
+    (file: string) => {
+      const source: string = read(file);
+
+      expect({ file, search: source.includes("useLabelSearch(") }).toEqual({
+        file,
+        search: true,
+      });
+      expect({ file, facts: source.includes("getSharedNameFacts(") }).toEqual({
+        file,
+        facts: true,
+      });
+    },
+  );
+
+  test("Add Labels picks from the server-searched record field, and Remove Labels' options carry what tells twins apart", () => {
+    const source: string = read(BULK_LABELS);
+
+    expect(source).toContain("dropdownModal: BULK_ADD_LABELS_DROPDOWN");
+    expect(source).toContain("readFactsOfLabelsSharingAName");
+    expect(source).toMatch(OPTION_FACTS_PATTERN);
+  });
 
   test.each(SELECTS_ONLY)(
     "%s reads what tells twins apart, which DropdownUtil hands to each option",

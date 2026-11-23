@@ -1,13 +1,9 @@
 import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import LogRecordingRuleFilterEditor from "./LogRecordingRuleFilterEditor";
-import Service from "Common/Models/DatabaseModels/Service";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import LogRecordingRuleDefinition, {
@@ -30,7 +26,6 @@ import Input from "Common/UI/Components/Input/Input";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -103,7 +98,6 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
   const [definition, setDefinition] = useState<LogRecordingRuleDefinition>(
     toEditable(props.value),
   );
-  const [services, setServices] = useState<Array<Service>>([]);
   const [attributeKeys, setAttributeKeys] = useState<Array<string>>([]);
   const [isLoadingAttributeKeys, setIsLoadingAttributeKeys] =
     useState<boolean>(false);
@@ -113,30 +107,10 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
   }, [definition]);
 
   useEffect(() => {
-    const loadServices: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList<Service>({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-        setServices(result.data || []);
-      } catch {
-        // Best effort: the rule's own service ids still show without names.
-      }
-    };
-
+    /*
+     * The services field searches the server itself, and names what the
+     * rule holds by its ids (#10646): nothing to read for it here.
+     */
     const loadAttributeKeys: () => Promise<void> = async (): Promise<void> => {
       setIsLoadingAttributeKeys(true);
 
@@ -166,7 +140,6 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
       }
     };
 
-    void loadServices();
     void loadAttributeKeys();
   }, []);
 
@@ -213,7 +186,6 @@ const LogRecordingRuleDefinitionEditor: FunctionComponent<ComponentProps> = (
         </div>
         <LogRecordingRuleFilterEditor
           filter={definition.filter}
-          services={services}
           attributeKeys={attributeKeys}
           isLoadingAttributeKeys={isLoadingAttributeKeys}
           onChange={(filter: LogRecordingRuleFilter) => {

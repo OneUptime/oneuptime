@@ -79,6 +79,9 @@ var monitorStepsDestinationTypeValues = []string{"URL", "IP", "Hostname"}
 // HTTPMethod enum (Common/Types/API/HTTPMethod.ts).
 var monitorStepsRequestTypeValues = []string{"GET", "POST", "DELETE", "PUT", "HEAD", "PATCH"}
 
+// MonitorRequestBodyFormat enum (Common/Types/Monitor/MonitorRequestBodyFormat.ts).
+var monitorStepsRequestBodyFormatValues = []string{"json", "text"}
+
 // FilterCondition enum (Common/Types/Filter/FilterCondition.ts).
 var monitorStepsFilterConditionValues = []string{"All", "Any"}
 
@@ -269,6 +272,7 @@ var monitorStepsFilterTypeValues = []string{
 var (
 	monitorStepsDestinationTypeValidator      = stringvalidator.OneOf(monitorStepsDestinationTypeValues...)
 	monitorStepsRequestTypeValidator          = stringvalidator.OneOf(monitorStepsRequestTypeValues...)
+	monitorStepsRequestBodyFormatValidator    = stringvalidator.OneOf(monitorStepsRequestBodyFormatValues...)
 	monitorStepsFilterConditionValidator      = stringvalidator.OneOf(monitorStepsFilterConditionValues...)
 	monitorStepsScreenSizeTypeValidator       = stringvalidator.OneOf(monitorStepsScreenSizeTypeValues...)
 	monitorStepsBrowserTypeValidator          = stringvalidator.OneOf(monitorStepsBrowserTypeValues...)
@@ -401,6 +405,7 @@ func monitorStepsStepAttrTypes() map[string]attr.Type {
 		"request_type":                   types.StringType,
 		"request_headers":                types.MapType{ElemType: types.StringType},
 		"request_body":                   types.StringType,
+		"request_body_format":            types.StringType,
 		"do_not_follow_redirects":        types.BoolType,
 		"allow_self_signed_certificates": types.BoolType,
 		"tls_client_certificate":         types.StringType,
@@ -908,6 +913,11 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 			MarkdownDescription: "HTTP request body sent by API monitors.",
 			Optional:            true,
 			Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+		},
+		"request_body_format": schema.StringAttribute{
+			MarkdownDescription: "How an API monitor sends `request_body`: `json` (the default) sends any JSON value as written; `text` sends the body exactly as written, never read as JSON, such as XML or form fields, under the `Content-Type` in `request_headers` or `text/plain`.",
+			Optional:            true,
+			Validators:          []validator.String{monitorStepsRequestBodyFormatValidator},
 		},
 		"do_not_follow_redirects": schema.BoolAttribute{
 			MarkdownDescription: "Do not follow HTTP redirects (API and Website monitors).",
@@ -1454,6 +1464,9 @@ func monitorStepsStepToAPI(attrs map[string]attr.Value, attrPath string, diags *
 	if v, ok := monitorStepsAttrString(attrs, "request_body"); ok {
 		value["requestBody"] = v
 	}
+	if v, ok := monitorStepsAttrString(attrs, "request_body_format"); ok {
+		value["requestBodyFormat"] = v
+	}
 	if v, ok := monitorStepsAttrBool(attrs, "do_not_follow_redirects"); ok {
 		value["doNotFollowRedirects"] = v
 	}
@@ -1971,6 +1984,9 @@ func monitorStepsStepFromAPI(v interface{}, diags *diag.Diagnostics) (types.Obje
 	}
 	if s, ok := monitorStepsAPIString(m["requestBody"]); ok {
 		attrs["request_body"] = types.StringValue(s)
+	}
+	if s, ok := monitorStepsAPIString(m["requestBodyFormat"]); ok {
+		attrs["request_body_format"] = types.StringValue(s)
 	}
 	if b, ok := monitorStepsAPIBool(m["doNotFollowRedirects"]); ok {
 		attrs["do_not_follow_redirects"] = types.BoolValue(b)
