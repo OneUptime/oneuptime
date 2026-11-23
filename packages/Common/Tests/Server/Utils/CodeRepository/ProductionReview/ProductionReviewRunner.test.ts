@@ -2011,14 +2011,12 @@ describe("ProductionReviewRunner: a merge request on GitLab, a pull request on F
 
     await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
 
-    const status: { body?: string } | undefined = connected.host.requests.find(
-      (request: { method: string; url?: string; path?: string }) => {
-        return (
-          request.method === "POST" &&
-          `${request.url || request.path || ""}`.includes("/statuses/")
-        );
-      },
-    );
+    const status: { body?: string | undefined } | undefined =
+      connected.host.requests.find(
+        (request: { method: string; url: string }) => {
+          return request.method === "POST" && request.url.includes("/statuses/");
+        },
+      );
 
     expect(status).toBeDefined();
     expect(JSON.parse(status!.body!)).toMatchObject({
@@ -2043,8 +2041,8 @@ describe("ProductionReviewRunner: a merge request on GitLab, a pull request on F
 
     expect(
       connected.host.requests.filter(
-        (request: { method: string; url?: string; path?: string }) => {
-          return `${request.url || request.path || ""}`.includes("/statuses/");
+        (request: { method: string; url: string }) => {
+          return request.url.includes("/statuses/");
         },
       ),
     ).toHaveLength(0);

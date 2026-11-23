@@ -240,8 +240,8 @@ export interface AiOutcomesWeek {
    * week: those, and the issues scans opened (#10376). A server of the
    * release before sends neither: the Dashboard reads them as none.
    */
-  leaksCaught?: number | undefined;
-  leaksCounted?: number | undefined;
+  leaksCaught: number;
+  leaksCounted: number;
 }
 
 /*

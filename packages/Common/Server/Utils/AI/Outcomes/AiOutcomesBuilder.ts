@@ -665,10 +665,10 @@ export default class AiOutcomesBuilder {
       }
 
       leaks[this.getLeakOutcome(row)]++;
-      week.leaksCounted = (week.leaksCounted || 0) + 1;
+      week.leaksCounted++;
 
       if (row.isCaught) {
-        week.leaksCaught = (week.leaksCaught || 0) + 1;
+        week.leaksCaught++;
       }
     }
 
