@@ -4483,5 +4483,14 @@
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫待命排程「{{schedule}}」的目前待命者，因此沒有再次新增該排程。",
   "This escalation rule pages whoever is on call in the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升級規則已在呼叫待命排程「{{schedule}}」的目前待命者，因此沒有再次新增該排程。",
   "The escalation rule \"{{rule}}\" of the on-call policy \"{{policy}}\" pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "待命策略「{{policy}}」的升級規則「{{rule}}」已在呼叫待命排程「{{schedule}}」輪換中的下一個人，因此沒有再次新增該排程。",
-  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升級規則已在呼叫待命排程「{{schedule}}」輪換中的下一個人，因此沒有再次新增該排程。"
+  "This escalation rule pages the next person in the rotation of the on-call schedule \"{{schedule}}\" already, so the schedule was not added again.": "此升級規則已在呼叫待命排程「{{schedule}}」輪換中的下一個人，因此沒有再次新增該排程。",
+  "An enabled drop filter drops the logs it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "已啟用的捨棄過濾器會在 1 分鐘內捨棄相符的日誌，讀取這些日誌的項目將一筆也收不到。請逐一啟用，以便先看清每個過濾器會拿走什麼。",
+  "An enabled drop filter drops the spans it matches within a minute, and what reads them gets none. Enable one at a time to see what each would take first.": "已啟用的捨棄過濾器會在 1 分鐘內捨棄相符的跨度，讀取這些跨度的項目將一個也收不到。請逐一啟用，以便先看清每個過濾器會拿走什麼。",
+  "This scan is already queued to run. It starts when its probe picks it up.": "此掃描已在佇列中。探測器領取後即會開始。",
+  "This scan is already running. Run it again once this run finishes.": "此掃描已在執行中。請在本次執行結束後再次執行。",
+  "This scan no longer exists. Refresh the list to see the latest scans.": "此掃描已不存在。重新整理清單即可查看最新的掃描。",
+  "This scan's probe is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
+  "This scan's probe no longer exists, so the scan cannot run. Pick another probe in Edit.": "此掃描的探測器已不存在，因此無法執行掃描。請在「編輯」中選擇其他探測器。",
+  "This scan's probe, {{probe}}, is not connected to OneUptime, so the scan cannot run now. Start the probe, or pick another probe in Edit.": "此掃描的探測器 {{probe}} 未連線到 OneUptime，因此現在無法執行掃描。請啟動該探測器，或在「編輯」中選擇其他探測器。",
+  "You may not edit this project's discovery scans, so you cannot run one.": "你無權編輯此專案的探索掃描，因此無法執行掃描。"
 }
