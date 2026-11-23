@@ -62322,5 +62322,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand. Les modifications des règles de runbook se trouvent sous Runbooks > Paramètres > Journaux d'audit des règles.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "Qui a créé, modifié ou supprimé ces règles, ce qui a changé et quand : les règles de runbook des alertes, des incidents et des événements de maintenance, ainsi que les règles de propriétaire et d'étiquettes des runbooks.",
-  "vCenter Rule Audit Logs": "Journaux d'audit des règles vCenter"
+  "vCenter Rule Audit Logs": "Journaux d'audit des règles vCenter",
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.": "OneUptime conserve ce magasin de données pour la sécurité des réseaux et de l'information de votre projet : il sait donc ce qu'il contient. Sécurité des données ne l'analyse pas, et le fait qu'il contienne ces adresses n'est jamais un problème : c'est sa raison d'être."
 }

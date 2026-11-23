@@ -62322,5 +62322,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更。",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更。運行手冊規則的變更位於「運行手冊」>「設定」>「規則稽核日誌」。",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "誰建立、變更或刪除了這些規則，變更了什麼以及何時變更：警示、事件和維護事件的運行手冊規則，以及運行手冊的擁有者規則和標籤規則。",
-  "vCenter Rule Audit Logs": "vCenter 規則稽核日誌"
+  "vCenter Rule Audit Logs": "vCenter 規則稽核日誌",
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.": "OneUptime 為您專案的網路與資訊安全保留此資料儲存區，因此清楚其中存放的內容。資料安全不會掃描它，存有這些位址也絕不會產生問題：這正是它的用途。"
 }

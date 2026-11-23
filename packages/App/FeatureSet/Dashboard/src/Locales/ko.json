@@ -62322,5 +62322,6 @@
   "Who created, changed or deleted these rules, what they changed and when.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다.",
   "Who created, changed or deleted these rules, what they changed and when. Runbook rules' changes are under Runbooks > Settings > Rule Audit Logs.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다. 런북 규칙의 변경 사항은 런북 > 설정 > 규칙 감사 로그에 있습니다.",
   "Who created, changed or deleted these rules, what they changed and when: the runbook rules of alerts, incidents and maintenance events, and the runbooks' owner and label rules.": "이 규칙을 누가 만들거나 변경하거나 삭제했는지, 무엇을 변경했는지, 언제 변경했는지 보여 줍니다: 경고, 인시던트, 유지 관리 이벤트의 런북 규칙과 런북의 소유자 규칙 및 레이블 규칙입니다.",
-  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그"
+  "vCenter Rule Audit Logs": "vCenter 규칙 감사 로그",
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.": "OneUptime은 프로젝트의 네트워크 및 정보 보안을 위해 이 저장소를 보관하므로 저장소에 무엇이 있는지 알고 있습니다. 데이터 보안은 이 저장소를 스캔하지 않으며, 이러한 주소를 보관해도 이슈가 되지 않습니다. 그것이 이 저장소의 목적입니다."
 }
