@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードを削除し、2 要素認証をオフにします。この操作は元に戻せません。",
       "clearSignInMasterAdminConfirmation": "このユーザーはマスター管理者です。サインインには SSO またはパスワード再設定リンクが必要になることを理解しています。",
       "clearSignInModalSubmit": "サインイン設定を消去",
-      "clearSignInSuccess": "サインイン設定を消去しました。SSO を使わずにサインインしたセッションは終了しました。"
+      "clearSignInSuccess": "サインイン設定を消去しました。SSO を使わずにサインインしたセッションは終了しました。",
+      "clearSignInAlreadyCleared": "このユーザーのサインイン設定はすでに消去されています。"
     },
     "userProjects": {
       "title": "ユーザーのプロジェクト",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "パスワード、パスキー、セキュリティキー、認証アプリ、バックアップコードが削除されます。この操作は元に戻せません。マスター管理者の設定は残ります。",
   "Cleared the sign-in settings of {{count}} people.": "{{count}} 人のサインイン設定を消去しました。",
   "Cleared the sign-in settings of {{count}} people._one": "{{count}} 人のサインイン設定を消去しました。",
+  "These people's sign-in settings were already cleared.": "これらのユーザーのサインイン設定はすでに消去されています。",
   "Made by {{name}} on {{date}}": "{{name}} が {{date}} に作成",
   "Made on {{date}}": "{{date}} に作成",
   "Ends in {{hint}}": "末尾は {{hint}}",

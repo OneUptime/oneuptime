@@ -131,12 +131,17 @@ const SavedSignInSettings: FunctionComponent = (): ReactElement => {
     setIsConfirmShown(false);
 
     // Said only when the server said how many: never a count it did not give.
-    if (answer) {
+    if (answer && answer.peopleCleared > 0) {
       Toast.success(
         translator.translatePlural(
           SAVED_SIGN_IN_SETTINGS_COPY.cleared,
           answer.peopleCleared,
         ),
+      );
+    } else if (answer) {
+      Toast.info(
+        translator.translateText(SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared) ||
+          SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared,
       );
     }
 

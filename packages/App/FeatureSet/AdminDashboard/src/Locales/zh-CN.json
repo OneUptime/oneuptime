@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "删除该用户的密码、通行密钥、安全密钥、身份验证器应用和备用代码，并关闭双因素身份验证。此操作无法撤销。",
       "clearSignInMasterAdminConfirmation": "此人是主管理员。我了解此人需要使用 SSO 或密码重置链接才能登录。",
       "clearSignInModalSubmit": "清除登录设置",
-      "clearSignInSuccess": "已清除登录设置。未使用 SSO 登录的会话已结束。"
+      "clearSignInSuccess": "已清除登录设置。未使用 SSO 登录的会话已结束。",
+      "clearSignInAlreadyCleared": "此人的登录设置已经被清除。"
     },
     "userProjects": {
       "title": "用户项目",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "他们的密码、通行密钥、安全密钥、身份验证器应用和备用代码都将被删除。此操作无法撤销。主管理员会保留自己的设置。",
   "Cleared the sign-in settings of {{count}} people.": "已清除 {{count}} 人的登录设置。",
   "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登录设置。",
+  "These people's sign-in settings were already cleared.": "这些人的登录设置已经被清除。",
   "Made by {{name}} on {{date}}": "由 {{name}} 于 {{date}} 创建",
   "Made on {{date}}": "创建于 {{date}}",
   "Ends in {{hint}}": "末尾为 {{hint}}",

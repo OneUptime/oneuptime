@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "Удаляет пароль, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды пользователя и отключает двухфакторную аутентификацию. Это нельзя отменить.",
       "clearSignInMasterAdminConfirmation": "Этот пользователь — главный администратор. Я понимаю, что для входа ему понадобится SSO или ссылка для сброса пароля.",
       "clearSignInModalSubmit": "Удалить настройки входа",
-      "clearSignInSuccess": "Настройки входа удалены. Сеансы, в которые пользователь вошёл без SSO, завершены."
+      "clearSignInSuccess": "Настройки входа удалены. Сеансы, в которые пользователь вошёл без SSO, завершены.",
+      "clearSignInAlreadyCleared": "Настройки входа пользователя уже удалены."
     },
     "userProjects": {
       "title": "Проекты пользователя",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Их пароли, ключи доступа, ключи безопасности, приложения-аутентификаторы и резервные коды удаляются. Это нельзя отменить. Главные администраторы сохраняют свои.",
   "Cleared the sign-in settings of {{count}} people.": "Настройки входа удалены. Пользователей: {{count}}.",
   "Cleared the sign-in settings of {{count}} people._one": "Настройки входа удалены у {{count}} пользователя.",
+  "These people's sign-in settings were already cleared.": "Настройки входа этих пользователей уже удалены.",
   "Made by {{name}} on {{date}}": "Создан {{date}}, автор: {{name}}",
   "Made on {{date}}": "Создан {{date}}",
   "Ends in {{hint}}": "Заканчивается на {{hint}}",

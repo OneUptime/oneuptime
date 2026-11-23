@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "رمز عبور، کلیدهای عبور، کلیدهای امنیتی، برنامه‌های احراز هویت و کدهای پشتیبان او را حذف می‌کند و احراز هویت دو مرحله‌ای را خاموش می‌کند. این کار برگشت‌پذیر نیست.",
       "clearSignInMasterAdminConfirmation": "این شخص مدیر ارشد است. می‌دانم که برای ورود به SSO یا لینک بازنشانی رمز عبور نیاز خواهد داشت.",
       "clearSignInModalSubmit": "پاک کردن تنظیمات ورود",
-      "clearSignInSuccess": "تنظیمات ورود پاک شد. نشست‌هایی که بدون SSO وارد شده بود پایان یافت."
+      "clearSignInSuccess": "تنظیمات ورود پاک شد. نشست‌هایی که بدون SSO وارد شده بود پایان یافت.",
+      "clearSignInAlreadyCleared": "تنظیمات ورود این فرد پیش‌تر پاک شده بود."
     },
     "userProjects": {
       "title": "پروژه‌های کاربر",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "رمزهای عبور، کلیدهای عبور، کلیدهای امنیتی، برنامه‌های احراز هویت و کدهای پشتیبان آن‌ها حذف می‌شوند. این کار برگشت‌پذیر نیست. مدیران ارشد مال خود را نگه می‌دارند.",
   "Cleared the sign-in settings of {{count}} people.": "تنظیمات ورود {{count}} نفر پاک شد.",
   "Cleared the sign-in settings of {{count}} people._one": "تنظیمات ورود {{count}} نفر پاک شد.",
+  "These people's sign-in settings were already cleared.": "تنظیمات ورود این افراد پیش‌تر پاک شده بود.",
   "Made by {{name}} on {{date}}": "ساخته‌شده توسط {{name}} در {{date}}",
   "Made on {{date}}": "ساخته‌شده در {{date}}",
   "Ends in {{hint}}": "به {{hint}} ختم می‌شود",

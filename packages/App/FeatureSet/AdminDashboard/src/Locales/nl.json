@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "Verwijdert het wachtwoord, de passkeys, beveiligingssleutels, authenticator-apps en back-upcodes van deze persoon en schakelt tweefactorauthenticatie uit. Dit kan niet ongedaan worden gemaakt.",
       "clearSignInMasterAdminConfirmation": "Deze persoon is hoofdbeheerder. Ik begrijp dat die SSO of een wachtwoordherstellink nodig heeft om in te loggen.",
       "clearSignInModalSubmit": "Aanmeldinstellingen wissen",
-      "clearSignInSuccess": "Aanmeldinstellingen gewist. De sessies waarin deze persoon zonder SSO was ingelogd, zijn beëindigd."
+      "clearSignInSuccess": "Aanmeldinstellingen gewist. De sessies waarin deze persoon zonder SSO was ingelogd, zijn beëindigd.",
+      "clearSignInAlreadyCleared": "Hun aanmeldinstellingen waren al gewist."
     },
     "userProjects": {
       "title": "Projecten van gebruiker",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Hun wachtwoorden, passkeys, beveiligingssleutels, authenticator-apps en back-upcodes worden verwijderd. Dit kan niet ongedaan worden gemaakt. Hoofdbeheerders behouden die van hen.",
   "Cleared the sign-in settings of {{count}} people.": "De aanmeldinstellingen van {{count}} mensen zijn gewist.",
   "Cleared the sign-in settings of {{count}} people._one": "De aanmeldinstellingen van {{count}} persoon zijn gewist.",
+  "These people's sign-in settings were already cleared.": "De aanmeldinstellingen van deze mensen waren al gewist.",
   "Made by {{name}} on {{date}}": "Gemaakt door {{name}} op {{date}}",
   "Made on {{date}}": "Gemaakt op {{date}}",
   "Ends in {{hint}}": "Eindigt op {{hint}}",

@@ -124,6 +124,7 @@ export const SAVED_SIGN_IN_SETTINGS_COPY: {
   confirmTitle: string;
   confirmDescription: string;
   cleared: PluralTemplate;
+  alreadyCleared: string;
 } = {
   stillSaved: {
     one: "{{count}} person still has a password or two-factor authentication saved in OneUptime. It would sign them in again if SSO stopped being required.",
@@ -138,6 +139,9 @@ export const SAVED_SIGN_IN_SETTINGS_COPY: {
     one: "Cleared the sign-in settings of {{count}} person.",
     other: "Cleared the sign-in settings of {{count}} people.",
   },
+  alreadyCleared: translationKey(
+    "These people's sign-in settings were already cleared.",
+  ),
 };
 
 export const SAVED_SIGN_IN_SETTINGS_TEST_ID: string =

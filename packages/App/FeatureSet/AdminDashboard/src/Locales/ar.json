@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "يحذف كلمة المرور ومفاتيح المرور ومفاتيح الأمان وتطبيقات المصادقة والرموز الاحتياطية الخاصة به، ويوقف المصادقة الثنائية. لا يمكن التراجع عن ذلك.",
       "clearSignInMasterAdminConfirmation": "هذا الشخص مسؤول رئيسي. أدرك أنه سيحتاج إلى SSO أو رابط إعادة تعيين كلمة المرور لتسجيل الدخول.",
       "clearSignInModalSubmit": "مسح إعدادات تسجيل الدخول",
-      "clearSignInSuccess": "مُسحت إعدادات تسجيل الدخول. انتهت الجلسات التي سجّل الدخول إليها بدون SSO."
+      "clearSignInSuccess": "مُسحت إعدادات تسجيل الدخول. انتهت الجلسات التي سجّل الدخول إليها بدون SSO.",
+      "clearSignInAlreadyCleared": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هذا الشخص."
     },
     "userProjects": {
       "title": "مشاريع المستخدم",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "تُحذف كلمات المرور ومفاتيح المرور ومفاتيح الأمان وتطبيقات المصادقة والرموز الاحتياطية الخاصة بهم. لا يمكن التراجع عن ذلك. يحتفظ المسؤولون الرئيسيون بما لديهم.",
   "Cleared the sign-in settings of {{count}} people.": "مُسحت إعدادات تسجيل الدخول لدى عدد من الأشخاص: {{count}}.",
   "Cleared the sign-in settings of {{count}} people._one": "مُسحت إعدادات تسجيل الدخول لدى {{count}} شخص.",
+  "These people's sign-in settings were already cleared.": "سبق أن مُسحت إعدادات تسجيل الدخول لدى هؤلاء الأشخاص.",
   "Made by {{name}} on {{date}}": "أنشأه {{name}} في {{date}}",
   "Made on {{date}}": "أُنشئ في {{date}}",
   "Ends in {{hint}}": "ينتهي بـ {{hint}}",

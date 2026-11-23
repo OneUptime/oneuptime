@@ -31,6 +31,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   CLEAR_LOCAL_SIGN_IN_ACTION,
   CLEAR_MASTER_ADMIN_SIGN_IN_NOT_CONFIRMED_MESSAGE,
+  NO_LOCAL_SIGN_IN_SETTINGS,
 } from "../../../Types/SSO/LocalSignInClearing";
 import { SsoManagedBy } from "../../../Types/SSO/SsoManagedSignIn";
 import TwoFactorAuthStatus from "../../../Types/TwoFactorAuthStatus";
@@ -355,6 +356,44 @@ describe("Clear Sign-In Settings", () => {
     expect(statusReads()).toBe(readsBefore + 1);
   });
 
+  test.each([
+    ["en", "Their sign-in settings were already cleared."],
+    ["de", "Die Anmeldeeinstellungen dieser Person wurden bereits gelöscht."],
+  ])(
+    "%s says the sign-in settings were already cleared when none were removed",
+    async (locale: string, message: string) => {
+      clearAnswer = new HTTPResponse<JSONObject>(
+        200,
+        { cleared: { ...NO_LOCAL_SIGN_IN_SETTINGS }, sessionsEnded: 0 },
+        {},
+      );
+
+      await renderIn(locale);
+
+      const words: Record<string, string> = pageWords(locale);
+      const readsBefore: number = statusReads();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: words["clearSignInButton"]! }),
+      );
+      await flush();
+
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByTestId(
+          "modal-footer-submit-button",
+        ),
+      );
+      await flush();
+
+      expect(screen.getByText(message)).toBeInTheDocument();
+      expect(
+        screen.queryByText(words["clearSignInSuccess"]!),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(statusReads()).toBe(readsBefore + 1);
+    },
+  );
+
   test("a refusal stays in the dialog, saying why", async () => {
     clearAnswer = new HTTPErrorResponse(
       400,
@@ -498,6 +537,7 @@ describe("in every language", () => {
         "clearSignInMasterAdminConfirmation",
         "clearSignInModalSubmit",
         "clearSignInSuccess",
+        "clearSignInAlreadyCleared",
       ]) {
         expect([key, typeof words[key]]).toEqual([key, "string"]);
         expect([key, words[key]]).not.toEqual([key, EN[key]]);

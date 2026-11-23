@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "Sletter personens passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder og slår av tofaktorautentisering. Dette kan ikke angres.",
       "clearSignInMasterAdminConfirmation": "Denne personen er hovedadministrator. Jeg forstår at personen trenger SSO eller en lenke for tilbakestilling av passord for å logge inn.",
       "clearSignInModalSubmit": "Fjern påloggingsinnstillinger",
-      "clearSignInSuccess": "Påloggingsinnstillinger fjernet. Øktene personen logget inn i uten SSO, er avsluttet."
+      "clearSignInSuccess": "Påloggingsinnstillinger fjernet. Øktene personen logget inn i uten SSO, er avsluttet.",
+      "clearSignInAlreadyCleared": "Påloggingsinnstillingene deres var allerede fjernet."
     },
     "userProjects": {
       "title": "Brukerens prosjekter",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Deres passord, passnøkler, sikkerhetsnøkler, autentiseringsapper og reservekoder slettes. Dette kan ikke angres. Hovedadministratorer beholder sine.",
   "Cleared the sign-in settings of {{count}} people.": "Påloggingsinnstillingene til {{count}} personer er fjernet.",
   "Cleared the sign-in settings of {{count}} people._one": "Påloggingsinnstillingene til {{count}} person er fjernet.",
+  "These people's sign-in settings were already cleared.": "Påloggingsinnstillingene til disse personene var allerede fjernet.",
   "Made by {{name}} on {{date}}": "Opprettet av {{name}} den {{date}}",
   "Made on {{date}}": "Opprettet den {{date}}",
   "Ends in {{hint}}": "Slutter på {{hint}}",

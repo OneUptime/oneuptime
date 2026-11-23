@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "Supprime son mot de passe, ses clés d'accès, clés de sécurité, applications d'authentification et codes de secours, et désactive l'authentification à deux facteurs. Cette action est irréversible.",
       "clearSignInMasterAdminConfirmation": "Cette personne est administrateur principal. Je comprends qu'elle aura besoin du SSO ou d'un lien de réinitialisation du mot de passe pour se connecter.",
       "clearSignInModalSubmit": "Effacer les paramètres de connexion",
-      "clearSignInSuccess": "Paramètres de connexion effacés. Les sessions ouvertes sans SSO ont pris fin."
+      "clearSignInSuccess": "Paramètres de connexion effacés. Les sessions ouvertes sans SSO ont pris fin.",
+      "clearSignInAlreadyCleared": "Ses paramètres de connexion ont déjà été effacés."
     },
     "userProjects": {
       "title": "Projets de l'utilisateur",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "Leurs mots de passe, clés d'accès, clés de sécurité, applications d'authentification et codes de secours sont supprimés. Cette action est irréversible. Les administrateurs principaux conservent les leurs.",
   "Cleared the sign-in settings of {{count}} people.": "Les paramètres de connexion de {{count}} personnes ont été effacés.",
   "Cleared the sign-in settings of {{count}} people._one": "Les paramètres de connexion de {{count}} personne ont été effacés.",
+  "These people's sign-in settings were already cleared.": "Les paramètres de connexion de ces personnes ont déjà été effacés.",
   "Made by {{name}} on {{date}}": "Créée par {{name}} le {{date}}",
   "Made on {{date}}": "Créée le {{date}}",
   "Ends in {{hint}}": "Se termine par {{hint}}",

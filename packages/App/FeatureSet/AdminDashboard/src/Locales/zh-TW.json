@@ -275,7 +275,8 @@
       "clearSignInModalDescription": "刪除該使用者的密碼、通行密鑰、安全金鑰、驗證器應用程式和備用代碼，並關閉雙重驗證。此操作無法復原。",
       "clearSignInMasterAdminConfirmation": "此人是主要管理員。我了解此人需要使用 SSO 或密碼重設連結才能登入。",
       "clearSignInModalSubmit": "清除登入設定",
-      "clearSignInSuccess": "已清除登入設定。未使用 SSO 登入的工作階段已結束。"
+      "clearSignInSuccess": "已清除登入設定。未使用 SSO 登入的工作階段已結束。",
+      "clearSignInAlreadyCleared": "此人的登入設定已經被清除。"
     },
     "userProjects": {
       "title": "使用者專案",
@@ -4152,6 +4153,7 @@
   "Their passwords, passkeys, security keys, authenticator apps and backup codes are deleted. This cannot be undone. Master admins keep theirs.": "他們的密碼、通行密鑰、安全金鑰、驗證器應用程式和備用代碼都將被刪除。此操作無法復原。主要管理員會保留自己的設定。",
   "Cleared the sign-in settings of {{count}} people.": "已清除 {{count}} 人的登入設定。",
   "Cleared the sign-in settings of {{count}} people._one": "已清除 {{count}} 人的登入設定。",
+  "These people's sign-in settings were already cleared.": "這些人的登入設定已經被清除。",
   "Made by {{name}} on {{date}}": "由 {{name}} 於 {{date}} 建立",
   "Made on {{date}}": "建立於 {{date}}",
   "Ends in {{hint}}": "結尾為 {{hint}}",
