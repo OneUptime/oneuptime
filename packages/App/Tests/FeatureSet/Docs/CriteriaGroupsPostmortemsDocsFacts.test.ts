@@ -1046,9 +1046,7 @@ describe("how criteria decide", () => {
       "const isInEffect: boolean = await input.criteriaInEffect.isInEffect({",
     );
     // The margin, for a monitor that judges no series on its own (#10743).
-    expect(evaluator).toContain(
-      "GroupedMonitorRecovery.judgeWholeMonitor({",
-    );
+    expect(evaluator).toContain("GroupedMonitorRecovery.judgeWholeMonitor({");
     expect(evaluator).toContain(
       "if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {",
     );
@@ -1079,7 +1077,7 @@ describe("how criteria decide", () => {
     );
 
     expect(evaluator).toContain(
-      'if (!CriteriaActiveHours.isActive({ criteria: criteriaInstance.data })) {',
+      "if (!CriteriaActiveHours.isActive({ criteria: criteriaInstance.data })) {",
     );
     expect(evaluator).toContain('skipCause: "outside-active-hours",');
     expect(

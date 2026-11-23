@@ -121,7 +121,9 @@ function judge(input: {
 
 describe("CheckWindowCounts.judge: a count of the window's checks", () => {
   test("more than 30 failed checks in 8 hours: 31 is met, 30 is not", () => {
-    const filter: CriteriaFilter = counted({ type: EvaluateOverTimeType.Count });
+    const filter: CriteriaFilter = counted({
+      type: EvaluateOverTimeType.Count,
+    });
 
     const met: CheckWindowJudgement = judge({
       filter: filter,
@@ -168,7 +170,9 @@ describe("CheckWindowCounts.judge: a count of the window's checks", () => {
   );
 
   test("a count with no comparison saved reads as more than 0", () => {
-    const filter: CriteriaFilter = counted({ type: EvaluateOverTimeType.Count });
+    const filter: CriteriaFilter = counted({
+      type: EvaluateOverTimeType.Count,
+    });
     delete filter.evaluateOverTimeOptions!.countFilterType;
     delete filter.evaluateOverTimeOptions!.countValue;
 
@@ -627,9 +631,11 @@ describe("CheckWindowCounts.getSource", () => {
     ).toEqual({
       metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
       attributes: {
-        [CRITERIA_FILTER_KEY_ATTRIBUTE]: CriteriaFilterMatchHistory.getFilterKey(
-          { monitorStepId: "step", criteriaFilter: filter },
-        ),
+        [CRITERIA_FILTER_KEY_ATTRIBUTE]:
+          CriteriaFilterMatchHistory.getFilterKey({
+            monitorStepId: "step",
+            criteriaFilter: filter,
+          }),
       },
       groupByAttributeKeys: ["probeId"],
       condition: { comparison: "eq", threshold: 1 },
@@ -721,7 +727,9 @@ describe("CheckWindowCounts.judgeFilter: the read around the judgement", () => {
       row({ probeId: PROBE_B.toString(), checks: 481, matched: 2 }),
     ];
 
-    const filter: CriteriaFilter = counted({ type: EvaluateOverTimeType.Count });
+    const filter: CriteriaFilter = counted({
+      type: EvaluateOverTimeType.Count,
+    });
 
     expect(
       (await judgeFilter({ filter: filter, probeId: PROBE_A })).rootCause,
@@ -758,7 +766,9 @@ describe("CheckWindowCounts.judgeFilter: the read around the judgement", () => {
       CheckWindowCountReads.forMatchHistoryReads(
         new CriteriaFilterMatchHistoryReads(),
       );
-    const filter: CriteriaFilter = counted({ type: EvaluateOverTimeType.Count });
+    const filter: CriteriaFilter = counted({
+      type: EvaluateOverTimeType.Count,
+    });
 
     await judgeFilter({ filter: filter, probeId: PROBE_A, reads: shared });
     await judgeFilter({ filter: filter, probeId: PROBE_B, reads: shared });

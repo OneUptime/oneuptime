@@ -226,7 +226,10 @@ function accessPointStep(): MonitorStep {
   return step;
 }
 
-function isMet(value: number | null, condition: MonitorCheckCondition): boolean {
+function isMet(
+  value: number | null,
+  condition: MonitorCheckCondition,
+): boolean {
   if (value === null) {
     return false;
   }
@@ -335,8 +338,7 @@ async function ping(minute: number, isOnline: boolean): Promise<void> {
   const dataToProcess: ProbeMonitorResponse = {
     projectId: monitor.projectId!,
     monitorId: monitor.id!,
-    monitorStepId:
-      monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.id,
+    monitorStepId: monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.id,
     probeId: PROBE,
     failureCause: isOnline ? "" : "Request timed out",
     monitoredAt: OneUptimeDate.getCurrentDate(),
@@ -722,10 +724,7 @@ describe("A flapping access point is unstable, and one that is down is an outage
   });
 
   test("the counted window of a monitor that counts a series' checks waits for its own row to be readable", async () => {
-    const saved: jest.SpyInstance = jest.spyOn(
-      MetricService,
-      "insertJsonRows",
-    );
+    const saved: jest.SpyInstance = jest.spyOn(MetricService, "insertJsonRows");
 
     await ping(0, true);
 

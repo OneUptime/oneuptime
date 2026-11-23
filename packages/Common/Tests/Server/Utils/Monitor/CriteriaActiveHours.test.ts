@@ -7,7 +7,14 @@ import MonitorCriteriaInstance, {
   MonitorCriteriaInstanceType,
 } from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import WorkingHours from "../../../../Types/OnCallDutyPolicy/WorkingHours";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * A criteria judged only on some days and at some times (#10355): its
@@ -29,7 +36,11 @@ function criteriaWith(input: {
     monitorStatusId: undefined,
     filterCondition: FilterCondition.All,
     filters: [
-      { checkOn: CheckOn.IsOnline, filterType: FilterType.False, value: undefined },
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
     ],
     incidents: [],
     alerts: [],
@@ -49,7 +60,10 @@ function isActiveAt(
   criteria: MonitorCriteriaInstanceType,
   utc: string,
 ): boolean {
-  return CriteriaActiveHours.isActive({ criteria: criteria, at: new Date(utc) });
+  return CriteriaActiveHours.isActive({
+    criteria: criteria,
+    at: new Date(utc),
+  });
 }
 
 describe("CriteriaActiveHours.isActive", () => {
@@ -197,7 +211,8 @@ describe("CriteriaActiveHours.isActive", () => {
     instance.data = criteria;
 
     const json: JSONObject = JSON.parse(JSON.stringify(instance.toJSON()));
-    const read: MonitorCriteriaInstance = MonitorCriteriaInstance.fromJSON(json);
+    const read: MonitorCriteriaInstance =
+      MonitorCriteriaInstance.fromJSON(json);
 
     expect(read.data?.activeHoursTimezone).toBe("Europe/Oslo");
     expect(isActiveAt(read.data!, "2026-11-23T07:00:00Z")).toBe(true);

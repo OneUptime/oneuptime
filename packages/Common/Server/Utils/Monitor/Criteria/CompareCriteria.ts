@@ -1153,8 +1153,9 @@ export default class CompareCriteria {
       return null;
     }
 
-    const isAggregated: boolean =
-      CriteriaFilterUtil.isValueAggregateWindowType(data.evaluationType);
+    const isAggregated: boolean = CriteriaFilterUtil.isValueAggregateWindowType(
+      data.evaluationType,
+    );
     const reducedValues: Array<number> = CompareCriteria.reduceWindow({
       values: data.values,
       evaluationType: data.evaluationType,

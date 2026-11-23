@@ -98,9 +98,8 @@ const CriteriaRecoveryAndActiveHours: FunctionComponent<ComponentProps> = (
   const recoveryFilterCondition: FilterCondition =
     criteria?.recoveryFilterCondition || FilterCondition.All;
 
-  const hasActiveHours: boolean = MonitorCriteriaInstance.hasActiveHours(
-    criteria,
-  );
+  const hasActiveHours: boolean =
+    MonitorCriteriaInstance.hasActiveHours(criteria);
   const timezone: string =
     criteria?.activeHoursTimezone ||
     OneUptimeDate.getCurrentTimezone().toString();
@@ -117,7 +116,9 @@ const CriteriaRecoveryAndActiveHours: FunctionComponent<ComponentProps> = (
     );
 
   // The criteria with some of its data changed, as a new copy.
-  const change: (data: Partial<NonNullable<MonitorCriteriaInstance["data"]>>) => void = (
+  const change: (
+    data: Partial<NonNullable<MonitorCriteriaInstance["data"]>>,
+  ) => void = (
     data: Partial<NonNullable<MonitorCriteriaInstance["data"]>>,
   ): void => {
     const changed: MonitorCriteriaInstance = MonitorCriteriaInstance.clone(
@@ -274,9 +275,7 @@ const CriteriaRecoveryAndActiveHours: FunctionComponent<ComponentProps> = (
                     });
 
                   change({
-                    activeHours: moved
-                      ? moved.toJSON()
-                      : criteria?.activeHours,
+                    activeHours: moved ? moved.toJSON() : criteria?.activeHours,
                     activeHoursTimezone: toTimezone,
                   });
                 }}

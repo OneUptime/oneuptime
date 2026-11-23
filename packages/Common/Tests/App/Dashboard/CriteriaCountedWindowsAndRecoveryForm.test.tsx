@@ -78,10 +78,7 @@ function last<T>(rendered: Emitted<T>): T {
 }
 
 // Opens a dropdown under the over-time box and picks the option by its name.
-async function pick(
-  combobox: HTMLElement,
-  optionName: string,
-): Promise<void> {
+async function pick(combobox: HTMLElement, optionName: string): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
   await user.click(combobox);
@@ -131,7 +128,8 @@ const SLOW_OVER_TEN_MINUTES: CriteriaFilter = {
 
 describe("a window that counts its checks", () => {
   test("picking Count shows its number, named by the row, and the sentence says it", async () => {
-    const rendered: Emitted<CriteriaFilter> = renderFilter(OFFLINE_OVER_AN_HOUR);
+    const rendered: Emitted<CriteriaFilter> =
+      renderFilter(OFFLINE_OVER_AN_HOUR);
 
     expect(screen.queryByTestId(COUNT_ROW)).toBeNull();
 
@@ -154,7 +152,9 @@ describe("a window that counts its checks", () => {
       within(row).getByRole("spinbutton", { name: "Checks That Match" }),
     ).toBeTruthy();
     expect(row.textContent).toContain("checks");
-    expect(screen.getAllByRole("combobox", { name: "Filter Condition" }).length).toBe(1);
+    expect(
+      screen.getAllByRole("combobox", { name: "Filter Condition" }).length,
+    ).toBe(1);
   });
 
   test("typing the number and picking its comparison change the count, and the sentence follows", async () => {
@@ -230,19 +230,18 @@ describe("a window that counts its checks", () => {
       },
     });
 
-    await userEvent
-      .setup()
-      .clear(
-        within(screen.getByTestId(COUNT_ROW)).getByRole("spinbutton", {
-          name: "Share of Checks That Match",
-        }),
-      );
+    await userEvent.setup().clear(
+      within(screen.getByTestId(COUNT_ROW)).getByRole("spinbutton", {
+        name: "Share of Checks That Match",
+      }),
+    );
 
     expect(last(rendered).evaluateOverTimeOptions?.countValue).toBe(0);
   });
 
   test("For the last offers whole hours up to a day, saved as minutes", async () => {
-    const rendered: Emitted<CriteriaFilter> = renderFilter(OFFLINE_OVER_AN_HOUR);
+    const rendered: Emitted<CriteriaFilter> =
+      renderFilter(OFFLINE_OVER_AN_HOUR);
 
     await pick(overTimeCombobox("For the last"), "8 Hours");
 
@@ -265,7 +264,10 @@ describe("a percentile", () => {
 
     const row: HTMLElement = screen.getByTestId(PERCENTILE_ROW);
 
-    await pick(within(row).getByRole("combobox", { name: "Percentile" }), "p99");
+    await pick(
+      within(row).getByRole("combobox", { name: "Percentile" }),
+      "p99",
+    );
 
     expect(last(rendered).evaluateOverTimeOptions).toEqual({
       timeValueInMinutes: 10,
@@ -278,27 +280,28 @@ describe("a percentile", () => {
   });
 
   test("a check-by-check filter is offered no percentile", async () => {
-    renderFilter({
-      checkOn: CheckOn.ResponseBody,
-      filterType: FilterType.Contains,
-      value: "error",
-      evaluateOverTime: true,
-      evaluateOverTimeOptions: {
-        timeValueInMinutes: 5,
-        evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+    renderFilter(
+      {
+        checkOn: CheckOn.ResponseBody,
+        filterType: FilterType.Contains,
+        value: "error",
+        evaluateOverTime: true,
+        evaluateOverTimeOptions: {
+          timeValueInMinutes: 5,
+          evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+        },
       },
-    }, MonitorType.Website);
+      MonitorType.Website,
+    );
 
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
     await user.click(overTimeCombobox("Evaluate"));
 
     expect(
-      screen
-        .getAllByRole("option")
-        .some((option: HTMLElement): boolean => {
-          return (option.textContent || "").startsWith("Percentile");
-        }),
+      screen.getAllByRole("option").some((option: HTMLElement): boolean => {
+        return (option.textContent || "").startsWith("Percentile");
+      }),
     ).toBe(false);
   });
 });
@@ -374,9 +377,9 @@ describe("when a criteria recovers", () => {
   test("is off for a new criteria, with nothing under it", () => {
     renderSettings(criteriaWith({}));
 
-    expect(switchIn(RECOVERY_SECTION_TEST_ID).getAttribute("aria-checked")).toBe(
-      "false",
-    );
+    expect(
+      switchIn(RECOVERY_SECTION_TEST_ID).getAttribute("aria-checked"),
+    ).toBe("false");
     expect(
       screen.getByTestId(RECOVERY_SECTION_TEST_ID).textContent,
     ).not.toContain("Recover When");
@@ -425,17 +428,17 @@ describe("when a criteria recovers", () => {
       }),
     );
 
-    expect(switchIn(RECOVERY_SECTION_TEST_ID).getAttribute("aria-checked")).toBe(
-      "true",
-    );
+    expect(
+      switchIn(RECOVERY_SECTION_TEST_ID).getAttribute("aria-checked"),
+    ).toBe("true");
 
     await userEvent.setup().click(switchIn(RECOVERY_SECTION_TEST_ID));
 
     expect(last(rendered).data?.recoveryFilters).toBeUndefined();
     expect(last(rendered).data?.recoveryFilterCondition).toBeUndefined();
-    expect(MonitorCriteriaInstance.hasRecoveryCondition(last(rendered).data)).toBe(
-      false,
-    );
+    expect(
+      MonitorCriteriaInstance.hasRecoveryCondition(last(rendered).data),
+    ).toBe(false);
   });
 });
 
@@ -592,7 +595,9 @@ describe("the criteria list", () => {
   test("says neither for a criteria without them", () => {
     renderView(criteriaWith({}));
 
-    expect(screen.queryByTestId("monitor-criteria-recovery-heading")).toBeNull();
+    expect(
+      screen.queryByTestId("monitor-criteria-recovery-heading"),
+    ).toBeNull();
     expect(
       screen.queryByTestId("monitor-criteria-active-hours-line"),
     ).toBeNull();

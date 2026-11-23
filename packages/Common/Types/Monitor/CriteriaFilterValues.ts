@@ -335,9 +335,10 @@ const DIGITS: RegExp = /^\d+(\.\d+)?$/;
  * Dashboard read back. Anything else stays as written, for the window's own
  * check to refuse.
  */
-const withNumberRead: (data: { options: unknown; key: string }) => unknown = (
-  data: { options: unknown; key: string },
-): unknown => {
+const withNumberRead: (data: {
+  options: unknown;
+  key: string;
+}) => unknown = (data: { options: unknown; key: string }): unknown => {
   const options: JSONObject | undefined = asObject(data.options);
   const written: unknown = options?.[data.key];
 

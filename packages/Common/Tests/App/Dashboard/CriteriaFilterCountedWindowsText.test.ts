@@ -16,6 +16,8 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -258,16 +260,17 @@ describe("the form's choices", () => {
   });
 
   test("only the types that came with #10355 say what they do under their names", () => {
-    const described: Array<string> = CriteriaFilterUtil.getEvaluateOverTimeTypeOptions(
-      SLOW,
-      MonitorType.Website,
-    )
-      .filter((option: DropdownOption): boolean => {
-        return Boolean(option.description);
-      })
-      .map((option: DropdownOption): string => {
-        return option.label;
-      });
+    const described: Array<string> =
+      CriteriaFilterUtil.getEvaluateOverTimeTypeOptions(
+        SLOW,
+        MonitorType.Website,
+      )
+        .filter((option: DropdownOption): boolean => {
+          return Boolean(option.description);
+        })
+        .map((option: DropdownOption): string => {
+          return option.label;
+        });
 
     expect(described).toEqual([
       EvaluateOverTimeType.Percentile,
@@ -308,11 +311,23 @@ describe("the form's choices", () => {
       CriteriaFilterUtil.getPercentileOptions();
 
     expect(labelsOf(options)).toEqual(["p95", "p50", "p90", "p99"]);
-    expect(
-      options.every((option: DropdownOption): boolean => {
-        return option.isUserContent === true;
-      }),
-    ).toBe(true);
+
+    /*
+     * The Dropdown draws each label through the locale, as it draws every
+     * condition (DocsCriteriaConditions): "p95" is "p95" in every one, and
+     * p50, p90 and p99 have no key, so each is drawn as written.
+     */
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const label of labelsOf(options)) {
+        expect({ language, label, drawn: locale[label] ?? label }).toEqual({
+          language,
+          label,
+          drawn: label,
+        });
+      }
+    }
   });
 
   test("For the last reaches 24 hours, naming whole hours in hours", () => {

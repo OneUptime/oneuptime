@@ -166,7 +166,9 @@ describe("CriteriaFilterUtil: counted windows and percentiles", () => {
   test("a counted window on a yes or no check stays a count", () => {
     expect(
       CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
-        failedPings({ evaluateOverTimeType: EvaluateOverTimeType.StatusChanges }),
+        failedPings({
+          evaluateOverTimeType: EvaluateOverTimeType.StatusChanges,
+        }),
         MonitorType.Ping,
       ),
     ).toBe(EvaluateOverTimeType.StatusChanges);
@@ -356,7 +358,9 @@ describe("MonitorCriteriaInstance: a recovery condition and active hours", () =>
     expect(value).not.toHaveProperty("activeHours");
     expect(value).not.toHaveProperty("activeHoursTimezone");
     expect(
-      MonitorCriteriaInstance.hasRecoveryCondition(roundTrip(criteriaWith({})).data),
+      MonitorCriteriaInstance.hasRecoveryCondition(
+        roundTrip(criteriaWith({})).data,
+      ),
     ).toBe(false);
   });
 
@@ -408,7 +412,11 @@ describe("MonitorCriteriaInstance: a recovery condition and active hours", () =>
       MonitorCriteriaInstance.getValidationError(
         criteriaWith({
           recoveryFilters: [
-            { checkOn: CheckOn.ResponseTime, filterType: undefined, value: 300 },
+            {
+              checkOn: CheckOn.ResponseTime,
+              filterType: undefined,
+              value: 300,
+            },
           ],
         }),
         MonitorType.Website,
@@ -491,7 +499,9 @@ describe("MonitorCriteriaInstance.getWindowValidationError", () => {
     expect(windowError(failedPings())).toBeNull();
     expect(windowError(failedPings({ countValue: 0 }))).toBeNull();
     expect(
-      windowError(failedPings({ timeValueInMinutes: MAX_COUNTED_WINDOW_IN_MINUTES })),
+      windowError(
+        failedPings({ timeValueInMinutes: MAX_COUNTED_WINDOW_IN_MINUTES }),
+      ),
     ).toBeNull();
     // A count with no number reads as more than 0.
     expect(windowError(failedPings({ countValue: undefined }))).toBeNull();
@@ -502,12 +512,21 @@ describe("MonitorCriteriaInstance.getWindowValidationError", () => {
   test.each([
     [{ countValue: -1 }, "needs a number to compare with, 0 or more."],
     [{ countValue: "many" }, "needs a number to compare with, 0 or more."],
-    [{ timeValueInMinutes: 10081 }, "counts at most 10080 minutes (7 days) of checks."],
-    [{ timeValueInMinutes: 0 }, "needs a window: how many minutes of checks to count."],
+    [
+      { timeValueInMinutes: 10081 },
+      "counts at most 10080\u00A0minutes (7\u00A0days) of checks.",
+    ],
+    [
+      { timeValueInMinutes: 0 },
+      "needs a window: how many minutes of checks to count.",
+    ],
     [{ countFilterType: FilterType.Contains }, "is compared with Greater Than"],
-  ] as const)("%p is refused: %s", (options: object, error: string) => {
-    expect(windowError(failedPings(options as never))).toContain(error);
-  });
+  ] as const)(
+    "%p is refused: %s",
+    (options: Record<string, unknown>, error: string) => {
+      expect(windowError(failedPings(options as never))).toContain(error);
+    },
+  );
 
   test("a share is at most 100%", () => {
     expect(

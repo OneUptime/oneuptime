@@ -1492,7 +1492,10 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
                             ariaLabel={countedWindowField.title}
                             isClearable={false}
                             onChange={(
-                              value: DropdownValue | Array<DropdownValue> | null,
+                              value:
+                                | DropdownValue
+                                | Array<DropdownValue>
+                                | null,
                             ) => {
                               props.onChange?.(
                                 CriteriaFilterUiUtil.setEvaluateOverTimeOption({

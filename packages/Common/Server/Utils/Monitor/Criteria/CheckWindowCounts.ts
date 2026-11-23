@@ -146,12 +146,11 @@ export default class CheckWindowCounts {
       return {
         metricName: CRITERIA_FILTER_MATCH_METRIC_NAME,
         attributes: {
-          [CRITERIA_FILTER_KEY_ATTRIBUTE]: CriteriaFilterMatchHistory.getFilterKey(
-            {
+          [CRITERIA_FILTER_KEY_ATTRIBUTE]:
+            CriteriaFilterMatchHistory.getFilterKey({
               monitorStepId: data.monitorStepId,
               criteriaFilter: data.criteriaFilter,
-            },
-          ),
+            }),
         },
         groupByAttributeKeys: [PROBE_ID_ATTRIBUTE],
         condition: {
@@ -297,9 +296,8 @@ export default class CheckWindowCounts {
         data.monitorType,
       );
 
-    const windowInMinutes: number = CriteriaFilterUtil.getEvaluateOverTimeMinutes(
-      data.criteriaFilter,
-    );
+    const windowInMinutes: number =
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(data.criteriaFilter);
 
     const source: CheckWindowSource | null = CheckWindowCounts.getSource({
       criteriaFilter: data.criteriaFilter,
@@ -360,9 +358,8 @@ export default class CheckWindowCounts {
      * for "*" - and is met when any disk meets it, as "*" reads everywhere
      * else (ServerMonitorCriteria). Anything else is one group: this probe's.
      */
-    const isPerDisk: boolean = source.groupByAttributeKeys.includes(
-      DISK_PATH_ATTRIBUTE,
-    );
+    const isPerDisk: boolean =
+      source.groupByAttributeKeys.includes(DISK_PATH_ATTRIBUTE);
 
     const diskPaths: Array<string | undefined> = isPerDisk
       ? data.diskPaths && data.diskPaths.length > 0
@@ -489,7 +486,8 @@ export default class CheckWindowCounts {
     at: Date;
   }): CheckWindowTally {
     const changed: boolean =
-      data.tally.lastMatched !== null && data.tally.lastMatched !== data.matched;
+      data.tally.lastMatched !== null &&
+      data.tally.lastMatched !== data.matched;
 
     return {
       checkCount: data.tally.checkCount + 1,
@@ -525,7 +523,8 @@ export default class CheckWindowCounts {
     const windowInMinutes: number = Math.round(
       (data.windowEndMs - data.windowStartMs) / MILLISECONDS_IN_A_MINUTE,
     );
-    const windowName: string = CheckWindowCounts.describeWindow(windowInMinutes);
+    const windowName: string =
+      CheckWindowCounts.describeWindow(windowInMinutes);
     const comparison: { filterType: FilterType; value: number } =
       CriteriaFilterUtil.getCountComparison(data.criteriaFilter);
     const tally: CheckWindowTally = data.tally;
@@ -755,7 +754,10 @@ export default class CheckWindowCounts {
       NoDataPolicy.Ignore;
 
     if (policy === NoDataPolicy.Trigger) {
-      return { rootCause: data.triggeredMessage, message: data.triggeredMessage };
+      return {
+        rootCause: data.triggeredMessage,
+        message: data.triggeredMessage,
+      };
     }
 
     if (policy === NoDataPolicy.TreatAsZero) {
@@ -884,7 +886,10 @@ export default class CheckWindowCounts {
       []) {
       for (const criteriaInstance of step.data?.monitorCriteria?.data
         ?.monitorCriteriaInstanceArray || []) {
-        if (!criteriaInstance.data || criteriaInstance.data.isEnabled === false) {
+        if (
+          !criteriaInstance.data ||
+          criteriaInstance.data.isEnabled === false
+        ) {
           continue;
         }
 

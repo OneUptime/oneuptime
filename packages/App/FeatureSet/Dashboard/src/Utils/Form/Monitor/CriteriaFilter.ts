@@ -649,11 +649,14 @@ export default class CriteriaFilterUtil {
   public static getPercentileOptions(): Array<DropdownOption> {
     return EVALUATE_OVER_TIME_PERCENTILE_OPTIONS.map(
       (percentile: number): DropdownOption => {
+        /*
+         * Notation, drawn the same in every language: the Dropdown looks
+         * each label up, and every locale words "p95" as "p95" (p50, p90
+         * and p99 have no key, so they are drawn as written).
+         */
         return {
           value: percentile,
-          // Notation, the same in every language.
           label: `p${percentile}`,
-          isUserContent: true,
         };
       },
     );

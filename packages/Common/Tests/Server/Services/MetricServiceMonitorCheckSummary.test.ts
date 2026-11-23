@@ -4,7 +4,14 @@ import MetricService, {
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * The one statement a counted window reads (#10355): a bounded range of one
@@ -50,7 +57,9 @@ describe("MetricService.summarizeMonitorChecks", () => {
   });
 
   function summarize(
-    overrides: Partial<Parameters<typeof MetricService.summarizeMonitorChecks>[0]> = {},
+    overrides: Partial<
+      Parameters<typeof MetricService.summarizeMonitorChecks>[0]
+    > = {},
   ): Promise<Array<MonitorCheckSummaryRow>> {
     return MetricService.summarizeMonitorChecks({
       projectId: PROJECT_ID,
@@ -133,8 +142,13 @@ describe("MetricService.summarizeMonitorChecks", () => {
     ["ne", "!="],
   ] as const)(
     "the comparison %s is written as %s, with its number a parameter",
-    async (comparison: "gt" | "gte" | "lt" | "lte" | "eq" | "ne", operator: string) => {
-      await summarize({ condition: { comparison: comparison, threshold: 300 } });
+    async (
+      comparison: "gt" | "gte" | "lt" | "lte" | "eq" | "ne",
+      operator: string,
+    ) => {
+      await summarize({
+        condition: { comparison: comparison, threshold: 300 },
+      });
 
       expect(statements[0]!.query).toContain(
         `toUInt8(assumeNotNull(value) ${operator} {`,

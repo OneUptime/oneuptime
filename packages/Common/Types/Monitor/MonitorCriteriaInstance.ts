@@ -3267,7 +3267,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     if (minutes > MAX_COUNTED_WINDOW_IN_MINUTES) {
-      return `${type} of ${input.where} on filter type ${filter.checkOn} counts at most ${MAX_COUNTED_WINDOW_IN_MINUTES} minutes (7 days) of checks.`;
+      return `${type} of ${input.where} on filter type ${filter.checkOn} counts at most ${MAX_COUNTED_WINDOW_IN_MINUTES}\u00A0minutes (7\u00A0days) of checks.`;
     }
 
     const countFilterType: FilterType | undefined =

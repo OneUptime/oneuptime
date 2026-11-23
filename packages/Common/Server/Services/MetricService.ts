@@ -79,6 +79,11 @@ const POINT_TYPE_CACHE_MAX_ENTRIES: number = 5000;
 const SERVICE_ENTITY_KEYS_CACHE_TTL_MS: number = 60 * 1000;
 const SERVICE_ENTITY_KEYS_CACHE_MAX_ENTRIES: number = 5000;
 
+// How ClickHouse's JSON writes a DateTime64: "2026-11-22 16:00:00.000".
+const SPACED_DATE: RegExp = /^\d{4}-\d{2}-\d{2} /;
+// A time that names its zone: "Z", "+01:00", "-0500".
+const TIME_ZONE_SUFFIX: RegExp = /[zZ]|[+-]\d{2}:?\d{2}$/;
+
 type EntityMVRoute = {
   /** The resource attribute the entity detail pages filter by. */
   attributeKey: string;
@@ -3367,14 +3372,12 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * the WHERE below keeps only checks with a value, so it is read as one.
      */
     const conditionStatement: () => Statement = (): Statement => {
-      return SQL`toUInt8(assumeNotNull(value) `
-        .append(operator)
-        .append(
-          SQL` ${{
-            value: data.condition.threshold,
-            type: TableColumnType.Decimal,
-          }})`,
-        );
+      return SQL`toUInt8(assumeNotNull(value) `.append(operator).append(
+        SQL` ${{
+          value: data.condition.threshold,
+          type: TableColumnType.Decimal,
+        }})`,
+      );
     };
 
     const statement: Statement = SQL`SELECT `;
@@ -3478,10 +3481,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     }
 
     const text: string = String(value);
+    // "2026-11-22 16:00:00.000000000", written with no zone: it is UTC.
+    const isSpacedDate: boolean = SPACED_DATE.test(text);
+    const hasZone: boolean = TIME_ZONE_SUFFIX.test(text);
     const at: Date = new Date(
-      /^\d{4}-\d{2}-\d{2} /.test(text) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(text)
-        ? `${text.replace(" ", "T")}Z`
-        : text,
+      isSpacedDate && !hasZone ? `${text.replace(" ", "T")}Z` : text,
     );
 
     return isNaN(at.getTime()) ? null : at;

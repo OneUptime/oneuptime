@@ -1089,7 +1089,9 @@ export class CriteriaFilterUtil {
   }
 
   // The percentile a Percentile window reads: its own, or 95.
-  public static getPercentile(criteriaFilter: CriteriaFilter | undefined): number {
+  public static getPercentile(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): number {
     const percentile: number = Number(
       criteriaFilter?.evaluateOverTimeOptions?.percentile,
     );

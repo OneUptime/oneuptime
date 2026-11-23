@@ -98,7 +98,8 @@ export default class MonitorStepsValuesUtil {
           )
             ? CriteriaFilterValues.getUnreadableErrors({
                 criteriaName: criteriaName,
-                filterCondition: criteriaInstance?.data?.recoveryFilterCondition,
+                filterCondition:
+                  criteriaInstance?.data?.recoveryFilterCondition,
                 filters: criteriaInstance?.data?.recoveryFilters,
                 filtersPath: "recoveryFilters",
                 filterConditionPath: "recoveryFilterCondition",

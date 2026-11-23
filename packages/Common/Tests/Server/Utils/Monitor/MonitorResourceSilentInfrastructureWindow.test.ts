@@ -282,7 +282,9 @@ describe("MonitorResourceUtil: an infrastructure monitor's silence is not recove
     monitorStep.data!.monitorCriteria.data!.monitorCriteriaInstanceArray =
       monitorStep.data!.monitorCriteria.data!.monitorCriteriaInstanceArray.filter(
         (criteria: MonitorCriteriaInstance): boolean => {
-          return criteria.data?.monitorStatusId?.toString() === OFFLINE.toString();
+          return (
+            criteria.data?.monitorStatusId?.toString() === OFFLINE.toString()
+          );
         },
       );
     useStep(MonitorType.Metrics, monitorStep);
