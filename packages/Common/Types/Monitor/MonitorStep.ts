@@ -132,6 +132,9 @@ import {
 import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
 import { getPromQLMonitorExpressionProblem } from "../../Utils/PromQL/PromQLMonitorExpression";
 import MonitorRequestBody from "../../Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat, {
+  MonitorRequestBodyFormatUtil,
+} from "./MonitorRequestBodyFormat";
 
 /*
  * Caps and defaults for per-step request timeout and retry settings.
@@ -180,6 +183,12 @@ export interface MonitorStepType {
   requestType: HTTPMethod;
   requestHeaders?: Dictionary<string> | undefined;
   requestBody?: string | undefined;
+  /*
+   * How the body is sent (#10736): JSON when unset - as every step saved
+   * before the format existed is - or text, sent exactly as written
+   * (MonitorRequestBodyFormat).
+   */
+  requestBodyFormat?: MonitorRequestBodyFormat | undefined;
 
   // this is used for API and Website monitor
   doNotFollowRedirects?: boolean | undefined;
@@ -335,6 +344,7 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: HTTPMethod.GET,
       requestHeaders: undefined,
       requestBody: undefined,
+      requestBodyFormat: undefined,
       customCode: undefined,
       screenSizeTypes: undefined,
       browserTypes: undefined,
@@ -398,6 +408,7 @@ export default class MonitorStep extends DatabaseProperty {
       requestType: HTTPMethod.GET,
       requestHeaders: undefined,
       requestBody: undefined,
+      requestBodyFormat: undefined,
       customCode: undefined,
       /*
        * A new Synthetic monitor starts in Chromium at a desktop size, so
@@ -622,6 +633,13 @@ export default class MonitorStep extends DatabaseProperty {
 
   public setRequestBody(requestBody: string): MonitorStep {
     this.data!.requestBody = requestBody;
+    return this;
+  }
+
+  public setRequestBodyFormat(
+    requestBodyFormat: MonitorRequestBodyFormat | undefined,
+  ): MonitorStep {
+    this.data!.requestBodyFormat = requestBodyFormat;
     return this;
   }
 
@@ -913,6 +931,7 @@ export default class MonitorStep extends DatabaseProperty {
         requestType: HTTPMethod.GET,
         requestHeaders: undefined,
         requestBody: undefined,
+        requestBodyFormat: undefined,
         customCode: undefined,
         screenSizeTypes: undefined,
         browserTypes: undefined,
@@ -1039,12 +1058,14 @@ export default class MonitorStep extends DatabaseProperty {
     /*
      * An API monitor sends any JSON value as its body: an object, an array
      * or a single value. One that is not JSON, whatever its placeholders
-     * hold, no check could send (MonitorRequestBody, #9737).
+     * hold, no check could send (MonitorRequestBody, #9737) - unless the
+     * step sends its body as text, as written (#10736).
      */
     const requestBodyError: string | null =
       MonitorRequestBody.getUnreadableError({
         monitorType: monitorType,
         requestBody: value.data.requestBody,
+        requestBodyFormat: value.data.requestBodyFormat,
       });
 
     if (requestBodyError) {
@@ -1423,6 +1444,7 @@ export default class MonitorStep extends DatabaseProperty {
           requestType: this.data.requestType,
           requestHeaders: this.data.requestHeaders || undefined,
           requestBody: this.data.requestBody,
+          requestBodyFormat: this.data.requestBodyFormat,
           customCode: this.data.customCode,
           screenSizeTypes: this.data.screenSizeTypes || undefined,
           browserTypes: this.data.browserTypes || undefined,
@@ -1672,6 +1694,14 @@ export default class MonitorStep extends DatabaseProperty {
        * value is read as that value's JSON (MonitorRequestBody).
        */
       requestBody: MonitorRequestBody.readWritten(json["requestBody"]),
+      /*
+       * As written, when it names a format, so an API client or Terraform
+       * reads back what it sent; none, which is JSON, otherwise - as every
+       * step saved before #10736 has.
+       */
+      requestBodyFormat: MonitorRequestBodyFormatUtil.readWritten(
+        json["requestBodyFormat"],
+      ),
       customCode: (json["customCode"] as string) ?? undefined,
       screenSizeTypes:
         (json["screenSizeTypes"] as Array<ScreenSizeType>) || undefined,

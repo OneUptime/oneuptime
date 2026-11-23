@@ -246,7 +246,7 @@ Der Feed zeigt die Rotation, **wie sie jetzt eingerichtet ist**, auch für verga
 Der eigene Nginx von OneUptime hält Feed-Anfragen aus seinen Protokollen heraus:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

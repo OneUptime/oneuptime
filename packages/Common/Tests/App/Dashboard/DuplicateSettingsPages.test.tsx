@@ -746,6 +746,35 @@ describe("the form's Duplicate", () => {
       ]);
     });
 
+    /*
+     * #10692: one monitor deleted since used to cost the copy the whole
+     * answer, the late monitor still there with it.
+     */
+    test("a template answering a monitor deleted since beside one still there keeps the one still there", async () => {
+      answerByIds();
+
+      const copy: Form = new Form();
+      copy.targetType = FormTargetType.Incident;
+      copy.fields = [MONITORS_QUESTION] as unknown as JSONArray;
+      copy.templates = [
+        {
+          id: "kiosks",
+          name: "Kiosks down",
+          answers: { monitors: [LATE_MONITOR, GONE_MONITOR] },
+        },
+      ] as unknown as JSONArray;
+
+      await prepareFormCopy(copy);
+
+      expect(copy.templates).toEqual([
+        {
+          id: "kiosks",
+          name: "Kiosks down",
+          answers: { monitors: [LATE_MONITOR] },
+        },
+      ]);
+    });
+
     test("when the records cannot be read, the copy names them as the original does", async () => {
       mockGetList.mockImplementation(async (): Promise<never> => {
         throw new Error("The network is down.");

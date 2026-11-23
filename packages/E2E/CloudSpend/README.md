@@ -43,8 +43,11 @@ Seven ways to spend less from the clouds' recommenders (rightsizing, a
 Savings Plan, an idle volume and address, a gp2 volume to upgrade), three
 resources whose last read found something wrong (`web-1` failing its status
 checks, `orders-db` 92% full at 97% CPU, `sessions-cache` at 99% CPU), four
-budgets (one past 80%, one on course to pass, one within, one paused) and two
-App Platforms environments with four apps in the accounts.
+budgets (one past 80%, one on course to pass, one within, one paused, in a
+month's first three weeks: later the month so far nears where it is
+heading, and the one on course to pass has passed 80% too, so the suite
+reads them on a month's 10th) and two App Platforms environments with four
+apps in the accounts.
 
 Each cost line keeps the tags it was read with (`team`, `env`; CloudFront's
 and a bucket's carry none), and each account's summary the tag keys its last

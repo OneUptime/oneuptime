@@ -181,6 +181,30 @@ export interface AiOutcomesDataSecurity {
   issuesCheckPassed: number;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * LEAKS CAUGHT BEFORE THEY MERGED (issue #10376).
+ * ---------------------------------------------------------------------------
+ *
+ * The cheapest leak to fix is the one that never merges. A pull request's
+ * production review posts what its change writes of sensitive data to
+ * telemetry, leaves open in a store or adds a column for, and remembers
+ * each leak it posts once (ProductionReviewTaskContext.caughtLeaks), with
+ * when a later review no longer found it: fixed in the pull request.
+ * Against them, the issues Data Security's scans opened after the fact, on
+ * the checks those leaks are the early form of
+ * (PRODUCTION_REVIEW_LEAK_CHECK_IDS). A leak counts in the week it was
+ * first posted; an issue in the week it was first detected.
+ */
+export interface AiOutcomesLeaks {
+  // Caught in a pull request, and gone by a later review of it.
+  fixed: number;
+  // Caught in a pull request, and still in its latest review.
+  open: number;
+  // Found after it shipped: an issue a scan opened on one of those checks.
+  foundAfter: number;
+}
+
 export interface AiOutcomesWeek {
   // The week's first day, YYYY-MM-DD (UTC).
   weekStart: string;
@@ -211,6 +235,13 @@ export interface AiOutcomesWeek {
    */
   verdictsAgreed: number;
   verdictsDecided: number;
+  /*
+   * Leaks caught in pull requests that week, and every leak counted that
+   * week: those, and the issues scans opened (#10376). A server of the
+   * release before sends neither: the Dashboard reads them as none.
+   */
+  leaksCaught: number;
+  leaksCounted: number;
 }
 
 /*
@@ -287,6 +318,12 @@ export interface AiOutcomes {
    * release before.
    */
   issueVerdicts?: AiOutcomesIssueVerdicts | null | undefined;
+  /*
+   * Leaks caught in pull requests, against those the scans found after
+   * (#10376). Null: the caller may not read the repositories' reviews, or
+   * Data Security's issues; absent from a server of the release before.
+   */
+  leaks?: AiOutcomesLeaks | null | undefined;
   // AI_OUTCOMES_WEEK_COUNT weeks, oldest first.
   weeks: Array<AiOutcomesWeek>;
   // A kind of row reached AI_OUTCOMES_SCAN_LIMIT: the newest were counted.
@@ -330,6 +367,8 @@ export enum AiOutcomesPart {
   DataSecurityProposals = "dataSecurityProposals",
   // How often what people decided agreed with OneUptime AI's verdict (#10369).
   IssueVerdicts = "issueVerdicts",
+  // Leaks caught in pull requests, and the ones the scans found after (#10376).
+  Leaks = "leaks",
 }
 
 export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
@@ -341,6 +380,7 @@ export const AI_OUTCOMES_PARTS: ReadonlyArray<AiOutcomesPart> = [
   AiOutcomesPart.DataSecurityChanges,
   AiOutcomesPart.DataSecurityProposals,
   AiOutcomesPart.IssueVerdicts,
+  AiOutcomesPart.Leaks,
 ];
 
 // The parts of the Data Security card, whose records are Data Security issues.
@@ -402,6 +442,13 @@ export type AiOutcomesIssueVerdictOutcome =
 export const AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES: ReadonlyArray<AiOutcomesIssueVerdictOutcome> =
   ["agreed", "disagreed", "waiting", "cannotTell"];
 
+// Where a leak was counted (#10376): AiOutcomesLeaks' keys.
+export const AI_OUTCOMES_LEAK_OUTCOMES: ReadonlyArray<keyof AiOutcomesLeaks> = [
+  "fixed",
+  "open",
+  "foundAfter",
+];
+
 export const AI_OUTCOMES_PART_OUTCOMES: Record<
   AiOutcomesPart,
   ReadonlyArray<string>
@@ -417,6 +464,7 @@ export const AI_OUTCOMES_PART_OUTCOMES: Record<
   [AiOutcomesPart.DataSecurityProposals]:
     AI_OUTCOMES_DATA_SECURITY_PROPOSAL_OUTCOMES,
   [AiOutcomesPart.IssueVerdicts]: AI_OUTCOMES_ISSUE_VERDICT_OUTCOMES,
+  [AiOutcomesPart.Leaks]: AI_OUTCOMES_LEAK_OUTCOMES,
 };
 
 export function isAiOutcomesPartOutcome(
@@ -481,6 +529,21 @@ export interface AiOutcomesRecord {
   // A Data Security issue: OneUptime AI's verdict, and where the issue stands.
   issueVerdict?: string | undefined;
   issueStatus?: string | undefined;
+  /*
+   * A leak (#10376): the Data Security check it is the early form of, or
+   * the check whose issue a scan opened - DataSecurityCheckCatalog's id.
+   */
+  checkId?: string | undefined;
+}
+
+// Every leak counted: caught in a pull request, or found after (#10376).
+export function getLeaksCountedCount(leaks: AiOutcomesLeaks): number {
+  return leaks.fixed + leaks.open + leaks.foundAfter;
+}
+
+// The leaks caught in pull requests, fixed there or not.
+export function getLeaksCaughtCount(leaks: AiOutcomesLeaks): number {
+  return leaks.fixed + leaks.open;
 }
 
 export interface AiOutcomesRecords {

@@ -61,6 +61,8 @@ const apiPostMock: MockFunction = getJestMockFunction();
 const logsListMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+// The device a link reads again, just before it is written (#10646).
+const getItemMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/Date/RangeStartAndEndDateView", () => {
   return {
@@ -127,6 +129,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
       },
+      getItem: (...args: Array<unknown>): unknown => {
+        return getItemMock(...args);
+      },
       getCommonHeaders: (): Record<string, string> => {
         return { tenantid: "10000000-0000-4000-8000-000000000001" };
       },
@@ -163,6 +168,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -452,6 +458,54 @@ async function flush(): Promise<void> {
   }
 }
 
+/*
+ * The project's devices, as "It is one of my devices" reads them (#10646):
+ * its picker searches them on the server, and the one picked is read again
+ * by its id just before its Other Addresses are written.
+ */
+function answerDevices(devices: Array<NetworkDevice>): void {
+  getListMock.mockResolvedValue({
+    data: devices,
+    count: devices.length,
+    skip: 0,
+    limit: 50,
+  });
+  getItemMock.mockImplementation(async (options: unknown) => {
+    const id: string = String((options as { id: ObjectID }).id);
+
+    return (
+      devices.find((device: NetworkDevice): boolean => {
+        return device._id?.toString() === id;
+      }) || null
+    );
+  });
+}
+
+// Opens the link dialog's device picker, which searches as it opens.
+async function openDevicePicker(modal: HTMLElement): Promise<void> {
+  const picker: HTMLElement = await within(modal).findByRole("combobox", {
+    name: "Device",
+  });
+
+  await act(async () => {
+    fireEvent.focus(picker);
+  });
+  // The clock is faked here: the search goes out once its timer runs.
+  await act(async () => {
+    jest.advanceTimersByTime(0);
+  });
+  await flush();
+}
+
+// What an option of the device picker says: its name, then its hostname.
+function deviceOptionText(option: HTMLElement): string {
+  return Array.from(option.querySelectorAll(":scope > span"))
+    .map((part: Element): string => {
+      return part.textContent || "";
+    })
+    .join(" | ");
+}
+
 const NETWORK: NetworkEventsScope = { kind: "network" };
 const DEVICE: NetworkEventsScope = {
   kind: "device",
@@ -590,6 +644,7 @@ beforeEach(() => {
   logsListMock.mockReset();
   getListMock.mockReset();
   updateByIdMock.mockReset();
+  getItemMock.mockReset();
   logsListMock.mockImplementation(async (options: unknown) => {
     return answerLogsList(options);
   });
@@ -1759,24 +1814,19 @@ describe("who sends syslog without being a device", () => {
   });
 
   test("It is one of my devices: the address joins the device's Other Addresses, and the page reads again", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "Core Switch",
-          hostname: "10.0.0.2",
-          otherAddresses: "10.255.0.1",
-        }),
-        Object.assign(new NetworkDevice(), {
-          _id: OTHER_DEVICE_ID,
-          name: "Branch Firewall",
-          hostname: "10.0.9.1",
-        }),
-      ],
-      count: 2,
-      skip: 0,
-      limit: 500,
-    });
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+        otherAddresses: "10.255.0.1",
+      }),
+      Object.assign(new NetworkDevice(), {
+        _id: OTHER_DEVICE_ID,
+        name: "Branch Firewall",
+        hostname: "10.0.9.1",
+      }),
+    ]);
     updateByIdMock.mockResolvedValue({});
     await renderView(NETWORK);
     const requestsBefore: number = logsListMock.mock.calls.length;
@@ -1795,19 +1845,20 @@ describe("who sends syslog without being a device", () => {
       within(modal).getByRole("button", { name: "Use this device" }),
     ).toBeDisabled();
 
-    const picker: HTMLElement = await within(modal).findByRole("combobox", {
-      name: "Device",
-    });
+    await openDevicePicker(modal);
 
-    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
     fireEvent.click(
-      await screen.findByRole("option", { name: "Core Switch (10.0.0.2)" }),
+      await screen.findByRole("option", { name: /^Core Switch/ }),
     );
     fireEvent.click(
       within(modal).getByRole("button", { name: "Use this device" }),
     );
     await flush();
 
+    // The device is read again by its id, just before it is written.
+    expect(String((getItemMock.mock.calls[0]![0] as { id: ObjectID }).id)).toBe(
+      DEVICE_ID,
+    );
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     const update: { id: ObjectID; data: JSONObject } = updateByIdMock.mock
       .calls[0]![0] as { id: ObjectID; data: JSONObject };
@@ -1826,18 +1877,13 @@ describe("who sends syslog without being a device", () => {
   });
 
   test("a device that could not be updated says why, and the dialog stays open", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "Core Switch",
-          hostname: "10.0.0.2",
-        }),
-      ],
-      count: 1,
-      skip: 0,
-      limit: 500,
-    });
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+      }),
+    ]);
     updateByIdMock.mockRejectedValue(
       new Error("You do not have permission to edit this device."),
     );
@@ -1848,12 +1894,9 @@ describe("who sends syslog without being a device", () => {
 
     const modal: HTMLElement = screen.getByTestId("modal");
 
-    fireEvent.keyDown(await within(modal).findByRole("combobox"), {
-      key: "ArrowDown",
-      code: "ArrowDown",
-    });
+    await openDevicePicker(modal);
     fireEvent.click(
-      await screen.findByRole("option", { name: "Core Switch (10.0.0.2)" }),
+      await screen.findByRole("option", { name: /^Core Switch/ }),
     );
     fireEvent.click(
       within(modal).getByRole("button", { name: "Use this device" }),
@@ -1868,16 +1911,94 @@ describe("who sends syslog without being a device", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("the devices that could not be listed say why", async () => {
-    getListMock.mockRejectedValue(new Error("Devices could not be read."));
+  test("a device that could not be read when it is linked says why, and nothing is written", async () => {
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+      }),
+    ]);
+    getItemMock.mockRejectedValue(new Error("Devices could not be read."));
     await renderView(NETWORK);
 
     fireEvent.click(screen.getByTestId("network-event-source-link"));
     await flush();
 
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    await openDevicePicker(modal);
+    fireEvent.click(
+      await screen.findByRole("option", { name: /^Core Switch/ }),
+    );
+    fireEvent.click(
+      within(modal).getByRole("button", { name: "Use this device" }),
+    );
+    await flush();
+
     expect(screen.getByTestId("modal")).toHaveTextContent(
       "Devices could not be read.",
     );
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #10646: the dialog read the project's first 500 devices by name, so a
+   * device past them could not be picked. Its picker searches the server
+   * as it is typed in, by name or by hostname, and never offers an
+   * archived device.
+   */
+  test("the device picker searches the server by name or hostname, never an archived device", async () => {
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+      }),
+    ]);
+    await renderView(NETWORK);
+
+    fireEvent.click(screen.getByTestId("network-event-source-link"));
+    await flush();
+
+    // Opening the dialog reads no device: its picker searches.
+    expect(getListMock).not.toHaveBeenCalled();
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    await openDevicePicker(modal);
+
+    await act(async () => {
+      fireEvent.change(
+        within(modal).getByRole("combobox", { name: "Device" }),
+        {
+          target: { value: "10.0.0" },
+        },
+      );
+    });
+    // What is typed is searched once the typing stops.
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await flush();
+
+    const searched: { query: Record<string, unknown>; limit: number } =
+      getListMock.mock.calls[getListMock.mock.calls.length - 1]![0] as {
+        query: Record<string, unknown>;
+        limit: number;
+      };
+
+    expect(searched.query["isArchived"]).toBe(false);
+    expect(searched.limit).toBe(50);
+    expect(
+      Object.values(searched.query).some((condition: unknown): boolean => {
+        return (
+          condition instanceof MultiSearch &&
+          condition.fields.join(",") === "name,hostname" &&
+          condition.value === "10.0.0"
+        );
+      }),
+    ).toBe(true);
   });
 
   test("with nobody sending from an unknown address there is no card", async () => {
@@ -2586,70 +2707,46 @@ describe("It is one of my devices: which device", () => {
     fireEvent.click(screen.getByTestId("network-event-source-link"));
     await flush();
 
-    const modal: HTMLElement = screen.getByTestId("modal");
+    await openDevicePicker(screen.getByTestId("modal"));
 
-    fireEvent.keyDown(await within(modal).findByRole("combobox"), {
-      key: "ArrowDown",
-      code: "ArrowDown",
-    });
-
-    return (await screen.findAllByRole("option")).map(
-      (option: HTMLElement): string => {
-        return option.textContent || "";
-      },
-    );
+    return (await screen.findAllByRole("option")).map(deviceOptionText);
   }
 
-  test("a device is listed by its name with the address it is reached at", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "Core Switch",
-          hostname: "10.0.0.2",
-        }),
-      ],
-      count: 1,
-      skip: 0,
-      limit: 500,
-    });
+  test("a device is listed by its name with the address it is reached at beside it", async () => {
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+      }),
+    ]);
 
-    expect(await optionsOfLinkDialog()).toEqual(["Core Switch (10.0.0.2)"]);
+    expect(await optionsOfLinkDialog()).toEqual(["Core Switch | 10.0.0.2"]);
   });
 
   test("a device named after its own hostname is not named twice", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "core-sw-01.hq.example.net",
-          hostname: "core-sw-01.hq.example.net",
-        }),
-      ],
-      count: 1,
-      skip: 0,
-      limit: 500,
-    });
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "core-sw-01.hq.example.net",
+        hostname: "core-sw-01.hq.example.net",
+      }),
+    ]);
 
     expect(await optionsOfLinkDialog()).toEqual(["core-sw-01.hq.example.net"]);
   });
 
-  test("a device with no hostname gets no empty brackets, and one with no name is its hostname", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "Core Switch",
-        }),
-        Object.assign(new NetworkDevice(), {
-          _id: OTHER_DEVICE_ID,
-          hostname: "10.0.9.1",
-        }),
-      ],
-      count: 2,
-      skip: 0,
-      limit: 500,
-    });
+  test("a device with no hostname gets nothing beside it, and one with no name is its hostname", async () => {
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+      }),
+      Object.assign(new NetworkDevice(), {
+        _id: OTHER_DEVICE_ID,
+        hostname: "10.0.9.1",
+      }),
+    ]);
 
     expect(await optionsOfLinkDialog()).toEqual(["Core Switch", "10.0.9.1"]);
   });

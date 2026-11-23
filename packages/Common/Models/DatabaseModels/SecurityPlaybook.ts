@@ -22,9 +22,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
-import SecurityPlaybookTrigger, {
-  SECURITY_PLAYBOOK_TRIGGERS,
-} from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import SecurityPlaybookTrigger from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -207,8 +205,16 @@ export default class SecurityPlaybook extends BaseModel {
   @TableColumn({
     required: true,
     type: TableColumnType.ShortText,
-    // A playbook's: never OneUptime AI's own runs' (SecurityPlaybookTrigger.OneUptimeAi).
-    allowedValues: SECURITY_PLAYBOOK_TRIGGERS,
+    /*
+     * A playbook's: never OneUptime AI's own runs' (SecurityPlaybookTrigger.OneUptimeAi).
+     * SECURITY_PLAYBOOK_TRIGGERS, its members as written, so the subset is read where it is.
+     */
+    allowedValues: [
+      SecurityPlaybookTrigger.CaseOpened,
+      SecurityPlaybookTrigger.DetectionAdded,
+      SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
+      SecurityPlaybookTrigger.Manual,
+    ],
     canReadOnRelationQuery: true,
     title: "Trigger",
     description:

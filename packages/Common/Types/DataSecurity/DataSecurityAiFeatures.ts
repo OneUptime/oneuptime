@@ -66,6 +66,12 @@ export enum DataSecurityAiFeature {
    * records the finding was seen in before it is offered (#10366).
    */
   WriteScrubRules = "WriteScrubRules",
+  /*
+   * The Sensitive data section of a pull request's production review
+   * (#10376): OneUptime AI words, orders and drops what the rules found the
+   * change writes to telemetry, does to a store or adds a column for.
+   */
+  ReviewPullRequests = "ReviewPullRequests",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -82,6 +88,11 @@ export enum DataSecurityAiModelSource {
   CodeAgent = "CodeAgent",
   // Ask AI's: the provider picked in the chat, else the project's default.
   Chat = "Chat",
+  /*
+   * A production review's: the provider the repository picks for its
+   * production reviews, else the project's default, else the server's.
+   */
+  ProductionReview = "ProductionReview",
 }
 
 export interface DataSecurityAiFeatureInfo {
@@ -316,7 +327,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.FixIssueGroup,
       title: translationKey("Fix the cause"),
       startedBy: translationKey(
-        "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is Without asking.",
+        "A person, from a group on the Issues list or by approving OneUptime AI's proposal, in a repository they may change in Code; a security playbook's Fix the code with AI step; or, on its own, an AI rule whose Fix is set to Automatically.",
       ),
       runsOnItsOwn: false,
       sends: [
@@ -367,6 +378,33 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.ReviewPullRequests,
+      title: translationKey("Sensitive data in pull requests"),
+      startedBy: translationKey(
+        "A pull request's production review, when its rules find sensitive data in the change: written to telemetry, a store left open, or a new column.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "What the rules found in the pull request's diff: the file and line, the name written, the kind of data it names and the check it would fail",
+        ),
+        translationKey(
+          "The diff of those files and the pull request's title, with what looks like a secret, an email address or an IP address left out",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "What production holds: where your telemetry held the data, a store's name or what a store holds",
+        ),
+        translationKey("A sample of what was found, not even a masked one"),
+      ],
+      keeps: translationKey(
+        "The points, on the pull request's production review in Code and in its comment.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProductionReview,
     },
   ];
 

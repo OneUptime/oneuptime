@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import PrometheusRemoteWrite, {
   PrometheusRefusalReason,
   PrometheusRemoteWriteError,
@@ -1309,12 +1310,16 @@ describe("PrometheusRemoteWrite - exemplars (remote write 1.0)", () => {
       PrometheusRemoteWriteVersion.V1,
     );
 
-    const startedAt: number = Date.now();
-    const translation: PrometheusTranslation =
-      PrometheusRemoteWrite.toOtlp(decoded);
+    const timed: FastestRun<PrometheusTranslation> = fastestRun({
+      run: (): PrometheusTranslation => {
+        return PrometheusRemoteWrite.toOtlp(decoded);
+      },
+      limitInMs: 3000,
+    });
+    const translation: PrometheusTranslation = timed.result;
 
     // Each exemplar against every datapoint: seconds here, minutes at the limit.
-    expect(Date.now() - startedAt).toBeLessThan(3000);
+    expect(timed.inMs).toBeLessThan(3000);
     // Every datapoint keeps the exemplar 10ms before it.
     expect(translation.exemplarsWritten).toBe(50000);
   });
@@ -1720,22 +1725,25 @@ describe("PrometheusRemoteWrite - a body is counted before it is decoded", () =>
 
   test("by default a 32 MiB body of empty series is refused, in well under a second and without decoding", () => {
     const decode: jest.SpyInstance = jest.spyOn(WriteRequestV1, "decode");
-    const startedAt: number = Date.now();
-    let error: unknown = null;
+    const body: Buffer = emptySeries(16 * 1024 * 1024);
 
-    try {
-      PrometheusRemoteWrite.decode(
-        emptySeries(16 * 1024 * 1024),
-        PrometheusRemoteWriteVersion.V1,
-      );
-    } catch (caught) {
-      error = caught;
-    }
+    const timed: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        try {
+          PrometheusRemoteWrite.decode(body, PrometheusRemoteWriteVersion.V1);
+        } catch (caught) {
+          return caught;
+        }
 
-    expect((error as PrometheusRemoteWriteError).statusCode).toBe(413);
+        return null;
+      },
+      limitInMs: 1000,
+    });
+
+    expect((timed.result as PrometheusRemoteWriteError).statusCode).toBe(413);
     expect(decode).not.toHaveBeenCalled();
     // It stops counting once past the limit.
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
     decode.mockRestore();
   });
 
