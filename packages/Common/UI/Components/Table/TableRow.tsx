@@ -29,6 +29,10 @@ import {
   TABLE_MOBILE_ROW_CLASS_NAME,
   TABLE_MOBILE_SELECTED_ROW_CLASS_NAME,
   TABLE_ROW_CLASS_NAME,
+  TABLE_CARD_ROW_NOTE_CLASS_NAME,
+  TABLE_ROW_LIT_CLASS_NAME,
+  TABLE_ROW_NOTE_CELL_CLASS_NAME,
+  TABLE_ROW_NOTE_TEST_ID,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_SELECT_CELL_CLASS_NAME,
   TABLE_SELECTED_ROW_CLASS_NAME,
@@ -74,7 +78,7 @@ import {
   getPhoneNumbersOfValue,
   getPhoneNumberValueText,
 } from "../../../Types/PhoneNumberDirection";
-import React, { ReactElement } from "react";
+import React, { ReactElement, useState } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
 } from "../../Utils/UseIsBelowWidth";
@@ -108,6 +112,11 @@ const COLUMN_TYPES_NOT_DRAWN_AS_TEXT: ReadonlyArray<FieldType> = [
 export interface ComponentProps<T extends GenericObject> {
   item: T;
   rowProps?: React.HTMLAttributes<HTMLElement> | undefined;
+  /*
+   * A line about the row across its whole width (Table's getRowNote): its
+   * own <tr> under the row's cells, or the card's line above its buttons.
+   */
+  rowNote?: ReactElement | null | undefined;
   columns: Columns<T>;
   actionButtons?: Array<ActionButtonSchema<T>> | undefined;
   enableDragAndDrop?: boolean | undefined;
@@ -301,6 +310,23 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
    * explicit false locks the box.
    */
   const isItemSelectable: boolean = props.isItemSelectable !== false;
+
+  /*
+   * A row with a note is two <tr>s that read as one: both are lit while
+   * the pointer is on either, as a row alone is lit under it.
+   */
+  const rowNote: ReactElement | null = props.rowNote || null;
+  const [isNoteRowLit, setIsNoteRowLit] = useState<boolean>(false);
+  const noteRowHover: React.HTMLAttributes<HTMLElement> = rowNote
+    ? {
+        onMouseEnter: (): void => {
+          setIsNoteRowLit(true);
+        },
+        onMouseLeave: (): void => {
+          setIsNoteRowLit(false);
+        },
+      }
+    : {};
 
   /*
    * A row that opens its record on a click (its page hands it an onClick)
@@ -731,21 +757,36 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       : null;
 
                     return (
-                      <div
-                        key={getCellKey(column, i)}
-                        className={`flex flex-wrap items-center gap-2 pt-1 ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`}
-                      >
-                        {customAction}
-                        <RowActions<T>
-                          item={props.item}
-                          actionButtons={props.actionButtons}
-                          isMobile={true}
-                          className="justify-start"
-                          itemLabel={props.itemLabel}
-                          store={props.rowActionsStore}
-                          rowKey={getRowActionsKey(column, i)}
-                        />
-                      </div>
+                      <React.Fragment key={getCellKey(column, i)}>
+                        {/*
+                         * The row's note, across the card, above its
+                         * buttons: what the buttons act on is read first.
+                         */}
+                        {rowNote ? (
+                          <div
+                            className={TABLE_CARD_ROW_NOTE_CLASS_NAME}
+                            data-testid={TABLE_ROW_NOTE_TEST_ID}
+                          >
+                            {rowNote}
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                        <div
+                          className={`flex flex-wrap items-center gap-2 pt-1 ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`}
+                        >
+                          {customAction}
+                          <RowActions<T>
+                            item={props.item}
+                            actionButtons={props.actionButtons}
+                            isMobile={true}
+                            className="justify-start"
+                            itemLabel={props.itemLabel}
+                            store={props.rowActionsStore}
+                            rowKey={getRowActionsKey(column, i)}
+                          />
+                        </div>
+                      </React.Fragment>
                     );
                   }
 
@@ -871,6 +912,23 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     </div>
                   );
                 })}
+                {/*
+                 * A card with no buttons ends on the row's note, across
+                 * the card.
+                 */}
+                {rowNote &&
+                !renderedColumns.some((column: Column<T>): boolean => {
+                  return column.type === FieldType.Actions;
+                }) ? (
+                  <div
+                    className={TABLE_CARD_ROW_NOTE_CLASS_NAME}
+                    data-testid={TABLE_ROW_NOTE_TEST_ID}
+                  >
+                    {rowNote}
+                  </div>
+                ) : (
+                  <></>
+                )}
               </dl>
             </div>
           </div>
@@ -915,9 +973,17 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
     const leadingCellCount: number =
       (props.enableDragAndDrop ? 1 : 0) + (props.isBulkActionsEnabled ? 1 : 0);
 
-    const ruleClassName: string = props.isLastRow
-      ? ""
-      : ` ${TABLE_ROW_RULE_CLASS_NAME}`;
+    /*
+     * A row with a note draws no hairline under its cells: its note, right
+     * under them, takes the row's.
+     */
+    const isRuledBelowCells: boolean = !props.isLastRow && !rowNote;
+    const ruleClassName: string = isRuledBelowCells
+      ? ` ${TABLE_ROW_RULE_CLASS_NAME}`
+      : "";
+    const rowClassName: string = props.isItemSelected
+      ? TABLE_SELECTED_ROW_CLASS_NAME
+      : TABLE_ROW_CLASS_NAME;
 
     // Desktop view: render as table row
     return (
@@ -925,13 +991,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         <tr
           {...props.rowProps}
           {...provided?.draggableProps}
+          {...noteRowHover}
           style={rowStyle}
           ref={provided?.innerRef}
           data-selected={props.isItemSelected ? "true" : undefined}
           className={[
-            props.isItemSelected
-              ? TABLE_SELECTED_ROW_CLASS_NAME
-              : TABLE_ROW_CLASS_NAME,
+            rowClassName,
+            isNoteRowLit && !props.isItemSelected
+              ? TABLE_ROW_LIT_CLASS_NAME
+              : "",
             isClickable ? TABLE_CLICKABLE_ROW_CLASS_NAME : "",
             snapshot?.isDragging ? draggingClassName : "",
             props.rowProps?.className || "",
@@ -977,7 +1045,8 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                 column: column,
                 isLastRenderedColumn: i === renderedColumns.length - 1,
                 isFirstRenderedCell: leadingCellCount === 0 && i === 0,
-                isLastRow: props.isLastRow,
+                // No hairline between a row and its note (isRuledBelowCells).
+                isLastRow: !isRuledBelowCells,
                 isPrimaryColumn: i === 0,
               });
 
@@ -1156,6 +1225,45 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
             />
           )}
         </tr>
+        {/*
+         * The row's note, across every cell the row draws, starting where
+         * its first value does, with the row's hairline under it. Not while
+         * the row is lifted by a drag: it moves alone.
+         */}
+        {rowNote && !snapshot?.isDragging ? (
+          <tr
+            {...noteRowHover}
+            data-selected={props.isItemSelected ? "true" : undefined}
+            className={[
+              rowClassName,
+              isNoteRowLit && !props.isItemSelected
+                ? TABLE_ROW_LIT_CLASS_NAME
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <td
+              colSpan={
+                leadingCellCount +
+                renderedColumns.length +
+                (props.hasEndFiller ? 1 : 0)
+              }
+              data-testid={TABLE_ROW_NOTE_TEST_ID}
+              className={[
+                TABLE_ROW_NOTE_CELL_CLASS_NAME,
+                getTableCellPaddingClassName({ isFirst: true, isLast: true }),
+                props.isLastRow ? "" : TABLE_ROW_RULE_CLASS_NAME,
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {rowNote}
+            </td>
+          </tr>
+        ) : (
+          <></>
+        )}
       </>
     );
   };

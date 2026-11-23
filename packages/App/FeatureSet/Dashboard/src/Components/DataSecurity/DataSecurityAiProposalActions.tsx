@@ -48,6 +48,7 @@ export const DATA_SECURITY_AI_PROPOSAL_DIALOG_SELECT: {
   askReason: true;
   firstApprovedByUserId: true;
   dataSecurityIssueId: true;
+  dataStoreId: true;
 } = {
   kind: true,
   plan: true,
@@ -59,6 +60,8 @@ export const DATA_SECURITY_AI_PROPOSAL_DIALOG_SELECT: {
   askReason: true,
   firstApprovedByUserId: true,
   dataSecurityIssueId: true,
+  // A proposal for no issue opens its store (#10372).
+  dataStoreId: true,
 };
 
 export const DATA_SECURITY_AI_PROPOSAL_REVIEW_TEST_ID: string =

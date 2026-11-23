@@ -144,6 +144,13 @@ export interface ComponentProps<T extends GenericObject> {
   data: Array<T>;
   /** Optional row attributes and navigation, shared by desktop and mobile rows. */
   getRowProps?: ((item: T) => React.HTMLAttributes<HTMLElement>) | undefined;
+  /*
+   * A line about a row drawn across its whole width, under its cells -
+   * on a phone, in its card above its buttons - or null for none: a
+   * sentence a column is too narrow to hold, such as OneUptime AI's
+   * verdict on a finding (TableRow, TABLE_ROW_NOTE_CELL_CLASS_NAME).
+   */
+  getRowNote?: ((item: T) => ReactElement | null) | undefined;
   id: string;
   columns: Columns<T>;
   className?: string;
@@ -1113,6 +1120,7 @@ const Table: TableFunction = <T extends GenericObject>(
         id={`${props.id}-body`}
         data={props.data}
         getRowProps={props.getRowProps}
+        getRowNote={props.getRowNote}
         columns={drawnColumns}
         areColumnsFolded={areColumnsFolded}
         columnsInView={columnsInView}

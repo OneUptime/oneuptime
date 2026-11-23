@@ -1481,6 +1481,14 @@ export const DATA_SECURITY_KIND_LABELS: Record<
   [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
     "Cloud changes for a cause",
   ),
+  // Its own confirmations of findings, and what decisions say of the scans (#10372).
+  [DataSecurityAiProposalKind.ConfirmFindings]:
+    translationKey("Confirmed findings"),
+  [DataSecurityAiProposalKind.TurnOffDataType]: translationKey(
+    "Data types turned off",
+  ),
+  [DataSecurityAiProposalKind.AddScanExclusion]:
+    translationKey("Scan exclusions"),
 };
 
 export const BY_KIND_TITLE: string = translationKey("By kind");

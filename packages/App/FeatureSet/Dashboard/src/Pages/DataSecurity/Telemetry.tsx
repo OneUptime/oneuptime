@@ -7,6 +7,14 @@ import {
 } from "../../Components/DataSecurity/DataSecurityPills";
 import FindingRecordsPanel from "../../Components/DataSecurity/FindingRecordsPanel";
 import {
+  FindingDecisions,
+  useFindingDecisions,
+} from "../../Components/DataSecurity/FindingDecisions";
+import {
+  FINDING_ROW_NOTE_SELECT,
+  getFindingRowNote,
+} from "../../Components/DataSecurity/FindingRowNote";
+import {
   DataTypeNamer,
   useDataTypeNamer,
 } from "../../Components/DataSecurity/IssueDataTypes";
@@ -57,7 +65,8 @@ import {
   TELEMETRY_DATA_STORE_KINDS,
   getDataStoreKindInfo,
 } from "Common/Types/DataSecurity/DataStoreKind";
-import { VoidFunction } from "Common/Types/FunctionTypes";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import { isFindingAwaitingJudgement } from "Common/Utils/DataSecurity/FindingJudgement";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema, {
@@ -78,7 +87,10 @@ import TableEmptyState, {
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   PluralTemplate,
@@ -117,6 +129,12 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * metric's name, which no rule scrubs, Drop This Metric makes a metric
  * pipeline rule that drops the service's metrics so named instead (#9757),
  * once a dialog has said what that loses and the reader has agreed.
+ *
+ * OneUptime AI's verdict on a finding that waits for a person reads across
+ * its row - Confirm it, Not sensitive or Cannot tell, why, and the team's
+ * decisions it rests on (FindingRowNote, #10372) - and such a finding can
+ * be confirmed or marked not sensitive here, then the decision applied to
+ * the findings like it on every service (FindingDecisions).
  */
 
 const SHOW_RECORDS: string = translationKey("Show Records");
@@ -175,6 +193,17 @@ const DataSecurityTelemetryPage: FunctionComponent<
   const [scrubbing, setScrubbing] = useState<DataStoreFinding | null>(null);
   // The finding in a metric's name whose metrics the reader is asked about dropping.
   const [dropping, setDropping] = useState<DataStoreFinding | null>(null);
+
+  // Not Sensitive and Confirm on a finding that waits, then Apply to similar (#10372).
+  const decisions: FindingDecisions = useFindingDecisions((): void => {
+    setRefreshCount((count: number): number => {
+      return count + 1;
+    });
+  });
+  const editGate: PermissionGateResult = PermissionGate.check(
+    new DataStoreFinding(),
+    ModelAction.Update,
+  );
 
   // The project's telemetry stores, which the findings below are in.
   useEffect(() => {
@@ -389,6 +418,75 @@ const DataSecurityTelemetryPage: FunctionComponent<
     });
   }
 
+  /*
+   * A finding that waits for a person - the scan was not sure of it, or it
+   * shows a sign of a wrong match - is confirmed or marked not sensitive
+   * here, as on its store's What's Inside.
+   */
+  actionButtons.push(
+    {
+      title: "Confirm",
+      icon: IconProp.Check,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (finding: DataStoreFinding): boolean => {
+        return (
+          isFindingAwaitingJudgement(finding) &&
+          finding.confidence === DataConfidence.Low
+        );
+      },
+      getDisabledReason: (): string | undefined => {
+        return editGate.isAllowed ? undefined : editGate.disabledReason;
+      },
+      getConfirmation: () => {
+        return {
+          title: "Confirm This Finding",
+          description:
+            "You confirm this location holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence.",
+          submitButtonText: "Confirm",
+        };
+      },
+      onClick: async (
+        finding: DataStoreFinding,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+      ): Promise<void> => {
+        try {
+          await ModelAPI.updateById<DataStoreFinding>({
+            modelType: DataStoreFinding,
+            id: new ObjectID(finding._id!.toString()),
+            data: { isConfirmed: true },
+          });
+          onCompleteAction();
+          setRefreshCount((count: number): number => {
+            return count + 1;
+          });
+          decisions.afterConfirm(finding);
+        } catch (err) {
+          onCompleteAction();
+          onError(err as Error);
+        }
+      },
+    },
+    {
+      title: "Not Sensitive",
+      icon: IconProp.Close,
+      buttonStyleType: ButtonStyleType.NORMAL,
+      isVisible: (finding: DataStoreFinding): boolean => {
+        return isFindingAwaitingJudgement(finding);
+      },
+      getDisabledReason: (): string | undefined => {
+        return editGate.isAllowed ? undefined : editGate.disabledReason;
+      },
+      onClick: (
+        finding: DataStoreFinding,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        decisions.markNotSensitive(finding);
+        onCompleteAction();
+      },
+    },
+  );
+
   const storeIds: Array<string> = stores ? [...stores.keys()] : [];
 
   const query: Query<DataStoreFinding> = {
@@ -508,6 +606,8 @@ const DataSecurityTelemetryPage: FunctionComponent<
         <></>
       )}
 
+      {decisions.dialogs}
+
       {dropping?._id ? (
         <DropMetricModal
           findingId={new ObjectID(dropping._id.toString())}
@@ -561,17 +661,18 @@ const DataSecurityTelemetryPage: FunctionComponent<
         showRefreshButton={true}
         searchableFields={["location"]}
         selectMoreFields={{
+          // What OneUptime AI says of it, across its row (#10372).
+          ...FINDING_ROW_NOTE_SELECT,
           dataStoreId: true,
           dataTypeName: true,
           isScrubbed: true,
-          locationKind: true,
           sensitivity: true,
           // What a finding's records panel says of it.
           valueCount: true,
-          matchCount: true,
           lastSeenAt: true,
           ...(canReadSamples ? { maskedSamples: true } : {}),
         }}
+        getRowNote={getFindingRowNote}
         filters={[
           {
             field: { confidence: true },

@@ -238,6 +238,25 @@ export const TABLE_PRIMARY_CELL_TEXT_CLASS_NAME: string =
 export const TABLE_ROW_RULE_CLASS_NAME: string = "border-b border-gray-100";
 
 /*
+ * A row's note (Table's getRowNote): a line about the row drawn across its
+ * whole width, under its cells - OneUptime AI's verdict on a finding and
+ * why, a suggestion's reason - where a column was too narrow to hold a
+ * sentence (#6105, #10372). It starts where the row's first value does,
+ * sits close under the row, and takes the row's hairline under it. On a
+ * phone's card it sits above the card's buttons.
+ */
+export const TABLE_ROW_NOTE_CELL_CLASS_NAME: string =
+  "pb-3 pt-0 [[data-density=compact]_&]:pb-2 align-top text-sm leading-6 whitespace-normal break-words font-normal text-gray-700";
+
+export const TABLE_CARD_ROW_NOTE_CLASS_NAME: string =
+  "[@container(min-width:30rem)]:col-span-2 min-w-0 whitespace-normal break-words text-sm leading-6 text-gray-700";
+
+// The rows of a row with a note, lit together under the pointer.
+export const TABLE_ROW_LIT_CLASS_NAME: string = "bg-gray-50";
+
+export const TABLE_ROW_NOTE_TEST_ID: string = "table-row-note";
+
+/*
  * The cells before the columns: a drag grip (28px tall, so 10px above and
  * below it make the row's 48px) and a select box (on the row's 24px line).
  */

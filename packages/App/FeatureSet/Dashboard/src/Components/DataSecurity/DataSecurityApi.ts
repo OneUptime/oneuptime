@@ -8,6 +8,9 @@ import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityAiInputResponse,
+  DataSecurityApplyToSimilarResult,
+  DataSecuritySimilarFinding,
+  DataSecuritySimilarFindings,
   DataSecurityComplianceResponse,
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
@@ -495,6 +498,78 @@ export default class DataSecurityApi {
       DATA_SECURITY_API_ROUTES.dropMetric(findingId.toString()),
       { confirmDataLoss: true },
     )) as unknown as DataSecurityDropMetricResult;
+  }
+
+  /*
+   * The findings like one a person decided (#10372): the same data type in
+   * a field of the same name, undecided, on the stores they may read. Read
+   * defensively: a row that is not one is left out.
+   */
+  public static async getSimilarFindings(
+    findingId: ObjectID,
+  ): Promise<DataSecuritySimilarFindings> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.similarFindings(findingId.toString()),
+    );
+    const text: (value: unknown) => string = (value: unknown): string => {
+      return typeof value === "string" ? value : "";
+    };
+    const findings: Array<DataSecuritySimilarFinding> = Array.isArray(
+      answer["findings"],
+    )
+      ? (answer["findings"] as Array<JSONValue>)
+          .filter((entry: JSONValue): entry is JSONObject => {
+            return (
+              Boolean(entry) &&
+              typeof entry === "object" &&
+              !Array.isArray(entry) &&
+              ObjectID.isValidUUID(text((entry as JSONObject)["findingId"]))
+            );
+          })
+          .map((entry: JSONObject): DataSecuritySimilarFinding => {
+            return {
+              findingId: text(entry["findingId"]),
+              dataStoreId: text(entry["dataStoreId"]),
+              storeName: text(entry["storeName"]),
+              storeKind: text(entry["storeKind"]),
+              location: text(entry["location"]),
+              locationKind: text(entry["locationKind"]),
+              dataTypeId: text(entry["dataTypeId"]),
+              dataTypeName: text(entry["dataTypeName"]),
+              confidence: text(entry["confidence"]),
+              aiVerdict: text(entry["aiVerdict"]),
+              isSameStore: entry["isSameStore"] === true,
+            };
+          })
+      : [];
+
+    return {
+      findingId: text(answer["findingId"]),
+      decision: text(answer["decision"]),
+      reason: text(answer["reason"]),
+      hasName: answer["hasName"] === true,
+      findings,
+    };
+  }
+
+  // The same decision, with the person's reason, on the findings they keep ticked.
+  public static async applyToSimilarFindings(data: {
+    findingId: ObjectID;
+    findingIds: Array<string>;
+  }): Promise<DataSecurityApplyToSimilarResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.applyToSimilarFindings(
+        data.findingId.toString(),
+      ),
+      { findingIds: data.findingIds },
+    );
+
+    return {
+      decision:
+        typeof answer["decision"] === "string" ? answer["decision"] : "",
+      applied: typeof answer["applied"] === "number" ? answer["applied"] : 0,
+      skipped: typeof answer["skipped"] === "number" ? answer["skipped"] : 0,
+    };
   }
 
   // The newest records a telemetry finding's data was seen in, read now.

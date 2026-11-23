@@ -557,6 +557,12 @@ export interface BaseTableProps<
    */
   topContent?: ReactElement | undefined;
   /*
+   * A line about a row across its whole width, under its cells (Table's
+   * getRowNote): OneUptime AI's verdict on a finding, a suggestion's
+   * reason - a sentence a column is too narrow to hold.
+   */
+  getRowNote?: ((item: TBaseModel) => ReactElement | null) | undefined;
+  /*
    * The list's help (?): a title, a line under it and a markdown document
    * of a lead and "##" topics, opened in the help dialog (HelpModal) from
    * the card's header and from the empty list.
@@ -5767,6 +5773,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         onRefreshClick={refreshFromRefreshButton}
         actionButtons={actionButtonSchema}
         getRowProps={getRowProps}
+        getRowNote={props.getRowNote}
         /*
          * The widths a person gives this list's columns are remembered with
          * its column choices and page size, under the same key.
