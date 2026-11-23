@@ -25,7 +25,9 @@ import {
   SecuritySetupStatus,
   getSecurityAddressScrubItems,
 } from "./SecuritySetupModel";
+import { OPEN_SCRUB_RULES } from "../SecurityEvents/HiddenClientAddressCopy";
 import { HashInsteadButton } from "../Telemetry/HashInstead/HashInsteadNotice";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   SecuritySetupTestButton,
   SecuritySetupTestResultLine,
@@ -148,11 +150,12 @@ export const SECURITY_ADDRESS_SCRUB_TEST_ID: string =
 /*
  * A scrub rule keeps Security Events from naming the address attacks came
  * from (#10397): said once for the logs it reads and once for the traces,
- * with the rule that does it and Hash Instead (#10396), which switches the
+ * with the rule that does it, Hash Instead (#10396), which switches the
  * rule to Hash - people still read a token, and Security Events names the
- * address behind it - an exception to act on, at the card's foot where the
- * pipeline's other lines are, on a project set up or not (Get started's
- * steps say nothing of it). Switched, the card reads its figures again.
+ * address behind it - and a way to the rule - an exception to act on, at
+ * the card's foot where the pipeline's other lines are, on a project set up
+ * or not (Get started's steps say nothing of it). Switched, the card reads
+ * its figures again.
  */
 const AddressScrubRow: FunctionComponent<{
   item: SecurityAddressScrubItem;
@@ -195,7 +198,7 @@ const AddressScrubRow: FunctionComponent<{
           )}
         </div>
       </div>
-      <div className="flex-shrink-0 self-end md:self-auto">
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-2 self-end md:self-auto">
         <HashInsteadButton
           rule={{
             signal: props.item.signal,
@@ -205,6 +208,15 @@ const AddressScrubRow: FunctionComponent<{
           buttonStyle={ButtonStyleType.NORMAL}
           onSwitched={props.onSwitched}
           dataTestId={`${SECURITY_ADDRESS_SCRUB_TEST_ID}-${props.item.signal}-hash-instead`}
+        />
+        <Button
+          title={OPEN_SCRUB_RULES}
+          icon={IconProp.EyeSlash}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId={`${SECURITY_ADDRESS_SCRUB_TEST_ID}-${props.item.signal}-open`}
+          onClick={() => {
+            Navigation.navigate(route(props.item.rulesPage));
+          }}
         />
       </div>
     </div>

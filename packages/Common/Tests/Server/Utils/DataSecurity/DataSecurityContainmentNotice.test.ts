@@ -227,6 +227,26 @@ describe("who it goes to", () => {
     expect(sent).toEqual([]);
     expect(feed).not.toHaveBeenCalled();
 
+    // With an issue, its timeline says nobody was told, so a reader names owners.
+    expect(
+      await DataSecurityContainmentNotice.send({
+        projectId: PROJECT_ID,
+        dataStoreId: STORE_ID,
+        dataStoreName: "checkout logs",
+        dataSecurityIssueId: ISSUE_ID,
+        isSecret: true,
+        content: CONTENT,
+      }),
+    ).toBe(0);
+    expect(sent).toEqual([]);
+    expect(feed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataSecurityIssueId: ISSUE_ID,
+        feedInfoInMarkdown:
+          "No one was emailed about the change OneUptime AI made: neither the store nor its service has an owner.",
+      }),
+    );
+
     jest
       .spyOn(DataSecurityIntegrations, "getOwnerUsers")
       .mockRejectedValue(new Error("the database is down"));

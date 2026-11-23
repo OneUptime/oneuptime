@@ -3,7 +3,7 @@ import Model from "../../Models/DatabaseModels/TraceScrubRule";
 import CreateBy from "../Types/Database/CreateBy";
 import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate } from "../Types/Database/Hooks";
 import {
   TRACE_SCRUB_FIELDS,
   TRACE_SCRUB_PATTERN_TYPES,
@@ -52,18 +52,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The attributes an update names, as a list (#10366) - then the base
-   * hook, which checks the service it names is the project's own.
-   */
-  protected override async onBeforeUpdate(
-    updateBy: UpdateBy<Model>,
-  ): Promise<OnUpdate<Model>> {
-    normalizeScrubRuleKeys(updateBy.data as { attributeKeys?: unknown });
-
-    return await super.onBeforeUpdate(updateBy);
-  }
-
-  /*
    * An update is judged on the rows it matches, once the caller has passed
    * the permission checks and the query is narrowed to the rows they may
    * write - so the stored rows read to merge it over are never another
@@ -72,6 +60,13 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdateUniqueCheck(
     updateBy: UpdateBy<Model>,
   ): Promise<void> {
+    /*
+     * The attributes an update names, as a list (#10366): here, not in
+     * onBeforeUpdate, which runs before the permission checks and is the
+     * base's alone (it checks the service a rule names is the project's).
+     */
+    normalizeScrubRuleKeys(updateBy.data as { attributeKeys?: unknown });
+
     await validateScrubRuleUpdate<Model>({
       updateBy: updateBy,
       findRowsAndHoldUpdateToThem: async (

@@ -149,10 +149,12 @@ describe("the scrub rule form", () => {
       patternTypes,
       scrubFields,
     }: ScrubRuleFormCase) => {
-      test("starts from what the rule scrubs: the pattern type, its regex, then the name", () => {
+      test("starts from what the rule scrubs: the pattern type, its regex or its attributes, then the name", () => {
         expect(fields.map(keyOf)).toEqual([
           "patternType",
           "customRegex",
+          // A Named Attributes rule's attributes to hide (#10366).
+          "attributeKeys",
           "name",
           "description",
           "scrubAction",

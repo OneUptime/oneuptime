@@ -220,6 +220,18 @@ export default class DataSecurityContainmentNotice {
       });
 
       if (recipients.length === 0) {
+        // Nobody to tell: the issue says so, so a reader knows to name owners.
+        if (data.dataSecurityIssueId) {
+          await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
+            projectId: data.projectId,
+            dataSecurityIssueId: data.dataSecurityIssueId,
+            eventType: DataSecurityIssueFeedEventType.OwnersNotified,
+            displayColor: Blue500,
+            feedInfoInMarkdown:
+              mdText`No one was emailed about the change OneUptime AI made: neither the store nor its service has an owner.`.toString(),
+          });
+        }
+
         return 0;
       }
 

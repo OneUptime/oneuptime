@@ -1,3 +1,4 @@
+import { TelemetrySampleSource } from "./TelemetrySampleSource";
 import { ResponseJSON } from "@clickhouse/client";
 import { createHash } from "crypto";
 import RumApplication from "../../../../Models/DatabaseModels/RumApplication";
@@ -254,16 +255,8 @@ const DEFAULT_BYTES_PER_SCAN: number = 50 * 1024 * 1024;
 // Attributes OneUptime stamps itself (oneuptime.service.id, ...): not the project's data.
 const ONEUPTIME_ATTRIBUTE_PREFIX: string = "oneuptime.";
 
-export enum TelemetrySampleSource {
-  Logs = "Logs",
-  Traces = "Traces",
-  Exceptions = "Exceptions",
-  AiConversations = "AiConversations",
-  RumLogs = "RumLogs",
-  RumSpans = "RumSpans",
-  RumSessions = "RumSessions",
-  Metrics = "Metrics",
-}
+// Kept in a module of its own, which loads before any of this one's imports.
+export { TelemetrySampleSource };
 
 // Who a source's records belong to: a Service, or a RUM application.
 type SampleOwner = "service" | "rum" | "rumSession";

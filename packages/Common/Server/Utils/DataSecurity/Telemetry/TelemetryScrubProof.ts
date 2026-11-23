@@ -40,8 +40,9 @@ import {
   SourceDefinition,
   TelemetryRecordValue,
   TelemetrySampleCaps,
-  TelemetrySampleSource,
 } from "./TelemetryDataScanner";
+// Read while this module loads, which can be in the middle of the scanner's: see its module.
+import { TelemetrySampleSource } from "./TelemetrySampleSource";
 import {
   buildOccurrenceMatcher,
   buildTelemetryOccurrenceStatement,
