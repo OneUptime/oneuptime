@@ -211,6 +211,25 @@ export const OCCURRENCE_MAX_PAIRS_PER_RECORD: number = 64;
 // How long the read may run.
 export const OCCURRENCE_READ_TIME_LIMIT_IN_SECONDS: number = 20;
 
+/*
+ * The resource attribute a service names its version in, as its records
+ * keep it among their attributes (#10368): what a code fix's version is
+ * read by. A RUM application's records name none.
+ */
+export const SERVICE_VERSION_ATTRIBUTE_KEY: string = "resource.service.version";
+
+// The longest a record's version is read.
+export const MAX_OCCURRENCE_VERSION_LENGTH: number = 100;
+
+// The records that carry their service's version among their attributes.
+export const VERSIONED_OCCURRENCE_SOURCES: ReadonlySet<TelemetrySampleSource> =
+  new Set([
+    TelemetrySampleSource.Logs,
+    TelemetrySampleSource.Traces,
+    TelemetrySampleSource.AiConversations,
+    TelemetrySampleSource.Exceptions,
+  ]);
+
 const OCCURRENCE_MAX_RESULT_BYTES: number = 64 * 1024 * 1024;
 
 type OccurrenceTextColumn =
@@ -921,10 +940,20 @@ export function buildTelemetryOccurrenceStatement(
     caps: TelemetrySampleCaps;
     records?: ReadonlyArray<FindingSampleRecord> | undefined;
     prefilter?: string | null | undefined;
+    /*
+     * Only the records of this version of the service (#10368): what a
+     * code fix is proven on, its deploy's version and no other.
+     */
+    serviceVersion?: string | undefined;
+    // Each record's version too (readServiceVersion): the one a leak came back in.
+    readsServiceVersion?: boolean | undefined;
   },
 ): Statement {
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const statement: Statement = SQL`SELECT `;
+  const isVersioned: boolean =
+    VERSIONED_OCCURRENCE_SOURCES.has(data.plan.source) &&
+    (Boolean(data.serviceVersion) || Boolean(data.readsServiceVersion));
 
   statement.append(source.ownerColumn);
   statement.append(" AS ownerId, toUnixTimestamp64Milli(toDateTime64(");
@@ -932,10 +961,30 @@ export function buildTelemetryOccurrenceStatement(
   statement.append(", 3)) AS recordTime");
   appendRecordKeys(statement, data.plan);
   appendOccurrenceColumns(statement, data.plan.read, data.caps);
+
+  if (isVersioned && data.readsServiceVersion) {
+    statement.append(", substringUTF8(attributes[");
+    statement.append(
+      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}], 1, `,
+    );
+    appendNumber(statement, MAX_OCCURRENCE_VERSION_LENGTH);
+    statement.append(") AS readServiceVersion");
+  }
+
   statement.append(" FROM ");
   statement.append(tableOf(source.table));
   appendWhere(statement, source, data);
   appendOwnersIn(statement, source, [data.ownerId]);
+
+  if (isVersioned && data.serviceVersion) {
+    statement.append(" AND attributes[");
+    statement.append(
+      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}] = ${{
+        type: TableColumnType.Text,
+        value: data.serviceVersion,
+      }}`,
+    );
+  }
 
   if (data.records && data.records.length > 0) {
     appendRecordTimes(

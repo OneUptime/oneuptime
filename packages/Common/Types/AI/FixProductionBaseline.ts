@@ -126,6 +126,8 @@ export interface TelemetryLeakFixStore {
 export interface TelemetryLeakFixBaseline {
   serviceId: string;
   stores: Array<TelemetryLeakFixStore>;
+  // The code task in Code that opened the pull request (its first turn).
+  taskId?: string | undefined;
   // The values the places' rules changed in the week before the merge.
   valuesChangedBefore: number;
   // ISO-8601: the week read, before the merge.
@@ -147,6 +149,10 @@ export interface StoreConfigurationFixIssue {
  */
 export interface StoreConfigurationFixBaseline {
   issues: Array<StoreConfigurationFixIssue>;
+  // The code task in Code that opened the pull request (its first turn).
+  taskId?: string | undefined;
+  // Who asked OneUptime AI for it: the pull request's author, to OneUptime.
+  askedByUserId?: string | undefined;
   // ISO-8601: when the stores were asked to be read again, at once after the merge.
   readAskedAt?: string | undefined;
   // ISO-8601: when they were asked again, a day after the merge.

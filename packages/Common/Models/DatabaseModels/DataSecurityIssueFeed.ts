@@ -74,12 +74,14 @@ export enum DataSecurityIssueFeedEventType {
    * merged and shipped in a deploy; production proved it (Fixed in pull
    * request #n, deployed in version x, verified at time t); it merged and,
    * a day later, the store still failed its check (merged, not applied);
-   * or the data came back - after the fix shipped, or in a later version.
+   * the data came back - after the fix shipped, or in a later version; or
+   * production could not tell.
    */
   FixShipped = "FixShipped",
   FixVerified = "FixVerified",
   FixNotApplied = "FixNotApplied",
   FixRegressed = "FixRegressed",
+  FixUnverifiable = "FixUnverifiable",
 }
 
 /*
