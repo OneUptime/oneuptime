@@ -159,7 +159,7 @@ describe("the trace read", () => {
     }
 
     expect(statement.query).toContain(
-      "multiSearchAnyCaseInsensitive(llmUserMessagePreview, [unhex({p",
+      "multiSearchAnyCaseInsensitive(llmUserMessagePreview, CAST(unhex({p",
     );
   });
 });
