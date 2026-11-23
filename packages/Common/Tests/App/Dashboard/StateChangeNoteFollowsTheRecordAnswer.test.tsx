@@ -96,8 +96,10 @@ jest.mock(
  */
 jest.mock("../../../UI/Components/ModelFormModal/ModelFormModal", () => {
   const actual: { default: React.FunctionComponent<JSONObject> } =
-    jest.requireActual("../../../UI/Components/ModelFormModal/ModelFormModal");
-  const react: typeof React = jest.requireActual("react");
+    jest.requireActual(
+      "../../../UI/Components/ModelFormModal/ModelFormModal",
+    ) as { default: React.FunctionComponent<JSONObject> };
+  const react: typeof React = jest.requireActual("react") as typeof React;
 
   return {
     __esModule: true,

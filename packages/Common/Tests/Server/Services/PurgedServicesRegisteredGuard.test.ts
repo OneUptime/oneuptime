@@ -444,9 +444,11 @@ function modulesOf(askers: Array<PurgeAsker>): Array<string> {
 
 // The service a module of the folder exports as its default.
 function loadService(module: string): unknown {
-  return jest.requireActual<{ default: unknown }>(
+  const loaded: { default?: unknown } = jest.requireActual(
     path.join(SERVICES_DIRECTORY, module),
-  ).default;
+  ) as { default?: unknown };
+
+  return loaded.default;
 }
 
 describe("the services the purge reads", () => {
