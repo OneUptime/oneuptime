@@ -63070,5 +63070,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
-  "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है"
+  "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है",
+  "Type a repository's name to find one that is not listed.": "जो रिपॉजिटरी सूची में नहीं है, उसे खोजने के लिए उसका नाम लिखें।"
 }

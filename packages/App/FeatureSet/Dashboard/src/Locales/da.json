@@ -63070,5 +63070,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Den 95. percentil af denne apps svartid i hvert minut, i gennemsnit over det valgte tidsrum, som {{service}} måler den.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhedshændelser er slået fra på denne server, så OneUptime AI holdt op med at arbejde med sagen.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhedshændelser er slået fra på denne server. En serveradministrator kan slå det til under Admin-dashboard > Indstillinger > Produkter.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} af {{total}} markeret"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} af {{total}} markeret",
+  "Type a repository's name to find one that is not listed.": "Skriv navnet på et repositorium for at finde et, der ikke står på listen."
 }

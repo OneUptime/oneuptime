@@ -63070,5 +63070,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "صدک ۹۵ زمان پاسخ این برنامه در هر دقیقه، به‌طور میانگین در بازه انتخاب‌شده، طبق اندازه‌گیری {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "رویدادهای امنیتی در این سرور خاموش شده است، بنابراین OneUptime AI رسیدگی به پرونده را متوقف کرد.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} از {{total}} تیک‌خورده"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} از {{total}} تیک‌خورده",
+  "Type a repository's name to find one that is not listed.": "برای یافتن مخزنی که در فهرست نیست، نام آن را بنویسید."
 }

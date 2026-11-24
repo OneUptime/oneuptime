@@ -63070,5 +63070,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "95-й перцентиль времени ответа этого приложения в каждую минуту, в среднем за выбранный период, по измерениям {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты».",
-  "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}"
+  "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}",
+  "Type a repository's name to find one that is not listed.": "Введите имя репозитория, чтобы найти тот, которого нет в списке."
 }

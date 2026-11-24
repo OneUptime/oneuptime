@@ -63070,5 +63070,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "このアプリの毎分の応答時間の 95 パーセンタイルを、選択した範囲で平均した値です（{{service}} の測定値）。",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
-  "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択"
+  "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択",
+  "Type a repository's name to find one that is not listed.": "一覧にないリポジトリは、名前を入力して検索してください。"
 }
