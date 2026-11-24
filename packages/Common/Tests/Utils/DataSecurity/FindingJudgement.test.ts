@@ -8,6 +8,7 @@ import { DATA_TYPE_CATALOG } from "../../../Types/DataSecurity/DataTypeCatalog";
 import {
   areFindingsSimilar,
   FindingJudgementFacts,
+  FindingPlaceFacts,
   getFindingFieldName,
   getFindingNameKey,
   getFindingNameWords,
@@ -95,10 +96,13 @@ describe("a field's name, as two findings are alike by it", () => {
     ["a bare value", { location: "value" }],
     ["data.json", { location: "data.json" }],
     ["nothing", { location: "" }],
-  ])("%s has no name to be alike by", (_title: string, place: object) => {
-    expect(getFindingNameKey(place)).toBeNull();
-    expect(getFindingNameWords(place)).toEqual([]);
-  });
+  ])(
+    "%s has no name to be alike by",
+    (_title: string, place: FindingPlaceFacts) => {
+      expect(getFindingNameKey(place)).toBeNull();
+      expect(getFindingNameWords(place)).toEqual([]);
+    },
+  );
 
   test("a generic word beside a telling one still names the field", () => {
     expect(getFindingNameKey({ location: "orders.id" })).toBe("orders id");

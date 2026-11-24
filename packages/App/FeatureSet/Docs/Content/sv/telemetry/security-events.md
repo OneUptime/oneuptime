@@ -65,6 +65,7 @@ flowchart TB
 | **Anteckningsmallar** | Inställningar | Färdig text för anteckningarna ditt team skriver i sina ärenden |
 | **Numrering** | Inställningar | Texten framför ärendenumren och numret som nästa ärende får |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
+| **Raderingsbegäranden** | Inställningar | Personer som raderats på begäran, och vad varje radering ändrade |
 
 **Detektioner**, **AI**, **Anslutningar** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
@@ -187,7 +188,7 @@ Sidan **Installationsguide**, under **Anslutningar**, har de här kodsnuttarna m
 
 ### Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och nekad förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
 
 Varje typ når OneUptime som vanliga loggar:
 
@@ -246,7 +247,7 @@ Slå på **Nätverksflöden** under **Dina OneUptime-data** på **Anslutningar**
 - intervallet för var och en av dess identifieringar, medan skanningen pågår;
 - värdarna och portarna som dess monitorer kontrollerar.
 
-Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in.
+Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in. En anpassad sond utan värdens nätverk, som en Kubernetes-pod eller en container på ett Docker-bridgenätverk, känns också igen på värdens adresser, som `PROBE_HOST_IP_ADDRESSES` ger den: tills den har dem lämnar dess avfrågningar maskinen från en adress den inte känns igen på och rapporteras som svep. Se [Vad en sond skickar när den hör av sig](/docs/probe/custom-probe#vad-en-sond-skickar-när-den-hör-av-sig).
 
 ### Anslut en säkerhetsprodukt
 
@@ -288,6 +289,55 @@ Varje händelse lagras med typade fält och källans nyttolast:
 
 Händelser som lagrades före OneUptime 14.0.84 lämnar processfälten tomma och anger sin process bara som `principalProcess`, den process som agerade. De fylls inte i efteråt: de behåller det de lagrades med tills deras lagringstid tar slut.
 
+### Vilken adress en händelse nämner
+
+En händelse nämner adressen som en begäran kom från bara när begärans avsändare inte själv kan ha skrivit den. Den adressen är verifierad, och den blir händelsens **Käll-IP**: Detektionsregler räknar den, hotunderrättelser matchar den, och ett ärendes **Responsplan** erbjuder att blockera den. Varje annan adress som en begäran nämner är bara uppgiven: Händelsen behåller den som **Uppgiven IP**, och ingenting räknar eller blockerar den.
+
+- Anslutningens egen adress är verifierad: `network.peer.address` i ett serverspann, eller det första fältet på en rad i en webbservers åtkomstlogg. Ingen kan skriva in den i en begäran.
+- Bakom en proxy du litar på är anslutningens adress proxyns, och klienten är adressen som proxyn vidarebefordrade i `X-Forwarded-For`. Varje proxy lägger till adressen som den tog emot anslutningen från, så OneUptime läser headern från höger och tar den första adressen som inte är en proxy du litar på. Det som en avsändare skriver i headern hamnar till vänster om den och förblir ett påstående.
+- En adress som en begäran nämner om sig själv är uppgiven: `client.address`, som instrumenteringen fyller i från vänster sida av headern, resten av `X-Forwarded-For` och `Forwarded`.
+
+En uppgiven adress blockeras aldrig från ett ärende: Vem som helst kan skicka `X-Forwarded-For: 192.0.2.44`, och en blockering skulle stänga ute den som än har 192.0.2.44. En händelse med bara en uppgiven adress har en **Responsplan** som ber dig hitta den riktiga adressen i loggarna från din lastbalanserare eller brandvägg.
+
+Registrera två saker på appens serverspann så att dess adresser är verifierade: anslutningens egen adress, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringar sätter, och bakom en proxy headern `X-Forwarded-For`, som de registrerar som `http.request.header.x-forwarded-for` när du anger den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-åtkomstlogg läses på samma sätt: Dess klientfält, som `remote_addr`, är anslutningens adress, och dess fält `http_x_forwarded_for` är headern.
+
+#### Betrodda proxyservrar
+
+Säkerhetshändelser tror en proxy om vem dess klient var när dess adress är:
+
+| Betrodd | Varför |
+| --- | --- |
+| Privat, loopback eller link-local, som `10.0.0.5` | Alltid: Ingen har den på internet, så den är en lastbalanserare eller en ingress i ditt nätverk |
+| Listad under **Betrodda proxyservrar** | Du listade den |
+| I de publicerade intervallen för en kant du har anslutit, som [Cloudflare](/docs/integrations/cloudflare) | Så länge anslutningen finns |
+| En av dina egna applikationslastbalanserare | Om du inte stänger av det |
+
+**Säkerhetshändelser → Anslutningar → Fler inställningar** innehåller **Betrodda proxyservrar**, listan du skriver, och **Betrodda automatiskt**, som visar resten och varför. Lista en proxy under **Betrodda proxyservrar**, en adress eller ett intervall på varje rad, när dess adress är offentlig och inget annat litar på den: ett CDN du inte har anslutit, en lastbalanserare som når din app över internet, eller en omvänd proxy som nginx på en server med en offentlig adress framför din app. Tills du gör det skylls varje attack genom den på proxyn. Bakom en global extern Application Load Balancer i Google Cloud kommer appens anslutningar från Googles front-ends: Lista `35.191.0.0/16` och `130.211.0.0/22`.
+
+Dina egna applikationslastbalanserare är de som dina [anslutna molnkonton](/docs/telemetry/cloud-accounts) listar: AWS Application Load Balancers, AWS Classic Load Balancers vars lyssnare alla är HTTP eller HTTPS, Google Cloud Application Load Balancers och Azure Application Gateways, med sina offentliga adresser. Var och en lägger till klienten den vidarebefordrar i `X-Forwarded-For`. En lastbalanserare i Google Cloud lägger till sin egen adress efter klientens, och en Application Gateway når en offentlig backend från sin egen adress, så utan dem skulle varje attack genom en av dem skyllas på lastbalanseraren. **Dina lastbalanserare** på **Betrodda automatiskt** listar dem, och en Projektägare, Projektadministratör eller Säkerhetsadministratör kan stänga av det.
+
+Inget annat av ditt är betrott automatiskt: inte dina värdar, Kubernetes-noder, sonder eller virtuella maskiner, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserare. De vidarebefordrar ingen, eller skickar en begäran vidare som den kom, så det som körs på dem skulle kunna ange vilken klient som helst: en begäran som en monitor skickar med egna headers, en pod, en bärbar dator bakom gatewayen. Om en av dem är din proxy, lägg till den i **Betrodda proxyservrar**. En Kubernetes-ingress är betrodd som den lastbalanserare den är: En GKE-ingress är en Google Cloud Application Load Balancer, en AKS-ingress för Application Gateway en Application Gateway, och en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-controller i ditt kluster vidarebefordrar från en privat adress, som alltid är betrodd.
+
+En ändring av någon av dessa gäller inom en minut, och en ny lastbalanserare blir betrodd inom fem.
+
+#### Åtkomstloggar som slutar med X-Forwarded-For
+
+Bakom en lastbalanserare loggar många webbservrar den vidarebefordrade adressen sist, som nginx eget format `main` gör:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+En rad säger aldrig vad dess fält är, så dess sista fält läses som `X-Forwarded-For` först när du slår på **Loggar slutar med X-Forwarded-For** på **Åtkomstloggar** under **Fler inställningar**, och då bara:
+
+- när radens första fält är en proxy du litar på: En rad från en klient som nådde din webbserver direkt är den klientens;
+- i formatet combined, med exakt ett fält inom citattecken efter user agent och inget efter det;
+- när det fältet är `-` eller en lista med adresser vars sista saknar port.
+
+Låt det vara avstängt när ditt format slutar med en annan header som innehåller en adress, som `X-Real-IP`, eller när din webbserver skriver headers utan att escapa deras citattecken, som `morgan` för Express gör: En begärans egen user agent skulle då kunna lägga till ett fält. En JSON-åtkomstlogg behöver inget reglage, eftersom dess fält har namn.
+
 ### Dold av en rensningsregel
 
 En IP-adressregel som raderar eller maskerar dina loggar eller spår döljer adressen som en attack kom från innan Säkerhetshändelser läser dem. Händelsen sparas ändå, utan adress, och överallt där den skulle namnge adressen säger den att en scrub-regel dolde den:
@@ -303,6 +353,8 @@ En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen nam
 En detektionsregel som räknar per adress bör, precis som regelbibliotekets regler, räkna per `principalIp` eller `targetIp`, som namnger adressen bakom token från en regel som hashar. Ett formats eget adressfält, till exempel `openstack.audit.initiator_address` eller `asa.src_ip`, innehåller bara en adress som står i loggen, så det förblir tomt överallt där en scrub-regel dolde adressen.
 
 En regel som raderar eller maskerar en användare döljer den på samma sätt: där händelsen skulle namnge användaren säger **Källanvändare** eller **Målanvändare** att en scrub-regel dolde den. Där Säkerhetshändelser läser en användare sparar en regel som hashar användaren åt den: en begärans `enduser.id` eller `user.id`, ett AI-anrops användare och en användare som en loggrad namnger, till exempel principal i en granskningslogg från molnet. Så händelsen namnger användaren bakom token, ett ärende om användaren namnger kontot, och en playbook kan agera på det som på vilken annan användare som helst. Det regeln lämnade finns i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så att du kan hitta användaren i dina loggar och spår, som bara innehåller token. En token som ingen användare har sparats för, till exempel en som skapades innan tokens hade en nyckel, förblir händelsens användare: regler räknar den som ett konto, och ingen playbook agerar på den.
+
+Händelsens panel säger det under användaren den nämner i **Källanvändare** och **Målanvändare**: ”Hashad i dina loggar som …”, eller ”Hashad i dina spår som …” för en händelse läst från dina spårningar, där … är token. Token är en länk som söker efter den i dina loggar eller spårningar, från en dag före händelsen till en dag efter. En användare som raderats på begäran visar i stället **Raderad på begäran**, och händelsen visar deras token: se [Radera en person](#radera-en-person).
 
 ## Utforska säkerhetshändelser
 
@@ -335,13 +387,24 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Nådde appen**, **Fel** eller **Nådde databasen**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
 
+### En känslig fil som din webbplats levererade
+
+En förfrågan efter en fil som innehåller hemligheter, till exempel `/.env`, `/.git/config`, `/.aws/credentials` eller en kopia av `wp-config.php`, är en läcka när din webbplats besvarade den med själva filen: den som frågade har nu dess lösenord, nycklar och token. En ensidesapp besvarar varje sökväg den inte har med sin egen sida och en 200, så en 200 säger det aldrig ensam. OneUptime läser vad svaret innehöll:
+
+- En typ som ingen webbsida har, till exempel `text/plain` eller `application/octet-stream`: själva filen.
+- En webbsida, eller JSON för en fil som inte är JSON: din webbplats egen sida.
+- Ingenting i det: inget togs.
+- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. När inget avgör det blir förfrågan ingen händelse.
+
+En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**.
+
 ### Campaigns
 
 **Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först. En rad som din blocklista redan håller säger till när den är blockerad eller utmanad, och nämner intervallet eller nätverket som håller den.
 
 För att blockera flera angripare på en gång markerar du deras rader och trycker på **Blockera adresser**. En enda dialog listar varje adress som den blockerar och varje adress som den utelämnar, med skälet: redan blockerad, en av dina egna eller en skyddad, en som en inloggad användare har använt de senaste 30 dagarna, eller en som OneUptime inte kunde kontrollera. Den blockerar i 24 timmar om du inte väljer en annan längd, eller utmanar med **Utmana i stället**, och varje blockering hamnar på din [blocklista](/docs/telemetry/security-cases#blocklista) som din.
 
-**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har.
+**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har. **Visa begäranden** på ett nätverks rad öppnar det som nätverket skickade i **Händelser**: ett ASN:s efter det ASN som dess Cloudflare-händelser bär, och ett intervalls som en sökning efter dess adresser, till exempel `ip:203.0.113.*`, som du kan ändra.
 
 - Ett nätverk som innehåller en adress som en inloggad användare har använt de senaste 30 dagarna, eller en av dina egna, utmanas aldrig, och dialogen nämner vem eller vad.
 - Ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ett helt ASN, kräver en Säkerhetsadministratör, en Projektadministratör eller en Projektägare. Ett ASN:s rad erbjuder också vart och ett av dess intervall, som alla som får blockera kan utmana.
@@ -537,6 +600,8 @@ Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger trös
 | Password spraying: en IP som misslyckas mot 5 olika konton | `principalIp` | `principalUser` | 5 |
 | Portskanning: en IP som når 20 olika portar | `principalIp` | `targetPort` | 20 |
 
+En regel med ett **Grupperingsfält** som behöver mer än en händelse i en grupp, genom ett tröskelvärde över 1 eller ett **Fält för unik räkning**, utelämnar händelserna som saknar värde för dess fält: Räknade skulle de alla läggas ihop som ett värde, varje misslyckad inloggning utan adress som en IP-adress. En regel som utlöses av varje händelse fortsätter att utlösas för dem. **Detektionsregler** visar under en regels namn hur många av det senaste dygnets matchande händelser den inte kunde räkna, och raden öppnar varför: hur många som saknade värde, och hur många av dem en scrub-regel dolde, med **Öppna scrub-regler**. En regel som inte kunde räkna något av det den matchade kan inte utlösas, och dess **Status** säger **Kräver uppmärksamhet**. **Kör på tidigare händelser** säger detsamma för perioden den läser.
+
 ### När en regel körs
 
 OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna som kom fram till OneUptime mellan den föregående körningen och för två minuter sedan, oavsett när de hände, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande skrivs:
@@ -685,6 +750,30 @@ Allt i Säkerhetshändelser som läser tidigare händelser läser bara de hände
 - En hunt vars **Tidsintervall** är längre än händelserna lagras hittar inget äldre, och dess formulär säger det.
 
 **Projektinställningar → Telemetri och APM → Datalagring** listar de aktiverade regler som tittar längre tillbaka än dess **Standardlagring (dagar)**. För att täcka dem, lagra händelser längre, med **Ändra lagring** under en regel, eller korta av en regels tidsspann till det som lagras. OneUptime lagrar 15 dagar om du inte ändrar det, eftersom lagringen avgör vad din telemetri kostar och hur länge personuppgifter i händelser, som adresser och användarnamn, lagras. En ny lagring gäller händelser som kommer in från och med då, så reglerna ser längre tillbaka i takt med att de händelserna blir äldre.
+
+## Radera en person
+
+När någon ber dig radera deras data, till exempel enligt artikel 17 i GDPR, raderar du dem i **Säkerhetshändelser → Inställningar → Raderingsbegäranden**. Välj **Radera person** och ange deras användar-id eller e-postadress som dina loggar innehöll den innan din Hash-rensningsregel dolde den, eller den token en händelse visar i stället. En e-postadress raderas även med gemener. Ange din egen referens under **Referens**, till exempel begärans ärendenummer, aldrig personens namn.
+
+Vad begäran gör:
+
+- Inom en minut slutar Säkerhetshändelser att nämna personen. Användarvalvet nekar från och med då deras token, så ingen händelse, inget ärende och ingen playbook nämner dem igen, inte ens när en senare händelse bär samma token: den händelsen behåller token som sin användare, som för varje token utan sparad användare. Att spara en token som kommer tillbaka skulle nämna personen igen, och det är just det de har bett dig sluta med.
+- Inom några minuter tar den bort valvets poster om dem och sätter tillbaka token på deras plats i händelserna som nämnde dem via valvet: **Källanvändare**, **Målanvändare**, observablerna och attributen. Den tar bort dem ur titlar, entiteter och sparade händelser i ärenden och detektioner, och ur entitetsrisk.
+- En playbook-körning eller en åtgärd från OneUptime AI som väntar på godkännande för att agera på dem dras tillbaka och säger varför.
+
+Varje begäran visar sin status, **I kö**, **Raderar**, **Raderad** eller **Misslyckades**, och vad den ändrade: de borttagna valvposterna, händelserna och ärendena som inte längre nämner dem och de återkallade förslagen. Raderingen börjar två minuter efter att begäran har skickats in, när ingen OneUptime-server längre nämner personen, och en begäran visar **Raderad** först när varje ändring har tillämpats. En begäran som misslyckas försöks igen; efter fem försök visar den **Misslyckades** med orsaken, och projektets ägare får ett e-postmeddelande. Säkerhetshändelser vägrar fortfarande att nämna personen, och att skicka in begäran igen försöker på nytt.
+
+Vad den lämnar kvar:
+
+- Det människor har skrivit: anteckningar, avslutande anteckningar, uppgifter, bevis, anpassade fält och det OneUptime AI har skrivit om ett ärende.
+- Händelser som nämnde personen för att dina loggar innehöll dem i klartext, och dina loggar och spårningar själva, som bara innehåller token.
+- De Detection Finding-händelser som en regel skrev om dem, vars meddelande och observabler kan nämna dem, tills din telemetrilagring raderar dem.
+- Redan skickade aviseringar, incidenter och larm som en detektion öppnade, ett ärendes aktivitet, exporter, säkerhetskopior och granskningsloggen.
+- På en egenhostad OneUptime vars `ENCRYPTION_SECRET` har ändrats, token som skapades före ändringen: radera var och en via den token en händelse visar.
+
+Begäran sparar vem som skickade in den och när, din referens och personens token, som valvet fortsätter att neka dem med. Användar-id:t eller e-postadressen lagras krypterad, där ingen sida, export eller API kan läsa den, och raderas när raderingen är klar; ClickHouse får bara någonsin token. Begäranden kan inte redigeras eller tas bort: de är ditt underlag för raderingen.
+
+Projektägare, Projektadministratörer, Säkerhetsadministratörer och alla med Create Security Erasure Request, till exempel ditt dataskyddsombud, kan skicka in en begäran, från sidan eller via API:ets `/security-user-erasure-request`. Alla säkerhetsroller kan läsa dem.
 
 ## Felsökning
 

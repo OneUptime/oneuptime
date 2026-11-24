@@ -2856,6 +2856,25 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddScopeToLogSavedViewPostgres.test.ts
           --forceExit
 
+      # Clones the migrated StatusPage table into an isolated schema, as it
+      # was before AddGroupIncidentsByEpisodeToStatusPage, and runs the
+      # migration on seeded pages (#10767): every existing page, whichever
+      # lists it shows and a deleted one too, reads off, so it shows what it
+      # always showed; a page made after it reads on, a page can still be made
+      # off, nothing else about a page changes, and down() drops the column.
+      - name: Test status pages' Group Incidents by Episode on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GROUP_INCIDENTS_BY_EPISODE_TESTS: "true"
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddGroupIncidentsByEpisodeToStatusPagePostgres.test.ts
+          --forceExit
+
       # Clones the migrated LlmLog and AIRun tables into an isolated schema,
       # seeds a long AI Log history and reads the plans Postgres executes for
       # the daily AI limit sums (the project's limits and every incident and
@@ -5134,7 +5153,11 @@ jobs:
       # label's reader; and the lower pickers past their first 10,000 - the
       # on-call setup's and Setup Health's policies, a budget's team or
       # label, a workflow step's workflow (never the one being edited) and
-      # incident template, and Add to Dashboard's dashboards.
+      # incident template, and Add to Dashboard's dashboards. #10921: Logs
+      # Insights' scope - services, hosts, clusters and the other resources
+      # telemetry names - searched by name or identifier and named by id;
+      # and Fix with AI's repository choices searched, each held to the
+      # repositories its fix accepts.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5159,6 +5182,8 @@ jobs:
           Tests/Server/API/CodeRepositorySearchPostgres.test.ts
           Tests/Server/API/TelemetryServicePickerSearchPostgres.test.ts
           Tests/Server/API/LowerPickersSearchPostgres.test.ts
+          Tests/Server/API/TelemetryResourceScopeSearchPostgres.test.ts
+          Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two
@@ -5282,6 +5307,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskPostgres.test.ts
+          --forceExit
+
+      # Erasing one person from Security Events' user vault (#10908) on
+      # copies of the migrated tables it changes, through the real SQL and
+      # services: detections, cases, entity risk and proposals take the
+      # token in the person's place (found by the name in a jsonb column's
+      # text), a waiting run is cancelled and an AI action withdrawn, a
+      # second run changes nothing; a request keeps what was typed
+      # encrypted and wipes it once over, and its claim is atomic.
+      - name: Test Security Events erasure requests on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_USER_ERASURE_TESTS: "true"
+          SECURITY_USER_ERASURE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/UserVault/SecurityUserErasurePostgres.test.ts
           --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -

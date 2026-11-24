@@ -42,6 +42,8 @@ Only High and Medium findings count: they make a store sensitive and can open an
 
 When two data types claim the same characters, the surer finding wins: the higher confidence, then the detector whose own rules prove more, then the longer match.
 
+A value is also read as people write it. A URL's percent-escapes are read, so an IP address or an email address in a query string, such as `jane%40example.com`, is found. A card number's digits are read in any script, such as fullwidth digits (`４１１１ １１１１ １１１１ １１１１`) or Arabic-Indic digits, each script on its own first and then together. An email address is found in any script, such as `张伟@example.com` or `почта@пример.рф`, and an IPv6 address right after a key's colon, such as `ip:2001:db8::1`. Each finding is the value as it is written, so a scrub rule hides it there.
+
 A long value is read in windows of 64 KB that overlap by 4 KB, so a value is found whole wherever it sits, and at most 4 MB of one value is read.
 
 ## Fields and columns

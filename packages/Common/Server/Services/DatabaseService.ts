@@ -86,6 +86,9 @@ import RetiredColumns, {
   RetiredColumnsQuery,
 } from "../Utils/Database/RetiredColumns";
 import ProjectLimitLock from "../Utils/Database/ProjectLimitLock";
+import RequiredUniqueNames, {
+  UniqueNameHold,
+} from "../Utils/Database/RequiredUniqueNames";
 import ProductWriteRefusal from "../Utils/ServerProducts/ProductWriteRefusal";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ConfigLogLevel from "../Types/ConfigLogLevel";
@@ -134,6 +137,7 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { getUniqueValueTakenMessage } from "../../Types/Database/UniqueValueTaken";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
@@ -553,6 +557,12 @@ interface CreateHandedBack<TBaseModel extends BaseModel> {
   onCreate: OnCreate<TBaseModel> | undefined;
   // Whether a failure came from the INSERT itself (see WriteProgress).
   progress: WriteProgress;
+  /*
+   * The lock that holds the record's name while its project requires
+   * unique names (RequiredUniqueNames), from its check until its INSERT has
+   * committed - or until the create fails, wherever it does.
+   */
+  uniqueNameHold?: UniqueNameHold | undefined;
 }
 
 class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
@@ -886,7 +896,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   protected isValid(data: TBaseModel): boolean {
     if (!data) {
-      throw new BadDataException("Data cannot be null");
+      throw new BadDataException(
+        "There was nothing to save. Fill in the form, then try again.",
+      );
     }
 
     return true;
@@ -936,11 +948,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (count.toNumber() > 0) {
           throw new BadDataException(
-            `${metadata.title} ${data
-              .getColumnValue(columnName)
-              ?.toString()} already exists. Please choose a different ${
-              metadata.title
-            }`,
+            getUniqueValueTakenMessage({
+              field: metadata.title || columnName,
+              value: data.getColumnValue(columnName)?.toString() || "",
+            }),
           );
         }
       }
@@ -961,6 +972,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     value: unknown,
   ): boolean {
     return Boolean(value);
+  }
+
+  /*
+   * A required column with no value (#7276): its name, which an API client
+   * sends, and its title, which a form shows, and what to do. It said only
+   * "projectId is required".
+   */
+  protected getRequiredFieldMessage(
+    data: TBaseModel,
+    requiredField: string,
+  ): string {
+    const title: string =
+      data.getTableColumnMetadata(requiredField)?.title || requiredField;
+
+    return `${requiredField} is required. Fill in ${title}, then try again.`;
   }
 
   protected checkRequiredFields(data: TBaseModel): TBaseModel {
@@ -984,7 +1010,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           (data as any)[requiredField] !== false &&
           !data.isDefaultValueColumn(requiredField)
         ) {
-          throw new BadDataException(`${requiredField} is required`);
+          throw new BadDataException(
+            this.getRequiredFieldMessage(data, requiredField),
+          );
         }
       } else if (
         !this.isRequiredColumnValueGiven(
@@ -1012,7 +1040,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        throw new BadDataException(`${requiredField} is required`);
+        throw new BadDataException(
+          this.getRequiredFieldMessage(data, requiredField),
+        );
       } else if (
         (data as any)[requiredField] === null &&
         data.isDefaultValueColumn(requiredField)
@@ -7405,6 +7435,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
+      // The name a refused or failed create held is free again.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
+
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
@@ -7725,7 +7758,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.checkForUniqueValues(data);
 
     if (!this.isValid(data)) {
-      throw new BadDataException("Data is not valid");
+      throw new BadDataException(
+        "What was sent could not be saved. Check its values, then try again.",
+      );
     }
 
     // check total items by.
@@ -7783,6 +7818,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.checkUniqueColumnBy(createBy);
 
     await this.checkUniqueColumnsTogether(createBy.data);
+
+    /*
+     * A name its project requires to be one of its kind (Require Unique
+     * Names, #10761): refused when another record has it, and held from
+     * here until the INSERT has committed, so two creates of one name at
+     * the same moment cannot both pass. See RequiredUniqueNames.
+     */
+    handedBack.uniqueNameHold = await RequiredUniqueNames.holdNameOnCreate({
+      service: this,
+      createBy: createBy,
+    });
 
     // What OneUptime records about a create it has let through. See the hook.
     if (!createBy.props.ignoreHooks) {
@@ -7853,6 +7899,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       isRowWritten = true;
+
+      // Its name is the record's now: the next write of it sees the row.
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
 
       // The presented keys as written, not as stored. See the helper.
       this.restorePresentedKeys(createBy.data, presentedKeysAsGiven);
@@ -8049,6 +8098,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       createdItem: createBy.data,
       props: createBy.props,
     });
+  }
+
+  /*
+   * Gives back the name a create held (RequiredUniqueNames), once: after
+   * its INSERT committed, or when it failed before.
+   */
+  private async giveBackUniqueNameOfCreate(
+    handedBack: CreateHandedBack<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<void> {
+    const hold: UniqueNameHold | undefined = handedBack.uniqueNameHold;
+
+    handedBack.uniqueNameHold = null;
+
+    await RequiredUniqueNames.giveBack(hold, {
+      projectId: props?.tenantId?.toString(),
+    } as LogAttributes);
   }
 
   // The project of a record created: the create's own, or the record's.
@@ -10300,7 +10366,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
-        throw new BadDataException("Delete not allowed");
+        throw new BadDataException(
+          `${this.getModel().singularName || "These"} records cannot be deleted: OneUptime keeps them.`,
+        );
       }
 
       // The rows the table keeps from a delete by query stay. See the helper.
@@ -12195,6 +12263,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     let rowsOfWrite: Array<TBaseModel> = [];
     let writtenData: unknown = undefined;
 
+    /*
+     * The lock that holds a rename's name while its project requires unique
+     * names (RequiredUniqueNames), until its row is written or the update
+     * fails.
+     */
+    let uniqueNameHold: UniqueNameHold = null;
+
     try {
       this.setTelemetryContextFromProps(updateBy.props);
 
@@ -12437,6 +12512,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Then what a create is held to: @UniqueColumnBy. See the helper.
         await this.checkUniqueColumnByOnUpdate(beforeUpdateBy);
+
+        /*
+         * And a name its project requires to be one of its kind (#10761),
+         * held until the row is written. See RequiredUniqueNames.
+         */
+        uniqueNameHold = await RequiredUniqueNames.holdNameOnRename({
+          service: this,
+          updateBy: beforeUpdateBy,
+        });
 
         await this.onUpdatePermitted(beforeUpdateBy);
       }
@@ -13083,6 +13167,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         }
       }
 
+      // The renamed row is written: its name is the row's now.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+      uniqueNameHold = null;
+
       /*
        * Cant Update relations.
        * https://github.com/typeorm/typeorm/issues/2821
@@ -13223,6 +13313,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
       throw this.getException(error as Exception);
     } finally {
+      // A rename that failed before its row was written holds its name no more.
+      await RequiredUniqueNames.giveBack(uniqueNameHold, {
+        projectId: updateBy.props.tenantId?.toString(),
+      } as LogAttributes);
+
       /*
        * Every process reads the rules the update changed again
        * (RuleSetCache): last, once its hooks wrote what they write too, so
@@ -13986,10 +14081,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (await this.getPrivateRecordWriteRefusal(data)) ||
         (await this.getTeamOwnedRuleWriteRefusal(data));
 
+      const refused: string = `You do not have permission to ${data.type} this ${name.toLowerCase()}.`;
+
+      // The reason, a sentence of its own, after it.
       return new NotAuthorizedException(
-        `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
-          reason ? ` ${reason}` : ""
-        }`,
+        reason ? `${refused} ${reason}` : refused,
       );
     }
 
@@ -15071,7 +15167,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * error and not a zero, which would read as a fresh allowance.
        */
       throw new BadDataException(
-        `Item with ID ${data.id.toString()} not found`,
+        "This record was not found: it may have been deleted. Reload the page, then try again.",
       );
     }
 

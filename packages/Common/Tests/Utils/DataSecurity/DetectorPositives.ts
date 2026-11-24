@@ -114,6 +114,26 @@ export function drawFrom(node: SyntaxNode, random: SeededRandom): string {
   }
 }
 
+/*
+ * Values a detector written with Unicode classes (the u flag) finds, which
+ * LinearRegExp's parser cannot draw from: drawn from these instead, in the
+ * same contexts, and kept only where the pattern itself matches.
+ */
+const UNICODE_SAMPLES: Readonly<Record<string, ReadonlyArray<string>>> = {
+  "email-address": [
+    "josé.garcía@acmecorp.io",
+    "müller@beispiel-firma.de",
+    "张伟@acmecorp.io",
+    "张伟@例え.jp",
+    "user@例え.jp",
+    "почта@пример.рф",
+    "user@пример.xn--p1ai",
+    "मोहन@उदाहरण.भारत",
+    "θέμα@παράδειγμα.ελ",
+    "ñoño.peña@empresa.es",
+  ],
+};
+
 export function positivesOf(
   detector: DataTypeDetector,
   count: number,
@@ -123,6 +143,28 @@ export function positivesOf(
     detector.pattern.source,
     detector.pattern.flags.replace("g", ""),
   );
+
+  if (detector.pattern.unicode) {
+    const samples: ReadonlyArray<string> =
+      UNICODE_SAMPLES[detector.dataTypeId] || [];
+    const texts: Array<string> = [];
+
+    for (
+      let attempt: number = 0;
+      attempt < count * 8 && texts.length < count && samples.length > 0;
+      attempt++
+    ) {
+      const [before, after] = CONTEXTS[attempt % CONTEXTS.length]!;
+      const text: string = before + samples[random(samples.length)]! + after;
+
+      if (pattern.test(text)) {
+        texts.push(text);
+      }
+    }
+
+    return texts;
+  }
+
   const root: SyntaxNode = parsePattern(
     expandBackReferences(detector.pattern.source),
     {

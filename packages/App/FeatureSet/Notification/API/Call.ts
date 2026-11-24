@@ -13,6 +13,7 @@ import {
 } from "../Utils/AnsweredBy";
 import {
   getVoicemailMessageOfCall,
+  getVoicemailVoiceOfCall,
   leaveVoicemailMessage,
 } from "../Utils/VoicemailCallback";
 import {
@@ -629,6 +630,8 @@ router.post(
               callSid: callSid,
               message: getVoicemailMessageOfCall(callLog.callData),
               callLogId: callLog.id!,
+              // In the voice the call was placed with (#10948).
+              voice: getVoicemailVoiceOfCall(callLog.callData),
             })
           : false;
 

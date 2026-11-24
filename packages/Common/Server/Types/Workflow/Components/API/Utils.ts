@@ -1,4 +1,5 @@
 import { RunOptions } from "../../ComponentCode";
+import { getOtherSystemSaidNothing } from "../OtherSystemSaidNothing";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
@@ -156,7 +157,14 @@ export class ApiComponentUtils {
         "response-status": response.statusCode,
         "response-body": response.jsonData,
         "response-headers": response.headers,
-        error: response.message || "Server Error.",
+        error:
+          response.message ||
+          getOtherSystemSaidNothing({
+            whatFailed: `The request was refused with status ${response.statusCode}.`,
+            system: "The server it was sent to",
+            whatToCheck:
+              "Check the step's URL, headers and body, then run the workflow again.",
+          }),
       };
     }
 

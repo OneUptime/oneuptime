@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "حدث خطأ ما",
-  "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة",
+  "This page stopped working": "توقفت هذه الصفحة عن العمل",
+  "Part of this page ran into a problem. Reload the page to continue.": "واجه جزء من هذه الصفحة مشكلة. أعد تحميل الصفحة للمتابعة.",
   "Error details": "تفاصيل الخطأ",
   "a11y": {
     "skipToMainContent": "انتقل إلى المحتوى الرئيسي",
@@ -524,5 +524,27 @@
     "sessionExpired": "انتهت الجلسة. يُرجى تسجيل الدخول مرة أخرى.",
     "signedOut": "لقد سجّلت الخروج. يُرجى تسجيل الدخول مرة أخرى.",
     "magicLinkTurnedOff": "روابط تسجيل الدخول متوقفة لصفحة الحالة هذه. يُرجى تسجيل الدخول باستخدام بريدك الإلكتروني وكلمة المرور."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "واجه الخادم مشكلة لم يستطع تفسيرها، لذا لم تكتمل العملية. حاول مرة أخرى، وإذا استمر الفشل فأعطِ هذا المرجع لمسؤولك أو لدعم OneUptime: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "واجه الخادم مشكلة لم يستطع تفسيرها، لذا لم تكتمل العملية. حاول مرة أخرى بعد قليل.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "تعذّر الوصول إلى OneUptime، لذا لم تكتمل العملية. تحقق من اتصالك بالإنترنت، ثم حاول مرة أخرى.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "واجهت هذه الصفحة مشكلة، لذا لم تكتمل العملية. أعد تحميل الصفحة، ثم حاول مرة أخرى.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل أكبر من 50 MB، وهو أقصى ما يقبله OneUptime في طلب واحد، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "This did not finish.": "لم تكتمل العملية.",
+  "The server ran into a problem it could not explain.": "واجه الخادم مشكلة لم يستطع تفسيرها.",
+  "The OneUptime server did not answer.": "لم يستجب خادم OneUptime.",
+  "OneUptime could not be reached.": "تعذّر الوصول إلى OneUptime.",
+  "This page ran into a problem.": "واجهت هذه الصفحة مشكلة.",
+  "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "ما أُرسل أكبر من 50 MB، وهو أقصى ما يقبله OneUptime في طلب واحد.",
+  "Try again in a moment.": "حاول مرة أخرى بعد قليل.",
+  "It may be starting or restarting. Try again in a few minutes.": "ربما يكون قيد التشغيل أو إعادة التشغيل. حاول مرة أخرى بعد بضع دقائق.",
+  "Check your internet connection, then try again.": "تحقق من اتصالك بالإنترنت، ثم حاول مرة أخرى.",
+  "Reload the page, then try again.": "أعد تحميل الصفحة، ثم حاول مرة أخرى.",
+  "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "The {{itemName}} was not created.": "لم يتم إنشاء {{itemName}}.",
+  "The {{itemName}} was not saved.": "لم يتم حفظ {{itemName}}.",
+  "The {{itemName}} could not be loaded.": "تعذّر تحميل {{itemName}}.",
+  "Page Did Not Load": "لم يتم تحميل الصفحة"
 }

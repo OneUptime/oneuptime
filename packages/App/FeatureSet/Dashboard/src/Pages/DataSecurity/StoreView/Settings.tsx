@@ -45,7 +45,12 @@ import ModelDetailField from "Common/UI/Components/ModelDetail/Field";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import {
   DECLARED_PURPOSE,
   FILLED_IN_BY_ONEUPTIME,
@@ -104,6 +109,8 @@ const DataStoreSettings: FunctionComponent<
   );
   const declaredStore: DataSecurityDeclaredStore | null =
     declared.answer?.declared || null;
+  // Whether the store is in the record of processing, once its card has read it.
+  const [isInRecord, setIsInRecord] = useState<boolean | null>(null);
 
   const scanMethodSection: FormFieldCollapsibleSection<DataStore> =
     getAdvancedFormSection<DataStore>({
@@ -542,14 +549,17 @@ const DataStoreSettings: FunctionComponent<
           readAgain={declared.readAgain}
         />
       ) : (
-        /*
-         * A store with personal data: its record field by field, with
-         * OneUptime AI's drafts to confirm (#10375). One without keeps the
-         * plain purpose and retention.
-         */
-        <StoreRecordCard
-          dataStoreId={dataStoreId}
-          whenNotInRecord={
+        <Fragment>
+          {/*
+           * A store with personal data: its record field by field, with
+           * OneUptime AI's drafts to confirm (#10375). One without keeps the
+           * plain purpose and retention, drawn beside that card, never in it.
+           */}
+          <StoreRecordCard
+            dataStoreId={dataStoreId}
+            onIsInRecordChange={setIsInRecord}
+          />
+          {isInRecord === false ? (
             <CardModelDetail<DataStore>
               name="Record of Processing"
               cardProps={{
@@ -598,8 +608,10 @@ const DataStoreSettings: FunctionComponent<
                 ],
               }}
             />
-          }
-        />
+          ) : (
+            <></>
+          )}
+        </Fragment>
       )}
     </Fragment>
   );

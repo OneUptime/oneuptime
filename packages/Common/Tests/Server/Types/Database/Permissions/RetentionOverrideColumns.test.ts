@@ -685,7 +685,7 @@ describe("OneUptime Cloud: the Scale plan", () => {
       "Enterprise,price_enterprise_month,price_enterprise_year,-1,-1,4,14",
   };
   const SCALE_REFUSAL: string =
-    "Please upgrade your plan to Scale to access this feature";
+    "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
   const savedPlanEnvironment: Record<string, string | undefined> = {};
 
   beforeAll(() => {

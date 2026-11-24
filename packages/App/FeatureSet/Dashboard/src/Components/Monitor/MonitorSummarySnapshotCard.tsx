@@ -13,9 +13,7 @@ import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import MonitorSummarySnapshotUtil, {
-  MonitorSummaryInfoProps,
-} from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
+import MonitorSummarySnapshotUtil from "Common/Utils/Monitor/MonitorSummarySnapshotUtil";
 import React, {
   Fragment,
   FunctionComponent,
@@ -23,7 +21,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import SummaryInfo from "./SummaryView/SummaryInfo";
+import SummaryInfo, {
+  ComponentProps as SummaryInfoProps,
+} from "./SummaryView/SummaryInfo";
 import { getContentNotKeptNote } from "../EventView/EventEvaluationDetailsCopy";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -127,8 +127,17 @@ const MonitorSummarySnapshotCard: FunctionComponent<ComponentProps> = (
     return <Fragment />;
   }
 
-  const summaryInfoProps: MonitorSummaryInfoProps =
-    MonitorSummarySnapshotUtil.toSummaryInfoProps(snapshot);
+  const summaryInfoProps: SummaryInfoProps = {
+    ...MonitorSummarySnapshotUtil.toSummaryInfoProps(snapshot),
+    /*
+     * The monitor the summary was kept from, so a warning that an incident
+     * or alert may be missing links to its lists (EvaluationLogList).
+     */
+    monitorId:
+      snapshot.monitorId && ObjectID.isValidUUID(snapshot.monitorId)
+        ? new ObjectID(snapshot.monitorId)
+        : undefined,
+  };
 
   const capturedAtText: string = snapshot.capturedAt
     ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(

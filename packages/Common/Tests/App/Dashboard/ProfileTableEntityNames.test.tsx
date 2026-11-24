@@ -8,7 +8,11 @@ import {
   test,
 } from "@jest/globals";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -106,12 +110,15 @@ interface FakeRow {
 }
 
 /*
- * Rows the resolver can find, per table. The plain Service / Host list loads
- * (no `_id` in the query) are answered separately below.
+ * Rows the resolver can find, per table. A host-level (eBPF) profile's host
+ * is one of them: the table read no list of the project's hosts (#10921). A
+ * list read with no `_id` (the project's first 10,000 by name) is answered
+ * separately below, and no test expects one.
  */
 const RESOLVABLE: Array<[ModelType, FakeRow]> = [
   [RumApplication, { id: new ObjectID(RUM_APP_ID), name: "checkout-web" }],
   [KubernetesCluster, { id: new ObjectID(CLUSTER_ID), name: "prod-eu" }],
+  [Host, { id: new ObjectID(HOST_ID), name: "web-01" }],
 ];
 
 const makeService: () => Service = (): Service => {
@@ -119,13 +126,6 @@ const makeService: () => Service = (): Service => {
   service.id = new ObjectID(SERVICE_ID);
   service.name = "checkout-api";
   return service;
-};
-
-const makeHost: () => Host = (): Host => {
-  const host: Host = new Host();
-  host.id = new ObjectID(HOST_ID);
-  host.name = "web-01";
-  return host;
 };
 
 const fakeGetList: (args: GetListArgs) => Promise<{
@@ -137,9 +137,6 @@ const fakeGetList: (args: GetListArgs) => Promise<{
   if (!args.query._id) {
     if (args.modelType === Service) {
       return { data: [makeService()], count: 1 };
-    }
-    if (args.modelType === Host) {
-      return { data: [makeHost()], count: 1 };
     }
     return { data: [], count: 0 };
   }
@@ -314,10 +311,12 @@ describe("ProfileTable — entity names", () => {
 
     /*
      * A Service row comes from a read of the page's services by their ids
-     * (#10764), a Host row from the loaded Host list.
+     * (#10764), a Host row from the resolver, by its id (#10921).
      */
     expect(sourceCellText(page[3]!)).toContain("checkout-api");
-    expect(sourceCellText(page[4]!)).toContain("web-01");
+    await waitFor(() => {
+      expect(sourceCellText(page[4]!)).toContain("web-01");
+    });
     expect(sourceCellText(page[4]!)).toContain("Host");
 
     const requests: Array<ResolverRequest> = resolverRequests();
@@ -332,25 +331,73 @@ describe("ProfileTable — entity names", () => {
     expect(serviceReads[0]!.ids).toEqual([SERVICE_ID]);
 
     /*
-     * Hinted ids go straight to their tables: one RumApplication and one
-     * KubernetesCluster request, no Service-first probe, and the Service /
-     * Host ids the page already names are not looked up again.
+     * Hinted ids go straight to their tables: one RumApplication, one
+     * KubernetesCluster and one Host request, no Service-first probe, and
+     * the Service id the page already names is not looked up again.
      */
     const resolved: Array<ResolverRequest> = requests.filter(
       (request: ResolverRequest): boolean => {
         return request.modelType !== Service;
       },
     );
-    expect(resolved).toHaveLength(2);
+    expect(resolved).toHaveLength(3);
     expect(
       resolved.map((request: ResolverRequest): ModelType => {
         return request.modelType;
       }),
-    ).toEqual(expect.arrayContaining([RumApplication, KubernetesCluster]));
+    ).toEqual(
+      expect.arrayContaining([RumApplication, KubernetesCluster, Host]),
+    );
     for (const request of resolved) {
       expect(request.ids).not.toContain(SERVICE_ID);
-      expect(request.ids).not.toContain(HOST_ID);
     }
+    // The host, by its id: the one the page's host-level profile names.
+    expect(
+      resolved.find((request: ResolverRequest): boolean => {
+        return request.modelType === Host;
+      })!.ids,
+    ).toEqual([HOST_ID]);
+  });
+
+  test("REGRESSION: no list of the project's hosts is read: a host past the first 10,000 is named by its id (#10921)", async () => {
+    await renderTable();
+
+    const host: Profile = makeProfile(HOST_ID, ServiceType.Host);
+
+    await deliverPage([host]);
+
+    await waitFor(() => {
+      expect(sourceCellText(host)).toContain("web-01");
+    });
+    // Its kind under its name, as every other source's.
+    expect(sourceCellText(host)).toContain("Host");
+
+    // Every read is by ids: never a list of the project's first 10,000.
+    const listReads: Array<GetListArgs> = getListMock.mock.calls
+      .map((call: Array<unknown>): GetListArgs => {
+        return call[0] as GetListArgs;
+      })
+      .filter((args: GetListArgs): boolean => {
+        return !args.query._id;
+      });
+
+    expect(listReads).toEqual([]);
+    expect(
+      getListMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return (call[0] as { limit?: number }).limit === 10000;
+      }),
+    ).toBe(false);
+  });
+
+  test("the table is drawn at once: nothing is waited for before its rows", async () => {
+    // A list read that never answers would have held the page on a skeleton.
+    getListMock.mockImplementation(() => {
+      return new Promise<never>(() => {});
+    });
+
+    await renderTable();
+
+    expect(capturedTableProps).not.toBeNull();
   });
 
   test("a refetch of the same sources keeps state, so the table does not re-render", async () => {
@@ -436,7 +483,7 @@ describe("ProfileTable — entity names", () => {
     ]);
   });
 
-  test("REGRESSION: the ?serviceId= chip for a loaded Host reads 'Host: web-01' without a lookup", async () => {
+  test("REGRESSION: the ?serviceId= chip for a host reads 'Host: web-01', named by its id", async () => {
     window.history.pushState({}, "", `/?serviceId=${HOST_ID}`);
 
     const view: ReturnType<typeof render> = await renderTable();
@@ -447,7 +494,71 @@ describe("ProfileTable — entity names", () => {
     expect(view.container.textContent).toContain("Host");
     expect(view.container.textContent).not.toContain("bbbbbbbb…");
     expect(view.container.textContent).not.toContain("Service");
-    expect(resolverRequests()).toHaveLength(0);
+    // Read by its id: the Host table answered for it.
+    expect(
+      resolverRequests().some((request: ResolverRequest): boolean => {
+        return request.modelType === Host && request.ids.includes(HOST_ID);
+      }),
+    ).toBe(true);
+  });
+
+  test("a source's kind reads in the reader's language, its name as written (#10921)", async () => {
+    const GERMAN: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, string>;
+    const german: i18n = createInstance();
+
+    await german.init({
+      lng: "de",
+      resources: { de: { translation: GERMAN } },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    await act(async (): Promise<void> => {
+      render(
+        <I18nextProvider i18n={german}>
+          <MemoryRouter>
+            <ProfileTable />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+    });
+    await waitFor(() => {
+      expect(capturedTableProps).not.toBeNull();
+    });
+
+    const rum: Profile = makeProfile(RUM_APP_ID, ServiceType.RealUserMonitor);
+    const cluster: Profile = makeProfile(
+      MISSING_ID,
+      ServiceType.KubernetesCluster,
+    );
+    const untyped: Profile = makeProfile(MISSING_ID, undefined);
+
+    await deliverPage([rum, cluster]);
+
+    // A resolved source: its name as written, its kind in German.
+    await waitFor(() => {
+      expect(sourceCellText(rum)).toContain("checkout-web");
+    });
+    expect(sourceCellText(rum)).toContain(GERMAN["RUM Application"]!);
+    expect(sourceCellText(rum)).not.toContain("RUM Application");
+
+    // Not resolved: its kind in German over its short id.
+    expect(sourceCellText(cluster)).toContain(GERMAN["Kubernetes Cluster"]!);
+    expect(sourceCellText(cluster)).toContain("eeeeeeee…");
+
+    // A kind nothing recognises says so in German.
+    expect(GERMAN["Unknown source"]).toBeTruthy();
+    expect(sourceCellText(untyped)).toContain(GERMAN["Unknown source"]!);
+    expect(sourceCellText(untyped)).not.toContain("Unknown source");
   });
 
   test("the ?serviceId= chip degrades to the short id when nothing names it", async () => {

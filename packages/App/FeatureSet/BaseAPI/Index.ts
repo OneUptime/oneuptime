@@ -1022,6 +1022,9 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
+import SecurityUserErasureRequestService, {
+  Service as SecurityUserErasureRequestServiceType,
+} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1785,6 +1788,7 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -2179,12 +2183,14 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import SharedNamesAPI from "Common/Server/API/SharedNamesAPI";
+import UniqueNamesAPI from "Common/Server/API/UniqueNamesAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WhoWasToldAPI from "Common/Server/API/WhoWasToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import ProjectCanSendAPI from "Common/Server/API/ProjectCanSendAPI";
+import SecurityTrustedProxiesAPI from "Common/Server/API/SecurityTrustedProxiesAPI";
 import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import GuidedSetupRunAPI from "Common/Server/API/GuidedSetupRunAPI";
@@ -6255,6 +6261,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
+    // Erasing one person from Security Events' user vault (#10908).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestServiceType
+      >(
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RumSessionPin, RumSessionPinServiceType>(
@@ -6945,6 +6963,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SharedNamesAPI);
 
     /*
+     * Names that repeat in a project (UniqueNamesAPI, #10761): whether a
+     * name a form takes is another record's, for the form to warn, and the
+     * names a project holds twice, for Project Settings to list beside
+     * Require Unique Names. A bare router for the same reason as
+     * OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UniqueNamesAPI);
+
+    /*
      * Test pages (OnCallTestPageAPI): send a test page to yourself, a member
      * or an on-call policy, see what it will send first and what became of
      * it after. A bare router for the same reason as OnCallReadinessAPI.
@@ -6986,6 +7013,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * never why. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProjectCanSendAPI);
+
+    /*
+     * What Security Events trusts as a proxy without being told
+     * (SecurityTrustedProxiesAPI, #10546): the edges the project connected
+     * and its own application load balancers, for Trusted Proxies to show.
+     * A bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SecurityTrustedProxiesAPI);
 
     /*
      * What refers to a record (UsedByAPI, #6813): the status pages that

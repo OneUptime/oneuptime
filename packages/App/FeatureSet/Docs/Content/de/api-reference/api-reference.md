@@ -268,6 +268,14 @@ Neben der Meldung enthält jede solche Ablehnung einen `refusalCode`, der sagt, 
 
 Ein Update, das den eigenen Namen eines Datensatzes erneut sendet, in welcher Schreibweise auch immer, ist keine Umbenennung, sodass Datensätze, die sich vorher einen Namen geteilt haben, weiterhin geändert und so umbenannt werden können, dass sie sich unterscheiden, aber nie in den Namen eines anderen Datensatzes. Für Teams, Labels, Bereitschaftsrichtlinien und Bereitschaftspläne beantwortet `GET /api/shared-names/team` (oder `label`, `on-call-policy`, `on-call-schedule`), welche sich einen Namen teilen: `{"groups": [["<id>", "<id>"]]}`, jede Gruppe die IDs der Datensätze mit gleich lautenden Namen, die Ihr Schlüssel lesen darf. Archivierte Labels und Bereitschaftsrichtlinien werden ausgelassen.
 
+Ein Projekt, das eindeutige Namen verlangt, wie es ein neues Projekt tut, hält die meisten anderen Arten, die Sie benennen, an dieselbe Regel, darunter Monitore, Monitorgruppen, Sonden, Vorlagen, API-Schlüssel und Pipelines, mit denselben Codes. Das `requireUniqueNames` des Projekts sagt, ob es das tut, und ein Projektinhaber oder Projektadministrator ändert es in den Projekteinstellungen im Dashboard:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Eine solche Ablehnung enthält außerdem `takenById`, die ID des Datensatzes, der den Namen hat, wenn Ihr Schlüssel ihn lesen darf. Datensätze, die sich einen Namen teilten, bevor das Projekt eindeutige Namen verlangte, behalten ihn, bis sie umbenannt werden, und ein Update kann mehreren Datensätzen derselben Art nicht denselben Namen geben. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwortet, ob ein Name vergeben ist, bevor Sie ihn senden, und `GET /api/unique-names/duplicates` listet die Namen auf, die das Projekt mehr als einmal hat, Art für Art.
+
 #### Werte, die schon ein anderer Datensatz hat
 
 Auch manche Werte, die kein Name sind, gehören jeweils nur einem Datensatz: die Domain einer Statusseite, eines Dashboards oder eines Formulars, eine Projekt-Domain, die Kennung eines Hosts oder eines Kubernetes-Clusters, die Anmelde-URL eines SSO-Anbieters und die Berechtigung eines API-Schlüssels, unter anderem. Ein Anlegen, oder ein Update, das einen davon ändert, auf einen Wert, den schon ein anderer Datensatz hat, wird mit einem `400` abgelehnt, der das sagt:

@@ -42,6 +42,8 @@ Só as descobertas com confiança Alto e Médio contam: elas tornam um repositó
 
 Quando dois tipos de dados reivindicam os mesmos caracteres, vence a descoberta mais certa: a de maior confiança, depois a do detector cujas próprias regras provam mais, depois a correspondência mais longa.
 
+Um valor também é lido como as pessoas o escrevem. Os escapes percentuais de uma URL são lidos, então um endereço IP ou um endereço de e-mail numa query string, como `jane%40example.com`, é encontrado. Os dígitos de um número de cartão são lidos em qualquer escrita, como dígitos de largura total (`４１１１ １１１１ １１１１ １１１１`) ou dígitos arábico-índicos, primeiro cada escrita sozinha e depois juntas. Um endereço de e-mail é encontrado em qualquer escrita, como `张伟@example.com` ou `почта@пример.рф`, e um endereço IPv6 logo após os dois-pontos de uma chave, como `ip:2001:db8::1`. Cada descoberta é o valor como está escrito, então uma regra de limpeza o oculta ali.
+
 Um valor longo é lido em janelas de 64 KB que se sobrepõem em 4 KB, para que um valor seja encontrado inteiro onde quer que esteja, e no máximo 4 MB de um mesmo valor são lidos.
 
 ## Campos e colunas

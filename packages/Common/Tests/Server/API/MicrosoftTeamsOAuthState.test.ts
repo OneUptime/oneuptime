@@ -696,7 +696,10 @@ describe("Microsoft Teams OAuth state", () => {
         const query: URLSearchParams = queryOf(signInUrl);
         expect(query.get("client_id")).toBe(TEAMS_CLIENT_ID);
         expect(query.get("response_type")).toBe("code");
-        expect(query.get("scope")).toBe("openid profile");
+        // An ID token, and User.Read to name the organization (MicrosoftTeamsOrganization).
+        expect(query.get("scope")).toBe(
+          "openid profile https://graph.microsoft.com/User.Read",
+        );
         expect(query.get("redirect_uri")).toBe(
           `${AppApiClientUrl.toString()}/microsoft-teams/admin-consent/callback`,
         );

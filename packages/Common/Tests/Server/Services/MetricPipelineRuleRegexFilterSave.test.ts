@@ -152,6 +152,59 @@ describe("the refusal for a rule's filters", () => {
       validateMetricPipelineRuleFilters([regexFilter("(a)\\1")]);
     }).toThrow(BadDataException);
   });
+
+  // #10934: a Matches Pattern Type filter names a built-in pattern type, or matches nothing.
+  test("a Matches Pattern Type filter that names no pattern type, naming the filter", () => {
+    for (const value of ["custom", "sensitiveKeys", "", "ip"]) {
+      expect(
+        getMetricPipelineRuleFiltersRefusal([
+          regexFilter("^ok$"),
+          {
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType:
+              MetricPipelineRuleFilterConditionType.MatchesPatternType,
+            value,
+          },
+        ]),
+      ).toBe(
+        `Filter 2: "${value}" is no pattern type, so the filter would never match. Pick Email Address, Credit Card Number, SSN, Phone Number or IP Address.`,
+      );
+    }
+
+    expect(() => {
+      validateMetricPipelineRuleFilters([
+        {
+          checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+          attributeKey: "peer",
+          conditionType:
+            MetricPipelineRuleFilterConditionType.MatchesPatternType,
+        },
+      ]);
+    }).toThrow(BadDataException);
+  });
+
+  test("none for a Matches Pattern Type filter of each pattern type", () => {
+    for (const value of [
+      "email",
+      "creditCard",
+      "ssn",
+      "phoneNumber",
+      "ipAddress",
+    ]) {
+      expect(
+        getMetricPipelineRuleFiltersRefusal([
+          {
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: "peer",
+            conditionType:
+              MetricPipelineRuleFilterConditionType.MatchesPatternType,
+            value,
+          },
+        ]),
+      ).toBeNull();
+    }
+  });
 });
 
 describe("every write of a metric pipeline rule is checked", () => {

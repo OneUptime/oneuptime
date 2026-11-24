@@ -37,17 +37,27 @@ import { describeDataType } from "./SensitiveDataWords";
 /*
  * CODE THAT WRITES SENSITIVE DATA TO TELEMETRY (#10376).
  *
- * The lines a pull request adds to a service's code are read for four
+ * The lines a pull request adds to a service's code are read for five
  * kinds of call, in every language a service is written in:
  *
  *   - a log call: `logger.info`, `log.Printf`, `console.error`,
  *     `_logger.LogInformation`, `Logger.info`, `info!`;
- *   - a span's or an event's attribute, a tag, the user on a trace:
- *     `span.setAttribute`, `attribute.String`, `Sentry.setUser`;
+ *   - a span's or an event's attribute, a tag on a span:
+ *     `span.setAttribute`, `attribute.String`, `span.setTag`;
  *   - a metric's label: `counter.add(1, {...})`, `.labels(...)`,
  *     `WithLabelValues`;
  *   - a prompt sent to an AI provider: `chat.completions.create`,
- *     `messages.create`, `generateText`, `llm.invoke`.
+ *     `messages.create`, `generateText`, `llm.invoke`;
+ *   - an exception (#10778), which reaches the service's exceptions in
+ *     telemetry as a log line does its logs: the message an error is made
+ *     with - thrown, raised or returned (`throw new Error(...)`, `raise
+ *     ValueError(...)`, `fmt.Errorf`, `errors.New`, `bail!`, Ruby's and
+ *     Elixir's `raise "..."`) - and what an error tracker is handed with
+ *     one (`Sentry.captureException(error, { extra })`, `Sentry.setUser`,
+ *     `scope.setTag`, Bugsnag's, Rollbar's, Honeybadger's, New Relic's
+ *     `noticeError`), or a span's recorded exception (`recordException`).
+ *     A message that only names a field ("email is required") holds no
+ *     value, so it is no point.
  *
  * What each is handed is read (SensitiveDataCode): the names it is
  * handed, the keys they go in under, and what its strings interpolate. A
@@ -153,7 +163,12 @@ const LOG_MACROS: ReadonlySet<string> = new Set<string>([
   "event",
 ]);
 
-// A span's, an event's or a trace's setters, lower case.
+/*
+ * A span's, an event's or a trace's setters, lower case. An error
+ * tracker's own setters - its user, extras and context - are an
+ * exception's (ERROR_TRACKER_METHODS): `this.setUser` or a state setter
+ * named so writes to no telemetry at all.
+ */
 const SPAN_METHODS: ReadonlySet<string> = new Set<string>([
   "setattribute",
   "setattributes",
@@ -165,18 +180,221 @@ const SPAN_METHODS: ReadonlySet<string> = new Set<string>([
   "settags",
   "set_tag",
   "set_tags",
-  "setuser",
-  "set_user",
-  "setcontext",
-  "set_context",
-  "setextra",
-  "setextras",
-  "set_extra",
   "startspan",
   "startactivespan",
   "start_span",
   "start_as_current_span",
   "withattributes",
+]);
+
+// A tracer's user, on the trace's root span: Datadog's `tracer.setUser`.
+const SPAN_USER_METHODS: ReadonlySet<string> = new Set<string>([
+  "setuser",
+  "set_user",
+]);
+
+/*
+ * An error tracker, by a part of the receiver it is called on, lower case:
+ * `Sentry.captureException`, `sentry_sdk.set_user`, `Bugsnag.notify`,
+ * `Sentry.Context.set_user_context`.
+ */
+const ERROR_TRACKER_RECEIVERS: ReadonlySet<string> = new Set<string>([
+  "sentry",
+  "sentry_sdk",
+  "sentrysdk",
+  "raven",
+  "bugsnag",
+  "rollbar",
+  "honeybadger",
+  "airbrake",
+  "newrelic",
+  "raygun",
+  "appsignal",
+  "crashlytics",
+  "trackjs",
+  "errortracker",
+  "errorreporter",
+  "errorreporting",
+]);
+
+/*
+ * Sentry's scope and hub, which are only named so: read for the scope's
+ * own setters and captures, never for any other method of a `scope`.
+ */
+const ERROR_SCOPE_RECEIVERS: ReadonlySet<string> = new Set<string>([
+  "scope",
+  "hub",
+  "sentryscope",
+  "sentryhub",
+]);
+
+// An error tracker's setters, which every report after them carries.
+const ERROR_SCOPE_METHODS: ReadonlySet<string> = new Set<string>([
+  "setuser",
+  "set_user",
+  "settag",
+  "settags",
+  "set_tag",
+  "set_tags",
+  "setextra",
+  "setextras",
+  "set_extra",
+  "set_extras",
+  "setcontext",
+  "set_context",
+  "addbreadcrumb",
+  "add_breadcrumb",
+  "user_context",
+  "set_user_context",
+  "extra_context",
+  "set_extra_context",
+  "tags_context",
+  "set_tags_context",
+  "addmetadata",
+  "add_metadata",
+]);
+
+// What an error tracker reports with, lower case: read on a tracker only.
+const ERROR_TRACKER_METHODS: ReadonlySet<string> = new Set<string>([
+  ...ERROR_SCOPE_METHODS,
+  "captureexception",
+  "capture_exception",
+  "capturemessage",
+  "capture_message",
+  "captureevent",
+  "capture_event",
+  "notify",
+  "noticeerror",
+  "notice_error",
+  "report",
+  "error",
+  "critical",
+  "warning",
+  "warn",
+  "info",
+  "debug",
+  "log",
+]);
+
+/*
+ * The calls that report an exception, whatever they are called on - or on
+ * nothing, imported on their own: `captureException(error)`, a span's
+ * `recordException`, Application Insights' `trackException`, New Relic's
+ * `noticeError`, Bugsnag's `addMetadata` on its event.
+ */
+const ERROR_REPORT_METHODS: ReadonlySet<string> = new Set<string>([
+  "captureexception",
+  "capture_exception",
+  "capturemessage",
+  "capture_message",
+  "captureevent",
+  "capture_event",
+  "recordexception",
+  "record_exception",
+  "trackexception",
+  "track_exception",
+  "noticeerror",
+  "notice_error",
+  "addexception",
+  "addmetadata",
+  "add_metadata",
+  "addbreadcrumb",
+  "add_breadcrumb",
+]);
+
+/*
+ * Sentry's setters as Python imports them on their own (`from sentry_sdk
+ * import set_user`): snake case only, since a camel-case `setUser(...)`
+ * with nothing before it is as often a component's state.
+ */
+const BARE_ERROR_SCOPE_FUNCTIONS: ReadonlySet<string> = new Set<string>([
+  "set_user",
+  "set_tag",
+  "set_tags",
+  "set_extra",
+  "set_extras",
+  "set_context",
+]);
+
+/*
+ * Functions that stop the program with a message, called on nothing:
+ * Go's `panic`, Swift's `fatalError`, Flask's `abort` - their message is
+ * an exception's.
+ */
+const BARE_EXCEPTION_FUNCTIONS: ReadonlySet<string> = new Set<string>([
+  "panic",
+  "fatalerror",
+  "abort",
+]);
+
+/*
+ * Go's and its packages' ways to make an error with a message, by the
+ * method: `fmt.Errorf`, `status.Errorf`, `errors.Newf` on any receiver...
+ */
+const ERROR_FORMAT_METHODS: ReadonlySet<string> = new Set<string>([
+  "errorf",
+  "newf",
+]);
+
+// ...and these on an errors package: `errors.New`, `pkgerrors.Wrapf`.
+const ERRORS_PACKAGE_METHODS: ReadonlySet<string> = new Set<string>([
+  "new",
+  "wrap",
+  "wrapf",
+  "withmessage",
+  "withmessagef",
+]);
+
+// Go's errors packages, as code imports them.
+const ERRORS_PACKAGES: ReadonlySet<string> = new Set<string>([
+  "errors",
+  "xerrors",
+  "pkgerrors",
+  "goerrors",
+]);
+
+// Rust's macros that make or raise an error with a message.
+const EXCEPTION_MACROS: ReadonlySet<string> = new Set<string>([
+  "panic",
+  "bail",
+  "anyhow",
+  "ensure",
+  "eyre",
+  "format_err",
+  "unreachable",
+  "unimplemented",
+  "todo",
+]);
+
+/*
+ * The words that raise what follows them, on its line, with no
+ * parentheses: Ruby's and Elixir's `raise "..."`, Ruby's `fail "..."`.
+ */
+const PARENLESS_RAISE_WORDS: ReadonlySet<string> = new Set<string>([
+  "raise",
+  "fail",
+]);
+
+// The words that throw or raise the call after them: `throw createError(...)`.
+const THROW_WORDS: ReadonlySet<string> = new Set<string>(["throw", "raise"]);
+
+// The word that makes the call after it a constructor: `new Error(...)`.
+const NEW_WORDS: ReadonlySet<string> = new Set<string>(["new"]);
+
+/*
+ * The words that end a call written with no parentheses, outside any
+ * bracket: Ruby's and Elixir's statement modifiers. `raise "..." unless
+ * customer` raises the message; `customer` is only asked about.
+ */
+const PARENLESS_CALL_ENDS: ReadonlySet<string> = new Set<string>([
+  "if",
+  "unless",
+  "while",
+  "until",
+  "rescue",
+  "and",
+  "or",
+  "do",
 ]);
 
 // OpenTelemetry Go's attribute constructors: attribute.String("key", value).
@@ -209,6 +427,54 @@ const METRIC_METHODS: ReadonlySet<string> = new Set<string>([
 const METRIC_LABEL_METHODS: ReadonlySet<string> = new Set<string>([
   "labels",
   "withlabelvalues",
+]);
+
+/*
+ * What makes a metric's instrument, by the call's last part, lower case:
+ * OpenTelemetry's meters in each language, Prometheus's clients. A name
+ * the file assigns one of these to is a metric's receiver, whatever it is
+ * called: `const ordersPlaced = meter.createCounter(...)`.
+ */
+const METRIC_INSTRUMENT_MAKERS: ReadonlySet<string> = new Set<string>([
+  "createcounter",
+  "createupdowncounter",
+  "createhistogram",
+  "creategauge",
+  "createobservablecounter",
+  "createobservableupdowncounter",
+  "createobservablegauge",
+  "create_counter",
+  "create_up_down_counter",
+  "create_histogram",
+  "create_gauge",
+  "create_observable_counter",
+  "create_observable_up_down_counter",
+  "create_observable_gauge",
+  "int64counter",
+  "int64updowncounter",
+  "int64histogram",
+  "int64gauge",
+  "float64counter",
+  "float64updowncounter",
+  "float64histogram",
+  "float64gauge",
+  "counterbuilder",
+  "updowncounterbuilder",
+  "histogrambuilder",
+  "gaugebuilder",
+  "newcounter",
+  "newcountervec",
+  "newgauge",
+  "newgaugevec",
+  "newhistogram",
+  "newhistogramvec",
+  "newsummary",
+  "newsummaryvec",
+  // Prometheus's classes: Counter("orders_total", ...), new client.Counter({...}).
+  "counter",
+  "gauge",
+  "histogram",
+  "summary",
 ]);
 
 // What a metric's receiver ends with, lower case.
@@ -517,6 +783,12 @@ export interface SinkCall {
   // Just after its "(", where its arguments start; -1 for Ruby's call with none.
   column: number;
   isParenless: boolean;
+  /*
+   * An exception's: what an error tracker or a span is handed to report
+   * one (`Sentry.captureException`, `scope.setTag`, `recordException`),
+   * rather than the message an error is made with.
+   */
+  isErrorReport?: boolean | undefined;
 }
 
 function toLower(text: string): string {
@@ -544,12 +816,121 @@ function isSerializerCall(name: string): boolean {
   );
 }
 
-function isMetricReceiver(receiver: string): boolean {
+// A name as an instrument's is looked up: its last part, lower case, `_` and `this.` left off.
+function instrumentKeyOf(name: string): string {
+  return withoutLeadingUnderscores(toLower(lastPartOf(name)));
+}
+
+/*
+ * A metric's receiver: one named as one (`requestCounter`), or a name the
+ * file makes an instrument of (findMetricInstruments).
+ */
+function isMetricReceiver(
+  receiver: string,
+  instruments?: ReadonlySet<string> | undefined,
+): boolean {
   const last: string = toLower(lastPartOf(receiver));
+
+  if (instruments && instruments.has(instrumentKeyOf(receiver))) {
+    return true;
+  }
 
   return METRIC_RECEIVER_ENDINGS.some((ending: string): boolean => {
     return last.endsWith(ending);
   });
+}
+
+// Whether a call's name makes a metric's instrument: Prometheus's classes by their capital.
+function isInstrumentMaker(name: string): boolean {
+  const last: string = lastPartOf(name);
+  const lower: string = toLower(last);
+
+  if (!METRIC_INSTRUMENT_MAKERS.has(lower)) {
+    return false;
+  }
+
+  if (["counter", "gauge", "histogram", "summary"].includes(lower)) {
+    const first: number = last.charCodeAt(0);
+
+    return first >= 0x41 && first <= 0x5a;
+  }
+
+  return true;
+}
+
+/*
+ * The names a file assigns a metric's instrument to, as instrumentKeyOf
+ * reads them: `const ordersPlaced = meter.createCounter("orders.placed")`,
+ * `self.orders_placed = meter.create_counter(...)`, `placed :=
+ * meter.Int64Counter(...)`, `_placed = meter.CreateCounter<long>(...)`,
+ * `ORDERS = Counter("orders_total", ...)`. Read from every line the
+ * change shows, so an instrument made above the hunk's added lines - shown
+ * as context - still names what writes to it.
+ */
+export function findMetricInstruments(
+  lines: ReadonlyArray<string>,
+  language: CodeLanguage,
+): Set<string> {
+  const instruments: Set<string> = new Set<string>();
+  const lastLine: number = Math.min(lines.length, MAX_LINES_READ);
+
+  // Line by line: an assignment is on one, and each read stays that line's length.
+  for (let line: number = 0; line < lastLine; line++) {
+    if (!(lines[line] || "").includes("=")) {
+      continue;
+    }
+
+    const tokens: Array<CodeToken> = tokenize({
+      lines,
+      language,
+      line,
+      column: 0,
+      lastLine: line,
+    }).tokens;
+
+    for (let index: number = 1; index < tokens.length; index++) {
+      if (!isPunct(tokens[index], "=")) {
+        continue;
+      }
+
+      // Go's ":=" is ":" then "=".
+      let targetAt: number = isPunct(tokens[index - 1], ":")
+        ? index - 2
+        : index - 1;
+
+      // Go's `placed, err := meter.Int64Counter(...)`: the instrument is the first.
+      while (
+        targetAt >= 2 &&
+        isPunct(tokens[targetAt - 1], ",") &&
+        tokens[targetAt - 2]?.kind === CodeTokenKind.Name
+      ) {
+        targetAt -= 2;
+      }
+
+      const target: CodeToken | undefined = tokens[targetAt];
+
+      if (!target || target.kind !== CodeTokenKind.Name) {
+        continue;
+      }
+
+      const at: number = isWord(tokens[index + 1], NEW_WORDS)
+        ? index + 2
+        : index + 1;
+      const maker: CodeToken | undefined = tokens[at];
+      const after: CodeToken | undefined = tokens[at + 1];
+
+      if (
+        maker &&
+        maker.kind === CodeTokenKind.Name &&
+        (isPunct(after, "(") || isPunct(after, "<")) &&
+        isInstrumentMaker(maker.text)
+      ) {
+        instruments.add(instrumentKeyOf(target.text));
+      }
+    }
+  }
+
+  return instruments;
 }
 
 // A name without the underscores it starts with: _logger is logger.
@@ -569,6 +950,62 @@ function isLogReceiver(receiver: string): boolean {
   return LOG_RECEIVERS.has(last) || last.endsWith("logger");
 }
 
+// A receiver's parts as a tracker is looked for in them: `Sentry.Context` is sentry, context.
+function receiverParts(receiver: string): Array<string> {
+  return receiver
+    .split(".")
+    .map((part: string): string => {
+      return withoutLeadingUnderscores(toLower(part));
+    })
+    .filter((part: string): boolean => {
+      return part.length > 0;
+    });
+}
+
+function isErrorTrackerReceiver(receiver: string): boolean {
+  return receiverParts(receiver).some((part: string): boolean => {
+    return ERROR_TRACKER_RECEIVERS.has(part);
+  });
+}
+
+function isErrorScopeReceiver(receiver: string): boolean {
+  const parts: Array<string> = receiverParts(receiver);
+  const last: string | undefined = parts[parts.length - 1];
+
+  return last !== undefined && ERROR_SCOPE_RECEIVERS.has(last);
+}
+
+// A tracer or a span, which a user is set on for the trace: `tracer.setUser`.
+function isTraceReceiver(receiver: string): boolean {
+  const last: string = withoutLeadingUnderscores(toLower(lastPartOf(receiver)));
+
+  return last.endsWith("tracer") || last.endsWith("span");
+}
+
+/*
+ * A class of error, by its name: `Error`, `TypeError`, `ValueError`,
+ * `IllegalArgumentException`, `HTTPException` - a capital first, and
+ * Error or Exception last. Read only where the code makes one (`new`,
+ * `throw`, `raise`): a method named so, such as C#'s `AddModelError`,
+ * reports nothing.
+ */
+export function isExceptionClassName(name: string): boolean {
+  const last: string = lastPartOf(name);
+  const first: number = last.charCodeAt(0);
+
+  return (
+    first >= 0x41 &&
+    first <= 0x5a &&
+    (last.endsWith("Error") || last.endsWith("Exception"))
+  );
+}
+
+// A sink a call writes to, and whether it reports an exception rather than making one.
+export interface ReadSink {
+  sink: SensitiveDataSink;
+  isErrorReport: boolean;
+}
+
 /*
  * What a call writes to, by its name and what it is called on: null for a
  * call that writes to no telemetry.
@@ -579,41 +1016,169 @@ export function getSink(data: {
   receiver?: string | undefined;
   isMacro: boolean;
   isConstructor: boolean;
+  // Thrown or raised where it is made: `throw createError(...)`, `raise ValueError(...)`.
+  isThrown?: boolean | undefined;
+  // The names the file makes a metric's instrument of (findMetricInstruments).
+  instruments?: ReadonlySet<string> | undefined;
 }): SensitiveDataSink | null {
-  const method: string = toLower(lastPartOf(data.name));
-  const receiver: string =
-    data.receiver !== undefined ? data.receiver : receiverOf(data.name);
+  return readSink(data)?.sink || null;
+}
 
-  if (data.isMacro) {
-    return LOG_MACROS.has(method) ? SensitiveDataSink.Log : null;
+/*
+ * An exception a call makes or reports (#10778), by its name and what it
+ * is called on - or null for one that is no exception's.
+ */
+function readExceptionSink(data: {
+  method: string;
+  receiver: string;
+  isConstructor: boolean;
+  isThrown: boolean;
+  name: string;
+}): ReadSink | null {
+  const thrown: ReadSink = {
+    sink: SensitiveDataSink.Exception,
+    isErrorReport: false,
+  };
+  const reported: ReadSink = {
+    sink: SensitiveDataSink.Exception,
+    isErrorReport: true,
+  };
+
+  // Made, thrown or raised: `new Error(...)`, `throw createError(...)`.
+  if (
+    data.isThrown ||
+    (data.isConstructor && isExceptionClassName(data.name))
+  ) {
+    return thrown;
   }
 
   if (data.isConstructor) {
-    return AI_FUNCTIONS.has(method) ? SensitiveDataSink.AiPrompt : null;
+    return null;
   }
 
-  if (LOG_METHODS.has(method) && receiver && isLogReceiver(receiver)) {
-    return SensitiveDataSink.Log;
+  if (data.receiver) {
+    if (
+      isErrorTrackerReceiver(data.receiver) &&
+      ERROR_TRACKER_METHODS.has(data.method)
+    ) {
+      return reported;
+    }
+
+    if (
+      isErrorScopeReceiver(data.receiver) &&
+      (ERROR_SCOPE_METHODS.has(data.method) ||
+        ERROR_REPORT_METHODS.has(data.method))
+    ) {
+      return reported;
+    }
+
+    // Go: fmt.Errorf, status.Errorf, errors.New, pkgerrors.Wrapf.
+    if (ERROR_FORMAT_METHODS.has(data.method)) {
+      return thrown;
+    }
+
+    if (
+      ERRORS_PACKAGE_METHODS.has(data.method) &&
+      ERRORS_PACKAGES.has(toLower(data.receiver))
+    ) {
+      return thrown;
+    }
+  } else {
+    if (
+      BARE_ERROR_SCOPE_FUNCTIONS.has(data.method) ||
+      ERROR_REPORT_METHODS.has(data.method)
+    ) {
+      return reported;
+    }
+
+    if (BARE_EXCEPTION_FUNCTIONS.has(data.method)) {
+      return thrown;
+    }
+  }
+
+  return ERROR_REPORT_METHODS.has(data.method) ? reported : null;
+}
+
+// What a call writes to, and how: getSink's answer, with whether it reports an exception.
+export function readSink(data: {
+  name: string;
+  receiver?: string | undefined;
+  isMacro: boolean;
+  isConstructor: boolean;
+  isThrown?: boolean | undefined;
+  instruments?: ReadonlySet<string> | undefined;
+}): ReadSink | null {
+  const method: string = toLower(lastPartOf(data.name));
+  const receiver: string =
+    data.receiver !== undefined ? data.receiver : receiverOf(data.name);
+  const plain: (sink: SensitiveDataSink) => ReadSink = (
+    sink: SensitiveDataSink,
+  ): ReadSink => {
+    return { sink, isErrorReport: false };
+  };
+
+  if (data.isMacro) {
+    if (LOG_MACROS.has(method)) {
+      return plain(SensitiveDataSink.Log);
+    }
+
+    return EXCEPTION_MACROS.has(method)
+      ? plain(SensitiveDataSink.Exception)
+      : null;
+  }
+
+  if (data.isConstructor && AI_FUNCTIONS.has(method)) {
+    return plain(SensitiveDataSink.AiPrompt);
+  }
+
+  if (
+    !data.isConstructor &&
+    !data.isThrown &&
+    LOG_METHODS.has(method) &&
+    receiver &&
+    isLogReceiver(receiver)
+  ) {
+    return plain(SensitiveDataSink.Log);
+  }
+
+  const exception: ReadSink | null = readExceptionSink({
+    method,
+    receiver,
+    isConstructor: data.isConstructor,
+    isThrown: data.isThrown === true,
+    name: data.name,
+  });
+
+  if (exception || data.isConstructor) {
+    return exception;
   }
 
   if (SPAN_METHODS.has(method)) {
-    return SensitiveDataSink.Span;
+    return plain(SensitiveDataSink.Span);
+  }
+
+  if (SPAN_USER_METHODS.has(method) && receiver && isTraceReceiver(receiver)) {
+    return plain(SensitiveDataSink.Span);
   }
 
   if (receiver && ATTRIBUTE_RECEIVERS.has(toLower(lastPartOf(receiver)))) {
-    return SensitiveDataSink.Span;
+    return plain(SensitiveDataSink.Span);
   }
 
   if (METRIC_LABEL_METHODS.has(method)) {
-    return SensitiveDataSink.Metric;
+    return plain(SensitiveDataSink.Metric);
   }
 
-  if (METRIC_METHODS.has(method) && receiver && isMetricReceiver(receiver)) {
-    return SensitiveDataSink.Metric;
+  if (
+    METRIC_METHODS.has(method) &&
+    receiver &&
+    isMetricReceiver(receiver, data.instruments)
+  ) {
+    return plain(SensitiveDataSink.Metric);
   }
 
   if (AI_FUNCTIONS.has(method)) {
-    return SensitiveDataSink.AiPrompt;
+    return plain(SensitiveDataSink.AiPrompt);
   }
 
   if (
@@ -621,7 +1186,7 @@ export function getSink(data: {
     receiver &&
     AI_CREATE_RECEIVERS.has(toLower(lastPartOf(receiver)))
   ) {
-    return SensitiveDataSink.AiPrompt;
+    return plain(SensitiveDataSink.AiPrompt);
   }
 
   if (
@@ -631,7 +1196,7 @@ export function getSink(data: {
       withoutLeadingUnderscores(toLower(lastPartOf(receiver))),
     )
   ) {
-    return SensitiveDataSink.AiPrompt;
+    return plain(SensitiveDataSink.AiPrompt);
   }
 
   return null;
@@ -643,17 +1208,55 @@ function isPunct(token: CodeToken | undefined, text: string): boolean {
   );
 }
 
+function isWord(
+  token: CodeToken | undefined,
+  words: ReadonlySet<string>,
+): boolean {
+  return Boolean(
+    token && token.kind === CodeTokenKind.Name && words.has(token.text),
+  );
+}
+
+/*
+ * What stands before a call's name: `new` (a constructor), and `throw` or
+ * `raise` before that (an exception thrown where it is made) - read past
+ * PHP's root namespace (`throw new \RuntimeException(`).
+ */
+function readWordsBefore(
+  tokens: ReadonlyArray<CodeToken>,
+  index: number,
+): { isConstructor: boolean; isThrown: boolean } {
+  let at: number = index - 1;
+
+  if (isPunct(tokens[at], "\\")) {
+    at--;
+  }
+
+  const isConstructor: boolean = isWord(tokens[at], NEW_WORDS);
+
+  if (isConstructor) {
+    at--;
+  }
+
+  return { isConstructor, isThrown: isWord(tokens[at], THROW_WORDS) };
+}
+
 /*
  * The calls to a sink on one line, read from its tokens: a name followed
  * by "(" (or Rust's "!(", or `new Name(`), a chained call's method after
  * the call before it (`metrics.counter("x").add(`), and - in Ruby - a log
- * call with no parentheses (`logger.info "..."`).
+ * call with no parentheses (`logger.info "..."`), and in Ruby and Elixir an
+ * exception raised with none (`raise ArgumentError, "..."`).
  */
 export function findSinkCalls(data: {
   lines: ReadonlyArray<string>;
   line: number;
   language: CodeLanguage;
   isRuby: boolean;
+  // Elixir raises with no parentheses as Ruby does.
+  isElixir?: boolean | undefined;
+  // The names the file makes a metric's instrument of (findMetricInstruments).
+  instruments?: ReadonlySet<string> | undefined;
 }): Array<SinkCall> {
   const calls: Array<SinkCall> = [];
   const tokens: Array<CodeToken> = tokenize({
@@ -693,9 +1296,8 @@ export function findSinkCalls(data: {
     const before: CodeToken | undefined = tokens[index - 1];
     const isChained: boolean =
       isPunct(before, ".") && isPunct(tokens[index - 2], ")");
-    const isConstructor: boolean = Boolean(
-      before && before.kind === CodeTokenKind.Name && before.text === "new",
-    );
+    const wordsBefore: { isConstructor: boolean; isThrown: boolean } =
+      readWordsBefore(tokens, index);
 
     let open: CodeToken | undefined = undefined;
     let isMacro: boolean = false;
@@ -708,33 +1310,61 @@ export function findSinkCalls(data: {
     }
 
     if (open) {
-      const sink: SensitiveDataSink | null = getSink({
+      const read: ReadSink | null = readSink({
         name: token.text,
         receiver: isChained ? lastClosedCall : undefined,
         isMacro,
-        isConstructor,
+        isConstructor: wordsBefore.isConstructor,
+        isThrown: wordsBefore.isThrown,
+        instruments: data.instruments,
       });
 
-      if (sink) {
+      if (read) {
         calls.push({
-          sink,
+          sink: read.sink,
           name: isChained ? `${lastClosedCall}.${token.text}` : token.text,
           line: data.line,
           column: open.column + 1,
           isParenless: false,
+          ...(read.isErrorReport ? { isErrorReport: true } : {}),
         });
       }
 
       continue;
     }
 
-    // Ruby's `logger.info "signup #{email}"`, with no parentheses.
-    if (
-      data.isRuby &&
+    const isOnItsLine: boolean = Boolean(
       next &&
-      next.line === token.line &&
-      (next.kind === CodeTokenKind.String || next.kind === CodeTokenKind.Name)
+        next.line === token.line &&
+        (next.kind === CodeTokenKind.String ||
+          next.kind === CodeTokenKind.Name),
+    );
+
+    // Ruby's and Elixir's `raise ArgumentError, "bad #{email}"`, with no parentheses.
+    if (
+      (data.isRuby || data.isElixir) &&
+      isOnItsLine &&
+      PARENLESS_RAISE_WORDS.has(token.text) &&
+      (data.isRuby || token.text === "raise") &&
+      !isPunct(before, ".")
     ) {
+      // Named as it is written: `raise ArgumentError`, or `raise` alone before a message.
+      calls.push({
+        sink: SensitiveDataSink.Exception,
+        name:
+          next!.kind === CodeTokenKind.Name
+            ? `${token.text} ${next!.text}`
+            : token.text,
+        line: data.line,
+        column: next!.column,
+        isParenless: true,
+      });
+
+      continue;
+    }
+
+    // Ruby's `logger.info "signup #{email}"`, with no parentheses.
+    if (data.isRuby && isOnItsLine) {
       const sink: SensitiveDataSink | null = getSink({
         name: token.text,
         isMacro: false,
@@ -746,7 +1376,7 @@ export function findSinkCalls(data: {
           sink,
           name: token.text,
           line: data.line,
-          column: next.column,
+          column: next!.column,
           isParenless: true,
         });
       }
@@ -1170,7 +1800,45 @@ const SINK_WORDS: Readonly<Record<SensitiveDataSink, string>> = {
   [SensitiveDataSink.Span]: "Writes {{what}} to a span",
   [SensitiveDataSink.Metric]: "Puts {{what}} in a metric label",
   [SensitiveDataSink.AiPrompt]: "Sends {{what}} to an AI provider",
+  [SensitiveDataSink.Exception]: "Writes {{what}} to an exception",
 };
+
+/*
+ * How a point's sentence says where its value goes: an exception's
+ * message when the value is in it, or handed to the error on its own; an
+ * error report when a tracker or a span is handed it.
+ */
+function sinkWordsOf(
+  call: SinkCall,
+  value: Pick<WrittenValue, "key" | "isInString">,
+): string {
+  if (call.sink !== SensitiveDataSink.Exception) {
+    return SINK_WORDS[call.sink];
+  }
+
+  if (call.isErrorReport) {
+    return "Writes {{what}} to an error report";
+  }
+
+  return value.isInString || !value.key
+    ? "Writes {{what}} to an exception's message"
+    : SINK_WORDS[SensitiveDataSink.Exception];
+}
+
+/*
+ * Where production would keep what a call writes, as a telemetry finding
+ * names it: an attribute under its key, a log's body - and an exception's
+ * message, or the attribute an error report is handed it under.
+ */
+function locationOf(call: SinkCall, value: Pick<WrittenValue, "key">): string {
+  if (call.sink === SensitiveDataSink.Exception) {
+    return call.isErrorReport && value.key
+      ? `attributes.${value.key}`
+      : "message";
+  }
+
+  return value.key ? `attributes.${value.key}` : "body";
+}
 
 const WHOLE_WORDS: Readonly<Record<WholeObjectKind, string>> = {
   [WholeObjectKind.Body]: "a whole request body",
@@ -1188,18 +1856,19 @@ const WHOLE_WHY: Readonly<Record<WholeObjectKind, string>> = {
 };
 
 function sentenceOf(data: {
-  sink: SensitiveDataSink;
+  words: string;
   what: string;
   subject: string;
   where: string;
 }): string {
-  return `${SINK_WORDS[data.sink].replace("{{what}}", data.what)}: \`${data.subject}\`, in \`${data.where}\`.`;
+  return `${data.words.replace("{{what}}", data.what)}: \`${data.subject}\`, in \`${data.where}\`.`;
 }
 
 /*
  * The change that fixes a candidate, in English: leave it out, or hash it -
  * or, when the change already passes values through a function that
- * redacts or masks them, use that.
+ * redacts or masks them, use that. An exception's message names the field
+ * it is about, never what the field held.
  */
 function fixOf(data: {
   sink: SensitiveDataSink;
@@ -1207,6 +1876,7 @@ function fixOf(data: {
   isSecret: boolean;
   whole: WholeObjectKind | null;
   helper: string | null;
+  isErrorReport?: boolean | undefined;
 }): string {
   if (data.whole) {
     return data.whole === WholeObjectKind.Record
@@ -1224,6 +1894,12 @@ function fixOf(data: {
 
   if (data.helper) {
     return `Pass \`${data.subject}\` through \`${data.helper}\` first, as this change does elsewhere, or leave it out.`;
+  }
+
+  if (data.sink === SensitiveDataSink.Exception) {
+    return data.isErrorReport
+      ? `Leave \`${data.subject}\` out of the error report, or send a hash of it when you need to tell values apart.`
+      : `Leave \`${data.subject}\` out of the exception: name the field it is about, never what it holds.`;
   }
 
   return `Leave \`${data.subject}\` out, or write a hash of it when you need to tell values apart.`;
@@ -1354,6 +2030,46 @@ function withoutEmptyObject(
 }
 
 /*
+ * A call written with no parentheses, as far as it goes: to its line's
+ * end, or to a statement modifier outside any bracket (`raise "..." unless
+ * customer`, `logger.info "..." if debug`), which only asks about what
+ * follows it.
+ */
+export function untilStatementModifier(
+  tokens: Array<CodeToken>,
+): Array<CodeToken> {
+  let depth: number = 0;
+
+  for (let index: number = 0; index < tokens.length; index++) {
+    const token: CodeToken = tokens[index]!;
+
+    if (token.kind === CodeTokenKind.Punct) {
+      if (token.text === "(" || token.text === "[" || token.text === "{") {
+        depth++;
+      } else if (
+        token.text === ")" ||
+        token.text === "]" ||
+        token.text === "}"
+      ) {
+        depth = Math.max(0, depth - 1);
+      }
+
+      continue;
+    }
+
+    if (
+      depth === 0 &&
+      token.kind === CodeTokenKind.Name &&
+      PARENLESS_CALL_ENDS.has(token.text)
+    ) {
+      return tokens.slice(0, index);
+    }
+  }
+
+  return tokens;
+}
+
+/*
  * The candidates of one file of code: what its added lines write to
  * telemetry that a data type's hints point at.
  */
@@ -1383,6 +2099,7 @@ export function findTelemetryWrites(data: {
   }
 
   const helper: string | null = findRedactionHelper(texts, language);
+  const instruments: Set<string> = findMetricInstruments(texts, language);
 
   for (let index: number = 0; index < newLines.length; index++) {
     // A call that starts on a line a hunk shows, added or not.
@@ -1391,6 +2108,8 @@ export function findTelemetryWrites(data: {
       line: index,
       language,
       isRuby: extension === "rb",
+      isElixir: extension === "ex" || extension === "exs",
+      instruments,
     });
 
     for (const call of calls) {
@@ -1398,7 +2117,7 @@ export function findTelemetryWrites(data: {
         call.sink === SensitiveDataSink.AiPrompt
           ? MAX_PROMPT_CALL_LINES
           : MAX_CALL_LINES;
-      const tokens: Array<CodeToken> = tokenize({
+      const read: Array<CodeToken> = tokenize({
         lines: texts,
         language,
         line: call.line,
@@ -1406,12 +2125,21 @@ export function findTelemetryWrites(data: {
         lastLine: call.isParenless ? call.line : call.line + maxLines,
         untilClosed: !call.isParenless,
       }).tokens;
+      const tokens: Array<CodeToken> = call.isParenless
+        ? untilStatementModifier(read)
+        : read;
 
       for (const value of readWrittenValues({
         tokens,
         sinkName: call.name,
         extension,
-        isFirstStringMessage: call.sink === SensitiveDataSink.Log,
+        /*
+         * A log's first string is its message, and so is an exception's: a
+         * tracker's is its key (`scope.setTag("ssn", ssn)`).
+         */
+        isFirstStringMessage:
+          call.sink === SensitiveDataSink.Log ||
+          (call.sink === SensitiveDataSink.Exception && !call.isErrorReport),
       })) {
         const lineOfValue: PatchLine | undefined = newLines[value.line];
 
@@ -1488,7 +2216,7 @@ function toCandidate(data: {
       sensitivity,
       isBlocking: isSecret || sensitivity === DataSensitivity.Restricted,
       text: `${sentenceOf({
-        sink: data.call.sink,
+        words: sinkWordsOf(data.call, value),
         what: WHOLE_WORDS[value.whole],
         subject,
         where,
@@ -1499,8 +2227,9 @@ function toCandidate(data: {
         isSecret,
         whole: value.whole,
         helper: data.helper,
+        isErrorReport: data.call.isErrorReport,
       }),
-      location: value.key ? `attributes.${value.key}` : "body",
+      location: locationOf(data.call, value),
     };
   }
 
@@ -1579,7 +2308,7 @@ function toCandidate(data: {
     sensitivity,
     isBlocking: isSecret || sensitivity === DataSensitivity.Restricted,
     text: sentenceOf({
-      sink: data.call.sink,
+      words: sinkWordsOf(data.call, value),
       what: describeDataType(types[0]!),
       subject,
       where,
@@ -1590,6 +2319,7 @@ function toCandidate(data: {
       isSecret,
       whole: null,
       helper: data.helper,
+      isErrorReport: data.call.isErrorReport,
     }),
     ...(replacement !== null
       ? {
@@ -1602,7 +2332,10 @@ function toCandidate(data: {
           },
         }
       : {}),
-    // Under its key, an attribute; in the message itself, the log's body.
-    location: value.key ? `attributes.${value.key}` : "body",
+    /*
+     * Under its key, an attribute; in the message itself, the log's body -
+     * or the exception's message.
+     */
+    location: locationOf(data.call, value),
   };
 }

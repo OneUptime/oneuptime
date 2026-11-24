@@ -184,6 +184,9 @@ export const SECURITY_CASE_AI_ACTION_REASON_SENTENCES: Readonly<
   [SecurityCaseAiActionReason.ProductOff]: translationKey(
     "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
   ),
+  [SecurityCaseAiActionReason.PersonErased]: translationKey(
+    "The person it would act on was erased from Security Events on request, so it was withdrawn.",
+  ),
   [SecurityCaseAiActionReason.EngineFailed]:
     translationKey("It did not finish."),
   [SecurityCaseAiActionReason.UndoneByPerson]:

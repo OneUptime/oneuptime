@@ -132,8 +132,8 @@ At fjerne nogen tager personen ud af alle projektets teams. Personen mister adga
 
 ## Fejlfinding
 
-:::details "This user has already been invited to this team"
-Personen er allerede med i teamet, som medlem eller med en invitation, der ikke er accepteret. Åbn personen under **Brugere** for at se teamene, eller inviter personen til et andet team.
+:::details "This person has already been invited to this team, or is a member of it"
+Personen er allerede med i teamet, som medlem eller med en invitation, der ikke er accepteret. Åbn personen under **Brugere** for at se teamene, eller inviter personen til et andet team. Er personen ikke kommet med endnu, sender **Send invitation igen** i personens rækkemenu invitationsmailen igen.
 :::
 
 :::details "You have reached the user limit for the free plan"

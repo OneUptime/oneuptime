@@ -15,7 +15,8 @@ import * as React from "react";
  * sections - Overview, Security Cases, Events, Detections, Playbooks, AI,
  * Workspace, Connections and Settings (the project's own Case Priorities,
  * the Response Targets each sets, Case Statuses, the Custom Fields and Note
- * Templates of its cases, their Numbering, and Risk Scoring) - each holding its
+ * Templates of its cases, their Numbering, Risk Scoring, and Erasure
+ * Requests) - each holding its
  * pages, every page an entry of its own. "Can we create side menu sections instead and have different
  * pages for these things?" (the maintainer, of the tabs each page carried
  * and the views along the top of the case queue).
@@ -196,6 +197,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Note Templates", PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES],
       ["Numbering", PageMap.SECURITY_EVENTS_SETTINGS_NUMBERING],
       ["Risk Scoring", PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING],
+      // A person erased from Security Events on request (#10908).
+      ["Erasure Requests", PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS],
     ],
   ],
 ];

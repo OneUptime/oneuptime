@@ -6,6 +6,7 @@ import {
   TelemetryEntityNameMap,
   getTelemetryEntityTypeLabel,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * Names for the resource a performance profile came from.
@@ -22,7 +23,13 @@ import {
  * React-free so App/Tests/Dashboard can pin the behaviour directly.
  */
 
-export const UNKNOWN_PROFILE_SOURCE_LABEL: string = "Unknown source";
+/*
+ * The kinds a source is labelled with are keys, in English, drawn in the
+ * reader's words where a page draws them: the resolver's ("RUM
+ * Application", TelemetryEntityNames) and this one.
+ */
+export const UNKNOWN_PROFILE_SOURCE_LABEL: string =
+  translationKey("Unknown source");
 
 export interface ProfileEntityRow {
   primaryEntityId?: { toString: () => string } | string | null | undefined;
@@ -144,9 +151,15 @@ export const shortenProfileEntityId: (id: string) => string = (
 };
 
 export interface ProfileEntityDisplay {
-  // The entity's name when known, else the type label.
+  /*
+   * The entity's name when known (drawn as written), else the type label (a
+   * key, drawn in the reader's words).
+   */
   primary: string;
-  // What kind of thing it is ("RUM Application"), or the unknown label.
+  /*
+   * What kind of thing it is ("RUM Application"), or the unknown label: in
+   * English, a key the page looks up in the reader's language.
+   */
   typeLabel: string;
   // Whether `primary` is a real name rather than a label.
   isResolved: boolean;

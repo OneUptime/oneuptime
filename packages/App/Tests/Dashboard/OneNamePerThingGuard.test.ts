@@ -113,11 +113,13 @@ const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
 
 /*
  * Products whose page draws no title of its own, so the Products menu's
- * title has no page title to agree with: Chat opens the conversation
- * full-screen (Pages/AICopilot). A product comes off when its page gets a
- * title key: the test fails while one is listed and has one.
+ * title has no page title to agree with. None since #7474: the menu's Chat
+ * opened the Ask AI panel (Pages/AICopilot forwards to it), and is Ask AI
+ * now, the words of the panel and of the header's button. A product comes
+ * off when its page gets a title key: the test fails while one is listed
+ * and has one.
  */
-const PRODUCTS_WITHOUT_A_PAGE_TITLE: ReadonlyArray<string> = ["Chat"];
+const PRODUCTS_WITHOUT_A_PAGE_TITLE: ReadonlyArray<string> = [];
 
 type Strings = Map<string, string>;
 
@@ -638,7 +640,6 @@ describe("the Products menu and the page it opens", () => {
       ["Status Pages", "Status-Seiten"],
       ["Logs", "लॉग्स"],
       ["Traces", "Трассировки"],
-      ["Chat", "Chat"],
     ]);
     const words: Record<string, string> = {
       Monitors: "Monitorer",
@@ -725,7 +726,7 @@ describe("the Products menu and the page it opens", () => {
     ["ko", "Alerts", "경고"],
     ["zh-CN", "Traces", "追踪"],
     ["hi", "Queues", "क्यू"],
-    ["es", "Insights", "Hallazgos"],
+    ["es", "AI Insights", "Hallazgos de IA"],
     ["de", "Status Pages", "Statusseiten"],
     ["hi", "Logs", "लॉग"],
     ["hi", "Hosts", "होस्ट"],
@@ -737,9 +738,18 @@ describe("the Products menu and the page it opens", () => {
      * 清单 and 清單 on their own are any list (the Users 清單), where the
      * menu and the docs name the product 资产清单 and 資產清單.
      */
-    ["it", "Insights", "Insight"],
+    ["it", "AI Insights", "Insight IA"],
     ["zh-CN", "Inventory", "资产清单"],
     ["zh-TW", "Inventory", "資產清單"],
+    /*
+     * #7474: the menu said Chat over the Ask AI panel, and Insights over a
+     * page titled AI Insights; it says the panel's and the page's words.
+     */
+    ["de", "Ask AI", "KI fragen"],
+    ["ja", "Ask AI", "AI に質問"],
+    ["ar", "Ask AI", "اسأل الذكاء الاصطناعي"],
+    ["de", "AI Insights", "KI-Einblicke"],
+    ["fr", "AI Insights", "Analyses IA"],
   ])(
     "%s: the menu's %s and its page both read %p",
     (language: string, english: string, name: string) => {

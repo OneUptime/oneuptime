@@ -147,6 +147,21 @@ What no default sends goes as it would without a configuration: while the only d
 
 Status pages offer only the configurations that send SMS, and **Send Test SMS** and **Send Test Call** appear only for what a configuration sends. Every existing configuration is used for **Calls and SMS**, as before. Through the API and Terraform, the choice is the `usedFor` field, and a configuration without the numbers its choice needs is refused.
 
+### The voice calls speak with
+
+Calls speak with the voice your Twilio account uses by default: Twilio's free Basic voice, unless you picked another in the Twilio Console. Twilio says its Basic voices are not meant for production, so each account can speak with one of these neural voices instead. Choose the installation-wide account's in the **Call Voice** card of **Admin Dashboard > Settings > Call and SMS**, and a project configuration's in **Call Voice** under **More fields**.
+
+| Voice | Made by | How it sounds |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | US English, female voice |
+| `Polly.Matthew-Neural` | Amazon Polly | US English, male voice |
+| `Polly.Amy-Neural` | Amazon Polly | British English, female voice |
+| `Polly.Brian-Neural` | Amazon Polly | British English, male voice |
+| `Google.en-US-Neural2-F` | Google | US English, female voice |
+| `Google.en-US-Neural2-J` | Google | US English, male voice |
+
+Every call through the account speaks with that voice: on-call pages and the answer to the key you press, the message left on voicemail, verification codes, **Send Test Call** and an incoming call policy's greetings. In these voices, a record number such as `INC-42` is spelled with SSML, which sounds more natural than the spaced letters other voices are given. Twilio charges the account that places the call for these voices: $0.0032 for every 100 characters in November 2026, under 2 US cents for a page's call. See [Twilio's voice pricing](https://www.twilio.com/en-us/voice/pricing/us). Leave **Call Voice** empty to keep the account's default voice. Through the API and Terraform, the voice is the `twilioCallVoice` field, and a voice that is not in the table is refused.
+
 ### Voicemail on on-call calls
 
 To Twilio, a call that voicemail picks up is answered, like one a person picks up. So each on-call call asks Twilio, in the background, whether a person or voicemail answered it, with [answering machine detection](https://www.twilio.com/docs/voice/answering-machine-detection): a person who picks up hears the page at once. A call that voicemail answers counts as not answered, as one that rings out does, and the page goes on as it does for a missed call. Once the greeting ends, OneUptime leaves a short message with what the call said. The call's log says whether a message was left, and so does the incident feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

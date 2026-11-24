@@ -268,6 +268,14 @@ Incident Severity with the same name already exists.
 
 레코드 자신의 이름을 대소문자와 관계없이 다시 보내는 업데이트는 이름 바꾸기가 아니므로, 전부터 이름을 공유하던 레코드도 계속 변경할 수 있고 서로 다른 이름으로 바꿀 수 있지만, 다른 레코드의 이름으로는 바꿀 수 없습니다. 팀, 레이블, 온콜 정책, 온콜 일정의 경우 `GET /api/shared-names/team`(또는 `label`, `on-call-policy`, `on-call-schedule`)이 이름을 공유하는 레코드를 알려 줍니다. 응답은 `{"groups": [["<id>", "<id>"]]}` 형식이며, 각 그룹은 이름이 같게 읽히는 레코드 중 키가 읽을 수 있는 레코드의 ID입니다. 보관된 레이블과 온콜 정책은 빠집니다.
 
+고유한 이름을 요구하는 프로젝트(새 프로젝트는 그렇습니다)에서는 이름을 붙이는 다른 대부분의 종류에도 같은 규칙이 같은 코드로 적용되며, 모니터, 모니터 그룹, 프로브, 템플릿, API 키, 파이프라인 등이 여기에 포함됩니다. 그런지는 프로젝트의 `requireUniqueNames`가 알려 주며, 대시보드의 프로젝트 설정에서 프로젝트 소유자나 프로젝트 관리자가 바꿉니다.
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+이런 거부에는 키가 그 레코드를 읽을 수 있을 때 그 이름을 가진 레코드의 ID인 `takenById`도 들어 있습니다. 프로젝트가 고유한 이름을 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 한 번의 업데이트로 같은 종류의 여러 레코드에 같은 이름을 붙일 수는 없습니다. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check`는 이름을 보내기 전에 그 이름이 쓰이고 있는지 알려 주고, `GET /api/unique-names/duplicates`는 프로젝트에서 두 번 이상 쓰이는 이름을 종류별로 나열합니다.
+
 #### 다른 레코드가 이미 가진 값
 
 이름이 아닌 값 중에도 레코드마다 하나씩만 가질 수 있는 값이 있습니다. 상태 페이지, 대시보드, 양식의 도메인, 프로젝트 도메인, 호스트나 Kubernetes 클러스터의 식별자, SSO 공급자의 로그인 URL, API 키의 권한 등이 그렇습니다. 다른 레코드가 가진 값으로 만들거나, 그런 값을 바꾸는 업데이트는 그렇다고 알려 주는 `400`으로 거부됩니다.

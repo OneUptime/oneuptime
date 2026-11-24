@@ -1,20 +1,27 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import {
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
+  isPaymentMethodNeededFirst,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import AddPaymentMethodFirstModal from "../../Components/ProjectBalance/AddPaymentMethodFirstModal";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import {
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../Utils/ProjectPaymentMethods";
 import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
 import {
+  ADD_TO_BALANCE_AMOUNT_TITLE,
+  ADD_TO_BALANCE_TITLE,
   CURRENT_BALANCE_ROW_TITLE,
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
 } from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
@@ -52,7 +59,7 @@ import React, {
  *
  * Only a project owner or someone with Manage Billing may add AI credits or
  * change Auto Recharge (Common/Utils/Project/ProjectBalance). So the balance
- * card asks them to recharge it and offers the button; everyone else is
+ * card asks them to add to it and offers the button; everyone else is
  * told who can, and the button stays locked, saying why - it used to open a
  * form whose save the server then refused. Auto Recharge's Edit is gated on
  * its own columns rather than the Project table's wider update list, for
@@ -60,6 +67,11 @@ import React, {
  *
  * When Auto Recharge's last charge failed, the page says so first
  * (AutoRechargeFailedNotice), with what to do or who can.
+ *
+ * On a project known to have no payment method, and no cloud marketplace
+ * billing it, Add to Balance says a payment method is needed first, and
+ * where it is added, before it asks for an amount (AddPaymentMethodFirstModal,
+ * #11053).
  */
 const AIBillingSettings: FunctionComponent<
   PageComponentProps
@@ -72,6 +84,9 @@ const AIBillingSettings: FunctionComponent<
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Add to Balance pressed on a project with no payment method (#11053).
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
   // Saving Auto Recharge tries the card at once: ask again whether it failed.
   const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
 
@@ -85,6 +100,8 @@ const AIBillingSettings: FunctionComponent<
   // A project a cloud marketplace bills has no card: its recharges go there.
   const billingMarketplace: CloudMarketplace | null =
     getCurrentProjectBillingMarketplace();
+  // Whether the project has a payment method, once counted (no request here).
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
   const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI]],
     buttonTitle: "Edit Auto Recharge",
@@ -118,6 +135,17 @@ const AIBillingSettings: FunctionComponent<
             access: balanceAccess,
             translator: translator,
             onRecharge: () => {
+              // No payment method yet: say so before asking for an amount.
+              if (
+                isPaymentMethodNeededFirst({
+                  paymentMethods: paymentMethods,
+                  marketplace: billingMarketplace,
+                })
+              ) {
+                setShowAddPaymentMethodFirst(true);
+                return;
+              }
+
               setShowRechargeBalanceModal(true);
               setRechargeBalanceError(null);
               setIsRechargeBalanceLoading(false);
@@ -159,14 +187,26 @@ const AIBillingSettings: FunctionComponent<
         }}
       />
 
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.AI}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {showRechargeBalanceModal ? (
         <BasicFormModal
-          title={"Recharge AI Balance"}
+          // One verb from the card's button to the dialog's (#7475).
+          title={ADD_TO_BALANCE_TITLE}
           onClose={() => {
             setShowRechargeBalanceModal(false);
           }}
           isLoading={isRechargeBalanceLoading}
-          submitButtonText={"Recharge"}
+          submitButtonText={ADD_TO_BALANCE_TITLE}
           onSubmit={async (item: JSONObject) => {
             setIsRechargeBalanceLoading(true);
             try {
@@ -195,12 +235,25 @@ const AIBillingSettings: FunctionComponent<
             }
           }}
           formProps={{
-            name: "Recharge AI Balance",
+            name: ADD_TO_BALANCE_TITLE,
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for - the AI credits - and where it is
+                 * charged, in the reader's words already: an element, which
+                 * the form's label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.AI,
+                      marketplace: billingMarketplace,
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: {
                   amount: true,
                 },

@@ -313,8 +313,9 @@ describe("the dialog, while blocking is off: the opt-in", () => {
     expect(permissions).toHaveTextContent(
       "Account > Account Firewall Access Rules > Edit",
     );
+    // Challenge This Network takes it on every plan (#10894).
     expect(permissions).toHaveTextContent(
-      "Only on a plan without a list or a custom rule to spare.",
+      "To challenge a network by its ASN, and on a plan without a list or a custom rule to spare.",
     );
 
     await waitFor(() => {
@@ -384,6 +385,127 @@ describe("the dialog, while blocking is off: the opt-in", () => {
     expect(Toast.success).toHaveBeenCalledWith(TURNED_ON_TOAST);
     expect(onChanged).toHaveBeenCalledTimes(1);
     expect(api.readBlockingConnection).toHaveBeenCalledTimes(2);
+  });
+
+  test("a check that only warns turns blocking on, and keeps the warning in view under how it stands (#10894)", async () => {
+    api.turnBlockingOn.mockResolvedValue({
+      isReady: true,
+      checks: [
+        {
+          key: "blocking-setup",
+          name: "How blocking is set up",
+          status: "pass",
+          durationMs: 3,
+          message:
+            "Blocks go to the list oneuptime_block, with a custom rule in each zone.",
+        },
+        {
+          key: "blocking-lists",
+          name: "Edit the lists",
+          status: "pass",
+          durationMs: 3,
+          message:
+            "The API token can make and change OneUptime's lists (Account > Account Filter Lists > Edit).",
+        },
+        {
+          key: "blocking-asn-access-rules",
+          name: "Challenge a network by its ASN",
+          status: "warn",
+          durationMs: 3,
+          message:
+            "Challenging a network by its ASN needs Account > Account Firewall Access Rules > Edit, which the API token lacks. Blocking works without it: only Challenge This Network on Campaigns fails.",
+          remediation:
+            "To challenge networks by their ASN, edit the token in Cloudflare and add Account > Account Firewall Access Rules > Edit, or paste a new token that has it.",
+        },
+      ],
+    } as never);
+    const { onChanged } = await openDialog(connection({}));
+    api.readBlockingConnection.mockResolvedValue(
+      connection({ blockingSettings: ON_SETTINGS }) as never,
+    );
+
+    await act(async () => {
+      fireEvent.click(button("Turn On Blocking"));
+    });
+
+    expect(Toast.success).toHaveBeenCalledWith(TURNED_ON_TOAST);
+    expect(onChanged).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(NOT_TURNED_ON)).not.toBeInTheDocument();
+    const checks: HTMLElement = screen.getByTestId(
+      CLOUDFLARE_BLOCKING_TEST_IDS.checks,
+    );
+    expect(checks).toHaveTextContent("Challenge a network by its ASN");
+    expect(checks).toHaveTextContent(
+      "only Challenge This Network on Campaigns fails.",
+    );
+    // Only what did not pass stays: the passing checks are not repeated.
+    expect(checks).not.toHaveTextContent("Edit the lists");
+    expect(
+      checks.querySelector('[data-check-key="blocking-asn-access-rules"]'),
+    ).toHaveAttribute("data-check-status", "warn");
+  });
+
+  test("every check passing turns blocking on with no checks left in view", async () => {
+    api.turnBlockingOn.mockResolvedValue({
+      isReady: true,
+      checks: [
+        {
+          key: "blocking-asn-access-rules",
+          name: "Challenge a network by its ASN",
+          status: "pass",
+          durationMs: 3,
+          message:
+            "The API token can challenge a whole network by its ASN from Campaigns (Account > Account Firewall Access Rules > Edit).",
+        },
+      ],
+    } as never);
+    await openDialog(connection({}));
+
+    await act(async () => {
+      fireEvent.click(button("Turn On Blocking"));
+    });
+
+    expect(Toast.success).toHaveBeenCalledWith(TURNED_ON_TOAST);
+    expect(
+      screen.queryByTestId(CLOUDFLARE_BLOCKING_TEST_IDS.checks),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Check Permissions shows a warning for Challenge This Network beside the checks that pass", async () => {
+    api.checkBlocking.mockResolvedValue({
+      isReady: true,
+      checks: [
+        {
+          key: "blocking-lists",
+          name: "Edit the lists",
+          status: "pass",
+          durationMs: 3,
+          message:
+            "The API token can make and change OneUptime's lists (Account > Account Filter Lists > Edit).",
+        },
+        {
+          key: "blocking-asn-access-rules",
+          name: "Challenge a network by its ASN",
+          status: "warn",
+          durationMs: 3,
+          message:
+            "Challenging a network by its ASN needs Account > Account Firewall Access Rules > Edit, which the API token lacks. Blocking works without it: only Challenge This Network on Campaigns fails.",
+        },
+      ],
+    } as never);
+    await openDialog(connection({}));
+
+    await act(async () => {
+      fireEvent.click(button("Check Permissions"));
+    });
+
+    const checks: HTMLElement = screen.getByTestId(
+      CLOUDFLARE_BLOCKING_TEST_IDS.checks,
+    );
+    // Check Permissions shows every check, the passing ones too.
+    expect(checks).toHaveTextContent("Edit the lists");
+    expect(checks).toHaveTextContent("Challenge a network by its ASN");
+    expect(api.turnBlockingOn).not.toHaveBeenCalled();
   });
 
   test("a check that fails keeps blocking off, and says so above what failed", async () => {

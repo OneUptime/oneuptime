@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Firmenname, der mit dieser Lizenz verknüpft ist.",
   "Annual contract value (in USD) for this license.": "Jährlicher Vertragswert (in USD) für diese Lizenz.",
   "Expiration date of this license.": "Ablaufdatum dieser Lizenz.",
-  "Something went wrong": "Etwas ist schiefgelaufen",
-  "An unexpected error has occurred. Please reload the page to continue": "Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu, um fortzufahren",
+  "This page stopped working": "Diese Seite funktioniert nicht mehr",
+  "Part of this page ran into a problem. Reload the page to continue.": "Ein Teil dieser Seite ist auf ein Problem gestoßen. Laden Sie die Seite neu, um fortzufahren.",
   "Error details": "Fehlerdetails",
   "Still stuck?": "Kommen Sie immer noch nicht weiter?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Laden Sie eine lokale Diagnosedatei mit Fehler-Stack, Komponenten-Stack, bereinigter Seiten-URL, Browserdetails und OneUptime-Build herunter. Sie liest niemals Cookies, gespeicherte Browserdaten oder Formularinhalte. Prüfen Sie sie, bevor Sie sie mit dem OneUptime-Support teilen.",
@@ -497,7 +497,7 @@
       "title": "Abmelden"
     },
     "sendEmail": {
-      "title": "Ankündigungs-E-Mail senden",
+      "title": "E-Mail senden",
       "testCardTitle": "Test-E-Mail senden",
       "testCardDescription": "Senden Sie eine Test-Ankündigungs-E-Mail an eine einzelne E-Mail-Adresse, um die Vorschau anzuzeigen, bevor Sie sie an alle Benutzer senden.",
       "allCardTitle": "E-Mail an alle Benutzer senden",
@@ -514,7 +514,7 @@
       "confirmButton": "Ja, an alle Benutzer senden"
     },
     "moreEmail": {
-      "title": "Ankündigungs-E-Mail senden",
+      "title": "E-Mail senden",
       "cardTitle": "Ankündigungs-E-Mail senden",
       "cardDescription": "Verfassen Sie eine Ankündigungs-E-Mail, die an alle registrierten Benutzer gesendet wird. Sie können zuerst eine Test-E-Mail senden, um die Vorschau anzuzeigen.",
       "sendTestButton": "Test-E-Mail senden",
@@ -536,7 +536,7 @@
       "confirmButton": "Ja, an alle Benutzer senden"
     },
     "settings": {
-      "title": "Admin-Einstellungen",
+      "title": "Einstellungen",
       "authentication": {
         "signUpCardTitle": "Registrierung",
         "signUpCardDescription": "Wer auf diesem Server ein Konto erstellen kann.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Eine Testanfrage wird an den Kanal gesendet.",
   "Custom Channel": "Benutzerdefinierter Kanal",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Die Bereitschaftsregeln aller, die diesen Kanal verwenden, werden mit ihm gelöscht. Um das Senden zu beenden, ohne die Regeln anderer zu ändern, schalten Sie den Kanal stattdessen aus.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Sie haben nicht genügend Berechtigungen, um {{columnName}} für {{itemName}} festzulegen. Sie benötigen eine der folgenden Berechtigungen: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Sie haben nicht genügend Berechtigungen, um {{columnName}} für {{itemName}} zu bearbeiten. Sie benötigen eine der folgenden Berechtigungen: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Sie haben nicht genügend Berechtigungen, um {{columnName}} für {{itemName}} festzulegen. Sie benötigen eine der folgenden Berechtigungen: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Sie haben nicht genügend Berechtigungen, um {{columnName}} für {{itemName}} zu bearbeiten. Sie benötigen eine der folgenden Berechtigungen: {{permissions}}.",
   "Push Notifications": "Push-Benachrichtigungen",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} übersprungen",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Möchten Sie „{{action}}“ wirklich für {{count}} {{itemName}} ausführen?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Geben Sie den Workern mehr Arbeitsspeicher und CPU, und suchen Sie im Log der App nach Aufgaben, die immer wieder fehlschlagen.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Auf diesem Server läuft OneUptime {{current}}. {{latest}} ist erschienen.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Erstellen Sie ein Backup und aktualisieren Sie dann: npm run update mit Docker Compose, helm upgrade auf Kubernetes.",
-  "Finish it on the Server setup page.": "Schließen Sie es auf der Seite „Server-Einrichtung“ ab.",
+  "Finish it on the Server Setup page.": "Schließen Sie es auf der Seite „Server-Einrichtung“ ab.",
   "Products on this server": "Produkte auf diesem Server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Wählen Sie, was jedes Projekt auf diesem Server anbietet. Ein ausgeschaltetes Produkt verschwindet aus dem Menü, der Startseite und der Suche jedes Projekts, und seine Seiten weisen darauf hin, dass es ausgeschaltet ist.",
   "Start from": "Ausgangspunkt",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Zum visuellen Editor wechseln",
   "Visual": "Visuell",
   "Drop image to upload": "Bild zum Hochladen ablegen",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" wurde nicht hochgeladen. {{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} wird hochgeladen…",
   "Type directly in the visual editor — use the toolbar to format.": "Schreiben Sie direkt im visuellen Editor — verwenden Sie die Symbolleiste zum Formatieren.",
   "Switch to {{markdown}} to view or edit the raw source.": "Wechseln Sie zu {{markdown}}, um den Quelltext anzuzeigen oder zu bearbeiten.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "Drücken Sie in einer Liste {{indentKey}}, um einen Eintrag einzurücken, und {{outdentKey}}, um ihn auszurücken, oder verwenden Sie die Schaltflächen zum Ein- und Ausrücken. Außerhalb einer Liste springt {{tabKey}} zum nächsten Feld.",
@@ -4573,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "Der Server hat nicht mit seinen Einstellungen für Hilfe und Support geantwortet.",
   "Keyboard shortcuts": "Tastenkürzel",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Laden Sie eine lokale Diagnosedatei mit Fehler-Stack, Komponenten-Stack, bereinigter Seiten-URL, Browserdetails und OneUptime-Build herunter. Sie liest niemals Cookies, gespeicherte Browserdaten oder Formularinhalte. Prüfen Sie sie, bevor Sie sie teilen.",
-  "Chat on Slack": "Chat auf Slack"
+  "Chat on Slack": "Chat auf Slack",
+  "Your Twilio account's default voice": "Standardstimme Ihres Twilio-Kontos",
+  "US English, female voice": "Amerikanisches Englisch, weibliche Stimme",
+  "US English, male voice": "Amerikanisches Englisch, männliche Stimme",
+  "British English, female voice": "Britisches Englisch, weibliche Stimme",
+  "British English, male voice": "Britisches Englisch, männliche Stimme",
+  "A page's call starts like this, always in English:": "Der Anruf einer Alarmierung beginnt so, immer auf Englisch:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio berechnet für diese Stimme einen Aufpreis: weniger als 2 US-Cent pro Anruf einer Alarmierung.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Kostenlos. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht.",
+  "Save, then send a test call to hear it.": "Speichern Sie und senden Sie dann einen Testanruf, um sie zu hören.",
+  "Call Voice": "Stimme für Anrufe",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "Die Stimme, mit der die Telefonanrufe von OneUptime sprechen, wenn sie über das Twilio-Konto dieses Servers laufen.",
+  "Choose Voice": "Stimme wählen",
+  "Voice": "Stimme"
 }

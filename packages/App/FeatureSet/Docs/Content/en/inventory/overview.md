@@ -22,7 +22,7 @@ flowchart TB
     T["Telemetry<br/>you send"] -->|"Discovered"| I["Inventory: one item<br/>per thing, with a<br/>stable identity key"]
     R["OneUptime's<br/>pollers"] -->|"Mirrored every<br/>15 minutes"| I
     Y["Things with<br/>no telemetry"] -->|"Added by you"| I
-    I --> L["All Items, the Topology<br/>Map and item pages"]
+    I --> L["All Items, Topology<br/>and item pages"]
     I --> X["Custom fields, the CSV<br/>export and the API"]
 ```
 
@@ -63,7 +63,7 @@ Open **Products → Resources → Inventory**. Its side menu has these pages. **
 | **Overview** | How many items you have, what they are, how many have gone quiet, and what was added most recently. |
 | **All Items** | Every item. Search by name, description or identity key, narrow the list by type, source, status or custom field, and add an item by hand. |
 | **Managed Devices** | Your device manager connections - Esper, Microsoft Intune, Workspace ONE UEM and SOTI MobiControl - and every device they import with its status, group, model and operating system. |
-| **Topology Map** | How the items connect: services, what they call, and the hosts, pods and devices they run on. |
+| **Topology** | How the items connect: services, what they call, and the hosts, pods and devices they run on. |
 | **Gone Quiet** | The items not heard from for more than a day: discovered items that sent no telemetry, and devices that stopped checking in with their device manager. |
 | **By Source** | The items of one source: **Discovered**, **Mirrored** or **Added by You**. |
 | **Settings → Custom Fields** | The fields your project keeps on every item. |
@@ -271,7 +271,7 @@ To archive items, select them in **All Items** and archive them in one go, or op
 
 ## Relationships and topology
 
-OneUptime links items with directed relationships as it observes them. **Inventory → Topology Map** draws them, and an item's **Connections** page lists its own. See [Topology](/docs/telemetry/topology).
+OneUptime links items with directed relationships as it observes them. **Inventory → Topology** draws them, and an item's **Connections** page lists its own. See [Topology](/docs/telemetry/topology).
 
 | Relationship | For example |
 | --- | --- |

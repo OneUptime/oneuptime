@@ -137,11 +137,12 @@ export function getInventoryBreadcrumbs(path: string): Array<Link> | undefined {
 }
 
 /*
- * The Topology Map's trail. It is an entry of the Inventory menu and drawn
- * beside it, but its address is a section of its own (/topology/overview),
- * so a trail built from its address alone could not link "Inventory" back
- * to the Inventory: it is linked by hand, and the page is named as its menu
- * entry is.
+ * Topology's trail. It is an entry of the Inventory menu and drawn beside
+ * it, but its address is a section of its own (/topology/overview), so a
+ * trail built from its address alone could not link "Inventory" back to the
+ * Inventory: it is linked by hand, and the page is named as its menu
+ * entries and its title name it - Topology, where the trail and the
+ * Inventory menu said "Topology Map" (#7474).
  */
 function getTopologyBreadcrumbs(): Dictionary<Array<Link>> {
   return BuildBreadcrumbLinks(PageMap.TOPOLOGY, [
@@ -150,6 +151,6 @@ function getTopologyBreadcrumbs(): Dictionary<Array<Link>> {
       title: "Inventory",
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.INVENTORY] as Route),
     },
-    { title: "Topology Map", to: Navigation.getCurrentPath() },
+    { title: "Topology", to: Navigation.getCurrentPath() },
   ]);
 }

@@ -44,7 +44,9 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-Anropet nevner prosjektet ditt. Et anrop som ikke hører til et prosjekt, for eksempel en verifiseringskode, nevner OneUptime eller navnet den selvhostede installasjonen din bruker. En tittel på mer enn omtrent 100 tegn kortes ned etter et helt ord, og OneUptime tar vare på hele tittelen. Bokstavene i et nummer som `INC-42` sies én om gangen, slik at stemmen aldri leser dem som et ord. Anrop er alltid på engelsk.
+Trykker du på en tast anropet ikke tilbød, for eksempel 3, # eller *, sier anropet "That key does nothing." og ber om en tast på nytt. Det spør på nytt høyst to ganger, like mange ganger som det sier tastene når du ikke trykker på noen; etter det avslutter et trykk på feil tast anropet, og tilkallingen forblir ubekreftet. Tastene 1 og 2 virker som de alltid har gjort.
+
+Anropet nevner prosjektet ditt. Et anrop som ikke hører til et prosjekt, for eksempel en verifiseringskode, nevner OneUptime eller navnet den selvhostede installasjonen din bruker. En tittel på mer enn omtrent 100 tegn kortes ned etter et helt ord, og OneUptime tar vare på hele tittelen. Bokstavene i et nummer som `INC-42` sies én om gangen, slik at stemmen aldri leser dem som et ord. Anrop er alltid på engelsk, med stemmen Twilio-kontoen din bruker som standard, med mindre en administrator velger en annen: se [Stemmen anropene bruker](/docs/self-hosted/twilio-integration#stemmen-anropene-bruker).
 
 ## Én rekkefølge for alt
 

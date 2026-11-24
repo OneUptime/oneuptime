@@ -4,7 +4,7 @@ import {
   CodeRepositoryListOrder,
 } from "Common/Types/AI/CodeTask";
 import API from "Common/UI/Utils/API/API";
-import { useEffect, useRef, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 
 /*
  * ONE PAGE OF THE READER'S REPOSITORIES, AS THE SERVER READS IT (#10764).
@@ -49,7 +49,7 @@ const useCodeRepositoryPage: (
     error: null,
   });
 
-  const latestReadRef: React.MutableRefObject<number> = useRef<number>(0);
+  const latestReadRef: MutableRefObject<number> = useRef<number>(0);
 
   useEffect(() => {
     if (!query.isEnabled) {

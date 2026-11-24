@@ -45,9 +45,10 @@ import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/
  *                    their severities and states; the Custom Fields it adds
  *                    to its cases, the Note Templates its notes start from
  *                    and the Numbering of its cases (CASE-42), as those
- *                    products have theirs; and Risk Scoring: when an
+ *                    products have theirs; Risk Scoring: when an
  *                    entity's risk opens a case, and how much each entity
- *                    matters
+ *                    matters; and Erasure Requests: a person erased from
+ *                    the user vault on request, never named again
  *
  * Every page has its own entry, address and name. The maintainer asked
  * for this in place of the tabs a page used to carry across its top (and
@@ -410,6 +411,16 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
         title: "Risk Scoring",
         icon: IconProp.Gauge,
+      },
+      {
+        /*
+         * Erasing one person from the user vault when they ask (#10908):
+         * Security Events never names them again, and each request's row
+         * says when it is done and what it changed.
+         */
+        page: PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS,
+        title: "Erasure Requests",
+        icon: IconProp.UserMinus,
       },
     ],
   },

@@ -32,14 +32,13 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeUtil from "../../../Utils/Probe";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import API from "Common/UI/Utils/API/API";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import ServicesElement from "../../Service/ServiceElements";
+import RecordsById from "Common/UI/Utils/RecordsById";
+import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "Common/UI/Components/EntityDropdown/EntityDropdownNotFound";
+import ServiceElement from "../../Service/ServiceElement";
+import { MORE_SERVICES_TEMPLATE } from "../../TableColumnList/MoreItemsTemplates";
 import ObjectID from "Common/Types/ObjectID";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -108,6 +107,51 @@ const fieldTypeByValueType: Record<MonitorStepViewValueType, FieldType> = {
 
 // A probe the step names that no probe list holds any more.
 const DELETED_PROBE_NAME: string = translationKey("Deleted probe");
+
+/*
+ * One of the services a step is scoped to: the service, read by its id, or
+ * none - deleted since, or out of the reader's reach.
+ */
+interface StepService {
+  id: string;
+  service: Service | undefined;
+}
+
+/*
+ * The services a step is scoped to, each once, as the reader sees them: by
+ * name, and the ones no service answers to last. Exported for its tests.
+ */
+export const getStepServices: (data: {
+  ids: Array<string>;
+  servicesById: Map<string, Service>;
+}) => Array<StepService> = (data: {
+  ids: Array<string>;
+  servicesById: Map<string, Service>;
+}): Array<StepService> => {
+  const seen: Set<string> = new Set<string>();
+  const found: Array<StepService> = [];
+  const gone: Array<StepService> = [];
+
+  for (const id of data.ids) {
+    const key: string = (id || "").toString().trim().toLowerCase();
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+
+    const service: Service | undefined = data.servicesById.get(key);
+
+    (service ? found : gone).push({ id: key, service: service });
+  }
+
+  found.sort((a: StepService, b: StepService): number => {
+    return (a.service?.name || "").localeCompare(b.service?.name || "");
+  });
+
+  return [...found, ...gone];
+};
 
 /*
  * What the Monitor Details section holds. Only the probe-check types are run
@@ -233,7 +277,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const [isLoading, setIsLoading] = useState<boolean>(hasReferencesToResolve);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [telemetryServices, setServices] = useState<Array<Service>>([]);
+  /*
+   * The services the step is scoped to, by id (lower case). Read by those
+   * ids alone (RecordsById, in pages), so a service is named however many
+   * the project has, and one deleted since says so (#10921).
+   */
+  const [telemetryServices, setServices] = useState<Map<string, Service>>(
+    new Map<string, Service>(),
+  );
   const [networkDeviceName, setNetworkDeviceName] = useState<
     string | undefined
   >(undefined);
@@ -244,38 +295,22 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   const fetchServices: PromiseVoidFunction = async (): Promise<void> => {
     if (telemetryServiceIds.length === 0) {
-      setServices([]);
+      setServices(new Map<string, Service>());
       return;
     }
 
-    const telemetryServicesResult: ListResult<Service> =
-      await ModelAPI.getList<Service>({
-        modelType: Service,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          _id: new Includes(
-            telemetryServiceIds.map((id: string) => {
-              return new ObjectID(id);
-            }),
-          ),
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          name: true,
-          serviceColor: true,
-        },
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
+    const services: Array<Service> = await RecordsById.read<Service>({
+      modelType: Service,
+      ids: telemetryServiceIds,
+      query: { projectId: ProjectUtil.getCurrentProjectId()! },
+      select: {
+        _id: true,
+        name: true,
+        serviceColor: true,
+      },
+    });
 
-    if (telemetryServicesResult instanceof HTTPErrorResponse) {
-      throw telemetryServicesResult;
-    }
-
-    setServices(telemetryServicesResult.data);
+    setServices(RecordsById.byValue<Service>({ records: services }));
   };
 
   const fetchNetworkDevice: PromiseVoidFunction = async (): Promise<void> => {
@@ -338,7 +373,7 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     if (!hasReferencesToResolve) {
-      setServices([]);
+      setServices(new Map<string, Service>());
       setNetworkDeviceName(undefined);
       setProbeNamesById(new Map<string, string>());
       setIsLoading(false);
@@ -368,11 +403,15 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
     if (row.valueType === MonitorStepViewValueType.TelemetryServices) {
       const ids: Array<string> = (row.value as Array<string> | undefined) || [];
 
-      const services: Array<Service> = telemetryServices.filter(
-        (service: Service) => {
-          return ids.includes(service.id?.toString() || "");
-        },
-      );
+      /*
+       * Every service the step is scoped to: one deleted since stays in the
+       * list, saying so, rather than leaving the step looking scoped to
+       * fewer services than it is.
+       */
+      const services: Array<StepService> = getStepServices({
+        ids: ids,
+        servicesById: telemetryServices,
+      });
 
       item[row.key] = ids;
 
@@ -383,7 +422,29 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
         fieldType: FieldType.Element,
         placeholder: row.placeholder,
         getElement: (): ReactElement => {
-          return <ServicesElement services={services} />;
+          return (
+            <TableColumnListComponent
+              items={services}
+              moreTemplate={MORE_SERVICES_TEMPLATE}
+              dataTestId="monitor-step-services"
+              getEachElement={(stepService: StepService): ReactElement => {
+                if (stepService.service) {
+                  return <ServiceElement service={stepService.service} />;
+                }
+
+                return (
+                  <span
+                    className="text-sm italic text-gray-500"
+                    title={stepService.id}
+                    data-testid="monitor-step-service-not-found"
+                  >
+                    {translator.translateText(ENTITY_DROPDOWN_NOT_FOUND_LABEL)}
+                  </span>
+                );
+              }}
+              noItemsMessage="No services."
+            />
+          );
         },
       });
 

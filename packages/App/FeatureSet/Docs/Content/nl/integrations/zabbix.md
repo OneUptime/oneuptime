@@ -148,13 +148,13 @@ Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor 
 
 ### Eén incident per probleem openen
 
-Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elk probleem een eigen incident krijgt en het herstel ervan het oplost:
+Open in hetzelfde criterium **Instellingen** en zet **Incidenten en waarschuwingen groeperen op een veld uit de payload** aan. Vul het in zoals hieronder, zodat elk probleem een eigen incident krijgt en het herstel ervan het oplost:
 
 | Veld | Waarde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Een apart incident openen voor elke…** | `requestBody.event_id` |
+| **Veld dat herstel aangeeft** | `requestBody.status` |
+| **Waarde die hersteld betekent** | `0` |
 
 ### De monitor weer online brengen
 
@@ -321,7 +321,7 @@ Open het mediatype en gebruik **Test**: Zabbix toont het resultaat van het scrip
 :::details Incidenten openen, maar worden nooit opgelost
 - De actie heeft **Recovery operations** nodig, anders stuurt Zabbix het herstel nooit.
 - Open met het sjabloon **Uitvoeringen** van de workflow en de uitvoering van het herstel: de laatste stap ervan zegt waarom. Een herstel van een probleem dat geen incident opende, verandert niets.
-- Met de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**. **Field that signals recovery** moet `requestBody.status` zijn, en **Value that means recovered** precies `0`.
+- Met de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**. **Veld dat herstel aangeeft** moet `requestBody.status` zijn, en **Waarde die hersteld betekent** precies `0`.
 :::
 
 :::details Het Zabbix-probleem wordt niet bevestigd of gesloten

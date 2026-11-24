@@ -65,6 +65,8 @@ export interface CodeLanguage {
   backslashParenInStrings: boolean;
   // "{name}" in any string: Rust's format arguments.
   bareBraceInStrings: boolean;
+  // '$name' and '${expr}' in a single-quoted string too: Dart's.
+  singleQuotesInterpolate: boolean;
   // A variable's "$": PHP, Perl.
   dollarNames: boolean;
 }
@@ -78,6 +80,7 @@ const BASE: CodeLanguage = {
   prefixedBraceStrings: false,
   backslashParenInStrings: false,
   bareBraceInStrings: false,
+  singleQuotesInterpolate: false,
   dollarNames: false,
 };
 
@@ -130,9 +133,10 @@ export function getCodeLanguage(extension: string): CodeLanguage {
     case "kt":
     case "kts":
     case "groovy":
-    case "dart":
     case "scala":
       return { ...BASE, dollarInStrings: true };
+    case "dart":
+      return { ...BASE, dollarInStrings: true, singleQuotesInterpolate: true };
     case "cs":
       return { ...BASE, prefixedBraceStrings: true };
     case "swift":
@@ -596,6 +600,10 @@ class Tokenizer {
     }
 
     if (prefix) {
+      return true;
+    }
+
+    if (quote === "'" && this.language.singleQuotesInterpolate) {
       return true;
     }
 

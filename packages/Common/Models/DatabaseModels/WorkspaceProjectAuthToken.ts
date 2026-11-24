@@ -169,6 +169,17 @@ export interface SlackMiscData extends MiscData {
  */
 export interface MicrosoftTeamsMiscData extends MiscData {
   tenantId: string;
+  /*
+   * The organization the tenant is, as Microsoft Graph named it when admin
+   * consent was granted (MicrosoftTeamsOrganization): its display name
+   * ("Contoso") and its default domain ("contoso.onmicrosoft.com"). The
+   * settings page names the organization with them, so people know whose
+   * account to sign in with. A connection made before they were kept, or
+   * whose organization Graph did not name, has neither: the page names it
+   * by its tenant id.
+   */
+  organizationName?: string | undefined;
+  organizationDomain?: string | undefined;
   teamId: string;
   teamName: string;
   botId: string;

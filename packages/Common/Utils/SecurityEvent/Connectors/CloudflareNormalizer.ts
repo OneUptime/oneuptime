@@ -27,10 +27,16 @@ import {
   readValue,
 } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
-import { readSensitivePath } from "../SensitiveFileProbe";
+import {
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readSensitiveFileRequest,
+  readSensitivePath,
+} from "../SensitiveFileProbe";
 import {
   WEB_ATTACK_KIND_ATTRIBUTE,
   WEB_HTTP_ACTIVITY_CLASS_UID,
+  WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE,
   WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WebAttackKind,
   readWebAttackKind,
@@ -444,6 +450,33 @@ export default class CloudflareNormalizer {
     ].join(":");
   }
 
+  /*
+   * A request for a sensitive path, as a firewall event says it: refused,
+   * when the edge stopped it or the origin answered 4xx (#10745); for a
+   * file that holds secrets, what the origin's 2xx was - unconfirmed, as a
+   * firewall event records no size and no type (#10912); else none.
+   */
+  public static readSensitiveRequest(data: {
+    target: string;
+    outcome: SecurityEventRequestOutcome | undefined;
+    originStatus: number;
+  }): SensitiveFileRequest | null {
+    if (data.outcome === SecurityEventRequestOutcome.Rejected) {
+      const path: string | null = readSensitivePath(data.target);
+
+      return path ? { path, answer: SensitiveFileAnswer.Refused } : null;
+    }
+
+    if (data.outcome !== SecurityEventRequestOutcome.ReachedApp) {
+      return null;
+    }
+
+    return readSensitiveFileRequest({
+      target: data.target,
+      statusCode: data.originStatus,
+    });
+  }
+
   // What the request asked for: its path and query, as an access log line records it.
   public static readTarget(raw: JSONObject): string {
     const path: string = readText(raw, "clientRequestPath");
@@ -662,18 +695,26 @@ export default class CloudflareNormalizer {
 
     /*
      * A request for a sensitive file or admin page that the edge stopped,
-     * or the origin refused or does not have (#10745): tagged as an access
-     * log's and a trace's are, so the Rule Library's rule counts it with
-     * them. Which requests are imported is unchanged.
+     * or the origin refused or does not have (#10745) - or one for a file
+     * that holds secrets that the origin answered with a 2xx (#10912): a
+     * probe all the same. Tagged as an access log's and a trace's are, so
+     * the Rule Library's rule counts it with them. A firewall event carries
+     * no size and no type of what the origin sent, so an answer is
+     * unconfirmed here, and never opens a case as a served file. Which
+     * requests are imported is unchanged.
      */
-    const sensitivePath: string | null =
-      !attackKind && outcome === SecurityEventRequestOutcome.Rejected
-        ? readSensitivePath(target)
-        : null;
+    const sensitive: SensitiveFileRequest | null = attackKind
+      ? null
+      : CloudflareNormalizer.readSensitiveRequest({
+          target,
+          outcome,
+          originStatus,
+        });
 
-    if (sensitivePath) {
+    if (sensitive) {
       attributes[WEB_ATTACK_KIND_ATTRIBUTE] = WebAttackKind.SensitiveFile;
-      attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitivePath;
+      attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitive.path;
+      attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE] = sensitive.answer;
     }
 
     const request: string = [

@@ -36,7 +36,12 @@ import DataSecurityIssueAnalysis, {
   StoredDataSecurityIssueAnalysis,
 } from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import DataSecurityIssueAnalysisReader from "../../../Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysisReader";
-import DataSecurityIssueGroups from "../../../Server/Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueGroups, {
+  IssueGroupReadScope,
+} from "../../../Server/Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueGroupFix, {
+  GROUP_FIX_HELD_READER_MESSAGE,
+} from "../../../Server/Utils/DataSecurity/DataSecurityIssueGroupFix";
 import {
   DataSecurityIssueGroupCause,
   DataSecurityIssueGroupJSON,
@@ -67,6 +72,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import RecordOfProcessingReader from "../../../Server/Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../../../Server/Utils/DataSecurity/RecordOfProcessingWriter";
+import { STORE_RECORD_CHANGE_REFUSED_MESSAGE } from "../../../Server/Utils/DataSecurity/StoreChangeAccess";
 import StoreTelemetryRetention from "../../../Server/Utils/DataSecurity/StoreTelemetryRetention";
 import RecordOfProcessingDrafter from "../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import ImpactAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
@@ -5575,11 +5581,19 @@ describe("the compliance paperwork's routes", () => {
   ];
 
   let helperSpies: Array<jest.SpyInstance>;
+  // Whether the caller may change the store itself, by its own row (StoreChangeAccess).
+  let storeChangeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     const row: DataSecurityRecordOfProcessingRow = {
       dataStoreId: STORE_ID.toString(),
     } as DataSecurityRecordOfProcessingRow;
+
+    storeChangeSpy = jest
+      .spyOn(DataStoreService, "findOneUpdatableById")
+      .mockImplementation((async () => {
+        return storeRow;
+      }) as never);
 
     helperSpies = [
       jest
@@ -5725,6 +5739,35 @@ describe("the compliance paperwork's routes", () => {
       userId: USER_ID,
       force: true,
     });
+
+    // ...and only once the caller is known to be able to change THIS store (#10805).
+    expect(storeChangeSpy.mock.calls[0]![0]).toMatchObject({
+      id: STORE_ID,
+      props: { userId: USER_ID },
+    });
+    expect(storeChangeSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      draftStore.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a store's drafts are refused to who may edit some store but not this one, drafting nothing", async () => {
+    asCaller([Permission.EditDataStore]);
+    // An edit of stores limited to labels this store does not carry.
+    storeChangeSpy.mockResolvedValue(null);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      { id: STORE_ID.toString() },
+      { force: true },
+    );
+
+    expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrown as Exception).message).toBe(
+      STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+    );
+    expect(result.answer).toBeUndefined();
+    expect(helperSpies[2]!).not.toHaveBeenCalled();
+    expect(aiSpy).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -5761,6 +5804,159 @@ describe("the compliance paperwork's routes", () => {
       expect(helpersCalled()).toBe(0);
     },
   );
+});
+
+/*
+ * ISSUES ONE MISTAKE MADE, AS EACH READER MAY READ THEM (#10739): a reader
+ * whose read of issues is held to labels reads the groups and their fix's
+ * plan, cut down to the stores they may read (DataSecurityIssueGroups and
+ * DataSecurityIssueGroupFix decide what that is), and asks for no group's
+ * fix - one press changes every store a cause made, many of which they
+ * may not read.
+ */
+describe("Issues one mistake made, for a reader held to labels (#10739)", () => {
+  const GROUP_ID: string = "10739000-0000-4000-8000-0000000000c1";
+  const PAYMENTS: ObjectID = new ObjectID(
+    "10739000-0000-4000-8000-0000000000d1",
+  );
+
+  // A member whose permissions each hold only for what carries the label.
+  function asHeldCaller(permissions: Array<Permission>): void {
+    const props: DatabaseCommonInteractionProps = buildProps(permissions);
+
+    for (const permission of props.userTenantAccessPermission![
+      PROJECT_ID.toString()
+    ]!.permissions) {
+      permission.labelIds = [PAYMENTS];
+    }
+
+    propsSpy.mockResolvedValue(props);
+  }
+
+  let listSpy: jest.SpyInstance;
+  let planSpy: jest.SpyInstance;
+  let runSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    listSpy = jest
+      .spyOn(DataSecurityIssueGroups, "list")
+      .mockResolvedValue({ groups: [], largestGroupSize: 0 } as never);
+    planSpy = jest
+      .spyOn(DataSecurityIssueGroupFix, "plan")
+      .mockResolvedValue({ groupId: GROUP_ID } as never);
+    runSpy = jest
+      .spyOn(DataSecurityIssueGroupFix, "run")
+      .mockResolvedValue({ leftOut: 0 } as never);
+  });
+
+  test("the groups are read as the reader: held to labels, the list is theirs to cut down", async () => {
+    asHeldCaller([Permission.ReadDataSecurityIssue]);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.issueGroups,
+      {},
+      { groupIds: [GROUP_ID] },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.answer).toEqual({ groups: [], largestGroupSize: 0 });
+    expect(listSpy).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      props: DatabaseCommonInteractionProps;
+      projectId: ObjectID;
+      groupIds: unknown;
+    } = listSpy.mock.calls[0]![0];
+
+    expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(asked.groupIds).toEqual([GROUP_ID]);
+    expect(DataSecurityIssueGroups.getReadScope(asked.props)).toBe(
+      IssueGroupReadScope.Held,
+    );
+  });
+
+  test("a group's plan is theirs to read too, cut down where it is made", async () => {
+    asHeldCaller([Permission.ReadDataSecurityIssue]);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
+      { id: GROUP_ID },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(result.answer).toEqual({ groupId: GROUP_ID });
+    expect(planSpy.mock.calls[0]![0]).toMatchObject({ groupId: GROUP_ID });
+    expect(
+      DataSecurityIssueGroups.getReadScope(planSpy.mock.calls[0]![0].props),
+    ).toBe(IssueGroupReadScope.Held);
+  });
+
+  test("a group's fix is refused, saying what it takes, before anything is read or run", async () => {
+    asHeldCaller([
+      Permission.ReadDataSecurityIssue,
+      Permission.EditDataSecurityIssue,
+      Permission.EditDataStore,
+    ]);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+      { id: GROUP_ID },
+      { parts: ["Code", "Cloud"] },
+    );
+
+    expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrown as Exception).message).toBe(
+      GROUP_FIX_HELD_READER_MESSAGE,
+    );
+    expect(runSpy).not.toHaveBeenCalled();
+    expect(readsMade()).toBe(0);
+  });
+
+  test("a reader of the whole project reads the groups, and asks for a group's fix", async () => {
+    asCaller([Permission.SecurityMember]);
+
+    expect(
+      (await call(DATA_SECURITY_API_ROUTES.issueGroups)).thrown,
+    ).toBeUndefined();
+    expect(
+      DataSecurityIssueGroups.getReadScope(listSpy.mock.calls[0]![0].props),
+    ).toBe(IssueGroupReadScope.Whole);
+
+    const fixed: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+      { id: GROUP_ID },
+      { expectedPlanFingerprint: "f1" },
+    );
+
+    expect(fixed.thrown).toBeUndefined();
+    expect(runSpy.mock.calls[0]![0]).toMatchObject({
+      groupId: GROUP_ID,
+      expectedPlanFingerprint: "f1",
+    });
+  });
+
+  test("a read of issues held to a label holds the fix back, whatever else they hold project-wide", async () => {
+    const props: DatabaseCommonInteractionProps = buildProps([
+      Permission.ReadDataSecurityIssue,
+      Permission.EditDataStore,
+    ]);
+
+    // Only the read is held to the label; changing stores is project-wide.
+    props.userTenantAccessPermission![
+      PROJECT_ID.toString()
+    ]!.permissions[0]!.labelIds = [PAYMENTS];
+    propsSpy.mockResolvedValue(props);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.fixIssueGroup(":id"),
+      { id: GROUP_ID },
+    );
+
+    expect((result.thrown as Exception).message).toBe(
+      GROUP_FIX_HELD_READER_MESSAGE,
+    );
+    expect(runSpy).not.toHaveBeenCalled();
+  });
 });
 
 /*

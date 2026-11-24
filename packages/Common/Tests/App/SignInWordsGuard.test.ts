@@ -81,6 +81,16 @@ const ALLOWED: Array<Allowed> = [
     reason:
       "An identity provider's own sign-out setting, quoted in the docs as it reads there (#9626): Microsoft Entra's Logout URL, Keycloak's Logout Service Redirect Binding URL, Auth0's Allowed Logout URLs.",
   },
+  {
+    phrase: /\{\{count\}\} log in the last day\b/g,
+    reason:
+      "One log, counted over the last day: what Security Events read that a drop or sample filter would take (#10436), not signing in.",
+  },
+  {
+    phrase: /\bhttps:\/\/evil\.example\/login\b/g,
+    reason:
+      "A phishing site's own sign-in page, the example of a URL a blocklist blocks (#10346): another site's address, not signing in to OneUptime.",
+  },
 ];
 
 // What is left of a string once its allowed phrases are taken out.

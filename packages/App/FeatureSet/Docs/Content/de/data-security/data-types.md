@@ -42,6 +42,8 @@ Nur Funde mit Konfidenz Hoch oder Mittel zählen: Sie machen einen Datenspeicher
 
 Beanspruchen zwei Datentypen dieselben Zeichen, gewinnt der sicherere Fund: die höhere Konfidenz, dann der Detektor, dessen eigene Regeln mehr beweisen, dann der längere Treffer.
 
+Ein Wert wird auch so gelesen, wie Menschen ihn schreiben. Die Prozent-Escapes einer URL werden gelesen, sodass eine IP-Adresse oder eine E-Mail-Adresse in einem Query-String, etwa `jane%40example.com`, gefunden wird. Die Ziffern einer Kartennummer werden in jeder Schrift gelesen, etwa Ziffern voller Breite (`４１１１ １１１１ １１１１ １１１１`) oder arabisch-indische Ziffern, jede Schrift zuerst für sich und dann zusammen. Eine E-Mail-Adresse wird in jeder Schrift gefunden, etwa `张伟@example.com` oder `почта@пример.рф`, und eine IPv6-Adresse direkt nach dem Doppelpunkt eines Schlüssels, etwa `ip:2001:db8::1`. Jeder Fund ist der Wert, wie er geschrieben ist, sodass eine Bereinigungsregel ihn dort verbirgt.
+
 Ein langer Wert wird in Fenstern von 64 KB gelesen, die sich um 4 KB überlappen, sodass ein Wert ganz gefunden wird, wo immer er steht, und von einem Wert werden höchstens 4 MB gelesen.
 
 ## Felder und Spalten

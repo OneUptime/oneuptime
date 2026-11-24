@@ -47,9 +47,12 @@ import {
  *
  * The trusted proxies are the addresses that are nobody's on the internet
  * (getSecurityAddressScope: private, loopback, link-local - a load
- * balancer, an ingress, a sidecar), and the project's own Trusted Proxies
+ * balancer, an ingress, a sidecar), the project's own Trusted Proxies
  * (Security Events > Connections, under More settings): its CDN's or its
- * load balancer's public ranges.
+ * load balancer's public ranges, the ranges of an edge it connected, and
+ * the public addresses of its own application load balancers, unless it
+ * turned that off (#10546) - never its hosts, nodes or probes, which do
+ * not forward anybody: trusted, whatever ran on them could name any client.
  *
  * What a scrub rule left of an address (Utils/SecurityEvent/ScrubbedAddress)
  * is read in its place, and decides alike: a hidden peer with nothing
@@ -155,8 +158,20 @@ const IPV4_MAPPED_PREFIX: string = "::ffff:";
  */
 
 export interface TrustedProxies {
-  // The project's own Trusted Proxies: addresses and ranges.
+  /*
+   * The addresses and ranges the project trusts beside the private ones:
+   * its Trusted Proxies, a connected edge's ranges and its own load
+   * balancers (Server/Utils/SecurityEvent/SecurityTrustedProxies).
+   */
   blocks: ReadonlyArray<NetworkAddressBlock>;
+  /*
+   * Whether the project says its web servers' access logs end with the
+   * X-Forwarded-For header (#10548, Project.securityReadAccessLogForwardedFor):
+   * a combined log line's last quoted field is then read as the one its
+   * trusted proxy forwarded (LogParsers/WebAttackLogParser). A line cannot
+   * say what its fields are, so it is never read unless the project says so.
+   */
+  readsAccessLogForwardedFor?: boolean | undefined;
 }
 
 // Only what every project trusts: addresses that are nobody's on the internet.

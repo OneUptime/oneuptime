@@ -98,15 +98,15 @@ Quando você testa um monitor antes de salvá-lo, só os segredos disponíveis p
 
 ## Entrar com um código de uso único
 
-Alguns sites pedem um código de um aplicativo autenticador quando você entra. Um segredo **Código de uso único (TOTP)** guarda a chave de configuração desse site, para que um monitor possa entrar como você entra: onde quer que o monitor use o segredo, a sonda gera o código atual com o próprio relógio, no momento em que a verificação precisa dele. A chave de configuração é guardada criptografada e nunca mais é mostrada, como qualquer valor de segredo, e nunca é escrita no monitor.
+Alguns sites pedem um código de um app autenticador quando você entra. Um segredo **Código de uso único (TOTP)** guarda a chave de configuração desse site, para que um monitor possa entrar como você entra: onde quer que o monitor use o segredo, a sonda gera o código atual com o próprio relógio, no momento em que a verificação precisa dele. A chave de configuração é guardada criptografada e nunca mais é mostrada, como qualquer valor de segredo, e nunca é escrita no monitor.
 
 1. Ative a autenticação de dois fatores na conta com que o monitor entra. Onde o site mostrar um código QR, peça para digitar a chave manualmente, e copie a chave de configuração ou o link `otpauth://`.
 2. Vá em **Monitores → Configurações → Segredos**, clique em **Criar: Segredo do monitor**, escolha **Código de uso único (TOTP)** e cole a chave ou o link em **Chave de configuração**.
-3. Confira se o **Código atual** abaixo do campo é igual ao código que seu aplicativo autenticador mostra agora, e depois escolha quais monitores podem usar o segredo no passo **Acesso**, como em qualquer segredo.
+3. Confira se o **Código atual** abaixo do campo é igual ao código que seu app autenticador mostra agora, e depois escolha quais monitores podem usar o segredo no passo **Acesso**, como em qualquer segredo.
 
 | O que você cola | Os códigos que o monitor gera |
 | --- | --- |
-| Uma chave de configuração, como `JBSW Y3DP EHPK 3PXP` | SHA1, 6 dígitos e um novo código a cada 30 segundos: o que todo aplicativo autenticador pressupõe |
+| Uma chave de configuração, como `JBSW Y3DP EHPK 3PXP` | SHA1, 6 dígitos e um novo código a cada 30 segundos: o que todo app autenticador pressupõe |
 | Um link `otpauth://totp/` | Os parâmetros do link `algorithm` (`SHA1`, `SHA256` ou `SHA512`), `digits` (`6` ou `8`) e `period` em segundos (`30` quando o link não tem um) |
 
 | Tipo de monitor | Onde o código entra, e quando é gerado |
@@ -160,7 +160,7 @@ O valor de um segredo estava no que a verificação relatou, e o OneUptime o ocu
 :::
 
 :::details O site recusa o código de uso único
-Confira se o **Código atual** era igual ao do seu aplicativo autenticador quando você salvou o segredo, se o relógio da sonda está certo e se uma referência num corpo de requisição JSON está entre aspas. Se o login demora a chegar ao pedido do código, peça o código nesse ponto com `oneuptime.getTotpCode`.
+Confira se o **Código atual** era igual ao do seu app autenticador quando você salvou o segredo, se o relógio da sonda está certo e se uma referência num corpo de requisição JSON está entre aspas. Se o login demora a chegar ao pedido do código, peça o código nesse ponto com `oneuptime.getTotpCode`.
 :::
 
 :::details A verificação diz que a sonda é antiga demais para gerar códigos de uso único

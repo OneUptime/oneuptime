@@ -366,9 +366,18 @@ validations (step 8 says what the first two found). The usage
 verification's evidence (step 9) went to Google's Partner Support Desk (case
 77498377) on 24 November, and the product was published the same day with
 the maintainer's go-ahead (step 10): Producer Portal shows it **Published
-but not visible**, and only Google makes it public. **Left**: Google's
-answer on the evidence and the listing made public (both asked on the case
-on 24 November); then the test cluster deleted and the test order cancelled
+but not visible**, and only Google makes it public. That evening Google
+asked on the case for screenshots of the test deployment (every component
+green, the cluster's consumption tracking label and the listing's icon) and
+for the listing's icon in `application.yaml`. The screenshots went back on
+the case the same evening. Release `15.0` was pushed again with the icon
+(step 8) and saved at its new digest, which cancelled the Container images
+approval. Its validation then failed Google's vulnerability scan on three
+CVEs published after the approval (step 8). Two of them have no fixed build
+yet, and Google was asked on the case how to proceed. **Left**: Google's
+answer, then a release that passes the scan, submitted for review, then
+**Publish** again (step 10); Google's answer on the evidence and the listing
+made public; then the test cluster deleted and the test order cancelled
 (step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
@@ -573,7 +582,33 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    The `Application` carries it as Google's own apps do, in the
    `kubernetes-engine.cloud.google.com/icon` annotation, a data URI of the
    chart's `logo.png`, which `build.py` copies from `google-cloud/logo.png`.
-   Release 15.0 shipped without it.
+   Release 15.0 shipped without it. On 24 November its deployer was pushed
+   again with the icon, by hand (a OneUptime release was in flight, and
+   `PrioritizeReleaseRuns.sh` cancels every other workflow run until it is
+   out), at `sha256:46c27f860ab1`. It differs from the published one only by
+   the icon and its base: that day Google moved `deployer_helm` from 13.0.17,
+   which the earlier pushes used, to 13.0.18, and tagged 13.0.17
+   `deprecated-public-image-13.0.17`. The screenshots Google asked for came
+   from the test deployment (step 9), whose `Application` got the same
+   annotation with `kubectl annotate`.
+
+   That release's new validation failed the vulnerability scan on three
+   CVEs, all published after its approval of 20 November. Google's scan
+   checks every image again, not just the changed one.
+
+   - **CVE-2026-97040** (Go standard library 1.26.10, fixed in 1.26.11) in
+     the deployer. It comes from Google's own `deployer_helm`: 13.0.18, the
+     newest, is built with Go 1.26.10.
+   - **The same CVE** in the runner image's kubectl v1.36.6. Kubernetes'
+     newest releases (1.36.6 and 1.37.2) are both built with Go 1.26.10, so
+     there is no fixed kubectl yet
+     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)).
+   - **CVE-2026-97205** in nginx 1.30.5, fixed in the releases from 17.1.0
+     on, which run nginx 1.30.7.
+
+   Google's report (**View details** under the failed step) names each
+   image, package and fixed version. Asked on case 77498377 that evening
+   whether a Go 1.26.11 `deployer_helm` is coming, and how to proceed.
 
 9. **Usage verification** (before **Publish**; Google's Partner Support
    Desk, case 77498377): Google checks that the hours the app reports reach
@@ -670,6 +705,11 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
     (the app, tagged `15.0` and `15.0.0`, with `deployer`, `nginx`, `probe`,
     `runner`, `postgres`, `clickhouse-server` and `valkey` under it) within
     a minute, at the digests in Artifact Registry.
+
+    A published product stays editable. Changing a section cancels its
+    approval, and the new review must be approved before **Publish** again
+    (Google's "Updating an existing version" says the same). The release
+    pushed again with the icon (step 8) went this way on 24 November 2026.
 
 ### The release workflow: one-time setup
 
@@ -961,6 +1001,21 @@ alone) and **Edit** the releases: the track's old digest shows as **Out of
 sync**; pick the track again at its new digest (the other fields stay), then
 **Save and Validate**. 15.0.0 went to Google a second and a third time this
 way, on 17 and 18 November 2026.
+
+The workflow cannot run while a OneUptime release is in flight:
+`PrioritizeReleaseRuns.sh` cancels every other run. Then build and push the
+deployer by hand instead (above), over both of its tags. This changes the
+deployer alone, where the workflow would also build PostgreSQL again.
+15.0.0 went to Google a fourth time this way, on 24 November 2026, with the
+listing's icon.
+
+On that published product, **Save and Validate** hung twice, with the panel
+spinning and nothing saved: first after the console timed out ("This page
+isn't available at the moment"), then for 50 minutes. It saved at once from
+a freshly loaded page: the page then reads "Validation is running and might
+take up to 2 hours to complete", and the releases table shows the new
+digest. If the panel spins for more than a few minutes, reload the
+**Container images** page and check the digest there before saving again.
 
 ## Checking an installation
 
@@ -1410,6 +1465,18 @@ cost a review round.
   same secrets file; a console deployment, it and the buyer guide say, waits
   for support. Settle it with the Partner Engineer before the Google listing
   goes live.
+- **ClickHouse is missing from the Google Cloud app's components in release
+  15.0** ([#10989](https://github.com/OneUptime/oneuptime/issues/10989)).
+  The console's **Applications** page lists the resources labelled
+  `app.kubernetes.io/name: <app name>`. Google's deployer adds that label only
+  where a resource has none, and the chart labelled ClickHouse's StatefulSet,
+  Services, ConfigMap and Secret `clickhouse`, so they were missing from the
+  list and from the app's status. Deleting the app still removed them, since
+  they carry its owner reference. Fixed in the chart
+  ([#11018](https://github.com/OneUptime/oneuptime/pull/11018)): in the Google
+  Cloud edition they carry the app's name (`oneuptime.appNameLabel`), from
+  the first release after 17.2.0 on. The chart suite's marketplace checks
+  render the edition under another app's name and hold every resource to it.
 - **No GKE Autopilot.** Google Cloud Marketplace's Kubernetes apps cannot be
   installed on Autopilot clusters: buyers need a Standard cluster. The buyer
   guide does not say so yet.
@@ -1544,6 +1611,12 @@ rejection, go-live and price change.
 | 2026-11-24 | Google      | Evidence sent on case 77498377 as CSV: pushed, billed and Insights hours match per day              | Agent      |
 | 2026-11-24 | Google      | Published, with the maintainer's go-ahead: Published but not visible; images copied                 | Agent      |
 | 2026-11-24 | Google      | Asked on case 77498377 to make the listing public                                                   | Agent      |
+| 2026-11-24 | Google      | Google asked on case 77498377 for screenshots and the listing's icon in `application.yaml`          | Google     |
+| 2026-11-24 | Google      | Icon added to the Application (#10988); 15.0.0's deployer pushed again by hand with it              | Agent      |
+| 2026-11-24 | Google      | Screenshots sent on case 77498377: every component green, the cluster's label, the icon             | Agent      |
+| 2026-11-24 | Google      | Release 15.0 saved at the new digest, cancelling its approval; validation failed on 3 new CVEs      | Agent      |
+| 2026-11-24 | Google      | Asked on case 77498377 how to proceed: two Go CVEs have no fixed build (deployer_helm, kubectl)     | Agent      |
+| 2026-11-24 | Google      | ClickHouse labelled with the app's name in the Google edition (#11018), from after 17.2.0           | Agent      |
 
 ## Notes for agents driving the browser
 

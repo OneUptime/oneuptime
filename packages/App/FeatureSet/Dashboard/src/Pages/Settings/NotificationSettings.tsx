@@ -9,20 +9,27 @@ import VoicemailDetectionCard from "../../Components/NotificationMethods/Voicema
 import { getVoicemailDetectionFoldedItem } from "../../Components/NotificationMethods/VoicemailDetectionWords";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
+  isPaymentMethodNeededFirst,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import AddPaymentMethodFirstModal from "../../Components/ProjectBalance/AddPaymentMethodFirstModal";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import {
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../Utils/ProjectPaymentMethods";
 import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
 import {
+  ADD_TO_BALANCE_AMOUNT_TITLE,
+  ADD_TO_BALANCE_TITLE,
   CURRENT_BALANCE_ROW_TITLE,
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
 } from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
@@ -72,6 +79,11 @@ import React, {
  * When Auto Recharge's last charge failed, the page says so first
  * (AutoRechargeFailedNotice), with what to do or who can.
  *
+ * On a project known to have no payment method, and no cloud marketplace
+ * billing it, Add to Balance says a payment method is needed first, and
+ * where it is added, before it asks for an amount (AddPaymentMethodFirstModal,
+ * #11053).
+ *
  * The project's own mail servers and Twilio accounts - what a status page
  * sends its subscribers through, and what an incoming call policy answers
  * on, instead of OneUptime's - wait folded under More settings: most
@@ -102,6 +114,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Add to Balance pressed on a project with no payment method (#11053).
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
   // Saving Auto Recharge tries the card at once: ask again whether it failed.
   const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
   // How many own mail servers and Twilio accounts there are, once listed.
@@ -124,6 +139,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // A project a cloud marketplace bills has no card: its recharges go there.
   const billingMarketplace: CloudMarketplace | null =
     getCurrentProjectBillingMarketplace();
+  // Whether the project has a payment method, once counted (no request here).
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
   const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [
       ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.SmsOrCall],
@@ -163,6 +180,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               access: balanceAccess,
               translator: translator,
               onRecharge: () => {
+                // No payment method yet: say so before asking for an amount.
+                if (
+                  isPaymentMethodNeededFirst({
+                    paymentMethods: paymentMethods,
+                    marketplace: billingMarketplace,
+                  })
+                ) {
+                  setShowAddPaymentMethodFirst(true);
+                  return;
+                }
+
                 setShowRechargeBalanceModal(true);
                 setRechargeBalanceError(null);
                 setIsRechargeBalanceLoading(false);
@@ -211,14 +239,26 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
 
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.SmsOrCall}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {showRechargeBalanceModal ? (
         <BasicFormModal
-          title={"Recharge Balance"}
+          // One verb from the card's button to the dialog's (#7475).
+          title={ADD_TO_BALANCE_TITLE}
           onClose={() => {
             setShowRechargeBalanceModal(false);
           }}
           isLoading={isRechargeBalanceLoading}
-          submitButtonText={"Recharge"}
+          submitButtonText={ADD_TO_BALANCE_TITLE}
           onSubmit={async (item: JSONObject) => {
             setIsRechargeBalanceLoading(true);
             try {
@@ -247,12 +287,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }
           }}
           formProps={{
-            name: "Recharge Balance",
+            name: ADD_TO_BALANCE_TITLE,
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for and where it is charged, in the
+                 * reader's words already: an element, which the form's
+                 * label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.SmsOrCall,
+                      marketplace: billingMarketplace,
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: {
                   amount: true,
                 },

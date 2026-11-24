@@ -42,6 +42,8 @@ Solo cuentan los hallazgos de confianza Alta y Media: hacen que un almacén sea 
 
 Cuando dos tipos de datos reclaman los mismos caracteres, gana el hallazgo más seguro: el de mayor confianza, después el detector cuyas propias reglas prueban más, y después la coincidencia más larga.
 
+Un valor también se lee como lo escriben las personas. Se leen los escapes de porcentaje de una URL, así que se encuentra una dirección IP o una dirección de correo electrónico en una cadena de consulta, como `jane%40example.com`. Los dígitos de un número de tarjeta se leen en cualquier escritura, como dígitos de ancho completo (`４１１１ １１１１ １１１１ １１１１`) o dígitos arábigo-índicos, primero cada escritura por separado y luego juntas. Una dirección de correo electrónico se encuentra en cualquier escritura, como `张伟@example.com` o `почта@пример.рф`, y una dirección IPv6 justo después de los dos puntos de una clave, como `ip:2001:db8::1`. Cada hallazgo es el valor tal como está escrito, así que una regla de depuración lo oculta ahí.
+
 Un valor largo se lee en ventanas de 64 KB que se solapan 4 KB, así que un valor se encuentra entero esté donde esté, y se leen como máximo 4 MB de un valor.
 
 ## Campos y columnas

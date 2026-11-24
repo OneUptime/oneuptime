@@ -2,8 +2,8 @@
   "Company name associated with this license.": "與此授權關聯的公司名稱。",
   "Annual contract value (in USD) for this license.": "此授權的年度合約金額（美元）。",
   "Expiration date of this license.": "此授權的到期日期。",
-  "Something went wrong": "發生了問題",
-  "An unexpected error has occurred. Please reload the page to continue": "發生了未預期的錯誤。請重新載入頁面以繼續",
+  "This page stopped working": "此頁面已停止運作",
+  "Part of this page ran into a problem. Reload the page to continue.": "此頁面的一部分遇到了問題。請重新載入頁面以繼續。",
   "Error details": "錯誤詳細資料",
   "Still stuck?": "還是無法解決？",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享給 OneUptime 支援團隊之前請先檢查。",
@@ -497,7 +497,7 @@
       "title": "登出"
     },
     "sendEmail": {
-      "title": "傳送公告電子郵件",
+      "title": "傳送電子郵件",
       "testCardTitle": "傳送測試電子郵件",
       "testCardDescription": "在傳送給所有使用者之前,向單一電子郵件地址傳送測試公告電子郵件以預覽其外觀。",
       "allCardTitle": "向所有使用者傳送電子郵件",
@@ -514,7 +514,7 @@
       "confirmButton": "是,傳送給所有使用者"
     },
     "moreEmail": {
-      "title": "傳送公告電子郵件",
+      "title": "傳送電子郵件",
       "cardTitle": "傳送公告電子郵件",
       "cardDescription": "撰寫公告電子郵件以傳送給所有已註冊使用者。您可以先傳送一封測試電子郵件以預覽其外觀。",
       "sendTestButton": "傳送測試電子郵件",
@@ -536,7 +536,7 @@
       "confirmButton": "是,傳送給所有使用者"
     },
     "settings": {
-      "title": "管理員設定",
+      "title": "設定",
       "authentication": {
         "signUpCardTitle": "註冊",
         "signUpCardDescription": "誰可以在此伺服器上建立帳戶。",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "正在向此管道傳送測試要求。",
   "Custom Channel": "自訂管道",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "所有使用此管道的待命規則都會隨之刪除。若要在不變更任何人規則的情況下停止傳送，請改為關閉該管道。",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您沒有足夠的權限設定{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您沒有足夠的權限編輯{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您沒有足夠的權限設定{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}。",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您沒有足夠的權限編輯{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}。",
   "Push Notifications": "推播通知",
   "{{count}} {{itemsName}} skipped_one": "已略過 {{count}} 個{{itemName}}",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "確定要對 {{count}} 個{{itemName}}執行「{{action}}」嗎？",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "為工作程序分配更多記憶體和 CPU，並在應用程式的日誌中查找反覆失敗的工作。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此伺服器執行的是 OneUptime {{current}}。{{latest}} 已發布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先備份，再更新：Docker Compose 上執行 npm run update，Kubernetes 上執行 helm upgrade。",
-  "Finish it on the Server setup page.": "請在「伺服器設定」頁面完成。",
+  "Finish it on the Server Setup page.": "請在「伺服器設定」頁面完成。",
   "Products on this server": "此伺服器上的產品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "選擇此伺服器上每個專案提供的內容。關閉的產品會從每個專案的選單、首頁和搜尋中消失，其頁面會說明它已關閉。",
   "Start from": "從以下方案開始",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "切換到視覺化編輯器",
   "Visual": "視覺化",
   "Drop image to upload": "放開即可上傳圖片",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "「{{fileName}}」未上傳。{{error}}",
+  "Uploading {{fileName}}…": "正在上傳 {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "直接在視覺化編輯器中輸入 — 用工具列設定格式。",
   "Switch to {{markdown}} to view or edit the raw source.": "切換到 {{markdown}} 可檢視或編輯原始文字。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "在清單中，按 {{indentKey}} 縮排項目，按 {{outdentKey}} 取消縮排，或使用縮排和取消縮排按鈕。在清單外，{{tabKey}} 會移到下一個欄位。",
@@ -4573,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "伺服器沒有回傳其說明與支援設定。",
   "Keyboard shortcuts": "鍵盤快速鍵",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享之前請先檢查。",
-  "Chat on Slack": "在 Slack 上聊天"
+  "Chat on Slack": "在 Slack 上聊天",
+  "Your Twilio account's default voice": "Twilio 帳戶的預設語音",
+  "US English, female voice": "美式英文，女聲",
+  "US English, male voice": "美式英文，男聲",
+  "British English, female voice": "英式英文，女聲",
+  "British English, male voice": "英式英文，男聲",
+  "A page's call starts like this, always in English:": "呼叫電話一律使用英文，開頭如下：",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 對此語音額外收費：每通呼叫電話不到 2 美分。",
+  "Free. Twilio says its Basic voices are not meant for production.": "免費。Twilio 表示其 Basic 語音不適合用於正式環境。",
+  "Save, then send a test call to hear it.": "儲存後，發送測試通話即可試聽。",
+  "Call Voice": "通話語音",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "OneUptime 透過此伺服器的 Twilio 帳戶撥出的電話所使用的語音。",
+  "Choose Voice": "選擇語音",
+  "Voice": "語音"
 }

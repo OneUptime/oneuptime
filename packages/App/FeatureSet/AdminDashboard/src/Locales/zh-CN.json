@@ -2,8 +2,8 @@
   "Company name associated with this license.": "与此许可证关联的公司名称。",
   "Annual contract value (in USD) for this license.": "此许可证的年度合同金额（美元）。",
   "Expiration date of this license.": "此许可证的到期日期。",
-  "Something went wrong": "出了点问题",
-  "An unexpected error has occurred. Please reload the page to continue": "发生了意外错误。请重新加载页面以继续",
+  "This page stopped working": "此页面已停止运行",
+  "Part of this page ran into a problem. Reload the page to continue.": "此页面的一部分遇到了问题。请重新加载页面以继续。",
   "Error details": "错误详情",
   "Still stuck?": "还是无法解决？",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享给 OneUptime 支持团队之前请先检查。",
@@ -62,7 +62,7 @@
     "dataRetention": "数据保留",
     "globalLlmProviders": "全局 LLM 提供商",
     "apiKey": "API 密钥",
-    "sendEmail": "发送电子邮件",
+    "sendEmail": "发送邮件",
     "signOut": "退出登录",
     "telemetryUsage": "遥测用量",
     "ingestionBudgets": "摄取预算",
@@ -497,7 +497,7 @@
       "title": "退出登录"
     },
     "sendEmail": {
-      "title": "发送公告电子邮件",
+      "title": "发送邮件",
       "testCardTitle": "发送测试电子邮件",
       "testCardDescription": "在发送给所有用户之前,向单个电子邮件地址发送测试公告电子邮件以预览其外观。",
       "allCardTitle": "向所有用户发送电子邮件",
@@ -514,7 +514,7 @@
       "confirmButton": "是,发送给所有用户"
     },
     "moreEmail": {
-      "title": "发送公告电子邮件",
+      "title": "发送邮件",
       "cardTitle": "发送公告电子邮件",
       "cardDescription": "撰写公告电子邮件以发送给所有注册用户。您可以先发送一封测试电子邮件以预览其外观。",
       "sendTestButton": "发送测试电子邮件",
@@ -536,7 +536,7 @@
       "confirmButton": "是,发送给所有用户"
     },
     "settings": {
-      "title": "管理员设置",
+      "title": "设置",
       "authentication": {
         "signUpCardTitle": "注册",
         "signUpCardDescription": "谁可以在此服务器上创建帐户。",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "正在向该渠道发送测试请求。",
   "Custom Channel": "自定义渠道",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "所有使用此渠道的值班规则都会随之删除。若要在不更改任何人规则的情况下停止发送，请改为关闭该渠道。",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您没有足够的权限设置{{itemName}}的{{columnName}}。您需要以下权限之一：{{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您没有足够的权限编辑{{itemName}}的{{columnName}}。您需要以下权限之一：{{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您没有足够的权限设置{{itemName}}的{{columnName}}。您需要以下权限之一：{{permissions}}。",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您没有足够的权限编辑{{itemName}}的{{columnName}}。您需要以下权限之一：{{permissions}}。",
   "Push Notifications": "推送通知",
   "{{count}} {{itemsName}} skipped_one": "已跳过 {{count}} 个{{itemName}}",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "确定要对 {{count}} 个{{itemName}}执行“{{action}}”吗？",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "为工作进程分配更多内存和 CPU，并在应用的日志中查找反复失败的任务。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此服务器运行的是 OneUptime {{current}}。{{latest}} 已发布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先备份，再更新：Docker Compose 上运行 npm run update，Kubernetes 上运行 helm upgrade。",
-  "Finish it on the Server setup page.": "请在“服务器设置”页面完成。",
+  "Finish it on the Server Setup page.": "请在“服务器设置”页面完成。",
   "Products on this server": "此服务器上的产品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "选择此服务器上每个项目提供的内容。关闭的产品会从每个项目的菜单、首页和搜索中消失，其页面会说明它已关闭。",
   "Start from": "从以下方案开始",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "切换到可视化编辑器",
   "Visual": "可视化",
   "Drop image to upload": "松开即可上传图片",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "“{{fileName}}”未上传。{{error}}",
+  "Uploading {{fileName}}…": "正在上传 {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "直接在可视化编辑器中输入 — 用工具栏设置格式。",
   "Switch to {{markdown}} to view or edit the raw source.": "切换到 {{markdown}} 可查看或编辑源文本。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "在列表中，按 {{indentKey}} 缩进项目，按 {{outdentKey}} 取消缩进，或使用缩进和取消缩进按钮。在列表外，{{tabKey}} 会移到下一个字段。",
@@ -4573,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "服务器没有返回其帮助和支持设置。",
   "Keyboard shortcuts": "键盘快捷键",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享之前请先检查。",
-  "Chat on Slack": "在 Slack 上聊天"
+  "Chat on Slack": "在 Slack 上聊天",
+  "Your Twilio account's default voice": "Twilio 账户的默认语音",
+  "US English, female voice": "美式英语，女声",
+  "US English, male voice": "美式英语，男声",
+  "British English, female voice": "英式英语，女声",
+  "British English, male voice": "英式英语，男声",
+  "A page's call starts like this, always in English:": "呼叫电话始终使用英语，开头如下：",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 对此语音额外收费：每通呼叫电话不到 2 美分。",
+  "Free. Twilio says its Basic voices are not meant for production.": "免费。Twilio 表示其 Basic 语音不适合用于生产环境。",
+  "Save, then send a test call to hear it.": "保存后，发送测试呼叫即可试听。",
+  "Call Voice": "通话语音",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "OneUptime 通过此服务器的 Twilio 账户拨出的电话所使用的语音。",
+  "Choose Voice": "选择语音",
+  "Voice": "语音"
 }

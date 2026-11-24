@@ -1335,10 +1335,10 @@ async function isOverflowing(locator: Locator): Promise<boolean> {
 }
 
 async function expectNoErrorStates(page: Page): Promise<void> {
-  await expect(page.getByText("Something went wrong")).toHaveCount(0);
-  await expect(page.getByText("An unexpected error has occurred")).toHaveCount(
-    0,
-  );
+  await expect(page.getByText("This page stopped working")).toHaveCount(0);
+  await expect(
+    page.getByText("Part of this page ran into a problem"),
+  ).toHaveCount(0);
   await expect(page.getByText(/^Cannot load /)).toHaveCount(0);
   await expect(page.getByText(/^Could not refresh /)).toHaveCount(0);
 }

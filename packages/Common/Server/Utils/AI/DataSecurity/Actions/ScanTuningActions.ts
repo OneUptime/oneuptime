@@ -13,7 +13,9 @@ import {
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
-import FeedMarkdown, { mdText } from "../../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+} from "../../../../../Utils/Markdown/FeedMarkdown";
 import DataSecuritySettingService from "../../../../Services/DataSecuritySettingService";
 import DataStoreService from "../../../../Services/DataStoreService";
 import CallerPermission from "../../../Permission/CallerPermission";
@@ -353,8 +355,7 @@ export const AddScanExclusionAction: DataSecurityAiAction = {
         scanExclusions: readSettingIds(store.scanExclusions).filter(
           (entry: string): boolean => {
             return (
-              entry.trim().toLowerCase() !==
-              plan.exclusion.trim().toLowerCase()
+              entry.trim().toLowerCase() !== plan.exclusion.trim().toLowerCase()
             );
           },
         ),

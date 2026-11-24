@@ -894,6 +894,37 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a notification method could not be verified or sent a test (#7272):
+   * the server's refusals, which the verify dialog and a Send Test's dialog
+   * say in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
+    kind: "keys",
+  },
+  /*
+   * Why an invitation was refused - the person is in the team already, or
+   * the Free plan has no room (#7271): the invite dialog says them in the
+   * reader's language. Only the words the file marks are read: the rest of
+   * the server's errors stay as they are.
+   */
+  { directory: "packages/Common/Server/Utils/Errors.ts", kind: "keys" },
+  /*
+   * A feature the project's plan does not include, and a value another
+   * record holds in a column that holds each value once (#7276): refusals
+   * with values in them, which every form and dialog says in the reader's
+   * language (ErrorInSentence). Only the words each file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Billing/PlanRequiredRefusal.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Database/UniqueValueTaken.ts",
+    kind: "keys",
+  },
+  /*
    * Why a data check or a reconciliation was not written, added or set up
    * (#7530): the server's refusals, which Write a Check from a Sentence,
    * Suggested Checks and the Reconciliations page say in the reader's

@@ -43,7 +43,7 @@ Eén Microsoft 365-organisatie kan aan meer dan één project gekoppeld zijn, zo
 :::steps
 ### Beheerderstoestemming geven
 
-Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed**. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheid **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga naar **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** en klik op **Beheerderstoestemming verlenen**. Een Microsoft 365-beheerder meldt zich aan en staat de OneUptime-app toe voor de organisatie. De kaart zegt daarna **Admin Consent Completed** en noemt de organisatie, bijvoorbeeld Contoso (contoso.onmicrosoft.com). Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheid **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Je account koppelen
 
@@ -305,7 +305,7 @@ Als de openbare notities van uw project goedgekeurd moeten worden en u Microsoft
 - **Uninstall OneUptime from Microsoft Teams**, op **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**, ontkoppelt het project. OneUptime stopt met plaatsen in Microsoft Teams, en de **Werkruimte**-menu's tonen het niet meer. De meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
 
 > [!WARNING]
-> Verwijderen ontkoppelt ook het Microsoft Teams-account van elk lid van het project, en verwijdert de Microsoft Teams-meldingsmethoden en de bereikbaarheidsregels die ze gebruikten. Een project is gekoppeld aan één Microsoft 365-organisatie: verwijder het eerst om het naar een andere te verplaatsen.
+> Verwijderen ontkoppelt ook het Microsoft Teams-account van elk lid van het project, en verwijdert de Microsoft Teams-meldingsmethoden en de bereikbaarheidsregels die ze gebruikten. Een project is gekoppeld aan één Microsoft 365-organisatie: kies om het naar een andere te verplaatsen in hetzelfde menu **Connect a Different Organization**. Dat verwijdert OneUptime op dezelfde manier en vraagt daarna een Microsoft 365-beheerder van de andere organisatie om toestemming.
 
 ## Problemen oplossen
 
@@ -319,6 +319,10 @@ Als Microsoft je zonder koppeling terugstuurt, zegt de pagina waarop je begon **
 
 :::details De bot zegt dat mijn account niet gekoppeld is
 Druk in het antwoord van de bot op **Connect Microsoft Teams account** om het in één stap te koppelen, of koppel het onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**. In beide gevallen meld je je aan bij de organisatie waaraan het project is gekoppeld, als gast als je daar gast bent. Ben je gast en heb je eerder het account van je eigen organisatie gekoppeld, koppel het dan opnieuw.
+:::
+
+:::details Microsoft zegt dat het geselecteerde account niet in de tenant bestaat
+Elke Microsoft-aanmelding voor een project gaat naar de Microsoft 365-organisatie waaraan het gekoppeld is, die de kaart **Admin Consent Completed** noemt. Een account dat niet in die organisatie zit, houdt Microsoft tegen op zijn eigen pagina (`AADSTS50020`), en je wordt niet teruggestuurd. Meld je aan met je account in die organisatie. Om het project in plaats daarvan aan jouw organisatie te koppelen, kies je **Connect a Different Organization** in het menu van die kaart en laat je een Microsoft 365-beheerder van jouw organisatie toestemming verlenen.
 :::
 
 :::details Elke melding mislukt op een zelf gehoste server

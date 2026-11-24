@@ -49,6 +49,9 @@ const SMS_WRITTEN_ELSEWHERE: Record<string, string> = {
     "packages/Common/Server/Utils/IncomingCall/MissedCallNotification.ts",
   "packages/App/FeatureSet/Workers/Jobs/IncidentSla/CheckSlaBreaches.ts":
     "packages/Common/Server/Utils/Incident/IncidentSlaBreachNotice.ts",
+  // A probe a major release behind (#10885): its notice's words are built in Common.
+  "packages/App/FeatureSet/Workers/Jobs/Probe/NotifyMajorReleaseBehind.ts":
+    "packages/Common/Server/Utils/Probe/ProbeMajorReleaseNotification.ts",
 };
 
 // The service that sends them, which defines sendUserNotification.

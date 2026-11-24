@@ -59,8 +59,9 @@ import {
  *     draw, are in it since #7567 (ADMIN_LABELS). Its side menu and top bar
  *     use keys of their own (ADMIN_KEYS).
  *   - The sign-in pages (Accounts): "Sign in with SSO" is the Accounts
- *     locale's sso.title, and "Admin Settings" in the user menu is the
- *     Dashboard's userProfile.adminSettings.
+ *     locale's sso.title, and "Admin Dashboard" in the user menu is the
+ *     Dashboard's userProfile.adminDashboard (#7474: it said Admin
+ *     Settings).
  *   - The docs themselves: the permission tables' column names and values
  *     come from the docs locale's ui.permissions* strings (DOCS_CHROME), so
  *     the page names them as the generated tables do.
@@ -558,7 +559,7 @@ const ALSO_DASHBOARD_LABELS: Record<string, Array<string>> = {
 
 // The user menu's way into the Admin Dashboard, a key of the Dashboard's.
 const USER_MENU_LABELS: Record<string, Record<string, string>> = {
-  [GLOBAL_SSO]: { "Admin Settings": "userProfile.adminSettings" },
+  [GLOBAL_SSO]: { "Admin Dashboard": "userProfile.adminDashboard" },
 };
 
 // The sign-in pages' labels, keys of the Accounts locale.

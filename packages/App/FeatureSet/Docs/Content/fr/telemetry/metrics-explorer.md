@@ -194,6 +194,8 @@ Redémarrez le collecteur. Chaque service dont les traces le traversent envoie a
 | Masquer l'attribut | Remplace la valeur d'un attribut par un espace réservé. |
 | Échantillon | Garde un pourcentage des points de données qui correspondent. |
 
+Une règle agit sur chaque point de données, ou seulement sur ceux qui correspondent à ses filtres. Un filtre compare le nom de la métrique ou un attribut à une valeur ou à une expression régulière, ou demande avec **Correspond au type de modèle** s'il contient une adresse e-mail, un numéro de carte de crédit, un numéro de sécurité sociale, un numéro de téléphone ou une adresse IP, trouvé comme le trouve une règle de nettoyage de journaux ou de traces de ce **Type de modèle**. La règle **Masquer l'attribut** que [Sécurité des données](/docs/data-security/telemetry) crée pour une adresse IP, une adresse e-mail ou un numéro de carte dans un attribut l'utilise.
+
 **Métriques → Paramètres → Règles d'enregistrement** calcule chaque minute de nouvelles métriques à partir d'autres métriques. Voir [Règles d'enregistrement de journaux](/docs/telemetry/log-recording-rules) pour le fonctionnement des règles d'enregistrement.
 
 ## Dépannage

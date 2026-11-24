@@ -1117,7 +1117,9 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
         page
           .getByTestId("data-store-finding-ai-precedent")
           .filter({ hasText: "Your team marked order_number" }),
-      ).toContainText("Your team marked order_number not sensitive on 1 store.");
+      ).toContainText(
+        "Your team marked order_number not sensitive on 1 store.",
+      );
       await page.waitForLoadState("networkidle");
       await expectNoSidewaysScroll(page);
       await screenshot(page, `telemetry-verdicts-${width}`);

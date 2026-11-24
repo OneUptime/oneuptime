@@ -15,7 +15,9 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * (Cmd/Ctrl+K) matches a page's (Common's ProjectSearch): by any word, best
  * match first, with the part it matched marked as Search marks it; a search
  * that finds nothing says so, inside the list, in the light theme and the
- * dark, and on a phone a long one wraps inside the list.
+ * dark, and on a phone a long one wraps inside the list. The project the
+ * person is in is marked with a dot after its name, announced as the
+ * current one, and the keyboard starts on it (#8050).
  *
  * The fixture's ?header=true&projects=many page (HeaderFixture.js) is the
  * top of a Dashboard page in "Acme Commerce Production", with six more
@@ -64,17 +66,23 @@ interface OpenList {
   search: Locator;
 }
 
+interface ListOptions {
+  theme?: "dark";
+  // A reading language of the fixture: "fa" reads right to left.
+  lang?: "fa";
+}
+
 // The page at a width, with the picker's list open from a click.
 async function openList(
   page: Page,
   width: number,
-  options: { theme?: "dark" } = {},
+  options: ListOptions = {},
 ): Promise<OpenList> {
   await page.setViewportSize({ width: width, height: HEIGHT });
   await page.goto(
     `${PROJECT_PATH}/home?header=true&projects=many${
       options.theme ? `&theme=${options.theme}` : ""
-    }`,
+    }${options.lang ? `&lang=${options.lang}` : ""}`,
   );
   await expect(page.getByTestId("dashboard-top-section")).toBeVisible();
   await page.evaluate(async () => {
@@ -84,10 +92,13 @@ async function openList(
   await picker(page, PROJECT_NAME).click();
 
   const menu: Locator = page.getByTestId("project-picker-menu");
-  const search: Locator = menu.getByRole("combobox", {
-    name: "Search Projects",
-    exact: true,
-  });
+  // Its English name, or the list's one search box in another language.
+  const search: Locator = options.lang
+    ? menu.getByRole("combobox")
+    : menu.getByRole("combobox", {
+        name: "Search Projects",
+        exact: true,
+      });
   await expect(search).toBeVisible();
 
   return { menu: menu, search: search };
@@ -124,47 +135,60 @@ async function screenshot(page: Page, name: string): Promise<void> {
 /*
  * How far apart an element's text colour and the ground it is drawn on
  * are, as WCAG measures it: the colour of its text against the first
- * ancestor that paints a ground.
+ * ancestor that paints a ground. A mark drawn by its own ground (a dot) is
+ * measured by that ground, against its nearest painted ancestor's.
  */
-async function textContrast(element: Locator): Promise<number> {
-  return element.evaluate((node: Element): number => {
-    const channels: (color: string) => Array<number> = (
-      color: string,
-    ): Array<number> => {
-      return (color.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
-    };
+async function textContrast(
+  element: Locator,
+  options: { paintedByItsGround?: boolean } = {},
+): Promise<number> {
+  return element.evaluate(
+    (node: Element, paintedByItsGround: boolean): number => {
+      const channels: (color: string) => Array<number> = (
+        color: string,
+      ): Array<number> => {
+        return (color.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      };
 
-    const luminance: (color: string) => number = (color: string): number => {
-      const [red, green, blue] = channels(color).map(
-        (channel: number): number => {
-          const value: number = channel / 255;
-          return value <= 0.03928
-            ? value / 12.92
-            : Math.pow((value + 0.055) / 1.055, 2.4);
-        },
-      );
-      return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
-    };
+      const luminance: (color: string) => number = (color: string): number => {
+        const [red, green, blue] = channels(color).map(
+          (channel: number): number => {
+            const value: number = channel / 255;
+            return value <= 0.03928
+              ? value / 12.92
+              : Math.pow((value + 0.055) / 1.055, 2.4);
+          },
+        );
+        return 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+      };
 
-    let ground: Element | null = node;
-    let groundColor: string = "rgba(0, 0, 0, 0)";
+      let ground: Element | null = paintedByItsGround
+        ? node.parentElement
+        : node;
+      let groundColor: string = "rgba(0, 0, 0, 0)";
 
-    while (ground) {
-      const color: string = window.getComputedStyle(ground).backgroundColor;
+      while (ground) {
+        const color: string = window.getComputedStyle(ground).backgroundColor;
 
-      if (color !== "rgba(0, 0, 0, 0)" && color !== "transparent") {
-        groundColor = color;
-        break;
+        if (color !== "rgba(0, 0, 0, 0)" && color !== "transparent") {
+          groundColor = color;
+          break;
+        }
+
+        ground = ground.parentElement;
       }
 
-      ground = ground.parentElement;
-    }
+      const text: number = luminance(
+        paintedByItsGround
+          ? window.getComputedStyle(node).backgroundColor
+          : window.getComputedStyle(node).color,
+      );
+      const back: number = luminance(groundColor);
 
-    const text: number = luminance(window.getComputedStyle(node).color);
-    const back: number = luminance(groundColor);
-
-    return (Math.max(text, back) + 0.05) / (Math.min(text, back) + 0.05);
-  });
+      return (Math.max(text, back) + 0.05) / (Math.min(text, back) + 0.05);
+    },
+    Boolean(options.paintedByItsGround),
+  );
 }
 
 test.describe("at a desktop's width", () => {
@@ -246,6 +270,97 @@ test.describe("at a desktop's width", () => {
     await expect(menu.locator("mark")).toHaveCount(0);
   });
 
+  /*
+   * The open project (#8050): a dot after its name, its row announced as
+   * the current one, and the keyboard starting on it rather than on the
+   * list's first row. In the light theme and the dark, and in Persian,
+   * where "after its name" is to its left.
+   */
+  for (const [label, options] of [
+    ["in the light theme", {}],
+    ["in the dark theme", { theme: "dark" }],
+    ["in Persian, right to left", { lang: "fa" }],
+  ] as Array<[string, ListOptions]>) {
+    test(`${label}, the open project is marked after its name, announced as current, and the keyboard starts on it`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      // Open a project that is not the list's first.
+      const { menu, search }: OpenList = await openList(page, 1280, options);
+      await rows(menu).filter({ hasText: "OneUptime Kubernetes" }).click();
+      await expect(page.getByTestId("current-route")).toHaveText(
+        KUBERNETES_PATH,
+      );
+      await expect(menu).toBeHidden();
+
+      await picker(page, "OneUptime Kubernetes").click();
+      await expect(search).toBeVisible();
+
+      const open: Locator = rows(menu).filter({
+        hasText: "OneUptime Kubernetes",
+      });
+      const mark: Locator = open.getByTestId("project-picker-open-project");
+
+      await expect(open).toHaveAttribute("aria-current", "true");
+      await expect(menu.locator('[aria-current="true"]')).toHaveCount(1);
+      await expect(mark).toBeVisible();
+      await expect(
+        rows(menu)
+          .filter({ hasText: PROJECT_NAME })
+          .getByTestId("project-picker-open-project"),
+      ).toHaveCount(0);
+
+      // After the name as the row reads it, and inside the row.
+      const [row, name, dot] = await boxesInOneFrame([
+        open,
+        open.locator('[dir="auto"]'),
+        mark,
+      ]);
+
+      if (options.lang === "fa") {
+        expect(dot!.x + dot!.width).toBeLessThanOrEqual(name!.x + 0.5);
+      } else {
+        expect(dot!.x).toBeGreaterThanOrEqual(name!.x + name!.width - 0.5);
+      }
+
+      expect(dot!.x).toBeGreaterThanOrEqual(row!.x);
+      expect(dot!.x + dot!.width).toBeLessThanOrEqual(
+        row!.x + row!.width + 0.5,
+      );
+
+      // A dot, seen on the list's ground: WCAG's 3:1 for a mark that means something.
+      expect(dot!.width).toBeGreaterThanOrEqual(5.5);
+      expect(
+        await textContrast(mark, { paintedByItsGround: true }),
+      ).toBeGreaterThanOrEqual(3);
+
+      // The keyboard starts on it, not on the first row, and moves on from it.
+      const ids: Array<string | null> = await rows(menu).evaluateAll(
+        (elements: Array<Element>): Array<string | null> => {
+          return elements.map((element: Element): string | null => {
+            return element.getAttribute("id");
+          });
+        },
+      );
+      const openId: string = (await open.getAttribute("id"))!;
+
+      expect(ids.indexOf(openId)).toBeGreaterThan(0);
+      await expect(search).toHaveAttribute("aria-activedescendant", openId);
+
+      await search.press("ArrowDown");
+      await expect(search).toHaveAttribute(
+        "aria-activedescendant",
+        ids[ids.indexOf(openId) + 1]!,
+      );
+
+      await screenshot(
+        page,
+        `open-project-${options.lang || options.theme || "light"}`,
+      );
+    });
+  }
+
   for (const theme of ["light", "dark"] as Array<"light" | "dark">) {
     test(`in the ${theme} theme, a search that finds nothing says so inside the list, legibly, and offers no Create New Project`, async ({
       page,
@@ -318,5 +433,33 @@ test.describe("on a phone", () => {
 
     await expectNoSidewaysScroll(page, { message: "no matches at 375px" });
     await screenshot(page, "nothing-phone");
+  });
+
+  // The open project's dot (#8050) stays on screen beside a long name.
+  test("the open project is marked inside the list, and the page does not scroll sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const width: number = 375;
+    const { menu }: OpenList = await openList(page, width);
+
+    const open: Locator = rows(menu).filter({ hasText: PROJECT_NAME });
+    const mark: Locator = open.getByTestId("project-picker-open-project");
+
+    await expect(open).toHaveAttribute("aria-current", "true");
+    await expect(mark).toBeVisible();
+
+    const [list, dot] = await boxesInOneFrame([menu, mark]);
+    expect(dot!.x).toBeGreaterThanOrEqual(list!.x);
+    expect(dot!.x + dot!.width).toBeLessThanOrEqual(
+      list!.x + list!.width + 0.5,
+    );
+    expect(list!.x + list!.width).toBeLessThanOrEqual(width);
+
+    await expectNoSidewaysScroll(page, {
+      message: "the open project's mark at 375px",
+    });
+    await screenshot(page, "open-project-phone");
   });
 });

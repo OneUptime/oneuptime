@@ -1,7 +1,10 @@
+import DataAssetService from "../../../Services/DataAssetService";
+import DataAssetUsageService from "../../../Services/DataAssetUsageService";
 import DataSecurityCustomDataTypeService from "../../../Services/DataSecurityCustomDataTypeService";
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import { DataStoreLocationKind } from "../../DataSecurity/DataSecurityScanTypes";
 import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope";
 import {
   CoveringScrubRule,
@@ -22,15 +25,21 @@ import { ProjectDataTypeHints } from "./SensitiveData/SensitiveDataNames";
 import SensitiveDataRules, {
   SensitiveDataRulesResult,
 } from "./SensitiveData/SensitiveDataRules";
+import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
+import DataAssetUsage from "../../../../Models/DatabaseModels/DataAssetUsage";
 import DataSecurityCustomDataType from "../../../../Models/DatabaseModels/DataSecurityCustomDataType";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import {
+  EXPOSURES_A_COLUMN_INHERITS,
   ProductionReviewLeakHeldBeforeJSON,
   ProductionReviewLeakJSON,
   ProductionReviewLeakProductionJSON,
   ProductionReviewLeakStoreJSON,
+  ProductionReviewLeakTableColumnJSON,
+  ProductionReviewLeakTableJSON,
   ProductionReviewSensitiveDataJSON,
   PUBLIC_BY_DESIGN_CHECK_IDS,
   PUBLIC_STORE_CHECK_IDS,
@@ -40,7 +49,11 @@ import {
 } from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { customDataTypeId } from "../../../../Types/DataSecurity/CustomDataTypeId";
 import DataCategory from "../../../../Types/DataSecurity/DataCategory";
-import { getDataSecurityCheck } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
+import {
+  getDataSecurityCheck,
+  isFindingCounted,
+} from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
+import DataStoreEnvironment from "../../../../Types/DataSecurity/DataStoreEnvironment";
 import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
   isDataSensitivity,
@@ -73,7 +86,15 @@ import SecuritySeverity from "../../../../Types/SecuritySeverity";
  *   - infrastructure: the project's store the resource is, found by the
  *     names the diff knows it by - its sensitivity says how bad the point
  *     is, and a store marked Public By Design makes no point for being
- *     public at all.
+ *     public at all;
+ *   - migrations (#10779), for a private repository alone: the store the
+ *     table a column is added to is in - by Data Security's findings in its
+ *     columns, and by the tables Data Observability watches in it, the
+ *     repository's own services' first - what that store holds, whether it
+ *     is reachable from outside or unencrypted, which the new column then
+ *     is too, and the table's columns already found holding what the new
+ *     one is for. It says nothing of how bad the point is: the new column's
+ *     own data says that.
  *
  * Everything production knows is kept apart from what the diff shows
  * (ProductionReviewLeakJSON.production), so a public repository's comment,
@@ -93,6 +114,8 @@ const STORE_KINDS_OF_SINK: Readonly<
   ],
   [SensitiveDataSink.Metric]: [DataStoreKind.TelemetryMetrics],
   [SensitiveDataSink.AiPrompt]: [DataStoreKind.TelemetryAiConversations],
+  // An exception's message and what reports it: the service's exceptions (#10778).
+  [SensitiveDataSink.Exception]: [DataStoreKind.TelemetryExceptions],
 };
 
 // The places of production one point names: the nearest few.
@@ -106,6 +129,21 @@ const MAX_STORES_READ: number = 50;
 
 // A store's own data types it names, the most sensitive first.
 const MAX_STORE_DATA_TYPES: number = 3;
+
+// The tables of one review's migrations looked up (#10779).
+const MAX_TABLES_READ: number = 5;
+
+// The findings of one table's columns read.
+const MAX_TABLE_FINDINGS_READ: number = 200;
+
+// The watched tables of one review's table names read.
+const MAX_TABLE_ASSETS_READ: number = 50;
+
+// The columns a migration's point names of what its table already holds.
+const MAX_SAME_DATA_COLUMNS: number = 3;
+
+// A table's kinds of data a point names, the most sensitive first.
+const MAX_TABLE_DATA_TYPES: number = 3;
 
 // A resource's cloud, by how its type is written: aws_..., AWS::..., aws.s3...
 function providerOfResource(type: string): DataStoreProvider | null {
@@ -157,6 +195,13 @@ export default class ProductionReviewSensitiveData {
     services: Array<CodeAgentScopedService>;
     isFailOn: boolean;
     now: Date;
+    /*
+     * Whether the repository is private, as its host says - asked only when
+     * a migration's point could be told what Data Security knows of its
+     * table (#10779), which a public repository's review never is. Unset:
+     * not private.
+     */
+    isRepositoryPrivate?: (() => Promise<boolean>) | undefined;
   }): Promise<ProductionReviewSensitiveDataJSON> {
     const projectTypes: Array<ProjectDataTypeHints> =
       await ProductionReviewSensitiveData.readProjectTypes(data.projectId);
@@ -196,6 +241,19 @@ export default class ProductionReviewSensitiveData {
         now: data.now,
       });
 
+    // A migration's table, for a private repository alone (#10779).
+    const tables: TableKnowledge =
+      ProductionReviewSensitiveData.getTableNames(rules.candidates).length >
+        0 &&
+      data.isRepositoryPrivate &&
+      (await data.isRepositoryPrivate())
+        ? await ProductionReviewSensitiveData.readTableKnowledge({
+            projectId: data.projectId,
+            candidates: rules.candidates,
+            services: data.services,
+          })
+        : NO_TABLES;
+
     const points: Array<ProductionReviewLeakJSON> = [];
     const occurrences: Map<string, number> = new Map<string, number>();
 
@@ -205,6 +263,7 @@ export default class ProductionReviewSensitiveData {
           candidate,
           stores,
           telemetry,
+          tables,
           isFailOn: data.isFailOn,
           occurrences,
         });
@@ -496,6 +555,379 @@ export default class ProductionReviewSensitiveData {
   }
 
   /*
+   * The tables the migration candidates add columns to, as their rules
+   * name them, in lower case, each once - as many as a review looks up.
+   */
+  public static getTableNames(
+    candidates: Array<SensitiveDataCandidate>,
+  ): Array<string> {
+    const tables: Array<string> = [];
+
+    for (const candidate of candidates) {
+      const table: string = (candidate.where || "").trim().toLowerCase();
+
+      if (
+        candidate.kind === SensitiveDataLeakKind.Migration &&
+        table &&
+        !tables.includes(table)
+      ) {
+        tables.push(table);
+      }
+    }
+
+    return tables.slice(0, MAX_TABLES_READ);
+  }
+
+  /*
+   * What Data Security knows of the tables the migration candidates add
+   * columns to (#10779): the findings in their columns, the watched tables
+   * named like them - and which of those the repository's own services
+   * read or write - and the stores they are all in. Read as OneUptime: who
+   * may see it is decided where the review is read. Nothing when it cannot
+   * be read: the points stand as the diff alone says them.
+   */
+  public static async readTableKnowledge(data: {
+    projectId: ObjectID;
+    candidates: Array<SensitiveDataCandidate>;
+    services: Array<CodeAgentScopedService>;
+  }): Promise<TableKnowledge> {
+    const tables: Array<string> = ProductionReviewSensitiveData.getTableNames(
+      data.candidates,
+    );
+
+    if (tables.length === 0) {
+      return NO_TABLES;
+    }
+
+    try {
+      const findings: Array<DataStoreFinding> = [];
+
+      // A table at a time: its name followed by a column, in any schema.
+      for (const table of tables) {
+        const read: Array<DataStoreFinding> =
+          await DataStoreFindingService.findBy({
+            query: {
+              projectId: data.projectId,
+              locationKind: DataStoreLocationKind.Column,
+              location: QueryHelper.search(`${table}.`),
+              isSuppressed: false,
+            },
+            select: {
+              _id: true,
+              dataStoreId: true,
+              dataTypeId: true,
+              dataTypeName: true,
+              sensitivity: true,
+              location: true,
+              lastSeenAt: true,
+              matchCount: true,
+              isConfirmed: true,
+              isAiSuggested: true,
+              isSuppressed: true,
+            },
+            sort: { lastSeenAt: SortOrder.Descending },
+            skip: 0,
+            limit: MAX_TABLE_FINDINGS_READ,
+            props: { isRoot: true },
+          });
+
+        findings.push(
+          ...read.filter((finding: DataStoreFinding): boolean => {
+            return (
+              isFindingCounted(finding) &&
+              parseColumnLocation(finding.location || "", table) !== null
+            );
+          }),
+        );
+      }
+
+      const assets: Array<DataAsset> = await DataAssetService.findBy({
+        query: {
+          projectId: data.projectId,
+          isDropped: false,
+          name: QueryHelper.findWithSameTextAnyOf(tables),
+        },
+        select: { _id: true, name: true, schemaName: true, dataStoreId: true },
+        skip: 0,
+        limit: MAX_TABLE_ASSETS_READ,
+        props: { isRoot: true },
+      });
+
+      // The watched tables the repository's own services read or write.
+      const usedAssetIds: Set<string> = new Set<string>();
+      const assetIds: Array<ObjectID> = assets
+        .map((asset: DataAsset): ObjectID | undefined => {
+          return asset.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      if (assetIds.length > 0 && data.services.length > 0) {
+        const usages: Array<DataAssetUsage> =
+          await DataAssetUsageService.findBy({
+            query: {
+              projectId: data.projectId,
+              dataAssetId: new Includes(assetIds),
+              serviceId: new Includes(
+                data.services.map((service: CodeAgentScopedService) => {
+                  return new ObjectID(service.id);
+                }),
+              ),
+            },
+            select: { dataAssetId: true },
+            skip: 0,
+            limit: MAX_TABLE_ASSETS_READ * 2,
+            props: { isRoot: true },
+          });
+
+        for (const usage of usages) {
+          usedAssetIds.add(usage.dataAssetId?.toString().toLowerCase() || "");
+        }
+      }
+
+      const storeIds: Array<string> = [];
+
+      for (const id of [
+        ...findings.map((finding: DataStoreFinding): string => {
+          return finding.dataStoreId?.toString() || "";
+        }),
+        ...assets.map((asset: DataAsset): string => {
+          return asset.dataStoreId?.toString() || "";
+        }),
+      ]) {
+        if (id && !storeIds.includes(id)) {
+          storeIds.push(id);
+        }
+      }
+
+      const stores: Array<DataStore> =
+        storeIds.length > 0
+          ? await DataStoreService.findBy({
+              query: {
+                projectId: data.projectId,
+                _id: QueryHelper.any(storeIds.slice(0, MAX_STORES_READ)),
+              },
+              select: {
+                _id: true,
+                name: true,
+                kind: true,
+                sensitivity: true,
+                sensitivityOverride: true,
+                dataTypeIds: true,
+                exposure: true,
+                posture: true,
+                environment: true,
+                isArchived: true,
+              },
+              skip: 0,
+              limit: MAX_STORES_READ,
+              props: { isRoot: true },
+            })
+          : [];
+
+      return {
+        stores: stores.filter((store: DataStore): boolean => {
+          return store.isArchived !== true;
+        }),
+        findings,
+        assets: assets.map((asset: DataAsset): TableAsset => {
+          return {
+            dataStoreId: asset.dataStoreId?.toString() || "",
+            name: asset.name || "",
+            schemaName: asset.schemaName || "",
+            isUsedByRepository: usedAssetIds.has(
+              asset.id?.toString().toLowerCase() || "",
+            ),
+          };
+        }),
+      };
+    } catch (error) {
+      logger.warn(
+        `Production review: what Data Security knows of a migration's tables could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+
+      return NO_TABLES;
+    }
+  }
+
+  /*
+   * What Data Security knows of a migration candidate's table: the store
+   * it is in - the one the repository's own services use, else one of
+   * production's, else the one whose columns were found holding data most
+   * lately - and what that store and the table hold. Null when no store of
+   * the project is known to hold a table of that name.
+   */
+  public static readTableKnown(
+    candidate: SensitiveDataCandidate,
+    knowledge: TableKnowledge,
+  ): {
+    store: ProductionReviewLeakStoreJSON;
+    table: ProductionReviewLeakTableJSON;
+  } | null {
+    const table: string = (candidate.where || "").trim().toLowerCase();
+
+    if (candidate.kind !== SensitiveDataLeakKind.Migration || !table) {
+      return null;
+    }
+
+    const findings: Array<DataStoreFinding> = knowledge.findings.filter(
+      (finding: DataStoreFinding): boolean => {
+        return parseColumnLocation(finding.location || "", table) !== null;
+      },
+    );
+    const assets: Array<TableAsset> = knowledge.assets.filter(
+      (asset: TableAsset): boolean => {
+        return asset.name.toLowerCase() === table && Boolean(asset.dataStoreId);
+      },
+    );
+    const storeIdOf: (value: ObjectID | string | undefined) => string = (
+      value: ObjectID | string | undefined,
+    ): string => {
+      return (value || "").toString().toLowerCase();
+    };
+    const holding: Array<DataStore> = knowledge.stores.filter(
+      (store: DataStore): boolean => {
+        const id: string = storeIdOf(store.id || undefined);
+
+        return (
+          Boolean(id) &&
+          (findings.some((finding: DataStoreFinding): boolean => {
+            return storeIdOf(finding.dataStoreId) === id;
+          }) ||
+            assets.some((asset: TableAsset): boolean => {
+              return storeIdOf(asset.dataStoreId) === id;
+            }))
+        );
+      },
+    );
+
+    if (holding.length === 0) {
+      return null;
+    }
+
+    const rankOf: (store: DataStore) => Array<number> = (
+      store: DataStore,
+    ): Array<number> => {
+      const id: string = storeIdOf(store.id || undefined);
+      const own: Array<DataStoreFinding> = findings.filter(
+        (finding: DataStoreFinding): boolean => {
+          return storeIdOf(finding.dataStoreId) === id;
+        },
+      );
+      const newest: number = own.reduce(
+        (latest: number, finding: DataStoreFinding): number => {
+          const at: number = finding.lastSeenAt
+            ? new Date(finding.lastSeenAt).getTime()
+            : 0;
+
+          return Math.max(latest, Number.isFinite(at) ? at : 0);
+        },
+        0,
+      );
+
+      return [
+        assets.some((asset: TableAsset): boolean => {
+          return (
+            storeIdOf(asset.dataStoreId) === id && asset.isUsedByRepository
+          );
+        })
+          ? 1
+          : 0,
+        store.environment === DataStoreEnvironment.Production ? 1 : 0,
+        own.length > 0 ? 1 : 0,
+        newest,
+      ];
+    };
+
+    const ranked: Array<DataStore> = [...holding].sort(
+      (a: DataStore, b: DataStore): number => {
+        const rankA: Array<number> = rankOf(a);
+        const rankB: Array<number> = rankOf(b);
+
+        for (let index: number = 0; index < rankA.length; index++) {
+          if (rankA[index] !== rankB[index]) {
+            return rankB[index]! - rankA[index]!;
+          }
+        }
+
+        return (a.name || "").localeCompare(b.name || "");
+      },
+    );
+    const store: DataStore = ranked[0]!;
+    const storeId: string = storeIdOf(store.id || undefined);
+    const inStore: Array<DataStoreFinding> = findings
+      .filter((finding: DataStoreFinding): boolean => {
+        return storeIdOf(finding.dataStoreId) === storeId;
+      })
+      .sort((a: DataStoreFinding, b: DataStoreFinding): number => {
+        return timeOf(b.lastSeenAt) - timeOf(a.lastSeenAt);
+      });
+    const asset: TableAsset | undefined = assets.find(
+      (each: TableAsset): boolean => {
+        return storeIdOf(each.dataStoreId) === storeId;
+      },
+    );
+    const typeIds: Set<string> = new Set<string>(
+      candidate.dataTypes.map((type: { id: string }): string => {
+        return type.id;
+      }),
+    );
+    const located: ParsedColumnLocation | null = inStore[0]
+      ? parseColumnLocation(inStore[0].location || "", table)
+      : null;
+
+    return {
+      store: {
+        ...ProductionReviewSensitiveData.toStoreJSON(
+          store,
+          effectiveSensitivity(store),
+        ),
+        ...(store.exposure &&
+        EXPOSURES_A_COLUMN_INHERITS.includes(store.exposure)
+          ? { exposure: store.exposure }
+          : {}),
+        ...(store.posture?.encryptedAtRest === false
+          ? { isNotEncryptedAtRest: true }
+          : {}),
+      },
+      table: {
+        name: (
+          located?.table ||
+          (asset
+            ? [asset.schemaName, asset.name].filter(Boolean).join(".")
+            : "") ||
+          candidate.where ||
+          ""
+        ).slice(0, 200),
+        dataTypeNames: namesBySensitivity(inStore).slice(
+          0,
+          MAX_TABLE_DATA_TYPES,
+        ),
+        sameData: inStore
+          .filter((finding: DataStoreFinding): boolean => {
+            return typeIds.has(finding.dataTypeId || "");
+          })
+          .slice(0, MAX_SAME_DATA_COLUMNS)
+          .map(
+            (
+              finding: DataStoreFinding,
+            ): ProductionReviewLeakTableColumnJSON => {
+              return {
+                location: (finding.location || "").slice(0, 300),
+                dataTypeName: (finding.dataTypeName || "").slice(0, 100),
+                lastSeenAt: finding.lastSeenAt
+                  ? new Date(finding.lastSeenAt).toISOString()
+                  : "",
+              };
+            },
+          ),
+        otherStoreCount: ranked.length - 1,
+      },
+    };
+  }
+
+  /*
    * A candidate as the point the review keeps - or null when what the
    * project knows says it is none: a store marked Public By Design, made
    * public; a store whose data Data Security would raise nothing for.
@@ -504,6 +936,8 @@ export default class ProductionReviewSensitiveData {
     candidate: SensitiveDataCandidate;
     stores: Array<DataStore>;
     telemetry: TelemetryKnowledge;
+    // What Data Security knows of migrations' tables: none for a public repository.
+    tables?: TableKnowledge | undefined;
     isFailOn: boolean;
     occurrences: Map<string, number>;
   }): ProductionReviewLeakJSON | null {
@@ -558,6 +992,25 @@ export default class ProductionReviewSensitiveData {
 
       if (known.maskedBy !== null) {
         production.maskedAtIngestBy = known.maskedBy;
+      }
+    }
+
+    /*
+     * A migration's table: the store it is in and what it holds - which
+     * sharpens what the point says, never how bad it is.
+     */
+    if (candidate.kind === SensitiveDataLeakKind.Migration && data.tables) {
+      const known: {
+        store: ProductionReviewLeakStoreJSON;
+        table: ProductionReviewLeakTableJSON;
+      } | null = ProductionReviewSensitiveData.readTableKnown(
+        candidate,
+        data.tables,
+      );
+
+      if (known) {
+        production.store = known.store;
+        production.table = known.table;
       }
     }
 
@@ -764,6 +1217,98 @@ export interface TelemetryKnowledge {
   stores: Array<DataStore>;
   findings: Array<DataStoreFinding>;
   coverage: ScrubCoverage;
+}
+
+// A table Data Observability watches, named like a migration's.
+export interface TableAsset {
+  dataStoreId: string;
+  name: string;
+  schemaName: string;
+  // A service the repository serves reads or writes it.
+  isUsedByRepository: boolean;
+}
+
+/*
+ * What a review reads of the tables its migrations add columns to
+ * (#10779): the stores that hold them, the findings in their columns, and
+ * the watched tables named like them.
+ */
+export interface TableKnowledge {
+  stores: Array<DataStore>;
+  findings: Array<DataStoreFinding>;
+  assets: Array<TableAsset>;
+}
+
+export const NO_TABLES: TableKnowledge = {
+  stores: [],
+  findings: [],
+  assets: [],
+};
+
+// A column's location, read for a table: the table as the store names it, and the column.
+export interface ParsedColumnLocation {
+  // The table with what comes before it: "public.customers".
+  table: string;
+  column: string;
+}
+
+/*
+ * A finding's location of a database column - "schema.table.column", a
+ * warehouse's "table.column", a database's "db.schema.table.column" - read
+ * for `table`: null when it is a column of another table.
+ */
+export function parseColumnLocation(
+  location: string,
+  table: string,
+): ParsedColumnLocation | null {
+  const parts: Array<string> = location.split(".");
+  const wanted: string = table.trim().toLowerCase();
+
+  // The table is one of the first three parts, and a column follows it.
+  for (let index: number = 0; index < Math.min(3, parts.length - 1); index++) {
+    if ((parts[index] || "").toLowerCase() === wanted) {
+      const column: string = parts.slice(index + 1).join(".");
+
+      return column
+        ? { table: parts.slice(0, index + 1).join("."), column }
+        : null;
+    }
+  }
+
+  return null;
+}
+
+function timeOf(value: Date | string | undefined): number {
+  const time: number = value ? new Date(value).getTime() : 0;
+
+  return Number.isFinite(time) ? time : 0;
+}
+
+// The kinds of data findings name, the most sensitive first, each once.
+function namesBySensitivity(findings: Array<DataStoreFinding>): Array<string> {
+  const ranked: Array<DataStoreFinding> = [...findings].sort(
+    (a: DataStoreFinding, b: DataStoreFinding): number => {
+      const rankA: number = isDataSensitivity(a.sensitivity)
+        ? DATA_SENSITIVITY_RANK[a.sensitivity]
+        : 0;
+      const rankB: number = isDataSensitivity(b.sensitivity)
+        ? DATA_SENSITIVITY_RANK[b.sensitivity]
+        : 0;
+
+      return rankB - rankA;
+    },
+  );
+  const names: Array<string> = [];
+
+  for (const finding of ranked) {
+    const name: string = (finding.dataTypeName || "").slice(0, 100);
+
+    if (name && !names.includes(name)) {
+      names.push(name);
+    }
+  }
+
+  return names;
 }
 
 /*

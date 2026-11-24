@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Företagsnamn som är kopplat till denna licens.",
   "Annual contract value (in USD) for this license.": "Årligt kontraktsvärde (i USD) för denna licens.",
   "Expiration date of this license.": "Utgångsdatum för denna licens.",
-  "Something went wrong": "Något gick fel",
-  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
+  "This page stopped working": "Den här sidan slutade fungera",
+  "Part of this page ran into a problem. Reload the page to continue.": "En del av den här sidan stötte på ett problem. Läs in sidan igen för att fortsätta.",
   "Error details": "Felinformation",
   "Still stuck?": "Fortfarande fast?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den med OneUptime Support.",
@@ -497,7 +497,7 @@
       "title": "Logga ut"
     },
     "sendEmail": {
-      "title": "Skicka kungörelse-e-post",
+      "title": "Skicka e-post",
       "testCardTitle": "Skicka test-e-post",
       "testCardDescription": "Skicka en test-kungörelse-e-post till en enda e-postadress för att förhandsgranska innan du skickar till alla användare.",
       "allCardTitle": "Skicka e-post till alla användare",
@@ -514,7 +514,7 @@
       "confirmButton": "Ja, skicka till alla användare"
     },
     "moreEmail": {
-      "title": "Skicka kungörelse-e-post",
+      "title": "Skicka e-post",
       "cardTitle": "Skicka kungörelse-e-post",
       "cardDescription": "Skriv ett kungörelse-e-postmeddelande att skicka till alla registrerade användare. Du kan skicka en test-e-post först för att förhandsgranska.",
       "sendTestButton": "Skicka test-e-post",
@@ -536,7 +536,7 @@
       "confirmButton": "Ja, skicka till alla användare"
     },
     "settings": {
-      "title": "Admin-inställningar",
+      "title": "Inställningar",
       "authentication": {
         "signUpCardTitle": "Registrering",
         "signUpCardDescription": "Vem som kan skapa ett konto på den här servern.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Skickar en testbegäran till kanalen.",
   "Custom Channel": "Anpassad kanal",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Allas jourregler som använder den här kanalen tas bort tillsammans med den. Stäng i stället av kanalen för att sluta skicka utan att ändra någons regler.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har inte tillräckliga behörigheter för att ange {{columnName}} för {{itemName}}. Du behöver en av följande behörigheter: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har inte tillräckliga behörigheter för att redigera {{columnName}} för {{itemName}}. Du behöver en av följande behörigheter: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har inte tillräckliga behörigheter för att ange {{columnName}} för {{itemName}}. Du behöver en av följande behörigheter: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har inte tillräckliga behörigheter för att redigera {{columnName}} för {{itemName}}. Du behöver en av följande behörigheter: {{permissions}}.",
   "Push Notifications": "Push-aviseringar",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} överhoppad",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Är du säker på att du vill utföra ”{{action}}” för {{count}} {{itemName}}?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Ge workerna mer minne och CPU, och leta i appens logg efter jobb som fortsätter att misslyckas.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Den här servern kör OneUptime {{current}}. {{latest}} har släppts.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Säkerhetskopiera och uppdatera sedan: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Slutför det på sidan Serverkonfiguration.",
+  "Finish it on the Server Setup page.": "Slutför det på sidan Serverkonfiguration.",
   "Products on this server": "Produkter på den här servern",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Välj vad varje projekt på den här servern erbjuder. En produkt som är avstängd försvinner från varje projekts meny, Hem och Sök, och dess sidor visar att den är avstängd.",
   "Start from": "Börja med",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Byt till visuell redigerare",
   "Visual": "Visuell",
   "Drop image to upload": "Släpp bilden för att ladda upp den",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" laddades inte upp. {{error}}",
+  "Uploading {{fileName}}…": "Laddar upp {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Skriv direkt i den visuella redigeraren — använd verktygsfältet för formatering.",
   "Switch to {{markdown}} to view or edit the raw source.": "Byt till {{markdown}} för att visa eller redigera källtexten.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "I en lista trycker du på {{indentKey}} för att dra in en punkt och {{outdentKey}} för att minska indraget, eller använder knapparna Öka indrag och Minska indrag. Utanför en lista flyttar {{tabKey}} till nästa fält.",
@@ -4573,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "Servern svarade inte med sina inställningar för hjälp och support.",
   "Keyboard shortcuts": "Kortkommandon",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den.",
-  "Chat on Slack": "Chatta på Slack"
+  "Chat on Slack": "Chatta på Slack",
+  "Your Twilio account's default voice": "Standardrösten för ditt Twilio-konto",
+  "US English, female voice": "Amerikansk engelska, kvinnlig röst",
+  "US English, male voice": "Amerikansk engelska, manlig röst",
+  "British English, female voice": "Brittisk engelska, kvinnlig röst",
+  "British English, male voice": "Brittisk engelska, manlig röst",
+  "A page's call starts like this, always in English:": "Ett larmsamtal börjar så här, alltid på engelska:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio tar extra betalt för den här rösten: under 2 amerikanska cent per larmsamtal.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Enligt Twilio är Basic-rösterna inte avsedda för produktionsanvändning.",
+  "Save, then send a test call to hear it.": "Spara och skicka sedan ett testsamtal för att höra den.",
+  "Call Voice": "Röst för samtal",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "Rösten som OneUptimes telefonsamtal talar med när de går ut via den här serverns Twilio-konto.",
+  "Choose Voice": "Välj röst",
+  "Voice": "Röst"
 }

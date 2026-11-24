@@ -23,9 +23,7 @@ export function useScrubRuleValueCounts(
   signal: ScrubRuleValueCountSignal,
 ): ScrubRuleValueCountsState {
   const [ruleIds, setRuleIdsState] = useState<Array<string>>([]);
-  const [answer, setAnswer] = useState<ScrubRuleValueCountsAnswer | null>(
-    null,
-  );
+  const [answer, setAnswer] = useState<ScrubRuleValueCountsAnswer | null>(null);
 
   useEffect(() => {
     if (ruleIds.length === 0) {

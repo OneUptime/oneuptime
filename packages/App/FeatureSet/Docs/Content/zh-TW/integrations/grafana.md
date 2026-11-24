@@ -59,13 +59,13 @@ Grafana 的通知策略對觸發的警示分組，Webhook 聯絡點把每個組�
 
 ### 每個警示一個事件
 
-在同一個條件中，開啟 **設定** 並開啟 **Group incidents and alerts by a payload field**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
+在同一個條件中，開啟 **設定** 並開啟 **依酬載欄位將事件和警示分組**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
 
 | 欄位 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **為以下每個值分別開啟一個事件…** | `requestBody.alerts[*].fingerprint` |
+| **表示恢復的欄位** | `requestBody.alerts[*].status` |
+| **表示已恢復的值** | `resolved` |
 
 ### 讓監測器恢復線上
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自行託管安裝使用自己的主機來代替 `oneuptime.com`。
 :::
 
-通知中的每個警示都會開啟自己的事件，數量最多為 **Max incidents per request**（不修改則為 `100`），每個警示自己的 `status` 決定它的事件何時被解決。Grafana 的 `fingerprint` 透過標籤來識別警示，所以它正是用來分組的值。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
+通知中的每個警示都會開啟自己的事件，數量最多為 **每個請求的最大事件數**（不修改則為 `100`），每個警示自己的 `status` 決定它的事件何時被解決。Grafana 的 `fingerprint` 透過標籤來識別警示，所以它正是用來分組的值。每項設定的作用請參閱 [接收其他系統的警示](/docs/monitor/incoming-request-monitor#接收其他系統的警示)。
 
 > [!WARNING]
 > 不要按通知中所有警示共有的標籤分組。Grafana 的預設通知策略按 `grafana_folder` 和 `alertname` 對警示分組，所以同一個通知中的每個警示都有相同的 `alertname`：按 `requestBody.alerts[*].labels.alertname` 分組會把整個通知合併成一個事件。
@@ -103,7 +103,7 @@ https://oneuptime.com/heartbeat/<secret key>
 前往 **Alerting → Notification policies**。把預設策略的聯絡點設為 `OneUptime`，或者新增一個符合 OneUptime 應收到的警示的子策略，並把 `OneUptime` 設為它的聯絡點。
 :::
 
-Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取通知中的欄位。聯絡點的 **Max Alerts** 設定會限制一個通知中的警示數：請保持為 `0`（不限制），或者不超過監測器的 **Max incidents per request**。
+Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取通知中的欄位。聯絡點的 **Max Alerts** 設定會限制一個通知中的警示數：請保持為 `0`（不限制），或者不超過監測器的 **每個請求的最大事件數**。
 
 ## 測試
 
@@ -157,7 +157,7 @@ Grafana 傳送 `Content-Type: application/json`，監測器需要它才能讀取
 
 :::details 事件被建立但從未被解決
 - 條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
-- **Field that signals recovery** 必須是 `requestBody.alerts[*].status`，**Value that means recovered** 必須恰好是 `resolved`。比較區分大小寫。
+- **表示恢復的欄位** 必須是 `requestBody.alerts[*].status`，**表示已恢復的值** 必須恰好是 `resolved`。比較區分大小寫。
 - 分組路徑必須以 `requestBody.` 開頭，並且路徑中只有第一個 `[*]` 會讀取清單。違反任一規則的路徑不會符合任何內容，也不會顯示錯誤。
 :::
 

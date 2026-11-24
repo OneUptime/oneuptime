@@ -105,13 +105,13 @@ Datadog 모니터는 상태가 바뀔 때, 즉 발생하거나 경고하거나 �
 
 ### 경고마다 인시던트 하나 열기
 
-같은 기준에서 **설정**을 열고 **Group incidents and alerts by a payload field**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
+같은 기준에서 **설정**을 열고 **페이로드 필드로 인시던트와 경고 그룹화**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
 
 | 필드 | 값 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **다음 값마다 별도의 인시던트 열기…** | `requestBody.alert_key` |
+| **복구를 나타내는 필드** | `requestBody.transition` |
+| **복구를 의미하는 값** | `Recovered` |
 
 ### 모니터를 다시 온라인으로
 
@@ -227,7 +227,7 @@ curl -X POST "<url>" \
 - Datadog 모니터는 복구도 웹훅에 통지해야 합니다. 조건문 안에서 알림일 때만 웹훅을 언급하는 메시지는 복구를 보내지 않습니다.
 - 템플릿을 쓰면 **실행 기록**에서 복구의 실행을 엽니다. 마지막 단계에 이유가 나옵니다. 복구의 `alert_cycle_key`는 경고의 것과 같아야 하므로, 페이로드의 `$ALERT_CYCLE_KEY`는 그대로 두세요.
 - 모니터를 쓰면 기준의 인시던트에 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다.
-- **Value that means recovered**는 정확히 `Recovered`여야 합니다. 비교는 대소문자를 구분합니다.
+- **복구를 의미하는 값**은 정확히 `Recovered`여야 합니다. 비교는 대소문자를 구분합니다.
 - 복구의 `alert_key`는 경고의 것과 같아야 합니다. 페이로드의 `$ALERT_ID $ALERT_SCOPE`는 그대로 두세요.
 :::
 

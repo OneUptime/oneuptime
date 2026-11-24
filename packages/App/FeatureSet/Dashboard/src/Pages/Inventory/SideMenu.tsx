@@ -117,8 +117,13 @@ const InventorySideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.DevicePhoneMobile,
         },
         {
+          /*
+           * Topology, as the products menu and the page's title name it:
+           * this entry said "Topology Map", a second name for the page it
+           * opens (#7474).
+           */
           link: {
-            title: "Topology Map",
+            title: "Topology",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.TOPOLOGY] as Route,
             ),

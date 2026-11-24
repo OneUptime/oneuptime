@@ -106,6 +106,8 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
   ["AiProposalDismissed", "AI Proposal Dismissed"],
   ["AiChangeUndone", "AI Change Undone"],
   ["AiChangeFailed", "AI Change Failed"],
+  // A group's proposal that was no longer needed (#10741).
+  ["AiProposalExpired", "AI Proposal Expired"],
   ["AiResponse", "AI Response"],
   ["LifecycleEvent", "Lifecycle Event"],
 ]);

@@ -70,10 +70,18 @@ import ts from "typescript";
  *     DataSecurityIssueGroupProposals.test); the rest it uses ranks the
  *     repositories that declare the stores and reads their tags
  *     (DeclaredCodeOwner, CloudAiTargets.getManagedAsCode), and asks no
- *     model;
+ *     model; it proves the group fixes OneUptime AI made
+ *     (DataSecurityIssueGroupFixProof.proveForProject, #10738), which reads
+ *     the issues those fixes closed and asks no model, and tells each issue
+ *     a group's waiting proposal expired
+ *     (DataSecurityIssueGroupTimelines.expireWaitingForGroup, #10741),
+ *     which writes a timeline line of fixed words and asks no model;
  *   - the list of groups (DataSecurityIssueGroups) asks
  *     AIService.isProjectAIEnabled, and with AI off shows no name OneUptime
- *     AI gave a group: each goes by its cause's own words;
+ *     AI gave a group: each goes by its cause's own words. For a reader held
+ *     to labels (#10739) it reads which issues a group's pull request lists
+ *     (DataSecurityFixTarget.readTask, issueIdsOfTask) and how a store's
+ *     tags declare it (CloudAiTargets.getManagedAsCode), and asks no model;
  *   - the daily drafts of the record of processing (#10375) run
  *     RecordOfProcessingDraftRun.run, which reads Enable AI and Work on new
  *     issues first and asks nothing, and writes nothing, with either off;
@@ -90,7 +98,11 @@ import ts from "typescript";
  *     the window, the reads, whose data, the secrets and the breach laws -
  *     is worked out with no model, and OneUptime AI writes it up only once
  *     Enable AI, Work on new issues and the issue's Analyze rule allow it
- *     (ExposureAssessmentRun.test).
+ *     (ExposureAssessmentRun.test);
+ *   - the job that proposes the fix of each service's telemetry leaks in
+ *     its code (#10367) runs TelemetryLeakFixProposals.proposeForProject,
+ *     which reads Enable AI and Work on new issues first and asks nothing,
+ *     and writes nothing, with either off (TelemetryLeakFixProposals.test).
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -105,8 +117,11 @@ import ts from "typescript";
  * DataSecurityIssueGroupFix.test), whose other reads say where the task
  * stands and in which repositories the person may ask (AIRunService,
  * CodeTaskThread, CodeTaskListRows, CodeTaskAccess, DeclaredCodeOwner,
- * CloudAiTargets) and ask no model; and Ask AI's chat, which the chat's own
- * switch refuses. On the Dashboard, the issue's page draws no analysis and
+ * CloudAiTargets) and ask no model; a service's telemetry fix, through the
+ * same gate (TelemetryLeakFix: DataSecurityCodeTask.requestTelemetryLeakFix
+ * asks CodeTaskGate.getBlocker first), and where an issue's fix in code
+ * stands (DataSecurityIssueCodeFix), which only reads; and Ask AI's chat,
+ * which the chat's own switch refuses. On the Dashboard, the issue's page draws no analysis and
  * no AI action with Enable AI off, and is whole without them
  * (DataSecurityIssuePageThroughTheServer.test); the pages below draw no
  * other.
@@ -204,6 +219,14 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
       uses: ["DataTypeDiscovery.runForProject"],
     },
+    /*
+     * A service's telemetry leaks fixed in its code (#10367): proposed only
+     * with Enable AI and Work on new issues on.
+     */
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals",
+      uses: ["TelemetryLeakFixProposals.proposeForProject"],
+    },
   ],
   "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
     {
@@ -230,10 +253,25 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
+    // A group fix proven by its issues' checks (#10738): reads, and asks no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupFixProof",
+      uses: ["DataSecurityIssueGroupFixProof.proveForProject"],
+    },
     {
       module:
         "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming",
       uses: ["DataSecurityIssueGroupNaming.nameGroups"],
+    },
+    // A waiting proposal expired, on each issue's timeline (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
     },
     {
       module:
@@ -259,6 +297,18 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Services/AIService",
       uses: ["AIService.isProjectAIEnabled"],
     },
+    // A cut-down group's pull request, for a reader held to labels (#10739): reads only.
+    {
+      module: "Common/Server/Utils/AI/CodeFix/DataSecurityFixTarget",
+      uses: [
+        "DataSecurityFixTarget.readTask",
+        "DataSecurityFixTarget.issueIdsOfTask",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
   ],
   "Common/Server/Utils/DataSecurity/DataSecurityIssueGroupFix.ts": [
     {
@@ -282,11 +332,21 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
         "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt",
       uses: ["buildIssueGroupFixRequest"],
     },
+    // The waiting proposals a fix asked another way expires (#10741): fixed words, no model.
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines",
+      uses: [
+        "GroupProposalExpiry",
+        "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
+      ],
+    },
     {
       module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
       uses: [
-        "CodeTaskAccess.listReadableRepositories",
-        "CodeTaskAccess.canAskInRepository",
+        "CodeTaskAccess.listReadableRepositoriesByIds",
+        "CodeTaskAccess.listAskableRepositoryIds",
+        "CodeTaskAccess.findReadableRepository",
       ],
     },
     {
@@ -318,6 +378,80 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
       uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  /*
+   * Where an issue's fix in code stands, read for its page (#10367): the
+   * task, its pull request and what production showed - reads that ask no
+   * model.
+   */
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueCodeFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/FixProductionReportUtil",
+      uses: ["FixProductionReportUtil.fromPullRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskListRows",
+      uses: [
+        "CodeTaskRepliesRead",
+        "CodeTaskListRows.readReplies",
+        "CodeTaskListRows.readPullRequests",
+        "CodeTaskListRows.key",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskThread",
+      uses: ["CodeTaskThread.findTasksHiddenFrom"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: ["getRepositoryFullName"],
+    },
+  ],
+  /*
+   * A service's telemetry leaks fixed in its code (#10367): asked for
+   * through the Code task's gate (DataSecurityCodeTask
+   * .requestTelemetryLeakFix asks CodeTaskGate.getBlocker before it builds
+   * the task's request), by a person or by TelemetryLeakFixProposals; the
+   * rest says whether a fix is on its way and where it may be asked, and
+   * asks no model.
+   */
+  "Common/Server/Utils/DataSecurity/TelemetryLeakFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay",
+      uses: ["CodeFixOnItsWay.findTaskId", "CodeFixOnItsWay.ofTelemetryLeaks"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: [
+        "DataSecurityCodeTask.requestTelemetryLeakFix",
+        "DataSecurityCodeTask.getAskableRepositories",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityTelemetryFixPrompt",
+      uses: ["buildTelemetryLeakFixRequest"],
     },
   ],
 };
@@ -683,6 +817,13 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
         "Fix with AI",
       ],
       [path.join("Components", "DataSecurity", "IssueModals.tsx")]: [
+        "Fix with AI",
+      ],
+      /*
+       * The words of the dialog Fix with AI opens on an issue in a service's
+       * telemetry (#10367), shown before its pull request is asked for.
+       */
+      [path.join("Components", "DataSecurity", "TelemetryFixCopy.ts")]: [
         "Fix with AI",
       ],
     });

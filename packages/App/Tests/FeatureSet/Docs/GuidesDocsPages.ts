@@ -169,9 +169,9 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Mobile app or browser",
       "How should we reach you?",
       "Turn on SMS and phone calls",
-      "Add balance",
+      // One verb from the step's button to the dialog's own (#7475).
+      "Add to Balance",
       "Amount (USD)",
-      "Recharge",
       "Your phone number",
       "Text me a code",
       "Verify",
