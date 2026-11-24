@@ -6,6 +6,10 @@ import {
 } from "../../../Server/Utils/LogRedaction";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  ProbeConnectionRefusals,
+  ProbeStartupMessages,
+} from "../../../Types/Probe/ProbeConnectionRefusals";
 import { describe, expect, it } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
@@ -1139,6 +1143,9 @@ describe("the keys OneUptime's own components present", () => {
       "Runner key not found - the Runner has not finished registering yet.",
       "The ingestion key was rotated by a Project Admin.",
       "A license key is required to turn this on.",
+      // What a probe that cannot connect is told, and logs (#7273).
+      ...Object.values(ProbeConnectionRefusals),
+      ...Object.values(ProbeStartupMessages),
     ]) {
       expect(redactLogString(text)).toBe(text);
     }

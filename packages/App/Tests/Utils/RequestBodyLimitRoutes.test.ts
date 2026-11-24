@@ -1,3 +1,4 @@
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -743,7 +744,7 @@ describe("a collection is counted before it is parsed", () => {
       expect(await run(readCollectionBody, req, answered)).toBe("answered");
       expect(answered).toEqual({
         status: 400,
-        body: { message: "ProbeId or ProbeKey is missing" },
+        body: { message: ProbeConnectionRefusals.missingIdOrKey },
       });
       expect((req as unknown as { body: unknown }).body).toBeUndefined();
       expect(jsonParse).not.toHaveBeenCalled();

@@ -67,7 +67,7 @@ describe("describeRefusal", () => {
 
   test("a plan that does not include it: refused because of the plan, with the plan's name", () => {
     const message: string =
-      "Please upgrade your plan to Scale to access this feature";
+      "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
     expect(
       describeRefusal({

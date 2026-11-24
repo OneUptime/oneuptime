@@ -110,7 +110,11 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * update. Edit Incoming Request Secret is here for one column alone,
    * requireIncomingRequestSecret (issue #8502), the same way, and so is
    * Security Admin, for the hourly limit of automatic blocks
-   * (securityAutomaticResponseMaxBlocksPerHour, #10746).
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and the two
+   * switches of Security Events' Trusted Proxies: whether the project's own
+   * load balancers are trusted (securityTrustOwnLoadBalancers, #10546) and
+   * whether its access logs end with X-Forwarded-For
+   * (securityReadAccessLogForwardedFor, #10548).
    */
   update: [
     Permission.ProjectOwner,
@@ -3216,6 +3220,97 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public securityTrustedProxies?: string = undefined;
+
+  /*
+   * Whether Security Events trusts the public addresses of the project's
+   * own application load balancers as proxies (#10546), as it does its
+   * Trusted Proxies: an AWS Application or Classic (HTTP) Load Balancer, a
+   * Google Cloud Application Load Balancer and an Azure Application Gateway
+   * its connected cloud accounts list, each of which adds the client it
+   * forwards to X-Forwarded-For. On unless turned off
+   * (Server/Utils/SecurityEvent/SecurityOwnLoadBalancers). Never its hosts,
+   * nodes or probes, which forward nobody: trusted, whatever ran on them
+   * could name any client. A Security Admin may turn it off and on, as a
+   * Project Owner or Admin may - which is why the table's update list
+   * names them too.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Trust Your Load Balancers",
+    description:
+      "Whether Security Events trusts the client address your own application load balancers forward. On unless turned off.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public securityTrustOwnLoadBalancers?: boolean = undefined;
+
+  /*
+   * Whether the project's web servers' access logs end with the
+   * X-Forwarded-For header, as nginx's main format does (#10548): Security
+   * Events then reads a combined log line's last quoted field as the one
+   * its trusted proxy forwarded (Utils/SecurityEvent/LogParsers/
+   * WebAttackLogParser). Off unless turned on: a line cannot say what its
+   * fields are, and a server that does not escape quotes lets a request's
+   * user agent add a field to a plain combined line. Set as the switch
+   * beside it is.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Access Logs End With X-Forwarded-For",
+    description:
+      "Whether your access logs end with X-Forwarded-For, as nginx's main format does, so the client a trusted proxy forwarded is read. Off unless turned on.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public securityReadAccessLogForwardedFor?: boolean = undefined;
 
   /*
    * The most automatic blocks the project's automatic response policies

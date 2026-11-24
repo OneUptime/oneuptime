@@ -606,7 +606,11 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     ],
     [
       "Common/Server/Utils/Errors.ts",
-      ["Project Settings > Billing and Invoices > Billing"],
+      [
+        "Project Settings > Billing and Invoices > Billing",
+        // Where the Free plan's full project changes its plan (#7271).
+        "Project Settings > Billing and Invoices > Billing",
+      ],
     ],
     [
       "Common/Server/Services/PayAsYouGoBillingService.ts",

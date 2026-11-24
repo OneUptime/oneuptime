@@ -191,7 +191,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
 export const SERVER_MESSAGES: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [INVITING_PEOPLE]: [
-      "This user has already been invited to this team",
+      "This person has already been invited to this team, or is a member of it",
       "You have reached the user limit for the free plan",
       "Too many invitations were sent to this email address in the last hour",
       "This invitation cannot be sent right now",

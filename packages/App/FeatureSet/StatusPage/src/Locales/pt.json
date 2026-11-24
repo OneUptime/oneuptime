@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Algo deu errado",
-  "An unexpected error has occurred. Please reload the page to continue": "Ocorreu um erro inesperado. Recarregue a página para continuar",
+  "This page stopped working": "Esta página parou de funcionar",
+  "Part of this page ran into a problem. Reload the page to continue.": "Uma parte desta página teve um problema. Recarregue a página para continuar.",
   "Error details": "Detalhes do erro",
   "a11y": {
     "skipToMainContent": "Saltar para o conteúdo principal",
@@ -524,5 +524,27 @@
     "sessionExpired": "A sessão expirou. Entre novamente.",
     "signedOut": "Você saiu. Entre novamente.",
     "magicLinkTurnedOff": "Os links de acesso estão desativados para esta página de status. Entre com seu e-mail e sua senha."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "O servidor teve um problema que não conseguiu explicar, por isso a operação não terminou. Tente novamente e, se continuar a falhar, indique esta referência ao seu administrador ou ao suporte do OneUptime: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "O servidor teve um problema que não conseguiu explicar, por isso a operação não terminou. Tente novamente daqui a pouco.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "Não foi possível contactar o OneUptime, por isso a operação não terminou. Verifique a sua ligação à Internet e tente novamente.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Esta página teve um problema, por isso a operação não terminou. Recarregue a página e tente novamente.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "O que foi enviado era grande demais para o servidor aceitar, por isso a operação não terminou. Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "O que foi enviado passa dos 50 MB que o OneUptime aceita em uma requisição, por isso a operação não terminou. Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
+  "This did not finish.": "A operação não terminou.",
+  "The server ran into a problem it could not explain.": "O servidor teve um problema que não conseguiu explicar.",
+  "The OneUptime server did not answer.": "O servidor do OneUptime não respondeu.",
+  "OneUptime could not be reached.": "Não foi possível contactar o OneUptime.",
+  "This page ran into a problem.": "Esta página teve um problema.",
+  "What was sent was too large for the server to accept.": "O que foi enviado era grande demais para o servidor aceitar.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "O que foi enviado passa dos 50 MB que o OneUptime aceita em uma requisição.",
+  "Try again in a moment.": "Tente novamente daqui a pouco.",
+  "It may be starting or restarting. Try again in a few minutes.": "Pode estar a iniciar ou a reiniciar. Tente novamente dentro de alguns minutos.",
+  "Check your internet connection, then try again.": "Verifique a sua ligação à Internet e tente novamente.",
+  "Reload the page, then try again.": "Recarregue a página e tente novamente.",
+  "Try again with less at once, such as a smaller file.": "Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
+  "The {{itemName}} was not created.": "Não foi criado: {{itemName}}.",
+  "The {{itemName}} was not saved.": "Não foi guardado: {{itemName}}.",
+  "The {{itemName}} could not be loaded.": "Não foi possível carregar: {{itemName}}.",
+  "Page Did Not Load": "A página não carregou"
 }
