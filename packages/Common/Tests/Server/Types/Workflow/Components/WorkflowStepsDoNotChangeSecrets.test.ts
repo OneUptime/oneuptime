@@ -38,7 +38,7 @@ import WorkflowPrincipal, {
   WorkflowRunAsGrant,
 } from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import ColumnAccessControl from "../../../../../Types/Database/AccessControl/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../../../Types/BaseDatabase/AccessControl";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Exception from "../../../../../Types/Exception/Exception";
