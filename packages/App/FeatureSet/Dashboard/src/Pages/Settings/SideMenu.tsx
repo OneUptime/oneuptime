@@ -6,9 +6,14 @@ import SideMenu, {
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
 import { BILLING_ENABLED } from "Common/UI/Config";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import React, { ReactElement } from "react";
 
 const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
+  const isMobileAppOffered: boolean =
+    getMobileAppOffer(useHelpAndSupport()) !== null;
+
   /*
    * Every page here is set up once and revisited rarely, so only Basic (the
    * project itself, its products and its labels) starts open. The other
@@ -157,15 +162,23 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Bell,
         },
-        {
-          link: {
-            title: "Mobile Apps",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route,
-            ),
-          },
-          icon: IconProp.DevicePhoneMobile,
-        },
+        /*
+         * Where to get the mobile app - unless the server's admins took it
+         * away (Admin Dashboard > Settings > Help and Support, #10866).
+         */
+        ...(isMobileAppOffered
+          ? [
+              {
+                link: {
+                  title: "Mobile Apps",
+                  to: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_MOBILE_APPS] as Route,
+                  ),
+                },
+                icon: IconProp.DevicePhoneMobile,
+              },
+            ]
+          : []),
       ],
     },
     {

@@ -55,6 +55,11 @@ import PushDeviceCriticalAlertStatus from "./PushDeviceCriticalAlertStatus";
 import PushDeviceCriticalAlertSteps, {
   CriticalAlertTestDidNotRingHint,
 } from "./PushDeviceCriticalAlertSteps";
+import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 
 /*
  * A device's Critical Alerts cell in a CSV export: the words the cell shows,
@@ -159,6 +164,15 @@ export function canOfferCriticalAlertStepsAfterTest(
 const Push: () => JSX.Element = (): ReactElement => {
   const projectId: string | undefined =
     ProjectUtil.getCurrentProjectId()?.toString();
+
+  /*
+   * How the server offers the mobile app (Admin Dashboard > Settings > Help
+   * and Support, #10866): OneUptime's stores, a page of its own, or not at
+   * all - then the card offers no way to it.
+   */
+  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
+    useHelpAndSupport(),
+  );
 
   const [showRegisterDeviceModal, setShowRegisterDeviceModal] =
     useState<boolean>(false);
@@ -496,8 +510,13 @@ const Push: () => JSX.Element = (): ReactElement => {
         isCreateable={false} // We use custom registration flow
         cardProps={{
           title: "Push Notification Devices",
-          description:
-            "Phones signed in to the OneUptime On-Call app, and browsers you register here, get push notifications for this project.",
+          /*
+           * Where the server's admins took the mobile app away (Help and
+           * Support, #10866), the card names browsers only.
+           */
+          description: mobileAppOffer
+            ? "Phones signed in to the OneUptime On-Call app, and browsers you register here, get push notifications for this project."
+            : "Browsers you register here get push notifications for this project.",
           buttons: [
             {
               title: "Register Device",
@@ -518,17 +537,20 @@ const Push: () => JSX.Element = (): ReactElement => {
         emptyState={{
           title: "No devices yet",
           icon: IconProp.DevicePhoneMobile,
-          actions: [
-            {
-              title: "Get the mobile app",
-              icon: IconProp.DevicePhoneMobile,
-              style: TableEmptyStateActionStyle.Link,
-              dataTestId: "push-devices-empty-get-app",
-              onClick: () => {
-                showGetTheAppSteps();
-              },
-            },
-          ],
+          // No way to an app the server's admins took away (#10866).
+          actions: mobileAppOffer
+            ? [
+                {
+                  title: "Get the mobile app",
+                  icon: IconProp.DevicePhoneMobile,
+                  style: TableEmptyStateActionStyle.Link,
+                  dataTestId: "push-devices-empty-get-app",
+                  onClick: () => {
+                    showGetTheAppSteps();
+                  },
+                },
+              ]
+            : [],
         }}
         formFields={[]} // No manual form fields since we auto-detect everything
         showRefreshButton={true}
@@ -659,10 +681,15 @@ const Push: () => JSX.Element = (): ReactElement => {
               const state: CriticalAlertDeviceState =
                 getCriticalAlertDeviceState(item);
 
+              /*
+               * A browser's way to critical alerts is the app on a phone:
+               * not offered where the server's admins took it away (#10866).
+               */
               const canShowSteps: boolean =
                 state === CriticalAlertDeviceState.Off ||
                 (state === CriticalAlertDeviceState.NotAvailable &&
-                  !isPhoneListedRef.current);
+                  !isPhoneListedRef.current &&
+                  mobileAppOffer !== null);
 
               return (
                 <PushDeviceCriticalAlertStatus

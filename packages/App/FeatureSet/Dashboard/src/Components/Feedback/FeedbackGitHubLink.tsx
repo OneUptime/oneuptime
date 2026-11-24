@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { isOneUptimeGitHubShown } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -28,6 +30,15 @@ const FeedbackGitHubLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * Not where the server's admins took OneUptime's GitHub links away (Admin
+   * Dashboard > Settings > Help and Support, #10866): their people's words
+   * stay with their own team.
+   */
+  if (!isOneUptimeGitHubShown(useHelpAndSupport())) {
+    return <></>;
+  }
 
   return (
     <div className="space-y-0.5">

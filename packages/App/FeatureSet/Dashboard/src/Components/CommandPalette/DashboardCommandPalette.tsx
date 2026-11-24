@@ -762,7 +762,13 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           hasProjectSelected,
           isMasterAdmin,
           isThemeFollowingDevice: themePreference === ThemePreference.System,
-          canGiveFeedback: feedbackSettings?.isOn === true,
+          /*
+           * Where the server offers Give feedback: not where its admins hid
+           * it, or sent it to an address it cannot email yet (#10865).
+           */
+          canGiveFeedback:
+            feedbackSettings?.isOn === true &&
+            feedbackSettings.isGiveFeedbackOffered !== false,
         }),
         offProducts,
       );

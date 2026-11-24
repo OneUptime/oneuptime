@@ -10,7 +10,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   homeRoute: Route;
-  supportEmail: Email;
+  /*
+   * Where Contact Support writes to, or null where the server's admins hid
+   * the support address (Help and Support, #10865): no Contact Support.
+   */
+  supportEmail: Email | null;
 }
 
 const NotFound: FunctionComponent<ComponentProps> = (
@@ -50,15 +54,21 @@ const NotFound: FunctionComponent<ComponentProps> = (
                     Navigation.navigate(props.homeRoute);
                   }}
                 />
-                <Button
-                  title="Contact Support"
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  onClick={() => {
-                    Navigation.navigate(
-                      URL.fromString("mailto:" + props.supportEmail.toString()),
-                    );
-                  }}
-                />
+                {props.supportEmail ? (
+                  <Button
+                    title="Contact Support"
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    onClick={() => {
+                      Navigation.navigate(
+                        URL.fromString(
+                          "mailto:" + props.supportEmail?.toString(),
+                        ),
+                      );
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
               </div>
             </div>
           </main>

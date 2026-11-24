@@ -16,6 +16,11 @@ import {
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
 import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
+import {
   SERVER_CANNOT_SEND_FIX_WORDS,
   ServerCannotSendChannel,
   getServerCannotSendFixUrl,
@@ -142,12 +147,18 @@ export const getWaysToOffer: (data: {
   isPhoneMethodRequired: boolean;
   browserPushProblem: BrowserPushProblem | null;
   thisBrowserDeviceId: string | null;
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10866). Left out, it does, as it always did.
+   */
+  isMobileAppOffered?: boolean | undefined;
 }) => WaysToOffer = (data: {
   methods: ReadonlyArray<PagingMethodChoice>;
   isPushTurnedOff: boolean;
   isPhoneMethodRequired: boolean;
   browserPushProblem: BrowserPushProblem | null;
   thisBrowserDeviceId: string | null;
+  isMobileAppOffered?: boolean | undefined;
 }): WaysToOffer => {
   // A number at all - one waiting for its code is offered its Verify instead.
   const hasPhoneNumber: boolean = data.methods.some(
@@ -188,7 +199,8 @@ export const getWaysToOffer: (data: {
       !data.isPushTurnedOff &&
       !data.browserPushProblem &&
       !isThisBrowserRegistered,
-    isAppOffered: !data.isPushTurnedOff && !hasApp,
+    isAppOffered:
+      !data.isPushTurnedOff && !hasApp && data.isMobileAppOffered !== false,
     isPhoneAsked: data.isPhoneMethodRequired && !hasVerifiedPhone,
   };
 };
@@ -219,6 +231,11 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
   } | null>(null);
   const [isAppCodesOpen, setIsAppCodesOpen] = useState<boolean>(false);
 
+  // Whether the server offers the mobile app at all (#10866).
+  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
+    useHelpAndSupport(),
+  );
+
   const ways: WaysToOffer = getWaysToOffer({
     methods: props.methods,
     isPushTurnedOff: props.isPushTurnedOff,
@@ -227,6 +244,7 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
     thisBrowserDeviceId: getThisBrowserDeviceId(
       ProjectUtil.getCurrentProjectId()?.toString(),
     ),
+    isMobileAppOffered: mobileAppOffer !== null,
   });
 
   if (
