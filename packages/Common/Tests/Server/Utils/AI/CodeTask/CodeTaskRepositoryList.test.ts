@@ -110,7 +110,8 @@ describe("the rules a list is built by", () => {
     });
     const unsummarized: CodeRepository = repository({ name: "orphan" });
     const withoutId: CodeRepository = repository({ name: "nameless" });
-    withoutId._id = undefined;
+    // A row read without its id, as the model's own default leaves it.
+    delete (withoutId as { _id?: string })._id;
 
     const entries: Array<CodeRepositoryListEntry> =
       CodeTaskRepositoryList.toEntries({

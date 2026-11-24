@@ -44,6 +44,7 @@ import ProductionReviewQueue, {
 } from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
+import FindBy from "../../../Server/Types/Database/FindBy";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
@@ -1767,20 +1768,18 @@ describe("listing every task the caller may read (Code's first page)", () => {
 
     jest
       .spyOn(CodeRepositoryService, "findBy")
-      .mockImplementation(
-        async (data: { skip: number; limit: number; props: unknown }) => {
-          reads.push({
-            skip: Number(data.skip),
-            limit: Number(data.limit),
-            props: data.props,
-          });
+      .mockImplementation(async (data: FindBy<CodeRepository>) => {
+        reads.push({
+          skip: Number(data.skip),
+          limit: Number(data.limit),
+          props: data.props,
+        });
 
-          return many.slice(
-            Number(data.skip),
-            Number(data.skip) + Number(data.limit),
-          );
-        },
-      );
+        return many.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      });
 
     await call(route, { body: { allRepositories: true } });
 
