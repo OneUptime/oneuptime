@@ -46,6 +46,7 @@ import AnalyticsModelPermission from "../../../../Server/Types/AnalyticsDatabase
 import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
 import OwnerTableRegistry from "../../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import LlmConversationPrivacy from "../../../../Server/Utils/LlmObservability/LlmConversationPrivacy";
+import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
 import AnalyticsTableColumn from "../../../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsTableColumnType from "../../../../Types/AnalyticsDatabase/TableColumnType";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -690,7 +691,7 @@ describe("a member who may create rows but read none of them creates none", () =
         member([everywhere(table.create)]),
       ),
     ).rejects.toThrow(
-      `You do not have permissions to create ${new table.modelType().singularName}: creating a record needs permission to read it too.`,
+      `You do not have permission to create ${HeldPermissionsUtil.getRecordsInSentence(new table.modelType())}: creating a record needs permission to read it too.`,
     );
 
     expect(statements).toHaveLength(0);

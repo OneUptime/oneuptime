@@ -16,7 +16,7 @@ Terraform が表示したメッセージ、または起きたことを下の表�
 | `Missing API Key` | プロバイダーにキーを渡します: [`Missing API Key` または `Invalid API Key`](#missing-api-key-または-invalid-api-key) を参照 |
 | `Invalid API Key` | キーを確認するか、リセットして新しいキーを取得します: [`Missing API Key` または `Invalid API Key`](#missing-api-key-または-invalid-api-key) を参照 |
 | `ProjectId required` | マスターキーではなく、プロジェクトの API キーを使います: [`ProjectId required`](#projectid-required) を参照 |
-| `You do not have permissions to create Monitor` | メッセージに書かれた権限をキーに付与します: [キーに権限が足りない](#キーに権限が足りない) を参照 |
+| `You do not have permission to create monitors` | メッセージに書かれた権限をキーに付与します: [キーに権限が足りない](#キーに権限が足りない) を参照 |
 | `API keys need the Growth plan` | プロジェクトを Growth プランに戻します: [支払いが必要](#支払いが必要) を参照 |
 | 単一のリソースや設定に対する `402` | プランをアップグレードするか、設定を既定値のままにします: [支払いが必要](#支払いが必要) を参照 |
 | `This project has been blocked` | マスター管理者にプロジェクトのブロック解除を依頼します: [ブロックされたプロジェクト](#ブロックされたプロジェクト) を参照 |
@@ -72,7 +72,7 @@ flowchart TB
 
 ### キーに権限が足りない
 
-`You do not have permissions to create Monitor` やそれに似たメッセージは、ステータス `422` とともに返されます。キーには、その種類のレコードに対してその操作を行う権限がありません。メッセージには、それを許可する権限が書かれています。**プロジェクト設定 → 詳細 → API キー** でキーのページを開き、そのいずれか、または **プロジェクト管理者** を付与してください。インポートに必要なのは読み取り権限だけです。
+`You do not have permission to create monitors` やそれに似たメッセージは、ステータス `422` とともに返されます。キーには、その種類のレコードに対してその操作を行う権限がありません。メッセージには、それを許可する権限が書かれています。**プロジェクト設定 → 詳細 → API キー** でキーのページを開き、そのいずれか、または **プロジェクト管理者** を付与してください。インポートに必要なのは読み取り権限だけです。
 
 ### 支払いが必要
 

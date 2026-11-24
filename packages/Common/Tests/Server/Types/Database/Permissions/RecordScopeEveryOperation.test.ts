@@ -523,7 +523,7 @@ describe("the record rule on every operation", () => {
             operation,
           ),
         ).rejects.toThrow(
-          `You do not have permissions to ${operation} Incident Internal Note: changing or deleting a record needs permission to read it too.`,
+          `You do not have permission to ${operation} incident internal notes: changing or deleting a record needs permission to read it too.`,
         );
       },
     );
@@ -1553,7 +1553,7 @@ describe("the record rule on every operation", () => {
           type: DatabaseRequestType.Update,
         }),
       ).rejects.toThrow(
-        "You do not have permissions to update Incident: changing or deleting a record needs permission to read it too.",
+        "You do not have permission to update incidents: changing or deleting a record needs permission to read it too.",
       );
 
       expect(reads).toBe(0);

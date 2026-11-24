@@ -548,7 +548,7 @@ describe("DatabaseService: whether the caller may write the table is asked befor
 
       expect(error).toBeInstanceOf(NotAuthorizedException);
       expect((error as Error).message).toContain(
-        "You do not have permissions to create Label",
+        "You do not have permission to create labels",
       );
       expectNoHookCalled(harness.hooks);
       expect(harness.getRepository).not.toHaveBeenCalled();

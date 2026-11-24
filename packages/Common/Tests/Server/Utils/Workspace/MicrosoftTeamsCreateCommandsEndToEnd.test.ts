@@ -2657,7 +2657,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the maintenance submit tests).
     expect(answersOf(view.bubbles)).toEqual([
-      "You do not have permission to create a maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a maintenance event. You do not have permission to create maintenance events. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance.",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,
@@ -2688,7 +2688,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
     expect(view.httpStatuses).toEqual([200]);
     // The same refusal a submit would get (see the incident submit tests).
     expect(answersOf(view.bubbles)).toEqual([
-      "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
+      "You do not have permission to declare an incident. You do not have permission to create incidents. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.",
     ]);
     expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
@@ -3908,7 +3908,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
     ).toEqual([
       [
         "POST",
-        "You do not have permission to declare an incident. You do not have permissions to create Incident. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident",
+        "You do not have permission to declare an incident. You do not have permission to create incidents. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident.",
         200,
       ],
     ]);
@@ -4509,7 +4509,7 @@ describe("submitting the maintenance form: start and end are read in the zone th
 
     expect(view.httpStatuses).toEqual([200]);
     expect(labelsOf(view.bubbles)).toEqual([
-      "You do not have permission to create a maintenance event. You do not have permissions to create Maintenance Event. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance",
+      "You do not have permission to create a maintenance event. You do not have permission to create maintenance events. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance.",
     ]);
     expect(WorkspaceActionAuthorization.assertCanCreate).toHaveBeenCalledTimes(
       1,

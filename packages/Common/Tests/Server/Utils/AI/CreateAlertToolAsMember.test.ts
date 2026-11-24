@@ -381,7 +381,7 @@ describe("the severity is read as the member, in the project", () => {
 
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain(
-      "Refused: create_alert was not allowed for the current user. You do not have permissions to read Alert Severity.",
+      "Refused: create_alert was not allowed for the current user. You do not have permission to read alert severities.",
     );
     expect(outcome.textForLlm).toContain("Read Alert Severity");
     expect(create).not.toHaveBeenCalled();
@@ -409,7 +409,7 @@ describe("past the gate, AlertService itself holds the write to the person", () 
     await expect(attempt).rejects.toBeInstanceOf(NotAuthorizedException);
     // The alert table's own check - a viewer reads the severities fine.
     await expect(attempt).rejects.toThrow(
-      "You do not have permissions to create Alert.",
+      "You do not have permission to create alerts.",
     );
     expect(severityRead).toHaveBeenCalledTimes(1);
     expect(alerts.inserts).toHaveLength(0);

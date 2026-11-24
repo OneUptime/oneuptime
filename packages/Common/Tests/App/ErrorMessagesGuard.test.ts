@@ -109,6 +109,9 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts",
   // A project's Send Test Email (#7268).
   "packages/App/FeatureSet/Notification/API/SMTPConfig.ts",
+  // A missing table permission, and a project's billing refusals (#11058, #11059).
+  "packages/Common/Server/Types/Database/Permissions/TablePermission.ts",
+  "packages/Common/Server/Services/ProjectService.ts",
 ];
 
 /*

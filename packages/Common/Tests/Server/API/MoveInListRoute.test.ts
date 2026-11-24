@@ -345,7 +345,7 @@ describe("the move of an ordered list's row", () => {
   it("a move the caller may not make is the answer", async () => {
     moveStatus.mockRejectedValue(
       new NotAuthorizedException(
-        "You do not have permissions to update Monitor Status.",
+        "You do not have permission to update monitor statuses.",
       ) as never,
     );
 

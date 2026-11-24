@@ -128,7 +128,7 @@ describe("BaseAPI.getItem", () => {
 
   it("keeps a refusal of the table a refusal, not an answer about the record", async () => {
     const refusal: NotAuthorizedException = new NotAuthorizedException(
-      "You do not have permissions to read Probe.",
+      "You do not have permission to read probes.",
     );
     getJestSpyOn(service, "findOneById").mockRejectedValue(refusal);
 
@@ -286,7 +286,7 @@ describe("BaseAnalyticsAPI by id", () => {
       getJestSpyOn(service, "deleteOneById").mockResolvedValue(0);
       getJestSpyOn(service, "findOneById").mockRejectedValue(
         new NotAuthorizedException(
-          "You do not have permissions to read Monitor Log.",
+          "You do not have permission to read monitor logs.",
         ),
       );
 
@@ -438,7 +438,7 @@ describe("AnalyticsDatabaseService writes by id", () => {
 
   it("refuses as the delete would when the caller may not delete on the table at all", async () => {
     const refusal: NotAuthorizedException = new NotAuthorizedException(
-      "You do not have permissions to delete Monitor Log.",
+      "You do not have permission to delete monitor logs.",
     );
     getJestSpyOn(
       AnalyticsModelPermission,

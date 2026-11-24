@@ -16,7 +16,7 @@ Busque en la tabla de abajo el mensaje que imprimió Terraform, o lo que vio que
 | `Missing API Key` | Dé al proveedor su clave: consulte [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `Invalid API Key` | Compruebe la clave, o restablézcala para obtener una nueva: consulte [`Missing API Key` o `Invalid API Key`](#missing-api-key-o-invalid-api-key) |
 | `ProjectId required` | Use una clave de API del proyecto, no una clave maestra: consulte [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Dé a la clave el permiso que nombra el mensaje: consulte [A la clave le falta un permiso](#a-la-clave-le-falta-un-permiso) |
+| `You do not have permission to create monitors` | Dé a la clave el permiso que nombra el mensaje: consulte [A la clave le falta un permiso](#a-la-clave-le-falta-un-permiso) |
 | `API keys need the Growth plan` | Devuelva el proyecto al plan Growth: consulte [Pago requerido](#pago-requerido) |
 | `402` para un recurso o un ajuste | Mejore el plan, o deje el ajuste en su valor predeterminado: consulte [Pago requerido](#pago-requerido) |
 | `This project has been blocked` | Pida a un administrador maestro que desbloquee el proyecto: consulte [Un proyecto bloqueado](#un-proyecto-bloqueado) |
@@ -72,7 +72,7 @@ El proveedor necesita una clave de API del proyecto que gestiona: de ahí viene 
 
 ### A la clave le falta un permiso
 
-`You do not have permissions to create Monitor` y los mensajes parecidos llegan con el estado `422`: la clave no puede hacer eso con ese tipo de registro. Nombran los permisos que lo permitirían. Abra la página de la clave en **Ajustes del proyecto → Avanzado → Claves de API** y dele uno de ellos, o **Administrador del proyecto**. Una importación solo necesita el permiso de lectura.
+`You do not have permission to create monitors` y los mensajes parecidos llegan con el estado `422`: la clave no puede hacer eso con ese tipo de registro. Nombran los permisos que lo permitirían. Abra la página de la clave en **Ajustes del proyecto → Avanzado → Claves de API** y dele uno de ellos, o **Administrador del proyecto**. Una importación solo necesita el permiso de lectura.
 
 ### Pago requerido
 

@@ -128,7 +128,7 @@ const PERMISSION_MESSAGE: string =
  * that may read none: Code's levels (#10289) among who may.
  */
 const READ_REPOSITORY_REFUSED_MESSAGE: string =
-  "You do not have permissions to read Code Repository. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Code Repository, Code Admin, Code Member, Code Viewer";
+  "You do not have permission to read code repositories. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member, Settings Viewer, Read Code Repository, Code Admin, Code Member, Code Viewer.";
 
 interface World {
   enableAi: boolean;

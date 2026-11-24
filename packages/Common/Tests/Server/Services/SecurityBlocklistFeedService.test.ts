@@ -148,7 +148,7 @@ describe("making a feed", () => {
     "a %s may not",
     async (_who: string, permission: Permission) => {
       await expect(makeFeed({}, permission)).rejects.toThrow(
-        "You do not have permissions to create Blocklist Feed",
+        "You do not have permission to create blocklist feeds",
       );
       expect(table.rows).toEqual([]);
     },

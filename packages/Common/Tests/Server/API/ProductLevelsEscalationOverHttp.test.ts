@@ -820,7 +820,7 @@ describe("a product's own routes take its levels where they take the role", () =
         permission,
         said: isLetThrough
           ? "Pick the probe to capture on."
-          : "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin",
+          : "You do not have permission to create packet captures. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin.",
       });
     }
   });

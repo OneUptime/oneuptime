@@ -126,10 +126,13 @@ export default class TablePermission {
         );
       }
 
+      // What the caller may not do, and who can give them what allows it (#11058).
       throw new NotAuthorizedException(
-        `You do not have permissions to ${type} ${
-          new modelType().singularName
-        }. You need one of these permissions: ${permissions.join(", ")}`,
+        HeldPermissionsUtil.getMissingPermissionRefusal({
+          operation: type,
+          records: HeldPermissionsUtil.getRecordsInSentence(new modelType()),
+          permissions: modelPermissions,
+        }),
       );
     }
   }
@@ -246,6 +249,7 @@ export default class TablePermission {
           DatabaseRequestType.Read,
         ),
         recordName: new modelType().singularName,
+        recordsName: HeldPermissionsUtil.getRecordsInSentence(new modelType()),
         operation: type,
       },
     );

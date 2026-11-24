@@ -101,9 +101,9 @@ const NOTE: string = "We have found the cause and are rolling back.";
 
 // The permissions a public note on each event takes, as the API words them.
 const INCIDENT_NOTE_PERMISSIONS: string =
-  "You do not have permissions to create Incident Public Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Status Page Note. To change the state, leave the public note out.";
+  "You do not have permission to create incident public notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident Status Page Note. To change the state, leave the public note out.";
 const MAINTENANCE_NOTE_PERMISSIONS: string =
-  "You do not have permissions to create Maintenance Event Public Note. You need one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance Status Page Note. To change the state, leave the public note out.";
+  "You do not have permission to create maintenance event public notes. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Scheduled Maintenance Admin, Scheduled Maintenance Member, Create Scheduled Maintenance Status Page Note. To change the state, leave the public note out.";
 
 interface RoleCase {
   role: string;
@@ -355,10 +355,10 @@ describe("StateChangePublicNote.getRefusalMessage", () => {
   test("says the state was not changed, why, and how to change it anyway", () => {
     expect(
       StateChangePublicNote.getRefusalMessage(
-        "You do not have permissions to create Incident Public Note.",
+        "You do not have permission to create incident public notes.",
       ),
     ).toBe(
-      "The state was not changed: it comes with a public note, which you may not post. You do not have permissions to create Incident Public Note. To change the state, leave the public note out.",
+      "The state was not changed: it comes with a public note, which you may not post. You do not have permission to create incident public notes. To change the state, leave the public note out.",
     );
   });
 
@@ -462,7 +462,7 @@ describe("an incident state change with a public note, role by role", () => {
     );
 
     expect((error as Error).message).toContain(
-      "You do not have permissions to create Incident Public Note.",
+      "You do not have permission to create incident public notes.",
     );
     expect((error as Error).message).toContain(INCIDENT_NOTE_PERMISSIONS);
   });

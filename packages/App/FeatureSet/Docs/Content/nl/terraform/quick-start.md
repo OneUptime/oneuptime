@@ -225,7 +225,7 @@ De sleutel is verkeerd getypt, verlopen of verwijderd, of hij hoort bij een ande
 Op OneUptime Cloud werken de API-sleutels van een project alleen met het Growth-abonnement of hoger. Upgrade het project in **Projectinstellingen → Facturering en facturen → Facturering**, en dezelfde sleutel werkt weer.
 :::
 
-:::details Melding „the OneUptime API returned status 422: You do not have permissions to create Monitor”
+:::details Melding „the OneUptime API returned status 422: You do not have permission to create monitors”
 De sleutel heeft geen machtiging voor dat soort record. Geef hem op de pagina van de sleutel **Projectbeheerder**, of de machtiging die de melding noemt.
 :::
 

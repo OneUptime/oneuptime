@@ -809,6 +809,7 @@ describe("HeldPermissionsUtil.getReadForWriteRefusal", () => {
       readPermissions: readPermissions ?? MONITOR_READ,
       wildcard: Permission.ReadAllOperationalResources,
       recordName: "Monitor",
+      recordsName: "monitors",
       operation: "delete",
     });
   };
@@ -827,7 +828,7 @@ describe("HeldPermissionsUtil.getReadForWriteRefusal", () => {
 
   test("a caller who holds none of its read permissions is told which they need", () => {
     expect(refusalFor([row(Permission.EditProjectMonitor)])).toBe(
-      "You do not have permissions to delete Monitor: changing or deleting a record needs permission to read it too. You need one of these permissions: Project Owner, Read Monitor",
+      "You do not have permission to delete monitors: changing or deleting a record needs permission to read it too. Ask a Project Owner to give you one of these permissions: Project Owner, Read Monitor.",
     );
   });
 

@@ -225,7 +225,7 @@ La clave está mal escrita, caducada o eliminada, o pertenece a otra instancia d
 En OneUptime Cloud, las claves de API de un proyecto solo funcionan con el plan Growth o superior. Mejore el plan del proyecto en **Ajustes del proyecto → Facturación y facturas → Facturación**, y la misma clave vuelve a funcionar.
 :::
 
-:::details Mensaje «the OneUptime API returned status 422: You do not have permissions to create Monitor»
+:::details Mensaje «the OneUptime API returned status 422: You do not have permission to create monitors»
 La clave no tiene permiso para ese tipo de registro. En la página de la clave, dele **Administrador del proyecto**, o el permiso que nombra el mensaje.
 :::
 

@@ -481,7 +481,7 @@ describe("Start Packet Capture: POST /packet-capture with the body the dashboard
       expect(error).toBeInstanceOf(NotAuthorizedException);
       expect(error).not.toBeInstanceOf(ColumnWriteRefusedException);
       expect(error!.message).toBe(
-        "You do not have permissions to create Packet Capture. You need one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin",
+        "You do not have permission to create packet captures. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Start Packet Capture, Network Admin.",
       );
       expect(storedCaptures()).toHaveLength(0);
     },

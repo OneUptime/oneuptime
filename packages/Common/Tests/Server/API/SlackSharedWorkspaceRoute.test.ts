@@ -1666,7 +1666,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       expect(timelines).toEqual([]);
       expect(answers()).toEqual([
         expect.stringContaining(
-          "You do not have permission to acknowledge this incident. You do not have permissions to create Incident State Timeline.",
+          "You do not have permission to acknowledge this incident. You do not have permission to create incident state timelines.",
         ),
       ]);
       expect(answers()[0]).not.toContain("not found");

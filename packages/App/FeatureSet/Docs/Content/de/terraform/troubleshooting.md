@@ -16,7 +16,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `Missing API Key` | Geben Sie dem Provider seinen Schlüssel: siehe [`Missing API Key` oder `Invalid API Key`](#missing-api-key-oder-invalid-api-key) |
 | `Invalid API Key` | Prüfen Sie den Schlüssel, oder setzen Sie ihn zurück, um einen neuen zu erhalten: siehe [`Missing API Key` oder `Invalid API Key`](#missing-api-key-oder-invalid-api-key) |
 | `ProjectId required` | Verwenden Sie einen API-Schlüssel des Projekts, keinen Master-Schlüssel: siehe [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Geben Sie dem Schlüssel die Berechtigung, die die Meldung nennt: siehe [Dem Schlüssel fehlt eine Berechtigung](#dem-schlüssel-fehlt-eine-berechtigung) |
+| `You do not have permission to create monitors` | Geben Sie dem Schlüssel die Berechtigung, die die Meldung nennt: siehe [Dem Schlüssel fehlt eine Berechtigung](#dem-schlüssel-fehlt-eine-berechtigung) |
 | `API keys need the Growth plan` | Bringen Sie das Projekt zurück auf den Tarif Growth: siehe [Zahlung erforderlich](#zahlung-erforderlich) |
 | `402` für eine Ressource oder eine Einstellung | Wechseln Sie in einen höheren Tarif, oder lassen Sie die Einstellung auf ihrem Standardwert: siehe [Zahlung erforderlich](#zahlung-erforderlich) |
 | `This project has been blocked` | Bitten Sie einen Master-Administrator, das Projekt freizugeben: siehe [Ein gesperrtes Projekt](#ein-gesperrtes-projekt) |
@@ -72,7 +72,7 @@ Der Provider braucht einen API-Schlüssel des Projekts, das er verwaltet: Von do
 
 ### Dem Schlüssel fehlt eine Berechtigung
 
-`You do not have permissions to create Monitor` und ähnliche Meldungen kommen mit dem Status `422`: Der Schlüssel darf das mit dieser Art von Datensatz nicht tun. Sie nennen die Berechtigungen, die es erlauben würden. Öffnen Sie die Seite des Schlüssels unter **Projekteinstellungen → Erweitert → API-Schlüssel** und geben Sie ihm eine davon, oder **Projektadministrator**. Ein Import braucht nur die Berechtigung zum Lesen.
+`You do not have permission to create monitors` und ähnliche Meldungen kommen mit dem Status `422`: Der Schlüssel darf das mit dieser Art von Datensatz nicht tun. Sie nennen die Berechtigungen, die es erlauben würden. Öffnen Sie die Seite des Schlüssels unter **Projekteinstellungen → Erweitert → API-Schlüssel** und geben Sie ihm eine davon, oder **Projektadministrator**. Ein Import braucht nur die Berechtigung zum Lesen.
 
 ### Zahlung erforderlich
 

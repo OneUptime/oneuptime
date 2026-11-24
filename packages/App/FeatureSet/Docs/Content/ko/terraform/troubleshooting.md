@@ -16,7 +16,7 @@ Terraform이 출력한 메시지나 겪은 일을 아래 표에서 찾으세요.
 | `Missing API Key` | 프로바이더에 키를 전달하세요: [`Missing API Key` 또는 `Invalid API Key`](#missing-api-key-또는-invalid-api-key) 참고 |
 | `Invalid API Key` | 키를 확인하거나, 재설정해 새 키를 받으세요: [`Missing API Key` 또는 `Invalid API Key`](#missing-api-key-또는-invalid-api-key) 참고 |
 | `ProjectId required` | 마스터 키가 아닌 프로젝트의 API 키를 사용하세요: [`ProjectId required`](#projectid-required) 참고 |
-| `You do not have permissions to create Monitor` | 메시지에 나온 권한을 키에 부여하세요: [키에 권한이 없음](#키에-권한이-없음) 참고 |
+| `You do not have permission to create monitors` | 메시지에 나온 권한을 키에 부여하세요: [키에 권한이 없음](#키에-권한이-없음) 참고 |
 | `API keys need the Growth plan` | 프로젝트를 Growth 플랜으로 되돌리세요: [결제 필요](#결제-필요) 참고 |
 | 리소스나 설정 하나에 대한 `402` | 플랜을 업그레이드하거나 설정을 기본값으로 두세요: [결제 필요](#결제-필요) 참고 |
 | `This project has been blocked` | 마스터 관리자에게 프로젝트 차단 해제를 요청하세요: [차단된 프로젝트](#차단된-프로젝트) 참고 |
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 키에 권한이 없음
 
-`You do not have permissions to create Monitor`와 비슷한 메시지는 상태 `422`와 함께 옵니다. 키가 그 종류의 레코드에 그 작업을 할 수 없다는 뜻입니다. 메시지에는 이를 허용할 권한이 나옵니다. **프로젝트 설정 → 고급 → API 키**에서 키 페이지를 열고 그중 하나나 **프로젝트 관리자**를 부여하세요. 가져오기에는 읽기 권한만 있으면 됩니다.
+`You do not have permission to create monitors`와 비슷한 메시지는 상태 `422`와 함께 옵니다. 키가 그 종류의 레코드에 그 작업을 할 수 없다는 뜻입니다. 메시지에는 이를 허용할 권한이 나옵니다. **프로젝트 설정 → 고급 → API 키**에서 키 페이지를 열고 그중 하나나 **프로젝트 관리자**를 부여하세요. 가져오기에는 읽기 권한만 있으면 됩니다.
 
 ### 결제 필요
 

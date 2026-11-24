@@ -16,7 +16,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `Missing API Key` | Donnez sa clé au fournisseur : voir [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
 | `Invalid API Key` | Vérifiez la clé, ou réinitialisez-la pour en obtenir une nouvelle : voir [`Missing API Key` ou `Invalid API Key`](#missing-api-key-ou-invalid-api-key) |
 | `ProjectId required` | Utilisez une clé API du projet, pas une clé maîtresse : voir [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Donnez à la clé la permission que nomme le message : voir [Il manque une permission à la clé](#il-manque-une-permission-à-la-clé) |
+| `You do not have permission to create monitors` | Donnez à la clé la permission que nomme le message : voir [Il manque une permission à la clé](#il-manque-une-permission-à-la-clé) |
 | `API keys need the Growth plan` | Ramenez le projet au forfait Growth : voir [Paiement requis](#paiement-requis) |
 | `402` pour une ressource ou un paramètre | Passez à un forfait supérieur, ou laissez le paramètre à sa valeur par défaut : voir [Paiement requis](#paiement-requis) |
 | `This project has been blocked` | Demandez à un administrateur principal de débloquer le projet : voir [Un projet bloqué](#un-projet-bloqué) |
@@ -72,7 +72,7 @@ Le fournisseur a besoin d'une clé API du projet qu'il gère : c'est de là que 
 
 ### Il manque une permission à la clé
 
-`You do not have permissions to create Monitor` et les messages du même genre arrivent avec le statut `422` : la clé n'a pas le droit de faire cela avec ce type d'enregistrement. Ils nomment les permissions qui le permettraient. Ouvrez la page de la clé sous **Paramètres du projet → Avancé → Clés API** et donnez-lui l'une d'elles, ou **Administrateur du projet**. Une importation n'a besoin que de la permission de lecture.
+`You do not have permission to create monitors` et les messages du même genre arrivent avec le statut `422` : la clé n'a pas le droit de faire cela avec ce type d'enregistrement. Ils nomment les permissions qui le permettraient. Ouvrez la page de la clé sous **Paramètres du projet → Avancé → Clés API** et donnez-lui l'une d'elles, ou **Administrateur du projet**. Une importation n'a besoin que de la permission de lecture.
 
 ### Paiement requis
 

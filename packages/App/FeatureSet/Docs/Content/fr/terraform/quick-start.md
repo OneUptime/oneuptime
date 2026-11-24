@@ -225,7 +225,7 @@ La clé est mal saisie, expirée ou supprimée, ou elle appartient à une autre 
 Sur OneUptime Cloud, les clés API d'un projet ne fonctionnent qu'avec l'offre Growth ou supérieure. Passez le projet à une offre supérieure dans **Paramètres du projet → Facturation et factures → Facturation**, et la même clé fonctionne de nouveau.
 :::
 
-:::details Message « the OneUptime API returned status 422: You do not have permissions to create Monitor »
+:::details Message « the OneUptime API returned status 422: You do not have permission to create monitors »
 La clé n'a aucune autorisation pour ce type d'enregistrement. Sur la page de la clé, donnez-lui **Administrateur du projet**, ou l'autorisation que nomme le message.
 :::
 

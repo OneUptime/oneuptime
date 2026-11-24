@@ -225,7 +225,7 @@ terraform destroy
 В OneUptime Cloud API-ключи проекта работают только на тарифе Growth или выше. Повысьте тариф проекта в **Настройки проекта → Биллинг и счета → Биллинг**, и тот же ключ снова заработает.
 :::
 
-:::details Сообщение «the OneUptime API returned status 422: You do not have permissions to create Monitor»
+:::details Сообщение «the OneUptime API returned status 422: You do not have permission to create monitors»
 У ключа нет разрешения на этот вид записей. На странице ключа выдайте ему **Администратор проекта** или разрешение, названное в сообщении.
 :::
 

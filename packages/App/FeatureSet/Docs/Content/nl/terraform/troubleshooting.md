@@ -16,7 +16,7 @@ Zoek in de tabel hieronder de melding op die Terraform toonde, of wat je zag geb
 | `Missing API Key` | Geef de provider zijn sleutel: zie [`Missing API Key` of `Invalid API Key`](#missing-api-key-of-invalid-api-key) |
 | `Invalid API Key` | Controleer de sleutel, of stel hem opnieuw in voor een nieuwe: zie [`Missing API Key` of `Invalid API Key`](#missing-api-key-of-invalid-api-key) |
 | `ProjectId required` | Gebruik een API-sleutel van het project, geen mastersleutel: zie [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Geef de sleutel de machtiging die de melding noemt: zie [De sleutel mist een machtiging](#de-sleutel-mist-een-machtiging) |
+| `You do not have permission to create monitors` | Geef de sleutel de machtiging die de melding noemt: zie [De sleutel mist een machtiging](#de-sleutel-mist-een-machtiging) |
 | `API keys need the Growth plan` | Zet het project terug op het Growth-abonnement: zie [Betaling vereist](#betaling-vereist) |
 | `402` voor één resource of één instelling | Upgrade het abonnement, of laat de instelling op de standaardwaarde: zie [Betaling vereist](#betaling-vereist) |
 | `This project has been blocked` | Vraag een hoofdbeheerder om het project te deblokkeren: zie [Een geblokkeerd project](#een-geblokkeerd-project) |
@@ -72,7 +72,7 @@ De provider heeft een API-sleutel nodig van het project dat hij beheert: daar ko
 
 ### De sleutel mist een machtiging
 
-`You do not have permissions to create Monitor` en soortgelijke meldingen komen met status `422`: de sleutel mag dat niet doen met dat soort record. Ze noemen de machtigingen die het zouden toestaan. Open de pagina van de sleutel onder **Projectinstellingen → Geavanceerd → API-sleutels** en geef hem er een van, of **Projectbeheerder**. Een import heeft alleen de machtiging om te lezen nodig.
+`You do not have permission to create monitors` en soortgelijke meldingen komen met status `422`: de sleutel mag dat niet doen met dat soort record. Ze noemen de machtigingen die het zouden toestaan. Open de pagina van de sleutel onder **Projectinstellingen → Geavanceerd → API-sleutels** en geef hem er een van, of **Projectbeheerder**. Een import heeft alleen de machtiging om te lezen nodig.
 
 ### Betaling vereist
 

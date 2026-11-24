@@ -449,7 +449,7 @@ describe("who may send it", () => {
   test("someone who may not invite to that team is refused, and nothing is counted, minted or sent", async () => {
     checkCallerMayCreate.mockRejectedValue(
       new NotAuthorizedException(
-        "You do not have permissions to create Team Member.",
+        "You do not have permission to create team members.",
       ) as never,
     );
 
@@ -501,7 +501,7 @@ describe("who may send it", () => {
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     // Refused for creating team members: what inviting takes.
-    expect(refusal?.message).toContain("Team Member");
+    expect(refusal?.message).toContain("team members");
     expect(sendMail).not.toHaveBeenCalled();
     expect(invitationsCounted()).toBe(0);
   });

@@ -380,7 +380,7 @@ describe("who may file and read erasure requests", () => {
           propsWith([permission]),
           DatabaseRequestType.Create,
         );
-      }).toThrow("You do not have permissions to create Erasure Request");
+      }).toThrow("You do not have permission to create erasure requests");
     },
   );
 

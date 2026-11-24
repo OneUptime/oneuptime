@@ -529,7 +529,7 @@ describe("who may send a test: whoever could create a rule", () => {
 
     expect(answer).toBeInstanceOf(NotAuthorizedException);
     expect((answer as Error).message).toContain(
-      "You do not have permissions to read Workspace Notification Rule",
+      "You do not have permission to read workspace notification rules",
     );
     expect(testRule).not.toHaveBeenCalled();
   });

@@ -16,7 +16,7 @@ Look up the message Terraform printed, or what you saw happen, in the table belo
 | `Missing API Key` | Give the provider its key: see [`Missing API Key` or `Invalid API Key`](#missing-api-key-or-invalid-api-key) |
 | `Invalid API Key` | Check the key, or reset it for a new one: see [`Missing API Key` or `Invalid API Key`](#missing-api-key-or-invalid-api-key) |
 | `ProjectId required` | Use an API key of the project, not a master key: see [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Give the key the permission the message names: see [The key lacks a permission](#the-key-lacks-a-permission) |
+| `You do not have permission to create monitors` | Give the key the permission the message names: see [The key lacks a permission](#the-key-lacks-a-permission) |
 | `API keys need the Growth plan` | Move the project back to the Growth plan: see [Payment required](#payment-required) |
 | `402` for one resource or one setting | Upgrade the plan, or leave the setting at its default: see [Payment required](#payment-required) |
 | `This project has been blocked` | Ask a master admin to unblock the project: see [A blocked project](#a-blocked-project) |
@@ -72,7 +72,7 @@ The provider needs an API key of the project it manages: that is where the proje
 
 ### The key lacks a permission
 
-`You do not have permissions to create Monitor` and messages like it come with status `422`: the key may not do that with that kind of record. They name the permissions that would allow it. Open the key's page under **Project Settings → Advanced → API Keys** and give it one of them, or **Project Admin**. An import needs only the permission to read.
+`You do not have permission to create monitors` and messages like it come with status `422`: the key may not do that with that kind of record. They name the permissions that would allow it. Open the key's page under **Project Settings → Advanced → API Keys** and give it one of them, or **Project Admin**. An import needs only the permission to read.
 
 ### Payment required
 

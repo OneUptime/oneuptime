@@ -16,7 +16,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `Missing API Key` | Giv provideren dens nøgle: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `Invalid API Key` | Tjek nøglen, eller nulstil den for at få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Brug en API-nøgle til projektet, ikke en masternøgle: se [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Giv nøglen den tilladelse, meddelelsen nævner: se [Nøglen mangler en tilladelse](#nøglen-mangler-en-tilladelse) |
+| `You do not have permission to create monitors` | Giv nøglen den tilladelse, meddelelsen nævner: se [Nøglen mangler en tilladelse](#nøglen-mangler-en-tilladelse) |
 | `API keys need the Growth plan` | Flyt projektet tilbage til abonnementet Growth: se [Betaling påkrævet](#betaling-påkrævet) |
 | `402` for én ressource eller én indstilling | Opgradér abonnementet, eller lad indstillingen stå på standardværdien: se [Betaling påkrævet](#betaling-påkrævet) |
 | `This project has been blocked` | Bed en masteradministrator om at fjerne blokeringen af projektet: se [Et blokeret projekt](#et-blokeret-projekt) |
@@ -72,7 +72,7 @@ Provideren har brug for en API-nøgle til det projekt, den styrer: det er derfra
 
 ### Nøglen mangler en tilladelse
 
-`You do not have permissions to create Monitor` og lignende meddelelser kommer med status `422`: nøglen må ikke gøre det med den slags post. De nævner de tilladelser, der ville give lov til det. Åbn nøglens side under **Projektindstillinger → Avanceret → API-nøgler**, og giv den en af dem, eller **Projektadministrator**. En import kræver kun tilladelsen til at læse.
+`You do not have permission to create monitors` og lignende meddelelser kommer med status `422`: nøglen må ikke gøre det med den slags post. De nævner de tilladelser, der ville give lov til det. Åbn nøglens side under **Projektindstillinger → Avanceret → API-nøgler**, og giv den en af dem, eller **Projektadministrator**. En import kræver kun tilladelsen til at læse.
 
 ### Betaling påkrævet
 

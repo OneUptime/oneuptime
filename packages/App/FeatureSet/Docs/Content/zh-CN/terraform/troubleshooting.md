@@ -16,7 +16,7 @@
 | `Missing API Key` | 为提供程序提供密钥：参阅 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `Invalid API Key` | 检查密钥，或重置它以获得一个新密钥：参阅 [`Missing API Key` 或 `Invalid API Key`](#missing-api-key-或-invalid-api-key) |
 | `ProjectId required` | 使用项目的 API 密钥，而不是主密钥：参阅 [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | 为密钥授予消息中提到的权限：参阅[密钥缺少权限](#密钥缺少权限) |
+| `You do not have permission to create monitors` | 为密钥授予消息中提到的权限：参阅[密钥缺少权限](#密钥缺少权限) |
 | `API keys need the Growth plan` | 把项目改回 Growth 套餐：参阅[需要付款](#需要付款) |
 | 针对单个资源或单项设置的 `402` | 升级套餐，或把该设置保留为默认值：参阅[需要付款](#需要付款) |
 | `This project has been blocked` | 请主管理员解除对项目的封禁：参阅[被封禁的项目](#被封禁的项目) |
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 密钥缺少权限
 
-`You do not have permissions to create Monitor` 及类似消息会随状态 `422` 返回：密钥不能对该类记录执行此操作。消息会列出允许此操作的权限。请在 **项目设置 → 高级 → API 密钥** 下打开密钥的页面，为它授予其中一个权限，或授予 **项目管理员**。导入只需要读取权限。
+`You do not have permission to create monitors` 及类似消息会随状态 `422` 返回：密钥不能对该类记录执行此操作。消息会列出允许此操作的权限。请在 **项目设置 → 高级 → API 密钥** 下打开密钥的页面，为它授予其中一个权限，或授予 **项目管理员**。导入只需要读取权限。
 
 ### 需要付款
 

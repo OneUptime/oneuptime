@@ -476,7 +476,7 @@ describe("a new policy with first responders", () => {
 
     // Refused for the first join row it may not add, by its table: the schedule's.
     await expect(createPolicy(props)).rejects.toThrow(
-      "You do not have permissions to create Escalation Rule Schedule.",
+      "You do not have permission to create escalation rule schedules.",
     );
 
     expect(policies.inserts).toHaveLength(0);

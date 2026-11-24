@@ -416,12 +416,24 @@ function refusalOf(
   // As DatabaseRequestType names it.
   const type: string = operation;
 
+  /*
+   * Who can give one (#11058): a Project Admin gives what it holds, so a
+   * list with Project Admin in it names both; any other, the owner alone.
+   */
+  const who: string = lists[operation]!.includes(Permission.ProjectAdmin)
+    ? "a Project Owner or Project Admin"
+    : "a Project Owner";
+
   return titles.length === 0
     ? HeldPermissionsUtil.getNobodyMayRefusal({
         recordName: model.singularName,
         operation: type,
       })
-    : `You do not have permissions to ${type} ${model.singularName}. You need one of these permissions: ${titles.join(", ")}`;
+    : `You do not have permission to ${type} ${HeldPermissionsUtil.getRecordsInSentence(model)}. Ask ${who} to give you ${
+        titles.length === 1
+          ? `this permission: ${titles[0]}`
+          : `one of these permissions: ${titles.join(", ")}`
+      }.`;
 }
 
 let teams: InMemoryTable;

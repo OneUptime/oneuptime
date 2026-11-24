@@ -16,7 +16,7 @@ Slå opp meldingen Terraform skrev ut, eller det du så skje, i tabellen nedenfo
 | `Missing API Key` | Gi provideren nøkkelen sin: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `Invalid API Key` | Sjekk nøkkelen, eller tilbakestill den for å få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Bruk en API-nøkkel for prosjektet, ikke en hovednøkkel: se [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Gi nøkkelen tillatelsen meldingen nevner: se [Nøkkelen mangler en tillatelse](#nøkkelen-mangler-en-tillatelse) |
+| `You do not have permission to create monitors` | Gi nøkkelen tillatelsen meldingen nevner: se [Nøkkelen mangler en tillatelse](#nøkkelen-mangler-en-tillatelse) |
 | `API keys need the Growth plan` | Flytt prosjektet tilbake til abonnementet Growth: se [Betaling kreves](#betaling-kreves) |
 | `402` for én ressurs eller én innstilling | Oppgrader abonnementet, eller la innstillingen stå på standardverdien: se [Betaling kreves](#betaling-kreves) |
 | `This project has been blocked` | Be en hovedadministrator om å oppheve blokkeringen av prosjektet: se [Et blokkert prosjekt](#et-blokkert-prosjekt) |
@@ -72,7 +72,7 @@ Provideren trenger en API-nøkkel for prosjektet den styrer: det er derfra prosj
 
 ### Nøkkelen mangler en tillatelse
 
-`You do not have permissions to create Monitor` og lignende meldinger kommer med status `422`: nøkkelen får ikke gjøre det med den typen post. De nevner tillatelsene som ville gitt lov til det. Åpne nøkkelens side under **Prosjektinnstillinger → Avansert → API-nøkler** og gi den én av dem, eller **Prosjektadministrator**. En import krever bare tillatelsen til å lese.
+`You do not have permission to create monitors` og lignende meldinger kommer med status `422`: nøkkelen får ikke gjøre det med den typen post. De nevner tillatelsene som ville gitt lov til det. Åpne nøkkelens side under **Prosjektinnstillinger → Avansert → API-nøkler** og gi den én av dem, eller **Prosjektadministrator**. En import krever bare tillatelsen til å lese.
 
 ### Betaling kreves
 

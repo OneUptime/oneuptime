@@ -16,7 +16,7 @@ Slå upp meddelandet som Terraform skrev ut, eller det du såg hända, i tabelle
 | `Missing API Key` | Ge providern dess nyckel: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `Invalid API Key` | Kontrollera nyckeln, eller återställ den för att få en ny: se [`Missing API Key` eller `Invalid API Key`](#missing-api-key-eller-invalid-api-key) |
 | `ProjectId required` | Använd en API-nyckel för projektet, inte en huvudnyckel: se [`ProjectId required`](#projectid-required) |
-| `You do not have permissions to create Monitor` | Ge nyckeln den behörighet som meddelandet nämner: se [Nyckeln saknar en behörighet](#nyckeln-saknar-en-behörighet) |
+| `You do not have permission to create monitors` | Ge nyckeln den behörighet som meddelandet nämner: se [Nyckeln saknar en behörighet](#nyckeln-saknar-en-behörighet) |
 | `API keys need the Growth plan` | Flytta tillbaka projektet till abonnemanget Growth: se [Betalning krävs](#betalning-krävs) |
 | `402` för en resurs eller en inställning | Uppgradera abonnemanget, eller låt inställningen stå kvar på standardvärdet: se [Betalning krävs](#betalning-krävs) |
 | `This project has been blocked` | Be en huvudadministratör att häva blockeringen av projektet: se [Ett blockerat projekt](#ett-blockerat-projekt) |
@@ -72,7 +72,7 @@ Providern behöver en API-nyckel för projektet som den hanterar: det är därif
 
 ### Nyckeln saknar en behörighet
 
-`You do not have permissions to create Monitor` och liknande meddelanden kommer med status `422`: nyckeln får inte göra det med det slaget av post. De nämner de behörigheter som skulle tillåta det. Öppna nyckelns sida under **Projektinställningar → Avancerad → API-nycklar** och ge den en av dem, eller **Projektadministratör**. En import kräver bara behörigheten att läsa.
+`You do not have permission to create monitors` och liknande meddelanden kommer med status `422`: nyckeln får inte göra det med det slaget av post. De nämner de behörigheter som skulle tillåta det. Öppna nyckelns sida under **Projektinställningar → Avancerad → API-nycklar** och ge den en av dem, eller **Projektadministratör**. En import kräver bara behörigheten att läsa.
 
 ### Betalning krävs
 

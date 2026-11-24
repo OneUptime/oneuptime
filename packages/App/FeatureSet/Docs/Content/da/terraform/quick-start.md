@@ -225,7 +225,7 @@ Nøglen er tastet forkert, udløbet eller slettet, eller den hører til en anden
 På OneUptime Cloud virker et projekts API-nøgler kun på abonnementet Growth eller højere. Opgradér projektet under **Projektindstillinger → Fakturering og fakturaer → Fakturering**, så virker den samme nøgle igen.
 :::
 
-:::details Meddelelsen “the OneUptime API returned status 422: You do not have permissions to create Monitor”
+:::details Meddelelsen “the OneUptime API returned status 422: You do not have permission to create monitors”
 Nøglen har ingen tilladelse til den slags post. Giv den **Projektadministrator** på nøglens side, eller den tilladelse, meddelelsen nævner.
 :::
 

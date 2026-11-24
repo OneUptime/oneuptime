@@ -32,7 +32,7 @@ import { describe, expect, test } from "@jest/globals";
  * views for its table on mount, and TableView's read list named only the
  * project-wide roles plus Settings — so the request came back
  *
- *   "You do not have permissions to read Table View. You need one of these
+ *   "You do not have permission to read table views. You need one of these
  *    permissions: Project Owner, Project Admin, Project Member, Viewer,
  *    Settings Admin, Settings Member, Settings Viewer, Read Table View"
  *
@@ -412,7 +412,7 @@ describe("The shared-resource grant does not widen anything else", () => {
         DatabaseRequestType.Read,
       );
     }).toThrow(
-      "You do not have permissions to read Table View. You need one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Project User, Settings Admin, Settings Member, Settings Viewer, Read Table View",
+      "You do not have permission to read table views. Ask a Project Owner or Project Admin to give you one of these permissions: Project Owner, Project Admin, Project Member, Viewer, Project User, Settings Admin, Settings Member, Settings Viewer, Read Table View.",
     );
   });
 });
