@@ -1750,14 +1750,7 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     expect(completion).toHaveBeenCalledTimes(1);
 
-    const sent: string = sentToTheModel();
-
-    // What it may send arrived: the names, and the sentence.
-    expect(sent).toContain("PCI");
-    expect(sent).toContain("Payments");
-    expect(sent).toContain("EU personal data must stay in the EU");
-
-    return sent;
+    return sentToTheModel();
   },
 };
 
@@ -1886,6 +1879,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
   ],
   // The person's sentence, and their examples' shapes.
   [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
+  // The sentence, and the names a rule may use: a label and a team (#10378).
+  [DataSecurityAiFeature.DraftRuleFromSentence]: [
+    "EU personal data must stay in the EU",
+    "PCI",
+    "Payments",
+  ],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {

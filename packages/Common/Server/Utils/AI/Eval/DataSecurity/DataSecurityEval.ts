@@ -149,6 +149,7 @@ import {
   exposureAssessmentCall,
   scoreExposureAssessment,
 } from "./DataSecurityExposureEval";
+import { ruleDraftCall, scoreRuleDraft } from "./DataSecurityRuleDraftEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -1403,6 +1404,8 @@ export function buildEvalCall(
     case DataSecurityAiFeature.DraftExposureAssessment:
     case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
       return exposureAssessmentCall(testCase);
+    case DataSecurityAiFeature.DraftRuleFromSentence:
+      return ruleDraftCall(testCase);
   }
 }
 
@@ -1478,6 +1481,8 @@ export function scoreAnswer(
     case DataSecurityAiFeature.DraftExposureAssessment:
     case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
       return scoreExposureAssessment(testCase, answer);
+    case DataSecurityAiFeature.DraftRuleFromSentence:
+      return scoreRuleDraft(testCase, answer);
   }
 }
 
