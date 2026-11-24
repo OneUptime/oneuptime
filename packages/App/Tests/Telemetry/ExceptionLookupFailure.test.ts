@@ -680,14 +680,21 @@ describe.each(ERAS)(
 
       expect(stored).toEqual([fingerprintsOf(SMS).v4, fingerprintsOf(SMS).v4]);
 
-      // Known to this process, they go to the exception itself.
+      // Read once, they go to the exception itself.
       lookupDown = false;
       await storeRows([row()]);
       lookupDown = true;
 
-      expect(await storeRows([row()], Date.now() + 20 * MINUTE_MS)).toEqual([
-        existing.fingerprint,
-      ]);
+      // Twenty minutes on, past the cache's ten, the read fails: what this process knew settles it.
+      const lookupsBefore: number = lookups;
+
+      jest.spyOn(Date, "now").mockReturnValue(Date.now() + 20 * MINUTE_MS);
+
+      expect(await storeRows([row()])).toEqual([existing.fingerprint]);
+      // The read was tried, and failed, every time.
+      expect(lookups - lookupsBefore).toBe(
+        GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS.length + 1,
+      );
     });
   },
 );
