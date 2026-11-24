@@ -1,7 +1,7 @@
 import DeclaredStoreFacts from "./DeclaredStoreFacts";
 import {
   DECLARED_BY_ONEUPTIME,
-  DECLARED_STORE_DESCRIPTION,
+  getDeclaredStoreDescription,
 } from "./DeclaredStoreCopy";
 import { getStoreProviderName } from "./StoreFieldOptions";
 import useDeclaredStore, { DeclaredStoreState } from "./UseDeclaredStore";
@@ -90,7 +90,7 @@ const DeclaredStoreOverview: FunctionComponent<ComponentProps> = (
     <div className="space-y-5" data-testid="declared-store-overview">
       <Card
         title={DECLARED_BY_ONEUPTIME}
-        description={DECLARED_STORE_DESCRIPTION}
+        description={getDeclaredStoreDescription(props.kind)}
         buttons={editButton ? [editButton] : []}
       >
         {body}

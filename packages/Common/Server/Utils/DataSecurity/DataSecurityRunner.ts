@@ -110,12 +110,18 @@ import {
   FieldClassification,
 } from "../../../Utils/DataSecurity/FieldClassifier";
 import { BUILT_IN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/Index";
+import {
+  countShadowField,
+  mergeShadowCounts,
+  ShadowCounts,
+} from "../../../Utils/DataSecurity/ShadowCount";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
 import {
   describeUnplacedField,
   MAX_UNPLACED_LOCATION_LENGTH,
   UnplacedField,
 } from "../../../Utils/DataSecurity/UnplacedFields";
+import DataTypeProving from "./DataTypeProving";
 import { ResponseJSON } from "@clickhouse/client";
 
 /*
@@ -682,6 +688,13 @@ export default class DataSecurityRunner {
       return;
     }
 
+    // The data types OneUptime AI drafted from its fields, counted in shadow (#10371).
+    setup.options.shadowDetectors =
+      await DataTypeProving.getShadowDetectorsForStore({
+        projectId,
+        dataStoreId,
+      });
+
     try {
       const result: ContentScanResult | null = await this.sampleStore(
         projectId,
@@ -897,6 +910,11 @@ export default class DataSecurityRunner {
 
     target.unplacedFields = unplacedFields;
 
+    if (part.shadowCounts) {
+      target.shadowCounts = target.shadowCounts || {};
+      mergeShadowCounts(target.shadowCounts, part.shadowCounts, prefix);
+    }
+
     target.readLog.push(
       ...part.readLog.map((entry: string) => {
         return prefix + entry;
@@ -947,6 +965,7 @@ export default class DataSecurityRunner {
     const result: ContentScanResult = emptyContentScanResult();
     const highConfidence: Map<string, Array<string>> = new Map();
     const unplacedFields: Array<UnplacedField> = [];
+    const shadowCounts: ShadowCounts = {};
 
     for (const table of sample.tables) {
       const collector: FieldCollector = new FieldCollector();
@@ -961,6 +980,15 @@ export default class DataSecurityRunner {
       const locations: Array<LocationFindings> = [];
 
       for (const field of collector.getFields()) {
+        // The drafts run in shadow, each alone: counted, never found (#10371).
+        countShadowField({
+          counts: shadowCounts,
+          detectors: options.shadowDetectors || [],
+          location: `${table.table}.${field.path}`,
+          values: field.values,
+          allowedValues: options.allowedValues,
+        });
+
         const classifications: Array<FieldClassification> = classifyField(
           field.path,
           field.values,
@@ -1005,6 +1033,10 @@ export default class DataSecurityRunner {
     }
 
     result.unplacedFields = unplacedFields;
+
+    if ((options.shadowDetectors || []).length > 0) {
+      result.shadowCounts = shadowCounts;
+    }
 
     for (const [dataTypeId, values] of highConfidence) {
       result.fingerprints[dataTypeId] = buildFingerprint(
@@ -1087,6 +1119,9 @@ export default class DataSecurityRunner {
       ownersNotScanned,
       // Each service's metrics go on in turn from where the last scan stopped.
       metricCursors: await this.readMetricCursors(projectId),
+      // The data types OneUptime AI drafted, counted in shadow on their stores (#10371).
+      shadowDetectorsByStore:
+        await DataTypeProving.getTelemetryShadowDetectors(projectId),
     });
 
     if (results.length === 0) {

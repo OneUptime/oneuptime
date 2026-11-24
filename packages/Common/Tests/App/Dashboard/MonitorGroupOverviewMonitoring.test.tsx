@@ -467,7 +467,7 @@ async function turnMonitoringOffFromTheCard(): Promise<void> {
   );
   fireEvent.click(
     within(screen.getByRole("dialog")).getByRole("button", {
-      name: "Turn off monitoring",
+      name: "Turn monitoring off",
     }),
   );
   await flush();
@@ -778,7 +778,7 @@ describe("turning monitoring off and on from the card", () => {
     );
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Turn off monitoring",
+        name: "Turn monitoring off",
       }),
     );
     await flush();

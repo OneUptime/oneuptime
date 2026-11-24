@@ -37,6 +37,14 @@ import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntit
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import ProfileUtil from "../../Utils/ProfileUtil";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
+import { getUnknownServiceScopeOption } from "../Telemetry/TelemetryServiceScope";
 import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -124,9 +132,13 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   const [attributesError, setAttributesError] = React.useState<string>("");
 
   const [isPageLoading, setIsPageLoading] = React.useState<boolean>(true);
-  const [pageError, setPageError] = React.useState<string>("");
 
-  const [telemetryServices, setServices] = React.useState<Array<Service>>([]);
+  /*
+   * The services the shown rows name, read by their ids as each page of
+   * rows arrives - never the project's first 10,000 by name, past which a
+   * service's row lost its name and its colour (#10764).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
   const [hosts, setHosts] = React.useState<Array<Host>>([]);
 
   const [areAdvancedFiltersVisible, setAreAdvancedFiltersVisible] =
@@ -152,10 +164,11 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Sources on the loaded page that neither the Service nor the Host list can
-   * name — RUM applications, clusters, serverless functions, hosts past the
-   * per-project cap. Captured from the table's own fetch so the cells, which
-   * render synchronously, can show names once one lookup lands.
+   * Sources on the loaded page that neither the services read by their ids
+   * nor the Host list can name — RUM applications, clusters, serverless
+   * functions, hosts past the per-project cap. Captured from the table's own
+   * fetch so the cells, which render synchronously, can show names once one
+   * lookup lands.
    */
   const [unnamedEntityRefs, setUnnamedEntityRefs] = useState<
     Array<ProfileEntityRef>
@@ -163,41 +176,77 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
 
   const knownEntityIds: Set<string> = useMemo(() => {
     const ids: Set<string> = new Set<string>();
-    for (const service of telemetryServices) {
-      if (service.id) {
-        ids.add(service.id.toString());
-      }
-    }
     for (const host of hosts) {
       if (host.id) {
         ids.add(host.id.toString());
       }
     }
     return ids;
-  }, [telemetryServices, hosts]);
+  }, [hosts]);
 
-  const handleProfilesFetched: (profiles: Array<Profile>) => void = useCallback(
-    (profiles: Array<Profile>): void => {
-      const refs: Array<ProfileEntityRef> = collectProfileEntityRefs({
-        profiles,
-        knownIds: knownEntityIds,
-      });
-      setUnnamedEntityRefs(
-        (prev: Array<ProfileEntityRef>): Array<ProfileEntityRef> => {
-          // Same sources as last page: keep state so nothing re-renders.
-          return getProfileEntityRefsKey(prev) === getProfileEntityRefsKey(refs)
-            ? prev
-            : refs;
-        },
-      );
-    },
-    [knownEntityIds],
-  );
+  const handleProfilesFetched: (profiles: Array<Profile>) => Promise<void> =
+    useCallback(
+      async (profiles: Array<Profile>): Promise<void> => {
+        /*
+         * The services the page's rows name are read by their ids first: a
+         * row whose source is a service is drawn from that read, and only
+         * what it does not name is asked of the shared resolver - a service
+         * never twice.
+         */
+        const services: Map<string, Service> =
+          await servicesOnPage.readServicesOf(
+            profiles
+              .filter((profile: Profile): boolean => {
+                const entityType: string =
+                  profile.primaryEntityType?.toString() || "";
+
+                return !entityType || entityType === ServiceType.OpenTelemetry;
+              })
+              .map((profile: Profile): ObjectID | undefined => {
+                return profile.primaryEntityId;
+              }),
+          );
+
+        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+        const knownIds: Set<string> = new Set<string>(knownEntityIds);
+
+        for (const profile of profiles) {
+          const id: string = profile.primaryEntityId?.toString() || "";
+
+          if (
+            id &&
+            (services.has(id.toLowerCase()) ||
+              TelemetryServiceUtil.isUnknownServiceId(id, projectId))
+          ) {
+            knownIds.add(id);
+          }
+        }
+
+        const refs: Array<ProfileEntityRef> = collectProfileEntityRefs({
+          profiles,
+          knownIds: knownIds,
+        });
+        setUnnamedEntityRefs(
+          (prev: Array<ProfileEntityRef>): Array<ProfileEntityRef> => {
+            // Same sources as last page: keep state so nothing re-renders.
+            return getProfileEntityRefsKey(prev) ===
+              getProfileEntityRefsKey(refs)
+              ? prev
+              : refs;
+          },
+        );
+      },
+      [knownEntityIds, servicesOnPage.readServicesOf],
+    );
 
   /*
-   * What the loaded Service / Host lists call the `?serviceId=` deep-link id,
-   * if anything. A host-level (eBPF) source is linked here by its Host id.
+   * What the services the page's rows name, or the loaded Host list, call
+   * the `?serviceId=` deep-link id, if anything; otherwise the shared
+   * resolver names it below, by its id. A host-level (eBPF) source is
+   * linked here by its Host id.
    */
+  const deepLinkedService: Service | undefined =
+    servicesOnPage.getService(serviceIdFilter);
   const serviceFilterListNames: {
     serviceName: string | undefined;
     hostName: string | undefined;
@@ -209,12 +258,14 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       return candidate.id?.toString() === serviceIdFilter;
     });
     return {
-      serviceName: telemetryServices.find((service: Service): boolean => {
-        return service.id?.toString() === serviceIdFilter;
-      })?.name,
+      // The stand-in for telemetry that named no service, in the reader's words.
+      serviceName: TelemetryServiceUtil.getServiceDisplayName(
+        deepLinkedService?.name,
+        translator,
+      ),
       hostName: host ? host.name || host.hostIdentifier : undefined,
     };
-  }, [serviceIdFilter, telemetryServices, hosts]);
+  }, [serviceIdFilter, deepLinkedService, hosts, translator.language]);
 
   /*
    * One lookup for every name this table shows: the page's unnamed sources
@@ -223,9 +274,8 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
    */
   const entityIdsToResolve: Array<string> = useMemo(() => {
     /*
-     * Wait for the Service / Host lists: until they land every id looks
-     * unnamed, and a deep link to a loaded Service would be looked up for
-     * nothing.
+     * Wait for the Host list: until it lands every host id looks unnamed,
+     * and a deep link to a loaded Host would be looked up for nothing.
      */
     if (isPageLoading) {
       return [];
@@ -340,29 +390,9 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
     });
   }, [props.entityKeys, props.entityKeyDisplays]);
 
-  const loadServices: PromiseVoidFunction = async (): Promise<void> => {
+  const loadHosts: PromiseVoidFunction = async (): Promise<void> => {
     try {
       setIsPageLoading(true);
-      setPageError("");
-
-      const telemetryServicesResponse: ListResult<Service> =
-        await ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-      setServices(telemetryServicesResponse.data || []);
 
       /*
        * Hosts resolve names for host-level (eBPF) profiles, which carry
@@ -390,12 +420,23 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
       } catch {
         setHosts([]);
       }
-    } catch (err) {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
     } finally {
       setIsPageLoading(false);
     }
   };
+
+  /*
+   * Profiles without a service.name are tagged with the projectId
+   * (ServiceType.Unknown) and have no Service row: the filter offers them
+   * as "Unknown Service" beside its search.
+   */
+  const unknownServiceOptions: Array<DropdownOption> = useMemo(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    return projectId
+      ? [getUnknownServiceScopeOption(projectId.toString())]
+      : [];
+  }, []);
 
   const loadAttributes: PromiseVoidFunction = async (): Promise<void> => {
     if (attributesLoading || attributesLoaded) {
@@ -436,9 +477,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   };
 
   useEffect(() => {
-    loadServices().catch((err: Error) => {
-      setPageError(API.getFriendlyErrorMessage(err as Error));
-    });
+    void loadHosts();
   }, []);
 
   const handleAdvancedFiltersToggle: (show: boolean) => void = (
@@ -520,17 +559,17 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
 
   return (
     <Fragment>
-      {pageError && (
+      {servicesOnPage.error && (
         <div className="mb-4">
           <ErrorMessage
             message={
               <ErrorSentence
                 template="We couldn't load telemetry services. {{error}}"
-                error={pageError}
+                error={servicesOnPage.error}
               />
             }
             onRefreshClick={() => {
-              void loadServices();
+              void servicesOnPage.retry();
             }}
           />
         </div>
@@ -671,7 +710,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
           }
           query={query}
           onFetchSuccess={(profiles: Array<Profile>) => {
-            handleProfilesFetched(profiles);
+            void handleProfilesFetched(profiles);
           }}
           selectMoreFields={{
             profileId: true,
@@ -699,16 +738,16 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                 primaryEntityId: true,
               },
               type: FieldType.MultiSelectDropdown,
-              // A service's name, drawn as written (DropdownOption.isUserContent).
-              filterDropdownOptions: telemetryServices.map(
-                (service: Service) => {
-                  return {
-                    label: service.name!,
-                    value: service.id!.toString(),
-                    isUserContent: true,
-                  };
-                },
-              ),
+              /*
+               * Searched on the server as it is typed in, 50 by name; what
+               * the filter holds - from a link or a saved view - is named by
+               * its ids, one gone as "No longer available" (#10764).
+               * Archived services keep sending profiles: offered, marked.
+               */
+              filterEntityType: Service,
+              filterDropdownField: { label: "name", value: "_id" },
+              marksArchivedRecords: true,
+              filterDropdownOptions: unknownServiceOptions,
               title: "Service",
             },
             {
@@ -764,9 +803,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                  * never claims "Unknown" for a perfectly valid source.
                  */
                 const telemetryService: Service | undefined =
-                  telemetryServices.find((service: Service) => {
-                    return service.id?.toString() === entityId;
-                  });
+                  servicesOnPage.getService(entityId);
 
                 if (telemetryService) {
                   return (
@@ -774,6 +811,11 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                       <ServiceElement service={telemetryService} />
                     </Fragment>
                   );
+                }
+
+                // Its service's name is on its way: never a short id meanwhile.
+                if (servicesOnPage.isReading(entityId)) {
+                  return <InlineValueSkeleton widthClassName="w-24" />;
                 }
 
                 const entityType: string =

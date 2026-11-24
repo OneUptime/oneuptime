@@ -120,6 +120,9 @@ import { countOtlpSpans } from "Common/Utils/Telemetry/OtlpRecordCount";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -503,6 +506,19 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
        */
       const addressVault: SecurityAddressVaultBatch | null =
         await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "trace",
+          scrubRules: scrubRules,
+        });
+
+      /*
+       * The users this batch's Hash rules hide where Security Events reads a
+       * user, kept for its user vault when Security Events reads the
+       * project's traces (#10632): null - and nothing kept - otherwise. Written
+       * after the batch's traces, never awaited, as the address vault is.
+       */
+      const userVault: SecurityUserVaultBatch | null =
+        await SecurityUserVaultWriter.startBatch({
           projectId: projectId,
           signal: "trace",
           scrubRules: scrubRules,
@@ -1088,6 +1104,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       spanRow,
                       scrubRules,
                       addressVault,
+                      { hashedUsers: userVault },
                     );
                   }
 
@@ -1289,8 +1306,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
         }),
       ]);
 
-      // The spans are stored: their hashed addresses go to the vault, on their own.
+      // The spans are stored: their hashed addresses and users go to the vaults, on their own.
       addressVault?.write();
+      userVault?.write();
 
       if (obiNodeInspectorSpansDropped > 0) {
         logger.debug(

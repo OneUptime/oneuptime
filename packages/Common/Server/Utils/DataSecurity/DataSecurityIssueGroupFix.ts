@@ -608,28 +608,6 @@ export default class DataSecurityIssueGroupFix {
     declaredCode: DeclaredCode;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<DeclaredCodeOwnerCandidateJSON>> {
-    let readable: Array<CodeRepository> = [];
-
-    try {
-      readable = await CodeTaskAccess.listReadableRepositories({
-        props: data.props,
-        projectId: data.projectId,
-      });
-    } catch (error) {
-      if (
-        error instanceof NotAuthorizedException ||
-        error instanceof PaymentRequiredException
-      ) {
-        return [];
-      }
-
-      throw error;
-    }
-
-    if (readable.length === 0) {
-      return [];
-    }
-
     let ranked: Array<DeclaredCodeOwnerCandidate> = [];
 
     try {
@@ -648,6 +626,35 @@ export default class DataSecurityIssueGroupFix {
       logger.debug(
         `DataSecurity group fix: could not rank the repositories of project ${data.projectId.toString()}: ${error}`,
       );
+    }
+
+    /*
+     * The ranked repositories the reader may read, read by their ids: never
+     * looked for among the project's first 500 by name, which left a
+     * repository past them out of the ranking (#10764).
+     */
+    let readable: Array<CodeRepository> = [];
+
+    try {
+      readable = await CodeTaskAccess.listReadableRepositoriesByIds({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryIds: ranked.map(
+          (candidate: DeclaredCodeOwnerCandidate): string => {
+            return candidate.repository.id;
+          },
+        ),
+        select: { _id: true },
+      });
+    } catch (error) {
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException
+      ) {
+        return [];
+      }
+
+      throw error;
     }
 
     const readableIds: Set<string> = new Set(
@@ -1290,17 +1297,15 @@ export default class DataSecurityIssueGroupFix {
       let readableName: string | undefined;
 
       try {
-        const readable: Array<CodeRepository> = data.props.isRoot
-          ? []
-          : await CodeTaskAccess.listReadableRepositories({
-              props: data.props,
-              projectId: data.projectId,
-            });
-        const repository: CodeRepository | undefined = readable.find(
-          (candidate: CodeRepository): boolean => {
-            return idOf(candidate) === idOf({ id: task.codeRepositoryId });
-          },
-        );
+        // Read by its id (#10764), not looked for among the first 500.
+        const repository: CodeRepository | null =
+          data.props.isRoot || !task.codeRepositoryId
+            ? null
+            : await CodeTaskAccess.findReadableRepository({
+                props: data.props,
+                projectId: data.projectId,
+                repositoryId: task.codeRepositoryId,
+              });
 
         readableName = repository
           ? getRepositoryFullName({

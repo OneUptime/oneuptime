@@ -839,6 +839,14 @@ what was further down.
   [ChartTitleRowTailwind](../../packages/Common/Tests/UI/Components/Charts/ChartTitleRowTailwind.test.tsx)
   and
   [ZoomHintWordsFitBesideATitle](../../packages/Common/Tests/App/Dashboard/ZoomHintWordsFitBesideATitle.test.ts).
+- **A title's (i) follows its last word.** A tile's, a card's or a section's title that has an
+  explanation draws its words and its (i) with `WordsWithInfoTooltip`, which puts the (i) inside the
+  title's own text, after its last word, on whichever line that word ends. Drawn as the title's flex
+  sibling, the (i) of a title that wrapped stood at the far edge of its tile, centred between the
+  title's two lines, as if it belonged to the next tile: English titles mostly fit, German and Arabic
+  ones did not (#7348, #8044). An (i) in a column header, after or inside a chip, or after a title kept
+  to one line stays where it is, and the few places left are listed in the guard with why. Enforced by
+  [InfoAfterTitleWordsGuard](../../packages/App/Tests/Dashboard/InfoAfterTitleWordsGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and

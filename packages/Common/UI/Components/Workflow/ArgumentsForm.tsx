@@ -67,8 +67,10 @@ import { isCreateOrUpdateTrigger } from "../../../Types/Workflow/CreateOrUpdateT
 import { DropdownOption } from "../Dropdown/Dropdown";
 import { PeoplePickerKind } from "../PeoplePicker/PeoplePickerTypes";
 import {
+  RecordChoiceDropdownModal,
+  getRecordChoiceDropdownModal,
   getRecordChoiceSource,
-  getRecordChoiceTypes,
+  getRecordChoiceTypesReadWhole,
   loadRecordChoices,
 } from "./RecordChoices";
 import React, {
@@ -310,15 +312,14 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   ];
 
   /*
-   * The project's records that settings picked from a list offer: the
-   * workflows of Execute Workflow's Workflow (the one being edited left
-   * out), the incident templates of Create One Incident's Incident Template
-   * (RecordChoices). Keyed by the setting's type; empty until the fetch
-   * completes.
+   * The project's records that settings picked from a list read whole: a
+   * Page step's severities, the Huntress trigger's (RecordChoices). Keyed by
+   * the setting's type; empty until the fetch completes. Execute Workflow's
+   * Workflow and Create One Incident's Incident Template search the server
+   * as they are typed in instead (getRecordChoiceDropdownModal, #10764).
    */
-  const recordChoiceTypes: Array<ComponentInputType> = getRecordChoiceTypes(
-    component.metadata.arguments,
-  );
+  const recordChoiceTypes: Array<ComponentInputType> =
+    getRecordChoiceTypesReadWhole(component.metadata.arguments);
   const recordChoiceTypesKey: string = recordChoiceTypes.join("|");
 
   const [recordChoices, setRecordChoices] = useState<
@@ -1087,14 +1088,32 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     ) => ReactElement | undefined;
                     customElementDrawsOwnLabel?: boolean | undefined;
                     description?: string | undefined;
+                    dropdownModal?: RecordChoiceDropdownModal | undefined;
+                    dataTestId?: string | undefined;
                   } = fieldForArgument(arg, argIndex);
 
                   /*
-                   * A setting picked from the project's records gets the
-                   * records fetched above as its options.
+                   * A setting picked from the project's records searches
+                   * the server for them, or gets the records fetched above
+                   * as its options.
                    */
                   if (getRecordChoiceSource(arg.type)) {
-                    baseField.dropdownOptions = recordChoices[arg.type] || [];
+                    const dropdownModal: RecordChoiceDropdownModal | null =
+                      getRecordChoiceDropdownModal({
+                        type: arg.type,
+                        workflowId: props.workflowId,
+                      });
+
+                    // Not one holding a reference: it is shown as text.
+                    if (
+                      dropdownModal &&
+                      baseField.fieldType === FormFieldSchemaType.Dropdown
+                    ) {
+                      baseField.dropdownModal = dropdownModal;
+                      baseField.dataTestId = `workflow-argument-${arg.id}`;
+                    } else {
+                      baseField.dropdownOptions = recordChoices[arg.type] || [];
+                    }
                   }
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);

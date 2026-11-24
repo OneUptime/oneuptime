@@ -164,7 +164,7 @@ describe("MicrosoftDefenderBlockDestination: what it holds", () => {
     expect(destination.quarantinesFiles).toBe(true);
   });
 
-  test("blocks every kind but a range, and never challenges", () => {
+  test("blocks every kind but a range or an ASN, and never challenges", () => {
     const destination: MicrosoftDefenderBlockDestination =
       defender(newFakeDefender());
 
@@ -175,8 +175,10 @@ describe("MicrosoftDefenderBlockDestination: what it holds", () => {
         value: SECURITY_BLOCK_SAMPLE_VALUES[indicatorType],
       });
 
+      // A whole network by its ASN is the edge's alone (#10354).
       expect(support.isSupported).toBe(
-        indicatorType !== SecurityBlockIndicatorType.IpRange,
+        indicatorType !== SecurityBlockIndicatorType.IpRange &&
+          indicatorType !== SecurityBlockIndicatorType.Asn,
       );
     }
 

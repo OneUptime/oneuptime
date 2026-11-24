@@ -464,9 +464,10 @@ describe("the on-demand ping rows", () => {
     );
     const term: string = between(code, "<dt", "</dt>");
 
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    // The (i) after the term's last word (WordsWithInfoTooltip, #8044).
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(term).toContain(
-      "<InfoTooltip label={label} text={diagnosticRow.description} />",
+      "<WordsWithInfoTooltip text={label} label={diagnosticRow.label} description={diagnosticRow.description} />",
     );
   });
 });
@@ -490,11 +491,11 @@ describe("the device Overview's interface digest", () => {
     const code: string = readCode(
       "Components/NetworkDevice/DeviceInterfacesPreview.tsx",
     );
-    const title: string = between(code, "<Card title={", "description=");
+    const title: string = between(code, "<Card title={", "/> }");
 
-    expect(title).toContain("{PREVIEW_TITLE}");
-    expect(title).toContain(
-      `<InfoTooltip label={PREVIEW_TITLE} text={${deviceRef("interfacesPreview")}} />`,
+    // In the reader's words, its (i) after its last word (#8044).
+    expect(`${title}/>`).toContain(
+      `<WordsWithInfoTooltip text={translator.translateText(PREVIEW_TITLE) || PREVIEW_TITLE} label={PREVIEW_TITLE} description={${deviceRef("interfacesPreview")}} />`,
     );
   });
 });
@@ -509,9 +510,10 @@ describe("the Traffic pages (device, site, network)", () => {
   const list: string = readCode("Components/NetworkTraffic/TrafficTopList.tsx");
 
   test("a tile and a top list render their (i) from the text they are given", () => {
-    expect(tiles).toContain(INFO_TOOLTIP_IMPORT);
+    // A tile's label whole, its (i) after its last word (#8044).
+    expect(tiles).toContain(WORDS_WITH_INFO_IMPORT);
     expect(tiles).toContain(
-      "<InfoTooltip label={props.label} text={props.help} />",
+      '<WordsWithInfoTooltip className="min-w-0" text={translator.translateText(props.label) || props.label} label={props.label} description={props.help} />',
     );
     expect(list).toContain(WORDS_WITH_INFO_IMPORT);
     expect(list).toContain(
@@ -574,7 +576,7 @@ describe("the Traffic pages (device, site, network)", () => {
       count(view, "help={TRAFFIC_HELP."),
     );
     expect(view).toContain(
-      "<InfoTooltip label={CONVERSATIONS_TITLE} text={TRAFFIC_HELP.conversations} />",
+      "<WordsWithInfoTooltip text={translator.translateText(CONVERSATIONS_TITLE) || CONVERSATIONS_TITLE} label={CONVERSATIONS_TITLE} description={TRAFFIC_HELP.conversations} />",
     );
   });
 });
@@ -673,12 +675,12 @@ describe("the Network Overview", () => {
   });
 
   test("the vendor card's title carries the (i) for its bars", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(code).toContain(
       'const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";',
     );
     expect(code).toContain(
-      `<InfoTooltip label={FLEET_BY_VENDOR_TITLE} text={${deviceRef("fleetByVendor")}} />`,
+      `<WordsWithInfoTooltip text={FLEET_BY_VENDOR_TITLE} label={FLEET_BY_VENDOR_TITLE} description={${deviceRef("fleetByVendor")}} />`,
     );
   });
 
@@ -702,12 +704,12 @@ describe("the site Status Timeline tab", () => {
   });
 
   test("the daily strip's heading carries the legend", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(code).toContain(
       "const DAILY_UPTIME_TITLE: string = `Daily Uptime — Last ${DAILY_STRIP_DAYS} Days`;",
     );
     expect(code).toContain(
-      `<InfoTooltip label={DAILY_UPTIME_TITLE} text={${siteRef("dailyUptime")}} />`,
+      `<WordsWithInfoTooltip className="min-w-0" text={DAILY_UPTIME_TITLE} label={DAILY_UPTIME_TITLE} description={${siteRef("dailyUptime")}} />`,
     );
   });
 });
@@ -805,16 +807,15 @@ describe("the Probe Latency Matrix", () => {
   const code: string = readCode("Pages/NetworkDevice/LatencyMatrix.tsx");
 
   test("the card title carries the (i) for the bare per-cell numbers", () => {
-    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(WORDS_WITH_INFO_IMPORT);
     expect(code).toContain(
       'const MATRIX_TITLE: string = "Probe Latency Matrix";',
     );
 
-    const title: string = between(code, "<Card title={", "description=");
+    const title: string = between(code, "<Card title={", "/> }");
 
-    expect(title).toContain("{MATRIX_TITLE}");
-    expect(title).toContain(
-      `<InfoTooltip label={MATRIX_TITLE} text={${deviceRef("latencyMatrix")}} />`,
+    expect(`${title}/>`).toContain(
+      `<WordsWithInfoTooltip text={MATRIX_TITLE} label={MATRIX_TITLE} description={${deviceRef("latencyMatrix")}} />`,
     );
   });
 

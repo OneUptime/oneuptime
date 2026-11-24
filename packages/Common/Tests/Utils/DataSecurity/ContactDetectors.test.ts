@@ -598,6 +598,356 @@ describe("ip-address", () => {
   });
 });
 
+/*
+ * #10466: an address with one group each side of "::" - 2001::1, 2a00::1,
+ * 2606::1, real public addresses a server or a person often writes - has
+ * three parts, and every candidate of fewer than four parts was refused so
+ * a clock and a scope of a program were not taken for addresses. So it was
+ * neither found nor hidden by an IP Address scrub rule, which finds with
+ * these very detectors. It is found now when its first group is a global
+ * one (2000 to 3fff, four characters: what the internet routes) and it
+ * stands on its own; a clock, a scope, a group inside an identifier, and
+ * an address of no host are not.
+ */
+describe('ip-address: one group each side of "::" (#10466)', () => {
+  test.each([
+    ["2001::1"],
+    ["2a00::1"],
+    ["2606::1"],
+    ["2620::1"],
+    ["2400::1"],
+    ["2c0f::1"],
+    ["3fff::1"],
+    ["2001::dead"],
+    ["2001::ffff"],
+    ["2001::0001"],
+    ["2A00::1"],
+    ["2a00::Beef"],
+  ])(
+    "finds %s, Medium on its own and High beside an address word",
+    (address: string) => {
+      expectFound(address, [found("ip-address", address, M)]);
+      expectFound(`client ${address} sent`, [found("ip-address", address, H)]);
+    },
+  );
+
+  test.each([
+    ["in brackets with a port", "dial [2001::1]:443 failed", "2001::1"],
+    ["with a zone", "bound to 2a00::1%eth0", "2a00::1"],
+    ["with a prefix length", "route 2606::1/64 up", "2606::1"],
+    ["in JSON", '{"ip":"2001::1","n":1}', "2001::1"],
+    ["after an equals sign", "remote_addr=2a00::1", "2a00::1"],
+    ["after a user name", "ssh root@2606::1", "2606::1"],
+    ["in a URL", "GET http://[2a00::1]/health", "2a00::1"],
+    ["at the end of a sentence", "the request came from 2001::1.", "2001::1"],
+    ["before a comma", "peers 2001::1, 10.0.0.1", "2001::1"],
+    ["in quotes", "ip='2606::1'", "2606::1"],
+    ["in parentheses", "client (2001::1) left", "2001::1"],
+    ["after a tab", "ip\t2a00::1", "2a00::1"],
+    [
+      "with an IPv4 address after the ::",
+      "upstream 2001::8.8.8.8",
+      "2001::8.8.8.8",
+    ],
+  ])("finds one %s: %s", (_label: string, text: string, address: string) => {
+    expect(
+      scan(text)
+        .filter((match: Found) => {
+          return match.dataTypeId === "ip-address";
+        })
+        .map((match: Found) => {
+          return match.value;
+        }),
+    ).toEqual([address]);
+  });
+
+  test("finds every one of a list, and a longer address beside it", () => {
+    expect(
+      scan("x-forwarded-for: 2001::1, 2a00:1450:4001:81b::200e, 2606::1").map(
+        (match: Found) => {
+          return match.value;
+        },
+      ),
+    ).toEqual(["2001::1", "2a00:1450:4001:81b::200e", "2606::1"]);
+  });
+
+  test("refuses scopes of a program written in hex letters", () => {
+    expectNothingOf("ip-address", [
+      "Abc::Def",
+      "a::b",
+      "dead::beef",
+      "Face::Bad",
+      "Cafe::Babe",
+      "Add::Fee",
+      "std::vector",
+      "Foo::Bar",
+      "Abc::Def::Fed",
+    ]);
+  });
+
+  test("refuses a group inside an identifier, however its first group reads", () => {
+    expectNothingOf("ip-address", [
+      "v1::api",
+      "Api2023::face",
+      "Release_2024::Beta",
+      "x2001::1",
+      "2001::1x",
+      "_2001::1",
+      "2001::1_",
+      "a.2001::1",
+      "edition2021::abc",
+      "u32::MAX",
+      "i32::from_str",
+      "f32::EPSILON",
+      "Vec3d::Zero",
+      "Point2D::new",
+      "Sha256::digest",
+      "Base64::encode",
+      "Ed25519::sign",
+    ]);
+  });
+
+  test("refuses an address of no host: a first group outside the global range, or a link-local, unique-local or multicast one", () => {
+    expectNothingOf("ip-address", [
+      "peer 200::1",
+      "peer 0200::1",
+      "peer 1fff::1",
+      "peer 4000::1",
+      "peer abcd::1",
+      "peer 64::1",
+      "peer fe80::1",
+      "peer fd00::1",
+      "peer fc00::1",
+      "peer ff02::1",
+    ]);
+  });
+
+  test("refuses one side alone, a version tail, and what no address is", () => {
+    expectNothingOf("ip-address", [
+      "peer 2001::",
+      "peer ::2001",
+      "build 2001::1.5",
+      "2001::1::2",
+      "2001:::1",
+      "2001::12345",
+      "20011::1",
+      "2001::1g",
+      "at 12:30:45",
+      "at 23:59:59",
+      "ratio 16:9",
+      "2001-01-01T00:00:00Z",
+    ]);
+  });
+
+  test("isIpv6AddressData takes one global group each side, and nothing else of three parts", () => {
+    for (const address of [
+      "2001::1",
+      "2a00::1",
+      "2606::1",
+      "3fff::ffff",
+      "2001::8.8.8.8",
+      "2A00::BEEF",
+    ]) {
+      expect([address, isIpv6AddressData(address)]).toEqual([address, true]);
+    }
+
+    for (const address of [
+      "1fff::1",
+      "4000::1",
+      "200::1",
+      "64::1",
+      "fe80::1",
+      "fd00::1",
+      "ff02::1",
+      "Abc::Def",
+      "dead::beef",
+      "a::b",
+      "2001::",
+      "::2001",
+      "12:30:45",
+      "2001:1",
+      "2001::1::2",
+      "2001::10000",
+    ]) {
+      expect([address, isIpv6AddressData(address)]).toEqual([address, false]);
+    }
+  });
+
+  test("judges a one-group address as public, never as documentation", () => {
+    expect(isPublicIpv6("2001::1")).toBe(true);
+    expect(isPublicIpv6("2a00::1")).toBe(true);
+    expect(isDocumentationIpv6("2001::1")).toBe(false);
+    expect(isDocumentationIpv6("2001::db8")).toBe(false);
+  });
+
+  test("is found in a column named for it, every value one group each side", () => {
+    expect(
+      classified("client_ip", ["2001::1", "2a00::1", "2606::1"], "ip-address"),
+    ).toMatchObject({ matchCount: 3, nameHinted: true });
+  });
+});
+
+/*
+ * #10467: an address in a percent-encoded URL is found on the characters
+ * it is written with, as the address it reads as, and judged by the words
+ * around it as written - the very ranges an IP Address scrub rule hides.
+ */
+describe("ip-address: in a percent-encoded URL (#10467)", () => {
+  interface EncodedFinding {
+    written: string;
+    normalized: string;
+    confidence: DataConfidence;
+    isTestValue: boolean;
+  }
+
+  function encodedFindings(text: string): Array<EncodedFinding> {
+    return findSensitiveValues(text, { detectors: CONTACT_DETECTORS })
+      .filter((match: TextMatch) => {
+        return match.dataTypeId === "ip-address";
+      })
+      .map((match: TextMatch) => {
+        return {
+          written: text.slice(match.start, match.end),
+          normalized: match.normalized,
+          confidence: match.confidence,
+          isTestValue: match.isTestValue,
+        };
+      });
+  }
+
+  test.each([
+    [
+      "an IPv6 address, its colons encoded",
+      "target=http%3A%2F%2F%5B2606%3A4700%3A4700%3A%3A1111%5D%2F",
+      "2606%3A4700%3A4700%3A%3A1111",
+      "2606:4700:4700::1111",
+    ],
+    [
+      "one group each side of ::",
+      "u=http%3A%2F%2F%5B2a00%3A%3A1%5D",
+      "2a00%3A%3A1",
+      "2a00::1",
+    ],
+    [
+      "an IPv4 address, its dots encoded",
+      "u=81%2E2%2E69%2E142",
+      "81%2E2%2E69%2E142",
+      "81.2.69.142",
+    ],
+    [
+      "an IPv4 address, its digits encoded",
+      "u=%38.%38.%38.%38",
+      "%38.%38.%38.%38",
+      "8.8.8.8",
+    ],
+    [
+      "an IPv4 address written as IPv6",
+      "peer=%3A%3Affff%3A81.2.69.142",
+      "%3A%3Affff%3A81.2.69.142",
+      "::ffff:81.2.69.142",
+    ],
+    [
+      "an address encoded twice",
+      "to%3Dhttp%253A%252F%252F%255B2606%253A%253A1%255D",
+      "2606%253A%253A1",
+      "2606::1",
+    ],
+    [
+      "some colons encoded",
+      "u=2a00%3A1450::200e",
+      "2a00%3A1450::200e",
+      "2a00:1450::200e",
+    ],
+  ])(
+    "finds %s on its written characters: %s",
+    (_label: string, text: string, written: string, normalized: string) => {
+      expect(encodedFindings(text)).toEqual([
+        {
+          written: written,
+          normalized: normalized,
+          confidence: M,
+          isTestValue: false,
+        },
+      ]);
+    },
+  );
+
+  test("is High beside an address word, as written", () => {
+    expect(encodedFindings("client_ip=2606%3A4700%3A%3A1111")).toEqual([
+      {
+        written: "2606%3A4700%3A%3A1111",
+        normalized: "2606:4700::1111",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+  });
+
+  test("counts an encoded documentation address as a test value", () => {
+    expect(encodedFindings("client=2001%3Adb8%3A%3A1")).toEqual([
+      {
+        written: "2001%3Adb8%3A%3A1",
+        normalized: "2001:db8::1",
+        confidence: H,
+        isTestValue: true,
+      },
+    ]);
+    expect(encodedFindings("u=203%2E0%2E113%2E7")).toEqual([
+      {
+        written: "203%2E0%2E113%2E7",
+        normalized: "203.0.113.7",
+        confidence: M,
+        isTestValue: true,
+      },
+    ]);
+  });
+
+  test("an address found as written and as its escapes read is one finding", () => {
+    expect(encodedFindings("u=http%3A%2F%2F8.8.8.8%2F")).toEqual([
+      {
+        written: "8.8.8.8",
+        normalized: "8.8.8.8",
+        confidence: M,
+        isTestValue: false,
+      },
+    ]);
+  });
+
+  test("refuses what an encoded address of no one, or no address, reads as", () => {
+    expectNothingOf("ip-address", [
+      "u=http%3A%2F%2F%5Bfe80%3A%3A1%5D%2F",
+      "u=http%3A%2F%2F%5Bfd00%3Aec2%3A%3A254%5D%2F",
+      "u=http%3A%2F%2F169.254.169.254%2Flatest",
+      "u=10%2E0%2E0%2E1",
+      "peer=%3A%3Affff%3A10.0.0.1",
+      "q=Abc%3A%3ADef",
+      "at=12%3A30%3A45",
+      "hw=00%3A1a%3A2b%3A3c%3A4d%3A5e",
+      "v=1%2E2%2E3%2E4%2E5",
+      "cpu 100% busy",
+      "caf%C3%A9",
+    ]);
+  });
+
+  test("finds an encoded address wherever a window of a long text cuts it", () => {
+    const address: string = "2606%3A4700%3A4700%3A%3A1111";
+
+    for (const at of [61_430, 61_440, 61_450, 65_520, 65_530, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " u=" + address + " " + "b".repeat(8_000);
+      const found: Array<TextMatch> = findSensitiveValues(text, {
+        detectors: CONTACT_DETECTORS,
+      }).filter((match: TextMatch) => {
+        return match.dataTypeId === "ip-address";
+      });
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(text.slice(found[0]!.start, found[0]!.end)).toBe(address);
+      expect(found[0]!.normalized).toBe("2606:4700:4700::1111");
+    }
+  });
+});
+
 describe("mac-address", () => {
   test("is six pairs with one separator throughout", () => {
     expectFound("mac 00:1A:2B:3C:4D:5E", [

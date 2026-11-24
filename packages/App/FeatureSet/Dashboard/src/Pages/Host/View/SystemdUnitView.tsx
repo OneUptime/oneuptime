@@ -54,7 +54,7 @@ import {
   RESOURCE_HERO_TOP_ROW_TEST_ID,
 } from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -213,11 +213,13 @@ const StatTile: FunctionComponent<StatTileProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {translator.translateText(props.title)}
-          </span>
-          <InfoTooltip label={props.title} text={props.description} />
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            text={translator.translateText(props.title) || props.title}
+            label={props.title}
+            description={props.description}
+          />
         </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
@@ -1099,14 +1101,17 @@ const HostSystemdUnitView: FunctionComponent<
       <div className="group/zoomhint mb-6">
         <div className="mb-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1">
-              <h2 className="text-sm font-semibold text-gray-900">
-                {translator.translateText("State timeline")}
+            <div className="flex min-w-0">
+              <h2 className="min-w-0 text-sm font-semibold text-gray-900">
+                <WordsWithInfoTooltip
+                  text={
+                    translator.translateText("State timeline") ||
+                    "State timeline"
+                  }
+                  label="State timeline"
+                  description={HOST_METRIC_DESCRIPTIONS.unitStateTimeline}
+                />
               </h2>
-              <InfoTooltip
-                label="State timeline"
-                text={HOST_METRIC_DESCRIPTIONS.unitStateTimeline}
-              />
             </div>
             <TimeRangeZoomHint revealOnHover={true} />
           </div>

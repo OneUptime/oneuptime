@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
@@ -25,18 +25,29 @@ import {
   truncateLlmText,
 } from "./LlmConversationFormat";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import LlmHiddenByScrubRule from "./LlmHiddenByScrubRule";
+import { getLlmConversationRowPerson } from "./LlmConversationPeople";
 
 /*
  * One conversation in the list: what the person first asked, who asked it,
  * in which app, with which model, how long it ran, what it cost - and, when
  * something went wrong, what. The whole row opens the conversation.
+ *
+ * Who asked is someone named when the conversation has anyone named, else
+ * "Hidden by a scrub rule" when a rule hid who it was (#10631), else
+ * nothing: a conversation that names nobody says no one.
  */
+
+interface RowFact {
+  key: string;
+  content: ReactNode;
+}
 
 export interface ComponentProps {
   conversation: LlmConversationListItem;
   route: Route;
-  // App (telemetry service) names by id.
-  serviceNames: Map<string, string>;
+  // An app's (telemetry service's) name by its id; "" while it is unknown.
+  serviceName: (serviceId: string) => string;
 }
 
 // The dot's colour: the worst issue the conversation had, or healthy.
@@ -77,29 +88,34 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
 
   const appNames: Array<string> = conversation.serviceIds
     .map((id: string): string => {
-      return props.serviceNames.get(id) || "";
+      return props.serviceName(id);
     })
     .filter((name: string): boolean => {
       return name.length > 0;
     });
 
-  const facts: Array<{ key: string; text: string }> = [];
+  const facts: Array<RowFact> = [];
 
-  if (conversation.people[0]) {
-    facts.push({ key: "person", text: conversation.people[0] });
+  const person: { name: string; isHidden: boolean } =
+    getLlmConversationRowPerson(conversation.people);
+
+  if (person.name) {
+    facts.push({ key: "person", content: person.name });
+  } else if (person.isHidden) {
+    facts.push({ key: "person", content: <LlmHiddenByScrubRule /> });
   }
 
   if (appNames[0]) {
-    facts.push({ key: "app", text: appNames.join(", ") });
+    facts.push({ key: "app", content: appNames.join(", ") });
   }
 
   if (conversation.models.length > 0) {
-    facts.push({ key: "models", text: conversation.models.join(", ") });
+    facts.push({ key: "models", content: conversation.models.join(", ") });
   }
 
   facts.push({
     key: "answers",
-    text: translator.translatePlural(
+    content: translator.translatePlural(
       { one: "{{count}} answer", other: "{{count}} answers" },
       conversation.answerCount,
     ),
@@ -108,12 +124,12 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
   if (conversation.durationMs > 0) {
     facts.push({
       key: "duration",
-      text: formatLlmDuration(conversation.durationMs),
+      content: formatLlmDuration(conversation.durationMs),
     });
   }
 
   if (conversation.costUsd > 0) {
-    facts.push({ key: "cost", text: formatLlmCost(conversation.costUsd) });
+    facts.push({ key: "cost", content: formatLlmCost(conversation.costUsd) });
   }
 
   const startedAt: Date = new Date(conversation.startedAt);
@@ -160,7 +176,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
             className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-500"
             data-testid="llm-conversation-row-facts"
           >
-            {facts.map((fact: { key: string; text: string }, index: number) => {
+            {facts.map((fact: RowFact, index: number) => {
               return (
                 <React.Fragment key={fact.key}>
                   {index > 0 ? (
@@ -171,7 +187,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                   <span className="max-w-[16rem] truncate" data-fact={fact.key}>
-                    {fact.text}
+                    {fact.content}
                   </span>
                 </React.Fragment>
               );

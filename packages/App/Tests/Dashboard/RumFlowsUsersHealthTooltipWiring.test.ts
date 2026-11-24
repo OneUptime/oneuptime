@@ -208,8 +208,9 @@ function pairs(source: string, pattern: RegExp): Array<[string, string]> {
 
 describe("User Flows overview tiles carry their own text", () => {
   test("each tile label is paired with its description", () => {
+    // The (i) after the label's last word (WordsWithInfoTooltip, #8044).
     expect(OVERVIEW).toContain(
-      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
+      'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";',
     );
     expect(OVERVIEW).toContain(
       'import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";',
@@ -239,8 +240,9 @@ describe("User Flows overview tiles carry their own text", () => {
       "const label: string = translator.translateText(props.label) || props.label;",
     );
     expect(tile).toContain(
-      "<InfoTooltip label={label} text={props.tooltip} dataTestId={`${props.testId}-info`} />",
+      "<WordsWithInfoTooltip text={label} label={props.label} description={props.tooltip} infoDataTestId={`${props.testId}-info`} />",
     );
+    expect(tile).not.toContain("<InfoTooltip");
   });
 
   test("the findings cards are buttons, so they carry no (i)", () => {
@@ -550,11 +552,12 @@ describe("Replay Health figures carry their own text", () => {
       ),
     );
 
+    // Each (i) after its title's last word (WordsWithInfoTooltip, #8044).
     expect(counterList).toContain(
-      "<InfoTooltip label={props.title} text={props.tooltip}",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.tooltip}",
     );
     expect(meter).toContain(
-      "<InfoTooltip label={props.label} text={props.tooltip}",
+      "text={translator.translateText(props.label) || props.label} label={props.label} description={props.tooltip}",
     );
   });
 

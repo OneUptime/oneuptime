@@ -80,6 +80,15 @@ describe("a public address is hidden, however it is written", () => {
     ["IPv4-mapped, written in hex", "::ffff:808:808"],
     ["IPv4-mapped, written out", "0:0:0:0:0:ffff:8.8.8.8"],
     ["NAT64, an IPv4 address translated", "64:ff9b::192.0.2.33"],
+    // #10466: one group each side of "::".
+    ["IPv6, one group each side of ::", "2001::1"],
+    ["IPv6, one group each side, another", "2a00::1"],
+    ["IPv6, one group each side, in capitals", "2606::BEEF"],
+    // #10467: percent-encoded, as a query string holds it.
+    ["IPv6, its colons encoded", "2001%3Adb8%3A%3A1"],
+    ["IPv6, one group each side, encoded", "2606%3A%3A1"],
+    ["IPv4, its dots encoded", "8%2E8%2E8%2E8"],
+    ["IPv4-mapped, encoded", "%3A%3Affff%3A8.8.8.8"],
   ])("%s: %s", (_form: string, address: string) => {
     const line: string = `request from ${address} refused`;
 
@@ -155,6 +164,21 @@ describe("inside a URL", () => {
       "/api/lookup?ip=::ffff:203.0.113.8",
       `/api/lookup?ip=${PLACEHOLDER}`,
     ],
+    [
+      "a one-group host (#10466)",
+      "GET http://[2001::1]:8080/health",
+      `GET http://[${PLACEHOLDER}]:8080/health`,
+    ],
+    [
+      "an encoded URL in the query, its escaped brackets kept (#10467)",
+      "/cb?target=http%3A%2F%2F%5B2606%3A4700%3A%3A1111%5D%3A8443%2F",
+      `/cb?target=http%3A%2F%2F%5B${PLACEHOLDER}%5D%3A8443%2F`,
+    ],
+    [
+      "a URL encoded twice (#10467)",
+      "/login?next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B2001%253A%253A1%255D",
+      `/login?next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B${PLACEHOLDER}%255D`,
+    ],
   ])("%s", (_case: string, url: string, expected: string) => {
     expect(redactionOf(url)).toBe(expected);
   });
@@ -184,6 +208,12 @@ describe("a private, loopback or link-local address is kept, as the scrub rule k
     ["multicast IPv6", "ff02::1"],
     ["a private IPv4 address written as IPv6", "::ffff:10.0.0.1"],
     ["a loopback IPv4 address written as IPv6", "::ffff:127.0.0.1"],
+    ["link-local IPv6, encoded (#10467)", "fe80%3A%3A1"],
+    ["private IPv4, its dots encoded (#10467)", "10%2E0%2E0%2E1"],
+    [
+      "a private IPv4 address written as IPv6, encoded",
+      "%3A%3Affff%3A10.0.0.1",
+    ],
   ])("%s: %s", (_kind: string, address: string) => {
     const line: string = `connect ${address}:5432 refused`;
 
@@ -216,6 +246,15 @@ describe("what only looks like an address is kept", () => {
     ["a key and value with colons", "a:b:c:d"],
     ["a lone ::", "split on :: here"],
     ["a dotted quad out of range", "value 999.888.777.666"],
+    // #10466: what one group each side of "::" is not.
+    ["a scope of hex letters", "called Abc::Def and dead::beef"],
+    ["a version in a module path", "routed to v1::api"],
+    ["a year inside an identifier", "loaded Api2023::face"],
+    ["a first group outside the global range", "peer 4000::1"],
+    // #10467: what an encoded text is when it holds no address.
+    ["an encoded scope", "q=Abc%3A%3ADef"],
+    ["an encoded clock", "at=12%3A30%3A45"],
+    ["a percent sign that is no escape", "cpu at 100% and caf%C3%A9"],
   ])("%s", (_case: string, line: string) => {
     expect(redactionOf(line)).toBe(line);
     expect(countOf(line)).toBe(0);
@@ -280,6 +319,10 @@ describe("the serializer and an IP Address scrub rule hide the same addresses", 
     "2001:DB8:0:0:0:0:0:1 and 2001:db8:: and ::ffff:808:808",
     "169.254.169.254 fd00:ec2::254 100.64.0.1 172.31.255.255",
     "a,8.8.8.8;b=[2001:db8::9]|c:198.51.100.1",
+    // #10466 and #10467: the new shapes, and what nearly is one.
+    "2001::1 2a00::1 Abc::Def v1::api Api2023::face 4000::1 2001::1.5",
+    "u=http%3A%2F%2F%5B2606%3A4700%3A%3A1111%5D%2F v=8%2E8%2E8%2E8 w=fe80%3A%3A1",
+    "q=Abc%3A%3ADef at=12%3A30%3A45 cpu 100% caf%C3%A9 load 99%2001::1",
   ];
 
   test.each(TEXTS)("%s", (text: string) => {

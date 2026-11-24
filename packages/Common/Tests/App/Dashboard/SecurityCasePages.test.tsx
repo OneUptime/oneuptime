@@ -86,6 +86,19 @@ jest.mock(
   },
 );
 
+// A held case's notice reads the case's hold itself (SecurityCaseAiHoldNotice's own tests).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/AiResponse/SecurityCaseAiHoldNotice",
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return React.createElement("div", { "data-testid": "ai-hold-notice" });
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Matches/SecurityCaseWhyOpenedCard",
   () => {

@@ -21,8 +21,11 @@ import logger from "../Logger";
  * project's rule only through here: every copy that is still word for word
  * the library rule as it was before the fix (isSameRuleYaml) gets the
  * library's YAML now - and its description, when that is still the
- * library's too. A rule anyone edited is theirs, and is left as it is; so
- * is its name, its switch, its threshold and everything else a team sets.
+ * library's too. A fix that moved the field the rule groups by (#10773)
+ * moves a copy still grouped by the library's old field, its YAML still the
+ * library's. A rule anyone edited is theirs, and is left as it is; so is a
+ * field it was grouped by that someone chose, its name, its switch, its
+ * threshold and everything else a team sets.
  * Written as OneUptime, through the service, so the YAML is checked as any
  * save checks it. Safe to run any number of times, and two at once: a copy
  * already upgraded is no longer the earlier wording.
@@ -48,10 +51,20 @@ export default class DetectionRuleLibraryUpgradeCopies {
     const entry: DetectionRuleLibraryEntry | undefined =
       getDetectionRuleLibraryEntry(upgrade.id);
 
-    if (
-      !entry ||
-      isSameRuleYaml(entry.sigmaRuleYaml, upgrade.previousSigmaRuleYaml)
-    ) {
+    if (!entry) {
+      return 0;
+    }
+
+    const isYamlFixed: boolean = !isSameRuleYaml(
+      entry.sigmaRuleYaml,
+      upgrade.previousSigmaRuleYaml,
+    );
+    // The field the library's rule groups by moved (#10773).
+    const isGroupByFixed: boolean =
+      upgrade.previousGroupByField !== undefined &&
+      upgrade.previousGroupByField !== (entry.groupByField || "");
+
+    if (!isYamlFixed && !isGroupByFixed) {
       return 0;
     }
 
@@ -66,7 +79,12 @@ export default class DetectionRuleLibraryUpgradeCopies {
        */
       const rules: Array<DetectionRule> = await DetectionRuleService.findBy({
         query: { sigmaRuleYaml: new Search(`id: ${upgrade.id}`) },
-        select: { _id: true, sigmaRuleYaml: true, description: true },
+        select: {
+          _id: true,
+          sigmaRuleYaml: true,
+          description: true,
+          groupByField: true,
+        },
         sort: { createdAt: SortOrder.Ascending },
         skip,
         limit: PAGE_SIZE,
@@ -84,16 +102,35 @@ export default class DetectionRuleLibraryUpgradeCopies {
           continue;
         }
 
+        const data: Record<string, string> = {};
+
+        if (isYamlFixed) {
+          data["sigmaRuleYaml"] = entry.sigmaRuleYaml;
+
+          if (
+            (rule.description || "").trim() ===
+            upgrade.previousDescription.trim()
+          ) {
+            data["description"] = entry.description;
+          }
+        }
+
+        // Grouped as the library's rule was: grouped as it is now.
+        if (
+          isGroupByFixed &&
+          (rule.groupByField || "") === upgrade.previousGroupByField
+        ) {
+          data["groupByField"] = entry.groupByField || "";
+        }
+
+        if (Object.keys(data).length === 0) {
+          continue;
+        }
+
         try {
           await DetectionRuleService.updateOneById({
             id: rule.id,
-            data: {
-              sigmaRuleYaml: entry.sigmaRuleYaml,
-              ...((rule.description || "").trim() ===
-              upgrade.previousDescription.trim()
-                ? { description: entry.description }
-                : {}),
-            },
+            data: data as never,
             props: { isRoot: true },
           });
           upgraded++;

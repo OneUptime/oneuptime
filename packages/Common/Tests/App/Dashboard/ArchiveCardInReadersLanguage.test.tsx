@@ -180,7 +180,10 @@ import Workflow from "../../../Models/DatabaseModels/Workflow";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const DE: Record<string, string> = readDashboardLocale("de");
@@ -957,6 +960,117 @@ describe.each(MODEL_NAMED_TITLES)(
         archiveInventoryItems: titles.archiveInventoryItems,
         archiveHosts: titles.archiveHosts,
       });
+    });
+  },
+);
+
+/*
+ * A TELEMETRY LIST'S BULK ARCHIVE ASKS ONCE, AND SAYS WHERE THE WAY BACK
+ * IS (#8033).
+ *
+ * The dialog's title asks the question ("3 Dienste archivieren?"). Its
+ * sentence used to ask it again ("Möchten Sie die ausgewählten Dienste
+ * wirklich archivieren?") and send the reader to an Archived tab, which is
+ * no tab: the list's Archived page is in its side menu, under Advanced. The
+ * sentence says what archiving does and names that page as the side menu
+ * names it, in every language: its words for Advanced and for the page
+ * (Archived, or Network's Archived Devices).
+ */
+const QUESTION_MARKS: RegExp = /[?？؟]/;
+
+describe.each(["en", ...DASHBOARD_LANGUAGES])(
+  "a telemetry list's bulk Archive in %s",
+  (language: string) => {
+    const words: Record<string, string> = readDashboardLocale(language);
+    const advanced: string = words["Advanced"] || "Advanced";
+    const archived: string = words["Archived"] || "Archived";
+    const archivedDevices: string =
+      words["Archived Devices"] || "Archived Devices";
+
+    beforeAll(async () => {
+      if (language !== "en") {
+        i18next.addResourceBundle(language, "translation", words, true, true);
+      }
+
+      await inLanguage(language);
+    });
+
+    afterAll(async () => {
+      await inLanguage("en");
+    });
+
+    afterEach(() => {
+      cleanup();
+    });
+
+    test("the title asks, and the sentence never asks again", () => {
+      const services: BulkArchiveActionsResult<Service> =
+        renderModelNamedActions(Service);
+
+      for (const count of [1, 3]) {
+        for (const action of [
+          onlyAction(services.archiveBulkActions),
+          onlyAction(services.unarchiveBulkActions),
+        ]) {
+          const drawn: { title: string; body: string } = readBulkDialog(
+            action,
+            itemsOf(Service, count),
+          );
+
+          expect({
+            title: drawn.title,
+            asks: QUESTION_MARKS.test(drawn.title),
+          }).toEqual({ title: drawn.title, asks: true });
+          expect({
+            body: drawn.body,
+            asks: QUESTION_MARKS.test(drawn.body),
+          }).toEqual({ body: drawn.body, asks: false });
+          cleanup();
+        }
+      }
+    });
+
+    test("the sentence names the Archived page as the side menu does, under Advanced", () => {
+      const hosts: BulkArchiveActionsResult<Host> =
+        renderModelNamedActions(Host);
+
+      for (const count of [1, 2]) {
+        const body: string = readBulkDialog(
+          onlyAction(hosts.archiveBulkActions),
+          itemsOf(Host, count),
+        ).body;
+
+        expect({ body, advanced: body.includes(advanced) }).toEqual({
+          body,
+          advanced: true,
+        });
+        expect({ body, archived: body.includes(archived) }).toEqual({
+          body,
+          archived: true,
+        });
+        // Advanced comes before the page, as the side menu has them.
+        expect(body.indexOf(advanced)).toBeLessThan(body.lastIndexOf(archived));
+        cleanup();
+      }
+    });
+
+    test("Network's devices are sent to its Archived Devices page", () => {
+      const devices: BulkArchiveActionsResult<Host> = renderHook(() => {
+        return useBulkArchiveActions<Host>({
+          modelType: Host,
+          archivedPageTitle: "Archived Devices",
+        });
+      }).result.current;
+      const body: string = readBulkDialog(
+        onlyAction(devices.archiveBulkActions),
+        itemsOf(Host, 4),
+      ).body;
+
+      expect({ body, page: body.includes(archivedDevices) }).toEqual({
+        body,
+        page: true,
+      });
+      expect(body.includes(advanced)).toBe(true);
     });
   },
 );

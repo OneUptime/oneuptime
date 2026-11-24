@@ -398,9 +398,12 @@ describe("who is told", () => {
       sent[0]!.data["emailEnvelope"] as unknown as { vars: JSONObject }
     ).vars;
 
-    // 20:05 UTC is 21:05 in Berlin.
-    expect(String(vars["evidenceLine"])).toMatch(
-      /^198\.51\.100\.7 got through again at .*21:05.*: the block is not holding\.$/,
+    /*
+     * 20:05 UTC is 21:05 in Berlin, on a day said as a day: the moment
+     * brings its own words (#10622), never "at Nov 17, 2026".
+     */
+    expect(String(vars["evidenceLine"])).toBe(
+      "198.51.100.7 got through again on Nov 17, 2026 at 21:05 CET: the block is not holding.",
     );
     expect(vars["stepTitle"]).toBe(STEP_TITLE);
     expect(feedItems).toHaveLength(1);

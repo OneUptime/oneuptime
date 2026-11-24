@@ -295,7 +295,11 @@ describe("a call", () => {
     expect(screen.getByTestId("event-video-call-join")).toHaveTextContent(
       "Join huddle",
     );
-    expect(screen.getByText(/Started by Ada Lovelace/)).toBeVisible();
+    // The sentence's words and the name are boxes of their own (#7234).
+    expect(screen.getByTestId("event-video-call-started")).toHaveTextContent(
+      /^Started by Ada Lovelace/,
+    );
+    expect(screen.getByText("Ada Lovelace")).toBeVisible();
   });
 
   test("a call started through the API says so", () => {

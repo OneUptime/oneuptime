@@ -18,6 +18,7 @@ import LlmLogEventReader, {
 import LlmCountedCallsSql, {
   LlmCountedCallsScope,
 } from "../Utils/Telemetry/LlmCountedCallsSql";
+import { buildLlmPersonSql } from "../Utils/Telemetry/LlmCallIdentitySql";
 import logger from "../Utils/Logger";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -61,6 +62,7 @@ import LlmLogEventsUtil, {
   LlmLogEventCall,
   LlmLogEventRecord,
 } from "../../Utils/Telemetry/LlmLogEvents";
+import { readLlmCallPerson } from "../../Utils/Telemetry/LlmCallIdentity";
 
 /*
  * AI CONVERSATIONS, READ FROM THE SPAN TABLE.
@@ -129,8 +131,6 @@ export const IS_ANSWER_SQL: string = `(llmCallKind = '${LlmCallKind.Answer}' OR 
 const IS_FAILED_SQL: string = `(statusCode = ${SpanStatus.Error} OR has(llmIssues, '${LlmAnswerIssue.Failed}'))`;
 
 const HAS_PROBLEM_SQL: string = `(statusCode = ${SpanStatus.Error} OR notEmpty(llmIssues))`;
-
-const PERSON_SQL: string = `if(llmUserEmail != '', llmUserEmail, llmUserId)`;
 
 const ISSUE_COUNT_ALIASES: Record<LlmAnswerIssue, string> = {
   [LlmAnswerIssue.Failed]: "failedCount",
@@ -764,8 +764,21 @@ export default class LlmConversationService {
       `${issueColumns}, ` +
         `maxIf(durationUnixNano, ${IS_ANSWER_SQL}) AS slowestAnswerNano, ` +
         `argMinIf(llmUserMessagePreview, ${CALL_START_SQL}, llmUserMessagePreview != '') AS title, ` +
-        `groupUniqArrayIf(5)(llmRequestModel, llmRequestModel != '') AS models, ` +
-        `groupUniqArrayIf(5)(${PERSON_SQL}, ${PERSON_SQL} != '') AS people, ` +
+        `groupUniqArrayIf(5)(llmRequestModel, llmRequestModel != '') AS models, `,
+    );
+    /*
+     * Who took part: each call's person read past what a scrub rule left,
+     * as the Usage tab reads it - an email a rule hid falls back to the id,
+     * and a call whose every name was hidden is the hidden key, once,
+     * never "[REDACTED]" or a mask or a token as somebody (#10631). A call
+     * that names nobody adds no one.
+     */
+    statement.append("groupUniqArrayIf(5)(");
+    statement.append(buildLlmPersonSql());
+    statement.append(", ");
+    statement.append(buildLlmPersonSql());
+    statement.append(
+      ` != '') AS people, ` +
         `groupUniqArray(5)(primaryEntityId) AS serviceIds, ` +
         `groupUniqArrayIf(5)(llmAgentName, llmAgentName != '') AS agents ` +
         `FROM ${TABLE_NAME}`,
@@ -1065,8 +1078,11 @@ export default class LlmConversationService {
       outputTokens: readNumber(row["llmOutputTokens"]),
       costUsd: readNumber(row["llmCost"]),
       issues: issues,
-      userLabel:
-        readString(row["llmUserEmail"]) || readString(row["llmUserId"]),
+      // As the list and the Usage tab read the person (#10631).
+      userLabel: readLlmCallPerson({
+        email: row["llmUserEmail"],
+        id: row["llmUserId"],
+      }),
       serviceId: readString(row["primaryEntityId"]),
       content: content,
     };

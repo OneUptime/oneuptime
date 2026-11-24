@@ -4,7 +4,7 @@ import SecurityPlaybookRun from "../../Models/DatabaseModels/SecurityPlaybookRun
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import { JSONObject, JSONValue } from "../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import {
@@ -40,8 +40,11 @@ import SecurityPlaybookRunDecision, {
   SecurityPlaybookApprovalChangedException,
 } from "../Utils/SecurityPlaybook/SecurityPlaybookRunDecision";
 import SecurityPlaybookOneStepRuns, {
+  CampaignBlockStarted,
   OneStepBlockStarted,
 } from "../Utils/SecurityPlaybook/SecurityPlaybookOneStepRuns";
+import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -51,6 +54,9 @@ export const APPROVAL_COMMENT_MAX_LENGTH: number = 2000;
 
 // Where a person blocks one of a case's addresses in one click (#10342), under the run's path.
 export const SECURITY_PLAYBOOK_ONE_STEP_BLOCK_PATH: string = "block-address";
+
+// Where a person blocks the whole campaign of one of a case's addresses (#10354), under the run's path.
+export const SECURITY_PLAYBOOK_CAMPAIGN_BLOCK_PATH: string = "block-campaign";
 
 export const ONE_STEP_BLOCK_REFUSED_MESSAGE: string =
   "Blocking an address from a case takes a role that can run playbooks and block addresses.";
@@ -216,6 +222,68 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             runId: started.run.id?.toString() || "",
             needsApproval: started.needsApproval,
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Block the Whole Campaign from a case (#10354): the case's address and
+     * the other addresses of its campaign, in one run of the engine and one
+     * approval that lists them all. Takes what a one-step block takes, and
+     * reads the campaign as the person may read security events.
+     */
+    this.router.post(
+      `${basePath}/${SECURITY_PLAYBOOK_CAMPAIGN_BLOCK_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              new SecurityPlaybookRun().getCreatePermissions(),
+            errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
+          });
+
+          CommonAPI.assertCanCreateTable({
+            modelType: SecurityBlock,
+            props,
+            errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
+          });
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityEvent().getReadPermissions(),
+            errorMessage: ONE_STEP_BLOCK_REFUSED_MESSAGE,
+          });
+
+          const started: CampaignBlockStarted =
+            await SecurityPlaybookOneStepRuns.startCampaignBlock({
+              projectId,
+              request: SecurityPlaybookOneStepRuns.readCampaignBlockRequest(
+                readBody(req),
+              ),
+              props,
+              serviceFilter: await TelemetryReadAccess.getServiceFilter({
+                modelType: SecurityEvent,
+                props,
+              }),
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            runId: started.run.id?.toString() || "",
+            needsApproval: started.needsApproval,
+            blocking: started.blocking,
+            leftOut: started.leftOut as unknown as JSONArray,
           });
         } catch (error) {
           next(error);

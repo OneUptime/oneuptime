@@ -15,10 +15,7 @@ import {
   SetupHealthEventKind,
   SetupHealthFinding,
 } from "Common/Types/SetupHealth/SetupHealth";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import PolicyChoicePicker from "../OnCallPolicy/PolicyChoicePicker";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -285,18 +282,6 @@ const CreateOnCallRuleDialog: FunctionComponent<{
   const policies: Array<SetupHealthPolicyChoice> =
     load.status === "loaded" ? load.policies : [];
 
-  const options: Array<DropdownOption> = policies.map(
-    (policy: SetupHealthPolicyChoice): DropdownOption => {
-      // A policy's name is the project's own, drawn as written.
-      return {
-        value: policy.id,
-        label: policy.name,
-        isUserContent: true,
-        sharedName: policy.sharedName,
-      };
-    },
-  );
-
   const getBody: () => ReactElement = (): ReactElement => {
     if (load.status === "loaded" && policies.length === 0) {
       return (
@@ -329,21 +314,21 @@ const CreateOnCallRuleDialog: FunctionComponent<{
             >
               {translator.translateText(CREATE_ON_CALL_RULE_WORDS.policyLabel)}
             </label>
-            <Dropdown
-              options={options}
-              value={options.find((option: DropdownOption): boolean => {
-                return option.value === picked?.id;
-              })}
-              isClearable={false}
+            {/*
+             * The project's first policies, and the rest searched on the
+             * server as the person types (#10764).
+             */}
+            <PolicyChoicePicker<SetupHealthPolicyChoice>
+              policies={policies}
+              value={picked?.id}
+              search={(
+                text: string,
+              ): Promise<Array<SetupHealthPolicyChoice>> => {
+                return SetupHealthQuickFixApi.searchPolicies(text);
+              }}
               ariaLabelledby="setup-health-quick-fix-policy-label"
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ): void => {
-                setPicked(
-                  policies.find((policy: SetupHealthPolicyChoice): boolean => {
-                    return policy.id === value;
-                  }) || null,
-                );
+              onChange={(choice: SetupHealthPolicyChoice): void => {
+                setPicked(choice);
               }}
             />
           </div>

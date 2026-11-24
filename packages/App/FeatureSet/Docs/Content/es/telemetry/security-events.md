@@ -133,6 +133,7 @@ Abre **Productos → Eventos de seguridad → Eventos**. Los eventos aparecen en
 Indica el formato con `?format=`, con la cabecera `x-oneuptime-security-event-format` o con un campo `"format"` de primer nivel. Si lo omites, el formato de cada evento se deduce por separado, así que un mismo webhook puede mezclar detecciones con eventos en bruto.
 
 - El cuerpo puede ser un evento, un array de eventos o `{ "events": [...] }`.
+- Un lote puede comprimirse con gzip y enviarse con `Content-Encoding: gzip`: se lee igual que el mismo lote sin comprimir. La salida `http` de Fluent Bit comprime con `compress gzip`, el sink `http` de Vector con `compression = "gzip"` y la salida `http` de Logstash con `http_compression => true`. Solo el JSON se lee comprimido: un cuerpo comprimido de cualquier otro tipo se rechaza con `400`.
 - La cabecera `x-oneuptime-service-name` nombra el servicio de telemetría al que pertenecen los eventos. Sin ella, pertenecen al servicio con el nombre del producto o del proveedor del primer evento, o a `Security Events`.
 - No se descarta nada por no poder mapearlo: cada campo del origen llega a los atributos del evento.
 
@@ -174,6 +175,7 @@ Para enviar registros de seguridad que ya recopilas, como los de auditd, syslog 
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ La página **Guía de configuración**, en **Conexiones**, tiene estos fragmento
 
 ### Encontrar eventos de seguridad en sus registros
 
-La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, registro de un firewall de Palo Alto Networks, FortiGate o Cisco ASA, entrada de auditoría de Kubernetes y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, registro de un firewall de Palo Alto Networks, FortiGate o Cisco ASA, entrada de auditoría de Kubernetes, ataque web y solicitud rechazada de un archivo sensible que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
 
 Cada tipo llega a OneUptime como registros normales:
 
@@ -298,6 +300,10 @@ Una regla de dirección IP que borra o enmascara tus registros o trazas oculta l
 
 Una regla que aplica hash guarda la dirección para Eventos de seguridad, así que el evento la nombra, salvo que su token tenga más de 30 días o se creara antes de que los tokens tuvieran una clave: consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles). Para encontrar estos eventos, busca `@oneuptime.request.client_address_hidden:scrub-rule`. Lo que la regla dejó en lugar de la dirección, como `[REDACTED]`, está en `oneuptime.request.client_address_scrubbed`. Para un destino, busca `@oneuptime.target_address_hidden:scrub-rule`.
 
+Una regla de detección que cuenta por dirección debería contar por `principalIp` o `targetIp`, como hacen las reglas de la Biblioteca de reglas, porque esos campos nombran la dirección que hay detrás del token de una regla que aplica hash. El campo de dirección propio de un formato, como `openstack.audit.initiator_address` o `asa.src_ip`, solo contiene una dirección que escribió el registro, así que queda vacío allí donde una regla de depuración ocultó una.
+
+Una regla que borra o enmascara un usuario lo oculta del mismo modo: allí donde el evento nombraría al usuario, **Usuario de origen** o **Usuario de destino** dice que una regla de depuración lo ocultó. Donde Eventos de seguridad lee un usuario, una regla que aplica hash le guarda el usuario: el `enduser.id` o el `user.id` de una solicitud, el usuario de una llamada de IA y el usuario que nombra una línea de registro, como la entidad principal de un registro de auditoría de la nube. Así, el evento nombra al usuario detrás del token, un caso sobre él nombra la cuenta y un playbook puede actuar sobre ella como sobre cualquier otro usuario. Lo que dejó la regla está en `oneuptime.principal_user_hashed_as` o en `oneuptime.target_user_hashed_as`, para que encuentres al usuario en tus registros y trazas, que solo contienen el token. Un token sin usuario guardado, como uno creado antes de que los tokens tuvieran una clave, sigue siendo el usuario del evento: las reglas lo cuentan como una sola cuenta y ningún playbook actúa sobre él.
+
 ## Explorar los eventos de seguridad
 
 **Eventos** es un explorador de telemetría como los de registros y trazas: un gráfico de los eventos de la ventana por gravedad, una barra lateral de facetas, la lista y un panel con cada campo y atributo del evento que abras. La ventana, los filtros y la búsqueda viven en la URL, así que una vista filtrada se puede compartir y sobrevive a una recarga.
@@ -331,7 +337,16 @@ Un evento leído de una línea de log escrita dentro de una solicitud trazada se
 
 ### Campaigns
 
-**Campañas** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero.
+**Campañas** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero. Una fila que tu lista de bloqueo ya contiene dice hasta cuándo está bloqueada o sometida a desafío, y nombra el rango o la red que la contiene.
+
+Para bloquear a varios atacantes a la vez, selecciona sus filas y pulsa **Bloquear direcciones**. Un solo diálogo lista cada dirección que bloquea y cada una que deja fuera, con el motivo: ya bloqueada, una de las tuyas o una protegida, una que un usuario con sesión iniciada usó en los últimos 30 días, o una que OneUptime no pudo comprobar. Bloquea durante 24 horas salvo que elijas otra duración, o somete a desafío con **Desafío en su lugar**, y cada bloqueo pasa a tu [lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo) como tuyo.
+
+**Agrupar por red** pone las direcciones de una misma red en una sola fila: por su ASN cuando los eventos de tu conexión de [Cloudflare](/docs/integrations/cloudflare) nombran uno, y si no, por su /24 en IPv4 o su /48 en IPv6. La fila de un ASN lista los rangos desde los que enviaron sus direcciones. **Someter esta red a desafío** dice qué hará, dónde y durante cuánto tiempo antes de hacerlo: 24 horas salvo que elijas otra duración, y el siguiente peldaño de la escalera para una red ya sometida a desafío antes. Cloudflare guarda un rango en su lista de desafíos, y un ASN como una IP Access Rule, que tiene todo plan.
+
+- Una red que contiene una dirección que un usuario con sesión iniciada usó en los últimos 30 días, o una de las tuyas, nunca se somete a desafío, y el diálogo nombra quién o qué.
+- Un rango más amplio que un /24 (un /48 en IPv6), y un ASN entero, requieren un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto. La fila de un ASN también ofrece cada uno de sus rangos, que cualquiera que pueda bloquear puede someter a desafío.
+- Cuando OneUptime no puede saber quién usa una red, porque es un ASN entero o porque una regla de depuración oculta las direcciones de los clientes, solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede someterla a desafío, después de marcar que lo sabe.
+- No se bloquea ni se somete a desafío nada mientras Eventos de seguridad esté desactivado en el servidor.
 
 ### Correlacionar
 
@@ -583,6 +598,7 @@ Una excepción es algo que una regla omite porque lo esperas, como un escáner d
 | **Una ventana de tiempo** | Cada evento desde **Comienza en** hasta **Termina en**, con 30 días de diferencia como máximo |
 
 - Los valores coinciden sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` omite cada cuenta de servicio, y `*.lab.example.com` cada host de un dominio. Una dirección IP puede ser un rango, como `10.20.0.0/16`. Un valor formado solo por `*` se rechaza: para detener una regla, desactívala.
+- Los eventos del propio registro de auditoría de OneUptime nombran una clave de API del proyecto en `principalUser` como `api-key:` seguido de su ID, así que dos claves con un mismo nombre son dos actores, y ningún playbook ofrece una clave como un usuario que suspender. El nombre de la clave sigue en el mensaje del evento y en `audit.api_key_name`. Una excepción para el nombre de una clave, como usuario o como valor de `principalUser`, sigue omitiendo cada clave con ese nombre, y una para `api-key:` seguido del ID de la clave omite solo esa clave.
 - Cada excepción dice por qué en su **Motivo**, que ve todo el que lee la lista, y guarda quién la añadió y cuándo. Una entidad o un valor puede tener una fecha en **Caduca el**, tras la cual la regla vuelve a verlo; una ventana de tiempo termina sola.
 - **Estado** dice en qué punto está cada una: **Activo**, **Programado** para una ventana que aún no ha empezado, **Caducado** o **Finalizado**. Bajo el nombre de una regla en **Reglas de detección**, una línea cuenta sus excepciones activas, y **Ver excepciones** en la fila de la regla abre la lista filtrada por ella.
 - Los eventos omitidos se descartan antes de que la regla cuente nada, así que nunca cuentan para su **Umbral de número de coincidencias** y no abren ningún caso, alerta, incidente ni hallazgo. Las excepciones se aplican a cada ejecución de la regla, correlaciones incluidas, y a **Ejecutar sobre eventos pasados**, pero nunca a un ataque de prueba, que comprueba que los eventos llegan.

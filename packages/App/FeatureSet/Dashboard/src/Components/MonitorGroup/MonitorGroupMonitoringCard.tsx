@@ -38,10 +38,12 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
 
 /*
  * "Monitoring", on a monitor group's Overview (issue #6401): how many of the
- * group's monitors are checked, with Turn off monitoring and Turn
- * monitoring on for every one of them at once (MonitorGroupMonitoringCopy).
+ * group's monitors are checked, with Turn monitoring off and Turn
+ * monitoring on for every one of them at once (MonitorGroupMonitoringCopy):
+ * one switch, said one way. The two sat side by side as "Turn monitoring
+ * on" and "Turn off monitoring", in two word orders (#6988).
  *
- * The buttons show what can be done: Turn off monitoring while any monitor
+ * The buttons show what can be done: Turn monitoring off while any monitor
  * is checked, Turn monitoring on while any is not - both while the group is
  * mixed. Turning it off asks first, in the words a monitor's own switch
  * uses; turning it on saves at once. Gated on the column a monitor's switch

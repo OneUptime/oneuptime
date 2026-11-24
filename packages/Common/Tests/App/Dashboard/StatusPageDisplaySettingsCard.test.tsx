@@ -107,6 +107,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { INPUT_REFUSED_CLASS_NAME } from "../../../UI/Components/Input/Input";
 
 const STATUS_PAGE_ID: string = "5b5b5b5b-0000-4000-8000-0000000000bb";
 
@@ -1288,6 +1289,8 @@ describe("how many days", () => {
 
       expect(box).toHaveAttribute("aria-invalid", "true");
       expect(box.getAttribute("aria-describedby")).toBe(error.id);
+      // The box is drawn refused too, as a refused text field is (#6520).
+      expect(box).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
 
       // Typing again clears it, and a good number saves.
       await typeDays("showAnnouncementHistoryInDays", "5");
@@ -1302,6 +1305,9 @@ describe("how many days", () => {
           `${getDisplayDaysTestId("showAnnouncementHistoryInDays")}-error`,
         ),
       ).not.toBeInTheDocument();
+      expect(daysFor("showAnnouncementHistoryInDays")).not.toHaveClass(
+        "border-red-300",
+      );
     },
   );
 

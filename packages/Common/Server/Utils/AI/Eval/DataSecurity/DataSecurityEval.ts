@@ -77,7 +77,13 @@ import {
   ScrubRuleEvalExpectation,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
+  DescribeDataTypeEvalCase,
+  DraftDataTypesEvalCase,
 } from "./DataSecurityEvalCase";
+import {
+  dataTypeDraftEvalPrompt,
+  scoreDataTypeDraft,
+} from "./DataTypeDraftEvalSet";
 import PullRequestLeakReview, {
   PULL_REQUEST_LEAK_REVIEW_MAX_TOKENS,
   PullRequestLeakFile,
@@ -244,6 +250,13 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
   [DataSecurityAiFeature.DraftRecordOnRequest]: 0.75,
   [DataSecurityAiFeature.DraftImpactAssessment]: 0.5,
   [DataSecurityAiFeature.DraftAuditEvidence]: 0.5,
+  /*
+   * A data type held to made-up values it must find and leave alone, and
+   * to none where a group holds none (#10371): the product proves every
+   * draft on its stores before anyone sees it, so three in four.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: 0.75,
+  [DataSecurityAiFeature.DescribeDataType]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.
@@ -1326,7 +1339,24 @@ export function buildEvalCall(
       return impactAssessmentCall(testCase);
     case DataSecurityAiFeature.DraftAuditEvidence:
       return auditEvidenceCall(testCase);
+    case DataSecurityAiFeature.DraftDataTypes:
+    case DataSecurityAiFeature.DescribeDataType:
+      return dataTypeDraftCall(testCase);
   }
+}
+
+// A data type's draft asks as it ships (#10371): the same builder, words and limits.
+function dataTypeDraftCall(
+  testCase: DraftDataTypesEvalCase | DescribeDataTypeEvalCase,
+): DataSecurityEvalCall {
+  const call: { prompt: DataSecurityAiPrompt; maxTokens: number } =
+    dataTypeDraftEvalPrompt(testCase);
+
+  return {
+    messages: call.prompt.messages,
+    maxTokens: call.maxTokens,
+    temperature: 0,
+  };
 }
 
 export function scoreAnswer(
@@ -1369,6 +1399,9 @@ export function scoreAnswer(
       return scoreImpactAssessment(testCase, answer);
     case DataSecurityAiFeature.DraftAuditEvidence:
       return scoreAuditEvidence(testCase, answer);
+    case DataSecurityAiFeature.DraftDataTypes:
+    case DataSecurityAiFeature.DescribeDataType:
+      return scoreDataTypeDraft(testCase, answer);
   }
 }
 

@@ -71,7 +71,11 @@ export interface LlmConversationCall {
   outputTokens: number;
   costUsd: number;
   issues: Array<LlmAnswerIssue>;
-  // Who made the call (email, else id); "" when unknown.
+  /*
+   * Who made the call (email, else id, past what a scrub rule left of
+   * either); LLM_USAGE_HIDDEN_GROUP_KEY when a rule hid every name it has;
+   * "" when unknown (LlmCallIdentity's readLlmCallPerson).
+   */
   userLabel: string;
   serviceId: string;
   content: LlmCallContent;
@@ -150,6 +154,7 @@ export interface LlmTranscript {
   // How many calls had each issue.
   issueCounts: Record<LlmAnswerIssue, number>;
   models: Array<string>;
+  // The calls' people (userLabel), each once: the hidden key once for all a scrub rule hid.
   users: Array<string>;
   serviceIds: Array<string>;
   // Whether any call recorded its prompt or answer.

@@ -70,7 +70,7 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installati
 | Fortinet FortiGate | IPS- und Antivirenfunde, abgelehnter Datenverkehr, VPN- und Administratoranmeldungen sowie Konfigurationsänderungen aus dem eigenen Syslog von FortiGate |
 | Cisco ASA | Abgelehnte Verbindungen, Funde der Bedrohungserkennung und des IPS, VPN- und Administratoranmeldungen sowie Befehle von Cisco ASA und Firepower Threat Defense |
 | Kubernetes-Audit-Logs | Änderungen am Cluster, in Pods geöffnete Shells, gelesene Secrets und abgelehnte Anfragen |
-| Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen |
+| Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen, sowie Anfragen nach sensiblen Dateien wie `/.env` oder `/.git/config`, die Ihre Website abgelehnt hat oder gar nicht hat |
 
 Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen, werden zu Ereignissen: nie jede Seite, die ein Webserver ausgeliefert hat, oder jeder Lesezugriff auf eine API.
 

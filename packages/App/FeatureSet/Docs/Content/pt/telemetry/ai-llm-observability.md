@@ -317,6 +317,8 @@ Métricas GenAI como `gen_ai.client.token.usage` e `gen_ai.client.operation.dura
 
 As chamadas de IA são armazenadas como spans de trace, então as **Regras de mascaramento** e os **Filtros de descarte** dos traces se aplicam a elas: mascare um atributo, ou descarte um span, antes que ele seja armazenado. Você encontra os dois em **Traços → Configurações**. A coluna de e-mail do funcionário é mascarada junto com o atributo de onde foi lida, então uma regra que mascara e-mails também a cobre.
 
+Uma pessoa ocultada por uma regra de limpeza nunca aparece como uma pessoa. **Conversas** e **Chamadas** mostram o id de uma chamada quando uma regra ocultou o e-mail dela mas deixou o id intacto, e **Ocultado por uma regra de limpeza** quando uma regra ocultou todos os nomes da chamada, seja qual for a ação da regra: ocultar, mascarar ou converter em hash. **Chamadas** mostra do mesmo jeito uma equipe ocultada por uma regra.
+
 Prompts e respostas enviados como eventos de log são armazenados como logs, então se aplicam a eles as **Regras de mascaramento** e os **Filtros de descarte** dos logs, em **Registros → Configurações**: uma regra que mascara e-mails nos traces não os mascara nos eventos de log. Uma conversa só os mostra a quem também pode ler os logs desse aplicativo, e quem pode lê-los também os encontra na página **Registros**.
 
 Em ambos os casos, uma regra lê cada texto dentro de uma lista ou de um valor estruturado, como as mensagens que uma instrumentação envia como lista em vez de texto JSON, e mantém a forma do valor: um endereço de e-mail em um prompt é mascarado onde quer que esteja. Veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis).

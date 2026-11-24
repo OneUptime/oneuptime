@@ -429,7 +429,36 @@ export const TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES: string =
 export const TABLE_CELL_PART_LINE_CLASS_NAME: string =
   "[&>:is(span,p,div,a):not([class*=inline-])]:leading-6";
 
-export const TABLE_CELL_TRUNCATE_CLASS_NAMES: string = `overflow-x-clip text-ellipsis ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES} ${TABLE_CELL_PART_LINE_CLASS_NAME}`;
+/*
+ * ROOM FOR A FOCUSED RESOURCE'S RING AT ITS SIDES (#6862).
+ *
+ * A list in a cell (TableColumnListComponent: a row's Affected Resources,
+ * monitors, teams) keeps each item to its line, clipped sideways
+ * (TABLE_LIST_ITEM_CLASS_NAME), and a resource's link starts flush with its
+ * item's start, its icon first. Tabbed onto, the link's ring is drawn just
+ * outside it, and the item's clip cut the ring's start side off - the left
+ * on an English page, the right on a Persian one - and both sides of a
+ * name long enough to fill the column. The cell's value box clipped there
+ * too, so mending the item alone would not do.
+ *
+ * So an item clips a ring's width (3px) outside its words: padded by it,
+ * and pulled back out by as much (a negative margin), so its words, its
+ * "..." and the room it takes in its column stay exactly where they were;
+ * only the clip's edges move out. And the value box of a cell that holds a
+ * list (TABLE_LIST_ATTRIBUTE) leaves the clip to the items, which each cut
+ * their own line short: clipped at its own edges, it cut the room the
+ * items keep for the ring off again.
+ */
+export const TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME: string =
+  "-mx-[3px] px-[3px]";
+
+// On a list's own element in a table's cell: its items clip themselves.
+export const TABLE_LIST_ATTRIBUTE: string = "data-table-list";
+
+export const TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME: string =
+  "[&:has(>[data-table-list])]:overflow-x-visible";
+
+export const TABLE_CELL_TRUNCATE_CLASS_NAMES: string = `overflow-x-clip text-ellipsis ${TABLE_CELL_LIST_LEAVES_CLIP_CLASS_NAME} ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES} ${TABLE_CELL_PART_LINE_CLASS_NAME}`;
 
 /*
  * The narrowest a column of prose (Column.wrapContent) is drawn. When the
@@ -649,8 +678,11 @@ function namesUtility(className: string | undefined, prefix: string): boolean {
  * Still a box of its own for what it holds (flow-root), as overflow-hidden
  * made it: a clip does not, and the margins of a block inside an item
  * would run out through it into the next item's.
+ *
+ * And clipped a ring's width outside its words, so the ring shows at its
+ * sides too (TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME).
  */
-export const TABLE_LIST_ITEM_CLASS_NAME: string = `flow-root overflow-x-clip text-ellipsis whitespace-nowrap ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
+export const TABLE_LIST_ITEM_CLASS_NAME: string = `flow-root overflow-x-clip text-ellipsis whitespace-nowrap ${TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME} ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
 
 /*
  * The same item in a field of a phone's card (TableCardContext): the card

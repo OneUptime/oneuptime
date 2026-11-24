@@ -1333,6 +1333,10 @@ describe("what the messages say", () => {
     expect(describeRunTrigger(SecurityPlaybookTrigger.DetectionAdded)).toBe(
       "Automatically, for a new detection",
     );
+    // An automatic response policy's run is not one somebody started by hand.
+    expect(describeRunTrigger(SecurityPlaybookTrigger.AutomaticResponse)).toBe(
+      "Automatically, by an automatic response policy",
+    );
     expect(describeRunTrigger(SecurityPlaybookTrigger.Manual)).toBe("By hand");
   });
 

@@ -1487,7 +1487,12 @@ describe("the rule library's detections", () => {
     );
 
     expect(entry.matchCountThreshold).toBe(10);
-    expect(entry.groupByField).toBe(OpenStackAuditAttribute.InitiatorAddress);
+    /*
+     * Per principalIp (#10773), which names the address behind a Hash
+     * rule's token, never the parser's own attribute: that holds real
+     * addresses only, so a sign-in a Hash rule hid would go uncounted.
+     */
+    expect(entry.groupByField).toBe("principalIp");
     expect(entry.evaluationIntervalInMinutes).toBe(5);
   });
 

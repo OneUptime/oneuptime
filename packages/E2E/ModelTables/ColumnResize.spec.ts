@@ -382,6 +382,16 @@ async function isAnyValueCut(page: Page, columnId: string): Promise<boolean> {
             return false;
           }
 
+          /*
+           * Only a box that clips can cut a value off. A list's cell leaves
+           * the clip to its items, each of which keeps a ring's width past
+           * its words (#6862): the cell's box draws that room past its
+           * edges, and cuts nothing.
+           */
+          if (getComputedStyle(html).overflowX === "visible") {
+            return false;
+          }
+
           return html.scrollWidth > html.clientWidth + 1;
         });
     });
