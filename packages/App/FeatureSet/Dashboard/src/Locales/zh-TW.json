@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探測器網路介面上的位址，以及在告知它時其主機的位址，即探測器每次回報時列出的位址。安全事件會將探測器自身從這些位址發出的輪詢、探索與監控檢查另行擱置，封鎖清單也從不封鎖它們。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探測器回報時所用的位址。封鎖清單從不封鎖它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理規則輸入雜湊",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則",
+  "at {{clock}}_one": "於 {{clock}}",
+  "on {{day}} at {{clock}}_one": "於 {{day}} {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "於 {{vowelDay}} {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "於 {{vowelDay}} {{clock}}",
+  "since {{clock}}_one": "自 {{clock}} 起",
+  "since {{day}} at {{clock}}_one": "自 {{day}} {{clock}} 起",
+  "since {{vowelDay}} at {{clock}}": "自 {{vowelDay}} {{clock}} 起",
+  "since {{vowelDay}} at {{clock}}_one": "自 {{vowelDay}} {{clock}} 起",
+  "until {{clock}}_one": "直到 {{clock}}",
+  "until {{day}} at {{clock}}_one": "直到 {{day}} {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "直到 {{vowelDay}} {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "直到 {{vowelDay}} {{clock}}"
 }

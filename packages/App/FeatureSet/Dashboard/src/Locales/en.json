@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
+  "at {{clock}}_one": "at {{clock}}",
+  "on {{day}} at {{clock}}_one": "on {{day}} at {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "on {{vowelDay}} at {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "on {{vowelDay}} at {{clock}}",
+  "since {{clock}}_one": "since {{clock}}",
+  "since {{day}} at {{clock}}_one": "since {{day}} at {{clock}}",
+  "since {{vowelDay}} at {{clock}}": "since {{vowelDay}} at {{clock}}",
+  "since {{vowelDay}} at {{clock}}_one": "since {{vowelDay}} at {{clock}}",
+  "until {{clock}}_one": "until {{clock}}",
+  "until {{day}} at {{clock}}_one": "until {{day}} at {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "until {{vowelDay}} at {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "until {{vowelDay}} at {{clock}}"
 }

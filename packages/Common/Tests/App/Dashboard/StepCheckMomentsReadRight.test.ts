@@ -7,8 +7,11 @@ import {
   Translator,
 } from "../../../Types/Translator";
 import {
+  DAYS_READ_WITH_A_VOWEL,
+  MOMENT_PHRASE_FORMS,
   MOMENT_PHRASES,
   MOMENT_ROLES,
+  MomentPhraseWords,
   MomentRole,
   WrittenMoment,
   getMomentRole,
@@ -166,20 +169,61 @@ const MOMENT_SENTENCES: Array<MomentSentence> = Array.from(
   ).values(),
 );
 
+/*
+ * Every locale key of a part a moment plays (#10902): each phrase - a time
+ * alone, a day, a day read with a vowel first - and its one o'clock form.
+ */
+interface PhraseKey {
+  // The phrase's form, as MOMENT_PHRASES names it.
+  form: keyof MomentPhraseWords;
+  key: string;
+  // The placeholder its day is named by: none for a time alone.
+  day: string | null;
+}
+
+function phraseKeysOf(role: MomentRole): Array<PhraseKey> {
+  return MOMENT_PHRASE_FORMS.flatMap(
+    (form: keyof MomentPhraseWords): Array<PhraseKey> => {
+      const general: string = MOMENT_PHRASES[role][form].other;
+      const day: string | null =
+        form === "time" ? null : form === "day" ? "{{day}}" : "{{vowelDay}}";
+
+      return [
+        { form, key: general, day },
+        { form, key: `${general}_one`, day },
+      ];
+    },
+  );
+}
+
 interface LanguagePhrases {
   role: MomentRole;
+  // Each form as the language words it, by its key.
+  phrases: Array<PhraseKey & { words: string }>;
+  // The general time and day phrases, as most of these checks read them.
   time: string;
   day: string;
 }
 
 function phrasesIn(language: string): Array<LanguagePhrases> {
   const words: Record<string, string> = readDashboardLocale(language);
+  const english: Record<string, string> = readDashboardLocale("en");
 
   return MOMENT_ROLES.map((role: MomentRole): LanguagePhrases => {
+    const phrases: Array<PhraseKey & { words: string }> = phraseKeysOf(
+      role,
+    ).map((phrase: PhraseKey): PhraseKey & { words: string } => {
+      return {
+        ...phrase,
+        words: words[phrase.key] || english[phrase.key] || phrase.key,
+      };
+    });
+
     return {
       role,
-      time: words[MOMENT_PHRASES[role].time] || MOMENT_PHRASES[role].time,
-      day: words[MOMENT_PHRASES[role].day] || MOMENT_PHRASES[role].day,
+      phrases,
+      time: phrases[0]!.words,
+      day: phrases[2]!.words,
     };
   });
 }
@@ -208,7 +252,7 @@ function phraseEdgesIn(language: string): {
   const tails: Set<string> = new Set<string>();
 
   for (const phrases of phrasesIn(language)) {
-    for (const phrase of [phrases.time, phrases.day]) {
+    for (const { words: phrase } of phrases.phrases) {
       const lead: string = phrase.slice(0, phrase.indexOf("{{")).trim();
       const tail: string = phrase
         .slice(phrase.lastIndexOf("}}") + 2)
@@ -362,42 +406,97 @@ describe("the sentences that name a moment", () => {
 });
 
 describe("a moment's phrases, in every language", () => {
-  test("are worded, the time alone and the day with a time each ending alike after the clock", () => {
+  test("are worded, every form of each: a time alone, a day, a day read with a vowel first, and each at one o'clock", () => {
     const offenders: Array<string> = [];
 
     for (const language of DASHBOARD_LANGUAGES) {
       for (const role of MOMENT_ROLES) {
-        for (const key of [
-          MOMENT_PHRASES[role].time,
-          MOMENT_PHRASES[role].day,
-        ]) {
+        for (const { key } of phraseKeysOf(role)) {
           if (!isWordedInDashboardLocale(key, language)) {
             offenders.push(`${language}: "${key}" is not worded`);
           }
         }
       }
+    }
 
+    expect(offenders).toEqual([]);
+  });
+
+  test("hold each form to the placeholders of its phrase, and every form of a part to the same ending after the clock (#10902)", () => {
+    const offenders: Array<string> = [];
+
+    for (const language of DASHBOARD_LANGUAGES) {
       for (const phrases of phrasesIn(language)) {
-        const timeTail: string = phrases.time.slice(
-          phrases.time.indexOf("{{clock}}") + "{{clock}}".length,
-        );
-        const dayTail: string = phrases.day.slice(
-          phrases.day.indexOf("{{clock}}") + "{{clock}}".length,
-        );
+        const tails: Set<string> = new Set<string>();
 
-        if (
-          !phrases.time.includes("{{clock}}") ||
-          phrases.time.includes("{{day}}") ||
-          !phrases.day.includes("{{day}}") ||
-          !phrases.day.includes("{{clock}}")
-        ) {
-          offenders.push(`${language} ${phrases.role}: placeholders`);
+        for (const phrase of phrases.phrases) {
+          const words: string = phrase.words;
+          const days: Array<string> = ["{{day}}", "{{vowelDay}}"].filter(
+            (placeholder: string): boolean => {
+              return words.includes(placeholder);
+            },
+          );
+
+          if (
+            !words.includes("{{clock}}") ||
+            days.length !== (phrase.day ? 1 : 0) ||
+            (phrase.day !== null && days[0] !== phrase.day)
+          ) {
+            offenders.push(`${language} ${phrase.key}: placeholders`);
+          }
+
+          tails.add(
+            words.slice(words.indexOf("{{clock}}") + "{{clock}}".length),
+          );
         }
 
-        if (timeTail !== dayTail) {
+        if (tails.size !== 1) {
           offenders.push(
-            `${language} ${phrases.role}: "${phrases.time}" and "${phrases.day}" end differently`,
+            `${language} ${phrases.role}: its forms end differently (${Array.from(
+              tails,
+            )
+              .map((tail: string): string => {
+                return `"${tail}"`;
+              })
+              .join(", ")})`,
           );
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("word a day read with a vowel first as the day itself, but in a language that reads one (#10902)", () => {
+    const offenders: Array<string> = [];
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      // A language that reads such days words its own (DAYS_READ_WITH_A_VOWEL).
+      if (DAYS_READ_WITH_A_VOWEL[language]) {
+        continue;
+      }
+
+      for (const phrases of phrasesIn(language)) {
+        const byKey: Map<string, string> = new Map(
+          phrases.phrases.map(
+            (phrase: PhraseKey & { words: string }): [string, string] => {
+              return [phrase.key, phrase.words];
+            },
+          ),
+        );
+
+        for (const suffix of ["", "_one"]) {
+          const day: string =
+            byKey.get(`${MOMENT_PHRASES[phrases.role].day.other}${suffix}`) ||
+            "";
+          const vowelDay: string =
+            byKey.get(
+              `${MOMENT_PHRASES[phrases.role].vowelDay.other}${suffix}`,
+            ) || "";
+
+          if (vowelDay !== day.replace("{{day}}", "{{vowelDay}}")) {
+            offenders.push(`${language} ${phrases.role}${suffix}: ${vowelDay}`);
+          }
         }
       }
     }
@@ -498,7 +597,7 @@ describe("French, Spanish and Italian read a moment on another day as they shoul
       for (const role of MOMENT_ROLES) {
         expect(
           plain(
-            translator.translateTemplate(MOMENT_PHRASES[role].day, {
+            translator.translateTemplate(MOMENT_PHRASES[role].day.other, {
               day: "27 nov",
               clock: "14:25",
             }),
@@ -510,7 +609,7 @@ describe("French, Spanish and Italian read a moment on another day as they shoul
       const clockLeads: Array<string> = MOMENT_ROLES.map(
         (role: MomentRole): string => {
           const phrase: string = translator.translateTemplate(
-            MOMENT_PHRASES[role].time,
+            MOMENT_PHRASES[role].time.other,
             { clock: "" },
           );
 
@@ -548,6 +647,112 @@ describe("French, Spanish and Italian read a moment on another day as they shoul
 
         if (onAnotherDay.includes("{{") || today.includes("{{")) {
           offenders.push(`unfilled: ${onAnotherDay}`);
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    },
+  );
+});
+
+describe("Spanish, Portuguese and Italian read a moment at one o'clock, and Italian on the 8th and the 11th, as they should (#10902)", () => {
+  // A moment's phrases as each language reads them in every sentence.
+  const CASES: Record<
+    string,
+    Array<{ moment: WrittenMoment; phrases: Record<MomentRole, string> }>
+  > = {
+    es: [
+      {
+        moment: { date: null, time: "1:25", whole: "1:25" },
+        phrases: {
+          [MomentRole.At]: "a la 1:25",
+          [MomentRole.Since]: "desde la 1:25",
+          [MomentRole.Until]: "hasta la 1:25",
+        },
+      },
+      {
+        moment: { date: "8 dic", time: "1:25", whole: "8 dic, 1:25" },
+        phrases: {
+          [MomentRole.At]: "el 8 dic a la 1:25",
+          [MomentRole.Since]: "desde el 8 dic a la 1:25",
+          [MomentRole.Until]: "hasta el 8 dic a la 1:25",
+        },
+      },
+    ],
+    pt: [
+      {
+        moment: { date: null, time: "1:25", whole: "1:25" },
+        phrases: {
+          [MomentRole.At]: "à 1:25",
+          [MomentRole.Since]: "desde a 1:25",
+          [MomentRole.Until]: "até a 1:25",
+        },
+      },
+      {
+        moment: { date: "8 de dez.", time: "0:25", whole: "8 de dez., 0:25" },
+        phrases: {
+          [MomentRole.At]: "em 8 de dez. à 0:25",
+          [MomentRole.Since]: "desde 8 de dez. à 0:25",
+          [MomentRole.Until]: "até 8 de dez. à 0:25",
+        },
+      },
+    ],
+    it: [
+      {
+        moment: { date: null, time: "1:25", whole: "1:25" },
+        phrases: {
+          [MomentRole.At]: "all'1:25",
+          [MomentRole.Since]: "dall'1:25",
+          [MomentRole.Until]: "fino all'1:25",
+        },
+      },
+      {
+        moment: { date: "8 dic", time: "14:25", whole: "8 dic, 14:25" },
+        phrases: {
+          [MomentRole.At]: "l'8 dic alle 14:25",
+          [MomentRole.Since]: "dall'8 dic alle 14:25",
+          [MomentRole.Until]: "fino all'8 dic alle 14:25",
+        },
+      },
+      {
+        moment: { date: "11 dic", time: "1:25", whole: "11 dic, 1:25" },
+        phrases: {
+          [MomentRole.At]: "l'11 dic all'1:25",
+          [MomentRole.Since]: "dall'11 dic all'1:25",
+          [MomentRole.Until]: "fino all'11 dic all'1:25",
+        },
+      },
+      {
+        moment: { date: "1 dic", time: "14:25", whole: "1 dic, 14:25" },
+        phrases: {
+          [MomentRole.At]: "il 1 dic alle 14:25",
+          [MomentRole.Since]: "dal 1 dic alle 14:25",
+          [MomentRole.Until]: "fino al 1 dic alle 14:25",
+        },
+      },
+    ],
+  };
+
+  test.each(Object.keys(CASES))(
+    "%s: every sentence that names a moment holds its form",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+      const offenders: Array<string> = [];
+
+      for (const { moment, phrases } of CASES[language]!) {
+        for (const sentence of MOMENT_SENTENCES) {
+          const read: string = render({ sentence, translator, moment });
+          const roles: Array<MomentRole> = Array.from(
+            sentence.english.matchAll(momentPlaceholders()),
+          ).map((match: RegExpMatchArray): MomentRole => {
+            return getMomentRole(match[1]!);
+          });
+
+          for (const role of roles) {
+            if (!read.includes(phrases[role])) {
+              offenders.push(`"${phrases[role]}" missing from ${read}`);
+            }
+          }
         }
       }
 

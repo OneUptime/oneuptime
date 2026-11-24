@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
   "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI",
+  "at {{clock}}_one": "ساعت {{clock}}",
+  "on {{day}} at {{clock}}_one": "{{day}} ساعت {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "{{vowelDay}} ساعت {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "{{vowelDay}} ساعت {{clock}}",
+  "since {{clock}}_one": "از ساعت {{clock}}",
+  "since {{day}} at {{clock}}_one": "از {{day}} ساعت {{clock}}",
+  "since {{vowelDay}} at {{clock}}": "از {{vowelDay}} ساعت {{clock}}",
+  "since {{vowelDay}} at {{clock}}_one": "از {{vowelDay}} ساعت {{clock}}",
+  "until {{clock}}_one": "تا ساعت {{clock}}",
+  "until {{day}} at {{clock}}_one": "تا {{day}} ساعت {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "تا {{vowelDay}} ساعت {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "تا {{vowelDay}} ساعت {{clock}}"
 }

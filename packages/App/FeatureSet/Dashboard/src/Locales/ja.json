@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
-  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
+  "at {{clock}}_one": "{{clock}} に",
+  "on {{day}} at {{clock}}_one": "{{day}} {{clock}} に",
+  "on {{vowelDay}} at {{clock}}": "{{vowelDay}} {{clock}} に",
+  "on {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}} に",
+  "since {{clock}}_one": "{{clock}} から",
+  "since {{day}} at {{clock}}_one": "{{day}} {{clock}} から",
+  "since {{vowelDay}} at {{clock}}": "{{vowelDay}} {{clock}} から",
+  "since {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}} から",
+  "until {{clock}}_one": "{{clock}} まで",
+  "until {{day}} at {{clock}}_one": "{{day}} {{clock}} まで",
+  "until {{vowelDay}} at {{clock}}": "{{vowelDay}} {{clock}} まで",
+  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}} まで"
 }

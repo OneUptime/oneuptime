@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
+  "at {{clock}}_one": "في الساعة {{clock}}",
+  "on {{day}} at {{clock}}_one": "في {{day}} الساعة {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "في {{vowelDay}} الساعة {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "في {{vowelDay}} الساعة {{clock}}",
+  "since {{clock}}_one": "منذ الساعة {{clock}}",
+  "since {{day}} at {{clock}}_one": "منذ {{day}} الساعة {{clock}}",
+  "since {{vowelDay}} at {{clock}}": "منذ {{vowelDay}} الساعة {{clock}}",
+  "since {{vowelDay}} at {{clock}}_one": "منذ {{vowelDay}} الساعة {{clock}}",
+  "until {{clock}}_one": "حتى الساعة {{clock}}",
+  "until {{day}} at {{clock}}_one": "حتى {{day}} الساعة {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "حتى {{vowelDay}} الساعة {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "حتى {{vowelDay}} الساعة {{clock}}"
 }

@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, och värdens när den får dem, så som sonden listar dem varje gång den hör av sig. Säkerhetshändelser lägger sondens egna avfrågningar, upptäckter och monitorkontroller från dessa adresser åt sidan, och blocklistan blockerar dem aldrig.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen som OneUptime ser den här sonden höra av sig från. Blocklistan blockerar den aldrig.",
   "OneUptime AI's Scrub Rule Input Hash": "Inmatningshash för OneUptime AI:s scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler",
+  "at {{clock}}_one": "kl. {{clock}}",
+  "on {{day}} at {{clock}}_one": "den {{day}} kl. {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "den {{vowelDay}} kl. {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "den {{vowelDay}} kl. {{clock}}",
+  "since {{clock}}_one": "sedan kl. {{clock}}",
+  "since {{day}} at {{clock}}_one": "sedan den {{day}} kl. {{clock}}",
+  "since {{vowelDay}} at {{clock}}": "sedan den {{vowelDay}} kl. {{clock}}",
+  "since {{vowelDay}} at {{clock}}_one": "sedan den {{vowelDay}} kl. {{clock}}",
+  "until {{clock}}_one": "till kl. {{clock}}",
+  "until {{day}} at {{clock}}_one": "till den {{day}} kl. {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "till den {{vowelDay}} kl. {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "till den {{vowelDay}} kl. {{clock}}"
 }

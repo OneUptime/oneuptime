@@ -63683,5 +63683,17 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Las direcciones de las interfaces de red de esta sonda, y las de su host cuando se le indican, tal como la sonda las enumera cada vez que se comunica. Eventos de seguridad aparta los sondeos, las detecciones y las comprobaciones de monitores propios de la sonda que salen de ellas, y la lista de bloqueo nunca las bloquea.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "La dirección desde la que OneUptime ve comunicarse a esta sonda. La lista de bloqueo nunca la bloquea.",
   "OneUptime AI's Scrub Rule Input Hash": "Hash de entrada de las reglas de depuración de OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Reglas de depuración de OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Reglas de depuración de OneUptime AI",
+  "at {{clock}}_one": "a la {{clock}}",
+  "on {{day}} at {{clock}}_one": "el {{day}} a la {{clock}}",
+  "on {{vowelDay}} at {{clock}}": "el {{vowelDay}} a las {{clock}}",
+  "on {{vowelDay}} at {{clock}}_one": "el {{vowelDay}} a la {{clock}}",
+  "since {{clock}}_one": "desde la {{clock}}",
+  "since {{day}} at {{clock}}_one": "desde el {{day}} a la {{clock}}",
+  "since {{vowelDay}} at {{clock}}": "desde el {{vowelDay}} a las {{clock}}",
+  "since {{vowelDay}} at {{clock}}_one": "desde el {{vowelDay}} a la {{clock}}",
+  "until {{clock}}_one": "hasta la {{clock}}",
+  "until {{day}} at {{clock}}_one": "hasta el {{day}} a la {{clock}}",
+  "until {{vowelDay}} at {{clock}}": "hasta el {{vowelDay}} a las {{clock}}",
+  "until {{vowelDay}} at {{clock}}_one": "hasta el {{vowelDay}} a la {{clock}}"
 }
