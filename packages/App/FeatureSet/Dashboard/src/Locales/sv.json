@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "Dina lastbalanserare",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "Dina applikationslastbalanserare i AWS, Google Cloud och Azure. Var och en lägger till klienten den vidarebefordrar i X-Forwarded-For.",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "Dina värdar, Kubernetes-noder och sonder: Det som körs på en av dem skulle kunna ange vilken klient som helst. Om en av dem är din proxy, lägg till den i Betrodda proxyservrar.",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Dina lastbalanserare kunde inte listas: Du kan inte läsa molnresurser, eller så kunde de inte läsas."
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Dina lastbalanserare kunde inte listas: Du kan inte läsa molnresurser, eller så kunde de inte läsas.",
+  "Fix Not Applied": "Åtgärd inte tillämpad",
+  "Fix Regressed": "Regression efter åtgärden",
+  "Fix Shipped": "Åtgärd driftsatt",
+  "Fix Unverifiable": "Åtgärd kan inte verifieras",
+  "Fix Verified": "Åtgärd verifierad",
+  "Issue Fix Not Applied": "Åtgärd av ett problem inte tillämpad",
+  "Issue Fix Regressed": "Regression efter åtgärden av ett problem",
+  "Issue Fix Verified": "Åtgärd av ett problem verifierad"
 }

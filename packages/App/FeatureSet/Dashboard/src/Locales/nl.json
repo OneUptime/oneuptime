@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "Uw loadbalancers",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "Uw application load balancers in AWS, Google Cloud en Azure. Elk voegt de client die hij doorstuurt toe aan X-Forwarded-For.",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "Uw hosts, Kubernetes-nodes en sondes: wat erop draait, kan elke willekeurige client noemen. Is een ervan uw proxy, voeg hem dan toe aan Vertrouwde proxy's.",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Uw loadbalancers konden niet worden opgesomd: u mag geen cloud-resources lezen, of ze konden niet worden gelezen."
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Uw loadbalancers konden niet worden opgesomd: u mag geen cloud-resources lezen, of ze konden niet worden gelezen.",
+  "Fix Not Applied": "Herstel niet toegepast",
+  "Fix Regressed": "Regressie na het herstel",
+  "Fix Shipped": "Herstel uitgerold",
+  "Fix Unverifiable": "Herstel niet te verifiëren",
+  "Fix Verified": "Herstel geverifieerd",
+  "Issue Fix Not Applied": "Herstel van een probleem niet toegepast",
+  "Issue Fix Regressed": "Regressie na het herstel van een probleem",
+  "Issue Fix Verified": "Herstel van een probleem geverifieerd"
 }

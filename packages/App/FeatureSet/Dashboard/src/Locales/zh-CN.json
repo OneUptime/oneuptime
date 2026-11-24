@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "你的负载均衡器",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "你在 AWS、Google Cloud 和 Azure 中的应用负载均衡器。每一个都会把它转发的客户端添加到 X-Forwarded-For。",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "你的主机、Kubernetes 节点和探测器：其上运行的任何东西都可能冒称任何客户端。如果其中一个是你的代理，请把它添加到受信任的代理。",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "无法列出你的负载均衡器：你无法读取云资源，或者无法读取它们。"
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "无法列出你的负载均衡器：你无法读取云资源，或者无法读取它们。",
+  "Fix Not Applied": "修复未应用",
+  "Fix Regressed": "修复后再次发生",
+  "Fix Shipped": "修复已发布",
+  "Fix Unverifiable": "修复无法验证",
+  "Fix Verified": "修复已验证",
+  "Issue Fix Not Applied": "问题修复未应用",
+  "Issue Fix Regressed": "问题修复后再次发生",
+  "Issue Fix Verified": "问题修复已验证"
 }

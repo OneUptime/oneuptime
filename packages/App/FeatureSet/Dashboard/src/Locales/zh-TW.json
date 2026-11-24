@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "你的負載平衡器",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "你在 AWS、Google Cloud 和 Azure 中的應用程式負載平衡器。每一個都會把它轉送的用戶端加到 X-Forwarded-For。",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "你的主機、Kubernetes 節點和探測器：在上面執行的任何東西都可能冒稱任何用戶端。如果其中一個是你的代理伺服器，請把它加入受信任的代理伺服器。",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "無法列出你的負載平衡器：你無法讀取雲端資源，或無法讀取它們。"
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "無法列出你的負載平衡器：你無法讀取雲端資源，或無法讀取它們。",
+  "Fix Not Applied": "修正未套用",
+  "Fix Regressed": "修正後再次發生",
+  "Fix Shipped": "修正已發布",
+  "Fix Unverifiable": "修正無法驗證",
+  "Fix Verified": "修正已驗證",
+  "Issue Fix Not Applied": "問題修正未套用",
+  "Issue Fix Regressed": "問題修正後再次發生",
+  "Issue Fix Verified": "問題修正已驗證"
 }

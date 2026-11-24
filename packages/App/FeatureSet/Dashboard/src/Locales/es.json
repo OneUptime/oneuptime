@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "Tus balanceadores de carga",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "Tus balanceadores de carga de aplicaciones en AWS, Google Cloud y Azure. Cada uno añade a X-Forwarded-For el cliente que reenvía.",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "Tus hosts, nodos de Kubernetes y sondas: lo que se ejecuta en uno de ellos podría nombrar a cualquier cliente. Si uno de ellos es tu proxy, añádelo a Proxies de confianza.",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "No se pudieron listar tus balanceadores de carga: no puedes leer recursos en la nube, o no se pudieron leer."
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "No se pudieron listar tus balanceadores de carga: no puedes leer recursos en la nube, o no se pudieron leer.",
+  "Fix Not Applied": "Corrección no aplicada",
+  "Fix Regressed": "Regresión tras la corrección",
+  "Fix Shipped": "Corrección publicada",
+  "Fix Unverifiable": "Corrección no verificable",
+  "Fix Verified": "Corrección verificada",
+  "Issue Fix Not Applied": "Corrección de un problema no aplicada",
+  "Issue Fix Regressed": "Regresión tras la corrección de un problema",
+  "Issue Fix Verified": "Corrección de un problema verificada"
 }

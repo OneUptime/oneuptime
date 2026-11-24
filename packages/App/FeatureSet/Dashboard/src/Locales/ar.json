@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "موازنات التحميل لديك",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "موازنات تحميل التطبيقات لديك في AWS وGoogle Cloud وAzure. يضيف كل منها العميل الذي يمرّره إلى X-Forwarded-For.",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "المضيفون وعُقد Kubernetes والمسابير لديك: أي شيء يعمل على أحدها قد يسمّي أي عميل. إذا كان أحدها هو الوكيل لديك، فأضفه إلى «الوكلاء الموثوقون».",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "تعذّر سرد موازنات التحميل لديك: لا يمكنك قراءة الموارد السحابية، أو تعذّرت قراءتها."
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "تعذّر سرد موازنات التحميل لديك: لا يمكنك قراءة الموارد السحابية، أو تعذّرت قراءتها.",
+  "Fix Not Applied": "لم يُطبَّق الإصلاح",
+  "Fix Regressed": "حدث مجددًا بعد الإصلاح",
+  "Fix Shipped": "نُشر الإصلاح",
+  "Fix Unverifiable": "تعذّر التحقق من الإصلاح",
+  "Fix Verified": "ثبت نجاح الإصلاح",
+  "Issue Fix Not Applied": "لم يُطبَّق إصلاح مشكلة",
+  "Issue Fix Regressed": "عادت المشكلة بعد إصلاحها",
+  "Issue Fix Verified": "ثبت نجاح إصلاح مشكلة"
 }

@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "ロードバランサー",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "AWS、Google Cloud、Azure のアプリケーション ロードバランサー。それぞれが転送するクライアントを X-Forwarded-For に追加します。",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "ホスト、Kubernetes ノード、プローブ: そこで動くものは、どんなクライアントでも名乗れてしまいます。いずれかがプロキシなら、信頼済みプロキシに追加してください。",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "ロードバランサーを一覧表示できませんでした。クラウドリソースを読み取る権限がないか、読み取れませんでした。"
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "ロードバランサーを一覧表示できませんでした。クラウドリソースを読み取る権限がないか、読み取れませんでした。",
+  "Fix Not Applied": "修正が未適用",
+  "Fix Regressed": "修正後に再発",
+  "Fix Shipped": "修正をリリース済み",
+  "Fix Unverifiable": "修正を検証できず",
+  "Fix Verified": "修正を検証済み",
+  "Issue Fix Not Applied": "問題の修正が未適用",
+  "Issue Fix Regressed": "問題が修正後に再発",
+  "Issue Fix Verified": "問題の修正を検証済み"
 }

@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "내 로드 밸런서",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "AWS, Google Cloud, Azure의 애플리케이션 로드 밸런서입니다. 각각 자신이 전달하는 클라이언트를 X-Forwarded-For에 추가합니다.",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "내 호스트, Kubernetes 노드, 프로브: 그 위에서 실행되는 것은 무엇이든 아무 클라이언트나 지목할 수 있습니다. 이 중 하나가 프록시라면 신뢰할 수 있는 프록시에 추가하세요.",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "로드 밸런서를 나열할 수 없습니다: 클라우드 리소스를 읽을 권한이 없거나 읽지 못했습니다."
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "로드 밸런서를 나열할 수 없습니다: 클라우드 리소스를 읽을 권한이 없거나 읽지 못했습니다.",
+  "Fix Not Applied": "수정 적용되지 않음",
+  "Fix Regressed": "수정 후 재발",
+  "Fix Shipped": "수정 배포됨",
+  "Fix Unverifiable": "수정 검증 불가",
+  "Fix Verified": "수정 검증됨",
+  "Issue Fix Not Applied": "이슈 수정 적용되지 않음",
+  "Issue Fix Regressed": "이슈 수정 후 재발",
+  "Issue Fix Verified": "이슈 수정 검증됨"
 }

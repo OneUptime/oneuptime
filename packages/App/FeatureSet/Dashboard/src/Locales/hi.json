@@ -64239,5 +64239,13 @@
   "Your Load Balancers": "आपके लोड बैलेंसर",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "AWS, Google Cloud और Azure में आपके एप्लिकेशन लोड बैलेंसर। हर एक, जिस क्लाइंट को आगे भेजता है, उसे X-Forwarded-For में जोड़ता है।",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "आपके होस्ट, Kubernetes नोड और प्रोब: उन पर चलने वाली कोई भी चीज़ किसी भी क्लाइंट का नाम दे सकती है। अगर इनमें से कोई आपका प्रॉक्सी है, तो उसे भरोसेमंद प्रॉक्सी में जोड़ें।",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "आपके लोड बैलेंसर सूचीबद्ध नहीं हो सके: आप क्लाउड संसाधन नहीं पढ़ सकते, या उन्हें पढ़ा नहीं जा सका।"
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "आपके लोड बैलेंसर सूचीबद्ध नहीं हो सके: आप क्लाउड संसाधन नहीं पढ़ सकते, या उन्हें पढ़ा नहीं जा सका।",
+  "Fix Not Applied": "सुधार लागू नहीं हुआ",
+  "Fix Regressed": "सुधार के बाद फिर हुआ",
+  "Fix Shipped": "सुधार शिप हुआ",
+  "Fix Unverifiable": "सुधार सत्यापित नहीं हो सका",
+  "Fix Verified": "सुधार सत्यापित हुआ",
+  "Issue Fix Not Applied": "समस्या का सुधार लागू नहीं हुआ",
+  "Issue Fix Regressed": "समस्या सुधार के बाद फिर हुई",
+  "Issue Fix Verified": "समस्या का सुधार सत्यापित हुआ"
 }
