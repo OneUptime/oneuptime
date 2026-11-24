@@ -986,6 +986,83 @@ describe("install.sh checks the secret with Xen Orchestra, and keeps it", () => 
     expect(result.docker).toContain("compose up sees: \n");
   });
 
+  /*
+   * The .env read by the real Docker Compose, as the container gets it: the
+   * secret (a $, both quotes, a #, a space and a ${...}) with every $
+   * doubled, which the collector turns back into the secret as typed
+   * (xcp-ng-agent-scrape-behaviour.sh shows it reach Xen Orchestra so). The
+   * Ops workflow's runner has Compose and must run this; elsewhere it is
+   * skipped with the reason logged.
+   */
+  const COMPOSE_PROBE = spawnSync("docker", ["compose", "version"], {
+    encoding: "utf8",
+  });
+  const HAS_COMPOSE = !COMPOSE_PROBE.error && COMPOSE_PROBE.status === 0;
+  if (!HAS_COMPOSE && !IN_CI) {
+    // eslint-disable-next-line no-console
+    console.log(
+      "The Docker Compose round trip is skipped: `docker compose` is not available here.",
+    );
+  }
+  (HAS_COMPOSE || IN_CI ? test : test.skip)(
+    "the real Docker Compose hands the container what the collector needs, as typed",
+    async () => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const result = await install({
+        port,
+        env: freshEnv(port, {
+          XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+          XO_NAME: "Lab XO #2",
+        }),
+      });
+      await fake.close();
+      expect(result.status).toBe(0);
+
+      const rendered = spawnSync(
+        "docker",
+        ["compose", "config", "--format", "json"],
+        {
+          cwd: result.installDir,
+          env: { PATH: process.env.PATH, HOME: result.installDir },
+          encoding: "utf8",
+          timeout: 60000,
+        },
+      );
+      expect(rendered.stderr).not.toContain("error");
+      expect(rendered.status).toBe(0);
+      const service = JSON.parse(rendered.stdout).services[
+        "oneuptime-xcp-ng-agent"
+      ];
+      const environment = {};
+      for (const [name, value] of Object.entries(service.environment)) {
+        // `config` prints a literal $ as $$.
+        environment[name] =
+          value === null ? "" : String(value).replace(/\$\$/g, "$");
+      }
+      expect(environment).toEqual({
+        ONEUPTIME_URL: URL,
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: KEY,
+        XO_SCHEME: "https",
+        XO_ADDRESS: `${XO_HOST}:${port}`,
+        XO_OPENMETRICS_SECRET: SECRET.replace(/\$/g, "$$$$"),
+        XO_NAME: "Lab XO #2",
+        XO_TLS_SERVER_NAME: "",
+      });
+      // The certificates install.sh wrote, where the config reads them.
+      expect(
+        service.volumes.find((volume) => {
+          return volume.target === "/etc/oneuptime/xo-ca.pem";
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          type: "bind",
+          source: path.join(result.installDir, "xo-ca.pem"),
+          read_only: true,
+        }),
+      );
+    },
+  );
+
   test("a prompted install takes each answer in turn, and never shows the secret", async () => {
     const { fake, port } = await startXo({ certificate: CERTS.caSigned });
     const result = await install({
