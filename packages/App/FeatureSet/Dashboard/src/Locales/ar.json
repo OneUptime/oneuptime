@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم، لذا توقّف OneUptime AI عن العمل على الحالة.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} من {{total}} محددة",
-  "Change Failed At": "وقت إخفاق التغيير"
+  "Change Failed At": "وقت إخفاق التغيير",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "الذاكرة التي تستخدمها مثيلات هذا التطبيق قيد التشغيل، في المتوسط على النطاق المحدد، كما يقيسها {{service}}."
 }

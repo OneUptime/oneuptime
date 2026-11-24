@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhetshendelser er slått av på denne serveren, så OneUptime AI sluttet å arbeide med saken.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhetshendelser er slått av på denne serveren. En serveradministrator kan slå det på under Admin-dashbord > Innstillinger > Produkter.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} avkrysset",
-  "Change Failed At": "Endring mislyktes den"
+  "Change Failed At": "Endring mislyktes den",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "Minnet appens kjørende instanser bruker, i gjennomsnitt over valgt periode, slik {{service}} måler det."
 }

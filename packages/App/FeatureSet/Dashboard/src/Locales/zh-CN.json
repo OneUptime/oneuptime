@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "安全事件已在此服务器上关闭，因此 OneUptime AI 已停止处理此案例。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "安全事件已在此服务器上关闭。服务器管理员可以在“管理员仪表板 > 设置 > 产品”中将其开启。",
   "{{ticked}} of {{total}} ticked": "已勾选 {{ticked}}/{{total}}",
-  "Change Failed At": "更改失败时间"
+  "Change Failed At": "更改失败时间",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "此应用正在运行的实例使用的内存，在所选范围内取平均值，由 {{service}} 测量。"
 }

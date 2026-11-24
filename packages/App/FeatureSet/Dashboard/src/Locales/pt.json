@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "O produto Eventos de segurança está desativado neste servidor, então o OneUptime AI parou de trabalhar no caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "O produto Eventos de segurança está desativado neste servidor. Um administrador do servidor pode ativá-lo em Painel de administração > Configurações > Produtos.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} de {{total}} marcadas",
-  "Change Failed At": "Alteração falhou em"
+  "Change Failed At": "Alteração falhou em",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "A memória que as instâncias em execução deste app usam, em média no intervalo selecionado, conforme o {{service}} a mede."
 }

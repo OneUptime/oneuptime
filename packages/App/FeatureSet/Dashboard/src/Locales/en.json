@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} of {{total}} ticked",
-  "Change Failed At": "Change Failed At"
+  "Change Failed At": "Change Failed At",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it."
 }

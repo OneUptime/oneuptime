@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
   "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択",
-  "Change Failed At": "変更の失敗日時"
+  "Change Failed At": "変更の失敗日時",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "このアプリの実行中のインスタンスが使用しているメモリを、選択した範囲で平均した値です（{{service}} の測定値）。"
 }

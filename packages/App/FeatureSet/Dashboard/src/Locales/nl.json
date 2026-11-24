@@ -63100,5 +63100,6 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server, dus OneUptime AI is gestopt met het behandelen van de zaak.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} van {{total}} geselecteerd",
-  "Change Failed At": "Wijziging mislukt op"
+  "Change Failed At": "Wijziging mislukt op",
+  "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.": "Het geheugen dat de draaiende instanties van deze app gebruiken, gemiddeld over het geselecteerde bereik, zoals {{service}} het meet."
 }
