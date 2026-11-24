@@ -3257,7 +3257,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Trust Your Load Balancers",
     description:
-      "Whether Security Events trusts the client address your own application load balancers forward in X-Forwarded-For: the AWS, Google Cloud and Azure ones your connected cloud accounts list. On unless turned off.",
+      "Whether Security Events trusts the client address your own application load balancers forward. On unless turned off.",
     defaultValue: true,
     example: true,
   })
@@ -3301,7 +3301,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Access Logs End With X-Forwarded-For",
     description:
-      "Whether your web servers' access logs end with the X-Forwarded-For header, as nginx's main format does: Security Events then reads the client a trusted proxy forwarded from each line's last field. Off unless turned on.",
+      "Whether your access logs end with X-Forwarded-For, as nginx's main format does, so the client a trusted proxy forwarded is read. Off unless turned on.",
     defaultValue: false,
     example: false,
   })
