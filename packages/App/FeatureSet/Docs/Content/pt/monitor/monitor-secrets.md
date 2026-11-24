@@ -85,6 +85,15 @@ Se um monitor faz referência a um segredo que não pode usar, a referência fic
 
 Quando a verificação de um monitor API, Site ou Página de status externa falha, o erro cita a URL apenas pelo esquema, host e porta, como `https://api.example.com`, então um segredo na URL nunca aparece.
 
+Uma verificação também pode devolver o valor de um segredo: um navegador cita a URL de uma página que não conseguiu carregar, um script registra o que contém e um servidor pode repetir a consulta, os cabeçalhos ou o corpo que recebeu. O OneUptime oculta o valor onde quer que ele apareça no que a verificação relata: o erro, as mensagens de registro e o resultado de um script, o corpo e os cabeçalhos de uma resposta, e a causa da falha da verificação e de cada tentativa. Assim, o valor não aparece nos logs do monitor, no seu resumo, no resultado de um teste do monitor nem na causa raiz de um incidente ou de um alerta. O OneUptime escreve `[REDACTED]` no lugar dele e mantém o resto, então uma página em `https://app.example.com/login?token={{monitorSecrets.Token}}` que não carrega é relatada como `https://app.example.com/login?token=[REDACTED]`. O valor é encontrado em maiúsculas ou minúsculas e como quer que a verificação o tenha escrito: codificado com porcentagem, escapado em JSON ou HTML, ou em base64.
+
+O OneUptime não oculta:
+
+- Um valor com menos de 4 caracteres, sem contar os espaços ao redor. Um valor tão curto faz parte de texto comum, como números e palavras.
+- O que uma captura de tela mostra. Uma captura de tela é uma imagem, então um segredo que a página mostra na tela aparece nela.
+
+Os critérios leem uma verificação como ela é relatada. Escreva um critério sobre o texto ao redor de um segredo, como `ERR_NAME_NOT_RESOLVED` ou `token=`, e não sobre o valor do segredo: um critério fica visível para todos que podem ler o monitor.
+
 Quando você testa um monitor antes de salvá-lo, só os segredos disponíveis para **Todos os monitores** são preenchidos, porque um monitor novo não está em nenhuma lista e ainda não tem rótulos. Depois que você salva o monitor, os testes usam todos os segredos que o monitor pode usar.
 
 ## Entrar com um código de uso único
@@ -144,6 +153,10 @@ Antes de um monitor ser salvo, só os segredos disponíveis para **Todos os moni
 
 :::details Um campo ignora o segredo
 Só os campos da tabela acima aceitam segredos. Em qualquer outro campo, `{{monitorSecrets.NAME}}` é enviado como está escrito.
+:::
+
+:::details Uma verificação mostra `[REDACTED]` onde havia um valor
+O valor de um segredo estava no que a verificação relatou, e o OneUptime o ocultou. O texto ao redor, como `token=[REDACTED]`, mostra onde o script ou a requisição usou o segredo.
 :::
 
 :::details O site recusa o código de uso único
