@@ -225,22 +225,24 @@ const UNSAFE_EMAIL_CHARACTER: RegExp = /[\s"'<>`\\]/;
 const WHOLE_LINK: RegExp = /^(?:https?:\/\/[^/?#]|mailto:)/i;
 
 // C0 and C1 control characters, but for a line break.
-const hasControlCharacter: (value: string, allowLineBreaks: boolean) => boolean =
-  (value: string, allowLineBreaks: boolean): boolean => {
-    for (let index: number = 0; index < value.length; index++) {
-      const code: number = value.charCodeAt(index);
+const hasControlCharacter: (
+  value: string,
+  allowLineBreaks: boolean,
+) => boolean = (value: string, allowLineBreaks: boolean): boolean => {
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
 
-      if (allowLineBreaks && code === 0x0a) {
-        continue;
-      }
-
-      if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
-        return true;
-      }
+    if (allowLineBreaks && code === 0x0a) {
+      continue;
     }
 
-    return false;
-  };
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 // Why `value` is not an address people can write to, or null when it is.
 export const getHelpEmailProblem: (value: unknown) => string | null = (
@@ -353,9 +355,7 @@ export const getHelpLinkProblem: (value: unknown) => string | null = (
   }
 
   if (url.protocol.toLowerCase() === "mailto:") {
-    return getMailtoAddresses(link)
-      ? null
-      : HelpAndSupportProblems.linkInvalid;
+    return getMailtoAddresses(link) ? null : HelpAndSupportProblems.linkInvalid;
   }
 
   // "https://oneuptime.com@other.example": a name before the host misleads.
@@ -816,18 +816,23 @@ export const isOneUptimeSupportEmail: (
  * Where a link of the server's own leads, or OneUptime's on the default, or
  * null: hidden, or a link of the server's own not read from the server yet.
  */
-const getLink: (setting: HelpItemSetting, oneUptimeUrl: string) => string | null =
-  (setting: HelpItemSetting, oneUptimeUrl: string): string | null => {
-    if (setting.choice === HelpChoice.Default) {
-      return oneUptimeUrl;
-    }
+const getLink: (
+  setting: HelpItemSetting,
+  oneUptimeUrl: string,
+) => string | null = (
+  setting: HelpItemSetting,
+  oneUptimeUrl: string,
+): string | null => {
+  if (setting.choice === HelpChoice.Default) {
+    return oneUptimeUrl;
+  }
 
-    if (setting.choice === HelpChoice.Link && isSafeHelpLink(setting.value)) {
-      return setting.value;
-    }
+  if (setting.choice === HelpChoice.Link && isSafeHelpLink(setting.value)) {
+    return setting.value;
+  }
 
-    return null;
-  };
+  return null;
+};
 
 // What kind of chat a link opens, for Help to name it and draw its mark.
 export enum ChatKind {

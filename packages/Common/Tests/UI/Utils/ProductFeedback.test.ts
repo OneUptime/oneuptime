@@ -612,10 +612,7 @@ describe("Give feedback, where the server's admins chose (#10865)", () => {
   });
 
   test.each([
-    [
-      "hidden",
-      { isOn: true, isAskingMe: true, isGiveFeedbackOffered: false },
-    ],
+    ["hidden", { isOn: true, isAskingMe: true, isGiveFeedbackOffered: false }],
     [
       "sent to a page of their own",
       {

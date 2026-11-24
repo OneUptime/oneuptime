@@ -305,8 +305,9 @@ export const ROOT_ONLY_SERVER_PRODUCTS_COLUMNS: ReadonlyArray<keyof Model> = [
  * text. Through the CRUD API a master admin could store a javascript: link
  * every person's Help menu would hold.
  */
-export const ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS: ReadonlyArray<keyof Model> =
-  ["helpAndSupport"];
+export const ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS: ReadonlyArray<keyof Model> = [
+  "helpAndSupport",
+];
 
 // What a write of the help and support settings through the API is told.
 export const HELP_AND_SUPPORT_WRITTEN_HERE_MESSAGE: string =

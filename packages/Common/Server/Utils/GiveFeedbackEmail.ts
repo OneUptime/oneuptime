@@ -242,22 +242,25 @@ export class GiveFeedbackEmail {
       return { destination, to: null };
     }
 
-    switch (destination) {
-      case GiveFeedbackDestination.OneUptimeTeam:
-        return { destination, to: ONEUPTIME_SUPPORT_EMAIL };
-      case GiveFeedbackDestination.ServerAdminsByEmail:
-        return {
-          destination,
-          to: toMailboxAddress(settings.adminNotificationEmail),
-        };
-      case GiveFeedbackDestination.SupportTeamByEmail:
-        return {
-          destination,
-          to: toMailboxAddress(settings.giveFeedback?.value),
-        };
-      default:
-        return { destination, to: null };
+    if (destination === GiveFeedbackDestination.OneUptimeTeam) {
+      return { destination, to: ONEUPTIME_SUPPORT_EMAIL };
     }
+
+    if (destination === GiveFeedbackDestination.SupportTeamByEmail) {
+      // The address of the server's own its admins chose (#10865).
+      return {
+        destination,
+        to: toMailboxAddress(settings.giveFeedback?.value),
+      };
+    }
+
+    return {
+      destination,
+      to:
+        destination === GiveFeedbackDestination.ServerAdminsByEmail
+          ? toMailboxAddress(settings.adminNotificationEmail)
+          : null,
+    };
   }
 
   /*

@@ -150,9 +150,7 @@ describe("a message of the server's own", () => {
     ]) {
       expect(linksOf(toInviteMessageParagraphs(message))).toEqual([]);
       // Kept as the words it was.
-      expect(toInviteMessageParagraphs(message).map(textOf)).toEqual([
-        message,
-      ]);
+      expect(toInviteMessageParagraphs(message).map(textOf)).toEqual([message]);
     }
   });
 
@@ -177,9 +175,9 @@ describe("a message of the server's own", () => {
   test("an empty message, or one that is not text, has no paragraphs", () => {
     expect(toInviteMessageParagraphs("")).toEqual([]);
     expect(toInviteMessageParagraphs("\n \n")).toEqual([]);
-    expect(
-      toInviteMessageParagraphs(undefined as unknown as string),
-    ).toEqual([]);
+    expect(toInviteMessageParagraphs(undefined as unknown as string)).toEqual(
+      [],
+    );
   });
 
   test("the default sentence draws as one paragraph of plain text", () => {

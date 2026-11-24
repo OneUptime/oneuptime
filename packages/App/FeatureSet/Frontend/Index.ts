@@ -483,12 +483,7 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
         return next();
       }
 
-      return sendFrontendEnvScript(
-        req,
-        res,
-        next,
-        frontendConfig.routePrefix,
-      );
+      return sendFrontendEnvScript(req, res, next, frontendConfig.routePrefix);
     },
   );
 

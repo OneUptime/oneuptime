@@ -170,9 +170,8 @@ const Push: () => JSX.Element = (): ReactElement => {
    * and Support, #10866): OneUptime's stores, a page of its own, or not at
    * all - then the card offers no way to it.
    */
-  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
-    useHelpAndSupport(),
-  );
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
 
   const [showRegisterDeviceModal, setShowRegisterDeviceModal] =
     useState<boolean>(false);

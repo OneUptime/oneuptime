@@ -201,9 +201,7 @@ describe("Page not found", () => {
     fireEvent.click(screen.getByText("Contact Support"));
 
     expect(
-      String(
-        (Navigation.navigate as jest.Mock).mock.calls[0]![0] as unknown,
-      ),
+      String((Navigation.navigate as jest.Mock).mock.calls[0]![0] as unknown),
     ).toBe("mailto:it-help@example.com");
   });
 

@@ -51,8 +51,7 @@ async function render(
 
 const ownSettings: () => HelpAndSupportSettings =
   (): HelpAndSupportSettings => {
-    const settings: HelpAndSupportSettings =
-      getDefaultHelpAndSupportSettings();
+    const settings: HelpAndSupportSettings = getDefaultHelpAndSupportSettings();
 
     settings[HelpItem.SupportEmail] = {
       choice: HelpChoice.Email,

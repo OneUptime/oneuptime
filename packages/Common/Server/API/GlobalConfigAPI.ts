@@ -664,9 +664,7 @@ export default class GlobalConfigAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const change: HelpItemChange | string = readHelpItemChange(
-            req.body,
-          );
+          const change: HelpItemChange | string = readHelpItemChange(req.body);
 
           if (typeof change === "string") {
             throw new BadDataException(change);

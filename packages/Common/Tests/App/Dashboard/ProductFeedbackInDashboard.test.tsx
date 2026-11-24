@@ -1355,9 +1355,9 @@ describe("Give feedback, from any page", () => {
       render(<Help />);
       fireEvent.click(screen.getByRole("button", { name: "help.label" }));
 
-      expect(
-        screen.getByTestId(HELP_ASK_GROUP_TEST_ID),
-      ).not.toHaveTextContent("Give feedback");
+      expect(screen.getByTestId(HELP_ASK_GROUP_TEST_ID)).not.toHaveTextContent(
+        "Give feedback",
+      );
       expect(ProductFeedback.isGiveFeedbackOffered()).toBe(false);
     });
 

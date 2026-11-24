@@ -117,9 +117,8 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
    * and Support, #10866): OneUptime's stores, a page of its own, or not at
    * all - then the card has no mobile app step.
    */
-  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
-    useHelpAndSupport(),
-  );
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
 
   const projectIdString: string = props.projectId.toString();
 

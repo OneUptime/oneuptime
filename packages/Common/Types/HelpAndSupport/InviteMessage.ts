@@ -37,10 +37,13 @@ export type InviteMessagePart = InviteMessageText | InviteMessageLink;
 export type InviteMessageParagraph = Array<InviteMessagePart>;
 
 // Punctuation a sentence puts before or after a link that is no part of it.
-const LEADING_PUNCTUATION: RegExp = /^[(\["'«“‘]+/;
+const LEADING_PUNCTUATION: RegExp = /^[(["'«“‘]+/;
 const TRAILING_PUNCTUATION: RegExp = /[.,;:!?)\]"'»”’]+$/;
 
 const WEB_LINK_START: RegExp = /^https?:\/\//i;
+
+// A piece of a line that is all whitespace: kept as it is.
+const WHITESPACE_ONLY: RegExp = /^\s+$/;
 
 /*
  * One word of a line - text with no whitespace in it - as its parts: the
@@ -98,7 +101,7 @@ const toLineParts: (line: string) => InviteMessageParagraph = (
       continue;
     }
 
-    const pieceParts: Array<InviteMessagePart> = /^\s+$/.test(piece)
+    const pieceParts: Array<InviteMessagePart> = WHITESPACE_ONLY.test(piece)
       ? [{ text: piece }]
       : toWordParts(piece);
 

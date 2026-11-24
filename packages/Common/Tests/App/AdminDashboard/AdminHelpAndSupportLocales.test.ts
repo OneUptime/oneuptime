@@ -34,8 +34,18 @@ const APP_SRC: string = path.join(
   "FeatureSet",
 );
 
-const ADMIN_LOCALES: string = path.join(APP_SRC, "AdminDashboard", "src", "Locales");
-const DASHBOARD_LOCALES: string = path.join(APP_SRC, "Dashboard", "src", "Locales");
+const ADMIN_LOCALES: string = path.join(
+  APP_SRC,
+  "AdminDashboard",
+  "src",
+  "Locales",
+);
+const DASHBOARD_LOCALES: string = path.join(
+  APP_SRC,
+  "Dashboard",
+  "src",
+  "Locales",
+);
 
 const LANGUAGES: Array<string> = fs
   .readdirSync(ADMIN_LOCALES)
@@ -127,9 +137,10 @@ describe("Settings > Help and Support in every language", () => {
           sentence,
           isText: true,
         });
-        expect({ sentence, placeholders: placeholders(value as string) }).toEqual(
-          { sentence, placeholders: placeholders(sentence) },
-        );
+        expect({
+          sentence,
+          placeholders: placeholders(value as string),
+        }).toEqual({ sentence, placeholders: placeholders(sentence) });
 
         if (language === "en") {
           expect(value).toBe(sentence);
@@ -175,8 +186,14 @@ describe("Settings > Help and Support in every language", () => {
     "%s has the side menu entry and the trail's word, the Dashboard footer's own",
     (language: string) => {
       const admin: Record<string, unknown> = read(ADMIN_LOCALES, language);
-      const dashboard: Record<string, unknown> = read(DASHBOARD_LOCALES, language);
-      const sideMenu: unknown = nested(admin, "sideMenu.settingsHelpAndSupport");
+      const dashboard: Record<string, unknown> = read(
+        DASHBOARD_LOCALES,
+        language,
+      );
+      const sideMenu: unknown = nested(
+        admin,
+        "sideMenu.settingsHelpAndSupport",
+      );
       const breadcrumb: unknown = nested(admin, "breadcrumbs.helpAndSupport");
 
       expect(typeof sideMenu).toBe("string");
@@ -193,7 +210,10 @@ describe("Settings > Help and Support in every language", () => {
     "%s words the preview's chat entry as the Dashboard's Help menu does",
     (language: string) => {
       const admin: Record<string, unknown> = read(ADMIN_LOCALES, language);
-      const dashboard: Record<string, unknown> = read(DASHBOARD_LOCALES, language);
+      const dashboard: Record<string, unknown> = read(
+        DASHBOARD_LOCALES,
+        language,
+      );
 
       expect(admin[HelpAndSupportCopy.chatOnSlack]).toBe(
         nested(dashboard, "help.chatSlack"),

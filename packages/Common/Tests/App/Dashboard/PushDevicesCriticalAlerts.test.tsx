@@ -1750,7 +1750,9 @@ describe("the mobile app, as the server's admins offer it", () => {
     const status: HTMLElement = await statusOf("Chrome on macOS");
 
     expect(status).toHaveTextContent("Not available in browsers");
-    expect(within(status).queryByTestId("critical-alert-steps-link")).toBeNull();
+    expect(
+      within(status).queryByTestId("critical-alert-steps-link"),
+    ).toBeNull();
   });
 
   test("turned off: a phone already listed keeps its steps to turn critical alerts on", async () => {

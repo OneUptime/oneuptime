@@ -1,4 +1,7 @@
-import { HelpChoice, HelpItem } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import {
+  HelpChoice,
+  HelpItem,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
 import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 

@@ -39,8 +39,7 @@ import {
   toInviteMessageParagraphs,
 } from "Common/Types/HelpAndSupport/InviteMessage";
 import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -299,20 +298,18 @@ const HelpMenuPreview: FunctionComponent<{
         {translator.translateText(HelpAndSupportCopy.helpMenuPreviewNote)}
       </figcaption>
       <ul className="overflow-hidden rounded-md bg-white py-1 shadow-sm ring-1 ring-gray-200">
-        {entries.map(
-          (entry: { id: string; icon: IconProp; title: string }) => {
-            return (
-              <li
-                key={entry.id}
-                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700"
-                data-testid={`help-and-support-preview-${entry.id}`}
-              >
-                <Icon icon={entry.icon} className="h-4 w-4 text-gray-400" />
-                <span className="min-w-0 truncate">{entry.title}</span>
-              </li>
-            );
-          },
-        )}
+        {entries.map((entry: { id: string; icon: IconProp; title: string }) => {
+          return (
+            <li
+              key={entry.id}
+              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700"
+              data-testid={`help-and-support-preview-${entry.id}`}
+            >
+              <Icon icon={entry.icon} className="h-4 w-4 text-gray-400" />
+              <span className="min-w-0 truncate">{entry.title}</span>
+            </li>
+          );
+        })}
       </ul>
     </figure>
   );
@@ -341,7 +338,11 @@ const SignInPreview: FunctionComponent<{
         <Icon icon={IconProp.Lock} className="h-4 w-4 text-gray-400" />
         {translator.translateText(HelpAndSupportCopy.signInPreviewNote)}
       </figcaption>
-      <div className="rounded-md bg-white p-4 shadow-sm ring-1 ring-gray-200" lang="en" dir="ltr">
+      <div
+        className="rounded-md bg-white p-4 shadow-sm ring-1 ring-gray-200"
+        lang="en"
+        dir="ltr"
+      >
         <p className="text-base font-medium text-gray-900">
           {SSO_INVITE_SCREEN_TITLE}
         </p>
@@ -497,7 +498,9 @@ const HelpItemDialog: FunctionComponent<{
         return DEFAULT_INVITE_MESSAGE;
       }
 
-      return getDefaultValueText(props.item, props.answer, translator) || undefined;
+      return (
+        getDefaultValueText(props.item, props.answer, translator) || undefined
+      );
     }
 
     if (props.item === HelpItem.GiveFeedback) {
@@ -701,8 +704,7 @@ const HelpAndSupportSettings: FunctionComponent = (): ReactElement => {
           dir="ltr"
           data-testid={`${getHelpItemTestId(item)}-value`}
         >
-          {setting.choice === HelpChoice.Link &&
-          item === HelpItem.GiveFeedback
+          {setting.choice === HelpChoice.Link && item === HelpItem.GiveFeedback
             ? translator.translateTemplate(
                 HelpAndSupportCopy.feedbackOpensPage,
                 { address: getHelpLinkLabel(setting.value) },
@@ -742,8 +744,7 @@ const HelpAndSupportSettings: FunctionComponent = (): ReactElement => {
   ): ReactElement => {
     const copy: (typeof HELP_ITEM_COPY)[HelpItem] = HELP_ITEM_COPY[item];
     const isSwitch: boolean = SWITCH_ITEMS.includes(item);
-    const isShown: boolean =
-      answer.settings[item].choice !== HelpChoice.Hidden;
+    const isShown: boolean = answer.settings[item].choice !== HelpChoice.Hidden;
 
     return (
       <div

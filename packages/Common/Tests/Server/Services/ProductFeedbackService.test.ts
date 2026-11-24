@@ -324,8 +324,9 @@ describe("where Give feedback goes, chosen on Help and Support (#10865)", () => 
       giveFeedback: { choice: "email", value: "support-team@acme.test" },
     };
 
-    const settings: Awaited<ReturnType<typeof ProductFeedbackService.getSettings>> =
-      await ProductFeedbackService.getSettings(USER_ID);
+    const settings: Awaited<
+      ReturnType<typeof ProductFeedbackService.getSettings>
+    > = await ProductFeedbackService.getSettings(USER_ID);
 
     expect(settings.isGiveFeedbackOffered).toBe(false);
     expect(settings.giveFeedbackGoesTo).toBe(
@@ -399,8 +400,9 @@ describe("where Give feedback goes, chosen on Help and Support (#10865)", () => 
       giveFeedback: { choice: "link", value: "javascript:alert(1)" },
     };
 
-    const settings: Awaited<ReturnType<typeof ProductFeedbackService.getSettings>> =
-      await ProductFeedbackService.getSettings(USER_ID);
+    const settings: Awaited<
+      ReturnType<typeof ProductFeedbackService.getSettings>
+    > = await ProductFeedbackService.getSettings(USER_ID);
 
     // Read as the default: where it always went, and no page at all.
     expect(settings.giveFeedbackGoesTo).toBe(

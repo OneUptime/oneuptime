@@ -65,7 +65,10 @@ const withMessage: (message: string) => HelpAndSupportSettings = (
   message: string,
 ): HelpAndSupportSettings => {
   const settings: HelpAndSupportSettings = getDefaultHelpAndSupportSettings();
-  settings[HelpItem.InviteMessage] = { choice: HelpChoice.Text, value: message };
+  settings[HelpItem.InviteMessage] = {
+    choice: HelpChoice.Text,
+    value: message,
+  };
   return settings;
 };
 
@@ -156,9 +159,7 @@ describe("Message.ejs", () => {
     );
     // A mailto: link opens no tab.
     expect(html).not.toMatch(/href="mailto:[^"]*"[^>]*target="_blank"/);
-    expect(
-      (html.match(/<p class="break-words">/g) || []).length,
-    ).toBe(2);
+    expect((html.match(/<p class="break-words">/g) || []).length).toBe(2);
     // The default sentence is not said beside it.
     expect(html).not.toContain(DEFAULT_INVITE_MESSAGE);
   });

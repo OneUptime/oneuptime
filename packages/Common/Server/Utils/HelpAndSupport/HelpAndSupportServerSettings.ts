@@ -76,7 +76,10 @@ export class HelpAndSupportServerSettingsClass {
   public async getSettings(): Promise<HelpAndSupportSettings> {
     const now: number = this.now();
 
-    if (this.cached && now - this.cached.readAt < HELP_AND_SUPPORT_CACHE_TTL_MS) {
+    if (
+      this.cached &&
+      now - this.cached.readAt < HELP_AND_SUPPORT_CACHE_TTL_MS
+    ) {
       return this.cached.settings;
     }
 

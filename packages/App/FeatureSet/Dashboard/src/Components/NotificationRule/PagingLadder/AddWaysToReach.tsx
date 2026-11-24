@@ -232,9 +232,8 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
   const [isAppCodesOpen, setIsAppCodesOpen] = useState<boolean>(false);
 
   // Whether the server offers the mobile app at all (#10866).
-  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
-    useHelpAndSupport(),
-  );
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
 
   const ways: WaysToOffer = getWaysToOffer({
     methods: props.methods,

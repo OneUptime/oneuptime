@@ -55,54 +55,54 @@ export const getFrontendEnvironmentVariables: (
 ) => JSONObject = (
   options?: FrontendEnvironmentOptions | undefined,
 ): JSONObject => {
-    const frontendEnv: JSONObject = getFrontendEnvVars();
-    const isEnterpriseEditionLoaded: boolean = EnterpriseEdition.isLoaded();
-    const isEnterpriseEditionExpected: boolean = isEnterpriseEditionRequested(
-      process.env,
-    );
+  const frontendEnv: JSONObject = getFrontendEnvVars();
+  const isEnterpriseEditionLoaded: boolean = EnterpriseEdition.isLoaded();
+  const isEnterpriseEditionExpected: boolean = isEnterpriseEditionRequested(
+    process.env,
+  );
 
-    frontendEnv["IS_ENTERPRISE_EDITION"] = isEnterpriseEditionLoaded
+  frontendEnv["IS_ENTERPRISE_EDITION"] = isEnterpriseEditionLoaded
+    ? "true"
+    : "false";
+  frontendEnv["ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"] =
+    isEnterpriseEditionExpected && !isEnterpriseEditionLoaded
       ? "true"
       : "false";
-    frontendEnv["ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED"] =
-      isEnterpriseEditionExpected && !isEnterpriseEditionLoaded
-        ? "true"
-        : "false";
 
-    /*
-     * How the installation names and shows itself, only when the enterprise
-     * module says it may differ from OneUptime's own (see
-     * Types/Branding/ProductBranding.ts). Otherwise the key is not there at
-     * all, and the frontends show OneUptime.
-     */
-    const productBranding: ProductBranding | null =
-      EnterpriseEdition.getProductBranding();
+  /*
+   * How the installation names and shows itself, only when the enterprise
+   * module says it may differ from OneUptime's own (see
+   * Types/Branding/ProductBranding.ts). Otherwise the key is not there at
+   * all, and the frontends show OneUptime.
+   */
+  const productBranding: ProductBranding | null =
+    EnterpriseEdition.getProductBranding();
 
-    if (productBranding) {
-      frontendEnv[PRODUCT_BRANDING_ENVIRONMENT_KEY] =
-        ProductBrandingUtil.toEnvironmentValue(productBranding);
-    }
+  if (productBranding) {
+    frontendEnv[PRODUCT_BRANDING_ENVIRONMENT_KEY] =
+      ProductBrandingUtil.toEnvironmentValue(productBranding);
+  }
 
-    /*
-     * Where the server sends its people for help: every place's choice, and
-     * only the values a page anybody can open shows - never a chat link or
-     * the mobile app's page, which signed-in people read from the server.
-     * Left out while every place is on OneUptime's default, and on every
-     * frontend but the Dashboard and the sign-in pages.
-     */
-    const helpAndSupportValue: string | null =
-      options?.frontend &&
-      options.helpAndSupport &&
-      shouldCarryHelpAndSupport(options.frontend)
-        ? toHelpAndSupportEnvironmentValue(options.helpAndSupport)
-        : null;
+  /*
+   * Where the server sends its people for help: every place's choice, and
+   * only the values a page anybody can open shows - never a chat link or
+   * the mobile app's page, which signed-in people read from the server.
+   * Left out while every place is on OneUptime's default, and on every
+   * frontend but the Dashboard and the sign-in pages.
+   */
+  const helpAndSupportValue: string | null =
+    options?.frontend &&
+    options.helpAndSupport &&
+    shouldCarryHelpAndSupport(options.frontend)
+      ? toHelpAndSupportEnvironmentValue(options.helpAndSupport)
+      : null;
 
-    if (helpAndSupportValue) {
-      frontendEnv[HELP_AND_SUPPORT_ENVIRONMENT_KEY] = helpAndSupportValue;
-    }
+  if (helpAndSupportValue) {
+    frontendEnv[HELP_AND_SUPPORT_ENVIRONMENT_KEY] = helpAndSupportValue;
+  }
 
-    return frontendEnv;
-  };
+  return frontendEnv;
+};
 
 /*
  * The combined App server and the five standalone frontend servers must emit

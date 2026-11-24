@@ -264,9 +264,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
    * and Support, #10866): OneUptime's stores, a page of its own, or not at
    * all - then the push step offers this browser only.
    */
-  const mobileAppOffer: MobileAppOffer | null = getMobileAppOffer(
-    useHelpAndSupport(),
-  );
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();

@@ -346,9 +346,7 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               <div
                 key={index}
                 className="flex flex-col gap-4 px-6 py-5 transition-colors hover:bg-gray-50/60 md:flex-row md:items-center md:justify-between md:px-10"
-                data-testid={
-                  row.address ? "mobile-apps-own-page" : undefined
-                }
+                data-testid={row.address ? "mobile-apps-own-page" : undefined}
               >
                 <div className="min-w-0 flex-1">
                   {row.eyebrow ? (

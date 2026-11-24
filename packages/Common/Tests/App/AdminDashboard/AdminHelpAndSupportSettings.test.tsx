@@ -172,12 +172,10 @@ async function renderPage(): Promise<void> {
   await flush();
 }
 
-const row: (item: HelpItem) => HTMLElement = (item: HelpItem): HTMLElement => {
-  return screen.getByTestId(getHelpItemTestId(item));
-};
-
 const stateOf: (item: HelpItem) => string = (item: HelpItem): string => {
-  return screen.getByTestId(`${getHelpItemTestId(item)}-state`).textContent || "";
+  return (
+    screen.getByTestId(`${getHelpItemTestId(item)}-state`).textContent || ""
+  );
 };
 
 const valueOf: (item: HelpItem) => string | null = (
@@ -202,7 +200,9 @@ const pick: (dialog: HTMLElement, title: string) => void = (
   dialog: HTMLElement,
   title: string,
 ): void => {
-  fireEvent.click(within(dialog).getByRole("radio", { name: new RegExp(`^${title}`) }));
+  fireEvent.click(
+    within(dialog).getByRole("radio", { name: new RegExp(`^${title}`) }),
+  );
 };
 
 const typeInto: (testId: string, value: string) => void = (
@@ -287,13 +287,18 @@ describe("the page", () => {
     });
 
     expect(cards).toEqual(
-      [HelpCard.HelpMenu, HelpCard.Footer, HelpCard.MobileApp, HelpCard.SignIn].map(
-        getHelpCardTestId,
-      ),
+      [
+        HelpCard.HelpMenu,
+        HelpCard.Footer,
+        HelpCard.MobileApp,
+        HelpCard.SignIn,
+      ].map(getHelpCardTestId),
     );
 
     for (const card of HELP_CARDS) {
-      const element: HTMLElement = screen.getByTestId(getHelpCardTestId(card.card));
+      const element: HTMLElement = screen.getByTestId(
+        getHelpCardTestId(card.card),
+      );
 
       expect(element).toHaveTextContent(card.title);
       expect(element).toHaveTextContent(card.description);
@@ -309,7 +314,9 @@ describe("the page", () => {
     }
     expect(
       within(screen.getByTestId(getHelpCardTestId(HelpCard.HelpMenu)))
-        .getAllByTestId(/^help-and-support-(supportEmail|chat|requestDemo|giveFeedback)$/)
+        .getAllByTestId(
+          /^help-and-support-(supportEmail|chat|requestDemo|giveFeedback)$/,
+        )
         .map((element: HTMLElement): string | null => {
           return element.getAttribute("data-testid");
         }),
@@ -328,7 +335,10 @@ describe("on the defaults: each place says what it does, as it always did", () =
     await renderPage();
 
     for (const item of HELP_ITEMS) {
-      expect({ item, state: stateOf(item) }).toEqual({ item, state: "Default" });
+      expect({ item, state: stateOf(item) }).toEqual({
+        item,
+        state: "Default",
+      });
     }
 
     expect(valueOf(HelpItem.SupportEmail)).toBe("support@oneuptime.com");
@@ -386,7 +396,9 @@ describe("on the defaults: each place says what it does, as it always did", () =
 
     // Every other place is changed in a dialog.
     for (const item of HELP_ITEMS.filter((candidate: HelpItem): boolean => {
-      return candidate !== HelpItem.RequestDemo && candidate !== HelpItem.GitHub;
+      return (
+        candidate !== HelpItem.RequestDemo && candidate !== HelpItem.GitHub
+      );
     })) {
       expect(
         screen.getByTestId(`${getHelpItemTestId(item)}-change`),
@@ -470,7 +482,9 @@ describe("pointed at the server's own people", () => {
     );
     // Give feedback's page is named by its address.
     expect(valueOf(HelpItem.GiveFeedback)).toBe("Opens help.example.com");
-    expect(valueOf(HelpItem.HelpLink)).toBe("https://help.example.com/oneuptime");
+    expect(valueOf(HelpItem.HelpLink)).toBe(
+      "https://help.example.com/oneuptime",
+    );
     // Addresses read left to right, in any language.
     expect(
       screen.getByTestId(`${getHelpItemTestId(HelpItem.SupportEmail)}-value`),
@@ -543,7 +557,9 @@ describe("pointed at the server's own people", () => {
     await renderPage();
 
     expect(
-      screen.getByTestId(`${getHelpItemTestId(HelpItem.GiveFeedback)}-cannot-send`),
+      screen.getByTestId(
+        `${getHelpItemTestId(HelpItem.GiveFeedback)}-cannot-send`,
+      ),
     ).toHaveTextContent(HelpAndSupportCopy.feedbackCannotSend);
     expect(previewEntries()).not.toContain("Give feedback");
   });
@@ -572,7 +588,9 @@ describe("changing a place", () => {
     ).toEqual(["Defaultsupport@oneuptime.com", "Your own address", "Hide it"]);
     expect(radios[0]).toBeChecked();
     // No field until a choice needs one.
-    expect(screen.queryByTestId("help-and-support-dialog-email-input")).toBeNull();
+    expect(
+      screen.queryByTestId("help-and-support-dialog-email-input"),
+    ).toBeNull();
   });
 
   test("an address of the server's own is saved as typed, and the page shows what the server kept", async () => {
@@ -602,9 +620,11 @@ describe("changing a place", () => {
     expect(stateOf(HelpItem.SupportEmail)).toBe("Your Own");
     expect(valueOf(HelpItem.SupportEmail)).toBe("it-help@example.com");
     expect(
-      Toast.getToasts().map((toast: { title?: unknown; description?: unknown }) => {
-        return String(toast.title ?? toast.description);
-      }),
+      Toast.getToasts().map(
+        (toast: { title?: unknown; description?: unknown }) => {
+          return String(toast.title ?? toast.description);
+        },
+      ),
     ).toContain("Saved");
   });
 
@@ -658,11 +678,27 @@ describe("changing a place", () => {
   });
 
   test.each([
-    ["javascript:", "javascript:alert(document.cookie)", HelpAndSupportProblems.linkScheme],
-    ["data:", "data:text/html,<script>alert(1)</script>", HelpAndSupportProblems.linkScheme],
-    ["a scheme written in parts", "java\tscript:alert(1)", HelpAndSupportProblems.linkScheme],
+    [
+      "javascript:",
+      "javascript:alert(document.cookie)",
+      HelpAndSupportProblems.linkScheme,
+    ],
+    [
+      "data:",
+      "data:text/html,<script>alert(1)</script>",
+      HelpAndSupportProblems.linkScheme,
+    ],
+    [
+      "a scheme written in parts",
+      "java\tscript:alert(1)",
+      HelpAndSupportProblems.linkScheme,
+    ],
     ["vbscript:", "vbscript:msgbox(1)", HelpAndSupportProblems.linkScheme],
-    ["a link with quotes", 'https://help.example.com/"onmouseover="x', HelpAndSupportProblems.linkInvalid],
+    [
+      "a link with quotes",
+      'https://help.example.com/"onmouseover="x',
+      HelpAndSupportProblems.linkInvalid,
+    ],
     ["nothing", "", HelpAndSupportProblems.linkMissing],
   ])(
     "a link that is %s is refused before anything is sent, and says why",
@@ -719,7 +755,9 @@ describe("changing a place", () => {
     );
     await save();
 
-    expect(within(dialog).getByText(HelpAndSupportProblems.linkScheme)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(HelpAndSupportProblems.linkScheme),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("modal")).toBeInTheDocument();
     expect(stateOf(HelpItem.MobileApp)).toBe("Default");
   });
@@ -731,9 +769,13 @@ describe("changing a place", () => {
     const dialog: HTMLElement = await openDialog(HelpItem.GiveFeedback);
 
     expect(dialog).toHaveTextContent("An email address");
-    expect(dialog).toHaveTextContent(HelpAndSupportCopy.feedbackChoiceEmailDescription);
+    expect(dialog).toHaveTextContent(
+      HelpAndSupportCopy.feedbackChoiceEmailDescription,
+    );
     expect(dialog).toHaveTextContent("A page of your own");
-    expect(dialog).toHaveTextContent(HelpAndSupportCopy.feedbackChoiceLinkDescription);
+    expect(dialog).toHaveTextContent(
+      HelpAndSupportCopy.feedbackChoiceLinkDescription,
+    );
     expect(dialog).toHaveTextContent("Hide Give feedback");
 
     pick(dialog, "An email address");
@@ -759,7 +801,9 @@ describe("changing a place", () => {
       .getByTestId("help-and-support-dialog-text-input")
       .closest("div")
       ?.querySelector("textarea") ||
-      screen.getByTestId("help-and-support-dialog-text-input")) as HTMLTextAreaElement;
+      screen.getByTestId(
+        "help-and-support-dialog-text-input",
+      )) as HTMLTextAreaElement;
 
     fireEvent.change(textarea, { target: { value: "x".repeat(1500) } });
     expect(textarea.value).toHaveLength(INVITE_MESSAGE_MAX_LENGTH);
@@ -770,7 +814,9 @@ describe("changing a place", () => {
     await save();
 
     expect(mockPost).not.toHaveBeenCalled();
-    expect(within(dialog).getByText(HelpAndSupportProblems.textHtml)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(HelpAndSupportProblems.textHtml),
+    ).toBeInTheDocument();
   });
 
   test("the sign-in message of the server's own is saved as written", async () => {
@@ -805,7 +851,9 @@ describe("the switches save as they are flipped", () => {
   test("Request Demo off: hidden at once, and said", async () => {
     mockFetch.mockResolvedValue(answer());
     mockPost.mockResolvedValue(
-      answer({ [HelpItem.RequestDemo]: { choice: HelpChoice.Hidden, value: null } }),
+      answer({
+        [HelpItem.RequestDemo]: { choice: HelpChoice.Hidden, value: null },
+      }),
     );
     await renderPage();
 
@@ -845,7 +893,9 @@ describe("the switches save as they are flipped", () => {
 
   test("a flip the server refuses says why, and the switch stays as it was", async () => {
     mockFetch.mockResolvedValue(answer());
-    mockPost.mockRejectedValue(new Error("Only master admins may change this."));
+    mockPost.mockRejectedValue(
+      new Error("Only master admins may change this."),
+    );
     await renderPage();
 
     fireEvent.click(
@@ -855,9 +905,11 @@ describe("the switches save as they are flipped", () => {
 
     expect(stateOf(HelpItem.RequestDemo)).toBe("Default");
     expect(
-      Toast.getToasts().map((toast: { title?: unknown; description?: unknown }) => {
-        return `${String(toast.title ?? "")} ${String(toast.description ?? "")}`;
-      }).join(" "),
+      Toast.getToasts()
+        .map((toast: { title?: unknown; description?: unknown }) => {
+          return `${String(toast.title ?? "")} ${String(toast.description ?? "")}`;
+        })
+        .join(" "),
     ).toContain("Only master admins may change this.");
   });
 });

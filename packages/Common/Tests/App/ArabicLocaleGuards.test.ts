@@ -255,6 +255,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "email@yourcompany.com",
     "enterprise@oneuptime.com",
     "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
+    // Settings > Help and Support's example link (#10864).
+    "https://help.yourcompany.com",
     "internal-probe",
     "member@company.com",
     "mm",

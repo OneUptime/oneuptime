@@ -316,7 +316,8 @@ describe("a link", () => {
 
   test("a link longer than the most a link may be is refused, one at the most is kept", () => {
     const base: string = "https://help.example.com/";
-    const atMost: string = base + "a".repeat(HELP_LINK_MAX_LENGTH - base.length);
+    const atMost: string =
+      base + "a".repeat(HELP_LINK_MAX_LENGTH - base.length);
     const tooLong: string = atMost + "a";
 
     expect(atMost.length).toBe(HELP_LINK_MAX_LENGTH);
@@ -748,7 +749,12 @@ describe("env.js", () => {
     expect(HELP_AND_SUPPORT_ENVIRONMENT_KEY).toBe("HELP_AND_SUPPORT");
     expect(HELP_AND_SUPPORT_FRONTENDS).toEqual(["dashboard", "accounts"]);
 
-    for (const frontend of ["dashboard", "/dashboard", "accounts", "/Accounts"]) {
+    for (const frontend of [
+      "dashboard",
+      "/dashboard",
+      "accounts",
+      "/Accounts",
+    ]) {
       expect(shouldCarryHelpAndSupport(frontend)).toBe(true);
     }
 
@@ -939,7 +945,9 @@ describe("what people see, place by place", () => {
     ).toBe("it-help@example.com");
     expect(
       getSupportEmailAddress(
-        settingsWith({ [HelpItem.SupportEmail]: { choice: HelpChoice.Hidden } }),
+        settingsWith({
+          [HelpItem.SupportEmail]: { choice: HelpChoice.Hidden },
+        }),
       ),
     ).toBeNull();
   });

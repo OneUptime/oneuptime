@@ -15,9 +15,8 @@ const PageNotFound: FunctionComponent<
    * Contact Support writes to the server's support address: OneUptime's,
    * the server's own, or none where its admins hid it (Help and Support).
    */
-  const supportEmail: string | null = getSupportEmailAddress(
-    useHelpAndSupport(),
-  );
+  const supportEmail: string | null =
+    getSupportEmailAddress(useHelpAndSupport());
 
   return (
     <Page title={""} breadcrumbLinks={[]}>

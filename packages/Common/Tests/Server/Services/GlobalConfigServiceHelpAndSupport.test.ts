@@ -87,9 +87,7 @@ afterEach(() => {
 
 describe("who may write where the server sends people for help", () => {
   test("only helpAndSupport, a real JSON column nobody may read or write through the API", () => {
-    expect([...ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS]).toEqual([
-      "helpAndSupport",
-    ]);
+    expect([...ROOT_ONLY_HELP_AND_SUPPORT_COLUMNS]).toEqual(["helpAndSupport"]);
     expect(new GlobalConfig().isTableColumn("helpAndSupport")).toBe(true);
   });
 
@@ -148,7 +146,10 @@ describe("who may write where the server sends people for help", () => {
   test("OneUptime itself may write it", async () => {
     await expect(
       hooks.onBeforeUpdate(
-        makeUpdateBy({ helpAndSupport: { gitHub: { choice: "hidden" } } }, ROOT_PROPS),
+        makeUpdateBy(
+          { helpAndSupport: { gitHub: { choice: "hidden" } } },
+          ROOT_PROPS,
+        ),
       ),
     ).resolves.toBeDefined();
   });

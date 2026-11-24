@@ -36,7 +36,9 @@ const FeedbackGitHubLink: FunctionComponent<ComponentProps> = (
    * Dashboard > Settings > Help and Support, #10866): their people's words
    * stay with their own team.
    */
-  if (!isOneUptimeGitHubShown(useHelpAndSupport())) {
+  const isGitHubShown: boolean = isOneUptimeGitHubShown(useHelpAndSupport());
+
+  if (!isGitHubShown) {
     return <></>;
   }
 
