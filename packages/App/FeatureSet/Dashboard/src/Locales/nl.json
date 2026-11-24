@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "De instellingen voor sjabloonsynchronisatie hebben het monitortype van het sjabloon nodig. Kies eerst het monitortype en kies daarna de synchronisatie-instellingen opnieuw.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Dit monitorsjabloon bestaat niet in dit project, of u hebt er geen toegang toe. Laad de pagina opnieuw en probeer het daarna opnieuw.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Dit monitorsjabloon heeft geen monitortype, dus de monitors ervan kunnen niet worden gesynchroniseerd. Maak het sjabloon opnieuw aan met een monitortype.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Dit monitorsjabloon hoort bij geen enkel project, dus er kan geen monitor aan worden gekoppeld. Maak het sjabloon opnieuw aan in dit project."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Dit monitorsjabloon hoort bij geen enkel project, dus er kan geen monitor aan worden gekoppeld. Maak het sjabloon opnieuw aan in dit project.",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "Alleen de uitzonderingen die een scrub-regel van een andere heeft afgesplitst, elk paar één keer. Open er een om ze samen te voegen.",
+  "Split by a scrub rule": "Door een scrub-regel afgesplitst"
 }

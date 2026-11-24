@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "टेम्पलेट सिंक सेटिंग्स के लिए टेम्पलेट का मॉनिटर प्रकार चाहिए। पहले मॉनिटर प्रकार चुनें, फिर सिंक सेटिंग्स दोबारा चुनें।",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "यह मॉनिटर टेम्पलेट इस प्रोजेक्ट में मौजूद नहीं है, या आपके पास इसकी पहुंच नहीं है। पेज दोबारा लोड करें, फिर दोबारा कोशिश करें।",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "इस मॉनिटर टेम्पलेट का कोई मॉनिटर प्रकार नहीं है, इसलिए इसके मॉनिटर सिंक नहीं किए जा सकते। मॉनिटर प्रकार के साथ टेम्पलेट फिर से बनाएं।",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "यह मॉनिटर टेम्पलेट किसी प्रोजेक्ट में नहीं है, इसलिए इससे कोई मॉनिटर लिंक नहीं किया जा सकता। इस प्रोजेक्ट में टेम्पलेट फिर से बनाएं।"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "यह मॉनिटर टेम्पलेट किसी प्रोजेक्ट में नहीं है, इसलिए इससे कोई मॉनिटर लिंक नहीं किया जा सकता। इस प्रोजेक्ट में टेम्पलेट फिर से बनाएं।",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "केवल वे अपवाद जिन्हें एक स्क्रब नियम ने दूसरे अपवाद से अलग किया, हर जोड़ी एक बार। दोनों को मिलाने के लिए उनमें से एक खोलें।",
+  "Split by a scrub rule": "स्क्रब नियम से अलग हुए"
 }

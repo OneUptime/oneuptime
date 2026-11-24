@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Die Einstellungen für die Vorlagensynchronisierung brauchen den Monitortyp der Vorlage. Wählen Sie zuerst den Monitortyp und dann die Synchronisierungseinstellungen erneut.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Diese Monitorvorlage existiert in diesem Projekt nicht, oder Sie haben keinen Zugriff darauf. Laden Sie die Seite neu und versuchen Sie es dann erneut.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Diese Monitorvorlage hat keinen Monitortyp, daher können ihre Monitore nicht synchronisiert werden. Erstellen Sie die Vorlage mit einem Monitortyp neu.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Diese Monitorvorlage gehört zu keinem Projekt, daher kann kein Monitor mit ihr verknüpft werden. Erstellen Sie die Vorlage in diesem Projekt neu."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Diese Monitorvorlage gehört zu keinem Projekt, daher kann kein Monitor mit ihr verknüpft werden. Erstellen Sie die Vorlage in diesem Projekt neu.",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "Nur die Ausnahmen, die eine Scrub-Regel von einer anderen abgespalten hat, jedes Paar einmal. Öffnen Sie eine, um beide zusammenzuführen.",
+  "Split by a scrub rule": "Von einer Scrub-Regel abgespalten"
 }

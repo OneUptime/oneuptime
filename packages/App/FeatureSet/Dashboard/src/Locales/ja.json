@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "テンプレートの同期設定には、テンプレートのモニターの種類が必要です。先にモニターの種類を選んでから、同期設定を選び直してください。",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "このモニターテンプレートはこのプロジェクトに存在しないか、アクセス権がありません。ページを再読み込みしてから、もう一度お試しください。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "このモニターテンプレートにはモニターの種類がないため、そのモニターを同期できません。モニターの種類を指定してテンプレートを作り直してください。",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "このモニターテンプレートはどのプロジェクトにも属していないため、モニターを関連付けられません。このプロジェクトでテンプレートを作り直してください。"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "このモニターテンプレートはどのプロジェクトにも属していないため、モニターを関連付けられません。このプロジェクトでテンプレートを作り直してください。",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "スクラブルールにより別の例外から分割された例外だけを、各ペアにつき一つ表示します。開くと両方を統合できます。",
+  "Split by a scrub rule": "スクラブルールで分割"
 }

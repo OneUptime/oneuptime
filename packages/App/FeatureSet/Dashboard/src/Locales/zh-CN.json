@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "模板同步设置需要模板的监视器类型。请先选择监视器类型，然后重新选择同步设置。",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "此监视器模板在此项目中不存在，或者您无权访问。请重新加载页面，然后重试。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此监视器模板没有监视器类型，因此无法同步其监视器。请使用监视器类型重新创建该模板。",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "仅显示清理规则从另一个异常中拆分出来的异常，每对只显示一次。打开其中一个即可将二者合并。",
+  "Split by a scrub rule": "清理规则拆分的"
 }

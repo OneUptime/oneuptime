@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "範本同步設定需要範本的監測器類型。請先選擇監測器類型，然後重新選擇同步設定。",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "此監測器範本在此專案中不存在，或您沒有存取權。請重新載入頁面，然後再試一次。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此監測器範本沒有監測器類型，因此無法同步其監測器。請使用監測器類型重新建立該範本。",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。"
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "僅顯示清理規則從另一個例外中拆分出來的例外，每對只顯示一次。打開其中一個即可將二者合併。",
+  "Split by a scrub rule": "清理規則拆分的"
 }

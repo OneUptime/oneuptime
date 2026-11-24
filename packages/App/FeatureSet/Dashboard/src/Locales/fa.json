@@ -64203,5 +64203,7 @@
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تنظیمات همگام‌سازی قالب به نوع مانیتور قالب نیاز دارد. اول نوع مانیتور را انتخاب کنید و سپس تنظیمات همگام‌سازی را دوباره انتخاب کنید.",
   "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "این قالب مانیتور در این پروژه وجود ندارد یا به آن دسترسی ندارید. صفحه را دوباره بارگذاری کنید و سپس دوباره امتحان کنید.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "این قالب مانیتور نوع مانیتور ندارد، پس مانیتورهایش همگام‌سازی نمی‌شوند. قالب را با یک نوع مانیتور دوباره بسازید.",
-  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "این قالب مانیتور به هیچ پروژه‌ای تعلق ندارد، پس هیچ مانیتوری را نمی‌توان به آن پیوند داد. قالب را در این پروژه دوباره بسازید."
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "این قالب مانیتور به هیچ پروژه‌ای تعلق ندارد، پس هیچ مانیتوری را نمی‌توان به آن پیوند داد. قالب را در این پروژه دوباره بسازید.",
+  "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.": "فقط استثناهایی که یک قاعدهٔ پالایش از استثنای دیگری جدا کرد، هر جفت یک بار. یکی را باز کنید تا هر دو را ادغام کنید.",
+  "Split by a scrub rule": "جداشده با قاعدهٔ پالایش"
 }
