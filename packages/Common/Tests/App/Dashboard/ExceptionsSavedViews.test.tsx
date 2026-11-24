@@ -111,6 +111,7 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 import ExceptionsViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsViewer";
 import ExceptionSavedView from "../../../Models/DatabaseModels/ExceptionSavedView";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetrySavedViewState from "../../../Types/Telemetry/TelemetrySavedViewState";
@@ -235,7 +236,7 @@ describe("the Exceptions list's saved views", () => {
     await openAt(
       `?search=${encodeURIComponent("type:TypeError")}&filters=${encodeURIComponent(
         JSON.stringify([["resource.service.name", "checkout"]]),
-      )}&range=${encodeURIComponent("Past 1 Week")}&pageSize=50&status=archived&class=all&assigned=me&sort=most-events`,
+      )}&range=${encodeURIComponent("Past 1 Week")}&pageSize=50&status=archived&class=all&assigned=me&split=scrub-rule&sort=most-events`,
     );
 
     expect(drawnControl().captureCurrentState()).toEqual({
@@ -246,7 +247,16 @@ describe("the Exceptions list's saved views", () => {
       exceptionStatus: "archived",
       exceptionClassScope: "all",
       exceptionAssignedToMe: true,
+      exceptionSplitByScrubRule: true,
       exceptionSort: "most-events",
+    });
+
+    // Off, it is kept as off, as Assigned to me is.
+    cleanup();
+    await openAt("");
+    expect(drawnControl().captureCurrentState()).toMatchObject({
+      exceptionAssignedToMe: false,
+      exceptionSplitByScrubRule: false,
     });
   });
 
@@ -261,6 +271,7 @@ describe("the Exceptions list's saved views", () => {
       exceptionStatus: "resolved",
       exceptionClassScope: "user-errors",
       exceptionAssignedToMe: true,
+      exceptionSplitByScrubRule: true,
       exceptionSort: "first-seen",
     };
 
@@ -274,6 +285,7 @@ describe("the Exceptions list's saved views", () => {
     expect(read.query["isResolved"]).toBe(true);
     expect(read.query["isArchived"]).toBe(false);
     expect(String(read.query["assignToUserId"])).toBe(ME.toString());
+    expect(read.query["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
     expect(read.sort).toEqual({
       firstSeenAt: SortOrder.Descending,
       lastSeenAt: SortOrder.Descending,
@@ -288,6 +300,7 @@ describe("the Exceptions list's saved views", () => {
     expect(params().get("status")).toBe("resolved");
     expect(params().get("class")).toBe("user-errors");
     expect(params().get("assigned")).toBe("me");
+    expect(params().get("split")).toBe("scrub-rule");
     expect(params().get("sort")).toBe("first-seen");
 
     // And Save, from there, keeps what the view set.
@@ -296,7 +309,7 @@ describe("the Exceptions list's saved views", () => {
 
   test("Clear view - the empty state - puts the list back as it opens", async () => {
     await openAt(
-      `?range=${encodeURIComponent("Past 1 Week")}&status=archived&class=all&assigned=me&sort=most-events&search=boom`,
+      `?range=${encodeURIComponent("Past 1 Week")}&status=archived&class=all&assigned=me&split=scrub-rule&sort=most-events&search=boom`,
     );
 
     const control: any = drawnControl();
@@ -309,10 +322,18 @@ describe("the Exceptions list's saved views", () => {
     expect(read.query["isResolved"]).toBe(false);
     expect(read.query["isArchived"]).toBe(false);
     expect(read.query["assignToUserId"]).toBeUndefined();
+    expect(read.query["splitFromTelemetryExceptionId"]).toBeUndefined();
     expect(read.sort).toEqual({ lastSeenAt: SortOrder.Descending });
 
     expect(params().get("range")).toBe(TimeRange.PAST_ONE_DAY);
-    for (const name of ["search", "status", "class", "assigned", "sort"]) {
+    for (const name of [
+      "search",
+      "status",
+      "class",
+      "assigned",
+      "split",
+      "sort",
+    ]) {
       expect({ name, value: params().get(name) }).toEqual({
         name,
         value: null,
@@ -360,6 +381,7 @@ describe("the Exceptions list's saved views", () => {
       "?status=resolved",
       "?class=all",
       "?assigned=me",
+      "?split=scrub-rule",
       "?sort=first-seen",
     ]) {
       await openAt(search);
