@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
   "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
-  "Unknown source": "Unknown source"
+  "Unknown source": "Unknown source",
+  "No connected repository you can read.": "No connected repository you can read.",
+  "No connected repository you may ask OneUptime AI to work in.": "No connected repository you may ask OneUptime AI to work in."
 }

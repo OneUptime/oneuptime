@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
   "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
-  "Unknown source": "不明なソース"
+  "Unknown source": "不明なソース",
+  "No connected repository you can read.": "読み取りできる接続済みのリポジトリがありません。",
+  "No connected repository you may ask OneUptime AI to work in.": "OneUptime AI に作業を依頼できる接続済みのリポジトリがありません。"
 }

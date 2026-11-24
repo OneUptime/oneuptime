@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
   "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
-  "Unknown source": "알 수 없는 소스"
+  "Unknown source": "알 수 없는 소스",
+  "No connected repository you can read.": "읽을 수 있는 연결된 저장소가 없습니다.",
+  "No connected repository you may ask OneUptime AI to work in.": "OneUptime AI에 작업을 요청할 수 있는 연결된 저장소가 없습니다."
 }

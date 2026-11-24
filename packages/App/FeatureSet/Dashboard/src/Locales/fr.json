@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'adresse depuis laquelle OneUptime voit cette sonde se signaler. La liste de blocage ne la bloque jamais.",
   "OneUptime AI's Scrub Rule Input Hash": "Empreinte des entrées des règles de masquage d'OneUptime AI",
   "OneUptime AI's Scrub Rules": "Règles de masquage d'OneUptime AI",
-  "Unknown source": "Source inconnue"
+  "Unknown source": "Source inconnue",
+  "No connected repository you can read.": "Aucun dépôt connecté que vous pouvez lire.",
+  "No connected repository you may ask OneUptime AI to work in.": "Aucun dépôt connecté dans lequel vous pouvez demander à OneUptime AI de travailler."
 }

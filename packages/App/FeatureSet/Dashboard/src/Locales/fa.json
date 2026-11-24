@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
   "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
   "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI",
-  "Unknown source": "منبع ناشناخته"
+  "Unknown source": "منبع ناشناخته",
+  "No connected repository you can read.": "هیچ مخزن متصلی نیست که بتوانید آن را بخوانید.",
+  "No connected repository you may ask OneUptime AI to work in.": "هیچ مخزن متصلی نیست که بتوانید از OneUptime AI بخواهید در آن کار کند."
 }

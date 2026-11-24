@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
   "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
-  "Unknown source": "مصدر غير معروف"
+  "Unknown source": "مصدر غير معروف",
+  "No connected repository you can read.": "لا يوجد مستودع مرتبط يمكنك قراءته.",
+  "No connected repository you may ask OneUptime AI to work in.": "لا يوجد مستودع مرتبط يمكنك أن تطلب من OneUptime AI العمل فيه."
 }

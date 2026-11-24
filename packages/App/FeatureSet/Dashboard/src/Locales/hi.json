@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
   "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम",
-  "Unknown source": "अज्ञात स्रोत"
+  "Unknown source": "अज्ञात स्रोत",
+  "No connected repository you can read.": "कोई जुड़ी हुई रिपॉज़िटरी नहीं है जिसे आप पढ़ सकें।",
+  "No connected repository you may ask OneUptime AI to work in.": "कोई जुड़ी हुई रिपॉज़िटरी नहीं है जिसमें आप OneUptime AI से काम करवा सकें।"
 }

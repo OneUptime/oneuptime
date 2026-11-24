@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen som OneUptime ser den här sonden höra av sig från. Blocklistan blockerar den aldrig.",
   "OneUptime AI's Scrub Rule Input Hash": "Inmatningshash för OneUptime AI:s scrub-regler",
   "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler",
-  "Unknown source": "Okänd källa"
+  "Unknown source": "Okänd källa",
+  "No connected repository you can read.": "Inget anslutet repositorium som du får läsa.",
+  "No connected repository you may ask OneUptime AI to work in.": "Inget anslutet repositorium som du får be OneUptime AI att arbeta i."
 }

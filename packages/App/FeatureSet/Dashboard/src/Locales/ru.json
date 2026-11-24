@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует.",
   "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
   "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI",
-  "Unknown source": "Неизвестный источник"
+  "Unknown source": "Неизвестный источник",
+  "No connected repository you can read.": "Нет подключённого репозитория, который вы можете читать.",
+  "No connected repository you may ask OneUptime AI to work in.": "Нет подключённого репозитория, в котором вы можете поручить работу OneUptime AI."
 }

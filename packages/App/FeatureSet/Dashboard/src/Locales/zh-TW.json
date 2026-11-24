@@ -63715,5 +63715,7 @@
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探測器回報時所用的位址。封鎖清單從不封鎖它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理規則輸入雜湊",
   "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則",
-  "Unknown source": "未知來源"
+  "Unknown source": "未知來源",
+  "No connected repository you can read.": "沒有你可以讀取的已連線儲存庫。",
+  "No connected repository you may ask OneUptime AI to work in.": "沒有你可以讓 OneUptime AI 在其中工作的已連線儲存庫。"
 }
