@@ -471,10 +471,7 @@ describe("a Kotlin pattern reads a word's edge as the JVM and JavaScript do", ()
   test("the rule tells each pattern that kept a secret on Android, and why", () => {
     // The agent's patterns before #10835, each of which kept a secret written right next to a letter of another script.
     const before: Array<[string, string]> = [
-      [
-        "a card number",
-        String.raw`(?<![\w.])\d(?:[ -]?\d){12,18}(?![\w.])`,
-      ],
+      ["a card number", String.raw`(?<![\w.])\d(?:[ -]?\d){12,18}(?![\w.])`],
       [
         "an address",
         String.raw`(?<![\w.%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![\w-])`,
@@ -491,10 +488,7 @@ describe("a Kotlin pattern reads a word's edge as the JVM and JavaScript do", ()
         "a secret's value",
         String.raw`(?i)((?<![\w-])["']?[\w-]{0,40}?(?:password|token)["']?\s{0,8}[:=]\s{0,8})([^\s,;&)\]\}]+)`,
       ],
-      [
-        "a thread's header",
-        String.raw`^"([^"]*)".*\btid=\d+.*$`,
-      ],
+      ["a thread's header", String.raw`^"([^"]*)".*\btid=\d+.*$`],
       // A look-behind read case-insensitively: under (?i) Android's engine counts "ſ" and "K" among the letters.
       [
         "a credential read case-insensitively",

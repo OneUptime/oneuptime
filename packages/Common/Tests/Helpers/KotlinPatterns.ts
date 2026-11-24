@@ -707,9 +707,7 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
   let index: number = 0;
 
   // The innermost look-around the walk is in.
-  const lookAround: () => OpenGroup | undefined = ():
-    | OpenGroup
-    | undefined => {
+  const lookAround: () => OpenGroup | undefined = (): OpenGroup | undefined => {
     for (let at: number = groups.length - 1; at >= 0; at--) {
       if (groups[at]!.lookAround !== null) {
         return groups[at];

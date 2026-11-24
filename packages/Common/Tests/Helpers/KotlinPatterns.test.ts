@@ -402,9 +402,9 @@ describe("where a Java pattern reads a word's edge otherwise on Android", () => 
   });
 
   test("a shorthand class or a POSIX class in a look-around, and not outside one", () => {
-    expect(edgesOf(String.raw`(?<![\w.])\d(?:[ -]?\d){12,18}(?![\w.])`)).toEqual(
-      [String.raw`\w@5 in (?<!`, String.raw`\w@34 in (?!`],
-    );
+    expect(
+      edgesOf(String.raw`(?<![\w.])\d(?:[ -]?\d){12,18}(?![\w.])`),
+    ).toEqual([String.raw`\w@5 in (?<!`, String.raw`\w@34 in (?!`]);
     expect(
       edgesOf(String.raw`(?<!\W)(?<=\d)(?!\D)(?=\s)(?<!\S)a`).map(
         (edge: string): string => {
@@ -418,7 +418,9 @@ describe("where a Java pattern reads a word's edge otherwise on Android", () => 
     ]);
     // Unicode's own classes and properties read alike on both.
     expect(
-      edgesOf(String.raw`(?<!\p{L})(?<!\p{IsAlphabetic})(?<!\pL)(?<!\p{IsDigit})`),
+      edgesOf(
+        String.raw`(?<!\p{L})(?<!\p{IsAlphabetic})(?<!\pL)(?<!\p{IsDigit})`,
+      ),
     ).toEqual([]);
     // Outside a look-around a class takes in what it reads, and no edge moves.
     expect(

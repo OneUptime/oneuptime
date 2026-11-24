@@ -135,9 +135,9 @@ describe("a secret written right against a letter of another script", () => {
       "カード番号[card number]です",
     );
     expect(redact(`トークン${JWT}を送信`)).toBe("トークン[token]を送信");
-    expect(
-      redact("メールjane.doe+kiosk@example.co.ukに送信しました"),
-    ).toBe("メール[email]に送信しました");
+    expect(redact("メールjane.doe+kiosk@example.co.ukに送信しました")).toBe(
+      "メール[email]に送信しました",
+    );
     // Korean, Arabic, Cyrillic, Thai and Devanagari.
     expect(redact("카드번호4111111111111111승인거절")).toBe(
       "카드번호[card number]승인거절",
@@ -383,7 +383,9 @@ function agentPatterns(): Map<string, string> {
   });
   const patterns: Map<string, string> = new Map<string, string>();
 
-  for (const declaration of text.matchAll(/\bval\s+([A-Z_]+)\s*:\s*Regex\s*=/g)) {
+  for (const declaration of text.matchAll(
+    /\bval\s+([A-Z_]+)\s*:\s*Regex\s*=/g,
+  )) {
     const literal: KotlinStringLiteral | undefined = literals.find(
       (candidate: KotlinStringLiteral): boolean => {
         return candidate.start > declaration.index;
