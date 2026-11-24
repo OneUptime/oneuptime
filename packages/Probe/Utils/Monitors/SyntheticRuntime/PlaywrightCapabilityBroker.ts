@@ -107,6 +107,14 @@ const NAVIGATION_METHODS: ReadonlySet<string> = new Set([
   "waitForNavigation",
 ]);
 
+/*
+ * How a browser reports a request whose proxy tunnel failed: Chromium's
+ * net::ERR_TUNNEL_CONNECTION_FAILED, Firefox's NS_ERROR_PROXY_FORBIDDEN,
+ * NS_ERROR_PROXY_BAD_GATEWAY and the like.
+ */
+const TUNNEL_FAILURE_PATTERN: RegExp =
+  /ERR_TUNNEL_CONNECTION_FAILED|NS_ERROR_PROXY_/;
+
 const LOCATOR_CHAIN_METHODS: ReadonlySet<string> = new Set([
   "and",
   "filter",
@@ -740,7 +748,6 @@ export default class PlaywrightCapabilityBroker {
       return await this.navigateThroughEgress({
         frame: navigatedFrame,
         target,
-        methodName: request.method,
         method: method as (...args: unknown[]) => unknown,
         args: decodedArgs,
       });
@@ -760,24 +767,34 @@ export default class PlaywrightCapabilityBroker {
    * http one on the proxy's own 403 or 502 as though the site had answered;
    * the script is told what the axios bridge would tell it instead: "Monitor
    * target host X is not allowed: ..." or "... could not be reached.".
+   *
+   * Only the navigation's own request counts: the frame's document request
+   * or a hop of its redirects, whose tunnel failed, matched to the tunnel
+   * the proxy refused to that host and port during this call - or the
+   * proxy's own answer, marked, on the response the navigation returns.
+   * Any other failure - a timeout, a certificate, a subresource's refusal on
+   * the same host - is reported as the browser reported it.
    */
   private async navigateThroughEgress(data: {
     frame: Frame;
     target: HostObject;
-    methodName: string;
     method: (...args: unknown[]) => unknown;
     args: unknown[];
   }): Promise<unknown> {
     const page: Page = data.frame.page();
     const since: number = this.egress.getBrowserFailureSequence();
-    // The frame's navigation requests that failed, redirect hops included.
-    const failedNavigations: Array<string> = [];
+    // The frame's navigation requests whose proxy tunnel failed, in order.
+    const failedTunnels: Array<string> = [];
     const onRequestFailed: (request: Request) => void = (
       request: Request,
     ): void => {
       try {
-        if (request.isNavigationRequest() && request.frame() === data.frame) {
-          failedNavigations.push(request.url());
+        if (
+          request.isNavigationRequest() &&
+          request.frame() === data.frame &&
+          TUNNEL_FAILURE_PATTERN.test(request.failure()?.errorText || "")
+        ) {
+          failedTunnels.push(request.url());
         }
       } catch {
         // A request with no frame (a service worker's) navigates nothing.
@@ -792,16 +809,14 @@ export default class PlaywrightCapabilityBroker {
       try {
         result = await Reflect.apply(data.method, data.target, data.args);
       } catch (error: unknown) {
-        const urls: Array<string> = [...failedNavigations].reverse();
-
-        if (data.methodName === "goto" && typeof data.args[0] === "string") {
-          urls.push(data.args[0]);
-        }
-
-        for (const url of urls) {
+        for (const url of [...failedTunnels].reverse()) {
           const target: string | null = SyntheticEgressProxy.targetOfUrl(url);
           const failure: string | undefined = target
-            ? this.egress.findBrowserFailure({ afterSequence: since, target })
+            ? this.egress.findBrowserFailure({
+                afterSequence: since,
+                target,
+                kind: "tunnel",
+              })
             : undefined;
 
           if (failure) {
@@ -812,7 +827,7 @@ export default class PlaywrightCapabilityBroker {
         throw error;
       }
 
-      const refusal: string | undefined = this.readEgressRefusal(result);
+      const refusal: string | undefined = this.readEgressRefusal(result, since);
 
       if (refusal) {
         throw new Error(refusal);
@@ -847,32 +862,44 @@ export default class PlaywrightCapabilityBroker {
 
   /*
    * The egress proxy's reason, when a navigation's response is the proxy's
-   * own answer rather than the site's: it carries the proxy's marker, which
-   * a site cannot write for it.
+   * own answer rather than the site's: it carries the proxy's marker,
+   * written for the response's own host and port during this navigation
+   * (readRefusalMarker). A page can read a marker and a site can echo it,
+   * but not for its own response.
    */
-  private readEgressRefusal(result: unknown): string | undefined {
+  private readEgressRefusal(
+    result: unknown,
+    since: number,
+  ): string | undefined {
     if (!result || typeof result !== "object") {
       return undefined;
     }
 
     const headers: unknown = (result as { headers?: unknown }).headers;
+    const url: unknown = (result as { url?: unknown }).url;
 
-    if (typeof headers !== "function") {
+    if (typeof headers !== "function" || typeof url !== "function") {
       return undefined;
     }
 
     let marker: unknown;
+    let responseUrl: unknown;
 
     try {
       marker = (Reflect.apply(headers, result, []) as Record<string, unknown>)[
         SYNTHETIC_EGRESS_REFUSAL_HEADER
       ];
+      responseUrl = Reflect.apply(url, result, []);
     } catch {
       return undefined;
     }
 
-    return typeof marker === "string"
-      ? this.egress.readRefusalMarker(marker)
+    return typeof marker === "string" && typeof responseUrl === "string"
+      ? this.egress.readRefusalMarker({
+          value: marker,
+          url: responseUrl,
+          afterSequence: since,
+        })
       : undefined;
   }
 

@@ -1,3 +1,4 @@
+import axios, { AxiosResponse } from "axios";
 import dns from "dns";
 import fs from "fs";
 import http, { IncomingMessage, ServerResponse } from "http";
@@ -17,12 +18,15 @@ import PrivateNetworkMonitorPolicy, {
 import {
   LocalHttpServer,
   RESERVED_CHARACTER_CREDENTIALS,
+  approveOnLoopback,
   clearOutboundProxyEnvironmentForEachTest,
   proxyUrlWithCredentials,
   signedInAs,
   useLocalHttpServers,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
 import FakeInternet, { FakeInternetRequest } from "./Fixtures/FakeInternet";
+import TestCertificateAuthority from "./Fixtures/TestCertificateAuthority";
 import SelfSignedCertificate from "../MonitorTypes/SslTestCertificates";
 import {
   CapabilityDescriptor,
@@ -1305,6 +1309,256 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           data: { path: "/landed" },
         });
       });
+    });
+
+    /*
+     * Parity with main for public targets. Main sent the bridge's requests
+     * with axios, routed by OutboundProxyAgents: through Node's own proxy
+     * support behind an outbound proxy, on axios's own agents without one.
+     * Each request below goes through both - main's route, and the bridge
+     * behind its egress proxy - and the script reads the same, and the site
+     * sees the same request. Loopback stands in for a public address where
+     * main's route has to reach a site directly.
+     */
+    describe("parity with main, for public targets", () => {
+      type Outcome = { status: number; data: unknown } | "refused";
+
+      let authority: TestCertificateAuthority;
+      let distrust: () => void;
+      let secure: https.Server;
+      let securePort: number;
+      let savedEnvironment: Record<string, string | undefined>;
+      const PROXY_VARIABLES: Array<string> = [
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "NO_PROXY",
+        "no_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+      ];
+
+      beforeAll(async () => {
+        authority = TestCertificateAuthority.create();
+        distrust = authority.trustInThisProcess();
+        secure = https.createServer(
+          authority.issue({ addresses: ["93.184.215.14", "127.0.0.1"] }),
+          (_request: IncomingMessage, response: ServerResponse): void => {
+            response.end("tls-ok");
+          },
+        );
+        await new Promise<void>((resolve: () => void): void => {
+          secure.listen(0, "127.0.0.1", resolve);
+        });
+        securePort = (secure.address() as AddressInfo).port;
+      });
+
+      afterAll(async () => {
+        secure.closeAllConnections();
+        await new Promise<void>((resolve: () => void): void => {
+          secure.close((): void => {
+            resolve();
+          });
+        });
+        distrust();
+        authority.remove();
+      });
+
+      beforeEach(() => {
+        savedEnvironment = {};
+        for (const name of PROXY_VARIABLES) {
+          savedEnvironment[name] = process.env[name];
+          delete process.env[name];
+        }
+      });
+
+      afterEach(() => {
+        for (const name of PROXY_VARIABLES) {
+          if (savedEnvironment[name] === undefined) {
+            delete process.env[name];
+          } else {
+            process.env[name] = savedEnvironment[name];
+          }
+        }
+      });
+
+      // What main's bridge did: axios, routed by OutboundProxyAgents.
+      async function asMainSentIt(
+        url: string,
+        headers: Record<string, string>,
+      ): Promise<Outcome> {
+        try {
+          const response: AxiosResponse<string> = await axios.request<string>(
+            OutboundProxyAgents.routeAxiosRequest({
+              method: "get",
+              url,
+              headers,
+              responseType: "text",
+              validateStatus: (): boolean => {
+                return true;
+              },
+            }),
+          );
+          return { status: response.status, data: response.data };
+        } catch {
+          return "refused";
+        }
+      }
+
+      async function asTheBridgeSendsIt(
+        target: PlaywrightCapabilityBroker,
+        url: string,
+        headers: Record<string, string>,
+      ): Promise<Outcome> {
+        const response: PlaywrightRpcResponse = await axiosRequest(target, {
+          method: "get",
+          url,
+          config: { headers, responseType: "text" },
+        });
+
+        if (!response.ok) {
+          return "refused";
+        }
+
+        const value: { status: number; data: unknown } = response.value as {
+          status: number;
+          data: unknown;
+        };
+        return { status: value.status, data: value.data };
+      }
+
+      const cases: Array<{
+        label: string;
+        path: string;
+        headers: Record<string, string>;
+        secure?: true;
+      }> = [
+        {
+          label: "a path that starts with //host",
+          path: "//93.184.215.34/whoami",
+          headers: {},
+        },
+        {
+          label: "a path that starts with //",
+          path: "//v1/health",
+          headers: {},
+        },
+        {
+          label: "a Host header naming another host",
+          path: "/whoami",
+          headers: { Host: "93.184.215.34" },
+        },
+        { label: "https to an address", path: "/", headers: {}, secure: true },
+      ];
+
+      test.each(cases)(
+        "behind an outbound proxy: $label",
+        async ({
+          path,
+          headers,
+          secure: isSecure,
+        }: {
+          label: string;
+          path: string;
+          headers: Record<string, string>;
+          secure?: true;
+        }) => {
+          fakeInternet.route("93.184.215.14", 443, securePort);
+          const url: string = `${isSecure ? "https" : "http"}://93.184.215.14${path}`;
+
+          process.env["HTTP_PROXY"] = fakeInternet.url();
+          process.env["HTTPS_PROXY"] = fakeInternet.url();
+          const main: Outcome = await asMainSentIt(url, headers);
+          const mainAsked: Array<string> = fakeInternet.requests.map(
+            (seen: FakeInternetRequest) => {
+              return `${seen.url} Host: ${seen.host}`;
+            },
+          );
+          const mainTunnels: Array<string> = [...fakeInternet.connects];
+          delete process.env["HTTP_PROXY"];
+          delete process.env["HTTPS_PROXY"];
+
+          fakeInternet.requests.length = 0;
+          fakeInternet.connects.length = 0;
+          const bridge: Outcome = await asTheBridgeSendsIt(
+            await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE),
+            url,
+            headers,
+          );
+          const bridgeAsked: Array<string> = fakeInternet.requests.map(
+            (seen: FakeInternetRequest) => {
+              return `${seen.url} Host: ${seen.host}`;
+            },
+          );
+
+          expect(bridge).toEqual(main);
+          if (headers["Host"]) {
+            // Node's own proxy support refused it; so does the egress proxy.
+            expect(main).toBe("refused");
+            expect(mainAsked).toEqual([]);
+            expect(bridgeAsked).toEqual([]);
+            return;
+          }
+          if (isSecure) {
+            expect(main).toEqual({ status: 200, data: "tls-ok" });
+            expect(mainTunnels).toEqual(["93.184.215.14:443"]);
+            expect(fakeInternet.connects).toEqual(["93.184.215.14:443"]);
+            return;
+          }
+          expect(main).toEqual({
+            status: 200,
+            data: JSON.stringify({ path, host: "93.184.215.14" }),
+          });
+          // The same host, and the path as written, whichever sent it.
+          expect(mainAsked).toEqual([
+            `http://93.184.215.14${path} Host: 93.184.215.14`,
+          ]);
+          expect(bridgeAsked).toEqual([
+            `http://93.184.215.14:80${path} Host: 93.184.215.14`,
+          ]);
+        },
+      );
+
+      test.each(cases)(
+        "directly: $label",
+        async ({
+          path,
+          headers,
+          secure: isSecure,
+        }: {
+          label: string;
+          path: string;
+          headers: Record<string, string>;
+          secure?: true;
+        }) => {
+          const port: number = isSecure ? securePort : sitePort;
+          const url: string = `${isSecure ? "https" : "http"}://127.0.0.1:${port}${path}`;
+
+          const main: Outcome = await asMainSentIt(url, headers);
+          // The egress proxy with no outbound proxy, loopback approved as a public address.
+          approveOnLoopback({});
+          const bridge: Outcome = await asTheBridgeSendsIt(
+            broker,
+            url,
+            headers,
+          );
+
+          expect(bridge).toEqual(main);
+          if (isSecure) {
+            expect(main).toEqual({ status: 200, data: "tls-ok" });
+            return;
+          }
+          // To the URL's address, with the path as written, and the script's Host as a header.
+          expect(main).toEqual({
+            status: 200,
+            data: JSON.stringify({
+              path,
+              host: headers["Host"] || `127.0.0.1:${port}`,
+            }),
+          });
+        },
+      );
     });
   });
 

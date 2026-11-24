@@ -1,5 +1,7 @@
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -9,6 +11,7 @@ import {
 import axios, { AxiosResponse } from "axios";
 import dns from "dns";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
+import https from "https";
 import net, { AddressInfo } from "net";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
@@ -29,6 +32,7 @@ import PrivateNetworkMonitorPolicy, {
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import { approveOnLoopback } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import FakeInternet, { FakeInternetRequest } from "./Fixtures/FakeInternet";
+import TestCertificateAuthority from "./Fixtures/TestCertificateAuthority";
 
 /*
  * GHSA-9rx7-vwfj-whp7: a synthetic monitor's browser and its script's axios
@@ -1321,7 +1325,7 @@ describe("SyntheticEgressProxy", () => {
    * tunnel, and an http one as the proxy's own 403 or 502.
    */
   describe("the browser's requests it did not send", () => {
-    test("are found by their target, from a point in the record on", async () => {
+    test("are found by their target and the kind of request, from a point in the record on", async () => {
       const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
       const before: number = proxy.getBrowserFailureSequence();
 
@@ -1338,6 +1342,7 @@ describe("SyntheticEgressProxy", () => {
         proxy.findBrowserFailure({
           afterSequence: before,
           target: "127.0.0.1:81",
+          kind: "request",
         }),
       ).toBe("Monitor target host 127.0.0.1 is not allowed: loopback address.");
       // A host that cannot be reached is a failure the browser reports too.
@@ -1345,49 +1350,91 @@ describe("SyntheticEgressProxy", () => {
         proxy.findBrowserFailure({
           afterSequence: before,
           target: "missing.example.test:443",
+          kind: "tunnel",
         }),
       ).toBe("Monitor target host missing.example.test could not be reached.");
-      // Not one that came before the navigation that asks, nor another target.
+      // Not one that came before the navigation that asks, another target, or another kind.
       expect(
         proxy.findBrowserFailure({
           afterSequence: after,
           target: "127.0.0.1:81",
+          kind: "request",
         }),
       ).toBeUndefined();
       expect(
         proxy.findBrowserFailure({
           afterSequence: before,
           target: "127.0.0.1:82",
+          kind: "request",
+        }),
+      ).toBeUndefined();
+      expect(
+        proxy.findBrowserFailure({
+          afterSequence: before,
+          target: "127.0.0.1:81",
+          kind: "tunnel",
         }),
       ).toBeUndefined();
     });
 
-    test("carry the proxy's mark on its own answer, and a mark it did not write is not believed", async () => {
+    /*
+     * The page can read the mark - after a refused navigation it sits at the
+     * refused origin, and the proxy answers its own fetch there - so a mark
+     * is believed only for the response it was written on.
+     */
+    test("carry the proxy's mark, believed only on the response it was written for", async () => {
       const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
       const other: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+      const refusedUrl: string = "http://169.254.169.254/latest/meta-data/";
+      const before: number = proxy.getBrowserFailureSequence();
 
       const answer: HttpAnswer = await sendThroughProxy(
         proxy.getPort(),
-        "http://169.254.169.254/latest/meta-data/",
+        refusedUrl,
       );
       const marker: string = String(
         answer.headers[SYNTHETIC_EGRESS_REFUSAL_HEADER],
       );
+      const read: (
+        value: string | undefined,
+        url?: string,
+        since?: number,
+      ) => string | undefined = (
+        value: string | undefined,
+        url: string = refusedUrl,
+        since: number = before,
+      ): string | undefined => {
+        return proxy.readRefusalMarker({ value, url, afterSequence: since });
+      };
 
       expect(answer.status).toBe(403);
-      expect(proxy.readRefusalMarker(marker)).toBe(
+      expect(read(marker)).toBe(
         "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
       );
-      // Another check's proxy, or a site writing the header itself, is not believed.
-      expect(other.readRefusalMarker(marker)).toBeUndefined();
+      // The same host and port, however the URL writes it.
+      expect(read(marker, "http://169.254.169.254:80/other?x=1")).toBe(
+        "Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+      );
+      // Echoed by a site on another host, or read after the navigation began, it is not believed.
+      expect(read(marker, `http://${PUBLIC_IPV4}/echo`)).toBeUndefined();
       expect(
-        proxy.readRefusalMarker(`${"0".repeat(24)}.${marker.split(".")[1]}`),
+        read(marker, "https://169.254.169.254/latest/meta-data/"),
       ).toBeUndefined();
       expect(
-        proxy.readRefusalMarker(`${marker.split(".")[0]}.999`),
+        read(marker, refusedUrl, proxy.getBrowserFailureSequence()),
       ).toBeUndefined();
-      expect(proxy.readRefusalMarker("not a marker")).toBeUndefined();
-      expect(proxy.readRefusalMarker(undefined)).toBeUndefined();
+      // Nor another check's, nor one this proxy did not write.
+      expect(
+        other.readRefusalMarker({
+          value: marker,
+          url: refusedUrl,
+          afterSequence: 0,
+        }),
+      ).toBeUndefined();
+      expect(read(`${"0".repeat(24)}.${marker.split(".")[1]}`)).toBeUndefined();
+      expect(read(`${marker.split(".")[0]}.999`)).toBeUndefined();
+      expect(read("not a marker")).toBeUndefined();
+      expect(read(undefined)).toBeUndefined();
     });
 
     test("leave an axios request's refusals out: those are the request's own error", async () => {
@@ -1644,7 +1691,7 @@ describe("SyntheticEgressProxy", () => {
      * A proxy that routes on Host rather than on the absolute URI would
      * have fetched the metadata endpoint from its own network.
      */
-    test("names the host it checked in the Host header, whatever the client wrote there", async () => {
+    test("never shows it a Host header that names another host than the one checked", async () => {
       const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
       fakeInternet.route(PUBLIC_IPV4, 80, siteServer.port);
 
@@ -1654,19 +1701,15 @@ describe("SyntheticEgressProxy", () => {
         { headers: { Host: "169.254.169.254" } },
       );
 
-      expect(answer.status).toBe(200);
-      expect(fakeInternet.requests).toEqual([
-        {
-          method: "GET",
-          url: `http://${PUBLIC_IPV4}:80/latest/meta-data/`,
-          host: PUBLIC_IPV4,
-          credentials: "",
-        },
-      ]);
-      expect(siteServer.seen[0]!.headers.host).toBe(PUBLIC_IPV4);
+      expect(answer.status).toBe(400);
+      expect(answer.body).toBe(
+        `The probe did not send this request: through its outbound proxy, the Host header must name the host the URL names (${PUBLIC_IPV4}).`,
+      );
+      expect(fakeInternet.isUntouched).toBe(true);
+      expect(siteServer.seen).toEqual([]);
     });
 
-    test("keeps a name's port in the Host header it sets", async () => {
+    test("names a name's host and port in the Host header it sends", async () => {
       answerDns({ "site.example.test": [[PUBLIC_IPV4]] });
       const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
       fakeInternet.route(PUBLIC_IPV4, 8080, siteServer.port);
@@ -1674,7 +1717,7 @@ describe("SyntheticEgressProxy", () => {
       await sendThroughProxy(
         proxy.getPort(),
         "http://site.example.test:8080/page",
-        { headers: { Host: "internal.example.test" } },
+        { headers: { Host: "Site.Example.Test:8080" } },
       );
 
       expect(fakeInternet.requests[0]).toMatchObject({
@@ -1820,6 +1863,468 @@ describe("SyntheticEgressProxy", () => {
         }).toThrow(
           "The probe's outbound proxy URL must be an http:// or https:// URL with a host.",
         );
+      },
+    );
+  });
+
+  /*
+   * The axios bridge's requests go where their URL says, as main sent them.
+   * http-proxy-agent built the absolute URI it asks a proxy for from the
+   * Host header and resolved the path as a URL: "//v1/health" became a
+   * host named "v1", "//93.184.215.34/whoami" a request to 93.184.215.34,
+   * and a Host header the script set sent the request to that host.
+   */
+  describe("the axios bridge's requests, where their URL says", () => {
+    async function get(
+      proxy: SyntheticEgressProxy,
+      url: string,
+      headers: Record<string, string> = {},
+    ): Promise<{
+      status?: number;
+      data?: unknown;
+      error?: string;
+      failure: string | undefined;
+      seen: number;
+    }> {
+      const agents: SyntheticEgressRequestAgents = proxy.createRequestAgents();
+
+      try {
+        const response: AxiosResponse = await axios.get(url, {
+          proxy: false,
+          httpAgent: agents.httpAgent,
+          httpsAgent: agents.httpsAgent,
+          headers,
+          responseType: "text",
+          validateStatus: (): boolean => {
+            return true;
+          },
+        });
+        return {
+          status: response.status,
+          data: response.data,
+          failure: agents.takeFailure(),
+          seen: agents.requestsSeen(),
+        };
+      } catch (error: unknown) {
+        return {
+          error: (error as Error).message,
+          failure: agents.takeFailure(),
+          seen: agents.requestsSeen(),
+        };
+      } finally {
+        agents.release();
+      }
+    }
+
+    test.each([
+      { path: `//${SECOND_PUBLIC_IPV4}/whoami` },
+      { path: "//v1/health" },
+      { path: "//u@x/" },
+    ])(
+      "asks the outbound proxy for $path on the URL's own host",
+      async ({ path }: { path: string }) => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(PUBLIC_IPV4, 80, siteServer.port);
+        fakeInternet.route(SECOND_PUBLIC_IPV4, 80, loopback.port);
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          `http://${PUBLIC_IPV4}${path}`,
+        );
+
+        expect(answer).toEqual({
+          status: 200,
+          data: `public site GET ${path}`,
+          failure: undefined,
+          seen: 1,
+        });
+        expect(fakeInternet.requests).toEqual([
+          {
+            method: "GET",
+            url: `http://${PUBLIC_IPV4}:80${path}`,
+            host: PUBLIC_IPV4,
+            credentials: "",
+          },
+        ]);
+        expect(loopback.seen).toEqual([]);
+      },
+    );
+
+    test("sends a Host header the script set as a header, to the URL's own address, when it goes directly", async () => {
+      approveOnLoopback({ "site.example.test": ["127.0.0.1"] });
+      const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY, {
+        upstream: false,
+      });
+
+      const answer: Awaited<ReturnType<typeof get>> = await get(
+        proxy,
+        `http://site.example.test:${siteServer.port}/whoami`,
+        { Host: SECOND_PUBLIC_IPV4 },
+      );
+
+      expect(answer.status).toBe(200);
+      expect(answer.data).toBe("public site GET /whoami");
+      // As main sent it: to the URL's address, the script's Host as a header.
+      expect(siteServer.seen[0]!.headers.host).toBe(SECOND_PUBLIC_IPV4);
+    });
+
+    test.each([
+      { label: "another host", host: SECOND_PUBLIC_IPV4 },
+      { label: "user information", host: `u@${SECOND_PUBLIC_IPV4}` },
+      { label: "another port", host: `${PUBLIC_IPV4}:8080` },
+    ])(
+      "refuses, as the request's own error, a Host header naming $label through the outbound proxy",
+      async ({ host }: { label: string; host: string }) => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(PUBLIC_IPV4, 80, siteServer.port);
+        fakeInternet.route(SECOND_PUBLIC_IPV4, 80, siteServer.port);
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          `http://${PUBLIC_IPV4}/whoami`,
+          { Host: host },
+        );
+
+        // A proxy routing on Host is never shown one the guard did not check.
+        expect(answer.failure).toBe(
+          `The probe did not send this request: through its outbound proxy, the Host header must name the host the URL names (${PUBLIC_IPV4}).`,
+        );
+        expect(answer.status).toBe(400);
+        expect(fakeInternet.isUntouched).toBe(true);
+        expect(siteServer.seen).toEqual([]);
+      },
+    );
+
+    test.each([`${PUBLIC_IPV4}`, `${PUBLIC_IPV4}:80`])(
+      "sends a Host header of %s, which names the URL's own host, through the outbound proxy",
+      async (host: string) => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(PUBLIC_IPV4, 80, siteServer.port);
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          `http://${PUBLIC_IPV4}/whoami`,
+          { Host: host },
+        );
+
+        expect(answer.status).toBe(200);
+        expect(fakeInternet.requests[0]!.host).toBe(PUBLIC_IPV4);
+      },
+    );
+
+    describe("over https", () => {
+      let authority: TestCertificateAuthority;
+      let distrust: () => void;
+      const servers: Array<https.Server> = [];
+
+      beforeAll(() => {
+        authority = TestCertificateAuthority.create();
+        distrust = authority.trustInThisProcess();
+      });
+
+      afterAll(() => {
+        distrust();
+        authority.remove();
+      });
+
+      afterEach(async () => {
+        while (servers.length > 0) {
+          const server: https.Server = servers.pop()!;
+          server.closeAllConnections();
+          await new Promise<void>((resolve: () => void): void => {
+            server.close((): void => {
+              resolve();
+            });
+          });
+        }
+      });
+
+      async function secureSite(certificate: {
+        names?: Array<string>;
+        addresses?: Array<string>;
+      }): Promise<number> {
+        const server: https.Server = https.createServer(
+          authority.issue(certificate),
+          (_request: IncomingMessage, response: ServerResponse): void => {
+            response.end("tls-ok");
+          },
+        );
+        servers.push(server);
+        await new Promise<void>((resolve: () => void): void => {
+          server.listen(0, "127.0.0.1", resolve);
+        });
+        return (server.address() as AddressInfo).port;
+      }
+
+      /*
+       * Inside a tunnel the certificate was checked against "localhost":
+       * https://93.184.215.14/ failed against a certificate naming
+       * 93.184.215.14 ("Host: localhost. is not in the cert's altnames").
+       */
+      test("checks an address's certificate against that address", async () => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(
+          PUBLIC_IPV4,
+          443,
+          await secureSite({ addresses: [PUBLIC_IPV4] }),
+        );
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          `https://${PUBLIC_IPV4}/`,
+        );
+
+        expect(answer).toEqual({
+          status: 200,
+          data: "tls-ok",
+          failure: undefined,
+          seen: 1,
+        });
+      });
+
+      test("checks a name's certificate against that name", async () => {
+        answerDns({ "secure.example.test": [[SECOND_PUBLIC_IPV4]] });
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(
+          SECOND_PUBLIC_IPV4,
+          443,
+          await secureSite({ names: ["secure.example.test"] }),
+        );
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          "https://secure.example.test/",
+        );
+
+        expect(answer.status).toBe(200);
+        expect(answer.data).toBe("tls-ok");
+      });
+
+      test.each([
+        {
+          label: "an address the certificate does not name",
+          url: `https://${PUBLIC_IPV4}/`,
+          certificate: { addresses: [SECOND_PUBLIC_IPV4] },
+        },
+        {
+          label: "a name the certificate does not name",
+          url: "https://secure.example.test/",
+          certificate: { names: ["other.example.test"] },
+        },
+        {
+          label: "an address, with a certificate for localhost",
+          url: `https://${PUBLIC_IPV4}/`,
+          certificate: { names: ["localhost"], addresses: ["127.0.0.1"] },
+        },
+      ])(
+        "still refuses $label",
+        async ({
+          url,
+          certificate,
+        }: {
+          label: string;
+          url: string;
+          certificate: { names?: Array<string>; addresses?: Array<string> };
+        }) => {
+          answerDns({ "secure.example.test": [[PUBLIC_IPV4]] });
+          const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+          fakeInternet.route(PUBLIC_IPV4, 443, await secureSite(certificate));
+
+          const answer: Awaited<ReturnType<typeof get>> = await get(proxy, url);
+
+          expect(answer.status).toBeUndefined();
+          expect(answer.error).toMatch(/altnames/);
+        },
+      );
+    });
+  });
+
+  /*
+   * A request this proxy cannot read is answered for the request that sent
+   * it: an axios request is told so as its own error, rather than handed
+   * the proxy's 400 as though the site had sent it.
+   */
+  describe("a request it cannot read", () => {
+    // A raw request through the proxy, signed in with an axios request's tag.
+    async function sendRaw(proxyPort: number, head: string): Promise<string> {
+      return await new Promise<string>(
+        (resolve: (value: string) => void): void => {
+          const socket: net.Socket = net.connect({
+            host: "127.0.0.1",
+            port: proxyPort,
+          });
+          let received: string = "";
+          socket.on("data", (chunk: Buffer): void => {
+            received += chunk.toString("utf8");
+          });
+          socket.on("close", (): void => {
+            resolve(received);
+          });
+          socket.on("error", (): void => {
+            resolve(received);
+          });
+          socket.write(head);
+        },
+      );
+    }
+
+    function tagOf(agents: SyntheticEgressRequestAgents): string {
+      return (agents.httpAgent as HttpProxyAgent<string>).proxy.username;
+    }
+
+    test.each([
+      {
+        label: "a CONNECT naming no port",
+        head: (tag: string): string => {
+          return `CONNECT ${PUBLIC_IPV4} HTTP/1.1\r\nHost: ${PUBLIC_IPV4}\r\nProxy-Authorization: Basic ${Buffer.from(`${tag}:`).toString("base64")}\r\n\r\n`;
+        },
+        failure:
+          "The probe could not read the host and port this request was sent to.",
+      },
+      {
+        label: "an absolute URL with user information",
+        head: (tag: string): string => {
+          return `GET http://u@${PUBLIC_IPV4}/ HTTP/1.1\r\nHost: ${PUBLIC_IPV4}\r\nProxy-Authorization: Basic ${Buffer.from(`${tag}:`).toString("base64")}\r\nConnection: close\r\n\r\n`;
+        },
+        failure:
+          "The probe could not read the address this request was sent to.",
+      },
+      {
+        label: "an origin-form request",
+        head: (tag: string): string => {
+          return `GET /not-a-proxy-request HTTP/1.1\r\nHost: ${PUBLIC_IPV4}\r\nProxy-Authorization: Basic ${Buffer.from(`${tag}:`).toString("base64")}\r\nConnection: close\r\n\r\n`;
+        },
+        failure:
+          "The probe could not read the address this request was sent to.",
+      },
+    ])(
+      "refuses $label as the request's own error",
+      async ({
+        head,
+        failure,
+      }: {
+        label: string;
+        head: (tag: string) => string;
+        failure: string;
+      }) => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        const agents: SyntheticEgressRequestAgents =
+          proxy.createRequestAgents();
+
+        try {
+          const answer: string = await sendRaw(
+            proxy.getPort(),
+            head(tagOf(agents)),
+          );
+
+          expect(answer).toContain("400 Bad Request");
+          expect(agents.takeFailure()).toBe(failure);
+          expect(fakeInternet.isUntouched).toBe(true);
+        } finally {
+          agents.release();
+        }
+      },
+    );
+
+    test("files the browser's as a request it did not send", async () => {
+      const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+      const before: number = proxy.getBrowserFailureSequence();
+
+      const answer: string = await sendRaw(
+        proxy.getPort(),
+        `CONNECT ${PUBLIC_IPV4} HTTP/1.1\r\nHost: ${PUBLIC_IPV4}\r\n\r\n`,
+      );
+
+      expect(answer).toContain("400 Bad Request");
+      expect(proxy.getBrowserFailureSequence()).toBe(before + 1);
+    });
+  });
+
+  /*
+   * Only an outbound proxy's explicit "no" to one address is worth asking
+   * about the next. One that does not answer the CONNECT, or closes it,
+   * held a tunnel for a timeout per approved address: up to 120 s.
+   */
+  describe("an outbound proxy that does not answer", () => {
+    async function hungProxy(behaviour: "silent" | "closes"): Promise<{
+      url: string;
+      connections: () => number;
+      stop: () => Promise<void>;
+    }> {
+      let connections: number = 0;
+      const sockets: Set<net.Socket> = new Set<net.Socket>();
+      const server: net.Server = net.createServer(
+        (socket: net.Socket): void => {
+          connections++;
+          sockets.add(socket);
+          socket.on("error", (): void => {
+            // The egress proxy gave up.
+          });
+          if (behaviour === "closes") {
+            socket.on("data", (): void => {
+              socket.destroy();
+            });
+          }
+        },
+      );
+      await new Promise<void>((resolve: () => void): void => {
+        server.listen(0, "127.0.0.1", resolve);
+      });
+
+      return {
+        url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+        connections: (): number => {
+          return connections;
+        },
+        stop: async (): Promise<void> => {
+          for (const socket of sockets) {
+            socket.destroy();
+          }
+          await new Promise<void>((resolve: () => void): void => {
+            server.close((): void => {
+              resolve();
+            });
+          });
+        },
+      };
+    }
+
+    test.each(["silent", "closes"] as const)(
+      "is asked once, for one address, when it is %s",
+      async (behaviour: "silent" | "closes") => {
+        answerDns({
+          "multi.example.test": [
+            [PUBLIC_IPV4, SECOND_PUBLIC_IPV4, "93.184.215.99"],
+          ],
+        });
+        const upstream: Awaited<ReturnType<typeof hungProxy>> =
+          await hungProxy(behaviour);
+
+        try {
+          const proxy: SyntheticEgressProxy = new SyntheticEgressProxy({
+            policy: PUBLIC_ONLY,
+            upstreamProxy: { server: upstream.url },
+            connectTimeoutInMs: 300,
+          });
+          await proxy.start();
+          proxies.push(proxy);
+          const startedAt: number = Date.now();
+
+          const answer: TunnelAnswer = await sendConnect(
+            proxy.getPort(),
+            "multi.example.test:443",
+          );
+
+          expect(answer.status).toBe(502);
+          expect(answer.body).toBe(
+            "Monitor target host multi.example.test could not be reached.",
+          );
+          expect(upstream.connections()).toBe(1);
+          // One timeout at most, not one per address.
+          expect(Date.now() - startedAt).toBeLessThan(3_000);
+        } finally {
+          await upstream.stop();
+        }
       },
     );
   });

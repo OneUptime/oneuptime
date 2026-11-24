@@ -111,6 +111,12 @@ export interface SyntheticEgressProxyOptions {
    * would route around the operator's proxy.
    */
   upstreamProxy?: SyntheticMonitorWorkerProxy | undefined;
+  /*
+   * How long one connection may take, and how long the outbound proxy may
+   * take to answer a CONNECT. SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS unless
+   * a test shortens it.
+   */
+  connectTimeoutInMs?: number | undefined;
 }
 
 // How long one connection - to the target or to the outbound proxy - may take.
@@ -118,9 +124,15 @@ export const SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS: number = 30_000;
 
 /*
  * The header on this proxy's own answer to a browser request it did not
- * send: the refusal's place in the record (findBrowserFailure), behind a
- * value only this proxy knows, so a site cannot pass its own answer off as
- * the probe's.
+ * send: a token of this proxy's, then the refusal's place in the record.
+ *
+ * The page can read it: after a refused navigation it sits at the refused
+ * origin, and a fetch of its own address is answered by this proxy again,
+ * header and all. So a marker proves nothing on its own. It is believed
+ * only for the response it was written on (readRefusalMarker): one for the
+ * target the refusal was recorded for, recorded during the navigation that
+ * asks. A site echoing a marker it was shown names another target, or one
+ * recorded before.
  */
 export const SYNTHETIC_EGRESS_REFUSAL_HEADER: string =
   "x-oneuptime-egress-refusal";
@@ -209,9 +221,13 @@ type Refusal = {
   marker?: string | undefined;
 };
 
+// How a request reached this proxy: what a failure of it can be matched to.
+export type SyntheticEgressRequestKind = "tunnel" | "request" | "upgrade";
+
 interface BrowserFailure {
   sequence: number;
   target: string;
+  kind: SyntheticEgressRequestKind;
   message: string;
 }
 
@@ -219,10 +235,100 @@ interface BrowserFailure {
 class UnreadableResponseError extends Error {}
 
 /*
- * The outbound proxy answered a CONNECT, but not with a tunnel: it could not
- * reach that address, or would not. Another approved address may do.
+ * A request this proxy will not send as it was asked: one it cannot read,
+ * or one whose Host header would point the outbound proxy elsewhere. Its
+ * message is the request's own error.
+ */
+class RefusedRequestError extends Error {}
+
+/*
+ * The outbound proxy answered a CONNECT with a status other than 200: it
+ * could not reach that address, or would not. Another approved address may
+ * do. A proxy that does not answer at all is not this: it is not asked
+ * again, for any address.
  */
 class UpstreamTunnelRefusal extends Error {}
+
+type HttpProxyRequest = Parameters<
+  HttpProxyAgent<string>["setRequestProps"]
+>[0];
+type HttpProxyConnectOptions = Parameters<
+  HttpProxyAgent<string>["setRequestProps"]
+>[1];
+type HttpsProxyRequest = Parameters<HttpsProxyAgent<string>["connect"]>[0];
+type HttpsProxyConnectOptions = Parameters<
+  HttpsProxyAgent<string>["connect"]
+>[1];
+
+/*
+ * The axios bridge's http agent: each request goes to the egress proxy in
+ * absolute form, naming the host and port it was made for.
+ *
+ * http-proxy-agent builds that URI from the Host header and resolves the
+ * path against it as a URL. A path that starts "//" ("//v1/health", the
+ * doubled slash of URLs joined from strings) is then a new host, and a Host
+ * header the script set sends the request to that host. Here the URI is
+ * written out - the request's own host and port, then its path as it is -
+ * as Node's own proxy support and HttpMonitorRequest's PinnedHttpProxyAgent
+ * write it. A Host header stays a header; the egress proxy decides what
+ * becomes of it (forwardRequest).
+ */
+class EgressHttpProxyAgent extends HttpProxyAgent<string> {
+  private readonly proxyAuthorization: string;
+
+  public constructor(proxyUrl: string, tag: string) {
+    super(proxyUrl);
+    this.proxyAuthorization = `Basic ${Buffer.from(`${tag}:`, "utf8").toString("base64")}`;
+  }
+
+  public override setRequestProps(
+    request: HttpProxyRequest,
+    options: HttpProxyConnectOptions,
+  ): void {
+    const host: string = String(options.host || "");
+    const port: number = Number(options.port) || 80;
+    const authority: string = net.isIPv6(host) ? `[${host}]` : host;
+    const path: string = request.path.startsWith("/")
+      ? request.path
+      : `/${request.path}`;
+
+    request.path = `http://${authority}${port === 80 ? "" : `:${port}`}${path}`;
+    request.setHeader("Proxy-Authorization", this.proxyAuthorization);
+    request.setHeader("Proxy-Connection", "close");
+  }
+}
+
+/*
+ * The axios bridge's https agent: a CONNECT to the egress proxy, then TLS
+ * with the target, its certificate checked against the target's own host.
+ *
+ * Inside a tunnel tls.connect has no host of its own: with no servername it
+ * checks the certificate against the name the socket was opened with - the
+ * proxy - or "localhost". An IP target sets no servername (SNI names hosts,
+ * never addresses), so https://93.184.215.14/ failed against a certificate
+ * that names 93.184.215.14. As HttpMonitorRequest's PinnedHttpsProxyAgent
+ * does, the certificate is checked against the target, name or address.
+ */
+class EgressHttpsProxyAgent extends HttpsProxyAgent<string> {
+  public override connect(
+    request: HttpsProxyRequest,
+    options: HttpsProxyConnectOptions,
+  ): ReturnType<HttpsProxyAgent<string>["connect"]> {
+    const targetHost: string = String(options.host || "");
+
+    return super.connect(request, {
+      ...options,
+      // An empty servername sends no SNI, and stops one being filled in.
+      servername: net.isIP(targetHost) === 0 ? targetHost : "",
+      checkServerIdentity: (
+        _hostname: string,
+        certificate: tls.PeerCertificate,
+      ): Error | undefined => {
+        return tls.checkServerIdentity(targetHost, certificate);
+      },
+    } as HttpsProxyConnectOptions);
+  }
+}
 
 export default class SyntheticEgressProxy {
   private readonly policy: MonitorEgressPolicy;
@@ -230,6 +336,7 @@ export default class SyntheticEgressProxy {
   private readonly upstream: URL | null;
   private readonly upstreamAuthorization: string | null;
   private readonly upstreamNoProxy: string;
+  private readonly connectTimeoutInMs: number;
   private readonly refusalMarkerToken: string = crypto
     .randomBytes(12)
     .toString("hex");
@@ -264,6 +371,8 @@ export default class SyntheticEgressProxy {
       ? SyntheticEgressProxy.readUpstreamAuthorization(upstream)
       : null;
     this.upstreamNoProxy = upstream?.bypass || "";
+    this.connectTimeoutInMs =
+      options.connectTimeoutInMs || SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS;
   }
 
   public getPolicy(): MonitorEgressPolicy {
@@ -347,8 +456,13 @@ export default class SyntheticEgressProxy {
     const tag: string = crypto.randomBytes(16).toString("hex");
     // The tag travels as the proxy user name (Proxy-Authorization).
     const proxyUrl: string = `http://${tag}:@127.0.0.1:${port}`;
-    const httpAgent: HttpProxyAgent<string> = new HttpProxyAgent(proxyUrl);
-    const httpsAgent: HttpsProxyAgent<string> = new HttpsProxyAgent(proxyUrl);
+    const httpAgent: HttpProxyAgent<string> = new EgressHttpProxyAgent(
+      proxyUrl,
+      tag,
+    );
+    const httpsAgent: HttpsProxyAgent<string> = new EgressHttpsProxyAgent(
+      proxyUrl,
+    );
 
     this.requestTags.set(tag, 0);
 
@@ -388,13 +502,14 @@ export default class SyntheticEgressProxy {
   }
 
   /*
-   * Why this proxy did not send the browser's latest request to `target`
-   * ("host:port", as targetOfUrl writes it) since `afterSequence`, or
-   * undefined when it sent every one.
+   * Why this proxy did not send the browser's latest request of `kind` to
+   * `target` ("host:port", as targetOfUrl writes it) since `afterSequence`,
+   * or undefined when it sent every one.
    */
   public findBrowserFailure(data: {
     afterSequence: number;
     target: string;
+    kind: SyntheticEgressRequestKind;
   }): string | undefined {
     for (
       let index: number = this.browserFailures.length - 1;
@@ -405,7 +520,7 @@ export default class SyntheticEgressProxy {
       if (failure.sequence <= data.afterSequence) {
         return undefined;
       }
-      if (failure.target === data.target) {
+      if (failure.target === data.target && failure.kind === data.kind) {
         return failure.message;
       }
     }
@@ -414,12 +529,18 @@ export default class SyntheticEgressProxy {
 
   /*
    * Why this proxy answered a browser request itself, read from the
-   * SYNTHETIC_EGRESS_REFUSAL_HEADER of that answer, or undefined when the
-   * value is not one this proxy wrote: a site's own header is not believed.
+   * SYNTHETIC_EGRESS_REFUSAL_HEADER on the response to `url`, or undefined
+   * unless this proxy wrote that marker on that response: for the target
+   * `url` names, since `afterSequence`. A marker a page read and a site
+   * echoed back is not believed (see SYNTHETIC_EGRESS_REFUSAL_HEADER).
    */
-  public readRefusalMarker(value: string | undefined): string | undefined {
+  public readRefusalMarker(data: {
+    value: string | undefined;
+    url: string;
+    afterSequence: number;
+  }): string | undefined {
     const match: RegExpExecArray | null = REFUSAL_MARKER_PATTERN.exec(
-      (value || "").trim(),
+      (data.value || "").trim(),
     );
 
     if (!match || match[1] !== this.refusalMarkerToken) {
@@ -427,9 +548,14 @@ export default class SyntheticEgressProxy {
     }
 
     const sequence: number = Number.parseInt(match[2]!, 10);
+    const target: string | null = SyntheticEgressProxy.targetOfUrl(data.url);
+
+    if (sequence <= data.afterSequence || target === null) {
+      return undefined;
+    }
 
     return this.browserFailures.find((failure: BrowserFailure) => {
-      return failure.sequence === sequence;
+      return failure.sequence === sequence && failure.target === target;
     })?.message;
   }
 
@@ -536,11 +662,18 @@ export default class SyntheticEgressProxy {
       SyntheticEgressProxy.parseAuthority(request.url || "");
 
     if (!target) {
-      this.writeRefusal(clientSocket, {
-        status: 400,
-        reason: "Bad Request",
-        message: "A CONNECT request names a host and a port.",
-      });
+      this.writeRefusal(
+        clientSocket,
+        this.refuse({
+          tag,
+          kind: "tunnel",
+          target: SyntheticEgressProxy.unreadableTarget(request.url),
+          hostname: "",
+          error: new RefusedRequestError(
+            "The probe could not read the host and port this request was sent to.",
+          ),
+        }),
+      );
       return;
     }
 
@@ -565,6 +698,7 @@ export default class SyntheticEgressProxy {
         clientSocket,
         this.refuse({
           tag,
+          kind: "tunnel",
           target: targetName,
           hostname: target.hostname,
           error,
@@ -610,11 +744,18 @@ export default class SyntheticEgressProxy {
     );
 
     if (!target) {
-      SyntheticEgressProxy.respondWithRefusal(response, {
-        status: 400,
-        reason: "Bad Request",
-        message: "A proxy request names an absolute http URL.",
-      });
+      SyntheticEgressProxy.respondWithRefusal(
+        response,
+        this.refuse({
+          tag,
+          kind: "request",
+          target: SyntheticEgressProxy.unreadableTarget(request.url),
+          hostname: "",
+          error: new RefusedRequestError(
+            "The probe could not read the address this request was sent to.",
+          ),
+        }),
+      );
       request.resume();
       return;
     }
@@ -632,13 +773,51 @@ export default class SyntheticEgressProxy {
     } catch (error: unknown) {
       SyntheticEgressProxy.respondWithRefusal(
         response,
-        this.refuse({ tag, target: targetName, hostname, error }),
+        this.refuse({
+          tag,
+          kind: "request",
+          target: targetName,
+          hostname,
+          error,
+        }),
       );
       request.resume();
       return;
     }
 
     const upstream: URL | null = this.getUpstreamFor(target);
+    const hostHeader: string | undefined = SyntheticEgressProxy.readHostHeader(
+      request.rawHeaders,
+    );
+
+    /*
+     * Directly, a Host header the client set is sent as it is, to the
+     * address its URL names, as main sent axios's. Through the outbound
+     * proxy one that names another host is refused, as Node's own proxy
+     * support refuses it: a proxy may route on Host, and would then be
+     * pointed somewhere the guard never checked.
+     */
+    if (
+      upstream &&
+      hostHeader !== undefined &&
+      !SyntheticEgressProxy.namesSameAuthority(hostHeader, target)
+    ) {
+      SyntheticEgressProxy.respondWithRefusal(
+        response,
+        this.refuse({
+          tag,
+          kind: "request",
+          target: targetName,
+          hostname,
+          error: new RefusedRequestError(
+            `The probe did not send this request: through its outbound proxy, the Host header must name the host the URL names (${target.host}).`,
+          ),
+        }),
+      );
+      request.resume();
+      return;
+    }
+
     const pathAndQuery: string = `${target.pathname}${target.search}`;
     const headers: Array<string> = SyntheticEgressProxy.forwardableHeaders(
       request.rawHeaders,
@@ -680,7 +859,13 @@ export default class SyntheticEgressProxy {
 
       SyntheticEgressProxy.respondWithRefusal(
         response,
-        this.refuse({ tag, target: targetName, hostname, error }),
+        this.refuse({
+          tag,
+          kind: "request",
+          target: targetName,
+          hostname,
+          error,
+        }),
       );
     };
 
@@ -810,11 +995,18 @@ export default class SyntheticEgressProxy {
     );
 
     if (!target) {
-      this.writeRefusal(clientSocket, {
-        status: 400,
-        reason: "Bad Request",
-        message: "A proxy request names an absolute http or ws URL.",
-      });
+      this.writeRefusal(
+        clientSocket,
+        this.refuse({
+          tag,
+          kind: "upgrade",
+          target: SyntheticEgressProxy.unreadableTarget(request.url),
+          hostname: "",
+          error: new RefusedRequestError(
+            "The probe could not read the address this request was sent to.",
+          ),
+        }),
+      );
       return;
     }
 
@@ -837,7 +1029,13 @@ export default class SyntheticEgressProxy {
     } catch (error: unknown) {
       this.writeRefusal(
         clientSocket,
-        this.refuse({ tag, target: targetName, hostname, error }),
+        this.refuse({
+          tag,
+          kind: "upgrade",
+          target: targetName,
+          hostname,
+          error,
+        }),
       );
       return;
     }
@@ -949,7 +1147,11 @@ export default class SyntheticEgressProxy {
       autoSelectFamily: true,
     });
 
-    return await SyntheticEgressProxy.whenConnected(socket, "connect");
+    return await SyntheticEgressProxy.whenConnected(
+      socket,
+      "connect",
+      this.connectTimeoutInMs,
+    );
   }
 
   // A connection to the outbound proxy itself, the operator's to trust.
@@ -969,13 +1171,17 @@ export default class SyntheticEgressProxy {
     return await SyntheticEgressProxy.whenConnected(
       socket,
       isTls ? "secureConnect" : "connect",
+      this.connectTimeoutInMs,
     );
   }
 
   /*
    * A tunnel through the outbound proxy to one of the approved addresses,
-   * IPv4 first, the next one asked for whenever the proxy says it could not
-   * open the last. A proxy that cannot itself be reached is not asked again.
+   * IPv4 first, the next one asked for when the proxy answers that it could
+   * not open the last (a status other than 200). A proxy that cannot itself
+   * be reached, closes the CONNECT or does not answer it in time is not
+   * asked again, for any address: a hung proxy holds a tunnel for one
+   * timeout, not one per address.
    */
   private async tunnelThroughUpstreamToAny(data: {
     upstream: URL;
@@ -1027,12 +1233,8 @@ export default class SyntheticEgressProxy {
       ): void => {
         let received: Buffer = Buffer.alloc(0);
         const timer: NodeJS.Timeout = setTimeout((): void => {
-          fail(
-            new UpstreamTunnelRefusal(
-              "The outbound proxy did not answer the CONNECT.",
-            ),
-          );
-        }, SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS);
+          fail(new Error("The outbound proxy did not answer the CONNECT."));
+        }, this.connectTimeoutInMs);
         timer.unref?.();
 
         const cleanUp: () => void = (): void => {
@@ -1047,9 +1249,7 @@ export default class SyntheticEgressProxy {
           reject(error);
         };
         const onClose: () => void = (): void => {
-          fail(
-            new UpstreamTunnelRefusal("The outbound proxy closed the CONNECT."),
-          );
+          fail(new Error("The outbound proxy closed the CONNECT."));
         };
         const onData: (chunk: Buffer) => void = (chunk: Buffer): void => {
           received = Buffer.concat([received, chunk]);
@@ -1057,11 +1257,7 @@ export default class SyntheticEgressProxy {
 
           if (end === -1) {
             if (received.byteLength > MAX_UPSTREAM_CONNECT_RESPONSE_BYTES) {
-              fail(
-                new UpstreamTunnelRefusal(
-                  "The outbound proxy's answer was too long.",
-                ),
-              );
+              fail(new Error("The outbound proxy's answer was too long."));
             }
             return;
           }
@@ -1072,10 +1268,15 @@ export default class SyntheticEgressProxy {
           const status: RegExpExecArray | null =
             HTTP_STATUS_LINE_PATTERN.exec(statusLine);
 
-          if (!status || status[1] !== "200") {
+          if (!status) {
+            fail(new Error("The outbound proxy's answer was not HTTP."));
+            return;
+          }
+
+          if (status[1] !== "200") {
             fail(
               new UpstreamTunnelRefusal(
-                `The outbound proxy refused the CONNECT (${status ? status[1] : "no status"}).`,
+                `The outbound proxy refused the CONNECT (${status[1]}).`,
               ),
             );
             return;
@@ -1127,6 +1328,7 @@ export default class SyntheticEgressProxy {
    */
   private refuse(data: {
     tag: string | null;
+    kind: SyntheticEgressRequestKind;
     target: string;
     hostname: string;
     error: unknown;
@@ -1150,6 +1352,10 @@ export default class SyntheticEgressProxy {
       }
     } else if (data.error instanceof UnreadableResponseError) {
       message = `${MONITOR_TARGET_LABEL} host ${data.hostname} sent a response the probe could not read.`;
+    } else if (data.error instanceof RefusedRequestError) {
+      message = data.error.message;
+      status = 400;
+      reason = "Bad Request";
     }
 
     if (data.tag) {
@@ -1173,16 +1379,21 @@ export default class SyntheticEgressProxy {
       status,
       reason,
       message,
-      marker: this.recordBrowserFailure(data.target, message),
+      marker: this.recordBrowserFailure(data.kind, data.target, message),
     };
   }
 
   // Files a browser request this proxy did not send; returns its marker.
-  private recordBrowserFailure(target: string, message: string): string {
+  private recordBrowserFailure(
+    kind: SyntheticEgressRequestKind,
+    target: string,
+    message: string,
+  ): string {
     this.browserFailureSequence += 1;
     this.browserFailures.push({
       sequence: this.browserFailureSequence,
       target,
+      kind,
       message,
     });
 
@@ -1279,6 +1490,7 @@ export default class SyntheticEgressProxy {
   private static async whenConnected(
     socket: net.Socket,
     event: "connect" | "secureConnect",
+    timeoutInMs: number,
   ): Promise<net.Socket> {
     return await new Promise<net.Socket>(
       (
@@ -1287,7 +1499,7 @@ export default class SyntheticEgressProxy {
       ): void => {
         const timer: NodeJS.Timeout = setTimeout((): void => {
           onError(new Error("The connection timed out."));
-        }, SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS);
+        }, timeoutInMs);
         timer.unref?.();
 
         const onConnect: () => void = (): void => {
@@ -1460,6 +1672,42 @@ export default class SyntheticEgressProxy {
     }
 
     return result;
+  }
+
+  // The Host header a request carries, or undefined when it has none.
+  private static readHostHeader(rawHeaders: Array<string>): string | undefined {
+    for (let index: number = 0; index + 1 < rawHeaders.length; index += 2) {
+      if (rawHeaders[index]!.toLowerCase() === "host") {
+        return rawHeaders[index + 1]!;
+      }
+    }
+    return undefined;
+  }
+
+  /*
+   * Whether a Host header names the host and port `url` names, written as
+   * a URL would write them: "Example.com:80" names http://example.com/.
+   */
+  private static namesSameAuthority(hostHeader: string, url: URL): boolean {
+    let named: URL;
+
+    try {
+      named = new URL(`${url.protocol}//${hostHeader.trim()}/`);
+    } catch {
+      return false;
+    }
+
+    return (
+      named.host === url.host &&
+      !named.username &&
+      !named.password &&
+      named.pathname === "/"
+    );
+  }
+
+  // What a request this proxy could not read is filed under: its target as sent, cut short.
+  private static unreadableTarget(value: string | undefined): string {
+    return (value || "").slice(0, 200);
   }
 
   private static hasHeader(headers: Array<string>, wanted: string): boolean {
