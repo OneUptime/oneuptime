@@ -130,6 +130,8 @@ const TRIGGER_DESCRIPTIONS: Readonly<Record<string, string>> = {
   // A step OneUptime AI asks about while it works the case (#10352).
   "OneUptime AI":
     "Started on its own by OneUptime AI, which is working the case",
+  // An automatic response policy's block, started as the detection was made (#10350).
+  "Automatic Response": "Started on its own by an automatic response policy",
 };
 
 export interface PlaybookTarget {
