@@ -29,7 +29,7 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 
 ### Vad ett samtal säger
 
-Ett samtal säger vem det kommer från, vad som har hänt, hur allvarligt det är och vilket nummer det har, sedan vilken knapp som gör vad och till sist titeln. Du kan trycka på en knapp när som helst, även medan samtalet fortfarande talar. Trycker du inte på någon säger samtalet allt en gång till, väntar i 10 sekunder och lägger på, och larmet förblir obekräftat:
+Ett samtal säger vem det kommer från, vad som har hänt, hur allvarligt det är och vilket nummer det har, sedan vilken knapp som gör vad och till sist titeln. Du kan trycka på en knapp när som helst, även medan samtalet fortfarande talar. Trycker du inte på någon säger samtalet detaljerna och knapparna en gång till, väntar i 10 sekunder och lägger på, och larmet förblir obekräftat:
 
 ```text
 This is a call from Acme Production.

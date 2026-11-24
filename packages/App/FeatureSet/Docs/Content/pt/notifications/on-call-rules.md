@@ -29,7 +29,7 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 
 ### O que uma chamada diz
 
-Uma chamada diz de quem ela vem, o que aconteceu, qual a gravidade e o número, depois o que cada tecla faz e, por fim, o título. Você pode pressionar uma tecla a qualquer momento, mesmo enquanto a chamada ainda está falando. Se você não pressionar nenhuma, a chamada repete tudo mais uma vez, espera 10 segundos e desliga, e o acionamento continua sem confirmação:
+Uma chamada diz de quem ela vem, o que aconteceu, qual a gravidade e o número, depois o que cada tecla faz e, por fim, o título. Você pode pressionar uma tecla a qualquer momento, mesmo enquanto a chamada ainda está falando. Se você não pressionar nenhuma, a chamada repete mais uma vez os detalhes e as teclas, espera 10 segundos e desliga, e o acionamento continua sem confirmação:
 
 ```text
 This is a call from Acme Production.

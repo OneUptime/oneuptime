@@ -29,7 +29,7 @@ La mayoría de los mensajes pueden reconocer el aviso: los correos, los SMS y lo
 
 ### Qué dice una llamada
 
-Una llamada dice de quién es, qué ha pasado, qué gravedad tiene y su número, luego qué hace cada tecla y, por último, el título. Puedes pulsar una tecla en cualquier momento, incluso mientras la llamada sigue hablando. Si no pulsas ninguna, la llamada lo repite todo una vez más, espera 10 segundos y cuelga, y el aviso queda sin reconocer:
+Una llamada dice de quién es, qué ha pasado, qué gravedad tiene y su número, luego qué hace cada tecla y, por último, el título. Puedes pulsar una tecla en cualquier momento, incluso mientras la llamada sigue hablando. Si no pulsas ninguna, la llamada repite una vez más los detalles y las teclas, espera 10 segundos y cuelga, y el aviso queda sin reconocer:
 
 ```text
 This is a call from Acme Production.

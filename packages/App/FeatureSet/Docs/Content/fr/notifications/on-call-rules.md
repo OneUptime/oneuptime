@@ -29,7 +29,7 @@ La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SM
 
 ### Ce que dit un appel
 
-Un appel dit de qui il vient, ce qui s'est passé, sa gravité et son numéro, puis ce que fait chaque touche, et enfin le titre. Vous pouvez appuyer sur une touche à tout moment, même pendant que l'appel parle encore. Si vous n'appuyez sur aucune, l'appel répète tout une fois, attend 10 secondes et raccroche, et l'alerte reste non prise en compte :
+Un appel dit de qui il vient, ce qui s'est passé, sa gravité et son numéro, puis ce que fait chaque touche, et enfin le titre. Vous pouvez appuyer sur une touche à tout moment, même pendant que l'appel parle encore. Si vous n'appuyez sur aucune, l'appel répète une fois les détails et les touches, attend 10 secondes et raccroche, et l'alerte reste non prise en compte :
 
 ```text
 This is a call from Acme Production.

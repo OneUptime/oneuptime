@@ -29,7 +29,7 @@ Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Sl
 
 ### What a phone call says
 
-A call says who it is from, what happened, how severe it is and its number, then which key does what, then the title. You can press a key at any moment, even while the call is still speaking. If you press none, the call says it all once more, waits 10 seconds and hangs up, and the page stays unacknowledged:
+A call says who it is from, what happened, how severe it is and its number, then which key does what, then the title. You can press a key at any moment, even while the call is still speaking. If you press none, the call says the details and the keys once more, waits 10 seconds and hangs up, and the page stays unacknowledged:
 
 ```text
 This is a call from Acme Production.

@@ -29,7 +29,7 @@ De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsA
 
 ### Hvad et opkald siger
 
-Et opkald siger, hvem det er fra, hvad der er sket, hvor alvorligt det er, og hvilket nummer det har, derefter hvilken tast der gør hvad og til sidst titlen. Du kan trykke på en tast når som helst, også mens opkaldet stadig taler. Trykker du ikke på nogen, siger opkaldet det hele én gang til, venter 10 sekunder og lægger på, og tilkaldet forbliver ubekræftet:
+Et opkald siger, hvem det er fra, hvad der er sket, hvor alvorligt det er, og hvilket nummer det har, derefter hvilken tast der gør hvad og til sidst titlen. Du kan trykke på en tast når som helst, også mens opkaldet stadig taler. Trykker du ikke på nogen, siger opkaldet detaljerne og tasterne én gang til, venter 10 sekunder og lægger på, og tilkaldet forbliver ubekræftet:
 
 ```text
 This is a call from Acme Production.

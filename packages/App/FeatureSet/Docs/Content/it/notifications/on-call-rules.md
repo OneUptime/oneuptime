@@ -29,7 +29,7 @@ La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messag
 
 ### Cosa dice una telefonata
 
-Una telefonata dice da chi arriva, cosa è successo, quanto è grave e il suo numero, poi cosa fa ogni tasto e infine il titolo. Potete premere un tasto in qualsiasi momento, anche mentre la telefonata sta ancora parlando. Se non premete nulla, la telefonata ripete tutto un'altra volta, aspetta 10 secondi e riaggancia, e la chiamata resta non riconosciuta:
+Una telefonata dice da chi arriva, cosa è successo, quanto è grave e il suo numero, poi cosa fa ogni tasto e infine il titolo. Potete premere un tasto in qualsiasi momento, anche mentre la telefonata sta ancora parlando. Se non premete nulla, la telefonata ripete un'altra volta i dettagli e i tasti, aspetta 10 secondi e riaggancia, e la chiamata resta non riconosciuta:
 
 ```text
 This is a call from Acme Production.

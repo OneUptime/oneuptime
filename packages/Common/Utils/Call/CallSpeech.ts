@@ -123,7 +123,8 @@ const isSpeakable: (codePoint: number) => boolean = (
  * colour code goes whole, and every other character XML has no place for -
  * a control character, a lone surrogate, U+FFFE, U+FFFF - becomes a space.
  * Anything that is not text is no words at all. Everything else is kept as
- * it is, spacing included (a verification code is read slower for its).
+ * it is, spacing included: a verification code is spaced out to be read
+ * slower.
  */
 export const toTwimlText: (text: unknown) => string = (
   text: unknown,

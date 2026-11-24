@@ -29,7 +29,7 @@ Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrich
 
 ### Was ein Anruf sagt
 
-Ein Anruf sagt, von wem er kommt, was passiert ist, wie schwer es ist und welche Nummer es hat, dann welche Taste was bewirkt und zuletzt den Titel. Sie können jederzeit eine Taste drücken, auch während der Anruf noch spricht. Drücken Sie keine, sagt der Anruf alles noch einmal, wartet 10 Sekunden und legt auf, und der Alarm bleibt unbestätigt:
+Ein Anruf sagt, von wem er kommt, was passiert ist, wie schwer es ist und welche Nummer es hat, dann welche Taste was bewirkt und zuletzt den Titel. Sie können jederzeit eine Taste drücken, auch während der Anruf noch spricht. Drücken Sie keine, sagt der Anruf die Einzelheiten und die Tasten noch einmal, wartet 10 Sekunden und legt auf, und der Alarm bleibt unbestätigt:
 
 ```text
 This is a call from Acme Production.

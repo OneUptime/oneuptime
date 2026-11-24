@@ -29,7 +29,7 @@ De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsA
 
 ### Hva et anrop sier
 
-Et anrop sier hvem det er fra, hva som har skjedd, hvor alvorlig det er og hvilket nummer det har, deretter hvilken tast som gjør hva, og til slutt tittelen. Du kan trykke på en tast når som helst, også mens anropet fortsatt snakker. Trykker du ikke på noen, sier anropet alt én gang til, venter i 10 sekunder og legger på, og tilkallingen forblir ubekreftet:
+Et anrop sier hvem det er fra, hva som har skjedd, hvor alvorlig det er og hvilket nummer det har, deretter hvilken tast som gjør hva, og til slutt tittelen. Du kan trykke på en tast når som helst, også mens anropet fortsatt snakker. Trykker du ikke på noen, sier anropet detaljene og tastene én gang til, venter i 10 sekunder og legger på, og tilkallingen forblir ubekreftet:
 
 ```text
 This is a call from Acme Production.

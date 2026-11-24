@@ -29,7 +29,7 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 
 ### Wat een telefoongesprek zegt
 
-Een telefoongesprek zegt van wie het komt, wat er is gebeurd, hoe ernstig het is en welk nummer het heeft, daarna welke toets wat doet en ten slotte de titel. Je kunt op elk moment een toets indrukken, ook terwijl het gesprek nog praat. Druk je niets in, dan zegt het gesprek alles nog één keer, wacht het 10 seconden en hangt het op, en blijft de oproep onbevestigd:
+Een telefoongesprek zegt van wie het komt, wat er is gebeurd, hoe ernstig het is en welk nummer het heeft, daarna welke toets wat doet en ten slotte de titel. Je kunt op elk moment een toets indrukken, ook terwijl het gesprek nog praat. Druk je niets in, dan zegt het gesprek de details en de toetsen nog één keer, wacht het 10 seconden en hangt het op, en blijft de oproep onbevestigd:
 
 ```text
 This is a call from Acme Production.
