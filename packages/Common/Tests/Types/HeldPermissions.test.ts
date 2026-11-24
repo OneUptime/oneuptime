@@ -852,7 +852,7 @@ describe("HeldPermissionsUtil.getReadForWriteRefusal", () => {
 
   test("a table nobody may read is written by nobody", () => {
     expect(refusalFor([row(Permission.ReadAllOperationalResources)], [])).toBe(
-      "delete on Monitor is not allowed: nobody may read it.",
+      "Monitor records cannot be deleted by anyone, because nobody may read them.",
     );
   });
 });

@@ -132,8 +132,8 @@ Owners 团队始终至少保留一名已加入的成员，因此项目永远不�
 
 ## 故障排除
 
-:::details "This user has already been invited to this team"
-此人已经在该团队中，可能是成员，也可能有尚未接受的邀请。在**用户**中打开此人查看其团队，或将其邀请到其他团队。
+:::details "This person has already been invited to this team, or is a member of it"
+此人已经在该团队中，可能是成员，也可能有尚未接受的邀请。在**用户**中打开此人查看其团队，或将其邀请到其他团队。如果此人尚未加入，此人行菜单里的**重新发送邀请**会再次发送邀请邮件。
 :::
 
 :::details "You have reached the user limit for the free plan"

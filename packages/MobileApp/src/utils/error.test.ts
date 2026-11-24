@@ -1,5 +1,16 @@
 import { AxiosError, type AxiosResponse } from "axios";
-import { getFriendlyErrorMessage } from "./error";
+import {
+  APP_PROBLEM_SENTENCE,
+  getErrorReference,
+  getFriendlyErrorMessage,
+  getStatusOnlySentence,
+  UNREACHABLE_SENTENCE,
+} from "./error";
+import {
+  getUnexplainedServerErrorMessage,
+  SERVER_DOWN_SENTENCE,
+  UNEXPLAINED_ERROR_MESSAGES,
+} from "./unexplainedError";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -78,7 +89,7 @@ describe("getFriendlyErrorMessage when the server never answered", () => {
       axiosErrorWithoutResponse("ERR_SOMETHING_NEW"),
     );
 
-    expect(message).toContain("Could not connect to the server");
+    expect(message).toBe(UNREACHABLE_SENTENCE);
   });
 
   test("a failure with no code at all still blames the connection", () => {
@@ -86,7 +97,7 @@ describe("getFriendlyErrorMessage when the server never answered", () => {
       axiosErrorWithoutResponse(),
     );
 
-    expect(message).toContain("Could not connect to the server");
+    expect(message).toBe(UNREACHABLE_SENTENCE);
   });
 
   test("never surfaces axios' own wording", () => {
@@ -181,7 +192,7 @@ describe("getFriendlyErrorMessage reading the server's own message", () => {
       getFriendlyErrorMessage(
         axiosErrorWithResponse(400, { message: { nested: "object" } }),
       ),
-    ).toBe("Server error (400). Please try again.");
+    ).toBe(getStatusOnlySentence(400));
   });
 
   test("a bare string body is used as the message", () => {
@@ -192,13 +203,13 @@ describe("getFriendlyErrorMessage reading the server's own message", () => {
 
   test("an empty string body falls through to the status message", () => {
     expect(getFriendlyErrorMessage(axiosErrorWithResponse(400, ""))).toBe(
-      "Server error (400). Please try again.",
+      getStatusOnlySentence(400),
     );
   });
 
   test("a null body falls through to the status message", () => {
     expect(getFriendlyErrorMessage(axiosErrorWithResponse(400, null))).toBe(
-      "Server error (400). Please try again.",
+      getStatusOnlySentence(400),
     );
   });
 
@@ -213,7 +224,7 @@ describe("getFriendlyErrorMessage reading the server's own message", () => {
       getFriendlyErrorMessage(
         axiosErrorWithResponse(502, { html: "<html>Bad Gateway</html>" }),
       ),
-    ).toContain("try again in a few minutes");
+    ).toBe(SERVER_DOWN_SENTENCE);
   });
 
   test("the server's message beats the status fallback even on a 500", () => {
@@ -227,15 +238,15 @@ describe("getFriendlyErrorMessage reading the server's own message", () => {
 
 describe("getFriendlyErrorMessage falling back on the status code", () => {
   test("502 tells the responder to try again shortly", () => {
-    expect(
-      getFriendlyErrorMessage(axiosErrorWithResponse(502, null)),
-    ).toContain("try again in a few minutes");
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(502, null))).toBe(
+      SERVER_DOWN_SENTENCE,
+    );
   });
 
   test("504 reads like 502, because both mean the gateway not the app", () => {
-    expect(
-      getFriendlyErrorMessage(axiosErrorWithResponse(504, null)),
-    ).toContain("try again in a few minutes");
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(504, null))).toBe(
+      SERVER_DOWN_SENTENCE,
+    );
   });
 
   test("403 says it is a permission problem, not a broken app", () => {
@@ -251,20 +262,21 @@ describe("getFriendlyErrorMessage falling back on the status code", () => {
   });
 
   test("500 says the server is at fault so the responder stops retrying blind", () => {
-    expect(
-      getFriendlyErrorMessage(axiosErrorWithResponse(500, null)),
-    ).toContain("Internal server error");
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(500, null))).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.server,
+    );
   });
 
   test("any other status still names the number, so it can be reported", () => {
     expect(getFriendlyErrorMessage(axiosErrorWithResponse(418, null))).toBe(
-      "Server error (418). Please try again.",
+      getStatusOnlySentence(418),
     );
+    expect(getStatusOnlySentence(418)).toContain("418");
   });
 
   test("401 is not special-cased and falls through with its number", () => {
     expect(getFriendlyErrorMessage(axiosErrorWithResponse(401, null))).toBe(
-      "Server error (401). Please try again.",
+      getStatusOnlySentence(401),
     );
   });
 });
@@ -283,9 +295,7 @@ describe("getFriendlyErrorMessage on everything that is not an axios error", () 
   });
 
   test("an Error with no message gets generic wording, never an empty alert", () => {
-    expect(getFriendlyErrorMessage(new Error(""))).toBe(
-      "An unexpected error occurred.",
-    );
+    expect(getFriendlyErrorMessage(new Error(""))).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("a thrown string is shown as-is", () => {
@@ -293,26 +303,20 @@ describe("getFriendlyErrorMessage on everything that is not an axios error", () 
   });
 
   test("an empty thrown string gets generic wording", () => {
-    expect(getFriendlyErrorMessage("")).toBe(
-      "An unknown error occurred. Please try again.",
-    );
+    expect(getFriendlyErrorMessage("")).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("null gets generic wording rather than crashing the handler", () => {
-    expect(getFriendlyErrorMessage(null)).toBe(
-      "An unknown error occurred. Please try again.",
-    );
+    expect(getFriendlyErrorMessage(null)).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("undefined gets generic wording rather than crashing the handler", () => {
-    expect(getFriendlyErrorMessage(undefined)).toBe(
-      "An unknown error occurred. Please try again.",
-    );
+    expect(getFriendlyErrorMessage(undefined)).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("an object that is none of the known shapes gets generic wording", () => {
     expect(getFriendlyErrorMessage({ status: 500, detail: "nope" })).toBe(
-      "An unexpected error occurred. Please try again.",
+      APP_PROBLEM_SENTENCE,
     );
   });
 
@@ -328,13 +332,11 @@ describe("getFriendlyErrorMessage on everything that is not an axios error", () 
         isAxiosError: false,
         response: { status: 404, data: null },
       }),
-    ).toBe("An unexpected error occurred. Please try again.");
+    ).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("a bare number gets generic wording", () => {
-    expect(getFriendlyErrorMessage(500)).toBe(
-      "An unexpected error occurred. Please try again.",
-    );
+    expect(getFriendlyErrorMessage(500)).toBe(APP_PROBLEM_SENTENCE);
   });
 
   test("always returns something a responder can read", () => {
@@ -358,5 +360,96 @@ describe("getFriendlyErrorMessage on everything that is not an axios error", () 
     inputs.forEach((input: unknown): void => {
       expect(getFriendlyErrorMessage(input).length).toBeGreaterThan(0);
     });
+  });
+});
+
+/*
+ * A FAILURE NOBODY EXPLAINED, WITH ITS REFERENCE (#7275).
+ *
+ * The server answers such a failure with a sentence that says what to do
+ * next, and a reference in a field of its own. The app said "Internal server
+ * error" or "Server error (500)" and dropped the reference; it says the
+ * server's sentence now, with the reference in it, and reads the reference
+ * out for its copy button.
+ */
+describe("a failure nobody explained", () => {
+  test("a 500 with a reference and no words says the sentence with the reference", () => {
+    const error: AxiosError = axiosErrorWithResponse(500, {
+      reference: "1f0c9a2b",
+    });
+
+    expect(getFriendlyErrorMessage(error)).toBe(
+      getUnexplainedServerErrorMessage("1f0c9a2b"),
+    );
+    expect(getFriendlyErrorMessage(error)).toContain("1f0c9a2b");
+    expect(getErrorReference(error)).toBe("1f0c9a2b");
+  });
+
+  test('an empty phrase is never shown: "Server Error" becomes the sentence, with its reference', () => {
+    const error: AxiosError = axiosErrorWithResponse(500, {
+      message: "Server Error",
+      reference: "abcdef01",
+    });
+
+    expect(getFriendlyErrorMessage(error)).toBe(
+      getUnexplainedServerErrorMessage("abcdef01"),
+    );
+    expect(getFriendlyErrorMessage(error)).not.toContain("Server Error");
+  });
+
+  test("the server's own sentence is shown as it wrote it, and its reference read out", () => {
+    const sentence: string = getUnexplainedServerErrorMessage("0a1b2c3d");
+    const error: AxiosError = axiosErrorWithResponse(500, {
+      message: sentence,
+      reference: "0a1b2c3d",
+    });
+
+    expect(getFriendlyErrorMessage(error)).toBe(sentence);
+    expect(getErrorReference(error)).toBe("0a1b2c3d");
+  });
+
+  test("a gateway's page is never shown, whatever status it comes with", () => {
+    const page: string =
+      "<html><head><title>502 Bad Gateway</title></head></html>";
+
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(502, page))).toBe(
+      SERVER_DOWN_SENTENCE,
+    );
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(500, page))).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.server,
+    );
+  });
+
+  test("a proxy's 413 says what was sent was too large", () => {
+    expect(getFriendlyErrorMessage(axiosErrorWithResponse(413, null))).toBe(
+      UNEXPLAINED_ERROR_MESSAGES.tooLarge,
+    );
+  });
+
+  test("a reference is read only when it is one", () => {
+    expect(
+      getErrorReference(axiosErrorWithResponse(500, { reference: "nothex!!" })),
+    ).toBeNull();
+    expect(
+      getErrorReference(axiosErrorWithResponse(500, { reference: 12345678 })),
+    ).toBeNull();
+    expect(getErrorReference(axiosErrorWithResponse(500, null))).toBeNull();
+    expect(getErrorReference(new Error("1f0c9a2b"))).toBeNull();
+    expect(getErrorReference(undefined)).toBeNull();
+  });
+
+  test("every sentence the app says is a sentence that says what to do next", () => {
+    for (const sentence of [
+      APP_PROBLEM_SENTENCE,
+      UNREACHABLE_SENTENCE,
+      SERVER_DOWN_SENTENCE,
+      getStatusOnlySentence(418),
+      getFriendlyErrorMessage(axiosErrorWithResponse(403, null)),
+      getFriendlyErrorMessage(axiosErrorWithResponse(404, null)),
+      getFriendlyErrorMessage(axiosErrorWithoutResponse("ECONNABORTED")),
+    ]) {
+      expect(sentence).toMatch(/^[A-Z].*\.$/);
+      expect(sentence.split(". ").length).toBeGreaterThanOrEqual(2);
+    }
   });
 });

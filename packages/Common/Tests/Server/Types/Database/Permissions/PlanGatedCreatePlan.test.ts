@@ -119,7 +119,7 @@ const USER_ID: ObjectID = new ObjectID("5c000000-0000-4000-8000-000000000002");
 type ModelType = { new (): BaseModel };
 
 const refusalFor: (plan: PlanType) => string = (plan: PlanType): string => {
-  return `Please upgrade your plan to ${plan} to access this feature`;
+  return `This feature needs the ${plan} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.`;
 };
 
 // Whether a project on `current` has what `required` sells.

@@ -132,8 +132,8 @@ Owners 팀에는 참여한 구성원이 항상 최소 한 명 남아 있으므�
 
 ## 문제 해결
 
-:::details "This user has already been invited to this team"
-그 사람은 이미 구성원으로, 또는 수락하지 않은 초대로 그 팀에 있습니다. **사용자**에서 그 사람을 열어 팀을 확인하거나, 다른 팀에 초대하세요.
+:::details "This person has already been invited to this team, or is a member of it"
+그 사람은 이미 구성원으로, 또는 수락하지 않은 초대로 그 팀에 있습니다. **사용자**에서 그 사람을 열어 팀을 확인하거나, 다른 팀에 초대하세요. 아직 참여하지 않았다면 그 사람의 행 메뉴에서 **초대 다시 보내기**로 초대 이메일을 다시 보낼 수 있습니다.
 :::
 
 :::details "You have reached the user limit for the free plan"

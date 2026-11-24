@@ -947,8 +947,8 @@ const ModelForm: <TBaseModel extends BaseModel>(
           setError(
             translator.translateTemplate(
               props.formType === FormType.Create
-                ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}"
-                : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}",
+                ? "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}."
+                : "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.",
               {
                 columnName: translatableTerm(
                   getColumnTitleKey(columnMetadata) || fieldName,
@@ -1280,7 +1280,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
             const dropdownOptions: Array<DropdownOption> = listResult.data.map(
               (item: BaseModel) => {
                 if (!field.dropdownModal) {
-                  throw new BadDataException("Dropdown Modal value mot found");
+                  throw new BadDataException(
+                    "This field's list of choices could not be read. Reload the page, then try again.",
+                  );
                 }
 
                 const label: string = (item as any)[
