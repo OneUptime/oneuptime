@@ -18,10 +18,16 @@ import { MemoryRouter } from "react-router-dom";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import EventVideoCallsCard, {
-  EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME,
+  EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME,
   EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME,
   EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME,
+  EVENT_VIDEO_CALL_STARTED_SEPARATOR_CLASS_NAME,
+  EVENT_VIDEO_CALL_STARTED_WHEN_CLASS_NAME,
+  EVENT_VIDEO_CALL_STARTED_WHEN_TEST_ID,
+  EVENT_VIDEO_CALL_STARTED_WHO_CLASS_NAME,
+  EVENT_VIDEO_CALL_STARTED_WHO_TEST_ID,
   EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/EventVideoCallsCard";
 import { VideoCallEventKind } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/useEventVideoCalls";
@@ -49,25 +55,29 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 
 /*
- * WHO STARTED A CALL, READ THE WAY IT IS WRITTEN (#7086).
+ * WHO STARTED A CALL, AND WHEN, ON ANY WIDTH AND IN EVERY LANGUAGE (#7086,
+ * #7234).
  *
  * Under a call on an incident's page, a line says who started it and when:
- * "Started by Maya Chen · 3 minutes ago", in the reader's language. On an
- * Arabic or Persian page the person's English name sat in the Arabic
- * sentence as plain text: its brackets and the time after it could move
- * around it, and the line - cut short where the card ends - lost the wrong
- * part. And the Persian line set its time off with a middle dot, which
- * beside Persian digits reads as their zero.
+ * "Started by Maya Chen · 3 minutes ago", in the reader's language.
  *
- * A name that reads the other way from the page is a box of its own now,
- * in a row of boxes on the line's one line: it reads its own way, keeps
- * its punctuation, and is cut short at its own end ("Maya Chen-Rodriguez
- * (S...") while the sentence's words and the time keep their width. The
- * two facts are set off as the reader's language does (a bullet in
- * Persian). A name that reads the sentence's way, and an English name in
- * the English sentence, are written exactly as they were: one line of
- * text, its values set apart where they could move the words around them
- * (setsValuesApart). Drawn here with the real Dashboard locales.
+ * #7086 made a name that reads the other way from the page (an English name
+ * on an Arabic or Persian page) a box of its own, read its own way and cut
+ * short at its own end, in a row whose words and time kept their width.
+ * Every other line stayed one line of text cut short where the card ended,
+ * so on a phone an English page lost the time ("Started by Maya
+ * Chen-Rodriguez (Pl..."), while a Persian page kept it: how the line gave
+ * way hung on the script of the name. And an earlier call's line, beside
+ * its Join link, is 105px wide in Russian: room for neither fact whole.
+ *
+ * Every line is now drawn the same way (#7234): two facts, who and when, in
+ * a row that wraps between them only. Who keeps the sentence's words whole
+ * and lets the name give way, cut at its own end, its whole self in its
+ * title; when follows on the line where both fit, and starts the next one
+ * whole where they do not; the separator between them sits in the room
+ * before the time, which the line clips where the time starts a line. The
+ * text still reads as one sentence. Drawn here with the real Dashboard
+ * locales; a browser lays the row out (the layout is checked there).
  */
 
 const LOCALES: string = path.resolve(
@@ -85,7 +95,20 @@ const readLocale: (language: string) => Record<string, string> = (
 
 const RIGHT_TO_LEFT_LANGUAGES: Array<string> = ["ar", "fa"];
 
+// The languages the issue names: English, a long one, and right to left.
+const CHECKED_LANGUAGES: Array<string> = ["en", "de", "ru", "ar", "fa"];
+
+// Languages whose sentence puts the name first: "{{name}} ने शुरू किया".
+const NAME_FIRST_LANGUAGES: Array<string> = ["hi", "ja"];
+
+const ALL_LANGUAGES: Array<string> = [
+  ...CHECKED_LANGUAGES,
+  ...NAME_FIRST_LANGUAGES,
+];
+
 const ENGLISH_PERSON: string = "Maya Chen-Rodriguez (SRE, EU West)";
+const LONG_ENGLISH_PERSON: string =
+  "Maya Chen-Rodriguez (Platform, EU West on-call)";
 const ARABIC_PERSON: string = "مايا تشين";
 const ENGLISH_EMAIL: string = "maya.chen@acme-commerce.example";
 /*
@@ -100,7 +123,7 @@ const instances: Record<string, i18n> = {};
 const locales: Record<string, Record<string, string>> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "ar", "fa"]) {
+  for (const language of ALL_LANGUAGES) {
     const instance: i18n = createInstance();
 
     locales[language] = readLocale(language);
@@ -229,11 +252,23 @@ const factsOf: (line: HTMLElement, language: string) => Array<string> = (
   return (line.textContent || "").split(getInlineSeparator(language));
 };
 
-// The box that holds the starter's name, in a line drawn as a row.
+// The box that holds the starter's name.
 const nameBoxOf: (line: HTMLElement) => HTMLElement = (
   line: HTMLElement,
 ): HTMLElement => {
   return within(line).getByTestId("event-video-call-started-by-name");
+};
+
+const whoOf: (line: HTMLElement) => HTMLElement = (
+  line: HTMLElement,
+): HTMLElement => {
+  return within(line).getByTestId(EVENT_VIDEO_CALL_STARTED_WHO_TEST_ID);
+};
+
+const whenOf: (line: HTMLElement) => HTMLElement = (
+  line: HTMLElement,
+): HTMLElement => {
+  return within(line).getByTestId(EVENT_VIDEO_CALL_STARTED_WHEN_TEST_ID);
 };
 
 // The sentence's words before the name, as the locale writes them.
@@ -245,7 +280,196 @@ const wordsBeforeName: (language: string) => string = (
   return sentence.slice(0, sentence.indexOf("{{name}}"));
 };
 
-describe("who started a call", () => {
+const wordsAfterName: (language: string) => string = (
+  language: string,
+): string => {
+  const sentence: string = locales[language]!["Started by {{name}}"]!;
+
+  return sentence.slice(sentence.indexOf("{{name}}") + "{{name}}".length);
+};
+
+// The line as one layout: a clip, a wrapping row of two facts.
+const expectTwoFactsRow: (line: HTMLElement) => {
+  facts: HTMLElement;
+  who: HTMLElement;
+} = (line: HTMLElement): { facts: HTMLElement; who: HTMLElement } => {
+  expect(line.tagName).toBe("P");
+  // In the page's direction: no dir of its own.
+  expect(line).not.toHaveAttribute("dir");
+  expect(line.getAttribute("class")).toBe(
+    EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME,
+  );
+  // The line clips what its row draws before its start.
+  expect(line).toHaveClass("overflow-hidden", "mt-0.5", "text-xs");
+  expect(line).toHaveClass("text-gray-500");
+
+  expect(line.children).toHaveLength(1);
+
+  const facts: HTMLElement = line.firstElementChild as HTMLElement;
+
+  expect(facts.getAttribute("class")).toBe(
+    EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME,
+  );
+  // A row that wraps, started the separator's room before the line.
+  expect(facts).toHaveClass("flex", "flex-wrap", "-ms-3");
+
+  const who: HTMLElement = whoOf(line);
+
+  expect(who.parentElement).toBe(facts);
+  expect(facts.firstElementChild).toBe(who);
+  expect(who.getAttribute("class")).toBe(
+    EVENT_VIDEO_CALL_STARTED_WHO_CLASS_NAME,
+  );
+  // One line of its own, as wide as the line at most, its room in front.
+  expect(who).toHaveClass(
+    "flex",
+    "min-w-0",
+    "max-w-full",
+    "whitespace-nowrap",
+    "ps-3",
+  );
+
+  return { facts, who };
+};
+
+describe("who started a call, and when, in every language", () => {
+  test.each(CHECKED_LANGUAGES)(
+    "%s: a long name gives way, cut at its own end, its whole self in its title; the time stays, whole, in a box of its own",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: LONG_ENGLISH_PERSON,
+      });
+      const { facts, who } = expectTwoFactsRow(line);
+      const name: HTMLElement = nameBoxOf(line);
+      const when: HTMLElement = whenOf(line);
+
+      // The name is the one box that gives way.
+      expect(who).toContainElement(name);
+      expect(name.getAttribute("class")).toContain(
+        EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME,
+      );
+      expect(name).toHaveClass("min-w-0", "truncate");
+      expect(name.textContent).toBe(LONG_ENGLISH_PERSON);
+      expect(name).toHaveAttribute("title", LONG_ENGLISH_PERSON);
+
+      // The sentence's words keep their width and their spaces.
+      for (const box of Array.from(who.children)) {
+        if (box !== name) {
+          expect(box.getAttribute("class")).toBe(
+            EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME,
+          );
+          expect(box).toHaveClass("shrink-0", "whitespace-pre");
+        }
+      }
+
+      // The time: the row's second fact, never inside who's line.
+      expect(when.parentElement).toBe(facts);
+      expect(facts.lastElementChild).toBe(when);
+      expect(who).not.toContainElement(when);
+      expect(when.getAttribute("class")).toBe(
+        EVENT_VIDEO_CALL_STARTED_WHEN_CLASS_NAME,
+      );
+      expect(when.textContent).not.toContain(LONG_ENGLISH_PERSON);
+      expect(
+        withoutIsolateMarks(when.textContent!).replace(
+          getInlineSeparator(language),
+          "",
+        ),
+      ).toBeTruthy();
+    },
+  );
+
+  test.each(ALL_LANGUAGES)(
+    "%s: the line still reads as one sentence: who, the separator, when",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: LONG_ENGLISH_PERSON,
+      });
+      const when: HTMLElement = whenOf(line);
+      const [who, time] = factsOf(line, language);
+
+      expect(factsOf(line, language)).toHaveLength(2);
+      expect(who).toBe(startedBySentence(language, LONG_ENGLISH_PERSON));
+      // The name is set apart by its box, not by marks in the text.
+      expect(line.textContent).toBe(withoutIsolateMarks(line.textContent!));
+      expect(time).toBeTruthy();
+      expect(when.textContent).toBe(
+        `${getInlineSeparator(language)}${time}`,
+      );
+    },
+  );
+
+  /*
+   * The separator sits in the room the time keeps in front of itself
+   * (ps-3), drawn into it (-ms-3) as wide as that room (w-3). The facts'
+   * row starts that room before the line's start, and the line clips it:
+   * where the time starts a line, no line starts with "·".
+   */
+  test.each(CHECKED_LANGUAGES)(
+    "%s: the separator is drawn in the room before the time, which the line clips at its start",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: ENGLISH_PERSON,
+      });
+      const when: HTMLElement = whenOf(line);
+      const separator: HTMLElement = when.firstElementChild as HTMLElement;
+
+      expect(when).toHaveClass("ps-3", "min-w-0", "max-w-full", "truncate");
+      expect(separator.getAttribute("class")).toBe(
+        EVENT_VIDEO_CALL_STARTED_SEPARATOR_CLASS_NAME,
+      );
+      expect(separator).toHaveClass(
+        "-ms-3",
+        "w-3",
+        "inline-block",
+        "whitespace-pre",
+      );
+      expect(separator.textContent).toBe(getInlineSeparator(language));
+      // The room each fact keeps is the room the row starts before the line.
+      expect(EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME).toContain("-ms-3");
+      expect(EVENT_VIDEO_CALL_STARTED_WHO_CLASS_NAME).toContain("ps-3");
+      expect(EVENT_VIDEO_CALL_STARTED_WHEN_CLASS_NAME).toContain("ps-3");
+    },
+  );
+
+  test.each(ALL_LANGUAGES)(
+    "%s: who's boxes come in the sentence's order, the name where the sentence puts it",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: ENGLISH_PERSON,
+      });
+      const who: HTMLElement = whoOf(line);
+      const boxes: Array<Element> = Array.from(who.children);
+      const before: string = wordsBeforeName(language);
+      const after: string = wordsAfterName(language);
+      const expected: Array<string> = [before, ENGLISH_PERSON, after].filter(
+        (part: string): boolean => {
+          return part.length > 0;
+        },
+      );
+
+      expect(boxes.map((box: Element) => box.textContent)).toEqual(expected);
+      expect(boxes[expected.indexOf(ENGLISH_PERSON)]).toBe(nameBoxOf(line));
+    },
+  );
+
+  test.each(NAME_FIRST_LANGUAGES)(
+    "%s: the name comes first, then the sentence's words, then the time",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: ENGLISH_PERSON,
+      });
+      const who: HTMLElement = whoOf(line);
+
+      expect(wordsBeforeName(language)).toBe("");
+      expect(who.firstElementChild).toBe(nameBoxOf(line));
+      expect(who.lastElementChild!.textContent).toBe(wordsAfterName(language));
+      expect(whenOf(line).previousElementSibling).toBe(who);
+    },
+  );
+});
+
+describe("who started a call, read the way it is written", () => {
   test.each(RIGHT_TO_LEFT_LANGUAGES)(
     "%s: an English name is a box of its own that reads its way",
     (language: string) => {
@@ -264,95 +488,6 @@ describe("who started a call", () => {
       expect(name).toHaveAttribute("dir", "ltr");
       // The whole name, when the box cuts it short.
       expect(name).toHaveAttribute("title", ENGLISH_PERSON);
-    },
-  );
-
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: the line still says the sentence and the time, with its spaces",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {
-        name: ENGLISH_PERSON,
-      });
-      const [who, when] = factsOf(line, language);
-
-      expect(who).toBe(startedBySentence(language, ENGLISH_PERSON));
-      // The name is set apart by its box, not by marks in the text.
-      expect(line.textContent).toBe(withoutIsolateMarks(line.textContent!));
-      // The time after it is the reader's, and is not part of the name.
-      expect(when).toBeTruthy();
-      expect(when).not.toContain(ENGLISH_PERSON);
-      expect(factsOf(line, language)).toHaveLength(2);
-    },
-  );
-
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: the line is a row on one line: the words and the time keep their width, the name gives way and is cut at its own end",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {
-        name: ENGLISH_PERSON,
-      });
-      const name: HTMLElement = nameBoxOf(line);
-      const boxes: Array<Element> = Array.from(line.children);
-
-      expect(line.tagName).toBe("P");
-      // In the page's direction: no dir of its own.
-      expect(line).not.toHaveAttribute("dir");
-      expect(line.getAttribute("class")).toBe(
-        EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME,
-      );
-      expect(line).toHaveClass(
-        "flex",
-        "min-w-0",
-        "overflow-hidden",
-        "whitespace-nowrap",
-        "mt-0.5",
-        "text-xs",
-        "text-gray-500",
-      );
-
-      // The name is one of the row's boxes, and the one that gives way.
-      expect(name.parentElement).toBe(line);
-      expect(name).toHaveClass(
-        ...EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME.split(" "),
-      );
-      expect(name).toHaveClass("min-w-0", "truncate");
-
-      // Every other box keeps its width and its spaces.
-      const others: Array<Element> = boxes.filter((box: Element): boolean => {
-        return box !== name;
-      });
-
-      expect(others.length).toBeGreaterThan(0);
-
-      for (const box of others) {
-        expect(box.tagName).toBe("SPAN");
-        expect(box.getAttribute("class")).toBe(
-          EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME,
-        );
-        expect(box).toHaveClass("shrink-0", "whitespace-pre");
-      }
-    },
-  );
-
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: the boxes come in the sentence's order: its words, the name, then the time",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {
-        name: ENGLISH_PERSON,
-      });
-      const boxes: Array<Element> = Array.from(line.children);
-      const before: string = wordsBeforeName(language);
-
-      // "بدأها {{name}}", "آغازشده توسط {{name}}": the words come first.
-      expect(before.length).toBeGreaterThan(0);
-      expect(boxes).toHaveLength(3);
-      expect(boxes[0]!.textContent).toBe(before);
-      // The space before the name is kept, in its box.
-      expect(boxes[0]!.textContent!.endsWith(" ")).toBe(true);
-      expect(boxes[1]).toBe(nameBoxOf(line));
-      expect(
-        boxes[2]!.textContent!.startsWith(getInlineSeparator(language)),
-      ).toBe(true);
     },
   );
 
@@ -409,122 +544,46 @@ describe("who started a call", () => {
     },
   );
 
+  /*
+   * A name that reads the sentence's way is drawn the same way as any
+   * other (#7234): a box that gives way, cut at its end, with no dir of
+   * its own. It used to be plain text in a line cut short where the card
+   * ended, which lost the time first.
+   */
   test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: without a time the row is the sentence alone",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {
-        name: ENGLISH_PERSON,
-        withoutTime: true,
-      });
-
-      expect(line.getAttribute("class")).toBe(
-        EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME,
-      );
-      expect(line.textContent).toBe(
-        startedBySentence(language, ENGLISH_PERSON),
-      );
-      expect(line.textContent).not.toContain(getInlineSeparator(language));
-      expect(line.children).toHaveLength(2);
-      expect(line.lastElementChild).toBe(nameBoxOf(line));
-    },
-  );
-
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: an Arabic name reads the sentence's way: one line of text, written as it was",
+    "%s: an Arabic name is a box too, reading the sentence's way, and the time keeps its own box",
     (language: string) => {
       const line: HTMLElement = drawStartedLine(language, {
         name: ARABIC_PERSON,
       });
       const [who] = factsOf(line, language);
+      const name: HTMLElement = nameBoxOf(line);
 
+      expectTwoFactsRow(line);
       expect(who).toBe(startedBySentence(language, ARABIC_PERSON));
       expect(who).not.toContain(FIRST_STRONG_ISOLATE);
       expect(who).not.toContain(POP_DIRECTIONAL_ISOLATE);
-      expect(line.getAttribute("class")).toBe(
-        EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME,
-      );
-      expect(line).not.toHaveAttribute("dir");
-      expect(line.children).toHaveLength(0);
-      expect(
-        within(line).queryByTestId("event-video-call-started-by-name"),
-      ).toBeNull();
+      expect(name.textContent).toBe(ARABIC_PERSON);
+      expect(name).not.toHaveAttribute("dir");
+      expect(name).toHaveClass("min-w-0", "truncate");
+      expect(whenOf(line).textContent).not.toContain(ARABIC_PERSON);
     },
   );
 
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: a call a workspace rule started says so in one line of text",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {
-        name: ENGLISH_PERSON,
-        byWorkspaceRule: true,
-      });
-      const [who] = factsOf(line, language);
-
-      expect(who).toBe(
-        locales[language]!["Started automatically by a workspace rule"],
-      );
-      expect(line.getAttribute("class")).toBe(
-        EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME,
-      );
-      expect(line.children).toHaveLength(0);
-      expect(line.textContent).not.toContain(ENGLISH_PERSON);
-    },
-  );
-
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
-    "%s: a call started from the API says so in one line of text",
-    (language: string) => {
-      const line: HTMLElement = drawStartedLine(language, {});
-      const [who] = factsOf(line, language);
-
-      expect(who).toBe(locales[language]!["Started from the API"]);
-      expect(line.getAttribute("class")).toBe(
-        EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME,
-      );
-      expect(line.children).toHaveLength(0);
-    },
-  );
-
-  test("Persian sets the time off with a bullet: its zero is a dot", () => {
-    const line: HTMLElement = drawStartedLine("fa", { name: ENGLISH_PERSON });
-
-    expect(getInlineSeparator("fa")).toBe(DOT_ZERO_INLINE_SEPARATOR);
-    expect(line.textContent).toContain(DOT_ZERO_INLINE_SEPARATOR);
-    expect(line.textContent).not.toContain(INLINE_SEPARATOR);
-    expect(factsOf(line, "fa")).toHaveLength(2);
-  });
-
-  test("Persian sets the time off with a bullet in a line of text too", () => {
-    const line: HTMLElement = drawStartedLine("fa", { name: ARABIC_PERSON });
-
-    expect(line.children).toHaveLength(0);
-    expect(line.textContent).toContain(DOT_ZERO_INLINE_SEPARATOR);
-    expect(line.textContent).not.toContain(INLINE_SEPARATOR);
-    expect(factsOf(line, "fa")).toHaveLength(2);
-  });
-
-  test("Arabic, written in Latin digits, keeps the middle dot", () => {
-    const line: HTMLElement = drawStartedLine("ar", { name: ENGLISH_PERSON });
-
-    expect(getInlineSeparator("ar")).toBe(INLINE_SEPARATOR);
-    expect(line.textContent).toContain(INLINE_SEPARATOR);
-    expect(factsOf(line, "ar")).toHaveLength(2);
-  });
-
-  test("on an English page an English name is written as it always was", () => {
-    const line: HTMLElement = drawStartedLine("en", { name: ENGLISH_PERSON });
+  test("on an English page an English name is a box too, with no dir of its own, and the time keeps its own box", () => {
+    const line: HTMLElement = drawStartedLine("en", {
+      name: LONG_ENGLISH_PERSON,
+    });
     const text: string = line.textContent || "";
+    const name: HTMLElement = nameBoxOf(line);
 
-    expect(text.startsWith(`Started by ${ENGLISH_PERSON} · `)).toBe(true);
+    expectTwoFactsRow(line);
+    expect(text.startsWith(`Started by ${LONG_ENGLISH_PERSON} · `)).toBe(true);
     expect(text).toBe(withoutIsolateMarks(text));
-    expect(line.children).toHaveLength(0);
-    expect(line).not.toHaveAttribute("dir");
-    expect(line.getAttribute("class")).toBe(
-      "mt-0.5 truncate text-xs text-gray-500",
-    );
-    expect(EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME).toBe(
-      "mt-0.5 truncate text-xs text-gray-500",
-    );
+    expect(name).not.toHaveAttribute("dir");
+    expect(name).toHaveAttribute("title", LONG_ENGLISH_PERSON);
+    expect(whoOf(line).firstElementChild!.textContent).toBe("Started by ");
+    expect(whenOf(line).textContent!.startsWith(" · ")).toBe(true);
   });
 
   test("on an English page an Arabic name is a box of its own, read right to left", () => {
@@ -535,9 +594,174 @@ describe("who started a call", () => {
     expect(name.textContent).toBe(ARABIC_PERSON);
     expect(name).toHaveAttribute("dir", "rtl");
     expect(who).toBe(`Started by ${ARABIC_PERSON}`);
-    expect(line.getAttribute("class")).toBe(
-      EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME,
+    expectTwoFactsRow(line);
+    expect(whoOf(line).firstElementChild!.textContent).toBe("Started by ");
+  });
+});
+
+describe("a line with one fact, or with no person in it", () => {
+  test.each(CHECKED_LANGUAGES)(
+    "%s: without a time the row is the sentence alone",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: ENGLISH_PERSON,
+        withoutTime: true,
+      });
+      const { facts } = expectTwoFactsRow(line);
+
+      expect(line.textContent).toBe(
+        startedBySentence(language, ENGLISH_PERSON),
+      );
+      expect(line.textContent).not.toContain(getInlineSeparator(language));
+      expect(facts.children).toHaveLength(1);
+      expect(
+        within(line).queryByTestId(EVENT_VIDEO_CALL_STARTED_WHEN_TEST_ID),
+      ).toBeNull();
+    },
+  );
+
+  /*
+   * A workspace rule's line lost its time as a person's did: "Automatisch
+   * von einer Workspace-Regel gestartet ..." in German, beside an earlier
+   * call's Join link. It is the same two facts now, its sentence the one
+   * that gives way.
+   */
+  test.each(CHECKED_LANGUAGES)(
+    "%s: a call a workspace rule started says so, the time in its own box",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {
+        name: ENGLISH_PERSON,
+        byWorkspaceRule: true,
+      });
+      const { who } = expectTwoFactsRow(line);
+      const [said] = factsOf(line, language);
+      const sentence: HTMLElement = who.firstElementChild as HTMLElement;
+
+      expect(said).toBe(
+        locales[language]!["Started automatically by a workspace rule"],
+      );
+      expect(who.children).toHaveLength(1);
+      expect(sentence).toHaveClass(
+        ...EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME.split(" "),
+      );
+      expect(line.textContent).not.toContain(ENGLISH_PERSON);
+      expect(
+        within(line).queryByTestId("event-video-call-started-by-name"),
+      ).toBeNull();
+      expect(whenOf(line).textContent!.startsWith(getInlineSeparator(language))).toBe(true);
+    },
+  );
+
+  test.each(CHECKED_LANGUAGES)(
+    "%s: a call started from the API says so, the time in its own box",
+    (language: string) => {
+      const line: HTMLElement = drawStartedLine(language, {});
+      const [said] = factsOf(line, language);
+
+      expectTwoFactsRow(line);
+      expect(said).toBe(locales[language]!["Started from the API"]);
+      expect(whenOf(line)).toBeInTheDocument();
+    },
+  );
+});
+
+describe("the separator, as the reader's language sets facts apart", () => {
+  test("Persian sets the time off with a bullet: its zero is a dot", () => {
+    const line: HTMLElement = drawStartedLine("fa", { name: ENGLISH_PERSON });
+
+    expect(getInlineSeparator("fa")).toBe(DOT_ZERO_INLINE_SEPARATOR);
+    expect(whenOf(line).firstElementChild!.textContent).toBe(
+      DOT_ZERO_INLINE_SEPARATOR,
     );
-    expect(line.firstElementChild!.textContent).toBe("Started by ");
+    expect(line.textContent).not.toContain(INLINE_SEPARATOR);
+    expect(factsOf(line, "fa")).toHaveLength(2);
+  });
+
+  test("Persian sets it off with a bullet for a Persian-script name too", () => {
+    const line: HTMLElement = drawStartedLine("fa", { name: ARABIC_PERSON });
+
+    expect(line.textContent).toContain(DOT_ZERO_INLINE_SEPARATOR);
+    expect(line.textContent).not.toContain(INLINE_SEPARATOR);
+    expect(factsOf(line, "fa")).toHaveLength(2);
+  });
+
+  test("Arabic, written in Latin digits, keeps the middle dot", () => {
+    const line: HTMLElement = drawStartedLine("ar", { name: ENGLISH_PERSON });
+
+    expect(getInlineSeparator("ar")).toBe(INLINE_SEPARATOR);
+    expect(whenOf(line).firstElementChild!.textContent).toBe(INLINE_SEPARATOR);
+    expect(factsOf(line, "ar")).toHaveLength(2);
+  });
+});
+
+/*
+ * Whatever the name - its length, its script, its brackets - and whatever
+ * the language, the line is drawn one way: who and when as two facts, the
+ * name whole in its box and its title, the sentence read as one.
+ */
+describe("names drawn at random", () => {
+  const LETTERS: Array<string> = [
+    "abcdefghijklmnopqrstuvwxyz",
+    "ابتثجحخدذرزسشصضطظعغفقكلمنهوي",
+    "абвгдежзиклмнопрстуфхцчшщ",
+    "あいうえおかきくけこさしすせそ",
+  ];
+
+  const drawName: (random: SeededRandom) => string = (
+    random: SeededRandom,
+  ): string => {
+    const letters: string = LETTERS[random(LETTERS.length)]!;
+    const words: Array<string> = [];
+    const wordCount: number = 1 + random(6);
+
+    for (let index: number = 0; index < wordCount; index++) {
+      let word: string = "";
+      const length: number = 1 + random(12);
+
+      for (let letter: number = 0; letter < length; letter++) {
+        word += letters[random(letters.length)];
+      }
+
+      words.push(word);
+    }
+
+    const name: string = words.join(" ");
+
+    // Now and then a team in brackets, or a number first.
+    switch (random(4)) {
+      case 0:
+        return `${name} (SRE, EU)`;
+      case 1:
+        return `${1 + random(999)} ${name}`;
+      default:
+        return name;
+    }
+  };
+
+  test("the line is two facts, the name whole in its box and title, the sentence one", () => {
+    const random: SeededRandom = seededRandom(7234);
+
+    for (let round: number = 0; round < 40; round++) {
+      const language: string = ALL_LANGUAGES[random(ALL_LANGUAGES.length)]!;
+      const person: string = drawName(random);
+      const line: HTMLElement = drawStartedLine(language, { name: person });
+      const name: HTMLElement = nameBoxOf(line);
+      const [who, when] = factsOf(line, language);
+
+      expectTwoFactsRow(line);
+      expect({ language, person, name: name.textContent }).toEqual({
+        language,
+        person,
+        name: person,
+      });
+      expect(name).toHaveAttribute("title", person);
+      expect(who).toBe(startedBySentence(language, person));
+      expect(when).toBeTruthy();
+      expect(whenOf(line).textContent).toBe(
+        `${getInlineSeparator(language)}${when}`,
+      );
+
+      cleanup();
+    }
   });
 });
