@@ -603,6 +603,11 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudAccount",
     "CloudAccountFeed",
     "CloudBudget",
+    // Required tags (#11012).
+    "CloudRequiredTag",
+    "CloudTagCoverageDay",
+    "CloudTagFinding",
+    "CloudTagSetting",
     "CloudConnection",
     "CloudCostRecommendation",
     AnalyticsTableName.CloudCost,

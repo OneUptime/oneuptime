@@ -98,6 +98,10 @@ import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
+import CloudRequiredTag from "./CloudRequiredTag";
+import CloudTagCoverageDay from "./CloudTagCoverageDay";
+import CloudTagFinding from "./CloudTagFinding";
+import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
@@ -1367,6 +1371,10 @@ const AllModelTypes: Array<{
   CloudAccount,
   CloudAccountFeed,
   CloudBudget,
+  CloudRequiredTag,
+  CloudTagCoverageDay,
+  CloudTagFinding,
+  CloudTagSetting,
   CloudCostRecommendation,
   CloudConnection,
   CloudResource,

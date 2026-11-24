@@ -1193,6 +1193,7 @@ import { AddTwilioCallVoice1809187620948 } from "./1809187620948-AddTwilioCallVo
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
+import { AddCloudRequiredTags1809187711012 } from "./1809187711012-AddCloudRequiredTags";
 
 export default [
   InitialMigration,
@@ -2390,4 +2391,5 @@ export default [
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
   AddSecurityUserErasureRequest1809187650908,
+  AddCloudRequiredTags1809187711012,
 ];
