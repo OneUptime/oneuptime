@@ -33,7 +33,7 @@ Un nom n'est utilisé qu'une fois, quelle que soit sa casse, parmi les variables
 
 ## Avant de commencer
 
-- **Un rôle qui gère les variables.** Propriétaire du projet et Administrateur du projet, ou l'autorisation **Create Runbook Variable**. Administrateur des runbooks lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas.
+- **Un rôle qui gère les variables.** Propriétaire du projet et Administrateur du projet, ou l'autorisation **Create Runbook Variable**. Administrateur des runbooks lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas. Un flux de travail ne les modifie que s'il s'exécute en tant que Propriétaire du projet ou en tant que rôle personnalisé qui a ces autorisations : voir [Ce que peuvent faire les étapes de flux de travail](/docs/workflows/configuration#ce-que-les-étapes-dun-flux-de-travail-peuvent-faire).
 - **Un forfait qui les inclut.** Sur OneUptime Cloud, les variables de runbook nécessitent le forfait **Growth** ou supérieur.
 
 ## Créer une variable
@@ -84,6 +84,8 @@ Une [étape SSH](/docs/runbooks/authoring#ssh) choisit sous **Se connecter avec*
 @tab Kubeconfig
 Une [étape kubectl](/docs/runbooks/authoring#kubectl) choisit sous **Kubeconfig** la variable secrète qui contient le kubeconfig du cluster, ou **L'accès propre de l'agent Runbook** pour utiliser celui de l'agent Runbook.
 :::
+
+Une valeur est insérée exactement telle qu'elle est écrite, là où se trouve la référence : quiconque peut modifier une variable modifie donc ce qu'exécute chaque étape qui la nomme. Ne donnez les autorisations qui modifient les variables qu'aux personnes que vous laisseriez écrire ces étapes. Les valeurs venant de l'extérieur de OneUptime, comme ce qu'envoie un appel au webhook, parviennent en revanche à une étape Bash sous forme de variables d'environnement, jamais intégrées à son script : voir [Valeurs envoyées par un appel au webhook](/docs/runbooks/triggers#valeurs-envoyées-par-un-appel-au-webhook).
 
 Sur la page **Étapes** d'un runbook, chaque script et chaque requête HTTP listent sous **Variables — cliquez pour copier** les variables que leur étape peut utiliser, et l'éditeur signale quand une étape nomme une variable qui n'existe pas, ou un secret que son agent Runbook n'a pas le droit d'utiliser.
 

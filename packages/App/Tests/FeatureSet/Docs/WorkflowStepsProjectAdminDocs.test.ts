@@ -1,7 +1,9 @@
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import WorkflowAccessChangeRefusedException from "Common/Server/Types/Database/Permissions/WorkflowAccessChangeRefusedException";
+import WorkflowSecretChangeRefusedException from "Common/Server/Types/Database/Permissions/WorkflowSecretChangeRefusedException";
 import { describeRefusal } from "Common/Server/Types/Workflow/Components/BaseModel/LogComponentError";
 import WorkflowPrincipal from "Common/Server/Utils/Workflow/WorkflowPrincipal";
 import { shouldBypassRecordPrivacy } from "Common/Server/Utils/PrivacyFilterUtil";
@@ -175,6 +177,69 @@ describe("the Configuration & Safety page says what a step may do", () => {
   });
 
   /*
+   * Nor, on the default permissions, the project's secrets or what its
+   * runbooks run (WorkflowPrincipal.assertDoesNotChangeSecrets): the page
+   * names the records, why a builder may not, and what would let a
+   * workflow - in the words the run log writes.
+   */
+  test("a default step changes none of the project's secrets, and the page says what would let it", () => {
+    expect(text).toContain(
+      "**Not the project's secrets, or what its runbooks run.**",
+    );
+    expect(text).toContain(
+      "On the default permissions, a step doesn't create, change or delete runbook variables, monitor secrets, BI tool connections or threat intel feeds, even though a Project Admin may.",
+    );
+    // Why: a variable is filled in as written, a credential goes where its record says.
+    expect(text).toContain("filled in as they are written");
+    expect(text).toContain(
+      "hands only to the Runners, monitors or server it names",
+    );
+    expect(text).toContain("send a credential they can't read");
+
+    const point: string = text.split("\n").find((line: string): boolean => {
+      return line.startsWith(
+        "- **Not the project's secrets, or what its runbooks run.**",
+      );
+    })!;
+
+    expect(point).toContain("that can be a **Project Member**");
+    expect(point).toContain(
+      "its run log names the permission the change takes and says to choose **Run As** in the workflow's **Settings**",
+    );
+    expect(point).toContain("(see [Run As](#run-as))");
+    expect(point).toContain(
+      "Triggers and Find steps on these records still work.",
+    );
+  });
+
+  test("the secrets refusal it describes is the one the run log writes", () => {
+    const message: string = WorkflowPrincipal.getSecretChangeRefusal(
+      RunbookVariable,
+      DatabaseRequestType.Update,
+    );
+    const written: string = describeRefusal({
+      error: new WorkflowSecretChangeRefusedException(message),
+      message: message,
+      stepTitle: "Update One Runbook Variable",
+    })!;
+
+    expect(written).toContain(
+      "To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has Edit Runbook Variable.",
+    );
+    expect(written).not.toContain(
+      "Workflow steps can do only what a Project Admin of this project can do",
+    );
+
+    // Every record the page names is one the rule holds.
+    expect(WorkflowPrincipal.getSecretTables().sort()).toEqual([
+      "DataBiConnection",
+      "MonitorSecret",
+      "RunbookVariable",
+      "ThreatIntelFeed",
+    ]);
+  });
+
+  /*
    * What a workflow runs as (#9695), under the section it changes: the
    * choices and who may make them, what no workflow ever does, whose
    * permissions a raised workflow runs with, and each way someone holding
@@ -315,6 +380,49 @@ describe("the upgrade notes say what changes", () => {
     );
     expect(text).toContain(
       "Slack and Microsoft Teams actions are held to the project's plan too",
+    );
+  });
+});
+
+/*
+ * The 16 -> 17 notes, among the other changes in 17, say what changes for a
+ * workflow that changed the project's secrets, and how to keep it working;
+ * the Runbook Variables page says a workflow changes variables only when it
+ * runs with more than the default permissions.
+ */
+describe("the pages say a default workflow no longer changes the project's secrets", () => {
+  test("the upgrade notes for 17 say what changes and what to do", () => {
+    const seventeen: string = section(
+      read("en", "installation/upgrading"),
+      "## Upgrading from OneUptime 16 → 17",
+    ).replace(/\s+/g, " ");
+
+    expect(seventeen).toContain(
+      "**Workflows that run with the default permissions no longer change runbook variables, monitor secrets, BI tool connections or threat intel feeds.**",
+    );
+    expect(seventeen).toContain(
+      "The step is refused now: it takes its Error output, and the run log names the permission the change takes.",
+    );
+    expect(seventeen).toContain(
+      "in its Settings, have it run as Project Owner, or as a custom role that holds that permission.",
+    );
+    expect(seventeen).toContain(LINK);
+  });
+
+  test("the Runbook Variables page says who changes variables, workflows included, and that a value is filled in as written", () => {
+    const page: string = read("en", "runbooks/variables");
+
+    expect(section(page, "## Before you begin")).toContain(
+      `A workflow changes them only when it runs as Project Owner or as a custom role that holds these permissions: see [What workflow steps can do]${LINK}.`,
+    );
+
+    const use: string = section(page, "## Use a variable in a step");
+
+    expect(use).toContain(
+      "A value is filled in exactly as it is written, where the reference is, so whoever can change a variable changes what every step that names it runs.",
+    );
+    expect(use).toContain(
+      "reach a Bash step as environment variables instead, never as part of its script",
     );
   });
 });
