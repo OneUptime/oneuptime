@@ -222,6 +222,8 @@ Data Security's settings are one set per project, in the **Settings** section of
 | **Check Configuration** | On | Runs the checks on every store. Off, no issue opens, changes or closes. |
 | **Scan Content** | On | Samples stores' content where the content permission was granted. |
 | **Scan Telemetry** | On | Samples the project's logs, traces, metrics, exceptions, replays and AI conversations. |
+| **Find Names And Street Addresses** | On | Reads free text for people's names and street addresses with a small model inside the scanner. It is not OneUptime AI, and the text never leaves the scanner. See [Names and street addresses in free text](/docs/data-security/data-types#names-and-street-addresses-in-free-text). |
+| **Find Names And Street Addresses In Telemetry** | Off | The hourly telemetry scan reads log bodies, exception messages and AI conversations with the model too, up to a minute each hour. Only while the setting above is on. |
 | **Keep Masked Samples** | On | Keeps up to three masked samples with each finding. Off keeps counts only. |
 | **Open Security Cases** | On | Opens a security case, grouped by store, when a Critical issue opens. |
 | **Raise Alerts** | Off | Raises an alert, which pages whoever is on call, when a Critical issue opens. |

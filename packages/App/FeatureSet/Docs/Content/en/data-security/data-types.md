@@ -5,6 +5,7 @@ Data Security knows 143 kinds of sensitive data: card numbers, bank accounts, na
 :::cards
 - [How a value is found](#how-a-value-is-found): Shape, validator, context, test values, confidence.
 - [Fields and columns](#fields-and-columns): How a whole column or attribute is judged.
+- [Names and street addresses in free text](#names-and-street-addresses-in-free-text): The small model inside the scanner, and its scores.
 - [Every data type](#built-in-data-types): All 143, by category.
 - [Your own data types](#your-own-data-types): Employee IDs, policy numbers, and the Test It box.
 :::
@@ -55,7 +56,7 @@ A field whose values average more than 80 characters is free text - notes, messa
 
 A field's name is split into words - `customerEmail`, `customer_email` and `customer-email` are all "customer email" - and a type's name hint matches when its words appear in that order, next to each other: "date of birth" matches `customer_date_of_birth`, not `birth_city`. Only the last part of a dotted path is the field's own name, with the part before it when the last is a generic word such as `number`, `id` or `value`: `customer.address.city` is not a street address, and `card.number` is still a card number.
 
-Some data types cannot be told by their values: no pattern tells a person's name from a street, or a religion from any other word. These are found from the field's name alone, when the field has values: Person name, Username, Gender, Nationality, Health information, Racial or ethnic origin, Religious belief, Sexual orientation, Political opinion, Trade union membership, Biometric data, Genetic data and Criminal record. A name, a username, a gender or a nationality is then High when 60% or more of the values look like one, and Medium otherwise.
+Some data types cannot be told by their values: no pattern tells a person's name from a street, or a religion from any other word. These are found from the field's name alone, when the field has values: Person name, Username, Gender, Nationality, Health information, Racial or ethnic origin, Religious belief, Sexual orientation, Political opinion, Trade union membership, Biometric data, Genetic data and Criminal record. A name, a username, a gender or a nationality is then High when 60% or more of the values look like one, and Medium otherwise. In free text, people's names and street addresses are also found by a small model: see [Names and street addresses in free text](#names-and-street-addresses-in-free-text).
 
 A field whose name says it holds a password - `password`, `passwordHash`, `pwd`, not `password_changed_at` - should hold a hash: bcrypt, argon2, scrypt, PBKDF2 or another scheme a store is likely to use. Empty values, placeholders such as `********` and encrypted values are set aside. When more of the rest are not hashes than are, the field holds the passwords themselves, which no pattern can see, and the store fails [Passwords are stored in plain text](/docs/data-security/checks-and-issues#data-hygiene).
 
@@ -64,6 +65,71 @@ A field whose name says it holds a password - `password`, `passwordHash`, `pwd`,
 A column or a field whose name points at no data type, and whose values match no detector, is not known to be safe: it can be your own customer number, or a column named in another language. With the project's **Enable AI** on, a content scan keeps such fields, at most 200 a scan, and OneUptime AI is asked which of the project's data types each holds, at most 40 fields of a store at a time. It is told the field's name, the names of the fields beside it, and the shapes of its values - every letter written as `a` or `A` and every digit as `9`, so `AB-1234` is `AA-9999` - never a value. Free text, fields with fewer than 5 values, small whole numbers and fields named as an id, a time or a status are not asked about.
 
 Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime AI** with its reason. Like any Low finding it counts toward nothing until a person chooses **Confirm** on the store's **What's Inside** page; **Mark as Not Sensitive** turns it down. A field that was answered is not asked about again for 30 days, and a field a person judged is not asked about again.
+
+## Names and street addresses in free text
+
+No pattern tells a person's name from any other word. So free text - a support note, a log line, an exception message, a prompt - is also read by a small language model that finds people's names and street addresses. The model runs inside the scanner, on OneUptime's workers and on your probes: the text never leaves the scanner, nothing is downloaded while it runs, and no prompt is written. It is not OneUptime AI, and OneUptime AI's switches do not turn it on or off: **Find Names And Street Addresses** does.
+
+- **What it reads.** A field whose values average more than 80 characters, and in telemetry every log body, exception message, stack trace and AI conversation, however short. It reads up to 100 different values of a field, 32 KB of text in all, and up to 16 KB of one value.
+- **What it finds.** A **Person name** (`person-name`), and a **Street address** (`postal-address`): a place the model reads beside a house number, such as `14 Calle Mayor`, with the postal code and the city that follow it. A city or a country on its own is not a street address.
+- **How sure it is.** A name or an address the model finds is Medium on its own. It is High when the field's name says the field holds names or addresses, or when words near it do, such as "customer", "Kunde" or "dirección". It is Low when the model is unsure of it, with a score under 0.6. Each keeps the confidence it earned on its own, so one name among a thousand log lines is still Medium.
+- **Test values.** Placeholders such as `Jane Doe`, `John Smith`, `Max Mustermann` and `123 Main Street` are counted apart, as every type's test values are.
+- **What it keeps.** Its samples are masked as a name found from a field's name is: the first character and four stars, `M****`. They are never fingerprinted. On the store's **What's Inside** page, such a finding says **Found in free text by the scanner's model**.
+
+| Model | Licence | Size | Revision | Languages measured |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): six layers of multilingual BERT, int8 ONNX | Apache 2.0 | 98 MB | `8cf7273` | English, Spanish, German, French, Italian, Portuguese, Dutch |
+
+### How well it finds them
+
+It was measured through the scanner's own code on a test set written for it: 392 made-up sentences in seven languages - log lines, support notes, emails, prompts - of which 168 hold neither a name nor an address. A finding is right when it overlaps a name or an address of its type. The bar was written before any model was measured: a precision of at least 0.90 for each type over all languages and 0.85 in each language, a recall of at least 0.70, and at most 20 false findings per 1,000 values that hold neither. Of the four models measured, two cleared it, and the smaller one was chosen. A test holds these scores: a change to the model or to the scanner that lowers one fails.
+
+| Language | Names: precision | Names: recall | Addresses: precision | Addresses: recall |
+| --- | --- | --- | --- | --- |
+| English | 0.96 | 0.96 | 1.00 | 1.00 |
+| Spanish | 0.96 | 0.96 | 1.00 | 1.00 |
+| German | 1.00 | 0.93 | 1.00 | 1.00 |
+| French | 0.96 | 0.96 | 1.00 | 1.00 |
+| Italian | 0.96 | 0.96 | 1.00 | 1.00 |
+| Portuguese | 0.93 | 0.89 | 1.00 | 1.00 |
+| Dutch | 0.96 | 0.89 | 1.00 | 1.00 |
+| All seven | 0.96 | 0.94 | 1.00 | 1.00 |
+
+Over the test set's 168 sentences that hold neither, it makes 18 false findings per 1,000. On a slice of a public benchmark, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 financial documents in each of seven languages, its labels made by machine and not complete, so read it next to the table above rather than alone:
+
+| Language | Names: precision | Names: recall | Addresses: precision | Addresses: recall |
+| --- | --- | --- | --- | --- |
+| English | 0.91 | 0.90 | 0.83 | 1.00 |
+| Spanish | 0.89 | 0.37 | 0.58 | 0.70 |
+| German | 0.93 | 0.58 | 0.75 | 0.70 |
+| French | 0.84 | 0.50 | 0.42 | 0.83 |
+| Italian | 0.73 | 0.61 | 0.79 | 0.69 |
+| Dutch | 0.91 | 0.49 | 1.00 | 0.89 |
+| Swedish | 1.00 | 0.61 | 1.00 | 0.93 |
+| All seven | 0.89 | 0.54 | 0.77 | 0.82 |
+
+The four models measured, on the written test set, one after another on the same machine, each timed on one core with onnxruntime's native code. OneUptime runs the chosen one with onnxruntime's WebAssembly, which runs in every image, about five to eight times slower:
+
+| Model | Licence | Size | Names: precision / recall | Addresses: precision / recall | False findings per 1,000 | Time per 1,000 values of 75 / 1,181 characters |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (chosen) | Apache 2.0 | 98 MB | 0.963 / 0.939 | 1.000 / 1.000 | 18 | 5.9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0.995 / 0.974 | 0.985 / 1.000 | 12 | 7.4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0.704 / 0.929 | 0.839 / 1.000 | 369 | 3.7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0.712 / 0.995 | 0.762 / 0.992 | 589 | 7.8 s / 159 s |
+
+### Where it runs, and what it costs
+
+- **In every image.** The App image, which runs the workers, and the Probe image carry the model, its vocabulary and the runtime, air-gapped and Iron Bank images included: about 114 MB on disk. They are fetched when the image is built, from a pinned revision, and checked against their SHA-256. Nothing is downloaded while a scan runs.
+- **Memory.** It is loaded the first time a scan needs it, once per process: about 550 MB, given back after 10 minutes without a scan.
+- **Time.** On one core, between 30 seconds and a minute per 1,000 values the length of a log line, and about 9 minutes per 1,000 values of 1,200 characters. A content scan of a store gives it up to 2 minutes. The hourly telemetry scan gives it up to 1 minute in all and 6 seconds a store, to a different set of stores each hour.
+- **When its time runs out**, the scan finishes with what the model read, and its warnings say how many of the free-text values it read, never what. A worker or a probe that has no model scans as before and says why:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Find Names And Street Addresses** is on for every project: content scans of buckets, databases and BigQuery datasets read free text with the model, on workers and on probes. **Find Names And Street Addresses In Telemetry**, under it, is off: reading every log body, exception and conversation of a busy project of 200 services once takes about 48 minutes of one core, and the scan's minute an hour reads about 4% of it. Turn it on to have each hourly scan read some of them. Both are on **Data Security → Settings → Scan Settings**, under **What Data Security Reads**. **Test It** runs in your browser, without the model: what the model would find is not shown there.
 
 ## Sensitivity
 
@@ -100,7 +166,7 @@ A data type that belongs to one country names it, as an ISO 3166-1 code: residen
 | --- | --- | --- | --- | --- |
 | Email address | `email-address` | A person's email address. | Confidential | — |
 | Phone number | `phone-number` | A phone number in international or national format. | Confidential | — |
-| Person name | `person-name` | A person's first, last or full name, found from the field's name. | Confidential | — |
+| Person name | `person-name` | A person's first, last or full name, found from the field's name, or by the scanner's model in free text. | Confidential | — |
 | Street address | `postal-address` | A street address: a number, a street name and a street type. | Confidential | — |
 | Postal code | `postal-code` | A postal code. On its own it narrows where someone lives. | Internal | — |
 | Date of birth | `date-of-birth` | A date next to words that say it is someone's birth date. | Confidential | — |

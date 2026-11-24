@@ -5,6 +5,7 @@ A Segurança de dados conhece 143 tipos de dados sensíveis: números de cartão
 :::cards
 - [Como um valor é encontrado](#como-um-valor-é-encontrado): Formato, validador, contexto, valores de teste, confiança.
 - [Campos e colunas](#campos-e-colunas): Como uma coluna ou um atributo inteiro é avaliado.
+- [Nomes e endereços em texto livre](#nomes-e-endereços-em-texto-livre): O pequeno modelo dentro do scanner, e as pontuações dele.
 - [Cada tipo de dados](#tipos-de-dados-integrados): Todos os 143, por categoria.
 - [Seus próprios tipos de dados](#seus-próprios-tipos-de-dados): IDs de funcionário, números de apólice e a caixa Testar.
 :::
@@ -55,7 +56,7 @@ Um campo cujos valores têm em média mais de 80 caracteres é texto livre - not
 
 O nome de um campo é dividido em palavras - `customerEmail`, `customer_email` e `customer-email` são todos "customer email" - e a dica de nome de um tipo corresponde quando as palavras dela aparecem nessa ordem, lado a lado: "date of birth" corresponde a `customer_date_of_birth`, não a `birth_city`. Só a última parte de um caminho com pontos é o nome próprio do campo, junto com a parte anterior quando a última é uma palavra genérica como `number`, `id` ou `value`: `customer.address.city` não é um endereço, e `card.number` continua sendo um número de cartão.
 
-Alguns tipos de dados não podem ser identificados pelos valores: nenhum padrão distingue o nome de uma pessoa do nome de uma rua, ou uma religião de qualquer outra palavra. Esses tipos são encontrados só pelo nome do campo, quando o campo tem valores: Nome de pessoa, Nome de usuário, Gênero, Nacionalidade, Informações de saúde, Origem racial ou étnica, Crença religiosa, Orientação sexual, Opinião política, Filiação sindical, Dados biométricos, Dados genéticos e Antecedentes criminais. Um nome, um nome de usuário, um gênero ou uma nacionalidade é então Alto quando 60% ou mais dos valores se parecem com um, e Médio caso contrário.
+Alguns tipos de dados não podem ser identificados pelos valores: nenhum padrão distingue o nome de uma pessoa do nome de uma rua, ou uma religião de qualquer outra palavra. Esses tipos são encontrados só pelo nome do campo, quando o campo tem valores: Nome de pessoa, Nome de usuário, Gênero, Nacionalidade, Informações de saúde, Origem racial ou étnica, Crença religiosa, Orientação sexual, Opinião política, Filiação sindical, Dados biométricos, Dados genéticos e Antecedentes criminais. Um nome, um nome de usuário, um gênero ou uma nacionalidade é então Alto quando 60% ou mais dos valores se parecem com um, e Médio caso contrário. Em texto livre, nomes de pessoas e endereços também são encontrados por um pequeno modelo: veja [Nomes e endereços em texto livre](#nomes-e-endereços-em-texto-livre).
 
 Um campo cujo nome diz que contém uma senha - `password`, `passwordHash`, `pwd`, não `password_changed_at` - deveria conter um hash: bcrypt, argon2, scrypt, PBKDF2 ou outro esquema que um repositório provavelmente usa. Valores vazios, valores fictícios como `********` e valores criptografados são deixados de lado. Quando, no resto, há mais valores que não são hashes do que valores que são, o campo contém as próprias senhas, que nenhum padrão consegue ver, e o repositório falha em [Há senhas armazenadas em texto simples](/docs/data-security/checks-and-issues#higiene-de-dados).
 
@@ -64,6 +65,71 @@ Um campo cujo nome diz que contém uma senha - `password`, `passwordHash`, `pwd`
 Uma coluna ou um campo cujo nome não aponta para nenhum tipo de dado, e cujos valores não correspondem a nenhum detector, não é conhecido como seguro: pode ser o seu próprio número de cliente, ou uma coluna com nome em outro idioma. Com **Habilitar IA** ativado no projeto, uma varredura de conteúdo guarda esses campos, no máximo 200 por varredura, e o OneUptime AI é perguntado sobre qual dos tipos de dados do projeto cada um contém, no máximo 40 campos de um repositório por vez. Ele recebe o nome do campo, os nomes dos campos ao lado e as formas dos seus valores - cada letra escrita como `a` ou `A` e cada dígito como `9`, então `AB-1234` vira `AA-9999` - nunca um valor. Texto livre, campos com menos de 5 valores, números inteiros pequenos e campos com nome de ID, de horário ou de status não são perguntados.
 
 Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marcada como **Sugerido pela OneUptime AI** com o motivo. Como qualquer descoberta com confiança Baixo, ela não conta para nada até uma pessoa escolher **Confirmar** na página **Conteúdo** do repositório; **Marcar como não sensível** a recusa. Um campo que já teve resposta não é perguntado de novo por 30 dias, e um campo que uma pessoa avaliou nunca mais é perguntado.
+
+## Nomes e endereços em texto livre
+
+Nenhum padrão distingue o nome de uma pessoa de qualquer outra palavra. Por isso o texto livre - uma nota de suporte, uma linha de log, uma mensagem de exceção, um prompt - também é lido por um pequeno modelo de linguagem que encontra nomes de pessoas e endereços. O modelo roda dentro do scanner, nos workers do OneUptime e nos seus probes: o texto nunca sai do scanner, nada é baixado enquanto ele roda e nenhum prompt é escrito. Ele não é o OneUptime AI, e os interruptores do OneUptime AI não o ligam nem desligam: quem faz isso é **Encontrar nomes e endereços**.
+
+- **O que ele lê.** Um campo cujos valores têm em média mais de 80 caracteres e, na telemetria, todo corpo de log, mensagem de exceção, stack trace e conversa de IA, por mais curtos que sejam. Ele lê até 100 valores diferentes de um campo, 32 KB de texto no total, e até 16 KB de um valor.
+- **O que ele encontra.** Um **Nome da pessoa** (`person-name`) e um **Endereço** (`postal-address`): um lugar que o modelo lê junto de um número, como `14 Calle Mayor`, com o código postal e a cidade que vêm depois. Uma cidade ou um país sozinho não é um endereço.
+- **Quão seguro ele está.** Um nome ou um endereço que o modelo encontra é Médio por si só. É Alto quando o nome do campo diz que o campo guarda nomes ou endereços, ou quando palavras próximas dizem isso, como "customer", "Kunde" ou "dirección". É Baixo quando o modelo não tem certeza, com uma pontuação abaixo de 0,6. Cada um mantém a confiança que ganhou sozinho, então um nome entre mil linhas de log continua Médio.
+- **Valores de teste.** Exemplos como `Jane Doe`, `John Smith`, `Max Mustermann` e `123 Main Street` são contados à parte, como os valores de teste de todo tipo.
+- **O que ele guarda.** As amostras são mascaradas como as de um nome encontrado pelo nome do campo: o primeiro caractere e quatro asteriscos, `M****`. Elas nunca recebem impressão digital. Na página **Conteúdo** do repositório, uma descoberta assim diz **Encontrado em texto livre pelo modelo do scanner**.
+
+| Modelo | Licença | Tamanho | Revisão | Idiomas medidos |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): seis camadas de BERT multilíngue, ONNX int8 | Apache 2.0 | 98 MB | `8cf7273` | Inglês, espanhol, alemão, francês, italiano, português, holandês |
+
+### Quão bem ele os encontra
+
+Ele foi medido com o próprio código do scanner, em um conjunto de testes escrito para isso: 392 frases inventadas em sete idiomas - linhas de log, notas de suporte, e-mails, prompts -, das quais 168 não têm nem nome nem endereço. Uma descoberta está certa quando se sobrepõe a um nome ou a um endereço do seu tipo. A meta foi escrita antes de medir qualquer modelo: precisão de pelo menos 0,90 para cada tipo em todos os idiomas e de 0,85 em cada idioma, recall de pelo menos 0,70 e no máximo 20 descobertas falsas a cada 1.000 valores que não têm nenhum dos dois. Dos quatro modelos medidos, dois atingiram a meta, e o menor foi escolhido. Um teste mantém essas pontuações: uma mudança no modelo ou no scanner que baixe uma delas falha.
+
+| Idioma | Nomes: precisão | Nomes: recall | Endereços: precisão | Endereços: recall |
+| --- | --- | --- | --- | --- |
+| Inglês | 0,96 | 0,96 | 1,00 | 1,00 |
+| Espanhol | 0,96 | 0,96 | 1,00 | 1,00 |
+| Alemão | 1,00 | 0,93 | 1,00 | 1,00 |
+| Francês | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italiano | 0,96 | 0,96 | 1,00 | 1,00 |
+| Português | 0,93 | 0,89 | 1,00 | 1,00 |
+| Holandês | 0,96 | 0,89 | 1,00 | 1,00 |
+| Os sete | 0,96 | 0,94 | 1,00 | 1,00 |
+
+Nas 168 frases do conjunto de testes que não têm nenhum dos dois, ele faz 18 descobertas falsas a cada 1.000. Em uma parte de um benchmark público, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 documentos financeiros em cada um de sete idiomas, com rótulos feitos por máquina e incompletos, então leia ao lado da tabela acima, não sozinho:
+
+| Idioma | Nomes: precisão | Nomes: recall | Endereços: precisão | Endereços: recall |
+| --- | --- | --- | --- | --- |
+| Inglês | 0,91 | 0,90 | 0,83 | 1,00 |
+| Espanhol | 0,89 | 0,37 | 0,58 | 0,70 |
+| Alemão | 0,93 | 0,58 | 0,75 | 0,70 |
+| Francês | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italiano | 0,73 | 0,61 | 0,79 | 0,69 |
+| Holandês | 0,91 | 0,49 | 1,00 | 0,89 |
+| Sueco | 1,00 | 0,61 | 1,00 | 0,93 |
+| Os sete | 0,89 | 0,54 | 0,77 | 0,82 |
+
+Os quatro modelos medidos, no conjunto de testes escrito, um depois do outro na mesma máquina, cada um cronometrado em um núcleo com o código nativo do onnxruntime. O OneUptime roda o escolhido com o WebAssembly do onnxruntime, que roda em todas as imagens, de cinco a oito vezes mais devagar:
+
+| Modelo | Licença | Tamanho | Nomes: precisão / recall | Endereços: precisão / recall | Descobertas falsas a cada 1.000 | Tempo a cada 1.000 valores de 75 / 1.181 caracteres |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (escolhido) | Apache 2.0 | 98 MB | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Onde ele roda, e quanto custa
+
+- **Em todas as imagens.** A imagem App, que roda os workers, e a imagem Probe levam o modelo, o vocabulário dele e o runtime, incluindo imagens air-gapped e Iron Bank: cerca de 114 MB em disco. Eles são baixados quando a imagem é construída, de uma revisão fixada, e conferidos com o SHA-256 deles. Nada é baixado enquanto uma varredura roda.
+- **Memória.** Ele é carregado na primeira vez que uma varredura precisa dele, uma vez por processo: cerca de 550 MB, devolvidos depois de 10 minutos sem varredura.
+- **Tempo.** Em um núcleo, entre 30 segundos e um minuto a cada 1.000 valores do tamanho de uma linha de log, e cerca de 9 minutos a cada 1.000 valores de 1.200 caracteres. Uma varredura de conteúdo de um repositório lhe dá até 2 minutos. A varredura de telemetria de hora em hora lhe dá até 1 minuto no total e 6 segundos por repositório, a um conjunto diferente de repositórios a cada hora.
+- **Quando o tempo dele acaba**, a varredura termina com o que o modelo leu, e os avisos dela dizem quantos dos valores de texto livre ele leu, nunca o quê. Um worker ou um probe sem o modelo faz a varredura como antes e diz por quê:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Encontrar nomes e endereços** vem ativado em todo projeto: as varreduras de conteúdo de buckets, bancos de dados e conjuntos de dados do BigQuery leem texto livre com o modelo, nos workers e nos probes. **Encontrar nomes e endereços na telemetria**, logo abaixo, vem desativado: ler uma vez todo corpo de log, exceção e conversa de um projeto movimentado de 200 serviços leva cerca de 48 minutos de um núcleo, e o minuto por hora da varredura lê cerca de 4% disso. Ative-o para que cada varredura de hora em hora leia uma parte deles. Os dois ficam em **Segurança de dados → Configurações → Configurações de varredura**, em **O que a Segurança de dados lê**. **Testar** roda no seu navegador, sem o modelo: o que o modelo encontraria não aparece ali.
 
 ## Sensibilidade
 
@@ -100,7 +166,7 @@ Um tipo de dados que pertence a um país o nomeia, como um código ISO 3166-1: a
 | --- | --- | --- | --- | --- |
 | Endereço de e-mail | `email-address` | O endereço de e-mail de uma pessoa. | Confidencial | — |
 | Número de telefone | `phone-number` | Um número de telefone em formato internacional ou nacional. | Confidencial | — |
-| Nome de pessoa | `person-name` | O nome, o sobrenome ou o nome completo de uma pessoa, encontrado pelo nome do campo. | Confidencial | — |
+| Nome de pessoa | `person-name` | O nome, sobrenome ou nome completo de uma pessoa, encontrado pelo nome do campo ou, em texto livre, pelo modelo do scanner. | Confidencial | — |
 | Endereço | `postal-address` | Um endereço: um número, um nome de rua e um tipo de logradouro. | Confidencial | — |
 | Código postal | `postal-code` | Um código postal. Sozinho, ele restringe onde alguém mora. | Interno | — |
 | Data de nascimento | `date-of-birth` | Uma data ao lado de palavras que dizem que ela é a data de nascimento de alguém. | Confidencial | — |

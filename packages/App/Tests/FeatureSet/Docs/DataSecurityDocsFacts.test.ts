@@ -9,6 +9,15 @@ import {
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  ModelBudget,
+  ModelStoreBudget,
+} from "Common/Server/Utils/DataSecurity/Model/ModelBudget";
+import {
+  isTestPersonName,
+  isTestStreetAddress,
+  UNSURE_SCORE,
+} from "Common/Utils/DataSecurity/Model/RecognizedEntity";
 import ObjectID from "Common/Types/ObjectID";
 import {
   CARD_LINE,
@@ -189,6 +198,7 @@ import { MAX_MASKED_SAMPLES } from "Common/Utils/DataSecurity/FindingTally";
 import {
   maskCardNumber,
   maskEmail,
+  maskModelFoundValue,
   maskValue,
 } from "Common/Utils/DataSecurity/Masking";
 import {
@@ -1150,6 +1160,234 @@ describe("Connect a Cloud Account's Data security section", () => {
 
 describe("Sensitive Data Types", () => {
   const page: string = english(DATA_TYPES);
+
+  /*
+   * The names-and-addresses model (#10373): what it reads, finds and keeps,
+   * the model and its licence and size, the scores a test holds, its
+   * budgets and its warnings - each as the code and the measured baseline
+   * hold them.
+   */
+  describe("Names and street addresses in free text", () => {
+    const model: string = section(
+      page,
+      "## Names and street addresses in free text",
+    );
+    const MODEL_DIRECTORY: string = "Common/Server/Utils/DataSecurity/Model";
+    const manifest: {
+      name: string;
+      revision: string;
+      licence: string;
+      files: Array<{ name: string; bytes: number }>;
+    } = JSON.parse(source(`${MODEL_DIRECTORY}/NameAddressModel.json`));
+    const baseline: {
+      written: {
+        falseFindingsPerThousandNegatives: number;
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+      benchmark: {
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+    } = JSON.parse(
+      source(
+        "Common/Tests/Server/Utils/DataSecurity/Model/NamesAndAddressesBaseline.json",
+      ),
+    );
+    const LANGUAGE_NAMES: Record<string, string> = {
+      en: "English",
+      es: "Spanish",
+      de: "German",
+      fr: "French",
+      it: "Italian",
+      pt: "Portuguese",
+      nl: "Dutch",
+      sv: "Swedish",
+      all: "All seven",
+    };
+
+    // A score table's rows, as the baseline's figures to two places.
+    function scoreRows(
+      languages: Record<string, Record<string, Record<string, number>>>,
+    ): Array<Array<string>> {
+      return Object.keys(LANGUAGE_NAMES)
+        .filter((language: string): boolean => {
+          return Boolean(languages[language]);
+        })
+        .map((language: string): Array<string> => {
+          const scores: Record<string, Record<string, number>> = languages[
+            language
+          ] as Record<string, Record<string, number>>;
+
+          return [
+            LANGUAGE_NAMES[language] as string,
+            (scores["person-name"]?.["precision"] as number).toFixed(2),
+            (scores["person-name"]?.["recall"] as number).toFixed(2),
+            (scores["postal-address"]?.["precision"] as number).toFixed(2),
+            (scores["postal-address"]?.["recall"] as number).toFixed(2),
+          ];
+        });
+    }
+
+    it("names the model, its licence, its size and its pinned revision", () => {
+      const bytes: number = manifest.files.reduce(
+        (total: number, file: { bytes: number }): number => {
+          return total + file.bytes;
+        },
+        0,
+      );
+      const table: Array<Array<string>> = rows(tables(model)[0]);
+
+      expect(manifest.licence).toBe("Apache-2.0");
+      expect(table[0]?.[0]).toContain(
+        `[${manifest.name}](https://huggingface.co/${manifest.name})`,
+      );
+      expect(table[0]?.[1]).toBe("Apache 2.0");
+      expect(table[0]?.[2]).toBe(`${Math.round(bytes / 1_000_000)} MB`);
+      expect(table[0]?.[3]).toBe(`\`${manifest.revision.slice(0, 7)}\``);
+    });
+
+    it("gives the scores a test holds, per language, on the written set and the benchmark", () => {
+      const [, written, benchmark] = tables(model);
+
+      expect(rows(written)).toEqual(scoreRows(baseline.written.languages));
+      expect(rows(benchmark)).toEqual(scoreRows(baseline.benchmark.languages));
+      expect(model).toContain(
+        `it makes ${baseline.written.falseFindingsPerThousandNegatives} false findings per 1,000`,
+      );
+    });
+
+    it("counts the written test set as it is", () => {
+      const cases: Array<{ language: string; text: string }> = JSON.parse(
+        source(
+          "Common/Tests/Utils/DataSecurity/Model/NamesAndAddressesTestSet.json",
+        ),
+      ).cases;
+      const negatives: number = cases.filter(
+        (item: { text: string }): boolean => {
+          return !item.text.includes("[[");
+        },
+      ).length;
+      const languages: number = new Set(
+        cases.map((item: { language: string }): string => {
+          return item.language;
+        }),
+      ).size;
+
+      expect(model).toContain(
+        `${cases.length} made-up sentences in seven languages`,
+      );
+      expect(languages).toBe(7);
+      expect(model).toContain(`of which ${negatives} hold neither`);
+    });
+
+    it("says what it reads, how sure it is and what it keeps, as the scanner holds it", () => {
+      const classifier: string = "Common/Utils/DataSecurity/FieldClassifier.ts";
+
+      expect(constant(classifier, "FREE_TEXT_AVERAGE_LENGTH")).toBe(80);
+      expect(constant(classifier, "MODEL_MAX_VALUES_PER_FIELD")).toBe(100);
+      expect(constant(classifier, "MODEL_MAX_CHARACTERS_PER_FIELD")).toBe(
+        32 * 1024,
+      );
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/NameAddressRecognizer.ts`,
+          "MODEL_MAX_TEXT_LENGTH",
+        ),
+      ).toBe(16 * 1024);
+      expect(model).toContain(
+        "A field whose values average more than 80 characters",
+      );
+      expect(model).toContain(
+        "It reads up to 100 different values of a field, 32 KB of text in all, and up to 16 KB of one value.",
+      );
+
+      expect(UNSURE_SCORE).toBe(0.6);
+      expect(model).toContain("with a score under 0.6");
+
+      for (const name of ["Jane Doe", "John Smith", "Max Mustermann"]) {
+        expect(isTestPersonName(name)).toBe(true);
+        expect(model).toContain(`\`${name}\``);
+      }
+
+      expect(isTestStreetAddress("123 Main Street")).toBe(true);
+      expect(model).toContain("`123 Main Street`");
+      expect(maskModelFoundValue("Maria Gonzalez")).toBe("M****");
+      expect(model).toContain("`M****`");
+
+      // The label the store's What's Inside page draws.
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Inside.tsx",
+        ),
+      ).toContain('"Found in free text by the scanner\'s model"');
+      expect(model).toContain("**Found in free text by the scanner's model**");
+    });
+
+    it("gives its budgets, its memory, and the warnings a scan writes, word for word", () => {
+      const budget: string = `${MODEL_DIRECTORY}/ModelBudget.ts`;
+
+      expect(constant(budget, "CONTENT_SCAN_MODEL_TIME_IN_MS")).toBe(120_000);
+      expect(constant(budget, "TELEMETRY_SCAN_MODEL_TIME_IN_MS")).toBe(60_000);
+      expect(constant(budget, "TELEMETRY_STORE_MODEL_TIME_IN_MS")).toBe(6_000);
+      expect(model).toContain(
+        "A content scan of a store gives it up to 2 minutes. The hourly telemetry scan gives it up to 1 minute in all and 6 seconds a store",
+      );
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/NameAddressRecognizer.ts`,
+          "IDLE_RELEASE_IN_MS",
+        ),
+      ).toBe(10 * 60 * 1000);
+      expect(model).toContain("given back after 10 minutes without a scan");
+
+      const store: ModelStoreBudget = new ModelBudget({
+        scanLimitInMs: 120_000,
+        storeLimitInMs: 6_000,
+      }).forStore("logs");
+
+      store.charge(6_000);
+      store.canSpend();
+      store.noteValues({ toRead: 500, read: 120 });
+
+      const missing: ModelStoreBudget = new ModelBudget({
+        scanLimitInMs: 1,
+        storeLimitInMs: 1,
+      }).forStore("probe");
+
+      missing.noteUnavailable(
+        "the model's model_quantized.onnx is not installed on this probe",
+        1,
+      );
+
+      const fence: string = only(
+        scanMarkdown(model).fences.filter((item: { lang: string }) => {
+          return item.lang === "text";
+        }),
+      ).code;
+
+      expect(fence.trim().split("\n")).toEqual([
+        ...store.getWarnings(),
+        ...missing.getWarnings(),
+      ]);
+    });
+
+    it("names the two settings and where they are, and says Test It does not show its findings", () => {
+      expect(model).toContain("**Find Names And Street Addresses** is on");
+      expect(model).toContain(
+        "**Find Names And Street Addresses In Telemetry**, under it, is off",
+      );
+      expect(model).toContain(
+        "**Data Security → Settings → Scan Settings**, under **What Data Security Reads**",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/Scanning.tsx",
+        ),
+      ).toContain('title="What Data Security Reads"');
+      expect(model).toContain(
+        "**Test It** runs in your browser, without the model",
+      );
+    });
+  });
 
   it("counts the data types and the countries of the national IDs", () => {
     const countries: Set<string> = new Set(

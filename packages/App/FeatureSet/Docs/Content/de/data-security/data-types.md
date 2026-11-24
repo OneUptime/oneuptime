@@ -5,6 +5,7 @@ Datensicherheit kennt 143 Arten sensibler Daten: Kartennummern, Bankkonten, nati
 :::cards
 - [Wie ein Wert gefunden wird](#wie-ein-wert-gefunden-wird): Form, Validator, Kontext, Testwerte, Konfidenz.
 - [Felder und Spalten](#felder-und-spalten): Wie eine ganze Spalte oder ein ganzes Attribut beurteilt wird.
+- [Namen und Anschriften in Freitext](#namen-und-anschriften-in-freitext): Das kleine Modell im Scanner und seine Messwerte.
 - [Jeder Datentyp](#integrierte-datentypen): Alle 143, nach Kategorie.
 - [Ihre eigenen Datentypen](#ihre-eigenen-datentypen): Personalnummern, Policennummern und das Feld Testen.
 :::
@@ -55,7 +56,7 @@ Ein Feld, dessen Werte im Schnitt länger als 80 Zeichen sind, ist Freitext - No
 
 Der Name eines Felds wird in Wörter zerlegt - `customerEmail`, `customer_email` und `customer-email` sind alle „customer email“ - und der Namenshinweis eines Typs passt, wenn seine Wörter in dieser Reihenfolge direkt nebeneinander vorkommen: „date of birth“ passt auf `customer_date_of_birth`, nicht auf `birth_city`. Nur der letzte Teil eines Pfads mit Punkten ist der eigene Name des Felds, zusammen mit dem Teil davor, wenn der letzte ein allgemeines Wort wie `number`, `id` oder `value` ist: `customer.address.city` ist keine Straßenadresse, und `card.number` ist trotzdem eine Kartennummer.
 
-Manche Datentypen lassen sich nicht an ihren Werten erkennen: Kein Muster unterscheidet den Namen einer Person von einer Straße oder eine Religion von irgendeinem anderen Wort. Diese werden allein anhand des Feldnamens gefunden, wenn das Feld Werte hat: Personenname, Benutzername, Geschlecht, Staatsangehörigkeit, Gesundheitsinformationen, Rassische oder ethnische Herkunft, Religiöse Überzeugung, Sexuelle Orientierung, Politische Meinung, Gewerkschaftszugehörigkeit, Biometrische Daten, Genetische Daten und Vorstrafen. Ein Name, ein Benutzername, ein Geschlecht oder eine Staatsangehörigkeit ist dann Hoch, wenn 60 % oder mehr der Werte danach aussehen, und sonst Mittel.
+Manche Datentypen lassen sich nicht an ihren Werten erkennen: Kein Muster unterscheidet den Namen einer Person von einer Straße oder eine Religion von irgendeinem anderen Wort. Diese werden allein anhand des Feldnamens gefunden, wenn das Feld Werte hat: Personenname, Benutzername, Geschlecht, Staatsangehörigkeit, Gesundheitsinformationen, Rassische oder ethnische Herkunft, Religiöse Überzeugung, Sexuelle Orientierung, Politische Meinung, Gewerkschaftszugehörigkeit, Biometrische Daten, Genetische Daten und Vorstrafen. Ein Name, ein Benutzername, ein Geschlecht oder eine Staatsangehörigkeit ist dann Hoch, wenn 60 % oder mehr der Werte danach aussehen, und sonst Mittel. In Freitext findet zusätzlich ein kleines Modell Namen und Anschriften von Personen: siehe [Namen und Anschriften in Freitext](#namen-und-anschriften-in-freitext).
 
 Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwordHash`, `pwd`, nicht `password_changed_at` -, sollte einen Hash enthalten: bcrypt, argon2, scrypt, PBKDF2 oder ein anderes Verfahren, das ein Datenspeicher wahrscheinlich nutzt. Leere Werte, Platzhalter wie `********` und verschlüsselte Werte werden beiseitegelegt. Sind vom Rest mehr Werte keine Hashes als Hashes, enthält das Feld die Passwörter selbst, die kein Muster sehen kann, und der Datenspeicher besteht [Passwörter werden im Klartext gespeichert](/docs/data-security/checks-and-issues#datenhygiene) nicht.
 
@@ -64,6 +65,71 @@ Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwor
 Eine Spalte oder ein Feld, deren Name auf keinen Datentyp hinweist und deren Werte zu keinem Detektor passen, ist nicht als sicher bekannt: Es kann Ihre eigene Kundennummer sein oder eine Spalte, die in einer anderen Sprache benannt ist. Ist **KI aktivieren** im Projekt eingeschaltet, behält ein Inhaltsscan solche Felder, höchstens 200 pro Scan, und OneUptime AI wird gefragt, welchen der Datentypen des Projekts jedes davon enthält, höchstens 40 Felder eines Datenspeichers auf einmal. Es erfährt den Namen des Feldes, die Namen der Felder daneben und die Formen seiner Werte - jeder Buchstabe als `a` oder `A` geschrieben und jede Ziffer als `9`, sodass aus `AB-1234` die Form `AA-9999` wird - nie einen Wert. Nach Freitext, Feldern mit weniger als 5 Werten, kleinen ganzen Zahlen und Feldern, die als ID, Zeitpunkt oder Status benannt sind, wird nicht gefragt.
 
 Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert als **Von OneUptime AI vorgeschlagen**, mit seiner Begründung. Wie jeder Fund mit Konfidenz Niedrig zählt er für nichts, bis ein Mensch auf der Seite **Inhalt** des Datenspeichers **Bestätigen** wählt; **Als nicht sensibel markieren** lehnt ihn ab. Nach einer Antwort wird zu einem Feld 30 Tage lang nicht erneut gefragt, und zu einem Feld, das ein Mensch beurteilt hat, nie wieder.
+
+## Namen und Anschriften in Freitext
+
+Kein Muster unterscheidet den Namen einer Person von irgendeinem anderen Wort. Deshalb liest zusätzlich ein kleines Sprachmodell Freitext - eine Support-Notiz, eine Logzeile, eine Ausnahmenachricht, einen Prompt - und findet darin Namen und Anschriften von Personen. Das Modell läuft im Scanner, auf den Workern von OneUptime und auf Ihren Sonden: Der Text verlässt den Scanner nie, nichts wird heruntergeladen, solange es läuft, und es wird kein Prompt geschrieben. Es ist nicht OneUptime AI, und die Schalter von OneUptime AI schalten es weder ein noch aus: Das tut **Namen und Anschriften finden**.
+
+- **Was es liest.** Jedes Feld, dessen Werte im Schnitt länger als 80 Zeichen sind, und in der Telemetrie jeden Log-Body, jede Ausnahmenachricht, jeden Stacktrace und jede KI-Unterhaltung, egal wie kurz. Es liest bis zu 100 verschiedene Werte eines Felds, insgesamt 32 KB Text, und von einem einzelnen Wert bis zu 16 KB.
+- **Was es findet.** Die Datentypen **Personenname** (`person-name`) und **Anschrift** (`postal-address`). Als Anschrift gilt eine Ortsangabe, die das Modell neben einer Hausnummer liest, etwa `14 Calle Mayor`, samt der Postleitzahl und der Stadt, die darauf folgen. Eine Stadt oder ein Land allein ist keine Anschrift.
+- **Wie sicher es ist.** Ein Name oder eine Anschrift, die das Modell findet, ist für sich allein Mittel. Hoch ist der Fund, wenn der Name des Felds sagt, dass das Feld Namen oder Anschriften enthält, oder wenn Wörter in der Nähe das sagen, etwa „customer“, „Kunde“ oder „dirección“. Niedrig ist er, wenn sich das Modell nicht sicher ist, bei einem Score unter 0,6. Jeder Fund behält die Konfidenz, die er für sich erzielt hat, sodass ein einzelner Name unter tausend Logzeilen trotzdem Mittel ist.
+- **Testwerte.** Platzhalter wie `Jane Doe`, `John Smith`, `Max Mustermann` und `123 Main Street` werden getrennt gezählt, wie die Testwerte jedes Typs.
+- **Was es behält.** Seine Stichproben werden maskiert wie bei einem Namen, der anhand des Feldnamens gefunden wurde: das erste Zeichen und vier Sternchen, `M****`. Sie fließen nie in Fingerabdrücke ein. Auf der Seite **Inhalt** des Datenspeichers steht bei einem solchen Fund **Vom Modell des Scanners in Freitext gefunden**.
+
+| Modell | Lizenz | Größe | Revision | Gemessene Sprachen |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): mehrsprachiges BERT mit sechs Schichten, int8-ONNX | Apache 2.0 | 98 MB | `8cf7273` | Englisch, Spanisch, Deutsch, Französisch, Italienisch, Portugiesisch, Niederländisch |
+
+### Wie gut es sie findet
+
+Gemessen wurde es mit dem eigenen Code des Scanners, an einem eigens dafür geschriebenen Testset: 392 erfundene Sätze in sieben Sprachen - Logzeilen, Support-Notizen, E-Mails, Prompts -, von denen 168 weder einen Namen noch eine Anschrift enthalten. Ein Fund gilt als richtig, wenn er sich mit einem Namen oder einer Anschrift seines Typs überschneidet. Die Anforderungen standen fest, bevor irgendein Modell gemessen wurde: eine Precision von mindestens 0,90 für jeden Typ über alle Sprachen und von 0,85 in jeder einzelnen Sprache, ein Recall von mindestens 0,70 und höchstens 20 falsche Funde pro 1.000 Werte, die keins von beiden enthalten. Zwei der vier gemessenen Modelle erfüllten sie, und das kleinere wurde gewählt. Ein Test schreibt diese Werte fest: Eine Änderung am Modell oder am Scanner, die einen davon senkt, lässt ihn fehlschlagen.
+
+| Sprache | Namen: Precision | Namen: Recall | Anschriften: Precision | Anschriften: Recall |
+| --- | --- | --- | --- | --- |
+| Englisch | 0,96 | 0,96 | 1,00 | 1,00 |
+| Spanisch | 0,96 | 0,96 | 1,00 | 1,00 |
+| Deutsch | 1,00 | 0,93 | 1,00 | 1,00 |
+| Französisch | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italienisch | 0,96 | 0,96 | 1,00 | 1,00 |
+| Portugiesisch | 0,93 | 0,89 | 1,00 | 1,00 |
+| Niederländisch | 0,96 | 0,89 | 1,00 | 1,00 |
+| Alle sieben | 0,96 | 0,94 | 1,00 | 1,00 |
+
+Bei den 168 Sätzen des Testsets, die keins von beiden enthalten, macht es 18 falsche Funde pro 1.000. Auf einem Ausschnitt eines öffentlichen Benchmarks, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 Finanzdokumente in jeder von sieben Sprachen, deren Labels maschinell erstellt und nicht vollständig sind, daher neben der Tabelle oben zu lesen und nicht für sich allein:
+
+| Sprache | Namen: Precision | Namen: Recall | Anschriften: Precision | Anschriften: Recall |
+| --- | --- | --- | --- | --- |
+| Englisch | 0,91 | 0,90 | 0,83 | 1,00 |
+| Spanisch | 0,89 | 0,37 | 0,58 | 0,70 |
+| Deutsch | 0,93 | 0,58 | 0,75 | 0,70 |
+| Französisch | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italienisch | 0,73 | 0,61 | 0,79 | 0,69 |
+| Niederländisch | 0,91 | 0,49 | 1,00 | 0,89 |
+| Schwedisch | 1,00 | 0,61 | 1,00 | 0,93 |
+| Alle sieben | 0,89 | 0,54 | 0,77 | 0,82 |
+
+Die vier gemessenen Modelle auf dem eigens geschriebenen Testset, nacheinander auf derselben Maschine gemessen, die Zeit jeweils auf einem Kern mit dem nativen Code von onnxruntime. OneUptime führt das gewählte Modell mit der WebAssembly-Variante von onnxruntime aus, die in jedem Image läuft und etwa fünf- bis achtmal langsamer ist:
+
+| Modell | Lizenz | Größe | Namen: Precision / Recall | Anschriften: Precision / Recall | Falsche Funde pro 1.000 | Zeit pro 1.000 Werte mit 75 / 1.181 Zeichen |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (gewählt) | Apache 2.0 | 98 MB | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Wo es läuft und was es kostet
+
+- **In jedem Image.** Das App-Image, das die Worker ausführt, und das Sonden-Image enthalten das Modell, sein Vokabular und die Runtime, die Air-Gapped- und Iron-Bank-Images eingeschlossen: etwa 114 MB auf der Festplatte. Die Dateien werden beim Bau des Images aus einer festgelegten Revision geladen und gegen ihren SHA-256-Hash geprüft. Während ein Scan läuft, wird nichts heruntergeladen.
+- **Arbeitsspeicher.** Das Modell wird geladen, wenn ein Scan es zum ersten Mal braucht, einmal pro Prozess: etwa 550 MB, die nach 10 Minuten ohne Scan wieder freigegeben werden.
+- **Zeit.** Auf einem Kern zwischen 30 Sekunden und einer Minute pro 1.000 Werte von der Länge einer Logzeile und etwa 9 Minuten pro 1.000 Werte mit 1.200 Zeichen. Ein Inhaltsscan eines Datenspeichers gibt ihm bis zu 2 Minuten. Der stündliche Telemetrie-Scan gibt ihm insgesamt bis zu 1 Minute, pro Datenspeicher 6 Sekunden, jede Stunde für eine andere Auswahl von Datenspeichern.
+- **Wenn seine Zeit abläuft**, endet der Scan mit dem, was das Modell bis dahin gelesen hat, und die Warnungen des Scans sagen, wie viele der Freitextwerte es gelesen hat, nie, was darin stand. Ein Worker oder eine Sonde ohne Modell scannt wie bisher und sagt, warum:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Namen und Anschriften finden** ist in jedem Projekt eingeschaltet: Inhaltsscans von Buckets, Datenbanken und BigQuery-Datasets lesen Freitext mit dem Modell, auf Workern wie auf Sonden. Die Einstellung darunter, **Namen und Anschriften in der Telemetrie finden**, ist ausgeschaltet: Jeden Log-Body, jede Ausnahme und jede Unterhaltung eines Projekts mit hohem Datenaufkommen und 200 Diensten einmal zu lesen, dauert auf einem Kern etwa 48 Minuten, und die eine Minute pro Stunde, die der Scan hat, liest etwa 4 % davon. Schalten Sie sie ein, damit jeder stündliche Scan einen Teil davon liest. Beide finden Sie unter **Datensicherheit → Einstellungen → Scan-Einstellungen**, im Abschnitt **Was Datensicherheit liest**. **Testen** läuft in Ihrem Browser, ohne das Modell: Was das Modell finden würde, wird dort nicht angezeigt.
 
 ## Sensibilität
 
@@ -100,7 +166,7 @@ Ein Datentyp, der zu einem Land gehört, nennt es als ISO-3166-1-Code: Residenzr
 | --- | --- | --- | --- | --- |
 | E-Mail-Adresse | `email-address` | Die E-Mail-Adresse einer Person. | Vertraulich | — |
 | Telefonnummer | `phone-number` | Eine Telefonnummer im internationalen oder nationalen Format. | Vertraulich | — |
-| Personenname | `person-name` | Vor-, Nach- oder vollständiger Name einer Person, anhand des Feldnamens gefunden. | Vertraulich | — |
+| Personenname | `person-name` | Vor-, Nach- oder vollständiger Name einer Person, erkannt am Namen des Felds oder vom Modell des Scanners in Freitext. | Vertraulich | — |
 | Straßenadresse | `postal-address` | Eine Straßenadresse: eine Hausnummer, ein Straßenname und ein Straßentyp. | Vertraulich | — |
 | Postleitzahl | `postal-code` | Eine Postleitzahl. Schon allein grenzt sie ein, wo jemand wohnt. | Intern | — |
 | Geburtsdatum | `date-of-birth` | Ein Datum neben Wörtern, die sagen, dass es das Geburtsdatum einer Person ist. | Vertraulich | — |
