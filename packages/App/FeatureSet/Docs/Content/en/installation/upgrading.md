@@ -261,6 +261,18 @@ with recurring templates.
   picked for a device. Make the people who look after sites their owners, on
   a site's **Owners** page or with **Add Owner** in the **Sites** list's
   **Bulk Actions**. See [Network Sites](/docs/monitor/network-sites).
+- **OpenID Connect sign-in refuses an email address the identity provider says
+  it has not verified.** A global or project OpenID Connect provider that
+  sends `email_verified` as `false`, or as something that is neither true nor
+  false, signs nobody in with that address, on the web and in the mobile app:
+  someone could have put another person's address, a master admin's
+  included, on their own account at the provider. A provider that sends
+  `true`, or no `email_verified` at all, as Microsoft Entra ID does, signs
+  people in as before. authentik 2025.10 and later sends `false` for everyone
+  with its default `email` scope mapping, and Keycloak sends it for people
+  whose address it has not verified: change them as
+  [Email addresses your identity provider has not verified](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified)
+  says. Master admins with a password can still sign in with it meanwhile.
 :::
 
 ## Upgrading from OneUptime 15 → 16

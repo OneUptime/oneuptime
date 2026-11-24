@@ -91,6 +91,12 @@ Two questions on the provider change this, folded under **More fields**. Each st
 
 With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
 
+## Email addresses your identity provider has not verified
+
+A global OpenID Connect provider finds the account it signs in by the email address it sends, as a project's provider does, and master admins' accounts are found the same way. So it signs nobody in with an address the provider says it has not verified, with an `email_verified` claim of `false` or of something that is neither true nor false. Otherwise someone could put a master admin's address on their account at the provider, and sign in to the whole instance as them. A provider that sends `email_verified` as `true`, or sends none, as Microsoft Entra ID does, signs people in as before.
+
+Through authentik 2025.10 and later, nobody signs in until you change its `email` scope mapping, and through Keycloak, nobody whose address it has not verified. What to change there, what still signs in and what the person sees are on the [SSO](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified) page. Master admins with a password can sign in with it while you do, at `/accounts/admin-login` while the whole instance requires SSO.
+
 ## Signing out of the identity provider too
 
 Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer the next person who signs in with that provider gets in as the one who left. Click **Edit Configuration** on a SAML or an OpenID Connect provider and turn on **Sign Out of the Identity Provider Too** under **More fields**: signing out of OneUptime then ends the provider's session too, and the provider sends the browser back to OneUptime. It is off by default, since on a personal laptop it would also sign the person out of every other app that uses the provider.
@@ -181,6 +187,10 @@ For a SAML provider, the response was made for another application: its audience
 
 :::details "SAML response was already used"
 Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+The OpenID Connect provider sent `email_verified` as `false`, or as something that is neither true nor false, so OneUptime signed nobody in, a master admin included. Have the address verified at your identity provider, or mark it verified there, and sign in again. See [Email addresses your identity provider has not verified](#email-addresses-your-identity-provider-has-not-verified).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

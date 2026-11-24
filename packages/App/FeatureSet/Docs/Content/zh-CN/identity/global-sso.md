@@ -91,6 +91,12 @@ flowchart TB
 
 选择 **每个项目** 时，使用此提供商登录会在此人所属的每个项目中满足 SSO 要求，附加项目只决定新来的人被加入到哪里。
 
+## 身份提供商未验证的电子邮件地址
+
+全局 OpenID Connect 提供商与项目的提供商一样，根据它发送的电子邮件地址找到要登录的账号，主管理员的账号也以同样的方式找到。因此，对于提供商表示未验证的地址，即 `email_verified` 声明为 `false` 或者既不是 true 也不是 false 的值，它不会让任何人登录。否则，有人可以在提供商处自己的账号上填写主管理员的地址，以其身份登录整个实例。把 `email_verified` 发送为 `true` 或者不发送它的提供商，例如 Microsoft Entra ID，会像以前一样让人登录。
+
+通过 authentik 2025.10 及更高版本，在您修改其 `email` 范围映射之前没有人能登录；通过 Keycloak，地址未经验证的人无法登录。要在那里修改什么、哪些仍然可以登录以及此人会看到什么，请见 [SSO](/docs/identity/sso#身份提供商未验证的电子邮件地址) 页面。有密码的主管理员在此期间可以用密码登录；当整个实例要求使用 SSO 时，在 `/accounts/admin-login` 登录。
+
 ## 同时退出身份提供商的登录
 
 退出 OneUptime 后，用户在身份提供商处仍保持登录。因此在共享计算机上，下一个用该提供商登录的人会以离开的那个人的身份进入。在 SAML 或 OpenID Connect 提供商上点击 **编辑配置**，并在 **更多字段** 下开启 **同时退出身份提供商的登录**：这样退出 OneUptime 时也会结束提供商处的会话，提供商会把浏览器送回 OneUptime。该设置默认关闭，因为在个人笔记本电脑上，它也会让用户退出所有使用该提供商的其他应用。
@@ -181,6 +187,10 @@ Okta、Microsoft Entra ID、Auth0 和 Keycloak 中这些设置的位置，请见
 
 :::details "SAML response was already used"
 您的身份提供商的每个响应只能登录一次，而且只在签发后几分钟内有效：之后会以 "SAML response has expired" 被拒绝。请重新登录。如果响应不断过期，请检查本服务器和您的身份提供商的时钟。
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect 提供商把 `email_verified` 发送为 `false`，或者既不是 true 也不是 false 的值，因此 OneUptime 没有让任何人登录，主管理员也不例外。请在您的身份提供商处验证该地址，或在那里将其标记为已验证，然后重新登录。请参阅 [身份提供商未验证的电子邮件地址](#身份提供商未验证的电子邮件地址)。
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
