@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "보류됨: {{value}}이(가) 이제 보호되므로 OneUptime이 차단을 해제했습니다. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "보류됨: {{value}}이(가) 이제 보호되므로 OneUptime이 차단을 해제했습니다. {{protection}}",
   "Hourly Limit": "시간당 한도",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "프로브가 받은 SSL 인증서가 만료되기까지 남은 온전한 일수입니다. 하루에 하나씩 줄고, 인증서가 갱신되면 껑충 올라갑니다.",
   "Sensitive files": "민감한 파일",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "시간당 한도는 1에서 500 사이의 정수 차단 수로 설정하세요.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "정책이 멈추고 보안 담당자를 호출하기 전까지 한 시간에 만드는 자동 차단의 최대 수입니다.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "{{day}} {{clock}}부터",
   "until {{clock}}": "{{clock}}까지",
   "until {{day}} at {{clock}}": "{{day}} {{clock}}까지",
+  "Exit Full Screen": "전체 화면 종료",
+  "Fill the Screen": "화면 가득 채우기",
+  "Full-screen dashboard": "전체 화면 대시보드",
+  "Open in New Tab": "새 탭에서 열기",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있습니다.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 1개만 넣을 수 있습니다.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "소유한 사용자 지정 프로브가 OneUptime보다 메이저 릴리스 하나 이상 오래된 버전으로 실행되고 있습니다. 메이저 릴리스마다 한 번, 업데이트될 때까지 프로브에 없는 기능과 함께 전송됩니다.",
@@ -64046,5 +64051,11 @@
   "{{count}} secrets to rotate._one": "교체할 시크릿 {{count}}개.",
   "{{count}} secrets_one": "시크릿 {{count}}개",
   "{{law}} may apply first: {{due}}.": "{{law}}이(가) 가장 먼저 적용될 수 있습니다: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다."
+  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다.",
+  "Part of {{incident}}": "{{incident}}의 일부",
+  "Show Incidents Grouped by Episode": "인시던트를 에피소드별로 묶어 표시",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "방문자에게 인시던트마다 카드가 하나씩, 에피소드마다 카드가 하나씩 더 표시되므로 에피소드에 속한 인시던트는 두 번 표시됩니다.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "방문자에게 각 에피소드가 해당 인시던트와 영향받는 항목을 나열한 하나의 카드로 표시됩니다.",
+  "Page when the script timed out": "스크립트 시간 초과 시점의 페이지",
+  "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}"
 }

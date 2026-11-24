@@ -115,6 +115,7 @@ jest.mock("../../../../Server/Utils/Logger", () => {
 
 import MonitorResourceUtil from "../../../../Server/Utils/Monitor/MonitorResource";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import MonitorMetricUtil from "../../../../Server/Utils/Monitor/MonitorMetricUtil";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorProbeRowsInMemory from "../../TestingUtils/MonitorProbeRowsInMemory";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
@@ -139,6 +140,24 @@ const processMonitorStepMock: jest.Mock =
 
 const findOneByIdMock: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
+
+const saveMonitorMetricsMock: jest.Mock =
+  MonitorMetricUtil.saveMonitorMetrics as unknown as jest.Mock;
+
+// The step the check's rows were written under (#10906).
+type StepTheRowsName = () => string | undefined;
+
+const stepTheRowsName: StepTheRowsName = (): string | undefined => {
+  expect(saveMonitorMetricsMock).toHaveBeenCalledTimes(1);
+
+  const stepId: ObjectID | string | undefined = (
+    saveMonitorMetricsMock.mock.calls[0]![0] as {
+      monitorStepId?: ObjectID | string | undefined;
+    }
+  ).monitorStepId;
+
+  return stepId?.toString();
+};
 
 // The monitor's probe rows, as MonitorProbeLastResults answers them.
 const probeRows: MonitorProbeRowsInMemory = new MonitorProbeRowsInMemory();
@@ -412,6 +431,33 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       );
     });
 
+    test("writes the check's rows under the step it is judged as, so each step's windows read its own checks", async () => {
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor: monitor,
+          probeId: probeId,
+          monitorStepId: stepTwo.id,
+        }),
+      );
+
+      expect(stepTheRowsName()).toBe(stepTwo.id.toString());
+      expect(stepPassedToEvaluator().id.toString()).toBe(stepTheRowsName());
+    });
+
+    test("a stale step id writes the rows under step 0, the step the result is judged as", async () => {
+      await MonitorResourceUtil.monitorResource(
+        makeProbeResult({
+          monitor: monitor,
+          probeId: probeId,
+          monitorStepId: ObjectID.generate(),
+        }),
+      );
+
+      // Never the id the result named: no window of the monitor reads it.
+      expect(stepTheRowsName()).toBe(stepOne.id.toString());
+      expect(stepPassedToEvaluator().id.toString()).toBe(stepTheRowsName());
+    });
+
     test("an unknown step id falls back to step 0 rather than dropping the result", async () => {
       // The step was deleted after this probe was scheduled.
       const response: ProbeApiIngestResponse =
@@ -466,6 +512,9 @@ describe("MonitorResourceUtil.monitorResource ingested monitor step selection", 
       expect(response.ingestedMonitorStepId?.toString()).toBe(
         stepOne.id.toString(),
       );
+
+      // A server's report names no step: its rows are written under step 0.
+      expect(stepTheRowsName()).toBe(stepOne.id.toString());
     });
   });
 

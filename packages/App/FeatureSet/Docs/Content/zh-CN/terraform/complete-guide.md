@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+不过，有人在 OneUptime 中给监视器的步骤添加、而你的配置没有写的设置，是一种差异：下一次 plan 会显示 `monitor_steps` 发生变化，随后的 apply 会按 plan 所说移除该设置。要保留它，也请在你的配置中写上它。
+
 ## 标签和 OneUptime 也会添加的其他列表
 
 OneUptime 会自行向记录的某些列表中添加内容：标签规则会把它的标签添加到它匹配的记录上，值班规则会把它的策略添加到它匹配的事件和警报上，SLO 的监视器规则会关联它们匹配的监视器。参考文档对每个这样的属性都会写明："OneUptime adds to it too, on its own"。设置了这类列表的配置会保留它列出的条目，其余的保持不变：

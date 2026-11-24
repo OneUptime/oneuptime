@@ -167,7 +167,7 @@ Eenmaal vastgelegd, verschijnen deze metrieken in de metriekverkenner onder name
 
 Sommige attribuutnamen zijn van OneUptime zelf, en een script kan ze niet schrijven. Zet uw script er een, dan wordt het attribuut verworpen (de metriek zelf wordt wel vastgelegd) en wordt er een waarschuwing met de naam van de sleutel in de serverlogs van OneUptime geschreven. Het zijn:
 
-- De identiteit van de monitor: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- De identiteit van de monitor: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Alles in de naamruimten `oneuptime.` of `resource.`: die dragen de identificatoren die OneUptime bij het innemen toevoegt.
 - Attributen voor de identiteit van resources: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` en `docker.swarm.cluster.name`.
 

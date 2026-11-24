@@ -6,6 +6,7 @@ import CriteriaFilterMatchHistory, {
   CriteriaFilterMatchHistoryReads,
 } from "./CriteriaFilterMatchHistory";
 import MetricService, {
+  MonitorCheckAttributeFilter,
   MonitorCheckCondition,
   MonitorPreviousCheckRow,
 } from "../../../Services/MetricService";
@@ -24,6 +25,7 @@ import {
   getDatabaseMetricByMetricType,
 } from "../../../../Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
@@ -42,8 +44,9 @@ import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
  * (MonitorMetricUtil.saveMonitorMetrics), and a check that keeps a match
  * history writes whether it matched once it is judged
  * (CriteriaFilterMatchHistory). The previous check is the newest row of the
- * probe - and of the disk, for a disk's usage - written before this check
- * was, read for every probe in one bounded statement
+ * probe - and of the disk, for a disk's usage - and of the step (#10906),
+ * written before this check was, read for every probe in one bounded
+ * statement
  * (MetricService.readPreviousMonitorChecks): the sort key's prefix and a
  * time range, one row a group. This check's own rows are written after
  * MonitorResource takes the time it hands in as checkWrittenAt, so they are
@@ -79,8 +82,11 @@ import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 // Where a filter's previous check is read from.
 export interface PreviousCheckSource {
   metricName: string;
-  // Rows whose attribute has this value: a match history's filter key.
-  attributes: Record<string, string>;
+  /*
+   * Rows whose attribute has this value, or one of these values: a match
+   * history's filter key, the step of a series.
+   */
+  attributes: MonitorCheckAttributeFilter;
   // The attributes a group is one value of: probeId, and diskPath.
   groupByAttributeKeys: Array<string>;
   // A match history, written after each check is judged.
@@ -113,6 +119,12 @@ export default class PreviousCheckComparison {
     criteriaFilter: CriteriaFilter;
     monitorType: MonitorType | undefined;
     monitorStepId: ObjectID | string;
+    /*
+     * The rows of a series the step's previous check is read from
+     * (MonitorStepSeries): its own, never another step's. Every row of the
+     * series when not given.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): PreviousCheckSource | null {
     if (
       CriteriaFilterUtil.isJudgedCheckByCheck(
@@ -145,7 +157,7 @@ export default class PreviousCheckComparison {
 
     return {
       metricName: metricName,
-      attributes: {},
+      attributes: CheckWindowCounts.getSeriesAttributes(data.stepScope),
       // Each disk's usage is a series of its own, read with the others.
       groupByAttributeKeys:
         data.criteriaFilter.checkOn === CheckOn.DiskUsagePercent
@@ -166,6 +178,12 @@ export default class PreviousCheckComparison {
     projectId: ObjectID;
     monitorId: ObjectID;
     monitorStepId: ObjectID | string;
+    /*
+     * The rows of a series the step's previous check is read from
+     * (MonitorStepSeries): a step of a monitor with several is compared with
+     * its own previous check, never with the step checked just before it.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
     monitorType: MonitorType | undefined;
     // The probe that made the check: its previous check is its own.
     probeId?: ObjectID | string | undefined;
@@ -204,6 +222,7 @@ export default class PreviousCheckComparison {
         criteriaFilter: data.criteriaFilter,
         monitorType: data.monitorType,
         monitorStepId: data.monitorStepId,
+        stepScope: data.stepScope,
       });
 
     if (

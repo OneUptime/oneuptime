@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{protection}}",
   "Hourly Limit": "1 時間あたりの上限",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "プローブが受け取った SSL 証明書の有効期限までに残っている丸一日の日数です。毎日ひとつずつ減り、証明書が更新されると跳ね上がります。",
   "Sensitive files": "機密ファイル",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "1 時間あたりの上限は、1 から 500 までの整数のブロック数で指定してください。",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "ポリシーが 1 時間に行える自動ブロックの最大数です。超えると停止し、セキュリティ担当者を呼び出します。",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "{{day}} {{clock}} から",
   "until {{clock}}": "{{clock}} まで",
   "until {{day}} at {{clock}}": "{{day}} {{clock}} まで",
+  "Exit Full Screen": "全画面を終了",
+  "Fill the Screen": "画面いっぱいに表示",
+  "Full-screen dashboard": "全画面のダッシュボード",
+  "Open in New Tab": "新しいタブで開く",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは最大 {{count}} 個です。",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」は追加されませんでした。このフィールドに入れられるファイルは 1 個です。",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "自分が所有するカスタムプローブが、OneUptime より 1 つ以上前のメジャーリリースのバージョンで動作しています。メジャーリリースごとに 1 回、更新されるまでプローブに足りないものと一緒に送信されます。",
@@ -64046,5 +64051,11 @@
   "{{count}} secrets to rotate._one": "ローテーションするシークレット: {{count}} 件。",
   "{{count}} secrets_one": "{{count}} 件のシークレット",
   "{{law}} may apply first: {{due}}.": "{{law}} が最初に適用される可能性があります: {{due}}。",
-  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。"
+  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。",
+  "Part of {{incident}}": "{{incident}} の一部",
+  "Show Incidents Grouped by Episode": "インシデントをエピソードごとにまとめて表示",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。",
+  "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
+  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}"
 }

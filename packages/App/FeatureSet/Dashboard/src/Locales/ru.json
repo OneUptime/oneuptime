@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{protection}}",
   "Hourly Limit": "Часовой лимит",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Сколько полных дней осталось до истечения срока SSL-сертификата, который получил зонд. Число уменьшается на один в день и подскакивает, когда сертификат продлевают.",
   "Sensitive files": "Конфиденциальные файлы",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Укажите часовой лимит целым числом блокировок от 1 до 500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Наибольшее число автоматических блокировок, которое ваши политики делают за час, прежде чем остановиться и вызвать ваших ответственных за безопасность.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "с {{day}}, {{clock}}",
   "until {{clock}}": "до {{clock}}",
   "until {{day}} at {{clock}}": "до {{day}}, {{clock}}",
+  "Exit Full Screen": "Выйти из полноэкранного режима",
+  "Fill the Screen": "Заполнить экран",
+  "Full-screen dashboard": "Панель во весь экран",
+  "Open in New Tab": "Открыть в новой вкладке",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "Файл «{{fileName}}» не добавлен. Максимум файлов в этом поле: {{count}}.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "Файл «{{fileName}}» не добавлен: в этом поле может быть только один файл.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Принадлежащий вам пользовательский зонд работает на версии, отстающей от OneUptime на основной выпуск или больше. Отправляется один раз для каждого основного выпуска и сообщает, чего зонду не хватает до обновления.",
@@ -64046,5 +64051,11 @@
   "{{count}} secrets to rotate._one": "{{count}} секрет для замены.",
   "{{count}} secrets_one": "{{count}} секрет",
   "{{law}} may apply first: {{due}}.": "{{law}} может применяться первым: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} указал(а), что люди живут в: {{places}}."
+  "{{name}} said the people live in {{places}}.": "{{name}} указал(а), что люди живут в: {{places}}.",
+  "Part of {{incident}}": "Входит в {{incident}}",
+  "Show Incidents Grouped by Episode": "Показывать инциденты, сгруппированные по эпизодам",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
+  "Page when the script timed out": "Страница в момент тайм-аута скрипта",
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
 }

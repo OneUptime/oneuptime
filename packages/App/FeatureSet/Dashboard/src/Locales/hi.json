@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{protection}}",
   "Hourly Limit": "प्रति घंटे की सीमा",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "प्रोब को मिले SSL प्रमाणपत्र की समय-सीमा खत्म होने में कितने पूरे दिन बचे हैं। यह हर दिन एक घटता है और प्रमाणपत्र नवीनीकृत होने पर ऊपर उछलता है।",
   "Sensitive files": "संवेदनशील फ़ाइलें",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "प्रति घंटे की सीमा को 1 से 500 के बीच ब्लॉक की एक पूर्ण संख्या पर सेट करें।",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "आपकी नीतियाँ एक घंटे में अधिकतम कितने स्वचालित ब्लॉक करती हैं, इसके बाद वे रुककर आपके सुरक्षा ज़िम्मेदारों को पेज करती हैं।",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "{{day}} को {{clock}} से",
   "until {{clock}}": "{{clock}} तक",
   "until {{day}} at {{clock}}": "{{day}} को {{clock}} तक",
+  "Exit Full Screen": "फ़ुल स्क्रीन से बाहर निकलें",
+  "Fill the Screen": "पूरी स्क्रीन भरें",
+  "Full-screen dashboard": "फ़ुल स्क्रीन डैशबोर्ड",
+  "Open in New Tab": "नए टैब में खोलें",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं।",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है।",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "आपके स्वामित्व वाला कोई कस्टम प्रोब ऐसा रिलीज़ चला रहा है जो OneUptime से एक या अधिक मेजर रिलीज़ पुराना है। हर मेजर रिलीज़ के लिए एक बार भेजा जाता है, साथ में यह भी कि अपडेट होने तक प्रोब में क्या नहीं है।",
@@ -64046,5 +64051,11 @@
   "{{count}} secrets to rotate._one": "रोटेट करने के लिए {{count}} सीक्रेट।",
   "{{count}} secrets_one": "{{count}} सीक्रेट",
   "{{law}} may apply first: {{due}}.": "{{law}} सबसे पहले लागू हो सकता है: {{due}}।",
-  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।"
+  "{{name}} said the people live in {{places}}.": "{{name}} ने बताया कि लोग {{places}} में रहते हैं।",
+  "Part of {{incident}}": "{{incident}} का हिस्सा",
+  "Show Incidents Grouped by Episode": "घटनाएं एपिसोड के अनुसार समूहित करके दिखाएं",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
+  "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
 }

@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+En inställning som någon lägger till i OneUptime i en monitors steg, och som din konfiguration inte skriver, är däremot en skillnad: nästa plan visar att `monitor_steps` ändras, och den apply som följer tar bort inställningen, som planen säger. Skriv den också i din konfiguration för att behålla den.
+
 ## Etiketter och andra listor som OneUptime också lägger till i
 
 OneUptime lägger själv till i några av en posts listor: en etikettregel lägger till sina etiketter på de poster den matchar, en jourregel lägger till sina policyer på de incidenter och larm den matchar, och en SLO:s monitorregler kopplar de monitorer de matchar. Referensen säger det om varje sådant attribut: "OneUptime adds to it too, on its own". En konfiguration som anger en av dem håller de element den listar, och lämnar resten:

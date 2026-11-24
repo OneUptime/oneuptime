@@ -70,6 +70,8 @@ Endepunktene følger sidens egne innstillinger, i kortet **Hva statussiden din v
 
 **Hvilke hendelser en side returnerer.** Hendelsesendepunktet returnerer hendelsene på sidens monitorer, minus dem som er begrenset til andre statussider, og minus alle hendelser som ikke er begrenset til denne siden hvis siden bare viser hendelser som er begrenset til den (se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience)). Hvilke sider en hendelse er begrenset til, er aldri en del av svaret.
 
+**Hvordan en side organiserer hendelsene sine.** Oversikten og listene over hendelser og episoder oppgir sidens visningsmodus i `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly`, eller `None` i oversikten for en side som verken viser hendelser eller episoder. Så lenge siden viser både hendelser og episoder, har hver episode i `episodes` og `activeEpisodes` også `incidents`: hendelsene i den som siden viser, nyeste først, hver med `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` og `monitors`. En hendelse som hentes etter ID, har da `partOfEpisodes`: hver episode den er en del av, med `_id` og `title`. Når siden grupperer etter episode, med **Vis hendelser gruppert etter episode** på, tegner siden en episode som ett kort og utelater hendelsene i den fra hendelseskortene, og en episode uten noen av hendelsene siden viser, utelates fra listene; `incidents` og `activeIncidents` inneholder fortsatt alle hendelser siden viser, så en leser som ignorerer episoder, ikke går glipp av noen. Overalt der en hendelse eller en episode oppgir `monitors`, er det bare sidens egne.
+
 ## Les oversikten
 
 Oversikten er én request for hele siden. Det er de samme dataene statussiden tegner, og de er høyst 15 sekunder gamle.
@@ -140,7 +142,9 @@ Den samlede statusen er den verste nåværende statusen blant monitorene og moni
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det oppetidsstolpene tegnes ut fra, og sidens fargeregler for stolpene. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De uløste hendelsene siden viser, deres offentlige notater og tilstandsendringer, og prosjektets hendelsestilstander. |
 | `timelineIncidents` | Hendelsene i tidsvinduet til oppetidsstolpene, løste hendelser medregnet, for verktøytipsene til stolpene. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hendelsesepisoder. |
+| `timelineEpisodes` | På en side som viser episoder, men ikke hendelser, det som verktøytipsene til stolpene og dialogen for hver dag viser i stedet: hver episode bak en hendelse i tidsvinduet til oppetidsstolpene, med bare `declaredAt` og sidens `monitors` for hver av hendelsene i den som siden ville vise uavhengig av episoden. Tom på alle andre sider. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hendelsesepisoder. Hver episode har `monitors`, de av sidens monitorer som de viste hendelsene i den er på, og, så lenge siden også viser hendelser, `incidents`. |
+| `incidentListMode` | Hvordan siden organiserer hendelsene og episodene sine: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` eller `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Vedlikeholdshendelsene som kommer eller pågår, deres offentlige notater og tilstandsendringer. |
 | `timelineScheduledMaintenanceEvents` | Vedlikeholdshendelsene i tidsvinduet til oppetidsstolpene som har startet, enten de pågår eller er over, for verktøytipsene til stolpene og dialogen for hver dag: de siden viser og som gjelder en av monitorene på siden, hver med bare sidens monitorer. |
 | `activeAnnouncements` | Kunngjøringene som vises nå: startet og ikke avsluttet. |
@@ -195,7 +199,7 @@ Svaret:
 | --- | -------------- |
 | `overallStatus` | Den samlede statusen til siden, slik banneret viser den: `name`, `color` og `isOperational`. `null` når hver ressurs på siden er **Ikke overvåket**. |
 | `resources` | Hver ressurs siden viser, i rekkefølgen sin: `name` på siden, `groupName` med gruppene over, `currentStatus`, `isMonitored` og `isUnderMaintenance`. |
-| `activeIncidents` | De uløste hendelsene siden viser, hver med `affectedResourceIds` for ressursene den berører. |
+| `activeIncidents` | De uløste hendelsene siden viser, hver med `affectedResourceIds` for ressursene den berører. På en side som viser episoder, men ikke hendelser, er det de aktive episodene, som oversikten viser som sidens aktive hendelser. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Vedlikeholdshendelsene som pågår eller kommer, hver med sine `affectedResourceIds`. |
 
 `currentStatus` til en ressurs er `null` når siden ikke viser den, og når `isMonitored` er `false`: ingenting sjekker ressursen, fordi overvåkingen av monitoren er slått av, eller fordi alle monitorene i monitorgruppen har den slått av, så siden viser den som **Ikke overvåket**, eller ingenting har sjekket den ennå, så siden viser den som **Ikke overvåket ennå**. `isUnderMaintenance` er `true` mens en pågående hendelse nevner en av monitorene til ressursen, eller en monitor i monitorgruppen dens, uansett hvilken status de monitorene har.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Endepunkt | Nøkler i svaret |
 | -------- | -------------------- |
-| Hendelser | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Episoder | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Hendelser | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Episoder | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | Vedlikeholdshendelser | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Kunngjøringer | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ En feil svarer med en statuskode og JSON-innhold som forteller hvorfor:
 
 ## Andre måter å lese en statusside på
 
-- **RSS.** Hver statusside leverer `/rss`, en strøm av hendelsene, kunngjøringene og vedlikeholdshendelsene, hver datert slik siden daterer den. Se [Det innebygde merket og RSS-strømmen](/docs/status-pages/index#det-innebygde-merket-og-rss-strømmen).
+- **RSS.** Hver statusside leverer `/rss`, en strøm av hendelsene og episodene, kunngjøringene og vedlikeholdshendelsene, hver datert slik siden daterer den, med hendelsene organisert slik siden organiserer dem. Se [Det innebygde merket og RSS-strømmen](/docs/status-pages/index#det-innebygde-merket-og-rss-strømmen).
 - **llms.txt.** Ved siden av `/rss` leverer hver statusside `/llms.txt`, som viser KI-agenter vei til RSS-strømmen og JSON-en for oversikten.
 - **MCP.** KI-agenter kan lese siden gjennom MCP-serveren til OneUptime på `https://oneuptime.com/mcp`, uten API-nøkkel, ved å oppgi ID-en eller domenet til siden som `statusPageIdOrDomain`. Den er slått på som standard; slå den av med **Aktiver MCP-server** under **Avansert → MCP** i sidemenyen til siden. Se [MCP-server](/docs/ai/mcp-server).
 - **REST-API-et.** For å opprette eller endre statussider, ressurser, abonnenter og kunngjøringer bruker du [OneUptime API-et](/docs/api-reference/api-reference) med en API-nøkkel.

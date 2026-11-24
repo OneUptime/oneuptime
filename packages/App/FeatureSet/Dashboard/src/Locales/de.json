@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{protection}}",
   "Hourly Limit": "Stundenlimit",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Wie viele ganze Tage das SSL-Zertifikat, das die Sonde erhalten hat, noch hat, bevor es abläuft. Der Wert sinkt jeden Tag um eins und springt nach oben, wenn das Zertifikat erneuert wird.",
   "Sensitive files": "Sensible Dateien",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Legen Sie das Stundenlimit als ganze Zahl von Sperren zwischen 1 und 500 fest.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Wie viele automatische Sperren Ihre Richtlinien höchstens pro Stunde setzen, bevor sie aufhören und Ihre Sicherheitsverantwortlichen alarmieren.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "seit dem {{day}} um {{clock}}",
   "until {{clock}}": "bis {{clock}}",
   "until {{day}} at {{clock}}": "bis zum {{day}} um {{clock}}",
+  "Exit Full Screen": "Vollbild beenden",
+  "Fill the Screen": "Bildschirm ausfüllen",
+  "Full-screen dashboard": "Dashboard im Vollbild",
+  "Open in New Tab": "In neuem Tab öffnen",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "„{{fileName}}“ wurde nicht hinzugefügt: Dieses Feld fasst bis zu {{count}} Dateien.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "„{{fileName}}“ wurde nicht hinzugefügt: Dieses Feld fasst eine Datei.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Eine benutzerdefinierte Sonde, die Ihnen gehört, läuft mit einer Version, die eine Hauptversion oder mehr älter ist als OneUptime. Wird einmal pro Hauptversion gesendet, mit dem, was der Sonde bis zu ihrer Aktualisierung fehlt.",
@@ -64046,5 +64051,11 @@
   "{{count}} secrets to rotate._one": "{{count}} zu rotierendes Geheimnis.",
   "{{count}} secrets_one": "{{count}} Geheimnis",
   "{{law}} may apply first: {{due}}.": "{{law}} kann zuerst gelten: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}} hat angegeben, dass die Betroffenen in {{places}} leben."
+  "{{name}} said the people live in {{places}}.": "{{name}} hat angegeben, dass die Betroffenen in {{places}} leben.",
+  "Part of {{incident}}": "Teil von {{incident}}",
+  "Show Incidents Grouped by Episode": "Vorfälle nach Episode gruppiert anzeigen",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besucher sehen eine Karte für jeden Vorfall und eine weitere für jede Episode, sodass ein Vorfall in einer Episode zweimal erscheint.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besucher sehen jede Episode als eine Karte mit ihren Vorfällen und dem, was sie betreffen.",
+  "Page when the script timed out": "Seite, als das Skript das Zeitlimit überschritt",
+  "Page {{number}} when the script timed out": "Seite {{number}}, als das Skript das Zeitlimit überschritt"
 }

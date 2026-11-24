@@ -328,17 +328,14 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      * Inclusive at both ends: endOfDay is the next day's start less a
      * millisecond, so every instant is in exactly one day. moment's
      * isBetween, which this used, is exclusive at both ends, and an incident
-     * declared on the stroke of midnight was listed on no day.
+     * declared on the stroke of midnight was listed on no day. Each event
+     * once: an episode listed for two of its incidents that day is one
+     * (DayUptimeGraphUtil.getEventsOfDay).
      */
-    const dayStartTime: number = startOfDay.getTime();
-    const dayEndTime: number = endOfDay.getTime();
-
-    return props.incidents.filter((incident: UptimeBarTooltipIncident) => {
-      const declaredAt: number = OneUptimeDate.fromString(
-        incident.declaredAt,
-      ).getTime();
-
-      return declaredAt >= dayStartTime && declaredAt <= dayEndTime;
+    return DayUptimeGraphUtil.getEventsOfDay<UptimeBarTooltipIncident>({
+      events: props.incidents,
+      startOfDay: startOfDay,
+      endOfDay: endOfDay,
     });
   };
 
