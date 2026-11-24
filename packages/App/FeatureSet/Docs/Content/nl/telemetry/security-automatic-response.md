@@ -35,11 +35,13 @@ Een beleid reageert op een detectie zodra die in de zaak is vastgelegd, een paar
 
 | Beleid | Reageert op | Doet | Eerste blokkering |
 | --- | --- | --- | --- |
-| **Scanners** | Webscans en exploitpogingen (ATT&CK T1595, T1190): pogingen tot SQL-injectie, path traversal en Log4Shell, en veel treffers van beheerde Cloudflare-regels vanaf één adres, zolang elk verzoek van het adres werd afgewezen | Challenge | 1 uur |
+| **Scanners** | Webscans en exploitpogingen (ATT&CK T1595, T1190): pogingen tot SQL-injectie, path traversal en Log4Shell, scannen op gevoelige bestanden zoals `/.env`, `/.git/config` en `/wp-admin`, en veel treffers van beheerde Cloudflare-regels vanaf één adres, zolang elk verzoek van het adres werd afgewezen | Challenge | 1 uur |
 | **Wachtwoorden raden** | Brute force en password spraying (ATT&CK T1110): mislukte aanmeldingen vanaf één adres, en mislukte aanmeldingen gevolgd door een geslaagde vanaf hetzelfde adres | Blokkeren | 1 uur |
 | **Bekende kwaadaardige adressen** | Elke detectie over een adres dat je [dreigingsinformatie](/docs/telemetry/threat-intelligence) vermeldt | Blokkeren | 24 uur |
 
 Mensen doorstaan een challenge, scripts en bots niet. Scanners geeft een adres alleen een challenge zolang geen enkel verzoek ervan je app heeft bereikt: een adres waarvan verzoeken erdoor kwamen, is een zaak voor een persoon.
+
+Scannen op gevoelige bestanden telt alleen de verzoeken die je site heeft geweigerd of die om iets vragen wat hij niet heeft, en alleen wanneer één adres binnen vijf minuten om drie of meer verschillende bestanden of beheerpagina's vraagt. Een pagina die je site levert, telt nooit mee, dus de eigen beheerders van een WordPress-site laden `/wp-admin` en `/wp-login.php` zo vaak als ze willen.
 
 Als je Scanners of Wachtwoorden raden aanzet, in de proefperiode of helemaal, draaien de regels uit de **Regelbibliotheek** waarop het reageert in realtime, en worden de regels die je project nog niet heeft toegevoegd: een realtime regel gaat af enkele seconden nadat de gebeurtenissen binnenkomen, waar een geplande regel minuten achterloopt. Een regel die iemand heeft uitgezet, blijft uit. Een project draait hoogstens 50 regels in realtime: daarboven blijft een regel op zijn schema, en de kaart van het beleid toont **Volgens schema** ernaast.
 
@@ -66,7 +68,7 @@ Om een beleid aan te zetten zonder de week proefperiode, open je **Meer instelli
 - **Nooit je eigen of beschermde adressen.** De items van **Beschermde entiteiten**, en alles wat OneUptime zelf beschermt: je hosts, cloudresources en sondes, de bereiken die niet op internet zitten, en de edge voor je app. Zie [Blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst).
 - **Nooit een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt.** Het netwerk van een kantoor, de proxy van een klant of iemands huis: OneUptime zoekt het adres in de aanmeldingen van je identiteitsprovider en in de verzoeken die je app voor een aangemelde gebruiker afhandelde, die met een gebruikers-ID in hun traces of logboeken. Een adres dat het niet kan controleren, omdat die gebeurtenissen niet gelezen konden worden of omdat je scrubregels adressen verbergen op een manier die het niet kan vergelijken, wordt aan een persoon overgelaten.
 - **Langere blokkeringen voor een adres dat terugkomt.** De eerste blokkering duurt 1 uur, daarna 24 uur, daarna 7 dagen voor een adres dat binnen 30 dagen opnieuw wordt geblokkeerd. Bekende kwaadaardige adressen begint bij 24 uur.
-- **Hoogstens 50 automatische blokkeringen per uur.** Daarboven stoppen je beleidsregels met blokkeren en roepen ze je beveiligingsverantwoordelijken op: een aanval van die omvang heeft een persoon nodig. De pagina zegt dat zolang het duurt.
+- **Hoogstens 50 automatische blokkeringen per uur, of de limiet die je instelt.** Daarboven stoppen je beleidsregels met blokkeren en roepen ze je beveiligingsverantwoordelijken op: een aanval van die omvang heeft een persoon nodig. De pagina zegt dat zolang het duurt. Een Beveiligingsbeheerder, Projectbeheerder of Projecteigenaar kan de limiet instellen op een waarde van 1 tot 500, onder **Meer instellingen** onderaan de pagina: **Uurlimiet**. Een nieuwe limiet geldt vanaf de volgende detectie.
 - **Ongedaan maken bij twijfel.** Als vanaf een adres dat een beleid blokkeerde een aangemelde gebruiker wordt gezien, heft het beleid de blokkering op en laat het je beveiligingsverantwoordelijken weten.
 
 Je beveiligingsverantwoordelijken zijn de Beveiligingsbeheerders van je project, of de Projecteigenaren als het die niet heeft. Elk adres dat een vangrail met rust liet, staat in de zaak ervan, met de reden.
@@ -101,7 +103,7 @@ Kijk in de tijdlijn van de zaak: een beleid dat een adres met rust liet, zegt wa
 :::
 
 :::details De pagina zegt dat de automatische blokkeringen van het uur op zijn
-Je beleidsregels hebben in het laatste uur 50 automatische blokkeringen gemaakt en je beveiligingsverantwoordelijken opgeroepen. Ze gaan weer verder naarmate de blokkeringen van dat uur ouder worden. Bekijk de zaken van de aanval, en blokkeer een bereik vanaf de **Blokkeerlijst** als de aanval uit één netwerk komt.
+Je beleidsregels hebben je uurlimiet voor automatische blokkeringen bereikt, 50 tenzij iemand die heeft gewijzigd, en je beveiligingsverantwoordelijken opgeroepen. Ze gaan weer verder naarmate de blokkeringen van dat uur ouder worden. Bekijk de zaken van de aanval, en blokkeer een bereik vanaf de **Blokkeerlijst** als de aanval uit één netwerk komt. Krijgt je project vaak met zoveel scanners te maken, klik dan op **Limiet wijzigen** naast de melding en verhoog de limiet.
 :::
 
 ## Volgende stappen

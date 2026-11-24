@@ -63506,5 +63506,20 @@
   "{{subject}} is different from the previous check": "{{subject}} weicht von der vorherigen Prüfung ab",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} liegt mehr als {{change}} über der vorherigen Prüfung",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} liegt mehr als {{change}} unter der vorherigen Prüfung",
-  "{{subject}} is the same as on the previous check": "{{subject}} ist gleich wie bei der vorherigen Prüfung"
+  "{{subject}} is the same as on the previous check": "{{subject}} ist gleich wie bei der vorherigen Prüfung",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 passt für die meisten Projekte: Erhöhen Sie den Wert, bis 500, bei einem stetigen Strom von Scannern, oder senken Sie ihn, um vorsichtig zu sein.",
+  "Automatic Blocks an Hour": "Automatische Sperren pro Stunde",
+  "Automatic Response Hourly Limit": "Stundenlimit der automatischen Reaktion",
+  "Change Limit": "Limit ändern",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{protection}}",
+  "Hourly Limit": "Stundenlimit",
+  "Sensitive files": "Sensible Dateien",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "Legen Sie das Stundenlimit als ganze Zahl von Sperren zwischen 1 und 500 fest.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Wie viele automatische Sperren Ihre Richtlinien höchstens pro Stunde setzen, bevor sie aufhören und Ihre Sicherheitsverantwortlichen alarmieren.",
+  "What every policy shares.": "Was alle Richtlinien gemeinsam haben.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "Ihre Richtlinien haben Ihr Limit von {{count}} automatischen Sperren pro Stunde erreicht, daher haben sie aufgehört und Ihre Sicherheitsverantwortlichen alarmiert. Sie machen weiter, sobald die Sperren dieser Stunde älter werden.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "Ihre Richtlinien haben Ihr Limit von {{count}} automatischen Sperre pro Stunde erreicht, daher haben sie aufgehört und Ihre Sicherheitsverantwortlichen alarmiert. Sie machen weiter, sobald die Sperren dieser Stunde älter werden.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "Ihre Richtlinien haben Ihr Limit von {{count}} automatischen Sperren pro Stunde erreicht, daher haben sie aufgehört. Sie machen weiter, sobald die Sperren dieser Stunde älter werden.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "Ihre Richtlinien haben Ihr Limit von {{count}} automatischen Sperre pro Stunde erreicht, daher haben sie aufgehört. Sie machen weiter, sobald die Sperren dieser Stunde älter werden."
 }

@@ -63506,5 +63506,20 @@
   "{{subject}} is different from the previous check": "{{subject}} 與上一次檢查不同",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} 比上一次檢查高出超過 {{change}}",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} 比上一次檢查低超過 {{change}}",
-  "{{subject}} is the same as on the previous check": "{{subject}} 與上一次檢查相同"
+  "{{subject}} is the same as on the previous check": "{{subject}} 與上一次檢查相同",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 適合大多數專案：若掃描器源源不絕，可調高至 500；若想更謹慎，可調低。",
+  "Automatic Blocks an Hour": "每小時自動封鎖次數",
+  "Automatic Response Hourly Limit": "自動回應每小時上限",
+  "Change Limit": "變更上限",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{protection}}",
+  "Hourly Limit": "每小時上限",
+  "Sensitive files": "敏感檔案",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "請將每小時上限設為 1 到 500 之間的整數次封鎖。",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "你的政策每小時最多進行的自動封鎖次數，超過後會停止並呼叫你的安全負責人。",
+  "What every policy shares.": "所有政策共用的設定。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "你的政策已達到每小時 {{count}} 次自動封鎖的上限，因此已停止並呼叫你的安全負責人。隨著這一小時的封鎖變舊，它們會重新開始。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "你的政策已達到每小時 {{count}} 次自動封鎖的上限，因此已停止並呼叫你的安全負責人。隨著這一小時的封鎖變舊，它們會重新開始。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "你的政策已達到每小時 {{count}} 次自動封鎖的上限，因此已停止。隨著這一小時的封鎖變舊，它們會重新開始。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "你的政策已達到每小時 {{count}} 次自動封鎖的上限，因此已停止。隨著這一小時的封鎖變舊，它們會重新開始。"
 }

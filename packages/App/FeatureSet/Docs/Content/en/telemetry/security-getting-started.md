@@ -70,7 +70,7 @@ At the top of **Overview**, under what needs someone, each part shows its figure
 | Fortinet FortiGate | IPS and antivirus findings, denied traffic, VPN and administrator sign-ins, and configuration changes from FortiGate's own syslog |
 | Cisco ASA | Denied connections, threat detection and IPS findings, VPN and administrator sign-ins, and commands from Cisco ASA and Firepower Threat Defense |
 | Kubernetes audit logs | Changes to the cluster, shells opened in pods, secrets read and refused requests |
-| Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell |
+| Web attacks | Requests in a web server's access log that try SQL injection, path traversal or Log4Shell, and requests for sensitive files such as `/.env` or `/.git/config` that your site refused or does not have |
 
 Your logs stay as they are. Only the lines that matter for security become events: never every page a web server served, or every read of an API.
 

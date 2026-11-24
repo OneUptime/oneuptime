@@ -146,6 +146,11 @@ const BODIES: Record<string, string> = {
     '203.0.113.46 - - [08/Nov/2026:09:10:00 +0000] "GET /item?id=1 UNION SELECT password FROM users HTTP/1.1" 200 12 "-" "sqlmap/1.8"',
   pathTraversal:
     '203.0.113.47 - - [08/Nov/2026:09:10:00 +0000] "GET /static/../../etc/passwd HTTP/1.1" 404 0 "-" "curl/8.5.0"',
+  // A request for a sensitive file the site does not have, in either kind of access log (#10745).
+  sensitiveFileRefused:
+    '203.0.113.49 - - [08/Nov/2026:09:10:00 +0000] "GET /.env HTTP/1.1" 404 153 "-" "Mozilla/5.0 zgrab/0.x"',
+  sensitiveFileJson:
+    '{"remote_addr":"203.0.113.51","request":"GET /.git/config HTTP/1.1","status":"404"}',
   cefBlocked:
     "CEF:0|Vendor|Firewall|1.0|100|Connection blocked|10|src=203.0.113.48 dst=10.0.0.5",
   kubernetesForbidden:
@@ -159,6 +164,9 @@ const BODIES: Record<string, string> = {
     "2026.11.08 09:12:44.512345 [ 812 ] {7f3c2a10} <Error> executeQuery: Code: 241. (MEMORY_LIMIT_EXCEEDED) (version 26.7.38.18 (official build)) (from [::ffff:10.42.0.17]:44220) (in query: SELECT _id FROM LogItemV3 WHERE multiSearchAnyCaseInsensitive(body, _CAST(['${jndi:', '%24%7bjndi'], 'Array(String)')))",
   // Lines that hold no word the scan looks for.
   ordinary: "GET /items?page=2 200 12ms",
+  // A WordPress site's own sign-in page, served: it never leaves the database (#10745).
+  sensitiveFileServed:
+    '203.0.113.50 - - [08/Nov/2026:09:10:00 +0000] "GET /wp-login.php HTTP/1.1" 200 4512 "-" "Mozilla/5.0"',
   loggedOut: "user alice logged out",
   kubernetesByNode:
     '{"kind":"Event","apiVersion":"audit.k8s.io/v1","verb":"update","objectRef":{"resource":"pods"},"user":{"username":"system:node:n1"},"responseStatus":{"code":200}}',
@@ -988,6 +996,8 @@ integration("The security scans' queries against ClickHouse", () => {
           "scan-log4ShellEncoded",
           "scan-sqlInjection",
           "scan-pathTraversal",
+          "scan-sensitiveFileRefused",
+          "scan-sensitiveFileJson",
           "scan-cefBlocked",
           "scan-kubernetesForbidden",
           "scan-cloudTrailError",
@@ -1000,6 +1010,7 @@ integration("The security scans' queries against ClickHouse", () => {
         "scan-kubernetesByNode",
         "scan-cloudTrailRead",
         "scan-oldEcho",
+        "scan-sensitiveFileServed",
       ]) {
         expect(storedLogIds).not.toContain(quiet);
       }

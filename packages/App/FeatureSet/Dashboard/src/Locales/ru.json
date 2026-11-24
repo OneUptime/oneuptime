@@ -63506,5 +63506,20 @@
   "{{subject}} is different from the previous check": "{{subject}} отличается от предыдущей проверки",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} выше предыдущей проверки более чем на {{change}}",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} ниже предыдущей проверки более чем на {{change}}",
-  "{{subject}} is the same as on the previous check": "{{subject}} такое же, как при предыдущей проверке"
+  "{{subject}} is the same as on the previous check": "{{subject}} такое же, как при предыдущей проверке",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 подходит большинству проектов: увеличьте, до 500, при постоянном потоке сканеров или уменьшите для осторожности.",
+  "Automatic Blocks an Hour": "Автоматических блокировок в час",
+  "Automatic Response Hourly Limit": "Часовой лимит автоматического реагирования",
+  "Change Limit": "Изменить лимит",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{protection}}",
+  "Hourly Limit": "Часовой лимит",
+  "Sensitive files": "Конфиденциальные файлы",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "Укажите часовой лимит целым числом блокировок от 1 до 500.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Наибольшее число автоматических блокировок, которое ваши политики делают за час, прежде чем остановиться и вызвать ваших ответственных за безопасность.",
+  "What every policy shares.": "Общее для всех политик.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "Ваши политики достигли вашего часового лимита автоматических блокировок ({{count}}), поэтому остановились и вызвали ваших ответственных за безопасность. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "Ваши политики достигли вашего лимита в {{count}} автоматическую блокировку в час, поэтому остановились и вызвали ваших ответственных за безопасность. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "Ваши политики достигли вашего часового лимита автоматических блокировок ({{count}}), поэтому остановились. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "Ваши политики достигли вашего лимита в {{count}} автоматическую блокировку в час, поэтому остановились. Они продолжат, когда блокировки этого часа устареют."
 }

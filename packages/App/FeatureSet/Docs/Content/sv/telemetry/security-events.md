@@ -133,6 +133,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 Ange formatet med `?format=`, med huvudet `x-oneuptime-security-event-format` eller med ett fält `"format"` på översta nivån. Utelämnar du det avgörs varje händelses format för sig, så en enda webhook kan blanda detektioner med råa händelser.
 
 - Kroppen kan vara en händelse, en array av händelser eller `{ "events": [...] }`.
+- En batch kan komprimeras med gzip och skickas med `Content-Encoding: gzip`: den läses då precis som samma batch utan komprimering. Fluent Bit komprimerar med `compress gzip` i sin `http`-utdata, Vector med `compression = "gzip"` i sin `http`-sink och Logstash med `http_compression => true` i sin `http`-utdata. Bara JSON läses i komprimerad form: en komprimerad kropp av någon annan typ avvisas med `400`.
 - Huvudet `x-oneuptime-service-name` anger telemetritjänsten som händelserna hör till. Utan det hör de till tjänsten som är uppkallad efter den första händelsens produkt eller leverantör, eller till `Security Events`.
 - Ingenting kastas för att det inte gick att mappa: varje fält från källan hamnar i händelsens attribut.
 
@@ -174,6 +175,7 @@ För att skicka säkerhetsloggar som du redan samlar in, till exempel auditd, sy
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Sidan **Installationsguide**, under **Anslutningar**, har de här kodsnuttarna m
 
 ### Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och nekad förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
 
 Varje typ når OneUptime som vanliga loggar:
 
@@ -297,6 +299,8 @@ En IP-adressregel som raderar eller maskerar dina loggar eller spår döljer adr
 - **Översikt** namnger regeln som döljer adresserna som Säkerhetshändelser läser, också med **Öppna scrub-regler**.
 
 En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen namnger den, om inte dess token är äldre än 30 dagar eller skapades innan tokens hade en nyckel: se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). Sök efter `@oneuptime.request.client_address_hidden:scrub-rule` för att hitta dessa händelser. Det regeln lämnade i adressens ställe, till exempel `[REDACTED]`, finns i `oneuptime.request.client_address_scrubbed`. Sök efter `@oneuptime.target_address_hidden:scrub-rule` för en destination.
+
+En detektionsregel som räknar per adress bör, precis som regelbibliotekets regler, räkna per `principalIp` eller `targetIp`, som namnger adressen bakom token från en regel som hashar. Ett formats eget adressfält, till exempel `openstack.audit.initiator_address` eller `asa.src_ip`, innehåller bara en adress som står i loggen, så det förblir tomt överallt där en scrub-regel dolde adressen.
 
 En regel som raderar eller maskerar en användare döljer den på samma sätt: där händelsen skulle namnge användaren säger **Källanvändare** eller **Målanvändare** att en scrub-regel dolde den. Där Säkerhetshändelser läser en användare sparar en regel som hashar användaren åt den: en begärans `enduser.id` eller `user.id`, ett AI-anrops användare och en användare som en loggrad namnger, till exempel principal i en granskningslogg från molnet. Så händelsen namnger användaren bakom token, ett ärende om användaren namnger kontot, och en playbook kan agera på det som på vilken annan användare som helst. Det regeln lämnade finns i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så att du kan hitta användaren i dina loggar och spår, som bara innehåller token. En token som ingen användare har sparats för, till exempel en som skapades innan tokens hade en nyckel, förblir händelsens användare: regler räknar den som ett konto, och ingen playbook agerar på den.
 

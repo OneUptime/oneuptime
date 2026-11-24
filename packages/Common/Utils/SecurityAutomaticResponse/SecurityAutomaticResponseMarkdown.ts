@@ -156,7 +156,17 @@ export function automaticResponseSparedMarkdown(data: {
   return mdText`${lead} ${FeedMarkdown.textInLine(data.detail)}`;
 }
 
-// The hourly limit reached: the policy stopped, and the security owners were paged.
+// "1 automatic block", "50 automatic blocks": the hourly limit, as a timeline line says it.
+export function describeAutomaticBlockCount(count: number): string {
+  return `${String(count)} automatic ${count === 1 ? "block" : "blocks"}`;
+}
+
+/*
+ * The hourly limit reached: the policy stopped, and the security owners
+ * were paged. The limit is the project's own (#10746): reached, whether
+ * the hour made as many blocks as it allows or - a limit lowered in the
+ * middle of the hour - more.
+ */
 export function automaticResponseLimitMarkdown(data: {
   action: SecurityBlockAction;
   address: string;
@@ -166,14 +176,14 @@ export function automaticResponseLimitMarkdown(data: {
   isTrialRun: boolean;
 }): MarkdownText {
   if (data.isTrialRun) {
-    return mdText`🧪 Trial run: the ${FeedMarkdown.textInLine(data.policyName)} policy would not have ${verbOf(data.action)} ${FeedMarkdown.code(data.address)}: it would have reached the most automatic blocks your project makes in an hour, ${String(data.limit)}, and paged your security owners.`;
+    return mdText`🧪 Trial run: the ${FeedMarkdown.textInLine(data.policyName)} policy would not have ${verbOf(data.action)} ${FeedMarkdown.code(data.address)}: it would have reached your project's limit of ${describeAutomaticBlockCount(data.limit)} an hour, and paged your security owners.`;
   }
 
   const paged: MarkdownText = data.wasPaged
     ? mdText` Your security owners were paged: an attack this large needs a person.`
     : mdText` OneUptime could not page your security owners: make sure the project has a Security Admin or a Project Owner who can be paged.`;
 
-  return mdText`⚠️ The ${FeedMarkdown.textInLine(data.policyName)} policy did not ${data.action === SecurityBlockAction.Challenge ? "challenge" : "block"} ${FeedMarkdown.code(data.address)}: your automatic response policies made ${String(data.limit)} blocks in the last hour, the most they make in an hour, so they stopped.${paged}`;
+  return mdText`⚠️ The ${FeedMarkdown.textInLine(data.policyName)} policy did not ${data.action === SecurityBlockAction.Challenge ? "challenge" : "block"} ${FeedMarkdown.code(data.address)}: your automatic response policies reached your project's limit of ${describeAutomaticBlockCount(data.limit)} an hour, so they stopped.${paged}`;
 }
 
 // A block lifted on doubt: a signed-in user was seen from the address.

@@ -35,11 +35,13 @@ A policy acts on a detection as it is recorded on its case, a few seconds after 
 
 | Policy | Acts on | Does | First block |
 | --- | --- | --- | --- |
-| **Scanners** | Web scanning and exploit attempts (ATT&CK T1595, T1190): SQL injection, path traversal and Log4Shell attempts, and many Cloudflare managed rule hits from one address, while every request from the address was turned away | Challenge | 1 hour |
+| **Scanners** | Web scanning and exploit attempts (ATT&CK T1595, T1190): SQL injection, path traversal and Log4Shell attempts, scanning for sensitive files such as `/.env`, `/.git/config` and `/wp-admin`, and many Cloudflare managed rule hits from one address, while every request from the address was turned away | Challenge | 1 hour |
 | **Password Guessing** | Brute force and password spraying (ATT&CK T1110): failed sign-ins from one address, and failed sign-ins then a success from the same address | Block | 1 hour |
 | **Known-Bad Addresses** | Any detection about an address your [threat intel](/docs/telemetry/threat-intelligence) lists | Block | 24 hours |
 
 People pass a challenge, and scripts and bots do not. Scanners only challenges an address while none of its requests reached your app: an address whose requests got through is a case for a person.
+
+Scanning for sensitive files counts only the requests your site refused or does not have, and only when one address asks for three or more different files or admin pages within five minutes. A page your site serves never counts, so a WordPress site's own admins load `/wp-admin` and `/wp-login.php` as often as they like.
 
 Turning Scanners or Password Guessing on, into its trial run or on, runs the **Rule Library** rules it acts on in real time, adding the ones your project does not have: a real-time rule fires seconds after the events arrive, where a scheduled one reads minutes behind. A rule someone turned off stays off. A project runs at most 50 rules in real time: past that, a rule stays on its schedule, and the policy's card says **On a schedule** beside it.
 
@@ -66,7 +68,7 @@ To turn a policy on without its week of trial run, open **More settings** on its
 - **Never your own or protected addresses.** The entries of **Protected Entities**, and everything OneUptime protects by itself: your hosts, cloud resources and probes, the ranges that are not on the internet, and the edge in front of your app. See [Blocklist](/docs/telemetry/security-cases#blocklist).
 - **Never an address a signed-in user used in the last 30 days.** An office's network, a customer's proxy or a person's home: OneUptime looks for the address on your identity provider's sign-ins and on the requests your app served to a signed-in user, the ones with a user ID in their traces or logs. An address it cannot check, because those events could not be read or your scrub rules hide addresses in a way it cannot match, is left for a person.
 - **Longer blocks for an address that comes back.** The first block lasts 1 hour, then 24 hours, then 7 days for an address blocked again within 30 days. Known-Bad Addresses starts at 24 hours.
-- **At most 50 automatic blocks an hour.** Past that, your policies stop blocking and page your security owners: an attack that large needs a person. The page says so while it lasts.
+- **At most 50 automatic blocks an hour, or the limit you set.** Past that, your policies stop blocking and page your security owners: an attack that large needs a person. The page says so while it lasts. A Security Admin, Project Admin or Project Owner can set the limit from 1 to 500, under **More settings** at the foot of the page: **Hourly Limit**. A new limit holds from the next detection on.
 - **Undo on doubt.** When a signed-in user is seen from an address a policy blocked, the policy lifts the block and tells your security owners.
 
 Your security owners are your project's Security Admins, or its Project Owners when it has none. Each address a guardrail left alone is on its case, with the reason.
@@ -101,7 +103,7 @@ Look at the case's timeline: a policy that left an address alone says why, such 
 :::
 
 :::details The page says the hour's automatic blocks are used up
-Your policies made 50 automatic blocks in the last hour, and paged your security owners. They start again as the hour's blocks age out. Look at the cases for the attack, and block a range from **Blocklist** if it comes from one network.
+Your policies reached your hourly limit of automatic blocks, 50 unless someone changed it, and paged your security owners. They start again as the hour's blocks age out. Look at the cases for the attack, and block a range from **Blocklist** if it comes from one network. If your project is often under this many scanners, click **Change Limit** beside the notice and raise the limit.
 :::
 
 ## Next steps

@@ -37,6 +37,7 @@ import {
   SecurityEntity,
   SecurityEntityType,
 } from "../../../../../Types/SecurityCase/SecurityEntity";
+import { getDetectionRuleLibraryEntry } from "../../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import { readSecurityLogResource } from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import { OpenStackAuditAttribute } from "../../../../../Utils/SecurityEvent/LogParsers/OpenStackAuditLogParser";
@@ -322,14 +323,22 @@ describe.each(OPENSTACK_AUDIT_RECORDED_RELEASES)(
       );
       const rule: DetectionRule = new DetectionRule();
 
-      rule.groupByField = OpenStackAuditAttribute.InitiatorAddress;
+      // As the Rule Library's OpenStack failed logins burst counts them: per principalIp (#10773).
+      rule.groupByField = getDetectionRuleLibraryEntry(
+        "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
+      )!.groupByField!;
 
-      const address: string = String(
+      expect(rule.groupByField).toBe("principalIp");
+
+      const address: string = String((failed[0] as JSONObject)["principalIp"]);
+
+      // A recorded address is a real one: the parser's own attribute names it too.
+      expect(
         attributeOf(
           failed[0] as JSONObject,
           OpenStackAuditAttribute.InitiatorAddress,
         ),
-      );
+      ).toBe(address);
       const entities: Array<SecurityEntity> =
         DetectionRuleEvaluator.getMatchGroupEntities({
           rule,

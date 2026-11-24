@@ -63506,5 +63506,20 @@
   "{{subject}} is different from the previous check": "{{subject}} पिछली जाँच से अलग है",
   "{{subject}} is more than {{change}} above the previous check": "{{subject}} पिछली जाँच से {{change}} से अधिक ऊपर है",
   "{{subject}} is more than {{change}} below the previous check": "{{subject}} पिछली जाँच से {{change}} से अधिक नीचे है",
-  "{{subject}} is the same as on the previous check": "{{subject}} पिछली जाँच के समान है"
+  "{{subject}} is the same as on the previous check": "{{subject}} पिछली जाँच के समान है",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "अधिकांश प्रोजेक्ट के लिए 50 ठीक है: स्कैनरों की लगातार धारा के लिए इसे 500 तक बढ़ाएँ, या सावधान रहने के लिए घटाएँ।",
+  "Automatic Blocks an Hour": "प्रति घंटे स्वचालित ब्लॉक",
+  "Automatic Response Hourly Limit": "स्वचालित प्रतिक्रिया की प्रति घंटे की सीमा",
+  "Change Limit": "सीमा बदलें",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{protection}}",
+  "Hourly Limit": "प्रति घंटे की सीमा",
+  "Sensitive files": "संवेदनशील फ़ाइलें",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "प्रति घंटे की सीमा को 1 से 500 के बीच ब्लॉक की एक पूर्ण संख्या पर सेट करें।",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "आपकी नीतियाँ एक घंटे में अधिकतम कितने स्वचालित ब्लॉक करती हैं, इसके बाद वे रुककर आपके सुरक्षा ज़िम्मेदारों को पेज करती हैं।",
+  "What every policy shares.": "जो सभी नीतियों में साझा है।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं और आपके सुरक्षा ज़िम्मेदारों को पेज किया। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं और आपके सुरक्षा ज़िम्मेदारों को पेज किया। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।"
 }
