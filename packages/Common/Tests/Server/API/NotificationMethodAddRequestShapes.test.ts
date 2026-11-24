@@ -61,7 +61,9 @@ import WhatsAppService from "../../../Server/Services/WhatsAppService";
 import CreatePermission from "../../../Server/Types/Database/Permissions/CreatePermission";
 import APIKeyAccessPermission from "../../../Server/Utils/APIKey/AccessPermission";
 import PlanCutoffCredentialAccess from "../../../Server/Utils/Billing/PlanCutoffCredentialAccess";
-import ChannelVerification from "../../../Server/Utils/ChannelVerification";
+import ChannelVerification, {
+  ChannelVerificationMessages,
+} from "../../../Server/Utils/ChannelVerification";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import RealtimeAccessChanges from "../../../Server/Utils/Realtime/RealtimeAccessChanges";
@@ -1316,7 +1318,7 @@ describe("a Telegram account's code asked for by somebody other than its owner",
       });
 
       expect(result.status).toBe(400);
-      expect(errorOf(result)).toBe("Invalid user ID");
+      expect(errorOf(result)).toBe(ChannelVerificationMessages.notSignedIn);
       expect(accounts.repository.find.mock.calls).toHaveLength(0);
       expect(accounts.updates).toEqual([]);
       expect(rotations).not.toHaveBeenCalled();
@@ -1337,7 +1339,8 @@ describe("a Telegram account's code asked for by somebody other than its owner",
       });
 
       expect(result.status).toBe(400);
-      expect(errorOf(result)).toBe("Invalid user ID");
+      // Answered exactly like a row that does not exist (#7272).
+      expect(errorOf(result)).toBe(ChannelVerificationMessages.notFound);
       expect(accounts.updates).toEqual([]);
       expect(rotations).not.toHaveBeenCalled();
     },

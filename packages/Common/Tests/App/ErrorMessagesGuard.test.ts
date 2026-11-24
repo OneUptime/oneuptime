@@ -64,6 +64,12 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/API/UserCallAPI.ts",
   "packages/Common/Server/API/UserIncomingCallNumberAPI.ts",
   "packages/Common/Server/API/UserWhatsAppAPI.ts",
+  // A chat tool's and a webhook's Send Test, and Telegram's verification (#7272).
+  "packages/Common/Server/API/UserSlackAPI.ts",
+  "packages/Common/Server/API/UserMicrosoftTeamsAPI.ts",
+  "packages/Common/Server/API/UserMattermostAPI.ts",
+  "packages/Common/Server/API/UserTelegramAPI.ts",
+  "packages/Common/Server/API/UserWebhookAPI.ts",
   "packages/Common/Server/Services/UserEmailService.ts",
   "packages/Common/Server/Services/UserSmsService.ts",
   "packages/Common/Server/Services/UserCallService.ts",

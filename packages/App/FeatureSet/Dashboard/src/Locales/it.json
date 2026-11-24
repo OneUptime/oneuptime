@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Gli indirizzi delle interfacce di rete di questa sonda, e quelli del suo host quando le vengono indicati, come la sonda li elenca ogni volta che comunica. Eventi di sicurezza mette da parte le interrogazioni, le scoperte e i controlli dei monitor propri della sonda che partono da questi indirizzi, e la blocklist non li blocca mai.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'indirizzo da cui OneUptime vede comunicare questa sonda. La blocklist non lo blocca mai.",
   "OneUptime AI's Scrub Rule Input Hash": "Hash dell'input delle regole di mascheramento di OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Regole di mascheramento di OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Regole di mascheramento di OneUptime AI",
+  "Enter the code from the message we sent.": "Inserisci il codice del messaggio che ti abbiamo inviato.",
+  "Sign in again, then verify this notification method.": "Accedi di nuovo, poi verifica questo metodo di notifica.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Quel codice non è corretto. Inserisci il codice dell'ultimo messaggio che ti abbiamo inviato, oppure invia un nuovo codice.",
+  "The request did not say which notification method to test. Reload the page and try again.": "La richiesta non indicava quale metodo di notifica provare. Ricarica la pagina e riprova.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "La richiesta non indicava quale metodo di notifica verificare. Ricarica la pagina e riprova.",
+  "This notification method is already verified. You can close this dialog.": "Questo metodo di notifica è già verificato. Puoi chiudere questa finestra.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Questo metodo di notifica non è più nel tuo elenco. Aggiungilo di nuovo, poi verificalo.",
+  "This verification code has expired. Please request a new code.": "Questo codice di verifica è scaduto. Richiedi un nuovo codice.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Troppi tentativi errati. Questo codice di verifica non è più valido. Richiedi un nuovo codice."
 }

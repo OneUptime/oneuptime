@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserne på denne sondes netværksgrænseflader og på dens vært, når den får dem oplyst, som sonden angiver dem, hver gang den melder sig. Sikkerhedshændelser lægger sondens egne forespørgsler, opdagelser og monitortjek fra disse adresser til side, og blokeringslisten blokerer dem aldrig.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Den adresse, OneUptime ser denne sonde melde sig fra. Blokeringslisten blokerer den aldrig.",
   "OneUptime AI's Scrub Rule Input Hash": "Input-hash for OneUptime AI's scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's scrub-regler",
+  "Enter the code from the message we sent.": "Indtast koden fra den besked, vi sendte.",
+  "Sign in again, then verify this notification method.": "Log ind igen, og bekræft derefter denne notifikationsmetode.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Den kode er ikke rigtig. Indtast koden fra den seneste besked, vi sendte, eller send en ny kode.",
+  "The request did not say which notification method to test. Reload the page and try again.": "Anmodningen angav ikke, hvilken notifikationsmetode der skulle testes. Genindlæs siden, og prøv igen.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "Anmodningen angav ikke, hvilken notifikationsmetode der skulle bekræftes. Genindlæs siden, og prøv igen.",
+  "This notification method is already verified. You can close this dialog.": "Denne notifikationsmetode er allerede bekræftet. Du kan lukke denne dialog.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Denne notifikationsmetode er ikke længere på din liste. Tilføj den igen, og bekræft den derefter.",
+  "This verification code has expired. Please request a new code.": "Denne bekræftelseskode er udløbet. Anmod om en ny kode.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "For mange forkerte forsøg. Denne bekræftelseskode er ikke længere gyldig. Anmod om en ny kode."
 }

@@ -15,6 +15,7 @@ import {
 } from "../../../Server/Utils/ChannelVerification";
 import TelegramVerificationToken from "../../../Server/Utils/TelegramVerificationToken";
 import ObjectID from "../../../Types/ObjectID";
+import { ChannelVerificationMessages } from "../../../Types/UserNotification/ChannelVerificationMessages";
 import {
   afterEach,
   beforeEach,
@@ -306,7 +307,7 @@ describe("UserTelegramService verification security", () => {
 
       await expect(
         UserTelegramService.getVerificationCode(ITEM_ID),
-      ).rejects.toThrow("Item not found");
+      ).rejects.toThrow(ChannelVerificationMessages.notFound);
     });
   });
 
@@ -436,7 +437,7 @@ describe("UserTelegramService verification security", () => {
 
       await expect(
         UserTelegramService.regenerateVerificationCode(ITEM_ID),
-      ).rejects.toThrow("Item not found");
+      ).rejects.toThrow(ChannelVerificationMessages.notFound);
       expect(update).not.toHaveBeenCalled();
     });
   });

@@ -867,6 +867,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a notification method could not be verified or sent a test (#7272):
+   * the server's refusals, which the verify dialog and a Send Test's dialog
+   * say in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
+    kind: "keys",
+  },
+  /*
    * Why a data check or a reconciliation was not written, added or set up
    * (#7530): the server's refusals, which Write a Check from a Sentence,
    * Suggested Checks and the Reconciliations page say in the reader's

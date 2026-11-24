@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
-  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
+  "Enter the code from the message we sent.": "お送りしたメッセージに記載のコードを入力してください。",
+  "Sign in again, then verify this notification method.": "もう一度サインインしてから、この通知方法を確認してください。",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "そのコードは正しくありません。最新のメッセージに記載のコードを入力するか、新しいコードを送信してください。",
+  "The request did not say which notification method to test. Reload the page and try again.": "テストする通知方法がリクエストで指定されていませんでした。ページを再読み込みして、もう一度お試しください。",
+  "The request did not say which notification method to verify. Reload the page and try again.": "確認する通知方法がリクエストで指定されていませんでした。ページを再読み込みして、もう一度お試しください。",
+  "This notification method is already verified. You can close this dialog.": "この通知方法はすでに確認済みです。このダイアログは閉じてかまいません。",
+  "This notification method is not in your list any more. Add it again, then verify it.": "この通知方法はリストにありません。もう一度追加してから確認してください。",
+  "This verification code has expired. Please request a new code.": "この確認コードは有効期限が切れています。新しいコードをリクエストしてください。",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "誤った入力が多すぎます。この確認コードは無効になりました。新しいコードをリクエストしてください。"
 }

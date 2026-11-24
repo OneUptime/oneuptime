@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда и, если они ему переданы, адреса его хоста — в том виде, в каком зонд перечисляет их при каждом выходе на связь. События безопасности откладывают в сторону собственные опросы, обнаружение и проверки мониторов зонда с этих адресов, а список блокировки никогда их не блокирует.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует.",
   "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI",
+  "Enter the code from the message we sent.": "Введите код из сообщения, которое мы отправили.",
+  "Sign in again, then verify this notification method.": "Войдите снова, затем подтвердите этот способ уведомления.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Этот код неверен. Введите код из последнего отправленного нами сообщения или отправьте новый код.",
+  "The request did not say which notification method to test. Reload the page and try again.": "В запросе не указано, какой способ уведомления нужно протестировать. Перезагрузите страницу и повторите попытку.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "В запросе не указано, какой способ уведомления нужно подтвердить. Перезагрузите страницу и повторите попытку.",
+  "This notification method is already verified. You can close this dialog.": "Этот способ уведомления уже подтверждён. Можно закрыть это окно.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Этого способа уведомления больше нет в вашем списке. Добавьте его снова, затем подтвердите.",
+  "This verification code has expired. Please request a new code.": "Срок действия этого кода подтверждения истёк. Запросите новый код.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Слишком много неверных попыток. Этот код подтверждения больше не действует. Запросите новый код."
 }

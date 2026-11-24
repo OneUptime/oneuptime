@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
+  "Enter the code from the message we sent.": "Enter the code from the message we sent.",
+  "Sign in again, then verify this notification method.": "Sign in again, then verify this notification method.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+  "The request did not say which notification method to test. Reload the page and try again.": "The request did not say which notification method to test. Reload the page and try again.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "The request did not say which notification method to verify. Reload the page and try again.",
+  "This notification method is already verified. You can close this dialog.": "This notification method is already verified. You can close this dialog.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "This notification method is not in your list any more. Add it again, then verify it.",
+  "This verification code has expired. Please request a new code.": "This verification code has expired. Please request a new code.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Too many incorrect attempts. This verification code is no longer valid. Please request a new code."
 }

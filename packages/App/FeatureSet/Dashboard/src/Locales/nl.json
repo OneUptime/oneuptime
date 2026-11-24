@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "De adressen op de netwerkinterfaces van deze sonde, en die van de host wanneer die aan de sonde worden doorgegeven, zoals de sonde ze bij elke melding opsomt. Beveiligingsgebeurtenissen zet de eigen polls, detecties en monitorcontroles van de sonde vanaf deze adressen apart, en de blokkeerlijst blokkeert ze nooit.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Het adres van waaruit OneUptime deze sonde ziet melden. De blokkeerlijst blokkeert het nooit.",
   "OneUptime AI's Scrub Rule Input Hash": "Invoerhash van de scrub-regels van OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI",
+  "Enter the code from the message we sent.": "Voer de code in uit het bericht dat we hebben gestuurd.",
+  "Sign in again, then verify this notification method.": "Meld u opnieuw aan en verifieer daarna deze meldingsmethode.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Die code klopt niet. Voer de code in uit het laatste bericht dat we hebben gestuurd, of stuur een nieuwe code.",
+  "The request did not say which notification method to test. Reload the page and try again.": "In het verzoek stond niet welke meldingsmethode getest moest worden. Laad de pagina opnieuw en probeer het nog eens.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "In het verzoek stond niet welke meldingsmethode geverifieerd moest worden. Laad de pagina opnieuw en probeer het nog eens.",
+  "This notification method is already verified. You can close this dialog.": "Deze meldingsmethode is al geverifieerd. U kunt dit dialoogvenster sluiten.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Deze meldingsmethode staat niet meer in uw lijst. Voeg hem opnieuw toe en verifieer hem daarna.",
+  "This verification code has expired. Please request a new code.": "Deze verificatiecode is verlopen. Vraag een nieuwe code aan.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Te veel onjuiste pogingen. Deze verificatiecode is niet meer geldig. Vraag een nieuwe code aan."
 }

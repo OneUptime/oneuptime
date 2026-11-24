@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探测器网络接口上的地址，以及在告知它时其主机的地址，即探测器每次上报时列出的地址。安全事件会将探测器自身从这些地址发出的轮询、发现和监控检查单独搁置，封禁列表也从不封禁它们。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理规则输入哈希",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则",
+  "Enter the code from the message we sent.": "请输入我们发送的消息中的验证码。",
+  "Sign in again, then verify this notification method.": "请重新登录，然后验证此通知方式。",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "该验证码不正确。请输入我们最近发送的消息中的验证码，或发送新验证码。",
+  "The request did not say which notification method to test. Reload the page and try again.": "请求未指明要测试哪个通知方式。请重新加载页面，然后重试。",
+  "The request did not say which notification method to verify. Reload the page and try again.": "请求未指明要验证哪个通知方式。请重新加载页面，然后重试。",
+  "This notification method is already verified. You can close this dialog.": "此通知方式已验证。您可以关闭此对话框。",
+  "This notification method is not in your list any more. Add it again, then verify it.": "此通知方式已不在您的列表中。请重新添加，然后进行验证。",
+  "This verification code has expired. Please request a new code.": "此验证码已过期。请申请新的验证码。",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "错误尝试次数过多。此验证码已失效。请申请新的验证码。"
 }

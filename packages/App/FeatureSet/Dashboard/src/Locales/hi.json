@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
-  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम"
+  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम",
+  "Enter the code from the message we sent.": "हमारे भेजे गए संदेश में दिया कोड दर्ज करें।",
+  "Sign in again, then verify this notification method.": "फिर से साइन इन करें, फिर इस सूचना विधि को सत्यापित करें।",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "वह कोड सही नहीं है। हमारे भेजे गए सबसे नए संदेश का कोड दर्ज करें, या नया कोड भेजें।",
+  "The request did not say which notification method to test. Reload the page and try again.": "अनुरोध में यह नहीं बताया गया कि किस सूचना विधि का परीक्षण करना है। पेज दोबारा लोड करें और फिर से कोशिश करें।",
+  "The request did not say which notification method to verify. Reload the page and try again.": "अनुरोध में यह नहीं बताया गया कि किस सूचना विधि को सत्यापित करना है। पेज दोबारा लोड करें और फिर से कोशिश करें।",
+  "This notification method is already verified. You can close this dialog.": "यह सूचना विधि पहले से सत्यापित है। आप यह डायलॉग बंद कर सकते हैं।",
+  "This notification method is not in your list any more. Add it again, then verify it.": "यह सूचना विधि अब आपकी सूची में नहीं है। इसे फिर से जोड़ें, फिर सत्यापित करें।",
+  "This verification code has expired. Please request a new code.": "इस सत्यापन कोड की अवधि समाप्त हो गई है। कृपया नया कोड मांगें।",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "बहुत अधिक गलत प्रयास हुए। यह सत्यापन कोड अब मान्य नहीं है। कृपया नया कोड मांगें।"
 }

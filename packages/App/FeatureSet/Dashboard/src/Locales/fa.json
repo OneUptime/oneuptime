@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
   "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI",
+  "Enter the code from the message we sent.": "کد موجود در پیامی را که فرستادیم وارد کنید.",
+  "Sign in again, then verify this notification method.": "دوباره وارد شوید و سپس این روش اعلان را تأیید کنید.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "این کد درست نیست. کد آخرین پیامی را که فرستادیم وارد کنید یا کد جدیدی بفرستید.",
+  "The request did not say which notification method to test. Reload the page and try again.": "در درخواست مشخص نشده بود کدام روش اعلان آزمایش شود. صفحه را دوباره بارگذاری کنید و دوباره امتحان کنید.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "در درخواست مشخص نشده بود کدام روش اعلان تأیید شود. صفحه را دوباره بارگذاری کنید و دوباره امتحان کنید.",
+  "This notification method is already verified. You can close this dialog.": "این روش اعلان از قبل تأیید شده است. می‌توانید این پنجره را ببندید.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "این روش اعلان دیگر در فهرست شما نیست. آن را دوباره اضافه کنید و سپس تأییدش کنید.",
+  "This verification code has expired. Please request a new code.": "این کد تأیید منقضی شده است. لطفاً کد جدیدی درخواست کنید.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "تلاش‌های نادرست بیش از حد بوده است. این کد تأیید دیگر معتبر نیست. لطفاً کد جدیدی درخواست کنید."
 }

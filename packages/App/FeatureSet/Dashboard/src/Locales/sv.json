@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, och värdens när den får dem, så som sonden listar dem varje gång den hör av sig. Säkerhetshändelser lägger sondens egna avfrågningar, upptäckter och monitorkontroller från dessa adresser åt sidan, och blocklistan blockerar dem aldrig.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen som OneUptime ser den här sonden höra av sig från. Blocklistan blockerar den aldrig.",
   "OneUptime AI's Scrub Rule Input Hash": "Inmatningshash för OneUptime AI:s scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler",
+  "Enter the code from the message we sent.": "Ange koden från meddelandet vi skickade.",
+  "Sign in again, then verify this notification method.": "Logga in igen och verifiera sedan den här aviseringsmetoden.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Den koden stämmer inte. Ange koden från det senaste meddelandet vi skickade, eller skicka en ny kod.",
+  "The request did not say which notification method to test. Reload the page and try again.": "Begäran angav inte vilken aviseringsmetod som skulle testas. Läs in sidan igen och försök igen.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "Begäran angav inte vilken aviseringsmetod som skulle verifieras. Läs in sidan igen och försök igen.",
+  "This notification method is already verified. You can close this dialog.": "Den här aviseringsmetoden är redan verifierad. Du kan stänga den här dialogrutan.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Den här aviseringsmetoden finns inte längre i din lista. Lägg till den igen och verifiera den sedan.",
+  "This verification code has expired. Please request a new code.": "Den här verifieringskoden har gått ut. Begär en ny kod.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "För många felaktiga försök. Den här verifieringskoden är inte längre giltig. Begär en ny kod."
 }

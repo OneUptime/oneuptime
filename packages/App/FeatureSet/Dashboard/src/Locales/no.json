@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adressene på nettverksgrensesnittene til denne sonden, og vertens når den får dem oppgitt, slik sonden lister dem hver gang den sender livstegn. Sikkerhetshendelser legger sondens egne avspørringer, oppdagelser og monitorsjekker fra disse adressene til side, og blokkeringslisten blokkerer dem aldri.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen OneUptime ser at denne sonden sender livstegn fra. Blokkeringslisten blokkerer den aldri.",
   "OneUptime AI's Scrub Rule Input Hash": "Input-hash for OneUptime AI-scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler",
+  "Enter the code from the message we sent.": "Skriv inn koden fra meldingen vi sendte.",
+  "Sign in again, then verify this notification method.": "Logg på igjen, og verifiser deretter denne varslingsmetoden.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Den koden er ikke riktig. Skriv inn koden fra den siste meldingen vi sendte, eller send en ny kode.",
+  "The request did not say which notification method to test. Reload the page and try again.": "Forespørselen sa ikke hvilken varslingsmetode som skulle testes. Last inn siden på nytt, og prøv igjen.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "Forespørselen sa ikke hvilken varslingsmetode som skulle verifiseres. Last inn siden på nytt, og prøv igjen.",
+  "This notification method is already verified. You can close this dialog.": "Denne varslingsmetoden er allerede verifisert. Du kan lukke denne dialogen.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Denne varslingsmetoden er ikke lenger i listen din. Legg den til på nytt, og verifiser den deretter.",
+  "This verification code has expired. Please request a new code.": "Denne verifiseringskoden er utløpt. Be om en ny kode.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "For mange feil forsøk. Denne verifiseringskoden er ikke lenger gyldig. Be om en ny kode."
 }

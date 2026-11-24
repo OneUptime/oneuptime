@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
-  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
+  "Enter the code from the message we sent.": "보내드린 메시지에 있는 코드를 입력하세요.",
+  "Sign in again, then verify this notification method.": "다시 로그인한 다음 이 알림 방법을 인증하세요.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "코드가 올바르지 않습니다. 가장 최근에 보내드린 메시지의 코드를 입력하거나 새 코드를 보내세요.",
+  "The request did not say which notification method to test. Reload the page and try again.": "요청에 테스트할 알림 방법이 지정되지 않았습니다. 페이지를 새로 고친 후 다시 시도하세요.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "요청에 인증할 알림 방법이 지정되지 않았습니다. 페이지를 새로 고친 후 다시 시도하세요.",
+  "This notification method is already verified. You can close this dialog.": "이 알림 방법은 이미 인증되었습니다. 이 대화 상자를 닫아도 됩니다.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "이 알림 방법이 더 이상 목록에 없습니다. 다시 추가한 다음 인증하세요.",
+  "This verification code has expired. Please request a new code.": "이 인증 코드는 만료되었습니다. 새 코드를 요청하세요.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "잘못된 시도가 너무 많습니다. 이 인증 코드는 더 이상 유효하지 않습니다. 새 코드를 요청하세요."
 }

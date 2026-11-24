@@ -10,6 +10,9 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import UserTelegram from "../../../Models/DatabaseModels/UserTelegram";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { meetsErrorMessageRule } from "../../../Types/Exception/ErrorMessageRule";
+import { ChannelVerificationMessages } from "../../../Types/UserNotification/ChannelVerificationMessages";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
 import ObjectID from "../../../Types/ObjectID";
 import { mockRouter } from "./Helpers";
@@ -147,7 +150,9 @@ describe("UserTelegramAPI security", () => {
     expect(Response.sendErrorResponse).toHaveBeenCalledWith(
       request,
       response,
-      expect.objectContaining({ message: "Item not found" }),
+      expect.objectContaining({
+        message: ChannelVerificationMessages.notFound,
+      }),
     );
   });
 
@@ -164,7 +169,9 @@ describe("UserTelegramAPI security", () => {
     expect(Response.sendErrorResponse).toHaveBeenCalledWith(
       request,
       response,
-      expect.objectContaining({ message: "Item not found" }),
+      expect.objectContaining({
+        message: ChannelVerificationMessages.notFound,
+      }),
     );
   });
 
@@ -207,7 +214,9 @@ describe("UserTelegramAPI security", () => {
     expect(Response.sendErrorResponse).toHaveBeenCalledWith(
       request,
       response,
-      expect.objectContaining({ message: "Invalid user ID" }),
+      expect.objectContaining({
+        message: ChannelVerificationMessages.notFound,
+      }),
     );
   });
 
@@ -227,5 +236,89 @@ describe("UserTelegramAPI security", () => {
       request,
       response,
     );
+  });
+
+  /*
+   * #7272: the routes answered "Invalid item ID", "Item not found" and
+   * "Invalid user ID", and told somebody else's chat ("Invalid user ID")
+   * apart from one that does not exist ("Item not found"). Each now says
+   * what happened and what to do next, and somebody else's chat reads
+   * exactly as a missing one.
+   */
+  const refusalOf: () => BadDataException = (): BadDataException => {
+    const calls: Array<Array<unknown>> = (
+      Response.sendErrorResponse as jest.Mock
+    ).mock.calls as Array<Array<unknown>>;
+
+    expect(calls).toHaveLength(1);
+
+    return calls[0]![2] as BadDataException;
+  };
+
+  test.each([[VERIFICATION_INFO_ROUTE], [RESEND_ROUTE]])(
+    "%s answers somebody else's chat exactly as one that does not exist",
+    async (route: string) => {
+      jest.spyOn(UserTelegramService, "findOneById").mockResolvedValue(null);
+
+      await call(route);
+
+      const missing: BadDataException = refusalOf();
+
+      (Response.sendErrorResponse as jest.Mock).mockClear();
+      jest
+        .spyOn(UserTelegramService, "findOneById")
+        .mockResolvedValue(item({ userId: OTHER_USER_ID }) as never);
+
+      await call(route);
+
+      const notTheirs: BadDataException = refusalOf();
+
+      expect(notTheirs).toBeInstanceOf(BadDataException);
+      expect(missing).toBeInstanceOf(BadDataException);
+      expect({
+        message: notTheirs.message,
+        code: notTheirs.code,
+      }).toEqual({ message: missing.message, code: missing.code });
+      expect(notTheirs.message).toBe(ChannelVerificationMessages.notFound);
+      expect(UserTelegramService.getVerificationCode).not.toHaveBeenCalled();
+      expect(
+        UserTelegramService.regenerateVerificationCode,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([[VERIFICATION_INFO_ROUTE], [RESEND_ROUTE]])(
+    "%s says which method to verify was not named, before reading any row",
+    async (route: string) => {
+      request.body = {};
+
+      await call(route);
+
+      expect(refusalOf().message).toBe(ChannelVerificationMessages.noItem);
+      expect(UserTelegramService.findOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([[VERIFICATION_INFO_ROUTE], [RESEND_ROUTE]])(
+    "%s tells a request that names nobody to sign in again, before reading any row",
+    async (route: string) => {
+      request.userAuthorization = undefined;
+
+      await call(route);
+
+      expect(refusalOf().message).toBe(ChannelVerificationMessages.notSignedIn);
+      expect(UserTelegramService.findOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test("every refusal says what happened and what to do next, and names no field", () => {
+    for (const message of [
+      ChannelVerificationMessages.noItem,
+      ChannelVerificationMessages.notSignedIn,
+      ChannelVerificationMessages.notFound,
+    ]) {
+      expect(meetsErrorMessageRule(message)).toBe(true);
+      expect(message).not.toMatch(/\b(itemId|userId|ID|Invalid|Item)\b/);
+    }
   });
 });

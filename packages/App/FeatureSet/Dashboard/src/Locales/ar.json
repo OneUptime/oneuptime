@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
+  "Enter the code from the message we sent.": "أدخل الرمز الوارد في الرسالة التي أرسلناها.",
+  "Sign in again, then verify this notification method.": "سجّل الدخول مرة أخرى، ثم تحقّق من طريقة الإشعار هذه.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "هذا الرمز غير صحيح. أدخل الرمز الوارد في أحدث رسالة أرسلناها، أو أرسل رمزًا جديدًا.",
+  "The request did not say which notification method to test. Reload the page and try again.": "لم يحدد الطلب طريقة الإشعار المراد اختبارها. أعد تحميل الصفحة، ثم حاول مرة أخرى.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "لم يحدد الطلب طريقة الإشعار المراد التحقق منها. أعد تحميل الصفحة، ثم حاول مرة أخرى.",
+  "This notification method is already verified. You can close this dialog.": "تم التحقق من طريقة الإشعار هذه بالفعل. يمكنك إغلاق مربع الحوار هذا.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "لم تعد طريقة الإشعار هذه في قائمتك. أضفها مرة أخرى، ثم تحقّق منها.",
+  "This verification code has expired. Please request a new code.": "انتهت صلاحية رمز التحقق هذا. اطلب رمزًا جديدًا.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "محاولات خاطئة كثيرة جدًا. لم يعد رمز التحقق هذا صالحًا. اطلب رمزًا جديدًا."
 }

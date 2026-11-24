@@ -63684,5 +63684,14 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie.",
   "OneUptime AI's Scrub Rule Input Hash": "Eingabe-Hash der Scrub-Regeln von OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI",
+  "Enter the code from the message we sent.": "Geben Sie den Code aus der Nachricht ein, die wir gesendet haben.",
+  "Sign in again, then verify this notification method.": "Melden Sie sich erneut an und verifizieren Sie dann diese Benachrichtigungsmethode.",
+  "That code is not right. Enter the code from the latest message we sent, or send a new code.": "Dieser Code ist nicht richtig. Geben Sie den Code aus der letzten Nachricht ein, die wir gesendet haben, oder senden Sie einen neuen Code.",
+  "The request did not say which notification method to test. Reload the page and try again.": "In der Anfrage stand nicht, welche Benachrichtigungsmethode getestet werden soll. Laden Sie die Seite neu und versuchen Sie es erneut.",
+  "The request did not say which notification method to verify. Reload the page and try again.": "In der Anfrage stand nicht, welche Benachrichtigungsmethode verifiziert werden soll. Laden Sie die Seite neu und versuchen Sie es erneut.",
+  "This notification method is already verified. You can close this dialog.": "Diese Benachrichtigungsmethode ist bereits verifiziert. Sie können diesen Dialog schließen.",
+  "This notification method is not in your list any more. Add it again, then verify it.": "Diese Benachrichtigungsmethode ist nicht mehr in Ihrer Liste. Fügen Sie sie erneut hinzu und verifizieren Sie sie dann.",
+  "This verification code has expired. Please request a new code.": "Dieser Verifizierungscode ist abgelaufen. Fordern Sie bitte einen neuen Code an.",
+  "Too many incorrect attempts. This verification code is no longer valid. Please request a new code.": "Zu viele falsche Versuche. Dieser Verifizierungscode ist nicht mehr gültig. Fordern Sie bitte einen neuen Code an."
 }
