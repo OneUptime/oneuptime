@@ -1041,7 +1041,8 @@ describe("SyntheticMonitorWorker full process boundary", () => {
                     (await axios.get("http://169.254.169.254/latest/meta-data/")).data);
                   await attempt("axiosPrivate", async () =>
                     (await axios.get("http://10.23.45.67:" + ${JSON.stringify(new URL(targetUrl).port)} + "/")).data);
-                  out.gotoLoopback = (await page.goto(${JSON.stringify(loopbackUrl)} + "/secret")).status();
+                  await attempt("gotoLoopback", async () =>
+                    (await page.goto(${JSON.stringify(loopbackUrl)} + "/secret")).status());
                   out.gotoPublic = (await page.goto(${JSON.stringify(targetUrl)})).status();
                   out.title = await page.title();
                   out.fetchLoopback = await page.evaluate(async (url) => {
@@ -1071,7 +1072,9 @@ describe("SyntheticMonitorWorker full process boundary", () => {
               "refused: Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
             axiosPrivate:
               "refused: Monitor target host 10.23.45.67 is not allowed: private network address. Global probes cannot monitor private network addresses. Deploy and select a private probe for this target.",
-            gotoLoopback: 403,
+            // The navigation fails with the probe's reason, as axios does.
+            gotoLoopback:
+              "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
             gotoPublic: 200,
             title: "Synthetic target",
             fetchLoopback: "failed",
@@ -1110,7 +1113,8 @@ describe("SyntheticMonitorWorker full process boundary", () => {
                     (await axios.get(${JSON.stringify(privateUrl)}, { responseType: "text" })).status);
                   await attempt("axiosLoopback", async () =>
                     (await axios.get(${JSON.stringify(loopbackUrl)})).data);
-                  out.gotoLoopback = (await page.goto(${JSON.stringify(loopbackUrl)})).status();
+                  await attempt("gotoLoopback", async () =>
+                    (await page.goto(${JSON.stringify(loopbackUrl)})).status());
                   return { data: out };
                 `,
                 timeoutInMs: 60_000,
@@ -1133,7 +1137,8 @@ describe("SyntheticMonitorWorker full process boundary", () => {
             axiosPrivate: 200,
             axiosLoopback:
               "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
-            gotoLoopback: 403,
+            gotoLoopback:
+              "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
           },
         });
         expect(loopbackConnections).toBe(before);
