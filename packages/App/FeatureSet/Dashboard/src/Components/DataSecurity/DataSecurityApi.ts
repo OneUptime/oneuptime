@@ -1,3 +1,7 @@
+import {
+  DESCRIBE_DATA_TYPE_ROUTE,
+  DescribeDataTypeRequest,
+} from "Common/Types/DataSecurity/DataTypeDescribe";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -616,6 +620,22 @@ export default class DataSecurityApi {
     return await post(
       DATA_SECURITY_API_ROUTES.undoAiProposal(proposalId.toString()),
     );
+  }
+
+  /*
+   * Describe It (#10371): the data type form's values, drafted by OneUptime
+   * AI from a sentence and the shapes of the person's examples - never the
+   * examples. Nothing is saved.
+   */
+  public static async describeDataType(
+    request: DescribeDataTypeRequest,
+  ): Promise<JSONObject> {
+    const answer: JSONObject = await post(DESCRIBE_DATA_TYPE_ROUTE, request);
+    const values: JSONValue | undefined = answer["dataType"];
+
+    return values && typeof values === "object" && !Array.isArray(values)
+      ? (values as JSONObject)
+      : {};
   }
 
   /*

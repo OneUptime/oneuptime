@@ -1000,8 +1000,9 @@ describe("voicemail answered, at the end of its greeting", () => {
     await answeredBy("machine_end_beep");
 
     expect(callUpdates).toHaveLength(1);
+    // Written OneUptime, which the call's TwiML says as two words (CallSpeech).
     expect(callUpdates[0]!.twiml).toBe(
-      "<Response><Say>This is a call from One Uptime about an on-call page. Open One Uptime to respond. Good bye.</Say><Hangup/></Response>",
+      "<Response><Say>This is a call from OneUptime about an on-call page. Open OneUptime to respond. Good bye.</Say><Hangup/></Response>",
     );
     expect(storedLog!.statusMessage).toBe(LEFT);
   });

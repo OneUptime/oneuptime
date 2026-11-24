@@ -34,6 +34,7 @@ import {
   doesFormRuleHideAddresses,
   LOG_SCRUB_RULE_FORM_OPTIONS,
   getLogScrubRuleFormFields,
+  withAttributeKeysOneALine,
 } from "../../../Components/Telemetry/ScrubRuleForm";
 import HashInsteadNotice, {
   HashInsteadFormNote,
@@ -361,6 +362,15 @@ const LogScrubRules: FunctionComponent<
       }}
       noItemsMessage={"No scrub rules yet."}
       formFields={formFields}
+      /*
+       * The attributes a rule names, one a line, as its form's fields take
+       * them (#10751).
+       */
+      onEditFormItemFetched={async (
+        item: LogScrubRule,
+      ): Promise<LogScrubRule> => {
+        return withAttributeKeysOneALine(item);
+      }}
       onFetchSuccess={(rules: Array<LogScrubRule>) => {
         valueCounts.setRuleIds(
           rules

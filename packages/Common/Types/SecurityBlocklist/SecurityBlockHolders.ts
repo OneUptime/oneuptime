@@ -43,6 +43,8 @@ export const SECURITY_BLOCK_SAMPLE_VALUES: Readonly<
   [SecurityBlockIndicatorType.FileSha256]: "a".repeat(64),
   [SecurityBlockIndicatorType.FileSha1]: "a".repeat(40),
   [SecurityBlockIndicatorType.FileMd5]: "a".repeat(32),
+  // A documentation ASN (RFC 5398).
+  [SecurityBlockIndicatorType.Asn]: "AS64500",
 };
 
 /*
@@ -125,6 +127,11 @@ export function getSecurityBlockUnheldMessage(data: {
   action: SecurityBlockAction;
   reach: SecurityBlockReach;
 }): string | null {
+  // A whole network by its ASN (#10354): only an edge that knows a request's ASN holds it.
+  if (data.indicatorType === SecurityBlockIndicatorType.Asn) {
+    return "Nothing you have connected blocks or challenges a network by its ASN. Turn on Block Addresses on your Cloudflare connection, or challenge one of the network's ranges instead.";
+  }
+
   if (isSecurityBlockAddressType(data.indicatorType)) {
     return data.reach === SecurityBlockReach.Everywhere
       ? "Nothing you have connected blocks an address on every machine. Turn on Block domains, addresses and files with Defender on your Microsoft Defender XDR connection, or block the address at the edge."

@@ -22,16 +22,17 @@ import { MemoryRouter } from "react-router-dom";
  * as the server would:
  *
  *   - once the resource is found, a section named after the provider's
- *     service shows what it measured - each platform's own figures, Cloud
- *     Run's and App Engine's server errors read from their request count
- *     by response code - and links to the resource's own page;
+ *     service shows what it measured - each platform's own figures, a
+ *     Container App's, Cloud Run's and App Engine's server errors read from
+ *     their request count by response code (#10837) - and links to the
+ *     resource's own page;
  *   - the Setup check's row for it says Checking while it is looked up,
  *     Connected once it is found, Not connected with what to connect, or
  *     what is looked for, while it is not - and is left out when the
  *     look-up fails;
  *   - where the section shows CPU and memory, the app's own CPU and Memory
- *     tiles, which would only say "Not reported" above them, give way; an
- *     App Engine app, whose section has neither, keeps them.
+ *     tiles, which would only say "Not reported" above them, give way - an
+ *     App Engine app's too, since its section shows both (#10838).
  */
 
 jest.mock("react-i18next", () => {
@@ -192,6 +193,7 @@ import {
   CLOUD_APP_PLATFORM_NOT_FOUND_HINT,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 
 const MINUTE_MS: number = 60 * 1000;
 const APP_ID: string = "77000000-0000-4000-8000-000000000001";
@@ -492,10 +494,21 @@ afterEach(() => {
 });
 
 describe("a Container App's Azure Monitor section", () => {
-  test("its requests, response time, CPU, memory and restarts, read by its ARM id - and no 5xx share it does not have", async () => {
+  test("its requests and the 5xx among them by status code category, response time, CPU, memory and restarts, read by its ARM id", async () => {
     mockReads.resources = [resourceOf(CASES["containerApps"]!)];
+    mockReads.groupedValues = {
+      /*
+       * Its Requests, one series per status code category (#10837). The
+       * 4xx are no server errors, and outnumber the 5xx, so a share read
+       * from the wrong category reads otherwise.
+       */
+      azure_requests_total: [
+        { group: "2xx", value: 3990 },
+        { group: "4xx", value: 126 },
+        { group: "5xx", value: 84 },
+      ],
+    };
     mockReads.metricValues = {
-      azure_requests_total: 4200,
       azure_responsetime_average: 85,
       azure_cpupercentage_average: 37.5,
       azure_workingsetbytes_average: 256 * 1024 * 1024,
@@ -514,12 +527,16 @@ describe("a Container App's Azure Monitor section", () => {
     const tiles: Record<string, DrawnTile> = sectionTiles();
     expect(Object.keys(tiles)).toEqual([
       "Requests",
+      "Server errors",
       "Response time",
       "CPU",
       "Memory",
       "Restarts",
     ]);
+    // 4,200 requests, 84 of them a 5xx: 2.0%.
     expect(tiles["Requests"]!.value).toBe("4.2k");
+    expect(tiles["Server errors"]!.value).toBe("2.0%");
+    expect(tiles["Server errors"]!.sublabel).toBe("84 errored");
     expect(tiles["Response time"]!.value).toBe("85\u00A0ms");
     expect(tiles["CPU"]!.value).toBe("37.5%");
     expect(tiles["Memory"]!.value).toBe("256\u00A0MiB");
@@ -532,11 +549,56 @@ describe("a Container App's Azure Monitor section", () => {
           .telemetryAttributes,
       );
     }
+    // Its Requests are read once, by the attribute their category is stored in.
+    expect(
+      mockReads.asks
+        .filter((ask: MetricAsk): boolean => {
+          return ask.name === "azure_requests_total";
+        })
+        .map((ask: MetricAsk): string | undefined => {
+          return ask.groupBy;
+        }),
+    ).toEqual(["metadata_statuscodecategory"]);
     expect(
       screen
         .getByTestId("cloud-app-platform-monitor-open")
         .getAttribute("href"),
     ).toContain(RESOURCE_ID);
+    // Six tiles: two rows of three, until all six fit on one.
+    expect(
+      screen.getByTestId("cloud-app-platform-monitor-tiles").className,
+    ).toContain("[@container(min-width:80rem)]:grid-cols-6");
+  });
+
+  test("requests and no 5xx category: 0% server errors, read, not unknown", async () => {
+    mockReads.resources = [resourceOf(CASES["containerApps"]!)];
+    mockReads.groupedValues = {
+      azure_requests_total: [
+        { group: "2xx", value: 300 },
+        { group: "4xx", value: 12 },
+      ],
+    };
+
+    await renderCase(CASES["containerApps"]!);
+
+    expect(sectionTiles()["Requests"]!.value).toBe("312");
+    expect(sectionTiles()["Server errors"]!.value).toBe("0.0%");
+  });
+
+  test("requests stored whole, before they were split by category, count - and their share is unknown, never 0%", async () => {
+    mockReads.resources = [resourceOf(CASES["containerApps"]!)];
+    mockReads.groupedValues = {
+      // Read before #10837: no category on any of them.
+      azure_requests_total: [{ group: "", value: 4200 }],
+    };
+
+    await renderCase(CASES["containerApps"]!);
+
+    const tiles: Record<string, DrawnTile> = sectionTiles();
+    expect(tiles["Requests"]!.value).toBe("4.2k");
+    expect(tiles["Server errors"]!.value).not.toContain("%");
+    expect(tiles["Server errors"]!.value).toContain(EMPTY_VALUE_MARK);
+    expect(tiles["Server errors"]!.sublabel).toBe("");
   });
 
   test("its Setup row is Azure Monitor's, Connected, and its own CPU and Memory tiles give way", async () => {
@@ -643,7 +705,7 @@ describe("a Cloud Run service's Google Cloud Monitoring section", () => {
 });
 
 describe("an App Engine service's Google Cloud Monitoring section", () => {
-  test("its requests and the 500s to 599s among its response codes, and its p95 - and the app keeps its own CPU and Memory tiles", async () => {
+  test("its requests and the 500s to 599s among its response codes, its p95, CPU and memory - and the app's own CPU and Memory tiles give way", async () => {
     mockReads.resources = [resourceOf(CASES["appEngine"]!)];
     mockReads.groupedValues = {
       "appengine.googleapis.com/http/server/response_count": [
@@ -654,6 +716,9 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
     };
     mockReads.metricValues = {
       "appengine.googleapis.com/http/server/response_latencies": 64,
+      // A ratio of 1: 0.27 is 27% (#10838).
+      "appengine.googleapis.com/system/cpu/utilization": 0.27,
+      "appengine.googleapis.com/system/memory/usage": 384 * 1024 * 1024,
     };
 
     await renderCase(CASES["appEngine"]!);
@@ -663,20 +728,26 @@ describe("an App Engine service's Google Cloud Monitoring section", () => {
       "Requests",
       "Server errors",
       "p95 latency",
+      "CPU",
+      "Memory",
     ]);
     // 585 requests, 30 of them a 503 - the 404s are not server errors: 5.1%.
     expect(tiles["Requests"]!.value).toBe("585");
     expect(tiles["Server errors"]!.value).toBe("5.1%");
     expect(tiles["p95 latency"]!.value).toBe("64\u00A0ms");
+    expect(tiles["CPU"]!.value).toBe("27.0%");
+    expect(tiles["Memory"]!.value).toBe("384\u00A0MiB");
+    // Five tiles fill one row.
+    expect(
+      screen.getByTestId("cloud-app-platform-monitor-tiles").className,
+    ).toContain("[@container(min-width:64rem)]:grid-cols-5");
 
-    // No CPU or memory of an App Engine app is read yet (#10838): its own tiles stay.
+    // The section shows the app's CPU and memory: its own two tiles give way.
     expect(appTileTitles()).toEqual([
       "Requests",
       "Error rate",
       "p95 latency",
       "Instances",
-      "CPU",
-      "Memory",
     ]);
     expect(
       mockReads.asks.find((ask: MetricAsk): boolean => {

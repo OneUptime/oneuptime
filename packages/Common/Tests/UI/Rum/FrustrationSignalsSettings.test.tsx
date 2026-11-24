@@ -28,6 +28,7 @@ import {
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Gray500, Yellow } from "../../../Types/BrandColors";
 import { getPillColors } from "../../../UI/Components/Pill/PillColors";
+import { INPUT_REFUSED_CLASS_NAME } from "../../../UI/Components/Input/Input";
 import Navigation from "../../../UI/Utils/Navigation";
 
 /*
@@ -532,6 +533,11 @@ describe("changing a rule", () => {
     expect(reason).toHaveTextContent("Enter a whole number from 3 to 10.");
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input.getAttribute("aria-describedby")).toContain(reason.id);
+    /*
+     * And the refused number is drawn so, with the red border a refused
+     * text field has: three numbers sit side by side here (#6520).
+     */
+    expect(input).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
 
     const field: HTMLElement = reason.parentElement as HTMLElement;
     const unit: HTMLElement = within(field).getByText("clicks or more");
@@ -554,6 +560,7 @@ describe("changing a rule", () => {
       screen.queryByTestId("frustration-signal-rageClick-clickCount-error"),
     ).toBeNull();
     expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveClass("border-red-300");
   });
 
   test("the rule's buttons start under its fields, and the selectors' box is a few selectors wide and described by its hint", async () => {

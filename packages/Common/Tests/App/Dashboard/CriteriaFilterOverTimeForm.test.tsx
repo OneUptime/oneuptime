@@ -229,6 +229,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
         "Count",
         "Percentage",
         "Status Changes",
+        "Previous Check",
       ]);
     });
 
@@ -258,6 +259,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
         "Count",
         "Percentage",
         "Status Changes",
+        "Previous Check",
       ]);
     });
 

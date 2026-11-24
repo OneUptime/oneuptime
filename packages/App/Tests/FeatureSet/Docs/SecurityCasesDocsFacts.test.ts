@@ -149,6 +149,7 @@ import {
   BLOCK_FROM_CASE_MENU_ITEM,
   BLOCK_HELP_SHOW,
   BLOCK_UNTIL_LIFTED,
+  LINK_PULL_REQUEST,
   RESPONSE_BY_HAND,
   RESPONSE_PHASE_TITLES,
   RESPONSE_TITLE,
@@ -253,7 +254,10 @@ import {
   FIX_ROUTE_WATCH_DAYS,
 } from "Common/Server/Utils/SecurityCase/StepChecks/FixRouteStepCheck";
 import { getStepCheck } from "Common/Server/Utils/SecurityCase/StepChecks/StepCheckRegistry";
-import { ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION } from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
+import {
+  ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+  ENTRA_ID_DIRECTORY_READ_PERMISSION,
+} from "Common/Server/Utils/SecurityEvent/Response/MicrosoftEntraIdResponseClient";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import SecurityCaseStepCheckState, {
   SECURITY_CASE_STEP_CHECK_STATES,
@@ -915,15 +919,19 @@ describe("Security Cases and Playbooks docs", () => {
       "fix:public-app",
       "fix:credentials",
       "fix:brute-force",
+      // What the attack changed on accounts is read back too (#10603).
+      "fix:account-changes",
     ]) {
       expect(getStepCheck(kind)?.kind).toBe(kind);
     }
-    expect(getStepCheck("fix:account-changes")).toBeNull();
+    // A Fix step no check reads stays a person's, and has no row.
+    expect(getStepCheck("fix:persistence")).toBeNull();
     expect(column(steps, 0)).toEqual(
       expect.arrayContaining([
         "Fix the route the attack went to",
         "Reset the password",
         "Make sure the accounts use MFA",
+        "Undo what changed on the account",
       ]),
     );
 
@@ -949,6 +957,32 @@ describe("Security Cases and Playbooks docs", () => {
     );
     expect(flat(section(page, "Responding through OneUptime"))).toContain(
       `Each pull request is kept on the case, and the Response Plan's Fix step reads whether it shipped and turned the attack away: see [How OneUptime checks a step](#how-oneuptime-checks-a-step).`,
+    );
+
+    // A pull request of a person's own, linked on the route's Fix step (#10604), by the button's words.
+    expect(LINK_PULL_REQUEST).toBe("Link Pull Request");
+    expect(checks).toContain(
+      `one you linked with **${LINK_PULL_REQUEST}**, or any deploy`,
+    );
+    expect(checks).toContain(
+      `**${LINK_PULL_REQUEST}**, on the route's Fix step, takes its address.`,
+    );
+    expect(checks).toContain(
+      "Its repository must be connected under Code (GitHub, GitLab, Forgejo or Gitea)",
+    );
+
+    // What the account changes' check says, in the states the card draws (#10603).
+    expect(checks).toContain(
+      `the step looks done, never checked: a change made another way may not be in the case's events`,
+    );
+    for (const state of [
+      SecurityCaseStepCheckState.NotDone,
+      SecurityCaseStepCheckState.Regressed,
+    ]) {
+      expect(checks).toContain(`**${STEP_CHECK_STATE_LABELS[state]}**`);
+    }
+    expect(checks).toContain(
+      `the ${ENTRA_ID_DIRECTORY_READ_PERMISSION} and ${ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION} application permissions`,
     );
 
     // The permission the Entra ID MFA read asks for, as its client names it.

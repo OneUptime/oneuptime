@@ -33,7 +33,7 @@ import YAxis, {
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { ChartColorValue } from "Common/UI/Components/Charts/ChartLibrary/Utils/ChartColors";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -219,13 +219,11 @@ const MerakiUplinkComparison: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title={
-        <span className="inline-flex items-center gap-1.5">
-          {translator.translateText("WAN uplinks")}
-          <InfoTooltip
-            label="WAN uplinks"
-            text={MERAKI_VIEW_HELP.uplinkComparison}
-          />
-        </span>
+        <WordsWithInfoTooltip
+          text={translator.translateText("WAN uplinks") || "WAN uplinks"}
+          label="WAN uplinks"
+          description={MERAKI_VIEW_HELP.uplinkComparison}
+        />
       }
       description="Which uplink carried the traffic, and how each line held up."
       rightElement={

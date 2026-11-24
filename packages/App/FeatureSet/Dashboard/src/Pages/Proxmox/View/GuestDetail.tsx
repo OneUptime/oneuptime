@@ -45,7 +45,7 @@ import {
   formatBytesForChart,
   displayNameForResource,
 } from "../Utils/ProxmoxResourceUtils";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -362,10 +362,14 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                 <div className="mt-4 space-y-6">
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      {translator.translateText("Network Throughput")}
-                      <InfoTooltip
-                        label="Network Throughput"
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
                         text={
+                          translator.translateText("Network Throughput") ||
+                          "Network Throughput"
+                        }
+                        label="Network Throughput"
+                        description={
                           PROXMOX_METRIC_DESCRIPTIONS.guestNetworkThroughput
                         }
                       />
@@ -393,10 +397,16 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
                   </div>
                   <div className="group/zoomhint">
                     <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                      {translator.translateText("Disk Throughput")}
-                      <InfoTooltip
+                      <WordsWithInfoTooltip
+                        className="min-w-0"
+                        text={
+                          translator.translateText("Disk Throughput") ||
+                          "Disk Throughput"
+                        }
                         label="Disk Throughput"
-                        text={PROXMOX_METRIC_DESCRIPTIONS.guestDiskThroughput}
+                        description={
+                          PROXMOX_METRIC_DESCRIPTIONS.guestDiskThroughput
+                        }
                       />
                       <TimeRangeZoomHint
                         revealOnHover={true}

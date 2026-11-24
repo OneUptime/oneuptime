@@ -5,6 +5,7 @@ import TableEmptyValue from "../Table/TableEmptyValue";
 import { showFullValueWhenCutShort } from "../Table/FullValueTitle";
 import {
   TABLE_CARD_LIST_ITEM_CLASS_NAME,
+  TABLE_LIST_ATTRIBUTE,
   TABLE_LIST_ITEM_CLASS_NAME,
 } from "../Table/TableLayout";
 import {
@@ -185,6 +186,14 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
        * (TableLayout's TABLE_SHRINKABLE_ATTRIBUTE).
        */
       data-table-shrinks={isTableCell && !isTableCard ? "true" : undefined}
+      /*
+       * And each item clips its own line, a ring's width outside its words,
+       * so the cell leaves the clip to them (TableLayout's
+       * TABLE_LIST_ATTRIBUTE): a focused resource's ring shows at its sides.
+       */
+      {...(isTableCell && !isTableCard
+        ? { [TABLE_LIST_ATTRIBUTE]: "true" }
+        : {})}
     >
       {firstItems.map((item: TGenericObject, i: number) => {
         return getItem(item, i);

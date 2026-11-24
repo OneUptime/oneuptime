@@ -40,6 +40,15 @@ export interface ComponentProps {
    * does there, so the words and the button fit.
    */
   isCompact?: boolean | undefined;
+  /*
+   * A notice over a page - a banner that only matters now and then, never
+   * the page itself (the explorers' ingestion budget banner, #7167). The
+   * page under it works without it, so a notice whose code will not
+   * download draws its fallback too, as any other failure of it does:
+   * saying in its place that the latest version is loading, and reloading
+   * the page for it, would make a notice the page's business.
+   */
+  isNotice?: boolean | undefined;
 }
 
 /*
@@ -54,7 +63,8 @@ export interface ComponentProps {
  * caller's fallback would blame it: the part says it is loading the latest
  * version instead and the page reloads into it, unless the reader has
  * unsaved changes elsewhere on the page, when it asks first
- * (ChunkLoadRecovery's Part variant).
+ * (ChunkLoadRecovery's Part variant) - unless the part is a notice
+ * (isNotice), which draws its fallback whatever failed.
  */
 const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -79,7 +89,7 @@ const ContainedErrorBoundary: FunctionComponent<ComponentProps> = (
             ? fallbackProps.error
             : new Error(String(fallbackProps.error));
 
-        if (isChunkLoadError(error)) {
+        if (isChunkLoadError(error) && !props.isNotice) {
           return (
             <ChunkLoadRecovery
               error={error}

@@ -320,6 +320,27 @@ export const AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE: string =
   "AI Data Security Audit Evidence";
 
 /*
+ * The LlmLog feature name for the data types OneUptime AI drafts from the
+ * fields scans could not place (DataTypeDiscovery, #10371): one constrained
+ * call per group of fields that share an unknown shape across stores, from
+ * their names and shapes - never a value - started by the scans that kept
+ * them, with no one pressing it, so the daily budget covers it. Its AI Logs
+ * rows keep no previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE: string =
+  "AI Data Security Data Type Draft";
+
+/*
+ * The LlmLog feature name for Describe It on the data type form
+ * (DataTypeFromSentence, #10371): one request, started by a person from a
+ * sentence and the shapes of their examples - never the examples - and
+ * answered while they wait. Not autonomous. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE: string =
+  "AI Data Security Data Type Describe";
+
+/*
  * The LlmLog feature name for OneUptime AI's write-up of an exposure's
  * assessment (ExposureAssessmentDrafter, #10377) written on its own: one
  * constrained call per security case Data Security opens for a Critical
@@ -532,6 +553,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * call per store whose drafts' facts changed.
    */
   AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  /*
+   * The data types OneUptime AI drafts from the fields scans could not
+   * place (DataTypeDiscovery, #10371): one constrained call per new group,
+   * started by the scans that kept its fields.
+   */
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   /*
    * OneUptime AI's write-up of an exposure's assessment
    * (ExposureAssessmentDrafter, #10377) on its own: one constrained call

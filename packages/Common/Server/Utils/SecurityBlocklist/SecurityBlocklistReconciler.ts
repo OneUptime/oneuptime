@@ -49,13 +49,15 @@ import { SecurityBlocklistFeedEntry } from "../../../Types/SecurityBlocklist/Sec
 import {
   SECURITY_PROTECTED_RECORD_SOURCES,
   SecurityAddressProtection,
-  describeSecurityAddressProtection,
 } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import {
   SECURITY_BLOCK_REASON_FRAMES,
   SecurityBlockReason,
+  fillSecurityBlockReason,
   frameSecurityBlockFailure,
   frameSecurityBlockReason,
+  readSecurityBlockReason,
+  securityBlockHeldBackReason,
   securityBlockReason,
   toSecurityBlockReasonJson,
 } from "../../../Types/SecurityBlocklist/SecurityBlockReason";
@@ -209,15 +211,15 @@ function blockKeyAt(
 
 /*
  * Why a block is held back now that what it blocks is protected (#10640),
- * as its rows and its case say it: the record that protects it is never
- * named, since everyone who reads the blocklist reads the rows, and the
- * address is said to be one of the project's own, as a block refused to a
- * reader who may not read that record is.
+ * as its rows say it in the reader's language (#10804): the record that
+ * protects it is never named, since everyone who reads the blocklist reads
+ * the rows, and the address is said to be one of the project's own, as a
+ * block refused to a reader who may not read that record is.
  */
-export function describeSecurityBlockHeldBack(data: {
+export function getSecurityBlockHeldBackReason(data: {
   value: string;
   protection: SecurityAddressProtection;
-}): string {
+}): SecurityBlockReason {
   const protection: SecurityAddressProtection =
     SECURITY_PROTECTED_RECORD_SOURCES.includes(data.protection.source)
       ? {
@@ -228,12 +230,27 @@ export function describeSecurityBlockHeldBack(data: {
         }
       : data.protection;
 
-  return `${SECURITY_BLOCK_HELD_BACK_PREFIX}${data.value} is protected now, so OneUptime took the block off. ${describeSecurityAddressProtection(
-    {
-      value: data.value,
-      protection,
-    },
-  )}`;
+  return securityBlockHeldBackReason({ value: data.value, protection });
+}
+
+// The same in English, as the row's text and its case's timeline say it.
+export function describeSecurityBlockHeldBack(data: {
+  value: string;
+  protection: SecurityAddressProtection;
+}): string {
+  return fillSecurityBlockReason(getSecurityBlockHeldBackReason(data));
+}
+
+/*
+ * Why a block is held back: in English, as its rows' text and its case
+ * say it, and as the sentence the Dashboard words in the reader's
+ * language (#10804) - null for a row held back before rows kept one, which
+ * then says its English until a pass that can read what is protected
+ * writes it again.
+ */
+export interface SecurityBlockHeldBack {
+  error: string;
+  reason: SecurityBlockReason | null;
 }
 
 /*
@@ -245,7 +262,7 @@ export function describeSecurityBlockHeldBack(data: {
 export function findSecurityBlocksHeldBack(data: {
   blocks: ReadonlyArray<Pick<SecurityBlock, "id" | "value">>;
   check: Pick<SecurityBlocklistFeedProtectionCheck, "isReadable" | "withheld">;
-}): Map<string, string> | null {
+}): Map<string, SecurityBlockHeldBack> | null {
   if (!data.check.isReadable) {
     return null;
   }
@@ -266,17 +283,16 @@ export function findSecurityBlocksHeldBack(data: {
     }
   }
 
-  const heldBack: Map<string, string> = new Map();
+  const heldBack: Map<string, SecurityBlockHeldBack> = new Map();
 
   for (const withheld of data.check.withheld) {
+    const reason: SecurityBlockReason = getSecurityBlockHeldBackReason({
+      value: withheld.entry.value,
+      protection: withheld.protection,
+    });
+
     for (const id of idsByValue.get(withheld.entry.value) || []) {
-      heldBack.set(
-        id,
-        describeSecurityBlockHeldBack({
-          value: withheld.entry.value,
-          protection: withheld.protection,
-        }),
-      );
+      heldBack.set(id, { error: fillSecurityBlockReason(reason), reason });
     }
   }
 
@@ -362,7 +378,7 @@ export interface SecurityBlocklistDestinationPlan {
   // Blocks it cannot hold, with why.
   unsupported: Map<string, string>;
   // Blocks held back because what they block is protected now (#10640), with why.
-  heldBack: Map<string, string>;
+  heldBack: Map<string, SecurityBlockHeldBack>;
   // The same, as sentences, for a destination that words them (#10629).
   unsupportedSentences: Map<string, SecurityBlockReason>;
   // Blocks that do not fit.
@@ -409,9 +425,10 @@ export function planSecurityBlocklistDestination(data: {
   /*
    * The blocks held back because what they block is protected now, with
    * why (findSecurityBlocksHeldBack); null when that could not be read, so
-   * a block whose row says it is held back stays so. Left out: none.
+   * a block whose row says it is held back stays so, saying the same.
+   * Left out: none.
    */
-  heldBack?: Map<string, string> | null | undefined;
+  heldBack?: Map<string, SecurityBlockHeldBack> | null | undefined;
 }): SecurityBlocklistDestinationPlan {
   const heldKeys: Set<string> = new Set(
     data.held.map((item: SecurityBlockHeldItem): string => {
@@ -420,7 +437,7 @@ export function planSecurityBlocklistDestination(data: {
   );
 
   const unsupported: Map<string, string> = new Map();
-  const heldBack: Map<string, string> = new Map();
+  const heldBack: Map<string, SecurityBlockHeldBack> = new Map();
   const unsupportedSentences: Map<string, SecurityBlockReason> = new Map();
   const desired: Array<SecurityBlock> = [];
   const keyOf: (block: SecurityBlock) => string = (
@@ -431,11 +448,15 @@ export function planSecurityBlocklistDestination(data: {
 
   for (const block of data.blocks) {
     const id: string = block.id!.toString();
-    const rowError: string = data.rowsByBlock.get(id)?.error || "";
-    const heldBackReason: string | undefined =
+    const row: SecurityBlockEnforcement | undefined = data.rowsByBlock.get(id);
+    const rowError: string = row?.error || "";
+    const heldBackReason: SecurityBlockHeldBack | undefined =
       data.heldBack === null
         ? rowError.startsWith(SECURITY_BLOCK_HELD_BACK_PREFIX)
-          ? rowError
+          ? {
+              error: rowError,
+              reason: readSecurityBlockReason(row?.errorReason),
+            }
           : undefined
         : data.heldBack?.get(id);
 
@@ -705,7 +726,7 @@ export default class SecurityBlocklistReconciler {
     };
 
     // What is protected now holds its blocks back everywhere (#10640).
-    const heldBack: Map<string, string> | null =
+    const heldBack: Map<string, SecurityBlockHeldBack> | null =
       found.destinations.length > 0 && blocks.length > 0
         ? await this.findHeldBack({ projectId: data.projectId, blocks, now })
         : new Map();
@@ -760,7 +781,7 @@ export default class SecurityBlocklistReconciler {
     projectId: ObjectID;
     blocks: Array<SecurityBlock>;
     now: Date;
-  }): Promise<Map<string, string> | null> {
+  }): Promise<Map<string, SecurityBlockHeldBack> | null> {
     try {
       const check: SecurityBlocklistFeedProtectionCheck =
         await SecurityBlocklistFeedProtection.check({
@@ -798,7 +819,7 @@ export default class SecurityBlocklistReconciler {
     rows: Array<SecurityBlockEnforcement>;
     now: Date;
     // The blocks held back as protected now, with why (#10640); null: could not be read.
-    heldBack?: Map<string, string> | null | undefined;
+    heldBack?: Map<string, SecurityBlockHeldBack> | null | undefined;
   }): Promise<"done" | "skipped" | "failed"> {
     const { destination, now } = data;
 
@@ -924,7 +945,7 @@ export default class SecurityBlocklistReconciler {
     ended: Array<SecurityBlock>;
     rowsByBlock: Map<string, SecurityBlockEnforcement>;
     now: Date;
-    heldBack?: Map<string, string> | null | undefined;
+    heldBack?: Map<string, SecurityBlockHeldBack> | null | undefined;
   }): Promise<"done" | "failed"> {
     const { destination, now } = data;
 
@@ -1140,11 +1161,16 @@ export default class SecurityBlocklistReconciler {
       let target: RowTarget;
 
       if (plan.heldBack.has(id)) {
-        // In English, as its case's timeline says it (#10640).
+        /*
+         * In English, as its case's timeline says it (#10640), and as the
+         * sentence the Dashboard says in the reader's language (#10804).
+         */
+        const heldBack: SecurityBlockHeldBack = plan.heldBack.get(id)!;
+
         target = {
           state: SecurityBlockEnforcementState.Failed,
-          error: plan.heldBack.get(id)!,
-          errorReason: null,
+          error: heldBack.error,
+          errorReason: heldBack.reason,
           failedAttempts: 0,
           retryAt: null,
         };

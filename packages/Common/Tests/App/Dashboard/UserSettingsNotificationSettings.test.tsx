@@ -426,6 +426,16 @@ describe("user settings > notification settings", () => {
         eventType:
           NotificationSettingEventType.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
       },
+      // #9977: told once for each major release of OneUptime a probe falls behind.
+      {
+        card: "Probes",
+        cardDescription: "Notify me about custom probes I own.",
+        label: "Probe a major release behind",
+        description:
+          "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.",
+        eventType:
+          NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
+      },
     ])(
       "the Monitoring tab has $label on the $card card, which toggles alone",
       async (owned: {

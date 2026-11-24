@@ -1,19 +1,19 @@
 import PageComponentProps from "../PageComponentProps";
-import CodeApi, {
-  CodeRepositoriesResponse,
+import {
   CodeRepositoryListItem,
+  NO_CODE_REPOSITORY_FACTS,
 } from "../../Components/Code/CodeApi";
 import {
-  areAllOnGitHub,
   CODE_REPOSITORIES_COPY,
-  CodeRepositoryGroups,
-  groupRepositories,
-  isFoundOnlyUnderNotConnected,
-  isGitHubDisconnected,
-  isGitHubRepository,
+  REPOSITORIES_PAGE_SIZE,
+  REPOSITORY_SEARCH_DELAY_MS,
   REPOSITORY_SEARCH_THRESHOLD,
 } from "../../Components/Code/CodeRepositoriesList";
 import CodeRepositoriesTable from "../../Components/Code/CodeRepositoriesTable";
+import useCodeRepositoryPage, {
+  CodeRepositoryPageState,
+  getPageWithinList,
+} from "../../Components/Code/UseCodeRepositoryPage";
 import {
   useCodeConnectDialog,
   UseCodeConnectDialog,
@@ -25,6 +25,12 @@ import {
   useGitHubConnect,
   UseGitHubConnect,
 } from "../../Components/Code/GitHubConnect";
+import {
+  CodeRepositoryListFactsJSON,
+  CodeRepositoryListGroup,
+  CodeRepositoryListMatchesJSON,
+  CodeRepositoryListOrder,
+} from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -49,14 +55,12 @@ import {
   CLEAR_SEARCH,
   getLoadErrorStateProps,
 } from "Common/UI/Components/Table/TableEmptyStateBuilders";
-import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -81,6 +85,36 @@ export const CODE_REPOSITORIES_CARD_TEST_ID: string = "code-repositories-card";
 export const CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID: string =
   "code-repositories-not-connected";
 
+// Where a list of the page stands: the page it shows, and how many a page holds.
+interface ListPaging {
+  pageNumber: number;
+  pageSize: number;
+}
+
+const FIRST_PAGE: ListPaging = {
+  pageNumber: 1,
+  pageSize: REPOSITORIES_PAGE_SIZE,
+};
+
+/*
+ * Whether a search found repositories only under Not connected: none among
+ * those AI can work in, some among those it cannot. The page then opens Not
+ * connected, so what was found is in sight - not a count behind a fold.
+ */
+export const isSearchFoundOnlyUnderNotConnected: (
+  matches: CodeRepositoryListMatchesJSON,
+  search: string,
+) => boolean = (
+  matches: CodeRepositoryListMatchesJSON,
+  search: string,
+): boolean => {
+  return (
+    search.trim().length > 0 &&
+    matches.connected === 0 &&
+    matches.notConnected > 0
+  );
+};
+
 /*
  * Code's Repositories: the repositories of the project - on GitHub, GitLab,
  * Forgejo or Gitea, or any Git server, each with its host's mark - drawn as
@@ -94,10 +128,13 @@ export const CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID: string =
  * or their connection gone - are listed apart, below it, folded: how many
  * there are, why AI cannot work in them, and Connect GitHub for those on
  * GitHub, which puts every one the installation reaches back on it (one
- * on another host has Replace access token in its settings). They used to
- * sit among the others, each with a "Not connected" pill, so a project
- * with one connected repository and fourteen others saw its one at the
- * end of the list.
+ * on another host has Replace access token in its settings).
+ *
+ * However many repositories the project has (#10764): each list is a page
+ * the server reads - searched, ordered and counted over every repository
+ * the reader may read - and the search is the server's too. The page used
+ * to hold the first 500 and page through them itself, so a repository past
+ * them was never listed, counted or found.
  *
  * With none connected at all, the list says GitHub is not connected and
  * offers Connect GitHub (or, when some are on another host, that
@@ -109,30 +146,109 @@ const CodeRepositoriesPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const [data, setData] = useState<CodeRepositoriesResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
+  // What the lists are searched for: the search, once typing rests.
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [refreshToken, setRefreshToken] = useState<number>(0);
+  const [connectedPaging, setConnectedPaging] =
+    useState<ListPaging>(FIRST_PAGE);
+  const [notConnectedPaging, setNotConnectedPaging] =
+    useState<ListPaging>(FIRST_PAGE);
+  /*
+   * Not connected starts folded, and opens and closes as the reader says -
+   * except that a search finding repositories only there opens it, so what
+   * was found is in sight rather than counted behind a fold.
+   */
+  const [isNotConnectedOpen, setIsNotConnectedOpen] = useState<boolean>(false);
   const searchInputRef: MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
 
-  const load: () => Promise<void> = useCallback(async (): Promise<void> => {
-    setIsLoading(true);
+  useEffect(() => {
+    const trimmed: string = search.trim();
 
-    try {
-      setData(await CodeApi.getRepositories());
-      setError(null);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
+    // Cleared: at once. Typed: once typing rests.
+    if (!trimmed) {
+      setSearchTerm("");
+      return;
     }
 
-    setIsLoading(false);
-  }, []);
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setSearchTerm(trimmed);
+    }, REPOSITORY_SEARCH_DELAY_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [search]);
+
+  // A new search starts both lists from their first page.
+  useEffect(() => {
+    setConnectedPaging((current: ListPaging): ListPaging => {
+      return { ...current, pageNumber: 1 };
+    });
+    setNotConnectedPaging((current: ListPaging): ListPaging => {
+      return { ...current, pageNumber: 1 };
+    });
+  }, [searchTerm]);
+
+  const connected: CodeRepositoryPageState = useCodeRepositoryPage({
+    group: CodeRepositoryListGroup.Connected,
+    order: CodeRepositoryListOrder.Activity,
+    search: searchTerm,
+    pageNumber: connectedPaging.pageNumber,
+    pageSize: connectedPaging.pageSize,
+    isEnabled: true,
+    refreshToken,
+  });
+
+  const facts: CodeRepositoryListFactsJSON =
+    connected.data?.facts || NO_CODE_REPOSITORY_FACTS;
+  const matches: CodeRepositoryListMatchesJSON = connected.data?.matches || {
+    connected: 0,
+    notConnected: 0,
+  };
+
+  const notConnected: CodeRepositoryPageState = useCodeRepositoryPage({
+    group: CodeRepositoryListGroup.NotConnected,
+    order: CodeRepositoryListOrder.Activity,
+    search: searchTerm,
+    pageNumber: notConnectedPaging.pageNumber,
+    pageSize: notConnectedPaging.pageSize,
+    isEnabled: isNotConnectedOpen && facts.notConnected > 0,
+    refreshToken,
+  });
+
+  // A list that shrank under its page (a repository deleted) shows its last page.
+  useEffect(() => {
+    if (connected.data) {
+      const pageNumber: number = getPageWithinList({
+        ...connectedPaging,
+        count: connected.data.count,
+      });
+
+      if (pageNumber !== connectedPaging.pageNumber) {
+        setConnectedPaging({ ...connectedPaging, pageNumber });
+      }
+    }
+  }, [connected.data]);
+
+  useEffect(() => {
+    if (notConnected.data) {
+      const pageNumber: number = getPageWithinList({
+        ...notConnectedPaging,
+        count: notConnected.data.count,
+      });
+
+      if (pageNumber !== notConnectedPaging.pageNumber) {
+        setNotConnectedPaging({ ...notConnectedPaging, pageNumber });
+      }
+    }
+  }, [notConnected.data]);
 
   const reload: () => void = (): void => {
-    load().catch(() => {
-      // handled inside load
+    setRefreshToken((current: number): number => {
+      return current + 1;
     });
   };
 
@@ -149,31 +265,12 @@ const CodeRepositoriesPage: FunctionComponent<
     onConnected: reload,
   });
 
-  useEffect(() => {
-    reload();
-  }, [load]);
+  const hasSearch: boolean = facts.total > REPOSITORY_SEARCH_THRESHOLD;
+  // The search the lists show: none while the page offers no search box.
+  const shownSearch: string = hasSearch ? searchTerm : "";
 
-  const repositories: Array<CodeRepositoryListItem> = data?.repositories || [];
-  const hasSearch: boolean = repositories.length > REPOSITORY_SEARCH_THRESHOLD;
-  const searchTerm: string = hasSearch ? search.trim() : "";
-
-  // The two lists as the search leaves them, and Not connected as a whole.
-  const groups: CodeRepositoryGroups = groupRepositories(
-    repositories,
-    searchTerm,
-  );
-  const allGroups: CodeRepositoryGroups = groupRepositories(repositories);
-
-  /*
-   * Not connected starts folded, and opens and closes as the reader says -
-   * except that a search finding repositories only there opens it, so what
-   * was found is in sight rather than counted behind a fold.
-   */
-  const [isNotConnectedOpen, setIsNotConnectedOpen] = useState<boolean>(false);
-  const isSearchFoundOnlyNotConnected: boolean = isFoundOnlyUnderNotConnected(
-    groups,
-    searchTerm,
-  );
+  const isSearchFoundOnlyNotConnected: boolean =
+    isSearchFoundOnlyUnderNotConnected(matches, shownSearch);
 
   useEffect(() => {
     if (isSearchFoundOnlyNotConnected) {
@@ -212,7 +309,7 @@ const CodeRepositoriesPage: FunctionComponent<
      * the dialog connects (and Connect GitHub would not).
      */
     const connectButton: CardButtonSchema | null =
-      !isDisconnected || !areAllOnGitHub(repositories)
+      !isDisconnected || !facts.areAllOnGitHub
         ? {
             title: "Connect repositories",
             phoneTitle: "Connect",
@@ -319,7 +416,20 @@ const CodeRepositoriesPage: FunctionComponent<
   // What the list of connected repositories shows with none to list.
   const getConnectedEmptyState: () => TableEmptyStateProps =
     (): TableEmptyStateProps => {
-      if (searchTerm) {
+      if (connected.error) {
+        // A page that failed to read says so, with Try again.
+        return getLoadErrorStateProps({
+          pluralLabel: "Repositories",
+          error: connected.error,
+          onRetry: reload,
+          translate: (text: string): string => {
+            return translator.translateTemplate(text);
+          },
+          translator: translator,
+        });
+      }
+
+      if (shownSearch) {
         return {
           kind: TableEmptyStateKind.Filtered,
           title: translator.translateTemplate(
@@ -327,18 +437,18 @@ const CodeRepositoriesPage: FunctionComponent<
           ),
           // Found under Not connected, which the search opened, just below.
           description:
-            groups.notConnected.length > 0
+            matches.notConnected > 0
               ? translator.translatePlural(
                   {
                     one: "{{count}} repository under Not connected matches it.",
                     other:
                       "{{count}} repositories under Not connected match it.",
                   },
-                  groups.notConnected.length,
+                  matches.notConnected,
                 )
               : undefined,
           // What was found is just below: this says so in less room.
-          isCompact: groups.notConnected.length > 0,
+          isCompact: matches.notConnected > 0,
           actions: [
             {
               title: CLEAR_SEARCH,
@@ -357,7 +467,7 @@ const CodeRepositoriesPage: FunctionComponent<
       if (
         connection.isGitHubAppConfigured &&
         !connection.connectLock.isLocked &&
-        repositories.some(isGitHubRepository)
+        facts.isAnyOnGitHub
       ) {
         actions.push({
           title: "Connect GitHub",
@@ -377,7 +487,7 @@ const CodeRepositoriesPage: FunctionComponent<
           CODE_REPOSITORIES_COPY.noneConnectedTitle,
         ),
         description: translator.translateTemplate(
-          areAllOnGitHub(repositories)
+          facts.areAllOnGitHub
             ? CODE_GITHUB_NOT_CONNECTED
             : CODE_REPOSITORIES_COPY.notConnectedSummaryAnyHost,
         ),
@@ -396,7 +506,7 @@ const CodeRepositoriesPage: FunctionComponent<
     };
 
   const renderBody: () => ReactElement = (): ReactElement => {
-    if (isLoading && !data) {
+    if (!connected.data && connected.isLoading) {
       return (
         <Card
           title={CODE_REPOSITORIES_COPY.cardTitle}
@@ -416,7 +526,7 @@ const CodeRepositoriesPage: FunctionComponent<
       );
     }
 
-    if (error && !data) {
+    if (!connected.data) {
       return (
         <Card
           title={CODE_REPOSITORIES_COPY.cardTitle}
@@ -426,7 +536,7 @@ const CodeRepositoriesPage: FunctionComponent<
             <TableEmptyState
               {...getLoadErrorStateProps({
                 pluralLabel: "Repositories",
-                error: error,
+                error: connected.error || "",
                 onRetry: reload,
                 translate: (text: string): string => {
                   return translator.translateTemplate(text);
@@ -439,7 +549,7 @@ const CodeRepositoriesPage: FunctionComponent<
       );
     }
 
-    if (repositories.length === 0) {
+    if (facts.total === 0) {
       return (
         <ConnectGitHubEmptyState
           connection={connection}
@@ -448,8 +558,11 @@ const CodeRepositoriesPage: FunctionComponent<
       );
     }
 
-    const isDisconnected: boolean = isGitHubDisconnected(repositories);
+    const isDisconnected: boolean = facts.connected === 0;
     const headerToolbar: ReactElement = getHeaderToolbar(isDisconnected);
+    const connectedRows: Array<CodeRepositoryListItem> = connected.error
+      ? []
+      : connected.data.repositories;
 
     return (
       <>
@@ -462,13 +575,25 @@ const CodeRepositoriesPage: FunctionComponent<
           >
             <CodeRepositoriesTable
               id="code-repositories"
-              repositories={groups.connected}
+              repositories={connectedRows}
+              isLoading={connected.isLoading}
+              paging={{
+                totalCount: connected.error ? 0 : connected.data.count,
+                pageNumber: connectedPaging.pageNumber,
+                pageSize: connectedPaging.pageSize,
+                onNavigateToPage: (
+                  pageNumber: number,
+                  pageSize: number,
+                ): void => {
+                  setConnectedPaging({ pageNumber, pageSize });
+                },
+              }}
               emptyState={getConnectedEmptyState()}
             />
           </Card>
         </div>
 
-        {allGroups.notConnected.length > 0 ? (
+        {facts.notConnected > 0 ? (
           <FoldedSection
             title={CODE_REPOSITORIES_COPY.notConnectedTitle}
             icon={IconProp.LinkSlash}
@@ -480,13 +605,13 @@ const CodeRepositoriesPage: FunctionComponent<
                     one: "{{count}} repository",
                     other: "{{count}} repositories",
                   },
-                  groups.notConnected.length,
+                  matches.notConnected,
                 ),
                 isSet: false,
               },
             ]}
             summary={
-              areAllOnGitHub(allGroups.notConnected)
+              facts.areAllNotConnectedOnGitHub
                 ? CODE_REPOSITORIES_COPY.notConnectedSummary
                 : CODE_REPOSITORIES_COPY.notConnectedSummaryAnyHost
             }
@@ -506,7 +631,7 @@ const CodeRepositoriesPage: FunctionComponent<
                   className="min-w-0 flex-1 basis-64 text-sm leading-6 text-gray-600"
                 >
                   {translator.translateText(
-                    areAllOnGitHub(allGroups.notConnected)
+                    facts.areAllNotConnectedOnGitHub
                       ? CODE_REPOSITORIES_COPY.notConnectedExplanation
                       : CODE_REPOSITORIES_COPY.notConnectedExplanationAnyHost,
                   )}
@@ -519,7 +644,7 @@ const CodeRepositoriesPage: FunctionComponent<
                  */}
                 {connection.isGitHubAppConfigured &&
                 !isDisconnected &&
-                allGroups.notConnected.some(isGitHubRepository) ? (
+                facts.isAnyNotConnectedOnGitHub ? (
                   connection.connectLock.isLocked ? (
                     <p
                       data-testid="code-not-connected-lock"
@@ -545,22 +670,53 @@ const CodeRepositoriesPage: FunctionComponent<
               </div>
               <CodeRepositoriesTable
                 id="code-repositories-not-connected-table"
-                repositories={groups.notConnected}
+                repositories={
+                  notConnected.error || !notConnected.data
+                    ? []
+                    : notConnected.data.repositories
+                }
                 isNotConnected={true}
-                emptyState={{
-                  kind: TableEmptyStateKind.Filtered,
-                  title: translator.translateTemplate(
-                    CODE_REPOSITORIES_COPY.noMatchTitle,
-                  ),
-                  isCompact: true,
-                  actions: [
-                    {
-                      title: CLEAR_SEARCH,
-                      icon: IconProp.Close,
-                      onClick: clearSearch,
-                    },
-                  ],
+                isLoading={notConnected.isLoading}
+                paging={{
+                  totalCount:
+                    notConnected.error || !notConnected.data
+                      ? 0
+                      : notConnected.data.count,
+                  pageNumber: notConnectedPaging.pageNumber,
+                  pageSize: notConnectedPaging.pageSize,
+                  onNavigateToPage: (
+                    pageNumber: number,
+                    pageSize: number,
+                  ): void => {
+                    setNotConnectedPaging({ pageNumber, pageSize });
+                  },
                 }}
+                emptyState={
+                  notConnected.error
+                    ? getLoadErrorStateProps({
+                        pluralLabel: "Repositories",
+                        error: notConnected.error,
+                        onRetry: reload,
+                        translate: (text: string): string => {
+                          return translator.translateTemplate(text);
+                        },
+                        translator: translator,
+                      })
+                    : {
+                        kind: TableEmptyStateKind.Filtered,
+                        title: translator.translateTemplate(
+                          CODE_REPOSITORIES_COPY.noMatchTitle,
+                        ),
+                        isCompact: true,
+                        actions: [
+                          {
+                            title: CLEAR_SEARCH,
+                            icon: IconProp.Close,
+                            onClick: clearSearch,
+                          },
+                        ],
+                      }
+                }
               />
             </div>
           </FoldedSection>

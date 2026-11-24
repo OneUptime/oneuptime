@@ -329,17 +329,20 @@ The URLs each marketplace asks for (production):
 approved OneUptime Cloud; on 11 November the decision had been not to list it):
 see the hosting rule under
 [Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
-**Where it stands** (20 November 2026): the SaaS product `oneuptime-cloud`
+**Where it stands** (24 November 2026): the SaaS product `oneuptime-cloud`
 ("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
 ([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
 with steps 2 to 8 done: its product details were approved on 20 November,
-and its pricing is in Google's review (both submitted on 19 November with
-the maintainer's go-ahead); production has the settings (step 7); and the
-Pub/Sub subscription pushes to it (step 6). A test purchase made an `Active`
-subscription (step 9), whose first usage report waits for its trial to end.
-**Left**: the technical integration's review once the pricing is approved
-(step 10), then **Publish** once all three reviews are approved (the
-maintainer's go-ahead).
+and its pricing has been in Google's review since 19 November (both
+submitted that day with the maintainer's go-ahead); production has the
+settings (step 7); and the Pub/Sub subscription pushes to it (step 6). A
+test purchase made an `Active` subscription (step 9), whose first usage
+report waits for its trial to end. Google approved OneUptime Cloud (case
+77068529) with an adjusted revenue share, which the maintainer accepted on
+the case on 19 November; Google's approval letter of that day sets it.
+Nothing is waiting on us. **Left**: the pricing's approval; the technical
+integration's review (step 10); then **Publish** once all three reviews are
+approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -528,9 +531,12 @@ rules do.
    are not billed, so it has no `MarketplaceUsageReport` yet; changing plan
    and cancelling are still to test.
 10. **Submit for review** - a maintainer's decision. Product details and
-    pricing went in on 19 November 2026. Google takes the technical
-    integration's review (**Submit** on its **Frontend integration** tab)
-    only after the pricing is approved. Then **Publish** (maintainer).
+    pricing went in on 19 November 2026. The technical integration's
+    **Submit** (on its **Frontend integration** tab) is open before the
+    pricing is approved (seen on 24 November), but Producer Portal asks for
+    the integration to be tested first, usage billing included, and usage
+    billing can be tested only once the pricing is approved: submit after
+    that. Then **Publish** (maintainer).
 
 What OneUptime does with Google's events:
 [GoogleCloudMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceInbound.ts).
@@ -778,6 +784,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-17 | Google Cloud | Producer Portal requested on the self-hosted app's case (form and roles done); still pending                          | Agent      |
 | 2026-11-17 | Google Cloud | SaaS validation (case 77068529): the maintainer confirmed Google's sales and cost estimates                           | Maintainer |
 | 2026-11-19 | Google Cloud | Google approved OneUptime Cloud (case 77068529); decided: list it after all, hosting box ticked                       | Maintainer |
+| 2026-11-19 | Google Cloud | The approval came with an adjusted revenue share; the maintainer accepted it on the case                              | Maintainer |
 | 2026-11-19 | Google Cloud | SaaS product `oneuptime-cloud` ("OneUptime") created; listing, pricing and integration links filled in                | Agent      |
 | 2026-11-19 | Google Cloud | Product image, Tax Category and EULA (OneUptime's terms) entered                                                      | Maintainer |
 | 2026-11-19 | Google Cloud | Product details and pricing (`usage_units` at USD 0.01) submitted for review, with the maintainer's go-ahead          | Agent      |
@@ -786,6 +793,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-19 | Google Cloud | Pub/Sub push subscription created as `marketplace@` (temporary grants, revoked); set never to expire                  | Agent      |
 | 2026-11-19 | Google Cloud | Test purchase with the test billing account: production's row is Active, in its trial                                 | Maintainer |
 | 2026-11-20 | Google Cloud | Product details review of `oneuptime-cloud` approved                                                                  | Google     |
+| 2026-11-24 | Google Cloud | Pricing still in review (since 19 November); the integration review waits for usage billing tests                     | Agent      |
 
 ## Notes for agents driving the browser
 

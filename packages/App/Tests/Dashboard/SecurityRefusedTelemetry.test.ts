@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  MomentRole,
+  wordMoment,
+  writeReaderMoment,
+} from "Common/Utils/MomentPhrases";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
@@ -96,6 +101,18 @@ const refusal: (data: Partial<RefusedTelemetry>) => RefusedTelemetry = (
 
 const at: (iso: string) => string = (iso: string): string => {
   return OneUptimeDate.getDateAsLocalFormattedString(new Date(iso));
+};
+
+/*
+ * A moment that goes on, with its own words: "at 14:02" today, "on 20 Nov
+ * at 14:02" on another day (#10622, Utils/MomentPhrases).
+ */
+const when: (iso: string) => string = (iso: string): string => {
+  return wordMoment({
+    role: MomentRole.At,
+    moment: writeReaderMoment(new Date(iso)),
+    translator: english,
+  });
 };
 
 function status(
@@ -213,7 +230,7 @@ describe("a line in words", () => {
       id: `${ProductType.Logs}:${RefusedTelemetryKind.BudgetUsedUp}:project:${PROJECT_ID}:2026-11-20T14:02:00.000Z`,
       signal: ProductType.Logs,
       sourceTitle: YOUR_LOGS_SOURCE,
-      sentence: `Your daily logs budget was used up at ${at("2026-11-20T14:02:00.000Z")}. Logs since then were refused and not scanned.`,
+      sentence: `Your daily logs budget was used up ${when("2026-11-20T14:02:00.000Z")}. Logs since then were refused and not scanned.`,
       amount: `${formatTelemetryIngestionBudgetBytes(3 * 1024 * 1024 * 1024, english)} in 18,204 requests was not stored.`,
       isOngoing: true,
     });

@@ -602,15 +602,30 @@ describe("LeaveGuard and the browser's Back and Forward buttons", () => {
  * browser restoring an entry's position after popstate, before the frame),
  * frames are drawn when a test says so, and every scrollTo, history.go and
  * pushState the guard makes is recorded in order.
+ *
+ * The guard's wait for a tab that draws no frames (SCROLL_RESTORE_WAIT_MS)
+ * runs out when a test says so as well. Left to the clock, a runner that
+ * stalled that long between a step and its frame - a busy CI machine, on
+ * the 17.2.0 release pull request (#10526) - had the wait take the step
+ * back before the browser put back the reached entry's position, or before
+ * a Forward that undid the step had landed.
  */
 describe("LeaveGuard keeps the page where the reader had it, across Back and Forward (#7404)", () => {
   let calls: Array<string> = [];
   let frames: Array<FrameRequestCallback> = [];
+  let noFrameWaits: Array<() => void> = [];
   // spyOn types an overloaded method by its last signature: scrollTo(x, y).
   let scrollToSpy: SpyInstance<(x: number, y: number) => void>;
   let goSpy: SpyInstance<History["go"]>;
   let pushStateSpy: SpyInstance<History["pushState"]>;
   let frameSpy: SpyInstance<Window["requestAnimationFrame"]>;
+  let waitSpy: SpyInstance<
+    (
+      callback: (...args: Array<any>) => void,
+      delay?: number,
+      ...args: Array<any>
+    ) => NodeJS.Timeout
+  >;
 
   const BOARD: string = "/dashboard/p1/dashboards/d1";
   const LIST: string = "/dashboard/p1/dashboards";
@@ -652,29 +667,21 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
     }
   };
 
-  /*
-   * Waits, a task at a time, until a history step has landed on `pathname`:
-   * jsdom moves the location and fires popstate in one task, so the guard
-   * has had the step by then. For a test whose order of steps and frames is
-   * the point, so a busy runner cannot draw the frame before the step lands.
-   * (The guard keeps popstate from the listeners after it, so the step is
-   * read off the location.)
-   */
-  const landsOn: (pathname: string) => Promise<void> = async (
-    pathname: string,
-  ): Promise<void> => {
-    for (
-      let task: number = 0;
-      task < 500 && window.location.pathname !== pathname;
-      task++
-    ) {
-      await new Promise<void>((resolve: () => void) => {
-        setTimeout(resolve, 0);
-      });
+  // The guard's wait for a tab that draws no frames runs out.
+  const noFrameWaitRunsOut: () => void = (): void => {
+    const due: Array<() => void> = noFrameWaits;
+    noFrameWaits = [];
+
+    for (const wait of due) {
+      wait();
     }
   };
 
-  // jsdom's history steps land a couple of tasks later.
+  /*
+   * jsdom's history steps land a couple of tasks later: two timer tasks,
+   * which run before the rounds here that were set after them, however
+   * busy the runner.
+   */
   const tasks: () => Promise<void> = async (): Promise<void> => {
     for (let task: number = 0; task < 8; task++) {
       await new Promise<void>((resolve: () => void) => {
@@ -705,6 +712,7 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
   beforeEach(() => {
     calls = [];
     frames = [];
+    noFrameWaits = [];
     placePage(0);
 
     scrollToSpy = jest.spyOn(window, "scrollTo").mockImplementation(((
@@ -743,16 +751,35 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
         frames.push(callback);
         return frames.length;
       });
+
+    // Every other timer runs on the clock, the tests' and jsdom's own.
+    const realSetTimeout: Window["setTimeout"] = window.setTimeout.bind(window);
+    waitSpy = jest.spyOn(window, "setTimeout").mockImplementation(((
+      handler: TimerHandler,
+      timeout?: number,
+      ...args: Array<unknown>
+    ): number => {
+      if (timeout === SCROLL_RESTORE_WAIT_MS && typeof handler === "function") {
+        noFrameWaits.push(() => {
+          handler(...args);
+        });
+        return 0;
+      }
+
+      return realSetTimeout(handler, timeout, ...args);
+    }) as never);
   });
 
   afterEach(() => {
-    // Nothing waits on a frame into the next test.
+    // Nothing waits on a frame, or for one, into the next test.
     LeaveGuard.reset();
     frames = [];
+    noFrameWaits = [];
     scrollToSpy.mockRestore();
     goSpy.mockRestore();
     pushStateSpy.mockRestore();
     frameSpy.mockRestore();
+    waitSpy.mockRestore();
     placePage(0);
   });
 
@@ -1033,13 +1060,10 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
     LeaveGuard.hold(asks.askToLeave);
     readerScrollsTo(1000);
 
-    // Both steps land before the frame they race: Forward undoes Back first.
     window.history.back();
-    await landsOn(LIST);
     await tasks();
     browserRestores(300);
     window.history.forward();
-    await landsOn(BOARD);
     await tasks();
     browserRestores(1000);
     drawNextFrame();
@@ -1083,10 +1107,9 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
     await tasks();
     browserRestores(0);
 
-    // No frame is drawn.
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, SCROLL_RESTORE_WAIT_MS + 50);
-    });
+    // No frame is drawn: the short wait runs out first.
+    expect(noFrameWaits).toHaveLength(1);
+    noFrameWaitRunsOut();
 
     expect(calls).toEqual(["scrollTo 0,1000", "go 1"]);
     expect(asks.asked).toHaveLength(1);

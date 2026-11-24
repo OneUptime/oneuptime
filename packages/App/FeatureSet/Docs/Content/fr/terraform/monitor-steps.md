@@ -238,6 +238,10 @@ Les moniteurs de métriques groupés sont la seule exception. Quand la requête 
 | `description` | string | La description que montre le tableau de bord. |
 | `filter_condition` | string (obligatoire) | `All` : chaque filtre doit correspondre. `Any` : un seul suffit. |
 | `filters` | list (obligatoire) | Les conditions, au moins une : voir [Référence des filtres](#référence-des-filtres). |
+| `recovery_filters` | list | Des filtres comme ceux de `filters`, qui doivent correspondre avant que le critère cesse d'agir, au lieu de dès que ses `filters` ne correspondent plus. |
+| `recovery_filter_condition` | string | Comment se combinent les `recovery_filters` : `All` (par défaut) ou `Any`. |
+| `active_hours` | object | Ne juger le critère que ces `days` (lundi vaut `0`, dimanche `6`), de `from` à `to` (`"08:00"`) ; en dehors, il est ignoré comme un critère désactivé. |
+| `active_hours_timezone` | string | Le fuseau horaire dans lequel `active_hours` sont lues, comme `Europe/Oslo`. À définir avec `active_hours`. |
 | `change_monitor_status` | bool | Si une correspondance change le statut du moniteur. |
 | `monitor_status_id` | string | L'ID du `oneuptime_monitor_status` vers lequel changer. Renseignez-le quand `change_monitor_status` vaut `true`. |
 | `create_incidents` | bool | Si une correspondance ouvre des incidents. |
@@ -284,15 +288,87 @@ criteria = [
 ]
 ```
 
+### Quand il se rétablit et quand il est jugé
+
+Ce critère ne juge le site que pendant les heures de bureau à Oslo, du lundi au vendredi, et le garde hors ligne jusqu'à ce qu'il ait répondu à chaque vérification pendant 10 minutes :
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## Référence des filtres
 
 Un filtre a `check_on` (ce qu'il regarde), `filter_type` (comment il compare) et `value` (avec quoi il compare, sous forme de chaîne ; laissez-la de côté pour les vérifications vrai-ou-faux comme `True` et `False`).
 
-Un filtre peut aussi juger une fenêtre de temps au lieu de la dernière vérification : renseignez `evaluate_over_time = true`, la durée de la fenêtre dans `evaluate_over_time_minutes`, et dans `evaluate_over_time_type` la façon de lire la fenêtre : `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` ou `Status Changes`. `Percentile` compare le centile indiqué dans `evaluate_over_time_percentile` à la valeur du filtre (95 par défaut). `Count`, `Percentage` et `Status Changes` comptent, par sonde, les vérifications de la fenêtre qui ont rempli la condition, leur part en pourcentage, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, et comparent ce nombre à `evaluate_over_time_count_value` comme l'indique `evaluate_over_time_count_filter_type` (`Greater Than` 0 par défaut).
+Un filtre peut aussi juger une fenêtre de temps au lieu de la dernière vérification : renseignez `evaluate_over_time = true`, la durée de la fenêtre dans `evaluate_over_time_minutes`, et dans `evaluate_over_time_type` la façon de lire la fenêtre : `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes` ou `Previous Check`. `Percentile` compare le centile indiqué dans `evaluate_over_time_percentile` à la valeur du filtre (95 par défaut). `Count`, `Percentage` et `Status Changes` comptent, par sonde, les vérifications de la fenêtre qui ont rempli la condition, leur part en pourcentage, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, et comparent ce nombre à `evaluate_over_time_count_value` comme l'indique `evaluate_over_time_count_filter_type` (`Greater Than` 0 par défaut).
 
 `All Values` signifie que chaque vérification de la fenêtre a enfreint la règle : il ne correspond donc qu'une fois la fenêtre couverte par des données. Un moniteur qui vient d'être créé attend que sa fenêtre se remplisse au lieu de correspondre dès sa première vérification. Donnez-lui une fenêtre d'au moins deux fois le `monitoring_interval` du moniteur ; sinon, la fenêtre contient une seule vérification, et « toutes les valeurs » veut dire la même chose que « n'importe quelle valeur ». `Any Value` correspond, à dessein, dès une vérification qui enfreint la règle.
 
 `evaluate_over_time_no_data_policy` dit ce que fait le filtre tant que la fenêtre ne contient pas assez de données : `Ignore` (la valeur par défaut) ne correspond pas, `Trigger` traite les données manquantes comme la panne, comme le fait un heartbeat, et `Treat As Zero` compare la fenêtre comme un seul zéro.
+
+`Previous Check` compare chaque vérification à la vérification précédente de la même sonde, faite au plus `evaluate_over_time_minutes` avant elle. Une valeur mesurée ne prend pas de `value` : `filter_type` la compare à la valeur précédente décalée de `evaluate_over_time_change_value`, vers le haut pour `Greater Than` et vers le bas pour `Less Than`, en `Amount` dans l'unité de la vérification ou en `Percentage` de la valeur précédente, comme l'indique `evaluate_over_time_change_type` (`Amount` 0 par défaut : toute hausse ou baisse). Un filtre vrai ou faux correspond à la vérification qui a commencé à remplir la condition. Sans vérification précédente, `evaluate_over_time_no_data_policy` décide.
+
+Ce critère ouvre une alerte quand une vérification prend plus de deux fois plus de temps que la précédente :
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### Ce qu'un filtre peut vérifier
 

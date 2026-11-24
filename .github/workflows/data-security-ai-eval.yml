@@ -88,7 +88,7 @@ on:
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence, DraftExposureAssessment, DraftExposureAssessmentOnRequest. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence, DraftDataTypes, DescribeDataType, DraftExposureAssessment, DraftExposureAssessmentOnRequest. Empty: all of them."
         required: false
         default: ""
       cases:

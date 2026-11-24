@@ -172,6 +172,21 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     file: `${AI_DIRECTORY}/AuditEvidenceDrafter.ts`,
   },
   /*
+   * The company's own data types (#10371): drafted from a group of fields
+   * scans could not place, in the discovery's job - by names and shapes -
+   * and from a person's sentence and the shapes of their examples, on the
+   * data type form. Both prompts are the builder's, and neither holds a
+   * value.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeDiscovery.ts`,
+  },
+  [DataSecurityAiFeature.DescribeDataType]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeFromSentence.ts`,
+  },
+  /*
    * An exposure's write-up (#10377): on its own, from the run a Critical
    * exposure's case starts, and when a person asks - one file, one call
    * for each.

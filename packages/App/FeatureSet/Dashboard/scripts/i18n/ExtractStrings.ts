@@ -456,6 +456,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
   /*
+   * A moment's words in a sentence (#10622): "at 14:25" today, "on 27 Nov
+   * at 14:25" on another day, and since and until each way - so a sentence
+   * never puts a time's preposition before a day. Only the words the file
+   * marks are read.
+   */
+  { directory: "packages/Common/Utils/MomentPhrases.ts", kind: "keys" },
+  /*
    * What each placeholder a playbook's note or message may use stands for:
    * the step editor lists them under its field, said on hover.
    */

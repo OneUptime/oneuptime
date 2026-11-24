@@ -246,7 +246,7 @@ describe("a call", () => {
     );
   };
 
-  test("says OneUptime on an installation that is not renamed", async () => {
+  test("says OneUptime on an installation that is not renamed - as two words, as text to speech says it right", async () => {
     brandAs(null);
 
     await CallService.makeCall(callRequest(), {
@@ -254,7 +254,7 @@ describe("a call", () => {
       isSensitive: true,
     });
 
-    expect(spokenTwiml()).toContain("This is a call from OneUptime about");
+    expect(spokenTwiml()).toContain("This is a call from One Uptime about");
   });
 
   test("says the installation's name when it goes by one", async () => {

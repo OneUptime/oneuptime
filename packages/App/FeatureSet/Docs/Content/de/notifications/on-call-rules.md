@@ -27,6 +27,25 @@ flowchart TB
 
 Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrichten über WhatsApp, Telegram, Slack, Microsoft Teams und Mattermost enthalten einen Bestätigungslink, und ein Anruf bittet Sie, die 1 zu drücken. Können Sie einen Alarm nicht übernehmen, können Sie ihn über dieselben Nachrichten eskalieren, und ein Anruf bittet Sie, die 2 zu drücken: Die Richtlinie alarmiert sofort ihre nächste Stufe, und Sie werden dazu nicht mehr alarmiert. Siehe [Eine Alarmierung eskalieren](/docs/on-call/escalation-rules#eine-alarmierung-eskalieren). Jeder Alarm an Sie steht unter **Benutzereinstellungen → Bereitschaftsprotokolle**, wo **Zeitachse anzeigen** jede gesendete Nachricht zeigt und ob sie zugestellt wurde.
 
+### Was ein Anruf sagt
+
+Ein Anruf sagt, von wem er kommt, was passiert ist, wie schwer es ist und welche Nummer es hat, dann welche Taste was bewirkt und zuletzt den Titel. Sie können jederzeit eine Taste drücken, auch während der Anruf noch spricht. Drücken Sie keine, sagt der Anruf die Einzelheiten und die Tasten noch einmal, wartet 10 Sekunden und legt auf, und der Alarm bleibt unbestätigt:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+Der Anruf nennt Ihr Projekt. Ein Anruf, der zu keinem Projekt gehört, etwa ein Verifizierungscode, nennt OneUptime oder den Namen, unter dem Ihre selbst gehostete Installation läuft. Ein Titel mit mehr als etwa 100 Zeichen wird nach einem ganzen Wort gekürzt, und OneUptime bewahrt den vollständigen Titel. Die Buchstaben einer Nummer wie `INC-42` werden einzeln gesprochen, damit die Stimme sie nie als Wort liest. Anrufe sind immer auf Englisch.
+
 ## Ein Ablauf für alles
 
 **Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: nummerierten Schritten, die jede Warnung der Reihe nach versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist ein Zeitpunkt, etwa sofort oder nach 5 Minuten, mit den verifizierten Methoden, die dann zusammen hinausgehen. Ein späterer Schritt geht nur hinaus, wenn bis dahin noch niemand die Warnung bestätigt hat.

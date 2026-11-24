@@ -16,7 +16,7 @@ import {
   UserFlowJourneyStep,
 } from "Common/Utils/Rum/UserFlow";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
@@ -329,16 +329,15 @@ const UserFlowJourneys: FunctionComponent<ComponentProps> = (
       data-testid="user-flow-journeys"
     >
       <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <h3 className="text-sm font-semibold text-gray-900">
-            {translator.translateText("Journeys")}
-          </h3>
-          <InfoTooltip
-            label={translator.translateText("Journeys") as string}
-            text={RUM_USER_FLOW_METRIC_DESCRIPTIONS.journeys}
-            dataTestId="user-flow-journeys-info"
+        {/* The (i) after the heading's last word (#7348, #8044). */}
+        <h3 className="min-w-0 text-sm font-semibold text-gray-900">
+          <WordsWithInfoTooltip
+            text={translator.translateText("Journeys") || "Journeys"}
+            label="Journeys"
+            description={RUM_USER_FLOW_METRIC_DESCRIPTIONS.journeys}
+            infoDataTestId="user-flow-journeys-info"
           />
-        </div>
+        </h3>
         <span
           className="flex-none text-xs text-gray-500"
           data-testid="user-flow-journeys-count"

@@ -21,6 +21,10 @@ import {
   MONITOR_STEPS_VALUES_CASES_FILE,
   monitorStepsValuesCasesFile,
 } from "./MonitorStepsValuesCases";
+import {
+  MONITOR_STEPS_ACTIVE_HOURS_CASES_FILE,
+  monitorStepsActiveHoursCasesFile,
+} from "./MonitorStepsActiveHoursCases";
 import { PHONE_CASES_FILE, phoneCasesFile } from "./PhoneCases";
 import {
   HANDWRITTEN_RESOURCES,
@@ -637,6 +641,22 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "internal/provider/testdata",
       MONITOR_STEPS_VALUES_CASES_FILE,
       monitorStepsValuesCasesFile(),
+    );
+    /*
+     * A criteria's recovery condition and active hours (#10822): active_hours
+     * converted both ways as the server's WorkingHours does, checked against
+     * cases this generator writes from it, and a monitor whose criteria have
+     * both set in the dashboard imported, planned, applied and refreshed
+     * through the real protocol server.
+     */
+    await this.copyStaticFile(
+      "monitorsteps_recovery_activehours_test.go",
+      "internal/provider",
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_ACTIVE_HOURS_CASES_FILE,
+      monitorStepsActiveHoursCasesFile(),
     );
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",

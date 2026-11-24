@@ -162,7 +162,7 @@ Cloudflare の Logpush もファイアウォールイベントを送信でき、
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | ブロック用とチャレンジ用のリストを作成し、そのアドレスを追加・削除します。 |
 | `Zone > Zone WAF > Edit`、ブロックする各ゾーンで | カスタムルールを追加し、ゾーン自身のルールを読み取ります。 |
-| `Account > Account Firewall Access Rules > Edit` | 空きのリストまたはカスタムルールがないプランで、IP Access Rules を追加・削除します。 |
+| `Account > Account Firewall Access Rules > Edit` | IP Access Rules を追加・削除します。空きのリストまたはカスタムルールがないプランの場合と、 **キャンペーン** から ASN 単位でチャレンジするネットワークの場合です。 |
 
 :::steps
 ### トークンに書き込み権限を与える
@@ -183,6 +183,7 @@ Cloudflare で **My Profile → API Tokens** を開き、接続のトークン�
 | リスト `oneuptime_block` と `oneuptime_challenge` | アカウント内の IP リストで、ブロック用とチャレンジ用があります。説明に OneUptime のプロジェクトが記載されます。 |
 | 各ゾーンに、リストごとのカスタムルール | アクション Block の `(ip.src in $oneuptime_block)` と、アクション Managed Challenge の `(ip.src in $oneuptime_challenge)` です。説明には OneUptime が管理していることが記載されます。 |
 | ブロックごとのリスト項目 | コメントにケースとブロックの終了時刻が記載されます。例: `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
+| ASN 単位でチャレンジしたネットワークごとの IP Access Rule | **キャンペーン** からチャレンジしたネットワーク全体を、ターゲットが `asn` の IP Access Rule として保持します。これはすべてのプランにあります。メモにはリスト項目のコメントと同じ内容が記載されます。トークンに `Account > Account Firewall Access Rules > Edit` がない場合、チャレンジは適用されず、 **ブロックリスト** に追加すべき権限が表示されます。 |
 
 各ルールはゾーンのカスタムルールの先頭に置かれるため、あなたのルールより先に実行されます。あなたの Skip ルールが、ブロックされたアドレスを通過させることはできません。モニターやパートナーのアドレスなど、Skip ルールが通過させるアドレスがある場合は、**ブロックのステータス** にそれらが表示されます。**これらのアドレスを保護** でそれらを **保護対象のエンティティ** に追加すると、誰もブロックできなくなります。
 

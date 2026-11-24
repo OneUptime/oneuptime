@@ -44,6 +44,7 @@ import ProductionReviewQueue, {
 } from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
+import FindBy from "../../../Server/Types/Database/FindBy";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
@@ -52,6 +53,10 @@ import CodeTaskRuns, {
   CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
 } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
+import CodeTaskTryAgain from "../../../Server/Utils/AI/CodeTask/CodeTaskTryAgain";
+import CodeTaskRepositoryList, {
+  CodeRepositoryListRequest,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskRepositoryList";
 import CodeTaskListQuery from "../../../Server/Utils/AI/CodeTask/CodeTaskListQuery";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import { AI_RUN_ABOUT_KEYS } from "../../../Server/Utils/AI/AIRunOutputReadFilter";
@@ -71,6 +76,8 @@ import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
   CODE_TASK_BRANCH_NAME_REFUSED_MESSAGE,
+  CodeRepositoryListGroup,
+  CodeRepositoryListOrder,
   CodeTaskBlockerType,
   CodeTaskContextType,
   CodeTaskListCountsJSON,
@@ -78,6 +85,7 @@ import {
   CodeTaskState,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
+  MAX_CODE_REPOSITORIES_PER_PAGE,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "../../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -512,6 +520,8 @@ describe("every route acts as a signed-in person", () => {
       }),
     ).toEqual([
       "/code-task/repositories",
+      // Some repositories by id: what a page holds (#10764).
+      "/code-task/repositories-by-id",
       "/code-task/repository/:repositoryId",
       "/code-task/list",
       // A repository's branches, for the branch a task starts from.
@@ -1675,25 +1685,25 @@ describe("listing every task the caller may read (Code's first page)", () => {
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(3));
     jest.spyOn(CodeTaskPresenter, "summarize").mockResolvedValue([]);
-    // What each filter was built from, read off the query.
+    /*
+     * What the scope was built from, read off the query: every repository
+     * the caller may read, as one array (QueryHelper.anyOfIds, #10764).
+     */
     jest
-      .spyOn(QueryHelper, "inOrNull")
-      .mockImplementation((values: Array<string | ObjectID>) => {
-        return {
-          inOrNull: values.map((value: string | ObjectID) => {
-            return value.toString();
-          }),
-        } as never;
-      });
-    jest
-      .spyOn(QueryHelper, "any")
-      .mockImplementation((values: Array<string | ObjectID | number>) => {
-        return {
-          any: values.map((value: string | ObjectID | number) => {
-            return value.toString();
-          }),
-        } as never;
-      });
+      .spyOn(QueryHelper, "anyOfIds")
+      .mockImplementation(
+        (
+          values: Array<string | ObjectID>,
+          options?: { orNull?: boolean | undefined },
+        ) => {
+          return {
+            anyOfIds: values.map((value: string | ObjectID) => {
+              return value.toString();
+            }),
+            orNull: Boolean(options?.orNull),
+          } as never;
+        },
+      );
   });
 
   function readQuery(): Record<string, unknown> {
@@ -1711,20 +1721,21 @@ describe("listing every task the caller may read (Code's first page)", () => {
 
     expect(result).toEqual({ tasks: [], totalCount: 3, skip: 0, limit: 20 });
     expect(readQuery()["codeRepositoryId"]).toEqual({
-      inOrNull: [REPOSITORY_ID.toString()],
+      anyOfIds: [REPOSITORY_ID.toString()],
+      orNull: true,
     });
     expect((readQuery()["projectId"] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
     );
     // Tasks, not their replies.
     expect(readQuery()).toHaveProperty("codeTaskId");
-    // The repositories are read as the caller.
-    expect(
-      (
-        (CodeRepositoryService.findBy as unknown as jest.Mock).mock
-          .calls[0]![0] as { props: unknown }
-      ).props,
-    ).toBe(MEMBER);
+    // The repositories are read as the caller, by their ids alone.
+    const repositoryRead: { props: unknown; select: unknown } = (
+      CodeRepositoryService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as { props: unknown; select: unknown };
+
+    expect(repositoryRead.props).toBe(MEMBER);
+    expect(repositoryRead.select).toEqual({ _id: true });
   });
 
   test("someone who may not read AI runs lists only their repositories' tasks", async () => {
@@ -1733,9 +1744,125 @@ describe("listing every task the caller may read (Code's first page)", () => {
     await call(route, { body: { allRepositories: true } });
 
     expect(readQuery()["codeRepositoryId"]).toEqual({
-      any: [REPOSITORY_ID.toString()],
+      anyOfIds: [REPOSITORY_ID.toString()],
+      orNull: false,
     });
-    expect(QueryHelper.inOrNull).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #10764: the scope was the first 500 repositories by name, so a task in
+   * a repository past them was left out of Code's first page, its counts
+   * and its search. It is every repository the caller may read, read a page
+   * at a time through their own permissions.
+   */
+  test("every repository the caller may read is the scope, past the 500th, read a page at a time as the caller", async () => {
+    const many: Array<CodeRepository> = [];
+
+    for (let index: number = 0; index < 12500; index++) {
+      const row: CodeRepository = new CodeRepository();
+      row._id = ObjectID.generate().toString();
+      many.push(row);
+    }
+
+    const reads: Array<{ skip: number; limit: number; props: unknown }> = [];
+
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation(async (data: FindBy<CodeRepository>) => {
+        reads.push({
+          skip: Number(data.skip),
+          limit: Number(data.limit),
+          props: data.props,
+        });
+
+        return many.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      });
+
+    await call(route, { body: { allRepositories: true } });
+
+    const scope: { anyOfIds: Array<string> } = readQuery()[
+      "codeRepositoryId"
+    ] as { anyOfIds: Array<string> };
+
+    expect(scope.anyOfIds).toHaveLength(12500);
+    expect(scope.anyOfIds[12499]).toBe(many[12499]!._id);
+    // Two pages of the caller's, each through their own permissions.
+    expect(
+      reads.map((read: { skip: number; limit: number }) => {
+        return [read.skip, read.limit];
+      }),
+    ).toEqual([
+      [0, 10000],
+      [10000, 10000],
+    ]);
+    for (const read of reads) {
+      expect(read.props).toBe(MEMBER);
+    }
+  });
+
+  test("each row says which repository it is in, read by the repository's id with the page", async () => {
+    const summary: CodeTaskSummaryJSON = {
+      id: TASK_ID.toString(),
+      title: "Fix the login",
+      codeRepositoryId: REPOSITORY_ID.toString(),
+    } as CodeTaskSummaryJSON;
+    const withoutRepository: CodeTaskSummaryJSON = {
+      id: ObjectID.generate().toString(),
+      title: "A fix that found no repository",
+    } as CodeTaskSummaryJSON;
+
+    jest
+      .spyOn(CodeTaskPresenter, "summarize")
+      .mockResolvedValue([summary, withoutRepository]);
+    jest.spyOn(CodeTaskTryAgain, "markWhoMayTryAgain").mockResolvedValue();
+
+    const { result } = await call(route, {
+      body: { allRepositories: true },
+    });
+    const tasks: Array<CodeTaskSummaryJSON> = (result as JSONObject)[
+      "tasks"
+    ] as unknown as Array<CodeTaskSummaryJSON>;
+
+    expect(tasks[0]!.repository).toEqual({
+      name: "users-api",
+      provider: "GitHub",
+    });
+    expect(tasks[1]!.repository).toBeUndefined();
+
+    // Read as the caller, by the ids of the page's repositories alone.
+    const nameRead: { query: Record<string, unknown>; props: unknown } = (
+      CodeRepositoryService.findBy as unknown as jest.Mock
+    ).mock.calls.find((call: Array<unknown>): boolean => {
+      return Boolean(
+        (call[0] as { select: Record<string, unknown> }).select["name"],
+      );
+    })![0] as { query: Record<string, unknown>; props: unknown };
+
+    expect(nameRead.props).toBe(MEMBER);
+  });
+
+  test("a repository's own list says nothing of the repository on each row", async () => {
+    const summary: CodeTaskSummaryJSON = {
+      id: TASK_ID.toString(),
+      title: "Fix the login",
+      codeRepositoryId: REPOSITORY_ID.toString(),
+    } as CodeTaskSummaryJSON;
+
+    jest.spyOn(CodeTaskPresenter, "summarize").mockResolvedValue([summary]);
+    jest.spyOn(CodeTaskTryAgain, "markWhoMayTryAgain").mockResolvedValue();
+
+    const { result } = await call(route, {
+      body: { repositoryId: REPOSITORY_ID.toString() },
+    });
+
+    expect(
+      (
+        (result as JSONObject)["tasks"] as unknown as Array<CodeTaskSummaryJSON>
+      )[0]!.repository,
+    ).toBeUndefined();
   });
 
   test("no repository to read and no AI runs to read: nothing, and nothing is asked of the database", async () => {
@@ -2169,6 +2296,161 @@ describe("stopping a task", () => {
   });
 });
 
+/*
+ * #10764: the repositories are a page the server reads over every
+ * repository the caller may read - searched, in one of Code's two lists or
+ * both, by name or by activity - and what a page holds is read by its ids.
+ */
+describe("a page of the repositories, as the body asks for it", () => {
+  function listRequest(): CodeRepositoryListRequest {
+    return (
+      (CodeTaskRepositoryList.read as unknown as jest.Mock).mock
+        .calls[0]![0] as {
+        request: CodeRepositoryListRequest;
+      }
+    ).request;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(CodeTaskRepositoryList, "read").mockResolvedValue({
+      repositories: [],
+      connections: new Map(),
+      count: 0,
+      facts: {
+        total: 0,
+        connected: 0,
+        notConnected: 0,
+        areAllOnGitHub: true,
+        isAnyOnGitHub: false,
+        areAllNotConnectedOnGitHub: true,
+        isAnyNotConnectedOnGitHub: false,
+      },
+      matches: { connected: 0, notConnected: 0 },
+    });
+    jest
+      .spyOn(CodeTaskStats, "countTasksWithoutRepository")
+      .mockResolvedValue(0);
+    jest
+      .spyOn(CodeTaskStats, "getRepositoryStats")
+      .mockResolvedValue(new Map());
+  });
+
+  test("a body that names nothing reads the first page by name, as every repository read before", async () => {
+    await call("/code-task/repositories");
+
+    expect(listRequest()).toEqual({
+      search: "",
+      group: null,
+      order: CodeRepositoryListOrder.Name,
+      skip: 0,
+      limit: MAX_CODE_REPOSITORIES_PER_PAGE,
+    });
+    expect(
+      (
+        (CodeTaskRepositoryList.read as unknown as jest.Mock).mock
+          .calls[0]![0] as { props: unknown; projectId: ObjectID }
+      ).props,
+    ).toBe(MEMBER);
+  });
+
+  test("the search, the list, the order and the page are the body's, trimmed and held to their bounds", async () => {
+    await call("/code-task/repositories", {
+      body: {
+        search: "  acme/checkout  ",
+        group: CodeRepositoryListGroup.NotConnected,
+        order: CodeRepositoryListOrder.Activity,
+        skip: 520,
+        limit: 25,
+      },
+    });
+
+    expect(listRequest()).toEqual({
+      search: "acme/checkout",
+      group: CodeRepositoryListGroup.NotConnected,
+      order: CodeRepositoryListOrder.Activity,
+      skip: 520,
+      limit: 25,
+    });
+  });
+
+  test("a page is never larger than 500, never before the first, and nonsense reads as nothing named", async () => {
+    await call("/code-task/repositories", {
+      body: {
+        search: 42,
+        group: "every repository",
+        order: "newest",
+        skip: -10,
+        limit: 100000,
+      },
+    });
+
+    expect(listRequest()).toEqual({
+      search: "",
+      group: null,
+      order: CodeRepositoryListOrder.Name,
+      skip: 0,
+      limit: MAX_CODE_REPOSITORIES_PER_PAGE,
+    });
+  });
+
+  test("repositories by id: read by their ids as the caller, each once, an id that is not one left out", async () => {
+    const { result } = await call("/code-task/repositories-by-id", {
+      body: {
+        repositoryIds: [
+          REPOSITORY_ID.toString(),
+          REPOSITORY_ID.toString().toUpperCase(),
+          "not-an-id",
+          7,
+        ],
+      },
+    });
+
+    expect(
+      ((result as JSONObject)["repositories"] as Array<JSONObject>).map(
+        (repository: JSONObject): string => {
+          return String(repository["id"]);
+        },
+      ),
+    ).toEqual([REPOSITORY_ID.toString()]);
+
+    const read: { query: Record<string, unknown>; props: unknown } = (
+      CodeRepositoryService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as { query: Record<string, unknown>; props: unknown };
+
+    expect(read.props).toBe(MEMBER);
+    expect((read.query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+  });
+
+  test("repositories by id: one the caller may not read is not answered", async () => {
+    world.repositoryReadable = false;
+
+    const { result } = await call("/code-task/repositories-by-id", {
+      body: { repositoryIds: [REPOSITORY_ID.toString()] },
+    });
+
+    expect(result).toEqual({ repositories: [] });
+  });
+
+  test("repositories by id: no ids reads nothing; a body without a list is refused", async () => {
+    expect(
+      (
+        await call("/code-task/repositories-by-id", {
+          body: { repositoryIds: [] },
+        })
+      ).result,
+    ).toEqual({ repositories: [] });
+    expect(CodeRepositoryService.findBy).not.toHaveBeenCalled();
+
+    const { next } = await call("/code-task/repositories-by-id", {
+      body: { repositoryIds: REPOSITORY_ID.toString() },
+    });
+
+    expect(refusal(next)).toBeInstanceOf(BadDataException);
+  });
+});
+
 describe("the repositories, at a glance", () => {
   test("each with its stats and whether AI can reach it; the tasks with no repository are counted for those who may read them", async () => {
     jest.spyOn(CodeTaskStats, "getRepositoryStats").mockResolvedValue(
@@ -2211,6 +2493,18 @@ describe("the repositories, at a glance", () => {
           },
         },
       ],
+      // How many the search finds, and what is true of all of them (#10764).
+      count: 1,
+      facts: {
+        total: 1,
+        connected: 1,
+        notConnected: 0,
+        areAllOnGitHub: true,
+        isAnyOnGitHub: true,
+        areAllNotConnectedOnGitHub: true,
+        isAnyNotConnectedOnGitHub: false,
+      },
+      matches: { connected: 1, notConnected: 0 },
       tasksWithoutRepositoryCount: 4,
     });
     // The repositories are read as the caller.

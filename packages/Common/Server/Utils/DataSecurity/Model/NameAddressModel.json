@@ -1,0 +1,34 @@
+{
+  "about": "The names-and-addresses model Data Security runs inside the scanner (issue #10373). Images fetch these files at build time from the pinned revision and check each against its SHA-256 (Scripts/Docker/FetchDataSecurityModel.js); Iron Bank's manifests list the same URLs and checksums; tests fetch them once into a cache with the same check. Never committed to the repository.",
+  "name": "openmasq/ner-multilingual",
+  "revision": "8cf72739a75da1de5680ea6c30c381660e740303",
+  "licence": "Apache-2.0",
+  "homepage": "https://huggingface.co/openmasq/ner-multilingual",
+  "directory": "/usr/src/DataSecurityModel",
+  "files": [
+    {
+      "name": "model_quantized.onnx",
+      "url": "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/onnx/model_quantized.onnx",
+      "sha256": "7470819a0961b246614ceedd940934b8d8ae7c39070cb15508883fe0e6f93012",
+      "bytes": 97541645
+    },
+    {
+      "name": "vocab.txt",
+      "url": "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/vocab.txt",
+      "sha256": "2c6a68543b91336cb07a688b9678a2a61d8ff687ab6885826cd89680785fae40",
+      "bytes": 525997
+    },
+    {
+      "name": "config.json",
+      "url": "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/config.json",
+      "sha256": "b942516293db81db39bc12b734888dc5e7a7e38c2f5f6f7ecacb337fd716c4c3",
+      "bytes": 1126
+    },
+    {
+      "name": "README.md",
+      "url": "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/README.md",
+      "sha256": "e39d9b3a38e02a7af00c54568ae44d5c8a3a0a3c7dd3d07e0e53cf5bf000e48a",
+      "bytes": 8506
+    }
+  ]
+}

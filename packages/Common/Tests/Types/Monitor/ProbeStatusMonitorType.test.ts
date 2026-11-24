@@ -342,6 +342,7 @@ describe("the Probe Status checks", () => {
         EvaluateOverTimeType.Count,
         EvaluateOverTimeType.Percentage,
         EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
     }
   });

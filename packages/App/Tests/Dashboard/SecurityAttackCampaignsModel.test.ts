@@ -233,6 +233,10 @@ describe("what a campaign row says", () => {
       "Path traversal",
     );
     expect(Model.getCampaignAttackKindLabel("log4shell")).toBe("Log4Shell");
+    // Requests for /.env, /.git/config and the like that the site refused (#10745).
+    expect(Model.getCampaignAttackKindLabel("sensitive-file")).toBe(
+      "Sensitive files",
+    );
     expect(Model.getCampaignAttackKindLabel("xss")).toBe("xss");
   });
 });

@@ -60,6 +60,10 @@ import {
   IMPACT_ASSESSMENT_CASES,
   RECORD_DRAFT_CASES,
 } from "./DataSecurityPaperworkEvalCases";
+import {
+  DESCRIBE_DATA_TYPE_EVAL_CASES,
+  DRAFT_DATA_TYPE_EVAL_CASES,
+} from "./DataTypeDraftEvalSet";
 import { EXPOSURE_ASSESSMENT_CASES } from "./DataSecurityExposureEvalCases";
 
 /*
@@ -1760,6 +1764,9 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...RECORD_DRAFT_CASES,
   ...IMPACT_ASSESSMENT_CASES,
   ...AUDIT_EVIDENCE_CASES,
+  // The company's own data types (#10371): what each group or sentence should become.
+  ...DRAFT_DATA_TYPE_EVAL_CASES,
+  ...DESCRIBE_DATA_TYPE_EVAL_CASES,
   ...EXPOSURE_ASSESSMENT_CASES,
 ];
 

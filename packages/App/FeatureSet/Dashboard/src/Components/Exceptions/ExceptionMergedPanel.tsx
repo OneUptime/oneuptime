@@ -15,7 +15,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { unmergeException } from "../../Utils/ExceptionMerge";
+import {
+  getListedMergedExceptions,
+  unmergeException,
+} from "../../Utils/ExceptionMerge";
 import AppLink from "../AppLink/AppLink";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
@@ -161,7 +164,16 @@ const ExceptionMergedPanel: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (props.members.length === 0) {
+  /*
+   * The exceptions a person merged into this one. A row that only keeps
+   * this exception's own former fingerprint (#10619) is part of it, not
+   * something merged, so it is not listed and cannot be unmerged.
+   */
+  const listedMembers: Array<TelemetryException> = getListedMergedExceptions(
+    props.members,
+  );
+
+  if (listedMembers.length === 0) {
     return <></>;
   }
 
@@ -172,7 +184,7 @@ const ExceptionMergedPanel: FunctionComponent<ComponentProps> = (
     >
       <div data-testid="exception-merged-members">
         <ul className="-mx-2 divide-y divide-gray-100">
-          {props.members.map((member: TelemetryException): ReactElement => {
+          {listedMembers.map((member: TelemetryException): ReactElement => {
             const id: string = member.id?.toString() || "";
 
             return (

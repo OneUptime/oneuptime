@@ -69,7 +69,7 @@ import {
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import CallRequest, { GatherInput, Say } from "../../Types/Call/CallRequest";
+import CallRequest from "../../Types/Call/CallRequest";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -133,7 +133,7 @@ import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
-import { getOnCallPageCallPassOnPrompt } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { buildOnCallPageCallData } from "../../Utils/Call/OnCallPageCall";
 import {
   getEnglishPageTranslator,
   getOnCallPageAcknowledge,
@@ -168,7 +168,6 @@ import OnCallRunFailure, {
 import {
   OnCallPageAgainNotice,
   getOnCallAcknowledgementTimeoutInMinutes,
-  getOnCallPageAgainCallSentence,
   getOnCallPageAgainEmailLine,
   getOnCallPageAgainHeadline,
   getOnCallPageAgainWhyLine,
@@ -176,7 +175,6 @@ import {
 } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import {
   OnCallPersonPageNotice,
-  getOnCallPersonPageCallMessage,
   getOnCallPersonPageCallSentence,
   getOnCallPersonPageEmailLine,
   getOnCallPersonPageEmailMessageLine,
@@ -189,18 +187,14 @@ import {
 } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallPolicyStartedByHand } from "../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import {
-  ON_CALL_OBSERVER_PAGE_CALL_ANSWERED,
   OnCallObserverPageRecordKind,
   getOnCallObserverPageAcknowledgeLabel,
-  getOnCallObserverPageCallPrompt,
-  getOnCallObserverPageCallSentence,
   getOnCallObserverPageEmailSubject,
   getOnCallObserverPageEmailWhy,
   getOnCallObserverPageLead,
   getOnCallObserverPageNotice,
   getOnCallObserverPageSmsAction,
   getOnCallObserverPageSmsLead,
-  getOnCallObserverPageSpokenNotice,
   isOnCallObserverPage,
 } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -5203,6 +5197,10 @@ export class Service extends ProjectReferencesService<Model> {
     return rule;
   }
 
+  /*
+   * The call of a page about an alert: who calls, what happened, how bad and
+   * which one, the prompt, then the title (Utils/Call/OnCallPageCall).
+   */
   @CaptureSpan()
   public async generateCallTemplateForAlertCreated(
     to: Phone,
@@ -5215,69 +5213,30 @@ export class Service extends ProjectReferencesService<Model> {
     // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
     isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
-    const alertIdentifier: string =
-      alert.alertNumber !== undefined
-        ? `Alert number ${alert.alertNumber}, ${alert.title || "Alert"}`
-        : alert.title || "Alert";
-
-    const callRequest: CallRequest = {
+    return {
       to: to,
-      data: [
-        {
-          sayMessage: "This is a call from One Uptime",
-        },
-        {
-          sayMessage: pageAgain
-            ? getOnCallPageAgainCallSentence({
-                recordNoun: "alert",
-                notice: pageAgain,
-              })
-            : personPage
-              ? getOnCallPersonPageCallSentence({
-                  recordNoun: "alert",
-                  notice: personPage,
-                })
-              : "A new alert has been created",
-        },
-        {
-          sayMessage: alertIdentifier,
-        },
-        // What the person who paged wrote, after what it is about.
-        ...this.getPersonPageCallMessage(personPage),
-        {
-          introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,
-          numDigits: 1,
-          timeoutInSeconds: 10,
-          noInputMessage: "You have not entered any input. Good bye",
-          onInputCallRequest: {
-            "1": {
-              sayMessage: "You have acknowledged this alert. Good bye",
-            },
-            default: {
-              sayMessage: "Invalid input. Good bye",
-            },
-          },
-          /*
-           * The call adds its own token, naming this notification
-           * (OnCallKeypadToken): a key pressed answers this page only.
-           */
-          responseUrl: await OnCallPageLinks.getCallResponseUrl(
-            userOnCallLogTimelineId,
+      data: buildOnCallPageCallData({
+        record: {
+          noun: "alert",
+          number: this.getRecordNumberText(
+            alert.alertNumberWithPrefix,
+            alert.alertNumber,
           ),
+          severityName: alert.alertSeverity?.name,
+          title: alert.title,
         },
-      ],
+        projectName: alert.project?.name,
+        pageAgain: pageAgain,
+        personPage: personPage,
+        isObserverPage: isObserverPage,
+        responseUrl: await OnCallPageLinks.getCallResponseUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return isObserverPage
-      ? this.toObserverCallRequest({
-          callRequest: callRequest,
-          recordNoun: "alert",
-          kind: "alert",
-          personPage: personPage,
-        })
-      : callRequest;
   }
 
+  // The call of a page about an incident, as an alert's (generateCallTemplateForAlertCreated).
   @CaptureSpan()
   public async generateCallTemplateForIncidentCreated(
     to: Phone,
@@ -5290,69 +5249,30 @@ export class Service extends ProjectReferencesService<Model> {
     // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
     isObserverPage?: boolean | undefined,
   ): Promise<CallRequest> {
-    const incidentIdentifier: string =
-      incident.incidentNumber !== undefined
-        ? `Incident number ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title || "Incident"}`
-        : incident.title || "Incident";
-
-    const callRequest: CallRequest = {
+    return {
       to: to,
-      data: [
-        {
-          sayMessage: "This is a call from One Uptime",
-        },
-        {
-          sayMessage: pageAgain
-            ? getOnCallPageAgainCallSentence({
-                recordNoun: "incident",
-                notice: pageAgain,
-              })
-            : personPage
-              ? getOnCallPersonPageCallSentence({
-                  recordNoun: "incident",
-                  notice: personPage,
-                })
-              : "A new incident has been created",
-        },
-        {
-          sayMessage: incidentIdentifier,
-        },
-        // What the person who paged wrote, after what it is about.
-        ...this.getPersonPageCallMessage(personPage),
-        {
-          introMessage: `To acknowledge this incident, press 1. ${getOnCallPageCallPassOnPrompt()}`,
-          numDigits: 1,
-          timeoutInSeconds: 10,
-          noInputMessage: "You have not entered any input. Good bye",
-          onInputCallRequest: {
-            "1": {
-              sayMessage: "You have acknowledged this incident. Good bye",
-            },
-            default: {
-              sayMessage: "Invalid input. Good bye",
-            },
-          },
-          /*
-           * The call adds its own token, naming this notification
-           * (OnCallKeypadToken): a key pressed answers this page only.
-           */
-          responseUrl: await OnCallPageLinks.getCallResponseUrl(
-            userOnCallLogTimelineId,
+      data: buildOnCallPageCallData({
+        record: {
+          noun: "incident",
+          number: this.getRecordNumberText(
+            incident.incidentNumberWithPrefix,
+            incident.incidentNumber,
           ),
+          severityName: incident.incidentSeverity?.name,
+          title: incident.title,
         },
-      ],
+        projectName: incident.project?.name,
+        pageAgain: pageAgain,
+        personPage: personPage,
+        isObserverPage: isObserverPage,
+        responseUrl: await OnCallPageLinks.getCallResponseUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return isObserverPage
-      ? this.toObserverCallRequest({
-          callRequest: callRequest,
-          recordNoun: "incident",
-          kind: "incident",
-          personPage: personPage,
-        })
-      : callRequest;
   }
 
+  // The call of a page about an alert episode, as an alert's (generateCallTemplateForAlertCreated).
   @CaptureSpan()
   public async generateCallTemplateForAlertEpisodeCreated(
     to: Phone,
@@ -5368,70 +5288,30 @@ export class Service extends ProjectReferencesService<Model> {
      */
     personPage?: OnCallPersonPageNotice | undefined,
   ): Promise<CallRequest> {
-    const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
-      ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
-      : alertEpisode.episodeNumber !== undefined
-        ? `Alert episode number ${alertEpisode.episodeNumber}, ${alertEpisode.title || "Alert Episode"}`
-        : alertEpisode.title || "Alert Episode";
-
-    const callRequest: CallRequest = {
+    return {
       to: to,
-      data: [
-        {
-          sayMessage: "This is a call from One Uptime",
-        },
-        {
-          sayMessage: pageAgain
-            ? getOnCallPageAgainCallSentence({
-                recordNoun: "alert episode",
-                notice: pageAgain,
-              })
-            : personPage
-              ? getOnCallPersonPageCallSentence({
-                  recordNoun: "alert episode",
-                  notice: personPage,
-                })
-              : "A new alert episode has been created",
-        },
-        {
-          sayMessage: episodeIdentifier,
-        },
-        // What the person who started it wrote, after what it is about.
-        ...this.getPersonPageCallMessage(personPage),
-        {
-          introMessage: `To acknowledge this alert episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
-          numDigits: 1,
-          timeoutInSeconds: 10,
-          noInputMessage: "You have not entered any input. Good bye",
-          onInputCallRequest: {
-            "1": {
-              sayMessage: "You have acknowledged this alert episode. Good bye",
-            },
-            default: {
-              sayMessage: "Invalid input. Good bye",
-            },
-          },
-          /*
-           * The call adds its own token, naming this notification
-           * (OnCallKeypadToken): a key pressed answers this page only.
-           */
-          responseUrl: await OnCallPageLinks.getCallResponseUrl(
-            userOnCallLogTimelineId,
+      data: buildOnCallPageCallData({
+        record: {
+          noun: "alert episode",
+          number: this.getRecordNumberText(
+            alertEpisode.episodeNumberWithPrefix,
+            alertEpisode.episodeNumber,
           ),
+          severityName: alertEpisode.alertSeverity?.name,
+          title: alertEpisode.title,
         },
-      ],
+        projectName: alertEpisode.project?.name,
+        pageAgain: pageAgain,
+        personPage: personPage,
+        isObserverPage: isObserverPage,
+        responseUrl: await OnCallPageLinks.getCallResponseUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return isObserverPage
-      ? this.toObserverCallRequest({
-          callRequest: callRequest,
-          recordNoun: "alert episode",
-          kind: "alert episode",
-          personPage: personPage,
-        })
-      : callRequest;
   }
 
+  // The call of a page about an incident episode, as an alert's (generateCallTemplateForAlertCreated).
   @CaptureSpan()
   public async generateCallTemplateForIncidentEpisodeCreated(
     to: Phone,
@@ -5447,69 +5327,27 @@ export class Service extends ProjectReferencesService<Model> {
      */
     personPage?: OnCallPersonPageNotice | undefined,
   ): Promise<CallRequest> {
-    const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
-      ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
-      : incidentEpisode.episodeNumber !== undefined
-        ? `Incident episode number ${incidentEpisode.episodeNumber}, ${incidentEpisode.title || "Incident Episode"}`
-        : incidentEpisode.title || "Incident Episode";
-
-    const callRequest: CallRequest = {
+    return {
       to: to,
-      data: [
-        {
-          sayMessage: "This is a call from One Uptime",
-        },
-        {
-          sayMessage: pageAgain
-            ? getOnCallPageAgainCallSentence({
-                recordNoun: "incident episode",
-                notice: pageAgain,
-              })
-            : personPage
-              ? getOnCallPersonPageCallSentence({
-                  recordNoun: "incident episode",
-                  notice: personPage,
-                })
-              : "A new incident episode has been created",
-        },
-        {
-          sayMessage: episodeIdentifier,
-        },
-        // What the person who started it wrote, after what it is about.
-        ...this.getPersonPageCallMessage(personPage),
-        {
-          introMessage: `To acknowledge this incident episode, press 1. ${getOnCallPageCallPassOnPrompt()}`,
-          numDigits: 1,
-          timeoutInSeconds: 10,
-          noInputMessage: "You have not entered any input. Good bye",
-          onInputCallRequest: {
-            "1": {
-              sayMessage:
-                "You have acknowledged this incident episode. Good bye",
-            },
-            default: {
-              sayMessage: "Invalid input. Good bye",
-            },
-          },
-          /*
-           * The call adds its own token, naming this notification
-           * (OnCallKeypadToken): a key pressed answers this page only.
-           */
-          responseUrl: await OnCallPageLinks.getCallResponseUrl(
-            userOnCallLogTimelineId,
+      data: buildOnCallPageCallData({
+        record: {
+          noun: "incident episode",
+          number: this.getRecordNumberText(
+            incidentEpisode.episodeNumberWithPrefix,
+            incidentEpisode.episodeNumber,
           ),
+          severityName: incidentEpisode.incidentSeverity?.name,
+          title: incidentEpisode.title,
         },
-      ],
+        projectName: incidentEpisode.project?.name,
+        pageAgain: pageAgain,
+        personPage: personPage,
+        isObserverPage: isObserverPage,
+        responseUrl: await OnCallPageLinks.getCallResponseUrl(
+          userOnCallLogTimelineId,
+        ),
+      }),
     };
-
-    return isObserverPage
-      ? this.toObserverCallRequest({
-          callRequest: callRequest,
-          recordNoun: "incident episode",
-          kind: "incident episode",
-          personPage: personPage,
-        })
-      : callRequest;
   }
 
   @CaptureSpan()
@@ -5965,68 +5803,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A call of an observer's page (OnCallObserverPage), from the call a
-   * responder's page makes: it says they are paged as an observer and kept
-   * informed, asks them to press 1 to say they have heard it - which
-   * acknowledges nothing else - and offers no escalation.
-   */
-  private toObserverCallRequest(data: {
-    callRequest: CallRequest;
-    recordNoun: string;
-    kind: OnCallObserverPageRecordKind;
-    personPage?: OnCallPersonPageNotice | undefined;
-  }): CallRequest {
-    const items: CallRequest["data"] = [...data.callRequest.data];
-
-    // What the call says first, after who calls.
-    if (items[1] && typeof items[1] === "object" && "sayMessage" in items[1]) {
-      const sentence: Say = {
-        sayMessage: getOnCallObserverPageCallSentence({
-          recordNoun: data.recordNoun,
-          personPage: data.personPage,
-        }),
-      };
-
-      items[1] = sentence;
-    }
-
-    const promptIndex: number = items.findIndex(
-      (item: CallRequest["data"][number]): boolean => {
-        return (
-          typeof item === "object" && item !== null && "introMessage" in item
-        );
-      },
-    );
-
-    if (promptIndex >= 0) {
-      const prompt: GatherInput = items[promptIndex] as GatherInput;
-
-      const observerPrompt: GatherInput = {
-        ...prompt,
-        introMessage: getOnCallObserverPageCallPrompt(data.kind),
-        onInputCallRequest: {
-          ...prompt.onInputCallRequest,
-          "1": {
-            sayMessage: ON_CALL_OBSERVER_PAGE_CALL_ANSWERED,
-          },
-        },
-      };
-
-      // Before the prompt: who stays on it.
-      const notice: Say = {
-        sayMessage: getOnCallObserverPageSpokenNotice(data.kind),
-      };
-
-      items.splice(promptIndex, 1, notice, observerPrompt);
-    }
-
-    return {
-      ...data.callRequest,
-      data: items,
-    };
-  }
-
-  /*
    * Whether a delivery is part of an observer's page (OnCallObserverPage).
    * Best effort: a run that cannot be read is worded as a responder's page,
    * and the page still goes out.
@@ -6065,20 +5841,6 @@ export class Service extends ProjectReferencesService<Model> {
       logger.debug(err as Error);
       return false;
     }
-  }
-
-  /*
-   * What a call says after the record when a person's page has a message:
-   * "Alice Kim says: Can you check the database?". Nothing otherwise.
-   */
-  private getPersonPageCallMessage(
-    personPage: OnCallPersonPageNotice | undefined,
-  ): Array<{ sayMessage: string }> {
-    const said: string = personPage
-      ? getOnCallPersonPageCallMessage(personPage)
-      : "";
-
-    return said ? [{ sayMessage: said }] : [];
   }
 
   /*

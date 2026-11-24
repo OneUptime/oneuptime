@@ -103,6 +103,7 @@ import {
   GroupingRuleKind,
   GroupingRuleTemplate,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/GroupingRule/GroupingRuleSetup";
+import { INPUT_REFUSED_CLASS_NAME } from "../../../UI/Components/Input/Input";
 import IncidentGroupingRule from "../../../Models/DatabaseModels/IncidentGroupingRule";
 import AlertGroupingRule from "../../../Models/DatabaseModels/AlertGroupingRule";
 import ObjectID from "../../../Types/ObjectID";
@@ -455,6 +456,35 @@ describe("MinutesSettingField", () => {
     expect(input).toHaveAttribute("aria-describedby", error.id);
   });
 
+  /*
+   * The box itself is drawn refused, as a refused text field is (#6520):
+   * a sighted reader sees which number it is, not only the line under it.
+   * The message stays the setting's own, under the number and its words.
+   */
+  test("a refused number has the red border, and the setting's one message", () => {
+    renderSetting({
+      enabled: true,
+      minutes: "0",
+      error: "Enter a whole number of minutes between 1 and 525600.",
+    });
+
+    const input: HTMLElement = screen.getByRole("spinbutton");
+
+    expect(input).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(input.parentElement?.querySelector("svg")).toBeNull();
+  });
+
+  test("a number with nothing wrong keeps its grey border", () => {
+    renderSetting({ enabled: true, minutes: 30 });
+
+    const input: HTMLElement = screen.getByRole("spinbutton");
+
+    expect(input).toHaveClass("border-gray-300");
+    expect(input).not.toHaveClass("border-red-300");
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
   test("an error on a switched-off setting is not shown - it is not checked", () => {
     renderSetting({ enabled: false, minutes: "", error: "Not shown." });
 
@@ -613,6 +643,20 @@ describe.each([GroupingRuleKind.Incident, GroupingRuleKind.Alert])(
       );
       expect(input).toHaveAttribute("aria-invalid", "true");
       expect(input).toHaveAttribute("aria-describedby", error.id);
+    });
+
+    test("a refused count has the red border, and the setting's one message", () => {
+      renderSetting({
+        enabled: true,
+        count: "1",
+        error: "Enter a whole number between 2 and 100.",
+      });
+
+      const input: HTMLElement = screen.getByRole("spinbutton");
+
+      expect(input).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
+      expect(screen.getAllByRole("alert")).toHaveLength(1);
+      expect(input.parentElement?.querySelector("svg")).toBeNull();
     });
 
     test("an error on a switched-off setting is not shown - it is not checked", () => {

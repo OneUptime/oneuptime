@@ -95,11 +95,16 @@ import {
   getLlmTokenDirection,
 } from "Common/Types/Telemetry/LlmMetricConventions";
 import {
+  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageGroup,
   LlmUsageResponse,
   LlmUsageSource,
 } from "Common/Types/Telemetry/LlmUsageApi";
+import {
+  readLlmCallPerson,
+  readLlmCallTeam,
+} from "Common/Utils/Telemetry/LlmCallIdentity";
 import LlmCallCountingUtil, {
   LlmCountedTotals,
 } from "Common/Utils/Telemetry/LlmCallCounting";
@@ -227,6 +232,12 @@ const SOURCES: Record<string, string> = {
     "packages/Common/Server/Utils/Telemetry/LlmMetricUsageReader.ts",
   metricUsage: "packages/Common/Utils/Telemetry/LlmMetricUsage.ts",
   usageReader: "packages/Common/Server/Utils/Telemetry/LlmUsageReader.ts",
+  // A call's person and team, past what a scrub rule left (#10435, #10631).
+  callIdentitySql:
+    "packages/Common/Server/Utils/Telemetry/LlmCallIdentitySql.ts",
+  hiddenByScrubRule: `${DASHBOARD}/Components/LlmConversations/LlmHiddenByScrubRule.tsx`,
+  conversationRow: `${DASHBOARD}/Components/LlmConversations/LlmConversationRow.tsx`,
+  conversationView: `${DASHBOARD}/Components/LlmConversations/LlmConversationView.tsx`,
 };
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
@@ -1456,6 +1467,68 @@ describe("the AI / LLM Observability page", () => {
     );
   });
 
+  /*
+   * #10631: Conversations and Calls read a call's person as the Usage tab
+   * does, past what a scrub rule left: the id when a rule hid the email and
+   * left the id whole, "Hidden by a scrub rule" when a rule hid every name
+   * the call has - never "[REDACTED]", a mask or a token as a person.
+   */
+  it("says a person a scrub rule hid is never shown as one, in Conversations and Calls", () => {
+    const privacy: string = section(page, "Privacy and redaction");
+
+    expect(privacy).toContain(
+      "A person a scrub rule hid is never shown as one. **Conversations** and **Calls** show a call's ID when a rule hid its email but left the ID whole, and **Hidden by a scrub rule** where a rule hid every name the call has, whether it redacted, masked or hashed them. **Calls** shows a team a rule hid the same way.",
+    );
+
+    // The conversation list's people are the Usage tab's person, in ClickHouse.
+    expect(source("conversationService")).toContain(
+      "statement.append(buildLlmPersonSql());",
+    );
+    expect(source("conversationService")).not.toContain("PERSON_SQL");
+    expect(source("usageReader")).toContain("return buildLlmPersonSql();");
+
+    // A conversation's calls and the Calls table read it the same way.
+    expect(source("conversationService")).toContain(
+      "userLabel: readLlmCallPerson({",
+    );
+    expect(source("callsTable")).toContain(
+      "readLlmCallPerson({ email: span.llmUserEmail, id: span.llmUserId })",
+    );
+    expect(source("callsTable")).toContain("readLlmCallTeam(span.llmTeam)");
+
+    // What that reading answers: the id past an email a rule hid, whatever the rule did.
+    for (const email of [
+      "[REDACTED]",
+      "j***@***.com",
+      "[HASHED:3f9a1c0e7b2d4a68]",
+      "auth0|[HASHED:3f9a1c0e]",
+    ]) {
+      expect(readLlmCallPerson({ email, id: "u-7" })).toBe("u-7");
+      // Every name hidden: the one hidden key, never what the rule left.
+      expect(readLlmCallPerson({ email, id: "[REDACTED]" })).toBe(
+        LLM_USAGE_HIDDEN_GROUP_KEY,
+      );
+      expect(readLlmCallTeam(email)).toBe(LLM_USAGE_HIDDEN_GROUP_KEY);
+    }
+
+    // Named nobody: no one, which is not hidden.
+    expect(readLlmCallPerson({ email: "", id: "" })).toBe("");
+
+    // Drawn in the Dashboard's words, which the page names in bold.
+    expect(source("hiddenByScrubRule")).toContain('"Hidden by a scrub rule"');
+    expect(source("callsTable")).toContain("<LlmHiddenByScrubRule />");
+    expect(source("conversationRow")).toContain("<LlmHiddenByScrubRule />");
+    expect(source("conversationView")).toContain("<LlmHiddenByScrubRule />");
+    expect(source("usageBreakdown")).toContain(
+      '<LlmHiddenByScrubRule dataTestId="llm-usage-hidden" />',
+    );
+
+    // A hidden person's messages are spoken by the generic "User".
+    expect(source("transcriptStep")).toContain(
+      "!isLlmCallNameHidden(props.personLabel)",
+    );
+  });
+
   it("sends readers of log events to the logs' scrub rules and drop filters", () => {
     const ingest: string = source("logsIngest");
     const held: number = ingest.indexOf("LlmLogEventsUtil.holdContentAsText(");
@@ -2150,11 +2223,16 @@ describe("the AI Coding Assistants page", () => {
   });
 
   it("says the Usage tab labels a person by email first, and reads identity only from AI calls", () => {
-    // The email first, else the id: each past what a scrub rule left of it (#10435).
-    expect(source("usageReader")).toContain(
+    /*
+     * The email first, else the id: each past what a scrub rule left of it
+     * (#10435), in the expressions the Usage tab groups by (#10631).
+     */
+    expect(source("usageReader")).toContain("return buildLlmPersonSql();");
+    expect(source("usageReader")).toContain("return buildLlmTeamSql();");
+    expect(source("callIdentitySql")).toContain(
       "statement.append(`${USER_EMAIL_SQL} != '' AND NOT `);",
     );
-    expect(source("usageReader")).toContain(
+    expect(source("callIdentitySql")).toContain(
       "statement.append(`, ${USER_EMAIL_SQL}, ${USER_ID_SQL} != '' AND NOT `);",
     );
     expect(page).toContain(
@@ -2164,7 +2242,7 @@ describe("the AI Coding Assistants page", () => {
     expect(page).toContain(
       "**A person or team a scrub rule hid is never anyone's spend.** A call whose email a rule hid is shown under its ID when the rule left the ID whole. Otherwise the Usage tab counts it in one row of spend a scrub rule hid, whether the rule redacted, masked or hashed it.",
     );
-    expect(source("usageReader")).toContain("hiddenGroupSql()");
+    expect(source("callIdentitySql")).toContain("hiddenGroupSql()");
     expect(source("llmSpan")).toContain(
       "fields.llmUserId = this.getString(attributes, LlmUserIdAttributeKeys);",
     );

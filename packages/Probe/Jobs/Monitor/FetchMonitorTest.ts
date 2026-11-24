@@ -155,12 +155,24 @@ class FetchMonitorTestAndProbe {
         );
       }
 
+      /*
+       * Never the results themselves: the debug line of each step's result,
+       * the values of its secrets hidden, is written as the test runs
+       * (MonitorUtil.probeMonitorTest, #10875).
+       */
       if (result.status === "rejected") {
         logger.error("Error in probing monitor:");
         logger.error(result.reason);
       } else {
-        logger.debug("Probed monitor: ");
-        logger.debug(result.value);
+        logger.debug(
+          `Probed monitor test: ${
+            result.value.filter(
+              (stepResult: ProbeMonitorResponse | null): boolean => {
+                return stepResult !== null;
+              },
+            ).length
+          } of ${result.value.length} steps reported a result`,
+        );
       }
 
       resultIndex++;

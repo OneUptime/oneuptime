@@ -1133,9 +1133,14 @@ export default class AzureArm {
    * (https://metrics.monitor.azure.com), which takes Monitoring Reader on
    * the subscription itself; the token goes to that Region's host alone.
    * Each resource's answer, by its lowercased id: its series and the
-   * metrics Azure could not read of it, as getMetrics answers one. Never
-   * split by a dimension: a split read is a resource's own call. Asked
-   * once, as getMetrics is: its caller asks again (AzureMetricReads).
+   * metrics Azure could not read of it, as getMetrics answers one. Split by
+   * a dimension (`splitBy`: a Container App's Requests by
+   * statusCodeCategory, #10837), each resource's answer has a series per
+   * value of it, up to `top` per resource - the batch API's filter, top and
+   * orderby, as Microsoft's reference for metrics:getBatch documents them.
+   * It has no ValidateDimensions: every metric of a split batch must have
+   * the dimension, so its caller asks only the metrics split by it.
+   * Asked once, as getMetrics is: its caller asks again (AzureMetricReads).
    */
   public async getMetricsBatch(data: {
     subscriptionId: string;
@@ -1147,8 +1152,22 @@ export default class AzureArm {
     interval: string;
     start: Date;
     end: Date;
+    splitBy?: string | undefined;
+    top?: number | undefined;
+    orderBy?: string | undefined;
   }): Promise<Map<string, AzureMetricsAnswer>> {
     EntraTokenClient.validateGuid(data.subscriptionId, "Subscription ID");
+
+    const splitBy: string = (data.splitBy || "").trim();
+
+    if (splitBy && !DIMENSION_NAME_PATTERN.test(splitBy)) {
+      throw new BadDataException(`Cannot split metrics by "${splitBy}".`);
+    }
+
+    const top: number =
+      data.top && Number.isInteger(data.top) && data.top > 0
+        ? data.top
+        : AZURE_MAX_SPLIT_SERIES_PER_METRIC;
 
     const region: string = data.region.trim().toLowerCase();
 
@@ -1199,6 +1218,15 @@ export default class AzureArm {
           .join(","),
       ],
       ["aggregation", aggregations.join(",")],
+      ...(splitBy
+        ? ([
+            ["filter", `${splitBy} eq '*'`],
+            ["top", top],
+            ...(data.orderBy && SPLIT_ORDER_PATTERN.test(data.orderBy)
+              ? [["orderby", data.orderBy]]
+              : []),
+          ] as Array<[string, string | number]>)
+        : []),
       ["api-version", AZURE_METRICS_BATCH_API_VERSION],
     ])}`;
     const token: string = await this.tokens.getAccessToken(
@@ -1236,7 +1264,7 @@ export default class AzureArm {
         answers.set(resourceId, {
           series: AzureArm.readMetricSeries(values, aggregationOf),
           failures: AzureArm.readMetricFailures(values),
-          capped: [],
+          capped: splitBy ? AzureArm.readCappedMetrics(values, top) : [],
         });
       }
     }

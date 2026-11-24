@@ -680,7 +680,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/SecurityAttackCampaignAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {
-      '"/security-event/attack-campaigns"': READ,
+      SECURITY_ATTACK_CAMPAIGNS_ROUTE: READ,
     },
   },
   "packages/Common/Server/API/SecurityCaseEvidenceAPI.ts": {

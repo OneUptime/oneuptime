@@ -10,6 +10,7 @@ import ResourceRecordDetailsCard from "../../../Components/TelemetryResource/Res
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
@@ -2132,11 +2133,14 @@ const ProxmoxClusterOverview: FunctionComponent<
      */
     const header: ReactElement = (
       <div className="flex items-center justify-between mb-3">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {translator.translateText(params.title) || params.title}
-          </span>
-          <InfoTooltip label={params.title} text={params.description} />
+        {/* The (i) after the title's last word (#7348, #8044). */}
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            text={translator.translateText(params.title) || params.title}
+            label={params.title}
+            description={params.description}
+          />
         </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
@@ -2584,13 +2588,14 @@ const ProxmoxClusterOverview: FunctionComponent<
           </div>
           <div className="flex-1">
             <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-              <span className="inline-flex items-center gap-1">
-                {translator.translateText("Capacity used")}
-                <InfoTooltip
-                  label="Capacity used"
-                  text={PROXMOX_METRIC_DESCRIPTIONS.cephCapacityUsed}
-                />
-              </span>
+              <WordsWithInfoTooltip
+                className="min-w-0"
+                text={
+                  translator.translateText("Capacity used") || "Capacity used"
+                }
+                label="Capacity used"
+                description={PROXMOX_METRIC_DESCRIPTIONS.cephCapacityUsed}
+              />
               <span className="font-medium text-gray-700">
                 {capacityPercent === null ? (
                   <EmptyValue isSmall={true} />
@@ -2697,15 +2702,15 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1">
-                    <h4 className="text-sm font-semibold text-gray-900">
-                      {translator.translateText("CPU Usage")}
-                    </h4>
-                    <InfoTooltip
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    <WordsWithInfoTooltip
+                      text={
+                        translator.translateText("CPU Usage") || "CPU Usage"
+                      }
                       label="CPU Usage"
-                      text={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByCpu}
+                      description={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByCpu}
                     />
-                  </div>
+                  </h4>
                   <p className="text-xs text-gray-500">
                     {translator.translateText("Top 5 guests by CPU")}
                   </p>
@@ -2732,15 +2737,18 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1">
-                    <h4 className="text-sm font-semibold text-gray-900">
-                      {translator.translateText("Memory Usage")}
-                    </h4>
-                    <InfoTooltip
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    <WordsWithInfoTooltip
+                      text={
+                        translator.translateText("Memory Usage") ||
+                        "Memory Usage"
+                      }
                       label="Memory Usage"
-                      text={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByMemory}
+                      description={
+                        PROXMOX_METRIC_DESCRIPTIONS.topGuestsByMemory
+                      }
                     />
-                  </div>
+                  </h4>
                   <p className="text-xs text-gray-500">
                     {translator.translateText("Top 5 guests by memory")}
                   </p>

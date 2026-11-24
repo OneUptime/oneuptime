@@ -18,6 +18,10 @@ import {
   isGzipName,
 } from "../../../../Utils/DataSecurity/PathPattern";
 import {
+  countShadowField,
+  ShadowCounts,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   findSensitiveValues,
   MAX_SCANNED_TEXT_LENGTH,
   ScanDetector,
@@ -28,6 +32,12 @@ import {
   describeUnplacedField,
   UnplacedField,
 } from "../../../../Utils/DataSecurity/UnplacedFields";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
+  CollectingRecognitions,
+  RecognitionMap,
+} from "../Model/EntityRecognizer";
+import { CONTENT_STORE_KEY, recognizeTexts } from "../Model/ModelScan";
 import {
   ContentScanOptions,
   DataStoreLocationKind,
@@ -250,6 +260,11 @@ export interface ClassifyContentInput {
   fingerprints: FingerprintAccumulator;
   // The bytes are the start of a longer object, so its last record is cut.
   isTruncated?: boolean | undefined;
+  /*
+   * What the names-and-addresses model found in the content's free text and
+   * free-text fields, by text (classifyContentWithModel).
+   */
+  recognitions?: ModelRecognitions | undefined;
 }
 
 export interface ContentClassification {
@@ -264,6 +279,8 @@ export interface ContentClassification {
   warnings: Array<string>;
   // Fields no detector placed, described without their values.
   unplacedFields?: Array<UnplacedField> | undefined;
+  // What the drafts run in shadow would find in its fields (ShadowCount).
+  shadowCounts?: ShadowCounts | undefined;
 }
 
 interface ScanSettings {
@@ -353,6 +370,11 @@ export interface FieldsClassification {
   sensitiveShare: number;
   // The fields no detector placed, described without their values.
   unplacedFields: Array<UnplacedField>;
+  /*
+   * What each draft run in shadow would find in the fields (#10371): every
+   * field counted, placed or not, and no finding made.
+   */
+  shadowCounts: ShadowCounts;
 }
 
 /*
@@ -407,12 +429,18 @@ export function classifyCollectedFields(data: {
   options: ContentScanOptions;
   fingerprints: FingerprintAccumulator;
   locationKind: DataStoreLocationKind;
+  // What the names-and-addresses model found in the free-text fields' values.
+  recognitions?: ModelRecognitions | undefined;
 }): FieldsClassification {
-  const fieldOptions: FieldClassifierOptions = getFieldClassifierOptions(
-    data.options,
-  );
+  const fieldOptions: FieldClassifierOptions = data.recognitions
+    ? {
+        ...getFieldClassifierOptions(data.options),
+        recognitions: data.recognitions,
+      }
+    : getFieldClassifierOptions(data.options);
   const locations: Array<LocationFindings> = [];
   const unplacedFields: Array<UnplacedField> = [];
+  const shadowCounts: ShadowCounts = {};
   const names: Array<string> = data.fields.map(
     (field: CollectedField): string => {
       return field.path;
@@ -428,6 +456,15 @@ export function classifyCollectedFields(data: {
     if (field.values.length === 0) {
       continue;
     }
+
+    // The drafts run in shadow, each alone: counted, never found.
+    countShadowField({
+      counts: shadowCounts,
+      detectors: data.options.shadowDetectors || [],
+      location: field.path,
+      values: field.values,
+      allowedValues: data.options.allowedValues,
+    });
 
     const classifications: Array<FieldClassification> = classifyField(
       field.path,
@@ -498,6 +535,7 @@ export function classifyCollectedFields(data: {
     plaintextPasswordFields,
     sensitiveShare,
     unplacedFields,
+    shadowCounts,
   };
 }
 
@@ -541,6 +579,8 @@ export function classifyFreeText(
   text: string,
   options: ContentScanOptions,
   fingerprints: FingerprintAccumulator,
+  // What the names-and-addresses model found in this text.
+  recognitions?: ModelRecognitions | undefined,
 ): FreeTextClassification {
   const bounded: string =
     text.length > MAX_TEXT_LENGTH ? text.slice(0, MAX_TEXT_LENGTH) : text;
@@ -553,6 +593,7 @@ export function classifyFreeText(
   const matches: Array<TextMatch> = findSensitiveValues(
     bounded,
     getScanSettings(options).textOptions,
+    recognitions?.get(bounded),
   );
   const tallies: Map<string, DataTypeTally> = new Map();
   const lastLineOf: Map<string, number> = new Map();
@@ -587,6 +628,7 @@ export function classifyFreeText(
       confidence: match.confidence,
       isTestValue: match.isTestValue,
       raw: bounded.slice(match.start, match.end),
+      fromModel: match.fromModel,
     });
 
     if (match.isTestValue) {
@@ -598,7 +640,10 @@ export function classifyFreeText(
       linesOf.set(match.dataTypeId, (linesOf.get(match.dataTypeId) || 0) + 1);
     }
 
-    fingerprints.addMatch(match);
+    // A name is too common to say two stores hold the same data.
+    if (!match.fromModel) {
+      fingerprints.addMatch(match);
+    }
 
     if (isConfidentEnough(match.confidence) && lastSensitiveLine !== line) {
       lastSensitiveLine = line;
@@ -614,7 +659,7 @@ export function classifyFreeText(
       linesOf.get(tally.dataTypeId) || 0,
     );
 
-    classifications.push({
+    const classification: FieldClassification = {
       ...tally.toJSON(),
       matchRatio: withMatch / lines,
       valueCount: lines,
@@ -622,7 +667,13 @@ export function classifyFreeText(
       isFreeText: true,
       nameHinted: false,
       foundByName: false,
-    });
+    };
+
+    if (tally.modelMatchCount > 0) {
+      classification.foundByModel = true;
+    }
+
+    classifications.push(classification);
   }
 
   return {
@@ -871,6 +922,7 @@ function freeTextClassification(data: {
   fingerprints: FingerprintAccumulator;
   warnings: Array<string>;
   isCut?: boolean | undefined;
+  recognitions?: ModelRecognitions | undefined;
 }): ContentClassification {
   /*
    * The last line of a cut object is cut too - unless it is the only line,
@@ -883,6 +935,7 @@ function freeTextClassification(data: {
     text,
     data.options,
     data.fingerprints,
+    data.recognitions,
   );
 
   return {
@@ -915,12 +968,14 @@ function structuredClassification(data: {
   options: ContentScanOptions;
   fingerprints: FingerprintAccumulator;
   warnings: Array<string>;
+  recognitions?: ModelRecognitions | undefined;
 }): ContentClassification {
   const fields: FieldsClassification = classifyCollectedFields({
     fields: data.read.collector.getFields(),
     options: data.options,
     fingerprints: data.fingerprints,
     locationKind: DataStoreLocationKind.Field,
+    recognitions: data.recognitions,
   });
   const locations: Array<LocationFindings> = fields.locations;
   let recordsWithSensitive: number = recordsCovered(
@@ -933,6 +988,7 @@ function structuredClassification(data: {
       data.read.leftoverText,
       data.options,
       data.fingerprints,
+      data.recognitions,
     );
 
     if (leftover.classifications.length > 0) {
@@ -959,6 +1015,7 @@ function structuredClassification(data: {
     plaintextPasswordFields: fields.plaintextPasswordFields,
     warnings: data.warnings,
     unplacedFields: fields.unplacedFields,
+    shadowCounts: fields.shadowCounts,
   };
 }
 
@@ -968,6 +1025,7 @@ function classifyOfficeDocument(data: {
   options: ContentScanOptions;
   fingerprints: FingerprintAccumulator;
   warnings: Array<string>;
+  recognitions?: ModelRecognitions | undefined;
 }): ContentClassification {
   let zip: ZipReader;
 
@@ -1003,6 +1061,7 @@ function classifyOfficeDocument(data: {
         options: data.options,
         fingerprints: data.fingerprints,
         warnings: [...data.warnings, ...table.warnings],
+        recognitions: data.recognitions,
       });
     }
 
@@ -1019,6 +1078,7 @@ function classifyOfficeDocument(data: {
       options: data.options,
       fingerprints: data.fingerprints,
       warnings: [...data.warnings, ...document.warnings],
+      recognitions: data.recognitions,
     });
   } catch (error) {
     return emptyClassification(ContentFormat.Unsupported, [
@@ -1158,6 +1218,7 @@ export function classifyContent(
       options: data.options,
       fingerprints: data.fingerprints,
       warnings,
+      recognitions: data.recognitions,
     });
   }
 
@@ -1183,7 +1244,13 @@ export function classifyContent(
     options: ContentScanOptions;
     fingerprints: FingerprintAccumulator;
     warnings: Array<string>;
-  } = { options: data.options, fingerprints: data.fingerprints, warnings };
+    recognitions: ModelRecognitions | undefined;
+  } = {
+    options: data.options,
+    fingerprints: data.fingerprints,
+    warnings,
+    recognitions: data.recognitions,
+  };
 
   const isSensitive: (value: string) => boolean = (value: string): boolean => {
     return holdsSensitiveValue(value, data.options);
@@ -1231,8 +1298,10 @@ export function classifyContent(
         isDocument: true,
       });
     case ContentFormat.KeyFile:
+      // A key or a certificate: no name or address for the model to find.
       return freeTextClassification({
         ...common,
+        recognitions: undefined,
         format,
         text,
         isDocument: true,
@@ -1252,5 +1321,46 @@ export function classifyContent(
     text,
     isDocument: false,
     isCut,
+  });
+}
+
+/*
+ * classifyContent, with the names-and-addresses model reading the content's
+ * free text when the scan has it (options.model). Which values are free text
+ * is only known once the content is parsed, so it is classified once as it
+ * is, noting what the model should read (CollectingRecognitions); the model
+ * reads that, within the store's model time; and only when it found
+ * something is the content classified again with what it found. The first
+ * pass's fingerprints are the ones kept: the model's findings are never
+ * fingerprinted.
+ */
+export async function classifyContentWithModel(
+  data: ClassifyContentInput,
+): Promise<ContentClassification> {
+  const model: ContentScanOptions["model"] = data.options.model;
+
+  if (!model) {
+    return classifyContent(data);
+  }
+
+  const collector: CollectingRecognitions = new CollectingRecognitions();
+  const first: ContentClassification = classifyContent({
+    ...data,
+    recognitions: collector,
+  });
+  const recognitions: RecognitionMap | undefined = await recognizeTexts(
+    model,
+    CONTENT_STORE_KEY,
+    collector.texts,
+  );
+
+  if (!recognitions || !recognitions.hasEntities) {
+    return first;
+  }
+
+  return classifyContent({
+    ...data,
+    fingerprints: new FingerprintAccumulator(data.options.fingerprintKey),
+    recognitions,
   });
 }
