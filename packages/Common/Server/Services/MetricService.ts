@@ -3341,8 +3341,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     metricName: string;
     windowStart: Date;
     windowEnd: Date;
-    // Rows whose attribute equals the value: the filter key of a match history.
-    attributes?: Record<string, string> | undefined;
+    /*
+     * Rows whose attribute equals the value, or one of the values: the filter
+     * key of a match history, the step of a series (MonitorStepSeries).
+     */
+    attributes?: MonitorCheckAttributeFilter | undefined;
     // The attributes each group is one value of: probeId, and diskPath.
     groupByAttributeKeys: Array<string>;
     condition: MonitorCheckCondition;
@@ -3423,14 +3426,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }} AND isNotNull(value)`,
       );
 
-    for (const [key, value] of Object.entries(data.attributes || {})) {
-      statement.append(
-        SQL` AND attributes[${{
-          value: key,
-          type: TableColumnType.Text,
-        }}] = ${{ value: value, type: TableColumnType.Text }}`,
-      );
-    }
+    MetricService.appendMonitorCheckAttributeFilter({
+      statement: statement,
+      attributes: data.attributes,
+    });
 
     statement.append(this.getRetentionReadFilter());
 
@@ -3494,8 +3493,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     metricName: string;
     windowStart: Date;
     before: Date;
-    // Rows whose attribute equals the value: the filter key of a match history.
-    attributes?: Record<string, string> | undefined;
+    /*
+     * Rows whose attribute equals the value, or one of the values: the filter
+     * key of a match history, the step of a series (MonitorStepSeries).
+     */
+    attributes?: MonitorCheckAttributeFilter | undefined;
     // The attributes each group is one value of: probeId, and diskPath.
     groupByAttributeKeys: Array<string>;
   }): Promise<Array<MonitorPreviousCheckRow>> {
@@ -3552,14 +3554,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }} AND isNotNull(value)`,
       );
 
-    for (const [key, value] of Object.entries(data.attributes || {})) {
-      statement.append(
-        SQL` AND attributes[${{
-          value: key,
-          type: TableColumnType.Text,
-        }}] = ${{ value: value, type: TableColumnType.Text }}`,
-      );
-    }
+    MetricService.appendMonitorCheckAttributeFilter({
+      statement: statement,
+      attributes: data.attributes,
+    });
 
     statement.append(this.getRetentionReadFilter());
 
@@ -3601,6 +3599,49 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     return rows;
   }
 
+  /*
+   * The attribute filter of a monitor check read: each attribute equal to
+   * its value, or to one of its values - "" for a row that does not have
+   * the attribute, as a map reads a missing key. Every value a bound
+   * parameter.
+   */
+  public static appendMonitorCheckAttributeFilter(data: {
+    statement: Statement;
+    attributes: MonitorCheckAttributeFilter | undefined;
+  }): void {
+    for (const [key, value] of Object.entries(data.attributes || {})) {
+      if (Array.isArray(value)) {
+        /*
+         * No value at all matches no row: never a filter left out, which
+         * would read every row of the series.
+         */
+        if (value.length === 0) {
+          data.statement.append(` AND 0`);
+          continue;
+        }
+
+        data.statement.append(
+          SQL` AND attributes[${{
+            value: key,
+            type: TableColumnType.Text,
+          }}] IN ${{
+            value: new Includes(value),
+            type: TableColumnType.Text,
+          }}`,
+        );
+
+        continue;
+      }
+
+      data.statement.append(
+        SQL` AND attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}] = ${{ value: value, type: TableColumnType.Text }}`,
+      );
+    }
+  }
+
   // A DateTime64 as the JSON format writes it, read on UTC's clock.
   private static readSummaryTime(value: unknown): Date | null {
     if (value === undefined || value === null || value === "") {
@@ -3629,6 +3670,16 @@ export interface MonitorCheckCondition {
   comparison: MonitorCheckComparison;
   threshold: number;
 }
+
+/*
+ * Which rows of a monitor's series a check read takes, by their attributes:
+ * each attribute equal to its value, or to one of its values ("" for a row
+ * without the attribute) - a match history's filter key, a series' step.
+ */
+export type MonitorCheckAttributeFilter = Record<
+  string,
+  string | Array<string>
+>;
 
 const MONITOR_CHECK_CONDITION_OPERATORS: Record<
   MonitorCheckComparison,

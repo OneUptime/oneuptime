@@ -471,6 +471,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               monitorType={monitorType}
               metric={sections.responseTimeMetric}
               probes={probes}
+              monitorSteps={monitor.monitorSteps}
               responseTime={presentationInput.probes?.responseTime ?? null}
             />
           ) : (

@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{protection}}",
   "Hourly Limit": "每小時上限",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "探測器收到的 SSL 憑證在到期前還剩多少整天。它每天減少一天，憑證續期後會跳升。",
   "Sensitive files": "敏感檔案",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "請將每小時上限設為 1 到 500 之間的整數次封鎖。",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "你的政策每小時最多進行的自動封鎖次數，超過後會停止並呼叫你的安全負責人。",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "自 {{day}} {{clock}} 起",
   "until {{clock}}": "直到 {{clock}}",
   "until {{day}} at {{clock}}": "直到 {{day}} {{clock}}",
+  "Exit Full Screen": "結束全螢幕",
+  "Fill the Screen": "填滿螢幕",
+  "Full-screen dashboard": "全螢幕儀表板",
+  "Open in New Tab": "在新分頁中開啟",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "「{{fileName}}」未新增：此欄位最多可包含 {{count}} 個檔案。",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "「{{fileName}}」未新增：此欄位只能包含一個檔案。",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "您擁有的自訂探測器所執行的版本比 OneUptime 落後一個或更多主要版本。每個主要版本傳送一次，並說明探測器在更新前缺少什麼。",
@@ -64058,5 +64063,11 @@
   "{{count}} secrets_one": "{{count}} 個密鑰",
   "{{law}} may apply first: {{due}}.": "{{law}} 可能最先適用：{{due}}。",
   "{{name}} said the people live in {{places}}.": "{{name}} 表示這些人住在 {{places}}。",
-  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "請檢查其容器是否正在執行，且使用的是此探測器的 PROBE_ID 和 PROBE_KEY。"
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "請檢查其容器是否正在執行，且使用的是此探測器的 PROBE_ID 和 PROBE_KEY。",
+  "Part of {{incident}}": "屬於 {{incident}}",
+  "Show Incidents Grouped by Episode": "依片段分組顯示事件",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。",
+  "Page when the script timed out": "指令碼逾時時的頁面",
+  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}"
 }

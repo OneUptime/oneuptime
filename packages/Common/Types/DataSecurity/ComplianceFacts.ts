@@ -1,5 +1,6 @@
 import { sha256Hex } from "../AutoRemediation/RemediationPlanFingerprint";
 import { JSONObject, JSONValue } from "../JSON";
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 import { translationKey } from "../Translator";
 import { toStableJsonText } from "./DataSecurityAi";
 
@@ -1134,8 +1135,9 @@ function list(items: ReadonlyArray<string>): string {
   return items.filter(Boolean).join(", ");
 }
 
+// A number of days, the figure kept on its word's line (NoBreakSpaces).
 function days(value: number): string {
-  return `${value} ${value === 1 ? "day" : "days"}`;
+  return `${value}${NO_BREAK_SPACE}${value === 1 ? "day" : "days"}`;
 }
 
 /*
@@ -1273,7 +1275,7 @@ export function describeComplianceFact(fact: ComplianceFact): string {
     case ComplianceFactKind.IssueHistory:
       return `In the last ${days(fact.periodInDays)}: ${fact.opened} opened, ${fact.fixed} fixed${
         fact.medianHoursToFix !== undefined
-          ? ` in ${fact.medianHoursToFix} hours at the median`
+          ? ` in ${fact.medianHoursToFix}${NO_BREAK_SPACE}hours at the median`
           : ""
       }, ${fact.stillOpen} still open`;
     case ComplianceFactKind.AcceptedRisk:

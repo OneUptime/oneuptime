@@ -6,7 +6,7 @@ import {
   SecurityTelemetrySourceKind,
   getSecurityTelemetrySourceDefinition,
 } from "../../../Types/SecurityEvent/SecurityTelemetrySource";
-import { markdownCodeSpan } from "../../Markdown/MarkdownEscape";
+import FeedMarkdown from "../../Markdown/FeedMarkdown";
 import {
   AUDIT_ATTRIBUTES,
   AUDIT_SECURITY_RESOURCE_TYPES,
@@ -317,7 +317,9 @@ function withholdInQuotedSample(
     isNameWithheld,
   );
 
-  return reworded === inside ? quotedSample : markdownCodeSpan(reworded);
+  return reworded === inside
+    ? quotedSample
+    : FeedMarkdown.code(reworded).toString();
 }
 
 /*

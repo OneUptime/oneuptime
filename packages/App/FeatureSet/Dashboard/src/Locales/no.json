@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Holdt tilbake: {{value}} er nå beskyttet, så OneUptime fjernet blokkeringen. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Holdt tilbake: {{value}} er nå beskyttet, så OneUptime fjernet blokkeringen. {{protection}}",
   "Hourly Limit": "Timegrense",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Hvor mange hele dager SSL-sertifikatet sonden fikk har igjen før det utløper. Tallet synker med én om dagen og hopper opp når sertifikatet fornyes.",
   "Sensitive files": "Sensitive filer",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Sett timegrensen til et helt antall blokkeringer fra 1 til 500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Det høyeste antallet automatiske blokkeringer policyene dine lager i timen, før de stopper og varsler sikkerhetsansvarlige.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "siden {{day}} kl. {{clock}}",
   "until {{clock}}": "til kl. {{clock}}",
   "until {{day}} at {{clock}}": "til {{day}} kl. {{clock}}",
+  "Exit Full Screen": "Avslutt fullskjerm",
+  "Fill the Screen": "Fyll skjermen",
+  "Full-screen dashboard": "Dashbord i fullskjerm",
+  "Open in New Tab": "Åpne i ny fane",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" ble ikke lagt til: dette feltet kan inneholde opptil {{count}} filer.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" ble ikke lagt til: dette feltet kan inneholde én fil.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "En egendefinert sonde du eier, kjører en versjon som er én hovedversjon eller mer eldre enn OneUptime. Sendes én gang for hver hovedversjon, med det sonden mangler til den blir oppdatert.",
@@ -64058,5 +64063,11 @@
   "{{count}} secrets_one": "{{count}} hemmelighet",
   "{{law}} may apply first: {{due}}.": "{{law}} kan gjelde først – {{due}}.",
   "{{name}} said the people live in {{places}}.": "{{name}} har sagt at de registrerte bor i {{places}}.",
-  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Sjekk at containeren kjører, med PROBE_ID og PROBE_KEY for denne sonden."
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Sjekk at containeren kjører, med PROBE_ID og PROBE_KEY for denne sonden.",
+  "Part of {{incident}}": "Del av {{incident}}",
+  "Show Incidents Grouped by Episode": "Vis hendelser gruppert etter episode",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøkende ser ett kort for hver hendelse og ett til for hver episode, så en hendelse i en episode vises to ganger.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøkende ser hver episode som ett kort som viser hendelsene i den og hva de påvirker.",
+  "Page when the script timed out": "Side da skriptet fikk tidsavbrudd",
+  "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd"
 }

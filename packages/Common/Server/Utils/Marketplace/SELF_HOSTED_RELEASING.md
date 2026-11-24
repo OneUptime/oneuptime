@@ -518,7 +518,8 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    (`--headless=new --default-background-color=00000000 --window-size=512,512 --screenshot`).
    The maintainer uploaded it on 17 November. The field shows no file after a
    reload, but **Full preview** shows the logo; a black background would
-   break the rule. **Submit** is at the bottom of the **Product metadata**
+   break the rule. The same image, rendered the same way, is
+   `HelmChart/Marketplace/google-cloud/logo.png`, the app's icon (step 8). **Submit** is at the bottom of the **Product metadata**
    tab, and changing a field while the review runs cancels it.
 8. **Container images** (the first release saved on 17 November 2026): the
    deployer's path,
@@ -565,6 +566,14 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    minutes, and the Container images review was submitted that morning.
    Changing a release while the review runs cancels it, as the page says:
    a newer version waits for the approval.
+
+   The listing's icon goes on the app too (Google's Partner Support Desk,
+   case 77498377, 24 November 2026, after the product was published): the
+   console shows it with the app under **Kubernetes Engine > Applications**.
+   The `Application` carries it as Google's own apps do, in the
+   `kubernetes-engine.cloud.google.com/icon` annotation, a data URI of the
+   chart's `logo.png`, which `build.py` copies from `google-cloud/logo.png`.
+   Release 15.0 shipped without it.
 
 9. **Usage verification** (before **Publish**; Google's Partner Support
    Desk, case 77498377): Google checks that the hours the app reports reach

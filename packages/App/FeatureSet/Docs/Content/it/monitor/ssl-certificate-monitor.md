@@ -87,6 +87,8 @@ I criteri decidono quando il certificato conta come buono, degradato o guasto, e
 
 **Giorni alla scadenza** conta giorni interi: a un certificato che scade tra 14 giorni e 20 ore restano 14 giorni. **Ore alla scadenza** conta ore intere allo stesso modo.
 
+**Giorni alla scadenza** offre anche **Valuta questo criterio su un periodo di tempo**, e con **Controllo precedente** confronta ogni controllo con il precedente della stessa sonda. **Minore di** con un **Valore nell'unità del controllo** di `1` corrisponde quando i giorni rimasti sono scesi di più di uno dal controllo precedente, come quando il certificato è stato sostituito da uno che scade prima. **Maggiore di** corrisponde quando sono saliti, come quando il certificato è stato rinnovato. Vedi [Confrontare un controllo con il precedente](/docs/monitor/criteria-and-statuses#confrontare-un-controllo-con-il-precedente).
+
 Con due o più filtri, **Condizione di corrispondenza** decide se devono corrispondere **Tutti** o se basta **Qualsiasi** filtro. Le **Azioni** di un criterio decidono cosa fa: cambiare lo stato del monitor, creare un avviso, dichiarare un incidente, o più di queste cose.
 
 ### Criteri predefiniti

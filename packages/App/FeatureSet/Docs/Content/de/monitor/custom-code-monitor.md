@@ -167,7 +167,7 @@ Einmal erfasst, erscheinen diese Metriken im Metrik-Explorer unter Namen wie `cu
 
 Einige Attributnamen gehören OneUptime, und ein Skript kann sie nicht schreiben. Setzt Ihr Skript einen davon, wird das Attribut verworfen — die Metrik selbst wird trotzdem festgehalten — und eine Warnung mit dem Schlüssel wird in die Serverprotokolle von OneUptime geschrieben. Es sind:
 
-- Die Identität des Monitors: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- Die Identität des Monitors: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Alles in den Namensräumen `oneuptime.` oder `resource.` — sie tragen die Kennungen, die OneUptime bei der Aufnahme setzt.
 - Attribute zur Ressourcenidentität: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` und `docker.swarm.cluster.name`.
 

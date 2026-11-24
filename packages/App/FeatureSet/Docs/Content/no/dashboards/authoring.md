@@ -134,7 +134,13 @@ Zoom fungerer bare i visningsmodus; i redigeringsmodus flytter og skalerer dra i
 
 ## Fullskjerm
 
-**⋯ → Fullskjerm** viser dashbordets widgets på hele skjermen, for en veggskjerm eller et møte. Trykk Esc for å gå ut.
+Fullskjerm viser bare dashbordet, på hele skjermen: verktøylinjen og widgetene, uten topplinje, sidemeny eller brødsmulesti rundt. Alt virker som på dashbordets side, og for de samme personene: redigering, å legge til og fjerne widgets, tidsintervallet, automatisk oppdatering og variablene.
+
+- **Fullskjerm**, den kvadratiske knappen på slutten av dashbordets verktøylinje, eller **⋯ → Fullskjerm** viser dashbordet i fullskjerm. Nettleseren din går også i fullskjerm, der den tillater det.
+- **Åpne i ny fane**, i dashbordets **⋯**-meny eller i en rads **⋯**-meny i listen **Dashbord**, åpner dashbordet i fullskjerm i en egen fane. I den fanen setter **Fyll skjermen** også nettleseren din i fullskjerm.
+- **Avslutt fullskjerm**, eller Esc, går tilbake til dashbordets side og tar også nettleseren din ut av fullskjerm. Etter **Fyll skjermen** tar den første Esc bare nettleseren din ut av fullskjerm.
+
+Et dashbord i fullskjerm har sin egen adresse, som slutter på `?view=full-screen`: lagre den som bokmerke eller åpne den på en veggskjerm, og dashbordet åpnes i fullskjerm. Bruk en [spilleliste](/docs/dashboards/playlists) for å vise flere dashbord etter hverandre på en skjerm.
 
 ## Tips for dashbord som eldes godt
 

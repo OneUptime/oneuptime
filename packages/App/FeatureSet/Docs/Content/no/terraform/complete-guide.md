@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+En innstilling som noen legger til i OneUptime i trinnene til en monitor, og som konfigurasjonen din ikke skriver, er derimot en forskjell: den neste planen viser at `monitor_steps` endres, og applyen som følger fjerner innstillingen, slik planen sier. Skriv den også i konfigurasjonen din for å beholde den.
+
 ## Etiketter og andre lister som OneUptime også legger til i
 
 OneUptime legger selv til i noen av listene til en post: en etikettregel legger etikettene sine til postene den treffer, en vaktregel legger policyene sine til hendelsene og varslene den treffer, og monitorreglene til en SLO knytter til monitorene de treffer. Referansen sier det om hver slik attributt: "OneUptime adds to it too, on its own". En konfigurasjon som setter en av dem, holder elementene den lister opp, og lar resten være:

@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{protection}}",
   "Hourly Limit": "سقف ساعتی",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "گواهی SSL که به پراب داده شد چند روز کامل تا انقضا فرصت دارد. هر روز یکی کم می‌شود و با تمدید گواهی بالا می‌پرد.",
   "Sensitive files": "فایل‌های حساس",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "سقف ساعتی را روی عددی صحیح از ۱ تا ۵۰۰ مسدودسازی تنظیم کنید.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "بیشترین تعداد مسدودسازی خودکاری که سیاست‌های شما در یک ساعت انجام می‌دهند، پیش از آنکه متوقف شوند و مسئولان امنیت شما را فرا بخوانند.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "از {{day}} ساعت {{clock}}",
   "until {{clock}}": "تا ساعت {{clock}}",
   "until {{day}} at {{clock}}": "تا {{day}} ساعت {{clock}}",
+  "Exit Full Screen": "خروج از تمام‌صفحه",
+  "Fill the Screen": "پر کردن کل صفحه‌نمایش",
+  "Full-screen dashboard": "داشبورد تمام‌صفحه",
+  "Open in New Tab": "باز کردن در زبانه‌ای جدید",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "«{{fileName}}» افزوده نشد: این فیلد حداکثر {{count}} فایل می‌پذیرد.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "«{{fileName}}» افزوده نشد: این فیلد یک فایل می‌پذیرد.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "پراب سفارشی‌ای که مالکش هستید نسخه‌ای را اجرا می‌کند که یک نسخهٔ اصلی یا بیشتر از OneUptime قدیمی‌تر است. برای هر نسخهٔ اصلی یک بار فرستاده می‌شود، همراه با آنچه پراب تا به‌روزرسانی ندارد.",
@@ -64058,5 +64063,11 @@
   "{{count}} secrets_one": "{{count}} راز",
   "{{law}} may apply first: {{due}}.": "{{law}} ممکن است نخست اعمال شود: {{due}}.",
   "{{name}} said the people live in {{places}}.": "{{name}} گفت این افراد در {{places}} زندگی می‌کنند.",
-  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "بررسی کنید کانتینر آن با PROBE_ID و PROBE_KEY همین پراب در حال اجرا باشد."
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "بررسی کنید کانتینر آن با PROBE_ID و PROBE_KEY همین پراب در حال اجرا باشد.",
+  "Part of {{incident}}": "بخشی از {{incident}}",
+  "Show Incidents Grouped by Episode": "نمایش حوادث گروه‌بندی‌شده بر اساس اپیزود",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند.",
+  "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
+  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت"
 }

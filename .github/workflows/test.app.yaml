@@ -527,6 +527,7 @@ jobs:
           - group: 13
             suites: >-
               test-dashboard-time-range-ui
+              test-dashboard-full-screen-ui
               test-admin-health-ui
               test-status-page-telemetry-guided-setups-ui
               test-rum-setup-ui
@@ -745,6 +746,8 @@ jobs:
             output/playwright/dashboard-table-thresholds-ui/test-results
             output/playwright/dashboard-playlists-ui/*.png
             output/playwright/dashboard-playlists-ui/test-results
+            output/playwright/dashboard-full-screen-ui/*.png
+            output/playwright/dashboard-full-screen-ui/test-results
             output/playwright/accounts-theme-ui/*.png
             output/playwright/accounts-theme-ui/test-results
             output/playwright/cloud-connect-ui/*.png

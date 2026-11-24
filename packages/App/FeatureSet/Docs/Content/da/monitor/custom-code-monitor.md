@@ -167,7 +167,7 @@ Når de er indsamlet, vises disse metrikker i Metric Explorer under navne som `c
 
 Nogle attributnavne tilhører OneUptime selv, og et script kan ikke skrive dem. Hvis dit script sætter et af dem, droppes attributten — selve metrikken registreres stadig — og en advarsel med nøglens navn skrives i OneUptimes serverlogs. Det drejer sig om:
 
-- Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Alt i navnerummene `oneuptime.` eller `resource.` — de bærer de identifikatorer, OneUptime påfører ved indtagelse.
 - Attributter for ressourceidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
 

@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{protection}}",
   "Hourly Limit": "الحد الساعي",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "كم يومًا كاملًا بقي لشهادة SSL التي قُدّمت للمسبار قبل أن تنتهي صلاحيتها. ينقص يومًا كل يوم، ويقفز إلى الأعلى عند تجديد الشهادة.",
   "Sensitive files": "ملفات حساسة",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "اضبط الحد الساعي على عدد صحيح من الحظورات بين 1 و500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "أقصى عدد من الحظورات التلقائية تنفّذه سياساتك في الساعة، قبل أن تتوقف وتستدعي مسؤولي الأمان لديك.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "منذ {{day}} الساعة {{clock}}",
   "until {{clock}}": "حتى الساعة {{clock}}",
   "until {{day}} at {{clock}}": "حتى {{day}} الساعة {{clock}}",
+  "Exit Full Screen": "الخروج من ملء الشاشة",
+  "Fill the Screen": "استخدام الشاشة بأكملها",
+  "Full-screen dashboard": "لوحة المعلومات بملء الشاشة",
+  "Open in New Tab": "فتح في علامة تبويب جديدة",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "لم تتم إضافة «{{fileName}}»، فالحد الأقصى للملفات في هذا الحقل: {{count}}.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "لم تتم إضافة «{{fileName}}»، فهذا الحقل يحمل ملفًا واحدًا.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "يشغّل مسبار مخصص تملكه إصدارًا أقدم من OneUptime بإصدار رئيسي واحد أو أكثر. يُرسَل مرة واحدة لكل إصدار رئيسي، مع ما ينقص المسبار إلى أن يُحدَّث.",
@@ -64058,5 +64063,11 @@
   "{{count}} secrets_one": "{{count}} سرّ",
   "{{law}} may apply first: {{due}}.": "قد ينطبق {{law}} أولًا: {{due}}.",
   "{{name}} said the people live in {{places}}.": "قال {{name}} إن هؤلاء الأشخاص يعيشون في {{places}}.",
-  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "تحقق من أن حاويته تعمل باستخدام PROBE_ID وPROBE_KEY الخاصين بهذا المسبار."
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "تحقق من أن حاويته تعمل باستخدام PROBE_ID وPROBE_KEY الخاصين بهذا المسبار.",
+  "Part of {{incident}}": "جزء من {{incident}}",
+  "Show Incidents Grouped by Episode": "عرض الحوادث مجمّعة حسب الحلقة",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
+  "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
 }

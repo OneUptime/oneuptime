@@ -51,7 +51,50 @@ import { useTranslation } from "react-i18next";
 import { Translator } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS } from "Common/Utils/StatusPage/HistoryWindow";
+import StatusPageIncidentGrouping, {
+  StatusPageIncidentListCards,
+  StatusPageIncidentListMode,
+} from "Common/Utils/StatusPage/IncidentGrouping";
+import {
+  getEpisodeIncidents,
+  readEpisodeIncidents,
+  readIncidentListMode,
+} from "../../Utils/IncidentGrouping";
 import useAsyncEffect from "use-async-effect";
+
+/*
+ * The cards the list draws, in the page's mode (Common/Utils/StatusPage/
+ * IncidentGrouping): grouped by episode, an incident an episode card lists
+ * has no card of its own, and an episode that lists none is not drawn.
+ */
+const getListCards: (data: {
+  mode: StatusPageIncidentListMode;
+  incidents: Array<Incident>;
+  episodes: Array<IncidentEpisode>;
+  episodeIncidents: Dictionary<Array<Incident>>;
+}) => StatusPageIncidentListCards<Incident, IncidentEpisode> = (data: {
+  mode: StatusPageIncidentListMode;
+  incidents: Array<Incident>;
+  episodes: Array<IncidentEpisode>;
+  episodeIncidents: Dictionary<Array<Incident>>;
+}): StatusPageIncidentListCards<Incident, IncidentEpisode> => {
+  return StatusPageIncidentGrouping.getCards<Incident, IncidentEpisode>({
+    mode: data.mode,
+    incidents: data.incidents,
+    episodes: data.episodes,
+    getIncidentId: (incident: Incident): string | undefined => {
+      return incident.id?.toString() || incident._id;
+    },
+    getEpisodeIncidentIds: (episode: IncidentEpisode): Array<string> => {
+      return getEpisodeIncidents(
+        data.episodeIncidents,
+        episode.id?.toString() || episode._id,
+      ).map((incident: Incident): string => {
+        return (incident.id?.toString() || incident._id || "").toString();
+      });
+    },
+  });
+};
 
 // Event item with date for sorting
 interface EventWithDate {
@@ -86,6 +129,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [episodeStateTimelines, setEpisodeStateTimelines] = useState<
     Array<IncidentEpisodeStateTimeline>
   >([]);
+
+  // How the page lists them, and the incidents each episode card lists.
+  const [incidentListMode, setIncidentListMode] =
+    useState<StatusPageIncidentListMode>(StatusPageIncidentListMode.Separate);
+  const [episodeIncidents, setEpisodeIncidents] = useState<
+    Dictionary<Array<Incident>>
+  >({});
 
   const [parsedActiveEventsData, setParsedActiveEventsData] =
     useState<EventHistoryListComponentProps | null>(null);
@@ -239,7 +289,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
 
-      setHasEvents(incidents.length > 0 || episodes.length > 0);
+      const mode: StatusPageIncidentListMode = readIncidentListMode(
+        incidentsData,
+        episodesData,
+      );
+      const incidentsOfEpisodes: Dictionary<Array<Incident>> =
+        readEpisodeIncidents(rawEpisodesArray);
+
+      setIncidentListMode(mode);
+      setEpisodeIncidents(incidentsOfEpisodes);
+
+      const cards: StatusPageIncidentListCards<Incident, IncidentEpisode> =
+        getListCards({
+          mode: mode,
+          incidents: incidents,
+          episodes: episodes,
+          episodeIncidents: incidentsOfEpisodes,
+        });
+
+      setHasEvents(cards.incidents.length > 0 || cards.episodes.length > 0);
 
       setIsLoading(false);
       props.onLoadComplete();
@@ -308,8 +376,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
     // Build combined events list with incidents and episodes
     const allEvents: Array<EventWithDate> = [];
 
+    const cards: StatusPageIncidentListCards<Incident, IncidentEpisode> =
+      getListCards({
+        mode: incidentListMode,
+        incidents: incidents,
+        episodes: episodes,
+        episodeIncidents: episodeIncidents,
+      });
+
     // Add incidents
-    for (const incident of incidents) {
+    for (const incident of cards.incidents) {
       const incidentDate: Date =
         incident.declaredAt ||
         (incident.createdAt as Date | undefined) ||
@@ -336,7 +412,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     // Add episodes
-    for (const episode of episodes) {
+    for (const episode of cards.episodes) {
       const episodeDate: Date =
         episode.declaredAt ||
         (episode.createdAt as Date | undefined) ||
@@ -358,6 +434,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
           isPreviewPage: StatusPageUtil.isPreviewPage(),
           isSummary: true,
           statusPageId: StatusPageUtil.getStatusPageId() || undefined,
+          // Grouped by episode, its card lists its incidents.
+          incidents: StatusPageIncidentGrouping.isGroupedByEpisode(
+            incidentListMode,
+          )
+            ? getEpisodeIncidents(
+                episodeIncidents,
+                episode.id?.toString() || episode._id,
+              )
+            : undefined,
         }),
         isResolved,
       });

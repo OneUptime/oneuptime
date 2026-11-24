@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Retido: {{value}} agora está protegido, então o OneUptime removeu o bloqueio. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Retido: {{value}} agora está protegido, então o OneUptime removeu o bloqueio. {{protection}}",
   "Hourly Limit": "Limite por hora",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Quantos dias inteiros restam ao certificado SSL que a sonda recebeu antes de expirar. Diminui um por dia e sobe de repente quando o certificado é renovado.",
   "Sensitive files": "Arquivos sensíveis",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Defina o limite por hora como um número inteiro de bloqueios entre 1 e 500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "O máximo de bloqueios automáticos que suas políticas fazem em uma hora, antes de parar e avisar seus responsáveis pela segurança.",
@@ -63783,6 +63784,10 @@
   "since {{day}} at {{clock}}": "desde {{day}} às {{clock}}",
   "until {{clock}}": "até as {{clock}}",
   "until {{day}} at {{clock}}": "até {{day}} às {{clock}}",
+  "Exit Full Screen": "Sair da tela cheia",
+  "Fill the Screen": "Preencher a tela",
+  "Full-screen dashboard": "Painel em tela cheia",
+  "Open in New Tab": "Abrir em uma nova aba",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" não foi adicionado: este campo aceita até {{count}} arquivos.",
   "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" não foi adicionado: este campo aceita um arquivo.",
   "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Uma sonda personalizada da qual você é proprietário executa uma versão uma versão principal ou mais anterior à do OneUptime. Enviado uma vez por versão principal, com o que falta à sonda até ela ser atualizada.",
@@ -64058,5 +64063,11 @@
   "{{count}} secrets_one": "{{count}} segredo",
   "{{law}} may apply first: {{due}}.": "{{law}} pode se aplicar primeiro — {{due}}.",
   "{{name}} said the people live in {{places}}.": "{{name}} informou que os titulares moram nestes locais: {{places}}.",
-  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Verifique se o contêiner dela está em execução, com o PROBE_ID e a PROBE_KEY desta sonda."
+  "Check that its container is running, with this probe's PROBE_ID and PROBE_KEY.": "Verifique se o contêiner dela está em execução, com o PROBE_ID e a PROBE_KEY desta sonda.",
+  "Part of {{incident}}": "Parte de {{incident}}",
+  "Show Incidents Grouped by Episode": "Mostrar incidentes agrupados por episódio",
+  "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Os visitantes veem um cartão para cada incidente e outro para cada episódio, então um incidente de um episódio aparece duas vezes.",
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Os visitantes veem cada episódio como um único cartão que lista seus incidentes e o que eles afetam.",
+  "Page when the script timed out": "Página quando o tempo limite do script esgotou",
+  "Page {{number}} when the script timed out": "Página {{number}} quando o tempo limite do script esgotou"
 }

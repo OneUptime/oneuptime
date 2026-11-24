@@ -335,8 +335,12 @@ describe("where a previous check is offered", () => {
     [CheckOn.DisconnectedProbes, MonitorType.ProbeStatus, true],
     // An agent that stops reporting writes nothing to compare.
     [CheckOn.IsOnline, MonitorType.Server, false],
-    // Certificates and domains are judged on their latest check.
-    [CheckOn.ExpiresInDays, MonitorType.SSLCertificate, false],
+    // A certificate's days left are written each check since #10905.
+    [CheckOn.ExpiresInDays, MonitorType.SSLCertificate, true],
+    // Its other filters, and a domain's, are judged on their latest check.
+    [CheckOn.ExpiresInHours, MonitorType.SSLCertificate, false],
+    [CheckOn.IsValidCertificate, MonitorType.SSLCertificate, false],
+    [CheckOn.DomainExpiresDaysIn, MonitorType.Domain, false],
     // Receivers have no checks at a cadence.
     [CheckOn.IncomingRequest, MonitorType.IncomingRequest, false],
     [CheckOn.EmailSubject, MonitorType.IncomingEmail, false],
