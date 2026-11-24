@@ -25,6 +25,8 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
 import {
+  CodeRepositoryListGroup,
+  CodeRepositoryListOrder,
   CodeTaskBlockerType,
   CodeTaskListFilter,
   CodeTaskOriginType,
@@ -33,6 +35,7 @@ import {
   CodeTaskTurnJSON,
 } from "../../../Types/AI/CodeTask";
 import { TransientAIFailureKind } from "../../../Types/AI/TransientAIFailure";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -93,16 +96,46 @@ const replyMock: MockFunction = getJestMockFunction();
 const retryMock: MockFunction = getJestMockFunction();
 const retryManyMock: MockFunction = getJestMockFunction();
 const stopMock: MockFunction = getJestMockFunction();
+const getRepositoriesByIdMock: MockFunction = getJestMockFunction();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
   () => {
     return {
+      ...(jest.requireActual(
+        "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
+      ) as Record<string, unknown>),
       __esModule: true,
       CODE_TASK_API_PATH: "/code-task",
       default: {
-        getRepositories: (...args: Array<unknown>) => {
-          return getRepositoriesMock(...args);
+        /*
+         * The reader's repositories as a test gives them - whole - each read
+         * answered from them as the server answers it (#10764,
+         * CodeRepositoriesServer).
+         */
+        getRepositories: async (...args: Array<unknown>) => {
+          return asServerAnswer(
+            await getRepositoriesMock(...args),
+            args[0] as CodeRepositoriesQuery | undefined,
+          );
+        },
+        // By id: the test's own answer, else from the repositories it gave.
+        getRepositoriesById: async (...args: Array<unknown>) => {
+          const answer: unknown = await getRepositoriesByIdMock(...args);
+
+          if (answer !== undefined) {
+            return answer;
+          }
+
+          const all: { repositories?: Array<CodeRepositoryListItem> } =
+            ((await getRepositoriesMock({})) as {
+              repositories?: Array<CodeRepositoryListItem>;
+            }) || {};
+
+          return answerRepositoriesById({
+            repositories: all.repositories || [],
+            ids: (args[0] as Array<string>) || [],
+          });
         },
         getRepository: (...args: Array<unknown>) => {
           return getRepositoryMock(...args);
@@ -214,8 +247,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import CodePage, {
   getConnectGitHubFix,
-  getRepositoryNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Code";
+import {
+  getRowRepositoryHost,
+  getRowRepositoryName,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import CodeRepositoriesPage, {
   CODE_REPOSITORIES_CARD_TEST_ID,
   CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID,
@@ -244,7 +280,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskDetails";
 import { CODE_TASK_POLL_MS } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskLive";
 import CodeTaskLog from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
-import { CodeRepositoryListItem } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  CodeRepositoriesQuery,
+  CodeRepositoryListItem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  answerRepositoriesById,
+  asServerAnswer,
+  repositoriesSortingFirst,
+} from "./CodeRepositoriesServer";
 import {
   getRememberedRepositoryKey,
   pickStartingRepository,
@@ -283,6 +327,7 @@ beforeAll(async () => {
 beforeEach(() => {
   for (const mock of [
     getRepositoriesMock,
+    getRepositoriesByIdMock,
     getRepositoryMock,
     listTasksMock,
     getBranchesMock,
@@ -577,13 +622,15 @@ describe("Code's first page: the question, one box, and every task", () => {
   test("opens on the question over one box, on the most recently active connected repository and its main branch, with every task under it", async () => {
     repositoriesAre([STOREFRONT, PAYMENTS, CHECKOUT]);
     getRepositoryMock.mockResolvedValue(repositoryAnswer() as never);
+    // Each row's repository, as the list reads it by its id (#10764).
     listTasksMock.mockResolvedValue(
       tasksAnswer([
-        summary(),
+        summary({ repository: { name: "checkout-api" } }),
         summary({
           id: NEW_TASK_ID,
           title: "Add a dark theme",
           codeRepositoryId: OTHER_REPOSITORY_ID,
+          repository: { name: "storefront-web" },
         }),
       ]) as never,
     );
@@ -1348,13 +1395,34 @@ describe("Code's first page: the question, one box, and every task", () => {
       );
     });
 
-    test("task rows across repositories are named from the repositories read", () => {
+    /*
+     * #10764: a row across repositories is named as the list read it with
+     * the task, by its repository's id - not from a list of the project's
+     * first repositories, where one past them had no name.
+     */
+    test("task rows across repositories are named as the list read them, by the repository's id", () => {
+      const task: CodeTaskSummaryJSON = summary({
+        codeRepositoryId: OTHER_REPOSITORY_ID,
+        repository: {
+          name: "storefront-web",
+          provider: CodeRepositoryType.GitLab,
+        },
+      });
+
+      expect(getRowRepositoryName(task, {})).toBe("storefront-web");
+      expect(getRowRepositoryHost(task, {})).toEqual({
+        provider: CodeRepositoryType.GitLab,
+        hostProduct: undefined,
+      });
+      // A page's own names, where the list said nothing of the repository.
       expect(
-        Array.from(getRepositoryNames([CHECKOUT, STOREFRONT]).entries()),
-      ).toEqual([
-        [REPOSITORY_ID, "checkout-api"],
-        [OTHER_REPOSITORY_ID, "storefront-web"],
-      ]);
+        getRowRepositoryName(summary({ codeRepositoryId: REPOSITORY_ID }), {
+          repositoryNames: new Map<string, string>([
+            [REPOSITORY_ID, "checkout-api"],
+          ]),
+        }),
+      ).toBe("checkout-api");
+      expect(getRowRepositoryName(summary({}), {})).toBeUndefined();
     });
 
     test("connecting GitHub from the box: the install, why not, or nothing on a server with no GitHub App", () => {
@@ -1545,20 +1613,33 @@ describe("Code's Repositories", () => {
     openNotConnected();
 
     expect(header).toHaveAttribute("aria-expanded", "true");
-    // A page of them, by name, and the rest on the next.
-    expect(rowNames(fold)).toEqual([
-      "ads",
-      "back-to-metal",
-      "blog",
-      "certificates",
-      "deployment",
-      "gtm-ops",
-      "handbook",
-      "helm-chart",
-      "infrastructure",
-      "landing-pages",
-    ]);
+    /*
+     * A page of them, by name, and the rest on the next - read from the
+     * server as the fold opens (#10764).
+     */
+    await waitFor(() => {
+      expect(rowNames(fold)).toEqual([
+        "ads",
+        "back-to-metal",
+        "blog",
+        "certificates",
+        "deployment",
+        "gtm-ops",
+        "handbook",
+        "helm-chart",
+        "infrastructure",
+        "landing-pages",
+      ]);
+    });
     expect(fold).toHaveTextContent("Showing 1-10 of 14 repositories");
+    expect(getRepositoriesMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        group: CodeRepositoryListGroup.NotConnected,
+        order: CodeRepositoryListOrder.Activity,
+        skip: 0,
+        limit: 10,
+      }),
+    );
     expect(
       screen.getByTestId("code-not-connected-explanation"),
     ).toHaveTextContent(
@@ -1746,12 +1827,20 @@ describe("Code's Repositories", () => {
     );
     expect(rowNames(connectedList())).toHaveLength(6);
 
+    // The server searches every repository, once typing rests (#10764).
     await userEvent.type(search, "PAYMENTS");
-    expect(rowNames(connectedList())).toEqual(["checkout-api"]);
+    await waitFor(() => {
+      expect(rowNames(connectedList())).toEqual(["checkout-api"]);
+    });
+    expect(getRepositoriesMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ search: "PAYMENTS" }),
+    );
 
     await userEvent.clear(search);
     await userEvent.type(search, "acme/store");
-    expect(rowNames(connectedList())).toEqual(["web"]);
+    await waitFor(() => {
+      expect(rowNames(connectedList())).toEqual(["web"]);
+    });
 
     // Matches among both lists: Not connected stays folded, counting its own.
     const foldHeader: HTMLElement = within(notConnectedFold()).getByRole(
@@ -1760,7 +1849,9 @@ describe("Code's Repositories", () => {
     );
     await userEvent.clear(search);
     await userEvent.type(search, "i");
-    expect(rowNames(connectedList()).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(rowNames(connectedList())).toEqual(["checkout-api"]);
+    });
     expect(foldHeader).toHaveAttribute("aria-expanded", "false");
 
     /*
@@ -1769,11 +1860,11 @@ describe("Code's Repositories", () => {
      */
     await userEvent.clear(search);
     await userEvent.type(search, "billing");
-    expect(rowNames(connectedList())).toEqual([]);
 
-    const empty: HTMLElement = screen.getByTestId(
+    const empty: HTMLElement = await screen.findByTestId(
       "code-repository-search-empty",
     );
+    expect(rowNames(connectedList())).toEqual([]);
     expect(empty).toHaveTextContent("No repository matches your search");
     expect(empty).toHaveTextContent(
       "1 repository under Not connected matches it.",
@@ -1781,12 +1872,22 @@ describe("Code's Repositories", () => {
     await waitFor(() => {
       expect(foldHeader).toHaveAttribute("aria-expanded", "true");
     });
-    expect(rowNames(notConnectedFold())).toEqual(["legacy-billing"]);
+    await waitFor(() => {
+      expect(rowNames(notConnectedFold())).toEqual(["legacy-billing"]);
+    });
 
     // It closes when the reader closes it, though the search still finds it.
     fireEvent.click(foldHeader);
     expect(foldHeader).toHaveAttribute("aria-expanded", "false");
+
+    const readsBefore: number = getRepositoriesMock.mock.calls.length;
+
     await userEvent.type(search, "{backspace}");
+    await waitFor(() => {
+      expect(getRepositoriesMock.mock.calls.length).toBeGreaterThan(
+        readsBefore,
+      );
+    });
     expect(foldHeader).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(
@@ -1795,7 +1896,9 @@ describe("Code's Repositories", () => {
         { name: "Clear Search" },
       ),
     );
-    expect(rowNames(connectedList())).toHaveLength(6);
+    await waitFor(() => {
+      expect(rowNames(connectedList())).toHaveLength(6);
+    });
   });
 
   test("a search that finds some under Not connected says how many, for one and for many", async () => {
@@ -1818,28 +1921,36 @@ describe("Code's Repositories", () => {
       "code-repository-search",
     );
 
+    // The server's answer, once typing rests (#10764).
     await userEvent.type(search, "old-billing");
     expect(
-      screen.getByTestId("code-repository-search-empty"),
+      await screen.findByTestId("code-repository-search-empty"),
     ).toHaveTextContent("2 repositories under Not connected match it.");
-    expect(rowNames(notConnectedFold())).toEqual([
-      "old-billing",
-      "old-billing-ui",
-    ]);
+    await waitFor(() => {
+      expect(rowNames(notConnectedFold())).toEqual([
+        "old-billing",
+        "old-billing-ui",
+      ]);
+    });
 
     await userEvent.type(search, "-ui");
-    expect(
-      screen.getByTestId("code-repository-search-empty"),
-    ).toHaveTextContent("1 repository under Not connected matches it.");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("code-repository-search-empty"),
+      ).toHaveTextContent("1 repository under Not connected matches it.");
+    });
 
     // Nothing anywhere: no word about Not connected.
     await userEvent.clear(search);
     await userEvent.type(search, "nothing-like-it");
-    const empty: HTMLElement = screen.getByTestId(
-      "code-repository-search-empty",
-    );
-    expect(empty).toHaveTextContent("No repository matches your search");
-    expect(empty).not.toHaveTextContent("Not connected");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("code-repository-search-empty"),
+      ).not.toHaveTextContent("Not connected");
+    });
+    expect(
+      screen.getByTestId("code-repository-search-empty"),
+    ).toHaveTextContent("No repository matches your search");
   });
 
   test("GitHub reaches none of them: the list says so with Connect GitHub - once, not in its header too", async () => {
@@ -3739,5 +3850,354 @@ describe("a task's conversation", () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByText("Refresh?"));
     expect(await screen.findByTestId("code-task-header")).toBeInTheDocument();
+  });
+});
+
+/*
+ * #10764: Code read the project's first 500 repositories by name and did the
+ * rest in the browser, so a repository past them could not be picked,
+ * listed or found. On a project of 10,050 repositories named to sort before
+ * the late ones - the server's reads stood in for by its rules
+ * (CodeRepositoriesServer) - both pages find, pick, start on, list and page
+ * to a repository however far past the first it is.
+ */
+describe("Code past the 10,000th repository (#10764)", () => {
+  const WAREHOUSE_ID: string = "0000000a-0000-4000-8000-0000000c0de1";
+  const WHARF_ID: string = "0000000a-0000-4000-8000-0000000c0de2";
+  const DELETED_ID: string = "0000000a-0000-4000-8000-0000000c0de3";
+
+  // Past every one of them by name: connected, and not.
+  function lateRepositories(
+    warehouseActivity?: string,
+  ): Array<CodeRepositoryListItem> {
+    return [
+      {
+        id: WAREHOUSE_ID,
+        name: "warehouse-api",
+        organizationName: "harbour",
+        repositoryName: "warehouse-api",
+        mainBranchName: "main",
+        isConnected: true,
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 2,
+          ...(warehouseActivity ? { lastActivityAt: warehouseActivity } : {}),
+        },
+      },
+      {
+        id: WHARF_ID,
+        name: "wharf-legacy",
+        organizationName: "harbour",
+        repositoryName: "wharf-legacy",
+        mainBranchName: "trunk",
+        isConnected: false,
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 0,
+        },
+      },
+    ];
+  }
+
+  // The reader's repositories, whole: the stand-in answers each read from them.
+  function projectOf(warehouseActivity?: string): void {
+    getRepositoriesMock.mockResolvedValue({
+      repositories: [
+        ...repositoriesSortingFirst(10050),
+        ...lateRepositories(warehouseActivity),
+      ],
+      tasksWithoutRepositoryCount: 0,
+    } as never);
+  }
+
+  function answersAccessFor(): void {
+    getRepositoryMock.mockImplementation(async (repositoryId: unknown) => {
+      const late: CodeRepositoryListItem | undefined = lateRepositories().find(
+        (repository: CodeRepositoryListItem): boolean => {
+          return repository.id === repositoryId;
+        },
+      );
+
+      return repositoryAnswer(
+        {},
+        late
+          ? {
+              id: late.id,
+              name: late.name,
+              mainBranchName: late.mainBranchName,
+              isConnected: late.isConnected,
+            }
+          : {
+              id: String(repositoryId),
+              name: "ap-000001",
+              mainBranchName: "main",
+            },
+      );
+    });
+  }
+
+  describe("Code's first page", () => {
+    beforeEach(() => {
+      goTo(`/dashboard/${PROJECT_ID}/code`);
+      answersAccessFor();
+      listTasksMock.mockResolvedValue(tasksAnswer([]) as never);
+    });
+
+    test("the box starts on the most recently active connected repository, however far past the first it is", async () => {
+      projectOf("2026-11-24T10:00:00.000Z");
+
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("code-repository-picker-button"),
+        ).toHaveTextContent("warehouse-api");
+      });
+      // One repository asked of the server, by activity - never a list of 500.
+      expect(getRepositoriesMock).toHaveBeenCalledWith({
+        order: CodeRepositoryListOrder.Activity,
+        limit: 1,
+      });
+      await waitFor(() => {
+        expect(getRepositoryMock).toHaveBeenCalledWith(WAREHOUSE_ID);
+      });
+    });
+
+    test("the picker lists the first ones, says to type to find more, and finds one past them on the server", async () => {
+      projectOf();
+
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      const button: HTMLElement = await screen.findByTestId(
+        "code-repository-picker-button",
+      );
+
+      await waitFor(() => {
+        expect(button).toHaveTextContent("ap-000001");
+      });
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(pickerOptions("code-repository-picker")).toHaveLength(50);
+      });
+      expect(
+        screen.getByTestId("code-repository-picker-note"),
+      ).toHaveTextContent(
+        "Type a repository's name to find one that is not listed.",
+      );
+
+      await userEvent.type(
+        screen.getByTestId("code-repository-picker-search"),
+        "wharf",
+      );
+
+      await waitFor(() => {
+        expect(
+          pickerOptions("code-repository-picker").map(
+            (option: HTMLElement): string | null => {
+              return option.getAttribute("data-value");
+            },
+          ),
+        ).toEqual([WHARF_ID]);
+      });
+      // The server was asked for what was typed.
+      expect(getRepositoriesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: "wharf", limit: 50 }),
+      );
+      // AI cannot reach it: listed quieter, with why.
+      expect(pickerOptions("code-repository-picker")[0]).toHaveTextContent(
+        "Not connected",
+      );
+      // Every match is listed: no line about more to find.
+      expect(screen.queryByTestId("code-repository-picker-note")).toBeNull();
+
+      fireEvent.click(pickerOptions("code-repository-picker")[0]!);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("code-repository-picker-button"),
+        ).toHaveTextContent("wharf-legacy");
+      });
+      await waitFor(() => {
+        expect(getRepositoryMock).toHaveBeenCalledWith(WHARF_ID);
+      });
+      // Remembered for next time, by its id.
+      expect(
+        window.localStorage.getItem(getRememberedRepositoryKey(PROJECT_ID)),
+      ).toContain(WHARF_ID);
+    });
+
+    test("the repository picked last time is where the box starts, read by its id however far past the first it is", async () => {
+      projectOf();
+      window.localStorage.setItem(
+        getRememberedRepositoryKey(PROJECT_ID),
+        JSON.stringify(WAREHOUSE_ID),
+      );
+
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("code-repository-picker-button"),
+        ).toHaveTextContent("warehouse-api");
+      });
+      expect(getRepositoriesByIdMock).toHaveBeenCalledWith([WAREHOUSE_ID]);
+    });
+
+    test("one picked last time that is gone, or out of reach: the box starts on the first one instead, saying nothing went wrong", async () => {
+      projectOf();
+      window.localStorage.setItem(
+        getRememberedRepositoryKey(PROJECT_ID),
+        JSON.stringify(DELETED_ID),
+      );
+
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("code-repository-picker-button"),
+        ).toHaveTextContent("ap-000001");
+      });
+      expect(getRepositoriesByIdMock).toHaveBeenCalledWith([DELETED_ID]);
+    });
+
+    test("the picker's read failing says why, with Try again, and reads again", async () => {
+      projectOf();
+
+      draw(<CodePage {...PAGE_PROPS} />);
+
+      const button: HTMLElement = await screen.findByTestId(
+        "code-repository-picker-button",
+      );
+
+      await waitFor(() => {
+        expect(button).toHaveTextContent("ap-000001");
+      });
+
+      getRepositoriesMock.mockRejectedValueOnce(
+        new HTTPErrorResponse(
+          500,
+          { message: "Repositories are unavailable." },
+          {},
+        ) as never,
+      );
+
+      fireEvent.click(button);
+
+      expect(
+        await screen.findByTestId("code-repository-picker-error"),
+      ).toHaveTextContent("Repositories are unavailable.");
+
+      fireEvent.click(screen.getByTestId("code-repository-picker-retry"));
+
+      await waitFor(() => {
+        expect(pickerOptions("code-repository-picker")).toHaveLength(50);
+      });
+    });
+  });
+
+  describe("Code's Repositories", () => {
+    beforeEach(() => {
+      goTo(`/dashboard/${PROJECT_ID}/code/repositories`);
+    });
+
+    function rowNamesIn(list: HTMLElement): Array<string> {
+      return within(list)
+        .queryAllByTestId("code-repository-row")
+        .map((row: HTMLElement): string => {
+          return (
+            within(row).getByTestId("code-repository-name").textContent || ""
+          );
+        });
+    }
+
+    test("a page of them at a time, counted whole, and the next page read from the server", async () => {
+      projectOf();
+
+      draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+      const card: HTMLElement = await screen.findByTestId(
+        CODE_REPOSITORIES_CARD_TEST_ID,
+      );
+
+      await waitFor(() => {
+        expect(rowNamesIn(card)).toHaveLength(10);
+      });
+      expect(rowNamesIn(card)[0]).toBe("ap-000001");
+      expect(within(card).getByTestId("pagination-summary")).toHaveTextContent(
+        "10,051",
+      );
+
+      fireEvent.click(within(card).getByTestId("pagination-next-button"));
+
+      await waitFor(() => {
+        expect(rowNamesIn(card)[0]).toBe("ap-000011");
+      });
+      expect(getRepositoriesMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          group: CodeRepositoryListGroup.Connected,
+          order: CodeRepositoryListOrder.Activity,
+          skip: 10,
+          limit: 10,
+        }),
+      );
+    });
+
+    test("a search finds a repository past the 10,000th, in its own list", async () => {
+      projectOf();
+
+      draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+      const search: HTMLElement = await screen.findByTestId(
+        "code-repository-search",
+      );
+
+      await userEvent.type(search, "harbour/ware");
+
+      const card: HTMLElement = screen.getByTestId(
+        CODE_REPOSITORIES_CARD_TEST_ID,
+      );
+
+      await waitFor(() => {
+        expect(rowNamesIn(card)).toEqual(["warehouse-api"]);
+      });
+    });
+
+    test("the one past them that OneUptime cannot reach is counted under Not connected, and listed when it opens", async () => {
+      projectOf();
+
+      draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+      const fold: HTMLElement = await screen.findByTestId(
+        CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID,
+      );
+
+      expect(fold).toHaveTextContent("1 repository");
+
+      fireEvent.click(within(fold).getByRole("button", { name: "Not connected" }));
+
+      await waitFor(() => {
+        expect(rowNamesIn(fold)).toEqual(["wharf-legacy"]);
+      });
+    });
+
+    test("the most recently active is first, however far past the first by name it is", async () => {
+      projectOf("2026-11-24T10:00:00.000Z");
+
+      draw(<CodeRepositoriesPage {...PAGE_PROPS} />);
+
+      const card: HTMLElement = await screen.findByTestId(
+        CODE_REPOSITORIES_CARD_TEST_ID,
+      );
+
+      await waitFor(() => {
+        expect(rowNamesIn(card)[0]).toBe("warehouse-api");
+      });
+    });
   });
 });
