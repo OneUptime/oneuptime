@@ -1452,6 +1452,21 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
       },
     );
 
+    // The API reference and Terraform's docs read the columns' descriptions.
+    it.each(["monitor", "monitorId", "monitorGroup", "monitorGroupId"])(
+      "is said in %s's description, where the API reference reads it",
+      (column: string) => {
+        const description: string =
+          new StatusPageResource().getTableColumnMetadata(column)
+            ?.description || "";
+
+        expect(description).toContain(
+          "A resource shows one monitor or one monitor group:",
+        );
+        expect(description).toMatch(/never both and never neither\.$/);
+      },
+    );
+
     it("says what is missing and what to send, as a sentence", () => {
       expect(NO_TARGET_MESSAGE).toBe(
         "A status page resource needs a monitor or a monitor group to show, and this one has neither. Send the monitor or the monitor group it shows.",
