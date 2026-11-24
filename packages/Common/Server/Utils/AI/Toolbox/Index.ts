@@ -83,6 +83,26 @@ import {
   QueryDataStoresTool,
 } from "./DataSecurityTools";
 import {
+  JudgeDataSecurityFindingTool,
+  ScrubDataSecurityFindingTool,
+} from "./DataSecurityFindingActionTools";
+import {
+  ChangeDataSecurityIssueTool,
+  FixDataSecurityIssueWithAiTool,
+} from "./DataSecurityIssueActionTools";
+import {
+  RespondOnDataStoreTool,
+  SetDataStoreOwnersTool,
+} from "./DataSecurityStoreActionTools";
+import {
+  DraftDataSecurityRuleTool,
+  SaveDataSecurityRuleTool,
+} from "./DataSecurityRuleTools";
+import {
+  DecideDataSecurityProposalTool,
+  QueryDataSecurityProposalsTool,
+} from "./DataSecurityProposalTools";
+import {
   GetDataTableFreshnessTool,
   GetDataTableLineageTool,
 } from "./DataObservabilityTools";
@@ -247,6 +267,13 @@ export default class AIToolbox {
     QueryDataSecurityIssuesTool,
     QueryDataStoreAccessTool,
     /*
+     * What OneUptime AI proposes in Data Security, the data types it found
+     * among them (#10889), and a rule drafted from the person's sentence
+     * with the stores it matches today (#10378): reads, saving nothing.
+     */
+    QueryDataSecurityProposalsTool,
+    DraftDataSecurityRuleTool,
+    /*
      * Data Observability: whether a watched table is fresh, its open alerts
      * and its writers' latest runs, and what it is built from and what is
      * built from it - also how Slack and Microsoft Teams answer "is the
@@ -321,6 +348,23 @@ export default class AIToolbox {
      */
     AddSecurityCaseNoteTool,
     RunSecurityPlaybookTool,
+    /*
+     * Data Security's buttons as actions (#10378), each the very server code
+     * its button calls, as the person: Scrub It, Confirm and Not Sensitive,
+     * Accept Risk, Not an Issue, Reopen and Assign, a store's owners, a rule
+     * from a sentence, a response action on a store, Fix with AI, and
+     * Approve or Dismiss on a proposal. Responding on a store, Not
+     * Sensitive, Accept Risk and the rest whose card says why ask in every
+     * mode (ObservabilityTool.asksInEveryMode).
+     */
+    ScrubDataSecurityFindingTool,
+    JudgeDataSecurityFindingTool,
+    ChangeDataSecurityIssueTool,
+    SetDataStoreOwnersTool,
+    SaveDataSecurityRuleTool,
+    RespondOnDataStoreTool,
+    FixDataSecurityIssueWithAiTool,
+    DecideDataSecurityProposalTool,
     /*
      * Code writes (mutations). These never touch the default or a protected
      * branch — every chat-authored commit lands somewhere a human must still

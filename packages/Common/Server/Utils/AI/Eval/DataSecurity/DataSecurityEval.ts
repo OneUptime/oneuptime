@@ -265,6 +265,12 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    */
   [DataSecurityAiFeature.DraftDataTypes]: 0.75,
   [DataSecurityAiFeature.DescribeDataType]: 0.75,
+  /*
+   * A rule from a sentence is shown with the stores it matches before
+   * anyone saves it, and saved only on a person's approval: three in four
+   * drafts must be the rule the sentence asks for (#10378).
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: 0.75,
 };
 
 // The share of a field suggestion case's fields that must get their type.

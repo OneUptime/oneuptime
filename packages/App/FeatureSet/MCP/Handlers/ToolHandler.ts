@@ -44,6 +44,10 @@ import McpCredentialUtil, {
   McpCredentialInput,
 } from "../Types/McpCredential";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  ASKS_IN_EVERY_MODE_REFUSAL_PREFIX,
+  ASKS_IN_EVERY_MODE_SUGGESTION,
+} from "Common/Types/AI/AIDataSecurityActions";
 import FieldsLeftOut from "Common/Types/API/FieldsLeftOut";
 import Headers from "Common/Types/API/Headers";
 import logger from "Common/Server/Utils/Logger";
@@ -272,6 +276,20 @@ export function getDeleteChoicesSuggestion(data: {
   );
 
   return `Nothing was deleted: the error names what depends on it. Ask the user which they want, then call ${tool.name} again with ${ways.join(", or with ")}. Do not choose for them.`;
+}
+
+/*
+ * What to try next when the API refused a Data Security action because
+ * OneUptime asks a person before it in every mode (#10378): not again, and
+ * not another way - the person makes it in OneUptime, on the page the
+ * refusal names. Undefined for every other error.
+ */
+export function getAsksAPersonSuggestion(error: unknown): string | undefined {
+  const message: string = error instanceof Error ? error.message : "";
+
+  return message.startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)
+    ? ASKS_IN_EVERY_MODE_SUGGESTION
+    : undefined;
 }
 
 // What a delete's inputs said besides the record: {} when nothing, or what could not be read.
@@ -512,14 +530,20 @@ async function handleCallTool(
       name,
       error,
       credential,
-      // A delete refused for what it says besides the record says how in its inputs.
-      getDeleteChoicesSuggestion({
-        tool: tools.find((each: McpToolInfo): boolean => {
-          return each.name === name;
+      /*
+       * A Data Security action that asks a person in every mode, refused
+       * here (#10378): never retried, and the person sent to OneUptime.
+       * A delete refused for what it says besides the record says how in
+       * its inputs.
+       */
+      getAsksAPersonSuggestion(error) ||
+        getDeleteChoicesSuggestion({
+          tool: tools.find((each: McpToolInfo): boolean => {
+            return each.name === name;
+          }),
+          args,
+          error,
         }),
-        args,
-        error,
-      }),
     );
   }
 }

@@ -228,6 +228,18 @@ export async function readStoreForCaller(data: {
 
 export default class DataSecurityButtons {
   /*
+   * The telemetry finding Scrub It acts on, as its route reads it - read as
+   * the caller first (readTelemetryFindingForCaller). A read.
+   */
+  public static async getTelemetryFinding(data: {
+    projectId: ObjectID;
+    findingId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DataStoreFinding> {
+    return await readTelemetryFindingForCaller(data);
+  }
+
+  /*
    * SCRUB IT on a telemetry finding (#10366, #10433): the enabled rule that
    * already hides it, or the proven, narrow rule for it - the one the
    * dialog showed, proven on the records it was seen in - made with the

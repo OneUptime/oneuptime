@@ -39,6 +39,7 @@ import WorkflowStatus, {
 } from "../Workflow/WorkflowStatus";
 import { PROBE_AGREEMENT_SENTENCES } from "../../Utils/Monitor/ProbeAgreementRule";
 import { OnCallPageChannel } from "../OnCallDutyPolicy/OnCallPageChannel";
+import { ALL_DATA_CATEGORIES } from "../DataSecurity/DataCategory";
 import {
   AI_DATA_SECURITY_ACTION_ASKS_BECAUSE,
   AI_DATA_SECURITY_ACTION_CHANGES,
@@ -1794,6 +1795,8 @@ export const AI_ACTION_TERM_WORDS: ReadonlyArray<string> = [
   ...AI_READ_WORKFLOW_RUN_STATUSES,
   // Data Security's actions (#10378): their terms, and what reads an attribute.
   ...Object.values(AI_DATA_SECURITY_ACTION_TERMS),
+  // The kinds of data a residency rule names, as Data Security's pages name them.
+  ...ALL_DATA_CATEGORIES,
   ...Object.values(AI_DATA_SECURITY_READER_KIND_TERMS),
   ...Object.values(AI_DATA_SECURITY_CARD_KINDS),
 ];
