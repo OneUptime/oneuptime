@@ -874,8 +874,6 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           // ...and whether a real-time rule counts in windows of its interval.
           matchCountThreshold: true,
           distinctCountField: true,
-          // What it counts by, for what it could not count (#10547).
-          groupByField: true,
         }}
         columns={[
           /*
