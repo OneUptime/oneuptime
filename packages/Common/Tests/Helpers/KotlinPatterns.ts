@@ -22,7 +22,8 @@ import { REPOSITORY_DIRECTORY, SKIPPED_FOLDER_NAMES } from "./TagStripScan";
  * POSIX classes with the letters, digits and spaces of every script, and \b
  * past a combining mark or a zero-width space, where the JVM and JavaScript
  * read them as ASCII. differentWordEdges finds where a pattern's edge reads
- * otherwise on a device than in the tests (#10835).
+ * otherwise on a device than in the tests (#10835), and differentReadings
+ * where a class or a "." elsewhere in it does (#10876).
  *
  * Not a test file itself (jest only collects *.test.ts).
  */
@@ -626,7 +627,7 @@ export const javaScriptForm: JavaScriptFormFunction = (
 };
 
 export interface WordEdge {
-  // What reads otherwise, as written: "\b", "\w", "\p{Alpha}", or a letter.
+  // What reads otherwise, as written: "\b", "\w", "\p{Alpha}", ".", or a letter.
   what: string;
   // Where it is in the pattern's source.
   index: number;
@@ -636,11 +637,22 @@ export interface WordEdge {
   reason: string;
 }
 
+/*
+ * What a finding of the walk below is about: a word's edge, which
+ * differentWordEdges tells of, or a class or a "." anywhere else, which
+ * differentReadings tells of.
+ */
+interface Reading extends WordEdge {
+  kind: "edge" | "class";
+}
+
 interface OpenGroup {
   // The look-around it is, as it opens, or null.
   lookAround: string | null;
   // Whether (?i) held where it opened, which holds again once it closes.
   caseInsensitiveOutside: boolean;
+  // Whether (?s) held where it opened, which holds again once it closes.
+  dotAllOutside: boolean;
   // Whether a letter read case-insensitively in it was told of already.
   toldOfLetter: boolean;
 }
@@ -676,33 +688,25 @@ const POSIX_REASON: string =
   "in a look-around reads Unicode's letters, digits or spaces on Android, and ASCII alone in the tests: write the ASCII class out";
 const CASE_REASON: string =
   'is read case-insensitively in a look-around, where Android\'s regular expressions also fold "ſ" and "K" (U+017F, U+212A) into s and k: turn (?i) on after the look-around';
-
-export type DifferentWordEdgesFunction = (source: string) => Array<WordEdge>;
+const POSIX_CLASS_REASON: string =
+  "reads Unicode's letters, digits or spaces on Android, and ASCII alone in the tests: write the class out, or Unicode's own (\\p{L}, \\p{Nd})";
+const DOT_REASON: string =
+  "reads a vertical tab and a form feed in the tests and not on Android, and U+0085, U+2028 and U+2029 on neither: turn (?s) on, as a line holds no line break, or write the class out";
 
 /*
- * Where a Java pattern reads a word's edge otherwise on a device than the
- * JVM and JavaScript read it, which is in its look-arounds and its word
- * boundaries (#10835):
- *
- *   - \b and \B anywhere. ICU draws a word boundary between the letters of
- *     any script, and past a combining mark or a zero-width space;
- *   - \w, \d, \s, their negations and Java's POSIX classes (\p{Alpha}...)
- *     in a look-around. ICU reads them with the letters, marks, digits and
- *     spaces of every script, the JVM and JavaScript as ASCII;
- *   - an ASCII letter in a look-around read case-insensitively. Under (?i)
- *     ICU folds "ſ" and "K" (U+017F, U+212A) into s and k, so [A-Za-z]
- *     there holds them too: turn (?i) on after the look-around.
- *
- * Classes (a class inside a class too), escapes, quoted text, inline flags
- * and groups are read as Java reads them; a pattern Java would refuse is
- * read as far as it goes.
+ * Every place a Java pattern reads text otherwise on a device than the JVM
+ * and JavaScript read it, in one walk: its word edges, and its classes and
+ * dots. Classes (a class inside a class too), escapes, quoted text, inline
+ * flags and groups are read as Java reads them; a pattern Java would refuse
+ * is read as far as it goes.
  */
-export const differentWordEdges: DifferentWordEdgesFunction = (
+const readingsOf: (source: string) => Array<Reading> = (
   source: string,
-): Array<WordEdge> => {
-  const found: Array<WordEdge> = [];
+): Array<Reading> => {
+  const found: Array<Reading> = [];
   const groups: Array<OpenGroup> = [];
   let caseInsensitive: boolean = false;
+  let dotAll: boolean = false;
   let classDepth: number = 0;
   let index: number = 0;
 
@@ -732,6 +736,7 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
     ) {
       around.toldOfLetter = true;
       found.push({
+        kind: "edge",
         what: character,
         index: at,
         lookAround: around.lookAround,
@@ -764,6 +769,7 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
 
     if ((escaped === "b" || escaped === "B") && classDepth === 0) {
       found.push({
+        kind: "edge",
         what: `\\${escaped}`,
         index,
         lookAround: around?.lookAround ?? null,
@@ -771,17 +777,35 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
       });
     } else if (shorthand !== undefined && around) {
       found.push({
+        kind: "edge",
         what: `\\${escaped}`,
         index,
         lookAround: around.lookAround,
         reason: `in a look-around reads the letters, digits or spaces of every script on Android, and ASCII alone in the tests: write ${shorthand}`,
       });
+    } else if (shorthand !== undefined) {
+      found.push({
+        kind: "class",
+        what: `\\${escaped}`,
+        index,
+        lookAround: null,
+        reason: `reads the letters, digits or spaces of every script on Android, and ASCII alone in the tests: write ${shorthand}`,
+      });
     } else if (posix && around) {
       found.push({
+        kind: "edge",
         what: posix[0],
         index,
         lookAround: around.lookAround,
         reason: POSIX_REASON,
+      });
+    } else if (posix) {
+      found.push({
+        kind: "class",
+        what: posix[0],
+        index,
+        lookAround: null,
+        reason: POSIX_CLASS_REASON,
       });
     }
 
@@ -825,6 +849,7 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
       groups.push({
         lookAround: opening,
         caseInsensitiveOutside: caseInsensitive,
+        dotAllOutside: dotAll,
         toldOfLetter: false,
       });
       index += opening.length;
@@ -836,24 +861,30 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
     );
 
     if (flags && (flags[1] || flags[2] !== undefined)) {
-      let on: boolean = caseInsensitive;
+      // A flag turned on wins over the same one turned off in the same group.
+      const turned: (flag: string, now: boolean) => boolean = (
+        flag: string,
+        now: boolean,
+      ): boolean => {
+        if (flags[1]!.includes(flag)) {
+          return true;
+        }
 
-      if (flags[1]!.includes("i")) {
-        on = true;
-      } else if ((flags[2] ?? "").includes("i")) {
-        on = false;
-      }
+        return (flags[2] ?? "").includes(flag) ? false : now;
+      };
 
       if (flags[3] === ":") {
         groups.push({
           lookAround: null,
           caseInsensitiveOutside: caseInsensitive,
+          dotAllOutside: dotAll,
           toldOfLetter: false,
         });
       }
 
-      // "(?i)" holds to the end of the group it is in, "(?i:" to the end of its own.
-      caseInsensitive = on;
+      // "(?i)" holds to the end of the group it is in, "(?i:" to the end of its own; so does "s".
+      caseInsensitive = turned("i", caseInsensitive);
+      dotAll = turned("s", dotAll);
       index += flags[0].length;
       return;
     }
@@ -861,6 +892,7 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
     groups.push({
       lookAround: null,
       caseInsensitiveOutside: caseInsensitive,
+      dotAllOutside: dotAll,
       toldOfLetter: false,
     });
 
@@ -925,10 +957,21 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
 
       if (closed) {
         caseInsensitive = closed.caseInsensitiveOutside;
+        dotAll = closed.dotAllOutside;
       }
 
       index++;
       continue;
+    }
+
+    if (char === "." && !dotAll) {
+      found.push({
+        kind: "class",
+        what: ".",
+        index,
+        lookAround: lookAround()?.lookAround ?? null,
+        reason: DOT_REASON,
+      });
     }
 
     readCharacter(char, index);
@@ -936,4 +979,74 @@ export const differentWordEdges: DifferentWordEdgesFunction = (
   }
 
   return found;
+};
+
+// The findings of one kind, as WordEdge describes them.
+const readingsOfKind: (
+  source: string,
+  kind: Reading["kind"],
+) => Array<WordEdge> = (
+  source: string,
+  kind: Reading["kind"],
+): Array<WordEdge> => {
+  return readingsOf(source)
+    .filter((reading: Reading): boolean => {
+      return reading.kind === kind;
+    })
+    .map((reading: Reading): WordEdge => {
+      return {
+        what: reading.what,
+        index: reading.index,
+        lookAround: reading.lookAround,
+        reason: reading.reason,
+      };
+    });
+};
+
+export type DifferentWordEdgesFunction = (source: string) => Array<WordEdge>;
+
+/*
+ * Where a Java pattern reads a word's edge otherwise on a device than the
+ * JVM and JavaScript read it, which is in its look-arounds and its word
+ * boundaries (#10835):
+ *
+ *   - \b and \B anywhere. ICU draws a word boundary between the letters of
+ *     any script, and past a combining mark or a zero-width space;
+ *   - \w, \d, \s, their negations and Java's POSIX classes (\p{Alpha}...)
+ *     in a look-around. ICU reads them with the letters, marks, digits and
+ *     spaces of every script, the JVM and JavaScript as ASCII;
+ *   - an ASCII letter in a look-around read case-insensitively. Under (?i)
+ *     ICU folds "ſ" and "K" (U+017F, U+212A) into s and k, so [A-Za-z]
+ *     there holds them too: turn (?i) on after the look-around.
+ */
+export const differentWordEdges: DifferentWordEdgesFunction = (
+  source: string,
+): Array<WordEdge> => {
+  return readingsOfKind(source, "edge");
+};
+
+/*
+ * Where else a Java pattern reads text otherwise on a device than the JVM
+ * reads it in the agent's unit tests (#10876):
+ *
+ *   - \w, \d, \s, their negations and Java's POSIX classes outside a
+ *     look-around, in a class or not. A device's \s took Chinese and
+ *     Japanese text's own space (U+3000) and a no-break space where the
+ *     tests' did not, and its \w a Java class name's Cyrillic letters, so
+ *     a crash named in them was parsed on a device alone;
+ *   - a "." outside a class, unless (?s) holds there. ICU's takes no
+ *     vertical tab and no form feed where the JVM's takes both, and
+ *     neither takes U+0085, U+2028 or U+2029, which an app's log line or an
+ *     exception's message may hold, and the line was dropped. Under (?s) a
+ *     "." takes any character on both, and a line holds no line break.
+ *
+ * Unicode's own classes (\p{L}, \p{Nd}, \p{sc=Latin}) read alike on both.
+ * A letter read case-insensitively outside a look-around is not told of:
+ * ICU folds "ſ" and "K" into a credential's or a secret's name there too,
+ * which takes more out on a device, never less.
+ */
+export const differentReadings: DifferentWordEdgesFunction = (
+  source: string,
+): Array<WordEdge> => {
+  return readingsOfKind(source, "class");
 };

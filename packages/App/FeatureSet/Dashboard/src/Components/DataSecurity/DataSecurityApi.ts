@@ -39,10 +39,12 @@ import {
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
   DataSecurityScrubImpact,
+  DataSecurityScrubProofSummary,
   DataSecurityScrubResult,
   DataSecurityScrubRulePlan,
   DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { readScrubRuleKeys } from "Common/Types/Telemetry/ScrubRuleKeys";
 import { readTelemetryFieldReaders } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DataStoreResourceKind,
@@ -187,6 +189,42 @@ async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
   return body && typeof body === "object" && !Array.isArray(body)
     ? (body as JSONObject)
     : {};
+}
+
+// The counts a planned rule's proof is said in (#10366).
+const SCRUB_PROOF_COUNTS: ReadonlyArray<keyof DataSecurityScrubProofSummary> = [
+  "recordsRead",
+  "findingRecordsRead",
+  "valuesWithData",
+  "valuesStillWithData",
+  "otherValues",
+  "otherValuesChanged",
+];
+
+/*
+ * What a planned rule was proven on, as the server answers it: counts,
+ * never a value. One missing or no count, and there is no proof.
+ */
+function readScrubProof(
+  value: JSONValue | undefined,
+): DataSecurityScrubProofSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const proof: Partial<DataSecurityScrubProofSummary> = {};
+
+  for (const name of SCRUB_PROOF_COUNTS) {
+    const count: number | null = readCount((value as JSONObject)[name]);
+
+    if (count === null) {
+      return null;
+    }
+
+    proof[name] = count;
+  }
+
+  return proof as DataSecurityScrubProofSummary;
 }
 
 function readIds(value: JSONValue | undefined): Array<string> {
@@ -569,6 +607,33 @@ export default class DataSecurityApi {
       if (ObjectID.isValidUUID(textOf(rule["serviceId"]))) {
         plan.serviceId = textOf(rule["serviceId"]);
         plan.serviceName = textOf(rule["serviceName"]);
+      }
+
+      /*
+       * What the dialog says of the rule beside its action: why an IP
+       * Address rule hashes rather than redacts (#10396), the attributes it
+       * names, and what it was proven on (#10366). A key that is no text is
+       * no key, and a proof with a count that is no count is none: the
+       * dialog never says a rule was proven when it cannot say on what.
+       */
+      if (rule["hashesForSecurityEvents"] === true) {
+        plan.hashesForSecurityEvents = true;
+      }
+
+      const attributeKeys: Array<string> = readScrubRuleKeys(
+        Array.isArray(rule["attributeKeys"]) ? rule["attributeKeys"] : [],
+      );
+
+      if (attributeKeys.length > 0) {
+        plan.attributeKeys = attributeKeys;
+      }
+
+      const proof: DataSecurityScrubProofSummary | null = readScrubProof(
+        rule["proof"],
+      );
+
+      if (proof) {
+        plan.proof = proof;
       }
 
       impact.rule = plan;

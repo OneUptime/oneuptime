@@ -10,6 +10,7 @@ import {
   JavaScriptPattern,
   KotlinStringLiteral,
   WordEdge,
+  differentReadings,
   differentWordEdges,
   javaScriptForm,
   kotlinProductFiles,
@@ -180,13 +181,14 @@ val q = "Regex(" + "q"`;
         return literal.value;
       });
 
-    // The card's start, the address, the credential, the token and the secret's value.
-    expect(patterns).toHaveLength(5);
-    expect(patterns[0]).toContain("(?=([2-6]");
+    // The card's start, the ASCII address, the address in any script, the credential, the token and the secret's value.
+    expect(patterns).toHaveLength(6);
+    expect(patterns[0]).toContain(String.raw`(?=(\p{Nd}`);
     expect(patterns[1]).toContain("@[A-Za-z0-9-]{1,63}");
-    expect(patterns[2]).toContain("(bearer|basic)");
-    expect(patterns[3]).toContain("eyJ[A-Za-z0-9_-]{5}");
-    expect(patterns[4]).toContain("password|passwd");
+    expect(patterns[2]).toContain(String.raw`@[\p{L}\p{M}\p{Nd}-]{1,63}`);
+    expect(patterns[3]).toContain("(bearer|basic)");
+    expect(patterns[4]).toContain("eyJ[A-Za-z0-9_-]{5}");
+    expect(patterns[5]).toContain("password|passwd");
   });
 });
 
@@ -524,6 +526,109 @@ describe("where a Java pattern reads a word's edge otherwise on Android", () => 
   });
 });
 
+describe("where else a Java pattern reads a text otherwise on Android", () => {
+  // Each finding as "what@index in lookAround".
+  const readingsOf: (java: string) => Array<string> = (
+    java: string,
+  ): Array<string> => {
+    return differentReadings(java).map((reading: WordEdge): string => {
+      return `${reading.what}@${reading.index} in ${reading.lookAround ?? "none"}`;
+    });
+  };
+
+  test("a shorthand class or a POSIX class outside a look-around, in a class or not", () => {
+    expect(readingsOf(String.raw`^\s*(\d+)\S\w\W\D`)).toEqual([
+      String.raw`\s@1 in none`,
+      String.raw`\d@5 in none`,
+      String.raw`\S@9 in none`,
+      String.raw`\w@11 in none`,
+      String.raw`\W@13 in none`,
+      String.raw`\D@15 in none`,
+    ]);
+    expect(readingsOf(String.raw`[^\s,;]+`)).toEqual([
+      String.raw`\s@2 in none`,
+    ]);
+    expect(readingsOf(String.raw`\p{Alpha}\P{Digit}`)).toEqual([
+      String.raw`\p{Alpha}@0 in none`,
+      String.raw`\P{Digit}@9 in none`,
+    ]);
+    // In a look-around differentWordEdges tells of one, and this does not tell of it twice.
+    expect(readingsOf(String.raw`(?<![\w.])x(?=\s)`)).toEqual([]);
+    expect(differentWordEdges(String.raw`(?<![\w.])x(?=\s)`)).toHaveLength(2);
+    // Unicode's own classes and properties, and escaped or quoted letters, read alike on both.
+    expect(
+      readingsOf(
+        String.raw`\p{L}\p{Nd}\p{sc=Latin}[^\P{L}\p{IsAlphabetic}]\\s\Q\d\E\x41\u0042`,
+      ),
+    ).toEqual([]);
+  });
+
+  test("a dot outside a class, unless (?s) holds there", () => {
+    expect(readingsOf("a.b")).toEqual([".@1 in none"]);
+    expect(readingsOf("(?=a.)")).toEqual([".@4 in (?="]);
+    expect(readingsOf("(?s)a.b")).toEqual([]);
+    expect(readingsOf("(?is)a.b")).toEqual([]);
+    // (?s: holds to the end of its own group, (?s) and (?-s) to the end of the group they are in.
+    expect(readingsOf("(?s:a.)b.")).toEqual([".@8 in none"]);
+    expect(readingsOf("(?s)a(?-s).")).toEqual([".@10 in none"]);
+    expect(readingsOf("(?s)(a(?-s)b).")).toEqual([]);
+    // A dot in a class, escaped or quoted stands for itself.
+    expect(readingsOf(String.raw`[.]\.\Q.\E`)).toEqual([]);
+  });
+
+  test("the agent's patterns before #10876 are told, and its patterns now are not", () => {
+    const before: Array<string> = [
+      String.raw`(?<![A-Za-z0-9_])(?i)(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}`,
+      String.raw`^([A-Za-z_$][\w$]*(?:\.[\w$]+)+)(?::\s?(.*))?$`,
+      String.raw`^\s*(\d\d)-(\d\d)\s+(\d\d):(\d\d):(\d\d)\.(\d{1,9})\s+(?:(\S+)\s+)??(\d+)\s+(\d+)\s+([VDIWEFA])\s(.*)$`,
+      String.raw`^Abort message:\s*'(.*)'\s*$`,
+      "Kernel panic - not syncing:.*",
+    ];
+
+    for (const java of before) {
+      expect({ java, told: differentReadings(java).length > 0 }).toEqual({
+        java,
+        told: true,
+      });
+    }
+
+    for (const file of kotlinProductFiles()) {
+      const text: string = fs.readFileSync(
+        path.join(REPOSITORY_DIRECTORY, file),
+        "utf8",
+      );
+
+      for (const literal of kotlinStringLiterals(text)) {
+        if (literal.isPattern) {
+          expect({
+            file,
+            pattern: literal.value,
+            readings: readingsOf(literal.value),
+          }).toEqual({
+            file,
+            pattern: literal.value,
+            readings: [],
+          });
+        }
+      }
+    }
+  });
+
+  test("each finding says what to write", () => {
+    const reasons: Array<string> = differentReadings(
+      String.raw`\w\d\s\p{Alpha}.`,
+    ).map((reading: WordEdge): string => {
+      return reading.reason;
+    });
+
+    expect(reasons).toHaveLength(5);
+    expect(reasons[0]).toContain("write [A-Za-z0-9_]");
+    expect(reasons[1]).toContain("write [0-9]");
+    expect(reasons[2]).toContain("written out");
+    expect(reasons[3]).toContain("write the class out");
+    expect(reasons[4]).toContain("turn (?s) on");
+  });
+});
 // What javaScriptForm says when it refuses a pattern, or nothing.
 function errorOf(java: string): string | null {
   try {
