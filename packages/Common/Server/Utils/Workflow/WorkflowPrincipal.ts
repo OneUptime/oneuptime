@@ -2,7 +2,10 @@ import CallerPlan from "../Billing/CallerPlan";
 import UserPermissionUtil from "../UserPermission/UserPermission";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import WorkflowAccessChangeRefusedException from "../../Types/Database/Permissions/WorkflowAccessChangeRefusedException";
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import WorkflowSecretChangeRefusedException from "../../Types/Database/Permissions/WorkflowSecretChangeRefusedException";
+import BaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -75,6 +78,22 @@ import {
  * by a person (assertDoesNotChangeAccess, which TablePermission asks on
  * every create, update and delete).
  *
+ * Nor is a step lent what a Project Admin may do to the project's
+ * credentials, to where OneUptime sends them, and to what its runbooks run:
+ * it creates, changes and deletes no runbook variable, monitor secret, BI
+ * tool connection or threat intel feed (SECRET_TABLES). Who may build a
+ * workflow is not who may write runbook steps or manage secrets, and each
+ * of these records is one a write to which reaches past OneUptime: a
+ * runbook variable's value is filled into a step's script as it is written
+ * and run on the project's own machines, so changing a plain one changes
+ * the command a Project Admin's runbook runs; a secret's value, the Runners
+ * or monitors it lists, and a connection's or a feed's address decide which
+ * credential goes where, so changing them hands a credential the builder
+ * may never read to a monitor, a Runner or a server of their choosing.
+ * Triggers and Find steps still read them; changes are made by a person
+ * (assertDoesNotChangeSecrets, which TablePermission asks on every create,
+ * update and delete).
+ *
  * ALL OF THE ABOVE IS THE DEFAULT. A person may give a workflow other
  * permissions to run with - Project Owner, or one of the project's custom
  * roles - which only someone who holds them may do, and only someone who
@@ -88,6 +107,9 @@ import {
  * and which permissions and roles teams have (TEAM_ACCESS_TABLES), held to
  * the grant ceiling of the permissions it runs with: whoever may change the
  * workflow holds them, so nothing it hands on is anything they could not.
+ * So too the records that hold the project's secrets (SECRET_TABLES), as
+ * far as the permissions it runs with allow - the same column, label and
+ * block checks a person meets.
  * It never changes API keys, SSO or SCIM settings (CREDENTIAL_ACCESS_TABLES):
  * those are credentials, and what a step writes lands in its run log. And
  * it is no more lent the read of a credential setting or of a private
@@ -137,6 +159,36 @@ const ACCESS_TABLES: Array<string> = [
   ...CREDENTIAL_ACCESS_TABLES,
   ...TEAM_ACCESS_TABLES,
 ].sort();
+
+/*
+ * THE RECORDS THAT HOLD THE PROJECT'S SECRETS, by table name: a write to
+ * any of them reaches past OneUptime's own records.
+ *
+ *   - RunbookVariable: the values runbook steps run with on the project's
+ *     own machines - a plain value is filled into a Bash, JavaScript, SSH
+ *     or kubectl script as it is written, and into an SSH step's machine
+ *     and an HTTP request step's address - and the secrets they sign in
+ *     with, with the Runners each secret reaches and whether global
+ *     Runners do (Server/Utils/Runbook/RunbookVariableResolver);
+ *   - MonitorSecret: a secret monitors use, and the monitors - by name, by
+ *     label, or all of them - that may use it (MonitorSecretAccess);
+ *   - DataBiConnection: a BI tool's credentials, and the address OneUptime
+ *     sends them to every hour;
+ *   - ThreatIntelFeed: a feed's API token or password, and the address
+ *     OneUptime sends them to every time it polls.
+ *
+ * Changed by no step of a workflow that runs with the default permissions,
+ * and by a step of one that runs as Project Owner or a custom role only as
+ * far as those permissions allow (assertDoesNotChangeSecrets). A
+ * workflow-enabled table that holds a value no API caller reads back belongs
+ * here, to the access tables or to a reason it does not, which a test holds.
+ */
+const SECRET_TABLES: Array<string> = [
+  "DataBiConnection",
+  "MonitorSecret",
+  "RunbookVariable",
+  "ThreatIntelFeed",
+];
 
 /*
  * The broad roles every write list names, left out where a refusal names
@@ -406,6 +458,16 @@ export default class WorkflowPrincipal {
     return CREDENTIAL_ACCESS_TABLES.includes(new modelType().tableName || "");
   }
 
+  // The tables that hold the project's secrets (SECRET_TABLES).
+  public static getSecretTables(): Array<string> {
+    return [...SECRET_TABLES];
+  }
+
+  // Whether `modelType` holds the project's secrets.
+  public static isSecretTable(modelType: DatabaseBaseModelType): boolean {
+    return SECRET_TABLES.includes(new modelType().tableName || "");
+  }
+
   /*
    * Refuses a workflow's step that would create, change or delete a record
    * that decides who may do what in its project, before anything else is
@@ -449,6 +511,37 @@ export default class WorkflowPrincipal {
   }
 
   /*
+   * Refuses a step of a workflow that runs with the default permissions
+   * that would create, change or delete a record that holds the project's
+   * secrets (SECRET_TABLES) - a runbook variable, a monitor secret, a BI
+   * tool connection, a threat intel feed - before anything else is asked.
+   * A step of one that runs as Project Owner or a custom role passes on to
+   * the checks a person meets: whoever may change such a workflow holds the
+   * permissions it runs with.
+   *
+   * Anyone else - a person, an API key, OneUptime itself - and any read
+   * pass untouched.
+   */
+  public static assertDoesNotChangeSecrets(data: {
+    modelType: DatabaseBaseModelType;
+    props: DatabaseCommonInteractionProps;
+    type: DatabaseRequestType;
+  }): void {
+    if (
+      data.type === DatabaseRequestType.Read ||
+      !WorkflowPrincipal.isWorkflow(data.props) ||
+      !WorkflowPrincipal.isSecretTable(data.modelType) ||
+      WorkflowPrincipal.isRaised(data.props.workflowRunAs)
+    ) {
+      return;
+    }
+
+    throw new WorkflowSecretChangeRefusedException(
+      WorkflowPrincipal.getSecretChangeRefusal(data.modelType, data.type),
+    );
+  }
+
+  /*
    * What a refused step's run log says (assertDoesNotChangeAccess): for a
    * credential, that no step changes one; for a team or a role, that a
    * workflow running with the default permissions does not, and what would
@@ -458,25 +551,58 @@ export default class WorkflowPrincipal {
     modelType: DatabaseBaseModelType,
     type: DatabaseRequestType,
   ): string {
-    const verb: string =
-      type === DatabaseRequestType.Create
-        ? "create"
-        : type === DatabaseRequestType.Delete
-          ? "delete"
-          : "change";
-
-    const model: {
-      pluralName: string | null;
-      tableName: string | null;
-      createRecordPermissions: Array<Permission>;
-      updateRecordPermissions: Array<Permission>;
-      deleteRecordPermissions: Array<Permission>;
-    } = new modelType();
-    const records: string = model.pluralName || model.tableName || "these";
+    const verb: string = WorkflowPrincipal.getRefusedVerb(type);
+    const records: string = WorkflowPrincipal.getRefusedRecords(modelType);
 
     if (WorkflowPrincipal.isCredentialAccessTable(modelType)) {
       return `Workflow steps never change the project's API keys, single sign-on or SCIM settings, whatever the workflow runs as, so they can't ${verb} ${records}. A person who manages them has to make this change.`;
     }
+
+    return `Workflows that run with the default permissions don't change who has access to this project, so this step can't ${verb} ${records}. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or ${WorkflowPrincipal.getRoleThatMay(modelType, type)}.`;
+  }
+
+  /*
+   * What a refused step's run log says (assertDoesNotChangeSecrets): that a
+   * workflow running with the default permissions changes none of these,
+   * and what would let this one - the permission the change takes, by its
+   * title.
+   */
+  public static getSecretChangeRefusal(
+    modelType: DatabaseBaseModelType,
+    type: DatabaseRequestType,
+  ): string {
+    const verb: string = WorkflowPrincipal.getRefusedVerb(type);
+    const records: string = WorkflowPrincipal.getRefusedRecords(modelType);
+
+    return `Workflows that run with the default permissions don't change the project's secrets, where OneUptime sends them, or what its runbooks run, so this step can't ${verb} ${records}. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or ${WorkflowPrincipal.getRoleThatMay(modelType, type)}.`;
+  }
+
+  // A refused write, as a refusal says it: create, change or delete.
+  private static getRefusedVerb(type: DatabaseRequestType): string {
+    return type === DatabaseRequestType.Create
+      ? "create"
+      : type === DatabaseRequestType.Delete
+        ? "delete"
+        : "change";
+  }
+
+  // The records a refused write was for, as a refusal names them.
+  private static getRefusedRecords(modelType: DatabaseBaseModelType): string {
+    const model: BaseModel = new modelType();
+
+    return model.pluralName || model.tableName || "these";
+  }
+
+  /*
+   * The custom role a workflow could run as to make a refused write: one
+   * that has a permission the model's own list for the write names, other
+   * than Project Owner and Project Admin, by their titles.
+   */
+  private static getRoleThatMay(
+    modelType: DatabaseBaseModelType,
+    type: DatabaseRequestType,
+  ): string {
+    const model: BaseModel = new modelType();
 
     // The model's own list for the write, as the table check reads it.
     const writeList: Array<Permission> =
@@ -494,11 +620,8 @@ export default class WorkflowPrincipal {
       ),
     );
 
-    const role: string =
-      needed.length > 0
-        ? `a custom role that has ${needed.join(" or ")}`
-        : "a custom role that may do this";
-
-    return `Workflows that run with the default permissions don't change who has access to this project, so this step can't ${verb} ${records}. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or ${role}.`;
+    return needed.length > 0
+      ? `a custom role that has ${needed.join(" or ")}`
+      : "a custom role that may do this";
   }
 }

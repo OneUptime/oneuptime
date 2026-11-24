@@ -107,7 +107,9 @@ export const describeStepCeiling: (
  * project that the step may not make whatever it holds - any change, for a
  * workflow that runs with the default permissions, and an API key's or a
  * sign-in setting's for every workflow - says its reason as it is
- * (WorkflowAccessChangeRefusedException). Refusals are told by their type
+ * (WorkflowAccessChangeRefusedException), and so does a change such a
+ * workflow may not make to the project's secrets
+ * (WorkflowSecretChangeRefusedException, one of them). Refusals are told by their type
  * (a column refusal is a ColumnWriteRefusedException), never by their
  * words. Null for any other failure.
  */
