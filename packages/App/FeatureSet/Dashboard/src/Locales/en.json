@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Visitors see each episode as one card that lists its incidents and what they affect.",
   "Page when the script timed out": "Page when the script timed out",
-  "Page {{number}} when the script timed out": "Page {{number}} when the script timed out"
+  "Page {{number}} when the script timed out": "Page {{number}} when the script timed out",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Accounts outside yours can reach that store, so they could reach the new column too.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Anyone on the internet can read that store, so they could read the new column too.",
+  "Data Security found {{types}} in its columns.": "Data Security found {{types}} in its columns.",
+  "That store accepts connections from the internet, and the new column would be in it.": "That store accepts connections from the internet, and the new column would be in it.",
+  "That store is not encrypted at rest, so the new column would not be either.": "That store is not encrypted at rest, so the new column would not be either.",
+  "The table already holds the same data": "The table already holds the same data",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} more stores of the project hold a table of this name.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} more store of the project holds a table of this name."
 }
