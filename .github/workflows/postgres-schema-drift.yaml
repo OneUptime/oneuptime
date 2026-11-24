@@ -2856,6 +2856,25 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddScopeToLogSavedViewPostgres.test.ts
           --forceExit
 
+      # Clones the migrated StatusPage table into an isolated schema, as it
+      # was before AddGroupIncidentsByEpisodeToStatusPage, and runs the
+      # migration on seeded pages (#10767): every existing page, whichever
+      # lists it shows and a deleted one too, reads off, so it shows what it
+      # always showed; a page made after it reads on, a page can still be made
+      # off, nothing else about a page changes, and down() drops the column.
+      - name: Test status pages' Group Incidents by Episode on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GROUP_INCIDENTS_BY_EPISODE_TESTS: "true"
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GROUP_INCIDENTS_BY_EPISODE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddGroupIncidentsByEpisodeToStatusPagePostgres.test.ts
+          --forceExit
+
       # Clones the migrated LlmLog and AIRun tables into an isolated schema,
       # seeds a long AI Log history and reads the plans Postgres executes for
       # the daily AI limit sums (the project's limits and every incident and
