@@ -245,6 +245,176 @@ describe("it keeps what is no one's personal data", () => {
   });
 });
 
+/*
+ * #10467: an address in a percent-encoded URL - a query string an app logs
+ * as it arrived - has its colons written %3A, so neither the scanner nor
+ * the rule saw one. Both read the text with its escapes read too, and the
+ * rule hides exactly the characters the address is written with: the
+ * escaped brackets, the port and the rest of the URL stay.
+ */
+describe("an address in a percent-encoded URL (#10467)", () => {
+  test.each([
+    [
+      "an IPv6 address in an encoded URL",
+      "target=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F",
+      "target=http%3A%2F%2F%5B[REDACTED]%5D%2F",
+    ],
+    [
+      "lower-case escapes",
+      "target=http%3a%2f%2f%5b2001%3adb8%3a%3a1%5d%2f",
+      "target=http%3a%2f%2f%5b[REDACTED]%5d%2f",
+    ],
+    [
+      "a public address with a port",
+      "redirect=https%3A%2F%2F%5B2606%3A4700%3A4700%3A%3A1111%5D%3A8443%2Fcb",
+      "redirect=https%3A%2F%2F%5B[REDACTED]%5D%3A8443%2Fcb",
+    ],
+    [
+      "one group each side of ::",
+      "u=http%3A%2F%2F%5B2001%3A%3A1%5D",
+      "u=http%3A%2F%2F%5B[REDACTED]%5D",
+    ],
+    [
+      "an IPv4 address in an encoded URL",
+      "u=http%3A%2F%2F8.8.8.8%2Fhealth",
+      "u=http%3A%2F%2F[REDACTED]%2Fhealth",
+    ],
+    ["an IPv4 address with encoded dots", "u=8%2E8%2E8%2E8", "u=[REDACTED]"],
+    [
+      "an IPv4 address with encoded digits",
+      "u=%38.%38.%38.%38",
+      "u=[REDACTED]",
+    ],
+    ["every character encoded", "u=%32%30%30%31%3A%3A%31", "u=[REDACTED]"],
+    ["some colons encoded, some not", "u=2001%3Adb8::1", "u=[REDACTED]"],
+    ["the other colons encoded", "u=2001:db8%3A%3A1", "u=[REDACTED]"],
+    [
+      "brackets encoded and colons not",
+      "u=%5B2001:db8::1%5D:443",
+      "u=%5B[REDACTED]%5D:443",
+    ],
+    [
+      "an IPv4 address written as IPv6, whole",
+      "peer=%3A%3Affff%3A8.8.8.8",
+      "peer=[REDACTED]",
+    ],
+    [
+      "a URL inside a query string inside a URL",
+      "next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B2001%253Adb8%253A%253A1%255D",
+      "next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B[REDACTED]%255D",
+    ],
+    [
+      "a zone written %25",
+      "u=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%25eth0%5D",
+      "u=http%3A%2F%2F%5B[REDACTED]%25eth0%5D",
+    ],
+    [
+      "a list of them",
+      "ips=2001%3A%3A1%2C10.0.0.1%2C2606%3A%3A1%2C8.8.8.8",
+      "ips=[REDACTED]%2C10.0.0.1%2C[REDACTED]%2C[REDACTED]",
+    ],
+  ])("hides %s: %s", (_label: string, text: string, scrubbed: string) => {
+    expect(redacted(text)).toBe(scrubbed);
+  });
+
+  test.each([
+    ["a link-local address", "u=http%3A%2F%2F%5Bfe80%3A%3A1%5D%2F"],
+    ["a unique-local address", "u=http%3A%2F%2F%5Bfd00%3Aec2%3A%3A254%5D%2F"],
+    [
+      "the cloud metadata address, where Security Events finds SSRF",
+      "target=http%3A%2F%2F169.254.169.254%2Flatest%2Fmeta-data%2F",
+    ],
+    ["a private address with encoded dots", "u=10%2E0%2E0%2E1"],
+    ["a private address written as IPv6", "peer=%3A%3Affff%3A10.0.0.1"],
+    ["loopback", "u=http%3A%2F%2F%5B%3A%3A1%5D%3A8080"],
+    ["a scope of hex letters", "q=Abc%3A%3ADef"],
+    ["a clock", "at=12%3A30%3A45"],
+    ["a MAC address", "hw=00%3A1a%3A2b%3A3c%3A4d%3A5e"],
+    ["a version", "v=1%2E2%2E3%2E4%2E5"],
+  ])("keeps %s: %s", (_label: string, text: string) => {
+    expect(hidden(text)).toEqual([]);
+    expect(redacted(text)).toBe(text);
+  });
+
+  test.each([
+    [
+      "a percent sign that ends a number",
+      "cpu 100% from 8.8.8.8",
+      "cpu 100% from [REDACTED]",
+    ],
+    ["two percent signs", "50%% 2001::1", "50%% [REDACTED]"],
+    ["a percent sign and no hex digits", "%zz2001:db8::1", "%zz[REDACTED]"],
+    ["a percent sign at the very end", "8.8.8.8 100%", "[REDACTED] 100%"],
+    [
+      "an escape of a byte beyond ASCII",
+      "caf%C3%A9 2001::1",
+      "caf%C3%A9 [REDACTED]",
+    ],
+    // "%20" reads as a space, which leaves "01::1": as written, it is 2001::1, and hidden whole.
+    [
+      "a percent sign glued to an address",
+      "load 99%2001::1",
+      "load 99%[REDACTED]",
+    ],
+  ])(
+    "reads %s as it is written: %s",
+    (_label: string, text: string, scrubbed: string) => {
+      expect(redacted(text)).toBe(scrubbed);
+    },
+  );
+
+  test("an address found as it is written and as its escapes read is one range", () => {
+    const text: string = "u=http%3A%2F%2F8.8.8.8%2F";
+
+    expect(hidden(text)).toEqual(["8.8.8.8"]);
+  });
+
+  test("the range is the encoded address, its first character to its last", () => {
+    expect(hidden("target=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F")).toEqual([
+      "2001%3Adb8%3A%3A1",
+    ]);
+    expect(hidden("u=%32%30%30%31%3A%3A%31&n=1")).toEqual([
+      "%32%30%30%31%3A%3A%31",
+    ]);
+    expect(hidden("to%3Dhttp%253A%252F%252F%255B2606%253A%253A1%255D")).toEqual(
+      ["2606%253A%253A1"],
+    );
+  });
+
+  test("a JSON text keeps its quotes and stays JSON", () => {
+    const text: string = JSON.stringify({
+      url: "http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F",
+      peer: "fe80%3A%3A1",
+    });
+
+    expect(JSON.parse(redacted(text))).toEqual({
+      url: "http%3A%2F%2F%5B[REDACTED]%5D%2F",
+      peer: "fe80%3A%3A1",
+    });
+  });
+
+  test("an encoded address is read as the address it is: one spelling, one mask, one token", () => {
+    expect(ScrubIpAddress.canonicalize("2001%3Adb8%3A%3A1")).toBe(
+      "2001:db8::1",
+    );
+    expect(
+      ScrubIpAddress.canonicalize("2001%3ADB8%3A0%3A0%3A0%3A0%3A0%3A1"),
+    ).toBe("2001:db8::1");
+    expect(ScrubIpAddress.canonicalize("8%2E8%2E8%2E8")).toBe("8.8.8.8");
+    expect(ScrubIpAddress.canonicalize("%3A%3Affff%3A8.8.8.8")).toBe("8.8.8.8");
+    expect(ScrubIpAddress.canonicalize("2001%253A%253A1")).toBe("2001::1");
+    expect(ScrubIpAddress.mask("2001%3Adb8%3A%3A1")).toBe(IPV6_ADDRESS_MASK);
+    expect(ScrubIpAddress.mask("8%2E8%2E8%2E8")).toBe(IPV4_ADDRESS_MASK);
+    expect(ScrubIpAddress.mask("%3A%3Affff%3A8.8.8.8")).toBe(IPV4_ADDRESS_MASK);
+  });
+
+  test("text that is no address comes back as it is, escapes and all", () => {
+    expect(ScrubIpAddress.canonicalize("not%20an%20address")).toBe(
+      "not%20an%20address",
+    );
+  });
+});
+
 describe("what the scanner finds, the rule hides, and nothing else", () => {
   const TEXTS: Array<string> = [
     "client 8.8.8.8 and 10.0.0.12 talked to 2001:4860:4860::8888",
@@ -257,6 +427,12 @@ describe("what the scanner finds, the rule hides, and nothing else", () => {
     "client 2001::1 and 2a00::1 talked to 2606::1 via 2001::8.8.8.8",
     "a::b dead::beef v1::api Api2023::face x2001::1 2001::1x 2001::1.5 4000::1",
     '{"ip":"2001::1","peers":["2606::1","fd00::1","Abc::Def"]}',
+    // #10467: encoded addresses, and what encoded is still no address.
+    "target=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F and http%3A%2F%2F8.8.8.8%2F",
+    "u=%5B2001:db8::1%5D:443 v=8%2E8%2E8%2E8 w=%3A%3Affff%3A8.8.8.8",
+    "u=http%3A%2F%2F%5Bfe80%3A%3A1%5D q=Abc%3A%3ADef at=12%3A30%3A45 x=10%2E0%2E0%2E1",
+    "next=https%3A%2F%2Fa.example%2Fcb%3Fto%3Dhttp%253A%252F%252F%255B2606%253A%253A1%255D",
+    "cpu 100% from 8.8.8.8 and caf%C3%A9 at 2001::1 load 99%2001::1",
   ];
 
   // The scanner's IP address findings, documentation addresses included.

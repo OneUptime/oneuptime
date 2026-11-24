@@ -767,6 +767,8 @@ const ipv4Detector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isDocumentationIpv4,
+  // An address in a percent-encoded URL: 8%2E8%2E8%2E8 (#10467).
+  readsPercentEncoded: true,
 };
 
 /*
@@ -881,6 +883,8 @@ const ipv6Detector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isDocumentationIpv6Value,
+  // An address in a percent-encoded URL: 2001%3Adb8%3A%3A1 (#10467).
+  readsPercentEncoded: true,
 };
 
 /*
@@ -889,7 +893,8 @@ const ipv6Detector: DataTypeDetector = {
  * Address pattern finds its matches with these very detectors - their
  * patterns, quick checks and validators (Utils/Telemetry/ScrubIpAddress.ts)
  * - so a finding and the rule that covers it can never disagree on what an
- * address is (#10393).
+ * address is (#10393). Both read a text with its percent-escapes read too,
+ * so an address in an encoded URL is found and hidden alike (#10467).
  */
 export const IP_ADDRESS_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ipv6Detector,

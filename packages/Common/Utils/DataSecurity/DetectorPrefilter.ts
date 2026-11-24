@@ -42,6 +42,16 @@ import { SyntaxNode } from "../LinearRegExp/Syntax";
 // RE2's largest repeat count.
 export const RE2_MAX_REPEAT: number = 1000;
 
+/*
+ * What a detector that reads a text with its percent-escapes read also
+ * finds in (readsPercentEncoded, #10467): a text holding an escape of an
+ * ASCII character - the only escape PercentDecodedText reads - since what
+ * the reading finds and the text as written does not, it finds because of
+ * one. The search then hands over every record holding one, and each is
+ * checked by the detector itself: more is fine, never less.
+ */
+export const PERCENT_ESCAPE_PREFILTER: string = "\\x{25}[0-7][0-9A-Fa-f]";
+
 // The longest expression handed to the database.
 export const MAX_PREFILTER_LENGTH: number = 32_768;
 
@@ -614,6 +624,13 @@ export function getDataTypePrefilter(data: {
 
     if (!expressions.includes(expression)) {
       expressions.push(expression);
+    }
+
+    if (
+      detector.readsPercentEncoded &&
+      !expressions.includes(PERCENT_ESCAPE_PREFILTER)
+    ) {
+      expressions.push(PERCENT_ESCAPE_PREFILTER);
     }
   }
 
