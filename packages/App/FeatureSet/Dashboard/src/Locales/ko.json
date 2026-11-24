@@ -25207,7 +25207,7 @@
   "No SNMP tables on this device": "No SNMP tables on this device",
   "No Wi-Fi radios reported": "No Wi-Fi radios reported",
   "No key=value pairs found in the sample line. Logs like this are left unchanged.": "No key=value pairs found in the sample line. Logs like this are left unchanged.",
-  "No role": "No role",
+  "No role": "역할 없음",
   "No tables": "No tables",
   "Noise Floor": "Noise Floor",
   "Noise floor": "Noise floor",
@@ -64123,5 +64123,9 @@
   "and {{count}} records you cannot open_one": "그리고 열 수 없는 레코드 {{count}}개",
   "{{count}} name is used by more than one record.": "이름 {{count}}개가 둘 이상의 레코드에서 쓰이고 있습니다.",
   "{{count}} names are used by more than one record.": "이름 {{count}}개가 둘 이상의 레코드에서 쓰이고 있습니다.",
-  "{{count}} names are used by more than one record._one": "이름 {{count}}개가 둘 이상의 레코드에서 쓰이고 있습니다."
+  "{{count}} names are used by more than one record._one": "이름 {{count}}개가 둘 이상의 레코드에서 쓰이고 있습니다.",
+  "Edit Incident Role": "인시던트 역할 편집",
+  "Everybody this policy pages is listed under this role in the incident's Incident Roles. Observers are not.": "이 정책이 알리는 모든 사람이 인시던트의 인시던트 역할에 이 역할로 표시됩니다. 관찰자는 제외됩니다.",
+  "Gives everybody this policy pages a role on the incident or episode.": "이 정책이 알리는 모든 사람에게 인시던트 또는 에피소드의 역할을 부여합니다.",
+  "Role of the people it pages": "알림을 받은 사람의 역할"
 }

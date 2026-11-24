@@ -25207,7 +25207,7 @@
   "No SNMP tables on this device": "No SNMP tables on this device",
   "No Wi-Fi radios reported": "No Wi-Fi radios reported",
   "No key=value pairs found in the sample line. Logs like this are left unchanged.": "No key=value pairs found in the sample line. Logs like this are left unchanged.",
-  "No role": "No role",
+  "No role": "Geen rol",
   "No tables": "No tables",
   "Noise Floor": "Noise Floor",
   "Noise floor": "Noise floor",
@@ -64123,5 +64123,9 @@
   "and {{count}} records you cannot open_one": "en {{count}} record dat je niet kunt openen",
   "{{count}} name is used by more than one record.": "{{count}} naam wordt door meer dan één record gebruikt.",
   "{{count}} names are used by more than one record.": "{{count}} namen worden door meer dan één record gebruikt.",
-  "{{count}} names are used by more than one record._one": "{{count}} naam wordt door meer dan één record gebruikt."
+  "{{count}} names are used by more than one record._one": "{{count}} naam wordt door meer dan één record gebruikt.",
+  "Edit Incident Role": "Incidentrol bewerken",
+  "Everybody this policy pages is listed under this role in the incident's Incident Roles. Observers are not.": "Iedereen die dit beleid oproept, staat met deze rol in de Incidentrollen van het incident. Waarnemers niet.",
+  "Gives everybody this policy pages a role on the incident or episode.": "Geeft iedereen die dit beleid oproept een rol in het incident of de episode.",
+  "Role of the people it pages": "Rol van de opgeroepen personen"
 }

@@ -64123,5 +64123,9 @@
   "and {{count}} records you cannot open_one": "و{{count}} سجل لا يمكنك فتحه",
   "{{count}} name is used by more than one record.": "{{count}} اسم مستخدم في أكثر من سجل.",
   "{{count}} names are used by more than one record.": "الأسماء المستخدمة في أكثر من سجل: {{count}}.",
-  "{{count}} names are used by more than one record._one": "{{count}} اسم مستخدم في أكثر من سجل."
+  "{{count}} names are used by more than one record._one": "{{count}} اسم مستخدم في أكثر من سجل.",
+  "Edit Incident Role": "تعديل دور الحادثة",
+  "Everybody this policy pages is listed under this role in the incident's Incident Roles. Observers are not.": "يُدرج كل من تستدعيه هذه السياسة بهذا الدور في أدوار الحوادث الخاصة بالحادثة. أما المتابعون فلا.",
+  "Gives everybody this policy pages a role on the incident or episode.": "يمنح كل من تستدعيه هذه السياسة دورًا في الحادثة أو الحلقة.",
+  "Role of the people it pages": "دور من تستدعيهم"
 }

@@ -25207,7 +25207,7 @@
   "No SNMP tables on this device": "No SNMP tables on this device",
   "No Wi-Fi radios reported": "No Wi-Fi radios reported",
   "No key=value pairs found in the sample line. Logs like this are left unchanged.": "No key=value pairs found in the sample line. Logs like this are left unchanged.",
-  "No role": "No role",
+  "No role": "无角色",
   "No tables": "No tables",
   "Noise Floor": "Noise Floor",
   "Noise floor": "Noise floor",
@@ -64123,5 +64123,9 @@
   "and {{count}} records you cannot open_one": "以及 {{count}} 条您无法打开的记录",
   "{{count}} name is used by more than one record.": "有 {{count}} 个名称被多条记录使用。",
   "{{count}} names are used by more than one record.": "有 {{count}} 个名称被多条记录使用。",
-  "{{count}} names are used by more than one record._one": "有 {{count}} 个名称被多条记录使用。"
+  "{{count}} names are used by more than one record._one": "有 {{count}} 个名称被多条记录使用。",
+  "Edit Incident Role": "编辑事件角色",
+  "Everybody this policy pages is listed under this role in the incident's Incident Roles. Observers are not.": "此策略通知的每个人都会以此角色列在事件的事件角色中。观察者除外。",
+  "Gives everybody this policy pages a role on the incident or episode.": "为此策略通知的每个人分配事件或片段中的一个角色。",
+  "Role of the people it pages": "被通知人员的角色"
 }
