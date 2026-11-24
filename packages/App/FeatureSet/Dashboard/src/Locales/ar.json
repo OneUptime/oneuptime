@@ -63242,7 +63242,7 @@
   "Add to Authenticator App": "إضافة إلى تطبيق المصادقة",
   "All {{count}} of its checks pass on every store in scope": "تنجح كل فحوصاته على كل مخزن ضمن النطاق (العدد: {{count}})",
   "All {{count}} of its checks pass on every store in scope_one": "ينجح فحصه الوحيد ({{count}}) على كل مخزن ضمن النطاق",
-  "And {{count}} more places": "و{{count}} مواضع أخرى",
+  "And {{count}} more places": "و{{count}} من المواضع الأخرى",
   "And {{count}} more places_one": "و{{count}} موضع آخر",
   "Audit Evidence": "أدلة التدقيق",
   "Audit Evidence: {{framework}}": "أدلة التدقيق: {{framework}}",

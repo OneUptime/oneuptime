@@ -191,7 +191,7 @@ export function buildTelemetryFixPreview(plan: TelemetryLeakFixPlan): string {
     how.toString(),
     "",
     ...leakLines,
-    ...(more > 0 ? [`- …and ${more} more`] : []),
+    ...(more > 0 ? [mdText`- …and ${more} more`.toString()] : []),
     "",
     where,
     ...(files ? [files] : []),

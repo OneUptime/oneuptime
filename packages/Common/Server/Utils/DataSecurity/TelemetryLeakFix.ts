@@ -55,7 +55,10 @@ import { DataSecurityAiProposalKind } from "../../../Types/DataSecurity/DataSecu
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
-import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import AIRunService from "../../Services/AIRunService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
@@ -1134,14 +1137,20 @@ export default class TelemetryLeakFix {
       const isWebAddress: boolean =
         data.pullRequestUrl.startsWith("https://") ||
         data.pullRequestUrl.startsWith("http://");
-      const opened: string = (
-        isWebAddress
-          ? mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: [${data.title}](${data.pullRequestUrl}).`
-          : mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: ${data.title}.`
+      const opened: MarkdownText = isWebAddress
+        ? mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: [${data.title}](${data.pullRequestUrl}).`
+        : mdText`OneUptime AI opened one pull request that stops ${fix.serviceName || "the service"} writing sensitive data to its telemetry, for this issue and the service's others: ${data.title}.`;
+      const markdown: string = (
+        fix.hasSecrets
+          ? FeedMarkdown.join(
+              [
+                opened,
+                mdText`**Rotate the secret too:** the code fix stops new copies only.`,
+              ],
+              " ",
+            )
+          : opened
       ).toString();
-      const markdown: string = fix.hasSecrets
-        ? `${opened} ${mdText`**Rotate the secret too:** the code fix stops new copies only.`.toString()}`
-        : opened;
 
       for (const issueId of getTelemetryLeakFixIssueIds(fix)) {
         if (!ObjectID.isValidUUID(issueId)) {
