@@ -131,9 +131,9 @@ Mensagens de SMS, chamadas, WhatsApp e Telegram são pagas com o saldo do projet
 | OneUptime AI | **Configurações do projeto → IA → Créditos de IA** |
 
 :::steps
-### Recarregar agora
+### Adicionar ao saldo agora
 
-No cartão **Saldo Atual** da página, clique em **Recarregar Saldo**. Informe um valor de $20 a $1,000 e clique em **Recarregar**. O valor é cobrado no cartão do projeto.
+No cartão **Saldo Atual** da página, clique em **Adicionar ao saldo**. Informe um valor de $20 a $1,000 e clique em **Adicionar ao saldo**. O valor é cobrado no cartão do projeto.
 
 ### Ou deixar recarregar sozinho
 
@@ -152,7 +152,7 @@ Quando um saldo não consegue pagar, a mensagem não é enviada ou o OneUptime A
 | Ativar ou desativar SMS, chamadas, WhatsApp ou Telegram | Proprietário do projeto, **Manage Billing** ou **Administrador de cobrança** |
 | Adicionar um método de pagamento | Proprietário do projeto, **Manage Billing** ou **Create Payment Method** |
 | Pagar uma fatura | Proprietário do projeto, **Manage Billing** ou **Edit Invoices** |
-| Mudar o plano, recarregar um saldo ou mudar a recarga automática | Proprietário do projeto ou **Manage Billing** |
+| Mudar o plano, adicionar a um saldo ou mudar a recarga automática | Proprietário do projeto ou **Manage Billing** |
 
 Um botão que você não pode usar aparece bloqueado e diz quem pode. Veja [Usuários, equipes e permissões](/docs/permissions/index#equipes) para as funções de cobrança.
 

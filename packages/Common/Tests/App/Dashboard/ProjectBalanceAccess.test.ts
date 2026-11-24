@@ -1,5 +1,6 @@
 import {
   canAddProjectBalance,
+  getAddToBalanceAmountDescription,
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
@@ -9,9 +10,19 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess";
 import {
   ADD_AI_CREDITS_STEP,
+  ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS,
+  ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES,
+  ADD_TO_BALANCE_TITLE,
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
   WHO_CAN_ADD_AI_CREDITS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  readDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
@@ -140,14 +151,14 @@ describe.each(ALL_BALANCES)(
 
 describe("the Current Balance card's description", () => {
   test.each(ALL_BALANCES)(
-    "%s: asks someone who may to recharge it",
+    "%s: asks someone who may to add to it",
     (balance: ProjectBalanceType) => {
       expect(
         getProjectBalanceCardDescription(balance, ProjectBalanceAccess.Yes),
       ).toBe(PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forPeopleWhoMayAdd);
       expect(
         PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forPeopleWhoMayAdd,
-      ).toContain("Recharge it, or turn on Auto Recharge");
+      ).toContain("Add to it, or turn on Auto Recharge");
     },
   );
 
@@ -167,9 +178,9 @@ describe("the Current Balance card's description", () => {
           PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forEveryoneElse,
         );
         expect(description).toContain(
-          "A Project Owner or someone with Manage Billing can recharge it",
+          "A Project Owner or someone with Manage Billing can add to it",
         );
-        expect(description).not.toContain("Recharge it,");
+        expect(description).not.toContain("Add to it,");
       }
     },
   );
@@ -185,7 +196,7 @@ describe("the Current Balance card's description", () => {
   });
 });
 
-describe("the Recharge Balance button", () => {
+describe("the Add to Balance button", () => {
   test("works for someone who may", () => {
     const onRecharge: VoidMock = jest.fn<() => void>();
     const buttons: Array<CardButtonSchema> = getRechargeBalanceButtons({
@@ -194,7 +205,7 @@ describe("the Recharge Balance button", () => {
     });
 
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]!.title).toBe("Recharge Balance");
+    expect(buttons[0]!.title).toBe("Add to Balance");
     expect(buttons[0]!.disabled).toBeFalsy();
 
     buttons[0]!.onClick();
@@ -211,7 +222,7 @@ describe("the Recharge Balance button", () => {
 
     expect(buttons).toHaveLength(1);
     expect(buttons[0]).toMatchObject({
-      title: "Recharge Balance",
+      title: "Add to Balance",
       disabled: true,
       tooltip:
         "Adding balance needs one of these permissions: Project Owner, Manage Billing.",
@@ -236,6 +247,133 @@ describe("the Recharge Balance button", () => {
       "Adding balance needs one of these permissions: Project Owner, Manage Billing.",
     );
   });
+});
+
+/*
+ * ADDING TO A BALANCE SAYS WHAT THE MONEY IS FOR (#7475).
+ *
+ * The dialog said "Between 20 and 1,000 USD, charged now." under its one
+ * field, and nothing of what the money was for or what it was charged to,
+ * under a title of Recharge Balance, with a button of Recharge, opened from
+ * a link that said Add balance. It now says the project's balance (or its
+ * AI credits) and where it is charged, and one verb opens and closes it.
+ */
+describe("the Add to Balance dialog's words", () => {
+  test("its description says what the money is for and what it is charged to, for each balance", () => {
+    expect(
+      getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.SmsOrCall,
+        marketplace: null,
+      }),
+    ).toBe(
+      "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
+    );
+    expect(
+      getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.AI,
+        marketplace: null,
+      }),
+    ).toBe(
+      "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.",
+    );
+  });
+
+  test.each([
+    [CloudMarketplace.AWS, "AWS Marketplace"],
+    [CloudMarketplace.Azure, "Microsoft Marketplace"],
+  ])(
+    "a project %s bills has no card: the money is billed there",
+    (marketplace: CloudMarketplace, name: string) => {
+      const sms: string = getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.SmsOrCall,
+        marketplace: marketplace,
+      });
+      const ai: string = getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.AI,
+        marketplace: marketplace,
+      });
+
+      expect(sms).toBe(
+        `Between 20 and 1,000 USD, added to this project's balance and billed now through ${name}.`,
+      );
+      expect(ai).toBe(
+        `Between 20 and 1,000 USD, added to this project's AI credits and billed now through ${name}.`,
+      );
+      // Never the payment method such a project does not have.
+      expect(`${sms} ${ai}`).not.toContain("payment method");
+    },
+  );
+
+  test("it is no longer the sentence that said neither", () => {
+    for (const description of [
+      ...Object.values(ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS),
+      ...Object.values(ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES),
+    ]) {
+      expect(description).not.toBe("Between 20 and 1,000 USD, charged now.");
+      expect(description).toMatch(/^Between 20 and 1,000 USD, added to /);
+      expect(description).not.toMatch(/recharge/i);
+    }
+  });
+
+  test("the button that opens it, its title and its own button say one verb", () => {
+    expect(ADD_TO_BALANCE_TITLE).toBe("Add to Balance");
+
+    for (const access of [ProjectBalanceAccess.Yes, ProjectBalanceAccess.No]) {
+      const buttons: Array<CardButtonSchema> = getRechargeBalanceButtons({
+        access: access,
+        onRecharge: jest.fn<() => void>(),
+      });
+
+      expect(buttons[0]!.title).toBe(ADD_TO_BALANCE_TITLE);
+    }
+  });
+
+  test("German reads the description in German, the marketplace by its name", () => {
+    const german: Translator = dashboardTranslator("de");
+
+    expect(
+      getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.SmsOrCall,
+        marketplace: null,
+        translator: german,
+      }),
+    ).toContain("Guthaben dieses Projekts");
+    expect(
+      getAddToBalanceAmountDescription({
+        balance: ProjectBalanceType.AI,
+        marketplace: CloudMarketplace.AWS,
+        translator: german,
+      }),
+    ).toContain("AWS Marketplace");
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the button and every description, keeping the marketplace's slot",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of [
+        ADD_TO_BALANCE_TITLE,
+        ...Object.values(ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS),
+        ...Object.values(ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES),
+      ]) {
+        expect({ key, worded: Boolean(words[key]) }).toEqual({
+          key,
+          worded: true,
+        });
+        expect({ key, english: words[key] === key }).toEqual({
+          key,
+          english: false,
+        });
+      }
+
+      for (const template of Object.values(
+        ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES,
+      )) {
+        expect(words[template]).toContain("{{marketplace}}");
+      }
+    },
+  );
 });
 
 describe("the AI agent pages' words for used-up credits", () => {

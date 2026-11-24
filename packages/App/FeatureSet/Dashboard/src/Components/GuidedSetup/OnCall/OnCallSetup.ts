@@ -253,7 +253,12 @@ export const ON_CALL_SETUP_COPY: {
   phoneBalance: translationKey(
     "Texts and calls are paid from this project's balance, which is {{balance}}. Adding a number sends a text, so the balance must be more than {{floor}}.",
   ),
-  addBalance: translationKey("Add balance"),
+  /*
+   * The words of the balance's own button and dialog (ProjectBalanceCopy's
+   * ADD_TO_BALANCE_TITLE): one verb from this button to the dialog's
+   * (#7475).
+   */
+  addBalance: translationKey("Add to Balance"),
   whoCanAddBalance: translationKey(
     "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
   ),

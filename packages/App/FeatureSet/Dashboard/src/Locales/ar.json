@@ -63671,5 +63671,18 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
+  "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "تُدفع ميزات الذكاء الاصطناعي من هذا الرصيد، بالدولار الأمريكي. يمكن لمالك المشروع أو لمن لديه صلاحية «Manage Billing» إضافة مبلغ إليه، أو تفعيل «الشحن التلقائي» حتى لا ينفد أبدًا.",
+  "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "تُدفع ميزات الذكاء الاصطناعي من هذا الرصيد، بالدولار الأمريكي. أضف إليه مبلغًا، أو فعّل «الشحن التلقائي» حتى لا ينفد أبدًا.",
+  "Add to Balance": "إضافة إلى الرصيد",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.": "تُفوتر المبالغ المضافة إلى الرصيد و«الشحن التلقائي» عبر {{marketplace}}، لا عبر بطاقة.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.": "بين 20 و1,000 USD، يُضاف إلى أرصدة الذكاء الاصطناعي لهذا المشروع ويُفوتر الآن عبر {{marketplace}}.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.": "بين 20 و1,000 USD، يُضاف إلى أرصدة الذكاء الاصطناعي لهذا المشروع ويُخصم الآن من طريقة الدفع الخاصة به.",
+  "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.": "بين 20 و1,000 USD، يُضاف إلى رصيد هذا المشروع ويُفوتر الآن عبر {{marketplace}}.",
+  "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.": "بين 20 و1,000 USD، يُضاف إلى رصيد هذا المشروع ويُخصم الآن من طريقة الدفع الخاصة به.",
+  "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.": "سيحاول مرة أخرى خلال ساعة. يمكن لمالك المشروع أو لمن لديه صلاحية «Manage Billing» إضافة مبلغ إلى الرصيد.",
+  "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "سيحاول مرة أخرى خلال ساعة. تحقق من أن اشتراك هذا المشروع على {{marketplace}} نشط، أو أضف الآن مبلغًا إلى الرصيد.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "سيحاول مرة أخرى خلال ساعة. تحقق من طريقة الدفع في إعدادات المشروع > الفوترة والفواتير > الفوترة، أو أضف الآن مبلغًا إلى الرصيد.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "تُدفع الرسائل النصية والمكالمات ورسائل WhatsApp وTelegram من هذا الرصيد، بالدولار الأمريكي. يمكن لمالك المشروع أو لمن يملك إذن «Manage Billing» إضافة مبلغ إليه، أو تفعيل «الشحن التلقائي» حتى لا ينفد أبدًا.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "تُدفع الرسائل النصية والمكالمات ورسائل WhatsApp وTelegram من هذا الرصيد، بالدولار الأمريكي. أضف إليه مبلغًا، أو فعّل «الشحن التلقائي» حتى لا ينفد أبدًا."
 }

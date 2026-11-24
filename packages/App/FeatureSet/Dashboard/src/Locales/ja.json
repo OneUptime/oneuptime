@@ -63671,5 +63671,18 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
-  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
+  "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "AI 機能の料金はこの残高（USD）から支払われます。チャージしたり、残高が尽きないように自動チャージをオンにしたりできるのは、プロジェクト所有者または「請求の管理」権限を持つユーザーです。",
+  "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "AI 機能の料金はこの残高（USD）から支払われます。チャージするか、自動チャージをオンにして残高が尽きないようにしてください。",
+  "Add to Balance": "残高をチャージ",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.": "チャージと自動チャージは、カードではなく {{marketplace}} 経由で請求されます。",
+  "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.": "20〜1,000 USD。このプロジェクトの AI クレジットにチャージされ、すぐに {{marketplace}} 経由で請求されます。",
+  "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.": "20〜1,000 USD。このプロジェクトの AI クレジットにチャージされ、すぐにプロジェクトの支払い方法に請求されます。",
+  "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.": "20〜1,000 USD。このプロジェクトの残高にチャージされ、すぐに {{marketplace}} 経由で請求されます。",
+  "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.": "20〜1,000 USD。このプロジェクトの残高にチャージされ、すぐにプロジェクトの支払い方法に請求されます。",
+  "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.": "1 時間以内に再試行します。残高をチャージできるのは、プロジェクト所有者または「請求の管理」権限を持つユーザーです。",
+  "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "1 時間以内に再試行します。{{marketplace}} でこのプロジェクトのサブスクリプションが有効か確認するか、今すぐ残高をチャージしてください。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "1 時間以内に再試行します。「プロジェクト設定 > 請求と請求書 > 請求」で支払い方法を確認するか、今すぐ残高をチャージしてください。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージしたり、残高が尽きないように自動チャージをオンにしたりできるのは、プロジェクト所有者または「請求の管理」権限を持つユーザーです。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS、電話、WhatsApp、Telegram の料金はこの残高（USD）から支払われます。チャージするか、自動チャージをオンにして残高が尽きないようにしてください。"
 }

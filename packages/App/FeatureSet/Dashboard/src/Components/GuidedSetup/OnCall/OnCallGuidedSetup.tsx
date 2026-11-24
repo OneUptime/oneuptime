@@ -106,12 +106,10 @@ import TestPageResult, {
 } from "../../OnCallTestPage/TestPageResult";
 import {
   canAddProjectBalance,
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
 } from "../../ProjectBalance/ProjectBalanceAccess";
-import {
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
-} from "../../ProjectBalance/ProjectBalanceCopy";
+import { ADD_TO_BALANCE_AMOUNT_TITLE } from "../../ProjectBalance/ProjectBalanceCopy";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageMap from "../../../Utils/PageMap";
@@ -1320,7 +1318,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setShowRecharge(false);
           }}
           isLoading={isRecharging}
-          submitButtonText="Recharge"
+          // The button's words, as the step's button and this title say (#7475).
+          submitButtonText={ON_CALL_SETUP_COPY.addBalance}
           onSubmit={async (item: JSONObject) => {
             setIsRecharging(true);
             setRechargeError("");
@@ -1336,12 +1335,25 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             setIsRecharging(false);
           }}
           formProps={{
-            name: "Add balance",
+            name: ON_CALL_SETUP_COPY.addBalance,
             error: rechargeError,
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for and where it is charged, in the
+                 * reader's words already: an element, which the form's
+                 * label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.SmsOrCall,
+                      marketplace: getCurrentProjectBillingMarketplace(),
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: { amount: true },
                 placeholder: "20",
                 required: true,

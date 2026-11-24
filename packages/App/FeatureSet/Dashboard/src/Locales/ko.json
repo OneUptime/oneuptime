@@ -63671,5 +63671,18 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
-  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
+  "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "AI 기능 요금은 이 잔액(USD)에서 결제됩니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전하거나, 잔액이 바닥나지 않도록 자동 충전을 켤 수 있습니다.",
+  "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "AI 기능 요금은 이 잔액(USD)에서 결제됩니다. 잔액을 충전하거나 자동 충전을 켜서 잔액이 바닥나지 않게 하세요.",
+  "Add to Balance": "잔액 충전",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.": "충전과 자동 충전은 카드가 아닌 {{marketplace}}에서 청구됩니다.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.": "20~1,000 USD이며, 이 프로젝트의 AI 크레딧에 충전되고 {{marketplace}}에서 바로 청구됩니다.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.": "20~1,000 USD이며, 이 프로젝트의 AI 크레딧에 충전되고 프로젝트의 결제 수단으로 바로 청구됩니다.",
+  "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.": "20~1,000 USD이며, 이 프로젝트의 잔액에 충전되고 {{marketplace}}에서 바로 청구됩니다.",
+  "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.": "20~1,000 USD이며, 이 프로젝트의 잔액에 충전되고 프로젝트의 결제 수단으로 바로 청구됩니다.",
+  "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.": "1시간 안에 다시 시도합니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전할 수 있습니다.",
+  "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "1시간 안에 다시 시도합니다. {{marketplace}}에서 이 프로젝트의 구독이 활성 상태인지 확인하거나 지금 잔액을 충전하세요.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "1시간 안에 다시 시도합니다. 프로젝트 설정 > 결제 및 청구서 > 결제에서 결제 수단을 확인하거나 지금 잔액을 충전하세요.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 프로젝트 소유자 또는 'Manage Billing' 권한이 있는 사용자가 잔액을 충전하거나, 잔액이 바닥나지 않도록 자동 충전을 켤 수 있습니다.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, 전화, WhatsApp, Telegram 메시지 요금은 이 잔액(USD)에서 결제됩니다. 잔액을 충전하거나 자동 충전을 켜서 잔액이 바닥나지 않게 하세요."
 }

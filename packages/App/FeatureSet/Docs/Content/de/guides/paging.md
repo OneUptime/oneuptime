@@ -39,7 +39,7 @@ Klicken Sie unter **Wie sollen wir dich erreichen?** auf **App herunterladen**, 
 
 ![Der Schritt „Wie sollen wir dich erreichen?“, „SMS und Anrufe einschalten“ ist markiert](screen:paging-reach-you)
 
-In neuen Projekten sind SMS und Telefonanrufe ausgeschaltet. Sind Sie Eigentümer des Projekts, klicken Sie auf **SMS und Anrufe einschalten**; allen anderen zeigt der Schritt, wer das kann. Beträgt das Guthaben auf OneUptime Cloud 1.00 USD oder weniger, klicken Sie auf **Guthaben aufladen**, geben Sie unter **Betrag (USD)** 20 bis 1.000 USD ein und klicken Sie auf **Aufladen**.
+In neuen Projekten sind SMS und Telefonanrufe ausgeschaltet. Sind Sie Eigentümer des Projekts, klicken Sie auf **SMS und Anrufe einschalten**; allen anderen zeigt der Schritt, wer das kann. Beträgt das Guthaben auf OneUptime Cloud 1.00 USD oder weniger, klicken Sie auf **Guthaben aufladen**, geben Sie unter **Betrag (USD)** 20 bis 1.000 USD ein und klicken Sie auf **Guthaben aufladen**.
 
 ### Ihre Telefonnummer hinzufügen
 

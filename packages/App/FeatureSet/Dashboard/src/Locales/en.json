@@ -63671,5 +63671,18 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
+  "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
+  "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.",
+  "Add to Balance": "Add to Balance",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.": "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.": "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.",
+  "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.": "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.",
+  "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.": "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.",
+  "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.": "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
+  "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.": "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.",
+  "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out."
 }

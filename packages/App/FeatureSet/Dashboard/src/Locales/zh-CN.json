@@ -63671,5 +63671,18 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探测器网络接口上的地址，以及在告知它时其主机的地址，即探测器每次上报时列出的地址。安全事件会将探测器自身从这些地址发出的轮询、发现和监控检查单独搁置，封禁列表也从不封禁它们。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理规则输入哈希",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则",
+  "AI features are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "AI 功能从此余额（美元）中扣费。项目所有者或拥有“Manage Billing”权限的用户可以为其充值，或开启自动充值，避免余额用完。",
+  "AI features are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "AI 功能从此余额（美元）中扣费。请为其充值，或开启自动充值，避免余额用完。",
+  "Add to Balance": "充值余额",
+  "Adding to the balance and Auto Recharge are billed through {{marketplace}}, not a card.": "充值和自动充值均通过 {{marketplace}} 计费，而不是通过银行卡。",
+  "Between 20 and 1,000 USD, added to this project's AI credits and billed now through {{marketplace}}.": "20 至 1,000 USD，充值到此项目的 AI 积分，并立即通过 {{marketplace}} 计费。",
+  "Between 20 and 1,000 USD, added to this project's AI credits and charged now to its payment method.": "20 至 1,000 USD，充值到此项目的 AI 积分，并立即从其支付方式扣款。",
+  "Between 20 and 1,000 USD, added to this project's balance and billed now through {{marketplace}}.": "20 至 1,000 USD，充值到此项目的余额，并立即通过 {{marketplace}} 计费。",
+  "Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.": "20 至 1,000 USD，充值到此项目的余额，并立即从其支付方式扣款。",
+  "It tries again within an hour. A Project Owner or someone with Manage Billing can add to the balance.": "它会在一小时内重试。项目所有者或拥有“Manage Billing”权限的用户可以为余额充值。",
+  "It tries again within an hour. Check that this project's subscription on {{marketplace}} is active, or add to the balance now.": "它会在一小时内重试。请检查此项目在 {{marketplace}} 上的订阅是否有效，或立即为余额充值。",
+  "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.": "它会在一小时内重试。请在 项目设置 > 账单和发票 > 账单 中检查支付方式，或立即为余额充值。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. A Project Owner or someone with Manage Billing can add to it, or turn on Auto Recharge so it never runs out.": "短信、电话、WhatsApp 和 Telegram 消息从此余额（美元）中扣费。项目所有者或拥有“Manage Billing”权限的用户可以为其充值，或开启自动充值，避免余额用完。",
+  "SMS, calls, WhatsApp and Telegram messages are paid from this balance, in USD. Add to it, or turn on Auto Recharge so it never runs out.": "短信、电话、WhatsApp 和 Telegram 消息从此余额（美元）中扣费。请为其充值，或开启自动充值，避免余额用完。"
 }

@@ -39,7 +39,7 @@ Under **Hvordan skal vi nå dig?** klikker du på **Hent appen**, scanner koden 
 
 ![Trinnet »Hvordan skal vi nå dig?«, med »Slå sms og opkald til« fremhævet](screen:paging-reach-you)
 
-Nye projekter starter med sms og telefonopkald slået fra. Ejer du projektet, så klik på **Slå sms og opkald til**; alle andre får at vide, hvem der kan. Er saldoen på OneUptime Cloud 1.00 USD eller mindre, så klik på **Tilføj saldo**, indtast 20 til 1.000 USD under **Beløb (USD)**, og klik på **Genoplad**.
+Nye projekter starter med sms og telefonopkald slået fra. Ejer du projektet, så klik på **Slå sms og opkald til**; alle andre får at vide, hvem der kan. Er saldoen på OneUptime Cloud 1.00 USD eller mindre, så klik på **Tilføj til saldo**, indtast 20 til 1.000 USD under **Beløb (USD)**, og klik på **Tilføj til saldo**.
 
 ### Tilføj dit telefonnummer
 
@@ -86,7 +86,7 @@ Tilkalder politikken en anden, kan du også se eskaleringen: klik på **Åbn vag
 Sms er slået fra eller kan ikke sendes, og trinnet siger hvorfor. Kun en Projektejer eller en person, der administrerer fakturering, ser **Slå sms og opkald til**. På OneUptime Cloud skjuler en saldo på 1.00 USD eller mindre feltet. På en selvhostet server, der ikke kan sende sms, ser masteradministratoren **Sæt sms og opkald op**, der åbner Admin Dashboard, så Twilio kan tilføjes, sådan som [Twilio-integration](/docs/self-hosted/twilio-integration) viser.
 :::
 
-:::details Tilføj saldo siger, at der ikke blev fundet nogen betalingsmetode
+:::details Tilføj til saldo siger, at der ikke blev fundet nogen betalingsmetode
 Når du tilføjer saldo, trækkes beløbet på projektets kort. Tilføj et kort under **Projektindstillinger → Fakturering og fakturaer → Fakturering** med **Tilføj betalingsmetode**, og tilføj derefter saldo igen. Indtil da tilkalder appen og e-mailen dig stadig.
 :::
 
