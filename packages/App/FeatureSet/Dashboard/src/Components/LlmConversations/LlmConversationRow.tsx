@@ -35,8 +35,8 @@ import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparato
 export interface ComponentProps {
   conversation: LlmConversationListItem;
   route: Route;
-  // App (telemetry service) names by id.
-  serviceNames: Map<string, string>;
+  // An app's (telemetry service's) name by its id; "" while it is unknown.
+  serviceName: (serviceId: string) => string;
 }
 
 // The dot's colour: the worst issue the conversation had, or healthy.
@@ -77,7 +77,7 @@ const LlmConversationRow: FunctionComponent<ComponentProps> = (
 
   const appNames: Array<string> = conversation.serviceIds
     .map((id: string): string => {
-      return props.serviceNames.get(id) || "";
+      return props.serviceName(id);
     })
     .filter((name: string): boolean => {
       return name.length > 0;

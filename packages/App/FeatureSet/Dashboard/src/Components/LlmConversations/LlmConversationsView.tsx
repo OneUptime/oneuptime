@@ -13,7 +13,6 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import {
   findDropdownOption,
-  getNamedDropdownOption,
   getTranslatedDropdownOption,
   readPickedDropdownValue,
 } from "Common/UI/Components/Dropdown/DropdownChoices";
@@ -77,11 +76,8 @@ import {
   getLlmPageRoute,
 } from "./LlmConversationRoutes";
 import { formatLlmCount } from "./LlmConversationFormat";
-import {
-  LlmServiceNames,
-  LlmServiceOption,
-  useLlmServiceNames,
-} from "./useLlmServiceNames";
+import { LlmServiceNames, useLlmServiceNames } from "./useLlmServiceNames";
+import LlmAppPicker from "./LlmAppPicker";
 import ProductShowcase from "../ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../ProductOnboarding/ProductOnboarding";
 
@@ -171,13 +167,8 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
 
 const LlmConversationsView: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  // The apps the page names, read by their ids as it draws them.
   const services: LlmServiceNames = useLlmServiceNames();
-  // An app's name, as its team named it.
-  const appOptions: Array<DropdownOption> = services.options.map(
-    (option: LlmServiceOption): DropdownOption => {
-      return getNamedDropdownOption(option.id, option.name);
-    },
-  );
   const sortOptions: Array<DropdownOption> = LLM_CONVERSATION_SORT_OPTIONS.map(
     (option: LlmSortOption): DropdownOption => {
       return getTranslatedDropdownOption(
@@ -443,9 +434,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           view: "conversations",
           check: setupCheck,
           translator: translator,
-          serviceName: (serviceId: string): string => {
-            return services.names.get(serviceId) || "";
-          },
+          serviceName: services.nameOf,
           now: OneUptimeDate.getCurrentDate(),
           onWiden: (widenTo: {
             range: TimeRange;
@@ -569,7 +558,7 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
               key={conversation.key}
               conversation={conversation}
               route={route}
-              serviceNames={services.names}
+              serviceName={services.nameOf}
             />
           );
         })}
@@ -604,31 +593,12 @@ const LlmConversationsView: FunctionComponent = (): ReactElement => {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {services.options.length > 0 ? (
-            <div data-testid="llm-conversations-app">
-              <Dropdown
-                className="relative w-48 max-w-full overflow-visible"
-                ariaLabel={translator.translateText("App")}
-                isAriaLabelTranslated={true}
-                // Every app is the placeholder; clearing the picker returns to it.
-                placeholder={translator.translateText("All apps")}
-                isPlaceholderTranslated={true}
-                options={appOptions}
-                value={findDropdownOption(appOptions, view.serviceId)}
-                onChange={(
-                  next: DropdownValue | Array<DropdownValue> | null,
-                ): void => {
-                  const serviceId: string = readPickedDropdownValue(next) ?? "";
-
-                  if (serviceId !== view.serviceId) {
-                    setView({ ...view, serviceId: serviceId, page: 0 });
-                  }
-                }}
-              />
-            </div>
-          ) : (
-            <></>
-          )}
+          <LlmAppPicker
+            serviceId={view.serviceId}
+            onChange={(serviceId: string): void => {
+              setView({ ...view, serviceId: serviceId, page: 0 });
+            }}
+          />
           <TimeRangePickerDropdown
             value={view.range}
             onChange={(range: RangeStartAndEndDateTime) => {

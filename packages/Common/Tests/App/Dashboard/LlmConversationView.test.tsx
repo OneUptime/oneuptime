@@ -226,7 +226,10 @@ describe("reading a conversation", () => {
       "Where should I go in May?",
     );
     expect(fact("person")).toBe("ada@example.com");
-    expect(fact("app")).toBe("Support bot");
+    // The app, read by its id as the conversation draws it (#10764).
+    await waitFor(() => {
+      expect(fact("app")).toBe("Support bot");
+    });
     expect(fact("models")).toBe("gpt-4o");
     expect(fact("duration")).toBe("1.0\u00A0s");
     expect(fact("answers")).toBe("1 answer");

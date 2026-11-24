@@ -146,7 +146,9 @@ describe("LlmConversationRow", () => {
         <LlmConversationRow
           conversation={listItem(data)}
           route={ROUTE}
-          serviceNames={names}
+          serviceName={(serviceId: string): string => {
+            return names.get(serviceId) || "";
+          }}
         />
       </MemoryRouter>,
     );

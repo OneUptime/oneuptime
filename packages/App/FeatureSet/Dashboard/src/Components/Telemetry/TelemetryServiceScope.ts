@@ -41,12 +41,19 @@ import { useEffect, useState } from "react";
  *     or take out. The page still narrows by it, as the scope was saved.
  */
 
-// What a held service is read with: its name, and whether it is archived.
+/*
+ * What a held service is read with: its name, its colour (the dot its chip
+ * draws, as a picked one's does) and whether it is archived.
+ */
 export const TELEMETRY_SCOPE_SERVICE_SELECT: Select<Service> = {
   _id: true,
   name: true,
+  serviceColor: true,
   isArchived: true,
 };
+
+// The column a service's colour is in.
+export const SERVICE_COLOR_FIELD: string = "serviceColor";
 
 /*
  * The tables an id that is no service can be in: every telemetry entity's
@@ -120,7 +127,10 @@ export const readTelemetryScopeHeldOptions: (data: {
   });
 
   for (const service of services) {
-    const option: DropdownOption | null = toHeldValueOption(service);
+    const option: DropdownOption | null = toHeldValueOption(
+      service,
+      SERVICE_COLOR_FIELD,
+    );
 
     if (option) {
       named.set(String(option.value), option);
