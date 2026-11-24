@@ -157,7 +157,7 @@ Ersätt `<version>` med den version som ska köras, till exempel `17.1.0`, och s
 
 Sondens sida visar versionen den kör, under **Sondstatus**. En sond äldre än 17.1.0 kan inte generera koderna för en [engångskodshemlighet](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod): dess sida säger det, och det gör också formuläret för en monitor som den kontrollerar. Detsamma gäller en sond som är för gammal för att skicka en API-monitors begärandetext när den är en JSON-array, ett enda värde eller text.
 
-När en sond hamnar en huvudversion eller mer efter OneUptime meddelas dess ägare en gång, med det den saknar och en länk till det här avsnittet; en sond utan ägare meddelar projektägarna. De meddelas igen först när den hamnar efter en senare huvudversion, eller när den hamnar efter igen efter att ha uppdaterats. Var och en väljer hur de får veta det med **Sond en huvudversion efter**, under **Användarinställningar → Aviseringsinställningar**: från början via e-post. En sond som bara ligger efter med mindre versioner visar det på sin sida, och ingen meddelas.
+När en sond hamnar en huvudversion eller mer efter OneUptime meddelas dess ägare en gång, med det den saknar och en länk till det här avsnittet; en sond utan ägare meddelar Projektägarna. De meddelas igen först när den hamnar efter en senare huvudversion, eller när den hamnar efter igen efter att ha uppdaterats. Var och en väljer hur de får veta det med **Sond en huvudversion efter**, under **Användarinställningar → Aviseringsinställningar**: från början via e-post. En sond som bara ligger efter med mindre versioner visar det på sin sida, och ingen meddelas.
 
 ## Vad en sond skickar när den hör av sig
 

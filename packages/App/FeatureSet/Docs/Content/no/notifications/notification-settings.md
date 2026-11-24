@@ -63,7 +63,7 @@ Når du blir medlem av et prosjekt, er disse hendelsene slått på, via e-post. 
 
 **Lagt til som monitorgruppe-eier**, på kortet **Monitorer**, og **Lagt til som Runner-eier**, på kortet **Dashbord og automatisering**, forteller deg når noen legger deg til som eier av en monitorgruppe eller en Runner.
 
-**Sonde én hovedversjon bak**, på kortet **Sonder**, forteller deg én gang når en egendefinert sonde du eier, kommer én hovedversjon eller mer bak OneUptime, med det den mangler til den blir oppdatert. En sonde uten eiere varsler prosjekteierne.
+**Sonde én hovedversjon bak**, på kortet **Sonder**, forteller deg én gang når en egendefinert sonde du eier, kommer én hovedversjon eller mer bak OneUptime, med det den mangler til den blir oppdatert. En sonde uten eiere varsler Prosjekteierne.
 
 ## Vaktene dine
 

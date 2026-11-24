@@ -157,7 +157,7 @@ Erstatt `<version>` med versjonen som skal kjøre, for eksempel `17.1.0`, og skr
 
 Sondens side viser versjonen den kjører, under **Sondestatus**. En sonde eldre enn 17.1.0 kan ikke generere kodene til en [engangskodehemmelighet](/docs/monitor/monitor-secrets#logg-inn-med-en-engangskode): siden dens sier det, og det gjør også skjemaet til en monitor den sjekker. Det samme gjelder en sonde som er for gammel til å sende forespørselsteksten til en API-monitor når den er en JSON-matrise, én enkelt verdi eller tekst.
 
-Når en sonde kommer én hovedversjon eller mer bak OneUptime, varsles eierne én gang, med det den mangler og en lenke til denne delen; en sonde uten eiere varsler prosjekteierne. De varsles igjen bare når den kommer bak en senere hovedversjon, eller når den kommer på etterskudd igjen etter å ha blitt oppdatert. Hver person velger hvordan de får vite det med **Sonde én hovedversjon bak**, under **Brukerinnstillinger → Varslingsinnstillinger**: i utgangspunktet på e-post. En sonde som bare ligger bak med mindre versjoner, sier det på siden sin, og ingen varsles.
+Når en sonde kommer én hovedversjon eller mer bak OneUptime, varsles eierne én gang, med det den mangler og en lenke til denne delen; en sonde uten eiere varsler Prosjekteierne. De varsles igjen bare når den kommer bak en senere hovedversjon, eller når den kommer på etterskudd igjen etter å ha blitt oppdatert. Hver person velger hvordan de får vite det med **Sonde én hovedversjon bak**, under **Brukerinnstillinger → Varslingsinnstillinger**: i utgangspunktet på e-post. En sonde som bare ligger bak med mindre versjoner, sier det på siden sin, og ingen varsles.
 
 ## Hva en sonde sender når den sender livstegn
 

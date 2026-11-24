@@ -63,7 +63,7 @@ När du går med i ett projekt är de här händelserna påslagna, via e-post. A
 
 **Tillagd som ägare av monitorgrupp**, på kortet **Monitorer**, och **Tillagd som ägare av Runner**, på kortet **Instrumentpaneler och automatisering**, talar om när någon lägger till dig som ägare av en monitorgrupp eller en Runner.
 
-**Sond en huvudversion efter**, på kortet **Sonder**, talar om en gång när en anpassad sond som du äger hamnar en huvudversion eller mer efter OneUptime, med det den saknar tills den uppdateras. En sond utan ägare meddelar projektägarna.
+**Sond en huvudversion efter**, på kortet **Sonder**, talar om en gång när en anpassad sond som du äger hamnar en huvudversion eller mer efter OneUptime, med det den saknar tills den uppdateras. En sond utan ägare meddelar Projektägarna.
 
 ## Dina jourpass
 

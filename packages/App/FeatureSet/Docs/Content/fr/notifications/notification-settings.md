@@ -63,7 +63,7 @@ Quand vous rejoignez un projet, ces événements sont activés, par e-mail. Tout
 
 **Ajouté comme propriétaire du groupe de moniteurs**, dans la carte **Moniteurs**, et **Ajouté comme propriétaire de l'agent Runbook**, dans la carte **Tableaux de bord et automatisation**, vous préviennent quand quelqu'un vous ajoute comme propriétaire d'un groupe de moniteurs ou d'un agent Runbook.
 
-**Sonde en retard d'une version majeure**, dans la carte **Sondes**, vous prévient une fois quand une sonde personnalisée dont vous êtes propriétaire prend une version majeure de retard ou plus sur OneUptime, avec ce qui lui manque jusqu'à sa mise à jour. Une sonde sans propriétaire prévient les propriétaires du projet.
+**Sonde en retard d'une version majeure**, dans la carte **Sondes**, vous prévient une fois quand une sonde personnalisée dont vous êtes propriétaire prend une version majeure de retard ou plus sur OneUptime, avec ce qui lui manque jusqu'à sa mise à jour. Une sonde sans propriétaire prévient les Propriétaires du projet.
 
 ## Vos permanences
 

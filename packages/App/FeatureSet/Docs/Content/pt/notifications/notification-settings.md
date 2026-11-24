@@ -63,7 +63,7 @@ Quando você entra em um projeto, estes eventos começam ativados, por e-mail. T
 
 **Adicionado como proprietário do grupo de monitores**, no cartão **Monitores**, e **Adicionado como proprietário do Runner**, no cartão **Painéis e automação**, avisam você quando alguém o adiciona como proprietário de um grupo de monitores ou de um Runner.
 
-**Sonda uma versão principal atrás**, no cartão **Sondas**, avisa você uma vez quando uma sonda personalizada da qual você é proprietário fica uma versão principal ou mais atrás do OneUptime, com o que falta a ela até ser atualizada. Uma sonda sem proprietários avisa os proprietários do projeto.
+**Sonda uma versão principal atrás**, no cartão **Sondas**, avisa você uma vez quando uma sonda personalizada da qual você é proprietário fica uma versão principal ou mais atrás do OneUptime, com o que falta a ela até ser atualizada. Uma sonda sem proprietários avisa os Proprietários do projeto.
 
 ## Os seus turnos
 

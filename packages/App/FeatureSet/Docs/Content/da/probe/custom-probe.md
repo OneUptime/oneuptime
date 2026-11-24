@@ -157,7 +157,7 @@ Erstat `<version>` med den version, der skal køre, f.eks. `17.1.0`, og skriv sa
 
 Sondens side viser den version, den kører, under **Sondestatus**. En sonde ældre end 17.1.0 kan ikke generere koderne til en [engangskodehemmelighed](/docs/monitor/monitor-secrets#log-ind-med-en-engangskode): dens side siger det, og det gør formularen for en monitor, den kontrollerer, også. Det samme gælder en sonde, der er for gammel til at sende en API-monitors anmodningstekst, når den er et JSON-array, en enkelt værdi eller tekst.
 
-Når en sonde kommer en hovedversion eller mere bagud for OneUptime, får dens ejere besked én gang, med det, den mangler, og et link til dette afsnit; en sonde uden ejere giver projektejerne besked. De får først besked igen, når den kommer bagud for en senere hovedversion, eller når den kommer bagud igen efter at være blevet opdateret. Hver person vælger, hvordan de hører om det, med **Sonde en hovedversion bagud** under **Brugerindstillinger → Notifikationsindstillinger**: fra start via e-mail. En sonde, der kun er bagud med mindre versioner, viser det på sin side, og ingen får besked.
+Når en sonde kommer en hovedversion eller mere bagud for OneUptime, får dens ejere besked én gang, med det, den mangler, og et link til dette afsnit; en sonde uden ejere giver Projektejerne besked. De får først besked igen, når den kommer bagud for en senere hovedversion, eller når den kommer bagud igen efter at være blevet opdateret. Hver person vælger, hvordan de hører om det, med **Sonde en hovedversion bagud** under **Brugerindstillinger → Notifikationsindstillinger**: fra start via e-mail. En sonde, der kun er bagud med mindre versioner, viser det på sin side, og ingen får besked.
 
 ## Hvad en sonde sender, når den melder sig
 

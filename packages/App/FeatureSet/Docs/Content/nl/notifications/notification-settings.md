@@ -63,7 +63,7 @@ Wanneer je lid wordt van een project, staan deze gebeurtenissen aan, per e-mail.
 
 **Toegevoegd als eigenaar van monitorgroep**, op de kaart **Monitoren**, en **Toegevoegd als eigenaar van Runner**, op de kaart **Dashboards & automatisering**, laten je weten wanneer iemand je toevoegt als eigenaar van een monitorgroep of een Runner.
 
-**Sonde een hoofdversie achter**, op de kaart **Sondes**, laat je één keer weten wanneer een aangepaste sonde waarvan je eigenaar bent een hoofdversie of meer achter OneUptime raakt, met wat ze mist totdat ze is bijgewerkt. Een sonde zonder eigenaren waarschuwt de projecteigenaren.
+**Sonde een hoofdversie achter**, op de kaart **Sondes**, laat je één keer weten wanneer een aangepaste sonde waarvan je eigenaar bent een hoofdversie of meer achter OneUptime raakt, met wat ze mist totdat ze is bijgewerkt. Een sonde zonder eigenaren waarschuwt de Projecteigenaren.
 
 ## Je diensten
 

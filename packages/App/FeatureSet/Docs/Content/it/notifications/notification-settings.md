@@ -63,7 +63,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 
 **Aggiunto come proprietario del gruppo di monitor**, nel riquadro **Monitor**, e **Aggiunto come proprietario del Runner**, nel riquadro **Dashboard e automazione**, vi avvisano quando qualcuno vi aggiunge come proprietari di un gruppo di monitor o di un Runner.
 
-**Sonda indietro di una versione principale**, nel riquadro **Sonde**, vi avvisa una volta quando una sonda personalizzata di vostra proprietà resta indietro di una o più versioni principali rispetto a OneUptime, con ciò che le manca finché non viene aggiornata. Una sonda senza proprietari avvisa i proprietari del progetto.
+**Sonda indietro di una versione principale**, nel riquadro **Sonde**, vi avvisa una volta quando una sonda personalizzata di vostra proprietà resta indietro di una o più versioni principali rispetto a OneUptime, con ciò che le manca finché non viene aggiornata. Una sonda senza proprietari avvisa i Proprietari del progetto.
 
 ## I vostri turni
 
