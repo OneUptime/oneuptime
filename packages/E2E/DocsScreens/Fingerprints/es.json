@@ -275,7 +275,7 @@
       "SMS está desactivado en este proyecto, así que los avisos que lo usan no se envían.",
       "Llamada telefónica está desactivado en este proyecto, así que los avisos que lo usan no se envían.",
       "Los SMS y las llamadas se pagan con el saldo de este proyecto, que es de 0.00 USD. Añadir un número envía un SMS, así que el saldo debe superar 1.00 USD.",
-      "Añadir saldo",
+      "Añadir al saldo",
       "Activar SMS y llamadas",
       "App móvil o navegador",
       "Sin configurar.",
@@ -286,15 +286,15 @@
       "Volver a comprobar"
     ],
     "outline": [
-      "button: Añadir saldo",
+      "button: Añadir al saldo",
       "button: Activar SMS y llamadas",
       "button: Usar este navegador",
       "button: Obtener la app",
       "button: Continuar",
       "button: Volver a comprobar"
     ],
-    "width": 768,
-    "height": 658
+    "width": 784,
+    "height": 687
   },
   "paging-phone": {
     "text": [

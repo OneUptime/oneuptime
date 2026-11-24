@@ -65,7 +65,7 @@ Dans le même critère, ouvrez **Paramètres** et activez **Regrouper les incide
 | --- | --- |
 | **Ouvrir un incident distinct pour chaque…** | `requestBody.alerts[*].fingerprint` |
 | **Champ qui signale le rétablissement** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Valeur qui signifie rétabli** | `resolved` |
 
 ### Remettre le moniteur en ligne
 
@@ -157,7 +157,7 @@ Une exécution traite une notification, elle déclare donc un seul incident, que
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
 - L'incident du critère a besoin de **Résoudre automatiquement l'incident**, sous **Plus de champs**.
-- **Champ qui signale le rétablissement** doit valoir `requestBody.alerts[*].status`, et **Value that means recovered** exactement `resolved`. La comparaison respecte la casse.
+- **Champ qui signale le rétablissement** doit valoir `requestBody.alerts[*].status`, et **Valeur qui signifie rétabli** exactement `resolved`. La comparaison respecte la casse.
 - Les chemins de regroupement doivent commencer par `requestBody.`, et seul le premier `[*]` d'un chemin lit une liste. Un chemin qui enfreint l'une de ces règles ne correspond à rien, sans erreur.
 :::
 

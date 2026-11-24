@@ -360,7 +360,7 @@ Desligar **Exigir SSO para entrar** salva assim que você muda o interruptor e d
 
 Exigir SSO mantém os dados do seu projeto atrás do seu provedor de identidade, mas seus membros ainda podem definir no OneUptime uma senha, chaves de acesso e a autenticação de dois fatores, que seu projeto nunca pede. Enquanto **Exigir SSO para entrar** está ligado, um segundo interruptor abaixo dele, **Gerenciar o login com SSO**, impede isso.
 
-O login de uma pessoa é gerenciado pelo SSO quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, exigem SSO e têm **Gerenciar o login com SSO** ligado. Ela então não pode definir senha, chave de acesso, chave de segurança, aplicativo autenticador, códigos de backup nem autenticação de dois fatores, **Esqueceu a senha?** não lhe envia nenhum link, e o **Perfil do usuário** dela mostra seu provedor de identidade em vez de oferecer essas configurações. Nada muda no login: a senha dela ainda faz seu login no OneUptime, e seu projeto pede SSO como antes.
+O login de uma pessoa é gerenciado pelo SSO quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, exigem SSO e têm **Gerenciar o login com SSO** ligado. Ela então não pode definir senha, chave de acesso, chave de segurança, app autenticador, códigos de backup nem autenticação de dois fatores, **Esqueceu a senha?** não lhe envia nenhum link, e o **Perfil do usuário** dela mostra seu provedor de identidade em vez de oferecer essas configurações. Nada muda no login: a senha dela ainda faz seu login no OneUptime, e seu projeto pede SSO como antes.
 
 A regra é verificada todas as vezes, então:
 
@@ -373,7 +373,7 @@ A regra é verificada todas as vezes, então:
 
 ### Limpar o que seus membros salvaram antes
 
-Enquanto **Gerenciar o login com SSO** está ligado, os Proprietários do projeto veem abaixo dele quantos de seus membros ainda têm uma senha ou a autenticação de dois fatores salva no OneUptime. **Limpar configurações de login** exclui, depois de pedir confirmação, as senhas deles com qualquer link de redefinição ou de login, as chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que eles abriram sem SSO. Não dá para desfazer.
+Enquanto **Gerenciar o login com SSO** está ligado, os Proprietários do projeto veem abaixo dele quantos de seus membros ainda têm uma senha ou a autenticação de dois fatores salva no OneUptime. **Limpar configurações de login** exclui, depois de pedir confirmação, as senhas deles com qualquer link de redefinição ou de login, as chaves de acesso, chaves de segurança, apps autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que eles abriram sem SSO. Não dá para desfazer.
 
 Uma conta pode pertencer a muitas organizações, então você só pode limpar as configurações das pessoas pelas quais sua organização é responsável. Sua organização são os projetos dos quais você é proprietário: as configurações de uma pessoa só são limpas quando todos os projetos de que ela faz parte, incluindo qualquer projeto para o qual foi convidada, são projetos dos quais você é **Proprietário do projeto** e têm **Gerenciar o login com SSO** ligado. Todos os outros mantêm suas configurações:
 

@@ -65,6 +65,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Note Templates** | Settings | Ready-made text for the notes your team writes on its cases |
 | **Numbering** | Settings | The text in front of case numbers, and the number the next case gets |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
+| **Erasure Requests** | Settings | People erased from Security Events on request, and what each erasure changed |
 
 **Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
@@ -187,7 +188,7 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and refused request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
@@ -288,6 +289,55 @@ Every event is stored with typed fields and its source payload:
 
 Events stored before OneUptime 14.0.84 leave the process fields empty and name their process only as `principalProcess`, the process that acted. They are not filled in afterwards: they keep what they were stored with until their retention ends.
 
+### Which address an event names
+
+An event names the address a request came from only when the request's sender could not have written it. That address is verified, and it becomes the event's **Principal IP**: detection rules count it, threat intelligence matches it, and a case's **Response Plan** offers to block it. Any other address a request names is claimed: the event keeps it as **Claimed IP**, and nothing counts or blocks it.
+
+- The connection's own address is verified: a server span's `network.peer.address`, or the first field of a web server's access log line. Nobody can write it into a request.
+- Behind a proxy you trust, the connection's address is the proxy's, and the client is the address the proxy forwarded in `X-Forwarded-For`. Each proxy appends the address it took the connection from, so OneUptime reads the header from the right and takes the first address that is no proxy you trust. What a sender writes in the header lands on its left, and stays a claim.
+- An address a request names about itself is claimed: `client.address`, which instrumentation fills from the left of the header, the rest of `X-Forwarded-For`, and `Forwarded`.
+
+A claimed address is never blocked from a case: anyone can send `X-Forwarded-For: 192.0.2.44`, and a block would cut off whoever 192.0.2.44 is. An event with only a claimed address has a **Response Plan** that tells you to find the real one in your load balancer's or firewall's logs.
+
+Record two things on your app's server spans so its addresses are verified: the connection's own address, `network.peer.address`, which OpenTelemetry's HTTP instrumentations set, and, behind a proxy, the `X-Forwarded-For` header, which they record as `http.request.header.x-forwarded-for` once you list it in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. A JSON access log is read the same way: its client field, such as `remote_addr`, is the connection's address, and its `http_x_forwarded_for` field is the header.
+
+#### Trusted Proxies
+
+Security Events trusts a proxy to say who its client was when its address is:
+
+| Trusted | Why |
+| --- | --- |
+| Private, loopback or link-local, such as `10.0.0.5` | Always: nobody has it on the internet, so it is a load balancer or an ingress inside your network |
+| Listed under **Trusted Proxies** | You listed it |
+| In the published ranges of an edge you connected, such as [Cloudflare](/docs/integrations/cloudflare) | While the connection exists |
+| One of your own application load balancers | Unless you turn it off |
+
+**Security Events → Connections → More settings** holds **Trusted Proxies**, the list you write, and **Trusted Automatically**, which shows the rest and why. List a proxy under **Trusted Proxies**, one address or range a line, when its address is public and nothing else trusts it: a CDN you have not connected, a load balancer that reaches your app over the internet, or a reverse proxy such as nginx on a server with a public address in front of your app. Until you do, every attack through it is blamed on the proxy. Behind a Google Cloud global external Application Load Balancer, your app's connections come from Google's front ends: list `35.191.0.0/16` and `130.211.0.0/22`.
+
+Your own application load balancers are the ones your [connected cloud accounts](/docs/telemetry/cloud-accounts) list: AWS Application Load Balancers, AWS Classic Load Balancers whose every listener is HTTP or HTTPS, Google Cloud Application Load Balancers and Azure Application Gateways, by their public addresses. Each adds the client it forwards to `X-Forwarded-For`. A Google Cloud load balancer appends its own address after the client's, and an Application Gateway reaches a public backend from its own address, so without them every attack through one would be blamed on the load balancer. **Your Load Balancers**, on **Trusted Automatically**, lists them, and a Project Owner, Project Admin or Security Admin can turn it off.
+
+Nothing else of yours is trusted automatically: not your hosts, Kubernetes nodes, probes or virtual machines, a NAT gateway, or a Network, Gateway or Azure load balancer. They forward nobody, or pass a request on as it came, so whatever runs on them could name any client: a request a monitor sends with headers of its own, a pod, a laptop behind the gateway. If one of them is your proxy, add it to **Trusted Proxies**. A Kubernetes ingress is trusted as the load balancer it is: a GKE ingress is a Google Cloud Application Load Balancer, an AKS Application Gateway ingress an Application Gateway, and an EKS ingress of class `alb` an AWS Application Load Balancer. An ingress controller inside your cluster forwards from a private address, which is always trusted.
+
+A change to any of these takes effect within a minute, and a new load balancer is trusted within five.
+
+#### Access logs that end with X-Forwarded-For
+
+Behind a load balancer, many web servers log the forwarded address last, as nginx's own `main` format does:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+A line never says what its fields are, so its last field is read as `X-Forwarded-For` only once you turn on **Logs End With X-Forwarded-For**, on **Access Logs** under **More settings**, and then only:
+
+- when the line's first field is a proxy you trust: a line from a client that reached your web server directly is that client's;
+- in the combined format, with exactly one quoted field after the user agent and nothing after it;
+- when that field is `-` or a list of addresses whose last has no port.
+
+Leave it off when your format ends with another header that holds an address, such as `X-Real-IP`, or when your web server writes headers without escaping their quotes, as Express's `morgan` does: a request's own user agent could then add a field. A JSON access log needs no switch, since its fields are named.
+
 ### Hidden by a scrub rule
 
 An IP Address scrub rule that redacts or masks your logs or traces hides the address an attack came from before Security Events reads them. The event is still stored, with no address, and wherever it would name the address it says a scrub rule hid it:
@@ -303,6 +353,8 @@ A rule that hashes keeps the address for Security Events, so the event names it,
 A detection rule that counts per address should count per `principalIp` or `targetIp`, which name the address behind a hashing rule's token, as the Rule Library's rules do. A format's own address field, such as `openstack.audit.initiator_address` or `asa.src_ip`, holds only an address the log wrote, so it stays empty wherever a scrub rule hid one.
 
 A rule that redacts or masks a user hides them the same way: where the event would name the user, **Principal User** or **Target User** says a scrub rule hid them. Where Security Events reads a user, a rule that hashes keeps the user for it: a request's `enduser.id` or `user.id`, an AI call's user, and a user a log line names, such as a cloud audit log's principal. So the event names the user behind the token, a case about them names the account, and a playbook can act on it as on any other user. What the rule left is in `oneuptime.principal_user_hashed_as` or `oneuptime.target_user_hashed_as`, so you can find the user in your logs and traces, which hold only the token. A token with no user kept for it, such as one made before tokens had a key, stays the event's user: rules count it as one account, and no playbook acts on it.
+
+The event's panel says so under the user it names in **Principal User** and **Target User**: "Hashed in your logs as" the token, or "Hashed in your traces as" it for an event read from your traces. The token is a link that searches your logs or traces for it, from a day before the event to a day after. A user erased on request reads **Erased on request** instead, and the event shows their token: see [Erase a person](#erase-a-person).
 
 ## Explore security events
 
@@ -335,13 +387,24 @@ The sidebar counts the window's events by **Source**, **Severity**, **Request Ou
 
 An event read from a log line written inside a traced request is followed into that request. Its panel says how far the request got (**Rejected**, **Reached App**, **Errored** or **Reached Database**), who sent it, and links to its trace, its exception, its session replay and the log line itself. A log line, a trace and an exception that are part of an attack say so on their own pages too.
 
+### A sensitive file your site served
+
+A request for a file that holds secrets, such as `/.env`, `/.git/config`, `/.aws/credentials` or a copy of `wp-config.php`, is a leak when your site answered it with the file itself: whoever asked holds its passwords, keys and tokens. A single-page app answers every path it does not have with its own page and a 200, so a 200 alone never says so. OneUptime reads what the answer carried:
+
+- A type that is no web page, such as `text/plain` or `application/octet-stream`: the file itself.
+- A web page, or JSON for a file that is not JSON: your site's own page.
+- Nothing in it: nothing was taken.
+- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. When nothing tells, the request is no event.
+
+A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**.
+
 ### Campaigns
 
 **Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first. A row your blocklist already holds says until when it is blocked or challenged, and names the range or network that holds it.
 
 To block several attackers at once, select their rows and press **Block Addresses**. One dialog lists every address it blocks and every one it leaves out, with why: already blocked, one of your own or a protected one, one a signed-in user used in the last 30 days, or one OneUptime could not check. It blocks for 24 hours unless you choose another length, or challenges with **Challenge Instead**, and each block goes on your [blocklist](/docs/telemetry/security-cases#blocklist) as yours.
 
-**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has.
+**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has. A network's **View requests** opens what it sent in **Events**: an ASN's by the ASN its Cloudflare events carry, and a range's as a search for its addresses, such as `ip:203.0.113.*`, which you can change.
 
 - A network that holds an address a signed-in user used in the last 30 days, or one of your own, is never challenged, and the dialog names who or what.
 - A range wider than a /24 (a /48 for IPv6), and a whole ASN, take a Security Admin, a Project Admin or a Project Owner. An ASN's row also offers each of its ranges, which anyone who can block may challenge.
@@ -537,6 +600,8 @@ Group By and Distinct Count take the same field names as the rule. With them, th
 | Password spraying: one IP failing against 5 different accounts | `principalIp` | `principalUser` | 5 |
 | Port scan: one IP reaching 20 different ports | `principalIp` | `targetPort` | 20 |
 
+A rule with a **Group By Field** that needs more than one event in a group, through a threshold above 1 or a **Distinct Count Field**, leaves out the events that have no value for its field: counted, they would all add up as one value, every failed sign-in with no address as one IP address. A rule that fires on each event keeps firing for them. **Detection Rules** says under a rule's name how many of the last day's matching events it couldn't count, and the line opens why: how many had no value, and how many of those a scrub rule hid, with **Open Scrub Rules**. A rule that could count none of what it matched can't fire, and its **Status** says **Needs attention**. **Run on Past Events** says the same for the period it reads.
+
 ### When a rule runs
 
 OneUptime checks every minute for enabled rules whose interval has passed since their last run. Each run reads the events that reached OneUptime between the previous run and two minutes ago, whenever they happened, then moves on. The two minutes leave room for events still being written:
@@ -685,6 +750,30 @@ Everything in Security Events that reads past events reads only the events still
 - A hunt whose **Time Range** is longer than events are kept finds nothing older, and its form says so.
 
 **Project Settings → Telemetry & APM → Data Retention** lists the enabled rules that look back further than its **Default Retention (Days)**. To cover them, keep events longer, with **Change Retention** under a rule, or shorten a rule's timespan to what is kept. OneUptime keeps 15 days unless you change it, because retention sets what your telemetry costs and how long personal data in events, such as addresses and user names, is kept. A new retention applies to events that arrive from then on, so rules see further back as those events age.
+
+## Erase a person
+
+When someone asks you to erase their data, for example under GDPR Article 17, erase them from Security Events in **Security Events → Settings → Erasure Requests**. Select **Erase Person** and enter their user ID or email address as your logs held it before your Hash scrub rule hid it, or the token an event shows in its place. An email address is erased in lower case too. Add your own **Reference**, such as the request's ticket number, never the person's name.
+
+What it does:
+
+- Within a minute, Security Events stops naming the person. The user vault refuses their tokens from then on, so no event, case or playbook names them again, even when a later event carries the same token: that event keeps the token as its user, as for any token with no user kept for it. Keeping a token that comes back would name the person again, which is what they asked you to stop.
+- Within a few minutes, it deletes the vault's entries of them and puts the token back in their place in the events that named them through the vault: **Principal User**, **Target User**, the observables and the attributes. It takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.
+- A playbook run or an action of OneUptime AI that waits for approval to act on them is withdrawn, and says why.
+
+Each request shows its status, **Queued**, **Erasing**, **Erased** or **Failed**, and what it changed: the vault entries deleted, the events and cases unnamed and the proposals withdrawn. Erasing starts two minutes after the request is filed, once every OneUptime server has stopped naming the person, and a request reads **Erased** only when every change has been applied. A request that fails is tried again, and after five attempts it reads **Failed** with the reason, and the project's Owners are emailed. Security Events still refuses to name the person, and filing the request again retries it.
+
+What it leaves:
+
+- What people wrote: notes, closing notes, tasks, evidence, custom fields and what OneUptime AI wrote about a case.
+- Events that named the person because your logs held them in clear, and your logs and traces themselves, which hold only the token.
+- The Detection Finding events a rule wrote about them, whose message and observables can name them, until your telemetry retention deletes them.
+- Notifications already sent, incidents and alerts a detection opened, a case's activity, exports, backups and the audit log.
+- On a self-hosted OneUptime whose `ENCRYPTION_SECRET` changed, tokens made before the change: erase each one by the token an event shows.
+
+The request keeps who filed it and when, your reference and the person's tokens, which is how the vault goes on refusing them. The user ID or email address is stored encrypted, where no page, export or API can read it, and is wiped once the erasure is done; ClickHouse is only ever sent the tokens. Requests can't be edited or deleted: they are your record of the erasure.
+
+Project Owners, Project Admins, Security Admins and anyone with Create Security Erasure Request, such as your privacy officer, can file a request, from the page or through the API's `/security-user-erasure-request`. Every Security role can read them.
 
 ## Troubleshooting
 

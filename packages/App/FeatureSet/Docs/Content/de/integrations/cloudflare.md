@@ -171,10 +171,10 @@ Das Sperren braucht Schreibberechtigungen auf dem API-Token der Verbindung:
 
 ### Das Sperren einschalten
 
-Wählen Sie in der Zeile der Verbindung **Adressen sperren**. Fügen Sie ein neues Token in **Neues API-Token** ein, oder lassen Sie das Feld leer, um das aktuelle zu behalten, und lassen Sie in **Zonen** **Alle Zonen** stehen, oder wählen Sie die Zonen, in denen gesperrt wird. **Berechtigungen prüfen** fragt Cloudflare, ob das Token jede Berechtigung hat, und ändert nichts. **Sperren einschalten** schaltet das Sperren nur ein, wenn jede Prüfung besteht, und OneUptime richtet Cloudflare innerhalb einer Minute ein.
+Wählen Sie in der Zeile der Verbindung **Adressen sperren**. Fügen Sie ein neues Token in **Neues API-Token** ein, oder lassen Sie das Feld leer, um das aktuelle zu behalten, und lassen Sie in **Zonen** **Alle Zonen** stehen, oder wählen Sie die Zonen, in denen gesperrt wird. **Berechtigungen prüfen** fragt Cloudflare, ob das Token jede Berechtigung hat, und ändert nichts. **Sperren einschalten** schaltet das Sperren nur ein, wenn jede Prüfung besteht, außer **Challenge a network by its ASN**, die nur warnt, und OneUptime richtet Cloudflare innerhalb einer Minute ein.
 :::
 
-Solange das Sperren eingeschaltet ist, führt **Verbindung testen** dieselben Prüfungen aus: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** und, wo IP Access Rules genutzt werden, **Edit IP Access Rules**.
+Solange das Sperren eingeschaltet ist, führt **Verbindung testen** dieselben Prüfungen aus: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** und, wo IP Access Rules genutzt werden, **Edit IP Access Rules**, sonst **Challenge a network by its ASN**.
 
 ### Was OneUptime Cloudflare hinzufügt
 
@@ -183,7 +183,7 @@ Solange das Sperren eingeschaltet ist, führt **Verbindung testen** dieselben Pr
 | Die Listen `oneuptime_block` und `oneuptime_challenge` | Zwei IP-Listen im Konto, eine für Sperren und eine für Challenges. Ihre Beschreibung nennt Ihr OneUptime-Projekt. |
 | Eine benutzerdefinierte Regel pro Liste, in jeder Zone | `(ip.src in $oneuptime_block)` mit der Aktion Block und `(ip.src in $oneuptime_challenge)` mit der Aktion Managed Challenge. Ihre Beschreibung sagt, dass OneUptime sie verwaltet. |
 | Ein Listeneintrag pro Sperre | Sein Kommentar nennt den Fall und wann die Sperre endet, etwa `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| Eine IP Access Rule pro Netzwerk, das anhand seiner ASN eine Challenge erhält | Ein ganzes Netzwerk, das unter **Kampagnen** eine Challenge erhalten hat, als IP Access Rule mit dem Ziel `asn`, die jeder Tarif hat. Ihre Notiz sagt dasselbe wie der Kommentar eines Listeneintrags. Ohne `Account > Account Firewall Access Rules > Edit` auf dem Token wird die Challenge nicht angewendet, und die **Sperrliste** sagt, welche Berechtigung hinzuzufügen ist. |
+| Eine IP Access Rule pro Netzwerk, das anhand seiner ASN eine Challenge erhält | Ein ganzes Netzwerk, das unter **Kampagnen** eine Challenge erhalten hat, als IP Access Rule mit dem Ziel `asn`, die jeder Tarif hat. Ihre Notiz sagt dasselbe wie der Kommentar eines Listeneintrags. **Berechtigungen prüfen** und **Verbindung testen** warnen vorher unter **Challenge a network by its ASN**, wenn dem Token `Account > Account Firewall Access Rules > Edit` fehlt: Das Sperren funktioniert ohne diese Berechtigung, aber die Challenge wird nicht angewendet, und die **Sperrliste** sagt, welche Berechtigung hinzuzufügen ist. |
 
 Jede Regel steht an erster Stelle der benutzerdefinierten Regeln der Zone und läuft damit vor Ihren: Eine Skip-Regel von Ihnen kann keine gesperrte Adresse an ihr vorbeilassen. Wenn Ihre Skip-Regeln Adressen durchlassen, etwa die Ihrer Monitore oder eines Partners, nennt **Sperrstatus** sie. **Diese Adressen schützen** fügt sie zu **Geschützte Entitäten** hinzu, die niemand sperren kann.
 

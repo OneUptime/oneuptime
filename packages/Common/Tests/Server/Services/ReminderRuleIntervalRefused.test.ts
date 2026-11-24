@@ -251,8 +251,9 @@ describe.each(RULE_KINDS)("$name", (kind: RuleKind) => {
         });
       });
 
+      // The column, as an API client sends it, then what to do (#7276).
       expect((refusal as Error).message).toBe(
-        "reminderIntervalInMinutes is required",
+        "reminderIntervalInMinutes is required. Fill in Reminder Interval (Minutes), then try again.",
       );
       expect(table.rows).toHaveLength(0);
     });

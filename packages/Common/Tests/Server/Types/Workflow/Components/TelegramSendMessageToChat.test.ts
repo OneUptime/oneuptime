@@ -1,3 +1,7 @@
+import {
+  getChatMessageNotSent,
+  TELEGRAM_WHAT_TO_CHECK,
+} from "../../../../../Server/Types/Workflow/Components/OtherSystemSaidNothing";
 import SendMessageToChat from "../../../../../Server/Types/Workflow/Components/Telegram/SendMessageToChat";
 import {
   RunOptions,
@@ -201,7 +205,11 @@ describe("Telegram SendMessageToChat - Telegram errors go to the error port", ()
     );
 
     expect(result.executePort?.id).toBe("error");
-    expect(result.returnValues["error"]).toBe("Server Error." + HELP_MESSAGE);
+    // Never "Server Error.": OneUptime's words, and what to check (#7268).
+    expect(result.returnValues["error"]).toBe(
+      getChatMessageNotSent("Telegram", TELEGRAM_WHAT_TO_CHECK) + HELP_MESSAGE,
+    );
+    expect(result.returnValues["error"]).not.toContain("Server Error");
   });
 
   test("a 200 with ok:false is still an error", async () => {

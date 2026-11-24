@@ -196,7 +196,7 @@ Estas variáveis descrevem a série para a qual um monitor agrupado abriu o inci
 | `requestMethod` | O método HTTP, como `POST`. | `string` |
 | `incomingRequestReceivedAt` | Quando a requisição foi recebida, como um carimbo de data/hora ISO 8601. | `string` |
 
-Quando o critério tem **Group incidents and alerts by a payload field** ativado, a chave de agrupamento também é uma variável, com o nome do **último segmento** do caminho de agrupamento: agrupar por `requestBody.alerts[*].labels.alertname` dá `{{alertname}}`, e agrupar por `requestBody.alerts[*].fingerprint` dá `{{fingerprint}}`. O `requestBody` inteiro continua disponível ao lado.
+Quando o critério tem **Agrupar incidentes e alertas por um campo da carga útil** ativado, a chave de agrupamento também é uma variável, com o nome do **último segmento** do caminho de agrupamento: agrupar por `requestBody.alerts[*].labels.alertname` dá `{{alertname}}`, e agrupar por `requestBody.alerts[*].fingerprint` dá `{{fingerprint}}`. O `requestBody` inteiro continua disponível ao lado.
 
 > [!NOTE]
 > `[*]` só funciona nos campos de caminho de agrupamento. Em um modelo ele não lê nada, então o marcador fica como foi escrito. `{{requestBody.alerts[0].annotations.summary}}` sempre lê o primeiro alerta do payload, não aquele para o qual o incidente foi aberto: use a variável de agrupamento e os campos compartilhados do payload, como `commonLabels` e `commonAnnotations`. Veja [Monitor de requisições recebidas](/docs/monitor/incoming-request-monitor).

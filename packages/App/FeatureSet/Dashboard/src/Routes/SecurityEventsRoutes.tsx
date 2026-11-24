@@ -68,6 +68,7 @@ import SecurityCaseStatusesPage from "../Pages/SecurityEvents/Settings/CaseStatu
 import SecurityEntityRiskPage from "../Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../Pages/SecurityEvents/Settings/RiskScoring";
+import SecurityErasureRequestsPage from "../Pages/SecurityEvents/Settings/ErasureRequests";
 import SecurityCaseCustomFieldsSettingsPage from "../Pages/SecurityEvents/Settings/CustomFields";
 import SecurityCaseNoteTemplatesPage from "../Pages/SecurityEvents/Settings/NoteTemplates";
 import SecurityCaseNoteTemplateViewPage from "../Pages/SecurityEvents/Settings/NoteTemplateView";
@@ -585,6 +586,23 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[
+              PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS
+            ] || ""
+          }
+          element={
+            <SecurityErasureRequestsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS
+                ] as Route
               }
             />
           }

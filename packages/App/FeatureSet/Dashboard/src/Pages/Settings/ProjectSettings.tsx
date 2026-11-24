@@ -9,6 +9,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DataResidencyUtil from "Common/Utils/Project/DataResidency";
 import CustomerSupportAccessCard from "../../Components/Project/CustomerSupportAccessCard";
+import RequireUniqueNamesCard from "../../Components/Project/RequireUniqueNamesCard";
 import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
 import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/DashboardRecordingConfig";
 import { PROJECT_RECORDING_COPY } from "../../Components/DashboardRecording/DashboardRecordingCopy";
@@ -88,6 +89,14 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
+
+      {/*
+       * Whether two monitors, templates or other records of one kind may
+       * share a name (#10761): one switch that saves when flipped, and
+       * under it the names the project already holds more than once, each
+       * linked for renaming.
+       */}
+      <RequireUniqueNamesCard projectId={ProjectUtil.getCurrentProjectId()!} />
 
       {/*
        * Whether OneUptime's support team may open the project: one switch

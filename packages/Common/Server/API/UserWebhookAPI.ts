@@ -12,6 +12,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
@@ -37,7 +38,7 @@ export default class UserWebhookAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItemToTest),
             );
           }
 
@@ -55,19 +56,16 @@ export default class UserWebhookAPI extends BaseAPI<
             },
           });
 
-          if (!item) {
+          /*
+           * Somebody else's method is answered exactly like one that does
+           * not exist (#7272): the answer never says whether an id is
+           * someone's.
+           */
+          if (!item || item.userId?.toString() !== sender.userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          if (item.userId?.toString() !== sender.userId.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 

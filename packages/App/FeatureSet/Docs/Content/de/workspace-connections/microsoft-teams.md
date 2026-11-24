@@ -43,7 +43,7 @@ Eine Microsoft-365-Organisation kann mit mehr als einem Projekt verbunden sein, 
 :::steps
 ### Die Administratorzustimmung erteilen
 
-Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** und klicken Sie auf **Administratorzustimmung erteilen**. Eine Administratorin oder ein Administrator von Microsoft 365 meldet sich an und erlaubt die OneUptime-App für die Organisation. Die Karte sagt dann **Administratorzustimmung abgeschlossen**. Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
+Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** und klicken Sie auf **Administratorzustimmung erteilen**. Eine Administratorin oder ein Administrator von Microsoft 365 meldet sich an und erlaubt die OneUptime-App für die Organisation. Die Karte sagt dann **Administratorzustimmung abgeschlossen** und nennt die Organisation, etwa Contoso (contoso.onmicrosoft.com). Solange kein Workspace verbunden ist, enthält der Abschnitt **Arbeitsbereich** der Menüs Vorfälle, Warnungen, Geplante Wartung, Monitore und Bereitschaft den Eintrag **Arbeitsbereich verbinden**, der ebenfalls hierher führt.
 
 ### Ihr Konto verbinden
 
@@ -305,7 +305,7 @@ Wenn die öffentlichen Notizen Ihres Projekts genehmigt werden müssen und Sie M
 - **OneUptime aus Microsoft Teams deinstallieren** unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** trennt das Projekt. OneUptime postet nicht mehr in Microsoft Teams, und die Menüs **Arbeitsbereich** listen es nicht mehr. Die Benachrichtigungsregeln und Zusammenfassungen bleiben für eine spätere neue Verbindung erhalten.
 
 > [!WARNING]
-> Das Deinstallieren trennt auch das eigene Microsoft-Teams-Konto jedes Mitglieds im Projekt und entfernt die Microsoft-Teams-Benachrichtigungsmethoden und die Bereitschaftsregeln, die sie nutzten. Ein Projekt ist mit einer Microsoft-365-Organisation verbunden: Um es mit einer anderen zu verbinden, deinstallieren Sie zuerst.
+> Das Deinstallieren trennt auch das eigene Microsoft-Teams-Konto jedes Mitglieds im Projekt und entfernt die Microsoft-Teams-Benachrichtigungsmethoden und die Bereitschaftsregeln, die sie nutzten. Ein Projekt ist mit einer Microsoft-365-Organisation verbunden: Um es mit einer anderen zu verbinden, wählen Sie stattdessen im selben Menü **Connect a Different Organization**. Das deinstalliert OneUptime auf dieselbe Weise und bittet dann eine Administratorin oder einen Administrator von Microsoft 365 der anderen Organisation um Zustimmung.
 
 ## Fehlerbehebung
 
@@ -319,6 +319,10 @@ Schickt Microsoft Sie ohne Verbindung zurück, sagt die Seite, auf der Sie begon
 
 :::details Der Bot sagt, mein Konto sei nicht verbunden
 Drücken Sie in der Antwort des Bots **Connect Microsoft Teams account**, um es in einem Schritt zu verbinden, oder verknüpfen Sie es unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** mit **Connect my account with Microsoft Teams**. In beiden Fällen melden Sie sich bei der Organisation an, mit der das Projekt verbunden ist, als Gast, wenn Sie dort Gast sind. Haben Sie als Gast früher das Konto Ihrer eigenen Organisation verbunden, verbinden Sie es erneut.
+:::
+
+:::details Microsoft sagt, das ausgewählte Konto existiere im Mandanten nicht
+Jede Microsoft-Anmeldung für ein Projekt geht an die Microsoft-365-Organisation, mit der es verbunden ist und die die Karte **Administratorzustimmung abgeschlossen** nennt. Ein Konto, das nicht zu dieser Organisation gehört, hält Microsoft auf seiner eigenen Seite an (`AADSTS50020`) und schickt Sie nicht zurück. Melden Sie sich mit Ihrem Konto in dieser Organisation an. Um das Projekt stattdessen mit Ihrer Organisation zu verbinden, wählen Sie im Menü dieser Karte **Connect a Different Organization**, und lassen Sie eine Administratorin oder einen Administrator von Microsoft 365 Ihrer Organisation die Zustimmung erteilen.
 :::
 
 :::details Auf einem selbst gehosteten Server scheitert jede Benachrichtigung

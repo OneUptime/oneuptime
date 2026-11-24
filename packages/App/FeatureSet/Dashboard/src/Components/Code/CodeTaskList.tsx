@@ -680,8 +680,13 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                   ? retryResult?.reasons.get(task.id)
                   : undefined
               }
-              repositoryName={getRowRepositoryName(task, props)}
-              repositoryHost={getRowRepositoryHost(task, props)}
+              repositoryName={getRowRepositoryName(task, {
+                repositoryNames: props.repositoryNames,
+              })}
+              repositoryHost={getRowRepositoryHost(task, {
+                repositoryHosts: props.repositoryHosts,
+                repositoryHost: props.repositoryHost,
+              })}
             />
           );
         })}

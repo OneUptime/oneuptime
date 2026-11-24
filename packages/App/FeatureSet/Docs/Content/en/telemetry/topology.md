@@ -32,7 +32,7 @@ flowchart LR
 
 ## Open Topology
 
-Go to **Products → Observability → Topology**. **Inventory → Topology Map** opens the same page. It opens on the **Service Map**, for the **Past 1 Day**.
+Go to **Products → Observability → Topology**. **Inventory → Topology** opens the same page. It opens on the **Service Map**, for the **Past 1 Day**.
 
 | View | The question it answers |
 | --- | --- |

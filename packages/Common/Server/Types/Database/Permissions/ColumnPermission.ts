@@ -20,6 +20,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Dictionary from "../../../../Types/Dictionary";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
+import { getPlanRequiredMessage } from "../../../../Types/Billing/PlanRequiredRefusal";
 
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import HeldPermissionsUtil, {
@@ -463,9 +464,7 @@ export default class ColumnPermissions {
           );
 
           throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              requiredPlan +
-              " to access this feature",
+            getPlanRequiredMessage(requiredPlan),
           );
         }
       }

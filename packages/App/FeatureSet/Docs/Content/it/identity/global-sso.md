@@ -27,7 +27,7 @@ Per il provider proprio di un singolo progetto, vedi [SSO](/docs/identity/sso).
 :::steps
 ### Aprire l'elenco dei provider
 
-Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazioni admin** nel menu utente. Poi vai a **Impostazioni** > **Single sign-on**. La pagina elenca i provider SAML dell'istanza, poi i suoi provider OpenID Connect, e termina con la scheda **Richiedi l'SSO**.
+Accedi come amministratore principale e scegli **Pannello amministratore** nel menu utente. Poi vai a **Impostazioni** > **Single sign-on**. La pagina elenca i provider SAML dell'istanza, poi i suoi provider OpenID Connect, e termina con la scheda **Richiedi l'SSO**.
 
 ### Creare il provider
 

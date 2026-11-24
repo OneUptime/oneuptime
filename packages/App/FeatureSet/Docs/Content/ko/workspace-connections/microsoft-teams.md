@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### 관리자 동의 부여하기
 
-**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **워크스페이스 연결** 이 있으며, 이것도 여기로 연결됩니다.
+**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시되고, Contoso (contoso.onmicrosoft.com) 처럼 조직이 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **워크스페이스 연결** 이 있으며, 이것도 여기로 연결됩니다.
 
 ### 본인의 계정 연결하기
 
@@ -305,7 +305,7 @@ OneUptime AI가 승인을 위해 제안한 수정은 그 변경과 세 개의 �
 - **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 의 **Uninstall OneUptime from Microsoft Teams** 는 프로젝트의 연결을 해제합니다. OneUptime 은 Microsoft Teams 에 게시를 멈추고, **워크스페이스** 메뉴에도 더 이상 표시되지 않습니다. 알림 규칙과 요약은 다시 연결할 때를 위해 유지됩니다.
 
 > [!WARNING]
-> 제거하면 프로젝트의 모든 멤버의 Microsoft Teams 계정 연결도 해제되고, Microsoft Teams 알림 방법과 그것을 사용하던 온콜 규칙도 제거됩니다. 프로젝트는 하나의 Microsoft 365 조직에만 연결됩니다. 다른 조직으로 옮기려면 먼저 제거하세요.
+> 제거하면 프로젝트의 모든 멤버의 Microsoft Teams 계정 연결도 해제되고, Microsoft Teams 알림 방법과 그것을 사용하던 온콜 규칙도 제거됩니다. 프로젝트는 하나의 Microsoft 365 조직에만 연결됩니다. 다른 조직으로 옮기려면 대신 같은 메뉴에서 **Connect a Different Organization** 을 선택하세요. 같은 방식으로 제거한 뒤 다른 조직의 Microsoft 365 관리자에게 동의를 요청합니다.
 
 ## 문제 해결
 
@@ -319,6 +319,10 @@ Microsoft 가 연결 없이 돌려보내면, 시작한 페이지에 **Microsoft 
 
 :::details 봇이 내 계정이 연결되지 않았다고 말함
 봇의 답글에서 **Connect Microsoft Teams account** 를 눌러 한 단계로 연결하거나, **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 연결하세요. 어느 쪽이든 프로젝트가 연결된 조직에 로그인하며, 그 조직의 게스트라면 게스트로 로그인합니다. 게스트인데 이전에 자신의 조직 계정을 연결했다면 다시 연결하세요.
+:::
+
+:::details Microsoft 에서 선택한 계정이 테넌트에 없다고 표시됨
+프로젝트의 모든 Microsoft 로그인은 프로젝트가 연결된 Microsoft 365 조직으로 가며, 그 조직은 **Admin Consent Completed** 카드에 표시됩니다. 그 조직에 없는 계정은 Microsoft 가 자체 페이지에서 막고 (`AADSTS50020`), 원래 페이지로 돌려보내지 않습니다. 그 조직의 계정으로 로그인하세요. 대신 프로젝트를 내 조직에 연결하려면 그 카드의 메뉴에서 **Connect a Different Organization** 을 선택하고, 내 조직의 Microsoft 365 관리자에게 동의를 부여받으세요.
 :::
 
 :::details 자체 호스팅 서버에서 모든 알림이 실패함

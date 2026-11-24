@@ -3617,7 +3617,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(directPages).toBe(0);
       expect(answers()).toEqual([
-        expect.stringContaining("Please upgrade your plan to Growth"),
+        expect.stringContaining("This feature needs the Growth plan"),
       ]);
       expect(answers()[0]).not.toContain(CallerPlan.PLAN_UNKNOWN_MESSAGE);
     });
@@ -3657,7 +3657,8 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       await settle();
 
       expect(answers()).toEqual([
-        "Could not execute an on-call policy for this incident: Please upgrade your plan to Growth to access this feature",
+        // Slack's text writes > as &gt;, which Slack shows as >.
+        "Could not execute an on-call policy for this incident: This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings &gt; Billing and Invoices &gt; Billing, then try again.",
       ]);
     });
   });

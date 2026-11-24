@@ -10,7 +10,14 @@ import {
   isCampaignAddressHidden,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
+import {
+  SECURITY_ATTACK_NETWORK_ASN_ATTRIBUTE,
+  SecurityAttackNetwork,
+  SecurityAttackNetworkRequestsFilter,
+  getSecurityAttackNetworkRequestsFilter,
+} from "Common/Types/SecurityEvent/SecurityAttackNetwork";
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import { WebAttackKind } from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
   PluralTemplate,
@@ -19,6 +26,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { encodeRouteQueryParamValue } from "../../Utils/TelemetryTabScope";
 import { buildSecurityEventFacetLinkParams } from "./SecurityEventsFacets";
 import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange";
 import { getRequestOutcomeColor } from "./SecurityEventRequestStory";
@@ -301,6 +309,65 @@ export function buildCampaignEventsRoute(data: {
   const params: Dictionary<string> = {
     ...buildSecurityEventFacetLinkParams(pairs),
     ...getSecurityEventsTimeRangeLinkParams(data.startTime, data.endTime),
+  };
+
+  return new Route(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SECURITY_EVENTS]!,
+    ).toString(),
+  ).addQueryParams(params);
+}
+
+/*
+ * The search a range's requests are found by in the events list (#10896):
+ * the address as any of the globs every address of the range is written to
+ * match - "ip:203.0.113.*", or "ip:(2001:db8::* OR 2001:0db8:0000:*)".
+ * The person sees it in the search bar, and can change it.
+ */
+export function writeNetworkAddressSearch(
+  globs: ReadonlyArray<string>,
+): string {
+  if (globs.length === 0) {
+    return "";
+  }
+
+  return globs.length === 1 ? `ip:${globs[0]}` : `ip:(${globs.join(" OR ")})`;
+}
+
+/*
+ * A network row's requests in the events list (#10896): its web attacks
+ * over the window the page read, from the network - an ASN row's by the
+ * ASN its Cloudflare events carry, a /24's or a /48's by the addresses in
+ * it - as an address row's View requests opens its own. None for the row
+ * of requests whose address nobody knew: there is no address to read them
+ * by.
+ */
+export function buildCampaignNetworkEventsRoute(data: {
+  network: Pick<SecurityAttackNetwork, "network" | "kind">;
+  startTime: Date;
+  endTime: Date;
+}): Route | null {
+  const filter: SecurityAttackNetworkRequestsFilter | null =
+    getSecurityAttackNetworkRequestsFilter(data.network);
+
+  if (!filter) {
+    return null;
+  }
+
+  const pairs: Array<[string, string]> = [["className", "HTTP Activity"]];
+
+  for (const value of filter.asnValues) {
+    pairs.push([
+      `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_ATTACK_NETWORK_ASN_ATTRIBUTE}`,
+      value,
+    ]);
+  }
+
+  const search: string = writeNetworkAddressSearch(filter.addressGlobs);
+  const params: Dictionary<string> = {
+    ...buildSecurityEventFacetLinkParams(pairs),
+    ...getSecurityEventsTimeRangeLinkParams(data.startTime, data.endTime),
+    ...(search ? { search: encodeRouteQueryParamValue(search) } : {}),
   };
 
   return new Route(

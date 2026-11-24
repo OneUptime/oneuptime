@@ -22,6 +22,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import { getPlanRequiredMessage } from "../../Types/Billing/PlanRequiredRefusal";
 import ObjectID from "../../Types/ObjectID";
 
 /*
@@ -371,9 +372,7 @@ export default class TestSendAccess {
         )
       ) {
         throw new PaymentRequiredException(
-          "Please upgrade your plan to " +
-            requiredPlan +
-            " to access this feature",
+          getPlanRequiredMessage(requiredPlan),
         );
       }
     }

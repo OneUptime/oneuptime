@@ -450,14 +450,16 @@ export default class AppMetrics {
    * Users ingest handed Security Events' user vault, counted by how the
    * write ended. A failed or skipped write never fails or delays the
    * batch, whose records keep the token: the only loss is that Security
-   * Events cannot name those users, so this is where it shows.
+   * Events cannot name those users, so this is where it shows. A refused
+   * one is a person erased from the vault on request (#10908), whose token
+   * the vault never keeps again.
    */
   public static getUserVaultWriteCounter(): TelemetryCounter {
     if (!this.userVaultWriteCounter) {
       this.userVaultWriteCounter = Telemetry.getCounter({
         name: "oneuptime.security.user_vault.write.count",
         description:
-          "Users a Hash scrub rule hid that ingest wrote to Security Events' user vault, partitioned by signal and outcome (written, failed, skipped).",
+          "Users a Hash scrub rule hid that ingest wrote to Security Events' user vault, partitioned by signal and outcome (written, failed, skipped, refused).",
         unit: "1",
       });
     }

@@ -39,7 +39,7 @@ En **¿Cómo debemos localizarte?**, haz clic en **Obtener la app**, escanea el 
 
 ![El paso «¿Cómo debemos localizarte?», con «Activar SMS y llamadas» resaltado](screen:paging-reach-you)
 
-Los proyectos nuevos empiezan con los SMS y las llamadas desactivados. Si eres el propietario del proyecto, haz clic en **Activar SMS y llamadas**; a cualquier otra persona se le indica quién puede hacerlo. En OneUptime Cloud, si el saldo es de 1.00 USD o menos, haz clic en **Añadir saldo**, introduce entre 20 y 1.000 USD en **Importe (USD)** y haz clic en **Recargar**.
+Los proyectos nuevos empiezan con los SMS y las llamadas desactivados. Si eres el propietario del proyecto, haz clic en **Activar SMS y llamadas**; a cualquier otra persona se le indica quién puede hacerlo. En OneUptime Cloud, si el saldo es de 1.00 USD o menos, haz clic en **Añadir al saldo**, introduce entre 20 y 1.000 USD en **Importe (USD)** y haz clic en **Añadir al saldo**.
 
 ### Añadir tu número de teléfono
 

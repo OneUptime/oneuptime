@@ -337,7 +337,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
     expect(recovery()).toHaveTextContent(
       "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
     );
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText("This page stopped working")).toBeNull();
     expect(screen.queryByTestId("error-boundary-fallback")).toBeNull();
     // The menus outside the page stay put.
     expect(screen.getByTestId("side-menu")).toBeInTheDocument();
@@ -418,7 +418,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
     expect(screen.getByTestId("error-boundary-fallback")).toHaveTextContent(
       "A file it needs couldn't be downloaded from the server. Try reloading in a moment.",
     );
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText("This page stopped working")).toBeNull();
     // Drawing it again would fail the same way: no Try again.
     expect(screen.queryByTestId("error-boundary-try-again")).toBeNull();
     // Reload, the support bundle and the details are there for the reader.
@@ -696,7 +696,7 @@ describe("a page whose code did not download (the app's ErrorBoundary)", () => {
       </ErrorBoundary>,
     );
 
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText("This page stopped working")).toBeInTheDocument();
     expect(screen.getByTestId("error-boundary-try-again")).toBeInTheDocument();
     expect(screen.queryByTestId("chunk-load-recovery")).toBeNull();
     expect(reloadMock).not.toHaveBeenCalled();

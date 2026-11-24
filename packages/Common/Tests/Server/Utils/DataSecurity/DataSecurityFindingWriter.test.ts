@@ -370,6 +370,33 @@ describe("recordContentScan: findings", () => {
     expect(
       (createSpy.mock.calls[0]![0] as CreateBy<DataStoreFinding>).props,
     ).toEqual({ isRoot: true });
+    // Patterns found every one of them, not the names-and-addresses model.
+    expect(finding.isFoundByModel).toBe(false);
+  });
+
+  // The scanner's names-and-addresses model, run on free text (#10373).
+  test("a finding the names-and-addresses model made says so", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.tickets.body", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+              foundByModel: true,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    const finding: DataStoreFinding = findingAt(
+      "person-name",
+      "public.tickets.body",
+    );
+
+    expect(finding.isFoundByModel).toBe(true);
+    expect(finding.isFreeText).toBe(true);
   });
 
   test("a custom data type is named and graded as its project defined it; an unknown one by its id", async () => {
@@ -467,6 +494,8 @@ describe("recordContentScan: findings", () => {
       isFreeText: false,
       isNameHinted: true,
       isFoundByName: false,
+      // A pattern found it, not the names-and-addresses model (#10373).
+      isFoundByModel: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
       // A detector found it: it is not, or no longer, OneUptime AI's suggestion.

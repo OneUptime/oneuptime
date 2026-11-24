@@ -31,6 +31,28 @@ Tests/Ops/HelmEnvValuesQuoted.test.js holds every env value of the chart to it.
 {{- end -}}
 
 {{/*
+The app.kubernetes.io/name label of a resource the chart names after its own
+app (ClickHouse's), for that resource's metadata.labels:
+  app.kubernetes.io/name: {{ include "oneuptime.appNameLabel" (dict "name" "clickhouse" "root" $) }}
+It is that name, except in the Google Cloud Marketplace edition
+(enterpriseMarketplace.provider "google-cloud"), where it is the app's name,
+quoted so that a name of digits stays a string. Google's deployer labels
+every resource without an app.kubernetes.io/name with the app's name, and
+the console's Applications page lists an app's components by that label: a
+resource labelled "clickhouse" was left out of the list and of the app's
+status (#10989). Selectors and pod labels keep the name, so Services and
+StatefulSets select the same pods, and a StatefulSet's selector, which
+cannot change, stays as it was.
+*/}}
+{{- define "oneuptime.appNameLabel" -}}
+{{- if eq ((.root.Values.enterpriseMarketplace).provider | default "") "google-cloud" -}}
+{{- .root.Release.Name | quote -}}
+{{- else -}}
+{{- .name -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 The password of a database you run yourself (externalPostgres.password,
 externalValkey.password, externalClickhouse.password), as the chart stores it
 in the Secret the pods read it from:
@@ -2146,6 +2168,24 @@ values are set. Secrets can come from an existing Kubernetes secret.
 
 - name: SOURCE_MAP_RETENTION_DAYS
   value: {{ default 90 $.Values.sourceMaps.retentionDays | int64 | squote }}
+
+{{/*
+  What a grouped Incoming Request monitor keeps waiting to be evaluated, and
+  how many requests one job evaluates (#10652). The endpoint applies the
+  first two as it keeps each request, and the queue's workers the third, so
+  every pod reads the same block. Read through `dig` so a values file written
+  before these keys existed still renders, and `int64` for the reason above.
+  The schema holds each to its bounds; the app refuses a value outside them
+  too, and uses its default.
+*/}}
+- name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+  value: {{ dig "maxPendingRequestsPerMonitor" 1000 ($.Values.incomingRequests | default dict) | int64 | squote }}
+
+- name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+  value: {{ dig "maxPendingMegabytesPerMonitor" 16 ($.Values.incomingRequests | default dict) | int64 | squote }}
+
+- name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+  value: {{ dig "maxRequestsPerJob" 100 ($.Values.incomingRequests | default dict) | int64 | squote }}
 
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}

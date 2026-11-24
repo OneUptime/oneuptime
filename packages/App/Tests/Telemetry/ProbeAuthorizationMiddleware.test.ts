@@ -1,3 +1,4 @@
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeService from "Common/Server/Services/ProbeService";
 import Response from "Common/Server/Utils/Response";
 import logger from "Common/Server/Utils/Logger";
@@ -653,7 +654,7 @@ describe("a collection's key, before its report is parsed", () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(sentError()).toBeInstanceOf(BadDataException);
-      expect(sentError().message).toBe("Invalid Probe ID or Probe Key");
+      expect(sentError().message).toBe(ProbeConnectionRefusals.wrongIdOrKey);
       expect(req.probe).toBeUndefined();
       expect(probeService.updateLastAlive).not.toHaveBeenCalled();
     });
@@ -687,7 +688,9 @@ describe("a collection's key, before its report is parsed", () => {
         );
 
         expect(next).not.toHaveBeenCalled();
-        expect(sentError().message).toBe("ProbeId or ProbeKey is missing");
+        expect(sentError().message).toBe(
+          ProbeConnectionRefusals.missingIdOrKey,
+        );
         expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
       },
     );
@@ -764,7 +767,7 @@ describe("a collection's key, before its report is parsed", () => {
       );
 
       expect(next).not.toHaveBeenCalled();
-      expect(sentError().message).toBe("Invalid Probe ID or Probe Key");
+      expect(sentError().message).toBe(ProbeConnectionRefusals.wrongIdOrKey);
       expect(req.probe).toBeUndefined();
     });
 
@@ -800,7 +803,9 @@ describe("a collection's key, before its report is parsed", () => {
 
         expect(next).not.toHaveBeenCalled();
         expect(sentError()).toBeInstanceOf(BadDataException);
-        expect(sentError().message).toBe("ProbeId or ProbeKey is missing");
+        expect(sentError().message).toBe(
+          ProbeConnectionRefusals.missingIdOrKey,
+        );
         expect(req.probe).toBeUndefined();
         expect(probeService.verifyProbeKey).not.toHaveBeenCalled();
       },

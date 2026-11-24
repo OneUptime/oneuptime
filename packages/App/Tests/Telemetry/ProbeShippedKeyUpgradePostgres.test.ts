@@ -1,4 +1,5 @@
 // First: REGISTER_PROBE_KEY is read once, when EnvironmentConfig is first imported.
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { UPGRADE_SUITE_REGISTER_PROBE_KEY } from "./Helpers/ShippedKeyUpgradeRegisterKey";
 import ProbeRegisterAPI from "../../FeatureSet/Telemetry/API/ProbeIngest/Register";
 import ProbeIngestAPI from "../../FeatureSet/Telemetry/API/ProbeIngest/Probe";
@@ -433,7 +434,7 @@ describePostgres(
         PROBE_1_PLACEHOLDER,
       );
       expect(before.status).toBe(400);
-      expect(before.body["message"]).toBe("Invalid Probe ID or Probe Key");
+      expect(before.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
 
       await register({ probeKey: generatedKey(), probeName: "Probe-1" });
 

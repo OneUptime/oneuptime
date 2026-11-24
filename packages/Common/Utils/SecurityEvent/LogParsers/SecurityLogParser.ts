@@ -37,6 +37,8 @@ import WebAttackLogParser, { WEB_ATTACK_MARKERS } from "./WebAttackLogParser";
 import {
   REFUSED_STATUS_LOG_WORDS,
   SENSITIVE_FILE_PROBE_WORDS,
+  SENSITIVE_FILE_SECRET_WORDS,
+  SERVED_STATUS_LOG_WORDS,
 } from "../SensitiveFileProbe";
 import WindowsEventLogParser, {
   WINDOWS_PREFILTER_GROUPS,
@@ -300,6 +302,17 @@ export const SECURITY_LOG_PREFILTER: SecurityLogPrefilter = {
       requires: "/",
       requiresAnyOf: SENSITIVE_FILE_PROBE_WORDS,
       anyOf: REFUSED_STATUS_LOG_WORDS,
+    },
+    /*
+     * A file that holds secrets the site answered (#10912): its words and a
+     * 2xx status, read for what was sent - the file, a leak, or the site's
+     * own page. An admin page's words are none of these, so a WordPress
+     * site's own pages still never leave the database.
+     */
+    {
+      requires: "/",
+      requiresAnyOf: SENSITIVE_FILE_SECRET_WORDS,
+      anyOf: SERVED_STATUS_LOG_WORDS,
     },
   ],
 };

@@ -304,12 +304,13 @@ describe("dashboard header on small screens", () => {
     fireEvent.click(getButton(/User Profile/));
 
     /*
-     * The rows of a menu (#7237): Profile and Sign Out are menu items, the
-     * theme's choices menu item radios in a group named Theme. Sign Out is
-     * still a link to its page (its href, below).
+     * The rows of a menu (#7237): User Profile and Sign Out are menu items,
+     * the theme's choices menu item radios in a group named Theme. Sign Out
+     * is still a link to its page (its href, below). User Profile is the
+     * title of the page it opens (#7474), where it said Profile.
      */
     const entries: Array<HTMLElement> = [
-      screen.getByRole("menuitem", { name: "Profile" }),
+      screen.getByRole("menuitem", { name: "User Profile" }),
       screen.getByRole("group", { name: "Theme" }),
       screen.getByRole("menuitemradio", { name: "Light" }),
       screen.getByRole("menuitemradio", { name: "Dark" }),
@@ -335,7 +336,7 @@ describe("dashboard header on small screens", () => {
     );
   });
 
-  test("a master admin also gets admin settings there", async () => {
+  test("a master admin also gets the Admin Dashboard there, by the name it calls itself", async () => {
     isMasterAdminMock.mockReturnValue(true);
 
     await renderHeader();
@@ -343,8 +344,11 @@ describe("dashboard header on small screens", () => {
     fireEvent.click(getButton(/User Profile/));
 
     expect(
-      screen.getByRole("menuitem", { name: "Admin Settings" }),
+      screen.getByRole("menuitem", { name: "Admin Dashboard" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: "Admin Settings" }),
+    ).toBeNull();
   });
 
   test("the theme switch is reachable on a phone through that menu", async () => {

@@ -23,6 +23,7 @@ const yaml = require("js-yaml");
 const {
   needsOf,
   ancestorsOf,
+  afterEveryNeedSucceeded,
   stepCommand,
 } = require("./Utils/ReleaseWorkflow");
 
@@ -109,8 +110,8 @@ describe(`${RELEASE}: ${JOB}`, () => {
     for (const e2e of E2E_JOBS) {
       expect({ e2e, waited: waitsFor.has(e2e) }).toEqual({ e2e, waited: true });
     }
-    // No status function: Actions requires every job it needs to succeed.
-    expect(job.if).toBe("github.ref == 'refs/heads/release'");
+    // Every job it needs succeeded, whatever became of the jobs before them.
+    expect(job.if).toBe(afterEveryNeedSucceeded(job));
   });
 
   test(`reads its secret in the ${ENVIRONMENT} environment, may read the repository and nothing else, one run at a time`, () => {

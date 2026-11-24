@@ -15,6 +15,7 @@ import {
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import ObjectID from "../../Types/ObjectID";
 import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
@@ -38,7 +39,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItem),
             );
           }
 
@@ -54,7 +55,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notSignedIn),
             );
           }
 
@@ -70,19 +71,16 @@ export default class UserTelegramAPI extends BaseAPI<
             },
           });
 
-          if (!item) {
+          /*
+           * Somebody else's chat is answered exactly like one that does not
+           * exist (#7272), as is one in a project its owner left (below):
+           * the answer never says whether an id is someone's.
+           */
+          if (!item || item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          if (item.userId?.toString() !== userId.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -97,7 +95,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -163,7 +161,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItem),
             );
           }
 
@@ -175,7 +173,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notSignedIn),
             );
           }
 
@@ -190,19 +188,16 @@ export default class UserTelegramAPI extends BaseAPI<
             },
           });
 
-          if (!item) {
+          /*
+           * Somebody else's chat is answered exactly like one that does not
+           * exist (#7272), as is one in a project its owner left (below):
+           * the answer never says whether an id is someone's.
+           */
+          if (!item || item.userId?.toString() !== userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          if (item.userId?.toString() !== userId.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -217,7 +212,7 @@ export default class UserTelegramAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 

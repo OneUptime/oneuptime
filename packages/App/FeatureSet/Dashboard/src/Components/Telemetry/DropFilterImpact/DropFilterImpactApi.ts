@@ -18,6 +18,7 @@ import { normalizeFormValue } from "Common/UI/Components/Forms/Utils/AdvancedFor
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * WHAT A DROP OR SAMPLE FILTER WOULD TAKE, ASKED OF THE SERVER (#10436).
@@ -50,7 +51,10 @@ interface CachedAnswer {
   answer: Promise<DropFilterImpact>;
 }
 
-const answers: Map<string, CachedAnswer> = new Map<string, CachedAnswer>();
+const answers: OldestKeyMap<string, CachedAnswer> = new OldestKeyMap<
+  string,
+  CachedAnswer
+>();
 
 function readText(value: unknown): string {
   const normalized: unknown = normalizeFormValue(value);
@@ -148,7 +152,7 @@ export default class DropFilterImpactApi {
     });
 
     while (answers.size > MAX_CACHED_ANSWERS) {
-      const oldest: string | undefined = answers.keys().next().value;
+      const oldest: string | undefined = answers.oldestKey();
 
       if (oldest === undefined) {
         break;

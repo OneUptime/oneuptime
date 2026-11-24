@@ -1,5 +1,4 @@
 import {
-  findAddressAtEnd,
   findImageSpans,
   findLinkSpans,
   LinkSpan,
@@ -26,8 +25,9 @@ import { describe, expect, test } from "@jest/globals";
  * tests hold them to the patterns on every text of up to seven pieces,
  * on drawn texts, and on the texts that were slow.
  *
- * findAddressAtEnd reads the address of the image placeholder the editor
- * puts in while an image uploads, as /\(([^)]+)\)\s*$/ read it.
+ * The editor finds an uploading image's placeholder by its address now
+ * (MarkdownImageUploads' findUploadPlaceholder, #10974), where it read the
+ * address off the placeholder's end: MarkdownImageUploads.test.ts holds it.
  * ---------------------------------------------------------------------------
  */
 
@@ -38,7 +38,6 @@ const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
 // The patterns as they were: the references the readers must agree with.
 const IMAGE_BEFORE: RegExp = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g;
 const LINK_BEFORE: RegExp = /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g;
-const ADDRESS_AT_END_BEFORE: RegExp = /\(([^)]+)\)\s*$/;
 
 // What a match is written as in these tests: its groups, a missing title as null.
 const written: (
@@ -77,14 +76,6 @@ const replacedNow: (text: string, spans: Array<LinkSpan>) => string = (
   return replaceLinkSpans(text, spans, (span: LinkSpan): string => {
     return written(span.words, span.address, span.title);
   });
-};
-
-const addressAtEndBefore: (text: string) => string | null = (
-  text: string,
-): string | null => {
-  const match: RegExpMatchArray | null = text.match(ADDRESS_AT_END_BEFORE);
-
-  return match ? match[1] || null : null;
 };
 
 /*
@@ -307,37 +298,6 @@ describe("the spans are exactly what the patterns matched", () => {
     expect(differences).toEqual([]);
     expect(matched).toBeGreaterThan(10000);
   });
-
-  test("findAddressAtEnd, on every text of up to eight pieces and on drawn ones", () => {
-    const { texts, differences } = exhaustive(
-      ["(", ")", "a", " ", "\t", "!", "[", "]"],
-      8,
-      (text: string): boolean => {
-        return findAddressAtEnd(text) === addressAtEndBefore(text);
-      },
-    );
-
-    expect(differences).toEqual([]);
-    expect(texts).toBe(19173961);
-
-    const drawn: Array<string> = [];
-
-    for (const text of generatedTexts(
-      50000,
-      9091,
-      ["(", ")", "((", "))", "a", " ", "\n", LINE_SEPARATOR, "![x](", "y)"],
-      30,
-    )) {
-      if (findAddressAtEnd(text) !== addressAtEndBefore(text)) {
-        drawn.push(JSON.stringify(text));
-      }
-    }
-
-    expect(drawn).toEqual([]);
-    expect(
-      findAddressAtEnd("![Uploading a.png…](oneuptime-uploading-1f-2a)"),
-    ).toBe("oneuptime-uploading-1f-2a");
-  });
 });
 
 describe("a line built to be slow is read quickly", () => {
@@ -372,7 +332,6 @@ describe("a line built to be slow is read quickly", () => {
       timeOf(() => {
         replacedNow(text, findImageSpans(text));
         replacedNow(text, findLinkSpans(text));
-        findAddressAtEnd(text);
       }),
     ).toBeLessThan(2000);
 
@@ -382,16 +341,5 @@ describe("a line built to be slow is read quickly", () => {
         markdownToHtml(text);
       }),
     ).toBeLessThan(2000);
-  });
-
-  test("an upload placeholder's address after many parentheses", () => {
-    const text: string = repeat("(", LENGTH) + "a)" + repeat(" ", LENGTH);
-
-    expect(
-      timeOf(() => {
-        findAddressAtEnd(text);
-      }),
-    ).toBeLessThan(2000);
-    expect(findAddressAtEnd(text)).toBe(repeat("(", LENGTH - 1) + "a");
   });
 });

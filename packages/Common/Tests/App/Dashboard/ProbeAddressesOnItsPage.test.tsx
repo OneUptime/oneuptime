@@ -122,7 +122,12 @@ type ListResultJSON = {
 };
 
 function listOf(rows: Array<BaseModel>): Promise<ListResultJSON> {
-  return Promise.resolve({ data: rows, count: rows.length, skip: 0, limit: 10 });
+  return Promise.resolve({
+    data: rows,
+    count: rows.length,
+    skip: 0,
+    limit: 10,
+  });
 }
 
 function probe(data: {
@@ -395,11 +400,11 @@ describe("how an address is shown", () => {
     render(<ProbeAddresses value={INTERFACE_ADDRESSES} isList={true} />);
 
     expect(
-      screen.getAllByTestId(PROBE_ADDRESS_TEST_ID).map(
-        (item: HTMLElement): string => {
+      screen
+        .getAllByTestId(PROBE_ADDRESS_TEST_ID)
+        .map((item: HTMLElement): string => {
           return item.textContent || "";
-        },
-      ),
+        }),
     ).toEqual(["10.0.0.4", "10.244.1.7", "fd00::4"]);
   });
 });

@@ -9,6 +9,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
+  SECURITY_REPEAT_OFFENDER_WINDOW_IN_MS,
   SecurityRepeatOffenderRecord,
   SecurityRepeatOffenderSummary,
   getSecurityRepeatOffenderRecordBefore,
@@ -27,6 +28,7 @@ import {
 } from "../../Types/SecurityBlocklist/SecurityBlock";
 import SecurityCaseService from "../Services/SecurityCaseService";
 import SecurityRepeatOffenders from "../Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import SecurityRepeatOffenderNetworks from "../Utils/SecurityAutomaticResponse/SecurityRepeatOffenderNetworks";
 import { isSecurityBlockEnforcementHolding } from "../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import QueryHelper from "../Types/Database/QueryHelper";
 import SecurityBlockEnforcementService from "../Services/SecurityBlockEnforcementService";
@@ -452,8 +454,10 @@ export default class SecurityBlockAPI extends BaseAPI<
   /*
    * The repeat offenders among the addresses asked about: blocked in the
    * 30 days before the case opened (its own blocks left out), or before
-   * now when no case is named. A case the caller may not read is not
-   * found. Addresses blocked never before are left out of the answer.
+   * now when no case is named - an address's own blocks, its ranges', and
+   * those of the networks its Cloudflare events say it sent from (#10895).
+   * A case the caller may not read is not found. Addresses blocked never
+   * before are left out of the answer.
    */
   public static async readRepeatOffenders(data: {
     projectId: ObjectID;
@@ -502,15 +506,33 @@ export default class SecurityBlockAPI extends BaseAPI<
       excludingCaseId = securityCase.id.toString();
     }
 
+    /*
+     * The networks each address sent from, as its Cloudflare events named
+     * them over the record's window (#10895): a network challenged by its
+     * ASN held the address too. One read for every address; a read that
+     * fails names none, and each record counts its own blocks.
+     */
+    const asnsOf: Map<
+      string,
+      Array<string>
+    > = await SecurityRepeatOffenderNetworks.readAsns({
+      projectId: data.projectId,
+      addresses: values,
+      since: new Date(before.getTime() - SECURITY_REPEAT_OFFENDER_WINDOW_IN_MS),
+      until: before,
+    });
+
     const summaries: Array<SecurityRepeatOffenderSummary> = [];
 
     for (const value of values) {
+      const asns: Array<string> = asnsOf.get(value) || [];
       const record: SecurityRepeatOffenderRecord =
         getSecurityRepeatOffenderRecordBefore({
           record: await SecurityRepeatOffenders.read({
             projectId: data.projectId,
             value,
             now: before,
+            ...(asns.length > 0 ? { asns } : {}),
           }),
           before,
           excludingCaseId,

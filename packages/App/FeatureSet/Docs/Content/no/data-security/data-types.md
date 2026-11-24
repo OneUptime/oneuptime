@@ -42,6 +42,8 @@ Bare funn med Høy og Middels konfidens teller: de gjør et datalager sensitivt 
 
 Når to datatyper gjør krav på de samme tegnene, vinner det sikreste funnet: høyest konfidens, deretter detektoren med egne regler som beviser mest, deretter det lengste treffet.
 
+En verdi leses også slik folk skriver den. Prosentkodingene i en URL leses, så en IP-adresse eller en e-postadresse i en spørrestreng, som `jane%40example.com`, blir funnet. Sifrene i et kortnummer leses i enhver skrift, som sifre i full bredde (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiske sifre, først hver skrift for seg og så sammen. En e-postadresse blir funnet i enhver skrift, som `张伟@example.com` eller `почта@пример.рф`, og en IPv6-adresse rett etter kolonet til en nøkkel, som `ip:2001:db8::1`. Hvert funn er verdien slik den er skrevet, så en rensingsregel skjuler den der.
+
 En lang verdi leses i vinduer på 64 KB som overlapper med 4 KB, så en verdi blir funnet hel uansett hvor den står, og høyst 4 MB av én verdi leses.
 
 ## Felt og kolonner

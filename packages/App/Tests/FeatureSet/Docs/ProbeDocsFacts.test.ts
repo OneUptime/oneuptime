@@ -1,3 +1,4 @@
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
@@ -1321,15 +1322,25 @@ describe("the Custom Probes page: troubleshooting", () => {
     const config: string = readSource(PROBE_CONFIG);
     const register: string = readSource(PROBE_REGISTER);
 
-    expect(config).toContain('logger.error("PROBE_KEY is not set");');
+    expect(config).toContain("logger.error(ProbeStartupMessages.noProbeKey);");
     expect(config).toContain(
-      'logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");',
+      "logger.error(ProbeStartupMessages.noServerAddress);",
     );
-    expect(register).toContain(
-      'logger.error("PROBE_ID or REGISTER_PROBE_KEY should be set");',
-    );
+    expect(register).toContain("logger.error(ProbeStartupMessages.noProbeId);");
+    // Each line opens with what is missing, as the page quotes it (#7273).
+    expect(
+      ProbeStartupMessages.noProbeKey.startsWith("PROBE_KEY is not set,"),
+    ).toBe(true);
+    expect(
+      ProbeStartupMessages.noServerAddress.startsWith(
+        "Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set,",
+      ),
+    ).toBe(true);
+    expect(
+      ProbeStartupMessages.noProbeId.startsWith("PROBE_ID is not set,"),
+    ).toBe(true);
     expect(troubleshooting).toContain(
-      "Its log names what is missing: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set`, or `PROBE_ID or REGISTER_PROBE_KEY should be set`.",
+      "Its log names what is missing: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set`, or `PROBE_ID is not set`.",
     );
   });
 
