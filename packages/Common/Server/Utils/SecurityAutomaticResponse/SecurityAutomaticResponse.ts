@@ -62,7 +62,10 @@ import {
   SecurityPlaybookTargetReason,
   SecurityPlaybookTargetState,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
-import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../Utils/Markdown/FeedMarkdown";
 import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import {
   automaticResponseLimitMarkdown,
@@ -1234,11 +1237,14 @@ export default class SecurityAutomaticResponse {
     return await SecurityAutomaticResponseOwners.page({
       projectId: data.projectId,
       title: `Automatic response stopped at its limit of ${describeAutomaticBlockCount(data.limit)} an hour`,
-      descriptionInMarkdown: [
-        `Your automatic response policies reached your project's limit of ${describeAutomaticBlockCount(data.limit)} an hour, so they stopped blocking. An attack this large needs a person.`,
-        ``,
-        `The ${data.policyName} policy did not act on \`${data.address}\`. Open Security Events -> Playbooks -> Automatic Response to see what the policies did, or to change the limit under More settings, and the case to block addresses by hand.`,
-      ].join("\n"),
+      // A policy's name is a person's to write: placed as text, never as Markdown.
+      descriptionInMarkdown: FeedMarkdown.join(
+        [
+          mdText`Your automatic response policies reached your project's limit of ${describeAutomaticBlockCount(data.limit)} an hour, so they stopped blocking. An attack this large needs a person.`,
+          mdText`The ${data.policyName} policy did not act on \`${data.address}\`. Open Security Events -> Playbooks -> Automatic Response to see what the policies did, or to change the limit under More settings, and the case to block addresses by hand.`,
+        ],
+        "\n\n",
+      ).toString(),
     });
   }
 

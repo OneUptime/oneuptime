@@ -80,6 +80,11 @@ import ts from "typescript";
  *     the audit evidence's reader (AuditEvidenceReader) only shapes the
  *     facts the page shows and a draft is built from, with the input
  *     builder's types, and asks no model;
+ *   - the discovery of the data types a project's own fields make (#10371)
+ *     runs DataTypeDiscovery.runForProject, which decides the proofs under
+ *     way from their counts and asks no model, then asks
+ *     AIService.isProjectAIEnabled and drafts nothing with it off
+ *     (DataTypeDiscovery.test);
  *   - the job that assesses an exposure a Critical issue opened a case for
  *     (#10377) runs ExposureAssessmentRun.run: plain code's assessment -
  *     the window, the reads, whose data, the secrets and the breach laws -
@@ -193,6 +198,11 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun",
       uses: ["ExposureAssessmentRun.run"],
+    },
+    // The data types a project's own fields make (#10371): drafted only with Enable AI on.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
+      uses: ["DataTypeDiscovery.runForProject"],
     },
   ],
   "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [

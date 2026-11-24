@@ -170,6 +170,8 @@ const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActionContext.ts",
   // Derives, under a label of its own, the key a public note approval button's value is signed with.
   "packages/Common/Server/Utils/Workspace/WorkspacePublicNoteApproval.ts",
+  // Derives, under a label of its own, the key a playbook step approval button's value is signed with (#10341).
+  "packages/Common/Server/Utils/Workspace/WorkspaceSecurityPlaybookApproval.ts",
 ];
 
 const TOKEN_SIGNING_KEY_USE: RegExp = /\bTokenSigningKey\.(?:get|deriveKey)\(/;
