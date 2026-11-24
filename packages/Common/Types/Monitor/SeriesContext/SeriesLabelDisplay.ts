@@ -450,8 +450,9 @@ const LabelPriority: Record<string, number> = {
   vmid: 25,
   /*
    * XCP-ng: the object that breached by its name (a VM, a virtual disk, a
-   * storage repository, a host), then its UUID, then the host it runs on,
-   * then the pool and the Xen Orchestra that merely scope it.
+   * storage repository), then the host - a host's own name, or the host a
+   * VM runs on - then the object's UUID, then the pool and the Xen
+   * Orchestra that merely scope it.
    */
   vm_name: 25,
   vdi_name: 25,

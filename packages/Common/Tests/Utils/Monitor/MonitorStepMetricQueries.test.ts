@@ -21,8 +21,12 @@ import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
   StorageArrayResourceFilterScopes,
   VMwareResourceFilterAttributeKeys,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  XcpNgResourceFilterAttributeKeys,
   applyStorageArrayResourceFilters,
   applyVMwareResourceFilters,
+  applyXcpNgResourceFilters,
+  getXcpNgStepPoolIdentifier,
 } from "../../../Utils/Monitor/MonitorStepMetricQueries";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
@@ -396,6 +400,53 @@ describe("the filters each monitor type reads its queries with", () => {
     });
   });
 
+  test("XCP-ng: the pool by its UUID as ingest stores it, never its name, and each filter on its datapoint attribute", () => {
+    expect(
+      readOf({
+        monitorType: MonitorType.XcpNg,
+        stepKey: "xcpNgMonitor",
+        settings: {
+          poolIdentifier: " 1E8B7C4A-3F2D-4B6E-9A1C-0D5E7F9B2A3C ",
+          resourceFilters: {
+            scope: "VM",
+            xcpNgId: "B1B2C3D4-0000-4000-8000-000000000011",
+            hostName: " XCP-Host-01 ",
+          },
+        },
+      }),
+    ).toEqual({
+      "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+      "xcp_ng.scope": "vm",
+      "xcp_ng.id": "b1b2c3d4-0000-4000-8000-000000000011",
+      // Xen Orchestra's name for the host, kept as it wrote it.
+      host_name: "XCP-Host-01",
+    });
+
+    // A query's own filter on the pool's name stays the query's.
+    expect(
+      readOf({
+        monitorType: MonitorType.XcpNg,
+        stepKey: "xcpNgMonitor",
+        settings: { poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c" },
+        query: queryOf({
+          attributes: { "resource.xcp_ng.pool.name": "Production" },
+        }),
+      }),
+    ).toEqual({
+      "resource.xcp_ng.pool.name": "Production",
+      "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+    });
+
+    // No pool and no filters: read with nothing, as the worker reads it.
+    expect(
+      readOf({
+        monitorType: MonitorType.XcpNg,
+        stepKey: "xcpNgMonitor",
+        settings: { poolIdentifier: 42, resourceFilters: { hostName: 7 } },
+      }),
+    ).toBeUndefined();
+  });
+
   test("IoT: the fleet whatever its case, the device and its type; a saved scope is ignored", () => {
     expect(
       readOf({
@@ -726,6 +777,41 @@ describe("the shared filter maps (moved from the worker)", () => {
       metricName: "purefa_volume_space_bytes",
     });
     expect(attributes).toEqual({ kept: "yes" });
+  });
+});
+
+describe("XCP-ng's shared pieces (the worker reads them too)", () => {
+  test("the pool is read on the resource attribute the XCP-ng Agent stamps", () => {
+    expect(XCP_NG_POOL_RESOURCE_ATTRIBUTE).toBe("resource.xcp_ng.pool.id");
+  });
+
+  test("a step's pool is its UUID trimmed and lower-cased; anything not text is no pool", () => {
+    expect(
+      getXcpNgStepPoolIdentifier(" 1E8B7C4A-3F2D-4B6E-9A1C-0D5E7F9B2A3C "),
+    ).toBe("1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c");
+    for (const notText of [undefined, null, 42, true, {}, ["a"]]) {
+      expect(getXcpNgStepPoolIdentifier(notText)).toBe("");
+    }
+    expect(getXcpNgStepPoolIdentifier("   ")).toBe("");
+  });
+
+  test("every filter the step offers maps to the datapoint attribute ingest stamps", () => {
+    expect(XcpNgResourceFilterAttributeKeys).toEqual({
+      scope: "xcp_ng.scope",
+      xcpNgId: "xcp_ng.id",
+      hostName: "host_name",
+    });
+  });
+
+  test("no filters, or filters that are not an object, leave the attributes alone", () => {
+    for (const resourceFilters of [undefined, "vm", 42]) {
+      const attributes: Dictionary<string> = { kept: "yes" };
+      applyXcpNgResourceFilters({
+        attributes,
+        resourceFilters: resourceFilters as unknown as undefined,
+      });
+      expect(attributes).toEqual({ kept: "yes" });
+    }
   });
 });
 
