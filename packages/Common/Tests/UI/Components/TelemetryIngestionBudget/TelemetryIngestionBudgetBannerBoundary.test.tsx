@@ -36,7 +36,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../UI/Components/TelemetryUsage/TelemetryUsageWords",
-    );
+    ) as Record<string, unknown>;
 
     return {
       ...actual,
