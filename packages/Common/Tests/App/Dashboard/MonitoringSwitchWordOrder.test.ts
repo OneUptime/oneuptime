@@ -23,6 +23,7 @@ import {
  */
 
 const TURN_ON_OR_OFF: RegExp = /\bturn\b.*\b(on|off)\b/i;
+const MONITORING: RegExp = /monitoring/i;
 
 // The one word order: "Turn monitoring on", "Turn monitoring off ...".
 const ONE_WORD_ORDER: RegExp = /^Turn monitoring (on|off)\b/;
@@ -40,7 +41,7 @@ function switchWords(): Array<string> {
     ...Object.values(MonitoringSwitchCopy),
     ...Object.values(MonitorGroupMonitoringCopy),
   ].filter((text: string): boolean => {
-    return TURN_ON_OR_OFF.test(text) && /monitoring/i.test(text);
+    return TURN_ON_OR_OFF.test(text) && MONITORING.test(text);
   });
 }
 
