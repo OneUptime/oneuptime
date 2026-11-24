@@ -757,6 +757,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COSTS]: `costs`,
   [PageMap.CLOUD_SAVINGS]: `savings`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
+  [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_COST_GROUP_VIEW]: `cost-groups/${RouteParams.ModelID}/groups/${RouteParams.SubModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -7038,6 +7041,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUPS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUP_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW]
     }`,
   ),
 

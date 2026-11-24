@@ -142,6 +142,19 @@ export class Service extends ProjectReferencesService<Model> {
     return references;
   }
 
+  // Whether two sets of rules read differently, as the allocation reads them.
+  public static rulesDiffer(stored: unknown, sent: unknown): boolean {
+    const read: (value: unknown) => string = (value: unknown): string => {
+      try {
+        return JSON.stringify(readCloudCostRules(value));
+      } catch {
+        return JSON.stringify(value ?? null);
+      }
+    };
+
+    return read(stored) !== read(sent);
+  }
+
   protected override getJsonReferenceColumns(): Array<JsonReferenceColumn> {
     return [
       {
@@ -280,14 +293,28 @@ export class Service extends ProjectReferencesService<Model> {
     if (changesRules || changesPercentages) {
       const groups: Array<Model> = await this.findBy({
         query: updateBy.query,
-        select: { _id: true, automaticKey: true, cloudCostViewId: true },
+        select: {
+          _id: true,
+          automaticKey: true,
+          cloudCostViewId: true,
+          rules: true,
+        },
         props: { isRoot: true },
         limit: CLOUD_COST_MAX_GROUPS_PER_VIEW,
         skip: 0,
       });
 
       for (const group of groups) {
-        if (changesRules && group.automaticKey && !updateBy.props.isRoot) {
+        /*
+         * A form sends every field it shows, so a renamed group sends its
+         * rules too: only rules that differ from its own are refused.
+         */
+        if (
+          changesRules &&
+          group.automaticKey &&
+          !updateBy.props.isRoot &&
+          Service.rulesDiffer(group.rules, updateBy.data.rules)
+        ) {
           throw new BadDataException(CLOUD_COST_GROUP_AUTOMATIC_RULES_ERROR);
         }
 
