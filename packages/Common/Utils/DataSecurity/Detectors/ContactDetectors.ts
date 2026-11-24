@@ -125,13 +125,16 @@ export function isTestEmail(email: string): boolean {
   });
 }
 
+// An address in one spelling: lower case, and its accents composed (é as one character, not e and a mark).
+function normalizeEmail(value: string): string {
+  return value.normalize("NFC").toLowerCase();
+}
+
 const emailDetector: DataTypeDetector = {
   dataTypeId: "email-address",
   quickCheck: containsAny(["@"]),
   pattern: EMAIL_PATTERN,
-  normalize: (value: string): string => {
-    return value.toLowerCase();
-  },
+  normalize: normalizeEmail,
   validate: (normalized: string): boolean => {
     return isValidEmail(normalized);
   },
@@ -139,7 +142,81 @@ const emailDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.High,
   specificity: 2,
   isTestValue: isTestEmail,
+  /*
+   * An address in a percent-encoded URL: jane.doe%40acmecorp.io in
+   * /signup?email=jane.doe%40acmecorp.io, as browsers and HTTP clients
+   * write a query string (#10935). Read decoded, its "@" (%40), dots (%2E)
+   * and plus signs (%2B) are what they stand for, and the finding - and
+   * what an Email Address rule hides - is the encoded address whole.
+   */
+  readsPercentEncoded: true,
 };
+
+/*
+ * An email address in any script, as RFC 6531 allows one (#10960):
+ * josé@example.com, 张伟@example.com, user@例え.jp, почта@пример.рф, and one
+ * whose top-level domain is punycode (user@пример.xn--p1ai). EMAIL_PATTERN
+ * reads a name, a domain and a top-level domain in ASCII alone, so none of
+ * them was found. Read as the OneUptime Android agent's redactor reads one
+ * (Utils/Host/AndroidAgentRedactor.ts, EMAIL_ADDRESS, #10937), so the two
+ * agree on what an address is:
+ *
+ *  - its name is Latin, in ASCII or not (josé, müller), or in the letters
+ *    of other scripts (张伟, почта), each with digits, marks and "._%+-",
+ *    but not both: where the two meet is where an address begins, so a
+ *    letter of another script right before an ASCII address is no part of
+ *    it (邮箱jane@example.com is jane@example.com). Each starts right after
+ *    none of its own characters, and a name in another script holds at
+ *    least one of their letters;
+ *  - neither starts with a digit right after a digit and a space: that is
+ *    the next group of a number, and a card written in groups keeps its
+ *    last one (4111 1111 1111 1111é@例え.jp);
+ *  - its domain holds the letters, marks and digits of any script, or
+ *    punycode (例え is xn--r8jz45g), and its top-level domain is ASCII
+ *    letters, punycode - which always holds a letter, so "xn--4111" is none
+ *    - or another script's letters (рф, 中国);
+ *  - it ends right before no ASCII letter, digit, "_" or "-", so a letter
+ *    of another script after an ASCII top-level domain is no part of it
+ *    (jane@example.com已发送). One in another script takes in the letters
+ *    of its script written right after it: nothing tells where it ends.
+ *
+ * Where the redactor writes a domain as labels repeated without bound, this
+ * reads it as EMAIL_PATTERN does, one run of at most 253 characters with
+ * its dots, and isValidEmail judges its labels. The database cannot run
+ * Unicode classes as JavaScript reads them (DetectorPrefilter writes no u
+ * pattern), so it narrows by an "@" beside a character beyond ASCII: an
+ * address this alone finds holds one, and an ASCII one is narrowed by
+ * EMAIL_PATTERN's expression.
+ */
+const UNICODE_EMAIL_PATTERN: RegExp =
+  /(?<!\p{Nd} (?=\p{Nd}))(?:(?<![\p{sc=Latin}\p{M}\p{Nd}._%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}.-]{1,253}\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])/gu;
+
+/*
+ * A character beyond ASCII, then up to an address's name of anything but
+ * "@" and a space, then "@"; or "@", then up to a domain and its top-level
+ * domain of the same, then a character beyond ASCII. Written as
+ * DetectorPrefilter writes RE2: each character as \x{...}.
+ */
+const UNICODE_EMAIL_PREFILTER: string =
+  "[^\\x{0}-\\x{7F}][^\\x{40}\\x{9}-\\x{D}\\x{20}]{0,64}\\x{40}|\\x{40}[^\\x{40}\\x{9}-\\x{D}\\x{20}]{0,280}[^\\x{0}-\\x{7F}]";
+
+const unicodeEmailDetector: DataTypeDetector = {
+  ...emailDetector,
+  pattern: UNICODE_EMAIL_PATTERN,
+  prefilter: UNICODE_EMAIL_PREFILTER,
+};
+
+/*
+ * WHAT DATA SECURITY CALLS AN EMAIL ADDRESS: an address in ASCII, and one
+ * in any script, each read percent-encoded too. An Email Address scrub rule
+ * hides what these find, as well as what its own pattern does
+ * (Utils/Telemetry/ScrubBuiltInPatterns.ts), so a finding and the rule that
+ * covers it never disagree on what an address is.
+ */
+export const EMAIL_ADDRESS_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  emailDetector,
+  unicodeEmailDetector,
+];
 
 /*
  * ITU-T E.164 country calling codes that are in use. A "+" number whose
@@ -1113,6 +1190,7 @@ const vinDetector: DataTypeDetector = {
 
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
+  unicodeEmailDetector,
   internationalPhoneDetector,
   nanpFormattedDetector,
   ukMobileDetector,
