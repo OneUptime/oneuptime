@@ -595,6 +595,9 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodScrubRulesAnswer(testCase);
     case DataSecurityAiFeature.ReviewPullRequests:
       return goodPullRequestAnswer(testCase);
+    // The fix a person would make, as the eval set of recorded leaks keeps it (#10367).
+    case DataSecurityAiFeature.FixTelemetryLeaks:
+      return fixAnswer(testCase.evalSetCase.solution);
     case DataSecurityAiFeature.DraftRecord:
     case DataSecurityAiFeature.DraftRecordOnRequest:
       return goodRecordAnswer(testCase);

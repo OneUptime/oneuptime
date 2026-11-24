@@ -102,6 +102,8 @@ import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCh
 import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueCodeFix from "../Utils/DataSecurity/DataSecurityIssueCodeFix";
+import TelemetryLeakFix from "../Utils/DataSecurity/TelemetryLeakFix";
 import FindingApplyToSimilar from "../Utils/DataSecurity/FindingApplyToSimilar";
 import DataSecurityIssueContainmentReader from "../Utils/DataSecurity/DataSecurityIssueContainment";
 import DataSecurityIssueGroupFix, {
@@ -201,6 +203,14 @@ import ProductKey from "../../Types/Product/ProductKey";
  *    each name a data type as the project does (ProjectDataTypeNames,
  *    #10363), and build what they send through DataSecurityAiInput, the
  *    one way a Data Security prompt is made (#10365);
+ *  - for a service's telemetry issue, Fix with AI opens one pull request
+ *    for every open telemetry leak of the service (#10367): what it would
+ *    do first - where each leak is written, found from the records it was
+ *    seen in, the files OneUptime AI starts from, the issues it fixes and
+ *    the repository (TelemetryLeakFix) - then the plan the person was
+ *    shown, never one that changed since; and where an issue's fix in code
+ *    stands, its pull request and its state (DataSecurityIssueCodeFix), for
+ *    anyone who may read the issue;
  *  - What OneUptime AI sees, for Settings > OneUptime AI: the model each
  *    feature runs on and the exact input one issue would send, each to who
  *    may read it (DataSecurityAiSettings);
@@ -1317,6 +1327,26 @@ export default class DataSecurityAPI extends BaseAPI<
         });
         const body: JSONObject = (req.body || {}) as JSONObject;
 
+        /*
+         * A service's telemetry issue (#10367): one pull request for every
+         * open telemetry leak of the service, from the places its records
+         * name - the plan the person was shown, held to it.
+         */
+        if (
+          await TelemetryLeakFix.serviceOfIssue({
+            projectId,
+            issue,
+          })
+        ) {
+          return (await TelemetryLeakFix.runForIssue({
+            projectId,
+            issueId: issue.id!,
+            props,
+            codeRepositoryId: body["codeRepositoryId"],
+            expectedPlanFingerprint: body["expectedPlanFingerprint"],
+          })) as unknown as JSONObject;
+        }
+
         return (await DataSecurityCodeTask.requestFix({
           props,
           projectId,
@@ -1337,6 +1367,52 @@ export default class DataSecurityAPI extends BaseAPI<
         })) as unknown as JSONObject;
       },
       { startsCodeWork: true },
+    );
+
+    /*
+     * What Fix with AI on a telemetry issue would do now (#10367): the plan
+     * of its service's one pull request - where each leak is written, the
+     * files OneUptime AI starts from, the issues it fixes, the repository -
+     * for who may ask for it: who may change the issue. Nothing starts.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(":id"),
+      ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (
+          await TelemetryLeakFix.planForIssue({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          })
+        ).result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * Where the issue's fix in code stands (#10367), for anyone who may read
+     * the issue: its task and its pull request's state, each read with
+     * Code's own rules (DataSecurityIssueCodeFix) - and, for a secret,
+     * where it was seen, to rotate it.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueCodeFix(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataSecurityIssueCodeFix.read({
+          projectId,
+          issueId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
     );
 
     /*

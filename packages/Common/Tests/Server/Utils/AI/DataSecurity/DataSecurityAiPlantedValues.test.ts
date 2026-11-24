@@ -19,7 +19,9 @@ import UserMiddleware from "../../../../../Server/Middleware/UserAuthorization";
 import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../../../Server/Services/AIService";
-import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import CodeRepositoryService, {
+  Service as CodeRepositoryServiceClass,
+} from "../../../../../Server/Services/CodeRepositoryService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityFlowService from "../../../../../Server/Services/DataSecurityFlowService";
@@ -32,6 +34,9 @@ import DataStoreOwnerUserService from "../../../../../Server/Services/DataStoreO
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
+import LogService from "../../../../../Server/Services/LogService";
+import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
+import ProductionReviewScope from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
@@ -833,6 +838,114 @@ const fixIssueGroupRun: () => Promise<string> = async (): Promise<string> => {
 };
 
 /*
+ * A service's telemetry leaks, fixed in its code (#10367): Fix with AI on
+ * the service's telemetry issue, over HTTP - its leaks read from the
+ * finding, located from the records it was seen in (planted with values
+ * where a record keeps them: the line it logged, its ids), placed in the
+ * repository and planned - to the Code task it queues. The records name
+ * one line of code read with two different values: only its template, the
+ * values masked, may go.
+ */
+function plantedLeakRows(): Array<JSONObject> {
+  return [
+    {
+      recordTime: 1795000000000,
+      readLogId: PLANTED["sampleRecordLog"],
+      readFile1: "/usr/src/app/src/signup.js",
+      readLine1: "12",
+      readFunction1: "signUp",
+      readScope: "checkout",
+      readBody: `Signed up ${PLANTED["maskedSample"]} from ${PLANTED["sampleRecordTrace"]}`,
+    },
+    {
+      recordTime: 1795000000001,
+      readLogId: "10367000-0000-4000-8000-000000000701",
+      readFile1: "/usr/src/app/src/signup.js",
+      readLine1: "12",
+      readFunction1: "signUp",
+      readScope: "checkout",
+      readBody: `Signed up ${PLANTED["cloudSecret"]} from ${PLANTED["scanCursor"]}`,
+    },
+  ];
+}
+
+const fixTelemetryLeaksRun: () => Promise<string> =
+  async (): Promise<string> => {
+    useInMemoryTable(asService(ServiceService), [
+      {
+        _id: CHECKOUT_SERVICE_ID,
+        projectId: PROJECT_ID.toString(),
+        name: "checkout",
+      },
+    ]);
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID),
+      storeRow(TELEMETRY_STORE_ID, {
+        name: "checkout · Logs",
+        // DataStoreKind.TelemetryLogs: the service's own logs.
+        kind: "Logs",
+        provider: "oneuptime",
+        serviceId: CHECKOUT_SERVICE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    // The records the finding was seen in, as the locator's read returns them.
+    const recordReads: SpyInstance<typeof LogService.executeQuery> = jest
+      .spyOn(LogService, "executeQuery")
+      .mockResolvedValue({
+        json: async (): Promise<{ data: Array<JSONObject> }> => {
+          return { data: plantedLeakRows() };
+        },
+      } as never);
+    // The project's one repository, whose tree holds the file the records name.
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "infra",
+          organizationName: "acme",
+          repositoryName: "infra",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/signup.js", "src/telemetry.js"]);
+    jest
+      .spyOn(ProductionReviewScope, "get")
+      .mockResolvedValue({ services: [] } as never);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const sent: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(recordReads).toHaveBeenCalled();
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    // One line of code, read with two values: only its words are left.
+    expect(asked).toContain("Signed up <value> from <value>");
+
+    return asked;
+  };
+
+/*
  * The compliance paperwork (#10375), over the planted rows: the bucket as a
  * store of personal data about many people, its record drafted on its own
  * and on request, its impact assessment, and SOC 2's evidence with the
@@ -1430,6 +1543,7 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   },
   [DataSecurityAiFeature.NameIssueGroup]: nameIssueGroupRun,
   [DataSecurityAiFeature.FixIssueGroup]: fixIssueGroupRun,
+  [DataSecurityAiFeature.FixTelemetryLeaks]: fixTelemetryLeaksRun,
   /*
    * The verdicts (#10372): the bucket's suggestion waits for a person, and
    * the team's decision on a field of the same name on another store is
@@ -1670,6 +1784,13 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "Email address",
     "http.route",
     "aaaaa@aaaaaaa.aaa",
+  ],
+  // Where the service's code writes the data, its key and its type (#10367).
+  [DataSecurityAiFeature.FixTelemetryLeaks]: [
+    "src/signup.js",
+    "user.email",
+    "Email address",
+    "FixSensitiveDataInTelemetry",
   ],
   // The diff's own words: the line it writes, the bucket it opens.
   [DataSecurityAiFeature.ReviewPullRequests]: [

@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * a reader or a writer waits behind: an existing case has no assessment
  * until one is made.
  */
-export class AddSecurityCaseExposureAssessment1809187580377
+export class AddSecurityCaseExposureAssessment1809187590377
   implements MigrationInterface
 {
-  public name: string = "AddSecurityCaseExposureAssessment1809187580377";
+  public name: string = "AddSecurityCaseExposureAssessment1809187590377";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

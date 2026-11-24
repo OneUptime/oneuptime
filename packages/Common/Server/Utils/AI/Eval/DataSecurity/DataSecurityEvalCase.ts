@@ -21,6 +21,7 @@ import {
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
+import type { TelemetryLeakEvalCase } from "./TelemetryLeakEvalSet";
 import {
   AiAccessRecord,
   AiDataTypeChoice,
@@ -301,6 +302,20 @@ export interface FindingVerdictEvalCase extends DataSecurityEvalCaseBase {
 }
 
 /*
+ * A service's telemetry leaks fixed in its code (#10367): a case of the eval
+ * set of recorded findings (TelemetryLeakEvalSet) - the records each finding
+ * was seen in and the repository they lead to - and what the changed code
+ * must hold. The request is the one the product builds from those records,
+ * answered in one call; the code agent's benchmark runs the agent's loop on
+ * the same cases.
+ */
+export interface TelemetryLeakFixEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.FixTelemetryLeaks;
+  evalSetCase: TelemetryLeakEvalCase;
+  expect: Array<FixEvalFileCheck>;
+}
+
+/*
  * What a right draft of one field of a store's record is (#10375): drafted,
  * saying one word of each group; or left empty (null) where no fact says
  * it - a record that guesses is worse than one that asks.
@@ -442,6 +457,7 @@ export type DataSecurityEvalCase =
   | IssueGroupFixEvalCase
   | ScrubRulesEvalCase
   | PullRequestReviewEvalCase
+  | TelemetryLeakFixEvalCase
   | RecordDraftEvalCase
   | ImpactAssessmentEvalCase
   | AuditEvidenceEvalCase

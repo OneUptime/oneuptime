@@ -8,6 +8,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DeclaredCodeChanges from "../../AutoRemediation/DeclaredCodeChanges";
 import DataSecurityIssueGroupFix from "../../DataSecurity/DataSecurityIssueGroupFix";
+import TelemetryLeakFix from "../../DataSecurity/TelemetryLeakFix";
 import { CodeFixAgentIdentity, CodeFixAgentSource } from "./CodeFixAgentAuth";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -333,6 +334,18 @@ export default class CodeFixPullRequestRecord {
      * timeline (never throws).
      */
     await DataSecurityIssueGroupFix.onPullRequestOpened({
+      projectId: data.projectId,
+      aiRunId: data.aiRunId,
+      pullRequestUrl: fields.pullRequestUrl,
+      title: fields.title,
+    });
+
+    /*
+     * A task that stops a service writing its telemetry leaks (#10367):
+     * each issue it fixes gets the pull request on its timeline (never
+     * throws).
+     */
+    await TelemetryLeakFix.onPullRequestOpened({
       projectId: data.projectId,
       aiRunId: data.aiRunId,
       pullRequestUrl: fields.pullRequestUrl,
