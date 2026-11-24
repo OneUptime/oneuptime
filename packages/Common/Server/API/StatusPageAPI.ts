@@ -4625,12 +4625,13 @@ export default class StatusPageAPI extends BaseAPI<
 
   /*
    * Every incident a public status page is sent goes through here - the
-   * overview's active and timeline incidents, and the incident list and
-   * detail - so it is where the page's JSON, and the overview cache, are made
-   * safe to serve.
+   * overview's active and timeline incidents, the incident list and detail,
+   * and the incidents an episode lists - so it is where the page's JSON, and
+   * the overview cache, are made safe to serve.
    */
   private serializeIncidentsForStatusPage(
     incidents: Array<Incident>,
+    monitorsOnStatusPage: Array<ObjectID>,
   ): JSONArray {
     return incidents.map((incident: Incident): JSONObject => {
       const incidentJson: JSONObject = BaseModel.toJSON(incident, Incident);
@@ -4650,6 +4651,25 @@ export default class StatusPageAPI extends BaseAPI<
        */
       IncidentStatusPageScope.removeScopeColumns(incidentJson);
 
+      /*
+       * Only the page's own monitors: the page names an incident's
+       * resources from them, and which other monitors it is on is the
+       * project's business (#10767). An incident on a monitor the page
+       * lists and on an internal one sent both ids.
+       */
+      if (Array.isArray(incidentJson["monitors"])) {
+        incidentJson["monitors"] = StatusPageEpisodeIncidents.keepPageMonitors(
+          incident.monitors,
+          monitorsOnStatusPage,
+        ).map((monitor: Monitor): JSONObject => {
+          return {
+            _id: (monitor._id || monitor.id?.toString() || "")
+              .toString()
+              .toLowerCase(),
+          };
+        });
+      }
+
       return incidentJson;
     });
   }
@@ -4668,6 +4688,7 @@ export default class StatusPageAPI extends BaseAPI<
     episodes: Array<IncidentEpisode>;
     incidentsByEpisode: Map<string, Array<Incident>>;
     incidentListMode: StatusPageIncidentListMode;
+    monitorsOnStatusPage: Array<ObjectID>;
   }): JSONArray {
     const isGrouped: boolean = StatusPageIncidentGrouping.isGroupedByEpisode(
       data.incidentListMode,
@@ -4697,7 +4718,10 @@ export default class StatusPageAPI extends BaseAPI<
         episodeObj[EPISODE_INCIDENTS_KEY] = StatusPageEpisodeIncidents.toJSON({
           incidents: incidents,
           serialize: (list: Array<Incident>): JSONArray => {
-            return this.serializeIncidentsForStatusPage(list);
+            return this.serializeIncidentsForStatusPage(
+              list,
+              data.monitorsOnStatusPage,
+            );
           },
         });
       }
@@ -5038,7 +5062,10 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
-      incidents: this.serializeIncidentsForStatusPage(incidents),
+      incidents: this.serializeIncidentsForStatusPage(
+        incidents,
+        monitorsOnStatusPage,
+      ),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
         StatusPageResource,
@@ -5513,6 +5540,7 @@ export default class StatusPageAPI extends BaseAPI<
       episodes: episodes,
       incidentsByEpisode: incidentsByEpisode,
       incidentListMode: incidentListMode,
+      monitorsOnStatusPage: monitorsOnStatusPage,
     });
 
     const response: JSONObject = {
@@ -6592,6 +6620,7 @@ export default class StatusPageAPI extends BaseAPI<
             episodes: activeEpisodes,
             incidentsByEpisode: incidentsByEpisode,
             incidentListMode: incidentListMode,
+            monitorsOnStatusPage: monitorsOnStatusPage,
           });
         }
 
@@ -7058,7 +7087,10 @@ export default class StatusPageAPI extends BaseAPI<
         IncidentPublicNote,
       ),
 
-      activeIncidents: this.serializeIncidentsForStatusPage(activeIncidents),
+      activeIncidents: this.serializeIncidentsForStatusPage(
+        activeIncidents,
+        monitorsOnStatusPage,
+      ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
 
       activeEpisodes: activeEpisodesJson,
@@ -7122,8 +7154,10 @@ export default class StatusPageAPI extends BaseAPI<
       // Of those, the ones nothing has checked yet: Not monitored yet.
       notMonitoredYetResourceIds: notMonitoredYetResourceIds,
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
-      timelineIncidents:
-        this.serializeIncidentsForStatusPage(timelineIncidents),
+      timelineIncidents: this.serializeIncidentsForStatusPage(
+        timelineIncidents,
+        monitorsOnStatusPage,
+      ),
       [TIMELINE_EPISODES_RESPONSE_KEY]: timelineEpisodes,
       [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
       timelineScheduledMaintenanceEvents: BaseModel.toJSONArray(
@@ -7317,17 +7351,11 @@ export default class StatusPageAPI extends BaseAPI<
         },
       );
 
-      for (const incident of incidentsOfEpisode) {
-        incident.monitors = StatusPageEpisodeIncidents.keepPageMonitors(
-          incident.monitors,
-          data.monitorsOnStatusPage,
-        );
-      }
-
       return {
         ...BaseModel.toJSON(episode, IncidentEpisode),
         [EPISODE_INCIDENTS_KEY]: this.serializeIncidentsForStatusPage(
           incidentsOfEpisode,
+          data.monitorsOnStatusPage,
         ).map((item: unknown): JSONObject => {
           const json: JSONObject = item as JSONObject;
 
