@@ -455,7 +455,7 @@ function getLabelsTopic(context: GuideContext): SetupGuideTopic {
     title: "Tag the pools with project labels",
     summary:
       "Attach labels such as team or environment to every pool this agent reads.",
-    markdown: `Any resource attribute prefixed with \`oneuptime.label.\` becomes a project label on each pool the agent reads: \`oneuptime.label.<dimension>=<value>\` is the label \`<dimension>:<value>\`. Add them to the \`resource\` processor in \`otel-collector-config.yaml\`, next to \`xen_orchestra.name\`:
+    markdown: `Any resource attribute prefixed with \`oneuptime.label.\` becomes a project label on each pool the agent reads: \`oneuptime.label.<dimension>=<value>\` is the label \`<dimension>:<value>\`. Add them to the \`resource\` processor in \`otel-collector-config.yaml\`, next to \`oneuptime.agent.version\`:
 
 ${codeBlock(
   "yaml",
