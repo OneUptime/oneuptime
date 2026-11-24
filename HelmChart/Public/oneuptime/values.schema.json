@@ -4075,6 +4075,13 @@
                     ],
                     "minimum": 1
                 },
+                "probeSchedulingMaxConcurrentMonitorTestRequests": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "workerConcurrency": {
                     "type": "integer"
                 },
@@ -4243,6 +4250,10 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "probeSchedulingQueueDepthThreshold": {
+                            "type": "integer",
+                            "minimum": 0
                         },
                         "fallback": {
                             "type": "object",
