@@ -307,6 +307,9 @@ export class Service extends ProjectReferencesService<Model> {
     // And only by someone who may make a Runner the default.
     Service.assertMayCreateAsProjectDefault(createBy.data, createBy.props);
 
+    // A key the caller chose, only from someone who may read one.
+    Service.assertMayChooseKey(createBy.data, createBy.props);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -413,6 +416,47 @@ export class Service extends ProjectReferencesService<Model> {
       columnName: "isProjectDefault",
       modelName: model.singularName,
       permissions: mayMakeDefault,
+    });
+  }
+
+  /*
+   * A Runner created with a key its creator chose is created by someone who
+   * may read a Runner's key: the column's read list, which is its update
+   * list too (Runner.key). Choosing a key is knowing it, and the key is the
+   * Runner: whoever knows it runs a Runner of their own as this one, on a
+   * host of their choosing, and is sent every job and secret this Runner
+   * is. Every creator of a Runner may leave the key out - OneUptime then
+   * generates one, which the column check after the hooks weighs as the
+   * caller's, so the column's create list is the table's - and this refuses
+   * the key a caller sent, in the words the column check uses. An empty key
+   * is no key: one is generated. OneUptime and a master admin may.
+   */
+  public static assertMayChooseKey(
+    data: { key?: string | undefined },
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!data.key || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: Model = new Model();
+
+    const mayChooseKey: Array<Permission> =
+      model.getColumnAccessControlFor("key")?.read || [];
+
+    if (
+      CallerPermission.holdsAnyOf(props, mayChooseKey, {
+        projectId: props.tenantId,
+      })
+    ) {
+      return;
+    }
+
+    throw new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "key",
+      modelName: model.singularName,
+      permissions: mayChooseKey,
     });
   }
 
