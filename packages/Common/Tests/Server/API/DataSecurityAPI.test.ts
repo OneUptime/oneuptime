@@ -5156,7 +5156,8 @@ describe("the record of processing", () => {
         {
           field: RecordField.Retention,
           status: RecordFieldStatus.FilledIn,
-          value: "15 days",
+          // A declared store's retention keeps its days on the figure's line.
+          value: `15${NO_BREAK_SPACE}days`,
         },
         {
           field: RecordField.LegalBasis,

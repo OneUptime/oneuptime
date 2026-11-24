@@ -18,6 +18,8 @@ import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
+  AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   RUNBOOK_AI_STEP_FEATURE,
@@ -193,12 +195,17 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
         /*
          * OneUptime AI's Data Security work, each started with no person:
-         * an issue's analysis, store owners, a group's name, scrub rules.
+         * an issue's analysis, store owners, a group's name, scrub rules, a
+         * pull request's sensitive data, and the daily record drafts. The
+         * drafts a person asks for (on request, an impact assessment, audit
+         * evidence) are not budgeted.
          */
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
         AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
         AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
+        AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+        AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
         RUNBOOK_AI_STEP_FEATURE,
         WORKFLOW_AI_FEATURE,
         ...LEGACY_AUTONOMOUS_AI_FEATURES,

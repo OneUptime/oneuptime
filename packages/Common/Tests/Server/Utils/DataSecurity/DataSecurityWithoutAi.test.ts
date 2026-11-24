@@ -60,7 +60,24 @@ import ts from "typescript";
  *     reconciler, and a fix followed to production that closes it -
  *     DataSecurityIssueResolutions, #10368): it proves or expires proposals
  *     already written and asks no model, so with AI off it has nothing to do
- *     but that.
+ *     but that;
+ *   - after each grouping of issues with one cause (#10370), the grouper
+ *     names the groups and proposes for them
+ *     (DataSecurityIssueGroupNaming.nameGroups and
+ *     DataSecurityIssueGroupProposals.proposeForGroups), which read the
+ *     same two switches first and ask nothing when either is off; what it
+ *     reads of DeclaredCodeOwner and CloudAiTargets ranks a repository's
+ *     code owners and reads a resource's tags, and asks no model. The
+ *     groups' list shows OneUptime AI's name of a group only with Enable AI
+ *     on (DataSecurityIssueGroups), and fixing a group's cause is a
+ *     person's Fix with AI, through the Code task's gate
+ *     (DataSecurityIssueGroupFix);
+ *   - the daily drafts of the record of processing (#10375) run
+ *     RecordOfProcessingDraftRun.run, which reads the same two switches
+ *     first and asks nothing, and writes nothing, when either is off; the
+ *     audit evidence's reader (AuditEvidenceReader) only shapes the facts
+ *     the page shows and a draft is built from, with the input builder's
+ *     types, and asks no model.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -138,6 +155,107 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
       uses: ["DataStoreOwnerRuleProposals.proposeForProject"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
+      uses: ["RecordOfProcessingDraftRun.run"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["AiEvidenceRequirement", "AiIssueRecord", "AiStoreRecord"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper.ts": [
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming",
+      uses: ["DataSecurityIssueGroupNaming.nameGroups"],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupProposals",
+      uses: ["DataSecurityIssueGroupProposals.proposeForGroups"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: [
+        "DeclaredCodeOwnerCandidate",
+        "getRepositoryFullName",
+        "DeclaredCodeOwner.rank",
+        "DeclaredCodeOwner.getBest",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGroups.ts": [
+    {
+      module: "Common/Server/Services/AIService",
+      uses: ["AIService.isProjectAIEnabled"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueGroupFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["AiGroupFixStore", "DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: [
+        "DataSecurityFixCode",
+        "getDataSecurityFixNoRepositoryMessage",
+        "DataSecurityCodeTask.requestGroupFix",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupPrompt",
+      uses: ["buildIssueGroupFixRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: [
+        "CodeTaskAccess.listReadableRepositories",
+        "CodeTaskAccess.canAskInRepository",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskGate",
+      uses: ["CodeTaskGate.getBlocker"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskListRows",
+      uses: [
+        "CodeTaskRepliesRead",
+        "CodeTaskListRows.readReplies",
+        "CodeTaskListRows.readPullRequests",
+        "CodeTaskListRows.key",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskThread",
+      uses: ["CodeTaskThread.findTasksHiddenFrom"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: [
+        "DeclaredCodeOwnerCandidate",
+        "getRepositoryFullName",
+        "DeclaredCodeOwner.findCandidates",
+        "DeclaredCodeOwner.getBest",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
+      uses: ["CloudAiTargets.getManagedAsCode"],
     },
   ],
   "Common/Server/Services/DataSecurityIssueService.ts": [
