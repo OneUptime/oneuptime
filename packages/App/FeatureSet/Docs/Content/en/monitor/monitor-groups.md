@@ -125,6 +125,8 @@ Click **Add Monitor**. Under the monitor dropdown, click **Add a Monitor Group i
 Pick the group. **Display Name**, the name visitors read, fills in with the group's name until you type one of your own. Click **Add Monitor**: the row appears on the page with the group's status.
 :::
 
+A row that shows a monitor can show a group instead: open its **Edit resource**, the pencil on the row, and click **Show a Monitor Group instead.** under the dropdown. On a group's row, **Edit resource** opens with the group picked, and **Show a Monitor instead.** points the row at a monitor. Saving clears what the row showed before: a row shows one monitor or one monitor group, never both.
+
 On the status page, the row stands for every monitor in the group:
 
 - **Its status.** It is the group's: the worst among its monitors whose monitoring is on. When monitoring is off for every one of them, the row shows **Not monitored** and counts toward neither the heading above it nor the page's overall status.

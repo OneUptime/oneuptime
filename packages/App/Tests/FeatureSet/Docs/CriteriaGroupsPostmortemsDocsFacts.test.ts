@@ -3370,6 +3370,33 @@ describe("a monitor group on a status page", () => {
     );
   });
 
+  /*
+   * Edit resource opens on what the row shows, and its link swaps the
+   * picker for that dialog alone (#6540, #6559): the words come from the
+   * switch the Edit form draws, and saving clears what the row showed.
+   */
+  it("points a monitor's row at a group, and back, from Edit resource", () => {
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain('title="Edit resource"');
+    expect(STATUS_PAGE_RESOURCE_PANEL).toContain(
+      "targetType: getStatusPageResourceTargetType(statusPageResource),",
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_TARGET_SWITCH).toContain(
+      'translator.translateText("Show a Monitor Group instead.")',
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_GROUP_KEYS, null);",
+    );
+    expect(STATUS_PAGE_RESOURCE_SERVICE).toContain(
+      "RelationIdUtil.stamp(updateData, MONITOR_KEYS, null);",
+    );
+    expect(showing).toContain(
+      "A row that shows a monitor can show a group instead: open its **Edit resource**, the pencil on the row, and click **Show a Monitor Group instead.** under the dropdown. On a group's row, **Edit resource** opens with the group picked, and **Show a Monitor instead.** points the row at a monitor. Saving clears what the row showed before: a row shows one monitor or one monitor group, never both.",
+    );
+  });
+
   it("names the row after the group until you type a name of your own", () => {
     expect(fieldObject(STATUS_PAGE_RESOURCE_FIELDS, "Display Name")).toContain(
       "The name visitors see on the status page. It follows what you pick above until you type a name of your own.",

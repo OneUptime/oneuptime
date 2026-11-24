@@ -125,6 +125,8 @@ Haga clic en **Añadir monitor**. Debajo del desplegable de monitores, haga clic
 Elija el grupo. **Nombre para mostrar**, el nombre que leen los visitantes, toma el nombre del grupo hasta que usted escriba uno propio. Haga clic en **Añadir monitor**: la fila aparece en la página con el estado del grupo.
 :::
 
+Una fila que muestra un monitor puede mostrar un grupo en su lugar: abre su **Editar recurso**, el lápiz de la fila, y haz clic en **Muestra un grupo de monitores en su lugar.** bajo la lista desplegable. En la fila de un grupo, **Editar recurso** se abre con el grupo elegido, y **Muestra un monitor en su lugar.** apunta la fila a un monitor. Al guardar se vacía lo que la fila mostraba antes: una fila muestra un monitor o un grupo de monitores, nunca los dos.
+
 En la página de estado, la fila representa a cada monitor del grupo:
 
 - **Su estado.** Es el del grupo: el peor de sus monitores con el monitoreo activado. Cuando el monitoreo está desactivado para todos ellos, la fila muestra **No monitoreado** y no cuenta ni para el encabezado que la contiene ni para el estado general de la página.

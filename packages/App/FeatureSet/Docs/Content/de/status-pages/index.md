@@ -178,6 +178,8 @@ Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Link zur Sta
 
 Hinter den Kulissen hat jede öffentliche Route einen Vorschau-Zwilling unter `/status-page/{statusPageId}/...` – eine Vorschau der Übersicht, eine Vorschau der Vorfallliste, eine Vorschau der Abonnieren-Seite und so weiter. Eine URL oder ein Screenshot aus der Dashboard-Vorschau stimmt deshalb nicht mit dem überein, was ein Kunde sieht, sobald eine eigene Domain angehängt ist – prüfen Sie also jeden Link, den Sie in ein Runbook oder eine E-Mail einfügen.
 
+Solange eine Seite nichts zeigt, lesen ihre Besucher **Noch nichts zu sehen**. In der Vorschau sagt ein Hinweis darunter „Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen.“, mit **Ressourcen im Dashboard hinzufügen**, das die **Ressourcen** der Seite im Dashboard öffnet, in welchem Ihrer Projekte die Seite auch liegt.
+
 ## Einschränken, wer die Seite sehen darf
 
 Nicht jede Statusseite ist für die Öffentlichkeit. Wer eine Seite sehen darf, ist eine Wahl, die erste Karte auf **Statusseiten → Ihre Seite → Sicherheit → Zugriff**, **Wer diese Statusseite sehen kann**:
