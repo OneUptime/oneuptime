@@ -613,6 +613,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Slack",
             icon: IconProp.Slack,
             keywords: ["connect slack", "slack integration", "chat"],
+            settings: ["Slack Alert Threads"],
           },
           {
             page: PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION,

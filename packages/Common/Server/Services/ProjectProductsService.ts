@@ -765,7 +765,7 @@ export class ProjectProductsServiceClass {
     settings: ProjectProductSettings,
   ): Promise<void> {
     await ProjectService.getRepository().manager.query(
-      `UPDATE "Project" SET "productSettings" = $1 WHERE "_id" = $2`,
+      `UPDATE "Project" SET "productSettings" = COALESCE("productSettings", '{}'::jsonb) || $1::jsonb WHERE "_id" = $2`,
       [
         JSON.stringify(toProjectProductSettingsJSON(settings)),
         projectId.toString(),

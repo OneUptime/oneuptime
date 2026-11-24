@@ -112,6 +112,7 @@ const SERVICES: Array<ServiceSteps> = [
   {
     file: "AlertService.ts",
     always: {
+      "SlackAlertThreading.forDelivery": "reads the project's Slack preference",
       "AlertPrivacyRuleEngineService.applyRulesToAlert":
         "who may see the alert",
       "this.createAlertFeedAsync": "the created feed entry",
@@ -122,7 +123,10 @@ const SERVICES: Array<ServiceSteps> = [
       "this.releaseCreatedNotificationHeldForOwners":
         "its owners' created notification",
       "AlertOwnerRuleEngineService.applyRulesToAlert": "its owners",
+      "SlackAlertMessage.finishCollectingOwnerTeams":
+        "the Slack reply naming the teams assigned at creation",
       "AlertLabelRuleEngineService.applyRulesToAlert": "its labels",
+      applyLabels: "its labels at the configured point in the create chain",
       "AlertOnCallRulesOnOwnerChange.waitForOwnersOfCreate":
         "the owners its on-call rules match on (#9407)",
       "AlertOnCallRuleEngineService.applyRulesToAlert":
@@ -134,6 +138,7 @@ const SERVICES: Array<ServiceSteps> = [
       "this.handleAlertWorkspaceOperationsAsync",
       "RunbookRuleEngineService.applyRulesToAlert",
       "AlertGroupingEngineService.processAlert",
+      "groupAlert",
       "AutoRemediationRuleEngineService.onAlertCreated",
       "IncidentFollowUpCheck.onAlertOpened",
       "AiFirstResponder.onRecordCreated",
@@ -146,6 +151,7 @@ const SERVICES: Array<ServiceSteps> = [
   {
     file: "AlertEpisodeService.ts",
     always: {
+      "SlackAlertThreading.forDelivery": "reads the project's Slack preference",
       "AlertEpisodePrivacyRuleEngineService.applyRulesToEpisode":
         "who may see the episode",
       "this.changeEpisodeState": "its first state",

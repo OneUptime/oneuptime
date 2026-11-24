@@ -1318,7 +1318,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "A chat or video app's own endpoint, and the project's connection to it: of no one product. A button or a command of a product that is off is answered where it is handled, and nothing is changed (WorkspaceProductRefusal).",
       {
-        "packages/Common/Server/API/SlackAPI.ts": 7,
+        "packages/Common/Server/API/SlackAPI.ts": 8,
         "packages/Common/Server/API/MicrosoftTeamsAPI.ts": 5,
         "packages/Common/Server/API/MattermostAPI.ts": 7,
         "packages/Common/Server/API/WorkspaceAskToConnectAPI.ts": 1,

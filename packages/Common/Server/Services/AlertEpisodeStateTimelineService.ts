@@ -25,6 +25,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertEpisodeFeedService from "./AlertEpisodeFeedService";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
+import SlackAlertEpisodeMessage from "../Utils/Workspace/LiveMessages/SlackAlertEpisodeMessage";
 import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { AlertEpisodeFeedEventType } from "../../Models/DatabaseModels/AlertEpisodeFeed";
 import { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -503,6 +504,17 @@ export class Service extends ProjectReferencesService<AlertEpisodeStateTimeline>
       projectId: createdItem.projectId?.toString(),
       alertEpisodeId: createdItem.alertEpisodeId?.toString(),
     } as LogAttributes);
+
+    if (
+      !createdItem.endsAt &&
+      onCreate.carryForward.statusTimelineBeforeThisStatus &&
+      createdItem.projectId
+    ) {
+      void SlackAlertEpisodeMessage.refresh(
+        createdItem.projectId,
+        createdItem.alertEpisodeId,
+      );
+    }
 
     const alertState: AlertState | null = await AlertStateService.findOneBy({
       query: {

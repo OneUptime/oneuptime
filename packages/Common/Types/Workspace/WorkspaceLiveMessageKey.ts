@@ -8,6 +8,8 @@ import { WorkspaceMessageBlock } from "./WorkspaceMessagePayload";
  * to edit, instead of posting another one.
  */
 export enum WorkspaceLiveMessageKind {
+  SlackAlert = "SlackAlert",
+  SlackAlertEpisode = "SlackAlertEpisode",
   // The progress of one on-call policy run, edited as the run goes.
   OnCallPolicyRun = "OnCallPolicyRun",
   /*
@@ -109,6 +111,14 @@ export enum WorkspaceLiveMessagePageRecordType {
 }
 
 export default class WorkspaceLiveMessageKey {
+  public static forSlackAlert(alertId: ObjectID): string {
+    return `${WorkspaceLiveMessageKind.SlackAlert}:${alertId.toString()}`;
+  }
+
+  public static forSlackAlertEpisode(episodeId: ObjectID): string {
+    return `${WorkspaceLiveMessageKind.SlackAlertEpisode}:${episodeId.toString()}`;
+  }
+
   public static forOnCallPolicyRun(executionLogId: ObjectID): string {
     return `${WorkspaceLiveMessageKind.OnCallPolicyRun}:${executionLogId.toString()}`;
   }

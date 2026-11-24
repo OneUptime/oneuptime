@@ -94,6 +94,9 @@ interface RecordedRequest {
 }
 
 const requests: Array<RecordedRequest> = [];
+let mockAlertThreading: boolean = false;
+let mockRejectThreadingSave: boolean = false;
+let mockIsAdmin: boolean = false;
 type NavigateMock = ReturnType<
   typeof jest.fn<(...args: Array<unknown>) => void>
 >;
@@ -159,7 +162,7 @@ jest.mock("../../../UI/Utils/User", () => {
         };
       },
       isMasterAdmin: () => {
-        return false;
+        return mockIsAdmin;
       },
     },
   };
@@ -172,6 +175,10 @@ jest.mock("../../../UI/Utils/API/API", () => {
       get: async (options: { url: { toString: () => string } }) => {
         const url: string = options.url.toString();
         requests.push({ method: "GET", url: url });
+
+        if (url.endsWith("/slack/alert-threading")) {
+          return { data: { enabled: mockAlertThreading } };
+        }
 
         if (url.includes("/slack/workspaces")) {
           if (
@@ -203,6 +210,14 @@ jest.mock("../../../UI/Utils/API/API", () => {
       }) => {
         const url: string = options.url.toString();
         requests.push({ method: "PUT", url: url, data: options.data });
+
+        if (url.endsWith("/slack/alert-threading")) {
+          if (mockRejectThreadingSave) {
+            throw new Error("Setting could not be saved.");
+          }
+          mockAlertThreading = options.data?.["enabled"] === true;
+          return { data: { enabled: mockAlertThreading } };
+        }
 
         const answer: JSONObject | HTTPErrorResponse = mockState.makeDefault(
           (options.data?.["workspaceId"] as string) || "",
@@ -284,6 +299,9 @@ beforeEach(() => {
     );
   };
   requests.length = 0;
+  mockAlertThreading = false;
+  mockRejectThreadingSave = false;
+  mockIsAdmin = false;
   navigateMock.mockReset();
 });
 
@@ -311,6 +329,53 @@ async function renderUserSettings(): Promise<void> {
     );
   });
 }
+
+test("project Slack threading saves immediately, survives a reload, and reverts on failure", async () => {
+  mockIsAdmin = true;
+  const renderSettings: () => void = () => {
+    render(
+      <SlackIntegration
+        showAlertThreading
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />,
+    );
+  };
+  await act(async () => {
+    renderSettings();
+  });
+  const toggle: HTMLElement = screen.getByRole("switch", {
+    name: "Slack Alert Threads",
+  });
+  expect(toggle).not.toBeChecked();
+  await act(async () => {
+    fireEvent.click(toggle);
+  });
+  expect(mockAlertThreading).toBe(true);
+  expect(toggle).toBeChecked();
+
+  cleanup();
+  await act(async () => {
+    renderSettings();
+  });
+  const reopened: HTMLElement = screen.getByRole("switch", {
+    name: "Slack Alert Threads",
+  });
+  expect(reopened).toBeChecked();
+  mockRejectThreadingSave = true;
+  await act(async () => {
+    fireEvent.click(reopened);
+  });
+  expect(reopened).toBeChecked();
+  expect(screen.getByText("Setting could not be saved.")).toBeInTheDocument();
+
+  mockRejectThreadingSave = false;
+  await act(async () => {
+    fireEvent.click(reopened);
+  });
+  expect(reopened).not.toBeChecked();
+  expect(mockAlertThreading).toBe(false);
+});
 
 function cardTitles(): Array<string> {
   return screen

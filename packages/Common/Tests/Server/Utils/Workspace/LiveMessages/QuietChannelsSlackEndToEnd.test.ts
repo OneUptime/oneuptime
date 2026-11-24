@@ -6,14 +6,51 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
+import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
+import Alert from "../../../../../Models/DatabaseModels/Alert";
+import Project from "../../../../../Models/DatabaseModels/Project";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
+import WorkspaceLiveMessage from "../../../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import AlertInternalNoteService from "../../../../../Server/Services/AlertInternalNoteService";
+import { NotificationRuleUpdateKind } from "../../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import AlertGroupingEngineService, {
+  GroupingResult,
+} from "../../../../../Server/Services/AlertGroupingEngineService";
+import AiFirstResponder from "../../../../../Server/Utils/AI/FirstResponder/AiFirstResponder";
+import VideoCallRuleExecutor from "../../../../../Server/Utils/VideoCall/VideoCallRuleExecutor";
+import { StartingStage } from "../../../../../Utils/StartingStage";
+import { setImmediate } from "node:timers/promises";
+import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeFeed, {
+  AlertEpisodeFeedEventType,
+} from "../../../../../Models/DatabaseModels/AlertEpisodeFeed";
+import AlertState from "../../../../../Models/DatabaseModels/AlertState";
+import AlertEpisodeFeedService from "../../../../../Server/Services/AlertEpisodeFeedService";
+import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
+import AlertService from "../../../../../Server/Services/AlertService";
+import WorkspaceLiveMessageService from "../../../../../Server/Services/WorkspaceLiveMessageService";
+import SlackAlertEpisodeMessage from "../../../../../Server/Utils/Workspace/LiveMessages/SlackAlertEpisodeMessage";
+import AlertOwnerTeam from "../../../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerTeamService from "../../../../../Server/Services/AlertOwnerTeamService";
+import Team from "../../../../../Models/DatabaseModels/Team";
+import TeamService from "../../../../../Server/Services/TeamService";
+import SlackAlertMessage from "../../../../../Server/Utils/Workspace/LiveMessages/SlackAlertMessage";
+import WorkspaceNotificationRuleService from "../../../../../Server/Services/WorkspaceNotificationRuleService";
+import LinkedAffectedResources, {
+  LinkedAffectedResourceType,
+} from "../../../../../Server/Utils/AffectedResources/LinkedAffectedResources";
+import { AlertFeedEventType } from "../../../../../Models/DatabaseModels/AlertFeed";
 import OnCallPolicyRunMessage from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import WorkspaceLiveMessageKey from "../../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
 import QuietChannelsWorld, {
+  ALERT_ID,
   DASHBOARD,
   JANE,
   NB_USER_2,
@@ -23,6 +60,7 @@ import QuietChannelsWorld, {
   RULE_FHIRST,
   RULE_SECOND,
   STATE_ACKNOWLEDGED,
+  STATE_CLOSED,
   STATE_IDENTIFIED,
   STATE_RESOLVED,
   WORKSPACE_RULE_ID,
@@ -88,6 +126,8 @@ class FakeSlack {
   public requests: Array<SlackRequest> = [];
   // What Slack answers the next chat.update with, when it refuses it.
   public refuseNextUpdateWith: string | null = null;
+  public deletedThread: string | undefined;
+  public beforePost: (() => Promise<void>) | undefined;
   private nextTs: number = 1;
 
   public install(): void {
@@ -118,8 +158,12 @@ class FakeSlack {
           };
           break;
         case "chat.postMessage":
+          await this.beforePost?.();
           ts = `1760000000.${String(this.nextTs++).padStart(6, "0")}`;
-          answer = { ok: true, ts: ts, channel: body["channel"] };
+          answer =
+            this.deletedThread && this.deletedThread === body["thread_ts"]
+              ? { ok: false, error: "thread_not_found" }
+              : { ok: true, ts: ts, channel: body["channel"] };
           break;
         case "chat.update":
           if (this.refuseNextUpdateWith) {
@@ -189,8 +233,10 @@ class FakeSlack {
 
 let slack: FakeSlack;
 let world: QuietChannelsWorld;
-
 beforeEach(() => {
+  const project: Project = new Project();
+  project.productSettings = { slackAlertThreading: true };
+  jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
   slack = new FakeSlack();
   slack.install();
 
@@ -854,7 +900,213 @@ describe("an alert, in its Slack channel", () => {
     world.recordStateName = "Created";
   });
 
-  test("created, first state, on-call, owners notified, acknowledged: four messages, the run's edited in place", async () => {
+  test.each([undefined, false])(
+    "keeps the old Slack delivery when the switch is %s, even for an existing thread",
+    async (setting: boolean | undefined) => {
+      await world.alertCreated();
+      const project: Project = new Project();
+      project.productSettings =
+        setting === undefined ? {} : { slackAlertThreading: setting };
+      jest.mocked(ProjectService.findOneById).mockResolvedValue(project);
+      await world.alertState({
+        to: STATE_RESOLVED,
+        name: "Resolved",
+        isFirst: false,
+      });
+
+      expect(slack.posts()).toHaveLength(2);
+      expect(slack.posts()[1]!.threadTs).toBe("");
+      expect(slack.updates()).toHaveLength(0);
+    },
+  );
+
+  test("posts one owner-team reply after the alert, even when owners were added before the root", async () => {
+    jest
+      .spyOn(
+        WorkspaceNotificationRuleService,
+        "getNotificationRulesWhereInviteOwnersIsTrue",
+      )
+      .mockResolvedValue([]);
+    const teamLookup: SpyInstance<typeof TeamService.findOneById> = jest.spyOn(
+      TeamService,
+      "findOneById",
+    );
+    SlackAlertMessage.startCollectingOwnerTeams(ALERT_ID);
+    try {
+      for (const name of ["Agneta", "Platform"]) {
+        const team: Team = new Team();
+        team.name = name;
+        teamLookup.mockResolvedValueOnce(team);
+        const owner: AlertOwnerTeam = new AlertOwnerTeam();
+        owner.alertId = ALERT_ID;
+        owner.projectId = PROJECT_ID;
+        owner.teamId = ObjectID.generate();
+        await AlertOwnerTeamService.onCreateSuccess(
+          {
+            createBy: { data: owner, props: { isRoot: true } },
+            carryForward: null,
+          },
+          owner,
+        );
+      }
+      expect(slack.posts()).toHaveLength(0);
+      await world.alertCreated();
+    } finally {
+      await SlackAlertMessage.finishCollectingOwnerTeams({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+    }
+
+    const [root, owners] = slack.posts();
+    expect(slack.posts()).toHaveLength(2);
+    expect(headline(root!)).toContain("Alert AL-12 Created");
+    expect(owners!.threadTs).toBe(root!.ts);
+    expect(owners!.text).toContain("Agneta");
+    expect(owners!.text).toContain("Platform");
+    expect(
+      world.feed.filter((entry: FeedEntry): boolean => {
+        return entry.eventType === AlertFeedEventType.OwnerTeamAdded;
+      }),
+    ).toHaveLength(2);
+  });
+
+  test.each([false, true])(
+    "batches owner teams into one channel post when the root is unavailable (deleted: %s)",
+    async (deleted: boolean) => {
+      if (deleted) {
+        await world.alertCreated();
+        slack.deletedThread = slack.posts()[0]!.ts;
+      }
+      SlackAlertMessage.startCollectingOwnerTeams(ALERT_ID);
+      SlackAlertMessage.collectOwnerTeam({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+        teamId: ObjectID.generate(),
+        teamName: "Agneta",
+      });
+      SlackAlertMessage.collectOwnerTeam({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+        teamId: ObjectID.generate(),
+        teamName: "Platform",
+      });
+      await SlackAlertMessage.finishCollectingOwnerTeams({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+      });
+      const posts: Array<SlackRequest> = slack.posts();
+      expect(posts.slice(deleted ? 2 : 0)).toEqual([
+        expect.objectContaining({
+          threadTs: "",
+          text: expect.stringMatching(
+            /Agneta[\s\S]*Platform[\s\S]*Alert AL-12/u,
+          ),
+        }),
+      ]);
+    },
+  );
+
+  test("persists a private note without waiting for the state update to reach Slack", async () => {
+    await world.alertCreated();
+    const note: AlertInternalNote = new AlertInternalNote();
+    const save: SpyInstance<typeof AlertInternalNoteService.create> = jest
+      .spyOn(AlertInternalNoteService, "create")
+      .mockResolvedValue(note);
+    let unblockSlack: () => void = () => {};
+    const slowSlack: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        unblockSlack = resolve;
+      },
+    );
+    slack.beforePost = (): Promise<void> => {
+      return slowSlack;
+    };
+
+    try {
+      await world.alertState({
+        to: STATE_RESOLVED,
+        name: "Resolved",
+        isFirst: false,
+        privateNote: note,
+      });
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({ data: note }),
+      );
+      expect(slack.posts()).toHaveLength(1);
+    } finally {
+      unblockSlack();
+      await setImmediate();
+    }
+    expect(slack.posts()).toHaveLength(2);
+  });
+
+  test("starts paging while the episode announcement is still waiting for Slack", async () => {
+    const alert: Alert = (await AlertService.findOneById({
+      id: ALERT_ID,
+      select: { projectId: true },
+      props: { isRoot: true },
+    }))!;
+    let finishEpisodeAnnouncement: () => void = () => {};
+    const announcement: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        finishEpisodeAnnouncement = resolve;
+      },
+    );
+    jest
+      .spyOn(AlertGroupingEngineService, "processAlert")
+      .mockImplementation(async (): Promise<GroupingResult> => {
+        await announcement;
+        return { grouped: false };
+      });
+    type AlertCreateHooks = {
+      onCreateSuccess: (
+        hook: {
+          createBy: { data: Alert; props: { isRoot: boolean } };
+          carryForward: { startingStage: StartingStage };
+        },
+        alert: Alert,
+      ) => Promise<Alert>;
+      handleAlertWorkspaceOperationsAsync: () => Promise<never[]>;
+      handleAlertStateChangeAsync: () => Promise<void>;
+      createAlertFeedAsync: () => Promise<void>;
+      executeAlertOnCallDutyPoliciesAsync: () => Promise<void>;
+    };
+    const hooks: AlertCreateHooks = AlertService as unknown as AlertCreateHooks;
+    jest
+      .spyOn(hooks, "handleAlertWorkspaceOperationsAsync")
+      .mockResolvedValue([]);
+    jest.spyOn(hooks, "handleAlertStateChangeAsync").mockResolvedValue();
+    const post: SpyInstance<AlertCreateHooks["createAlertFeedAsync"]> = jest
+      .spyOn(hooks, "createAlertFeedAsync")
+      .mockResolvedValue();
+    const page: SpyInstance<
+      AlertCreateHooks["executeAlertOnCallDutyPoliciesAsync"]
+    > = jest
+      .spyOn(hooks, "executeAlertOnCallDutyPoliciesAsync")
+      .mockResolvedValue();
+    jest.spyOn(AiFirstResponder, "onRecordCreated").mockResolvedValue();
+    jest.spyOn(VideoCallRuleExecutor, "startCallsForAlert").mockResolvedValue();
+    try {
+      await hooks.onCreateSuccess(
+        {
+          createBy: { data: alert, props: { isRoot: true } },
+          carryForward: { startingStage: StartingStage.Open },
+        },
+        alert,
+      );
+      await setImmediate();
+      expect(AlertGroupingEngineService.processAlert).toHaveBeenCalled();
+      expect(page).toHaveBeenCalled();
+      expect(post).not.toHaveBeenCalled();
+    } finally {
+      finishEpisodeAnnouncement();
+      await SlackAlertMessage.waitForInitialPost(ALERT_ID);
+    }
+    expect(post).toHaveBeenCalled();
+  });
+
+  test("on-call and state updates share the alert thread, and both cards are edited in place", async () => {
     await world.alertCreated();
     await world.alertState({
       to: STATE_IDENTIFIED,
@@ -878,8 +1130,23 @@ describe("an alert, in its Slack channel", () => {
       expect.stringContaining("State"),
     ]);
 
-    // The run's message names the alert.
-    expect(slack.posts()[1]!.text).toContain("Alert AL-12");
+    const [root, run, state] = slack.posts();
+    expect(root!.threadTs).toBe("");
+    expect(run!.text).toContain("Alert AL-12");
+    expect(run!.threadTs).toBe(root!.ts);
+    expect(state!.threadTs).toBe(root!.ts);
+    const rootUpdates: Array<SlackRequest> = slack
+      .updates()
+      .filter((update: SlackRequest): boolean => {
+        return update.ts === root!.ts;
+      });
+    expect(rootUpdates).toHaveLength(1);
+    expect(rootUpdates[0]!.text.replaceAll("\u200b", "")).toContain(
+      "Alert State*: Acknowledged",
+    );
+    expect(rootUpdates[0]!.text).toContain("Checkout latency");
+    expect(rootUpdates[0]!.text).toContain("Change Alert State");
+    expect(rootUpdates[0]!.blocks.slice(1)).toEqual(root!.blocks.slice(1));
 
     // That the owners were told stays in the alert's feed.
     expect(
@@ -890,10 +1157,343 @@ describe("an alert, in its Slack channel", () => {
       expect.objectContaining({ record: "alert", postsToWorkspace: false }),
     ]);
 
-    const last: string = slack.updates()[slack.updates().length - 1]!.text;
+    const runUpdates: Array<SlackRequest> = slack
+      .updates()
+      .filter((update: SlackRequest): boolean => {
+        return update.ts === run!.ts;
+      });
+    const last: string = runUpdates[runUpdates.length - 1]!.text;
     expect(last).toContain("acknowledged");
     expect(last).toContain("Alert AL-12");
   });
+
+  test("a muted state change still updates the alert's main message", async () => {
+    world.ruleUpdatesToPost = [];
+    await world.alertCreated();
+    await world.alertState({
+      to: STATE_ACKNOWLEDGED,
+      name: "Acknowledged",
+      isFirst: false,
+    });
+
+    expect(slack.posts()).toHaveLength(1);
+    expect(slack.updates()).toEqual([
+      expect.objectContaining({
+        ts: slack.posts()[0]!.ts,
+        text: expect.stringMatching(/Alert State\*\u200b?: Acknowledged/u),
+      }),
+    ]);
+  });
+
+  test("replaces a resolved alert in place with a compact card and restores the original on reopening", async () => {
+    world.recordTitle = "Checkout latency";
+    jest.spyOn(LinkedAffectedResources, "readForAlert").mockResolvedValue([
+      {
+        type: LinkedAffectedResourceType.Monitor,
+        id: ALERT_ID.toString(),
+        name: "Checkout monitor",
+      },
+      {
+        type: LinkedAffectedResourceType.Service,
+        id: PROJECT_ID.toString(),
+        name: "Payments",
+      },
+    ]);
+    await world.alertCreated();
+    const root: SlackRequest = slack.posts()[0]!;
+    await world.alertState({
+      to: STATE_CLOSED,
+      name: "Closed",
+      isFirst: false,
+    });
+
+    const compact: SlackRequest = slack.updates()[0]!;
+    expect(compact.ts).toBe(root.ts);
+    expect(compact.text).toContain("✅ Alert AL-12 Closed");
+    expect(compact.text).toContain("Checkout latency");
+    expect(compact.text).toContain("Resources Affected");
+    expect(compact.text).toContain("Checkout monitor");
+    expect(compact.text).toContain("Service Payments");
+    expect(compact.text.replaceAll("\u200b", "")).toContain(
+      "🟢 *Alert State*: Closed",
+    );
+    expect(compact.text).not.toContain("p95 over 2s");
+    expect(compact.blocks.slice(1)).toEqual(root.blocks.slice(1));
+    expect(slack.posts()[1]!.threadTs).toBe(root.ts);
+
+    await world.alertState({
+      to: STATE_IDENTIFIED,
+      name: "Reopened",
+      isFirst: false,
+    });
+    expect(slack.updates()[1]).toEqual(
+      expect.objectContaining({
+        ts: root.ts,
+        text: expect.stringContaining("p95 over 2s"),
+      }),
+    );
+    expect(slack.updates()[1]!.text).toContain("Resolve Alert");
+  });
+
+  test("uses custom templates on creation and on a state change without removing active alert actions", async () => {
+    const previous: string | undefined =
+      process.env["SLACK_ALERT_STATE_TEMPLATES"];
+    process.env["SLACK_ALERT_STATE_TEMPLATES"] = JSON.stringify({
+      Created: "New {{alertNumber}}: {{title}}",
+      Acknowledged: "Taking {{alertNumber}}\n\n{{stateLine}}",
+    });
+    try {
+      world.recordTitle = "Checkout latency";
+      await world.alertCreated();
+      const root: SlackRequest = slack.posts()[0]!;
+      expect(root.text).toContain("New AL-12: Checkout latency");
+      expect(root.text).toContain("Resolve Alert");
+      await world.alertState({
+        to: STATE_ACKNOWLEDGED,
+        name: "Acknowledged",
+        isFirst: false,
+      });
+      expect(slack.updates()[0]).toEqual(
+        expect.objectContaining({
+          ts: root.ts,
+          text: expect.stringContaining("Taking AL-12"),
+        }),
+      );
+      expect(slack.updates()[0]!.blocks.slice(1)).toEqual(root.blocks.slice(1));
+      await world.alertState({
+        to: STATE_IDENTIFIED,
+        name: "Reopened",
+        isFirst: false,
+      });
+      expect(slack.updates()[1]!.text).toContain("p95 over 2s");
+    } finally {
+      if (previous === undefined) {
+        delete process.env["SLACK_ALERT_STATE_TEMPLATES"];
+      } else {
+        process.env["SLACK_ALERT_STATE_TEMPLATES"] = previous;
+      }
+    }
+  });
+
+  test("posts older alerts normally and threads notes for new alerts", async () => {
+    const postNote: () => Promise<void> = async () => {
+      await AlertFeedService.createAlertFeedItem({
+        alertId: ALERT_ID,
+        projectId: PROJECT_ID,
+        alertFeedEventType: AlertFeedEventType.PrivateNote,
+        feedInfoInMarkdown: "Upgrade complete.",
+        workspaceNotification: { sendWorkspaceNotification: true },
+      });
+    };
+
+    await postNote();
+    await world.alertCreated();
+    await postNote();
+
+    expect(
+      slack.posts().map((post: SlackRequest): string => {
+        return post.threadTs;
+      }),
+    ).toEqual(["", "", slack.posts()[1]!.ts]);
+  });
+});
+
+describe("an alert episode, in Slack", () => {
+  test("reports the member in the episode thread and edits the same card on resolution and reopen", async () => {
+    const episode: AlertEpisode = new AlertEpisode();
+    episode.id = ObjectID.generate();
+    episode.projectId = PROJECT_ID;
+    episode.episodeNumberWithPrefix = "EP-12";
+    episode.title = "Queue backed up";
+    const state: AlertState = new AlertState();
+    state.name = "Created";
+    episode.currentAlertState = state;
+    const alert: Alert = (await AlertService.findOneById({
+      id: ALERT_ID,
+      select: { projectId: true },
+      props: { isRoot: true },
+    }))!;
+    alert.alertEpisodeId = episode.id;
+    jest.mocked(AlertService.findOneById).mockResolvedValue(alert);
+    jest.spyOn(AlertEpisodeService, "findOneById").mockResolvedValue(episode);
+    jest
+      .spyOn(AlertEpisodeService, "getWorkspaceChannelForEpisode")
+      .mockResolvedValue([world.channels.slack!]);
+    jest
+      .spyOn(AlertEpisodeFeedService, "create")
+      .mockResolvedValue(new AlertEpisodeFeed());
+
+    type CreateEpisodeFeed = {
+      createEpisodeCreatedFeed: (episode: AlertEpisode) => Promise<void>;
+    };
+    episode.description = "Full episode description";
+    await (
+      AlertEpisodeService as unknown as CreateEpisodeFeed
+    ).createEpisodeCreatedFeed(episode);
+    const root: SlackRequest = slack.posts()[0]!;
+    expect(root.threadTs).toBe("");
+    expect(root.text).toContain("Full episode description");
+
+    await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+      alertEpisodeId: episode.id!,
+      projectId: PROJECT_ID,
+      alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
+      feedInfoInMarkdown: "Added Alert AL-12",
+      workspaceNotification: { sendWorkspaceNotification: true },
+    });
+    await world.alertCreated();
+    expect(slack.posts()).toHaveLength(3);
+    expect(slack.posts()[1]).toEqual(
+      expect.objectContaining({
+        threadTs: root.ts,
+        text: expect.stringContaining("Added Alert AL-12"),
+      }),
+    );
+    expect(slack.posts()[2]).toEqual(
+      expect.objectContaining({
+        threadTs: root.ts,
+        text: expect.stringContaining("Alert AL-12 Created"),
+      }),
+    );
+    expect(slack.updates()).toHaveLength(0);
+    expect(
+      await WorkspaceLiveMessageService.findByMessageKey({
+        projectId: PROJECT_ID,
+        messageKey: WorkspaceLiveMessageKey.forSlackAlert(ALERT_ID),
+      }),
+    ).toHaveLength(0);
+
+    await world.alertState({
+      to: STATE_RESOLVED,
+      name: "Resolved",
+      isFirst: false,
+    });
+    expect(slack.posts()).toHaveLength(4);
+    expect(slack.posts()[3]).toEqual(
+      expect.objectContaining({
+        threadTs: root.ts,
+        text: expect.stringMatching(/AL-12[\s\S]*Resolved/),
+      }),
+    );
+    expect(slack.updates()).toHaveLength(0);
+
+    state.name = "Resolved";
+    episode.resolvedAt = new Date();
+    await SlackAlertEpisodeMessage.refresh(PROJECT_ID, episode.id!);
+    expect(slack.updates()[0]).toEqual(
+      expect.objectContaining({
+        ts: root.ts,
+        text: expect.stringMatching(
+          /EP-12 Resolved[\s\S]*Episode State[\s\S]*Resolved/,
+        ),
+      }),
+    );
+    expect(slack.updates()[0]!.text).not.toContain("Full episode description");
+    expect(slack.updates()[0]!.blocks.slice(1)).toEqual(root.blocks.slice(1));
+
+    state.name = "Reopened";
+    episode.resolvedAt = undefined;
+    await SlackAlertEpisodeMessage.refresh(PROJECT_ID, episode.id!);
+    expect(slack.updates()[1]).toEqual(
+      expect.objectContaining({
+        ts: root.ts,
+        text: expect.stringContaining("Full episode description"),
+      }),
+    );
+  });
+
+  test.each([false, true])(
+    "delivers Alert Created when episode member notifications are muted (deleted episode root: %s)",
+    async (deleted: boolean) => {
+      world.ruleUpdatesToPost = [NotificationRuleUpdateKind.Created];
+      const episode: AlertEpisode = new AlertEpisode();
+      episode.id = ObjectID.generate();
+      episode.projectId = PROJECT_ID;
+      episode.title = "Queue backed up";
+      const alert: Alert = (await AlertService.findOneById({
+        id: ALERT_ID,
+        select: { projectId: true },
+        props: { isRoot: true },
+      }))!;
+      alert.alertEpisodeId = episode.id;
+      jest.mocked(AlertService.findOneById).mockResolvedValue(alert);
+      jest.spyOn(AlertEpisodeService, "findOneById").mockResolvedValue(episode);
+      jest
+        .spyOn(AlertEpisodeService, "getWorkspaceChannelForEpisode")
+        .mockResolvedValue([world.channels.slack!]);
+      jest
+        .spyOn(AlertEpisodeFeedService, "create")
+        .mockResolvedValue(new AlertEpisodeFeed());
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: episode.id!,
+        projectId: PROJECT_ID,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.EpisodeCreated,
+        feedInfoInMarkdown: "Episode created",
+        workspaceNotification: { sendWorkspaceNotification: true },
+      });
+      const root: SlackRequest = slack.posts()[0]!;
+      if (deleted) {
+        slack.deletedThread = root.ts;
+        jest
+          .spyOn(WorkspaceLiveMessageService, "deleteOneBy")
+          .mockImplementation(
+            async (
+              data: Parameters<
+                typeof WorkspaceLiveMessageService.deleteOneBy
+              >[0],
+            ): Promise<number> => {
+              const index: number = world.liveMessages.rows.findIndex(
+                (row: WorkspaceLiveMessage): boolean => {
+                  return (
+                    row.projectId?.equals(PROJECT_ID) === true &&
+                    row.workspaceType === data.query.workspaceType &&
+                    row.channelId === data.query.channelId &&
+                    row.messageId === data.query.messageId
+                  );
+                },
+              );
+              return index < 0
+                ? 0
+                : world.liveMessages.rows.splice(index, 1).length;
+            },
+          );
+      }
+      await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+        alertEpisodeId: episode.id!,
+        projectId: PROJECT_ID,
+        alertEpisodeFeedEventType: AlertEpisodeFeedEventType.AlertAdded,
+        feedInfoInMarkdown: "Added Alert AL-12",
+        workspaceNotification: { sendWorkspaceNotification: true },
+      });
+
+      await world.alertCreated();
+
+      const posts: Array<SlackRequest> = slack.posts();
+      expect(posts).toHaveLength(deleted ? 3 : 2);
+      expect(posts.at(-1)).toEqual(
+        expect.objectContaining({
+          threadTs: deleted ? "" : root.ts,
+          text: expect.stringContaining("Alert AL-12 Created"),
+        }),
+      );
+      expect(
+        await WorkspaceLiveMessageService.findByMessageKey({
+          projectId: PROJECT_ID,
+          messageKey: WorkspaceLiveMessageKey.forSlackAlert(ALERT_ID),
+        }),
+      ).toHaveLength(deleted ? 1 : 0);
+      if (deleted) {
+        world.ruleUpdatesToPost = undefined;
+        await world.alertState({
+          to: STATE_ACKNOWLEDGED,
+          name: "Acknowledged",
+          isFirst: false,
+        });
+        expect(slack.posts()).toHaveLength(4);
+        expect(slack.posts().at(-1)?.threadTs).toBe(posts[2]!.ts);
+      }
+    },
+  );
 });
 
 describe("a scheduled maintenance event, in its Slack channel", () => {

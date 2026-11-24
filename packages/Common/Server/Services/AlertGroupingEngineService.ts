@@ -1444,6 +1444,7 @@ class AlertGroupingEngineServiceClass {
     try {
       const createdEpisode: AlertEpisode = await AlertEpisodeService.create({
         data: newEpisode,
+        miscDataProps: { waitForEpisodeCreatedFeed: true },
         props: {
           isRoot: true,
         },

@@ -34,6 +34,11 @@ import WorkspaceBase, {
 import WorkspaceChannelNotFound from "../Utils/Workspace/WorkspaceChannelNotFound";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
 import WorkspaceLiveMessages from "../Utils/Workspace/LiveMessages/WorkspaceLiveMessages";
+import WorkspaceLiveMessage from "../../Models/DatabaseModels/WorkspaceLiveMessage";
+import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
+import SlackAlertMessage from "../Utils/Workspace/LiveMessages/SlackAlertMessage";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
+import WorkspaceLiveMessageKey from "../../Types/Workspace/WorkspaceLiveMessageKey";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import Dictionary from "../../Types/Dictionary";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
@@ -1942,6 +1947,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }),
         sendMessageBeforeArchiving: data.sendMessageBeforeArchiving,
         projectId: data.projectId,
+        ...(workspaceType === WorkspaceType.Slack
+          ? {
+              slackThreadTsByChannel: await this.getSlackReplyThreads(data),
+            }
+          : {}),
       });
     }
   }
@@ -1966,17 +1976,93 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     );
   }
 
+  private static getSlackThreadKey(
+    notificationFor: NotificationFor,
+  ): string | undefined {
+    if (notificationFor.alertEpisodeId) {
+      return WorkspaceLiveMessageKey.forSlackAlertEpisode(
+        notificationFor.alertEpisodeId,
+      );
+    }
+    if (notificationFor.alertId) {
+      return WorkspaceLiveMessageKey.forSlackAlert(notificationFor.alertId);
+    }
+    return undefined;
+  }
+
+  public async getSlackReplyThreads(data: {
+    projectId: ObjectID;
+    notificationFor: NotificationFor;
+  }): Promise<ReadonlyMap<string, string> | undefined> {
+    const key: string | undefined = Service.getSlackThreadKey(
+      data.notificationFor,
+    );
+    if (!key || !(await SlackAlertThreading.forDelivery(data.projectId))) {
+      return undefined;
+    }
+
+    const threads: ReadonlyMap<string, string> =
+      await WorkspaceLiveMessages.getSlackThreadTimestamps({
+        projectId: data.projectId,
+        messageKey: key,
+      });
+    if (!data.notificationFor.alertId) {
+      return threads;
+    }
+
+    /*
+     * The alert's own rules still decide where its full contents may go.
+     * Only change the thread in a destination that already gets the alert.
+     */
+    return new Map([
+      ...threads,
+      ...(await this.getSlackEpisodeThreadsForAlert({
+        projectId: data.projectId,
+        alertId: data.notificationFor.alertId,
+      })),
+    ]);
+  }
+
+  private async getSlackEpisodeThreadsForAlert(data: {
+    projectId: ObjectID;
+    alertId: ObjectID;
+  }): Promise<ReadonlyMap<string, string>> {
+    try {
+      const alert: Alert | null = await AlertService.findOneById({
+        id: data.alertId,
+        select: { projectId: true, alertEpisodeId: true },
+        props: { isRoot: true },
+      });
+      if (alert?.alertEpisodeId && alert.projectId?.equals(data.projectId)) {
+        return await WorkspaceLiveMessages.getSlackThreadTimestamps({
+          projectId: data.projectId,
+          messageKey: WorkspaceLiveMessageKey.forSlackAlertEpisode(
+            alert.alertEpisodeId,
+          ),
+        });
+      }
+    } catch (error) {
+      logger.error(error, { alertId: data.alertId.toString() });
+    }
+    return new Map();
+  }
+
   @CaptureSpan()
   public async sendWorkspaceMarkdownNotification(data: {
     projectId: ObjectID;
     notificationFor: NotificationFor;
     feedInfoInMarkdown: string;
+    isSlackThreadRoot?: boolean | undefined;
+    slackAlertThreadOnly?: boolean | undefined;
+    workspaceTypes?: ReadonlyArray<WorkspaceType> | undefined;
     /*
      * What the message's notification shows, as plain text
      * (WorkspaceMessagePayload.text). Without it, a Slack notification has
      * nothing to show and Microsoft Teams says only that a card was sent.
      */
     notificationText?: string | undefined;
+    // Already delivered by another rule, resolved to Slack channel IDs.
+    exceptSlackChannelIds?: ReadonlyArray<string> | undefined;
     /*
      * What a workspace is sent, where it is not feedInfoInMarkdown: an
      * on-call handoff names the person on call as each workspace knows
@@ -2096,6 +2182,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         markdownByWorkspaceType: data.markdownByWorkspaceType,
         mentionsByWorkspaceType: data.mentionsByWorkspaceType,
         projectId: data.projectId,
+        workspaceTypes: data.workspaceTypes,
       });
 
     // The entry's own blocks, before anything is appended: what a kept post keeps.
@@ -2133,6 +2220,22 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
+    let episodeThreads: ReadonlyMap<string, string> | undefined;
+    const alertId: ObjectID | undefined = data.notificationFor.alertId;
+    const threadKey: string | undefined = Service.getSlackThreadKey(
+      data.notificationFor,
+    );
+    const rootKey: string | undefined =
+      data.isSlackThreadRoot &&
+      threadKey &&
+      messageBlocksByWorkspaceTypes.some(
+        (message: MessageBlocksByWorkspaceType): boolean => {
+          return message.workspaceType === WorkspaceType.Slack;
+        },
+      ) &&
+      (await SlackAlertThreading.forDelivery(data.projectId))
+        ? threadKey
+        : undefined;
 
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
       const destinations: Array<WorkspaceMessagePayload> =
@@ -2146,6 +2249,31 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           notWantedUpdateKinds: data.workspaceNotification.notWantedUpdateKinds,
           mentioning: data.workspaceNotification.mentioning,
         });
+
+      const isSlack: boolean =
+        messageBlocksByWorkspaceType.workspaceType === WorkspaceType.Slack;
+      let slackThreadTsByChannel: ReadonlyMap<string, string> | undefined;
+      const skippedSlackChannels: Array<string> = isSlack
+        ? [...(data.exceptSlackChannelIds || [])]
+        : [];
+      if (isSlack && destinations.length > 0 && threadKey) {
+        if (!data.isSlackThreadRoot) {
+          slackThreadTsByChannel = await this.getSlackReplyThreads(data);
+        } else if (rootKey && alertId) {
+          episodeThreads = await this.getSlackEpisodeThreadsForAlert({
+            projectId: data.projectId,
+            alertId: alertId,
+          });
+          slackThreadTsByChannel = episodeThreads;
+        }
+      }
+      if (
+        isSlack &&
+        data.slackAlertThreadOnly &&
+        !slackThreadTsByChannel?.size
+      ) {
+        continue;
+      }
 
       for (const destination of destinations) {
         const isSkippingHere: boolean = Boolean(
@@ -2182,24 +2310,133 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
         workspaceNotificationPaylaods.push({
           ...destination,
+          ...(destination.workspaceType === WorkspaceType.Slack &&
+          slackThreadTsByChannel?.size
+            ? { slackThreadTsByChannel: slackThreadTsByChannel }
+            : {}),
+          ...(destination.workspaceType === WorkspaceType.Slack &&
+          data.slackAlertThreadOnly
+            ? { slackThreadOnly: true }
+            : {}),
           messageBlocks: messageBlocksByWorkspaceType.messageBlocks,
           ...(notificationText ? { text: notificationText } : {}),
           /*
            * A channel named by its name is found only when the message is
            * sent: the sender leaves it out then (exceptChannelIds).
            */
-          ...(isSkippingHere
-            ? { exceptChannelIds: [exceptChannel!.channelId] }
+          ...(skippedSlackChannels.length || isSkippingHere
+            ? {
+                exceptChannelIds: [
+                  ...skippedSlackChannels,
+                  ...(isSkippingHere ? [exceptChannel!.channelId] : []),
+                ],
+              }
             : {}),
         });
       }
     }
 
+    const send: () => Promise<
+      Array<WorkspaceSendMessageResponse>
+    > = async () => {
+      if (
+        alertId &&
+        rootKey &&
+        workspaceNotificationPaylaods.some(
+          (payload: WorkspaceMessagePayload): boolean => {
+            return payload.workspaceType === WorkspaceType.Slack;
+          },
+        )
+      ) {
+        try {
+          const alert: Alert | null =
+            await SlackAlertMessage.findAlert(alertId);
+          const compact: WorkspacePayloadMarkdown | undefined = alert
+            ? await SlackAlertMessage.compactBlock(alert)
+            : undefined;
+          if (compact) {
+            for (const payload of workspaceNotificationPaylaods) {
+              if (payload.workspaceType === WorkspaceType.Slack) {
+                payload.messageBlocks = [
+                  compact,
+                  ...payload.messageBlocks.slice(1),
+                ];
+                payload.text = WorkspaceNotificationText.fromBlocks(
+                  payload.messageBlocks,
+                );
+              }
+            }
+          }
+        } catch (error) {
+          logger.error(error, { alertId: alertId.toString() });
+        }
+      }
+
+      const responses: Array<WorkspaceSendMessageResponse> =
+        await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+          projectId: data.projectId,
+          messagePayloadsByWorkspace: workspaceNotificationPaylaods,
+        });
+
+      if (rootKey) {
+        const kept: Array<WorkspaceLiveMessage> =
+          await WorkspaceLiveMessages.keepPosts({
+            projectId: data.projectId,
+            messageKey: rootKey,
+            payloads: workspaceNotificationPaylaods,
+            responses: responses,
+            onlyWorkspaceType: WorkspaceType.Slack,
+            onlyRootPosts: true,
+            leadBlocksByWorkspaceType: new Map(
+              messageBlocksByWorkspaceTypes.map(
+                (
+                  blocks: MessageBlocksByWorkspaceType,
+                ): [WorkspaceType, Array<WorkspaceMessageBlock>] => {
+                  return [
+                    blocks.workspaceType,
+                    blocks.messageBlocks.slice(0, 1),
+                  ];
+                },
+              ),
+            ),
+          });
+
+        for (const post of kept) {
+          const deletedParent: string | undefined = episodeThreads?.get(
+            post.channelId!,
+          );
+          if (!deletedParent) {
+            continue;
+          }
+          // Slack only posts a new root in a mapped channel if its thread is gone.
+          try {
+            await WorkspaceLiveMessageService.deleteOneBy({
+              query: {
+                projectId: data.projectId,
+                workspaceType: WorkspaceType.Slack,
+                channelId: post.channelId!,
+                messageId: deletedParent,
+              },
+              props: { isRoot: true },
+            });
+          } catch (error) {
+            logger.error(error, { projectId: data.projectId.toString() });
+          }
+        }
+      }
+
+      return responses;
+    };
+
     const responses: Array<WorkspaceSendMessageResponse> =
-      await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-        projectId: data.projectId,
-        messagePayloadsByWorkspace: workspaceNotificationPaylaods,
-      });
+      rootKey &&
+      workspaceNotificationPaylaods.some(
+        (payload: WorkspaceMessagePayload): boolean => {
+          return payload.workspaceType === WorkspaceType.Slack;
+        },
+      )
+        ? await WorkspaceLiveMessages.withLock(rootKey, send)
+        : await send();
 
     // Said before anything else can fail: a post that was made is kept.
     if (data.workspaceNotification.onPosted) {

@@ -53,6 +53,8 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import AlertEpisodeWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/AlertEpisode";
+import SlackAlertEpisodeMessage from "../Utils/Workspace/LiveMessages/SlackAlertEpisodeMessage";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
 import OwnerRuleAssignment, {
   OwnersAdded,
 } from "../Utils/Rules/OwnerRuleAssignment";
@@ -597,7 +599,7 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     // Create initial state timeline entry
-    privacyRulesApplied
+    const createdFeedPosted: Promise<void> = privacyRulesApplied
       .then(async () => {
         /*
          * No channel is opened for an episode created resolved. Its created
@@ -656,7 +658,9 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      });
+
+    createdFeedPosted
       .then(async () => {
         // Under the episode's created message: who could not be added.
         await ChannelMembersNotAddedNotice.noteAll({
@@ -804,6 +808,13 @@ export class Service extends ProjectReferencesService<Model> {
      */
     await alertsAdded;
 
+    if (
+      onCreate.createBy.miscDataProps?.["waitForEpisodeCreatedFeed"] === true &&
+      (await SlackAlertThreading.forDelivery(createdItem.projectId))
+    ) {
+      await createdFeedPosted;
+    }
+
     return createdItem;
   }
 
@@ -876,12 +887,18 @@ export class Service extends ProjectReferencesService<Model> {
 
 `.toString();
 
-    if (episode.description) {
-      feedInfoInMarkdown += mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`;
-    }
-
-    if (episode.isManuallyCreated) {
-      feedInfoInMarkdown += `This episode was manually created.\n\n`;
+    const slackThreading: boolean = await SlackAlertThreading.forDelivery(
+      episode.projectId,
+    );
+    const description: string =
+      (episode.description
+        ? mdText`${FeedMarkdown.asMarkdown(episode.description)}\n\n`.toString()
+        : "") +
+      (episode.isManuallyCreated
+        ? "This episode was manually created.\n\n"
+        : "");
+    if (!slackThreading) {
+      feedInfoInMarkdown += description;
     }
 
     /*
@@ -897,6 +914,7 @@ export class Service extends ProjectReferencesService<Model> {
       episodeWithState = await this.findOneById({
         id: episode.id,
         select: {
+          resolvedAt: true,
           currentAlertState: {
             name: true,
           },
@@ -919,7 +937,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (episodeWithState?.currentAlertState?.name) {
-      feedInfoInMarkdown += mdText`🔴 **Episode State**: ${episodeWithState.currentAlertState.name} \n\n`;
+      feedInfoInMarkdown += `${SlackAlertEpisodeMessage.stateLine(episodeWithState.currentAlertState.name, slackThreading && Boolean(episodeWithState.resolvedAt))}\n\n`;
+    }
+
+    if (slackThreading) {
+      feedInfoInMarkdown += description;
     }
 
     if (episodeWithState?.alertSeverity?.name) {
@@ -944,6 +966,10 @@ export class Service extends ProjectReferencesService<Model> {
         sendWorkspaceNotification: true,
       },
     });
+    // Catch a state change that committed between reading and keeping the card.
+    if (slackThreading) {
+      await SlackAlertEpisodeMessage.refresh(episode.projectId, episode.id);
+    }
   }
 
   /*

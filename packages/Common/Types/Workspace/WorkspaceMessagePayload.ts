@@ -322,4 +322,6 @@ export default interface WorkspaceMessagePayload {
    * message is in, where it would only repeat it.
    */
   exceptChannelIds?: Array<string> | undefined;
+  slackThreadTsByChannel?: ReadonlyMap<string, string> | undefined;
+  slackThreadOnly?: boolean | undefined;
 }

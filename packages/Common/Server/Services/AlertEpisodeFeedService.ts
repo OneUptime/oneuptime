@@ -182,6 +182,9 @@ export class Service extends ProjectReferencesService<Model> {
           await this.sendWorkspaceNotification({
             projectId: data.projectId,
             alertEpisodeId: data.alertEpisodeId,
+            isEpisodeCreated:
+              data.alertEpisodeFeedEventType ===
+              AlertEpisodeFeedEventType.EpisodeCreated,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
             // Which updates it is: posted where a rule wants one of them.
@@ -228,6 +231,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     alertEpisodeId: ObjectID;
+    isEpisodeCreated?: boolean | undefined;
     feedInfoInMarkdown: string;
     workspaceNotification: FeedWorkspaceNotification;
     // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
@@ -245,6 +249,7 @@ export class Service extends ProjectReferencesService<Model> {
           alertEpisodeId: data.alertEpisodeId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
+        isSlackThreadRoot: data.isEpisodeCreated,
         notificationText: data.workspaceNotification.notificationText,
         workspaceNotification:
           FeedWorkspaceNotificationUtil.toWorkspaceNotification({

@@ -21,6 +21,10 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import AlertOnCallRulesOnOwnerChange from "../Utils/Alert/AlertOnCallRulesOnOwnerChange";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import SlackAlertMessage from "../Utils/Workspace/LiveMessages/SlackAlertMessage";
+import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -208,6 +212,8 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: alertId,
         });
 
+        const slackThreading: boolean =
+          await SlackAlertThreading.forDelivery(projectId);
         await AlertFeedService.createAlertFeedItem({
           alertId: alertId,
           projectId: projectId,
@@ -219,8 +225,23 @@ export class Service extends ProjectReferencesService<Model> {
           workspaceNotification: {
             sendWorkspaceNotification: true,
             leadWithAuthor: true,
+            workspaceTypes: slackThreading
+              ? WorkspaceUtil.getAllWorkspaceTypes().filter(
+                  (workspaceType: WorkspaceType): boolean => {
+                    return workspaceType !== WorkspaceType.Slack;
+                  },
+                )
+              : undefined,
           },
         });
+        if (slackThreading) {
+          SlackAlertMessage.collectOwnerTeam({
+            projectId: projectId,
+            alertId: alertId,
+            teamId: teamId,
+            teamName: team.name,
+          });
+        }
       }
     }
 

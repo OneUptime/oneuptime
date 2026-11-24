@@ -28,7 +28,10 @@ import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
 import AlertFeedService from "../../../../../Server/Services/AlertFeedService";
 import AlertMeasurementValueService from "../../../../../Server/Services/AlertMeasurementValueService";
 import AlertService from "../../../../../Server/Services/AlertService";
+import SlackAlertMessage from "../../../../../Server/Utils/Workspace/LiveMessages/SlackAlertMessage";
 import AlertStateService from "../../../../../Server/Services/AlertStateService";
+import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
+import { setImmediate } from "node:timers/promises";
 import AlertStateTimelineService from "../../../../../Server/Services/AlertStateTimelineService";
 import IncidentAlertService from "../../../../../Server/Services/IncidentAlertService";
 import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
@@ -195,6 +198,9 @@ export const STATE_ACKNOWLEDGED: ObjectID = new ObjectID(
 export const STATE_RESOLVED: ObjectID = new ObjectID(
   "a0000000-0000-4000-8000-000000000053",
 );
+export const STATE_CLOSED: ObjectID = new ObjectID(
+  "a0000000-0000-4000-8000-000000000054",
+);
 
 const NAMES: Record<string, string> = {
   [NITIN.toString()]: "Nitin",
@@ -348,6 +354,7 @@ export default class QuietChannelsWorld {
   public runFor: "incident" | "alert" = "incident";
   public recordAcknowledged: boolean = false;
   public recordStateName: string = "Identified";
+  public recordResolved: boolean = false;
   /*
    * The record's title, when a suite reads it: a page from a chat shows it
    * where it was asked for (OnCallPolicyRunMessage's page request places).
@@ -706,6 +713,18 @@ export default class QuietChannelsWorld {
       numberWithPrefix: "AL-12",
     });
     jest
+      .spyOn(AlertStateService, "isResolvedAlertState")
+      .mockImplementation(
+        async (
+          data: Parameters<typeof AlertStateService.isResolvedAlertState>[0],
+        ): Promise<boolean> => {
+          return (
+            data.alertStateId.equals(STATE_RESOLVED) ||
+            data.alertStateId.equals(STATE_CLOSED)
+          );
+        },
+      );
+    jest
       .spyOn(AlertService, "findOneById")
       .mockImplementation((async (): Promise<Alert> => {
         const alert: Alert = new Alert();
@@ -720,6 +739,8 @@ export default class QuietChannelsWorld {
 
         const state: AlertState = new AlertState();
         state.name = this.recordStateName;
+        state.isResolvedState = false;
+        alert.currentAlertStateId = this.alertStateId;
         alert.currentAlertState = state;
         return alert;
       }) as never);
@@ -2482,13 +2503,21 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     await this.noteMembersNotAddedToNewChannels();
   }
 
+  private alertStateId: ObjectID = STATE_IDENTIFIED;
+
   public async alertState(data: {
     to: ObjectID;
     name: string;
     isFirst: boolean;
     by?: ObjectID | undefined;
+    privateNote?: AlertInternalNote | undefined;
   }): Promise<void> {
-    jest.spyOn(AlertService, "updateOneBy").mockResolvedValue(1 as never);
+    jest.spyOn(AlertService, "updateOneBy").mockImplementation((async () => {
+      this.recordStateName = data.name;
+      this.alertStateId = data.to;
+      await SlackAlertMessage.refresh(ALERT_ID);
+      return 1;
+    }) as never);
     jest
       .spyOn(AlertStateTimelineService, "updateOneById")
       .mockResolvedValue(undefined as never);
@@ -2500,9 +2529,6 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
         state.name = data.name;
         return state;
       }) as never);
-    jest
-      .spyOn(AlertStateService, "isResolvedAlertState")
-      .mockResolvedValue(false);
     jest
       .spyOn(AlertStateService, "isAcknowledgedAlertState")
       .mockResolvedValue(!data.isFirst);
@@ -2549,11 +2575,13 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
         carryForward: {
           statusTimelineBeforeThisStatus: before,
           statusTimelineAfterThisStatus: null,
+          privateNotesToPost: data.privateNote ? [data.privateNote] : undefined,
           mutex: null,
         },
       },
       created,
     );
+    await setImmediate();
   }
 
   // That the alert's owners were told, as AlertOwners' job writes it.

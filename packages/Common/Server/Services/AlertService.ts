@@ -95,6 +95,8 @@ import AlertReminderRule from "../../Models/DatabaseModels/AlertReminderRule";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import NotificationRuleWorkspaceChannel from "../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import AlertWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Alert";
+import SlackAlertMessage from "../Utils/Workspace/LiveMessages/SlackAlertMessage";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
 import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import MonitorService from "./MonitorService";
@@ -1367,6 +1369,35 @@ export class Service extends ProjectReferencesService<Model> {
      * on-call rules have.
      */
     AlertOnCallRulesOnOwnerChange.startCreating(createdItem.id);
+    const slackThreading: boolean = await SlackAlertThreading.forDelivery(
+      createdItem.projectId,
+    );
+    if (slackThreading && createdItem.id && createdItem.projectId) {
+      SlackAlertMessage.startCollectingOwnerTeams(createdItem.id);
+    }
+
+    const applyLabels: () => Promise<void> = async () => {
+      try {
+        await AlertLabelRuleEngineService.applyRulesToAlert(createdItem);
+      } catch (error) {
+        logger.error(error, { alertId: createdItem.id?.toString() });
+      }
+    };
+
+    const groupAlert: () => Promise<void> = async () => {
+      if (!isOngoing) {
+        return;
+      }
+      try {
+        await AlertGroupingEngineService.processAlert(createdItem, {
+          mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
+        });
+      } catch (error) {
+        logger.error(error, { alertId: createdItem.id?.toString() });
+      }
+    };
+
+    let createdMessagePosted: Promise<void> = Promise.resolve();
 
     // Execute operations sequentially with error handling
     Promise.resolve()
@@ -1412,25 +1443,45 @@ export class Service extends ProjectReferencesService<Model> {
         return Promise.resolve();
       })
       .then(async () => {
-        try {
-          return await this.createAlertFeedAsync(createdItem.id!);
-        } catch (error) {
-          logger.error(
-            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              alertId: createdItem.id?.toString(),
-            } as LogAttributes,
+        if (slackThreading) {
+          await applyLabels();
+        }
+        const postCreatedMessage: () => Promise<void> = async () => {
+          if (slackThreading && isOngoing) {
+            await groupAlert();
+          }
+          await this.createAlertFeedAsync(createdItem.id!);
+        };
+        createdMessagePosted = postCreatedMessage().catch((error: unknown) => {
+          logger.error(`Create alert feed failed: ${error}`, {
+            projectId: createdItem.projectId?.toString(),
+            alertId: createdItem.id?.toString(),
+          } as LogAttributes);
+        });
+        if (slackThreading) {
+          SlackAlertMessage.trackInitialPost(
+            createdItem.id!,
+            createdMessagePosted,
           );
-          return Promise.resolve(); // Continue chain even on error
+        } else {
+          await createdMessagePosted;
         }
       })
       .then(async () => {
         // Under "Alert Created": who could not be added to the new channels.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
+        const notice: Promise<void> = createdMessagePosted.then(() => {
+          return ChannelMembersNotAddedNotice.noteAll({
+            projectId: createdItem.projectId,
+            membersNotAdded: membersNotAddedToNewChannels,
+          });
         });
+        if (!slackThreading) {
+          await notice;
+        } else {
+          void notice.catch((error: Error) => {
+            logger.error(error, { alertId: createdItem.id?.toString() });
+          });
+        }
       })
       .then(() => {
         /*
@@ -1440,18 +1491,22 @@ export class Service extends ProjectReferencesService<Model> {
          * the on-call below. No call for an alert created resolved.
          */
         if (createdItem.projectId && createdItem.id && isOngoing) {
-          VideoCallRuleExecutor.startCallsForAlert({
-            projectId: createdItem.projectId,
-            alertId: createdItem.id,
-          }).catch((error: unknown) => {
-            logger.error(
-              `Starting video calls failed in AlertService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                alertId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-          });
+          void createdMessagePosted
+            .then((): Promise<void> => {
+              return VideoCallRuleExecutor.startCallsForAlert({
+                projectId: createdItem.projectId!,
+                alertId: createdItem.id!,
+              });
+            })
+            .catch((error: unknown) => {
+              logger.error(
+                `Starting video calls failed in AlertService.onCreateSuccess: ${error}`,
+                {
+                  projectId: createdItem.projectId?.toString(),
+                  alertId: createdItem.id?.toString(),
+                } as LogAttributes,
+              );
+            });
         }
       })
       .then(async () => {
@@ -1525,19 +1580,27 @@ export class Service extends ProjectReferencesService<Model> {
           onCreate.createBy,
           OwnersAddedBy.Chain,
         );
+
+        // Slack delivery must not hold up the on-call rules or paging.
+        const alertId: ObjectID | null = createdItem.id;
+        const projectId: ObjectID | undefined = createdItem.projectId;
+        if (slackThreading && alertId && projectId) {
+          void CreatedNotificationHold.whenOwnersAreIn(
+            onCreate.createBy,
+            [OwnersAddedBy.Create, OwnersAddedBy.Caller],
+            AlertOnCallRulesOnOwnerChange.OWNERS_WAITED_FOR_AT_MOST_MS,
+          ).then(async () => {
+            await createdMessagePosted;
+            await SlackAlertMessage.finishCollectingOwnerTeams({
+              projectId: projectId,
+              alertId: alertId,
+            });
+          });
+        }
       })
       .then(async () => {
-        // Apply label rules: attach matched (and inherited monitor) labels.
-        try {
-          await AlertLabelRuleEngineService.applyRulesToAlert(createdItem);
-        } catch (error) {
-          logger.error(
-            `Apply alert label rules failed in AlertService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              alertId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
+        if (!slackThreading) {
+          await applyLabels();
         }
       })
       .then(async () => {
@@ -1661,30 +1724,8 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        /*
-         * Process alert for grouping into episodes - unless it was created
-         * resolved: it is over. One created already acknowledged may join an
-         * episode that is open, but never opens or reopens one
-         * (GroupingOptions): a new episode runs its own on-call policies, and
-         * would page for the alert after all.
-         */
-        if (!isOngoing) {
-          return;
-        }
-
-        try {
-          await AlertGroupingEngineService.processAlert(createdItem, {
-            mayOpenEpisode: StartingStageUtil.pagesOnCall(startingStage),
-          });
-        } catch (error) {
-          logger.error(
-            `Alert grouping failed in AlertService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              alertId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
+        if (!slackThreading && isOngoing) {
+          await groupAlert();
         }
       })
       .then(async () => {
@@ -1802,6 +1843,14 @@ export class Service extends ProjectReferencesService<Model> {
           onCreate.createBy,
           OwnersAddedBy.Chain,
         );
+        if (slackThreading && createdItem.id && createdItem.projectId) {
+          void createdMessagePosted.then(async () => {
+            await SlackAlertMessage.finishCollectingOwnerTeams({
+              projectId: createdItem.projectId!,
+              alertId: createdItem.id!,
+            });
+          });
+        }
       });
 
     return createdItem;
@@ -2044,13 +2093,23 @@ export class Service extends ProjectReferencesService<Model> {
         mdText`#### 🚨 Alert ${alert.alertNumberWithPrefix || "#" + alert.alertNumber?.toString()} Created:
            
 **${alert.title || "No title provided."}**:
-     
-${FeedMarkdown.asMarkdown(alert.description?.trim() ? alert.description : "No description provided.")}
-     
+
 `.toString();
 
+      const description: string =
+        mdText`${FeedMarkdown.asMarkdown(alert.description?.trim() ? alert.description : "No description provided.")}\n\n`.toString();
+      const slackThreading: boolean = await SlackAlertThreading.forDelivery(
+        alert.projectId,
+      );
+      if (!slackThreading) {
+        feedInfoInMarkdown += description;
+      }
       if (alert.currentAlertState?.name) {
-        feedInfoInMarkdown += mdText`🔴 **Alert State**: ${alert.currentAlertState.name} \n\n`;
+        feedInfoInMarkdown += `${SlackAlertMessage.stateLine(alert.currentAlertState.name)}\n\n`;
+      }
+
+      if (slackThreading) {
+        feedInfoInMarkdown += description;
       }
 
       if (alert.alertSeverity?.name) {
@@ -2607,6 +2666,12 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
             isRoot: true,
           },
         });
+      }
+    }
+
+    if (updatedAlertStateId) {
+      for (const alertId of updatedItemIds) {
+        void SlackAlertMessage.refresh(alertId);
       }
     }
 
