@@ -222,6 +222,10 @@ describe("who started the run", () => {
       "OneUptime AI",
       "Started on its own by OneUptime AI, which is working the case",
     ],
+    [
+      "Automatic Response",
+      "Started on its own by an automatic response policy",
+    ],
     ["Manual", "Started by hand"],
     [undefined, "Started by hand"],
   ])("a run started by %s", (trigger: unknown, words: string) => {

@@ -203,7 +203,7 @@ describe("SecurityEventService.findAttackCampaigns", () => {
     const query: string = statement.query.replace(/\s+/g, " ");
 
     expect(query).toContain("countIf(principalIp = '' AND attributes[");
-    expect(query).toContain(") AS hiddenAddressCount FROM ");
+    expect(query).toContain(") AS hiddenAddressCount, ");
     expect(query).not.toContain("oneuptime.request.client_address_hidden");
     expect(query).not.toContain("scrub-rule");
 
@@ -372,5 +372,177 @@ describe("the window the Campaigns page reads", () => {
     expect(NOW.getTime() - window.startTime.getTime()).toBe(
       7 * 24 * 3600 * 1000,
     );
+  });
+});
+
+describe("campaigns by network (#10354)", () => {
+  test("each row carries its ASN and its name, as Cloudflare's events carry them, the keys bound", async () => {
+    const spy: Spy = stubExecuteQuery([
+      {
+        sourceIp: "203.0.113.7",
+        requestCount: "9",
+        asn: "14061",
+        asnName: "DIGITALOCEAN-ASN",
+      },
+      { sourceIp: "198.51.100.23", requestCount: "3", asn: "", asnName: "" },
+    ]);
+
+    const campaigns: Array<SecurityAttackCampaign> =
+      await SecurityEventService.findAttackCampaigns({
+        projectId: PROJECT_ID,
+        startTime: START,
+        endTime: END,
+        limit: 25,
+      });
+
+    const statement: Statement = statementOf(spy);
+    const query: string = statement.query.replace(/\s+/g, " ");
+
+    expect(query).toContain(" AS asn, anyIf(");
+    expect(query).toContain(" AS asnName FROM ");
+    expect(query).not.toContain("cloudflare.client.asn");
+
+    const values: Array<unknown> = Object.values(statement.query_params);
+    expect(values).toContain("cloudflare.client.asn");
+    expect(values).toContain("cloudflare.client.asn_name");
+
+    expect(campaigns[0]!.asn).toBe("AS14061");
+    expect(campaigns[0]!.asnName).toBe("DIGITALOCEAN-ASN");
+    expect(campaigns[1]!.asn).toBeUndefined();
+    expect(campaigns[1]!.asnName).toBeUndefined();
+  });
+
+  test("grouping by network reads the window's 2,000 most serious addresses, never more", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await SecurityEventService.findAttackCampaigns({
+      projectId: PROJECT_ID,
+      startTime: START,
+      endTime: END,
+      limit: 50_000,
+      maxLimit: 50_000,
+    });
+
+    expect(Object.values(statementOf(spy).query_params)).toContain(2001);
+  });
+});
+
+describe("SecurityEventService.findCampaignOfAddress (#10354)", () => {
+  test("reads the address's tools and requests, then the other addresses that sent one of those requests with one of those tools", async () => {
+    getJestSpyOn(
+      SecurityEventService.database,
+      "getDatasourceOptions",
+    ).mockReturnValue({ database: "oneuptime" } as never);
+
+    const answers: Array<Array<JSONObject>> = [
+      [
+        {
+          userAgents: ["zgrab/0.x", "  "],
+          targets: ["/.env", "/wp-login.php"],
+        },
+      ],
+      [
+        {
+          sourceIp: "35.205.11.140",
+          requestCount: "40",
+          sharedTargetCount: "2",
+          lastSeen: "2026-10-27 06:45:00.000000000",
+        },
+      ],
+    ];
+    const spy: Spy = getJestSpyOn(
+      SecurityEventService,
+      "executeQuery",
+    ).mockImplementation((async (): Promise<Results> => {
+      const rows: Array<JSONObject> = answers.shift() || [];
+
+      return {
+        json: (): Promise<unknown> => {
+          return Promise.resolve({ data: rows });
+        },
+      } as unknown as Results;
+    }) as never);
+
+    const read: Awaited<
+      ReturnType<(typeof SecurityEventService)["findCampaignOfAddress"]>
+    > = await SecurityEventService.findCampaignOfAddress({
+      projectId: PROJECT_ID,
+      spellings: ["35.205.11.131", "::ffff:35.205.11.131", " "],
+      startTime: START,
+      endTime: END,
+      limit: 50,
+    });
+
+    const own: Statement = spy.mock.calls[0]![0] as Statement;
+    const others: Statement = spy.mock.calls[1]![0] as Statement;
+    const ownQuery: string = own.query.replace(/\s+/g, " ");
+    const othersQuery: string = others.query.replace(/\s+/g, " ");
+
+    expect(ownQuery).toContain("AND principalIp IN ");
+    expect(othersQuery).toContain("principalIp != '' AND principalIp NOT IN ");
+    expect(othersQuery).toContain(
+      "GROUP BY sourceIp ORDER BY requestCount DESC, sourceIp ASC LIMIT ",
+    );
+
+    // Every value a parameter: the address, its tools and its requests.
+    for (const query of [ownQuery, othersQuery]) {
+      expect(query).not.toContain("35.205.11.131");
+      expect(query).not.toContain("zgrab");
+      expect(query).not.toContain("/.env");
+    }
+
+    const otherValues: Array<unknown> = Object.values(others.query_params);
+    expect(otherValues).toContainEqual([
+      "35.205.11.131",
+      "::ffff:35.205.11.131",
+    ]);
+    expect(otherValues).toContainEqual(["zgrab/0.x"]);
+    expect(otherValues).toContainEqual(["/.env", "/wp-login.php"]);
+    expect(otherValues).toContain(51);
+
+    expect(read).toEqual({
+      userAgents: ["zgrab/0.x"],
+      targetCount: 2,
+      addresses: [
+        {
+          address: "35.205.11.140",
+          requestCount: 40,
+          sharedTargetCount: 2,
+          lastSeen: "2026-10-27T06:45:00.000Z",
+        },
+      ],
+    });
+  });
+
+  test("with no tool or no request of its own to match, there is no campaign, and nothing else is read", async () => {
+    const spy: Spy = stubExecuteQuery([{ userAgents: [], targets: ["/.env"] }]);
+
+    const read: Awaited<
+      ReturnType<(typeof SecurityEventService)["findCampaignOfAddress"]>
+    > = await SecurityEventService.findCampaignOfAddress({
+      projectId: PROJECT_ID,
+      spellings: ["35.205.11.131"],
+      startTime: START,
+      endTime: END,
+      limit: 50,
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(read.addresses).toEqual([]);
+  });
+
+  test("an address with no spelling reads nothing", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    expect(
+      await SecurityEventService.findCampaignOfAddress({
+        projectId: PROJECT_ID,
+        spellings: ["  "],
+        startTime: START,
+        endTime: END,
+        limit: 50,
+      }),
+    ).toEqual({ userAgents: [], targetCount: 0, addresses: [] });
+    expect(spy).not.toHaveBeenCalled();
   });
 });

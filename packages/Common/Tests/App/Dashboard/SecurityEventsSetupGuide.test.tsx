@@ -209,6 +209,17 @@ describe("Security Events setup guide", () => {
     expect(container.textContent).toContain(
       "Header           x-oneuptime-token secret-production",
     );
+    /*
+     * #10815: the ingest reads a gzip-compressed batch as the same batch, so
+     * the snippet compresses, as the docs' snippet does, right after the
+     * format it sends.
+     */
+    expect(container.textContent).toContain(
+      "    Format           json\n    compress         gzip\n",
+    );
+    expect(container.textContent).toContain(
+      "or a single object, gzip-compressed or not.",
+    );
   });
 
   /*

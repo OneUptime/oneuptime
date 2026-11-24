@@ -3,6 +3,7 @@ import * as OTPAuth from "otpauth";
 import TotpAuth from "../../Server/Utils/TotpAuth";
 import Email from "../../Types/Email";
 import {
+  getTotpAuthenticatorAppLink,
   getTotpSetupKey,
   getTotpSetupKeyGroups,
   TOTP_SETUP_KEY_GROUP_LENGTH,
@@ -136,6 +137,140 @@ describe("getTotpSetupKey", () => {
       expect(getTotpSetupKey(url)).toBe("");
     },
   );
+});
+
+/*
+ * Add to Authenticator App (issue #6651): on a phone, the enrolment is handed
+ * to the authenticator app on the device as the otpauth:// URL itself - the
+ * one its QR code holds, with the same secret and the same parameters.
+ */
+describe("getTotpAuthenticatorAppLink", () => {
+  // A whole number of `length` digits, from a seeded draw.
+  const digits: (random: SeededRandom, length: number) => string = (
+    random: SeededRandom,
+    length: number,
+  ): string => {
+    let text: string = "";
+
+    for (let index: number = 0; index < length; index++) {
+      text += String(random(10));
+    }
+
+    return text;
+  };
+
+  test("is the URL the server issues, exactly as the QR code holds it", () => {
+    expect(getTotpAuthenticatorAppLink(SERVER_URL)).toBe(SERVER_URL);
+  });
+
+  test("is exactly the URL of every enrolment the server makes, whatever the secret and the address", () => {
+    const random: SeededRandom = seededRandom(6651);
+
+    for (let index: number = 0; index < 200; index++) {
+      const secret: string = TotpAuth.generateSecret();
+      const address: string = `person.${digits(random, 6)}+tag@example${random(
+        10,
+      )}.com`;
+      const url: string = TotpAuth.generateUri({
+        secret: secret,
+        userEmail: new Email(address),
+      });
+
+      expect({ index, link: getTotpAuthenticatorAppLink(url) }).toEqual({
+        index,
+        link: url,
+      });
+    }
+  });
+
+  test("an authenticator app handed it computes the codes the server checks, with its issuer, account and parameters", () => {
+    const random: SeededRandom = seededRandom(66510);
+
+    for (let index: number = 0; index < 50; index++) {
+      const secret: string = TotpAuth.generateSecret();
+      const address: string = `ada.${digits(random, 4)}@example.com`;
+      const url: string = TotpAuth.generateUri({
+        secret: secret,
+        userEmail: new Email(address),
+      });
+
+      // What an authenticator app reads from the URL it is handed.
+      const opened: OTPAuth.HOTP | OTPAuth.TOTP = OTPAuth.URI.parse(
+        getTotpAuthenticatorAppLink(url),
+      );
+
+      expect(opened).toBeInstanceOf(OTPAuth.TOTP);
+
+      const app: OTPAuth.TOTP = opened as OTPAuth.TOTP;
+
+      expect({
+        issuer: app.issuer,
+        label: app.label,
+        secret: app.secret.base32,
+        algorithm: app.algorithm,
+        digits: app.digits,
+        period: app.period,
+      }).toEqual({
+        issuer: "OneUptime",
+        label: address,
+        secret: secret,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+      });
+
+      expect(
+        TotpAuth.verifyToken({
+          secret: secret,
+          token: app.generate(),
+          email: new Email(address),
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("leaves off only the space around a URL", () => {
+    expect(
+      getTotpAuthenticatorAppLink(
+        "  otpauth://totp/OneUptime?secret=ABCDEFGH\n",
+      ),
+    ).toBe("otpauth://totp/OneUptime?secret=ABCDEFGH");
+  });
+
+  test.each([
+    ["no URL at all", undefined],
+    ["null", null],
+    ["an empty URL", ""],
+    ["a web address", "https://example.com/?secret=ABCDEFGH"],
+    ["a script", "javascript:alert(1)//otpauth://totp/x?secret=ABCDEFGH"],
+    ["a page in a data URL", "data:text/html,otpauth://totp/x?secret=ABCD"],
+    ["a URL with no secret", "otpauth://totp/OneUptime?issuer=OneUptime"],
+    ["a secret base32 has not", "otpauth://totp/OneUptime?secret=AB0189"],
+  ])(
+    "is empty for %s, so nothing but an authenticator app's URL is ever opened",
+    (_name: string, url: string | undefined | null) => {
+      expect(getTotpAuthenticatorAppLink(url)).toBe("");
+    },
+  );
+
+  test("is offered exactly where the setup key is", () => {
+    const random: SeededRandom = seededRandom(665);
+    const alphabet: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567abc0189=%&+ ";
+
+    for (let index: number = 0; index < 300; index++) {
+      let secret: string = "";
+
+      for (let place: number = 0; place < 1 + random(12); place++) {
+        secret += alphabet[random(alphabet.length)];
+      }
+
+      const url: string = `otpauth://totp/OneUptime?secret=${secret}`;
+
+      expect({ url, offered: getTotpAuthenticatorAppLink(url) !== "" }).toEqual(
+        { url, offered: getTotpSetupKey(url) !== "" },
+      );
+    }
+  });
 });
 
 describe("getTotpSetupKeyGroups", () => {

@@ -242,7 +242,7 @@ describe("how many of the group's monitors are checked", () => {
   });
 });
 
-describe("Turn off monitoring", () => {
+describe("Turn monitoring off", () => {
   test("is one update, as the caller, of the group's monitors that are checked", async () => {
     await MonitorGroupService.setMonitoringForMonitorsInGroup({
       monitorGroupId: GROUP_ID,

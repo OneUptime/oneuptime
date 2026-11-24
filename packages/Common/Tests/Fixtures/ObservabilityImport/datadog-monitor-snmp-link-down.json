@@ -1,0 +1,119 @@
+{
+  "version": 2,
+  "created_at": "2023-06-15",
+  "last_updated_at": "2023-06-27",
+  "title": "LinkDown Trap Interface is down on SNMP device",
+  "tags": [
+    "integration:snmp"
+  ],
+  "description": "An SNMP trap is an event dispatched by a device. This monitor tracks instances where the interface of any network device within a specified namespace reports a shutdown (via linkDown trap). You can use this monitor as a template for setting up any traps monitor.",
+  "definition": {
+    "message": "{{#is_alert}} \nA network device with IP {{snmp_device.name}} in namespace {{device_namespace.name}} is reporting CRITICAL and can't be monitored anymore.\n{{/is_alert}}\n\n{{#is_alert_recovery}}\nA network device with IP {{snmp_device.name}} in namespace {{device_namespace.name}} is back online.\n{{/is_alert_recovery}}\n\nTo know more about the status of your device, you can have more information from the [NDM page for the device {{device_namespace.name}}:{{snmp_device.name}}](/devices?inspectedDevice={{device_namespace.name}}%3A{{snmp_device.name}}).",
+    "name": "[SNMP-Traps] Interface went down on device {{snmp_device.name}}",
+    "options": {
+      "enable_logs_sample": true,
+      "evaluation_delay": 60,
+      "group_retention_duration": "3d",
+      "groupby_simple_monitor": false,
+      "include_tags": true,
+      "new_group_delay": 0,
+      "notify_audit": false,
+      "on_missing_data": "default",
+      "restriction_query": null,
+      "silenced": {},
+      "thresholds": {
+        "critical": 0.5,
+        "critical_recovery": -0.5
+      },
+      "variables": [
+        {
+          "compute": {
+            "aggregation": "count"
+          },
+          "data_source": "logs",
+          "group_by": [
+            {
+              "facet": "snmp_device",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            },
+            {
+              "facet": "device_namespace",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            },
+            {
+              "facet": "@ifIndex",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            }
+          ],
+          "indexes": [
+            "*"
+          ],
+          "name": "query1",
+          "search": {
+            "query": "source:snmp-traps @snmpTrapName:linkDown @ifAdminStatus:up"
+          },
+          "storage": "hot"
+        },
+        {
+          "compute": {
+            "aggregation": "count"
+          },
+          "data_source": "logs",
+          "group_by": [
+            {
+              "facet": "snmp_device",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            },
+            {
+              "facet": "device_namespace",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            },
+            {
+              "facet": "@ifIndex",
+              "limit": 5,
+              "sort": {
+                "aggregation": "count",
+                "order": "desc"
+              }
+            }
+          ],
+          "indexes": [
+            "*"
+          ],
+          "name": "query",
+          "search": {
+            "query": "source:snmp-traps @snmpTrapName:linkUp @ifAdminStatus:up"
+          },
+          "storage": "hot"
+        }
+      ]
+    },
+    "priority": null,
+    "query": "formula(\"default_zero(query1) / default_zero(query1) - default_zero(query) / default_zero(query)\").last(\"1m\") > 0.5",
+    "restricted_roles": null,
+    "tags": [
+      "integration:snmp"
+    ],
+    "type": "log alert"
+  }
+}

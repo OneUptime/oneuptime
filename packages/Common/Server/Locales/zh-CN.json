@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}：在你的受保护实体列表中，因此永远不会被处理",
   "{{target}}: one of the case's addresses": "{{target}}：案例的地址之一",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}：你自己的地址之一，因此永远不会被封禁",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}：与案例的地址使用相同工具发送了相同请求",
   "{{target}}: the case is grouped on it": "{{target}}：案例按此值分组",
   "{{target}}: undone at {{time}}": "{{target}}：已于 {{time}} 撤销",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}：{{person}} 已于 {{time}} 撤销",

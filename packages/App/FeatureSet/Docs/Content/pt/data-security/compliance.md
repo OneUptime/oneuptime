@@ -7,7 +7,9 @@ A Segurança de dados pontua nove estruturas de conformidade a partir do que as 
 - [Como uma estrutura é pontuada](#como-uma-estrutura-é-pontuada): Requisitos aprovados, reprovados e não avaliados.
 - [Na página de um recurso](#na-página-de-um-recurso): A conformidade de um cluster, host, banco de dados, serviço ou recurso de nuvem, e o que está desativado para ele.
 - [Requisitos e as suas verificações](#requisitos-e-as-suas-verificações): Cada requisito, e as verificações que são evidência para ele.
-- [Registro das atividades de tratamento](#registro-das-atividades-de-tratamento): O Artigo 30 do RGPD, escrito a partir dos seus repositórios.
+- [Registro das atividades de tratamento](#registro-das-atividades-de-tratamento): O Artigo 30 do RGPD, escrito a partir dos seus repositórios, com os rascunhos do OneUptime AI para você confirmar.
+- [Avaliações de impacto](#avaliações-de-impacto): Uma avaliação de impacto sobre a proteção de dados para cada repositório que precisa de uma.
+- [Evidências de auditoria](#evidências-de-auditoria): O que um auditor lê em cada requisito, exportado com o seu registro e o histórico de problemas.
 :::
 
 ## As estruturas de conformidade
@@ -185,27 +187,71 @@ O Artigo 30 do RGPD pede que você mantenha um registro das suas atividades de t
 | Ambiente | As tags ou o nome do repositório, ou o que você definiu |
 | Sensibilidade, categorias e tipos de dados | O que as varreduras encontraram, ou a sensibilidade que você definiu |
 | Proprietários | Os proprietários do repositório, pessoas e os membros das equipes dele |
-| Finalidade | O que você escreve em **Finalidade** no repositório: por que ele guarda dados pessoais. O OneUptime a preenche nos repositórios que guarda para a sua segurança |
-| Retenção | O que você escreve em **Retenção** no repositório: por quanto tempo os dados ficam nele. O OneUptime a preenche nos repositórios que guarda para a sua segurança |
+| Finalidade | O que você escreve ou confirma em **Finalidade** no repositório: por que ele guarda dados pessoais. O OneUptime a preenche nos repositórios que guarda para a sua segurança |
+| Retenção | O que você escreve ou confirma em **Retenção** no repositório: por quanto tempo os dados ficam nele. O OneUptime a preenche nos repositórios que guarda para a sua segurança, e na telemetria de um serviço a partir da retenção de telemetria do seu projeto |
 | Quem pode ler | Quem pode ler um repositório que o OneUptime guarda para a sua segurança |
 | Estruturas de conformidade | As estruturas que os tipos de dados dele trazem para o escopo |
 | Declarado por | OneUptime, nos repositórios que guarda para a sua segurança |
+| Base legal | O que você escreve ou confirma: a base legal do repositório segundo o Artigo 6 do RGPD, uma entre consentimento, contrato, obrigação legal, interesses vitais, interesse público e interesses legítimos. Interesses legítimos nos repositórios que o OneUptime guarda para a sua segurança |
+| Titulares dos dados | O que você escreve ou confirma: a quem se referem os dados do repositório, como clientes, usuários, funcionários ou pacientes |
+| Destinatários | Calculados a partir dos fluxos de dados do repositório: os hosts externos e os provedores de IA para os quais os dados dele são enviados, e os repositórios que guardam uma cópia deles |
+| Transferências | Calculadas a partir da região do repositório, das regiões para as quais a nuvem dele o copia e das regiões das cópias dele, em comparação com os países dos titulares: cada transferência para fora desses países, ou por que ela não é conhecida |
+| Avaliação de impacto | Se o repositório precisa de uma avaliação de impacto sobre a proteção de dados, e em que pé ela está: não necessária, necessária, redigida ou editada |
+| Aguardando revisão | Os campos cujo rascunho aguarda uma pessoa. Um rascunho nunca está no registro, nem nas exportações dele, até que alguém o confirme |
 
-Em um repositório que a Segurança de dados encontrou, preencha **Finalidade** e **Retenção** nas **Configurações** dele: nenhuma varredura consegue saber isso. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing`, `/data-security/compliance` e, para um único recurso, `/data-security/resource-compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
+Em um repositório que a Segurança de dados encontrou, nenhuma varredura consegue saber por que ele guarda dados pessoais, por quanto tempo, com que base ou sobre quem: escreva isso nas **Configurações** dele, ou confirme os rascunhos do OneUptime AI. O registro e as pontuações também são fornecidos pela API da Segurança de dados, em `/data-security/record-of-processing`, `/data-security/compliance` e, para um único recurso, `/data-security/resource-compliance`, para quem pode ler repositórios de dados (veja [Integrações da Segurança de dados](/docs/data-security/integrations#api-terraform-e-mcp)).
+
+### Os rascunhos do OneUptime AI
+
+O OneUptime AI redige **Finalidade**, **Retenção**, **Base legal** e **Titulares dos dados** de um repositório a partir do que a Segurança de dados sabe dele: os tipos de dados encontrados, o nome, as tags e a descrição dele, os serviços que o usam e para que servem segundo as equipes deles, para onde vão os dados e onde são guardados. Ele nunca vê um valor dos seus dados (veja [OneUptime AI na Segurança de dados](/docs/data-security/ai)).
+
+- **Um rascunho é marcado como Rascunho** e diz por quê, com os fatos em que se baseia a um clique de distância. Ele não está no registro até você pressionar **Confirmar**, ou reescrevê-lo com as suas palavras em **Editar**.
+- **As suas palavras nunca são substituídas por um rascunho.** Um campo que você escreveu nunca é redigido de novo. Um rascunho que você confirmou só é redigido de novo quando muda um fato em que ele se baseia, e então é proposto, não aplicado: marcado como **Alteração proposta**, com o que mudou, **Usar o novo rascunho** e **Manter o atual**.
+- **Revisar rascunhos**, no cartão **Registro das atividades de tratamento**, percorre um de cada vez os repositórios cujos rascunhos aguardam você. As **Configurações** de um repositório têm os mesmos campos, com **Redigir com o OneUptime AI** para os vazios.
+- **Por conta própria**, o OneUptime AI redige uma vez por dia os campos vazios dos repositórios mais arriscados, enquanto **Trabalhar em problemas novos** estiver ligado em **Segurança de dados → IA**, conforme as suas regras de IA permitirem.
+
+A retenção da telemetria de um serviço, os destinatários e as transferências são calculados por código simples, nunca redigidos. Os rascunhos são um ponto de partida, não aconselhamento jurídico: peça a quem responde pela sua conformidade que os revise.
 
 ### Repositórios que o OneUptime guarda para a sua segurança
 
-Três repositórios guardam endereços IP de propósito, para proteger a sua rede: **Eventos de segurança**, **Network Flows** e **Cofre de endereços de segurança**. O registro lista cada um que o seu projeto tem. O OneUptime os declara em vez de encontrá-los: o que eles guardam é conhecido por projeto, então nenhuma varredura os lê, nenhuma verificação se aplica a eles e guardar esses endereços nunca é um problema, pois é para isso que existem. Eles mostram **Declarado pelo OneUptime** em **Repositórios de dados**, e a **Visão geral** e as pontuações das estruturas os deixam de fora.
+Quatro repositórios guardam endereços IP e nomes de usuário de propósito, para proteger a sua rede: **Eventos de segurança**, **Network Flows**, **Cofre de endereços de segurança** e **Cofre de usuários de segurança**. O registro lista cada um que o seu projeto tem. O OneUptime os declara em vez de encontrá-los: o que eles guardam é conhecido por projeto, então nenhuma varredura os lê, nenhuma verificação se aplica a eles e guardar esses endereços e nomes nunca é um problema, pois é para isso que existem. Eles mostram **Declarado pelo OneUptime** em **Repositórios de dados**, e a **Visão geral** e as pontuações das estruturas os deixam de fora.
 
 | Repositório | O que guarda | Retenção | Quem pode lê-lo |
 | --- | --- | --- | --- |
 | Eventos de segurança | Os endereços IP, nomes de usuário e endereços de e-mail de quem agiu e do que foi tocado | A [retenção de telemetria](/docs/telemetry/data-retention) do seu projeto, lida sempre que o registro é lido, então uma mudança vale na hora | Proprietários do projeto, Administradores do projeto, Administradores de segurança, Membros de segurança, Visualizadores de segurança e quem tiver Read Security Event |
 | Network Flows | Os endereços IP de quem se comunicou com quem | 30 dias depois de um fluxo chegar | Quem pode ler dispositivos de rede |
 | Cofre de endereços de segurança | O endereço IP por trás de cada token deixado por uma regra de endereço IP que aplica hash nos logs e traces que os [Eventos de segurança](/docs/telemetry/security-events) leem | 30 dias depois da última vez em que um endereço foi visto | Somente as varreduras de Eventos de segurança, dentro do OneUptime: nenhuma pessoa, página, exportação, API ou ferramenta de IA |
+| Cofre de usuários de segurança | O usuário por trás de cada token deixado por uma regra que aplica hash onde os [Eventos de segurança](/docs/telemetry/security-events) leem um usuário nos logs e traces | 30 dias depois da última vez em que um usuário foi visto | Somente as varreduras de Eventos de segurança, dentro do OneUptime: nenhuma pessoa, página, exportação, API ou ferramenta de IA |
 
 A finalidade de cada um é "Segurança das redes e da informação (considerando 49 do RGPD)". Para escrever a sua própria finalidade ou retenção, use **Editar registro** nas **Configurações** do repositório: um campo deixado em branco mantém a do OneUptime.
 
-Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, e por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
+Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre de endereços, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, o cofre de usuários, enquanto uma regra ativada de qualquer outro padrão faz isso, e cada um por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
+
+## Avaliações de impacto
+
+O Artigo 35 do RGPD exige uma avaliação de impacto sobre a proteção de dados antes de um tratamento suscetível de implicar um elevado risco. A Segurança de dados diz quais repositórios precisam de uma: um repositório que guarda categorias especiais de dados, como dados de saúde, dados sobre muitas pessoas (cerca de 100.000 registros ou mais), ou dados que saem dos países dos titulares.
+
+A **Avaliação de impacto** de um repositório, no menu dele em **Configurações**, diz por que o repositório precisa de uma, ou que não precisa. **Redigir a avaliação** pede ao OneUptime AI as quatro partes que o Artigo 35(7) exige, a partir do registro do repositório, dos problemas abertos e dos corrigidos recentemente, do quanto ele está exposto, de quantos podem acessá-lo e da criptografia dele:
+
+| Parte | Artigo |
+| --- | --- |
+| O tratamento e as suas finalidades | Art. 35(7)(a) |
+| Necessidade e proporcionalidade | Art. 35(7)(b) |
+| Riscos para os titulares dos dados | Art. 35(7)(c) |
+| Medidas para fazer face aos riscos | Art. 35(7)(d) |
+
+Cada parte diz quem a escreveu e quando, com os fatos em que se baseia uma parte redigida. **Editar** torna uma parte sua, e ela nunca é redigida de novo; **Redigir novamente** redige só as partes que ninguém editou. Uma parte escrita sobre fatos que mudaram desde então avisa disso. **Exportar PDF** e **Exportar Markdown** baixam a avaliação.
+
+## Evidências de auditoria
+
+As **Evidências de auditoria**, na estrutura que você escolhe em **Segurança de dados → Conformidade**, são o que um auditor lê em cada um dos requisitos dela, nos últimos 30, 90, 180 ou 365 dias:
+
+- os repositórios no escopo dele, e como estão as verificações dele;
+- os problemas das verificações dele abertos e corrigidos no período, e com que rapidez foram corrigidos;
+- os riscos aceitos sob ele, com os motivos e a expiração;
+- os recursos que o desativaram, e por quê.
+
+**Redigir as evidências** pede ao OneUptime AI um parágrafo em cada requisito, restrito a esses fatos; **Editar** torna um parágrafo seu, e ele nunca é redigido de novo. Um requisito sem parágrafo mostra as suas evidências como estão. **Exportar PDF** e **Exportar Markdown** baixam as evidências com dois apêndices: o registro das atividades de tratamento dos repositórios no escopo, e o histórico de problemas que elas citam.
 
 ## Próximos passos
 

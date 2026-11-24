@@ -614,10 +614,22 @@ function planMaliciousStep(data: {
           : SecurityCaseAiActionReason.NeedsJudgement,
       );
 
+    /*
+     * OneUptime AI undoes nothing on an account: what is still there may be
+     * the owner's own (#10603). What only looks undone a person confirms,
+     * and what OneUptime cannot read back a person checks.
+     */
     case RESPONSE_STEP_KINDS.fixAccountChanges:
       return leave(
         SecurityCaseAiActionKind.StepForPeople,
-        SecurityCaseAiActionReason.FixNotChecked,
+        isCheckState(check, [SecurityCaseStepCheckState.LooksDone])
+          ? SecurityCaseAiActionReason.FixLooksDone
+          : isCheckState(check, [
+                SecurityCaseStepCheckState.NotDone,
+                SecurityCaseStepCheckState.Regressed,
+              ])
+            ? SecurityCaseAiActionReason.NeedsJudgement
+            : SecurityCaseAiActionReason.FixNotChecked,
       );
 
     case "fix:general":

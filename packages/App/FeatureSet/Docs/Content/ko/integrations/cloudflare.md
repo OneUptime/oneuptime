@@ -162,7 +162,7 @@ Cloudflare의 Logpush도 방화벽 이벤트를 보낼 수 있으며, 2026년 9�
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | 자체 목록 두 개를 만들고, 목록의 주소를 추가하고 제거합니다. |
 | `Zone > Zone WAF > Edit`, 차단할 각 영역에 | 자체 사용자 지정 규칙을 추가하고, 영역 자체의 규칙을 읽습니다. |
-| `Account > Account Firewall Access Rules > Edit` | 남은 목록이나 사용자 지정 규칙이 없는 요금제에서 IP Access Rules를 추가하고 제거합니다. |
+| `Account > Account Firewall Access Rules > Edit` | IP Access Rules를 추가하고 제거합니다. 남은 목록이나 사용자 지정 규칙이 없는 요금제에서, 그리고 **캠페인** 에서 ASN으로 챌린지를 적용한 네트워크에 사용합니다. |
 
 :::steps
 ### 토큰에 쓰기 권한 부여
@@ -183,6 +183,7 @@ Cloudflare에서 **My Profile → API Tokens**를 열고, 연결의 토큰을 �
 | 목록 `oneuptime_block`과 `oneuptime_challenge` | 계정의 IP 목록 두 개로, 하나는 차단용이고 하나는 챌린지용입니다. 설명에 OneUptime 프로젝트가 적혀 있습니다. |
 | 각 영역에 목록마다 사용자 지정 규칙 하나 | 작업 Block인 `(ip.src in $oneuptime_block)`과 작업 Managed Challenge인 `(ip.src in $oneuptime_challenge)`입니다. 설명에 OneUptime이 관리한다고 적혀 있습니다. |
 | 차단마다 목록 항목 하나 | 주석에 케이스와 차단이 끝나는 시각이 적힙니다. 예: `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| ASN으로 챌린지를 적용한 네트워크마다 IP Access Rule 하나 | **캠페인** 에서 챌린지를 적용한 네트워크 전체를, 대상이 `asn`인 IP Access Rule로 보관합니다. 모든 요금제에 있습니다. 메모에는 목록 항목의 주석과 같은 내용이 적힙니다. 토큰에 `Account > Account Firewall Access Rules > Edit` 권한이 없으면 챌린지가 적용되지 않으며, **차단 목록** 에 추가할 권한이 표시됩니다. |
 
 각 규칙은 영역의 사용자 지정 규칙 중 맨 앞에 놓이므로 사용자의 규칙보다 먼저 실행됩니다. 사용자의 Skip 규칙은 차단된 주소를 통과시킬 수 없습니다. 모니터나 파트너의 주소처럼 Skip 규칙이 통과시키는 주소가 있으면 **차단 상태**에 표시됩니다. **이 주소 보호**는 이 주소를 **보호 대상 엔티티**에 추가하며, 여기에 있는 주소는 아무도 차단할 수 없습니다.
 

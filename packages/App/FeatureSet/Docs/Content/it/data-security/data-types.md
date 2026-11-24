@@ -7,6 +7,7 @@ Sicurezza dei dati conosce 143 tipi di dati sensibili: numeri di carta, conti ba
 - [Campi e colonne](#campi-e-colonne): Come viene giudicata un'intera colonna o un intero attributo.
 - [Ogni tipo di dati](#tipi-di-dati-integrati): Tutti i 143, per categoria.
 - [I tuoi tipi di dati](#i-tuoi-tipi-di-dati): ID dei dipendenti, numeri di polizza e la casella Testalo.
+- [I tipi di dati che trova OneUptime AI](#i-tipi-di-dati-che-trova-oneuptime-ai): I tuoi tipi di dati, trovati nei campi che nessun rilevatore ha saputo classificare.
 - [I verdetti di OneUptime AI](#i-verdetti-di-oneuptime-ai): Un verdetto su ogni risultato che ti aspetta, con le decisioni del tuo team come precedenti.
 :::
 
@@ -63,6 +64,8 @@ Un campo il cui nome dice che contiene una password - `password`, `passwordHash`
 ### Campi che nessun rilevatore ha saputo collocare
 
 Una colonna o un campo il cui nome non rimanda a nessun tipo di dati, e i cui valori non corrispondono a nessun rilevatore, non è noto come sicuro: può essere il tuo numero cliente, o una colonna con il nome in un'altra lingua. Con **Abilita IA** attivo nel progetto, una scansione del contenuto conserva questi campi, al massimo 200 per scansione, e a OneUptime AI viene chiesto quale dei tipi di dati del progetto contiene ciascuno, al massimo 40 campi di un archivio alla volta. Gli vengono detti il nome del campo, i nomi dei campi accanto e le forme dei suoi valori - ogni lettera scritta come `a` o `A` e ogni cifra come `9`, quindi `AB-1234` diventa `AA-9999` - mai un valore. Non si chiede del testo libero, dei campi con meno di 5 valori, dei numeri interi piccoli né dei campi con il nome di un id, di un orario o di uno stato.
+
+Una scansione della telemetria conserva allo stesso modo gli attributi che nessun rilevatore ha classificato, dai log, dagli span, dalle metriche e dal resto della telemetria di un servizio, al massimo 50 per servizio a ogni scansione. Non conserva mai gli attributi propri di OneUptime, né quelli che le convenzioni di OpenTelemetry scrivono su ogni record per dire da dove viene, come il servizio, l'host o il pod, né il testo libero, come il corpo di un log.
 
 Ogni tipo che OneUptime AI nomina è un risultato di livello Basso, contrassegnato **Suggerito da OneUptime AI** con il suo motivo, scritto nella lingua del tuo progetto e mostrato lungo tutta la riga del risultato. Come ogni risultato di livello Basso non conta nulla finché una persona non sceglie **Conferma** nella pagina **Contenuto** dell'archivio; **Contrassegna come non sensibile** lo rifiuta. Di un campo a cui è stata data una risposta non si chiede di nuovo per 30 giorni, e di un campo che una persona ha valutato non si chiede mai più.
 
@@ -296,6 +299,32 @@ In **Altri campi**, **Ignora maiuscole/minuscole** fa corrispondere il pattern a
 Un pattern viene verificato quando lo salvi: deve compilare, non corrispondere a testo vuoto e girare in un tempo proporzionale al testo. Viene eseguito da un matcher che non fa mai backtracking, quindi nessun pattern può bloccare una scansione, comunque sia scritto. Un tipo accetta al massimo 50 parole chiave e 50 nomi di campo.
 
 Un valore del tuo tipo è Medio da solo e Alto con una parola chiave vicina quando supera un checksum, e Basso da solo e Medio con una parola chiave quando non ne ha. In una colonna decide la quota di valori che corrispondono, come per ogni tipo.
+
+### Descrivilo
+
+In cima al modulo di un nuovo tipo di dati, **Descrivilo** compila il modulo per te. Scrivi come sono i dati, per esempio "le nostre matricole dei dipendenti sono come EMP-123456, a volte senza il trattino", aggiungi qualche esempio se vuoi, uno per riga, e scegli **Compila il modulo**. OneUptime AI riceve la tua frase e le forme dei tuoi esempi, mai gli esempi: restano nel tuo browser, dove **Testalo** mostra quanti di essi trova il suo pattern. Leggi ciò che ha compilato, cambia ciò che vuoi e salva: nulla viene salvato finché non lo fai, e il pattern viene controllato come uno scritto da te. Descrivilo richiede che **Abilita IA** sia attivo per il progetto.
+
+## I tipi di dati che trova OneUptime AI
+
+I campi che nessun rilevatore ha saputo classificare contengono spesso un tipo di dati proprio della tua azienda, conservato in molti punti con nomi che dicono la stessa cosa: i numeri di polizza di un assicuratore in colonne chiamate `policy_no`, `policyNumber` e `police_nr`, in tutti i suoi database. Con **Abilita IA** attivo per il progetto, OneUptime AI trova un tipo di dati del genere nei campi che le tue scansioni hanno conservato, e te lo chiede solo dopo che le tue scansioni lo hanno dimostrato.
+
+:::steps
+### Trova un gruppo di campi
+
+Tre o più campi in due o più archivi formano un gruppo quando la maggior parte dei loro valori ha una stessa forma, con o senza i separatori tra le sue parti, e i loro nomi condividono una parola che dice cosa contengono. Una forma senza cifre, una data, un'ora o un numero decimale non forma mai un gruppo, e una parola come `id`, `no` o `number` da sola non dice nulla.
+
+### Redige un tipo di dati
+
+OneUptime AI redige un tipo di dati per ogni nuovo gruppo, al massimo 3 alla volta, dai nomi dei campi e dalle forme dei loro valori, mai da un valore. La bozza deve superare gli stessi controlli di un tipo salvato e trovare le forme da cui è stata redatta. Una bozza che non ci riesce viene richiesta un'altra volta, con il motivo.
+
+### Le tue prossime scansioni lo dimostrano
+
+La bozza viene eseguita nella prossima scansione di ogni archivio del suo gruppo, per al massimo 48 ore o un intervallo di scansione, se più lungo. Non crea alcun rilevamento: ogni scansione conta quanti valori troverebbe, nei campi del gruppo e in ogni altro campo degli stessi archivi. Viene proposta quando trova almeno l'80% dei valori dei suoi campi e al massimo l'1% degli altri valori. Un campo altrove in cui trova quasi tutti i valori contiene gli stessi dati con un altro nome: viene indicato, non contato contro di essa.
+:::
+
+Ogni bozza viene anche contata, nello stesso momento, in forma ristretta: fuori dai campi del suo gruppo, una bozza ristretta trova un valore solo accanto a una delle sue parole chiave o sotto un nome di campo che la nomina. Una bozza che trova troppo altrove viene proposta in forma ristretta quando basta. Una bozza che non basta in nessuna delle due forme viene scartata, e il suo gruppo non viene redatto di nuovo per 30 giorni.
+
+Ogni tipo di dati che propone attende in **Tipi di dati da esaminare**, in cima a **Sicurezza dei dati → Impostazioni → Tipi di dati** e in **Sicurezza dei dati → IA**, con ciò che le tue scansioni hanno contato, per esempio "Corrisponde al 98% dei valori di questi 11 campi; altrove negli stessi archivi, a 0,1% dei valori." **Aggiungi tipo di dati** apre il modulo di un tipo di dati compilato con esso, da modificare e testare; salvarlo aggiunge il tipo, che le scansioni trovano dalla loro prossima esecuzione. **Non è un tipo di dati** lo rifiuta: non viene mai più proposto per quei campi. Aggiungerlo richiede un ruolo che può creare tipi di dati.
 
 ## Non sensibile e mai sensibile
 

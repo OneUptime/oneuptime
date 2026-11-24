@@ -117,6 +117,24 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   };
 });
 
+// The hourly limit's card reads the project itself: its own suite draws it (SecurityAutomaticResponseHourlyLimit).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard",
+  () => {
+    return {
+      ...(jest.requireActual(
+        "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard",
+      ) as Record<string, unknown>),
+      __esModule: true,
+      default: () => {
+        return React.createElement("div", {
+          "data-testid": "hourly-limit-card",
+        });
+      },
+    };
+  },
+);
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseApi",
   () => {
@@ -284,6 +302,7 @@ function overview(
     destinationsCannotTell: false,
     blocksThisHour: 0,
     maxBlocksPerHour: 50,
+    pagedThisHour: false,
     ...values,
   };
 }
@@ -745,7 +764,11 @@ describe("what the page says above the policies, only when it is so", () => {
 
   test("nothing enforces the blocklist, and the hour's automatic blocks are used up", async () => {
     api.readAutomaticResponseOverview.mockResolvedValue(
-      overview({ destinations: [], blocksThisHour: 50 }) as never,
+      overview({
+        destinations: [],
+        blocksThisHour: 50,
+        pagedThisHour: true,
+      }) as never,
     );
     await renderPage();
 
@@ -757,8 +780,43 @@ describe("what the page says above the policies, only when it is so", () => {
         screen.getByTestId(AUTOMATIC_RESPONSE_TEST_IDS.limitNotice).textContent,
       ),
     ).toContain(
-      "Your policies made 50 automatic blocks in the last hour, so they stopped and paged your security owners.",
+      "Your policies reached your limit of 50 automatic blocks an hour, so they stopped and paged your security owners.",
     );
+  });
+
+  test("the hour's blocks used up before a stop paged anyone: the notice promises no page", async () => {
+    api.readAutomaticResponseOverview.mockResolvedValue(
+      overview({ blocksThisHour: 50, pagedThisHour: false }) as never,
+    );
+    await renderPage();
+
+    const text: string = plain(
+      screen.getByTestId(AUTOMATIC_RESPONSE_TEST_IDS.limitNotice).textContent,
+    );
+
+    expect(text).toContain(
+      "Your policies reached your limit of 50 automatic blocks an hour, so they stopped.",
+    );
+    expect(text).not.toContain("paged");
+  });
+
+  test("the hourly limit waits under More settings, after the policies", async () => {
+    await renderPage();
+
+    const fold: HTMLElement = screen.getByTestId(
+      AUTOMATIC_RESPONSE_TEST_IDS.moreSettings,
+    );
+
+    expect(within(fold).getByTestId("hourly-limit-card")).toBeInTheDocument();
+
+    const cards: Array<HTMLElement> = screen.getAllByTestId(
+      AUTOMATIC_RESPONSE_TEST_IDS.card,
+    );
+
+    expect(
+      cards[cards.length - 1]!.compareDocumentPosition(fold) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("the read fails: the page says so", async () => {

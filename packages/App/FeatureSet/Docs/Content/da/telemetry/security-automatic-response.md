@@ -35,11 +35,13 @@ En politik reagerer på en detektion, så snart den er registreret i sin sag, f�
 
 | Politik | Reagerer på | Gør | Første blokering |
 | --- | --- | --- | --- |
-| **Skannere** | Webscanninger og udnyttelsesforsøg (ATT&CK T1595, T1190): SQL-injection-, path traversal- og Log4Shell-forsøg og mange træf på administrerede Cloudflare-regler fra én adresse, så længe alle adressens anmodninger blev afvist | Udfordring | 1 time |
+| **Skannere** | Webscanninger og udnyttelsesforsøg (ATT&CK T1595, T1190): SQL-injection-, path traversal- og Log4Shell-forsøg, scanning efter følsomme filer såsom `/.env`, `/.git/config` og `/wp-admin`, og mange træf på administrerede Cloudflare-regler fra én adresse, så længe alle adressens anmodninger blev afvist | Udfordring | 1 time |
 | **Gætning af adgangskoder** | Brute force og password spraying (ATT&CK T1110): mislykkede logins fra én adresse og mislykkede logins efterfulgt af et vellykket fra samme adresse | Blokér | 1 time |
 | **Kendte ondsindede adresser** | Enhver detektion om en adresse, som din [trusselsinformation](/docs/telemetry/threat-intelligence) viser | Blokér | 24 timer |
 
 Mennesker består en udfordring, scripts og bots gør ikke. Skannere udfordrer kun en adresse, så længe ingen af dens anmodninger har nået din app: en adresse, hvis anmodninger kom igennem, er en sag for en person.
+
+Scanning efter følsomme filer tæller kun de anmodninger, dit websted afviste, eller som beder om noget, det ikke har, og kun når én adresse beder om tre eller flere forskellige filer eller administrationssider inden for fem minutter. En side, dit websted leverer, tæller aldrig med, så et WordPress-websteds egne administratorer kan indlæse `/wp-admin` og `/wp-login.php` så ofte de vil.
 
 Når du slår Skannere eller Gætning af adgangskoder til, i prøveperioden eller helt, kører de regler fra **Regelbibliotek**, som politikken reagerer på, i realtid, og de regler, dit projekt mangler, tilføjes: en realtidsregel udløses sekunder efter, at hændelserne ankommer, hvor en planlagt regel læser minutter bagud. En regel, som nogen har slået fra, forbliver slået fra. Et projekt kører højst 50 regler i realtid: derudover bliver en regel på sin tidsplan, og politikkens kort viser **Efter en tidsplan** ved siden af.
 
@@ -66,7 +68,7 @@ For at slå en politik til uden dens uges prøveperiode skal du åbne **Yderlige
 - **Aldrig dine egne eller beskyttede adresser.** Posterne i **Beskyttede entiteter** og alt, hvad OneUptime beskytter af sig selv: dine værter, cloudressourcer og sonder, de intervaller, der ikke er på internettet, og den edge, der står foran din app. Se [Blokeringsliste](/docs/telemetry/security-cases#blokeringsliste).
 - **Aldrig en adresse, som en logget ind bruger har brugt i de seneste 30 dage.** Et kontors netværk, en kundes proxy eller en persons hjem: OneUptime leder efter adressen i din identitetsudbyders logins og i de anmodninger, din app besvarede for en logget ind bruger, dem med et bruger-id i deres traces eller logge. En adresse, den ikke kan tjekke, fordi de hændelser ikke kunne læses, eller fordi dine scrub-regler skjuler adresser på en måde, den ikke kan matche, overlades til en person.
 - **Længere blokeringer for en adresse, der kommer igen.** Den første blokering varer 1 time, derefter 24 timer, derefter 7 dage for en adresse, der blokeres igen inden for 30 dage. Kendte ondsindede adresser starter ved 24 timer.
-- **Højst 50 automatiske blokeringer i timen.** Derudover holder dine politikker op med at blokere og tilkalder dine sikkerhedsansvarlige: et så stort angreb kræver en person. Siden siger det, så længe det varer.
+- **Højst 50 automatiske blokeringer i timen, eller den grænse, du sætter.** Derudover holder dine politikker op med at blokere og tilkalder dine sikkerhedsansvarlige: et så stort angreb kræver en person. Siden siger det, så længe det varer. En Sikkerhedsadministrator, Projektadministrator eller Projektejer kan sætte grænsen til en værdi fra 1 til 500 under **Yderligere indstillinger** nederst på siden: **Timegrænse**. En ny grænse gælder fra og med den næste detektion.
 - **Fortryd ved tvivl.** Når en logget ind bruger ses fra en adresse, som en politik har blokeret, ophæver politikken blokeringen og giver dine sikkerhedsansvarlige besked.
 
 Dine sikkerhedsansvarlige er dit projekts Sikkerhedsadministratorer eller, hvis det ikke har nogen, dets Projektejere. Hver adresse, som et sikkerhedsværn lod være, står i dens sag med årsagen.
@@ -101,7 +103,7 @@ Se på sagens tidslinje: en politik, der lod en adresse være, siger hvorfor, fo
 :::
 
 :::details Siden siger, at timens automatiske blokeringer er brugt op
-Dine politikker lavede 50 automatiske blokeringer i den seneste time og tilkaldte dine sikkerhedsansvarlige. De fortsætter igen, efterhånden som timens blokeringer bliver ældre. Se på angrebets sager, og blokér et interval fra **Blokeringsliste**, hvis det kommer fra ét netværk.
+Dine politikker nåede din timegrænse for automatiske blokeringer, 50, medmindre nogen har ændret den, og tilkaldte dine sikkerhedsansvarlige. De fortsætter igen, efterhånden som timens blokeringer bliver ældre. Se på angrebets sager, og blokér et interval fra **Blokeringsliste**, hvis det kommer fra ét netværk. Er dit projekt ofte udsat for så mange skannere, så klik på **Skift grænse** ved siden af meddelelsen, og hæv grænsen.
 :::
 
 ## Næste trin

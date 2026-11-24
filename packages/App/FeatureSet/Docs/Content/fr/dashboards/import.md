@@ -19,12 +19,12 @@ flowchart TB
     R --> P["L'aperçu : chaque<br/>élément et ce<br/>qu'il devient"]
     P --> A["OneUptime AI, si vous<br/>le demandez : une<br/>requête à la fois"]
     A --> P
-    P --> C["Un tableau de bord, ou<br/>des moniteurs Metrics"]
+    P --> C["Un tableau de bord, ou<br/>des moniteurs"]
 ```
 
 ## Avant de commencer
 
-- Les widgets et moniteurs importés lisent les métriques propres à ce projet avec PromQL. Envoyez-les avec Prometheus remote write, OpenTelemetry ou le Datadog Agent : elles gardent les noms qu'elles y ont.
+- Les widgets et moniteurs importés lisent les métriques et les journaux propres à ce projet. Envoyez-les avec OpenTelemetry ou le Datadog Agent, ou avec Prometheus remote write pour les métriques et l'API push de Loki pour les journaux : ils gardent les noms qu'ils y ont.
 - Importer un tableau de bord demande un rôle qui peut créer des tableaux de bord, et importer des règles d'alerte un rôle qui peut créer des moniteurs.
 - Un fichier peut faire jusqu'à 10 Mo, et jusqu'à 500 de ses panneaux ou règles sont lus.
 
@@ -44,7 +44,7 @@ Dans Grafana, copiez le modèle JSON depuis les paramètres du tableau de bord. 
 Vérifiez ce que devient chaque panneau et chaque variable, nommez le tableau de bord et choisissez **Créer un tableau de bord**. Le nouveau tableau de bord s'ouvre.
 :::
 
-Le PromQL de Grafana est gardé tel qu'il est écrit : OneUptime remplit `$__interval`, `$__rate_interval` et `$__range` comme le fait Grafana, et une variable sur All correspond à toutes les valeurs. Une requête Datadog devient du PromQL sur les métriques que le Datadog Agent a envoyées : `avg:system.cpu.user{host:web-1}` lit `system_cpu_user{host="web-1"}`.
+Le PromQL de Grafana est gardé tel qu'il est écrit : OneUptime remplit `$__interval`, `$__rate_interval` et `$__range` comme le fait Grafana, et une variable sur All correspond à toutes les valeurs. Une requête Datadog devient du PromQL sur les métriques que le Datadog Agent a envoyées : `avg:system.cpu.user{host:web-1}` lit `system_cpu_user{resource_host_name="web-1"}`, et `.as_count()` ramène un comptage que l'Agent a envoyé sous forme de taux au nombre compté dans chaque intervalle. Un widget Datadog qui liste des journaux devient un **Flux de journaux**, et une série temporelle qui les compte un **Graphique de journaux**, tous deux sur les journaux que le Datadog Agent a envoyés et filtrés par la recherche de Datadog.
 
 ## Importer des règles d'alerte
 
@@ -64,6 +64,8 @@ Décochez les règles dont vous ne voulez pas, choisissez sous **When a rule fir
 
 Chaque règle devient un moniteur Metrics avec une requête PromQL, la condition de la règle et sa fenêtre. Il ouvre une alerte, ou un incident, pour chaque série qui dépasse le seuil, et le résout quand la série se rétablit. Son titre et sa description viennent du résumé ou du message de la règle, avec les étiquettes de la série remplies.
 
+Un moniteur d'anomalies ou de prévisions de Datadog devient un moniteur Metrics avec la condition d'anomalie ou de prévision de OneUptime, et un moniteur de journaux de Datadog un moniteur Logs qui compte les journaux que sa recherche trouve.
+
 ## Comment chaque élément est converti
 
 | Statut | Ce qu'il signifie |
@@ -72,7 +74,7 @@ Chaque règle devient un moniteur Metrics avec une requête PromQL, la condition
 | **Converted approximately** | Il est créé, et ses notes disent ce qui diffère. |
 | **Not converted** | Rien n'est créé pour lui, et ses notes disent pourquoi. |
 
-Les règles d'enregistrement, les règles d'alerte sur des journaux, les widgets Datadog qui lisent des journaux, des traces ou des événements, et les moniteurs d'anomalies, de valeurs aberrantes et de prévisions de Datadog ne sont pas convertis.
+Les règles d'enregistrement, les règles d'alerte Prometheus et Grafana sur des journaux, les widgets Datadog qui lisent des traces ou des événements, les moniteurs de valeurs aberrantes et de changements de Datadog, et ses moniteurs de tout ce qui n'est ni une métrique ni un journal ne sont pas convertis.
 
 ## Convertir une requête avec OneUptime AI
 

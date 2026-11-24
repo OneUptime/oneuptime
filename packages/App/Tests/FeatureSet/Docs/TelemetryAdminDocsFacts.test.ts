@@ -2044,11 +2044,45 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(fingerprints.fingerprintCandidates).toContain(
       ExceptionUtil.getFingerprintV2(asItArrived),
     );
-    // A new one is not made under an unkeyed hash of the address...
-    expect(fingerprints.fingerprintV2).not.toBe(
-      ExceptionUtil.getFingerprintV2(asItArrived),
+    /*
+     * An address is folded before it is hashed (<EMAIL>), so it reaches no
+     * fingerprint: a new exception is made under grouping v3's as it would
+     * be without the rule, and nothing is moved.
+     */
+    expect(fingerprints.fingerprintV2).toBe(
+      ExceptionUtil.getFingerprintV3(asItArrived),
     );
-    // ...but under one keyed per project from the installation's secret.
+    expect(fingerprints.fingerprintRekeys).toBeUndefined();
+
+    // A value nothing folds reaches it: a name, which the keyed one hides.
+    const named: ExceptionGroupingContent = {
+      exceptionType: "AccountError",
+      message: "No account for Ada Lovelace",
+      stackTrace: "",
+    };
+    const namedFingerprints: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId,
+        primaryEntityId,
+        arrived: named,
+        stored: { ...named, message: "No account for [REDACTED]" },
+      });
+    const namedAsItArrived: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+    } & ExceptionGroupingContent = { projectId, primaryEntityId, ...named };
+
+    expect(namedFingerprints.fingerprintV2).not.toBe(
+      ExceptionUtil.getFingerprintV3(namedAsItArrived),
+    );
+    // An exception made before the rule under an unkeyed one moves (#10619).
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+      ],
+    ).toBe(namedFingerprints.fingerprintV2);
+
+    // The keyed one is keyed per project from the installation's secret.
     const keyed: string = readCommonSource(
       "Server/Utils/Telemetry/KeyedExceptionFingerprint.ts",
     );
@@ -2069,7 +2103,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "Each exception is still grouped by what it said before scrubbing, so adding a rule never turns an exception you already have into a new one, or sets off **New Exception** for it again.",
     );
     expect(page).toContain(
-      "When a rule hides part of what a new exception is grouped by, its fingerprint is keyed to your project, as a Hash token is, so no one can work it back to what was hidden.",
+      "When a rule hides part of what a new exception is grouped by, its fingerprint is keyed to your project, as a Hash token is, so no one can work it back to what was hidden. An exception made before the rule moves to such a fingerprint on its next occurrence the rule changes; its occurrences recorded before keep the old one until their retention ends.",
     );
   });
 

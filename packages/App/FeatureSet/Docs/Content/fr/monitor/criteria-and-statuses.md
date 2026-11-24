@@ -87,6 +87,7 @@ Avec **Évaluer ce critère sur une période donnée** coché, **Évaluer** indi
 | **Comptage** | Le nombre de vérifications qui ont rempli la condition se compare comme réglé sous **Vérifications correspondantes** : **Supérieur à** 30, par exemple. |
 | **Pourcentage** | Leur part des vérifications de la fenêtre se compare comme réglé sous **Part des vérifications correspondantes** : **Supérieur à** 10 %, par exemple. |
 | **Changements d'état** | Le nombre de fois où les vérifications sont passées de remplir la condition à ne pas la remplir, ou l'inverse, se compare comme réglé sous **Nombre de changements**. Un appareil qui tombe puis revient change deux fois. |
+| **Vérification précédente** | Cette vérification, comparée à la vérification précédente de la même sonde : un temps de réponse supérieur de plus de 50 % à celle-ci, par exemple, ou un site en panne maintenant qui ne l'était pas avant. Voir [Comparer une vérification à la précédente](#comparer-une-vérification-à-la-précédente). |
 
 Une phrase sous les réglages de la fenêtre relit le filtre tel qu'il est réglé : « Vérifier si "En ligne" est faux sur plus de 30 vérifications de la dernière période de 8 heures ».
 
@@ -107,6 +108,20 @@ Un moniteur Ping vérifie un point d'accès de bureau chaque minute. Avant que l
 | Le point d'accès est en ligne | **En ligne** est **Vrai** | Pas sur une période | **Opérationnel** |
 
 Pour le deuxième, activez **Se rétablir uniquement quand une condition propre est remplie** avec **Changements d'état**, **Inférieur ou égal à** 1, **Pour les dernières** 1 heure : l'incident d'instabilité reste ouvert jusqu'à ce que le point d'accès soit stable pendant une heure, au lieu de se fermer dès la première minute où il répond. Pour alerter quand il échoue à plus de 30 pings en 8 heures, réglez plutôt le deuxième critère sur **Comptage**, **Supérieur à** 30, **Pour les dernières** 8 heures.
+
+### Comparer une vérification à la précédente
+
+**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**.
+
+Une valeur mesurée, comme un temps de réponse, correspond quand elle dépasse la vérification précédente de plus que l'écart réglé sous **Écart par rapport à la vérification précédente**, avec **Supérieur à**, ou lui est inférieure de plus que cet écart, avec **Inférieur à**. L'écart est une **Valeur dans l'unité de la vérification**, comme 200 ms, ou un **Pourcentage de la vérification précédente**, comme 50 %, et 0 correspond à toute hausse ou baisse. **Égal à** et **Différent de** comparent à la valeur précédente elle-même.
+
+Un filtre vrai ou faux, comme **En ligne**, et un filtre sur le corps, un en-tête ou une expression correspondent à la vérification qui a commencé à remplir la condition : **En ligne** réglé sur **Faux** correspond à la vérification où le site est tombé, et pas de nouveau avant la prochaine panne.
+
+Dans les deux cas, il correspond sur une seule vérification, et à la suivante le critère cesse d'agir. Pour qu'il garde le statut qu'il fixe ou laisse son incident ouvert, donnez-lui une condition de rétablissement à lui : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
+
+Sans vérification précédente dans la fenêtre, comme à la première vérification du moniteur, pour une sonde tout juste ajoutée ou après une interruption, **En l'absence de données** décide : **Ignore** ne correspond pas, **Déclencheur** correspond, et **Treat As Zero** compare comme si la vérification précédente avait lu 0, ou n'avait pas rempli la condition.
+
+La phrase sous les réglages de la fenêtre le relit : « Vérifier si "Temps de réponse (en ms)" dépasse de plus de 50 % la vérification précédente », ou « Vérifier si "En ligne" est faux lors de cette vérification, mais pas lors de la précédente ».
 
 ## Quand un critère se rétablit
 
@@ -199,6 +214,21 @@ Les secrets et les données personnelles sont masqués avant que quoi que ce soi
 
 > [!TIP]
 > Lorsque les réponses d'un moniteur de site web ou d'API sont sensibles en elles-mêmes, désactivez **Conserver le contenu de la réponse** dans la carte **Contenu de la réponse** de sa page **Avancé → Paramètres**. Ses journaux de surveillance, incidents et alertes conservent alors les filtres qui ont correspondu, le code de statut et le temps de réponse, et aucune partie de la réponse. Un moniteur de requêtes entrantes a le même interrupteur pour les requêtes qu'il reçoit : **Conserver le contenu de la requête**, dans la carte **Contenu de la requête**. L'interrupteur s'applique aux vérifications exécutées, et aux incidents et alertes ouverts, après sa modification. La dernière requête dans la vue d'ensemble d'un moniteur de requêtes entrantes suit l'interrupteur aussitôt.
+
+## Combien de temps prend chaque vérification
+
+Le résumé d'évaluation de chaque vérification, sous **Voir le résumé** dans les **Journaux de surveillance** du moniteur et pour la dernière vérification sur sa **Vue d'ensemble**, indique quand la vérification a été évaluée, combien de temps son évaluation a pris et, pour un moniteur qui juge chaque hôte, conteneur ou groupe séparément, combien de séries elle a évaluées. Ce temps court du moment où OneUptime a commencé à lire les données que la vérification juge jusqu'à l'écriture de son journal : la lecture des données, l'évaluation des critères et l'ouverture des incidents et des alertes.
+
+Quand une évaluation prend trop de temps pour son moniteur, son résumé vous avertit. Trop long, c'est plus d'un dixième du temps entre deux vérifications du moniteur, jamais moins de 5 secondes et jamais plus d'une minute :
+
+| Moniteur vérifié | Avertit après |
+| --- | --- |
+| Chaque minute | 6 secondes |
+| Toutes les 5 minutes | 30 secondes |
+| Toutes les 10 minutes ou moins souvent | 1 minute |
+| À l'arrivée de ses résultats, comme les requêtes et e-mails entrants | 5 secondes |
+
+Un dixième laisse à un moniteur la place de grandir dix fois avant que ses vérifications ne se chevauchent et prennent du retard : vous en êtes averti tôt. Sous 5 secondes, une vérification est correcte quelle que soit sa taille : évaluer 16 000 séries prend environ 2,5 secondes. Au-delà d'une minute, elle occupe un worker et les bases de données qu'elle lit pendant tout ce temps, quel que soit son intervalle. Pour l'accélérer, affinez les filtres de ses requêtes, regroupez par moins d'attributs ou vérifiez-la moins souvent.
 
 ## Modifier les critères d'un moniteur
 

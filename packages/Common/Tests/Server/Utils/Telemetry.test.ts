@@ -8,13 +8,22 @@ import {
   UNIT_OF_WORK_ATTRIBUTE_KEY,
   UnitOfWork,
 } from "../../../Types/Telemetry/UnitOfWork";
+import logger from "../../../Server/Utils/Logger";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import Exception from "../../../Types/Exception/Exception";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ServerException from "../../../Types/Exception/ServerException";
 import TimeoutException from "../../../Types/Exception/TimeoutException";
+import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import {
   afterAll,
+  afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   jest,
@@ -724,5 +733,268 @@ describe("Telemetry.endSpan is idempotent", () => {
     Telemetry.endSpan(span);
 
     expect(state.ended).toBe(1);
+  });
+});
+
+/*
+ * THE RECORDER'S LOG LINE (#10797). A client's refusal thrown inside an HTTP
+ * request - a 4xx whose Exception declares the fault the client's, in words,
+ * at the status it is answered with - is logged at debug: the request's
+ * answer logs it already and counts it by route (ClientRefusalLog), the span
+ * keeps its fault event and oneuptime.fault.count counts it. Through
+ * logger.error it was one WARN line under the ERROR gate a refused request.
+ * Every other thrown value goes to logger.error, as before. Over HTTP with
+ * traces exported: CaptureSpanClientRefusalLogLevelOverHttp.test.ts.
+ */
+describe("the recorder's log line", () => {
+  let debugSpy: ReturnType<typeof jest.spyOn>;
+  let errorSpy: ReturnType<typeof jest.spyOn>;
+  let faultAdds: Array<string>;
+
+  beforeEach((): void => {
+    debugSpy = jest.spyOn(logger, "debug").mockImplementation((): void => {});
+    errorSpy = jest.spyOn(logger, "error").mockImplementation((): void => {});
+    faultAdds = [];
+
+    (Telemetry as unknown as { faultCounter: unknown }).faultCounter = null;
+    jest.spyOn(Telemetry, "getCounter").mockImplementation(((): unknown => {
+      return {
+        add: (_value: number, attributes?: Record<string, unknown>): void => {
+          faultAdds.push(String(attributes?.["error.class"]));
+        },
+      };
+    }) as never);
+  });
+
+  afterEach((): void => {
+    jest.restoreAllMocks();
+    (Telemetry as unknown as { faultCounter: unknown }).faultCounter = null;
+  });
+
+  // Made afresh for each case: a value is reported once, then never again.
+  const CLIENT_REFUSALS: Array<[string, () => Exception]> = [
+    [
+      "BadDataException (400)",
+      (): Exception => {
+        return new BadDataException("Name is required.");
+      },
+    ],
+    [
+      "NotAuthenticatedException (401)",
+      (): Exception => {
+        return new NotAuthenticatedException("Your session has expired.");
+      },
+    ],
+    [
+      "ForbiddenException (403)",
+      (): Exception => {
+        return new ForbiddenException("You may not see this project.");
+      },
+    ],
+    [
+      "NotFoundException (404)",
+      (): Exception => {
+        return new NotFoundException("This monitor does not exist.");
+      },
+    ],
+    [
+      "NotAuthorizedException",
+      (): Exception => {
+        return new NotAuthorizedException("This key has been disabled.");
+      },
+    ],
+    [
+      "TooManyRequestsException (429)",
+      (): Exception => {
+        return new TooManyRequestsException("Try again in a minute.");
+      },
+    ],
+    [
+      "a base Exception a site declared an expected denial",
+      (): Exception => {
+        return new Exception(
+          ExceptionCode.ForbiddenException,
+          "This is refused.",
+        ).asExpectedDenial();
+      },
+    ],
+  ];
+
+  // Inside a request all the same: each is logged through logger.error.
+  const NOT_CLIENT_REFUSALS: Array<[string, () => unknown]> = [
+    [
+      "ServerException (500)",
+      (): unknown => {
+        return new ServerException("The queue did not take the job.");
+      },
+    ],
+    [
+      "a TypeError",
+      (): unknown => {
+        return new TypeError("Cannot read properties of undefined");
+      },
+    ],
+    [
+      "TimeoutException (408), infrastructure",
+      (): unknown => {
+        return new TimeoutException("The SMTP server did not answer.");
+      },
+    ],
+    [
+      "a base Exception with a 4xx code, a code fault",
+      (): unknown => {
+        return new Exception(ExceptionCode.NotFoundException, "No such row.");
+      },
+    ],
+    [
+      "a BadDataException a site declared a code fault",
+      (): unknown => {
+        return new BadDataException("An invariant broke.").asCodeFault();
+      },
+    ],
+    [
+      "a BadDataException with no words, which the server failed to explain",
+      (): unknown => {
+        return new BadDataException("");
+      },
+    ],
+    [
+      "a 5xx a site declared a user error",
+      (): unknown => {
+        return new ServerException("Declared wrongly.").asUserError();
+      },
+    ],
+    [
+      "a thrown string",
+      (): unknown => {
+        return "just a string";
+      },
+    ],
+  ];
+
+  test.each(CLIENT_REFUSALS)(
+    "%s inside a request is logged at debug, never through logger.error, and keeps its fault event and count",
+    (_what: string, make: () => Exception) => {
+      const state: FakeSpanState = newSpanState();
+      const refusal: Exception = make();
+
+      runInHttpRequest((): void => {
+        Telemetry.recordExceptionOnSpan({
+          span: makeFakeSpan(state),
+          exception: refusal,
+        });
+      });
+
+      expect(debugSpy).toHaveBeenCalledTimes(1);
+      expect(debugSpy).toHaveBeenCalledWith(refusal);
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(eventsNamed(state, "fault")).toHaveLength(1);
+      expect(eventsNamed(state, "exception")).toHaveLength(0);
+      expect(faultAdds).toHaveLength(1);
+    },
+  );
+
+  test.each(NOT_CLIENT_REFUSALS)(
+    "%s inside a request is logged through logger.error, as before",
+    (_what: string, make: () => unknown) => {
+      const thrown: unknown = make();
+
+      runInHttpRequest((): void => {
+        Telemetry.recordExceptionOnSpan({
+          span: makeFakeSpan(newSpanState()),
+          exception: thrown,
+        });
+      });
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(thrown);
+      expect(debugSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    ["a worker job", UnitOfWork.WorkerJob],
+    ["a probe check", UnitOfWork.ProbeCheck],
+    ["a cron run", UnitOfWork.CronJob],
+  ])(
+    "outside a request, in %s, a client's class is logged through logger.error, as before: nothing answers it",
+    (_where: string, unitOfWork: UnitOfWork) => {
+      for (const make of [
+        (): Exception => {
+          return new BadDataException("No job found with name: foo");
+        },
+        // A site's own declaration, which survives outside a request.
+        (): Exception => {
+          return new BadDataException("The endpoint is down.").asUserError();
+        },
+      ]) {
+        TelemetryContext.runWithContext(
+          { [UNIT_OF_WORK_ATTRIBUTE_KEY]: unitOfWork },
+          (): void => {
+            Telemetry.recordExceptionOnSpan({
+              span: makeFakeSpan(newSpanState()),
+              exception: make(),
+            });
+          },
+        );
+      }
+
+      expect(errorSpy).toHaveBeenCalledTimes(2);
+      expect(debugSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("with no telemetry scope at all, a client's class is logged through logger.error", () => {
+    Telemetry.recordExceptionOnSpan({
+      span: makeFakeSpan(newSpanState()),
+      exception: new BadDataException("something internal went wrong"),
+    });
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(debugSpy).not.toHaveBeenCalled();
+  });
+
+  test("one value across many frames: one line and one count, at debug for a refusal and through logger.error for a fault", () => {
+    const refusal: Exception = new BadDataException("Name is required.");
+    const fault: Exception = new ServerException("The database is on fire.");
+
+    runInHttpRequest((): void => {
+      for (let frame: number = 0; frame < 3; frame++) {
+        for (const exception of [refusal, fault]) {
+          Telemetry.recordExceptionOnSpan({
+            span: makeFakeSpan(newSpanState()),
+            exception: exception,
+          });
+        }
+      }
+    });
+
+    expect(debugSpy).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    // Counted once each: it counted every frame, three faults a value.
+    expect(faultAdds).toEqual([ErrorClass.UserError, ErrorClass.CodeFault]);
+  });
+
+  test("a logger mocked without debug costs the line, never the span's fault event, attributes or count", () => {
+    debugSpy.mockImplementation((): void => {
+      throw new TypeError("logger.debug is not a function");
+    });
+
+    const state: FakeSpanState = newSpanState();
+
+    expect((): void => {
+      runInHttpRequest((): void => {
+        Telemetry.recordExceptionOnSpan({
+          span: makeFakeSpan(state),
+          exception: new NotFoundException("This monitor does not exist."),
+        });
+      });
+    }).not.toThrow();
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(eventsNamed(state, "fault")).toHaveLength(1);
+    expect((state.attributes || {})["error.class"]).toBe(ErrorClass.UserError);
+    expect(state.status).toBeNull();
+    expect(faultAdds).toHaveLength(1);
   });
 });

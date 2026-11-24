@@ -100,6 +100,7 @@ import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import {
   VMwareInventorySummary as VMwareInventoryCounts,
@@ -1955,15 +1956,18 @@ const VMwareVCenterOverview: FunctionComponent<
      */
     const header: ReactElement = (
       <div className="flex items-center justify-between mb-3">
-        <div className="flex min-w-0 items-center gap-1">
+        <div className="flex min-w-0">
           {/*
            * In the reader's language, as a tile's title; a long German word
-           * breaks inside its box rather than running under the icon.
+           * breaks inside its box rather than running under the icon, and
+           * the (i) follows its last word (#7348, #8044).
            */}
-          <span className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider hyphens-auto [overflow-wrap:anywhere]">
-            {tx(params.title)}
-          </span>
-          <InfoTooltip label={params.title} text={params.description} />
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider hyphens-auto [overflow-wrap:anywhere]"
+            text={tx(params.title)}
+            label={params.title}
+            description={params.description}
+          />
         </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
@@ -2266,12 +2270,13 @@ const VMwareVCenterOverview: FunctionComponent<
             />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-1">
-              <h4 className="text-sm font-semibold text-gray-900">
-                {tx(params.title)}
-              </h4>
-              <InfoTooltip label={params.title} text={params.description} />
-            </div>
+            <h4 className="text-sm font-semibold text-gray-900">
+              <WordsWithInfoTooltip
+                text={tx(params.title)}
+                label={params.title}
+                description={params.description}
+              />
+            </h4>
             <p className="text-xs text-gray-500">{tx(params.subtitle)}</p>
           </div>
         </div>

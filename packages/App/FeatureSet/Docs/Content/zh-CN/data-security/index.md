@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account、Azure SQL Database、Azure Cosmos DB Account、Azure PostgreSQL Server、Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket、Google Cloud SQL Instance、Google BigQuery Dataset、Google Firestore Database、Google Spanner Instance、Google Bigtable Instance | Google Cloud Storage Bucket、Google BigQuery Dataset |
 | 你运行的数据库 | PostgreSQL、MySQL、MongoDB、SQL Server、Oracle、Redis、Elasticsearch、Snowflake、ClickHouse、Databricks、Microsoft Dataverse | PostgreSQL、MySQL、SQL Server |
-| OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标、安全事件、Network Flows、安全地址保管库 | 日志、追踪、异常、会话回放、AI 对话、指标 |
+| OneUptime | 日志、追踪、异常、会话回放、AI 对话、指标、安全事件、Network Flows、安全地址保管库、安全用户保管库 | 日志、追踪、异常、会话回放、AI 对话、指标 |
 
 每个数据存储都会接受适用于其类型的检查。无法对内容抽样的数据存储仍会被检查：公开的存储桶或未加密的数据库，无论其中保存着什么，都是隐患。安全事件、Network Flows 和安全地址保管库是 OneUptime 为你的安全保留的自有数据存储：它们是声明的，从不扫描，也从不检查（参见 [OneUptime 为你的安全保留的数据存储](/docs/data-security/compliance#oneuptime-为你的安全保留的数据存储)）。
 

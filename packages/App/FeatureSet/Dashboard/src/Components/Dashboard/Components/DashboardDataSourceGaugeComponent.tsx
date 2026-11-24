@@ -14,7 +14,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardDataSourceGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceGaugeComponent";
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
 import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
-import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
+import { fillDataSourceVariables } from "../../../Utils/DataSourceVariables";
 import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReducer";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -106,6 +106,17 @@ const DashboardDataSourceGaugeComponentElement: FunctionComponent<
     }
 
     try {
+      /*
+       * The query with the dashboard's variables filled the way its source
+       * reads them; a public dashboard's route fills its own.
+       */
+      const filledQuery: string | Promise<string> = isPublicDashboard()
+        ? ""
+        : fillDataSourceVariables({
+            queryConfig: state.queryConfig,
+            variables: state.variables,
+          });
+
       // A public dashboard's stored query, by this widget.
       const result: AggregatedResult = isPublicDashboard()
         ? await DataSourceQueryUtil.fetchPublicTimeSeries({
@@ -120,11 +131,11 @@ const DashboardDataSourceGaugeComponentElement: FunctionComponent<
         : await DataSourceQueryUtil.fetchTimeSeries({
             queryConfig: {
               ...state.queryConfig,
-              query: DataSourceQueryText.applyVariablesForSource({
-                dataSourceId: state.queryConfig.dataSourceId,
-                queryText: state.queryConfig.query,
-                variables: state.variables,
-              }),
+              // Sent at once unless the source's type must be read first.
+              query:
+                typeof filledQuery === "string"
+                  ? filledQuery
+                  : await filledQuery,
             },
             startDate: state.startDate,
             endDate: state.endDate,

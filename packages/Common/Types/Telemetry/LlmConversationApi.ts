@@ -130,6 +130,11 @@ export interface LlmConversationListItem {
   issueCounts: LlmIssueCounts;
   slowestAnswerMs: number;
   models: Array<string>;
+  /*
+   * Who took part, up to five: each an email, else an id, past what a scrub
+   * rule left; LLM_USAGE_HIDDEN_GROUP_KEY once for everyone a rule hid
+   * (#10631).
+   */
   people: Array<string>;
   serviceIds: Array<string>;
   agents: Array<string>;

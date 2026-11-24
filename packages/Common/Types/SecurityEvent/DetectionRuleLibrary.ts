@@ -1992,6 +1992,42 @@ detection:
   condition: 1 of selection_*
 `,
     },
+    /*
+     * A scanner's first move (#10745): asking for the files that leak
+     * secrets when a server serves them by mistake, and for the admin
+     * pages of apps it might run. Only a request the site refused or does
+     * not have is one (WebAttackKind.SensitiveFile, SensitiveFileProbe), so
+     * a page the site serves - a WordPress site's own /wp-admin - never
+     * counts, and it takes three different paths, each counted once
+     * however it is spelled (web.sensitive_file.path), so a mistyped URL
+     * asked for again and again never fires it. The Scanners policy acts
+     * on it.
+     */
+    {
+      id: "37aac329-ce8b-4ced-9255-4ae49d564451",
+      title: "Scanning for sensitive files",
+      description:
+        "Requests from one IP address for three or more different well-known sensitive files or admin pages, such as /.env, /.git/config and /wp-admin, that your site refused or does not have, within five minutes: a scanner looking for secrets left on the server. A page your site serves never counts.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "HTTP or web server events",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      distinctCountField: "web.sensitive_file.path",
+      matchCountThreshold: 3,
+      sigmaRuleYaml: `title: Scanning for sensitive files
+id: 37aac329-ce8b-4ced-9255-4ae49d564451
+description: Requests for well-known sensitive files and admin pages that the site refused or does not have.
+level: medium
+tags:
+  - attack.reconnaissance
+  - attack.t1595.003
+detection:
+  selection:
+    web.attack.kind: sensitive-file
+  condition: selection
+`,
+    },
 
     /*
      * What happened next, as the request's trace showed it
@@ -2308,6 +2344,14 @@ detection:
     /*
      * OpenStack's audit trail (OpenStackAuditLogParser), as a project's logs bring it in.
      * Each rule reads what that parser keeps, and it keeps an allowlist.
+     *
+     * A rule that counts per address counts per principalIp (#10773), never
+     * the parser's own openstack.audit.initiator_address: the log scan names
+     * the address behind a Hash rule's token in principalIp (AddressVault),
+     * while the parser's attribute holds real addresses only, on purpose -
+     * so a sign-in whose address a Hash rule hid counts toward its real
+     * address, and one a Redact or Mask rule hid toward none, never toward
+     * one "[REDACTED]" every hidden sign-in shares (#10415).
      */
     {
       id: "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
@@ -2318,7 +2362,7 @@ detection:
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.initiator_address",
+      groupByField: "principalIp",
       matchCountThreshold: 10,
       sigmaRuleYaml: `title: OpenStack failed logins burst
 id: 6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10
@@ -2387,7 +2431,7 @@ correlation:
     - principalUser
   timespan: 30d
   condition:
-    field: openstack.audit.initiator_address
+    field: principalIp
 ---
 title: OpenStack admin account used
 name: openstack_admin_used
@@ -2944,10 +2988,11 @@ export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
   "388b42f9-2239-40bb-bf1a-2a476ad099c0",
   "066bf906-3932-4e5d-9920-131825734ea0",
   "2917bec0-2331-4e59-bdd4-a81211529156",
-  // Attacks on web servers.
+  // Attacks on web servers, and scanners looking for secrets left on them (#10745).
   "cfdf6ad4-7138-4201-8a1c-6bf962335cee",
   "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52",
   "866b7566-304e-442b-b1ad-ca08264af493",
+  "37aac329-ce8b-4ced-9255-4ae49d564451",
   // Kubernetes audit logs.
   "1ce3af71-a3d5-409a-b477-34e4a734aa83",
   "44e60520-facd-443a-bf1f-8c741819be91",
@@ -2983,3 +3028,7 @@ export function getRecommendedDetectionRules(): Array<DetectionRuleLibraryEntry>
 // The rule a setup test fires: many failed sign-ins from one address.
 export const SETUP_TEST_DETECTION_RULE_ID: string =
   "acf2a37e-301a-46de-87c7-d4343f3a8445";
+
+// Scanning for sensitive files (#10745): the Scanners policy acts on it.
+export const SCANNING_FOR_SENSITIVE_FILES_RULE_ID: string =
+  "37aac329-ce8b-4ced-9255-4ae49d564451";

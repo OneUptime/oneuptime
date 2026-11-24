@@ -651,6 +651,12 @@ describe("the blocklist's sentences", () => {
       checkFailed: SECURITY_BLOCK_MESSAGES.checkFailed({
         value: "35.205.11.131",
       }),
+      asnTakesAdmin: SECURITY_BLOCK_MESSAGES.asnTakesAdmin({
+        value: "35.205.11.131",
+      }),
+      asnUnchecked: SECURITY_BLOCK_MESSAGES.asnUnchecked({
+        value: "35.205.11.131",
+      }),
     };
 
     expect(Object.keys(messages).sort()).toEqual(

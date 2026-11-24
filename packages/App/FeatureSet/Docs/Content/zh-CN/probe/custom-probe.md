@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 然后用 `kubectl apply -f oneuptime-probe.yaml` 应用它。
 :::
 
 主机网络（`--network host`、`network_mode: host`）让探测器使用主机自身的网络，包括 IPv6。在不使用主机网络运行之前，请先阅读 [监控 IPv6 目标](#监控-ipv6-目标)。
+
+不使用主机网络时，例如上面的 Kubernetes Deployment，或 Docker 的桥接网络，探测器的检查会从主机自身的地址离开机器，而探测器在容器内看不到这个地址。`PROBE_HOST_IP_ADDRESSES` 把这个地址告诉它，使 [安全事件](/docs/telemetry/security-events) 能把探测器的轮询、发现和监控检查认作它自己的工作。Kubernetes Deployment 从 `status.hostIPs` 设置它，其中包含双栈节点的两个地址；在早于 1.29 的 Kubernetes 上，请使用 `status.hostIP`。在 Docker 桥接网络上，请自行提供主机的地址，例如 `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`。
 
 ### 检查它是否连接
 
@@ -150,6 +156,22 @@ kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<ve
 :::
 
 探测器的页面在 **探测器状态** 下显示它运行的版本。早于 17.1.0 的探测器无法生成[一次性验证码密钥](/docs/monitor/monitor-secrets#使用一次性验证码登录)的验证码：它的页面会说明这一点，它检查的监视器的表单也会。过旧而无法发送 JSON 数组、单个值或文本形式的 API 监视器请求正文的探测器也是如此。
+
+当探测器落后 OneUptime 一个或更多主版本时，它的所有者会收到一次通知，说明它缺少什么，并附上本节的链接；没有所有者的探测器会通知项目所有者。只有当它落后于更新的主版本，或在更新后再次落后时，才会再次通知他们。每个人在 **用户设置 → 通知设置** 下的 **探测器落后一个主版本** 中选择接收方式：默认通过电子邮件。只落后几个次版本的探测器会在其页面上显示，不会通知任何人。
+
+## 探测器上报时发送的内容
+
+探测器的每个请求都带有它的 ID 和密钥、它运行的版本以及它能做什么，并且每分钟上报一次它用来识别自己的地址。除了检查结果，不会发送关于您网络的任何其他内容。
+
+| 字段 | 发送时机 | OneUptime 如何使用 |
+| --- | --- | --- |
+| `probeVersion` | 每个请求 | 保存探测器运行的版本。它的页面和 **自定义探测器** 会在它比 OneUptime 旧时显示出来，并在它落后一个主版本时通知其所有者一次。 |
+| `probeCapabilities` | 每个请求 | 只把探测器能做的工作交给它。需要更新的探测器才能运行的检查会失败，并附一句提示更新探测器。 |
+| `probeInterfaceAddresses` | 每分钟一次 | 保存探测器网络接口上的地址，以及 `PROBE_HOST_IP_ADDRESSES` 提供给它的地址。[安全事件](/docs/telemetry/security-events) 据此在您的网络流中识别探测器自身的轮询、发现和监控检查，封禁列表也从不封禁这些地址。环回、链路本地和组播地址不会保留。 |
+
+OneUptime 还会保存探测器上报时所用的地址，即 OneUptime 看到的地址：如果您的网络有 NAT，就是 NAT 的地址。探测器的页面会在 **探测器状态** 下，以 **上报地址** 和 **接口地址** 向能读取该探测器的人显示这两项，尚未上报过的探测器则两项都不显示。
+
+探测器对自身地址的说法只是它的一面之词，任何持有其密钥的人都可以声称任何地址。因此安全事件从不仅凭地址就把流量搁置：它到达的每个主机和端口也必须是探测器被设置要到达的，超出部分都会被报告，并注明该探测器。
 
 ## 通过代理连接
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Docker Engine 27 及更高版本会为该网络选择一个 IPv6 子网，并把
 | `HTTP_PROXY_URL`、`HTTPS_PROXY_URL`、`NO_PROXY` | 无 | 代理设置：参见 [通过代理连接](#通过代理连接)。 |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | 探测器发往 OneUptime 的每个请求的期限。 |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | 发往 OneUptime 的请求慢于此值时记录警告。 |
+| `PROBE_HOST_IP_ADDRESSES` | 无 | 不使用主机网络的探测器的主机 IP 地址，以逗号分隔：每次上报时与探测器自身的地址一起列出。参见 [运行探测器](#运行探测器)。 |
 
 ### 网络发现
 

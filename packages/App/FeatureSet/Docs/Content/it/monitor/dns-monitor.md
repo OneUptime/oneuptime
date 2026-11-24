@@ -126,6 +126,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 | **Tutti i valori** | Ogni controllo della finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo della finestra soddisfa la condizione. |
 | **Conteggio**, **Percentuale**, **Cambi di stato** | Quanti controlli hanno soddisfatto la condizione, la loro quota o quante volte sono passati dal soddisfarla al non soddisfarla viene confrontato con il numero impostato sotto. |
+| **Controllo precedente** | Questo controllo, confrontato con il controllo precedente della sonda come impostato in **Variazione rispetto al controllo precedente**: un tempo di risposta superiore di oltre il 50%, per esempio. Un filtro vero o falso corrisponde al controllo che ha iniziato a soddisfare la condizione. |
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
 

@@ -1,10 +1,20 @@
 import SecurityBlock from "../../Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "../../Models/DatabaseModels/SecurityBlockEnforcement";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../Types/Date";
+import BadDataException from "../../Types/Exception/BadDataException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import ProductKey from "../../Types/Product/ProductKey";
+import {
+  SecurityRepeatOffenderRecord,
+  SecurityRepeatOffenderSummary,
+  getSecurityRepeatOffenderRecordBefore,
+  summarizeSecurityRepeatOffender,
+  writeSecurityRepeatOffenderSummary,
+} from "../../Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
   SECURITY_BLOCK_VALUE_MAX_LENGTH,
   SecurityBlockReach,
@@ -13,7 +23,10 @@ import {
   isSecurityBlockInForce,
   isSecurityBlockReach,
   isWiderThanLargestRange,
+  readSecurityBlockValue,
 } from "../../Types/SecurityBlocklist/SecurityBlock";
+import SecurityCaseService from "../Services/SecurityCaseService";
+import SecurityRepeatOffenders from "../Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import { isSecurityBlockEnforcementHolding } from "../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import QueryHelper from "../Types/Database/QueryHelper";
 import SecurityBlockEnforcementService from "../Services/SecurityBlockEnforcementService";
@@ -74,6 +87,15 @@ export const SECURITY_BLOCK_FOR_VALUES_ROUTE: string =
 
 // The most values one read of the plan's blocks asks for: a case's Contain steps name a few.
 export const SECURITY_BLOCK_FOR_VALUES_MAX: number = 50;
+
+/*
+ * Whether addresses were blocked before (#10354): every block of each in
+ * the 30 days before a case opened - of the address, or of a range around
+ * it - so the case says "Blocked twice before, last on 12 Nov (case
+ * CASE-812)" and its block step offers the ladder's next step.
+ */
+export const SECURITY_BLOCK_REPEAT_OFFENDERS_ROUTE: string =
+  "/security-block/repeat-offenders";
 
 export const CHECK_REFUSED_MESSAGE: string =
   "Checking an address takes a role that can block addresses.";
@@ -386,5 +408,119 @@ export default class SecurityBlockAPI extends BaseAPI<
         }
       },
     );
+
+    this.router.post(
+      SECURITY_BLOCK_REPEAT_OFFENDERS_ROUTE,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      ServerProductRoutes.refuseWhileOff(ProductKey.SecurityEvents),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectPrincipal(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityBlock,
+            props,
+            errorMessage: DESTINATIONS_REFUSED_MESSAGE,
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          return Response.sendJsonObjectResponse(req, res, {
+            offenders: (
+              await SecurityBlockAPI.readRepeatOffenders({
+                projectId,
+                body,
+                props,
+              })
+            ).map(writeSecurityRepeatOffenderSummary),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
+
+  /*
+   * The repeat offenders among the addresses asked about: blocked in the
+   * 30 days before the case opened (its own blocks left out), or before
+   * now when no case is named. A case the caller may not read is not
+   * found. Addresses blocked never before are left out of the answer.
+   */
+  public static async readRepeatOffenders(data: {
+    projectId: ObjectID;
+    body: JSONObject;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<SecurityRepeatOffenderSummary>> {
+    const values: Array<string> = Array.from(
+      new Set(
+        (Array.isArray(data.body["values"]) ? data.body["values"] : [])
+          .filter((value: unknown): value is string => {
+            return typeof value === "string" && value.length <= 100;
+          })
+          .map((value: string): string => {
+            return readSecurityBlockValue(value)?.value || "";
+          })
+          .filter(Boolean),
+      ),
+    ).slice(0, SECURITY_BLOCK_FOR_VALUES_MAX);
+
+    const caseId: string =
+      typeof data.body["securityCaseId"] === "string"
+        ? data.body["securityCaseId"].trim()
+        : "";
+    let before: Date = OneUptimeDate.getCurrentDate();
+    let excludingCaseId: string | null = null;
+
+    if (caseId) {
+      if (!ObjectID.isValidUUID(caseId)) {
+        throw new BadDataException("A valid case ID is required.");
+      }
+
+      const securityCase: SecurityCase | null =
+        await SecurityCaseService.findOneBy({
+          query: { _id: new ObjectID(caseId), projectId: data.projectId },
+          select: { _id: true, createdAt: true },
+          props: data.props,
+        });
+
+      if (!securityCase?.id) {
+        throw new NotFoundException("Security case not found.");
+      }
+
+      before = securityCase.createdAt
+        ? new Date(securityCase.createdAt)
+        : before;
+      excludingCaseId = securityCase.id.toString();
+    }
+
+    const summaries: Array<SecurityRepeatOffenderSummary> = [];
+
+    for (const value of values) {
+      const record: SecurityRepeatOffenderRecord =
+        getSecurityRepeatOffenderRecordBefore({
+          record: await SecurityRepeatOffenders.read({
+            projectId: data.projectId,
+            value,
+            now: before,
+          }),
+          before,
+          excludingCaseId,
+        });
+
+      if (record.offenceCount > 0) {
+        summaries.push(summarizeSecurityRepeatOffender(record));
+      }
+    }
+
+    return summaries;
   }
 }

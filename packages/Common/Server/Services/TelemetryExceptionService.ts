@@ -976,6 +976,12 @@ export class Service extends ProjectReferencesService<Model> {
    * the data means rather than who may see it - unless the query names them:
    * by id (an exception's own page, a link to it), or by the column itself
    * (the exceptions merged into one, which its page lists).
+   *
+   * Nor is a row that only keeps an exception's former fingerprint
+   * (#10619), which is always merged into its exception's group: left out
+   * by its own column too, so it stays out of every list even if the
+   * exception it was merged into is deleted and purged, which unmerges what
+   * was merged into it.
    */
   public static hideMergedExceptions<TQuery>(query: TQuery): TQuery {
     const record: Record<string, unknown> = (query || {}) as Record<
@@ -986,7 +992,8 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       "_id" in record ||
       "id" in record ||
-      "mergedIntoTelemetryExceptionId" in record
+      "mergedIntoTelemetryExceptionId" in record ||
+      "formerFingerprintOfTelemetryExceptionId" in record
     ) {
       return query;
     }
@@ -994,6 +1001,7 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       ...record,
       mergedIntoTelemetryExceptionId: QueryHelper.isNull(),
+      formerFingerprintOfTelemetryExceptionId: QueryHelper.isNull(),
     } as TQuery;
   }
 
@@ -2484,6 +2492,10 @@ export class Service extends ProjectReferencesService<Model> {
       .andWhere(`"TelemetryException"."deletedAt" IS NULL`)
       // A merged exception counts in the one it was merged into.
       .andWhere(`"TelemetryException"."mergedIntoTelemetryExceptionId" IS NULL`)
+      // And a former fingerprint is no exception (hideMergedExceptions).
+      .andWhere(
+        `"TelemetryException"."formerFingerprintOfTelemetryExceptionId" IS NULL`,
+      )
       .andWhere(`"TelemetryException"."primaryEntityId" IS NOT NULL`)
       .groupBy(`"TelemetryException"."primaryEntityId"`)
       .addGroupBy(`"TelemetryException"."primaryEntityType"`)

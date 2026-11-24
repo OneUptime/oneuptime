@@ -168,6 +168,7 @@ describe("DECLARED_DATA_STORE_KINDS", () => {
       DataStoreKind.SecurityEvents,
       DataStoreKind.NetworkFlows,
       DataStoreKind.SecurityAddressVault,
+      DataStoreKind.SecurityUserVault,
     ]);
     expect(
       DATA_STORE_KINDS.filter((info: DataStoreKindInfo) => {

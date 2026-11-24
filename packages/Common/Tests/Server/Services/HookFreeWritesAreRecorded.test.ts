@@ -793,6 +793,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
       Why.Bookkeeping,
   },
+  /*
+   * What the code host says of a pull request a person linked to a case
+   * (#10604): its state, its merge commit and the deploy that shipped it.
+   * Linking it and taking it off are on the case's timeline and audited.
+   */
+  "packages/Common/Server/Utils/SecurityCase/SecurityCasePullRequestFollower.ts":
+    {
+      "SecurityCasePullRequestFollower.followOne SecurityCasePullRequest":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
   },
@@ -845,6 +855,19 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
+  },
+  // An exception's former fingerprint deleted once no occurrence carries it (#10619).
+  "packages/Common/Server/Utils/Telemetry/FormerExceptionFingerprints.ts": {
+    "FormerExceptionFingerprints.retireUncarried TelemetryException":
+      Why.Bookkeeping,
+  },
+  /*
+   * An exception moved to a private fingerprint by its own next occurrence,
+   * its old one kept beside it (#10619): nobody made the change.
+   */
+  "packages/Common/Server/Utils/Telemetry/TelemetryExceptionRekey.ts": {
+    "TelemetryExceptionRekey.moveInTransaction TelemetryException":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/Telemetry/ResourceHeartbeat.ts": {
     "ResourceHeartbeat.writeOnce *": Why.Reported,

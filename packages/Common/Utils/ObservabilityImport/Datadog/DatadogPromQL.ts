@@ -13,6 +13,10 @@ import {
 } from "../../PromQL/PromQLMetricNames";
 import { findPromQLImportProblem } from "../PromQLImportQuery";
 import {
+  DATADOG_KEYLESS_TAGS_ATTRIBUTE,
+  toDatadogMetricAttributeKey,
+} from "./DatadogAttributes";
+import {
   DatadogExpression,
   DatadogExpressionKind,
   DatadogMethod,
@@ -27,36 +31,43 @@ import {
  * #7697).
  *
  * OneUptime's Datadog intake keeps a metric's name and each tag as an
- * attribute (DatadogIntake): `system.cpu.user{host:web-1}` arrives as the
- * metric system.cpu.user with the attribute host = web-1, which PromQL
- * names system_cpu_user{host="web-1"} (PromQLMetricNames). A tag with no
- * key is kept in datadog.tags, comma-joined. So:
+ * attribute (DatadogIntake): `system.cpu.user{env:prod}` arrives as the
+ * metric system.cpu.user with the attribute env = prod, which PromQL names
+ * system_cpu_user{env="prod"} (PromQLMetricNames). A tag with no key is
+ * kept in datadog.tags, comma-joined, and the host the Agent sends beside
+ * the tags in the resource's host.name (DatadogAttributes), which PromQL
+ * names resource_host_name. So:
  *
  *   avg:system.cpu.user{env:prod,!host:db-*} by {host}
- *     avg by (host) (avg_over_time(system_cpu_user{env="prod",
- *       host!~"db-.*"}[$__interval]))
+ *     avg by (resource_host_name) (avg_over_time(system_cpu_user{
+ *       env="prod",resource_host_name!~"db-.*"}[$__interval]))
  *
  * Datadog first reduces each series' points in an interval (its time
  * aggregation: an average for a gauge, a sum with .as_count(), or what
  * .rollup() names), then combines the series (the space aggregation). The
  * PromQL does the same, in that order. Datadog's export does not say
- * whether a metric is a gauge or a count, so the preview asks the
+ * whether a metric is a gauge, a rate or a count, so the preview asks the
  * project's own metrics (knownMetricKinds): a count's points add up, a
  * gauge's are averaged - .as_count() and .as_rate() leave a gauge as it
- * is, as in Datadog. A metric the project has no data for yet is read as
- * the query's words imply - a count with .as_count(), else a gauge - and
- * its notes say so.
+ * is, as in Datadog. A rate - how the Agent sends a DogStatsD count, per
+ * second, its interval kept as each point's start (issue #10327) - is
+ * averaged too, and .as_count() adds its points up and multiplies them by
+ * that interval, as Datadog counts a rate per interval. A metric the
+ * project has no data for yet is read as the query's words imply - a count
+ * with .as_count(), else a gauge - and its notes say so.
  *
  * In a monitor, each check reads one minute of points ([1m]) with the
  * function the monitor reduces its window with, so a 5-minute window of
  * one-minute averages is the window's average, as Datadog takes it.
  *
  * A dashboard's template variable with a prefix (`$host` for host:...) is
- * the dashboard's variable on that attribute: host="{{host}}", which the
- * widget reads as Grafana's Prometheus does (DataSourceQueryText): All
- * matches every host. What has no PromQL - anomalies, forecasts,
- * outliers, smoothing, a cumulative sum - is not converted, and may be
- * offered to OneUptime AI.
+ * the dashboard's variable on that attribute: resource_host_name=
+ * "{{host}}", which the widget reads as Grafana's Prometheus does
+ * (DataSourceQueryText): All matches every host. What has no PromQL -
+ * anomalies, forecasts, outliers, smoothing, a cumulative sum - is not
+ * converted, and may be offered to OneUptime AI. A monitor of an anomaly or
+ * a forecast is a monitor of OneUptime's own condition of that kind
+ * (DatadogMonitorFunctions, issue #10325).
  */
 
 export const DATADOG_QUERY_UNREADABLE: string = translationKey(
@@ -109,19 +120,30 @@ export const DATADOG_VARIABLE_WITHOUT_PREFIX: string = translationKey(
 
 /*
  * What a Datadog metric is, as the project's own data says: the Agent's
- * gauges arrive as gauges, its counts as sums (DatadogIntake).
+ * gauges arrive as gauges, its counts as sums, and its rates - how it sends
+ * a DogStatsD count - as gauges whose points are marked
+ * datadog.metric.type = rate (DatadogIntake).
  */
 export enum DatadogMetricKind {
   Gauge = "Gauge",
   Count = "Count",
+  Rate = "Rate",
 }
+
+/*
+ * The interval a DogStatsD count is sent per second over when the project's
+ * data does not say: DogStatsD flushes every 10 seconds
+ * (docs.datadoghq.com/developers/dogstatsd, "DogStatsD uses a flush
+ * interval of 10 seconds").
+ */
+export const DOGSTATSD_FLUSH_INTERVAL_IN_SECONDS: number = 10;
 
 export const DATADOG_READ_AS_COUNT: string = translationKey(
   "Datadog's export does not say whether {{metrics}} are counts, and the project has no data for them yet: with .as_count() they are read as counts, adding up their points in each interval.",
 );
 
-export const DATADOG_AS_COUNT_ON_GAUGE: string = translationKey(
-  "The project's data has {{metrics}} as gauges, which Datadog's .as_count() leaves as they are, so they are read as gauges. A DogStatsD count arrives as a rate per second: it shows per second here, where Datadog counted it per interval.",
+export const DATADOG_RATE_INTERVAL_ASSUMED: string = translationKey(
+  "The project's data does not say over how many seconds {{metrics}} were counted: .as_count() reads them as DogStatsD sends them, 10 seconds a point.",
 );
 
 export const DATADOG_AS_RATE: string = translationKey(
@@ -198,6 +220,11 @@ export interface DatadogConversionOptions {
   namedQueries?: ReadonlyMap<string, DatadogExpression> | undefined;
   // What the project's metrics say a Datadog metric is, by its Datadog name.
   knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  /*
+   * The seconds each point of a rate covers, by its Datadog name, where the
+   * project's data says (a rate point's start is its interval before it).
+   */
+  rateIntervalsInSeconds?: ReadonlyMap<string, number> | undefined;
 }
 
 interface Converted {
@@ -269,7 +296,19 @@ const wildcardPattern: (value: string) => string = (value: string): string => {
 };
 
 // The tag a bare (keyless) Datadog tag is kept in.
-const KEYLESS_TAGS_LABEL: string = toPromQLLabelName("datadog.tags");
+const KEYLESS_TAGS_LABEL: string = toPromQLLabelName(
+  DATADOG_KEYLESS_TAGS_ATTRIBUTE,
+);
+
+/*
+ * The label a Datadog tag is read from: its attribute's (DatadogAttributes),
+ * host:web-1 the resource's host, resource_host_name.
+ */
+export const toDatadogTagLabel: (tagKey: string) => string = (
+  tagKey: string,
+): string => {
+  return toPromQLLabelName(toDatadogMetricAttributeKey(tagKey));
+};
 
 interface Matcher {
   label: string;
@@ -301,7 +340,7 @@ const tagMatcher: (data: {
     };
   }
 
-  const label: string = toPromQLLabelName(data.key);
+  const label: string = toDatadogTagLabel(data.key);
 
   if (data.value.includes("*")) {
     return {
@@ -353,7 +392,7 @@ const scopeMatchers: (data: {
 
       return [
         {
-          label: toPromQLLabelName(key),
+          label: toDatadogTagLabel(key),
           operator: negated ? "!=" : "=",
           value: `{{${scope.name}}}`,
         },
@@ -362,7 +401,7 @@ const scopeMatchers: (data: {
     case DatadogScopeKind.In:
       return [
         {
-          label: toPromQLLabelName(scope.key),
+          label: toDatadogTagLabel(scope.key),
           operator: negated ? "!~" : "=~",
           value: scope.values.map(wildcardPattern).join("|"),
         },
@@ -413,7 +452,7 @@ const scopeMatchers: (data: {
 
       return [
         {
-          label: toPromQLLabelName(Array.from(keys)[0]!),
+          label: toDatadogTagLabel(Array.from(keys)[0]!),
           operator: negated ? "!~" : "=~",
           value: patterns.join("|"),
         },
@@ -453,6 +492,8 @@ interface TimeAggregation {
   window: string;
   // Seconds the result is divided by, for a count read per second.
   perSeconds?: string | undefined;
+  // Seconds the result is multiplied by, for a rate read as a count.
+  timesSeconds?: string | undefined;
 }
 
 const timeAggregation: (data: {
@@ -523,13 +564,48 @@ const timeAggregation: (data: {
     modifier = "as_rate";
   }
 
-  // .rollup() names the function itself.
-  if (rollupFn) {
-    return { fn: rollupFn, window: read };
-  }
-
   const kind: DatadogMetricKind | undefined =
     data.options.knownMetricKinds?.get(data.metric);
+
+  /*
+   * A rate is a count per second (a DogStatsD count, as the Agent sends
+   * it). Datadog's .as_count() sums its points and multiplies the result by
+   * the seconds each covers (docs.datadoghq.com/metrics/custom_metrics/
+   * type_modifiers: "Multiply the result post-aggregation by the sampling
+   * interval"), so a count per interval reads as Datadog charted it. The
+   * seconds are what the project's data says, or DogStatsD's flush
+   * interval, said.
+   */
+  const asCountOfRate: () => string | undefined = (): string | undefined => {
+    if (kind !== DatadogMetricKind.Rate || modifier !== "as_count") {
+      return undefined;
+    }
+
+    const known: number | undefined = data.options.rateIntervalsInSeconds?.get(
+      data.metric,
+    );
+
+    if (known !== undefined && Number.isFinite(known) && known > 0) {
+      return String(known);
+    }
+
+    data.notes.push({
+      kind: ImportNoteKind.Approximation,
+      text: DATADOG_RATE_INTERVAL_ASSUMED,
+      values: { metrics: data.metric },
+    });
+
+    return String(DOGSTATSD_FLUSH_INTERVAL_IN_SECONDS);
+  };
+
+  // .rollup() names the function itself.
+  if (rollupFn) {
+    const timesSeconds: string | undefined = asCountOfRate();
+
+    return timesSeconds
+      ? { fn: rollupFn, window: read, timesSeconds }
+      : { fn: rollupFn, window: read };
+  }
 
   // A monitor reduces its window: each minute is read the same way.
   const gaugeFn: string =
@@ -561,16 +637,24 @@ const timeAggregation: (data: {
   }
 
   /*
-   * A gauge's points are averaged; Datadog's .as_count() and .as_rate()
-   * leave a gauge as it is. What arrives as a gauge may also be a
-   * DogStatsD count, which the Agent sends as a rate per second: Datadog
-   * counts that per interval with .as_count(), so the note says it.
+   * A rate's points are per second: averaged as a gauge's are, and with
+   * .as_count() added up and multiplied out to a count per interval.
+   */
+  if (kind === DatadogMetricKind.Rate) {
+    const timesSeconds: string | undefined = asCountOfRate();
+
+    return timesSeconds
+      ? { fn: "sum_over_time", window: read, timesSeconds }
+      : { fn: gaugeFn, window: read };
+  }
+
+  /*
+   * A gauge's points are averaged: Datadog's .as_count() and .as_rate()
+   * leave a gauge as it is ("have no effect on how a gauge is stored or
+   * displayed"). A DogStatsD count is no gauge here: its points are marked
+   * as a rate, read above.
    */
   if (kind === DatadogMetricKind.Gauge) {
-    if (modifier === "as_count") {
-      note(DATADOG_AS_COUNT_ON_GAUGE);
-    }
-
     return { fn: gaugeFn, window: read };
   }
 
@@ -602,7 +686,7 @@ const timeAggregation: (data: {
 const NOTES_BY_METRICS: ReadonlySet<string> = new Set<string>([
   DATADOG_READ_AS_GAUGE,
   DATADOG_READ_AS_COUNT,
-  DATADOG_AS_COUNT_ON_GAUGE,
+  DATADOG_RATE_INTERVAL_ASSUMED,
 ]);
 
 /*
@@ -737,14 +821,17 @@ const convertExpression: (data: ConvertData) => Converted = (
       const selector: string = `${toPromQLMetricName(expression.metric)}${
         matchers.length > 0 ? `{${matchers.map(matcherText).join(",")}}` : ""
       }`;
-      const groups: Array<string> = expression.groupBy.map(toPromQLLabelName);
+      const groups: Array<string> = expression.groupBy.map(toDatadogTagLabel);
       const by: string = groups.length > 0 ? ` by (${groups.join(", ")})` : "";
       const offset: string = data.offset ? ` offset ${data.offset}` : "";
 
       const perSecond: string = time.perSeconds ? ` / ${time.perSeconds}` : "";
+      const timesSeconds: string = time.timesSeconds
+        ? ` * ${time.timesSeconds}`
+        : "";
 
       return {
-        promQL: `${spaceFn}${by} (${time.fn}(${selector}[${time.window}]${offset})${perSecond})`,
+        promQL: `${spaceFn}${by} (${time.fn}(${selector}[${time.window}]${offset})${perSecond}${timesSeconds})`,
         groups,
         isScalar: false,
       };
@@ -1018,6 +1105,57 @@ export const readDatadogMetricNames: (query: string) => Array<string> = (
 
   try {
     collectDatadogMetricNames(parseDatadogExpression(query), names);
+  } catch {
+    // Not converted either: nothing to look up.
+  }
+
+  return Array.from(names);
+};
+
+/*
+ * The metrics a query or formula reads with .as_count(), by their Datadog
+ * names: those a rate reads differently (issue #10327), so the preview
+ * asks the project's data the seconds each of their points covers.
+ */
+export const collectDatadogAsCountMetricNames: (
+  expression: DatadogExpression,
+  names: Set<string>,
+) => void = (expression: DatadogExpression, names: Set<string>): void => {
+  switch (expression.kind) {
+    case DatadogExpressionKind.Query:
+      if (
+        expression.methods.some((method: DatadogMethod): boolean => {
+          return method.name === "as_count";
+        })
+      ) {
+        names.add(expression.metric);
+      }
+      return;
+    case DatadogExpressionKind.Binary:
+      collectDatadogAsCountMetricNames(expression.left, names);
+      collectDatadogAsCountMetricNames(expression.right, names);
+      return;
+    case DatadogExpressionKind.Negate:
+      collectDatadogAsCountMetricNames(expression.expression, names);
+      return;
+    case DatadogExpressionKind.Call:
+      for (const arg of expression.args) {
+        collectDatadogAsCountMetricNames(arg, names);
+      }
+      return;
+    default:
+      return;
+  }
+};
+
+// The metrics a query's text reads with .as_count(); none when it does not parse.
+export const readDatadogAsCountMetricNames: (query: string) => Array<string> = (
+  query: string,
+): Array<string> => {
+  const names: Set<string> = new Set<string>();
+
+  try {
+    collectDatadogAsCountMetricNames(parseDatadogExpression(query), names);
   } catch {
     // Not converted either: nothing to look up.
   }

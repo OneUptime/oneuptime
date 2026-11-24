@@ -435,9 +435,11 @@ function baseAttributes(data: {
     data.initiator.projectId,
   );
   /*
-   * Only an address: "OpenStack failed logins burst" counts per this, so
-   * what a scrub rule left is no address every hidden sign-in shares. The
-   * event says a rule hid it instead (buildLogSecurityEvent, #10419).
+   * Only an address: a project's own rule may count per this, so what a
+   * scrub rule left is no address every hidden sign-in shares. The event
+   * says a rule hid it instead (buildLogSecurityEvent, #10419), and names
+   * the address behind a Hash rule's token in principalIp, which the Rule
+   * Library's OpenStack rules count per (#10773).
    */
   set(
     attributes,

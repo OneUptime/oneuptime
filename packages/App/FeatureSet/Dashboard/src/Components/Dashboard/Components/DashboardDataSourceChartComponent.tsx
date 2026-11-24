@@ -24,6 +24,7 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
 import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
+import { fillDataSourceVariables } from "../../../Utils/DataSourceVariables";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
@@ -153,7 +154,10 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
     try {
       const fetched: Array<AggregatedResult> = await Promise.all(
         state.queryConfigs.map(
-          (config: DataSourceQueryConfig, index: number) => {
+          (
+            config: DataSourceQueryConfig,
+            index: number,
+          ): Promise<AggregatedResult> => {
             // A public dashboard's stored query, by this widget and its place.
             if (isPublicDashboard()) {
               return DataSourceQueryUtil.fetchPublicTimeSeries({
@@ -167,17 +171,25 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
               });
             }
 
-            const interpolatedQuery: string =
-              DataSourceQueryText.applyVariablesForSource({
-                dataSourceId: config.dataSourceId,
-                queryText: config.query,
+            const fetchWith: (query: string) => Promise<AggregatedResult> = (
+              query: string,
+            ): Promise<AggregatedResult> => {
+              return DataSourceQueryUtil.fetchTimeSeries({
+                queryConfig: { ...config, query },
+                startDate: state.startDate!,
+                endDate: state.endDate!,
+              });
+            };
+            const interpolatedQuery: string | Promise<string> =
+              fillDataSourceVariables({
+                queryConfig: config,
                 variables: state.variables,
               });
-            return DataSourceQueryUtil.fetchTimeSeries({
-              queryConfig: { ...config, query: interpolatedQuery },
-              startDate: state.startDate!,
-              endDate: state.endDate!,
-            });
+
+            // Sent at once unless the source's type must be read first.
+            return typeof interpolatedQuery === "string"
+              ? fetchWith(interpolatedQuery)
+              : interpolatedQuery.then(fetchWith);
           },
         ),
       );

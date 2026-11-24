@@ -200,6 +200,31 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The compliance paperwork (#10375): the record of processing's fields,
+   * legal bases, people, statuses and refusals; the kinds of fact a draft
+   * rests on; an impact assessment's parts and why a store needs one; and
+   * why an audit evidence paragraph is refused. Compliance, Review Drafts,
+   * a store's Settings and Impact Assessment draw them; the server keeps the
+   * same files' English for OneUptime AI and the exports. Only the words
+   * the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -414,6 +439,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
+  /*
+   * A moment's words in a sentence (#10622): "at 14:25" today, "on 27 Nov
+   * at 14:25" on another day, and since and until each way - so a sentence
+   * never puts a time's preposition before a day. Only the words the file
+   * marks are read.
+   */
+  { directory: "packages/Common/Utils/MomentPhrases.ts", kind: "keys" },
   /*
    * What each placeholder a playbook's note or message may use stands for:
    * the step editor lists them under its field, said on hover.

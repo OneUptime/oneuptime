@@ -28,7 +28,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -347,10 +347,16 @@ const ProxmoxClusterInsights: FunctionComponent<
           return (
             <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
-                {translator.translateText("Disk Throughput")}
-                <InfoTooltip
+                <WordsWithInfoTooltip
+                  className="min-w-0"
+                  text={
+                    translator.translateText("Disk Throughput") ||
+                    "Disk Throughput"
+                  }
                   label="Disk Throughput"
-                  text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}
+                  description={
+                    PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput
+                  }
                 />
                 <TimeRangeZoomHint
                   revealOnHover={true}
