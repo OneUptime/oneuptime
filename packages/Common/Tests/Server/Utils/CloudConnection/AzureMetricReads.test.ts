@@ -983,6 +983,216 @@ describe("the metrics:getBatch request", () => {
   });
 });
 
+/*
+ * A key metric the catalog splits alone (#10837): a Container App's
+ * Requests by statusCodeCategory, in a call group of its own whose split
+ * every resource of the type asks alike - so they share batches, with the
+ * batch API's own filter and top, beside their whole metrics' batches.
+ */
+describe("a key metric split alone", () => {
+  const CONTAINER_APP_TYPE: string = "Microsoft.App/containerApps";
+  const REQUESTS: Metric = metric("Requests", "Total", [
+    "Average",
+    "Total",
+    "Maximum",
+    "Minimum",
+  ]);
+  const RESPONSE_TIME: Metric = metric("ResponseTime", "Average", [
+    "Average",
+    "Total",
+    "Maximum",
+    "Minimum",
+  ]);
+
+  function apps(count: number): Array<AzureMetricPlace> {
+    return Array.from({ length: count }, (_: unknown, index: number) => {
+      return place({ name: `app-${index}`, type: CONTAINER_APP_TYPE });
+    });
+  }
+
+  // As buildAzureMetricRequest asks a Container App: its whole metrics, and its split Requests.
+  function appRequestOf(at: AzureMetricPlace): AzureMetricRequest<Metric> {
+    const whole: AzureMetricRequest<Metric> = requestOf(at, [RESPONSE_TIME]);
+    const split: AzureMetricRequest<Metric> = requestOf(at, [REQUESTS], {
+      splitBy: "statusCodeCategory",
+      top: 1000,
+      batchesSplit: true,
+    });
+
+    return { place: at, groups: [...whole.groups, ...split.groups] };
+  }
+
+  function shapeOf(call: FakeMonitorCall): string {
+    return `${call.isBatch ? "batch" : "single"} ${call.metrics.join(",")} ${call.splitBy || "-"} ${call.top || "-"} ${call.resourceIds.length}`;
+  }
+
+  test("its resources share batches of their own, split by the dimension, beside their whole metrics' batches", async () => {
+    const run: Harness = harness({ splitValues: ["2xx", "4xx", "5xx"] });
+    const result: AzureMetricReadResult<Metric> = await run.reader.read(
+      apps(3).map(appRequestOf),
+    );
+
+    expect(run.fake.calls.map(shapeOf).sort()).toEqual([
+      "batch Requests statusCodeCategory 1000 3",
+      "batch ResponseTime - - 3",
+    ]);
+    expect(result.batchCalls).toBe(2);
+    expect(readNames(result)).toEqual([
+      "Requests,ResponseTime",
+      "Requests,ResponseTime",
+      "Requests,ResponseTime",
+    ]);
+
+    // Each resource's Requests a series per category, as Azure names it; its response time whole.
+    for (const read of result.reads) {
+      expect(
+        read.series
+          .filter((series: { metricName: string }): boolean => {
+            return series.metricName === "Requests";
+          })
+          .map(
+            (series: {
+              dimensions: Array<{ name: string; value: string }>;
+            }): string => {
+              return series.dimensions
+                .map((dimension: { name: string; value: string }): string => {
+                  return `${dimension.name}=${dimension.value}`;
+                })
+                .join(",");
+            },
+          ),
+      ).toEqual([
+        "statuscodecategory=2xx",
+        "statuscodecategory=4xx",
+        "statuscodecategory=5xx",
+      ]);
+      expect(
+        read.series
+          .filter((series: { metricName: string }): boolean => {
+            return series.metricName === "ResponseTime";
+          })
+          .map((series: { dimensions: Array<unknown> }): number => {
+            return series.dimensions.length;
+          }),
+      ).toEqual([0]);
+    }
+  });
+
+  test("its batch asks what Microsoft's reference names: filter, top, and no ValidateDimensions, which the batch API has not", async () => {
+    const run: Harness = harness({ splitValues: ["2xx"] });
+
+    await run.reader.read(apps(2).map(appRequestOf));
+
+    const batch: DataSourceHttpRequest = run.fake.requests.find(
+      (request: DataSourceHttpRequest): boolean => {
+        return (
+          request.url.includes("metrics:getBatch") &&
+          new URL(request.url).searchParams.has("filter")
+        );
+      },
+    )!;
+    const url: URL = new URL(batch.url);
+
+    expect(Object.fromEntries(url.searchParams.entries())).toEqual({
+      starttime: FAKE_WINDOW.start.toISOString(),
+      endtime: FAKE_WINDOW.end.toISOString(),
+      interval: "PT1M",
+      metricnamespace: CONTAINER_APP_TYPE,
+      metricnames: "Requests",
+      aggregation: "Total",
+      filter: "statusCodeCategory eq '*'",
+      top: "1000",
+      "api-version": "2023-10-01",
+    });
+  });
+
+  test("a resource alone asks its split on Resource Manager, still split, with ValidateDimensions=false", async () => {
+    const run: Harness = harness({ splitValues: ["2xx", "5xx"] });
+    const result: AzureMetricReadResult<Metric> = await run.reader.read(
+      apps(1).map(appRequestOf),
+    );
+
+    expect(run.fake.calls.map(shapeOf).sort()).toEqual([
+      "single Requests statusCodeCategory 1000 1",
+      "single ResponseTime - - 1",
+    ]);
+
+    const single: DataSourceHttpRequest = run.fake.requests.find(
+      (request: DataSourceHttpRequest): boolean => {
+        return new URL(request.url).searchParams.has("$filter");
+      },
+    )!;
+
+    expect(new URL(single.url).searchParams.get("ValidateDimensions")).toBe(
+      "false",
+    );
+    expect(result.reads[0]!.series).toHaveLength(3);
+  });
+
+  test("a split batch Azure refuses is asked a resource at a time, still split, and the whole batch is left as it was", async () => {
+    const run: Harness = harness({
+      splitValues: ["2xx", "5xx"],
+      callAnswer: (data: { call: FakeMonitorCall }) => {
+        return data.call.isBatch && data.call.splitBy
+          ? {
+              status: 400,
+              body: JSON.stringify({
+                error: { code: "BadRequest", message: "Invalid filter." },
+              }),
+            }
+          : null;
+      },
+    });
+    const result: AzureMetricReadResult<Metric> = await run.reader.read(
+      apps(2).map(appRequestOf),
+    );
+
+    expect(run.fake.calls.map(shapeOf).sort()).toEqual([
+      "batch Requests statusCodeCategory 1000 2",
+      "batch ResponseTime - - 2",
+      "single Requests statusCodeCategory 1000 1",
+      "single Requests statusCodeCategory 1000 1",
+    ]);
+    expect(result.batchRefusals).toHaveLength(1);
+    expect(readNames(result)).toEqual([
+      "Requests,ResponseTime",
+      "Requests,ResponseTime",
+    ]);
+  });
+
+  test("a namespace's split and an added metric's are still a resource at a time: only a key metric's own split batches", async () => {
+    const run: Harness = harness();
+    const namespaces: Array<AzureMetricPlace> = [
+      place({ name: "sb-1", type: "Microsoft.ServiceBus/namespaces" }),
+      place({ name: "sb-2", type: "Microsoft.ServiceBus/namespaces" }),
+    ];
+
+    await run.reader.read([
+      ...namespaces.map((each: AzureMetricPlace) => {
+        return requestOf(
+          each,
+          [metric("IncomingMessages", "Total", ["Total"])],
+          { splitBy: "EntityName", top: 1000 },
+        );
+      }),
+      ...apps(2).map((each: AzureMetricPlace) => {
+        return requestOf(
+          each,
+          [metric("ResiliencyRequestRetries", "Total", ["Total"])],
+          { splitBy: "revisionName", top: 10, orderBy: "sum desc" },
+        );
+      }),
+    ]);
+
+    expect(run.fake.calls.map(shapeOf).sort()).toEqual([
+      "single IncomingMessages EntityName 1000 1",
+      "single IncomingMessages EntityName 1000 1",
+      "single ResiliencyRequestRetries revisionName 10 1",
+      "single ResiliencyRequestRetries revisionName 10 1",
+    ]);
+  });
+});
+
 describe("Azure too busy to answer", () => {
   test("a call answered 529 ServerBusy is asked again after a wait, with fewer of its place's calls at once from then", async () => {
     const run: Harness = harness({
