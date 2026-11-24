@@ -4,6 +4,7 @@ import AndroidAgentRedactor, {
 import { describe, expect, test } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import {
   JavaScriptPattern,
   KotlinStringLiteral,
@@ -75,9 +76,7 @@ describe("a card number", () => {
         "\u0664\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661",
       ),
     ).toBe(true);
-    expect(AndroidAgentRedactor.passesLuhn("411111111111111\u0661")).toBe(
-      true,
-    );
+    expect(AndroidAgentRedactor.passesLuhn("411111111111111\u0661")).toBe(true);
     expect(
       AndroidAgentRedactor.looksLikeCardNumber("411111111111111\uff11"),
     ).toBe(true);
@@ -377,6 +376,667 @@ describe("a token, looked for once per run of its characters", () => {
   });
 });
 
+// The first of each script's ten decimal digits in Unicode's Basic Multilingual Plane, as the agent's RedactorTest lists them.
+const DIGIT_ZEROS: ReadonlyArray<number> = [
+  0x0030, 0x0660, 0x06f0, 0x07c0, 0x0966, 0x09e6, 0x0a66, 0x0ae6, 0x0b66,
+  0x0be6, 0x0c66, 0x0ce6, 0x0d66, 0x0de6, 0x0e50, 0x0ed0, 0x0f20, 0x1040,
+  0x1090, 0x17e0, 0x1810, 0x1946, 0x19d0, 0x1a80, 0x1a90, 0x1b50, 0x1bb0,
+  0x1c40, 0x1c50, 0xa620, 0xa8d0, 0xa900, 0xa9d0, 0xa9f0, 0xaa50, 0xabf0,
+  0xff10,
+];
+
+// The characters Android's \s takes (ICU's), which both copies write out.
+const ANDROID_SPACES: ReadonlyArray<string> = [
+  "\t",
+  "\n",
+  "\u000b",
+  "\u000c",
+  "\r",
+  " ",
+  "\u0085",
+  "\u00a0",
+  "\u1680",
+  ...Array.from({ length: 11 }, (_value: unknown, index: number): string => {
+    return String.fromCharCode(0x2000 + index);
+  }),
+  "\u2028",
+  "\u2029",
+  "\u202f",
+  "\u205f",
+  "\u3000",
+];
+
+// ASCII digits, and the spaces and dashes between them, written in the script whose zero is given.
+function inScript(digits: string, zero: number): string {
+  return Array.from(digits, (char: string): string => {
+    return char >= "0" && char <= "9"
+      ? String.fromCharCode(zero + char.charCodeAt(0) - 48)
+      : char;
+  }).join("");
+}
+
+// Each code point of the Basic Multilingual Plane, but the surrogates.
+function basicMultilingualPlane(): Array<string> {
+  const chars: Array<string> = [];
+
+  for (let code: number = 0; code <= 0xffff; code++) {
+    if (code < 0xd800 || code > 0xdfff) {
+      chars.push(String.fromCharCode(code));
+    }
+  }
+
+  return chars;
+}
+
+const hex: (char: string) => string = (char: string): string => {
+  return `U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}`;
+};
+
+describe("a card number in another script's digits", () => {
+  test("is taken out, as on the device (#10877)", () => {
+    // Japanese text often writes a card number in fullwidth digits, Arabic and Persian text in their own.
+    expect(redact("カード番号：４１１１ １１１１ １１１１ １１１１")).toBe(
+      "カード番号：[card number]",
+    );
+    expect(redact("٤١١١١١١١١١١١١١١١")).toBe("[card number]");
+    expect(redact("شماره کارت ۴۱۱۱-۱۱۱۱-۱۱۱۱-۱۱۱۱ رد شد")).toBe(
+      "شماره کارت [card number] رد شد",
+    );
+    expect(redact("کارت ۵۵۰۰ ۰۰۰۰ ۰۰۰۰ ۰۰۰۴")).toBe("کارت [card number]");
+    expect(redact("कार्ड ४१११ ११११ ११११ ११११ अस्वीकृत")).toBe(
+      "कार्ड [card number] अस्वीकृत",
+    );
+    expect(redact("বাতিল ৩৭৮২৮২২৪৬৩১০০০৫")).toBe("বাতিল [card number]");
+    expect(redact("บัตร ๔๑๑๑๑๑๑๑๑๑๑๑๑๑๑๑ ถูกปฏิเสธ")).toBe(
+      "บัตร [card number] ถูกปฏิเสธ",
+    );
+    expect(redact("ကတ် ၄၁၁၁၁၁၁၁၁၁၁၁၁၁၁၁")).toBe("ကတ် [card number]");
+    expect(redact("កាត ៥៥០០ ០០០០ ០០០០ ០០០៤")).toBe("កាត [card number]");
+    // Right against a letter, as an ASCII card is since #10835.
+    expect(redact("卡号４１１１１１１１１１１１１１１１已拒绝")).toBe(
+      "卡号[card number]已拒绝",
+    );
+    expect(redact("رقم البطاقة٤١١١١١١١١١١١١١١١مرفوض")).toBe(
+      "رقم البطاقة[card number]مرفوض",
+    );
+  });
+
+  test("is taken out in the digits of each script of the Basic Multilingual Plane", () => {
+    for (const zero of DIGIT_ZEROS) {
+      for (const card of [
+        "4111111111111111",
+        "5500 0000 0000 0004",
+        "6011-1111-1111-1117",
+        "378282246310005",
+      ]) {
+        const written: string = inScript(card, zero);
+
+        expect({
+          written,
+          redacted: redact(`Card ${written} declined`),
+        }).toEqual({ written, redacted: "Card [card number] declined" });
+        expect({ written, redacted: redact(`卡号${written}已拒绝`) }).toEqual({
+          written,
+          redacted: "卡号[card number]已拒绝",
+        });
+      }
+
+      // A number in the same digits that fails the Luhn check, or starts as a timestamp does, stays.
+      for (const number of ["4111111111111112", "1795076857467"]) {
+        expect(redact(inScript(number, zero))).toBe(inScript(number, zero));
+      }
+    }
+  });
+
+  test("each decimal digit of the Basic Multilingual Plane, as JavaScript's \\p{Nd} reads it, is read by its value", () => {
+    const digit: RegExp = /^\p{Nd}$/u;
+    const zeros: Array<number> = [];
+    const misread: Array<string> = [];
+
+    for (const char of basicMultilingualPlane()) {
+      const code: number = char.charCodeAt(0);
+      const isDigit: boolean = digit.test(char);
+
+      // Each script's ten follow its zero, so a digit's value is how far it is from the first of its run.
+      if (isDigit && !digit.test(String.fromCharCode(code - 1))) {
+        zeros.push(code);
+      }
+
+      const value: number = isDigit ? code - zeros[zeros.length - 1]! : -1;
+
+      // Fifteen digits and a last one: a card when the last reads as 1, whatever its script.
+      if (
+        AndroidAgentRedactor.looksLikeCardNumber(`411111111111111${char}`) !==
+        (value === 1)
+      ) {
+        misread.push(hex(char));
+      }
+    }
+
+    expect(misread).toEqual([]);
+    expect(zeros).toEqual(DIGIT_ZEROS);
+  });
+
+  test("that is no card is kept", () => {
+    for (const text of [
+      // It fails the Luhn check, starts as a timestamp does, or is too short.
+      "٤١١١١١١١١١١١١١١٢",
+      "١٧٩٥٠٧٦٨٥٧٤٦٧",
+      "٤١١١١١١١١١١١",
+      // A digit of its own script beside it: a longer number.
+      "٤١١١١١١١١١١١١١١١١١١١١",
+      "٤١١١١١١١١١١١١١١١٤",
+      "١٤١١١١١١١١١١١١١١١",
+      // An ASCII letter, "_" or "." beside it: a word, or a decimal.
+      "x٤١١١١١١١١١١١١١١١",
+      "٤١١١١١١١١١١١١١١١x",
+      "_٤١١١١١١١١١١١١١١١",
+      "v1.٤١١١١١١١١١١١١١١١",
+      "٤١١١١١١١١١١١١١١١.٥",
+    ]) {
+      expect(redact(text)).toBe(text);
+    }
+  });
+
+  test("beside a digit of another script is no part of it, and in mixed digits is read whole", () => {
+    // A card is looked for in one script's digits first, as an ASCII card was (#10835).
+    expect(redact("4111111111111111１２")).toBe("[card number]１２");
+    expect(redact("１２4111111111111111")).toBe("１２[card number]");
+    expect(redact("٤١١١١١١١١١١١١١١١12")).toBe("[card number]12");
+    expect(redact("12٤١١١١١١١١١١١١١١١")).toBe("12[card number]");
+    expect(redact("４１１１１１１１１１１１１１１１٣")).toBe("[card number]٣");
+    expect(redact("٣4111111111111111")).toBe("٣[card number]");
+    expect(redact("4111111111111111 ١٢/٢٥")).toBe("[card number] ١٢/٢٥");
+    // Then, among the digits left, a number that mixes scripts: a Persian card typed with Arabic-Indic digits among its own.
+    expect(redact("４１１１ 1111 1111 1111")).toBe("[card number]");
+    expect(redact("4111 1111 1111 ١١١١")).toBe("[card number]");
+    expect(redact("۴۱۱۱١١١١۱۱۱۱١١١١")).toBe("[card number]");
+    expect(redact("۴١۱١۱١۱١۱١۱١۱١۱١")).toBe("[card number]");
+    expect(redact("۵۵۰۰-٠٠٠٠-۰۰۰۰-٠٠٠٤")).toBe("[card number]");
+    // Read whole, a mixed number with more digits is a longer one, and no card.
+    expect(redact("١٢4111 1111 1111 ١١١١")).toBe("١٢4111 1111 1111 ١١١١");
+  });
+
+  test("beside another number is taken out", () => {
+    expect(redact("٤١١١ ١١١١ ١١١١ ١١١١ ١٢/٢٥")).toBe("[card number] ١٢/٢٥");
+    expect(redact("４１１１ １１１１ １１１１ １１１１ １２３")).toBe(
+      "[card number] １２３",
+    );
+    expect(redact("１ ４１１１ １１１１ １１１１ １１１１")).toBe(
+      "１ [card number]",
+    );
+    expect(redact("٤١١١ ١١١١ ١١١١ ١١١١ ٥٥٠٠ ٠٠٠٠ ٠٠٠٠ ٠٠٠٤")).toBe(
+      "[card number] [card number]",
+    );
+    expect(redact("٤١١١ ١١١١ ١١١١ ١١١١ ١١١١ ١١١١")).toBe(
+      "[card number] ١١١١ ١١١١",
+    );
+  });
+
+  test("in digits beyond the Basic Multilingual Plane is left", () => {
+    // Adlam's and the mathematical bold digits stay as they were, and an ASCII card beside one is taken out.
+    const adlam: string = `\u{1e954}${"\u{1e951}".repeat(15)}`;
+    const bold: string = `\u{1d7d2}${"\u{1d7cf}".repeat(15)}`;
+
+    expect(redact(adlam)).toBe(adlam);
+    expect(redact(bold)).toBe(bold);
+    expect(redact("4111111111111111\u{1e951}")).toBe("[card number]\u{1e951}");
+    expect(redact("\u{1e951}4111111111111111")).toBe("\u{1e951}[card number]");
+  });
+});
+
+describe("an email address in any script", () => {
+  test("is taken out whole, as on the device (#10878)", () => {
+    for (const address of [
+      "张伟@example.com",
+      "josé@example.com",
+      "josé.garcia@example.com",
+      "müller@bücher.de",
+      "user@例え.jp",
+      "user@xn--r8jz45g.jp",
+      "почта@пример.рф",
+      "user@xn--e1afmkfd.xn--p1ai",
+      "山田たろう@例え.jp",
+      "δοκιμή@παράδειγμα.δοκιμή",
+      "उपयोगकर्ता@उदाहरण.भारत",
+      "用户123@example.com",
+      "jose\u0301@example.com",
+      "ｊａｎｅ@example.com",
+    ]) {
+      expect({ address, redacted: redact(address) }).toEqual({
+        address,
+        redacted: "[email]",
+      });
+      expect({
+        address,
+        redacted: redact(`Receipt sent to ${address}, thanks`),
+      }).toEqual({ address, redacted: "Receipt sent to [email], thanks" });
+    }
+
+    // Whole: the name's first part was kept.
+    expect(redact("Écrire à françois.dupont@exemple.fr")).toBe(
+      "Écrire à [email]",
+    );
+    expect(redact("Отправлено на почта@пример.рф.")).toBe(
+      "Отправлено на [email].",
+    );
+  });
+
+  test("is taken out in its domain's Unicode form and in punycode alike", () => {
+    for (const [unicode, punycode] of [
+      ["例え.jp", "xn--r8jz45g.jp"],
+      ["пример.рф", "xn--e1afmkfd.xn--p1ai"],
+      ["bücher.de", "xn--bcher-kva.de"],
+    ] as Array<[string, string]>) {
+      for (const name of ["user", "张伟", "josé"]) {
+        expect(redact(`${name}@${unicode}`)).toBe("[email]");
+        expect(redact(`${name}@${punycode}`)).toBe("[email]");
+      }
+    }
+  });
+
+  test("beside a letter of another script is still no part of it", () => {
+    expect(redact("邮箱jane@example.com")).toBe("邮箱[email]");
+    expect(redact("Email张伟@example.com")).toBe("Email[email]");
+    expect(redact("张伟@example.com已发送")).toBe("[email]已发送");
+    expect(redact("用户@例え.jpに送信")).toBe("[email]に送信");
+    expect(redact("이메일张伟@example.com으로")).toBe("[email]으로");
+    /*
+     * A name in the script of the word before it cannot be told from that word, and a top-level domain in another script
+     * takes in the letters of its script written after it: more is taken out, not less.
+     */
+    expect(redact("邮件张伟@example.com")).toBe("[email]");
+    expect(redact("jane@例子.中国已发送")).toBe("[email]");
+  });
+
+  test("that is no address is kept", () => {
+    // No top-level domain, one of a letter, punycode with no letter, and an ASCII "_" or digit right after it.
+    for (const text of [
+      "张伟@localhost",
+      "张伟@例え",
+      "user@例え.j",
+      "user@example.xn--4111",
+      "张伟@example.com_x",
+      "张伟@example.com7",
+    ]) {
+      expect(redact(text)).toBe(text);
+    }
+  });
+
+  test("beside a card takes no part of it", () => {
+    // A card's last group is no address's name, nor its first group an address's top-level domain.
+    expect(redact("4111 1111 1111 1111é@例え.jp")).toBe(
+      "[card number]é@例え.jp",
+    );
+    expect(redact("4111 1111 1111 1111 user@例え.jp")).toBe(
+      "[card number] [email]",
+    );
+    expect(redact("x@x.xn--4111 1111 1111 1111")).toBe("x@x.xn--[card number]");
+    // A card in an address's name goes with the address.
+    expect(redact("٤١١١١١١١١١١١١١١١@example.com")).toBe("[email]");
+    // An ASCII address takes a card's last group as it did, and two addresses written as one are taken out whole.
+    expect(redact("4111 1111 1111 1111@example.com")).toBe(
+      "4111 1111 1111 [email]",
+    );
+    expect(redact("中@x.jane@example.com")).toBe("[email]");
+  });
+});
+
+describe("a space", () => {
+  test("is one of the characters Android's \\s takes, as on the device (#10876)", () => {
+    expect(redact("令牌：Bearer\u3000abcdefghijklmnop")).toBe(
+      "令牌：Bearer [credential]",
+    );
+    expect(redact("password=hunter2\u3000次の")).toBe(
+      "password=[redacted]\u3000次の",
+    );
+
+    for (const space of ANDROID_SPACES) {
+      expect({
+        space: hex(space),
+        redacted: [
+          redact(`Bearer${space}abcdefghijklmnop`),
+          redact(`password${space}=${space}hunter2`),
+          redact(`password=hunter2${space}next`),
+        ],
+      }).toEqual({
+        space: hex(space),
+        redacted: [
+          "Bearer [credential]",
+          `password${space}=${space}[redacted]`,
+          `password=[redacted]${space}next`,
+        ],
+      });
+    }
+
+    /*
+     * None of these: the zero-width no-break space JavaScript's \s takes, a zero-width space, the Mongolian vowel
+     * separator, and controls the JVM calls white space. A value runs on through each.
+     */
+    for (const other of [
+      "\ufeff",
+      "\u200b",
+      "\u180e",
+      "\u001c",
+      "\u001f",
+      "\u0000",
+    ]) {
+      expect({
+        other: hex(other),
+        redacted: [
+          redact(`Bearer${other}abcdefghijklmnop`),
+          redact(`password=hun${other}ter2`),
+        ],
+      }).toEqual({
+        other: hex(other),
+        redacted: [`Bearer${other}abcdefghijklmnop`, "password=[redacted]"],
+      });
+    }
+  });
+
+  test("is exactly one of those, which JavaScript's own \\s reads otherwise at U+0085 and U+FEFF alone", () => {
+    const javaScriptSpace: RegExp = /^\s$/;
+    const taken: Array<string> = [];
+    const javaScriptSpaces: Array<string> = [];
+
+    for (const char of basicMultilingualPlane()) {
+      if (redact(`Bearer${char}abcdefghijklmnop`) === "Bearer [credential]") {
+        taken.push(hex(char));
+      }
+
+      if (javaScriptSpace.test(char)) {
+        javaScriptSpaces.push(hex(char));
+      }
+    }
+
+    expect(taken).toEqual(ANDROID_SPACES.map(hex).sort());
+    expect(
+      [...taken, ...javaScriptSpaces]
+        .filter((code: string): boolean => {
+          return !(taken.includes(code) && javaScriptSpaces.includes(code));
+        })
+        .sort(),
+    ).toEqual(["U+0085", "U+FEFF"]);
+  });
+});
+
+// Each text's redaction, timed: the fastest of up to three attempts, as one timing on a busy runner is noisy.
+function timedRedaction(texts: Array<string>): FastestRun<Array<string>> {
+  return fastestRun({
+    run: (): Array<string> => {
+      return texts.map(redact);
+    },
+    limitInMs: 5_000,
+  });
+}
+
+describe("a long run of another script's digits", () => {
+  test("costs time in proportion to its length", () => {
+    const redacted: FastestRun<Array<string>> = timedRedaction([
+      // Each digit a place a card may start, inside a longer number of its own script.
+      "٣".repeat(131_000),
+      // Each a one-digit group, tried at seven lengths; scripts that change at each digit.
+      "٣ ".repeat(65_000),
+      "4٣".repeat(65_000),
+      "１ ٣-".repeat(32_000),
+      "٤١١١١١١١١١١١١١١٢ ".repeat(7_000),
+    ]);
+
+    // None of them holds a card.
+    expect(redacted.result).toEqual([
+      "٣".repeat(131_000),
+      "٣ ".repeat(65_000),
+      "4٣".repeat(65_000),
+      "１ ٣-".repeat(32_000),
+      "٤١١١١١١١١١١١١١١٢ ".repeat(7_000),
+    ]);
+    expect(redacted.inMs).toBeLessThan(5_000);
+  });
+});
+
+describe("a long run of an address's characters, or of spaces", () => {
+  test("costs time in proportion to its length", () => {
+    const texts: Array<string> = [
+      // A name that runs on too long before its "@".
+      `${"٣".repeat(262_000)}@example.com`,
+      // Names, labels and top-level domains in other scripts, and a long run of Latin letters before an "@".
+      "张@".repeat(131_000),
+      `${"é".repeat(262_000)}@example.com`,
+      `a@${"例.".repeat(131_000)}`,
+      `${"中".repeat(262_000)}@x.中国`,
+      // A run of spaces between a scheme and no credential.
+      `Bearer${"\u3000".repeat(262_000)}x`,
+    ];
+    const redacted: FastestRun<Array<string>> = timedRedaction(texts);
+
+    // None of them holds an address or a credential.
+    expect(redacted.result).toEqual(texts);
+    expect(redacted.inMs).toBeLessThan(5_000);
+  });
+});
+
+/*
+ * OneUptime's copy before #10876, #10877 and #10878: JavaScript's \s, a card
+ * in ASCII digits and an address in ASCII alone, each pattern as it was.
+ */
+const BEFORE_JWT: RegExp =
+  /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g;
+const BEFORE_AUTHORIZATION: RegExp =
+  /(?<![A-Za-z0-9_])(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi;
+const BEFORE_SECRET_ASSIGNMENT: RegExp =
+  /(?<![A-Za-z0-9_-])(["']?[A-Za-z0-9_-]{0,40}?(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|session[_-]?id|cookie|authorization|credential|pin)["']?\s{0,8}[:=]\s{0,8})(\[(?:token|card number|email|credential|redacted)\]|"[^"]*"|'[^']*'|[^\s,;&)\]}]+)/gi;
+const BEFORE_EMAIL_ADDRESS: RegExp =
+  /(?<![A-Za-z0-9_.%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![A-Za-z0-9_-])/g;
+const BEFORE_CARD_START: RegExp =
+  /(?<![A-Za-z0-9_.])(?=([2-6](?:[ -]?[0-9]){12,18})(?![A-Za-z0-9_.]))/g;
+const BEFORE_CARD_DIGITS: RegExp = /^[2-6][0-9]{12,18}$/;
+// Two addresses written as one hold two "@".
+const TWO_AT_SIGNS: RegExp = /@.*@/;
+
+function beforeLooksLikeCardNumber(digits: string): boolean {
+  if (!BEFORE_CARD_DIGITS.test(digits)) {
+    return false;
+  }
+
+  let sum: number = 0;
+  let double: boolean = false;
+
+  for (let index: number = digits.length - 1; index >= 0; index--) {
+    let digit: number = digits.charCodeAt(index) - 48;
+
+    if (double) {
+      digit *= 2;
+      digit = digit > 9 ? digit - 9 : digit;
+    }
+
+    sum += digit;
+    double = !double;
+  }
+
+  return sum % 10 === 0;
+}
+
+function beforeCardLength(run: string): number {
+  const digits: string = run.replace(/[^0-9]/g, "");
+  let end: number = run.length;
+  let count: number = digits.length;
+
+  while (count >= 13) {
+    if (beforeLooksLikeCardNumber(digits.slice(0, count))) {
+      return end;
+    }
+
+    const separator: number = Math.max(
+      run.lastIndexOf(" ", end - 1),
+      run.lastIndexOf("-", end - 1),
+    );
+
+    if (separator < 0) {
+      return 0;
+    }
+
+    count -= end - separator - 1;
+    end = separator;
+  }
+
+  return 0;
+}
+
+function before(text: string): string {
+  let result: string = text.replace(BEFORE_JWT, "$1[token]");
+
+  result = result.replace(
+    BEFORE_AUTHORIZATION,
+    (_match: string, scheme: string): string => {
+      return `${scheme} [credential]`;
+    },
+  );
+  result = result.replace(
+    BEFORE_SECRET_ASSIGNMENT,
+    (match: string, name: string, value: string): string => {
+      if (
+        !value ||
+        (value.startsWith("[") && value.endsWith("]")) ||
+        value === '"[redacted]"' ||
+        ["bearer", "basic"].includes(value.toLowerCase())
+      ) {
+        return match;
+      }
+
+      const quote: string =
+        value.length >= 2 && (value[0] === '"' || value[0] === "'")
+          ? value[0]
+          : "";
+
+      return `${name}${quote}[redacted]${quote}`;
+    },
+  );
+  result = result.replace(BEFORE_EMAIL_ADDRESS, "[email]");
+
+  let cards: string = "";
+  let last: number = 0;
+
+  for (const match of result.matchAll(BEFORE_CARD_START)) {
+    if (match.index < last) {
+      continue;
+    }
+
+    const length: number = beforeCardLength(match[1] ?? "");
+
+    if (length > 0) {
+      cards += `${result.slice(last, match.index)}[card number]`;
+      last = match.index + length;
+    }
+  }
+
+  return last === 0 ? result : cards + result.slice(last);
+}
+
+describe("no secret OneUptime's copy took out before", () => {
+  test("is kept, and an ASCII text reads as it did", () => {
+    const secrets: Array<string> = [
+      "4111111111111111",
+      "4111 1111 1111 1111",
+      "5500-0000-0000-0004",
+      "378282246310005",
+      "jane@example.com",
+      "jane.doe+kiosk@example.co.uk",
+      "Bearer abcdefghijklmnop",
+      "basic dXNlcjpwYXNzd29yZA==",
+      JWT,
+      "password=hunter2",
+      "api_key: sk_live_123",
+      '"token": "abc123def"',
+      "pin=1234",
+      inScript("4111 1111 1111 1111", 0xff10),
+      inScript("4111111111111111", 0x0660),
+      inScript("5500-0000-0000-0004", 0x06f0),
+      "４１１１ 1111 1111 1111",
+      "张伟@example.com",
+      "josé.garcia@example.com",
+      "user@例え.jp",
+      "почта@пример.рф",
+      "Bearer\u3000abcdefghijklmnop",
+      "password\u00a0=\u00a0hunter2",
+    ];
+    const neighbours: Array<string> = [
+      "",
+      " ",
+      "x",
+      "_",
+      ".",
+      "-",
+      "=",
+      "@",
+      "12 ",
+      " 12/25",
+      "5",
+      "中",
+      "卡号",
+      "已拒绝",
+      "é",
+      "\u0301",
+      "\u200b",
+      "\u0661",
+      "\u06f4",
+      "\uff11",
+      "\u3000",
+      "\u00a0",
+      "\ufeff",
+      "例え",
+      "@例え.jp",
+      "ü",
+    ];
+    const asciiNeighbours: Array<string> = neighbours.filter(
+      (neighbour: string): boolean => {
+        return Array.from(neighbour).every((char: string): boolean => {
+          return char.charCodeAt(0) < 128;
+        });
+      },
+    );
+    const random: SeededRandom = seededRandom(10878);
+    const draw: (pool: Array<string>) => string = (
+      pool: Array<string>,
+    ): string => {
+      return Array.from({ length: 1 + random(2) }, (): string => {
+        return pool[random(pool.length)]!;
+      }).join("");
+    };
+    let ascii: number = 0;
+    let newlyTakenOut: number = 0;
+
+    for (let index: number = 0; index < 20000; index++) {
+      // A third of them ASCII alone.
+      const pool: Array<string> =
+        index % 3 === 0 ? asciiNeighbours : neighbours;
+      const secret: string =
+        secrets[random(index % 3 === 0 ? 13 : secrets.length)]!;
+      const text: string = draw(pool) + secret + draw(pool);
+      const now: string = redact(text);
+      const then: string = before(text);
+
+      // On ASCII text, as before: but for two addresses written as one, now taken out whole.
+      if (index % 3 === 0 && !TWO_AT_SIGNS.test(text)) {
+        ascii++;
+        expect({ text, now }).toEqual({ text, now: then });
+      }
+
+      if (!then.includes(secret)) {
+        expect({ text, now, kept: now.includes(secret) }).toEqual({
+          text,
+          now,
+          kept: false,
+        });
+      } else if (!now.includes(secret)) {
+        newlyTakenOut++;
+      }
+    }
+
+    expect(ascii).toBeGreaterThan(5000);
+    expect(newlyTakenOut).toBeGreaterThan(2000);
+  });
+});
+
 // Each of the agent's patterns by its name: the first pattern after its `val NAME: Regex =`.
 function agentPatterns(): Map<string, string> {
   const text: string = fs.readFileSync(
@@ -469,7 +1129,8 @@ describe("its patterns", () => {
 
       const caseInsensitive: boolean = kotlin.includes("(?i)");
       // Unicode's own classes (\p{Nd}, \p{L}) read alike on the three engines, and JavaScript reads them under the u flag alone.
-      const unicode: boolean = kotlin.includes("\\p{") || kotlin.includes("\\P{");
+      const unicode: boolean =
+        kotlin.includes("\\p{") || kotlin.includes("\\P{");
 
       expect({
         name,

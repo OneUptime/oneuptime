@@ -121,12 +121,14 @@ object Redactor {
      * other scripts (张伟, почта), each with digits, marks and "._%+-", but not
      * both: where the two meet is where an address begins, as a letter of
      * another script beside an ASCII address was no part of it (#10835).
-     * "邮箱jane@example.com" is still "邮箱[email]". A Latin name may start
-     * where an ASCII one could; a name in another script right after none of
-     * its own characters, and it holds at least one of their letters. Neither
-     * starts with a digit right after a digit and a space: that is the next
-     * group of a number, and a card written in groups would lose its last one
-     * to the address and be kept ("4111 1111 1111 1111é@例え.jp").
+     * "邮箱jane@example.com" is still "邮箱[email]". Each starts right after
+     * none of its own characters, so a run of them is tried once, from its
+     * start, and a name in another script holds at least one of their
+     * letters. (ASCII_EMAIL_ADDRESS still starts an ASCII name wherever it
+     * did: after "é" in "éjane@example.com", say.) Neither starts with a digit
+     * right after a digit and a space: that is the next group of a number,
+     * and a card written in groups would lose its last one to the address and
+     * be kept ("4111 1111 1111 1111é@例え.jp").
      *
      * Its domain's labels hold the letters, marks and digits of any script, or
      * punycode (例え is xn--r8jz45g). Its top-level domain is ASCII letters,
@@ -141,7 +143,7 @@ object Redactor {
      */
     private val EMAIL_ADDRESS: Regex =
         Regex(
-            """(?!(?<=\p{Nd} )\p{Nd})(?:(?<![A-Za-z0-9_.%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}-]{1,63}(?:\.[\p{L}\p{M}\p{Nd}-]{1,63})*\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])""",
+            """(?!(?<=\p{Nd} )\p{Nd})(?:(?<![\p{sc=Latin}\p{M}\p{Nd}._%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}-]{1,63}(?:\.[\p{L}\p{M}\p{Nd}-]{1,63})*\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])""",
         )
 
     /*

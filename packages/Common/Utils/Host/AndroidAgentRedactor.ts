@@ -98,11 +98,17 @@ const ASCII_EMAIL_ADDRESS: RegExp =
  * as it is.
  */
 const EMAIL_ADDRESS: RegExp =
-  /(?!(?<=\p{Nd} )\p{Nd})(?:(?<![A-Za-z0-9_.%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}-]{1,63}(?:\.[\p{L}\p{M}\p{Nd}-]{1,63})*\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])/gu;
+  /(?!(?<=\p{Nd} )\p{Nd})(?:(?<![\p{sc=Latin}\p{M}\p{Nd}._%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}-]{1,63}(?:\.[\p{L}\p{M}\p{Nd}-]{1,63})*\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])/gu;
 
-// A space is one of the characters Android's \s takes, written out: JavaScript's \s takes U+FEFF and not U+0085.
+/*
+ * A space is one of the characters Android's \s takes, written out:
+ * JavaScript's \s takes U+FEFF and not U+0085. The vertical tab is \x0B, as
+ * the agent's Kotlin writes it (a test holds the two to the same text).
+ */
+/* eslint-disable no-control-regex */
 const AUTHORIZATION: RegExp =
   /(?<![A-Za-z0-9_])(bearer|basic)[\t\n\x0B\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+[A-Za-z0-9._~+/=-]{8,}/gi;
+/* eslint-enable no-control-regex */
 
 const SCHEMES: ReadonlySet<string> = new Set<string>(["bearer", "basic"]);
 
@@ -130,8 +136,10 @@ const JWT: RegExp =
  * each position (Redactor.kt says why). A space is one of Android's, as in
  * AUTHORIZATION.
  */
+/* eslint-disable no-control-regex */
 const SECRET_ASSIGNMENT: RegExp =
   /(?<![A-Za-z0-9_-])(["']?[A-Za-z0-9_-]{0,40}?(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|session[_-]?id|cookie|authorization|credential|pin)["']?[\t\n\x0B\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]{0,8}[:=][\t\n\x0B\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]{0,8})(\[(?:token|card number|email|credential|redacted)\]|"[^"]*"|'[^']*'|[^\t\n\x0B\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000,;&)\]}]+)/gi;
+/* eslint-enable no-control-regex */
 
 export default class AndroidAgentRedactor {
   public static redact(text: string | null | undefined): string {
@@ -411,7 +419,11 @@ export default class AndroidAgentRedactor {
   }
 
   // Whether a character is a digit of the number whose digits start at a zero: one of the same script, or any when scripts may mix.
-  private static isDigitOf(code: number, zero: number, mixed: boolean): boolean {
+  private static isDigitOf(
+    code: number,
+    zero: number,
+    mixed: boolean,
+  ): boolean {
     const codeZero: number = AndroidAgentRedactor.zeroOf(code);
 
     return codeZero >= 0 && (mixed || codeZero === zero);
