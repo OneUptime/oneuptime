@@ -217,21 +217,59 @@ export const OCCURRENCE_READ_TIME_LIMIT_IN_SECONDS: number = 20;
 /*
  * The resource attribute a service names its version in, as its records
  * keep it among their attributes (#10368): what a code fix's version is
- * read by. A RUM application's records name none.
+ * read by. A metric's data points keep their resource's attributes there
+ * too, and so do a RUM application's logs and spans: the browser SDK's
+ * service.version, the release its source maps are uploaded for (#10832).
  */
 export const SERVICE_VERSION_ATTRIBUTE_KEY: string = "resource.service.version";
+
+/*
+ * A RUM application's session names its release in a column of its own:
+ * the session recorder's appVersion option (#6625), '' when the page set
+ * none.
+ */
+export const SESSION_APP_VERSION_COLUMN: string = "appVersion";
 
 // The longest a record's version is read.
 export const MAX_OCCURRENCE_VERSION_LENGTH: number = 100;
 
-// The records that carry their service's version among their attributes.
+/*
+ * The records that name the version that wrote them (#10368, #10832): a
+ * service's logs, spans, AI calls, exceptions and metric data points, and
+ * a RUM application's logs, spans and sessions - each by
+ * appendRecordVersion's column.
+ */
 export const VERSIONED_OCCURRENCE_SOURCES: ReadonlySet<TelemetrySampleSource> =
   new Set([
     TelemetrySampleSource.Logs,
     TelemetrySampleSource.Traces,
     TelemetrySampleSource.AiConversations,
     TelemetrySampleSource.Exceptions,
+    TelemetrySampleSource.Metrics,
+    TelemetrySampleSource.RumLogs,
+    TelemetrySampleSource.RumSpans,
+    TelemetrySampleSource.RumSessions,
   ]);
+
+/*
+ * Where a source's record names the version that wrote it: a session's
+ * appVersion column, any other record's resource.service.version
+ * attribute - its key bound as a parameter.
+ */
+export function appendRecordVersion(
+  statement: Statement,
+  source: TelemetrySampleSource,
+): void {
+  if (source === TelemetrySampleSource.RumSessions) {
+    statement.append(SESSION_APP_VERSION_COLUMN);
+    return;
+  }
+
+  statement.append("attributes[");
+  statement.append(
+    SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}]`,
+  );
+}
 
 const OCCURRENCE_MAX_RESULT_BYTES: number = 64 * 1024 * 1024;
 
@@ -1006,10 +1044,9 @@ export function buildTelemetryOccurrenceStatement(
   appendOccurrenceColumns(statement, data.plan.read, data.caps);
 
   if (isVersioned && data.readsServiceVersion) {
-    statement.append(", substringUTF8(attributes[");
-    statement.append(
-      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}], 1, `,
-    );
+    statement.append(", substringUTF8(");
+    appendRecordVersion(statement, data.plan.source);
+    statement.append(", 1, ");
     appendNumber(statement, MAX_OCCURRENCE_VERSION_LENGTH);
     statement.append(") AS readServiceVersion");
   }
@@ -1020,9 +1057,10 @@ export function buildTelemetryOccurrenceStatement(
   appendOwnersIn(statement, source, [data.ownerId]);
 
   if (isVersioned && data.serviceVersion) {
-    statement.append(" AND attributes[");
+    statement.append(" AND ");
+    appendRecordVersion(statement, data.plan.source);
     statement.append(
-      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}] = ${{
+      SQL` = ${{
         type: TableColumnType.Text,
         value: data.serviceVersion,
       }}`,

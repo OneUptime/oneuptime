@@ -20,6 +20,7 @@ import {
 import {
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakSignal,
 } from "./TelemetryLeakFix";
@@ -1183,6 +1184,8 @@ export enum DataSecurityTelemetryFixRepositoryChoice {
   OnlyRepository = "only-repository",
   ServiceLeaks = "service-leaks",
   Picked = "picked",
+  // A RUM application's: the files its newest release's source maps name are there (#10933).
+  SourceMaps = "source-maps",
 }
 
 export interface DataSecurityTelemetryFixRepository {
@@ -1200,6 +1203,12 @@ export interface DataSecurityTelemetryFixRepository {
  * or a record.
  */
 export interface DataSecurityTelemetryFixPlanJSON {
+  /*
+   * Whose code it changes: a service's, or a RUM application's front end
+   * (#10933) - left out, a service's. serviceId and serviceName are the
+   * owner's either way.
+   */
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceId: string;
   serviceName: string;
   strategy: TelemetryLeakFixStrategy;

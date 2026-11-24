@@ -158,7 +158,7 @@ OneUptime AI は、AI ルールが許す範囲で、新しい問題それぞれ�
 | レコード | API パス |
 | --- | --- |
 | データストアとそのタイムライン、検出結果、アクセスできる人、到達する各 ID | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
-| 問題とそのタイムライン、データフロー | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
+| 問題とそのタイムライン、リンクされたプルリクエスト、データフロー | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-issue-pull-request`、`/data-security-flow` |
 | スキャン | `/data-security-scan` |
 | カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | プロジェクトの設定 | `/data-security-setting` |

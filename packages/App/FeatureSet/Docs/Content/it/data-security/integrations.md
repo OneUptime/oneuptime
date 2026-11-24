@@ -158,7 +158,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 | Record | Percorso API |
 | --- | --- |
 | Archivi dati, le loro cronologie, i loro risultati, chi può raggiungerli e ogni identità che può farlo | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemi, le loro cronologie e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemi, le loro cronologie, le loro pull request collegate e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scansioni | `/data-security-scan` |
 | Tipi di dati personalizzati, impostazioni dei controlli, impostazioni di conformità e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Le impostazioni del progetto | `/data-security-setting` |

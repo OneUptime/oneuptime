@@ -158,7 +158,7 @@ OneUptime AI 也會依照您的 AI 規則，自動處理每個新問題：請參
 | 記錄 | API 路徑 |
 | --- | --- |
 | 資料儲存區、其時間軸、其發現、誰可以存取它們，以及每個可以存取的身分 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
-| 問題、其時間軸和資料流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
+| 問題、其時間軸、連結的拉取請求和資料流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-issue-pull-request`、`/data-security-flow` |
 | 掃描 | `/data-security-scan` |
 | 自訂資料類型、檢查設定、合規設定和資料落地規則 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | 專案的設定 | `/data-security-setting` |

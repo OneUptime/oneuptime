@@ -158,7 +158,7 @@ OneUptime AI همچنین همان‌طور که قواعد هوش مصنوعی 
 | رکوردها | مسیر API |
 | --- | --- |
 | مخازن داده، خط‌های زمانی‌شان، یافته‌هایشان، اینکه چه کسی به آن‌ها دسترسی دارد و هر هویتی که دسترسی دارد | `/data-store`، `/data-store-feed`، `/data-store-finding`، `/data-store-access`، `/data-security-identity` |
-| مسائل، خط‌های زمانی‌شان و جریان‌های داده | `/data-security-issue`، `/data-security-issue-feed`، `/data-security-flow` |
+| مسائل، خط‌های زمانی‌شان، Pull Requestهای پیوندداده‌شده به آن‌ها و جریان‌های داده | `/data-security-issue`، `/data-security-issue-feed`، `/data-security-issue-pull-request`، `/data-security-flow` |
 | اسکن‌ها | `/data-security-scan` |
 | انواع داده سفارشی، تنظیمات بررسی، تنظیمات انطباق و قواعد محل نگهداری داده | `/data-security-custom-data-type`، `/data-security-check-setting`، `/data-security-compliance-setting`، `/data-security-residency-rule` |
 | تنظیمات پروژه | `/data-security-setting` |
