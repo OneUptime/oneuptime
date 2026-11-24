@@ -650,7 +650,9 @@ describe("verdicts on the findings that wait for a person (#10372)", () => {
     );
 
     expect(score.passed).toBe(false);
-    expect(score.notes[0]).toContain("NotSensitive, where Confirm or CannotTell");
+    expect(score.notes[0]).toContain(
+      "NotSensitive, where Confirm or CannotTell",
+    );
   });
 
   test("a right verdict that cites none of the team's decisions the case names fails", () => {
@@ -676,7 +678,9 @@ describe("verdicts on the findings that wait for a person (#10372)", () => {
   });
 
   test("a precedent it was not given counts for nothing", () => {
-    const testCase: FindingVerdictEvalCase = verdictCase("verdict-tracking-numbers");
+    const testCase: FindingVerdictEvalCase = verdictCase(
+      "verdict-tracking-numbers",
+    );
     const answer: string = JSON.stringify({
       findings: [
         {
