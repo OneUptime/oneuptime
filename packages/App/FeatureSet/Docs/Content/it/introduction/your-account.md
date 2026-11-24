@@ -114,7 +114,7 @@ Apri **Sicurezza → Autenticazione a due fattori** e fai clic su **Attiva l'aut
 
 ### Configurarlo
 
-Per un'app di autenticazione, scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice di 6 cifre che mostra e fai clic su **Verifica e completa**. Per una chiave USB o NFC, dalle un nome e segui le istruzioni del browser. L'autenticazione a due fattori è quindi attiva e la scheda mostra **Abilitato**. Dal tuo prossimo accesso con password o con un link via email, OneUptime ti chiede il secondo passaggio.
+Per un'app di autenticazione, scansiona il codice QR con un'app come 1Password, Google Authenticator o Microsoft Authenticator, inserisci il codice di 6 cifre che mostra e fai clic su **Verifica e completa**. Su un telefono, tocca **Aggiungi all'app di autenticazione** invece di scansionare: l'app si apre con il tuo account già inserito. Per una chiave USB o NFC, dalle un nome e segui le istruzioni del browser. L'autenticazione a due fattori è quindi attiva e la scheda mostra **Abilitato**. Dal tuo prossimo accesso con password o con un link via email, OneUptime ti chiede il secondo passaggio.
 
 ### Salvare i codici di backup
 
@@ -127,7 +127,7 @@ Se hai già un'app in **App di autenticazione** o una chiave in **Chiavi di sicu
 
 Quando un amministratore richiede l'autenticazione a due fattori e non hai ancora configurato nulla, il tuo prossimo accesso con una password o con un link via email ti chiede di configurarla prima di farti entrare. Scegli **App di autenticazione** o **Chiave di sicurezza** e fai clic su **Continua**:
 
-- **App di autenticazione**: scansiona il codice QR, inserisci il codice di 6 cifre che mostra la tua app e fai clic su **Verifica e accedi**.
+- **App di autenticazione**: scansiona il codice QR, inserisci il codice di 6 cifre che mostra la tua app e fai clic su **Verifica e accedi**. Su un telefono, tocca **Aggiungi all'app di autenticazione** invece di scansionare.
 - **Chiave di sicurezza**: fai clic su **Registra la chiave di sicurezza** e segui le istruzioni del browser. Tocca una chiave USB o NFC, oppure usa l'impronta digitale, il volto o il blocco schermo del tuo telefono o computer.
 
 Se non hai ancora codici di backup, OneUptime te li mostra una sola volta, e hai effettuato l'accesso. **Scegli un altro metodo** torna alla scelta. Un browser che non può registrare una chiave di sicurezza, come uno su una pagina senza HTTPS, offre solo l'app di autenticazione.
