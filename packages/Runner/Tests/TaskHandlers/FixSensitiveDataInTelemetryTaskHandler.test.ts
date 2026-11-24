@@ -127,7 +127,8 @@ function details(
   telemetryLeakFix: TelemetryLeakFixTaskContext | null,
 ): SubjectTaskDetails {
   return {
-    subjectType: "telemetry",
+    // What the server sends for this recipe (AIAgentDataAPI).
+    subjectType: "service",
     subjectTitle: telemetryLeakFix?.title || "Fix the leaks",
     analysisMarkdown: telemetryLeakFix?.request || "",
     serviceName: telemetryLeakFix?.serviceName || null,
