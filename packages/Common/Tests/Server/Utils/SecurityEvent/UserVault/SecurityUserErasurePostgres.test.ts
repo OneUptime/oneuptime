@@ -3,7 +3,9 @@ import SecurityUserErasureRequest from "../../../../../Models/DatabaseModels/Sec
 import PostgresAppInstance from "../../../../../Server/Infrastructure/PostgresDatabase";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
-import SecurityUserErasureRequestService from "../../../../../Server/Services/SecurityUserErasureRequestService";
+import SecurityUserErasureRequestService, {
+  readErasureRequestNames,
+} from "../../../../../Server/Services/SecurityUserErasureRequestService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityUserErasureRecords, {
   RUN_CANCELLED_FOR_ERASURE_MARKDOWN,
@@ -731,6 +733,16 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
     test("one that fails for good is wiped too", async () => {
       const created: SecurityUserErasureRequest = await file(ALICE);
 
+      await SecurityUserErasureRequestService.markInProgress({
+        requestId: created.id!,
+        counts: {
+          vaultEntriesDeleted: 0,
+          eventsUnnamed: 0,
+          casesUnnamed: 0,
+          proposalsWithdrawn: 0,
+        },
+        names,
+      });
       await SecurityUserErasureRequestService.markFailed({
         requestId: created.id!,
         attempts: 5,
@@ -744,7 +756,78 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
       expect(stored["status"]).toBe(SecurityUserErasureRequestStatus.Failed);
       expect(stored["userToErase"]).toBeNull();
+      expect(stored["namesToErase"]).toBeNull();
       expect(stored["failureReason"]).toBe("ClickHouse is down");
+    });
+
+    test("who a run found the person named as is kept encrypted, never in clear, read back by the next run, and wiped once the request is over (#11044)", async () => {
+      // Filed by the token: nothing typed, so the names are all the worker has.
+      const created: SecurityUserErasureRequest = await file(aliceToken);
+
+      await SecurityUserErasureRequestService.markInProgress({
+        requestId: created.id!,
+        counts: {
+          vaultEntriesDeleted: 1,
+          eventsUnnamed: 4,
+          casesUnnamed: 1,
+          proposalsWithdrawn: 0,
+        },
+        names,
+      });
+
+      const stored: Record<string, unknown> = await rowOf(
+        "SecurityUserErasureRequest",
+        created.id!,
+      );
+
+      expect(typeof stored["namesToErase"]).toBe("string");
+      expect(JSON.stringify(stored).toLowerCase()).not.toContain("alice");
+      expect(JSON.stringify(stored)).not.toContain(`auth0|${aliceToken}`);
+      expect(stored["eventsUnnamed"]).toBe(4);
+
+      // The next run reads them back as they were found.
+      const open: Array<SecurityUserErasureRequest> =
+        await SecurityUserErasureRequestService.getOpenRequests({ limit: 10 });
+
+      expect(open).toHaveLength(1);
+      expect(readErasureRequestNames(open[0]!)).toEqual(names);
+
+      // Counts kept without names leave them as they were.
+      await SecurityUserErasureRequestService.markInProgress({
+        requestId: created.id!,
+        counts: {
+          vaultEntriesDeleted: 1,
+          eventsUnnamed: 4,
+          casesUnnamed: 1,
+          proposalsWithdrawn: 0,
+        },
+      });
+
+      expect(
+        readErasureRequestNames(
+          (
+            await SecurityUserErasureRequestService.getOpenRequests({
+              limit: 10,
+            })
+          )[0]!,
+        ),
+      ).toEqual(names);
+
+      await SecurityUserErasureRequestService.markCompleted({
+        requestId: created.id!,
+        counts: {
+          vaultEntriesDeleted: 1,
+          eventsUnnamed: 4,
+          casesUnnamed: 1,
+          proposalsWithdrawn: 0,
+        },
+      });
+
+      expect(
+        (await rowOf("SecurityUserErasureRequest", created.id!))[
+          "namesToErase"
+        ],
+      ).toBeNull();
     });
 
     test("a pasted token keeps nothing typed at all", async () => {
