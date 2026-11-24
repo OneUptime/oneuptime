@@ -25,7 +25,24 @@
                 <div class="shadow sm:overflow-hidden sm:rounded-md">
                     <div class="bg-white dark:bg-slate-800 py-6 px-4 sm:p-6">
                         <h2 id="sso-message-title" class="text-lg font-medium leading-6 text-gray-900 dark:text-slate-50"><%= title %></h2>
+                        <%#
+                            The server's own words for someone who needs an
+                            invitation (Settings > Help and Support, #10865):
+                            a paragraph a line, with its links and addresses
+                            linked (Types/HelpAndSupport/InviteMessage). Every
+                            part is printed escaped, and a link's address is
+                            only ever an https, http or mailto: one the server
+                            checked. Anything else says its one sentence.
+                        -%>
+                        <% if (locals.messageParagraphs && locals.messageParagraphs.length) { -%>
+                        <div class="mt-2 space-y-2 text-sm text-gray-600 dark:text-slate-300" data-testid="sso-message-own-words">
+                            <% locals.messageParagraphs.forEach(function (paragraph) { -%>
+                            <p class="break-words"><% paragraph.forEach(function (part) { %><% if (part.href) { %><a href="<%= part.href %>" class="font-medium text-indigo-600 underline decoration-indigo-300 underline-offset-2 hover:text-indigo-500 dark:text-indigo-300"<% if (part.isWebLink) { %> target="_blank" rel="noopener noreferrer"<% } %>><%= part.text %></a><% } else { %><%= part.text %><% } %><% }); %></p>
+                            <% }); -%>
+                        </div>
+                        <% } else { -%>
                         <p class="mt-2 text-sm text-gray-600 dark:text-slate-300"><%= message %></p>
+                        <% } -%>
                     </div>
                 </div>
             </section>

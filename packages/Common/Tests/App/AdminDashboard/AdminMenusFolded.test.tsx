@@ -241,7 +241,7 @@ describe("Admin Settings: only Basic starts open", () => {
    * (#6815) follows them: what the server offers every project is as basic
    * as who may sign in.
    */
-  test("Basic holds Authentication, Single Sign-On and Products, and nothing is called Global SSO", async () => {
+  test("Basic holds Authentication, Single Sign-On, Products and Help and Support, and nothing is called Global SSO", async () => {
     goTo(adminRoute(PageMap.SETTINGS_AUTHENTICATION));
     await renderMenu(<AdminSettingsSideMenu />);
 
@@ -249,7 +249,12 @@ describe("Admin Settings: only Basic starts open", () => {
       linksIn("Basic").map((link: MenuLink): string => {
         return link.title;
       }),
-    ).toEqual(["Authentication", "Single Sign-On", "Products"]);
+    ).toEqual([
+      "Authentication",
+      "Single Sign-On",
+      "Products",
+      "Help and Support",
+    ]);
     expect(
       linksIn("Basic").map((link: MenuLink): string => {
         return link.href;
@@ -258,6 +263,7 @@ describe("Admin Settings: only Basic starts open", () => {
       "/admin/settings/authentication",
       "/admin/settings/sso",
       "/admin/settings/products",
+      "/admin/settings/help-and-support",
     ]);
     expect(document.body.textContent).not.toMatch(/Global (SSO|OIDC)/);
   });

@@ -1264,8 +1264,12 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
     ...decided(
       "The server's own setup, which a master admin changes or the server reads - switching a product on again among it.",
       {
-        // #9762: clearing the sign-in settings of everyone the server's SSO requirement covers.
-        "packages/Common/Server/API/GlobalConfigAPI.ts": 7,
+        /*
+         * #9762: clearing the sign-in settings of everyone the server's SSO
+         * requirement covers. #10864-#10866: where the server sends its
+         * people for help (Settings > Help and Support).
+         */
+        "packages/Common/Server/API/GlobalConfigAPI.ts": 8,
         "packages/Common/Server/API/ProbeAPI.ts": 1,
         "packages/Common/Server/API/RunnerAPI.ts": 1,
         "packages/Common/Server/API/OpenSourceDeploymentAPI.ts": 2,

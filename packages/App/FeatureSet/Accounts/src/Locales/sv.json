@@ -737,5 +737,6 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den."
 }

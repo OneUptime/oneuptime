@@ -737,5 +737,6 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "त्रुटि स्टैक, कंपोनेंट स्टैक, साफ़ किया गया पेज URL, ब्राउज़र विवरण और OneUptime बिल्ड वाली एक स्थानीय डायग्नोस्टिक फ़ाइल डाउनलोड करें। यह कभी कुकीज़, ब्राउज़र में सहेजा डेटा या फ़ॉर्म की सामग्री नहीं पढ़ती। साझा करने से पहले इसे देख लें।"
 }
