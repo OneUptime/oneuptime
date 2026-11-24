@@ -49,8 +49,7 @@ interface PendingRun {
 
 export interface ModelThreadOptions {
   modelPath: string;
-  // Replaces onnxruntime-web, for tests.
-  runtimePath?: string | undefined;
+  // Another thread speaking the same messages: tests.
   workerPath?: string | undefined;
   loadTimeLimitInMs?: number | undefined;
   runTimeLimitInMs?: number | undefined;
@@ -84,10 +83,7 @@ export default class NameAddressModelThread {
     const worker: Worker = new Worker(
       options.workerPath || NAME_ADDRESS_MODEL_WORKER_PATH,
       {
-        workerData: {
-          modelPath: options.modelPath,
-          runtimePath: options.runtimePath,
-        },
+        workerData: { modelPath: options.modelPath },
         stdout: false,
         stderr: false,
       },
