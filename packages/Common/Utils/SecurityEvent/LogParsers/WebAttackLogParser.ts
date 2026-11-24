@@ -10,6 +10,7 @@ import {
   ClientAddressTrust,
   NO_CLIENT_ADDRESS,
   TrustedProxies,
+  isTrustedProxy,
   markClientAddressTrust,
   readAddressText,
   readClientAddressEvidence,
@@ -59,6 +60,10 @@ import {
  * Caddy, Envoy and the like) are read for the client address, the method,
  * the request target and the status; an application's own log line written
  * inside a request is read for the same from its OpenTelemetry attributes.
+ * Behind a trusted proxy, the client is the one it forwarded: from a JSON
+ * line's X-Forwarded-For field, or - when the project says its access logs
+ * end with one - from the X-Forwarded-For a combined line ends with
+ * (readTrailingForwardedFor, #10548).
  * The request target is the event's target resource, which the rules match
  * on. A line with no request in it - an application's "Page not found -
  * /x?id=1' or 1=1" error, JSON and stack trace and all - keeps the word that
@@ -277,6 +282,13 @@ export interface AccessLogRequest {
   forwardedFor?: string | undefined;
   forwarded?: string | undefined;
   /*
+   * The X-Forwarded-For a combined log line ends with, as written
+   * (readTrailingForwardedFor, #10548): read only when the project says its
+   * access logs end with one, and only behind a proxy it trusts
+   * (readAccessLogClient). Absent when the line ends with no such field.
+   */
+  trailingForwardedFor?: string | undefined;
+  /*
    * For the request a line's own attributes describe: the client's address
    * as ClientAddressTrust decided it, with what the request only claimed.
    */
@@ -332,10 +344,242 @@ function readStatus(value: string): number {
 }
 
 /*
- * Common or combined log format: an address first, the request line in the
- * first quotes, the status after them and the user agent in the last.
+ * ---------------------------------------------------------------------------
+ * The X-Forwarded-For a combined log line ends with (#10548)
+ * ---------------------------------------------------------------------------
+ *
+ * Behind a load balancer, many web servers log the forwarded address after
+ * the user agent, as nginx's own main format does:
+ *
+ *   log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+ *                   '$status $body_bytes_sent "$http_referer" '
+ *                   '"$http_user_agent" "$http_x_forwarded_for"';
+ *
+ * The line's first field is then the load balancer, and the client is in
+ * its last. A line never says what its fields are, so that field is read
+ * only when it can be nothing else:
+ *
+ *   - the line is a combined log line with exactly one quoted field after
+ *     its user agent, and nothing after it: a format with more fields, or
+ *     unquoted ones after the user agent (ingress-nginx's, Traefik's), is
+ *     read as it always was;
+ *   - each field is read as the servers that quote it write it: a quote a
+ *     backslash escapes (Apache's \", nginx's \x22) is inside its field, so
+ *     nothing a request wrote ends a field early;
+ *   - the field is "-" (no header) or a list of hops whose last - the hop
+ *     the proxy in front appended - is an address with no port, or what a
+ *     scrub rule left of one: a request time, a host name, an upstream's
+ *     address and port, an id or a cookie is no X-Forwarded-For.
+ *
+ * Even so, a line's field is read as X-Forwarded-For only when the project
+ * says its access logs end with one (TrustedProxies
+ * .readsAccessLogForwardedFor): a server that does not escape quotes -
+ * Express's morgan writes the user agent as sent - lets a request's user
+ * agent, `x" "192.0.2.44`, add a field to a plain combined line, which
+ * would then read as its proxy's X-Forwarded-For. With the format said, the
+ * same request makes one field too many, and nothing is read. So is a
+ * format that ends with another address, an X-Real-IP or a Host.
+ *
+ * Read so, it is a forwarded-for header like any other
+ * (readAccessLogClient): only a proxy the project trusts in the line's
+ * first field makes it worth reading, and only the rightmost hop no trusted
+ * proxy wrote is verified. What the sender wrote left of it is a claim.
  */
-export function readCommonLogFormat(text: string): AccessLogRequest | null {
+
+// A combined log line's quoted fields after its status and size: the referrer, the user agent, one more.
+export const COMBINED_FIELDS_WITH_FORWARDED_FOR: number = 3;
+
+// The most quoted fields after the size a line is read for: past them it is no shape that is read.
+const MAX_COMBINED_TRAILING_FIELDS: number = 16;
+
+/*
+ * A field quoted from the opening quote at `start`: its text, and where its
+ * closing quote is. A backslash escapes the character after it, as Apache
+ * writes \" and \\ inside a field; nginx writes neither bare (\x22, \x5C).
+ */
+function readQuotedField(
+  text: string,
+  start: number,
+): { value: string; end: number } | null {
+  if (start < 0 || text[start] !== '"') {
+    return null;
+  }
+
+  for (let index: number = start + 1; index < text.length; index++) {
+    const character: string = text[index]!;
+
+    if (character === "\\") {
+      index++;
+      continue;
+    }
+
+    if (character === '"') {
+      return { value: text.slice(start + 1, index), end: index };
+    }
+  }
+
+  return null;
+}
+
+function isDigitsOnly(text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*
+ * The quoted fields that end a common or combined log line, in order: what
+ * follows its request line's closing quote, a space, the status, a space,
+ * the size (or "-"), then each field after one space - and nothing but
+ * spaces after the last. Null for any other shape: one with an unquoted
+ * field after the user agent, with two spaces between fields, or whose
+ * fields do not close.
+ */
+export function readCombinedLogTrailingFields(
+  text: string,
+): Array<string> | null {
+  const request: { value: string; end: number } | null = readQuotedField(
+    text,
+    text.indexOf('"'),
+  );
+
+  if (!request) {
+    return null;
+  }
+
+  // " 404 153": the status and the size, one space before each.
+  let position: number = request.end + 1;
+
+  if (text[position] !== " ") {
+    return null;
+  }
+
+  const statusEnd: number = text.indexOf(" ", position + 1);
+
+  if (statusEnd === -1) {
+    return null;
+  }
+
+  const status: string = text.slice(position + 1, statusEnd);
+
+  if (status.length !== 3 || !isDigitsOnly(status)) {
+    return null;
+  }
+
+  let sizeEnd: number = text.indexOf(" ", statusEnd + 1);
+
+  if (sizeEnd === -1) {
+    sizeEnd = text.length;
+  }
+
+  const size: string = text.slice(statusEnd + 1, sizeEnd);
+
+  if (size !== "-" && !isDigitsOnly(size)) {
+    return null;
+  }
+
+  position = sizeEnd;
+
+  // Where the line's text ends, spaces after it left out.
+  const end: number = text.trimEnd().length;
+  const fields: Array<string> = [];
+
+  while (position < end) {
+    if (
+      text[position] !== " " ||
+      fields.length >= MAX_COMBINED_TRAILING_FIELDS
+    ) {
+      return null;
+    }
+
+    const field: { value: string; end: number } | null = readQuotedField(
+      text,
+      position + 1,
+    );
+
+    if (!field) {
+      return null;
+    }
+
+    fields.push(field.value);
+    position = field.end + 1;
+  }
+
+  return fields;
+}
+
+/*
+ * One hop of a forwarding header that is an address and nothing more: an
+ * IPv4 or IPv6 address, bracketed or not, with no port. An upstream's
+ * "10.0.0.7:8080" is no client a proxy forwarded.
+ */
+function isAddressWithoutPort(hop: string): boolean {
+  if (hop.startsWith("[")) {
+    return hop.endsWith("]") && Boolean(readAddressText(hop));
+  }
+
+  const colon: number = hop.indexOf(":");
+
+  // One colon is an IPv4 address and its port; more is IPv6.
+  if (colon !== -1 && hop.indexOf(":", colon + 1) === -1) {
+    return false;
+  }
+
+  return Boolean(readAddressText(hop));
+}
+
+/*
+ * A combined log line's last field read as an X-Forwarded-For: "" for "-",
+ * the header for a list of hops whose last is an address with no port or
+ * what a scrub rule left of one, null for anything else. The hops before
+ * the last are the sender's and earlier proxies', kept as written: the
+ * header is walked from the right (resolveClientAddress).
+ */
+export function readTrailingForwardedFor(field: string): string | null {
+  const value: string = field.trim();
+
+  if (value === "-") {
+    return "";
+  }
+
+  if (!value) {
+    return null;
+  }
+
+  const hops: Array<string> = value.split(",");
+  const last: string = (hops[hops.length - 1] || "").trim();
+
+  if (!last) {
+    return null;
+  }
+
+  if (isAddressWithoutPort(last) || readScrubbedAddress(last)) {
+    return value;
+  }
+
+  return null;
+}
+
+/*
+ * Common or combined log format: an address first, the request line in the
+ * first quotes, the status after them and the user agent in the last - or,
+ * in a line that ends with an X-Forwarded-For (readTrailingForwardedFor), the
+ * one before it. A line cut to be read (`isCut`) is read as it always was.
+ */
+export function readCommonLogFormat(
+  text: string,
+  options?: { isCut?: boolean | undefined } | undefined,
+): AccessLogRequest | null {
   const openQuote: number = text.indexOf('"');
 
   if (openQuote === -1) {
@@ -397,7 +641,32 @@ export function readCommonLogFormat(text: string): AccessLogRequest | null {
     }
   }
 
-  return { ...client, method, target, status, userAgent };
+  /*
+   * A combined line that ends with an X-Forwarded-For: its user agent is
+   * the field before it, and the field is kept for readAccessLogClient to
+   * decide whether it may be read.
+   */
+  const trailingFields: Array<string> | null = options?.isCut
+    ? null
+    : readCombinedLogTrailingFields(text);
+  const trailingForwardedFor: string | null =
+    trailingFields &&
+    trailingFields.length === COMBINED_FIELDS_WITH_FORWARDED_FOR
+      ? readTrailingForwardedFor(trailingFields[2]!)
+      : null;
+
+  if (trailingFields && trailingForwardedFor !== null) {
+    userAgent = trailingFields[1]!;
+  }
+
+  return {
+    ...client,
+    method,
+    target,
+    status,
+    userAgent,
+    ...(trailingForwardedFor ? { trailingForwardedFor } : {}),
+  };
 }
 
 /*
@@ -953,10 +1222,35 @@ interface LineClient {
 }
 
 /*
+ * The X-Forwarded-For a combined line ends with, when it may be read
+ * (#10548): the project says its access logs end with one, and the line's
+ * first field is an address the project trusts as a proxy. Undefined
+ * otherwise: a line whose first field is an address no proxy of the
+ * project's is that address's, whatever it ends with, and a first field a
+ * scrub rule hid cannot be told to be a proxy.
+ */
+function readTrailingForwardedForBehindTrustedProxy(
+  accessLog: AccessLogRequest,
+  trustedProxies: TrustedProxies | undefined,
+): string | undefined {
+  if (
+    !accessLog.trailingForwardedFor ||
+    !trustedProxies?.readsAccessLogForwardedFor ||
+    !accessLog.clientIp ||
+    !isTrustedProxy(accessLog.clientIp, trustedProxies)
+  ) {
+    return undefined;
+  }
+
+  return accessLog.trailingForwardedFor;
+}
+
+/*
  * An access log's client field is the connection's address as the server
  * saw it: its peer. A proxy the project trusts in front of it is told
- * apart by the forwarding header the line recorded (#10416): the client is
- * then the one that proxy forwarded, and what the request wrote is a claim.
+ * apart by the forwarding header the line recorded (#10416), or the one a
+ * combined line ends with (#10548): the client is then the one that proxy
+ * forwarded, and what the request wrote is a claim.
  */
 function readAccessLogClient(
   accessLog: AccessLogRequest,
@@ -972,7 +1266,9 @@ function readAccessLogClient(
   return resolveClientAddress(
     {
       peer,
-      forwardedFor: accessLog.forwardedFor,
+      forwardedFor:
+        accessLog.forwardedFor ??
+        readTrailingForwardedForBehindTrustedProxy(accessLog, trustedProxies),
       forwarded: accessLog.forwarded,
     },
     trustedProxies,
@@ -1468,9 +1764,13 @@ export default class WebAttackLogParser {
       return [];
     }
 
-    // The request: from an access log line, else from the line's attributes.
+    /*
+     * The request: from an access log line, else from the line's
+     * attributes. A line cut to be read never says what it ended with.
+     */
     const accessLog: AccessLogRequest | null =
-      readJsonAccessLog(text) || readCommonLogFormat(text);
+      readJsonAccessLog(text) ||
+      readCommonLogFormat(text, { isCut: text.length < body.length });
     const fromAttributes: AccessLogRequest = readRequestFromAttributes(
       line.attributes || {},
       line.trustedProxies,
