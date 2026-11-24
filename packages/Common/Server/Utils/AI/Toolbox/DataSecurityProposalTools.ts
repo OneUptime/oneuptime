@@ -161,7 +161,10 @@ export const QueryDataSecurityProposalsTool: ObservabilityTool = {
       min: 1,
       max: MAX_PROPOSALS,
     });
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
     const isDataTypes: boolean = which === ProposalsListed.DataTypes;
     const query: JSONObject = {
       projectId: ctx.projectId,
@@ -217,7 +220,8 @@ export const QueryDataSecurityProposalsTool: ObservabilityTool = {
         ).toNumber()
       : 0;
 
-    const serialized: SerializedResult = ToolResultSerializer.serializeRows(rows);
+    const serialized: SerializedResult =
+      ToolResultSerializer.serializeRows(rows);
     const target: AIChatCitationTarget = isDataTypes
       ? dataTypesPage()
       : aiPage();
@@ -295,7 +299,9 @@ function buildDecideTitle(
   proposal: DataSecurityAiProposal | null,
 ): AIActionSentence {
   if (!decision || !proposal?.title) {
-    return aiActionSentence(AI_DATA_SECURITY_ACTION_TITLES.decideProposalUnnamed);
+    return aiActionSentence(
+      AI_DATA_SECURITY_ACTION_TITLES.decideProposalUnnamed,
+    );
   }
 
   return aiActionSentence(
@@ -393,17 +399,24 @@ export const DecideDataSecurityProposalTool: ObservabilityTool = {
       effects: effectsOf({
         changes: [
           decision === ProposalDecision.Approve
-            ? aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.approveProposal, {
-                change: quoted(proposal.title || ""),
-              })
+            ? aiActionSentence(
+                AI_DATA_SECURITY_ACTION_CHANGES.approveProposal,
+                {
+                  change: quoted(proposal.title || ""),
+                },
+              )
             : reason
               ? aiActionSentence(
                   AI_DATA_SECURITY_ACTION_CHANGES.dismissProposalWithReason,
                   { reason: quoted(reason) },
                 )
-              : aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.dismissProposal),
+              : aiActionSentence(
+                  AI_DATA_SECURITY_ACTION_CHANGES.dismissProposal,
+                ),
         ],
-        asksBecause: aiActionSentence(AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.proposal),
+        asksBecause: aiActionSentence(
+          AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.proposal,
+        ),
       }),
       buttonPage:
         proposal.kind === DataSecurityAiProposalKind.AddDataType

@@ -3754,9 +3754,13 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "return buildDataSecurityFixRequest(",
-    );
+    /*
+     * Fix with AI's button and Ask AI's action build the request in one
+     * place (DataSecurityButtons.fixIssueWithAi, #10378).
+     */
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("return buildDataSecurityFixRequest(");
     // The request is what the Code task it starts is asked (#10362, #10365).
     expect(
       source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
@@ -3768,9 +3772,9 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
-    );
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("await DataSecurityAiReads.readPlaces({");
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",
     );

@@ -56,7 +56,10 @@ import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import { RuleRunPassResult, RuleRunType } from "../../../../Types/Rules/RuleRun";
+import {
+  RuleRunPassResult,
+  RuleRunType,
+} from "../../../../Types/Rules/RuleRun";
 import DataSecurityResidencyRuleService from "../../../Services/DataSecurityResidencyRuleService";
 import DataStoreLabelRuleService from "../../../Services/DataStoreLabelRuleService";
 import DataStoreOwnerRuleEngineService from "../../../Services/DataStoreOwnerRuleEngineService";
@@ -323,8 +326,9 @@ export async function previewDataSecurityRule(data: {
       subjectCountries: draft.subjectCountries,
       allowedRegions: draft.allowedRegions,
     };
-    const check: DataSecurityCheckInfo | undefined =
-      getDataSecurityCheck("residency-violation");
+    const check: DataSecurityCheckInfo | undefined = getDataSecurityCheck(
+      "residency-violation",
+    );
     const stores: Array<DataStore> = await DataStoreService.findBy({
       query: { projectId: ctx.projectId, isArchived: false },
       select: {
@@ -461,7 +465,9 @@ function toJSONDraft(draft: DataSecurityRuleDraft): JSONObject {
     ...(draft.descriptionRegexPattern
       ? { descriptionRegexPattern: draft.descriptionRegexPattern }
       : {}),
-    ...(draft.cloudTagPattern ? { cloudTagPattern: draft.cloudTagPattern } : {}),
+    ...(draft.cloudTagPattern
+      ? { cloudTagPattern: draft.cloudTagPattern }
+      : {}),
     ...(draft.matchLabels.length > 0 ? { matchLabels: draft.matchLabels } : {}),
     ...(draft.kind === DataSecurityRuleKind.Owner
       ? { owners: draft.owners }
@@ -548,14 +554,16 @@ function storesOnCard(
   withRegion: boolean,
 ): AIActionSentenceValue {
   return aiActionList(
-    stores.slice(0, MAX_NAMES_ON_A_CARD).map((store: PreviewStore): AIActionSentence => {
-      return withRegion && store.region
-        ? aiActionSentence(AI_DATA_SECURITY_STORE_IN_REGION, {
-            store: quoted(store.name),
-            region: quoted(store.region),
-          })
-        : aiActionSentence(AI_ACTION_NAME, { name: quoted(store.name) });
-    }),
+    stores
+      .slice(0, MAX_NAMES_ON_A_CARD)
+      .map((store: PreviewStore): AIActionSentence => {
+        return withRegion && store.region
+          ? aiActionSentence(AI_DATA_SECURITY_STORE_IN_REGION, {
+              store: quoted(store.name),
+              region: quoted(store.region),
+            })
+          : aiActionSentence(AI_ACTION_NAME, { name: quoted(store.name) });
+      }),
   );
 }
 
@@ -584,7 +592,9 @@ function describeDraft(data: {
             {
               breaking: countFigure(preview.breaking.length),
               stores: storesOnCard(
-                preview.breaking.length > 0 ? preview.breaking : preview.matched,
+                preview.breaking.length > 0
+                  ? preview.breaking
+                  : preview.matched,
                 true,
               ),
             },
@@ -661,9 +671,12 @@ function describeDraft(data: {
       }),
     );
     stopsWorking.push(
-      aiActionSentence(AI_DATA_SECURITY_ACTION_STOPS_WORKING.labelsChangeWhoReads, {
-        labels: quotedList(labels),
-      }),
+      aiActionSentence(
+        AI_DATA_SECURITY_ACTION_STOPS_WORKING.labelsChangeWhoReads,
+        {
+          labels: quotedList(labels),
+        },
+      ),
     );
   }
 
@@ -694,7 +707,9 @@ function describeDraftForModel(data: {
     lines.push(
       `Not found in the project: ${data.preview.notFound
         .map(quoted)
-        .join(", ")}. Ask the person who or which they meant before you save it.`,
+        .join(
+          ", ",
+        )}. Ask the person who or which they meant before you save it.`,
     );
   }
 
@@ -824,9 +839,15 @@ function buildSaveTitle(draft: DataSecurityRuleDraft | null): AIActionSentence {
         values,
       );
     case DataSecurityRuleKind.Owner:
-      return aiActionSentence(AI_DATA_SECURITY_ACTION_TITLES.saveOwnerRule, values);
+      return aiActionSentence(
+        AI_DATA_SECURITY_ACTION_TITLES.saveOwnerRule,
+        values,
+      );
     case DataSecurityRuleKind.Label:
-      return aiActionSentence(AI_DATA_SECURITY_ACTION_TITLES.saveLabelRule, values);
+      return aiActionSentence(
+        AI_DATA_SECURITY_ACTION_TITLES.saveLabelRule,
+        values,
+      );
   }
 }
 
@@ -888,7 +909,9 @@ async function createRule(data: {
     ...(draft.descriptionRegexPattern
       ? { descriptionRegexPattern: draft.descriptionRegexPattern }
       : {}),
-    ...(draft.cloudTagPattern ? { cloudTagPattern: draft.cloudTagPattern } : {}),
+    ...(draft.cloudTagPattern
+      ? { cloudTagPattern: draft.cloudTagPattern }
+      : {}),
     ...(data.resolved.matchLabelIds.length > 0
       ? { matchLabels: idRows(data.resolved.matchLabelIds) }
       : {}),
@@ -1047,7 +1070,10 @@ export const SaveDataSecurityRuleTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<PreparedMutation> => {
-    const { draft, problem }: {
+    const {
+      draft,
+      problem,
+    }: {
       draft: DataSecurityRuleDraft | null;
       problem: string | null;
     } = readDraftArgument(args);
@@ -1089,7 +1115,9 @@ export const SaveDataSecurityRuleTool: ObservabilityTool = {
       effects: effectsOf({
         changes: said.changes,
         stopsWorking: said.stopsWorking,
-        asksBecause: aiActionSentence(AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.rule),
+        asksBecause: aiActionSentence(
+          AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.rule,
+        ),
       }),
       buttonPage: rulesPage(draft.kind),
     };
@@ -1098,7 +1126,10 @@ export const SaveDataSecurityRuleTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
-    const { draft, problem }: {
+    const {
+      draft,
+      problem,
+    }: {
       draft: DataSecurityRuleDraft | null;
       problem: string | null;
     } = readDraftArgument(args);
@@ -1148,7 +1179,10 @@ export const SaveDataSecurityRuleTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
-    const { draft, problem }: {
+    const {
+      draft,
+      problem,
+    }: {
       draft: DataSecurityRuleDraft | null;
       problem: string | null;
     } = readDraftArgument(args);

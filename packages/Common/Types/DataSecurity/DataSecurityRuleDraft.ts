@@ -148,12 +148,18 @@ export function readDataSecurityRuleDraft(
         return region.toLowerCase().replace(/\s+/g, "");
       })
       .slice(0, MAX_RULE_REGIONS),
-    nameRegexPattern: readText(fields["nameRegexPattern"], MAX_RULE_PATTERN_LENGTH),
+    nameRegexPattern: readText(
+      fields["nameRegexPattern"],
+      MAX_RULE_PATTERN_LENGTH,
+    ),
     descriptionRegexPattern: readText(
       fields["descriptionRegexPattern"],
       MAX_RULE_PATTERN_LENGTH,
     ),
-    cloudTagPattern: readText(fields["cloudTagPattern"], MAX_RULE_PATTERN_LENGTH),
+    cloudTagPattern: readText(
+      fields["cloudTagPattern"],
+      MAX_RULE_PATTERN_LENGTH,
+    ),
     matchLabels: readList(fields["matchLabels"], 100),
     owners: readList(fields["owners"], 200),
     labelsToAdd: readList(fields["labelsToAdd"], 100),

@@ -1187,22 +1187,24 @@ export function dataTypeProposalRow(data: {
       storeCount: data.plan.storeCount || 0,
       fields: fields
         .slice(0, MAX_PROPOSAL_FIELDS)
-        .map((field: { storeName: string; location: string }, index: number) => {
-          return {
-            store: customerTextForRow(
-              field.storeName,
-              MAX_ISSUE_VALUE_LENGTH,
-              `fields[${index}].store`,
-              marks,
-            ),
-            location: customerTextForRow(
-              field.location,
-              MAX_ISSUE_VALUE_LENGTH,
-              `fields[${index}].location`,
-              marks,
-            ),
-          };
-        }),
+        .map(
+          (field: { storeName: string; location: string }, index: number) => {
+            return {
+              store: customerTextForRow(
+                field.storeName,
+                MAX_ISSUE_VALUE_LENGTH,
+                `fields[${index}].store`,
+                marks,
+              ),
+              location: customerTextForRow(
+                field.location,
+                MAX_ISSUE_VALUE_LENGTH,
+                `fields[${index}].location`,
+                marks,
+              ),
+            };
+          },
+        ),
     },
     marks,
   );

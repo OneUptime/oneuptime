@@ -77,9 +77,12 @@ export const MAX_RULE_DRAFT_REASON_LENGTH: number = 300;
 const NAME_LIST: StrictOptional<StrictNullable<StrictList<StrictText>>> =
   StrictAnswer.optional(
     StrictAnswer.nullable(
-      StrictAnswer.list(StrictAnswer.text({ maxLength: 200, isOneLine: true }), {
-        maxItems: MAX_RULE_LIST_ITEMS,
-      }),
+      StrictAnswer.list(
+        StrictAnswer.text({ maxLength: 200, isOneLine: true }),
+        {
+          maxItems: MAX_RULE_LIST_ITEMS,
+        },
+      ),
     ),
   );
 
@@ -136,9 +139,12 @@ export const RULE_DRAFT_ANSWER: StrictObject<{
       subjectCountries: NAME_LIST,
       allowedRegions: StrictAnswer.optional(
         StrictAnswer.nullable(
-          StrictAnswer.list(StrictAnswer.text({ maxLength: 64, isOneLine: true }), {
-            maxItems: MAX_RULE_REGIONS,
-          }),
+          StrictAnswer.list(
+            StrictAnswer.text({ maxLength: 64, isOneLine: true }),
+            {
+              maxItems: MAX_RULE_REGIONS,
+            },
+          ),
         ),
       ),
       nameRegexPattern: PATTERN,

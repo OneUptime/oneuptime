@@ -381,9 +381,12 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
             : []),
           ...(removed.length > 0
             ? [
-                aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.ownersRemoved, {
-                  owners: plainList(removed),
-                }),
+                aiActionSentence(
+                  AI_DATA_SECURITY_ACTION_CHANGES.ownersRemoved,
+                  {
+                    owners: plainList(removed),
+                  },
+                ),
               ]
             : []),
         ],
@@ -396,7 +399,9 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
                 ),
               ]
             : [],
-        asksBecause: aiActionSentence(AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.owners),
+        asksBecause: aiActionSentence(
+          AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.owners,
+        ),
       }),
       buttonPage: getDataSecurityPageTarget({
         path: DATA_SECURITY_PAGE_PATHS.storeOwners.replace(
@@ -420,7 +425,10 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
       };
     }
 
-    if (readNames(args, "add").length + readNames(args, "remove").length === 0) {
+    if (
+      readNames(args, "add").length + readNames(args, "remove").length ===
+      0
+    ) {
       return {
         toldModel:
           "Nothing proposed: name the members or teams to add as owners, or the owners to remove.",
@@ -693,7 +701,9 @@ export const RESPONSE_UNAVAILABLE_SENTENCES: Readonly<
     "the store is marked public by design, so its public access stays. Turn that off in the store's Settings first if it should not be public.",
 };
 
-function readResponseAction(args: JSONObject): DataSecurityResponseAction | null {
+function readResponseAction(
+  args: JSONObject,
+): DataSecurityResponseAction | null {
   const value: string = (ToolArgs.getString(args, "action") || "").trim();
   const found: DataSecurityResponseAction | undefined =
     ALL_DATA_SECURITY_RESPONSE_ACTIONS.find(
@@ -890,15 +900,14 @@ export const RespondOnDataStoreTool: ObservabilityTool = {
     const store: DataStore | null = await readStoreForPerson(dataStoreId, ctx);
 
     // The button's own server code, as the person.
-    const result: DataSecurityResponseResult = await DataSecurityButtons.respond(
-      {
+    const result: DataSecurityResponseResult =
+      await DataSecurityButtons.respond({
         projectId: ctx.projectId,
         dataStoreId,
         action,
         dataSecurityIssueId: ToolArgs.getString(args, "dataSecurityIssueId"),
         props: ctx.props,
-      },
-    );
+      });
 
     const name: string = store?.name || dataStoreId.toString();
     const target: AIChatCitationTarget = storeTarget(dataStoreId);

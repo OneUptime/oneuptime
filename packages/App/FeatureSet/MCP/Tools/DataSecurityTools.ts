@@ -96,7 +96,8 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
           which: {
             type: "string",
             enum: ["waiting", "data-types"],
-            description: 'Which proposals: "waiting" (default) or "data-types".',
+            description:
+              'Which proposals: "waiting" (default) or "data-types".',
           },
           dataSecurityIssueId: {
             ...STRING,
@@ -191,7 +192,8 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
           },
           reason: {
             ...STRING,
-            description: "Why, in the person's words (accept-risk, not-an-issue).",
+            description:
+              "Why, in the person's words (accept-risk, not-an-issue).",
           },
           acceptedUntil: {
             ...STRING,
@@ -199,7 +201,8 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
           },
           assignee: {
             ...STRING,
-            description: "For assign: a member by name or email, or a team by name.",
+            description:
+              "For assign: a member by name or email, or a team by name.",
           },
         },
         required: ["dataSecurityIssueId", "change"],
@@ -237,9 +240,13 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
           },
           name: { ...STRING, description: "The draft's name." },
           description: { ...STRING, description: "The draft's description." },
-          dataCategories: arrayOfStrings("Residency: the draft's data categories."),
+          dataCategories: arrayOfStrings(
+            "Residency: the draft's data categories.",
+          ),
           subjectCountries: arrayOfStrings("Residency: the draft's countries."),
-          allowedRegions: arrayOfStrings("Residency: the draft's allowed regions."),
+          allowedRegions: arrayOfStrings(
+            "Residency: the draft's allowed regions.",
+          ),
           nameRegexPattern: {
             ...STRING,
             description: "Owner or label: the draft's name pattern.",
@@ -252,7 +259,9 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
             ...STRING,
             description: "Owner or label: the draft's cloud tag pattern.",
           },
-          matchLabels: arrayOfStrings("Owner or label: labels a store must have."),
+          matchLabels: arrayOfStrings(
+            "Owner or label: labels a store must have.",
+          ),
           owners: arrayOfStrings("Owner: the draft's owners."),
           labelsToAdd: arrayOfStrings("Label: the labels the stores get."),
         },

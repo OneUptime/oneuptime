@@ -60,7 +60,10 @@ import DataSecurityButtons, {
   DATA_SECURITY_APPLY_TO_SIMILAR_PERMISSIONS,
   DATA_SECURITY_SCRUB_PERMISSIONS,
 } from "../../DataSecurity/DataSecurityButtons";
-import { getDataSecurityPageTarget } from "../../DataSecurity/DataSecurityPages";
+import {
+  DATA_SECURITY_PAGE_PATHS,
+  getDataSecurityPageTarget,
+} from "../../DataSecurity/DataSecurityPages";
 import FindingApplyToSimilar from "../../DataSecurity/FindingApplyToSimilar";
 import { CreatedScrubRule } from "../../DataSecurity/Telemetry/TelemetryScrubCoverage";
 import logger from "../../Logger";
@@ -83,7 +86,6 @@ import {
 } from "./ToolTypes";
 import WidgetBuilder from "./WidgetBuilder";
 import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
-import { DATA_SECURITY_PAGE_PATHS } from "../../DataSecurity/DataSecurityPages";
 
 /*
  * ASK AI ACTS ON A DATA SECURITY FINDING (#10378): Scrub It, and Confirm or
@@ -270,15 +272,22 @@ export function forgetScrubImpacts(): void {
 export function describeScrubReaders(data: {
   readers: TelemetryFieldReaders | undefined;
   location: string;
-}): { sentences: Array<AIActionSentence>; isRead: boolean; isChecked: boolean } {
+}): {
+  sentences: Array<AIActionSentence>;
+  isRead: boolean;
+  isChecked: boolean;
+} {
   const readers: TelemetryFieldReaders | undefined = data.readers;
 
   if (!readers) {
     return {
       sentences: [
-        aiActionSentence(AI_DATA_SECURITY_ACTION_STOPS_WORKING.scrubReadersUnknown, {
-          location: quoted(data.location),
-        }),
+        aiActionSentence(
+          AI_DATA_SECURITY_ACTION_STOPS_WORKING.scrubReadersUnknown,
+          {
+            location: quoted(data.location),
+          },
+        ),
       ],
       isRead: false,
       isChecked: false,
@@ -345,9 +354,12 @@ export function describeScrubReaders(data: {
 
   if (!isChecked) {
     sentences.push(
-      aiActionSentence(AI_DATA_SECURITY_ACTION_STOPS_WORKING.scrubReadersUnknown, {
-        location: quoted(data.location),
-      }),
+      aiActionSentence(
+        AI_DATA_SECURITY_ACTION_STOPS_WORKING.scrubReadersUnknown,
+        {
+          location: quoted(data.location),
+        },
+      ),
     );
   }
 
@@ -678,7 +690,7 @@ const SIMILAR_FINDING_IDS_KEY: string = "similarFindingIds";
 export const JudgeDataSecurityFindingTool: ObservabilityTool = {
   name: JUDGE_DATA_SECURITY_FINDING_TOOL_NAME,
   description:
-    "Decide on a Data Security finding, as the person - the buttons on the finding: decision \"confirm\" (Confirm: it is the data it was matched as, so it counts for certain) or \"not-sensitive\" (Not Sensitive: it stops counting toward the store's sensitivity and issues; reason is required - why it is not sensitive, in the person's words). alsoSimilar=true applies the same decision, with the same reason, to the findings like it: the same data type in a field of the same name, in stores the person can read (Apply to Similar). Not Sensitive always shows the person a card, in every mode. Find the dataStoreFindingId with query_data_stores (one store's findings).",
+    'Decide on a Data Security finding, as the person - the buttons on the finding: decision "confirm" (Confirm: it is the data it was matched as, so it counts for certain) or "not-sensitive" (Not Sensitive: it stops counting toward the store\'s sensitivity and issues; reason is required - why it is not sensitive, in the person\'s words). alsoSimilar=true applies the same decision, with the same reason, to the findings like it: the same data type in a field of the same name, in stores the person can read (Apply to Similar). Not Sensitive always shows the person a card, in every mode. Find the dataStoreFindingId with query_data_stores (one store\'s findings).',
   inputSchema: {
     type: "object",
     properties: {
@@ -749,9 +761,12 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
         ? aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.confirmFinding, {
             dataType: quoted(named.dataType),
           })
-        : aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.notSensitiveFinding, {
-            reason: quoted(reason),
-          }),
+        : aiActionSentence(
+            AI_DATA_SECURITY_ACTION_CHANGES.notSensitiveFinding,
+            {
+              reason: quoted(reason),
+            },
+          ),
     ];
     const prepared: JSONObject = {
       ...args,
@@ -788,12 +803,17 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
               findings: aiActionList(
                 findings
                   .slice(0, MAX_NAMES_ON_A_CARD)
-                  .map((finding: DataSecuritySimilarFinding): AIActionSentence => {
-                    return aiActionSentence(AI_DATA_SECURITY_FINDING_AT_PLACE, {
-                      location: quoted(finding.location),
-                      store: quoted(finding.storeName),
-                    });
-                  }),
+                  .map(
+                    (finding: DataSecuritySimilarFinding): AIActionSentence => {
+                      return aiActionSentence(
+                        AI_DATA_SECURITY_FINDING_AT_PLACE,
+                        {
+                          location: quoted(finding.location),
+                          store: quoted(finding.storeName),
+                        },
+                      );
+                    },
+                  ),
               ),
             },
           ),
@@ -875,7 +895,9 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
     }
 
     if (decision === FindingDecision.Confirm && named.finding.isConfirmed) {
-      return { toldModel: "Nothing proposed: the finding is confirmed already." };
+      return {
+        toldModel: "Nothing proposed: the finding is confirmed already.",
+      };
     }
 
     if (
@@ -883,7 +905,8 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
       named.finding.isSuppressed
     ) {
       return {
-        toldModel: "Nothing proposed: the finding is marked not sensitive already.",
+        toldModel:
+          "Nothing proposed: the finding is marked not sensitive already.",
       };
     }
 
@@ -959,7 +982,10 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
       redactionCount: 0,
       isTruncated: false,
       widget: WidgetBuilder.actionCard({
-        title: decision === FindingDecision.Confirm ? "Finding confirmed" : "Finding marked not sensitive",
+        title:
+          decision === FindingDecision.Confirm
+            ? "Finding confirmed"
+            : "Finding marked not sensitive",
         heading: store,
         words: {
           kind: aiActionTerm(AI_DATA_SECURITY_CARD_KINDS.dataStore),
@@ -984,4 +1010,3 @@ export const JudgeDataSecurityFindingTool: ObservabilityTool = {
     };
   },
 };
-

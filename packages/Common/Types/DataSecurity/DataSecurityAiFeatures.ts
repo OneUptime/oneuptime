@@ -638,7 +638,7 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       feature: DataSecurityAiFeature.DraftRuleFromSentence,
       title: translationKey("Rules from a sentence"),
       startedBy: translationKey(
-        "A person, asking Ask AI, or an agent connected through the MCP server, for a residency, owner or label rule in their own words.",
+        "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server.",
       ),
       runsOnItsOwn: false,
       sends: [

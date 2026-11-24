@@ -54,10 +54,7 @@ export function plainList(names: ReadonlyArray<string>): AIActionList {
 }
 
 // The record a call names by `key`, when it names a real one.
-export function readIdArgument(
-  args: JSONObject,
-  key: string,
-): ObjectID | null {
+export function readIdArgument(args: JSONObject, key: string): ObjectID | null {
   const value: string | undefined = ToolArgs.getString(args, key);
 
   return value && ObjectID.isValidUUID(value) ? new ObjectID(value) : null;

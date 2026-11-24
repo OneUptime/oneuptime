@@ -423,7 +423,10 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<PreparedMutation> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
     const change: IssueChange | null = readChange(args);
 
     if (!issueId || !change) {
@@ -466,7 +469,9 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
         }),
       );
       base.stopsWorking.push(
-        aiActionSentence(AI_DATA_SECURITY_ACTION_STOPS_WORKING.acceptStopsCounting),
+        aiActionSentence(
+          AI_DATA_SECURITY_ACTION_STOPS_WORKING.acceptStopsCounting,
+        ),
       );
       base.asksBecause = aiActionSentence(
         AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.acceptRisk,
@@ -478,9 +483,12 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
 
       base.changes.push(
         reason
-          ? aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.notAnIssueWithReason, {
-              reason: quoted(reason),
-            })
+          ? aiActionSentence(
+              AI_DATA_SECURITY_ACTION_CHANGES.notAnIssueWithReason,
+              {
+                reason: quoted(reason),
+              },
+            )
           : aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.notAnIssue),
       );
       base.stopsWorking.push(
@@ -496,9 +504,11 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
         aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.reopenIssue),
       );
     } else if (change === IssueChange.Assign) {
-      const found: { assignee: NamedPerson; isTeam: boolean } | {
-        notFound: string;
-      } = await findAssignee(args, ctx);
+      const found:
+        | { assignee: NamedPerson; isTeam: boolean }
+        | {
+            notFound: string;
+          } = await findAssignee(args, ctx);
 
       if ("assignee" in found) {
         // Who it is, by id, written onto the call: never the model's to hand it.
@@ -539,7 +549,10 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
     const change: IssueChange | null = readChange(args);
 
     if (!issueId || !change) {
@@ -549,7 +562,8 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
     }
 
     if (
-      (change === IssueChange.AcceptRisk || change === IssueChange.NotAnIssue) &&
+      (change === IssueChange.AcceptRisk ||
+        change === IssueChange.NotAnIssue) &&
       !readReason(args)
     ) {
       return {
@@ -586,9 +600,11 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
     }
 
     if (change === IssueChange.Assign) {
-      const found: { assignee: NamedPerson; isTeam: boolean } | {
-        notFound: string;
-      } = await findAssignee(args, ctx);
+      const found:
+        | { assignee: NamedPerson; isTeam: boolean }
+        | {
+            notFound: string;
+          } = await findAssignee(args, ctx);
 
       if (!("assignee" in found)) {
         return {
@@ -605,7 +621,10 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
     const change: IssueChange | null = readChange(args);
 
     if (!issueId || !change) {
@@ -662,9 +681,11 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
         let name: string = ToolArgs.getString(args, ASSIGNEE_NAME_KEY) || "";
 
         if (!userId && !teamId) {
-          const found: { assignee: NamedPerson; isTeam: boolean } | {
-            notFound: string;
-          } = await findAssignee(args, ctx);
+          const found:
+            | { assignee: NamedPerson; isTeam: boolean }
+            | {
+                notFound: string;
+              } = await findAssignee(args, ctx);
 
           if (!("assignee" in found)) {
             throw new BadDataException(
@@ -793,7 +814,10 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<PreparedMutation> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
 
     if (!issueId) {
       return { arguments: args };
@@ -865,7 +889,9 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
       );
     }
 
-    changes.push(aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.fixNothingMerged));
+    changes.push(
+      aiActionSentence(AI_DATA_SECURITY_ACTION_CHANGES.fixNothingMerged),
+    );
 
     return {
       arguments: prepared,
@@ -882,7 +908,10 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<SetupActionRefusal | null> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
 
     if (!issueId) {
       return {
@@ -933,7 +962,10 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
     args: JSONObject,
     ctx: ToolContext,
   ): Promise<ToolExecutionResult> => {
-    const issueId: ObjectID | null = readIdArgument(args, "dataSecurityIssueId");
+    const issueId: ObjectID | null = readIdArgument(
+      args,
+      "dataSecurityIssueId",
+    );
 
     if (!issueId) {
       throw new BadDataException(
@@ -956,7 +988,9 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
       typeof result["message"] === "string" ? result["message"] : "";
     const aiRunId: string =
       typeof result["aiRunId"] === "string" ? result["aiRunId"] : "";
-    const repositories: Array<JSONObject> = Array.isArray(result["repositories"])
+    const repositories: Array<JSONObject> = Array.isArray(
+      result["repositories"],
+    )
       ? (result["repositories"] as Array<JSONObject>)
       : [];
     const target: AIChatCitationTarget = issueTarget(issueId);
@@ -995,4 +1029,3 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
     };
   },
 };
-

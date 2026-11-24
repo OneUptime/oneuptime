@@ -16,7 +16,9 @@ import { JSONObject } from "../../../../Types/JSON";
 import logger from "../../Logger";
 import { getDataSecurityPageUrl } from "../../DataSecurity/DataSecurityPages";
 import AIToolbox, { ToolCallOutcome } from "./Index";
-import SetupActionRunner, { readArgumentsTheSchemaTakes } from "./SetupActionRunner";
+import SetupActionRunner, {
+  readArgumentsTheSchemaTakes,
+} from "./SetupActionRunner";
 import {
   ObservabilityTool,
   PreparedMutation,
@@ -92,7 +94,9 @@ export function getAsksInEveryModeRefusal(data: {
 }
 
 // A card's sentences, in English.
-function inEnglish(sentences: Array<AIActionSentence> | undefined): Array<string> {
+function inEnglish(
+  sentences: Array<AIActionSentence> | undefined,
+): Array<string> {
   return (sentences || []).map((sentence: AIActionSentence): string => {
     return describeAIActionSentence(sentence);
   });
@@ -189,9 +193,7 @@ export default class DataSecurityActionRunner {
      * were checked first, so the refusal never sends them to a page whose
      * button they may not press.
      */
-    if (
-      AIToolbox.asksInEveryMode({ name: data.action, args, prepared })
-    ) {
+    if (AIToolbox.asksInEveryMode({ name: data.action, args, prepared })) {
       const reason: AIActionSentence | undefined =
         prepared?.effects?.asksBecause;
 

@@ -43,7 +43,10 @@ export function readCrudUpdateData<TBaseModel extends BaseModel>(
   const item: PartialEntity<TBaseModel> = coerceTextColumnsInJSON(
     coerceBooleanColumnsInJSON(
       coerceDateColumnsInJSON(
-        coerceNumericColumnsInJSON(JSONFunctions.deserialize(data), entityModel),
+        coerceNumericColumnsInJSON(
+          JSONFunctions.deserialize(data),
+          entityModel,
+        ),
         entityModel,
       ),
       entityModel,

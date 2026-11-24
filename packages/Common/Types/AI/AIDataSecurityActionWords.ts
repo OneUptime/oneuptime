@@ -53,7 +53,9 @@ export const AI_DATA_SECURITY_ACTION_TITLES: {
   dismissProposal: string;
   decideProposalUnnamed: string;
 } = {
-  scrubFinding: translationKey("Scrub {{dataType}} at {{location}} in {{store}}"),
+  scrubFinding: translationKey(
+    "Scrub {{dataType}} at {{location}} in {{store}}",
+  ),
   scrubFindingUnnamed: translationKey("Scrub a finding in telemetry"),
   confirmFinding: translationKey(
     "Confirm {{dataType}} at {{location}} in {{store}}",
@@ -161,10 +163,10 @@ export const AI_DATA_SECURITY_ACTION_CHANGES: {
     "The finding is marked not sensitive, with your reason: {{reason}}",
   ),
   acceptRisk: translationKey(
-    "The issue is accepted until {{until}}, with your reason: {{reason}} It opens again then if its check still fails.",
+    "The issue is accepted until {{until}}, and opens again then if its check still fails. Your reason: {{reason}}",
   ),
   notAnIssueWithReason: translationKey(
-    "The issue is marked not an issue, with your reason: {{reason}} It stays closed.",
+    "The issue is marked not an issue, and stays closed. Your reason: {{reason}}",
   ),
   notAnIssue: translationKey(
     "The issue is marked not an issue. It stays closed.",
@@ -255,10 +257,10 @@ export const AI_DATA_SECURITY_ACTION_CHANGES: {
     "Makes the change OneUptime AI proposed, with your permissions: {{change}}",
   ),
   dismissProposal: translationKey(
-    "Turns the proposal down. It goes on the issue's timeline, and OneUptime AI does not propose it again.",
+    "Turns the proposal down. It stays on the record, and OneUptime AI does not propose the same change again.",
   ),
   dismissProposalWithReason: translationKey(
-    "Turns the proposal down, with your reason: {{reason}} It goes on the issue's timeline, and OneUptime AI does not propose it again.",
+    "Turns the proposal down. It stays on the record, and OneUptime AI does not propose the same change again. Your reason: {{reason}}",
   ),
 };
 
@@ -526,7 +528,9 @@ export const AI_DATA_SECURITY_CARD_LINES: {
 } = {
   scrubbed: translationKey("Scrub rule {{rule}} hides it from now on"),
   findingConfirmed: translationKey("Confirmed: it counts"),
-  findingNotSensitive: translationKey("Marked not sensitive: it stops counting"),
+  findingNotSensitive: translationKey(
+    "Marked not sensitive: it stops counting",
+  ),
   issueAccepted: translationKey("Accepted until {{until}}"),
   issueNotAnIssue: translationKey("Marked not an issue"),
   issueReopened: translationKey("Open again"),

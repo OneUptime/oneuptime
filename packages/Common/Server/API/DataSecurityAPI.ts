@@ -807,13 +807,12 @@ export default class DataSecurityAPI extends BaseAPI<
          * dialog showed, proven on the records it was seen in - as Ask
          * AI's scrub_data_security_finding makes it (DataSecurityButtons).
          */
-        const created: CreatedScrubRule = await DataSecurityButtons.scrubFinding(
-          {
+        const created: CreatedScrubRule =
+          await DataSecurityButtons.scrubFinding({
             projectId,
             findingId: DataSecurityAPI.readId(req),
             props,
-          },
-        );
+          });
 
         return created as unknown as JSONObject;
       },
