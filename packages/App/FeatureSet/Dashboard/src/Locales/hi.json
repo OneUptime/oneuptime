@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
-  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
+  "A page's call starts like this, always in English:": "पेज की कॉल ऐसे शुरू होती है, हमेशा अंग्रेज़ी में:",
+  "British English, female voice": "ब्रिटिश अंग्रेज़ी, महिला आवाज़",
+  "British English, male voice": "ब्रिटिश अंग्रेज़ी, पुरुष आवाज़",
+  "Call Voice": "कॉल की आवाज़",
+  "Free. Twilio says its Basic voices are not meant for production.": "मुफ़्त। Twilio के अनुसार उसकी Basic आवाज़ें प्रोडक्शन उपयोग के लिए नहीं हैं।",
+  "Save, then send a test call to hear it.": "सहेजें, फिर इसे सुनने के लिए परीक्षण कॉल भेजें।",
+  "The voice calls through this account speak with.": "वह आवाज़ जिसमें इस खाते से होने वाली कॉल बोलती हैं।",
+  "Twilio Call Voice": "Twilio कॉल की आवाज़",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio इस आवाज़ के लिए अतिरिक्त शुल्क लेता है: हर पेज की कॉल पर 2 अमेरिकी सेंट से कम।",
+  "US English, female voice": "अमेरिकी अंग्रेज़ी, महिला आवाज़",
+  "US English, male voice": "अमेरिकी अंग्रेज़ी, पुरुष आवाज़",
+  "Your Twilio account's default voice": "आपके Twilio खाते की डिफ़ॉल्ट आवाज़"
 }

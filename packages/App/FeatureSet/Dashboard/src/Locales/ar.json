@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
-  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
+  "A page's call starts like this, always in English:": "تبدأ مكالمة الاستدعاء هكذا، وبالإنجليزية دائمًا:",
+  "British English, female voice": "الإنجليزية البريطانية، صوت أنثوي",
+  "British English, male voice": "الإنجليزية البريطانية، صوت ذكوري",
+  "Call Voice": "صوت المكالمات",
+  "Free. Twilio says its Basic voices are not meant for production.": "مجاني. تقول Twilio إن أصواتها من فئة Basic ليست مخصّصة لبيئة الإنتاج.",
+  "Save, then send a test call to hear it.": "احفظ، ثم أجرِ مكالمة تجريبية لسماعه.",
+  "The voice calls through this account speak with.": "الصوت الذي تتحدث به المكالمات التي تمر عبر هذا الحساب.",
+  "Twilio Call Voice": "صوت مكالمات Twilio",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "تفرض Twilio رسومًا إضافية على هذا الصوت: أقل من 2 سنت أمريكي لكل مكالمة استدعاء.",
+  "US English, female voice": "الإنجليزية الأمريكية، صوت أنثوي",
+  "US English, male voice": "الإنجليزية الأمريكية، صوت ذكوري",
+  "Your Twilio account's default voice": "الصوت الافتراضي لحساب Twilio الخاص بك"
 }

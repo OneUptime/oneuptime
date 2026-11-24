@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besucher sehen eine Karte für jeden Vorfall und eine weitere für jede Episode, sodass ein Vorfall in einer Episode zweimal erscheint.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besucher sehen jede Episode als eine Karte mit ihren Vorfällen und dem, was sie betreffen.",
   "Page when the script timed out": "Seite, als das Skript das Zeitlimit überschritt",
-  "Page {{number}} when the script timed out": "Seite {{number}}, als das Skript das Zeitlimit überschritt"
+  "Page {{number}} when the script timed out": "Seite {{number}}, als das Skript das Zeitlimit überschritt",
+  "A page's call starts like this, always in English:": "Der Anruf einer Alarmierung beginnt so, immer auf Englisch:",
+  "British English, female voice": "Britisches Englisch, weibliche Stimme",
+  "British English, male voice": "Britisches Englisch, männliche Stimme",
+  "Call Voice": "Stimme für Anrufe",
+  "Free. Twilio says its Basic voices are not meant for production.": "Kostenlos. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht.",
+  "Save, then send a test call to hear it.": "Speichern Sie und senden Sie dann einen Testanruf, um sie zu hören.",
+  "The voice calls through this account speak with.": "Die Stimme, mit der Anrufe über dieses Konto sprechen.",
+  "Twilio Call Voice": "Twilio-Stimme für Anrufe",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio berechnet für diese Stimme einen Aufpreis: weniger als 2 US-Cent pro Anruf einer Alarmierung.",
+  "US English, female voice": "Amerikanisches Englisch, weibliche Stimme",
+  "US English, male voice": "Amerikanisches Englisch, männliche Stimme",
+  "Your Twilio account's default voice": "Standardstimme Ihres Twilio-Kontos"
 }

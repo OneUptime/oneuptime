@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Visitors see each episode as one card that lists its incidents and what they affect.",
   "Page when the script timed out": "Page when the script timed out",
-  "Page {{number}} when the script timed out": "Page {{number}} when the script timed out"
+  "Page {{number}} when the script timed out": "Page {{number}} when the script timed out",
+  "A page's call starts like this, always in English:": "A page's call starts like this, always in English:",
+  "British English, female voice": "British English, female voice",
+  "British English, male voice": "British English, male voice",
+  "Call Voice": "Call Voice",
+  "Free. Twilio says its Basic voices are not meant for production.": "Free. Twilio says its Basic voices are not meant for production.",
+  "Save, then send a test call to hear it.": "Save, then send a test call to hear it.",
+  "The voice calls through this account speak with.": "The voice calls through this account speak with.",
+  "Twilio Call Voice": "Twilio Call Voice",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio charges extra for this voice: under 2 US cents for each page's call.",
+  "US English, female voice": "US English, female voice",
+  "US English, male voice": "US English, male voice",
+  "Your Twilio account's default voice": "Your Twilio account's default voice"
 }

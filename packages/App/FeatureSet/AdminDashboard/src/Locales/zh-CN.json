@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "服务器没有返回其帮助和支持设置。",
   "Keyboard shortcuts": "键盘快捷键",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享之前请先检查。",
-  "Chat on Slack": "在 Slack 上聊天"
+  "Chat on Slack": "在 Slack 上聊天",
+  "Your Twilio account's default voice": "Twilio 账户的默认语音",
+  "US English, female voice": "美式英语，女声",
+  "US English, male voice": "美式英语，男声",
+  "British English, female voice": "英式英语，女声",
+  "British English, male voice": "英式英语，男声",
+  "A page's call starts like this, always in English:": "呼叫电话始终使用英语，开头如下：",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 对此语音额外收费：每通呼叫电话不到 2 美分。",
+  "Free. Twilio says its Basic voices are not meant for production.": "免费。Twilio 表示其 Basic 语音不适合用于生产环境。",
+  "Save, then send a test call to hear it.": "保存后，发送测试呼叫即可试听。",
+  "Call Voice": "通话语音",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "OneUptime 通过此服务器的 Twilio 账户拨出的电话所使用的语音。",
+  "Choose Voice": "选择语音",
+  "Voice": "语音"
 }

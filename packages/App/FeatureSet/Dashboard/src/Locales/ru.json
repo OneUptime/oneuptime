@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
   "Page when the script timed out": "Страница в момент тайм-аута скрипта",
-  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта",
+  "A page's call starts like this, always in English:": "Звонок дежурному начинается так, всегда на английском:",
+  "British English, female voice": "Британский английский, женский голос",
+  "British English, male voice": "Британский английский, мужской голос",
+  "Call Voice": "Голос звонков",
+  "Free. Twilio says its Basic voices are not meant for production.": "Бесплатно. По словам Twilio, голоса Basic не предназначены для использования в рабочей среде.",
+  "Save, then send a test call to hear it.": "Сохраните, затем отправьте тестовый звонок, чтобы его услышать.",
+  "The voice calls through this account speak with.": "Голос, которым говорят звонки через этот аккаунт.",
+  "Twilio Call Voice": "Голос звонков Twilio",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio взимает за этот голос дополнительную плату: менее 2 центов США за каждый звонок дежурному.",
+  "US English, female voice": "Американский английский, женский голос",
+  "US English, male voice": "Американский английский, мужской голос",
+  "Your Twilio account's default voice": "Голос по умолчанию вашего аккаунта Twilio"
 }

@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "सर्वर ने अपनी सहायता और समर्थन सेटिंग्स के साथ जवाब नहीं दिया।",
   "Keyboard shortcuts": "कीबोर्ड शॉर्टकट",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "त्रुटि स्टैक, कंपोनेंट स्टैक, साफ़ किया गया पेज URL, ब्राउज़र विवरण और OneUptime बिल्ड वाली एक स्थानीय डायग्नोस्टिक फ़ाइल डाउनलोड करें। यह कभी कुकीज़, ब्राउज़र में सहेजा डेटा या फ़ॉर्म की सामग्री नहीं पढ़ती। साझा करने से पहले इसे देख लें।",
-  "Chat on Slack": "Slack पर चैट करें"
+  "Chat on Slack": "Slack पर चैट करें",
+  "Your Twilio account's default voice": "आपके Twilio खाते की डिफ़ॉल्ट आवाज़",
+  "US English, female voice": "अमेरिकी अंग्रेज़ी, महिला आवाज़",
+  "US English, male voice": "अमेरिकी अंग्रेज़ी, पुरुष आवाज़",
+  "British English, female voice": "ब्रिटिश अंग्रेज़ी, महिला आवाज़",
+  "British English, male voice": "ब्रिटिश अंग्रेज़ी, पुरुष आवाज़",
+  "A page's call starts like this, always in English:": "पेज की कॉल ऐसे शुरू होती है, हमेशा अंग्रेज़ी में:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio इस आवाज़ के लिए अतिरिक्त शुल्क लेता है: हर पेज की कॉल पर 2 अमेरिकी सेंट से कम।",
+  "Free. Twilio says its Basic voices are not meant for production.": "मुफ़्त। Twilio के अनुसार उसकी Basic आवाज़ें प्रोडक्शन उपयोग के लिए नहीं हैं।",
+  "Save, then send a test call to hear it.": "सहेजें, फिर इसे सुनने के लिए परीक्षण कॉल भेजें।",
+  "Call Voice": "कॉल की आवाज़",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "वह आवाज़ जिसमें OneUptime की फ़ोन कॉल बोलती हैं, जब वे इस सर्वर के Twilio खाते से जाती हैं।",
+  "Choose Voice": "आवाज़ चुनें",
+  "Voice": "आवाज़"
 }

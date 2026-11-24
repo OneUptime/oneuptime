@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "لم يردّ الخادم بإعدادات المساعدة والدعم الخاصة به.",
   "Keyboard shortcuts": "اختصارات لوحة المفاتيح",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "نزّل ملف تشخيص محليًا يتضمن مكدس الخطأ ومكدس المكوّنات وعنوان URL للصفحة بعد تنقيحه وتفاصيل المتصفح وإصدار OneUptime. لا يقرأ أبدًا ملفات تعريف الارتباط أو بيانات المتصفح المحفوظة أو محتويات النماذج. راجعه قبل مشاركته.",
-  "Chat on Slack": "الدردشة على Slack"
+  "Chat on Slack": "الدردشة على Slack",
+  "Your Twilio account's default voice": "الصوت الافتراضي لحساب Twilio الخاص بك",
+  "US English, female voice": "الإنجليزية الأمريكية، صوت أنثوي",
+  "US English, male voice": "الإنجليزية الأمريكية، صوت ذكوري",
+  "British English, female voice": "الإنجليزية البريطانية، صوت أنثوي",
+  "British English, male voice": "الإنجليزية البريطانية، صوت ذكوري",
+  "A page's call starts like this, always in English:": "تبدأ مكالمة الاستدعاء هكذا، وبالإنجليزية دائمًا:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "تفرض Twilio رسومًا إضافية على هذا الصوت: أقل من 2 سنت أمريكي لكل مكالمة استدعاء.",
+  "Free. Twilio says its Basic voices are not meant for production.": "مجاني. تقول Twilio إن أصواتها من فئة Basic ليست مخصّصة لبيئة الإنتاج.",
+  "Save, then send a test call to hear it.": "احفظ، ثم أجرِ مكالمة تجريبية لسماعه.",
+  "Call Voice": "صوت المكالمات",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "الصوت الذي تتحدث به مكالمات OneUptime الهاتفية عندما تُجرى عبر حساب Twilio الخاص بهذا الخادم.",
+  "Choose Voice": "اختيار الصوت",
+  "Voice": "الصوت"
 }

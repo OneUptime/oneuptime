@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besökare ser ett kort för varje incident och ett till för varje episod, så en incident i en episod visas två gånger.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besökare ser varje episod som ett kort som listar dess incidenter och vad de påverkar.",
   "Page when the script timed out": "Sida när skriptet fick timeout",
-  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout"
+  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout",
+  "A page's call starts like this, always in English:": "Ett larmsamtal börjar så här, alltid på engelska:",
+  "British English, female voice": "Brittisk engelska, kvinnlig röst",
+  "British English, male voice": "Brittisk engelska, manlig röst",
+  "Call Voice": "Röst för samtal",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Enligt Twilio är Basic-rösterna inte avsedda för produktionsanvändning.",
+  "Save, then send a test call to hear it.": "Spara och skicka sedan ett testsamtal för att höra den.",
+  "The voice calls through this account speak with.": "Rösten som samtal via det här kontot talar med.",
+  "Twilio Call Voice": "Twilio-röst för samtal",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio tar extra betalt för den här rösten: under 2 amerikanska cent per larmsamtal.",
+  "US English, female voice": "Amerikansk engelska, kvinnlig röst",
+  "US English, male voice": "Amerikansk engelska, manlig röst",
+  "Your Twilio account's default voice": "Standardrösten för ditt Twilio-konto"
 }

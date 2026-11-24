@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "De server antwoordde niet met zijn instellingen voor hulp en ondersteuning.",
   "Keyboard shortcuts": "Sneltoetsen",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het deelt.",
-  "Chat on Slack": "Chat op Slack"
+  "Chat on Slack": "Chat op Slack",
+  "Your Twilio account's default voice": "Standaardstem van uw Twilio-account",
+  "US English, female voice": "Amerikaans-Engels, vrouwelijke stem",
+  "US English, male voice": "Amerikaans-Engels, mannelijke stem",
+  "British English, female voice": "Brits-Engels, vrouwelijke stem",
+  "British English, male voice": "Brits-Engels, mannelijke stem",
+  "A page's call starts like this, always in English:": "Een oproep voor dienst begint zo, altijd in het Engels:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio rekent extra kosten voor deze stem: minder dan 2 dollarcent per oproep voor dienst.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Volgens Twilio zijn de Basic-stemmen niet bedoeld voor productiegebruik.",
+  "Save, then send a test call to hear it.": "Sla op en verzend daarna een testoproep om de stem te horen.",
+  "Call Voice": "Stem voor oproepen",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "De stem waarmee de telefoonoproepen van OneUptime spreken wanneer ze via het Twilio-account van deze server gaan.",
+  "Choose Voice": "Stem kiezen",
+  "Voice": "Stem"
 }

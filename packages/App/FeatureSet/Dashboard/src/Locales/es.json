@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Los visitantes ven una tarjeta por cada incidente y otra por cada episodio, así que un incidente de un episodio aparece dos veces.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan.",
   "Page when the script timed out": "Página cuando se agotó el tiempo del script",
-  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script"
+  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script",
+  "A page's call starts like this, always in English:": "La llamada de un aviso empieza así, siempre en inglés:",
+  "British English, female voice": "Inglés británico, voz femenina",
+  "British English, male voice": "Inglés británico, voz masculina",
+  "Call Voice": "Voz de las llamadas",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Según Twilio, sus voces Basic no están pensadas para uso en producción.",
+  "Save, then send a test call to hear it.": "Guarda y después envía una llamada de prueba para escucharla.",
+  "The voice calls through this account speak with.": "La voz con la que hablan las llamadas que pasan por esta cuenta.",
+  "Twilio Call Voice": "Voz de las llamadas de Twilio",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio cobra un recargo por esta voz: menos de 2 centavos de dólar por la llamada de cada aviso.",
+  "US English, female voice": "Inglés estadounidense, voz femenina",
+  "US English, male voice": "Inglés estadounidense, voz masculina",
+  "Your Twilio account's default voice": "Voz predeterminada de tu cuenta de Twilio"
 }

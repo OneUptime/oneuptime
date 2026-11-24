@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Bezoekers zien een kaart voor elk incident en nog een voor elke episode, dus een incident in een episode staat er twee keer.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Bezoekers zien elke episode als één kaart met de incidenten erin en wat ze treffen.",
   "Page when the script timed out": "Pagina toen het script een time-out kreeg",
-  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg"
+  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg",
+  "A page's call starts like this, always in English:": "Een oproep voor dienst begint zo, altijd in het Engels:",
+  "British English, female voice": "Brits-Engels, vrouwelijke stem",
+  "British English, male voice": "Brits-Engels, mannelijke stem",
+  "Call Voice": "Stem voor oproepen",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Volgens Twilio zijn de Basic-stemmen niet bedoeld voor productiegebruik.",
+  "Save, then send a test call to hear it.": "Sla op en verzend daarna een testoproep om de stem te horen.",
+  "The voice calls through this account speak with.": "De stem waarmee oproepen via dit account spreken.",
+  "Twilio Call Voice": "Twilio-stem voor oproepen",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio rekent extra kosten voor deze stem: minder dan 2 dollarcent per oproep voor dienst.",
+  "US English, female voice": "Amerikaans-Engels, vrouwelijke stem",
+  "US English, male voice": "Amerikaans-Engels, mannelijke stem",
+  "Your Twilio account's default voice": "Standaardstem van uw Twilio-account"
 }

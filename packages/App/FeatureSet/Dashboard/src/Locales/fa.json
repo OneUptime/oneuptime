@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند.",
   "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
-  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت"
+  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
+  "A page's call starts like this, always in English:": "تماس یک فراخوان این‌گونه آغاز می‌شود، همیشه به انگلیسی:",
+  "British English, female voice": "انگلیسی بریتانیایی، صدای زن",
+  "British English, male voice": "انگلیسی بریتانیایی، صدای مرد",
+  "Call Voice": "صدای تماس‌ها",
+  "Free. Twilio says its Basic voices are not meant for production.": "رایگان. به گفتهٔ Twilio، صداهای Basic آن برای استفادهٔ تولیدی در نظر گرفته نشده‌اند.",
+  "Save, then send a test call to hear it.": "ذخیره کنید، سپس یک تماس آزمایشی ارسال کنید تا آن را بشنوید.",
+  "The voice calls through this account speak with.": "صدایی که تماس‌های این حساب با آن صحبت می‌کنند.",
+  "Twilio Call Voice": "صدای تماس‌های Twilio",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio برای این صدا هزینهٔ اضافه می‌گیرد: کمتر از ۲ سنت دلار آمریکا برای تماس هر فراخوان.",
+  "US English, female voice": "انگلیسی آمریکایی، صدای زن",
+  "US English, male voice": "انگلیسی آمریکایی، صدای مرد",
+  "Your Twilio account's default voice": "صدای پیش‌فرض حساب Twilio شما"
 }

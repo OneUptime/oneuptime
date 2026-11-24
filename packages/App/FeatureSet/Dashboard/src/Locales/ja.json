@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。",
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
-  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}"
+  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
+  "A page's call starts like this, always in English:": "呼び出しの電話は、常に英語で次のように始まります:",
+  "British English, female voice": "イギリス英語、女性の声",
+  "British English, male voice": "イギリス英語、男性の声",
+  "Call Voice": "通話の音声",
+  "Free. Twilio says its Basic voices are not meant for production.": "無料。Twilio によると、Basic 音声は本番環境での使用を想定していません。",
+  "Save, then send a test call to hear it.": "保存してからテスト通話を発信すると、この音声を聞けます。",
+  "The voice calls through this account speak with.": "このアカウントを通じた通話で使われる音声。",
+  "Twilio Call Voice": "Twilio 通話の音声",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "この音声には Twilio の追加料金がかかります。呼び出しの電話 1 件あたり 2 米セント未満です。",
+  "US English, female voice": "アメリカ英語、女性の声",
+  "US English, male voice": "アメリカ英語、男性の声",
+  "Your Twilio account's default voice": "Twilio アカウントのデフォルトの音声"
 }

@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "Serveren svarede ikke med sine indstillinger for hjælp og support.",
   "Keyboard shortcuts": "Tastaturgenveje",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Hent en lokal diagnosefil med fejlstakken, komponentstakken, den rensede side-URL, browseroplysninger og OneUptime-buildet. Den læser aldrig cookies, gemte browserdata eller formularindhold. Gennemgå den, før du deler den.",
-  "Chat on Slack": "Chat på Slack"
+  "Chat on Slack": "Chat på Slack",
+  "Your Twilio account's default voice": "Din Twilio-kontos standardstemme",
+  "US English, female voice": "Amerikansk engelsk, kvindelig stemme",
+  "US English, male voice": "Amerikansk engelsk, mandlig stemme",
+  "British English, female voice": "Britisk engelsk, kvindelig stemme",
+  "British English, male voice": "Britisk engelsk, mandlig stemme",
+  "A page's call starts like this, always in English:": "Et vagtopkald begynder sådan, altid på engelsk:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio tager ekstra betaling for denne stemme: under 2 amerikanske cent per vagtopkald.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Ifølge Twilio er Basic-stemmerne ikke beregnet til brug i produktion.",
+  "Save, then send a test call to hear it.": "Gem, og send derefter et testopkald for at høre den.",
+  "Call Voice": "Stemme til opkald",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "Den stemme, som OneUptimes telefonopkald taler med, når de går ud gennem denne servers Twilio-konto.",
+  "Choose Voice": "Vælg stemme",
+  "Voice": "Stemme"
 }

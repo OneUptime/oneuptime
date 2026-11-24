@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøkende ser ett kort for hver hendelse og ett til for hver episode, så en hendelse i en episode vises to ganger.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøkende ser hver episode som ett kort som viser hendelsene i den og hva de påvirker.",
   "Page when the script timed out": "Side da skriptet fikk tidsavbrudd",
-  "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd"
+  "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd",
+  "A page's call starts like this, always in English:": "Et vaktanrop starter slik, alltid på engelsk:",
+  "British English, female voice": "Britisk engelsk, kvinnelig stemme",
+  "British English, male voice": "Britisk engelsk, mannlig stemme",
+  "Call Voice": "Stemme for anrop",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Ifølge Twilio er Basic-stemmene ikke ment for bruk i produksjon.",
+  "Save, then send a test call to hear it.": "Lagre, og send deretter et testanrop for å høre den.",
+  "The voice calls through this account speak with.": "Stemmen som anrop gjennom denne kontoen snakker med.",
+  "Twilio Call Voice": "Twilio-stemme for anrop",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio tar ekstra betalt for denne stemmen: under 2 amerikanske cent per vaktanrop.",
+  "US English, female voice": "Amerikansk engelsk, kvinnelig stemme",
+  "US English, male voice": "Amerikansk engelsk, mannlig stemme",
+  "Your Twilio account's default voice": "Standardstemmen til Twilio-kontoen din"
 }

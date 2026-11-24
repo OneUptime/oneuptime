@@ -4573,5 +4573,18 @@
   "The server did not answer with its help and support settings.": "Der Server hat nicht mit seinen Einstellungen für Hilfe und Support geantwortet.",
   "Keyboard shortcuts": "Tastenkürzel",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Laden Sie eine lokale Diagnosedatei mit Fehler-Stack, Komponenten-Stack, bereinigter Seiten-URL, Browserdetails und OneUptime-Build herunter. Sie liest niemals Cookies, gespeicherte Browserdaten oder Formularinhalte. Prüfen Sie sie, bevor Sie sie teilen.",
-  "Chat on Slack": "Chat auf Slack"
+  "Chat on Slack": "Chat auf Slack",
+  "Your Twilio account's default voice": "Standardstimme Ihres Twilio-Kontos",
+  "US English, female voice": "Amerikanisches Englisch, weibliche Stimme",
+  "US English, male voice": "Amerikanisches Englisch, männliche Stimme",
+  "British English, female voice": "Britisches Englisch, weibliche Stimme",
+  "British English, male voice": "Britisches Englisch, männliche Stimme",
+  "A page's call starts like this, always in English:": "Der Anruf einer Alarmierung beginnt so, immer auf Englisch:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio berechnet für diese Stimme einen Aufpreis: weniger als 2 US-Cent pro Anruf einer Alarmierung.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Kostenlos. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht.",
+  "Save, then send a test call to hear it.": "Speichern Sie und senden Sie dann einen Testanruf, um sie zu hören.",
+  "Call Voice": "Stimme für Anrufe",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "Die Stimme, mit der die Telefonanrufe von OneUptime sprechen, wenn sie über das Twilio-Konto dieses Servers laufen.",
+  "Choose Voice": "Stimme wählen",
+  "Voice": "Stimme"
 }

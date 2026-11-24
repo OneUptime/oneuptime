@@ -64057,5 +64057,17 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。",
   "Page when the script timed out": "指令碼逾時時的頁面",
-  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}"
+  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}",
+  "A page's call starts like this, always in English:": "呼叫電話一律使用英文，開頭如下：",
+  "British English, female voice": "英式英文，女聲",
+  "British English, male voice": "英式英文，男聲",
+  "Call Voice": "通話語音",
+  "Free. Twilio says its Basic voices are not meant for production.": "免費。Twilio 表示其 Basic 語音不適合用於正式環境。",
+  "Save, then send a test call to hear it.": "儲存後，發送測試通話即可試聽。",
+  "The voice calls through this account speak with.": "透過此帳戶撥打的電話所使用的語音。",
+  "Twilio Call Voice": "Twilio 通話語音",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 對此語音額外收費：每通呼叫電話不到 2 美分。",
+  "US English, female voice": "美式英文，女聲",
+  "US English, male voice": "美式英文，男聲",
+  "Your Twilio account's default voice": "Twilio 帳戶的預設語音"
 }
