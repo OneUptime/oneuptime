@@ -82,8 +82,8 @@ import {
  * credentials, to where OneUptime sends them, and to what its runbooks run:
  * it creates, changes and deletes no runbook variable, monitor secret, BI
  * tool connection or threat intel feed (SECRET_TABLES). Who may build a
- * workflow is not who may write runbook steps or manage secrets, and each
- * of these records is one a write to which reaches past OneUptime: a
+ * workflow is not who may write runbook steps or manage secrets, and a
+ * write to any of these reaches past OneUptime's own records: a
  * runbook variable's value is filled into a step's script as it is written
  * and run on the project's own machines, so changing a plain one changes
  * the command a Project Admin's runbook runs; a secret's value, the Runners
@@ -179,9 +179,11 @@ const ACCESS_TABLES: Array<string> = [
  *
  * Changed by no step of a workflow that runs with the default permissions,
  * and by a step of one that runs as Project Owner or a custom role only as
- * far as those permissions allow (assertDoesNotChangeSecrets). A
- * workflow-enabled table that holds a value no API caller reads back belongs
- * here, to the access tables or to a reason it does not, which a test holds.
+ * far as those permissions allow (assertDoesNotChangeSecrets). Every table
+ * a workflow writes that keeps a value encrypted, and that a Project Member
+ * may not write as a person, is here, on the access tables, or named with
+ * the reason a write of it hands no credential to anyone new - which a test
+ * holds (WorkflowStepsDoNotChangeSecrets).
  */
 const SECRET_TABLES: Array<string> = [
   "DataBiConnection",

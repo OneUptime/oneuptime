@@ -109,9 +109,9 @@ export const describeStepCeiling: (
  * sign-in setting's for every workflow - says its reason as it is
  * (WorkflowAccessChangeRefusedException), and so does a change such a
  * workflow may not make to the project's secrets
- * (WorkflowSecretChangeRefusedException, one of them). Refusals are told by their type
- * (a column refusal is a ColumnWriteRefusedException), never by their
- * words. Null for any other failure.
+ * (WorkflowSecretChangeRefusedException, one of them). Refusals are told by
+ * their type (a column refusal is a ColumnWriteRefusedException), never by
+ * their words. Null for any other failure.
  */
 export const describeRefusal: DescribeRefusalFunction = (data: {
   error: unknown;

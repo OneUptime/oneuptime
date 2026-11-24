@@ -10,6 +10,8 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
  * maps a refusal to a status still does. It has its own type so that what
  * reports a refusal in plain words - a step's run log (LogComponentError) -
  * says this one as it is, and not as "only what a Project Admin can do": a
- * Project Admin may make the change; a step may not.
+ * Project Admin may make the change; a step may not. So is a refused change
+ * to a record that holds the project's secrets
+ * (WorkflowSecretChangeRefusedException, which is one of these).
  */
 export default class WorkflowAccessChangeRefusedException extends NotAuthorizedException {}
