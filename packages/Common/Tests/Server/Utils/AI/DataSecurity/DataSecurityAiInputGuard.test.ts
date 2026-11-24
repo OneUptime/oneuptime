@@ -171,6 +171,19 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/AuditEvidenceDrafter.ts`,
   },
+  /*
+   * An exposure's write-up (#10377): on its own, from the run a Critical
+   * exposure's case starts, and when a person asks - one file, one call
+   * for each.
+   */
+  [DataSecurityAiFeature.DraftExposureAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ExposureAssessmentDrafter.ts`,
+  },
 };
 
 /*

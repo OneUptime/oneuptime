@@ -178,6 +178,16 @@ const SNAPSHOT_SHARING_OPERATIONS: ReadonlyArray<string> = [
   "rds:ModifyDBClusterSnapshotAttribute",
 ];
 
+// Every operation of the cloud's log that can move who reaches a store: what the window reads.
+export function getExposureChangeOperations(): Array<string> {
+  return [
+    ...OPENING_OPERATIONS,
+    ...CLOSING_OPERATIONS,
+    ...EITHER_WAY_OPERATIONS,
+    ...SNAPSHOT_SHARING_OPERATIONS,
+  ];
+}
+
 /*
  * Which way a change of the cloud's log moves who can reach a store, or
  * null for a change of something else. A change of who may restore a
@@ -1392,123 +1402,6 @@ export function getCoveredPlaces(): Array<BreachPlace> {
 
 /*
  * ---------------------------------------------------------------------------
- * The playbook's checklist
- * ---------------------------------------------------------------------------
- */
-
-/*
- * The Close a Data Exposure template's checklist (SecurityPlaybookTemplates),
- * each line answered by a part of the assessment. A case's task is matched
- * to its line by its title, as the template wrote it, or by its key.
- */
-export enum ExposureChecklistItem {
-  WhoReadIt = "who-read-it",
-  MustReport = "must-report",
-  RotateSecrets = "rotate-secrets",
-  CloseTheCase = "close-the-case",
-}
-
-export const EXPOSURE_CHECKLIST_ITEMS: ReadonlyArray<ExposureChecklistItem> = [
-  ExposureChecklistItem.WhoReadIt,
-  ExposureChecklistItem.MustReport,
-  ExposureChecklistItem.RotateSecrets,
-  ExposureChecklistItem.CloseTheCase,
-];
-
-// The template's lines, as it adds them: the English a task's title holds.
-export const DATA_EXPOSURE_CHECKLIST_TASKS: Readonly<
-  Record<ExposureChecklistItem, string>
-> = {
-  [ExposureChecklistItem.WhoReadIt]:
-    "Find who read the data while it was exposed, from the store's access logs and its Who Can Reach It page",
-  [ExposureChecklistItem.MustReport]:
-    "Decide whether this is a breach you must report, to whom and by when",
-  [ExposureChecklistItem.RotateSecrets]:
-    "Rotate every secret and key the store held",
-  [ExposureChecklistItem.CloseTheCase]:
-    "Close the case with what was exposed, for how long, and to whom",
-};
-
-// A task made from the checklist keeps its line's key here (SecurityCaseTask.responseStepKey).
-export const EXPOSURE_CHECKLIST_STEP_KEY_PREFIX: string = "exposure-checklist:";
-
-export function getExposureChecklistStepKey(
-  item: ExposureChecklistItem,
-): string {
-  return `${EXPOSURE_CHECKLIST_STEP_KEY_PREFIX}${item}`;
-}
-
-// The checklist line a case's task is, or null.
-export function getExposureChecklistItemOfTask(task: {
-  title?: string | null | undefined;
-  responseStepKey?: string | null | undefined;
-}): ExposureChecklistItem | null {
-  const key: string = (task.responseStepKey || "").trim();
-
-  for (const item of EXPOSURE_CHECKLIST_ITEMS) {
-    if (key === getExposureChecklistStepKey(item)) {
-      return item;
-    }
-  }
-
-  const title: string = (task.title || "").trim().toLowerCase();
-
-  for (const item of EXPOSURE_CHECKLIST_ITEMS) {
-    if (title === DATA_EXPOSURE_CHECKLIST_TASKS[item].toLowerCase()) {
-      return item;
-    }
-  }
-
-  return null;
-}
-
-// A checklist line, and the case's task it matched.
-export interface ExposureChecklistAnswer {
-  item: ExposureChecklistItem;
-  taskId?: string | undefined;
-  taskTitle?: string | undefined;
-  isDone?: boolean | undefined;
-}
-
-export function getExposureChecklistAnswers(
-  tasks: ReadonlyArray<{
-    id: string;
-    title?: string | null | undefined;
-    responseStepKey?: string | null | undefined;
-    isDone?: boolean | null | undefined;
-  }>,
-): Array<ExposureChecklistAnswer> {
-  return EXPOSURE_CHECKLIST_ITEMS.map(
-    (item: ExposureChecklistItem): ExposureChecklistAnswer => {
-      const task:
-        | {
-            id: string;
-            title?: string | null | undefined;
-            isDone?: boolean | null | undefined;
-          }
-        | undefined = tasks.find(
-        (candidate: {
-          title?: string | null | undefined;
-          responseStepKey?: string | null | undefined;
-        }): boolean => {
-          return getExposureChecklistItemOfTask(candidate) === item;
-        },
-      );
-
-      return task
-        ? {
-            item,
-            taskId: task.id,
-            taskTitle: task.title || undefined,
-            isDone: task.isDone === true,
-          }
-        : { item };
-    },
-  );
-}
-
-/*
- * ---------------------------------------------------------------------------
  * OneUptime AI's write-up and drafts
  * ---------------------------------------------------------------------------
  */
@@ -1530,6 +1423,12 @@ export const EXPOSURE_DRAFT_PARTS: ReadonlyArray<ExposureDraftPart> = [
   ExposureDraftPart.RegulatorNotice,
   ExposureDraftPart.PeopleNotice,
   ExposureDraftPart.InternalSummary,
+];
+
+// The notices addressed to someone else: they name only laws that may apply.
+export const EXPOSURE_NOTICES_TO_OTHERS: ReadonlyArray<ExposureDraftPart> = [
+  ExposureDraftPart.RegulatorNotice,
+  ExposureDraftPart.PeopleNotice,
 ];
 
 // The three drafts a person edits and copies, in the order the page folds them.
@@ -1814,14 +1713,21 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   },
 ];
 
-// The families of the laws a set of facts names: every obligation fact's.
+/*
+ * The families of the laws a set of facts names: every obligation fact's,
+ * or only those that may apply.
+ */
 export function getFactLawFamilies(
   facts: ReadonlyArray<ComplianceFact>,
+  onlyMayApply: boolean = false,
 ): Set<string> {
   const families: Set<string> = new Set();
 
   for (const fact of facts) {
-    if (fact.kind === ComplianceFactKind.BreachObligation) {
+    if (
+      fact.kind === ComplianceFactKind.BreachObligation &&
+      (!onlyMayApply || fact.status === BreachObligationStatus.MayApply)
+    ) {
       families.add(fact.family);
     }
   }
@@ -1831,13 +1737,20 @@ export function getFactLawFamilies(
 
 /*
  * The laws a text names that none of the facts names, as the text names
- * them. "UK GDPR" is read before "GDPR", so it is not read as both.
+ * them - or, for a notice, none of the laws that may apply: a notice to a
+ * regulator or to the people never cites a law the facts rule out, while
+ * the explanation and the internal summary may say one does not apply.
+ * "UK GDPR" is read before "GDPR", so it is not read as both.
  */
 export function getUnfoundedLaws(data: {
   text: string;
   facts: ReadonlyArray<ComplianceFact>;
+  onlyMayApply?: boolean | undefined;
 }): Array<string> {
-  const families: Set<string> = getFactLawFamilies(data.facts);
+  const families: Set<string> = getFactLawFamilies(
+    data.facts,
+    data.onlyMayApply === true,
+  );
   const unfounded: Array<string> = [];
   let text: string = data.text;
 
@@ -1939,7 +1852,13 @@ export function holdExposureDraftsToFacts(data: {
       continue;
     }
 
-    if (getUnfoundedLaws({ text: markdown, facts: data.facts }).length > 0) {
+    if (
+      getUnfoundedLaws({
+        text: markdown,
+        facts: data.facts,
+        onlyMayApply: EXPOSURE_NOTICES_TO_OTHERS.includes(part),
+      }).length > 0
+    ) {
       dropped[part] = ExposureDraftDropReason.UnfoundedLaw;
       continue;
     }

@@ -23,12 +23,15 @@ import ComplianceFramework, {
 import { readAuditEvidencePeriod } from "../../Types/DataSecurity/AuditEvidence";
 import { DataSecurityAiFeature } from "../../Types/DataSecurity/DataSecurityAiFeatures";
 import { isImpactAssessmentPart } from "../../Types/DataSecurity/ImpactAssessment";
+import { isExposureDraftPart } from "../../Types/DataSecurity/ExposureAssessment";
+import SecurityCase from "../../Models/DatabaseModels/SecurityCase";
 import {
   isRecordField,
   isRecordFieldAction,
 } from "../../Types/DataSecurity/RecordOfProcessing";
 import AuditEvidenceDrafter from "../Utils/AI/DataSecurity/AuditEvidenceDrafter";
 import ImpactAssessmentDrafter from "../Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import ExposureAssessmentDrafter from "../Utils/AI/DataSecurity/ExposureAssessmentDrafter";
 import RecordOfProcessingDrafter, {
   RecordDraftOutcome,
 } from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
@@ -340,6 +343,24 @@ export const ISSUE_GROUP_FIX_PERMISSIONS: Array<Permission> = Array.from(
  */
 export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> = [
   ...new DataStoreFinding().updateRecordPermissions,
+];
+
+/*
+ * Who may read a security case's exposure assessment (#10377): the readers
+ * of the store's findings - and then, checked as it is read, of the case
+ * too (ExposureAssessmentReader.mayRead): it names what the store holds.
+ */
+export const EXPOSURE_ASSESSMENT_READ_PERMISSIONS: Array<Permission> = [
+  ...new DataStoreFinding().readRecordPermissions,
+];
+
+/*
+ * Who may start one, ask OneUptime AI to write it up, edit a draft or say
+ * where the people live: who may edit the case - and read the store's
+ * findings too (ExposureAssessmentReader.mayChange).
+ */
+export const EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS: Array<Permission> = [
+  ...new SecurityCase().updateRecordPermissions,
 ];
 
 const TREND_DAYS: number = 30;
@@ -690,6 +711,136 @@ export default class DataSecurityAPI extends BaseAPI<
           requirement,
           text,
           props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * A security case's exposure assessment (#10377): what plain code works
+     * out - the window, who could read the data, whose data it was, the
+     * secrets to rotate and the breach laws that may apply - and OneUptime
+     * AI's write-up, for the case's readers who may read the store's
+     * findings too. Nothing here sends anything anywhere.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.exposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.read({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...started by a person: { dataStoreId? }, for a case about more than one store.
+    this.post(
+      DATA_SECURITY_API_ROUTES.assessExposure(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const dataStoreId: unknown = body["dataStoreId"];
+
+        if (
+          dataStoreId !== undefined &&
+          dataStoreId !== null &&
+          (typeof dataStoreId !== "string" || !ObjectID.isValidUUID(dataStoreId))
+        ) {
+          throw new BadDataException(
+            "Say which data store to assess by its ID.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.assess({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          dataStoreId:
+            typeof dataStoreId === "string"
+              ? new ObjectID(dataStoreId)
+              : undefined,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...written up by OneUptime AI when a person asks: every part a person edited kept as written.
+    this.post(
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.draftForPerson({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...one part, in a person's own words: { part, markdown }.
+    this.post(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const part: unknown = body["part"];
+        const markdown: unknown = body["markdown"];
+
+        if (!isExposureDraftPart(part) || typeof markdown !== "string") {
+          throw new BadDataException(
+            "Say which part of the assessment to save, and its words.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.editPart({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          part,
+          markdown,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // ...where the people the data is about live: { places }, none to take the answer back.
+    this.post(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const places: unknown = body["places"];
+
+        if (!Array.isArray(places)) {
+          throw new BadDataException(
+            "Say where the people the data is about live, as a list of places.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.setPeoplePlaces({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          places,
         })) as unknown as JSONObject;
       },
     );

@@ -113,6 +113,18 @@ import DataSecurityIssueGroupService from "../../../../../Server/Services/DataSe
 import DataSecurityIssueGroupNaming from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
 import AuditEvidenceDrafter from "../../../../../Server/Utils/AI/DataSecurity/AuditEvidenceDrafter";
 import ImpactAssessmentDrafter from "../../../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import ExposureAssessmentDrafter from "../../../../../Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter";
+import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
+import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
+import SecurityCaseTaskService from "../../../../../Server/Services/SecurityCaseTaskService";
+import DataStoreFeedService from "../../../../../Server/Services/DataStoreFeedService";
+import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
+import {
+  ExposureAssessmentStarter,
+  startExposureAssessment,
+  toStoredExposureAssessmentJson,
+} from "../../../../../Types/DataSecurity/ExposureAssessment";
+import { getDataStoreEntityValue } from "../../../../../Types/SecurityCase/SecurityEntity";
 import RecordOfProcessingDrafter from "../../../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import DataSecuritySettingService from "../../../../../Server/Services/DataSecuritySettingService";
 import DataSecurityComplianceSettingService from "../../../../../Server/Services/DataSecurityComplianceSettingService";
@@ -148,7 +160,9 @@ import DashboardRequestsOverHttp, {
   SentRequest,
 } from "../../../TestingUtils/DashboardRequestsOverHttp";
 import {
+  InMemoryTable,
   StoredRow,
+  useInMemoryHookFreeWrites,
   useInMemoryTable,
 } from "../../../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
@@ -840,6 +854,101 @@ function usePaperworkTables(): void {
     .mockResolvedValue(null);
 }
 
+/*
+ * A security case Data Security opened for the bucket's exposure, assessed
+ * (#10377): its store holds a secret whose finding keeps a planted sample,
+ * and the case keeps the assessment's start.
+ */
+const EXPOSURE_CASE_ID: string = "10377000-0000-4000-8000-0000000000c1";
+const EXPOSURE_STORE_KEY: string = "aws:s3:acme-card-exports";
+
+function useExposureTables(): void {
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID, {
+      storeKey: EXPOSURE_STORE_KEY,
+      dataCategories: ["Contact and identity", "Financial"],
+      estimatedRecords: 2000000,
+      subjectCountries: ["DE"],
+      posture: { accessLogging: false },
+    }),
+  ]);
+
+  const cases: InMemoryTable = useInMemoryTable(
+    asService(SecurityCaseService),
+    [
+      {
+        _id: EXPOSURE_CASE_ID,
+        projectId: PROJECT_ID.toString(),
+        entities: [
+          {
+            type: "Data Store",
+            value: getDataStoreEntityValue(EXPOSURE_STORE_KEY),
+          },
+        ],
+        exposureAssessment: toStoredExposureAssessmentJson(
+          startExposureAssessment({
+            dataStoreId: STORE_ID,
+            startedBy: ExposureAssessmentStarter.DataSecurity,
+            language: "en",
+            now: new Date(),
+          }),
+        ),
+      },
+    ],
+  );
+
+  useInMemoryHookFreeWrites(asService(SecurityCaseService), cases);
+  useInMemoryTable(
+    asService(DataSecurityIssueService),
+    issueRows().map((row: StoredRow): StoredRow => {
+      return row["_id"] === BUCKET_ISSUE_ID
+        ? {
+            ...row,
+            securityCaseId: EXPOSURE_CASE_ID,
+            firstDetectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          }
+        : row;
+    }),
+  );
+  useInMemoryTable(asService(DataStoreFindingService), [
+    ...findingRows(),
+    {
+      _id: "10377000-0000-4000-8000-0000000000d5",
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: STORE_ID,
+      dataTypeId: "aws-secret-access-key",
+      dataTypeName: "AWS secret access key",
+      dataCategory: "Secrets and credentials",
+      location: "deploy/env.sh",
+      locationKind: "Object path",
+      confidence: "High",
+      isSuppressed: false,
+      lastSeenAt: new Date(),
+      maskedSamples: [PLANTED["cloudSecret"]],
+      sampleRecords: [
+        {
+          time: new Date().toISOString(),
+          traceId: PLANTED["sampleRecordTrace"],
+          logId: PLANTED["sampleRecordLog"],
+        },
+      ],
+    },
+  ]);
+  useInMemoryTable(asService(DataSecurityIssueFeedService), []);
+  useInMemoryTable(asService(DataStoreFeedService), []);
+  useInMemoryTable(asService(SecurityCaseTaskService), []);
+  jest
+    .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(ChangeEventService, "executeQuery")
+    .mockRejectedValue(new Error("No change log in this test."));
+  jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+  jest
+    .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+    .mockResolvedValue(null);
+}
+
 const draftRecordRun: (
   feature:
     | DataSecurityAiFeature.DraftRecord
@@ -867,6 +976,38 @@ const draftRecordRun: (
 };
 
 const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
+  // An exposure's write-up on its own, as its case opens (#10377).
+  [DataSecurityAiFeature.DraftExposureAssessment]:
+    async (): Promise<string> => {
+      useExposureTables();
+
+      await ExposureAssessmentDrafter.draftOnItsOwn({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(EXPOSURE_CASE_ID),
+      });
+
+      expect(completion).toHaveBeenCalledTimes(1);
+
+      return sentToTheModel();
+    },
+  // ...and when a person asks on the case's card.
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]:
+    async (): Promise<string> => {
+      useExposureTables();
+
+      // An answer it cannot hold is refused after the call: what was sent is the test.
+      await ExposureAssessmentDrafter.draftForPerson({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(EXPOSURE_CASE_ID),
+        props: OWNER,
+      }).catch((): void => {
+        // Nothing held from '{"fields":[]}'.
+      });
+
+      expect(completion).toHaveBeenCalledTimes(1);
+
+      return sentToTheModel();
+    },
   [DataSecurityAiFeature.DraftRecord]: async (): Promise<string> => {
     return await draftRecordRun(DataSecurityAiFeature.DraftRecord);
   },
@@ -1359,6 +1500,19 @@ const SENT_ON_PURPOSE: Partial<Record<DataSecurityAiFeature, Array<string>>> = {
 
 // What each feature is for, which its input must still carry.
 const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
+  // The store, its exposure and the secret to rotate, by type and where (#10377).
+  [DataSecurityAiFeature.DraftExposureAssessment]: [
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+    "deploy/env.sh",
+    "GDPR Article 33",
+  ],
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: [
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+    "deploy/env.sh",
+    "GDPR Article 33",
+  ],
   // The store, what it holds and how many: what its purpose is drafted from.
   [DataSecurityAiFeature.DraftRecord]: [
     "acme-card-exports",

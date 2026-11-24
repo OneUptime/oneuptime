@@ -14,9 +14,11 @@ import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSec
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import RecordOfProcessingDraftRun from "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun";
+import ExposureAssessmentRun from "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun";
 import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+  DATA_SECURITY_ASSESS_EXPOSURE_JOB,
   DATA_SECURITY_NOTIFY_OWNERS_JOB,
   HeldOwnerNotice,
   readHeldOwnerNotice,
@@ -405,6 +407,28 @@ JobDictionary.setJobFunction(
   },
 );
 JobDictionary.setTimeoutInMs(DATA_SECURITY_DRAFT_RECORDS_JOB, 30 * 60 * 1000);
+
+// The exposure a Critical issue opened a security case for, assessed (#10377).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+    const securityCaseId: ObjectID | null = readId(job, "securityCaseId");
+    const dataSecurityIssueId: ObjectID | null = readId(
+      job,
+      "dataSecurityIssueId",
+    );
+
+    if (projectId && securityCaseId && dataSecurityIssueId) {
+      await ExposureAssessmentRun.run({
+        projectId,
+        securityCaseId,
+        dataSecurityIssueId,
+      });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(DATA_SECURITY_ASSESS_EXPOSURE_JOB, 5 * 60 * 1000);
 
 // The owner rules the project's proposed owners share (#10374).
 JobDictionary.setJobFunction(

@@ -67,6 +67,7 @@ import {
 import DataTypeNamer from "../../../../../../Types/DataSecurity/DataTypeNamer";
 import { DataStoreFindingVerdict } from "../../../../../../Types/DataSecurity/DataStoreFindingVerdict";
 import { describe, expect, test } from "@jest/globals";
+import { getGoodExposureAnswer } from "./ExposureEvalAnswers";
 
 /*
  * THE DATA SECURITY EVAL (#10365), AGAINST A PINNED MODEL STOOD IN FOR.
@@ -590,6 +591,9 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodAssessmentAnswer(testCase);
     case DataSecurityAiFeature.DraftAuditEvidence:
       return goodEvidenceAnswer(testCase);
+    case DataSecurityAiFeature.DraftExposureAssessment:
+    case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
+      return getGoodExposureAnswer(testCase);
   }
 }
 

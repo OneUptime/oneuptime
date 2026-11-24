@@ -60,6 +60,7 @@ import {
   IMPACT_ASSESSMENT_CASES,
   RECORD_DRAFT_CASES,
 } from "./DataSecurityPaperworkEvalCases";
+import { EXPOSURE_ASSESSMENT_CASES } from "./DataSecurityExposureEvalCases";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1759,6 +1760,7 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...RECORD_DRAFT_CASES,
   ...IMPACT_ASSESSMENT_CASES,
   ...AUDIT_EVIDENCE_CASES,
+  ...EXPOSURE_ASSESSMENT_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;
