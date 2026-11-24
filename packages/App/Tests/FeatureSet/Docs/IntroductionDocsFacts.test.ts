@@ -3833,13 +3833,16 @@ describe("Home Page & Shortcuts", () => {
       expect(`${fromTablet} ${fromLaptop}`).not.toContain(always);
     }
 
-    // Below md, the menu button's list starts with Search and ends with Help.
+    /*
+     * Below md, the menu button's list starts with Search and then Help,
+     * above Home and every product (#7473), and nothing is drawn at its end.
+     */
     const navBar: string = oneLine(dashboard("Components/NavBar/NavBar.tsx"));
 
     expect(navBar).toContain(
-      "return <PhoneMenuSearch closeMenu={closeMenu} />;",
+      "mobileMenuTop={(closeMenu: () => void): ReactElement => { return ( <> <PhoneMenuSearch closeMenu={closeMenu} /> <PhoneMenuHelp closeMenu={closeMenu} /> </> ); }}",
     );
-    expect(navBar).toContain("return <PhoneMenuHelp closeMenu={closeMenu} />;");
+    expect(navBar).not.toContain("mobileMenuBottom");
     expect(readSource(COMMON_DIR, "UI/Components/Navbar/NavBar.tsx")).toContain(
       "export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;",
     );
@@ -3850,7 +3853,7 @@ describe("Home Page & Shortcuts", () => {
     ).toContain('title: t("commandPalette.actions.askAi", "Ask AI"),');
 
     expect(HOME).toContain(
-      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move to the top of the menu button's list, **Help** right under **Search**; the bell and your picture stay.",
     );
   });
 
