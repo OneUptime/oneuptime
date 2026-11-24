@@ -350,6 +350,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
   },
   {
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    count: 1,
+    builtFrom:
+      "the redactor's own two email address patterns (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), pattern literals of bounded parts, as the Android agent's Kotlin writes them",
+  },
+  {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
     count: 1,
     builtFrom:
