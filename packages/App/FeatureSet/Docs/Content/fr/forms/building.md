@@ -66,7 +66,7 @@ Le logo garde la hauteur du logo de OneUptime qu'il remplace, et un logo large e
 
 ## Ce que vous pouvez ajouter
 
-**Ajouter une question** liste quatre groupes : **Questions** propres au formulaire, **Champs de l'incident** ou **Champs de la maintenance planifiée** de ce que le formulaire crée, **Champs personnalisés** et **Auteur de la soumission**.
+**Ajouter une question** liste quatre groupes : **Questions** propres au formulaire, **Champs de l'incident**, **Champs de l'alerte** ou **Champs de la maintenance planifiée** de ce que le formulaire crée, **Champs personnalisés** et **Auteur de la soumission**.
 
 ### Questions propres au formulaire
 
@@ -92,7 +92,7 @@ Une question **Fichier** ou **Plusieurs fichiers** prend des fichiers sur l'ordi
 
 ### Champs de ce que le formulaire crée
 
-Les champs d'un incident, ou d'un événement de maintenance, auxquels une personne qui soumet peut répondre. La réponse devient la valeur du champ.
+Les champs d'un incident, d'une alerte ou d'un événement de maintenance auxquels une personne qui soumet peut répondre. La réponse devient la valeur du champ.
 
 | Champ d'incident | Répondu avec |
 | --- | --- |
@@ -100,6 +100,15 @@ Les champs d'un incident, ou d'un événement de maintenance, auxquels une perso
 | **Description** | Du texte enrichi, jusqu'à 20 000 caractères. |
 | **Gravité** | L'une de vos gravités d'incident. |
 | **Moniteurs** | N'importe lesquels des moniteurs que vous proposez — les moniteurs affectés de l'incident. |
+| **Étiquettes** | N'importe lesquelles des étiquettes que vous proposez. |
+| **Début de l'impact** | Une date et une heure : quand le problème a commencé, selon le souvenir de la personne qui soumet. |
+
+| Champ d'alerte | Répondu avec |
+| --- | --- |
+| **Titre** | Une ligne, jusqu'à 500 caractères. |
+| **Description** | Du texte enrichi, jusqu'à 20 000 caractères. |
+| **Gravité** | L'une de vos gravités d'alerte. |
+| **Moniteur** | L'un des moniteurs que vous proposez — le moniteur de l'alerte. Une alerte porte sur un seul moniteur. |
 | **Étiquettes** | N'importe lesquelles des étiquettes que vous proposez. |
 | **Début de l'impact** | Une date et une heure : quand le problème a commencé, selon le souvenir de la personne qui soumet. |
 
@@ -115,11 +124,11 @@ Les champs d'un incident, ou d'un événement de maintenance, auxquels une perso
 
 Chaque champ ne peut être demandé qu'une fois ; la liste marque ceux qui sont déjà dans le formulaire avec **Ajouté**. Un champ que le formulaire ne demande pas — ou laissé vide — est rempli à partir des [paramètres À la soumission](/docs/forms/on-submit) du formulaire.
 
-**Choix proposés.** Une page publique ne doit pas lister tout votre projet à des inconnus, donc un champ auquel on répond en choisissant des enregistrements ne propose que ceux que vous choisissez. **Moniteurs**, **Étiquettes** et **Pages de statut** listent exactement les choix que vous proposez, et ne sont pas demandés tant que vous n'en proposez pas au moins un. **Gravité** propose toutes les gravités d'incident sauf si vous la restreignez, puisque les gravités ne sont pas secrètes. Les réponses hors des choix proposés sont refusées.
+**Choix proposés.** Une page publique ne doit pas lister tout votre projet à des inconnus, donc un champ auquel on répond en choisissant des enregistrements ne propose que ceux que vous choisissez. **Moniteurs**, **Moniteur**, **Étiquettes** et **Pages de statut** listent exactement les choix que vous proposez, et ne sont pas demandés tant que vous n'en proposez pas au moins un. **Gravité** propose toutes les gravités d'incident, ou toutes les gravités d'alerte dans un formulaire d'alerte, sauf si vous la restreignez, puisque les gravités ne sont pas secrètes. Les réponses hors des choix proposés sont refusées.
 
 ### Champs personnalisés
 
-Vos champs personnalisés d'incident — ou de maintenance planifiée, pour un formulaire de maintenance — chacun une question dont la réponse devient la valeur du champ. La question prend son type et ses options du champ personnalisé, et commence avec son nom comme question et sa description comme texte d'aide, que vous pouvez changer. Un champ personnalisé **Fichier** ou **Plusieurs fichiers** est posé comme une question de fichiers, et ses fichiers vont dans le champ.
+Vos champs personnalisés d'incident — ou d'alerte pour un formulaire d'alerte, et de maintenance planifiée pour un formulaire de maintenance — chacun une question dont la réponse devient la valeur du champ. La question prend son type et ses options du champ personnalisé, et commence avec son nom comme question et sa description comme texte d'aide, que vous pouvez changer. Un champ personnalisé **Fichier** ou **Plusieurs fichiers** est posé comme une question de fichiers, et ses fichiers vont dans le champ.
 
 Un formulaire ne demande que les champs personnalisés que vous lui ajoutez, quoi que dise **Afficher à la création** : chaque champ qu'un formulaire demande montre son nom, sa description et ses options à toute personne ayant le lien. Quand un champ personnalisé est supprimé, sa question reste dans le formulaire mais n'est plus demandée, et sa carte le dit — supprimez la question. Un champ recréé avec le même nom est un nouveau champ : ajoutez-le à nouveau.
 
@@ -231,6 +240,7 @@ Après la soumission, la page dit "Merci — votre réponse a été envoyée." e
 | Réponse | Limite |
 | --- | --- |
 | Le **Titre** d'un incident | 500 caractères, sans compter les espaces aux deux extrémités. |
+| Le **Titre** d'une alerte | 500 caractères, sans compter les espaces aux deux extrémités. |
 | Le **Titre** d'un événement de maintenance | 100 caractères. |
 | **Description** | 20 000 caractères. |
 | Toute autre réponse textuelle | 10 000 caractères. |

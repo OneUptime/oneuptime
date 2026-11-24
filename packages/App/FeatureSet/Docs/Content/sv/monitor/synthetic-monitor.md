@@ -156,13 +156,15 @@ return {
 
 En körning sparar upp till 20 skärmbilder, var och en upp till 10 MB och 50 MB totalt. En skärmbild kan också visas i den incident eller det larm som en misslyckad körning öppnar — på dess sida och i e-postmeddelandena om den — genom att du placerar den i monitorns beskrivning för incidenter eller larm. Se [Visa en skärmbild](/docs/monitor/incident-alert-templating#visa-en-skärmbild).
 
+När en körning får timeout tar sonden också en skärmbild av varje sida som skriptet fortfarande har öppen, så att du kan se var det stannade. Skärmbilden av den första sidan heter `timed-out-page`, och de andras `timed-out-page-2`, `timed-out-page-3` och så vidare, i den ordning sidorna öppnades. Monitorns sammanfattning visar dem som ”Sida när skriptet fick timeout” och ”Sida 2 när skriptet fick timeout”, och beskrivningen av en incident eller ett larm kan visa dem som vilken annan skärmbild som helst. De räknas in i gränserna ovan, efter skriptets egna skärmbilder.
+
 En kontrolls skärmbilder sparas i monitorns egna loggar, inte i en incidents eller ett larms loggar och inte i en monitors statusändringar: de sparar resten av kontrollen, och varje körning vars skärmbilder utelämnades säger det (`areScreenshotsOmitted`). Skärmbilder som redan har sparats där rensas efter uppgraderingen av ett jobb som körs varje timme, lite i taget, tills inga finns kvar.
 
 > [!NOTE]
 > På en egen installation återanvänder PostgreSQL utrymmet som de rensade skärmbilderna lämnar, men lämnar inte tillbaka det till disken. För att krympa databasen när de är rensade kör du `VACUUM FULL` på de största tabellerna i ett underhållsfönster, eftersom det låser varje tabell medan det skriver om den, eller använder `pg_repack`, som inte gör det.
 
 :::details Returnera skärmbilder (äldre sätt)
-För bakåtkompatibilitet kan du också returnera skärmbilder från skriptet som en del av returvärdet. Skärmbilder som returneras på det här sättet sparas **bara** när skriptet slutförs normalt — de går förlorade om skriptet kastar ett fel. Föredra sidokanalmönstret ovan när du vill ha bevis på fel.
+För bakåtkompatibilitet kan du också returnera skärmbilder från skriptet som en del av returvärdet. Skärmbilder som returneras på det här sättet sparas **bara** när skriptet slutförs normalt — de går förlorade om skriptet kastar ett fel eller får timeout. Föredra sidokanalmönstret ovan när du vill ha bevis på fel.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Händelselyssnare kan inte korsa isoleringsgränsen. Använd `page.waitForEvent(
 :::
 
 :::details Körningen når sin tidsgräns
-Vänta på specifika element med `page.waitForSelector(...)` och en `timeout` som är kortare än skriptets egen gräns, så att körningen misslyckas på det steg som är långsamt, med ett tydligt fel.
+**Visa fler detaljer** i monitorns sammanfattning visar ”Sida när skriptet fick timeout”: sidan som skriptet var på när tiden tog slut. Vänta på specifika element med `page.waitForSelector(...)` och en `timeout` som är kortare än skriptets egen gräns, så att körningen misslyckas på det steg som är långsamt, med ett tydligt fel.
 :::
 
 :::details En självhostad sond säger att webbläsarens körbara fil inte hittades

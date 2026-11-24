@@ -167,7 +167,7 @@ return {
 
 有些属性名称属于 OneUptime 自己，脚本无法写入。如果你的脚本设置了其中之一，该属性会被丢弃（指标本身仍会记录），并且会在 OneUptime 服务器日志中写入一条指出该键名的警告。它们是：
 
-- 监视器的标识：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`isCustomMetric`。
+- 监视器的标识：`monitorId`、`projectId`、`monitorName`、`probeName`、`probeId`、`monitorStepId`、`isCustomMetric`。
 - `oneuptime.` 或 `resource.` 命名空间中的所有内容，它们承载 OneUptime 在接收数据时打上的标识符。
 - 资源标识属性：`service.name`、`host.name`、`k8s.cluster.name`、`iot.fleet.name`、`proxmox.cluster.name`、`openstack.cloud.name`、`vmware.vcenter.name`、`ceph.cluster.name`、`storage.array.name` 和 `docker.swarm.cluster.name`。
 

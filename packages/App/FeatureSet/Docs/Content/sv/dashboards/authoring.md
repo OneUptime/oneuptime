@@ -134,7 +134,13 @@ Zoom fungerar bara i visningsläge; i redigeringsläge flyttar och ändrar dragn
 
 ## Helskärm
 
-**⋯ → Helskärm** visar instrumentpanelens widgetar på hela skärmen, för en väggskärm eller ett möte. Tryck på Esc för att lämna den.
+Helskärm visar bara instrumentpanelen, på hela skärmen: dess verktygsfält och dess widgetar, utan det övre fältet, sidomenyn eller brödsmulorna runt omkring. Allt fungerar som på instrumentpanelens sida, och för samma personer: redigering, att lägga till och ta bort widgetar, tidsintervallet, automatisk uppdatering och variablerna.
+
+- **Helskärm**, den fyrkantiga knappen i slutet av instrumentpanelens verktygsfält, eller **⋯ → Helskärm** visar instrumentpanelen i helskärm. Din webbläsare går också i helskärm, där den tillåter det.
+- **Öppna i ny flik**, i instrumentpanelens **⋯**-meny eller i en rads **⋯**-meny i listan **Instrumentpaneler**, öppnar instrumentpanelen i helskärm i en egen flik. I den fliken sätter **Fyll skärmen** också din webbläsare i helskärm.
+- **Avsluta helskärm**, eller Esc, går tillbaka till instrumentpanelens sida och tar också din webbläsare ur helskärm. Efter **Fyll skärmen** tar det första Esc bara din webbläsare ur helskärm.
+
+En instrumentpanel i helskärm har en egen adress, som slutar med `?view=full-screen`: spara den som bokmärke eller öppna den på en väggskärm, så öppnas instrumentpanelen i helskärm. Använd en [spellista](/docs/dashboards/playlists) för att visa flera instrumentpaneler efter varandra på en skärm.
 
 ## Tips för instrumentpaneler som håller över tid
 

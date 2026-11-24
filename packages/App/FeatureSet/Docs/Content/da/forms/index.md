@@ -1,6 +1,6 @@
 # Formularer – overblik
 
-En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, eller en **vedligeholdelseshændelse**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
+En formular er en side, som alle med dens link kan udfylde, uden en OneUptime-konto. Hver indsendelse opretter noget i dit projekt: en **hændelse**, til fejlrapporter, en **advarsel**, til advarselstegn og ting, der skal tjekkes, eller en **vedligeholdelseshændelse**, til ændrings- og vedligeholdelsesanmodninger. Du bygger formularens spørgsmål i en træk-og-slip-editor, bestemmer, hvordan svarene bliver til posten, og deler linket med dem, der skal bruge den.
 
 Brug en formular, når de mennesker, der opdager et problem eller har brug for en ændring, ikke er dem, der håndterer dine hændelser og din vedligeholdelse: supportmedarbejdere, kolleger i en anden afdeling, en butikschef, en kundes driftsteam. De åbner linket, besvarer dine spørgsmål og trykker på **Indsend**. Dit team får en almindelig hændelse eller begivenhed med svarene i dens felter og en privat note, der registrerer, hvem der sendte den.
 
@@ -13,16 +13,19 @@ Brug en formular, når de mennesker, der opdager et problem eller har brug for e
 
 ## Sådan fungerer en formular
 
-```mermaid title="Fra en udfyldt formular til en hændelse eller en vedligeholdelseshændelse"
+```mermaid title="Fra en udfyldt formular til en hændelse, en advarsel eller en vedligeholdelseshændelse"
 flowchart TB
     submitter["Nogen med linket,<br/>uden konto"] --> page["Formularens side"]
     page -->|Indsend| checks["Beskyttelse og<br/>kontrol af svar"]
     checks --> submission["Indsendelse, gemt<br/>med formularen"]
     submission --> target{"Hver indsendelse opretter"}
     target -->|Hændelse| incident["Hændelse, skjult<br/>på statussider"]
+    target -->|Advarsel| alert["Advarsel, som dens<br/>ejere skal tjekke"]
     target -->|Planlagt vedligeholdelse| event["Vedligeholdelseshændelse,<br/>skjult medmindre angivet"]
     incident --> response["Vagtpolitikker og<br/>regler kører"]
+    alert --> response
     incident --> note["Privat note: hvem der sendte,<br/>øvrige svar"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Når du opretter en formular, vælger du, hvad **Hver indsendelse opretter**. Du
 | Hver indsendelse opretter | Bruges til | Hvad der sker |
 | --- | --- | --- |
 | **Hændelse** | Fejlrapporter | En hændelse oprettes med det samme, så dine vagtpolitikker og regler kører, og de vagthavende får besked. Den holdes væk fra statussider, indtil en, der håndterer den, offentliggør den. |
+| **Advarsel** | Advarselstegn og ting, der skal tjekkes | En advarsel oprettes, så dens ejere får besked, og dens vagtpolitikker og regler kører, uden at der erklæres en hændelse. En, der starter i en senere tilstand, som **Bekræftet**, tilkalder ingen. |
 | **Planlagt vedligeholdelse** | Ændrings- og vedligeholdelsesanmodninger | En vedligeholdelseshændelse planlægges for det tidsrum, indsenderen beder om. Medmindre formularen siger andet, holdes den væk fra sine statussider og giver ingen abonnenter besked. |
 
-Formularer starter med disse to, og flere slags poster følger.
+At sætte en formular op, der opretter advarsler, kræver også tilladelse til at oprette advarsler: se [Tilladelser](#tilladelser).
 
 ## Før du begynder
 
 - **En plan, der omfatter formularer.** På OneUptime Cloud kræver formularer planen **Growth** eller højere. Se [Plan](#plan).
 - **Tilladelse til at oprette formularer.** **Create Form** har Projektejere og Projektadministratorer samt de roller, du giver den til. Se [Tilladelser](#tilladelser).
 - **For en hændelsesformular, en alvorsgrad.** Hver hændelse har brug for én: fra et spørgsmål, fra formularens indstillinger eller fra dens hændelsesskabelon. Uden den afvises hver indsendelse. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-hændelse).
+- **For en advarselsformular, en alvorsgrad.** Hver advarsel har også brug for én: fra et spørgsmål eller fra formularens indstillinger. Se [Sådan bliver en indsendelse til en advarsel](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-advarsel).
 
 ## Opret din første formular
 
@@ -144,6 +149,8 @@ Formularer lader folk uden for dit team oprette hændelser og vedligeholdelsesh�
 | **Delete Form Domain** | Fjerne en formulars brugerdefinerede domæner. | Projektejer, Projektadministrator og **Edit Form** |
 | **Read Form Domain** | Se en formulars brugerdefinerede domæner, deres DNS-poster og hvor langt hvert er på vejen mod HTTPS. | Alle med **Read Form** |
 
+**En formular, der opretter advarsler, kræver tilladelse til at oprette advarsler.** Alle med dens link kan oprette advarsler, give deres ejere besked og tilkalde deres vagthavende, så for at oprette en formular, der opretter advarsler, gøre en formular til en sådan eller ændre en advarselsformulars spørgsmål, skabeloner eller indstillinger under **Ved indsendelse** kræves der i hvert tilfælde også en tilladelse, der giver lov til at oprette advarsler: Projektejer, Projektadministrator, Projektmedlem, Advarselsadministrator, Advarselsmedlem eller **Create Alert**. Dens navn, link, **Modtager indsendelser**, branding og **IP-tilladelsesliste** kræver alene tilladelserne **Form**. Uden den tilladelse tilbydes **Advarsel** ikke, når du opretter en formular, og den er låst på formularens side **Ved indsendelse**, med et værktøjstip, der nævner tilladelsen; en anmodning, der sendes alligevel, afvises med "Only people who may create alerts can set up a form that creates them." Hændelses- og vedligeholdelsesformularer kræver alene tilladelserne **Form**, som de altid har gjort.
+
 Indsendelser indeholder det, fremmede har skrevet (navne, e-mailadresser og svar, der måske aldrig når posten), så kun Projektejere og Projektadministratorer ser dem, medmindre du giver **Read Form Submission**. Alle, der kan læse en formular, kan se og dele dens link. Det kræver ingen tilladelse at indsende en formular. Hvordan roller og detaljerede tilladelser spiller sammen, kan du læse om i [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Formularer er en almindelig API-ressource på `/api/form`, og deres indsendelser
 
 ### Spørgsmål og indstillinger
 
-En formulars spørgsmål er dens kolonne `fields`, en JSON-liste i den rækkefølge, formularen stiller dem, og dens indstillinger under Ved indsendelse er dens `targetSettings`:
+En formulars `targetType` er det, hver indsendelse opretter: `Incident`, `Alert` eller `ScheduledMaintenance`. Dens spørgsmål er dens kolonne `fields`, en JSON-liste i den rækkefølge, formularen stiller dem, og dens indstillinger under Ved indsendelse er dens `targetSettings` — for en advarselsformular `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` og `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Hvert spørgsmål har sit eget `id` (bogstaver, cifre, `-` og `_`), en `source`,
 | `source` | Hvad det spørger om |
 | --- | --- |
 | `Question` | Et af formularens egne spørgsmål, besvaret efter `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En rulleliste viser sine `dropdownOptions`, én pr. linje. |
-| `TargetField` | Et felt i det, formularen opretter, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hændelse; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedligeholdelseshændelse. Et felt, der besvares ved at vælge, viser de poster, det tilbyder, i `allowedOptionIds`. |
-| `TargetCustomField` | Et af hændelsens eller begivenhedens brugerdefinerede felter, angivet med `customFieldId`. |
+| `TargetField` | Et felt i det, formularen opretter, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` og `impactStartedAt` for en hændelse; `title`, `description`, `alertSeverityId`, `monitor`, `labels` og `impactStartedAt` for en advarsel; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` og `labels` for en vedligeholdelseshændelse. Et felt, der besvares ved at vælge, viser de poster, det tilbyder, i `allowedOptionIds`. |
+| `TargetCustomField` | Et af hændelsens, advarslens eller begivenhedens brugerdefinerede felter, angivet med `customFieldId`. |
 | `Submitter` | Indsenderens `Name` eller `Email`, angivet med `submitterField`. |
 
 Et spørgsmål med `isHidden` sat til `true` vises ikke på den offentlige side, er aldrig påkrævet og besvares kun fra den skabelon, en indsendelse angiver, medmindre den skabelon stiller det. `isRequired` og `isHidden` er formularens standard; hver skabelon kan stille et spørgsmål på sin egen måde.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `na
 
 ### Arbejdsgange
 
-Formularer har de genererede arbejdsgangskomponenter: **Ved oprettelse: Formular**, **Ved opdatering: Formular** og så videre. Brug **Ved oprettelse: Hændelse** eller **Ved oprettelse: Vedligeholdelseshændelse** for at reagere på det, en formular har oprettet.
+Formularer har de genererede arbejdsgangskomponenter: **Ved oprettelse: Formular**, **Ved opdatering: Formular** og så videre. Brug **Ved oprettelse: Hændelse**, **Ved oprettelse: Advarsel** eller **Ved oprettelse: Vedligeholdelseshændelse** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

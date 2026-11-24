@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+En cambio, un ajuste que alguien añade en OneUptime a los pasos de un monitor, y que su configuración no escribe, sí es una diferencia: el siguiente plan muestra que `monitor_steps` cambia, y el apply que le sigue quita el ajuste, como dice el plan. Para conservarlo, escríbalo también en su configuración.
+
 ## Etiquetas y otras listas a las que OneUptime también añade
 
 OneUptime añade por su cuenta a algunas listas de un registro: una regla de etiquetas añade sus etiquetas a los registros que coinciden con ella, una regla de guardia añade sus políticas a los incidentes y alertas que coinciden con ella, y las reglas de monitores de un SLO vinculan los monitores que coinciden con ellas. La referencia lo dice de cada uno de esos atributos: "OneUptime adds to it too, on its own". Una configuración que define una de ellas mantiene las entradas que enumera y deja el resto:

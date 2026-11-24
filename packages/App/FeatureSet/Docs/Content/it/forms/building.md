@@ -66,7 +66,7 @@ Il logo mantiene l'altezza del logo di OneUptime che sostituisce, e uno largo vi
 
 ## Cosa puoi aggiungere
 
-**Aggiungi una domanda** elenca quattro gruppi: **Domande** proprie del modulo, **Campi dell'incidente** o **Campi della manutenzione programmata** di ciò che il modulo crea, **Campi personalizzati** e **Mittente**.
+**Aggiungi una domanda** elenca quattro gruppi: **Domande** proprie del modulo, **Campi dell'incidente**, **Campi dell'avviso** o **Campi della manutenzione programmata** di ciò che il modulo crea, **Campi personalizzati** e **Mittente**.
 
 ### Domande proprie del modulo
 
@@ -92,7 +92,7 @@ Una domanda **File** o **Più file** prende i file dal computer di chi invia e l
 
 ### Campi di ciò che il modulo crea
 
-I campi di un incidente, o di un evento di manutenzione, a cui un mittente può rispondere. La risposta diventa il valore del campo.
+I campi di un incidente, di un avviso o di un evento di manutenzione a cui un mittente può rispondere. La risposta diventa il valore del campo.
 
 | Campo dell'incidente | Si risponde con |
 | --- | --- |
@@ -100,6 +100,15 @@ I campi di un incidente, o di un evento di manutenzione, a cui un mittente può 
 | **Descrizione** | Testo formattato, fino a 20.000 caratteri. |
 | **Gravità** | Una delle tue gravità degli incidenti. |
 | **Monitor** | Uno qualsiasi dei monitor che offri — i monitor interessati dell'incidente. |
+| **Etichette** | Una qualsiasi delle etichette che offri. |
+| **Inizio dell'impatto** | Una data e un'ora: quando è iniziato il problema, secondo il ricordo del mittente. |
+
+| Campo dell'avviso | Si risponde con |
+| --- | --- |
+| **Titolo** | Una riga, fino a 500 caratteri. |
+| **Descrizione** | Testo formattato, fino a 20.000 caratteri. |
+| **Gravità** | Una delle tue gravità degli avvisi. |
+| **Monitor** | Uno dei monitor che offri — il monitor dell'avviso. Un avviso riguarda un solo monitor. |
 | **Etichette** | Una qualsiasi delle etichette che offri. |
 | **Inizio dell'impatto** | Una data e un'ora: quando è iniziato il problema, secondo il ricordo del mittente. |
 
@@ -115,11 +124,11 @@ I campi di un incidente, o di un evento di manutenzione, a cui un mittente può 
 
 Ogni campo può essere chiesto una sola volta; l'elenco segna quelli già presenti nel modulo con **Aggiunto**. Un campo che il modulo non chiede — o che resta vuoto — viene compilato dalle [impostazioni All'invio](/docs/forms/on-submit) del modulo.
 
-**Scelte offerte.** Una pagina pubblica non deve elencare tutto il tuo progetto a degli sconosciuti, quindi un campo a cui si risponde scegliendo dei record offre solo quelli che scegli tu. **Monitor**, **Etichette** e **Pagine di stato** elencano esattamente le scelte che offri, e non vengono chiesti finché non ne offri almeno una. **Gravità** offre tutte le gravità degli incidenti a meno che tu non la restringa, perché le gravità non sono segrete. Le risposte al di fuori delle scelte offerte vengono rifiutate.
+**Scelte offerte.** Una pagina pubblica non deve elencare tutto il tuo progetto a degli sconosciuti, quindi un campo a cui si risponde scegliendo dei record offre solo quelli che scegli tu. **Monitor** (anche il **Monitor** unico di un modulo di avvisi), **Etichette** e **Pagine di stato** elencano esattamente le scelte che offri, e non vengono chiesti finché non ne offri almeno una. **Gravità** offre tutte le gravità degli incidenti, o tutte le gravità degli avvisi in un modulo di avvisi, a meno che tu non la restringa, perché le gravità non sono segrete. Le risposte al di fuori delle scelte offerte vengono rifiutate.
 
 ### Campi personalizzati
 
-I tuoi campi personalizzati degli incidenti — o della manutenzione programmata, per un modulo di manutenzione — ognuno una domanda la cui risposta diventa il valore del campo. La domanda prende tipo e opzioni dal campo personalizzato, e parte con il suo nome come domanda e la sua descrizione come testo di aiuto, che puoi cambiare. Un campo personalizzato **File** o **Più file** viene chiesto come domanda di file, e i suoi file vanno nel campo.
+I tuoi campi personalizzati degli incidenti — o degli avvisi, per un modulo di avvisi, e della manutenzione programmata, per un modulo di manutenzione — ognuno una domanda la cui risposta diventa il valore del campo. La domanda prende tipo e opzioni dal campo personalizzato, e parte con il suo nome come domanda e la sua descrizione come testo di aiuto, che puoi cambiare. Un campo personalizzato **File** o **Più file** viene chiesto come domanda di file, e i suoi file vanno nel campo.
 
 Un modulo chiede solo i campi personalizzati che gli aggiungi, qualunque cosa dica **Mostra alla creazione**: ogni campo che un modulo chiede mostra il suo nome, la sua descrizione e le sue opzioni a chiunque abbia il link. Quando un campo personalizzato viene eliminato, la sua domanda resta nel modulo ma non viene più chiesta, e la sua scheda lo dice — elimina la domanda. Un campo ricreato con lo stesso nome è un campo nuovo: aggiungilo di nuovo.
 
@@ -231,6 +240,7 @@ Dopo l'invio, la pagina dice "Grazie — la tua risposta è stata inviata." e d�
 | Risposta | Limite |
 | --- | --- |
 | Il **Titolo** di un incidente | 500 caratteri, senza contare gli spazi alle due estremità. |
+| Il **Titolo** di un avviso | 500 caratteri, senza contare gli spazi alle due estremità. |
 | Il **Titolo** di un evento di manutenzione | 100 caratteri. |
 | **Descrizione** | 20.000 caratteri. |
 | Qualsiasi altra risposta di testo | 10.000 caratteri. |

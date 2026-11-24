@@ -70,6 +70,8 @@ flowchart TB
 
 **Какие инциденты возвращает страница.** Адрес инцидентов возвращает инциденты на мониторах страницы, кроме ограниченных другими страницами статуса, и кроме всех инцидентов, не ограниченных этой страницей, если страница показывает только ограниченные ею инциденты (см. [Отдельная страница статуса для каждой аудитории](/docs/status-pages/one-status-page-per-audience)). То, какими страницами ограничен инцидент, в ответ никогда не попадает.
 
+**Как страница выводит свои инциденты.** Обзор и списки инцидентов и эпизодов называют режим страницы в `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` или `None` в обзоре страницы, которая не показывает ни того, ни другого. Пока страница показывает и инциденты, и эпизоды, каждый эпизод в `episodes` и `activeEpisodes` содержит `incidents`: те его инциденты, которые показывает страница, сначала новые, каждый со своими `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` и `monitors`. Инцидент, запрошенный по ID, тогда содержит `partOfEpisodes`: каждый эпизод, в который он входит, с его `_id` и `title`. При группировке по эпизодам, когда **Показывать инциденты, сгруппированные по эпизодам** включён, страница рисует эпизод одной карточкой и не показывает его инциденты среди карточек инцидентов, а эпизод, у которого нет ни одного такого инцидента, в списки не попадает; `incidents` и `activeIncidents` по-прежнему содержат все инциденты, которые показывает страница, так что клиент, не учитывающий эпизоды, ни одного не пропустит. Везде, где инцидент или эпизод называет свои `monitors`, это только мониторы самой страницы.
+
 ## Чтение обзора
 
 Обзор — это один запрос на всю страницу. Это те же данные, которые рисует страница статуса, и им не больше 15 секунд.
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Данные, по которым рисуются полосы времени работы, и правила цвета полос на странице. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Нерешённые инциденты, которые показывает страница, их публичные заметки и смены состояний, а также состояния инцидентов проекта. |
 | `timelineIncidents` | Инциденты в окне полос времени работы, включая решённые, — для всплывающих подсказок полос. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. |
+| `timelineEpisodes` | На странице, которая показывает эпизоды, но не инциденты, — то, что вместо этого перечисляют всплывающие подсказки полос и диалоговое окно каждого дня: каждый эпизод, к которому относится инцидент в окне полос времени работы, только с `declaredAt` и `monitors` страницы для каждого его инцидента, который страница показала бы и по отдельности. На всех остальных страницах пуст. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. Каждый эпизод содержит `monitors` — мониторы страницы, на которых находятся его показанные инциденты, — а пока страница показывает и инциденты, ещё и `incidents`. |
+| `incidentListMode` | Как страница выводит свои инциденты и эпизоды: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` или `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | События обслуживания, которые ещё впереди или идут сейчас, их публичные заметки и смены состояний. |
 | `timelineScheduledMaintenanceEvents` | Уже начавшиеся события обслуживания в окне полос времени работы, идущие сейчас или прошедшие, — для всплывающих подсказок полос и диалогового окна каждого дня: те, что показывает страница и что затрагивают один из её мониторов, каждое только с мониторами страницы. |
 | `activeAnnouncements` | Объявления, которые показываются сейчас: уже начались и ещё не закончились. |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | Общий статус страницы, как его показывает её баннер: `name`, `color` и `isOperational`. `null`, когда все ресурсы страницы показаны как **Не отслеживается**. |
 | `resources` | Каждый ресурс, который показывает страница, в её порядке: его `name` на странице, его `groupName` с группами над ним, его `currentStatus`, `isMonitored` и `isUnderMaintenance`. |
-| `activeIncidents` | Нерешённые инциденты, которые показывает страница, каждый с `affectedResourceIds` затронутых ресурсов. |
+| `activeIncidents` | Нерешённые инциденты, которые показывает страница, каждый с `affectedResourceIds` затронутых ресурсов. На странице, которая показывает эпизоды, но не инциденты, — её активные эпизоды, которые её обзор показывает как активные инциденты. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Идущие и ещё предстоящие события обслуживания, каждое со своими `affectedResourceIds`. |
 
 `currentStatus` ресурса равен `null`, когда страница его не показывает, а также когда `isMonitored` равен `false`: ресурс никто не проверяет, потому что мониторинг его монитора выключен или выключен у всех мониторов его группы мониторов, и страница показывает его как **Не отслеживается**, или его ещё ничто не проверило, и страница показывает его как **Ещё не отслеживается**. `isUnderMaintenance` равен `true`, пока идущее событие называет один из мониторов ресурса или монитор в его группе мониторов, каким бы ни был статус этих мониторов.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Адрес | Ключи в ответе |
 | -------- | -------------------- |
-| Инциденты | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Эпизоды | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Инциденты | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Эпизоды | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | События обслуживания | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Объявления | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## Другие способы читать страницу статуса
 
-- **RSS.** Каждая страница статуса отдаёт `/rss` — ленту своих инцидентов, объявлений и событий обслуживания, и у каждого элемента та же дата, что и на странице. См. [Встраиваемый значок и RSS-лента](/docs/status-pages/index#встраиваемый-значок-и-rss-лента).
+- **RSS.** Каждая страница статуса отдаёт `/rss` — ленту своих инцидентов и эпизодов, объявлений и событий обслуживания, и у каждого элемента та же дата, что и на странице, а инциденты выводятся так же, как на ней. См. [Встраиваемый значок и RSS-лента](/docs/status-pages/index#встраиваемый-значок-и-rss-лента).
 - **llms.txt.** Рядом с `/rss` каждая страница статуса отдаёт `/llms.txt`, который направляет ИИ-агентов к RSS-ленте и к JSON обзора.
 - **MCP.** ИИ-агенты могут читать страницу через MCP-сервер OneUptime по адресу `https://oneuptime.com/mcp`, без API-ключа, передавая ID или домен страницы как `statusPageIdOrDomain`. По умолчанию это включено; отключите переключателем **Включить MCP-сервер** в **Расширенный → MCP** бокового меню страницы. См. [Сервер MCP](/docs/ai/mcp-server).
 - **REST API.** Чтобы создавать или изменять страницы статуса, ресурсы, подписчиков и объявления, используйте [API OneUptime](/docs/api-reference/api-reference) с API-ключом.

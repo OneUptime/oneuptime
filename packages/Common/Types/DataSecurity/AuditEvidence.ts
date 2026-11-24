@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 import { translationKey } from "../Translator";
 import ComplianceFramework, {
   ALL_COMPLIANCE_FRAMEWORKS,
@@ -456,11 +457,11 @@ export function summarizeRequirementFacts(
         break;
       case ComplianceFactKind.IssueHistory:
         sentences.push(
-          `In the last ${fact.periodInDays} days, ${fact.opened} ${
+          `In the last ${fact.periodInDays}${NO_BREAK_SPACE}days, ${fact.opened} ${
             fact.opened === 1 ? "issue was" : "issues were"
           } opened and ${fact.fixed} fixed${
             fact.medianDaysToFix !== undefined
-              ? `, in ${fact.medianDaysToFix} ${fact.medianDaysToFix === 1 ? "day" : "days"} at the median`
+              ? `, in ${fact.medianDaysToFix}${NO_BREAK_SPACE}${fact.medianDaysToFix === 1 ? "day" : "days"} at the median`
               : ""
           }; ${fact.stillOpen} ${fact.stillOpen === 1 ? "is" : "are"} still open.`,
         );

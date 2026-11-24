@@ -7,9 +7,11 @@ import {
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import CertificateRevocationStatus from "../../../../Types/Monitor/SSLMonitor/CertificateRevocationStatus";
+import SslCertificateExpiry from "../../../../Types/Monitor/SSLMonitor/SslCertificateExpiry";
 import SslMonitorResponse from "../../../../Types/Monitor/SSLMonitor/SslMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export default class ServerMonitorCriteria {
@@ -24,6 +26,11 @@ export default class ServerMonitorCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -40,6 +47,7 @@ export default class ServerMonitorCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*
@@ -202,7 +210,8 @@ export default class ServerMonitorCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.ExpiresInHours) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
-      if (!threshold) {
+      // 0 is a threshold: "Less Than 0" hours is a certificate past its expiry.
+      if (threshold === null) {
         return null;
       }
 
@@ -228,24 +237,32 @@ export default class ServerMonitorCriteria {
     if (input.criteriaFilter.checkOn === CheckOn.ExpiresInDays) {
       threshold = CompareCriteria.convertToNumber(threshold);
 
-      if (!threshold) {
+      /*
+       * 0 is a threshold: a comparison with the previous check makes one
+       * from a certificate down to its last day (#10905), and "Less Than 0"
+       * days is one past its expiry.
+       */
+      if (threshold === null) {
         return null;
       }
 
-      const expiresAt: Date | undefined = sslResponse && sslResponse.expiresAt;
-      const days: number | undefined =
-        expiresAt &&
-        OneUptimeDate.getWholeDaysOfTimeBetween(
-          OneUptimeDate.getCurrentDate(),
-          expiresAt,
-        );
+      // Read as the series each check writes reads it (SslCertificateExpiry).
+      const days: number | null = SslCertificateExpiry.getDaysLeft({
+        sslResponse: sslResponse,
+        at: OneUptimeDate.getCurrentDate(),
+      });
 
-      if (days === null || days === undefined) {
+      if (days === null) {
         return null;
       }
 
+      /*
+       * Over a window, the window's days (#10905): Minimum Value over the
+       * last day, every check's for All Values. This check's alone
+       * otherwise.
+       */
       return CompareCriteria.compareCriteriaNumbers({
-        value: days,
+        value: (overTimeValue as Array<number> | number | undefined) ?? days,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });

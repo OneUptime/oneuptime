@@ -140,7 +140,7 @@ Jede Anfrage besteht diese Prüfungen, in dieser Reihenfolge:
 5. Sie muss von einem angemeldeten privaten Benutzer des Formulars kommen, wenn das Formular auf **Nur angemeldete Personen** gestellt ist — siehe [Nur angemeldete Personen](#nur-angemeldete-personen).
 6. Eine Einreichung muss das Captcha bestehen, wenn die Instanz Captcha eingeschaltet hat.
 7. Jede Antwort muss innerhalb der Größengrenzen liegen und zu ihrer Frage passen — siehe [Ein Formular erstellen](/docs/forms/building#größengrenzen).
-8. Was die Antworten und die Einstellungen ergeben, muss erstellbar sein: Ein Vorfall braucht einen Schweregrad, ein Ereignis ein Ende nach seinem Beginn.
+8. Was die Antworten und die Einstellungen ergeben, muss erstellbar sein: Ein Vorfall oder eine Warnung braucht einen Schweregrad, ein Ereignis ein Ende nach seinem Beginn.
 9. Eine Einreichung muss in das stündliche Kontingent des Formulars passen — siehe [Ratenbegrenzungen](#ratenbegrenzungen).
 10. Ihre Dateien müssen in das stündliche Dateikontingent des Formulars passen, unmittelbar bevor sie gespeichert werden.
 
@@ -244,6 +244,10 @@ Das mit OneUptime gelieferte ClamAV lädt seine Signaturen beim Start von `datab
 Das Formular fragt nach keinem Schweregrad, seine Einstellungen nennen keinen — oder der genannte wurde gelöscht — und auch seine Vorfallsvorlage setzt keinen. Wählen Sie auf der Seite **Beim Absenden** des Formulars einen Schweregrad. Siehe [Kein Schweregrad, kein Vorfall](/docs/forms/on-submit#wie-aus-einer-einreichung-ein-vorfall-wird).
 :::
 
+:::details Dieses Formular kann keine Warnung erstellen, weil es keinen Schweregrad hat
+Das Warnungsformular fragt nach keinem Schweregrad, und seine Einstellungen nennen keinen — oder der genannte wurde gelöscht. Wählen Sie auf der Seite **Beim Absenden** des Formulars einen Schweregrad. Siehe [Wie aus einer Einreichung eine Warnung wird](/docs/forms/on-submit#wie-aus-einer-einreichung-eine-warnung-wird).
+:::
+
 :::details Eine Einreichung wird abgelehnt
 Die Meldung sagt, was nicht stimmt: Eine erforderliche Antwort fehlt oder besteht nur aus Leerzeichen, eine Antwort ist zu lang oder passt nicht zu ihrer Frage, die E-Mail-Adresse ist keine gewöhnliche Adresse, oder ein Wartungsfenster endet, bevor es beginnt. "Die Captcha-Überprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut." bedeutet, dass das Captcha nicht bestanden wurde oder abgelaufen ist: Lösen Sie es erneut. Prüfen Sie auf einer selbst gehosteten Installation, auf der jede Einreichung am Captcha scheitert, dass `CAPTCHA_SITE_KEY` und `CAPTCHA_SECRET_KEY` beide gesetzt sind.
 :::
@@ -261,7 +265,7 @@ Das ist so gewollt: Vorfälle aus einem Formular werden verborgen gemeldet, und 
 :::
 
 :::details Niemand wurde alarmiert
-Der Vorfall eines Formulars führt die Bereitschaftsrichtlinien aus, die seine Einstellungen und seine Vorlage nennen, und was Ihre Bereitschaftsregeln hinzufügen, wie jeder andere Vorfall. Ohne all das wird niemand alarmiert. Fügen Sie auf der Seite **Beim Absenden** des Formulars eine Bereitschaftsrichtlinie hinzu, oder schreiben Sie eine Bereitschaftsregel, die auf seine Vorfälle zutrifft — zum Beispiel über eine Beschriftung, die das Formular immer hinzufügt.
+Der Vorfall eines Formulars führt die Bereitschaftsrichtlinien aus, die seine Einstellungen und seine Vorlage nennen, und was Ihre Bereitschaftsregeln hinzufügen, wie jeder andere Vorfall; die Warnung eines Formulars die Richtlinien, die seine Einstellungen nennen, und was Ihre Bereitschaftsregeln für Warnungen hinzufügen. Ohne all das wird niemand alarmiert. Eine Warnung, die in einem späteren Status beginnt, etwa **Bestätigt**, alarmiert absichtlich niemanden. Fügen Sie auf der Seite **Beim Absenden** des Formulars eine Bereitschaftsrichtlinie hinzu, oder schreiben Sie eine Bereitschaftsregel, die auf seine Vorfälle oder Warnungen zutrifft — zum Beispiel über eine Beschriftung, die das Formular immer hinzufügt.
 :::
 
 ## Nächste Schritte

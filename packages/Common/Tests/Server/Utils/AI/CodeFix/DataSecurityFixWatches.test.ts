@@ -717,6 +717,68 @@ describe("which check follows a merged pull request", () => {
     ).toBe(PROJECT_ID);
   });
 
+  test("a service's one pull request for its telemetry leaks follows every issue it fixes, as a leak in code (#10367)", async () => {
+    const other: ObjectID = ObjectID.generate();
+    const findBy: jest.SpyInstance = jest
+      .spyOn(DataSecurityIssueService, "findBy")
+      .mockResolvedValue([
+        Object.assign(new DataSecurityIssue(ISSUE_ID), {
+          dataStoreId: STORE_ID,
+        }),
+        Object.assign(new DataSecurityIssue(other), { dataStoreId: STORE_ID }),
+      ] as never);
+
+    jest.spyOn(DataStoreService, "findOneBy").mockResolvedValue(
+      Object.assign(new DataStore(STORE_ID), {
+        kind: DataStoreKind.TelemetryTraces,
+      }) as never,
+    );
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
+      runOf({
+        codeFixTaskType: CodeFixTaskType.FixSensitiveDataInTelemetry,
+        taskContext: {
+          telemetryLeakFix: {
+            serviceId: ObjectID.generate().toString(),
+            serviceName: "checkout",
+            title: "Stop checkout writing sensitive data to its telemetry",
+            request: "Stop the service writing its leaks.",
+            strategy: "CallSites",
+            placeCount: 2,
+            leaks: [
+              {
+                issueId: ISSUE_ID.toString(),
+                dataStoreId: STORE_ID.toString(),
+                checkId: "sensitive-data-in-telemetry",
+                signal: "Spans",
+                dataTypeId: "email-address",
+                location: "attributes.user.email",
+                handling: "CallSite",
+                places: [],
+              },
+            ],
+            issues: [
+              { issueId: ISSUE_ID.toString(), signal: "Spans" },
+              { issueId: other.toString(), signal: "Logs" },
+            ],
+            redactionKeys: [],
+            redactionDataTypes: [],
+            startFiles: [],
+            hasSecrets: false,
+          },
+        },
+      }) as never,
+    );
+
+    const target: DataSecurityFixTargetRead | null =
+      await DataSecurityFixTarget.read(RUN_ID);
+
+    expect(target?.check).toBe(FixProductionCheck.TelemetryLeak);
+    expect(target?.issueIds.map(String)).toEqual([ISSUE_ID, other].map(String));
+    expect(
+      (findBy.mock.calls[0]![0] as { query: JSONObject }).query["projectId"],
+    ).toBe(PROJECT_ID);
+  });
+
   test("a task that names no Data Security issue is watched by its recipe, and a read that fails too", async () => {
     jest
       .spyOn(AIRunService, "findOneById")

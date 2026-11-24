@@ -18,6 +18,7 @@ import ProcessTreeMemory, {
   ProcessMemoryIdentity,
   ProportionalMemoryReading,
 } from "../../../../Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
+import { SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS } from "../../../../Utils/Monitors/SyntheticRuntime/Limits";
 
 jest.setTimeout(1_500_000);
 
@@ -284,6 +285,87 @@ describe("SyntheticMonitorWorker full process boundary", () => {
     expect(runner.activeCount).toBe(0);
     expect(runner.pendingCount).toBe(0);
   }, 300_000);
+
+  test.each([
+    {
+      browserType: BrowserType.Chromium,
+      executablePath: (): string => {
+        return chromium.executablePath();
+      },
+    },
+    {
+      browserType: BrowserType.Firefox,
+      executablePath: (): string => {
+        return firefox.executablePath();
+      },
+    },
+  ])(
+    "hands back a $browserType check that ran out of time with a screenshot of the page it stopped on",
+    async (data: {
+      browserType: BrowserType;
+      executablePath: () => string;
+    }) => {
+      /*
+       * The page is photographed after the script's deadline, before the run
+       * is torn down, out of the time the supervisor gives a run beyond its
+       * script's timeout. The supervisor here gives what the probe gives -
+       * the script's timeout plus the startup allowance - and the
+       * screenshot has to come back across the process boundary, with the
+       * timeout reported as it always was.
+       *
+       * Memory is not what is checked here, so the watchdog's limit is out
+       * of reach: away from Linux it sums the processes' resident memory,
+       * and a Firefox check that runs for seconds sums past the production
+       * limit there, with or without the screenshot.
+       */
+      const runner: ProcessRunner = createWorkerRunner({
+        maxProcessTreeRssBytes: 64 * 1024 * MEGABYTE,
+      });
+      // Room for the navigation on a busy runner before the deadline.
+      const scriptTimeoutInMs: number = 5_000;
+
+      const output: ProcessRunResult<SyntheticMonitorWorkerResult> =
+        await runner.run<
+          SyntheticMonitorWorkerConfig,
+          SyntheticMonitorWorkerResult
+        >({
+          payload: createWorkerConfig({
+            browserType: data.browserType,
+            executablePath: data.executablePath(),
+            code: `
+              await page.goto(${JSON.stringify(targetUrl)});
+              console.log("waiting for the dashboard");
+              await page.waitForSelector("#dashboard", { timeout: 600000 });
+            `,
+            timeoutInMs: scriptTimeoutInMs,
+          }),
+          timeoutInMs:
+            scriptTimeoutInMs +
+            SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS,
+          validateResult: isSyntheticMonitorWorkerResult,
+        });
+
+      expect(output.result.scriptError).toBe(
+        `Synthetic monitor script timed out after ${scriptTimeoutInMs} ms.`,
+      );
+      expect(output.result.logMessages).toEqual(["waiting for the dashboard"]);
+      expect(Object.keys(output.result.screenshots)).toEqual([
+        "timed-out-page",
+      ]);
+
+      const image: Buffer = Buffer.from(
+        output.result.screenshots["timed-out-page"] || "",
+        "base64",
+      );
+      expect(image.subarray(0, 8)).toEqual(
+        Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+      );
+      expect(image.byteLength).toBeGreaterThan(100);
+      expect(runner.activeCount).toBe(0);
+      expect(runner.pendingCount).toBe(0);
+    },
+    300_000,
+  );
 
   test("reports a browser that cannot launch as a probe fault and keeps the Playwright error internal", async () => {
     /*

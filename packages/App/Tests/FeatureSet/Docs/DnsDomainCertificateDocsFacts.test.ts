@@ -97,6 +97,9 @@ const DOMAIN_CRITERIA_FILE: string =
   "Common/Server/Utils/Monitor/Criteria/DomainMonitorCriteria.ts";
 const SSL_CRITERIA_FILE: string =
   "Common/Server/Utils/Monitor/Criteria/SSLMonitorCriteria.ts";
+// The one reading of a certificate's days left, the criteria's and its series' (#10905).
+const SSL_EXPIRY_FILE: string =
+  "Common/Types/Monitor/SSLMonitor/SslCertificateExpiry.ts";
 const DASHBOARD_FORMS_DIR: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor";
 const DNS_FORM_FILE: string = `${DASHBOARD_FORMS_DIR}/DnsMonitor/DnsMonitorStepForm.tsx`;
@@ -1188,6 +1191,9 @@ describe("SSL Certificate monitor", () => {
     expect(OneUptimeDate.getWholeDaysOfTimeBetween(now, expiresAt)).toBe(14);
     expect(OneUptimeDate.getHoursBetweenTwoDates(now, expiresAt)).toBe(356);
     expect(readRepoFile(SSL_CRITERIA_FILE)).toContain(
+      "SslCertificateExpiry.getDaysLeft(",
+    );
+    expect(readRepoFile(SSL_EXPIRY_FILE)).toContain(
       "OneUptimeDate.getWholeDaysOfTimeBetween(",
     );
     expect(page).toContain(

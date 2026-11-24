@@ -9,6 +9,7 @@ Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gesc
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
 - [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme verbergen, in dem Dienst, in dem er gefunden wurde.
 - [Von sich aus eingedämmt](#von-sich-aus-eingedämmt): Ein Geheimnis, das verborgen wird, ohne dass jemand auf etwas klickt, wo das nachweislich sicher ist.
+- [Im Code beheben](#im-code-beheben): Ein Pull Request, der einen Dienst davon abhält, irgendeines seiner Lecks zu schreiben.
 - [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
@@ -99,7 +100,7 @@ Klicken Sie auf **Bereinigen**. Ein Dialog sagt, was die Regel tun würde, bevor
 
 ### Auch den Code beheben
 
-Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
+Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut. **Mit KI beheben** am Problem öffnet einen Pull Request für jedes Leck des Dienstes: siehe [Im Code beheben](#im-code-beheben).
 :::
 
 Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, oder „Data Security: Password or secret in db.password of checkout“ bei einer Regel, die ihr Attribut nennt, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist die engste Regel, die die Daten des Funds verbirgt, die erste der folgenden, die passt:
@@ -157,6 +158,48 @@ Eine Änderung, die OneUptime AI von sich aus vorgenommen hat:
 - **Sagt, dass ein Geheimnis rotiert werden muss.** Ein Geheimnis zu verbergen, stoppt nur neue Kopien: Das Geheimnis funktioniert weiterhin, und die vor der Regel gespeicherten Datensätze behalten es, bis ihre Aufbewahrung endet. Die Zeitachse und die E-Mail sagen, wo es gesehen wurde.
 
 Neue Funde in einem Dienst, dessen Problem bereits offen ist, werden auf dieselbe Weise eingedämmt, sobald der stündliche Scan sie findet.
+
+## Im Code beheben
+
+Eine Bereinigungsregel verbirgt neue Daten bei der Aufnahme, doch der Code schreibt sie weiterhin. **Mit KI beheben** an einem Telemetrieproblem bittet OneUptime AI um einen Pull Request, der den Dienst davon abhält, irgendein Leck zu schreiben, das OneUptime noch in seiner Telemetrie sieht: das dieses Problems und die anderen des Dienstes, auch die bei der Aufnahme eingedämmten. Ein Dialog zeigt, was der Pull Request tun wird, bevor etwas startet, und **Pull Request öffnen** fordert genau das an.
+
+:::steps
+### Finden, wo jedes Leck geschrieben wird
+
+Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes Leck gesehen wurde, innerhalb von OneUptime erneut und behält nur, wo der Code sie geschrieben hat:
+
+- **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
+- **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`.
+- **Eine Metrik**: der Name der Metrik.
+- **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
+
+### Das Repository wählen
+
+Der Pull Request geht an das Repository, das die Dateien enthält, die die Einträge nennen, abgeglichen wie die Dateien eines Stacktraces. Ein Leck, dessen Einträge keine Datei nennen, geht dorthin, wo die anderen Lecks des Dienstes sind, sonst an das Repository, das wie der Dienst heißt, oder an das einzige des Projekts. In einem Repository mit mehreren Diensten arbeitet OneUptime AI im Ordner des Dienstes: dem, den diese Dateien teilen, sonst dem, den die Produktionsprüfungen des Dienstes verwenden. Wenn nichts entscheidet, wählen Sie selbst, unter den Repositorys, in denen Sie OneUptime AI arbeiten lassen dürfen.
+
+### Den Pull Request öffnen
+
+Der Dialog sagt, wie sich der Code ändern wird, listet jedes Leck mit dem Ort auf, an dem es geschrieben wird, und nennt das Repository, warum es dieses ist, und die Dateien, bei denen OneUptime AI beginnt. **Pull Request öffnen** fordert genau diesen Plan an: Wurde seit dem Öffnen ein Leck gefunden oder behoben, startet nichts, und der Plan wird erneut angezeigt.
+:::
+
+Wie sich der Code ändert, hängt davon ab, an wie vielen Stellen die Daten geschrieben werden:
+
+| Wo die Daten geschrieben werden | Was der Pull Request tut |
+| --- | --- |
+| An drei Stellen oder weniger | Ändert den Code an jeder Stelle: lässt den Wert weg oder maskiert oder hasht ihn, bevor er gesendet wird |
+| An mehr als drei Stellen | Fügt einen Schwärzungsschritt mit einem Test dort hinzu, wo der Dienst seine Telemetrie einrichtet, statt jede Stelle zu ändern |
+| Wo Ihre Bereinigungsregeln sie bereits bei der Aufnahme verbergen | Fügt diesen Schwärzungsschritt auch für diese Schlüssel hinzu, damit der Code tut, was die Aufnahme tut |
+
+Ein Pull Request behebt einen Dienst in einem Repository: Ein Dienst, dessen Lecks in zwei Repositorys geschrieben werden, bekommt in jedem einen. Während er geschrieben wird, verweist **Mit KI beheben** an jedem Problem des Dienstes darauf, und kein zweiter wird gestartet.
+
+OneUptime AI erhält die Stellen, Schlüssel, Datentypen und Vorlagen, nie einen Wert Ihrer Daten, eine maskierte Stichprobe oder einen Eintrag, und der Coding-Agent liest während der Arbeit nichts aus Ihrer Telemetrie. Die Beschreibung des Pull Requests listet die Lecks auf, verlinkt die Probleme, die er behebt, und zitiert nie einen Eintrag.
+
+Jedes Problem, das der Pull Request behebt, behält ihn: Seine Karte **Behebung** sagt, ob er gerade geschrieben wird, offen, zusammengeführt oder geschlossen ist, mit Links zum Pull Request und zur Aufgabe, und nach dem Zusammenführen, was die Produktion gezeigt hat. Die Zeitleiste des Problems sagt, wann er geöffnet wurde. Das Problem wird als **Im Code korrigiert** gelöst, sobald die neue Version des Dienstes die Daten nicht mehr schreibt (siehe [Was mit einem Problem geschieht](/docs/data-security/checks-and-issues#was-mit-einem-problem-geschieht)).
+
+Ein Geheimnis braucht mehr als eine Codekorrektur: Der Code verhindert nur neue Kopien, und das Geheimnis funktioniert weiterhin. Der Pull Request, die Zeitleiste des Problems und seine Karte **Behebung** sagen, dass es rotiert werden muss, und die Karte listet auf, wo es gesehen wurde.
+
+Mit **An neuen Problemen arbeiten** schlägt OneUptime AI die Korrektur jedes Dienstes auch von sich aus vor, den riskantesten Dienst zuerst, unter **Datensicherheit → KI** und beim riskantesten Problem des Dienstes. Standardmäßig wartet sie auf Sie. Eine KI-Regel der Datensicherheit, die **Behebung** für das riskanteste Problem des Dienstes auf **Automatisch** setzt, öffnet den Pull Request ohne Nachfrage, in einem Repository, über das etwas entschieden hat. **Max. offene Korrektur-Pull-Requests** des Repositorys begrenzt beides: Ist die Grenze erreicht, wartet ein Pull Request, den eine Regel öffnen würde, auf Sie, und kein neuer Korrektur-Pull-Request wird geöffnet, bis einer zusammengeführt oder geschlossen ist.
 
 ## Diese Metrik verwerfen
 

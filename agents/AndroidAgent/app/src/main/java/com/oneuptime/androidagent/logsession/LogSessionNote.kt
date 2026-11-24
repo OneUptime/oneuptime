@@ -25,7 +25,8 @@ object LogSessionNote {
     // What OneUptime keeps of a note (its column's length): a redacted note can be longer than the 200 a person types.
     const val MAX_LENGTH: Int = 500
 
-    private val WHITESPACE: Regex = Regex("""[\s\u0085\u00A0\u2028\u2029]+""")
+    // Every space Android's \s takes, written out as the redactor writes it: the JVM's \s, in the tests, takes ASCII's alone (#10876).
+    private val WHITESPACE: Regex = Regex("""[\t\n\x0B\f\r \u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+""")
     private val NOT_SHOWN: Regex = Regex("""[\u0000-\u001F\u007F-\u009F\u202A-\u202E\u2066-\u2069]""")
     private val SPACES: Regex = Regex(" {2,}")
 

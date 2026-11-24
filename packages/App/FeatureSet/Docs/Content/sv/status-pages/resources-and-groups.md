@@ -82,6 +82,8 @@ I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska
 > [!TIP]
 > För att visa flera kontroller som en rad lägger du till en [monitorgrupp](/docs/monitor/monitor-groups). Med reglaget **Monitorgrupper** aktiverat (**Projektinställningar** > **Grundläggande** > **Produkter**, som sparas så snart du slår om det) står det en länk under listrutan: **Lägg till en monitorgrupp i stället.** Klicka på den så blir **Monitor** till **Monitorgrupp** (**Välj monitorgrupp**); **Lägg till en monitor i stället.** växlar tillbaka.
 
+**Redigera resurs**, pennan på en rad, öppnas på det raden visar: en monitorgrupps rad på **Monitorgrupp**, med gruppen vald, och en monitors rad på **Monitor**. Med reglaget **Monitorgrupper** aktiverat lyder länken under listrutan **Visa en monitor i stället.** på en grupps rad och **Visa en monitorgrupp i stället.** på en monitors. Den byter listrutan bara i den dialogrutan, och när du sparar visar raden det du valde i stället. **Visningsnamn** följer det nya valet så länge det fortfarande är namnet på det raden visade, och förblir som det är när du har bytt namn på raden. I listan säger en grupps rad, vars visningsnamn är gruppens eget, **Samma som monitorgruppens namn**.
+
 ### Lägg till flera på en gång
 
 **Lägg till flera** (även **Lägg till flera monitorer** i menyn **Fler åtgärder**) öppnar **Lägg till flera monitorer**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
@@ -97,6 +99,8 @@ En statussida visar en monitor en gång. Att lägga till är idempotent, så nä
 Sammanfattningen efter tillägget av flera säger samma sak: tillagda monitorer listas under **Tillagd**, och de som redan fanns där under **Redan tillagda**. Ingenting rapporteras som ett fel, och ingenting skrivs för dem.
 
 Samma regel gäller överallt där en resurs skapas. Att lägga till en monitor som redan finns på sidan från formuläret för en monitor, eller att låta en befintlig resurs peka på den från redigeringsformuläret, avvisas med *"This monitor is already added to this status page"*, även när den befintliga resursen står i en annan grupp, eftersom en besökare ändå skulle se monitorn två gånger. För att visa en monitor i en annan grupp tar du bort den resurs som den redan har och lägger till den där du vill ha den.
+
+En resurs visar en monitor eller en monitorgrupp, aldrig båda och aldrig ingen av dem. Att rikta en resurs mot den ena tömmer den andra, så att flytta en rad från en monitor till en monitorgrupp är en enda ändring. Genom API:t avvisas en resurs som nämner båda med *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, och en som inte nämner någon av dem, eller en ändring som skulle lämna den utan någon av dem, med *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Visningsalternativ för en resurs
 
@@ -122,7 +126,7 @@ Grupper har sina egna varianter av de här reglagen (se nedan), så en grupp kan
 
 Färgerna på historikdiagrammets staplar anges under **Fler inställningar** på sidan **Varumärke**, och vilka monitorstatusar som räknas som "nere" under **Räknas som driftstopp**, på kortet **Vad din statussida visar** under **Inställningar**; båda beskrivs i [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains).
 
-Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det schemalagda underhållet som pågick under den, var och en med en länk till sin egen sida. En dag med schemalagt underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
+Varje stapel är en dag. Peka på en stapel eller klicka på den (tryck på den på en telefon, eller tryck Enter med tangentbordet) för att läsa dagen: dess upptid, hur länge varje status varade, incidenterna som deklarerades den dagen och det schemalagda underhållet som pågick under den, var och en med en länk till sin egen sida. På en sida som visar episoder men inte incidenter listar dagen i stället de episoder som dess incidenter hör till, varje episod en gång, med en länk till episodens sida. En dag med schemalagt underhåll har ett blått band överst på sin stapel, och medan en händelse pågår står det "Under underhåll" bredvid namnet på varje resurs för dess monitorer. Underhåll ändrar varken en stapels färg eller upptiden, som kommer från monitorns statusar: för att hålla planerat arbete utanför upptiden väljer du för händelsen under **Ändra övervakningsstatus till** en status som inte är en av sidans statusar under **Räknas som driftstopp**. Se [Vad en händelse påverkar](/docs/scheduled-maintenance/index#vad-en-händelse-påverkar).
 
 Varje stapel är en dag i läsarens egen tidszon, samma som sidan visar alla andra tider i, så den sista stapeln är läsarens i dag. En monitorgrupps stapel visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har gruppen den sämsta statusen bland sina monitorer, så en dags statusar summeras till den tid då minst en av dess monitorer kontrollerades, och aldrig till mer än dagen.
 
@@ -280,6 +284,10 @@ Importen skapar grupper, inte resurser: lägg till monitorer efteråt med **Läg
 
 :::details "This monitor is already added to this status page"
 En sida visar varje monitor en gång, även över grupper. Monitorn har redan en resurs, kanske i en annan grupp eller tillagd av en monitorregel. Sök efter den i navigatorn, ta bort den resursen och lägg till monitorn där du vill ha den.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+API:t, Terraform eller ett skript skickade en resurs utan monitor och utan monitorgrupp, eller en ändring som tömmer det den visar. Skicka `monitorId` eller `monitorGroupId`, en av de två. För att rikta en resurs mot den andra sorten skickar du den nya i samma ändring: den gamla töms. Resurser som inte visade någon av dem före den här regeln visades aldrig för besökare, och en uppgradering tar bort dem.
 :::
 
 :::details En monitor som jag lade till visas inte på statussidan

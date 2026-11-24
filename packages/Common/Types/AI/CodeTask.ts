@@ -416,6 +416,12 @@ export enum CodeTaskOriginType {
    * (#10370). Its label is the cause: "the static-site module".
    */
   DataSecurityIssueGroup = "DataSecurityIssueGroup",
+  /*
+   * A service's Data Security telemetry leaks, fixed in its code in one pull
+   * request (#10367). Its label is the service; it opens the riskiest of
+   * the issues it fixes.
+   */
+  DataSecurityTelemetryLeaks = "DataSecurityTelemetryLeaks",
   Unknown = "Unknown",
 }
 

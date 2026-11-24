@@ -5,6 +5,8 @@ import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import Icon, { SizeProp, ThickProp } from "Common/UI/Components/Icon/Icon";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -292,12 +294,17 @@ const ReferenceItem: FunctionComponent<{
         ) : (
           <></>
         )}
-        <span
-          data-testid="audit-log-related-record-deleted"
-          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-        >
-          {words(AUDIT_LOG_RELATED_WORDS.deleted)}
-        </span>
+        {/*
+         * A tag, not a live state: no dot. Its words are already in the
+         * reader's language.
+         */}
+        <Pill
+          text={words(AUDIT_LOG_RELATED_WORDS.deleted)}
+          isUserContent={true}
+          tone={PillTone.Neutral}
+          isDotHidden={true}
+          dataTestId="audit-log-related-record-deleted"
+        />
       </span>
     );
   } else if (props.isLoading) {

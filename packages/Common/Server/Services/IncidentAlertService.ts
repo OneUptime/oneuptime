@@ -58,6 +58,7 @@ import {
   INCIDENT_ACKNOWLEDGE_ALERTS_TO_LINK_KEY,
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
@@ -1121,17 +1122,26 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Declaring a PRIVATE incident from alerts: the people who work those
-   * alerts become its owners too. A private incident is visible only to its
-   * owners (and project admins), and a private alert only to its owners, so
-   * without this the owners of the private alert an incident was declared
-   * from - the only non-admins who could see that alert - could not see the
-   * incident. The declaring user is already made an owner by
-   * DatabaseService.autoOwnerOnCreate. Owners are added as root, without
-   * notifying them (they were notified about their alerts), and owners the
-   * incident already has are skipped. Resolves to the owners added: an
-   * alert's owner who has since left the project, or a team that is not
-   * one of its teams, is not one (#9933).
+   * Declaring an incident from alerts: the people who work those alerts
+   * own the incident too (#10867, INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY).
+   * They are the people responsible for what it is about, and for a
+   * private incident - visible only to its owners and project admins - the
+   * only non-admins who could see the private alert it was declared from.
+   *
+   * Every user and team that owns one of the alerts is added, each once, as
+   * root: the declaration asked for it, as an owner rule asks for its
+   * owners, whoever declared it. The declaring user is already an owner
+   * (DatabaseService.autoOwnerOnCreate), and owners the incident already
+   * has are skipped. Not one who may not own the incident: a user who has
+   * left the project or never accepted its invitation, a team that is not
+   * one of its teams (OwnerRuleAssignment.createOwner).
+   *
+   * They are added as owners added at creation are - marked as told of it
+   * (notifyOwners false) - and before the incident's "Incident Created"
+   * notification is let go (IncidentService's create chain), so they hear
+   * of it once, from that notification, under the same notification rules
+   * as every other owner it starts with: no "added as an owner" notice on
+   * top of it. Resolves to the owners added (#9933).
    */
   @CaptureSpan()
   public async copyAlertOwnersToIncident(data: {
@@ -1430,6 +1440,36 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return result;
+  }
+
+  /*
+   * Reads miscDataProps[INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY] on an
+   * incident create: whether the owners of the alerts it is declared from
+   * become its owners (copyAlertOwnersToIncident). True for an incident
+   * declared from alerts unless the caller sent false - the dashboard does,
+   * once its Owners field holds them - and false for one declared from
+   * none. Refuses anything other than true or false, and true without
+   * alerts, before the incident number is taken.
+   */
+  public readCarryOverAlertOwnersForNewIncident(data: {
+    carryOverAlertOwners: unknown;
+    alertIds: Array<ObjectID>;
+  }): boolean {
+    const value: unknown = data.carryOverAlertOwners;
+
+    if (value !== undefined && value !== null && typeof value !== "boolean") {
+      throw new BadDataException(
+        `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} must be true or false.`,
+      );
+    }
+
+    if (value === true && data.alertIds.length === 0) {
+      throw new BadDataException(
+        `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+      );
+    }
+
+    return data.alertIds.length > 0 && value !== false;
   }
 
   /*

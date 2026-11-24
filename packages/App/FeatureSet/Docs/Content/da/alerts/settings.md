@@ -99,7 +99,7 @@ En regel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeho
 
 ## Hændelsesregler
 
-**Advarsler → Regler → Hændelsesregler** gør selv advarsler til hændelser. Den første regel, der matcher en ny advarsel, oppefra og ned i listen, erklærer en hændelse ud fra den, som **Erklær hændelse** på advarslens side ville gøre, og knytter advarslen til den.
+**Advarsler → Regler → Hændelsesregler** gør selv advarsler til hændelser. Den første regel, der matcher en ny advarsel, oppefra og ned i listen, erklærer en hændelse ud fra den, som **Erklær hændelse** på advarslens side ville gøre, og knytter advarslen til den. Hændelsen starter med advarslens ejere som sine ejere, og de får besked om den én gang, via dens notifikation **Hændelse oprettet**.
 
 :::steps
 ### Udvælg advarslerne

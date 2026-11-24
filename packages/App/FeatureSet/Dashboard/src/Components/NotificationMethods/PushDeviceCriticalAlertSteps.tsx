@@ -17,10 +17,18 @@ import {
   CRITICAL_ALERT_TEST_DID_NOT_RING,
   CRITICAL_ALERT_TROUBLESHOOTING,
   CriticalAlertSentenceSlot,
+  GET_THE_APP_FROM_OWN_PAGE_STEP,
   MOBILE_APP_LABELS,
   PUSH_DEVICE_PLATFORM_LABELS,
   PushDevicePlatform,
 } from "./PushDeviceCriticalAlerts";
+import {
+  MobileAppOffer,
+  MobileAppOfferKind,
+  getHelpLinkLabel,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import {
   APP_STORE_NAME,
   GOOGLE_PLAY_NAME,
@@ -146,6 +154,14 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Where the app comes from (Help and Support, #10866): the stores, or a
+   * page of the server's own, named by its address.
+   */
+  const offer: MobileAppOffer | null = getMobileAppOffer(useHelpAndSupport());
+  const ownPageUrl: string | null =
+    offer?.kind === MobileAppOfferKind.OwnPage ? offer.url : null;
+
   const slots: Record<CriticalAlertSentenceSlot, ReactNode> = {
     app: appLabel(MOBILE_APP_LABELS.appName),
     settings: appLabel(MOBILE_APP_LABELS.settingsTab),
@@ -157,6 +173,13 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
       name: GOOGLE_PLAY_NAME,
       url: MOBILE_APP_ANDROID_URL,
     }),
+    appPage: ownPageUrl ? (
+      <span dir="ltr" data-testid="critical-alert-steps-own-page">
+        {storeLink({ name: getHelpLinkLabel(ownPageUrl), url: ownPageUrl })}
+      </span>
+    ) : (
+      <></>
+    ),
     /*
      * What to type into the app's Server URL: code, as it is typed, and
      * wrapped onto its own line only when it does not fit on one.
@@ -187,7 +210,14 @@ const PushDeviceCriticalAlertSteps: FunctionComponent<ComponentProps> = (
     return <TranslatedSentence template={template} slots={used} />;
   };
 
-  const steps: ReadonlyArray<string> = CRITICAL_ALERT_STEPS[props.platform];
+  // A browser's way to the app starts at the server's own page, where it has one.
+  const steps: ReadonlyArray<string> =
+    isBrowser && ownPageUrl
+      ? [
+          GET_THE_APP_FROM_OWN_PAGE_STEP,
+          ...CRITICAL_ALERT_STEPS[props.platform].slice(1),
+        ]
+      : CRITICAL_ALERT_STEPS[props.platform];
   const troubleshooting: ReadonlyArray<string> =
     CRITICAL_ALERT_TROUBLESHOOTING[props.platform];
 

@@ -22,9 +22,21 @@ jest.mock("../../../UI/Components/QR/QR", () => {
   };
 });
 import MobileAppCodes, {
+  MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE,
+  MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE,
   MOBILE_APP_INSTALL_ON_PHONE_SENTENCE,
   MOBILE_APP_INSTALL_SENTENCE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/MobileAppCodes";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setHelpAndSupportEnvironment,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 import {
   MOBILE_APP_ANDROID_URL,
   MOBILE_APP_IOS_URL,
@@ -44,6 +56,7 @@ import {
 
 afterEach(() => {
   cleanup();
+  forgetHelpAndSupport();
   mockCodeFailures.clear();
 });
 
@@ -163,5 +176,121 @@ describe("the mobile app's codes", () => {
       expect(address).toHaveClass("break-words");
       expect(address).not.toHaveClass("break-all");
     }
+  });
+});
+
+/*
+ * How the server's admins offer the app (Admin Dashboard > Settings > Help
+ * and Support, #10866): OneUptime's stores by default, a page of their own -
+ * an app catalogue, a device manager's company portal - or not at all.
+ */
+describe("the mobile app, as the server's admins offer it", () => {
+  const OWN_PAGE: string = "https://apps.example.com/catalog/oneuptime-on-call";
+
+  const fromOwnPage: () => void = (): void => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Link, value: OWN_PAGE },
+      }),
+    );
+  };
+
+  test("turned off: nothing is drawn", () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    const { container } = render(
+      <MobileAppCodes
+        dataTestId="app-codes"
+        serverUrlDataTestId="app-server-url"
+      />,
+    );
+
+    expect(screen.queryByTestId("app-codes")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test("from the server's own page: one code for it, named by its address, and no store", () => {
+    fromOwnPage();
+
+    const codes: HTMLElement = renderCodes();
+    const ownPage: HTMLElement = screen.getByTestId("app-codes-own-page");
+
+    expect(
+      Array.from(codes.querySelectorAll('[data-testid="qr-code"]')).map(
+        (code: Element): string | null => {
+          return code.getAttribute("data-text");
+        },
+      ),
+    ).toEqual([OWN_PAGE]);
+
+    const link: HTMLAnchorElement = ownPage.querySelector(
+      "a",
+    ) as HTMLAnchorElement;
+
+    expect(link).toHaveAttribute("href", OWN_PAGE);
+    expect(link).toHaveTextContent("apps.example.com");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    // An address reads left to right, and breaks rather than run off a phone.
+    expect(link).toHaveAttribute("dir", "ltr");
+    expect(link).toHaveClass("break-all");
+    expect(codes).not.toHaveTextContent("App Store");
+    expect(codes).not.toHaveTextContent("Google Play");
+  });
+
+  test("from the server's own page: each sentence says to get the app from the organization, the server's address in its place", () => {
+    fromOwnPage();
+    renderCodes();
+
+    expect(sentenceWith("app-server-url").textContent).toMatch(
+      /^Scan the code with your phone to get the app from your organization, sign in to https?:\/\//,
+    );
+    expect(sentenceWith("app-server-url-on-phone").textContent).toMatch(
+      /^Get the app from the link above, sign in to https?:\/\//,
+    );
+    expect(MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE).toContain(
+      "{{serverUrl}}",
+    );
+    expect(MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE).toContain(
+      "{{serverUrl}}",
+    );
+  });
+
+  test("from the server's own page, a code that cannot be drawn sends a laptop to the link, never asking it to scan", () => {
+    fromOwnPage();
+    renderCodes();
+
+    act(() => {
+      mockCodeFailures.get(OWN_PAGE)!();
+    });
+
+    const laptop: HTMLElement = sentenceWith("app-server-url");
+
+    expect(laptop.textContent).toMatch(/^Get the app from the link above/);
+    expect(laptop.textContent).not.toMatch(/Scan/);
+    expect(laptop).toHaveClass("max-sm:hidden");
+  });
+
+  test("a page of the server's own not read from the server yet: nothing, rather than OneUptime's stores", () => {
+    // env.js says the server has a page of its own, and holds its address back.
+    setHelpAndSupportEnvironment(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Link, value: OWN_PAGE },
+      }),
+    );
+
+    render(
+      <MobileAppCodes
+        dataTestId="app-codes"
+        serverUrlDataTestId="app-server-url"
+      />,
+    );
+
+    expect(screen.queryByTestId("app-codes")).toBeNull();
+    expect(screen.queryByText("App Store")).toBeNull();
   });
 });

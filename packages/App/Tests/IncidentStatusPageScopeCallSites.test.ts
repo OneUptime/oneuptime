@@ -35,14 +35,18 @@ import ts from "typescript";
  * The status page display queries and the report counts go through the
  * helper too (findIncidentsForStatusPage, findOneIncidentForStatusPage,
  * countIncidentsForStatusPage), so in those files no call site may work out
- * reach from monitors at all. What they may still do is read an episode's
- * member incidents by id, to map the episode to the page's monitors - but
- * only as the incidents given to StatusPageAPI.keepMemberIncidentsInScope,
- * with the scope columns selected (INCIDENT_SCOPE_SELECT), so that a member
- * limited to other status pages is dropped and the scope columns are removed
- * before anything is serialized. And an incident is serialized for a public
- * page only by serializeIncidentsForStatusPage, which removes the scope
- * columns whatever a select brought in.
+ * reach from monitors at all. An episode's incidents - which of the page's
+ * monitors it affects, and the incidents its card lists while the page
+ * groups incidents by episode - are read through the helper as well, by
+ * StatusPageEpisodeIncidents (#10767): StatusPageAPI used to read them by id
+ * and filter them in memory, and now reads no incident directly. A direct
+ * read would have to be the incidents given to a member filter
+ * (keepMemberIncidentsInScope) with the scope columns selected
+ * (INCIDENT_SCOPE_SELECT), so that a member limited to other status pages is
+ * dropped and the scope columns are removed before anything is serialized.
+ * And an incident is serialized for a public page only by
+ * serializeIncidentsForStatusPage, which removes the scope columns whatever
+ * a select brought in.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "..", "..");
@@ -70,7 +74,12 @@ const JOB_FILE_PATTERN: RegExp = /^Send.*ToSubscribers\.ts$/;
 const STATUS_PAGE_FILES: Array<string> = [
   "Common/Server/API/StatusPageAPI.ts",
   "Common/Server/Services/StatusPageService.ts",
+  "Common/Server/Utils/StatusPage/StatusPageEpisodeIncidents.ts",
 ];
+
+// What reads an episode's incidents for a public status page.
+const EPISODE_INCIDENTS_FILE: string =
+  "Common/Server/Utils/StatusPage/StatusPageEpisodeIncidents.ts";
 
 const HELPER_FILE: string =
   "Common/Server/Utils/StatusPage/IncidentStatusPageScope.ts";
@@ -772,19 +781,33 @@ describe("Incident reach is decided only by IncidentStatusPageScope", () => {
     ).toBe("");
   });
 
-  test("the serializer and the member filter remove the scope columns, and the filter applies the scope", () => {
+  test("the serializer removes the scope columns", () => {
     const text: string = readPackageFile("Common/Server/API/StatusPageAPI.ts");
 
     const serializer: string = methodText(text, INCIDENT_SERIALIZER);
     expect(serializer).toContain("IncidentStatusPageScope.removeScopeColumns(");
+  });
 
-    const memberFilter: string = methodText(text, MEMBER_INCIDENT_FILTER);
-    expect(memberFilter).toContain(
-      "IncidentStatusPageScope.isIncidentInScope(",
+  /*
+   * An episode's incidents name its resources and, grouped by episode, are
+   * listed on its card. They come through the helper, in SQL, like every
+   * incident a page shows: never a read by id filtered afterwards.
+   */
+  test("an episode's incidents are read through IncidentStatusPageScope, and StatusPageAPI reads no incident directly", () => {
+    const helper: string = readPackageFile(EPISODE_INCIDENTS_FILE);
+
+    expect(
+      methodText(helper, "getShownIncidentsByEpisode").replace(/\s+/g, " "),
+    ).toContain("IncidentStatusPageScope.findIncidentsForStatusPage(");
+    expect(helper).not.toContain("IncidentService.");
+
+    const api: string = readPackageFile("Common/Server/API/StatusPageAPI.ts");
+
+    expect(api).toContain(
+      "StatusPageEpisodeIncidents.getShownIncidentsByEpisode(",
     );
-    expect(memberFilter).toContain(
-      "IncidentStatusPageScope.removeScopeColumns(",
-    );
+    expect(api).not.toContain("IncidentService.");
+    expect(api).not.toContain(MEMBER_INCIDENT_FILTER);
   });
 
   test("the status page API and service ask IncidentStatusPageScope what a page shows and counts", () => {

@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} グループ",
     "noResourcesTitle": "表示するものはまだありません",
     "noResourcesDescription": "このページにはまだサービスが表示されていません。",
-    "noResourcesPreviewDescription": "リソースを追加するまで、訪問者にはこの表示が見えます。ダッシュボードの「リソース」で、このステータスページにモニターまたはグループを追加してください。"
+    "noResourcesPreviewDescription": "リソースを追加するまで、訪問者にはこの表示が見えます。",
+    "noResourcesPreviewLink": "ダッシュボードでリソースを追加"
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",
@@ -485,6 +486,9 @@
   "No options available": "利用できるオプションはありません",
   "No matches found": "一致するものが見つかりません",
   "{{eventType}} state changed to {{state}}": "{{eventType}}の状態が {{state}} に変更されました",
+  "{{count}} related incidents": "関連するインシデント {{count}} 件",
+  "{{count}} related incidents_one": "関連するインシデント {{count}} 件",
+  "Part of {{incident}}": "{{incident}} の一部",
   "Use at least {{minimum}} characters.": "{{minimum}}文字以上で入力してください。",
   "Try a few unrelated words.": "関連のない単語をいくつか組み合わせてみてください。",
   "Password meets requirements": "パスワードは要件を満たしています",

@@ -21,6 +21,8 @@ import AIService, {
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   RUNBOOK_AI_STEP_FEATURE,
@@ -198,9 +200,10 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
          * OneUptime AI's Data Security work, each started with no person:
          * an issue's analysis, store owners, a group's name, scrub rules,
          * the verdicts on findings that wait for a person (#10372), a pull
-         * request's sensitive data, and the daily record drafts. The drafts
-         * a person asks for (on request, an impact assessment, audit
-         * evidence) are not budgeted.
+         * request's sensitive data, the daily record drafts, and an
+         * exposure's write-up as its case opens (#10377). The drafts a
+         * person asks for (on request, an impact assessment, audit
+         * evidence, an exposure's write-up) are not budgeted.
          */
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
@@ -209,10 +212,32 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
         AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
         AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
         AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
         RUNBOOK_AI_STEP_FEATURE,
         WORKFLOW_AI_FEATURE,
         ...LEGACY_AUTONOMOUS_AI_FEATURES,
       ].sort(),
+    );
+  });
+
+  /*
+   * An exposure's write-up (#10377): on its own, as Data Security opens a
+   * case for a Critical exposure, it is autonomous - one scan can open
+   * several cases - so budgeted; when a person asks for it on the case's
+   * card, answered while they wait, it is not.
+   */
+  test("an exposure's write-up is budgeted on its own, and not when a person asks", () => {
+    expect(AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE).toBe(
+      "AI Data Security Exposure Assessment",
+    );
+    expect(AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE).toBe(
+      "AI Data Security Exposure Assessment Request",
+    );
+    expect(AUTONOMOUS_AI_FEATURES).toContain(
+      AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+    );
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
     );
   });
 });
