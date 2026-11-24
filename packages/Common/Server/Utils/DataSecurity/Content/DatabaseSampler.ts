@@ -17,6 +17,8 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
+import { CONTENT_STORE_KEY, recognizeFields } from "../Model/ModelScan";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import {
   classifyCollectedFields,
   FieldsClassification,
@@ -1203,11 +1205,15 @@ export async function sampleDatabase(
           continue;
         }
 
+        // The names-and-addresses model reads the table's free-text columns.
+        const recognitions: ModelRecognitions | undefined =
+          await recognizeFields(options.model, CONTENT_STORE_KEY, fields);
         const classified: FieldsClassification = classifyCollectedFields({
           fields,
           options,
           fingerprints,
           locationKind: DataStoreLocationKind.Column,
+          recognitions,
         });
 
         locations.push(...classified.locations);

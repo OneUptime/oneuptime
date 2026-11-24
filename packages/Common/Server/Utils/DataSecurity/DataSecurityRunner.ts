@@ -50,6 +50,13 @@ import {
 } from "./DataSecurityScanTypes";
 import { buildFingerprint, deriveFingerprintKey } from "./Fingerprint";
 import {
+  CONTENT_STORE_KEY,
+  createModelScanContext,
+  getModelWarnings,
+  recognizeFields,
+} from "./Model/ModelScan";
+import { ModelRecognitions } from "../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
   claimDueDataStoresForWorkers,
   isDataStoreContentScannableByWorkers,
 } from "./DataSecurityWorkerClaim";
@@ -239,9 +246,16 @@ export default class DataSecurityRunner {
       });
   }
 
+  /*
+   * `model` says which scan the setup is for, and so whether the project's
+   * names-and-addresses switch for it is on: content scans read free text
+   * with the model unless the project turned it off; the hourly telemetry
+   * scan only when the project turned it on.
+   */
   public static async getScanSetup(
     projectId: ObjectID,
     store?: DataStore | undefined,
+    model: "content" | "telemetry" | "none" = "none",
   ): Promise<ScanSetup> {
     const setting: DataSecuritySetting =
       await DataSecuritySettingService.getOrCreateForProject(projectId);
@@ -329,6 +343,16 @@ export default class DataSecurityRunner {
         previousState:
           (store?.contentScanState as JSONObject | undefined) || undefined,
         fingerprintKey: getFingerprintKey(projectId),
+        model: await createModelScanContext({
+          isEnabled:
+            model === "content"
+              ? setting.isModelScanEnabled !== false
+              : model === "telemetry"
+                ? setting.isTelemetryModelScanEnabled === true
+                : false,
+          scope: model === "telemetry" ? "telemetry" : "content",
+          place: "server",
+        }),
       },
     };
   }
@@ -676,7 +700,11 @@ export default class DataSecurityRunner {
       return;
     }
 
-    const setup: ScanSetup = await this.getScanSetup(projectId, store);
+    const setup: ScanSetup = await this.getScanSetup(
+      projectId,
+      store,
+      "content",
+    );
 
     if (setup.setting.isContentScanEnabled === false) {
       return;
@@ -704,6 +732,18 @@ export default class DataSecurityRunner {
         }))
       ) {
         return;
+      }
+
+      // What the names-and-addresses model read, and whether its time ran out.
+      if (result) {
+        for (const warning of getModelWarnings(
+          setup.options.model,
+          CONTENT_STORE_KEY,
+        )) {
+          if (!result.warnings.includes(warning)) {
+            result.warnings.push(warning);
+          }
+        }
       }
 
       if (!result) {
@@ -960,6 +1000,13 @@ export default class DataSecurityRunner {
 
       const locations: Array<LocationFindings> = [];
 
+      // The names-and-addresses model reads the table's free-text columns.
+      const recognitions: ModelRecognitions | undefined = await recognizeFields(
+        options.model,
+        CONTENT_STORE_KEY,
+        collector.getFields(),
+      );
+
       for (const field of collector.getFields()) {
         const classifications: Array<FieldClassification> = classifyField(
           field.path,
@@ -973,6 +1020,7 @@ export default class DataSecurityRunner {
             disabledDataTypeIds: options.disabledDataTypeIds,
             allowedValues: options.allowedValues,
             extraHints: options.extraHints,
+            recognitions,
           },
         );
 
@@ -1060,7 +1108,11 @@ export default class DataSecurityRunner {
       return;
     }
 
-    const setup: ScanSetup = await this.getScanSetup(projectId);
+    const setup: ScanSetup = await this.getScanSetup(
+      projectId,
+      undefined,
+      "telemetry",
+    );
 
     if (setup.setting.isTelemetryScanEnabled === false) {
       return;

@@ -3,6 +3,13 @@ import DataConfidence, {
 } from "../../Types/DataSecurity/DataConfidence";
 import { CONTEXT_AFTER, CONTEXT_BEFORE, DataTypeDetector } from "./Detector";
 import BUILT_IN_DETECTORS from "./Detectors/Index";
+import {
+  confidenceOfScore,
+  isRecognizedTestValue,
+  keywordsOf,
+  normalizeRecognizedValue,
+  RecognizedEntity,
+} from "./Model/RecognizedEntity";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -81,6 +88,96 @@ export interface TextMatch {
   normalized: string;
   confidence: DataConfidence;
   isTestValue: boolean;
+  /*
+   * Found by the names-and-addresses model (Model/RecognizedEntity.ts), not
+   * a detector's pattern: masked as a name-found value is, and never
+   * fingerprinted - a name is too common to say two stores hold the same
+   * data.
+   */
+  fromModel?: boolean | undefined;
+}
+
+// How far around a model's finding its context words are looked for.
+const MODEL_CONTEXT_BEFORE: number = CONTEXT_BEFORE;
+const MODEL_CONTEXT_AFTER: number = CONTEXT_AFTER;
+
+/*
+ * A model's findings in a text as candidates, judged by the same rules as a
+ * detector's (RecognizedEntity.ts): a type the project turned off is
+ * skipped, a value it allows is no finding, the field's name or the words
+ * around a value raise its confidence a level, and a placeholder is a test
+ * value. They then compete with the detectors' candidates for the same
+ * characters like any other (resolveOverlaps), as the least specific kind.
+ */
+function modelCandidates(
+  text: string,
+  recognized: ReadonlyArray<RecognizedEntity>,
+  options: TextScanOptions,
+): Array<Candidate> {
+  const candidates: Array<Candidate> = [];
+
+  for (const entity of recognized) {
+    if (
+      !Number.isInteger(entity.start) ||
+      !Number.isInteger(entity.end) ||
+      entity.start < 0 ||
+      entity.end > text.length ||
+      entity.start >= entity.end ||
+      options.disabledDataTypeIds?.has(entity.dataTypeId)
+    ) {
+      continue;
+    }
+
+    const normalized: string = normalizeRecognizedValue(
+      text.slice(entity.start, entity.end),
+    );
+
+    if (
+      normalized.length === 0 ||
+      options.allowedValues?.has(normalized.toLowerCase())
+    ) {
+      continue;
+    }
+
+    const contextStart: number = Math.max(
+      0,
+      entity.start - MODEL_CONTEXT_BEFORE,
+    );
+    const around: string = text
+      .slice(
+        contextStart,
+        Math.min(text.length, entity.end + MODEL_CONTEXT_AFTER),
+      )
+      .toLowerCase();
+    const hasContext: boolean =
+      Boolean(options.hintedDataTypeIds?.has(entity.dataTypeId)) ||
+      anyWordNear(
+        around,
+        entity.start - contextStart,
+        entity.end - contextStart,
+        keywordsOf(entity.dataTypeId),
+        MODEL_CONTEXT_BEFORE,
+        MODEL_CONTEXT_AFTER,
+      );
+    let confidence: DataConfidence = confidenceOfScore(entity.score);
+
+    if (hasContext) {
+      confidence = raise(confidence);
+    }
+
+    candidates.push({
+      dataTypeId: entity.dataTypeId,
+      start: entity.start,
+      end: entity.end,
+      normalized,
+      confidence,
+      isTestValue: isRecognizedTestValue(entity.dataTypeId, normalized),
+      fromModel: true,
+      score: DATA_CONFIDENCE_RANK[confidence] * 100 + (hasContext ? 10 : 0) + 1,
+    });
+  }
+
+  return candidates;
 }
 
 interface Candidate extends TextMatch {
@@ -366,14 +463,20 @@ export function resolveOverlaps(
     }
 
     for (const candidate of accepted) {
-      kept.push({
+      const match: TextMatch = {
         dataTypeId: candidate.dataTypeId,
         start: candidate.start,
         end: candidate.end,
         normalized: candidate.normalized,
         confidence: candidate.confidence,
         isTestValue: candidate.isTestValue,
-      });
+      };
+
+      if (candidate.fromModel) {
+        match.fromModel = true;
+      }
+
+      kept.push(match);
     }
 
     cluster = [];
@@ -401,9 +504,15 @@ export function resolveOverlaps(
   });
 }
 
+/*
+ * `recognized` is what the names-and-addresses model found in this same
+ * text, for a value it read (Model/RecognizedEntity.ts): its findings join
+ * the detectors' before overlaps are settled.
+ */
 export function findSensitiveValues(
   text: string,
   options: TextScanOptions = {},
+  recognized?: ReadonlyArray<RecognizedEntity> | undefined,
 ): Array<TextMatch> {
   if (!text) {
     return [];
@@ -438,6 +547,12 @@ export function findSensitiveValues(
 
     if (isLast) {
       break;
+    }
+  }
+
+  if (recognized && recognized.length > 0) {
+    for (const candidate of modelCandidates(bounded, recognized, options)) {
+      candidates.push(candidate);
     }
   }
 

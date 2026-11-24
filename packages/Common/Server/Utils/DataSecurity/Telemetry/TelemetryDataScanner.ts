@@ -64,6 +64,12 @@ import {
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
 } from "../DataSecurityScanTypes";
+import {
+  FieldForModel,
+  getModelWarnings,
+  recognizeFields,
+} from "../Model/ModelScan";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 
 /*
  * WHAT A PROJECT'S TELEMETRY HOLDS.
@@ -3020,6 +3026,50 @@ function describeOwner(sample: StoreSample, name: string | undefined): string {
     : `${noun} ${sample.ownerId}`;
 }
 
+/*
+ * Where a sample's place is a log body, an exception message or stack trace,
+ * or a prompt: free text whatever its length, which the names-and-addresses
+ * model reads (FieldClassifier readWithModel).
+ */
+function isBodyLocation(sample: StoreSample, path: string): boolean {
+  return sample.locationKinds.get(path) === DataStoreLocationKind.Body;
+}
+
+// The key of a sample's store in the scan's model budget.
+export function modelStoreKey(sample: {
+  kind: DataStoreKind;
+  ownerId: string;
+}): string {
+  return storeKey(sample.kind, sample.ownerId);
+}
+
+/*
+ * What the names-and-addresses model finds in a sample's free text - its
+ * bodies, messages and prompts, and attributes long enough to be free text
+ * - within the store's share of the scan's model time. Only when the
+ * project turned the model on for telemetry (options.model).
+ */
+async function recognizeSample(
+  sample: StoreSample,
+  options: ContentScanOptions,
+): Promise<ModelRecognitions | undefined> {
+  if (!options.model) {
+    return undefined;
+  }
+
+  const fields: Array<FieldForModel> = sample.collector
+    .getFields()
+    .map((field: { path: string; values: Array<unknown> }): FieldForModel => {
+      return {
+        path: field.path,
+        values: field.values,
+        readWithModel: isBodyLocation(sample, field.path),
+      };
+    });
+
+  return await recognizeFields(options.model, modelStoreKey(sample), fields);
+}
+
 function toResult(data: {
   sample: StoreSample;
   name: string | undefined;
@@ -3027,9 +3077,16 @@ function toResult(data: {
   isDeletedOwner: boolean;
   window: TelemetryReadWindow;
   classifierOptions: FieldClassifierOptions;
+  // What the names-and-addresses model found in the sample's free text.
+  recognitions?: ModelRecognitions | undefined;
+  modelWarnings?: Array<string> | undefined;
 }): ContentScanResult {
   const sample: StoreSample = data.sample;
   const locations: Array<LocationFindings> = [];
+
+  for (const warning of data.modelWarnings || []) {
+    sample.warn(warning);
+  }
 
   for (const field of sample.collector.getFields()) {
     let classifications: Array<FieldClassification>;
@@ -3038,7 +3095,13 @@ function toResult(data: {
       classifications = classifyField(
         field.path,
         field.values,
-        data.classifierOptions,
+        data.recognitions
+          ? {
+              ...data.classifierOptions,
+              recognitions: data.recognitions,
+              readWithModel: isBodyLocation(sample, field.path),
+            }
+          : data.classifierOptions,
       );
     } catch (error) {
       logger.warn(
@@ -3278,9 +3341,15 @@ export async function scanProjectTelemetry(data: {
     data.options,
   );
 
-  return samples.map((sample: StoreSample): TelemetryStoreScan => {
+  const scans: Array<TelemetryStoreScan> = [];
+
+  for (const sample of samples) {
     const name: string | undefined = owners.names.get(
       sample.ownerId.toLowerCase(),
+    );
+    const recognitions: ModelRecognitions | undefined = await recognizeSample(
+      sample,
+      data.options,
     );
     const scan: TelemetryStoreScan = {
       serviceId: sample.ownerId,
@@ -3295,6 +3364,11 @@ export async function scanProjectTelemetry(data: {
             : owners.servicesRead),
         window: context.window,
         classifierOptions,
+        recognitions,
+        modelWarnings: getModelWarnings(
+          data.options.model,
+          modelStoreKey(sample),
+        ),
       }),
     };
 
@@ -3302,6 +3376,8 @@ export async function scanProjectTelemetry(data: {
       scan.serviceName = name;
     }
 
-    return scan;
-  });
+    scans.push(scan);
+  }
+
+  return scans;
 }

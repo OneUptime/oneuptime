@@ -65,6 +65,8 @@ export default tseslint.config(
       "packages/Probe/Tests/Utils/Monitors/SyntheticRuntime/Fixtures/*.cjs", // CommonJS fork fixtures are intentionally outside the TypeScript project.
       "packages/Probe/Tests/TestingUtils/FakeTcpdump.cjs", // A stand-in for tcpdump the runner's tests start as a child process: plain CommonJS, outside the TypeScript project.
       "packages/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar/ExternalCalendarExpansionWorker.cjs", // The worker thread that reads external .ics calendars: a worker starts a fresh Node, which loads JavaScript, so plain CommonJS, outside the TypeScript project.
+      "packages/Common/Server/Utils/DataSecurity/Model/NameAddressModelWorker.cjs", // The worker thread that runs Data Security's names-and-addresses model: a worker starts a fresh Node, which loads JavaScript, so plain CommonJS, outside the TypeScript project.
+      "packages/Common/Tests/Server/Utils/DataSecurity/Model/Fixtures/*.cjs", // Stand-ins for the model runtime that the worker thread loads in tests: plain CommonJS, outside the TypeScript project.
       "Tests/Ops/openstack-e2e/whole-path-pages.cjs", // What the whole path's real pages look like, which whole-path.py runs with plain Node in Playwright's image: plain CommonJS, outside the TypeScript project.
       "**/tmp/",
       "**/temp/",

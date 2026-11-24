@@ -131,6 +131,12 @@ export interface DataSecurityProbeStoreWork {
    * the project's other stores'. Handed only to the project's own probe.
    */
   fingerprintKey: string;
+  /*
+   * Whether the probe reads free-text columns for names and street
+   * addresses with the model in its own image (Model/ModelScan.ts). Off
+   * when a server older than the model says nothing.
+   */
+  findNamesAndAddresses: boolean;
 }
 
 export interface DataSecurityProbeWorkResponse {
@@ -281,6 +287,7 @@ export function readProbeStoreWork(
       typeof work["fingerprintKey"] === "string"
         ? (work["fingerprintKey"] as string)
         : "",
+    findNamesAndAddresses: work["findNamesAndAddresses"] === true,
   };
 }
 
@@ -420,7 +427,7 @@ function readClassification(
     readCount(raw["valuesWithMatch"]),
   );
 
-  return {
+  const classification: FieldClassification = {
     dataTypeId,
     matchCount: readCount(raw["matchCount"]),
     testValueCount: readCount(raw["testValueCount"]),
@@ -439,6 +446,12 @@ function readClassification(
     nameHinted: raw["nameHinted"] === true,
     foundByName: raw["foundByName"] === true,
   };
+
+  if (raw["foundByModel"] === true) {
+    classification.foundByModel = true;
+  }
+
+  return classification;
 }
 
 /*
