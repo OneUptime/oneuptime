@@ -4,6 +4,7 @@ import CallService, {
   getCallGatewayMessage,
   getCallVoicemailWords,
 } from "../../FeatureSet/Notification/Services/CallService";
+import Project from "Common/Models/DatabaseModels/Project";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import { ON_CALL_KEYPAD_TOKEN_PURPOSE } from "Common/Server/Utils/OnCall/OnCallKeypadToken";
@@ -439,6 +440,93 @@ describe("a record's number is spelled, so INC is never read as Incorporated", (
     );
 
     expect(saidIn(gatherOf(twiml))[1]).toBe("A new incident has been created.");
+  });
+});
+
+describe("a number written with one of the project's prefixes is spelled in any call", () => {
+  test("an owner's message, which carries no record number of its own", () => {
+    const twiml: string = CallService.generateTwimlForCall(
+      {
+        data: [
+          {
+            sayMessage:
+              "This is a message from OneUptime. New incident created: INC-42 (Checkout down after ALT-7). Good bye.",
+          },
+        ],
+      },
+      { recordNumberPrefixes: ["#", "INC-", "ALT-"] },
+    );
+
+    expect(saidIn(responseOf(twiml))).toEqual([
+      "This is a message from One Uptime. New incident created: I N C 42 (Checkout down after A L T 7). Good bye.",
+    ]);
+  });
+
+  test("a page's title that names another record", () => {
+    const twiml: string = CallService.generateTwimlForCall(
+      pageCall({ title: "Checkout down again after INC-41 was resolved" }),
+      {
+        userOnCallLogTimelineId: NOTIFICATION,
+        recordNumberPrefixes: ["#", "INC-"],
+      },
+    );
+
+    expect(saidIn(gatherOf(twiml))[3]).toBe(
+      "Checkout down again after I N C 41 was resolved",
+    );
+  });
+
+  test("with SSML for a voice that reads it", () => {
+    const twiml: string = CallService.generateTwimlForCall(
+      { data: [{ sayMessage: "New alert created: ALT-7." }] },
+      { voice: "Polly.Joanna", recordNumberPrefixes: ["ALT-"] },
+    );
+
+    expect(twiml).toContain(
+      `<Say voice="Polly.Joanna">New alert created: <say-as interpret-as="characters">ALT</say-as> 7.</Say>`,
+    );
+  });
+
+  test("a call without the project's prefixes says the text as written", () => {
+    expect(
+      saidIn(
+        responseOf(
+          CallService.generateTwimlForCall({
+            data: [{ sayMessage: "New incident created: INC-42." }],
+          }),
+        ),
+      ),
+    ).toEqual(["New incident created: INC-42."]);
+  });
+
+  test("a voicemail spells them too", () => {
+    expect(
+      getCallVoicemailWords(
+        {
+          to: new Phone("+15555550142"),
+          data: [{ sayMessage: "New incident created: INC-42" }],
+        },
+        ["INC-"],
+      ),
+    ).toBe("New incident created: I N C 42.");
+  });
+
+  test("the prefixes are the project's own, each kind's, and # for a number without one", () => {
+    const project: Project = new Project();
+    project.incidentNumberPrefix = "INC-";
+    project.alertNumberPrefix = " ALT- ";
+    project.incidentEpisodeNumberPrefix = "INC-";
+    project.alertEpisodeNumberPrefix = "";
+    project.securityCaseNumberPrefix = "CASE-";
+
+    expect(CallService.getRecordNumberPrefixes(project)).toEqual([
+      "#",
+      "INC-",
+      "ALT-",
+      "CASE-",
+    ]);
+    expect(CallService.getRecordNumberPrefixes(new Project())).toEqual(["#"]);
+    expect(CallService.getRecordNumberPrefixes(null)).toEqual([]);
   });
 });
 

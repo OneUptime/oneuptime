@@ -97,6 +97,9 @@ import {
   toTwimlText,
 } from "Common/Utils/Call/CallSpeech";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+import NumberPrefixUtil, {
+  NUMBER_PREFIX_COLUMNS,
+} from "Common/Utils/Project/NumberPrefix";
 
 /*
  * A call that asks for a key says its details and prompt this many times
@@ -205,7 +208,11 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
  * which written ("INC-42") a voice reads "Incorporated 42". The keypad
  * prompt is left out, as for a gateway (getCallGatewayMessage).
  */
-export function getCallVoicemailWords(callRequest: CallRequest): string {
+export function getCallVoicemailWords(
+  callRequest: CallRequest,
+  // The project's own number prefixes (CallService.getRecordNumberPrefixes).
+  recordNumberPrefixes: ReadonlyArray<string> = [],
+): string {
   const sentences: Array<string> = [];
 
   for (const item of callRequest.data || []) {
@@ -214,7 +221,7 @@ export function getCallVoicemailWords(callRequest: CallRequest): string {
     }
 
     const sentence: string = renderSpeechAsText(
-      getSpeechParts(item as Say),
+      getSpeechParts(item as Say, recordNumberPrefixes),
     ).trim();
 
     if (sentence) {
@@ -227,6 +234,13 @@ export function getCallVoicemailWords(callRequest: CallRequest): string {
 
 // Where a call's sentences go: the call itself, or its prompt for a key.
 type SayParent = VoiceResponse | VoiceResponse.Gather;
+
+// How a call speaks: its voice, and the number prefixes it spells.
+interface CallSpeechOptions {
+  // None: the Twilio account's default voice.
+  voice: string | undefined;
+  recordNumberPrefixes: ReadonlyArray<string>;
+}
 
 export default class CallService {
   public static async makeCall(
@@ -514,6 +528,16 @@ export default class CallService {
             notEnabledSmsOrCallNotificationSentToOwners: true,
             // Whether an on-call call asks who answered it (#6594).
             detectVoicemailOnCalls: true,
+            /*
+             * Its record number prefixes: a number written with one is
+             * spelled, wherever a call says it (getRecordNumberPrefixes).
+             */
+            incidentNumberPrefix: true,
+            incidentEpisodeNumberPrefix: true,
+            alertNumberPrefix: true,
+            alertEpisodeNumberPrefix: true,
+            scheduledMaintenanceNumberPrefix: true,
+            securityCaseNumberPrefix: true,
           },
           props: {
             isRoot: true,
@@ -752,11 +776,17 @@ export default class CallService {
             ? this.getVoicemailCallbackUrl(callLog, providerConfig)
             : null;
 
+        // The project's own number prefixes, which the call spells.
+        const recordNumberPrefixes: Array<string> =
+          this.getRecordNumberPrefixes(project);
+
         if (voicemailCallbackUrl && !options.isSensitive) {
           callLog.callData = {
             ...((callLog.callData as unknown as Record<string, unknown>) || {}),
             [VOICEMAIL_MESSAGE_CALL_DATA_KEY]: ProductBrandingText.brandText(
-              getVoicemailMessage(getCallVoicemailWords(callRequest)),
+              getVoicemailMessage(
+                getCallVoicemailWords(callRequest, recordNumberPrefixes),
+              ),
             ),
           } as any;
         }
@@ -767,6 +797,7 @@ export default class CallService {
          */
         const twiml: string = this.generateTwimlForCall(callRequest, {
           userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+          recordNumberPrefixes: recordNumberPrefixes,
         });
 
         // Handed to Twilio from here on.
@@ -929,6 +960,34 @@ export default class CallService {
   }
 
   /*
+   * The number prefixes a call spells: the project's own, one for each kind
+   * of numbered record it has (NumberPrefix) - "INC-", "ALT-" - and "#", the
+   * prefix of a number without one, so "INC-42" anywhere in a call is "I N C
+   * 42" and "#42" is "number 42" (#10762). Without a project, none.
+   */
+  public static getRecordNumberPrefixes(
+    project: Project | null | undefined,
+  ): Array<string> {
+    if (!project) {
+      return [];
+    }
+
+    const prefixes: Array<string> = [NumberPrefixUtil.DEFAULT_PREFIX];
+
+    for (const info of NUMBER_PREFIX_COLUMNS) {
+      const prefix: unknown = (project as unknown as Record<string, unknown>)[
+        info.column
+      ];
+
+      if (typeof prefix === "string" && prefix.trim()) {
+        prefixes.push(prefix.trim());
+      }
+    }
+
+    return Array.from(new Set(prefixes));
+  }
+
+  /*
    * Whether a call asks Twilio who answered it (#6594): an on-call page -
    * a call made for a person's on-call notification, a test page's among
    * them - of a project that detects voicemail, as every project does until
@@ -1010,6 +1069,12 @@ export default class CallService {
        * voice, which may read no SSML (Utils/Call/CallSpeech).
        */
       voice?: string | undefined;
+      /*
+       * The project's own number prefixes ("INC-", "#"): a number written
+       * with one is spelled wherever the call says it, a title or an
+       * owner's message included (getRecordNumberPrefixes).
+       */
+      recordNumberPrefixes?: ReadonlyArray<string> | undefined;
     },
   ): string {
     const spoken: Array<string> = [];
@@ -1036,7 +1101,10 @@ export default class CallService {
       return keypadTokens.get(gather)!;
     };
 
-    const voice: string | undefined = options?.voice;
+    const speech: CallSpeechOptions = {
+      voice: options?.voice,
+      recordNumberPrefixes: options?.recordNumberPrefixes || [],
+    };
 
     const twiml: string = this.buildTwimlForCall(
       callRequest,
@@ -1045,7 +1113,7 @@ export default class CallService {
         return text;
       },
       keypadTokenOf,
-      voice,
+      speech,
     );
 
     if (twiml.length <= MAX_CALL_TWIML_LENGTH) {
@@ -1060,7 +1128,7 @@ export default class CallService {
           return "x";
         },
         keypadTokenOf,
-        voice,
+        speech,
       ).length - spoken.length;
 
     let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
@@ -1086,7 +1154,7 @@ export default class CallService {
           return fitted[next++] ?? "";
         },
         keypadTokenOf,
-        voice,
+        speech,
       );
 
       if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
@@ -1152,7 +1220,7 @@ export default class CallService {
     callRequest: CallRequestMessage,
     say: (text: string) => string,
     keypadTokenOf: (gather: GatherInput) => string,
-    voice?: string | undefined,
+    speech: CallSpeechOptions,
   ): string {
     const response: VoiceResponse = new Twilio.twiml.VoiceResponse();
 
@@ -1180,15 +1248,15 @@ export default class CallService {
 
         for (const sentence of sentences) {
           if (!sentence.afterPrompt) {
-            this.sayInto(gather, sentence, say, voice);
+            this.sayInto(gather, sentence, say, speech);
           }
         }
 
-        this.sayInto(gather, prompt.introMessage, say, voice);
+        this.sayInto(gather, prompt.introMessage, say, speech);
 
         for (const sentence of sentences) {
           if (sentence.afterPrompt) {
-            this.sayInto(gather, sentence, say, voice);
+            this.sayInto(gather, sentence, say, speech);
           }
         }
 
@@ -1197,22 +1265,22 @@ export default class CallService {
 
           for (const sentence of sentences) {
             if (sentence.repeated) {
-              this.sayInto(gather, sentence, say, voice);
+              this.sayInto(gather, sentence, say, speech);
             }
           }
 
-          this.sayInto(gather, prompt.introMessage, say, voice);
+          this.sayInto(gather, prompt.introMessage, say, speech);
         }
 
         sentences = [];
 
-        this.sayInto(response, prompt.noInputMessage, say, voice);
+        this.sayInto(response, prompt.noInputMessage, say, speech);
       }
     }
 
     // A call that asks for no key says its sentences, as it always did.
     for (const sentence of sentences) {
-      this.sayInto(response, sentence, say, voice);
+      this.sayInto(response, sentence, say, speech);
     }
 
     response.hangup();
@@ -1232,12 +1300,13 @@ export default class CallService {
     parent: SayParent,
     sentence: Say | string,
     say: (text: string) => string,
-    voice: string | undefined,
+    speech: CallSpeechOptions,
   ): void {
-    const parts: Array<SpeechPart> =
-      typeof sentence === "string"
-        ? [{ text: sentence }]
-        : getSpeechParts(sentence);
+    const voice: string | undefined = speech.voice;
+    const parts: Array<SpeechPart> = getSpeechParts(
+      typeof sentence === "string" ? { sayMessage: sentence } : sentence,
+      speech.recordNumberPrefixes,
+    );
 
     const attributes: VoiceResponse.SayAttributes = voice
       ? { voice: voice as NonNullable<VoiceResponse.SayAttributes["voice"]> }

@@ -513,7 +513,7 @@ describe("a sentence, as the voice is given it", () => {
     );
   });
 
-  test("the last place it names the number: a policy named after one keeps its name", () => {
+  test("every place it names the number: a policy named after one is said right too", () => {
     expect(
       renderSpeechAsText(
         getSpeechParts({
@@ -523,8 +523,84 @@ describe("a sentence, as the voice is given it", () => {
         }),
       ),
     ).toBe(
-      "Alice Kim started the on-call policy INC-42 drill for an incident: Critical Incident I N C 42.",
+      "Alice Kim started the on-call policy I N C 42 drill for an incident: Critical Incident I N C 42.",
     );
+  });
+
+  test("a number written with one of the project's prefixes, anywhere: an owner's message, a title", () => {
+    expect(
+      renderSpeechAsText(
+        getSpeechParts(
+          {
+            sayMessage:
+              "This is a message from OneUptime. New incident created: INC-42 (Checkout down after ALT-7). Good bye.",
+          },
+          ["#", "INC-", "ALT-"],
+        ),
+      ),
+    ).toBe(
+      "This is a message from OneUptime. New incident created: I N C 42 (Checkout down after A L T 7). Good bye.",
+    );
+  });
+
+  test("#42, a number without a prefix, is number 42; a hashtag or a channel is left alone", () => {
+    expect(
+      renderSpeechAsText(
+        getSpeechParts({ sayMessage: "PR #1234 broke #ops-alerts and #ops." }, [
+          "#",
+        ]),
+      ),
+    ).toBe("PR number 1234 broke #ops-alerts and #ops.");
+  });
+
+  test("only a number that stands on its own: never inside a longer word or number", () => {
+    expect(
+      renderSpeechAsText(
+        getSpeechParts(
+          {
+            sayMessage:
+              "XINC-42, INC-42b and INC-421 differ; INC-42, INC-42. and (INC-42) do not.",
+          },
+          ["INC-"],
+        ),
+      ),
+    ).toBe(
+      "XINC-42, INC-42b and I N C 421 differ; I N C 42, I N C 42. and (I N C 42) do not.",
+    );
+  });
+
+  test("a prefix with the characters a pattern reads as syntax matches only as written", () => {
+    expect(
+      renderSpeechAsText(
+        getSpeechParts({ sayMessage: "OPS.INC-7 and OPSXINC-7" }, ["OPS.INC-"]),
+      ),
+    ).toBe("O P S I N C 7 and OPSXINC-7");
+    expect(
+      renderSpeechAsText(
+        getSpeechParts({ sayMessage: "A/B:7 and AXB:7" }, ["A/B:"]),
+      ),
+    ).toBe("A B 7 and AXB:7");
+  });
+
+  test("a prefix with # in it is read whole, beside # for a number without one", () => {
+    expect(
+      renderSpeechAsText(
+        getSpeechParts({ sayMessage: "SEV#1-7 and #7" }, ["#", "SEV#1-"]),
+      ),
+    ).toBe("S E V 1, 7 and number 7");
+  });
+
+  test("no prefixes, or empty ones, spell nothing more", () => {
+    for (const prefixes of [[], [""], ["   "]]) {
+      expect(
+        renderSpeechAsText(
+          getSpeechParts(
+            { sayMessage: "New incident created: INC-42." },
+            prefixes,
+          ),
+        ),
+      ).toBe("New incident created: INC-42.");
+    }
   });
 
   test("a sentence that no longer names its number - one a fit cut short - is said as written", () => {

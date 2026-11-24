@@ -1,3 +1,5 @@
+import { escapeRegExp } from "../RegExpEscape";
+
 /*
  * HOW A CALL SAYS ITS WORDS.
  *
@@ -343,14 +345,101 @@ export const getRecordNumberSpeech: (
   return parts;
 };
 
+// A piece of a sentence: text as written, or a record's number to spell.
+type SentencePiece = { text: string } | { recordNumber: string };
+
 /*
- * What a voice is given for a sentence: its text as written, and its
- * record's number - the last place the sentence names it - as
- * getRecordNumberSpeech says it. A sentence that does not name the number
- * it carries (a cut one) is said as written. No empty text.
+ * The pattern of a number written with one of `prefixes` - a project's own
+ * number prefixes, "INC-", "ALT-", or "#" for a number without one - that
+ * stands on its own: "INC-42" in "New incident created: INC-42 (Checkout is
+ * down).", never in "XINC-42" or "INC-42b". The character before the number
+ * is captured rather than looked behind for, as the frontends' engines need.
+ * Null without a prefix.
  */
-export const getSpeechParts: (sentence: SpokenSentence) => Array<SpeechPart> = (
+const getPrefixedNumberPattern: (
+  prefixes: ReadonlyArray<string>,
+) => RegExp | null = (prefixes: ReadonlyArray<string>): RegExp | null => {
+  const usable: Array<string> = Array.from(
+    new Set(
+      prefixes
+        .map((prefix: string): string => {
+          return typeof prefix === "string" ? prefix.trim() : "";
+        })
+        .filter((prefix: string): boolean => {
+          return prefix !== "";
+        }),
+    ),
+  ).sort((first: string, second: string): number => {
+    return second.length - first.length;
+  });
+
+  if (usable.length === 0) {
+    return null;
+  }
+
+  return new RegExp(
+    `(^|[^\\p{L}\\p{M}\\p{N}])((?:${usable.map(escapeRegExp).join("|")})[0-9]+)(?![\\p{L}\\p{M}\\p{N}])`,
+    "gu",
+  );
+};
+
+// `text` cut at every place it says `recordNumber`.
+const splitOnRecordNumber: (
+  text: string,
+  recordNumber: string,
+) => Array<SentencePiece> = (
+  text: string,
+  recordNumber: string,
+): Array<SentencePiece> => {
+  return text
+    .split(recordNumber)
+    .flatMap((between: string, index: number): Array<SentencePiece> => {
+      return index === 0
+        ? [{ text: between }]
+        : [{ recordNumber: recordNumber }, { text: between }];
+    });
+};
+
+// `text` cut at every number `pattern` finds.
+const splitOnPrefixedNumbers: (
+  text: string,
+  pattern: RegExp,
+) => Array<SentencePiece> = (
+  text: string,
+  pattern: RegExp,
+): Array<SentencePiece> => {
+  const pieces: Array<SentencePiece> = [];
+  let from: number = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const start: number = (match.index || 0) + (match[1] || "").length;
+    const number: string = match[2] || "";
+
+    pieces.push({ text: text.slice(from, start) });
+    pieces.push({ recordNumber: number });
+    from = start + number.length;
+  }
+
+  pieces.push({ text: text.slice(from) });
+
+  return pieces;
+};
+
+/*
+ * What a voice is given for a sentence: its text as written, and each
+ * record number in it as getRecordNumberSpeech says it - the number the
+ * sentence carries (Say.recordNumber), wherever it names it, and every
+ * number written with one of `recordNumberPrefixes`, the project's own
+ * prefixes, so a title or an owner's message that names "INC-41" says it
+ * right too. A sentence that no longer names the number it carries (a cut
+ * one) is said as written. No empty text.
+ */
+export const getSpeechParts: (
   sentence: SpokenSentence,
+  recordNumberPrefixes?: ReadonlyArray<string>,
+) => Array<SpeechPart> = (
+  sentence: SpokenSentence,
+  recordNumberPrefixes: ReadonlyArray<string> = [],
 ): Array<SpeechPart> => {
   const text: string =
     typeof sentence.sayMessage === "string" ? sentence.sayMessage : "";
@@ -358,20 +447,35 @@ export const getSpeechParts: (sentence: SpokenSentence) => Array<SpeechPart> = (
     typeof sentence.recordNumber === "string"
       ? sentence.recordNumber.trim()
       : "";
-  const at: number = recordNumber ? text.lastIndexOf(recordNumber) : -1;
+  const pattern: RegExp | null = getPrefixedNumberPattern(recordNumberPrefixes);
 
-  const parts: Array<SpeechPart> =
-    at < 0
-      ? [{ text: text }]
-      : [
-          { text: text.slice(0, at) },
-          ...getRecordNumberSpeech(recordNumber),
-          { text: text.slice(at + recordNumber.length) },
-        ];
+  let pieces: Array<SentencePiece> = [{ text: text }];
 
-  return parts.filter((part: SpeechPart): boolean => {
-    return "characters" in part ? part.characters !== "" : part.text !== "";
-  });
+  if (recordNumber) {
+    pieces = pieces.flatMap((piece: SentencePiece): Array<SentencePiece> => {
+      return "text" in piece
+        ? splitOnRecordNumber(piece.text, recordNumber)
+        : [piece];
+    });
+  }
+
+  if (pattern) {
+    pieces = pieces.flatMap((piece: SentencePiece): Array<SentencePiece> => {
+      return "text" in piece
+        ? splitOnPrefixedNumbers(piece.text, pattern)
+        : [piece];
+    });
+  }
+
+  return pieces
+    .flatMap((piece: SentencePiece): Array<SpeechPart> => {
+      return "text" in piece
+        ? [{ text: piece.text }]
+        : getRecordNumberSpeech(piece.recordNumber);
+    })
+    .filter((part: SpeechPart): boolean => {
+      return "characters" in part ? part.characters !== "" : part.text !== "";
+    });
 };
 
 // Characters said one at a time, for a voice that reads no SSML: "I N C".
