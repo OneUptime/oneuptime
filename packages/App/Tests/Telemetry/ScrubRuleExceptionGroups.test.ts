@@ -512,6 +512,8 @@ function setupIngest(): void {
   jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
+  // A failed read is tried again at once (#11027).
+  jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
 }
 
 function request(body: JSONObject): TelemetryRequest {
@@ -1116,6 +1118,8 @@ describe("the fingerprint never gives away what a rule hid", () => {
     expect(rowFingerprints()).toHaveLength(1);
     expect(guessesMatching(rowFingerprints()[0]!)).toEqual([]);
     expect(rowFingerprints()[0]).toBe(fingerprintsOf(ssnException("6789")).v4);
+    // And no exception is made on a guess: its count waits (#11027).
+    expect(exceptions()).toEqual([]);
   });
 
   test("the same holds for a span's exception a trace rule hid part of", async () => {

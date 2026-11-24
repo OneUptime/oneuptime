@@ -15,6 +15,7 @@ import ExceptionUtil, {
   RECORD_SPLIT_PAIR_SQL,
   GroupFingerprintCandidate,
   OccurrenceFingerprints,
+  ResolvedGroups,
   TelemetryExceptionPayload,
   clearExistingV1FingerprintCache,
   groupFingerprintKey,
@@ -397,6 +398,8 @@ function mockPostgres(): void {
   jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
+  // A failed read is tried again at once (#11027).
+  jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
 }
 
 describe("which exception an occurrence with candidates belongs to", () => {
@@ -492,8 +495,21 @@ describe("which exception an occurrence with candidates belongs to", () => {
     expect(lookups).toHaveLength(1);
   });
 
-  test("a failed read keeps the fingerprint it names for that: v1 for an occurrence no rule changed, the keyed one for one a rule did", async () => {
+  test("a read that fails every try leaves the exception unknown, and its occurrence goes under the fingerprint a new one is made under, never v1 (#11027)", async () => {
     lookupFails = true;
+
+    const resolved: ResolvedGroups = await ExceptionUtil.resolveGroups([
+      HIDDEN,
+      SEEN_AS_IT_CAME,
+    ]);
+
+    expect(resolved.chosen.size).toBe(0);
+    expect(Array.from(resolved.unknown.keys())).toEqual([
+      groupFingerprintKey(HIDDEN),
+      groupFingerprintKey(SEEN_AS_IT_CAME),
+    ]);
+    // Tried three times, once a project.
+    expect(lookups).toHaveLength(3);
 
     const chosen: Map<string, string> = await resolve([
       HIDDEN,
@@ -501,7 +517,8 @@ describe("which exception an occurrence with candidates belongs to", () => {
     ]);
 
     expect(chosen.get(groupFingerprintKey(HIDDEN))).toBe("keyed");
-    expect(chosen.get(groupFingerprintKey(SEEN_AS_IT_CAME))).toBe("v1");
+    // Not v1, which every later occurrence would try first.
+    expect(chosen.get(groupFingerprintKey(SEEN_AS_IT_CAME))).toBe("v2");
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -897,13 +914,13 @@ describe("grouping v4's fingerprints, tried after every older one", () => {
     );
 
     /*
-     * That occurrence made an exception of its own under keyed v4. Once
-     * the exceptions can be read again, the one under keyed v3, tried
-     * first, gets every occurrence: it lost one batch, and keeps its place.
+     * That occurrence was stored under keyed v4, and no exception was made
+     * there (#11027: its count waits until the exceptions can be read).
+     * Once they can, the one under keyed v3, tried first, gets every
+     * occurrence: it keeps its place.
      */
     clearExistingV1FingerprintCache();
     lookupFails = false;
-    existing = new Set<string>([fingerprints.keyedV3, fingerprints.keyedV4]);
 
     const next: Map<string, string> =
       await ExceptionUtil.resolveGroupFingerprints([candidate]);
@@ -911,13 +928,16 @@ describe("grouping v4's fingerprints, tried after every older one", () => {
     expect(next.get(groupFingerprintKey(candidate))).toBe(fingerprints.keyedV3);
   });
 
-  test("and one no rule changed keeps v1, as ever", async () => {
+  test("and one no rule changed goes under v4 too, never v1, which every later occurrence tries first (#11027)", async () => {
     lookupFails = true;
 
     const chosen: Map<string, string> =
       await ExceptionUtil.resolveGroupFingerprints([candidateOf(LONDON)]);
 
     expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(
+      fingerprintsOf(LONDON).v4,
+    );
+    expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).not.toBe(
       fingerprintsOf(LONDON).v1,
     );
   });

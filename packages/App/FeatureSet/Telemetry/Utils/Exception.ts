@@ -21,7 +21,13 @@ import KeyedExceptionFingerprint from "Common/Server/Utils/Telemetry/KeyedExcept
 import TelemetryExceptionRekey, {
   ExceptionRekeyResult,
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionRekey";
+import TelemetryExceptionSplitHeal, {
+  ExceptionSplitHealOutcome,
+} from "Common/Server/Utils/Telemetry/TelemetryExceptionSplitHeal";
 import { JSONObject } from "Common/Types/JSON";
+import HeldExceptionOccurrences, {
+  HELD_OCCURRENCE_RETRY_MS,
+} from "./HeldExceptionOccurrences";
 
 export interface ExceptionFingerprintInput {
   message?: string;
@@ -49,8 +55,11 @@ export interface ExceptionGroupingContent {
  *    to, tried in order;
  *  - `fingerprintV2`: the one a new exception is made under when none of
  *    them exists;
- *  - `fingerprint`: the one it keeps when the project's exceptions cannot
- *    be read;
+ *  - `fingerprint`: grouping v1's, unless v1 hashes what a scrub rule hid -
+ *    then the one a new exception is made under. Until #11027 an
+ *    occurrence was filed under it when the project's exceptions could not
+ *    be read, which is how a duplicate under v1 is told apart now
+ *    (TelemetryExceptionSplitHeal);
  *  - `fingerprintRekeys`, when a scrub rule changed it: each candidate that
  *    is an unkeyed hash of text the rule hid part of, with the private
  *    (keyed) fingerprint of the same text, which an exception found under
@@ -70,10 +79,10 @@ export interface OccurrenceFingerprints {
 
 export interface TelemetryExceptionPayload {
   /*
-   * The exception's group. Built as the one kept when the exceptions cannot
-   * be read (OccurrenceFingerprints), with the one a new exception is made
-   * under and the candidates beside it, until assignGroupFingerprints picks
-   * which one the occurrence belongs to.
+   * The exception's group. Built as OccurrenceFingerprints' `fingerprint`,
+   * with the one a new exception is made under and the candidates beside
+   * it, until assignPayloadGroupFingerprints picks which one the occurrence
+   * belongs to.
    */
   fingerprint: string;
   fingerprintV2?: string | undefined;
@@ -104,17 +113,40 @@ export interface TelemetryExceptionPayload {
    * worker reads it stands in.
    */
   occurredAt?: Date | undefined;
+  /*
+   * How many occurrences it stands for; one when left out. The occurrences
+   * of one exception held while its exceptions could not be read are kept
+   * as two, the latest counting those between (HeldExceptionOccurrences,
+   * #11027).
+   */
+  occurrences?: number | undefined;
 }
 
 /*
  * What is known of a fingerprint an occurrence may belong to: whether an
  * exception exists under it, and, when the row under it only keeps the
  * former fingerprint of an exception OneUptime moved to a private one
- * (#10619), that exception's fingerprint now, where its occurrences go.
+ * (#10619), that exception's fingerprint now, where its occurrences go. And,
+ * as the read gives them, when the exception was made and what it is merged
+ * into: how a duplicate a failed lookup made is told apart (#11027).
  */
 interface KnownGroup {
   exists: boolean;
   movedTo?: string | undefined;
+  // When the exception was made, in ms: the moved one's, for a former fingerprint.
+  createdAt?: number | undefined;
+  // The exception it is merged into, by id.
+  mergedInto?: string | undefined;
+}
+
+// What a cached or read group says, without when it was cached.
+function knownGroupOf(group: KnownGroup): KnownGroup {
+  return {
+    exists: group.exists,
+    ...(group.movedTo ? { movedTo: group.movedTo } : {}),
+    ...(group.createdAt !== undefined ? { createdAt: group.createdAt } : {}),
+    ...(group.mergedInto ? { mergedInto: group.mergedInto } : {}),
+  };
 }
 
 /*
@@ -139,11 +171,36 @@ const existingGroupCache: Map<string, KnownGroup & { at: number }> = new Map();
 const refusedMoves: Map<string, number> = new Map();
 const MAX_REFUSED_MOVES: number = 10000;
 
-// Forgets which exceptions exist under which fingerprints (tests).
+/*
+ * What became of each duplicate a failed lookup made that this process
+ * found (#11027, TelemetryExceptionSplitHeal), by project, duplicate and the
+ * exception it was split from, with when: merged, or left as it is for a
+ * reason that holds - not tried again for SPLIT_HEAL_DECISION_TTL_MS. A
+ * merge that failed is tried again after EXISTING_GROUP_CACHE_TTL_MS.
+ */
+const splitHealDecisions: Map<string, { at: number; failed: boolean }> =
+  new Map();
+const SPLIT_HEAL_DECISION_TTL_MS: number = 60 * 60 * 1000;
+const MAX_SPLIT_HEAL_DECISIONS: number = 10000;
+
+// The timer that tries the held occurrences again when no batch comes.
+let heldRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+/*
+ * Forgets which exceptions exist under which fingerprints, and the
+ * occurrences held while they could not be read (tests).
+ */
 export function clearExistingV1FingerprintCache(): void {
   existingGroupCache.clear();
   refusedMoves.clear();
   recordedSplits.clear();
+  splitHealDecisions.clear();
+  HeldExceptionOccurrences.clear();
+
+  if (heldRetryTimer) {
+    clearTimeout(heldRetryTimer);
+    heldRetryTimer = null;
+  }
 }
 
 // Remembers what is known of a fingerprint, within the cap.
@@ -184,9 +241,55 @@ export const RECORD_SPLIT_PAIR_SQL: string = `UPDATE "TelemetryException" AS s S
  * The lookup of which fingerprints a batch tries an exception exists under,
  * one project's, in one indexed read: each with the fingerprint of the
  * exception a row keeps it for, when the row only keeps an exception's
- * former fingerprint (#10619).
+ * former fingerprint (#10619); when the exception was made (the moved
+ * one's, for a former fingerprint); and what the row is merged into. The
+ * last two tell a duplicate a failed lookup made apart (#11027).
  */
-export const GROUP_FINGERPRINT_LOOKUP_SQL: string = `SELECT t."fingerprint" AS "fingerprint", o."fingerprint" AS "movedTo" FROM "TelemetryException" t LEFT JOIN "TelemetryException" o ON o."_id" = t."formerFingerprintOfTelemetryExceptionId" AND o."deletedAt" IS NULL WHERE t."projectId" = $1 AND t."fingerprint" = ANY($2::text[]) AND t."deletedAt" IS NULL`;
+export const GROUP_FINGERPRINT_LOOKUP_SQL: string = `SELECT t."fingerprint" AS "fingerprint", o."fingerprint" AS "movedTo", COALESCE(o."createdAt", t."createdAt") AS "createdAt", t."mergedIntoTelemetryExceptionId"::text AS "mergedInto" FROM "TelemetryException" t LEFT JOIN "TelemetryException" o ON o."_id" = t."formerFingerprintOfTelemetryExceptionId" AND o."deletedAt" IS NULL WHERE t."projectId" = $1 AND t."fingerprint" = ANY($2::text[]) AND t."deletedAt" IS NULL`;
+
+/*
+ * WHEN THE LOOKUP FAILS, IT IS READ AGAIN (#11027).
+ *
+ * A connection reset, or a statement cancelled under load, passes: the read
+ * is tried again after each of these pauses - but not once the pause would
+ * end GROUP_FINGERPRINT_LOOKUP_RETRY_BUDGET_MS after the first try, so a
+ * read that ran out the statement timeout (30 seconds) is not tried again,
+ * and the batch goes on without it.
+ */
+export const GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS: ReadonlyArray<number> = [
+  200, 1000,
+];
+export const GROUP_FINGERPRINT_LOOKUP_RETRY_BUDGET_MS: number = 5000;
+
+// One row of GROUP_FINGERPRINT_LOOKUP_SQL.
+interface GroupLookupRow {
+  fingerprint: string;
+  movedTo?: string | null;
+  createdAt?: Date | string | null;
+  mergedInto?: string | null;
+}
+
+/*
+ * The candidates resolveGroups answered (`chosen`, by groupFingerprintKey),
+ * and those whose exception could not be known (`unknown`): its project's
+ * exceptions could not be read, and nothing this process knew settles it.
+ */
+export interface ResolvedGroups {
+  chosen: Map<string, string>;
+  unknown: Map<string, GroupFingerprintCandidate>;
+}
+
+/*
+ * A duplicate a failed lookup made (#11027): the fingerprint it was made
+ * under, the occurrence's v1, and the one the exception it was split from
+ * is found under, in its project and resource.
+ */
+export interface ExceptionSplitByFailedLookup {
+  projectId: string;
+  primaryEntityId: string;
+  duplicate: string;
+  original: string;
+}
 
 // Whether moving this exception was refused a short while ago.
 function isMoveRefused(moveKey: string, now: number): boolean {
@@ -740,9 +843,7 @@ export default class ExceptionUtil {
    * rule hid (#10434).
    *
    * One indexed read per project for the fingerprints a batch tries that are
-   * not cached. When it fails, the occurrence keeps its `v1`, never lost:
-   * its grouping v1 fingerprint, grouped as before v2, unless a scrub rule
-   * hid part of what that one hashes (getOccurrenceFingerprints).
+   * not cached (readKnownGroups), tried again when it fails.
    *
    * A new exception made here exists for the occurrences after it at once -
    * those of this batch, and those of the batches this process reads next -
@@ -757,13 +858,37 @@ export default class ExceptionUtil {
    * every occurrence that finds it goes, a rule or not: its exception's
    * fingerprint now.
    *
-   * Returns the fingerprint to use, by groupFingerprintKey.
+   * WHEN THE EXCEPTIONS CANNOT BE READ (#11027). Every try of the read
+   * failing, an occurrence is not grouped by a guess. Until #11027 it kept
+   * its grouping v1 fingerprint: for an exception made since grouping v2 no
+   * exception exists under v1, so the upsert made one - a duplicate, and
+   * New Exception again for an old error - and as every later occurrence
+   * tries v1 first, the duplicate kept them all, for good. Now:
+   *
+   *  - one whose candidates this read knows already (the cache) is grouped
+   *    as ever;
+   *  - else one whose exception this process knew of before, however long
+   *    ago, goes to that exception (lastKnownGroupOf): an exception does not
+   *    stop existing under its fingerprint;
+   *  - else its exception is not known (`unknown`), and nothing is made for
+   *    it. Its exception's count waits: assignPayloadGroupFingerprints holds
+   *    it until the read works (HeldExceptionOccurrences). Its occurrence,
+   *    stored at once, goes under the fingerprint a new exception would be
+   *    made under, tried last, so it never takes occurrences from an
+   *    exception that exists (resolveGroupFingerprints).
+   *
+   * AND A DUPLICATE A FAILED LOOKUP MADE BEFORE #11027 IS MERGED BACK. An
+   * occurrence that finds an exception under its v1 fingerprint made after
+   * an exception under a fingerprint it tries later found the duplicate:
+   * the two are merged as OneUptime, the older one kept, with no alert
+   * (splitByFailedLookupOf, TelemetryExceptionSplitHeal).
    */
-  public static async resolveGroupFingerprints(
+  public static async resolveGroups(
     candidates: Array<GroupFingerprintCandidate>,
     now: number = Date.now(),
-  ): Promise<Map<string, string>> {
+  ): Promise<ResolvedGroups> {
     const chosen: Map<string, string> = new Map();
+    const unknown: Map<string, GroupFingerprintCandidate> = new Map();
     // What this read knows of each fingerprint, by `projectId|fingerprint`.
     const known: Map<string, KnownGroup> = new Map();
     const toLookUp: Map<string, Set<string>> = new Map();
@@ -784,10 +909,7 @@ export default class ExceptionUtil {
           existingGroupCache.get(cacheKey);
 
         if (cached && now - cached.at < EXISTING_GROUP_CACHE_TTL_MS) {
-          known.set(cacheKey, {
-            exists: cached.exists,
-            ...(cached.movedTo ? { movedTo: cached.movedTo } : {}),
-          });
+          known.set(cacheKey, knownGroupOf(cached));
           continue;
         }
 
@@ -798,49 +920,35 @@ export default class ExceptionUtil {
       }
     }
 
-    const failedProjects: Set<string> = new Set<string>();
-
     for (const [projectId, fingerprints] of toLookUp) {
-      try {
-        const rows: Array<{ fingerprint: string; movedTo?: string | null }> =
-          await TelemetryExceptionService.getRepository().manager.query(
-            GROUP_FINGERPRINT_LOOKUP_SQL,
-            [projectId, Array.from(fingerprints)],
-          );
-        const existing: Map<string, KnownGroup> = new Map();
-
-        for (const row of rows || []) {
-          existing.set(row.fingerprint, {
-            exists: true,
-            ...(row.movedTo ? { movedTo: row.movedTo } : {}),
-          });
-        }
-
-        if (
-          existingGroupCache.size + fingerprints.size >
-          EXISTING_GROUP_CACHE_MAX_ENTRIES
-        ) {
-          existingGroupCache.clear();
-        }
-
-        for (const fingerprint of fingerprints) {
-          const group: KnownGroup = existing.get(fingerprint) || {
-            exists: false,
-          };
-
-          known.set(`${projectId}|${fingerprint}`, group);
-          existingGroupCache.set(`${projectId}|${fingerprint}`, {
-            ...group,
-            at: now,
-          });
-        }
-      } catch (err) {
-        failedProjects.add(projectId);
-        logger.warn(
-          `Could not read which exceptions of project ${projectId} keep their first fingerprint; the batch is grouped as before grouping v2: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+      const existing: Map<string, KnownGroup> | null =
+        await ExceptionUtil.readKnownGroups(
+          projectId,
+          Array.from(fingerprints),
         );
+
+      // Not read: its candidates are settled by what is known, or not at all.
+      if (!existing) {
+        continue;
+      }
+
+      if (
+        existingGroupCache.size + fingerprints.size >
+        EXISTING_GROUP_CACHE_MAX_ENTRIES
+      ) {
+        existingGroupCache.clear();
+      }
+
+      for (const fingerprint of fingerprints) {
+        const group: KnownGroup = existing.get(fingerprint) || {
+          exists: false,
+        };
+
+        known.set(`${projectId}|${fingerprint}`, group);
+        existingGroupCache.set(`${projectId}|${fingerprint}`, {
+          ...group,
+          at: now,
+        });
       }
     }
 
@@ -848,24 +956,51 @@ export default class ExceptionUtil {
     const moves: Map<string, ExceptionMove> = new Map();
     // The pairs of exceptions a rule split before #10434, each once (#10618).
     const splits: Map<string, ExceptionSplitPair> = new Map();
+    // The duplicates a failed lookup made, each once (#11027).
+    const heals: Map<string, ExceptionSplitByFailedLookup> = new Map();
     // And the occurrences that go wherever each one moves, by their key.
     const occurrencesOfMove: Map<string, Array<string>> = new Map();
 
     for (const candidate of candidates) {
       const key: string = groupFingerprintKey(candidate);
 
-      if (!candidate.v2 || failedProjects.has(candidate.projectId)) {
+      if (!candidate.v2) {
         chosen.set(key, candidate.v1);
         continue;
       }
 
-      const found: string | undefined = fingerprintsToTry(candidate).find(
-        (fingerprint: string): boolean => {
-          return (
-            known.get(`${candidate.projectId}|${fingerprint}`)?.exists === true
-          );
-        },
-      );
+      let found: string | undefined = undefined;
+      let settled: boolean = true;
+
+      for (const fingerprint of fingerprintsToTry(candidate)) {
+        const group: KnownGroup | undefined = known.get(
+          `${candidate.projectId}|${fingerprint}`,
+        );
+
+        // Neither read nor known: its project's exceptions could not be read.
+        if (!group) {
+          settled = false;
+          break;
+        }
+
+        if (group.exists) {
+          found = fingerprint;
+          break;
+        }
+      }
+
+      if (!settled) {
+        const lastKnown: string | undefined =
+          ExceptionUtil.lastKnownGroupOf(candidate);
+
+        if (lastKnown !== undefined) {
+          chosen.set(key, lastKnown);
+        } else {
+          unknown.set(key, candidate);
+        }
+
+        continue;
+      }
 
       if (found !== undefined) {
         const split: ExceptionSplitPair | null = ExceptionUtil.splitPairOf({
@@ -878,6 +1013,16 @@ export default class ExceptionUtil {
           splits.set(
             `${split.projectId}|${split.splitFingerprint}|${split.splitFromFingerprint}`,
             split,
+          );
+        }
+
+        const heal: ExceptionSplitByFailedLookup | null =
+          ExceptionUtil.splitByFailedLookupOf({ candidate, found, known });
+
+        if (heal) {
+          heals.set(
+            `${heal.projectId}|${heal.primaryEntityId.toLowerCase()}|${heal.duplicate}|${heal.original}`,
+            heal,
           );
         }
 
@@ -948,7 +1093,242 @@ export default class ExceptionUtil {
       }
     }
 
-    return chosen;
+    for (const [healKey, heal] of heals) {
+      await ExceptionUtil.healSplitByFailedLookup(healKey, heal, now);
+    }
+
+    return { chosen, unknown };
+  }
+
+  /*
+   * The fingerprint of each candidate's exception, by groupFingerprintKey
+   * (resolveGroups) - for the occurrences ClickHouse stores, which are
+   * written now whatever is known: one whose exception could not be known
+   * goes under the fingerprint a new exception would be made under (its
+   * v2), tried after every other, so the occurrence never takes the place
+   * of an exception that exists. When the read works again and none
+   * exists, its exception is made under that very fingerprint.
+   */
+  public static async resolveGroupFingerprints(
+    candidates: Array<GroupFingerprintCandidate>,
+    now: number = Date.now(),
+  ): Promise<Map<string, string>> {
+    const resolved: ResolvedGroups = await ExceptionUtil.resolveGroups(
+      candidates,
+      now,
+    );
+
+    for (const [key, candidate] of resolved.unknown) {
+      resolved.chosen.set(key, candidate.v2);
+    }
+
+    return resolved.chosen;
+  }
+
+  /*
+   * Which of `fingerprints` an exception of the project exists under
+   * (GROUP_FINGERPRINT_LOOKUP_SQL), read again after each of
+   * GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS when the read fails, within
+   * GROUP_FINGERPRINT_LOOKUP_RETRY_BUDGET_MS. Null when no try worked.
+   */
+  private static async readKnownGroups(
+    projectId: string,
+    fingerprints: Array<string>,
+  ): Promise<Map<string, KnownGroup> | null> {
+    const startedAt: number = Date.now();
+
+    for (let attempt: number = 0; ; attempt++) {
+      try {
+        const rows: Array<GroupLookupRow> =
+          await TelemetryExceptionService.getRepository().manager.query(
+            GROUP_FINGERPRINT_LOOKUP_SQL,
+            [projectId, fingerprints],
+          );
+        const existing: Map<string, KnownGroup> = new Map();
+
+        for (const row of rows || []) {
+          const createdAt: number = row.createdAt
+            ? new Date(row.createdAt).getTime()
+            : NaN;
+
+          existing.set(row.fingerprint, {
+            exists: true,
+            ...(row.movedTo ? { movedTo: row.movedTo } : {}),
+            ...(Number.isFinite(createdAt) ? { createdAt } : {}),
+            ...(row.mergedInto ? { mergedInto: row.mergedInto } : {}),
+          });
+        }
+
+        return existing;
+      } catch (err) {
+        const pause: number | undefined =
+          GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS[attempt];
+
+        if (
+          pause === undefined ||
+          Date.now() - startedAt + pause >
+            GROUP_FINGERPRINT_LOOKUP_RETRY_BUDGET_MS
+        ) {
+          logger.warn(
+            `Could not read which exceptions of project ${projectId} its occurrences belong to (${attempt + 1} ${
+              attempt === 0 ? "try" : "tries"
+            }); an occurrence whose exception is not known otherwise is counted once they can be read, and no exception is made for it: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+
+          return null;
+        }
+
+        await ExceptionUtil.pauseBeforeLookupRetry(pause);
+      }
+    }
+  }
+
+  // Waits before the lookup is read again (a test makes it return at once).
+  public static async pauseBeforeLookupRetry(ms: number): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  /*
+   * Where an occurrence goes by what this process knew of its project's
+   * exceptions, however long ago (#11027): its candidates in order, the
+   * first known to exist - or where it moved - unless one before it is not
+   * known at all. Undefined when that does not settle it, and when none was
+   * known to exist: a new exception is made only on a read.
+   */
+  public static lastKnownGroupOf(
+    candidate: GroupFingerprintCandidate,
+  ): string | undefined {
+    for (const fingerprint of fingerprintsToTry(candidate)) {
+      const cached: (KnownGroup & { at: number }) | undefined =
+        existingGroupCache.get(`${candidate.projectId}|${fingerprint}`);
+
+      if (!cached) {
+        return undefined;
+      }
+
+      if (cached.exists) {
+        return cached.movedTo || fingerprint;
+      }
+    }
+
+    return undefined;
+  }
+
+  /*
+   * A DUPLICATE A FAILED LOOKUP MADE (#11027).
+   *
+   * Until #11027 an occurrence whose project's exceptions could not be read
+   * was filed under its `fingerprint` - grouping v1's (`v1` here) - and an
+   * exception made since grouping v2 has none there: the upsert made a
+   * duplicate under it, which every later occurrence found first. So when
+   * the exception an occurrence finds (`found`) is under its v1, it is that
+   * duplicate if an exception under a fingerprint the occurrence tries later
+   * was made before it: since grouping v2 nothing else makes one under v1,
+   * and one made before grouping v2 is older than any made since. Null when
+   * it is not, when the read does not say when either was made, and for one
+   * merged already or that only keeps a former fingerprint.
+   */
+  public static splitByFailedLookupOf(data: {
+    candidate: GroupFingerprintCandidate;
+    found: string;
+    known: Map<string, KnownGroup>;
+  }): ExceptionSplitByFailedLookup | null {
+    const candidate: GroupFingerprintCandidate = data.candidate;
+
+    if (
+      !candidate.primaryEntityId ||
+      data.found !== candidate.v1 ||
+      candidate.v1 === candidate.v2
+    ) {
+      return null;
+    }
+
+    const duplicate: KnownGroup | undefined = data.known.get(
+      `${candidate.projectId}|${data.found}`,
+    );
+
+    if (
+      !duplicate?.exists ||
+      duplicate.movedTo ||
+      duplicate.mergedInto ||
+      duplicate.createdAt === undefined
+    ) {
+      return null;
+    }
+
+    const tried: Array<string> = fingerprintsToTry(candidate);
+
+    for (const fingerprint of tried.slice(tried.indexOf(data.found) + 1)) {
+      const group: KnownGroup | undefined = data.known.get(
+        `${candidate.projectId}|${fingerprint}`,
+      );
+
+      if (!group?.exists) {
+        continue;
+      }
+
+      // The first one tried after it is the one it was split from, if any.
+      if (
+        group.createdAt === undefined ||
+        duplicate.createdAt <= group.createdAt
+      ) {
+        return null;
+      }
+
+      return {
+        projectId: candidate.projectId,
+        primaryEntityId: candidate.primaryEntityId,
+        duplicate: data.found,
+        original: fingerprint,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * Merges a duplicate a failed lookup made back into the exception it was
+   * split from (TelemetryExceptionSplitHeal), once: what became of it is
+   * remembered, and a merge that failed is tried again a while later.
+   */
+  public static async healSplitByFailedLookup(
+    healKey: string,
+    heal: ExceptionSplitByFailedLookup,
+    now: number = Date.now(),
+  ): Promise<ExceptionSplitHealOutcome | null> {
+    const decided: { at: number; failed: boolean } | undefined =
+      splitHealDecisions.get(healKey);
+
+    if (
+      decided &&
+      now - decided.at <
+        (decided.failed
+          ? EXISTING_GROUP_CACHE_TTL_MS
+          : SPLIT_HEAL_DECISION_TTL_MS)
+    ) {
+      return null;
+    }
+
+    const outcome: ExceptionSplitHealOutcome =
+      await TelemetryExceptionSplitHeal.heal(heal);
+
+    if (
+      splitHealDecisions.size >= MAX_SPLIT_HEAL_DECISIONS &&
+      !splitHealDecisions.has(healKey)
+    ) {
+      splitHealDecisions.clear();
+    }
+
+    splitHealDecisions.set(healKey, {
+      at: now,
+      failed: outcome === ExceptionSplitHealOutcome.Failed,
+    });
+
+    return outcome;
   }
 
   /*
@@ -1159,9 +1539,17 @@ export default class ExceptionUtil {
     }
   }
 
-  // The same, for the exception group upserts of a batch.
+  /*
+   * The same, for the exception group upserts of a batch: the payloads to
+   * upsert now, each given its exception's fingerprint. One whose exception
+   * could not be known (resolveGroups, #11027) is not among them: no
+   * exception is made for it on a guess. It is held, at the time it
+   * happened (HeldExceptionOccurrences), and goes with a later batch once
+   * the exceptions can be read.
+   */
   public static async assignPayloadGroupFingerprints(
     payloads: Array<TelemetryExceptionPayload>,
+    now: number = Date.now(),
   ): Promise<Array<TelemetryExceptionPayload>> {
     const candidateOfPayload: (
       payload: TelemetryExceptionPayload,
@@ -1198,32 +1586,86 @@ export default class ExceptionUtil {
       return payloads;
     }
 
-    const chosen: Map<string, string> =
-      await ExceptionUtil.resolveGroupFingerprints(candidates);
-
-    return payloads.map(
-      (payload: TelemetryExceptionPayload): TelemetryExceptionPayload => {
-        const candidate: GroupFingerprintCandidate | null =
-          candidateOfPayload(payload);
-
-        if (!candidate) {
-          return payload;
-        }
-
-        const resolved: TelemetryExceptionPayload = {
-          ...payload,
-          fingerprint:
-            chosen.get(groupFingerprintKey(candidate)) || payload.fingerprint,
-        };
-
-        delete resolved.fingerprintV2;
-        delete resolved.fingerprintCandidates;
-        delete resolved.fingerprintRekeys;
-        delete resolved.fingerprintsOfStoredText;
-
-        return resolved;
-      },
+    const resolution: ResolvedGroups = await ExceptionUtil.resolveGroups(
+      candidates,
+      now,
     );
+    const ready: Array<TelemetryExceptionPayload> = [];
+    const toHold: Array<{ key: string; payload: TelemetryExceptionPayload }> =
+      [];
+
+    for (const payload of payloads) {
+      const candidate: GroupFingerprintCandidate | null =
+        candidateOfPayload(payload);
+
+      if (!candidate) {
+        ready.push(payload);
+        continue;
+      }
+
+      const key: string = groupFingerprintKey(candidate);
+
+      if (resolution.unknown.has(key)) {
+        // Fixed at the time it happened, so a later upsert counts it then.
+        toHold.push({
+          key,
+          payload: {
+            ...payload,
+            occurredAt: clampOccurrenceTime(payload.occurredAt, new Date(now)),
+          },
+        });
+        continue;
+      }
+
+      const resolved: TelemetryExceptionPayload = {
+        ...payload,
+        fingerprint: resolution.chosen.get(key) || payload.fingerprint,
+      };
+
+      delete resolved.fingerprintV2;
+      delete resolved.fingerprintCandidates;
+      delete resolved.fingerprintRekeys;
+      delete resolved.fingerprintsOfStoredText;
+
+      ready.push(resolved);
+    }
+
+    if (toHold.length > 0) {
+      HeldExceptionOccurrences.hold(toHold, now);
+      ExceptionUtil.tryHeldOccurrencesLater();
+    }
+
+    return ready;
+  }
+
+  /*
+   * Tries the held occurrences again after HELD_OCCURRENCE_RETRY_MS, when no
+   * batch has taken them by then (#11027): a process that ingests nothing
+   * more does not keep them waiting. One timer at a time, which keeps no
+   * process alive.
+   */
+  public static tryHeldOccurrencesLater(): void {
+    if (heldRetryTimer || HeldExceptionOccurrences.isEmpty()) {
+      return;
+    }
+
+    heldRetryTimer = setTimeout(() => {
+      heldRetryTimer = null;
+
+      ExceptionUtil.saveOrUpdateTelemetryExceptionsBatch([])
+        .catch((err: unknown) => {
+          logger.warn(
+            `Could not count the exception occurrences held while their exceptions could not be read; they are tried again: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        })
+        .finally(() => {
+          ExceptionUtil.tryHeldOccurrencesLater();
+        });
+    }, HELD_OCCURRENCE_RETRY_MS);
+
+    heldRetryTimer.unref?.();
   }
 
   // The grouping v1 fingerprint: an unkeyed hash of getGroupingTextV1.
@@ -1314,25 +1756,40 @@ export default class ExceptionUtil {
   public static async saveOrUpdateTelemetryExceptionsBatch(
     exceptions: Array<TelemetryExceptionPayload>,
   ): Promise<void> {
-    if (!exceptions || exceptions.length === 0) {
+    /*
+     * The occurrences held while their exceptions could not be read go with
+     * this batch (#11027): those of its projects, whose exceptions it reads
+     * anyway, and any that have waited long enough.
+     */
+    const projectIds: Set<string> = new Set<string>();
+
+    for (const exception of exceptions || []) {
+      if (exception?.projectId) {
+        projectIds.add(exception.projectId.toString());
+      }
+    }
+
+    const occurrences: Array<TelemetryExceptionPayload> = [
+      ...HeldExceptionOccurrences.take(Date.now(), projectIds),
+      ...(exceptions || []),
+    ];
+
+    if (occurrences.length === 0) {
       return;
     }
 
     /*
-     * An occurrence of a merged exception counts on the one it was merged
-     * into as well (resolveMergedExceptions): the batch gains a copy of it
-     * under the survivor's key before it is aggregated.
-     */
-    /*
      * Each occurrence is grouped by the fingerprint of the exception it
-     * belongs to (assignPayloadGroupFingerprints), and then an occurrence of
-     * a merged exception counts on the one it was merged into as well
-     * (withMergedSurvivors).
+     * belongs to (assignPayloadGroupFingerprints) - one whose exception
+     * cannot be known now is held for a later batch - and then an
+     * occurrence of a merged exception counts on the one it was merged into
+     * as well (withMergedSurvivors): the batch gains a copy of it under the
+     * survivor's key before it is aggregated.
      */
     const aggregated: Map<string, AggregatedException> =
       ExceptionUtil.aggregateExceptions(
         await ExceptionUtil.withMergedSurvivors(
-          await ExceptionUtil.assignPayloadGroupFingerprints(exceptions),
+          await ExceptionUtil.assignPayloadGroupFingerprints(occurrences),
         ),
       );
 
@@ -1716,6 +2173,9 @@ export default class ExceptionUtil {
           ? { unhandled: exception.unhandled }
           : {}),
         ...(exception.occurredAt ? { occurredAt: exception.occurredAt } : {}),
+        ...(exception.occurrences !== undefined
+          ? { occurrences: exception.occurrences }
+          : {}),
       });
     }
 
@@ -1767,10 +2227,12 @@ export default class ExceptionUtil {
       const key: string = `${exception.projectId.toString()}|${exception.primaryEntityId.toString()}|${exception.fingerprint}`;
       const occurredAt: Date = clampOccurrenceTime(exception.occurredAt, now);
       const release: string = exception.release || "";
+      // One occurrence, or the many a held one stands for (#11027).
+      const occurrences: number = occurrencesOf(exception);
 
       const existing: AggregatedException | undefined = out.get(key);
       if (existing) {
-        existing.occuranceCount += 1;
+        existing.occuranceCount += occurrences;
         existing.unhandled = existing.unhandled || exception.unhandled === true;
         if (!existing.primaryEntityType && exception.primaryEntityType) {
           existing.primaryEntityType = exception.primaryEntityType;
@@ -1832,7 +2294,7 @@ export default class ExceptionUtil {
         exceptionType: exception.exceptionType || "",
         firstSeenAt: occurredAt,
         lastSeenAt: occurredAt,
-        occuranceCount: 1,
+        occuranceCount: occurrences,
         firstSeenInRelease: release,
         lastSeenInRelease: release,
         firstReleaseAt: occurredAt,
@@ -1878,6 +2340,13 @@ export interface AggregatedException {
   lastReleaseAt: Date;
   environment: string;
   unhandled: boolean;
+}
+
+// How many occurrences a payload stands for: one, unless it says more.
+function occurrencesOf(exception: TelemetryExceptionPayload): number {
+  const count: number = Number(exception.occurrences);
+
+  return Number.isFinite(count) && count >= 1 ? Math.floor(count) : 1;
 }
 
 function pickNonEmpty(current: string, incoming: string | undefined): string {

@@ -3070,7 +3070,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       );
     }
     expect(exceptionUtil).toContain(
-      "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
+      "await ExceptionUtil.assignPayloadGroupFingerprints(occurrences)",
     );
     /*
      * An exception recorded before keeps its first fingerprint: v1's is tried
