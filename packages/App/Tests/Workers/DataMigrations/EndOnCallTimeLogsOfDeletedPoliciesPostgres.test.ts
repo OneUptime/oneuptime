@@ -439,6 +439,13 @@ describePostgres(
         [DEE]: days(30),
         [EVE]: days(20),
       });
+      expect(await report({ from: day(0), to: day(30), now })).toEqual({
+        [ANN]: days(30),
+        [BEN]: days(25),
+        [CY]: days(7),
+        [DEE]: days(11),
+        [EVE]: days(3) + days(22),
+      });
 
       await new EndOnCallTimeLogsOfDeletedPolicies({
         deletionReader: auditLogOf(
@@ -486,7 +493,13 @@ describePostgres(
         [EVE]: days(20),
       });
 
-      // The month R and P were in force: as before for all but Dee, whose turn nothing can place.
+      /*
+       * The month P and R were in force: Ann's, Cy's and Eve's as before.
+       * Ben's time through R up to the last stint that started on it, on
+       * day 19: R's deletion, on day 45, is nowhere in the data, so the
+       * days between are not counted - never more than he was on call. Dee's
+       * turn from day 19 nothing can place: none of it.
+       */
       expect(await report({ from: day(0), to: day(30), now })).toEqual({
         [ANN]: days(30),
         [BEN]: days(14),
