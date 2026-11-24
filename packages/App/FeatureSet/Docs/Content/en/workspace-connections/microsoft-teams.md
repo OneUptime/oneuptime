@@ -43,7 +43,7 @@ One Microsoft 365 organization can be connected to more than one project, such a
 :::steps
 ### Grant admin consent
 
-Go to **Project Settings** > **Workspace** > **Microsoft Teams** and click **Grant Admin Consent**. A Microsoft 365 administrator signs in and allows the OneUptime app for the organization. The card then says **Admin Consent Completed**. Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.
+Go to **Project Settings** > **Workspace** > **Microsoft Teams** and click **Grant Admin Consent**. A Microsoft 365 administrator signs in and allows the OneUptime app for the organization. The card then says **Admin Consent Completed** and names the organization, such as Contoso (contoso.onmicrosoft.com). Until a workspace is connected, the **Workspace** section of the Incidents, Alerts, Scheduled Maintenance, Monitors and On-Call menus holds **Connect a workspace**, which leads here too.
 
 ### Connect your account
 
@@ -305,7 +305,7 @@ When your project's public notes need approval and you turn on Microsoft Teams f
 - **Uninstall OneUptime from Microsoft Teams**, on **Project Settings** > **Workspace** > **Microsoft Teams**, disconnects the project. OneUptime stops posting to Microsoft Teams, and the **Workspace** menus stop listing it. The notification rules and summaries are kept for when you connect again.
 
 > [!WARNING]
-> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the steps of How to Reach Me that used them. A project is connected to one Microsoft 365 organization: to move it to another, uninstall first.
+> Uninstalling also unlinks every member's own Microsoft Teams account in the project, and removes the Microsoft Teams notification methods and the steps of How to Reach Me that used them. A project is connected to one Microsoft 365 organization: to move it to another, choose **Connect a Different Organization** in the same menu instead. It uninstalls OneUptime the same way, then asks a Microsoft 365 administrator of the other organization for consent.
 
 ## Troubleshooting
 
@@ -319,6 +319,10 @@ When Microsoft sends you back without a connection, the page you started from sa
 
 :::details The bot says my account is not connected
 Press **Connect Microsoft Teams account** in the bot's reply to connect it in one step, or link it under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**. Either way, you sign in to the organization the project is connected to, as a guest if you are one there. If you are a guest and connected your own organization's account before, connect again.
+:::
+
+:::details Microsoft says the selected account does not exist in the tenant
+Every Microsoft sign-in for a project goes to the Microsoft 365 organization it is connected to, which the **Admin Consent Completed** card names. Microsoft stops an account that is not in that organization on its own page (`AADSTS50020`), and does not send you back. Sign in with your account in that organization. To connect the project to your organization instead, choose **Connect a Different Organization** in that card's menu, and have a Microsoft 365 administrator of your organization grant consent.
 :::
 
 :::details Every notification fails on a self-hosted server
