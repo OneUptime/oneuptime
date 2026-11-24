@@ -504,7 +504,7 @@ export default class SecurityUserErasureRequest extends BaseModel {
     type: TableColumnType.Number,
     title: "Events Unnamed",
     description:
-      "How many security events the user vault named the person in, and now show the token instead.",
+      "How many security events named the person, through the user vault or in a Detection Finding a rule wrote about them, and now show the token instead.",
     defaultValue: 0,
   })
   @Column({
