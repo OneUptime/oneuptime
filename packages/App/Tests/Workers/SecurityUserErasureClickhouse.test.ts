@@ -72,7 +72,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 jest.mock("Common/Server/Utils/AnalyticsDatabase/ClusterConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "Common/Server/Utils/AnalyticsDatabase/ClusterConfig",
-  );
+  ) as Record<string, unknown>;
 
   return {
     __esModule: true,
@@ -97,6 +97,7 @@ import ClickhouseDatabase, {
 import ProjectService from "Common/Server/Services/ProjectService";
 import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import SecurityUserErasureRequestService, {
+  SecurityUserErasureCounts,
   getErasureTokens,
 } from "Common/Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService, {
@@ -1140,7 +1141,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         .mockImplementation(
           async (data: {
             requestId: ObjectID;
-            counts: Record<string, number>;
+            counts: SecurityUserErasureCounts;
           }): Promise<void> => {
             update(data.requestId, {
               status: SecurityUserErasureRequestStatus.InProgress,
@@ -1154,7 +1155,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         .mockImplementation(
           async (data: {
             requestId: ObjectID;
-            counts: Record<string, number>;
+            counts: SecurityUserErasureCounts;
           }): Promise<void> => {
             update(data.requestId, {
               status: SecurityUserErasureRequestStatus.Completed,
