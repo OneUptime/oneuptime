@@ -738,6 +738,15 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  /*
+   * What Security Events trusts as a proxy without being listed (#10546):
+   * the edges and the project's own load balancers, named on Trusted
+   * Proxies.
+   */
+  "packages/Common/Server/API/SecurityTrustedProxiesAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/AIInsightAPI.ts": {
     products: [ProductKey.AIInsights],
     leftAlone: {
