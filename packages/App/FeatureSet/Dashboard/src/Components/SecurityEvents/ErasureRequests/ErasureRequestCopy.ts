@@ -148,6 +148,7 @@ export const ERASURE_HELP_MARKDOWN: string = translationKey(
 
 - What people wrote: notes, closing notes, tasks, evidence and custom fields.
 - Events that named the person because your logs held them in clear, and your logs and traces themselves, which hold only the token.
+- The Detection Finding events a rule wrote about them, until your telemetry retention deletes them.
 - Notifications already sent, incidents and alerts a detection opened, and the audit log.
 
 ## What the request keeps
