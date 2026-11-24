@@ -521,5 +521,27 @@
     "sessionExpired": "Økten er utløpt. Logg på igjen.",
     "signedOut": "Du er logget ut. Logg på igjen.",
     "magicLinkTurnedOff": "Påloggingslenker er slått av for denne statussiden. Logg på med e-postadressen og passordet ditt."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "Serveren støtte på et problem den ikke kunne forklare, så handlingen ble ikke fullført. Prøv igjen, og hvis det fortsetter å feile, gi denne referansen til administratoren din eller OneUptime-support: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "Serveren støtte på et problem den ikke kunne forklare, så handlingen ble ikke fullført. Prøv igjen om et øyeblikk.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime kunne ikke nås, så handlingen ble ikke fullført. Sjekk internettilkoblingen, og prøv så igjen.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Denne siden støtte på et problem, så handlingen ble ikke fullført. Last inn siden på nytt, og prøv så igjen.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, var for stort til at serveren kunne ta imot det, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel, så handlingen ble ikke fullført. Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "This did not finish.": "Handlingen ble ikke fullført.",
+  "The server ran into a problem it could not explain.": "Serveren støtte på et problem den ikke kunne forklare.",
+  "The OneUptime server did not answer.": "OneUptime-serveren svarte ikke.",
+  "OneUptime could not be reached.": "OneUptime kunne ikke nås.",
+  "This page ran into a problem.": "Denne siden støtte på et problem.",
+  "What was sent was too large for the server to accept.": "Det som ble sendt, var for stort til at serveren kunne ta imot det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det som ble sendt, er større enn de 50 MB OneUptime tar imot i én forespørsel.",
+  "Try again in a moment.": "Prøv igjen om et øyeblikk.",
+  "It may be starting or restarting. Try again in a few minutes.": "Den starter kanskje opp eller starter på nytt. Prøv igjen om noen minutter.",
+  "Check your internet connection, then try again.": "Sjekk internettilkoblingen, og prøv så igjen.",
+  "Reload the page, then try again.": "Last inn siden på nytt, og prøv så igjen.",
+  "Try again with less at once, such as a smaller file.": "Prøv igjen med mindre om gangen, for eksempel en mindre fil.",
+  "The {{itemName}} was not created.": "{{itemName}} ble ikke opprettet.",
+  "The {{itemName}} was not saved.": "{{itemName}} ble ikke lagret.",
+  "The {{itemName}} could not be loaded.": "{{itemName}} kunne ikke lastes inn.",
+  "Page Did Not Load": "Siden ble ikke lastet inn"
 }

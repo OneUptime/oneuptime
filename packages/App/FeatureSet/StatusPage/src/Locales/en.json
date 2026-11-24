@@ -521,5 +521,27 @@
     "sessionExpired": "Session expired. Please sign in again.",
     "signedOut": "You are signed out. Please sign in again.",
     "magicLinkTurnedOff": "Sign-in links are turned off for this status page. Please sign in with your email and password."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "This page ran into a problem, so this did not finish. Reload the page, then try again.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.",
+  "This did not finish.": "This did not finish.",
+  "The server ran into a problem it could not explain.": "The server ran into a problem it could not explain.",
+  "The OneUptime server did not answer.": "The OneUptime server did not answer.",
+  "OneUptime could not be reached.": "OneUptime could not be reached.",
+  "This page ran into a problem.": "This page ran into a problem.",
+  "What was sent was too large for the server to accept.": "What was sent was too large for the server to accept.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "What was sent is larger than the 50 MB OneUptime takes in one request.",
+  "Try again in a moment.": "Try again in a moment.",
+  "It may be starting or restarting. Try again in a few minutes.": "It may be starting or restarting. Try again in a few minutes.",
+  "Check your internet connection, then try again.": "Check your internet connection, then try again.",
+  "Reload the page, then try again.": "Reload the page, then try again.",
+  "Try again with less at once, such as a smaller file.": "Try again with less at once, such as a smaller file.",
+  "The {{itemName}} was not created.": "The {{itemName}} was not created.",
+  "The {{itemName}} was not saved.": "The {{itemName}} was not saved.",
+  "The {{itemName}} could not be loaded.": "The {{itemName}} could not be loaded.",
+  "Page Did Not Load": "Page Did Not Load"
 }
