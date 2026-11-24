@@ -354,7 +354,10 @@ async function fetchList(
   };
 }
 
-function stepOf(item: JSONObject, model: typeof Monitor | typeof MonitorTest): MonitorStep {
+function stepOf(
+  item: JSONObject,
+  model: typeof Monitor | typeof MonitorTest,
+): MonitorStep {
   const read: Monitor | MonitorTest = (model as typeof Monitor).fromJSON(
     item,
     model as typeof Monitor,
@@ -432,9 +435,7 @@ describe("the secret values a probe is handed to hide in its log, over HTTP", ()
       [PASSWORD, TOKEN].sort(),
     );
     // The step itself is as it always was: the values filled in.
-    expect(step.data!.requestHeaders!["Authorization"]).toBe(
-      `Bearer ${TOKEN}`,
-    );
+    expect(step.data!.requestHeaders!["Authorization"]).toBe(`Bearer ${TOKEN}`);
     expect(everythingLogged()).not.toContain(TOKEN);
     expect(everythingLogged()).not.toContain("horse");
   });
@@ -452,9 +453,7 @@ describe("the secret values a probe is handed to hide in its log, over HTTP", ()
     const step: MonitorStep = stepOf(list[0] as JSONObject, Monitor);
 
     expect(step.data!.secretValuesToHide).toBeUndefined();
-    expect(step.data!.requestHeaders!["Authorization"]).toBe(
-      `Bearer ${TOKEN}`,
-    );
+    expect(step.data!.requestHeaders!["Authorization"]).toBe(`Bearer ${TOKEN}`);
   });
 
   test("a Test Monitor run alike: handed to a probe that hides them, kept from one that does not", async () => {

@@ -179,7 +179,9 @@ describe("a step written to the database", () => {
     // Filled in for a probe, the steps carry the values...
     expect(
       valueOf(
-        (valueOf(steps.toJSON())["monitorStepsInstanceArray"] as JSONArray)[0] as JSONObject,
+        (
+          valueOf(steps.toJSON())["monitorStepsInstanceArray"] as JSONArray
+        )[0] as JSONObject,
       )["secretValuesToHide"],
     ).toEqual([TOKEN, PASSWORD]);
 

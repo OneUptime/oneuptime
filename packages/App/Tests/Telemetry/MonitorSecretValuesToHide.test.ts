@@ -255,7 +255,9 @@ describe("the secret values the server hands a probe beside each step", () => {
   test("an API step: the values filled into its URL, headers, body and mTLS passphrase", async () => {
     const step: MonitorStep = new MonitorStep();
     step.setMonitorDestination(
-      secretDestination("https://api.example.com/v1?key={{monitorSecrets.ApiKey}}"),
+      secretDestination(
+        "https://api.example.com/v1?key={{monitorSecrets.ApiKey}}",
+      ),
     );
     step.setRequestHeaders({
       Authorization: "Bearer {{monitorSecrets.Token}}",
@@ -279,9 +281,7 @@ describe("the secret values the server hands a probe beside each step", () => {
       `Bearer ${TOKEN}`,
     );
     // ...the one-time code secret's seed is in neither: it travels as its parameters.
-    expect(Object.keys(filled!.data!.totpSecrets || {})).toEqual([
-      "LoginCode",
-    ]);
+    expect(Object.keys(filled!.data!.totpSecrets || {})).toEqual(["LoginCode"]);
     expect(JSON.stringify(filled!.data!.secretValuesToHide)).not.toContain(
       SEED,
     );
@@ -315,7 +315,8 @@ describe("the secret values the server hands a probe beside each step", () => {
       databaseName: "{{monitorSecrets.Database}}",
       username: "{{monitorSecrets.User}}",
       password: "{{monitorSecrets.Password}}",
-      query: "SELECT count(*) FROM tokens WHERE value = '{{monitorSecrets.Token}}'",
+      query:
+        "SELECT count(*) FROM tokens WHERE value = '{{monitorSecrets.Token}}'",
     } as MonitorStepSqlMonitor;
 
     const [filledSql] = await populate({
@@ -354,7 +355,9 @@ describe("the secret values the server hands a probe beside each step", () => {
       hostname: "{{monitorSecrets.Database}}",
     };
     expect(
-      handed((await populate({ monitorType: MonitorType.DNS, steps: [dns] }))[0]!),
+      handed(
+        (await populate({ monitorType: MonitorType.DNS, steps: [dns] }))[0]!,
+      ),
     ).toEqual(sorted([HOST, DATABASE]));
 
     const domain: MonitorStep = new MonitorStep();
@@ -364,7 +367,9 @@ describe("the secret values the server hands a probe beside each step", () => {
     };
     expect(
       handed(
-        (await populate({ monitorType: MonitorType.Domain, steps: [domain] }))[0]!,
+        (
+          await populate({ monitorType: MonitorType.Domain, steps: [domain] })
+        )[0]!,
       ),
     ).toEqual([HOST]);
 
@@ -375,14 +380,17 @@ describe("the secret values the server hands a probe beside each step", () => {
     };
     expect(
       handed(
-        (await populate({ monitorType: MonitorType.DNSSEC, steps: [dnssec] }))[0]!,
+        (
+          await populate({ monitorType: MonitorType.DNSSEC, steps: [dnssec] })
+        )[0]!,
       ),
     ).toEqual([HOST]);
 
     const statusPage: MonitorStep = new MonitorStep();
     statusPage.data!.externalStatusPageMonitor = {
       ...MonitorStepExternalStatusPageMonitorUtil.getDefault(),
-      statusPageUrl: "https://status.example.com/?key={{monitorSecrets.ApiKey}}",
+      statusPageUrl:
+        "https://status.example.com/?key={{monitorSecrets.ApiKey}}",
     };
     expect(
       handed(
@@ -418,13 +426,17 @@ describe("the secret values the server hands a probe beside each step", () => {
     const ping: MonitorStep = new MonitorStep();
     ping.setMonitorDestination(hostDestination("{{monitorSecrets.Host}}"));
     expect(
-      handed((await populate({ monitorType: MonitorType.Ping, steps: [ping] }))[0]!),
+      handed(
+        (await populate({ monitorType: MonitorType.Ping, steps: [ping] }))[0]!,
+      ),
     ).toEqual([HOST]);
   });
 
   test("each step carries the values filled into it, and only those", async () => {
     const first: MonitorStep = new MonitorStep();
-    first.setRequestHeaders({ Authorization: "Bearer {{monitorSecrets.Token}}" });
+    first.setRequestHeaders({
+      Authorization: "Bearer {{monitorSecrets.Token}}",
+    });
 
     const second: MonitorStep = new MonitorStep();
     second.setRequestBody('{"password": "{{monitorSecrets.Password}}"}');
@@ -500,7 +512,9 @@ describe("the secret values the server hands a probe beside each step", () => {
 
   test("nothing is handed over unless asked, and a step never carries values it was not filled with here", async () => {
     const step: MonitorStep = new MonitorStep();
-    step.setRequestHeaders({ Authorization: "Bearer {{monitorSecrets.Token}}" });
+    step.setRequestHeaders({
+      Authorization: "Bearer {{monitorSecrets.Token}}",
+    });
     // As if a step had come in carrying values of its own.
     step.data!.secretValuesToHide = [NOT_ALLOWED];
 
@@ -586,7 +600,9 @@ describe("the secret values the server hands a probe beside each step", () => {
 
   test("the steps as handed over, saved anyway, hold no values beside them, and no value is logged", async () => {
     const step: MonitorStep = new MonitorStep();
-    step.setRequestHeaders({ Authorization: "Bearer {{monitorSecrets.Token}}" });
+    step.setRequestHeaders({
+      Authorization: "Bearer {{monitorSecrets.Token}}",
+    });
     step.setRequestBody('{"password": "{{monitorSecrets.Password}}"}');
 
     const populated: MonitorSteps =
@@ -608,7 +624,9 @@ describe("the secret values the server hands a probe beside each step", () => {
 
     for (const value of EVERY_VALUE) {
       expect(everythingLogged()).not.toContain(value);
-      expect(everythingLogged()).not.toContain(JSON.stringify(value).slice(1, -1));
+      expect(everythingLogged()).not.toContain(
+        JSON.stringify(value).slice(1, -1),
+      );
     }
   });
 });

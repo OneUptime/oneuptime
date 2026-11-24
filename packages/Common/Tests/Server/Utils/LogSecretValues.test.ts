@@ -264,7 +264,9 @@ describe("a monitor secret's value in the logger's lines while a check runs", ()
       );
       clientError.config = {
         url: "https://oneuptime.example.com/probe-ingest/probe/response/ingest",
-        data: JSON.stringify({ probeMonitorResponse: { responseBody: secret } }),
+        data: JSON.stringify({
+          probeMonitorResponse: { responseBody: secret },
+        }),
       };
       logger.error(clientError);
     });
@@ -385,7 +387,7 @@ describe("a monitor secret's value in the logger's lines while a check runs", ()
       expect(LogSecretValues.hideInBody(body)).toBe(body);
       expect(LogSecretValues.hideInText("plain")).toBe("plain");
 
-      const unreadable: object = new Proxy(
+      const unreadable: Record<string, unknown> = new Proxy(
         {},
         {
           ownKeys: (): Array<string> => {
@@ -432,9 +434,9 @@ describe("MonitorSecretValueRedaction.redactAnyValue", () => {
         ok: true,
       });
       // A JSON text stays JSON.
-      expect(
-        JSON.parse((hidden as { json: string }).json) as unknown,
-      ).toEqual({ token: HIDDEN_SECRET_MARKER });
+      expect(JSON.parse((hidden as { json: string }).json) as unknown).toEqual({
+        token: HIDDEN_SECRET_MARKER,
+      });
       // The body handed in is never changed.
       expect((body as { line: string }).line).toBe(`echoed ${secret} back`);
     }

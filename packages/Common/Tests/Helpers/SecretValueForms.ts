@@ -47,7 +47,9 @@ function unicodeEscape(character: string): string {
 function asciiJson(value: string): string {
   return Array.from(JSON.stringify(value).slice(1, -1))
     .map((character: string): string => {
-      return character.charCodeAt(0) > 0x7e ? unicodeEscape(character) : character;
+      return character.charCodeAt(0) > 0x7e
+        ? unicodeEscape(character)
+        : character;
     })
     .join("");
 }
@@ -160,7 +162,7 @@ export function secretValueBase64Encodings(value: string): Array<string> {
 
     encodings.add(encoded);
     encodings.add(
-      encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""),
+      encoded.replace(/\+/g, "-").replace(/\//g, "_").replace(/[=]+$/, ""),
     );
   }
 
