@@ -18,6 +18,12 @@ import { REPOSITORY_DIRECTORY, SKIPPED_FOLDER_NAMES } from "./TagStripScan";
  * ASCII text, and refuses what JavaScript would read in other steps, so that
  * a guard is told rather than misled.
  *
+ * The two engines part at a word's edge too: ICU reads \w, \d, \s and Java's
+ * POSIX classes with the letters, digits and spaces of every script, and \b
+ * past a combining mark or a zero-width space, where the JVM and JavaScript
+ * read them as ASCII. differentWordEdges finds where a pattern's edge reads
+ * otherwise on a device than in the tests (#10835).
+ *
  * Not a test file itself (jest only collects *.test.ts).
  */
 
@@ -26,13 +32,25 @@ export interface KotlinStringLiteral {
   value: string;
   // The line it starts on, from 1.
   line: number;
+  // Where it starts in the file: the offset of its first quote.
+  start: number;
   // Whether it holds a template ($name or ${...}), whose text is the code's.
   hasTemplate: boolean;
+  // Whether it is a pattern: handed to Regex(...) or Pattern.compile(...), or made one with .toRegex().
+  isPattern: boolean;
 }
 
 const IDENTIFIER_START: RegExp = /[A-Za-z_]/;
 const IDENTIFIER_PART: RegExp = /[A-Za-z0-9_]/;
 const HEX_DIGITS: RegExp = /^[0-9A-Fa-f]{4}$/;
+
+// The code just before a literal that hands it to a pattern's constructor (by position, or as its named pattern).
+const HANDED_TO_PATTERN: RegExp =
+  /(?<![A-Za-z0-9_$])(?:Regex|Pattern\s*\.\s*compile)\s*\(\s*(?:pattern\s*=\s*)?$/;
+// The code just after a literal that makes it a pattern.
+const MADE_A_PATTERN: RegExp = /^\s*\.\s*toRegex\s*\(/;
+// How much of the code before a literal is kept to tell.
+const CODE_KEPT: number = 64;
 
 // Kotlin's escapes in a string that is not raw, and what each stands for.
 const ESCAPES: Readonly<Record<string, string>> = {
@@ -54,7 +72,9 @@ export type KotlinStringLiteralsFunction = (
  * Every string literal of a Kotlin file, in order: raw ("""...""") and not,
  * outside line comments, block comments (which nest in Kotlin) and character
  * literals. A template's code is kept as written and the literal says it
- * holds one; a literal a template holds is not read on its own.
+ * holds one; a literal a template holds is not read on its own. A literal is
+ * a pattern when the code before it, comments aside, hands it to Regex(...)
+ * or Pattern.compile(...), or the code after it calls .toRegex() on it.
  */
 export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
   text: string,
@@ -62,6 +82,12 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
   const found: Array<KotlinStringLiteral> = [];
   let index: number = 0;
   let line: number = 1;
+  // The code read last, comments left out and each literal a placeholder.
+  let code: string = "";
+
+  const keep: (read: string) => void = (read: string): void => {
+    code = (code + read).slice(-CODE_KEPT);
+  };
 
   // A template's ${...}, from its "{" to its "}", as written.
   const readBlockTemplate: () => string = (): string => {
@@ -107,6 +133,7 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
     if (char === "\n") {
       line++;
       index++;
+      keep(char);
       continue;
     }
 
@@ -114,6 +141,7 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
       while (index < text.length && text[index] !== "\n") {
         index++;
       }
+      keep(" ");
       continue;
     }
 
@@ -138,6 +166,7 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
           index++;
         }
       }
+      keep(" ");
       continue;
     }
 
@@ -150,6 +179,7 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
       }
 
       index++;
+      keep("'c'");
       continue;
     }
 
@@ -158,16 +188,20 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
       const end: number = text.indexOf("`", index + 1);
 
       index = end === -1 ? text.length : end + 1;
+      keep("name");
       continue;
     }
 
     if (char !== '"') {
       index++;
+      keep(char);
       continue;
     }
 
+    const start: number = index;
     const startLine: number = line;
     const raw: boolean = text.startsWith('"""', index);
+    const handedToPattern: boolean = HANDED_TO_PATTERN.test(code);
     let value: string = "";
     let hasTemplate: boolean = false;
 
@@ -242,7 +276,16 @@ export const kotlinStringLiterals: KotlinStringLiteralsFunction = (
       index++;
     }
 
-    found.push({ value, line: startLine, hasTemplate });
+    found.push({
+      value,
+      line: startLine,
+      start,
+      hasTemplate,
+      isPattern:
+        handedToPattern ||
+        MADE_A_PATTERN.test(text.slice(index, index + CODE_KEPT)),
+    });
+    keep('""');
   }
 
   return found;
@@ -580,4 +623,319 @@ export const javaScriptForm: JavaScriptFormFunction = (
   }
 
   return { source: written, flags };
+};
+
+export interface WordEdge {
+  // What reads otherwise, as written: "\b", "\w", "\p{Alpha}", or a letter.
+  what: string;
+  // Where it is in the pattern's source.
+  index: number;
+  // The look-around it is in, as it opens ("(?<!"), or null.
+  lookAround: string | null;
+  // How Android's regular expressions read it otherwise, and what to write.
+  reason: string;
+}
+
+interface OpenGroup {
+  // The look-around it is, as it opens, or null.
+  lookAround: string | null;
+  // Whether (?i) held where it opened, which holds again once it closes.
+  caseInsensitiveOutside: boolean;
+  // Whether a letter read case-insensitively in it was told of already.
+  toldOfLetter: boolean;
+}
+
+const LOOK_AROUNDS: ReadonlyArray<string> = ["(?<=", "(?<!", "(?=", "(?!"];
+
+// The shorthand classes ICU reads with every script's characters, and what to write for each.
+const SHORTHAND_CLASSES: Readonly<Record<string, string>> = {
+  w: "[A-Za-z0-9_]",
+  W: "[^A-Za-z0-9_]",
+  d: "[0-9]",
+  D: "[^0-9]",
+  s: "the spaces it means, written out",
+  S: "the spaces it does not mean, written out",
+};
+
+/*
+ * Java's POSIX classes, which the JVM reads as ASCII and ICU with Unicode's
+ * letters, digits and spaces. With "Is" before it (\p{IsDigit}) a name is
+ * Unicode's property, which both read alike.
+ */
+const POSIX_CLASS: RegExp =
+  /^\\[pP]\{(?:Lower|Upper|Alpha|Digit|Alnum|Punct|Graph|Print|Blank|Cntrl|XDigit|Space)\}/;
+
+// An inline flag, on to the end of its group ("(?i)") or for a group of its own ("(?i:").
+const INLINE_FLAGS: RegExp = /^\(\?([a-zA-Z]*)(?:-([a-zA-Z]*))?([:)])/;
+const ASCII_LETTER: RegExp = /^[A-Za-z]$/;
+const OCTAL_ESCAPE: RegExp = /^\\0[0-7]{1,3}/;
+
+const BOUNDARY_REASON: string =
+  "is a word boundary, which Android's regular expressions draw between the letters of any script and past a combining mark or a zero-width space: write (?<![A-Za-z0-9_]) or (?![A-Za-z0-9_]) on the side of the word";
+const POSIX_REASON: string =
+  "in a look-around reads Unicode's letters, digits or spaces on Android, and ASCII alone in the tests: write the ASCII class out";
+const CASE_REASON: string =
+  'is read case-insensitively in a look-around, where Android\'s regular expressions also fold "ſ" and "K" (U+017F, U+212A) into s and k: turn (?i) on after the look-around';
+
+export type DifferentWordEdgesFunction = (source: string) => Array<WordEdge>;
+
+/*
+ * Where a Java pattern reads a word's edge otherwise on a device than the
+ * JVM and JavaScript read it, which is in its look-arounds and its word
+ * boundaries (#10835):
+ *
+ *   - \b and \B anywhere. ICU draws a word boundary between the letters of
+ *     any script, and past a combining mark or a zero-width space;
+ *   - \w, \d, \s, their negations and Java's POSIX classes (\p{Alpha}...)
+ *     in a look-around. ICU reads them with the letters, marks, digits and
+ *     spaces of every script, the JVM and JavaScript as ASCII;
+ *   - an ASCII letter in a look-around read case-insensitively. Under (?i)
+ *     ICU folds "ſ" and "K" (U+017F, U+212A) into s and k, so [A-Za-z]
+ *     there holds them too: turn (?i) on after the look-around.
+ *
+ * Classes (a class inside a class too), escapes, quoted text, inline flags
+ * and groups are read as Java reads them; a pattern Java would refuse is
+ * read as far as it goes.
+ */
+export const differentWordEdges: DifferentWordEdgesFunction = (
+  source: string,
+): Array<WordEdge> => {
+  const found: Array<WordEdge> = [];
+  const groups: Array<OpenGroup> = [];
+  let caseInsensitive: boolean = false;
+  let classDepth: number = 0;
+  let index: number = 0;
+
+  // The innermost look-around the walk is in.
+  const lookAround: () => OpenGroup | undefined = ():
+    | OpenGroup
+    | undefined => {
+    for (let at: number = groups.length - 1; at >= 0; at--) {
+      if (groups[at]!.lookAround !== null) {
+        return groups[at];
+      }
+    }
+
+    return undefined;
+  };
+
+  // A character that stands for itself: a letter in a look-around read case-insensitively is told of, once.
+  const readCharacter: (character: string, at: number) => void = (
+    character: string,
+    at: number,
+  ): void => {
+    const around: OpenGroup | undefined = lookAround();
+
+    if (
+      around &&
+      caseInsensitive &&
+      !around.toldOfLetter &&
+      ASCII_LETTER.test(character)
+    ) {
+      around.toldOfLetter = true;
+      found.push({
+        what: character,
+        index: at,
+        lookAround: around.lookAround,
+        reason: CASE_REASON,
+      });
+    }
+  };
+
+  // An escape, from its "\": told of when it reads otherwise, and passed.
+  const readEscape: () => void = (): void => {
+    const rest: string = source.slice(index);
+    const escaped: string = rest[1] ?? "";
+    const around: OpenGroup | undefined = lookAround();
+
+    if (escaped === "Q") {
+      // Quoted: every character up to \E stands for itself.
+      const end: number = source.indexOf("\\E", index + 2);
+      const stop: number = end === -1 ? source.length : end;
+
+      for (let at: number = index + 2; at < stop; at++) {
+        readCharacter(source[at]!, at);
+      }
+
+      index = end === -1 ? source.length : end + 2;
+      return;
+    }
+
+    const shorthand: string | undefined = SHORTHAND_CLASSES[escaped];
+    const posix: RegExpExecArray | null = POSIX_CLASS.exec(rest);
+
+    if ((escaped === "b" || escaped === "B") && classDepth === 0) {
+      found.push({
+        what: `\\${escaped}`,
+        index,
+        lookAround: around?.lookAround ?? null,
+        reason: BOUNDARY_REASON,
+      });
+    } else if (shorthand !== undefined && around) {
+      found.push({
+        what: `\\${escaped}`,
+        index,
+        lookAround: around.lookAround,
+        reason: `in a look-around reads the letters, digits or spaces of every script on Android, and ASCII alone in the tests: write ${shorthand}`,
+      });
+    } else if (posix && around) {
+      found.push({
+        what: posix[0],
+        index,
+        lookAround: around.lookAround,
+        reason: POSIX_REASON,
+      });
+    }
+
+    const octal: RegExpExecArray | null = OCTAL_ESCAPE.exec(rest);
+
+    if (["p", "P", "x", "N"].includes(escaped) && rest[2] === "{") {
+      const end: number = source.indexOf("}", index + 3);
+
+      index = end === -1 ? source.length : end + 1;
+    } else if (escaped === "p" || escaped === "P" || escaped === "c") {
+      index += 3;
+    } else if (escaped === "k" && rest[2] === "<") {
+      const end: number = source.indexOf(">", index + 3);
+
+      index = end === -1 ? source.length : end + 1;
+    } else if (escaped === "u" && HEX_DIGITS.test(rest.slice(2, 6))) {
+      index += 6;
+    } else if (escaped === "x") {
+      index += 4;
+    } else if (octal) {
+      index += octal[0].length;
+    } else {
+      // An escaped letter is a class or a control character; anything else stands for itself.
+      if (!ASCII_LETTER.test(escaped)) {
+        readCharacter(escaped, index + 1);
+      }
+
+      index += 2;
+    }
+  };
+
+  // A "(": a look-around, an inline flag, or a group of another kind.
+  const readOpening: () => void = (): void => {
+    const opening: string | undefined = LOOK_AROUNDS.find(
+      (start: string): boolean => {
+        return source.startsWith(start, index);
+      },
+    );
+
+    if (opening) {
+      groups.push({
+        lookAround: opening,
+        caseInsensitiveOutside: caseInsensitive,
+        toldOfLetter: false,
+      });
+      index += opening.length;
+      return;
+    }
+
+    const flags: RegExpExecArray | null = INLINE_FLAGS.exec(
+      source.slice(index),
+    );
+
+    if (flags && (flags[1] || flags[2] !== undefined)) {
+      let on: boolean = caseInsensitive;
+
+      if (flags[1]!.includes("i")) {
+        on = true;
+      } else if ((flags[2] ?? "").includes("i")) {
+        on = false;
+      }
+
+      if (flags[3] === ":") {
+        groups.push({
+          lookAround: null,
+          caseInsensitiveOutside: caseInsensitive,
+          toldOfLetter: false,
+        });
+      }
+
+      // "(?i)" holds to the end of the group it is in, "(?i:" to the end of its own.
+      caseInsensitive = on;
+      index += flags[0].length;
+      return;
+    }
+
+    groups.push({
+      lookAround: null,
+      caseInsensitiveOutside: caseInsensitive,
+      toldOfLetter: false,
+    });
+
+    if (
+      source.startsWith("(?<", index) &&
+      IDENTIFIER_START.test(source[index + 3] ?? "")
+    ) {
+      // A named group: its name is no text it matches.
+      const end: number = source.indexOf(">", index + 3);
+
+      index = end === -1 ? source.length : end + 1;
+      return;
+    }
+
+    index += source[index + 1] === "?" ? 2 : 1;
+  };
+
+  while (index < source.length) {
+    const char: string = source[index]!;
+
+    if (char === "\\") {
+      readEscape();
+      continue;
+    }
+
+    if (classDepth > 0) {
+      if (char === "[") {
+        classDepth++;
+      } else if (char === "]") {
+        classDepth--;
+      } else {
+        readCharacter(char, index);
+      }
+
+      index++;
+      continue;
+    }
+
+    if (char === "[") {
+      classDepth = 1;
+      index++;
+
+      // A "]" first in a Java class, after its "^" or not, is one of its characters.
+      if (source[index] === "^") {
+        index++;
+      }
+
+      if (source[index] === "]") {
+        index++;
+      }
+
+      continue;
+    }
+
+    if (char === "(") {
+      readOpening();
+      continue;
+    }
+
+    if (char === ")") {
+      const closed: OpenGroup | undefined = groups.pop();
+
+      if (closed) {
+        caseInsensitive = closed.caseInsensitiveOutside;
+      }
+
+      index++;
+      continue;
+    }
+
+    readCharacter(char, index);
+    index++;
+  }
+
+  return found;
 };
