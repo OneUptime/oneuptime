@@ -179,17 +179,18 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 minutes à 24 heures, sous **Pour les dernières**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
-| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale** | Cette valeur, sur la fenêtre, remplit la condition. Filtres numériques seulement. |
+| **Moyenne**, **Somme**, **Valeur maximale**, **Valeur minimale**, **Centile** | Cette valeur, sur la fenêtre, remplit la condition, comme le temps de réponse p95. Filtres numériques seulement. |
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
+| **Comptage**, **Pourcentage**, **Changements d'état** | Le nombre de vérifications qui ont rempli la condition, leur part, ou le nombre de fois où elles sont passées de la remplir à ne plus la remplir, est comparé au nombre défini en dessous. |
 
 L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
-Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
+Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. OneUptime peut aussi le compter avec **Comptage**, **Pourcentage** ou **Changements d'état**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
 
 Choisissez une fenêtre plus longue que l'intervalle de surveillance, pour qu'elle contienne plusieurs vérifications : un moniteur vérifié toutes les 5 minutes n'a qu'une seule vérification dans une fenêtre de 5 minutes.
 

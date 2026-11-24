@@ -39,6 +39,75 @@ export function getSecurityAddressSpellings(address: string): Array<string> {
   return Array.from(spellings);
 }
 
+// The largest port a value may name after an address.
+const MAX_PORT: number = 65535;
+
+// Whether text is ":" and a port: ":443".
+function isPortSuffix(text: string): boolean {
+  const port: string = text.slice(1);
+
+  if (!text.startsWith(":") || !port || port.length > 5) {
+    return false;
+  }
+
+  for (let index: number = 0; index < port.length; index++) {
+    const code: number = port.charCodeAt(index);
+
+    if (code < 48 || code > 57) {
+      return false;
+    }
+  }
+
+  return Number(port) <= MAX_PORT;
+}
+
+/*
+ * The one address a value names, as blocks write it, however a source
+ * wrote what is around it (#10744): in brackets ("[2001:db8::7]"), with the
+ * client's port ("[2001:db8::7]:443", "203.0.113.7:51234" and
+ * "::ffff:203.0.113.7:51234": nothing of an IPv6 address follows its
+ * dotted part), or with a zone ("fe80::1%eth0", or "%25eth0" as a URL
+ * writes it), which names a machine's interface, not the address. Null for
+ * anything else - a range, a name - and an IPv6 address written bare is
+ * never read as having a port: "2001:db8::7:443" is another address.
+ */
+export function readSecurityAddress(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  let address: string = value.trim();
+
+  if (address.startsWith("[")) {
+    const close: number = address.indexOf("]");
+    const after: string = close === -1 ? "" : address.slice(close + 1);
+
+    if (close < 2 || (after && !isPortSuffix(after))) {
+      return null;
+    }
+
+    address = address.slice(1, close);
+  } else {
+    const lastDot: number = address.lastIndexOf(".");
+    const colonAfterDot: number =
+      lastDot === -1 ? -1 : address.indexOf(":", lastDot);
+
+    if (colonAfterDot !== -1) {
+      if (!isPortSuffix(address.slice(colonAfterDot))) {
+        return null;
+      }
+
+      address = address.slice(0, colonAfterDot);
+    }
+  }
+
+  const zone: number = address.indexOf("%");
+
+  return NetworkAddressBlockUtil.canonicalAddress(
+    zone === -1 ? address : address.slice(0, zone),
+  );
+}
+
 // An IPv6 address written out in full: eight groups, each without leading zeros, as some sources write it.
 export function expandIpv6(address: string): string {
   const halves: Array<string> = address.split("::");

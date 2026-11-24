@@ -372,6 +372,14 @@ export default class MonitorMetricUtil {
      */
     monitorLabels?: Array<Label> | undefined;
     monitorCustomFields?: JSONObject | undefined;
+    /*
+     * Wait until the rows can be read before returning: a monitor whose
+     * criteria count a window's checks of a series counts this check too,
+     * read right after (CheckWindowCounts, #10355). Rows are otherwise
+     * acknowledged once the database has them in its insert buffer, which
+     * it writes out a moment later.
+     */
+    waitUntilReadable?: boolean | undefined;
   }): Promise<void> {
     if (!data.monitorId) {
       return;
@@ -1720,7 +1728,12 @@ export default class MonitorMetricUtil {
     });
 
     if (metricRows.length > 0) {
-      await MetricService.insertJsonRows(metricRows);
+      await MetricService.insertJsonRows(
+        metricRows,
+        data.waitUntilReadable
+          ? { clickhouseSettings: { wait_for_async_insert: 1 } }
+          : undefined,
+      );
     }
 
     // index metrics

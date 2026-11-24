@@ -100,17 +100,18 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Svarstid (i ms)**, **Paketförlust (i %)**, **Jitter (i ms)** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 till 60 minuter under **Under de senaste (i minuter)**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **Är online**, **Svarstid (i ms)**, **Paketförlust (i %)**, **Jitter (i ms)** och **Är begärandetimeout**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för bara den senaste: välj en aggregering under **Utvärdera** och ett fönster från 2 minuter till 24 timmar under **Under de senaste**.
 
 | Aggregering | Matchar när |
 | --- | --- |
-| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde** | Det värdet över fönstret uppfyller villkoret. Bara numeriska filter. |
+| **Genomsnitt**, **Summa**, **Maxvärde**, **Minvärde**, **Percentil** | Det värdet över fönstret uppfyller villkoret, till exempel p95-svarstiden. Bara numeriska filter. |
 | **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
 | **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
+| **Antal**, **Procentandel**, **Statusbyten** | Hur många kontroller som uppfyllde villkoret, deras andel eller hur ofta de växlade mellan att uppfylla det och inte, jämförs med talet som anges under. |
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
-**Är begärandetimeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**.
+**Är begärandetimeout** är inte ett tal som OneUptime registrerar. OneUptime registrerar därför om filtret matchade vid varje kontroll, och bedömer fönstret utifrån den registreringen med **Alla värden** eller **Minst ett värde**. Eller så räknar OneUptime den med **Antal**, **Procentandel** eller **Statusbyten**.
 
 Gör fönstret längre än övervakningsintervallet så att det rymmer flera kontroller: en monitor som kontrolleras var 5:e minut har bara en kontroll i varje fönster på 5 minuter.
 

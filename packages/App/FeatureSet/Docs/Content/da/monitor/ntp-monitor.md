@@ -119,7 +119,7 @@ Kriterierne kontrolleres oppefra og ned, og det første, der matcher, afgør, hv
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under hvert NTP-filter. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 til 60 minutter, under **For de seneste (i minutter)**. Kun kontroller, som serveren svarede på, har et stratum, en afvigelse og en rodspredning, så et vindue med stilhed har ingen data for de filtre, og **Hvis ingen data** afgør, hvad der sker.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under hvert NTP-filter. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 minutter til 24 timer, under **For de seneste**. Kun kontroller, som serveren svarede på, har et stratum, en afvigelse og en rodspredning, så et vindue med stilhed har ingen data for de filtre, og **Hvis ingen data** afgør, hvad der sker.
 
 ### Eksempler på kriterier
 

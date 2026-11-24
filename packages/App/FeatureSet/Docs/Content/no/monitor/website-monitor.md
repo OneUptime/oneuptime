@@ -179,17 +179,18 @@ Monitorer som ble opprettet før OneUptime endret disse standardene, beholder kr
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Svarhode**, **Verdi for svarhode**, **JavaScript-uttrykk** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 til 60 minutter under **For de siste (i minutter)**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **Er tilkoblet**, **Statuskode for svar**, **Svartid (i ms)**, **Svartekst**, **Svarhode**, **Verdi for svarhode**, **JavaScript-uttrykk** og **Er tidsavbrudd for forespørsel**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for bare den siste: velg en aggregering under **Evaluer** og et vindu fra 2 minutter til 24 timer under **For de siste**.
 
 | Aggregering | Samsvarer når |
 | --- | --- |
-| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi** | Den verdien over vinduet oppfyller betingelsen. Bare numeriske filtre. |
+| **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Persentil** | Den verdien over vinduet oppfyller betingelsen, for eksempel p95-responstiden. Bare numeriske filtre. |
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
+| **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
-En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Er tidsavbrudd for forespørsel** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **Alle verdier** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
+En body, en header, en headerverdi eller et uttrykk er ikke et tall OneUptime registrerer. For disse filtrene og for **Er tidsavbrudd for forespørsel** registrerer OneUptime derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Eller OneUptime teller den med **Antall**, **Prosentandel** eller **Statusskifter**. Slik kommer en monitor seg gjennom en omstart. En app som starter, kan svare `200` med en midlertidig side som `Application starting...`; med **Alle verdier** setter et filter **Svartekst** som ser etter appens tittel, monitoren offline først når den midlertidige siden har vart hele vinduet.
 
 Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 

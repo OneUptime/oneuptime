@@ -41,7 +41,9 @@ import Route from "Common/Types/API/Route";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green500 } from "Common/Types/BrandColors";
+import { Green500, Yellow500 } from "Common/Types/BrandColors";
+import DataSecurityIssueResolution from "Common/Types/DataSecurity/DataSecurityIssueResolution";
+import { RESOLUTION_LABELS } from "./IssueResolutionCopy";
 import {
   DataSecurityDropMetricResult,
   DataSecurityScrubResult,
@@ -133,10 +135,14 @@ const SHOW_RECORDS: string = translationKey("Show the records it was seen in");
 const HIDE_RECORDS: string = translationKey("Hide the records");
 const SCRUBBED: string = translationKey("Scrubbed");
 export const SCRUBBED_TOOLTIP: string = translationKey(
-  "A scrub rule hides this data at ingest. What was stored before keeps it until its retention ends.",
+  "A scrub rule hides this data at ingest, but the code still writes it: contained, not fixed. What was stored before keeps it until its retention ends.",
+);
+// A finding a verified code fix stopped (#10368).
+export const FIXED_IN_CODE_TOOLTIP: string = translationKey(
+  "A code fix stopped it: the service's new version no longer writes this data. What was stored before keeps it until its retention ends.",
 );
 const RESOLVES_WHEN_SCRUBBED: string = translationKey(
-  "The issue resolves once every finding here is scrubbed and the store is checked again.",
+  "Scrubbing every finding here contains the issue at ingest. It counts as fixed once the code stops writing the data.",
 );
 const NO_SAMPLES_FOR_ROLE: string = translationKey(
   "Your role does not show masked samples, or the records they were seen in.",
@@ -184,6 +190,8 @@ export function getIssueFindingsSelect(
     isConfirmed: true,
     isAiSuggested: true,
     lastSeenAt: true,
+    // Stopped by a verified code fix (#10368).
+    fixedAt: true,
     ...(canReadSamples ? { maskedSamples: true } : {}),
   };
 }
@@ -389,10 +397,21 @@ export const FindingSummary: FunctionComponent<{
         ) : (
           <></>
         )}
-        {finding.isScrubbed ? (
+        {finding.fixedAt ? (
+          <Pill
+            text={RESOLUTION_LABELS[DataSecurityIssueResolution.FixedInCode]}
+            color={Green500}
+            tooltip={FIXED_IN_CODE_TOOLTIP}
+          />
+        ) : finding.isScrubbed ? (
+          /*
+           * Hidden or dropped at ingest is contained, not fixed (#10368):
+           * amber, as the issue's resolution says it - the code still
+           * writes the data.
+           */
           <Pill
             text={isDropped ? DROPPED : SCRUBBED}
-            color={Green500}
+            color={Yellow500}
             tooltip={isDropped ? DROPPED_TOOLTIP : SCRUBBED_TOOLTIP}
           />
         ) : (

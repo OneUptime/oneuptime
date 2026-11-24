@@ -1,6 +1,7 @@
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseAiAction from "../../../../Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCaseFeed, {
   SecurityCaseFeedEventType,
 } from "../../../../Models/DatabaseModels/SecurityCaseFeed";
@@ -21,6 +22,7 @@ import SecurityCaseAiHold, {
   getHoldEndedMarkdown,
   hasSecurityCaseSteeringText,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseAiHold";
+import SecurityCaseHandOff from "../../../../Server/Utils/SecurityCase/SecurityCaseHandOff";
 import SecurityCaseNotifications from "../../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
 import SecurityPlaybookEngine from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookEngine";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -108,8 +110,36 @@ let ends: Array<{ data: Record<string, unknown>; expected: unknown }>;
 let isEndWins: boolean;
 let feed: Array<Record<string, unknown>>;
 let toldHoldEnded: Array<Record<string, unknown>>;
+let toldHandedOff: Array<Record<string, unknown>>;
+let handOffRows: Array<SecurityCaseAiAction>;
 let runCas: Array<{ id: string; data: unknown; expected: unknown }>;
 let queuedRuns: Array<string>;
+
+/*
+ * The database's compare-and-set, for a test where two writers meet: a
+ * write lands only on the values it expects, as Postgres's would.
+ */
+function casAsTheDatabaseDoes(): void {
+  getJestSpyOn(
+    SecurityCaseService,
+    "compareAndSetColumnsByIdWithoutHooks",
+  ).mockImplementation(
+    async (args: {
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    }) => {
+      for (const [column, expected] of Object.entries(args.expectedData)) {
+        if (String(caseRow[column] ?? null) !== String(expected ?? null)) {
+          return false;
+        }
+      }
+
+      ends.push({ data: args.data, expected: args.expectedData });
+      Object.assign(caseRow, args.data);
+      return true;
+    },
+  );
+}
 
 function heldCase(overrides: Record<string, unknown> = {}): void {
   caseRow = {
@@ -155,6 +185,8 @@ beforeEach(() => {
   isEndWins = true;
   feed = [];
   toldHoldEnded = [];
+  toldHandedOff = [];
+  handOffRows = [];
   runCas = [];
   queuedRuns = [];
 
@@ -256,6 +288,18 @@ beforeEach(() => {
   getJestSpyOn(SecurityCaseNotifications, "aiHoldEnded").mockImplementation(
     async (args: Record<string, unknown>) => {
       toldHoldEnded.push(args);
+    },
+  );
+  // OneUptime AI's own hand-off (SecurityCaseHandOff): its row, and its notice.
+  getJestSpyOn(SecurityCaseAiActionService, "create").mockImplementation(
+    async (args: { data: SecurityCaseAiAction }) => {
+      handOffRows.push(args.data);
+      return args.data;
+    },
+  );
+  getJestSpyOn(SecurityCaseNotifications, "aiHandedOff").mockImplementation(
+    async (args: Record<string, unknown>) => {
+      toldHandedOff.push(args);
     },
   );
 
@@ -693,7 +737,8 @@ describe("a held case's review", () => {
   });
 
   test("Security Events switched off on the server hands a held case to people at once, saying why", async () => {
-    heldCase();
+    // Not taken up yet: its triage has not read it.
+    heldCase({ aiResponseState: null });
     getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
       ServerProductOffReason.SwitchedOff,
     );
@@ -719,10 +764,105 @@ describe("a held case's review", () => {
         actorUserId: undefined,
       },
     ]);
+    // OneUptime AI was not working it: it has nothing of its own to hand over.
+    expect(handOffRows).toEqual([]);
+    expect(caseRow["aiResponseState"]).toBeNull();
+  });
+
+  /*
+   * #10816: a held case OneUptime AI works goes to people with its own
+   * hand-off, which ends the hold with the same outcome - one notice,
+   * whether this review or OneUptime AI's every-minute job sees the switch
+   * first.
+   */
+  test("Security Events switched off while OneUptime AI works a held case: it stops working it too, and people get one notice", async () => {
+    heldCase();
+    casAsTheDatabaseDoes();
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    expect(
+      await SecurityCaseAiHold.review({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: NOW,
+      }),
+    ).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+
+    // Handed to people, saying why.
+    expect(caseRow["aiResponseState"]).toBe(
+      SecurityCaseAiResponseState.HandedToPeople,
+    );
+    expect(caseRow["aiHandOffReason"]).toBe(
+      SecurityCaseHandOffReason.ProductOff,
+    );
+    expect(caseRow["aiNextLookAt"]).toBeNull();
+    expect(handOffRows).toHaveLength(1);
+    expect(handOffRows[0]!.handOffReason).toBe(
+      SecurityCaseHandOffReason.ProductOff,
+    );
+
+    // The hold ended once, as the review would end it.
+    expect(caseRow["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+    expect(
+      ends.filter((end: { data: Record<string, unknown> }): boolean => {
+        return end.data["aiHoldOutcome"] !== undefined;
+      }),
+    ).toHaveLength(1);
+
+    // The timeline says both, in OneUptime AI's words.
+    const timeline: string = feed
+      .map((item: Record<string, unknown>): string => {
+        return String(item["feedInfoInMarkdown"]);
+      })
+      .join("\n");
+
+    expect(timeline).toContain(
+      "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+    );
+    expect(timeline).toContain(
+      "Security Events is off on this server, so OneUptime AI stopped responding first.",
+    );
+
+    // One notice: the one people were held from, not the hand-off's as well.
+    expect(toldHoldEnded).toHaveLength(1);
+    expect(toldHandedOff).toEqual([]);
+  });
+
+  test("OneUptime AI's every-minute job got there first: the review finds the hold ended, and nobody is told twice", async () => {
+    heldCase();
+    casAsTheDatabaseDoes();
+    getJestSpyOn(ServerProducts, "getOffReasonOfServerWork").mockResolvedValue(
+      ServerProductOffReason.SwitchedOff,
+    );
+
+    // As SecurityCaseResponseProductOff hands the case over.
+    expect(
+      await SecurityCaseHandOff.handToPeople({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        reason: SecurityCaseHandOffReason.ProductOff,
+        now: NOW,
+      }),
+    ).toBe(true);
+    expect(caseRow["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+
+    expect(
+      await SecurityCaseAiHold.review({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(handOffRows).toHaveLength(1);
+    expect(toldHoldEnded).toHaveLength(1);
+    expect(toldHandedOff).toEqual([]);
   });
 
   test("the every-minute review hands every held case to people while Security Events is off", async () => {
     heldCase();
+    casAsTheDatabaseDoes();
     held = [
       (() => {
         const row: SecurityCase = new SecurityCase(CASE_ID);
@@ -737,10 +877,15 @@ describe("a held case's review", () => {
     await SecurityCaseAiHold.reviewHolds(NOW);
 
     expect(
-      ends.map((end: { data: Record<string, unknown> }): unknown => {
-        return end.data["aiHoldOutcome"];
-      }),
+      ends
+        .map((end: { data: Record<string, unknown> }): unknown => {
+          return end.data["aiHoldOutcome"];
+        })
+        .filter(Boolean),
     ).toEqual([SecurityCaseAiHoldOutcome.ProductOff]);
+    expect(caseRow["aiResponseState"]).toBe(
+      SecurityCaseAiResponseState.HandedToPeople,
+    );
   });
 
   test("a case contained and checked as Security Events goes off is still resolved: nobody is alerted", async () => {
@@ -890,6 +1035,40 @@ describe("how a hold ends", () => {
       }),
     ).toBe(true);
     expect(caseRow["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.HandedOff);
+  });
+
+  test("a hand-off for Security Events switched off ends the hold as the review would, saying so (#10816)", async () => {
+    heldCase();
+
+    expect(
+      await SecurityCaseAiHold.onHandedToPeople({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        reason: SecurityCaseHandOffReason.ProductOff,
+      }),
+    ).toBe(true);
+    expect(caseRow["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+    expect(caseRow["aiHoldEndedByUserId"]).toBeNull();
+    expect(feedText()).toContain(
+      "Security Events is off on this server, so OneUptime AI stopped responding first.",
+    );
+  });
+
+  test("each hand-off reason ends a hold its own way", () => {
+    for (const reason of Object.values(SecurityCaseHandOffReason)) {
+      expect({
+        reason,
+        outcome: SecurityCaseAiHold.getHandOffOutcome(reason),
+      }).toEqual({
+        reason,
+        outcome:
+          reason === SecurityCaseHandOffReason.TakenOver
+            ? SecurityCaseAiHoldOutcome.TakenByPerson
+            : reason === SecurityCaseHandOffReason.ProductOff
+              ? SecurityCaseAiHoldOutcome.ProductOff
+              : SecurityCaseAiHoldOutcome.HandedOff,
+      });
+    }
   });
 
   test("Take Over is a person taking the case: nobody else is alerted", async () => {

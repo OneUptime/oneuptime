@@ -30,6 +30,9 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import OneUptimeDate from "Common/Types/Date";
+import { describeWorkingHours } from "../../OnCallRule/WorkingHoursText";
+import { RECOVER_WHEN_TITLE } from "../../Form/Monitor/CriteriaRecoveryAndActiveHours";
 
 /*
  * How a criteria's filters combine, said once above them (#8533): one whole
@@ -41,6 +44,15 @@ export const ALL_FILTERS_SENTENCE: string = translationKey(
 export const ANY_FILTERS_SENTENCE: string = translationKey(
   "Any of these can match for this criteria to be met:",
 );
+
+// And when it recovers, said the same way (#10355).
+export const RECOVERS_WHEN_ALL_SENTENCE: string = translationKey(
+  "Once its filters stop matching, this criteria stays in effect until all of these match:",
+);
+export const RECOVERS_WHEN_ANY_SENTENCE: string = translationKey(
+  "Once its filters stop matching, this criteria stays in effect until any of these matches:",
+);
+export const ACTIVE_HOURS_TITLE: string = translationKey("Active Hours");
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -71,6 +83,28 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
       monitorType: props.monitorType,
       criteriaInstance: props.monitorCriteriaInstance,
     });
+  // Its recovery condition, when it has one of its own (#10355).
+  const recoveryFilters: Array<CriteriaFilter> =
+    props.monitorCriteriaInstance.data?.recoveryFilters || [];
+  const recoveryFilterCondition: FilterCondition =
+    props.monitorCriteriaInstance.data?.recoveryFilterCondition ||
+    FilterCondition.All;
+  // The days and times it is judged in, in a few words, or null.
+  const activeHours: string | null = MonitorCriteriaInstance.hasActiveHours(
+    props.monitorCriteriaInstance.data,
+  )
+    ? describeWorkingHours(
+        {
+          workingHours: props.monitorCriteriaInstance.data?.activeHours,
+          workingHoursTimezone:
+            props.monitorCriteriaInstance.data?.activeHoursTimezone,
+        },
+        {
+          translator: translator,
+          use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
+        },
+      )
+    : null;
   // The status the criteria changes the monitor to.
   const monitorStatus: MonitorStatus | undefined =
     props.monitorStatusOptions.find((option: MonitorStatus) => {
@@ -142,6 +176,49 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
           monitorType={props.monitorType}
         />
       </div>
+
+      {/*
+       * When it recovers, when that is not simply its filters no longer
+       * matching (#10355): its recovery filters, said as its filters are.
+       */}
+      {recoveryFilters.length > 0 && (
+        <div className="mt-4" data-testid="monitor-criteria-recovery-heading">
+          <div className="flex">
+            <Icon icon={IconProp.Refresh} className="h-5 w-5 text-gray-900" />
+            <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+              <span className="font-medium text-gray-900">
+                {translator.translateText(RECOVER_WHEN_TITLE)}
+              </span>{" "}
+              {translator.translateText(
+                isFilterConditionNeeded(recoveryFilters) &&
+                  recoveryFilterCondition === FilterCondition.Any
+                  ? RECOVERS_WHEN_ANY_SENTENCE
+                  : RECOVERS_WHEN_ALL_SENTENCE,
+              )}
+            </div>
+          </div>
+
+          <CriteriaFilters
+            criteriaFilters={recoveryFilters}
+            monitorType={props.monitorType}
+          />
+        </div>
+      )}
+
+      {/* When it is judged at all: "Mon–Fri 08:00–18:00 (Europe/Oslo)". */}
+      {activeHours && (
+        <div className="mt-4" data-testid="monitor-criteria-active-hours-line">
+          <div className="flex">
+            <Icon icon={IconProp.Clock} className="h-5 w-5 text-gray-900" />
+            <div className="ml-1 -mt-0.5 flex-auto py-0.5 text-sm leading-5 text-gray-500">
+              <span className="font-medium text-gray-900">
+                {translator.translateText(ACTIVE_HOURS_TITLE)}
+              </span>{" "}
+              {activeHours}
+            </div>
+          </div>
+        </div>
+      )}
 
       {props.monitorCriteriaInstance.data?.monitorStatusId && (
         <div className="mt-4">

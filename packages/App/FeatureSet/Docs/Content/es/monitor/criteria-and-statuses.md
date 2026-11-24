@@ -5,13 +5,14 @@ Los criterios de un monitor deciden qué significa cada comprobación: si el mon
 :::cards
 - [Cómo deciden los criterios](#cómo-deciden-los-criterios): De arriba abajo, y gana la primera coincidencia.
 - [Qué contiene un criterio](#qué-contiene-un-criterio): Filtros, una condición de coincidencia, acciones y ajustes.
+- [Juzgar una ventana de comprobaciones](#juzgar-una-ventana-de-comprobaciones): Contar comprobaciones fallidas, detectar inestabilidad, leer un percentil.
 - [Cambiar los criterios de un monitor](#cambiar-los-criterios-de-un-monitor): Editar, añadir, reordenar y probar criterios.
 - [Estados del monitor](#estados-del-monitor): Los estados predefinidos y los estados propios.
 :::
 
 ## Cómo deciden los criterios
 
-Cada vez que se comprueba un monitor, sus criterios juzgan el resultado de arriba abajo de la lista. El primer criterio cuyos filtros coinciden decide qué ocurre, y los criterios que están debajo no se examinan en esa comprobación. Si ninguno coincide, el monitor pasa a su **Estado de monitor predeterminado**.
+Cada vez que se comprueba un monitor, sus criterios juzgan el resultado de arriba abajo de la lista. El primer criterio cuyos filtros coinciden decide qué ocurre, y los criterios que están debajo no se examinan en esa comprobación. Si ninguno coincide, el monitor pasa a su **Estado de monitor predeterminado**. En cambio, conserva su estado mientras un criterio que lo devuelve aún no haya coincidido: consulte [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
 
 ```mermaid title="Cómo se juzga cada comprobación"
 flowchart TB
@@ -43,7 +44,7 @@ Abra un criterio: tiene un nombre y tres secciones, cada una de las cuales se pl
 | **Nombre del criterio** | El nombre en la lista de criterios y en la causa raíz de cada incidente y alerta que abre el criterio. **Añadir criterios** da a un criterio nuevo el nombre de sus filtros, y el nombre los sigue hasta que usted escriba uno propio. |
 | **Filtros** | Lo que debe mostrar la comprobación, como uno o varios filtros. Los monitores de Kubernetes y de métricas los llaman **Reglas de alerta**. |
 | **Acciones** | Lo que ocurre cuando los filtros coinciden: cambiar el estado, crear una alerta, declarar un incidente o cualquier combinación. |
-| **Ajustes** | **Habilitar este criterio**, una **Descripción** opcional y, en los monitores de solicitudes entrantes, **Agrupa incidentes y alertas por un campo de la carga útil**. |
+| **Ajustes** | **Habilitar este criterio**, una **Descripción** opcional, cuándo se recupera y cuándo se evalúa y, en los monitores de solicitudes entrantes, **Agrupa incidentes y alertas por un campo de la carga útil**. |
 
 ### Filtros
 
@@ -51,7 +52,7 @@ Un filtro lee un dato de la comprobación y lo compara: un **Tipo de filtro** (q
 
 A partir de dos filtros aparece debajo la **Condición de coincidencia**: **Todos** significa que todos los filtros deben coincidir, **Cualquiera** que basta con uno. Un criterio nuevo empieza en **Todos**.
 
-Los filtros que miden cada comprobación, como **En línea**, **Código de estado de respuesta** y **Tiempo de respuesta (en ms)**, ofrecen **Evaluar estos criterios durante un periodo de tiempo**. Juzga una ventana de comprobaciones recientes en lugar de solo la última, y empieza con los últimos 5 minutos y **Todos los valores**, que solo coincide cuando todas las comprobaciones de la ventana han coincidido. Consulte [Evaluar durante un periodo de tiempo](/docs/monitor/website-monitor#evaluar-durante-un-periodo-de-tiempo).
+Los filtros que miden cada comprobación, como **En línea**, **Código de estado de respuesta** y **Tiempo de respuesta (en ms)**, ofrecen **Evaluar estos criterios durante un periodo de tiempo**. Juzga una ventana de comprobaciones recientes en lugar de solo la última, y empieza con los últimos 5 minutos y **Todos los valores**, que solo coincide cuando todas las comprobaciones de la ventana han coincidido. La ventana puede durar hasta 24 horas y contar las comprobaciones, como explica [Juzgar una ventana de comprobaciones](#juzgar-una-ventana-de-comprobaciones). Consulte [Evaluar durante un periodo de tiempo](/docs/monitor/website-monitor#evaluar-durante-un-periodo-de-tiempo).
 
 ### Acciones
 
@@ -70,6 +71,54 @@ Un incidente o una alerta pide un título, una **Gravedad** y, plegados, una des
 **Habilitar este criterio** está activado en todo criterio nuevo. Desactívelo para conservar un criterio sin usarlo: se omite en cada comprobación, no cambia ningún estado, no abre nada y su cabecera muestra **Deshabilitado**.
 
 **Agrupa incidentes y alertas por un campo de la carga útil** abre un incidente por cada valor encontrado en una solicitud entrante, de modo que una sola dirección de webhook puede mantener varios incidentes abiertos. Consulte [Activar la agrupación de incidentes](/docs/monitor/incoming-request-monitor#activar-la-agrupación-de-incidentes).
+
+**Recuperarse solo cuando se cumpla una condición propia** y **Evaluar este criterio solo ciertos días y a ciertas horas** están desactivados en un criterio nuevo. Consulte [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio) y [Solo ciertos días y a ciertas horas](#solo-ciertos-días-y-a-ciertas-horas).
+
+## Juzgar una ventana de comprobaciones
+
+Con **Evaluar estos criterios durante un periodo de tiempo** marcado, **Evaluar** indica cómo se juzgan las comprobaciones de la ventana, y **En el último período de** cuánto dura la ventana, de 2 minutos a 24 horas. La condición propia del filtro, como **En línea** en **Falso**, indica lo que debe mostrar cada comprobación.
+
+| Evaluar | Coincide cuando |
+| --- | --- |
+| **Todos los valores** | Todas las comprobaciones de la ventana cumplieron la condición. |
+| **Cualquier valor** | Al menos una comprobación de la ventana cumplió la condición. |
+| **Promedio**, **Suma**, **Valor máximo**, **Valor mínimo** | Esa cifra de los valores de la ventana cumple la condición, como un tiempo de respuesta medio superior a 300 ms. |
+| **Percentil** | El percentil elegido en **Percentil**, de p50 a p99, cumple la condición: p95 por encima de 300 ms significa que el 5 % más lento de las comprobaciones supera los 300 ms. |
+| **Recuento** | El número de comprobaciones que cumplieron la condición se compara como se define en **Comprobaciones que coinciden**: **Mayor que** 30, por ejemplo. |
+| **Porcentaje** | Su proporción entre las comprobaciones de la ventana se compara como se define en **Proporción de comprobaciones que coinciden**: **Mayor que** 10 %, por ejemplo. |
+| **Cambios de estado** | Las veces que las comprobaciones pasaron de cumplir la condición a no cumplirla, o al revés, se comparan como se define en **Veces que cambió**. Un dispositivo que se cae y vuelve cambia dos veces. |
+
+Una frase bajo la configuración de la ventana repite el filtro tal como está configurado: «Comprobar si "En línea" es falso en más de 30 comprobaciones del último período de 8 horas».
+
+- **Cada sonda por separado.** **Recuento**, **Porcentaje** y **Cambios de estado** cuentan las comprobaciones de la sonda que hizo la comprobación, así que un monitor comprobado desde tres sondas no cuenta tres veces más rápido, y luego sus sondas deben coincidir como en cualquier criterio.
+- **Una ventana que aún no está llena.** Hasta que las comprobaciones lleguen al inicio de la ventana, un monitor recién iniciado tiene menos comprobaciones de las que tendrá. **Recuento** y **Cambios de estado** coinciden pronto cuando ya superan **Mayor que** o **Mayor o igual que**, ya que más comprobaciones solo los aumentan; todo lo demás espera a una ventana llena.
+- **Una ventana sin comprobaciones.** Mientras la ventana no tenga comprobaciones, o aún no esté llena, decide **Si no hay datos**: **Ignore** espera, **Disparador** coincide, y **Treat As Zero** la juzga como si las comprobaciones que faltan no hubieran cumplido la condición.
+
+Los promedios y percentiles leen los valores de las comprobaciones de todas las sondas, como siempre ha hecho **Promedio**. **Recuento**, **Porcentaje** y **Cambios de estado** se ofrecen para cada filtro al que se le ofrece una ventana: en los monitores Website, API, Ping, IP y Port, para la CPU, la memoria, los discos y la carga de un servidor, para **Dispositivo SNMP en línea** y el tiempo de respuesta de un dispositivo de red, y en los monitores DNS, NTP, de base de datos, de página de estado externa y de estado de sondas. **En línea** de un monitor de servidor no se cuenta: se juzga por el tiempo desde el último informe del servidor. Los monitores de métricas y otros de telemetría juzgan en cambio el intervalo de tiempo de su consulta, con la agregación propia de la consulta, que también lee percentiles.
+
+### Ejemplo: un punto de acceso caído y otro inestable
+
+Un monitor Ping comprueba un punto de acceso de una oficina cada minuto. Antes de que las ventanas pudieran contar comprobaciones, un punto de acceso que se caía una y otra vez parecía uno caído, o nada en absoluto. Estos tres criterios, en este orden, distinguen los dos casos:
+
+| Criterio | Filtro | Evaluar | Cambia el estado a |
+| --- | --- | --- | --- |
+| El punto de acceso está caído | **En línea** es **Falso** | **Todos los valores**, **En el último período de** 5 minutos | **Sin conexión**, y declara un incidente de caída |
+| El punto de acceso es inestable | **En línea** es **Falso** | **Cambios de estado**, **Mayor que** 5, **En el último período de** 1 hora | **Degradado**, y declara un incidente de inestabilidad |
+| El punto de acceso está en línea | **En línea** es **Verdadero** | No durante un período | **Operativo** |
+
+Para el segundo, active **Recuperarse solo cuando se cumpla una condición propia** con **Cambios de estado**, **Menor o igual que** 1, **En el último período de** 1 hora: el incidente de inestabilidad sigue abierto hasta que el punto de acceso lleve una hora estable, en lugar de cerrarse el primer minuto en que responde. Para alertar cuando falle más de 30 pings en 8 horas, configure en cambio el segundo criterio con **Recuento**, **Mayor que** 30, **En el último período de** 8 horas.
+
+## Cuándo se recupera un criterio
+
+Un criterio deja de actuar en cuanto sus filtros dejan de coincidir: en esa comprobación se resuelven su incidente y su alerta, cuando **Resolver incidente automáticamente** y **Resolver alerta automáticamente** están activados, y el monitor pasa al siguiente criterio que coincida.
+
+**Recuperarse solo cuando se cumpla una condición propia** mantiene el criterio en vigor después de que sus filtros dejen de coincidir, hasta que coincidan los filtros de **Se recupera cuando**. Empiezan como lo opuesto de los filtros del criterio, durante los últimos 10 minutos, y pueden usar todo lo que ofrece un filtro, como una ventana que cuenta comprobaciones. Un criterio está en vigor mientras el monitor tiene el estado que define o está abierto un incidente o una alerta que declaró. Mientras se mantiene, cuenta como una coincidencia en su lugar de la lista: un criterio por encima que coincida sigue tomando el control.
+
+Cuando ningún criterio coincide, un monitor que un criterio sacó de su **Estado de monitor predeterminado** conserva el estado que tiene, siempre que también tenga un criterio que solo lo devuelva a ese estado y no abra nada. Ese es el margen de recuperación: las plantillas se disparan por encima del 90 % y vuelven al 81 % o menos, así que con el 89 % el monitor se queda donde está. Sus incidentes y alertas se siguen resolviendo cuando su propio criterio deja de coincidir. Un monitor sin un criterio así pasa a su **Estado de monitor predeterminado**, como siempre.
+
+## Solo ciertos días y a ciertas horas
+
+**Evaluar este criterio solo ciertos días y a ciertas horas** define los días, **Hora de inicio** y **Hora de finalización**, y **Zona horaria**, que empieza siendo la suya. Fuera de esas horas el criterio se omite como un criterio desactivado: no coincide con nada, así que lo que abrió se resuelve, y el registro de evaluación indica que estaba fuera de sus horas. Las horas se leen en el reloj de esa zona horaria, así que las 08:00 siguen siendo las 08:00 tras el cambio de hora, y las horas que terminan antes de empezar continúan hasta la mañana siguiente.
 
 ## Cuándo se abren y se cierran incidentes y alertas
 
@@ -150,6 +199,21 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 
 > [!TIP]
 > Cuando las respuestas de un monitor de sitio web o de API sean sensibles en sí mismas, desactive **Conservar el contenido de la respuesta** en la tarjeta **Contenido de la respuesta** de su página **Avanzado → Ajustes**. Sus registros de monitoreo, incidentes y alertas conservarán entonces qué filtros coincidieron, el código de estado y el tiempo de respuesta, y ninguna parte de la respuesta. Un monitor de solicitudes entrantes tiene el mismo interruptor para las solicitudes que recibe: **Conservar el contenido de la solicitud**, en la tarjeta **Contenido de la solicitud**. El interruptor se aplica a las comprobaciones que se ejecuten, y a los incidentes y alertas que se abran, después de cambiarlo. La última solicitud en la vista general de un monitor de solicitudes entrantes sigue el interruptor al instante.
+
+## Cuánto tarda cada comprobación
+
+El resumen de evaluación de cada comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor y, para la última comprobación, en su **Vista general**, indica cuándo se evaluó la comprobación, cuánto tardó su evaluación y, en un monitor que juzga cada host, contenedor o grupo por separado, cuántas series evaluó. El tiempo va desde que OneUptime empezó a leer los datos que la comprobación juzga hasta que escribió su registro: la lectura de los datos, la evaluación de los criterios y la apertura de incidentes y alertas.
+
+Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Demasiado es más de una décima parte del tiempo entre las comprobaciones del monitor, nunca menos de 5 segundos y nunca más de un minuto:
+
+| Monitor comprobado | Avisa a partir de |
+| --- | --- |
+| Cada minuto | 6 segundos |
+| Cada 5 minutos | 30 segundos |
+| Cada 10 minutos o con menos frecuencia | 1 minuto |
+| Al llegar sus resultados, como solicitudes y correos entrantes | 5 segundos |
+
+Una décima parte deja a un monitor margen para crecer diez veces antes de que sus comprobaciones se solapen y se retrasen, así que usted se entera pronto. Por debajo de 5 segundos, una comprobación está bien por grande que sea: evaluar 16.000 series lleva unos 2,5 segundos. Por encima de un minuto, ocupa un worker y las bases de datos que lee durante todo ese tiempo, sea cual sea su intervalo. Para acelerarla, acote los filtros de sus consultas, agrupe por menos atributos o compruébela con menos frecuencia.
 
 ## Cambiar los criterios de un monitor
 

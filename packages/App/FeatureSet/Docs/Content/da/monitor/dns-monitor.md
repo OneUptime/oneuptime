@@ -118,13 +118,14 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS er online** og **DNS-svartid (i ms)**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 til 60 minutter, under **For de seneste (i minutter)**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS er online** og **DNS-svartid (i ms)**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 minutter til 24 timer, under **For de seneste**.
 
 | Aggregering | Matcher, når |
 | --- | --- |
-| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi** | Den værdi over vinduet opfylder betingelsen. Kun **DNS-svartid (i ms)**. |
+| **Gennemsnit**, **Sum**, **Maksimumværdi**, **Minimumværdi**, **Percentil** | Den værdi over vinduet opfylder betingelsen, for eksempel p95-svartiden. Kun **DNS-svartid (i ms)**. |
 | **Alle værdier** | Hver kontrol i vinduet opfylder betingelsen. |
 | **Vilkårlig værdi** | Mindst én kontrol i vinduet opfylder betingelsen. |
+| **Antal**, **Procentdel**, **Statusskift** | Hvor mange kontroller der opfyldte betingelsen, deres andel, eller hvor ofte de skiftede mellem at opfylde den og ikke at opfylde den, sammenlignes med tallet, der er angivet nedenunder. |
 
 **Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller ikke længere blev registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "sig til, så snart en enkelt kontrol overskrider grænsen" og udløses stadig med det samme.
 

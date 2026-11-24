@@ -12,6 +12,13 @@
  * (GroupedMetricMonitorEventLoop.test.ts). --expose-gc lets each run start
  * from a collected heap.
  *
+ * A fleet-wide problem, where the evaluation opens an alert for many series
+ * at once (#10315): `--special-per-thousand <n>` puts n series in a thousand
+ * in each of the fleet's six breaching profiles (1 by default), and
+ * `--postgres-latency-ms <n>` makes each Postgres call wait n ms for its
+ * answer, as a round trip to the database does (one turn of the event loop
+ * by default).
+ *
  * One Metrics monitor over a Docker fleet: four queries grouped by host and
  * container, a formula and three criteria that open and resolve alerts
  * (GroupedMetricMonitorFleet), evaluated on the real path - the worker's
@@ -44,6 +51,10 @@ export const RESULTS_PREFIX: string = "GROUPED_METRIC_MONITOR_BENCHMARK ";
 interface Arguments {
   series: number;
   runs: number;
+  // Series in a thousand in each breaching profile (#10315).
+  specialPerThousand: number;
+  // How long each Postgres call waits for its answer, in ms (0: a turn).
+  postgresLatencyMs: number;
   json: boolean;
   // Where a CPU profile of each measured run is written, when asked.
   profileDirectory: string | null;
@@ -69,6 +80,8 @@ function readArguments(argv: Array<string>): Arguments {
   return {
     series: valueOf("--series", 16_250),
     runs: valueOf("--runs", 3),
+    specialPerThousand: valueOf("--special-per-thousand", 1),
+    postgresLatencyMs: valueOf("--postgres-latency-ms", 0),
     json: argv.includes("--json"),
     profileDirectory:
       profileIndex >= 0 && argv[profileIndex + 1]
@@ -126,13 +139,17 @@ function write(line: string): void {
   process.stdout.write(`${line}\n`);
 }
 
-function fleetFor(seriesCount: number): GroupedMetricFleet {
+function fleetFor(
+  seriesCount: number,
+  specialPerThousand: number = 1,
+): GroupedMetricFleet {
   // A window that ended a second ago, on a whole second.
   const windowEndMs: number = Math.floor(Date.now() / 1000) * 1000 - 1000;
 
   return buildGroupedMetricFleet({
     seriesCount: seriesCount,
     windowEndMs: windowEndMs,
+    specialPerThousand: specialPerThousand,
   });
 }
 
@@ -170,7 +187,10 @@ async function main(): Promise<void> {
     : null;
 
   for (let run: number = 0; run < args.runs; run++) {
-    const fleet: GroupedMetricFleet = fleetFor(args.series);
+    const fleet: GroupedMetricFleet = fleetFor(
+      args.series,
+      args.specialPerThousand,
+    );
     const valueRows: number = Array.from(fleet.valueRowCounts.values()).reduce(
       (sum: number, rows: number): number => {
         return sum + rows;
@@ -182,7 +202,10 @@ async function main(): Promise<void> {
       await profiler.start();
     }
 
-    const result: EvaluationRun = await runFleetEvaluation({ fleet: fleet });
+    const result: EvaluationRun = await runFleetEvaluation({
+      fleet: fleet,
+      postgresLatencyMs: args.postgresLatencyMs,
+    });
     runs.push(result);
 
     if (profiler && args.profileDirectory) {
@@ -222,6 +245,8 @@ async function main(): Promise<void> {
 
   const summary: Record<string, unknown> = {
     series: args.series,
+    specialPerThousand: args.specialPerThousand,
+    postgresLatencyMs: args.postgresLatencyMs,
     runs: runs.map((run: EvaluationRun): Record<string, unknown> => {
       return {
         measurement: run.measurement,

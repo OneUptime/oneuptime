@@ -470,7 +470,12 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
     expect(keptInRedis()).toEqual([DATA_FINGERPRINT]);
   });
 
-  test("an ungrouped monitor between 81% and 90% goes to its default status, as before, and keeps nothing", async () => {
+  /*
+   * #10743: an ungrouped monitor's margin holds too. Its one "series" is the
+   * monitor itself, which its status already names, so nothing is kept in
+   * Redis for it.
+   */
+  function ungroupedStep(): MonitorStep {
     const ungrouped: MonitorStep = filesystemStep();
 
     for (const queryConfig of MonitorStep.getMetricsViewConfig(ungrouped)!
@@ -478,24 +483,82 @@ describe("MonitorResourceUtil: a grouped monitor keeps the recovery margin", () 
       queryConfig.metricQueryData.groupByAttributeKeys = [];
     }
 
-    useStep(ungrouped);
+    return ungrouped;
+  }
+
+  test("an ungrouped monitor between 81% and 90% keeps its status inside the margin, resolves what is open, and keeps nothing in Redis (#10743)", async () => {
+    useStep(ungroupedStep());
+
+    const response: ProbeApiIngestResponse =
+      await MonitorResourceUtil.monitorResource(
+        check([
+          [ROOT, 70],
+          [DATA, 89],
+        ]),
+      );
+
+    // Offline holds: no status change is written.
+    expect(timelineCreate).not.toHaveBeenCalled();
+    expect(updateTimeline).not.toHaveBeenCalled();
+    // The incident of "above 90%" still resolves, at 89%, as before.
+    expect(closeIncidents).toHaveBeenCalledTimes(1);
+    expect(response.statusKeptForRecoveryCriteriaIds).toEqual([
+      criteriaId("online"),
+    ]);
+    expect(GlobalCache.getStringArray).not.toHaveBeenCalled();
+    expect(GlobalCache.setStringArray).not.toHaveBeenCalled();
+    expect(GlobalCache.deleteKey).not.toHaveBeenCalled();
+
+    // The log says the status was kept, and for which criteria.
+    const kept: MonitorEvaluationEvent | undefined = eventsOf(response).find(
+      (event: MonitorEvaluationEvent): boolean => {
+        return event.type === "monitor-status-kept";
+      },
+    );
+
+    expect(kept?.title).toBe("Monitor status kept");
+    expect(kept?.message).toContain(
+      "The monitor keeps its status: no criteria matched, and it comes back only when",
+    );
+    expect(kept?.messageSentence?.template).toBe(
+      'The monitor keeps its status: no criteria matched, and it comes back only when "{{criteria}}" is met.',
+    );
+  });
+
+  test("past the margin an ungrouped monitor comes back on its recovery criteria", async () => {
+    useStep(ungroupedStep());
 
     await MonitorResourceUtil.monitorResource(
       check([
         [ROOT, 70],
-        [DATA, 89],
+        [DATA, 80],
       ]),
     );
 
-    expect(timelineCreate).toHaveBeenCalledTimes(1);
+    expect(timelineCreate).not.toHaveBeenCalled();
+    expect(updateTimeline).toHaveBeenCalledTimes(1);
     expect(
       (
-        timelineCreate.mock.calls[0]![0] as { data: MonitorStatusTimeline }
-      ).data.monitorStatusId!.toString(),
-    ).toBe(ONLINE.toString());
-    expect(closeIncidents).toHaveBeenCalledTimes(1);
-    expect(GlobalCache.getStringArray).not.toHaveBeenCalled();
-    expect(GlobalCache.setStringArray).not.toHaveBeenCalled();
-    expect(GlobalCache.deleteKey).not.toHaveBeenCalled();
+        updateTimeline.mock.calls[0]![0] as {
+          criteriaInstance: MonitorCriteriaInstance;
+        }
+      ).criteriaInstance.data!.id.toString(),
+    ).toBe(criteriaId("online"));
+  });
+
+  test("an ungrouped monitor already back on its default status goes nowhere", async () => {
+    monitor.currentMonitorStatusId = ONLINE;
+    useStep(ungroupedStep());
+
+    const response: ProbeApiIngestResponse =
+      await MonitorResourceUtil.monitorResource(
+        check([
+          [ROOT, 70],
+          [DATA, 89],
+        ]),
+      );
+
+    expect(response.statusKeptForRecoveryCriteriaIds).toBeUndefined();
+    expect(timelineCreate).not.toHaveBeenCalled();
   });
 });

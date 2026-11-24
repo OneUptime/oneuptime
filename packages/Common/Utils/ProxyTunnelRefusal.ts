@@ -85,6 +85,15 @@ export default class ProxyTunnelRefusal {
     return PROXY_ANSWER.exec(nodeMessage || "")?.[1] || null;
   }
 
+  // The status code of what the proxy answered, in Node's message; or null.
+  public static getStatusCode(nodeMessage: string): number | null {
+    const status: string | undefined = PROXY_ANSWER.exec(
+      nodeMessage || "",
+    )?.[2];
+
+    return status ? Number(status) : null;
+  }
+
   /*
    * The refusal of a tunnel to `destination` ("host:port"), with what the
    * proxy answered, when it said: a 407 is the proxy not taking OneUptime's

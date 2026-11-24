@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## 你會看到什麼
 
-- **概覽**：根據追蹤計算的請求、錯誤率與 p95 延遲，**CPU** 與 **記憶體** 圖格，以及 **依 CPU 排序的前幾名執行個體**。圖格的資料來自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized`，或來自任何帶有任務識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標。SDK direct 兩者都不傳送。
+- **概覽**：根據追蹤計算的請求、錯誤率與 p95 延遲，**CPU** 與 **記憶體** 圖格，以及 **依 CPU 排序的前幾名執行個體**。圖格的資料來自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized`，或來自任何帶有任務識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標。SDK direct 兩者都不傳送。在 **雲端 → 連線** 中連線帳戶後，此分頁會多出一個 **Amazon CloudWatch** 區段：無論應用程式傳送什麼，都會顯示 CloudWatch 為應用程式所在叢集中執行其任務定義系列的 ECS 服務測得的 CPU 與記憶體。ECS 不會發布自己的請求數，請求由其負載平衡器統計，因此請求仍來自你的追蹤。在尚未讀取到這樣的服務時，**設定檢查** 中的 **Amazon CloudWatch 連線** 列會說明正在尋找的叢集與系列。
 - **執行個體**：每個執行中的任務一列，以任務 ID（`aws.ecs.task.arn` 的結尾部分）命名，並顯示最新的 CPU、記憶體與最後一次出現的時間。停止回報的任務會變成 **已過時**。
 - **日誌**、**追蹤** 與 **指標**：該帳戶與區域中所有帶有 `cloud.platform=aws_ecs` 的資料。
 - **服務**：同樣的任務，依 `service.name` 拆分。

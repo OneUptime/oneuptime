@@ -216,7 +216,15 @@ export default class CriteriaFilterMatchHistory {
         continue;
       }
 
-      for (const criteriaFilter of criteriaInstance.data.filters || []) {
+      /*
+       * Its recovery condition's filters too (#10355): "the body contains
+       * the title on every check for 10 minutes" needs the checks before
+       * this one, whether or not the criteria is holding yet.
+       */
+      for (const criteriaFilter of [
+        ...(criteriaInstance.data.filters || []),
+        ...(criteriaInstance.data.recoveryFilters || []),
+      ]) {
         if (
           !CriteriaFilterMatchHistory.isJudgedFromHistory({
             criteriaFilter: criteriaFilter,

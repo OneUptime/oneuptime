@@ -71,6 +71,13 @@ import {
   getAppServiceRunningInstances,
 } from "Common/Types/Cloud/AppServiceSiteActivity";
 import { CloudAppAzure } from "./useCloudAppAzure";
+import { CloudAppPlatform } from "./useCloudAppPlatform";
+import {
+  CloudAppPlatformFigure,
+  CloudAppPlatformProfile,
+  CloudAppPlatformTile,
+  getCloudAppPlatformProfile,
+} from "../../Pages/AppPlatforms/Utils/CloudAppPlatformMetrics";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { APP_INSTANCE_COUNT } from "./CloudAppCells";
@@ -79,6 +86,7 @@ import {
   REVISION_REPLACED,
 } from "./CloudAppRevisionsTab";
 import CloudAppAzureMonitorCard from "./CloudAppAzureMonitorCard";
+import CloudAppPlatformMonitorCard from "./CloudAppPlatformMonitorCard";
 import CloudAppSetupCheckCard from "./CloudAppSetupCheckCard";
 
 /*
@@ -104,9 +112,29 @@ import CloudAppSetupCheckCard from "./CloudAppSetupCheckCard";
  * Service" where the platform gives an app none; a failed read reads "—"
  * over "could not load". While any of that is missing the tab leads with
  * its Setup check, which says what to send. An App Service app whose site
- * Azure Monitor reports has the site's own numbers under its own
- * (CloudAppAzureMonitorCard).
+ * (or slot) Azure Monitor reports has the site's own numbers under its own
+ * (CloudAppAzureMonitorCard), and an app of another platform whose provider
+ * measures the resource it runs as - a Container App, a Cloud Run, App
+ * Engine, App Runner or ECS service - has that resource's
+ * (CloudAppPlatformMonitorCard, #6794).
  */
+
+// Whether a platform's section shows the app's CPU and its memory.
+export function showsCloudAppPlatformUsage(
+  profile: CloudAppPlatformProfile | null,
+): boolean {
+  const figures: Array<CloudAppPlatformFigure> = (profile?.tiles || []).map(
+    (tile: CloudAppPlatformTile): CloudAppPlatformFigure => {
+      return tile.figure;
+    },
+  );
+
+  return (
+    figures.includes(CloudAppPlatformFigure.Cpu) &&
+    (figures.includes(CloudAppPlatformFigure.Memory) ||
+      figures.includes(CloudAppPlatformFigure.MemoryPercent))
+  );
+}
 
 export const DEPLOY_MARKER_LABEL: string = translationKey(
   "Deployed revision {{revision}}",
@@ -194,6 +222,11 @@ export interface ComponentProps {
    * (useCloudAppAzure): its Azure Monitor section and Setup check rows.
    */
   azure?: CloudAppAzure | undefined;
+  /*
+   * The resource another platform's app runs as, as the page read it
+   * (useCloudAppPlatform, #6794): its platform section and Setup check row.
+   */
+  platform?: CloudAppPlatform | undefined;
   // Opens the steps that send the app's traces, metrics and logs.
   onSetUpTelemetry?: (() => void) | undefined;
 }
@@ -205,8 +238,13 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const ruledListClassName: string = useCardRuledListClassName();
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // The site Azure Monitor reports an App Service app as, once found.
+  // The site (or slot) Azure Monitor reports an App Service app as, once found.
   const platformResource: CloudResource | null = props.azure?.site || null;
+  // Any other platform's resource, and how its section reads it.
+  const otherResource: CloudResource | null = props.platform?.resource || null;
+  const otherProfile: CloudAppPlatformProfile | null = otherResource
+    ? getCloudAppPlatformProfile(otherResource.cloudResourceType)
+    : null;
 
   const filters: Record<string, string> = getCloudAppTelemetryFilters({
     environment: props.environment,
@@ -446,16 +484,17 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   ];
 
   /*
-   * An App Service app has no CPU or memory of its own: once the Azure
-   * Monitor section below shows its site's, the two tiles that would only
-   * say "Not on Azure App Service" above those numbers give way, and the
-   * other four fill one row.
+   * Once the platform's section below shows the CPU and memory its provider
+   * measures - an App Service site's, a Container App's, a Cloud Run, App
+   * Runner or ECS service's - while the app reports neither, the two tiles
+   * that would only say "Not on Azure App Service" or "Not reported" above
+   * those numbers give way, and the other four fill one row.
    */
   const showsUsageTiles: boolean = showsCloudAppUsageTiles({
-    cloudPlatform: props.app.cloudPlatform,
     hasCpuReading: avgCpu !== null,
     hasMemoryReading: hasMemory,
-    hasPlatformSection: Boolean(platformResource),
+    hasPlatformUsage:
+      Boolean(platformResource) || showsCloudAppPlatformUsage(otherProfile),
   });
   const shownTiles: Array<ResourceOverviewTile> = showsUsageTiles
     ? [...tiles, ...usageTiles]
@@ -472,6 +511,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     isRunning,
     hasReportedInstances,
     azureMonitor: props.azure?.lookup,
+    platformMonitor: props.platform?.lookup,
     diagnosticLogsLastReceivedAt: props.azure?.diagnosticLogsLastReceivedAt,
     azureActivity: props.azure?.activity,
     now,
@@ -698,6 +738,20 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       {platformResource ? (
         <CloudAppAzureMonitorCard
           resource={platformResource}
+          start={props.start}
+          end={props.end}
+          refreshToken={props.refreshToken}
+          syncId={chartSyncId}
+          timeReferenceLines={referenceLines}
+        />
+      ) : (
+        <></>
+      )}
+
+      {otherResource && otherProfile ? (
+        <CloudAppPlatformMonitorCard
+          resource={otherResource}
+          profile={otherProfile}
           start={props.start}
           end={props.end}
           refreshToken={props.refreshToken}

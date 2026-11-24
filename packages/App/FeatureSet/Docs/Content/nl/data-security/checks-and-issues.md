@@ -6,7 +6,7 @@ Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
 - [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
-- [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem.
+- [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem, hoe elk is opgelost, en oplossingen die tot in productie worden gevolgd.
 - [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
 - [Hier oplossen](#hier-oplossen): Sluit een blootstelling, of zet een ontbrekende bescherming aan, met één klik.
 - [Problemen met één oorzaak](#problemen-met-één-oorzaak): De problemen die één fout veroorzaakte, gegroepeerd, en hun oorzaak één keer opgelost.
@@ -154,13 +154,41 @@ OneUptime opent, werkt bij en lost problemen op terwijl de controles draaien. Wa
 | Status | Hoe het daar komt | Wat er volgt |
 | --- | --- | --- |
 | **Openstaand** | De controle faalt nu op de opslag. | Het telt mee in het Overzicht, in de samenvatting van de opslag en in compliance, tot de controle slaagt. |
-| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
+| **Opgelost** | De controle slaagde bij een latere run, is niet meer van toepassing of is uitgezet, of de opslag is gearchiveerd. Een mens kan ook **Als opgelost markeren** kiezen: de opslag wordt dan meteen opnieuw gecontroleerd. | Het zegt hoe het is opgelost (zie hieronder). Het opent opnieuw als de controle weer faalt, en het probleem telt hoe vaak het is heropend. |
 | **Geaccepteerd** | Een mens koos **Risico accepteren**, met een **Reden** en een datum in **Geaccepteerd tot**, hoogstens een jaar vooruit. | Het blijft gesloten tot die datum, en opent daarna opnieuw als de controle nog steeds faalt. Accepteer het dan opnieuw als de reden nog geldt. |
 | **Geen probleem** | Een mens koos **Geen probleem** en zei waarom bij **Reden**: de bevinding was onjuist. | Het blijft gesloten, ook zolang de controle faalt, en houdt de reden. **Heropenen** zet het terug op Open. |
 
 Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren kunnen de status van een probleem wijzigen, en het met **Toewijzen** bij een persoon of een team neerleggen. Elke wijziging wordt in de **Tijdlijn** van het probleem geschreven: wanneer het opende, elke wijziging van de ernst, elke statuswijziging en wie die deed, de gevraagde hercontroles, en wat de integraties deden.
 
 Een probleem dat opnieuw opent, behoudt zijn geschiedenis. Geaccepteerde risico's worden elke dag opnieuw bekeken, zodat een acceptatie op tijd verloopt, ook als er niets is gescand.
+
+### Hoe het is opgelost
+
+Een opgelost probleem zegt hoe, boven aan zijn pagina en in de lijst met problemen, waarin u daarop kunt filteren onder **Oplossing**:
+
+| Oplossing | Wat het betekent |
+| --- | --- |
+| **Hersteld in de code** | De pull request van een codefix is uitgeleverd, en de nieuwe versie van de service schrijft de gegevens niet meer. Het probleem zegt welke en wanneer: 'Opgelost in pull request #482, gedeployed in versie 2.4.1, geverifieerd'. |
+| **Hersteld in de infrastructuurcode** | Een pull request op de Terraform, CloudFormation of Bicep die de opslag declareert, is gemerged, en de opslag slaagde voor zijn controle zodra de wijziging was toegepast. |
+| **Hersteld vanaf hier** | Een responsactie ([Hier oplossen](#hier-oplossen)) heeft de opslag gewijzigd, en de controle slaagde daarna. |
+| **Ingedamd bij inname** | Elke bevinding van een telemetrieprobleem wordt door een opschoonregel verborgen voordat ze wordt opgeslagen. Dit is geen oplossing: de code schrijft de gegevens nog steeds, naar stdout en naar elke andere plek waar de service zijn telemetrie naartoe stuurt. Het probleem zegt dat in oranje, met wat de regel de afgelopen week heeft gewijzigd, en biedt **Code herstellen** aan. |
+| **Controle geslaagd** | De controle slaagt, zonder dat OneUptime iets heeft gewijzigd. |
+| **Opgelost door een persoon** | Iemand koos **Als opgelost markeren**. De opslag wordt meteen opnieuw gecontroleerd, en het probleem opent opnieuw als de controle nog steeds faalt. |
+| **Niet meer gecontroleerd** | De controle is uitgezet, of is niet meer van toepassing op de opslag. |
+| **Opslag gearchiveerd** | De opslag is uit zijn bron verdwenen. |
+
+Het Overzicht telt de problemen die bij de bron zijn opgelost apart van de lekken die alleen bij inname zijn ingedamd, en **In uw telemetrie** houdt een ingedamde bevinding in beeld, gemarkeerd als **Opgeschoond**, totdat de code stopt met het schrijven ervan.
+
+### Oplossingen gevolgd tot in productie
+
+Een pull request die OneUptime AI voor een probleem opende (**Oplossen met AI**, of één pull request voor een [groep problemen](#problemen-met-één-oorzaak)), heeft nog niets opgelost op het moment dat hij wordt gemerged. OneUptime volgt hem totdat productie het bewijst:
+
+- **Een lek in code.** OneUptime wacht op een vastgelegde deploy van de service die de merge bevat, en houdt daarna de nieuwe versie in de gaten. Waar een opschoonregel de gegevens verbergt, mag de regel in die versie geen enkele waarde wijzigen; waar geen regel dat doet, mag geen record van die versie de gegevens bevatten op de plekken waar ze zijn gevonden. De nieuwe versie moet ook een dag draaien en minstens evenveel logs of spans sturen als de oude deed in het uur waarin het lek het laatst werd gezien. Dan is het probleem **Hersteld in de code**. Eén gewijzigde waarde, of één record dat de gegevens nog bevat, betekent dat de fix het lek niet heeft gestopt, en over een versie die in een week te weinig stuurt, valt niets te zeggen. Deploys worden gekoppeld via hun commit: leg ze vast met `oneuptime deploy`, of stuur `vcs.ref.head.revision` mee (zie [Deploys en wijzigingen](/docs/telemetry/change-events)).
+- **De configuratie van een opslag.** Als de pull request wordt gemerged, worden zijn opslagen meteen opnieuw gelezen. Elk probleem waarvan de controle daarna slaagt, is **Hersteld in de infrastructuurcode**. Slaagt een opslag een dag na de merge bij het opnieuw lezen nog steeds niet voor zijn controle, dan is de fix **gemerged, niet toegepast**: de eigenaren van de opslag en de persoon die om de pull request vroeg, krijgen één keer een e-mail, en de tijdlijnen van het probleem en de opslag vermelden het. Meestal ontbreekt er een apply.
+- **De opschoonregel blijft.** Na een geverifieerde codefix blijft de opschoonregel die het lek indamde staan, zodat een regressie wordt verborgen zodra die binnenkomt. Het probleem zegt dat de regel sinds de fix niets heeft gewijzigd, en biedt **Regel verwijderen** aan.
+- **Een regressie.** Een geverifieerde fix wordt daarna gevolgd: als een behouden regel weer waarden wijzigt, of de scan de gegevens weer vindt, opent het probleem opnieuw en zegt het welke versie ze terugbracht. Het blijft open totdat het opnieuw is opgelost, ook zolang een regel de gegevens verbergt.
+
+Elke stap staat op de **Tijdlijn** van het probleem en op die van de opslag, en AI-resultaten telt de geverifieerde oplossingen per soort (zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet)).
 
 ## De analyse van OneUptime AI
 

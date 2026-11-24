@@ -440,9 +440,10 @@ function ByKind(props: { byKind: AiResultsByKind }): ReactElement {
           const share: number =
             row.total > 0 ? (row.value / row.total) * 100 : 0;
           // A kind this build does not know is named as it is stored.
-          const name: string = isDataSecurityAiProposalKind(row.kind)
-            ? translator.translateText(row.label) || row.label
-            : row.label;
+          const name: string =
+            row.isLabelKey || isDataSecurityAiProposalKind(row.kind)
+              ? translator.translateText(row.label) || row.label
+              : row.label;
 
           return (
             <li

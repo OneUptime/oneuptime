@@ -7,6 +7,7 @@ import net, { AddressInfo } from "net";
 import os from "os";
 import path from "path";
 import tls from "tls";
+import { readProxyCredentials } from "./OutboundProxyFixture";
 
 /*
  * HTTPS SERVERS WITH CERTIFICATES NOBODY TRUSTS, AND AN OUTBOUND PROXY THAT
@@ -26,7 +27,11 @@ import tls from "tls";
  *     never does: `isUntouched` says nothing was sent.
  *   - TunnellingProxy is an http:// or https:// outbound proxy that opens a
  *     CONNECT tunnel to the server a test routes the asked-for host to (the
- *     host names here resolve nowhere real), and records every CONNECT.
+ *     host names here resolve nowhere real), and records every CONNECT and
+ *     who it signed in as. Given the user name and password it takes, it
+ *     answers any other with 407, as a proxy that checks them does.
+ *   - A LocalHttpsServer answers with who it is, or with a handler a suite
+ *     stands in for a service with (a sign-in, a key set, an API).
  *   - trustAsDefaultCa() has the process trust a certificate as one of its
  *     default CAs, as NODE_EXTRA_CA_CERTS would, until the test ends.
  */
@@ -196,12 +201,27 @@ export interface SeenHttpsRequest {
   host: string;
 }
 
+// What a LocalHttpsServer answers a request with, its body read whole.
+export type LocalHttpsHandler = (
+  request: http.IncomingMessage,
+  response: http.ServerResponse,
+  body: string,
+) => void;
+
 // An HTTPS server on loopback, answering with the certificate it is given.
 export class LocalHttpsServer {
   public readonly host: string;
   public port: number = 0;
   public requests: Array<SeenHttpsRequest> = [];
   public readonly name: string;
+  // What it answers each request with: who it is, unless a suite says.
+  public handler: LocalHttpsHandler = (
+    _request: http.IncomingMessage,
+    response: http.ServerResponse,
+  ): void => {
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ answeredBy: this.name }));
+  };
 
   private readonly server: https.Server;
 
@@ -215,14 +235,21 @@ export class LocalHttpsServer {
     this.server = https.createServer(
       { cert: data.certificate.certificate, key: data.certificate.key },
       (request: http.IncomingMessage, response: http.ServerResponse) => {
-        this.requests.push({
-          method: request.method || "",
-          url: request.url || "",
-          host: request.headers["host"] || "",
+        let body: string = "";
+
+        request.on("data", (chunk: Buffer) => {
+          body += chunk.toString();
         });
 
-        response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ answeredBy: this.name }));
+        request.on("end", () => {
+          this.requests.push({
+            method: request.method || "",
+            url: request.url || "",
+            host: request.headers["host"] || "",
+          });
+
+          this.handler(request, response, body);
+        });
       },
     );
     // A client that refuses the certificate drops the connection: not news.
@@ -269,13 +296,20 @@ export interface TunnelEnd {
 /*
  * An outbound proxy on loopback, over http:// or, given a certificate,
  * https://. It opens a CONNECT tunnel to the end `route` names for the
- * asked-for "host:port", and refuses any other with 403.
+ * asked-for "host:port", and refuses any other with 403. Given the
+ * "user:password" it takes (`credentials`), it refuses a CONNECT signed in
+ * as anyone else, or as no one, with 407.
  */
 export class TunnellingProxy {
   public readonly host: string = "127.0.0.1";
   public port: number = 0;
   // Every CONNECT it was asked for, as "host:port".
   public connects: Array<string> = [];
+  /*
+   * Who each CONNECT signed in as (Proxy-Authorization, read as the proxy
+   * reads it): "user:password", or "" for no one.
+   */
+  public connectCredentials: Array<string> = [];
 
   private readonly server: http.Server | https.Server;
   private readonly sockets: Set<net.Socket> = new Set<net.Socket>();
@@ -283,6 +317,7 @@ export class TunnellingProxy {
   public constructor(data: {
     route: (authority: string) => TunnelEnd | null;
     certificate?: TestCertificate | undefined;
+    credentials?: string | undefined;
   }) {
     const refuseRequests: http.RequestListener = (
       _request: http.IncomingMessage,
@@ -310,11 +345,23 @@ export class TunnellingProxy {
       "connect",
       (request: http.IncomingMessage, socket: net.Socket) => {
         const authority: string = request.url || "";
+        const signedInAs: string = readProxyCredentials(
+          request.headers["proxy-authorization"],
+        );
+
         this.connects.push(authority);
+        this.connectCredentials.push(signedInAs);
         this.sockets.add(socket);
         socket.on("error", () => {
           return undefined;
         });
+
+        if (data.credentials !== undefined && signedInAs !== data.credentials) {
+          socket.end(
+            'HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm="proxy"\r\nContent-Length: 0\r\n\r\n',
+          );
+          return;
+        }
 
         const end: TunnelEnd | null = data.route(authority);
 
@@ -387,6 +434,7 @@ export function useSelfSignedHttps(): {
   proxy: (data: {
     route: (authority: string) => TunnelEnd | null;
     certificate?: TestCertificate | undefined;
+    credentials?: string | undefined;
   }) => Promise<TunnellingProxy>;
 } {
   const started: Array<{ stop: () => Promise<void> }> = [];
@@ -417,6 +465,7 @@ export function useSelfSignedHttps(): {
     proxy: async (data: {
       route: (authority: string) => TunnelEnd | null;
       certificate?: TestCertificate | undefined;
+      credentials?: string | undefined;
     }): Promise<TunnellingProxy> => {
       const proxy: TunnellingProxy = new TunnellingProxy(data);
 

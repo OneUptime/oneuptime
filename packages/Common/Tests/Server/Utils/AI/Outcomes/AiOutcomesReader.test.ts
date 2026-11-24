@@ -489,7 +489,7 @@ describe("what it reads, for whom, in which window", () => {
     expect(call.limit).toBe(AI_OUTCOMES_SCAN_LIMIT);
   });
 
-  test("fix pull requests: production statuses, dates and the fix task that opened each - never a title or a summary", async () => {
+  test("fix pull requests: production statuses, the check that followed each to production, dates and the fix task that opened each - never a title or a summary", async () => {
     await read();
 
     const call: Call = onlyCallTo("pullRequests");
@@ -509,6 +509,8 @@ describe("what it reads, for whom, in which window", () => {
       _id: true,
       createdAt: true,
       productionStatus: true,
+      // Which kind of fix it was, for AI Results' verified fixes by kind (#10368).
+      productionCheck: true,
       aiRunId: true,
     });
     expect(call.sort).toEqual({ createdAt: SortOrder.Descending });

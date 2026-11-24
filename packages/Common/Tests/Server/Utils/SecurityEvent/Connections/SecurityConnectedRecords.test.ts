@@ -474,6 +474,106 @@ describe("names", () => {
 });
 
 describe("addresses", () => {
+  /*
+   * Whether a text column's stored value is found by its filter, as the
+   * database finds it: a contains-any filter (textContainsAnyOf) by any of
+   * its patterns, an equals-any filter (findWithSameTextAnyOf) by any of
+   * its texts, both without case.
+   */
+  function isFoundBy(filter: unknown, stored: string): boolean {
+    const text: string = stored.toLowerCase();
+
+    return boundValues(filter).some((bound: unknown): boolean => {
+      const value: string = String(bound).toLowerCase();
+
+      return value.startsWith("%") && value.endsWith("%")
+        ? text.includes(value.slice(1, -1))
+        : text === value;
+    });
+  }
+
+  /*
+   * An IPv6 address is looked up written out (the one spelling a case keeps
+   * it in), while a host's agent and a device's owner most often write it
+   * compressed: a lookup in that one spelling found no record holding an
+   * IPv6 address, so a false positive step never said it was the project's
+   * own (#10744). Each record is looked for under every spelling, and then
+   * held to the address itself.
+   */
+  test.each([
+    "2001:db8:0:0:0:0:0:7",
+    "2001:db8::7",
+    "2001:0DB8:0000:0000:0000:0000:0000:0007",
+  ])(
+    "an IPv6 address the case writes %s finds the host and the device that hold it compressed",
+    async (value: string) => {
+      spies["host"]!.mockImplementation(async (args: unknown) => {
+        const call: FindArgs = args as FindArgs;
+        const stored: string = "2001:db8::7, 10.0.0.5";
+
+        if (call.query["hostIpAddresses"]) {
+          return isFoundBy(call.query["hostIpAddresses"], stored)
+            ? [host(HOST_ID, "web-1", { hostIpAddresses: stored })]
+            : [];
+        }
+
+        return call.query["_id"] ? [host(HOST_ID, "web-1")] : [];
+      });
+      spies["device"]!.mockImplementation(async (args: unknown) => {
+        const call: FindArgs = args as FindArgs;
+        const device: Record<string, unknown> = {
+          id: new ObjectID(DEVICE_ID),
+          _id: DEVICE_ID,
+          name: "core-sw-1",
+          hostname: "2001:DB8::7",
+          otherAddresses: "",
+        };
+
+        if (call.query["hostname"]) {
+          return isFoundBy(call.query["hostname"], "2001:DB8::7")
+            ? [device]
+            : [];
+        }
+
+        return call.query["_id"] ? [device] : [];
+      });
+
+      const result: SecurityConnectedRecordsResult = await resolve([
+        { type: SecurityEntityType.IpAddress, value },
+      ]);
+
+      expect(
+        record(result, SecurityConnectionKind.Host, HOST_ID),
+      ).toBeDefined();
+      expect(
+        record(result, SecurityConnectionKind.NetworkDevice, DEVICE_ID),
+      ).toBeDefined();
+    },
+  );
+
+  test("a record holding a near miss of an IPv6 address is found by the search, and held to the address", async () => {
+    spies["host"]!.mockImplementation(async (args: unknown) => {
+      const call: FindArgs = args as FindArgs;
+      const stored: string = "2001:db8::70";
+
+      if (call.query["hostIpAddresses"]) {
+        return isFoundBy(call.query["hostIpAddresses"], stored)
+          ? [host(HOST_ID, "web-1", { hostIpAddresses: stored })]
+          : [];
+      }
+
+      return call.query["_id"] ? [host(HOST_ID, "web-1")] : [];
+    });
+
+    const result: SecurityConnectedRecordsResult = await resolve([
+      { type: SecurityEntityType.IpAddress, value: "2001:db8:0:0:0:0:0:7" },
+    ]);
+
+    expect(
+      record(result, SecurityConnectionKind.Host, HOST_ID),
+    ).toBeUndefined();
+  });
+
   test("a public address only one host holds: exact - counted as OneUptime, listed with the caller's permissions", async () => {
     spies["host"]!.mockImplementation(async (args: unknown) => {
       const call: FindArgs = args as FindArgs;

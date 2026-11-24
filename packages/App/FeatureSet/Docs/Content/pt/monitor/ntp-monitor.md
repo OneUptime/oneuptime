@@ -119,7 +119,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponder
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de cada filtro NTP. Ative-a para julgar uma janela de verificações passadas em vez da mais recente: escolha uma agregação em **Avaliar** e uma janela, de 2 a 60 minutos, em **Nos últimos (em minutos)**. Só as verificações que o servidor respondeu têm estrato, desvio e dispersão raiz, então uma janela de silêncio não tem dados para esses filtros, e **Se não houver dados** decide o que acontece.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção abaixo de cada filtro NTP. Ative-a para julgar uma janela de verificações passadas em vez da mais recente: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**. Só as verificações que o servidor respondeu têm estrato, desvio e dispersão raiz, então uma janela de silêncio não tem dados para esses filtros, e **Se não houver dados** decide o que acontece.
 
 ### Critérios de exemplo
 

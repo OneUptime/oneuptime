@@ -1168,6 +1168,8 @@ describe("DatadogIntake.seriesV1ToOtlp", () => {
                     gauge: {
                       dataPoints: [
                         {
+                          // A rate keeps the seconds it was counted over.
+                          startTimeUnixNano: "1699999990000000000",
                           timeUnixNano: "1700000000000000000",
                           asDouble: 1.5,
                           attributes: [
@@ -1583,6 +1585,7 @@ const V2_SERIES_OTLP: Record<string, unknown> = {
               gauge: {
                 dataPoints: [
                   {
+                    startTimeUnixNano: "1699999990000000000",
                     timeUnixNano: "1700000000000000000",
                     asDouble: 0.2,
                     attributes: [
@@ -1665,6 +1668,66 @@ describe("DatadogIntake.seriesV2ToOtlp", () => {
       );
     },
   );
+
+  /*
+   * A rate is a count per second over its interval (a DogStatsD counter):
+   * its point starts that interval before its time, as a count's does, so
+   * the seconds Datadog's .as_count() multiplies it by are kept (#10327).
+   * A rate that names no interval keeps no start, which would say 0.
+   */
+  test.each<[unknown, string | undefined]>([
+    [10, "1699999990000000000"],
+    ["15", "1699999985000000000"],
+    [0, undefined],
+    [undefined, undefined],
+    [-5, undefined],
+  ])(
+    "a rate with interval %p starts at %p",
+    (interval: unknown, start: string | undefined): void => {
+      const series: Record<string, unknown> = {
+        metric: "checkout.requests",
+        type: "rate",
+        points: [[1700000000, 2.5]],
+        host: "web-1",
+      };
+
+      if (interval !== undefined) {
+        series["interval"] = interval;
+      }
+
+      const translation: DatadogMetricsTranslation =
+        DatadogIntake.seriesV1ToOtlp({ series: [series] });
+      const metric: JSONObject = metricsOf(
+        resourceMetricsOf(translation)[0]!,
+      )[0]!;
+      const point: JSONObject = dataPointsOf(metric)[0] as JSONObject;
+
+      expect(Object.keys(metric)).toEqual(["name", "gauge"]);
+      expect(point["startTimeUnixNano"]).toBe(start);
+      expect(point["timeUnixNano"]).toBe("1700000000000000000");
+      expect(attributesOf(point)).toEqual({ "datadog.metric.type": "rate" });
+    },
+  );
+
+  test("a gauge keeps no start, whatever interval it names", () => {
+    const translation: DatadogMetricsTranslation = DatadogIntake.seriesV1ToOtlp(
+      {
+        series: [
+          {
+            metric: "system.load.1",
+            type: "gauge",
+            interval: 10,
+            points: [[1700000000, 0.5]],
+          },
+        ],
+      },
+    );
+    const point: JSONObject = dataPointsOf(
+      metricsOf(resourceMetricsOf(translation)[0]!)[0]!,
+    )[0] as JSONObject;
+
+    expect(point["startTimeUnixNano"]).toBeUndefined();
+  });
 
   it("reads proto3 JSON's string int64s, and drops points that are no points", () => {
     const translation: DatadogMetricsTranslation = DatadogIntake.seriesV2ToOtlp(

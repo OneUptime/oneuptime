@@ -232,7 +232,7 @@ Kriterier avgör när monitorn är online, försämrad eller offline, och när d
 
 ### Utvärdera över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Är online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maxvärde, Minvärde, Alla värden, Minst ett värde) över fönstret som **Under de senaste (i minuter)** anger – i stället för värdet från den senaste kontrollen. På ett **Är online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
+**Utvärdera dessa kriterier över en tidsperiod** är en separat kryssruta i kriterieformuläret och inte ett filtervillkor. Den finns för **Är online** och för varje numerisk filtertyp. Slå på den för att jämföra ett aggregat – valt under **Utvärdera** (Genomsnitt, Summa, Maxvärde, Minvärde, Percentil, Alla värden, Minst ett värde, Antal, Procentandel, Statusbyten) över fönstret som **Under de senaste** anger – i stället för värdet från den senaste kontrollen. På ett **Är online**-filter är fönstret hur länge agenten får vara tyst innan servern räknas som offline.
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just har skapats, eller en vars kontroller har slutat registreras, har inte tillräckligt med historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till så fort en enda kontroll passerar gränsen" och utlöses fortfarande direkt.
 

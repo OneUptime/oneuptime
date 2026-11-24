@@ -71,7 +71,7 @@ De filter **Verbonden sondes** past bij een monitor die meerdere sondes bewaakt 
 
 ### Langer wachten voor een incident
 
-Een sonde is pas losgekoppeld na drie minuten stilte, dus een snelle herstart opent niets. Om langer te wachten, vinkt u onder het filter **Evalueer deze criteria over een bepaalde periode** aan, kiest u **Alle waarden** onder **Evalueren** en een venster onder **Voor de laatste (in minuten)**. Met vijf minuten moet een sonde nog vijf minuten losgekoppeld blijven voordat het incident wordt gemeld.
+Een sonde is pas losgekoppeld na drie minuten stilte, dus een snelle herstart opent niets. Om langer te wachten, vinkt u onder het filter **Evalueer deze criteria over een bepaalde periode** aan, kiest u **Alle waarden** onder **Evalueren** en een venster onder **Voor de laatste**. Met vijf minuten moet een sonde nog vijf minuten losgekoppeld blijven voordat het incident wordt gemeld.
 
 ## Metrieken
 
