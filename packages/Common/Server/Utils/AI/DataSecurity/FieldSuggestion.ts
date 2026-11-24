@@ -17,7 +17,10 @@ import DataSecurityFindingWriter, {
   CustomDataTypeSummary,
   MAX_FINDINGS_PER_STORE,
 } from "../../DataSecurity/DataSecurityFindingWriter";
-import { queueDataSecurityEvaluation } from "../../DataSecurity/DataSecurityJobs";
+import {
+  queueDataSecurityEvaluation,
+  queueDataSecurityFindingVerdicts,
+} from "../../DataSecurity/DataSecurityJobs";
 import DataSecurityRunner from "../../DataSecurity/DataSecurityRunner";
 import {
   DataStoreLocationKind,
@@ -32,6 +35,7 @@ import {
   toStoredFieldSuggestionState,
 } from "../../DataSecurity/FieldSuggestionState";
 import logger from "../../Logger";
+import ProjectLanguage from "../../Notification/ProjectLanguage";
 import DataSecurityAiCall from "./DataSecurityAiCall";
 import {
   buildFieldSuggestionPrompt,
@@ -53,7 +57,8 @@ import {
  * one constrained call, which of the data types the project scans for each
  * one holds (FieldSuggestionPrompt), and writes each type it names as a
  * finding of its own: Low confidence, no value matched, marked as OneUptime
- * AI's with its reason. It counts toward nothing - the store's
+ * AI's with its reason, written in the project's language (#6105: the one
+ * most of its people read, ProjectLanguage). It counts toward nothing - the store's
  * sensitivity, its checks, its issues - until a person confirms it on the
  * store's What's Inside; Not Sensitive turns it down.
  *
@@ -216,6 +221,7 @@ export default class DataSecurityFieldSuggestion {
       const asked: Map<string, FieldSuggestionAnswer> | null = await this.ask({
         projectId: data.projectId,
         dataStoreId: data.dataStoreId,
+        language: await ProjectLanguage.getLanguage(data.projectId),
         storeKind: store.kind || "",
         dataTypes: setup.dataTypes,
         fields: toAsk,
@@ -303,6 +309,14 @@ export default class DataSecurityFieldSuggestion {
       await queueDataSecurityEvaluation(data.projectId);
     }
 
+    // The suggestions wait for a person: OneUptime AI's verdicts on them (#10372).
+    if (outcome.written > 0) {
+      await queueDataSecurityFindingVerdicts({
+        projectId: data.projectId,
+        dataStoreId: data.dataStoreId,
+      });
+    }
+
     return outcome;
   }
 
@@ -384,6 +398,7 @@ export default class DataSecurityFieldSuggestion {
   private static async ask(data: {
     projectId: ObjectID;
     dataStoreId: ObjectID;
+    language: string;
     storeKind: string;
     dataTypes: Array<FieldSuggestionDataType>;
     fields: Array<UnplacedField>;
@@ -411,6 +426,7 @@ export default class DataSecurityFieldSuggestion {
           storeKind: data.storeKind,
           dataTypes: data.dataTypes,
           fields: data.fields,
+          language: data.language,
         }),
         temperature: 0,
         maxTokens: FIELD_SUGGESTION_MAX_COMPLETION_TOKENS,

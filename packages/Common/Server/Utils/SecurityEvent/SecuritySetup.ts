@@ -546,7 +546,8 @@ export default class SecuritySetup {
             sources,
             now,
           }),
-          from: OneUptimeDate.addRemoveDays(
+          // A length of time, the same in every zone (#8473).
+          from: OneUptimeDate.addRemoveDurationInDays(
             now,
             -SETUP_REFUSED_TELEMETRY_IN_DAYS,
           ),

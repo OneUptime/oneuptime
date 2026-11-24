@@ -197,6 +197,19 @@ export const AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE: string =
   "AI Data Security Field Suggestion";
 
 /*
+ * The LlmLog feature name for OneUptime AI's verdicts on the Data Security
+ * findings that wait for a person (DataSecurityFindingVerdicts, #10372):
+ * after a store's scan, at most two constrained calls judge its Low
+ * findings, the field suggestions and the findings with a sign of a wrong
+ * match, from their facts and the team's earlier decisions - with no human
+ * in the loop, and every store's scan can start one, so the daily budget
+ * covers it. Its AI Logs rows keep no previews, as every Data Security
+ * call's do not.
+ */
+export const AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE: string =
+  "AI Data Security Finding Verdicts";
+
+/*
  * The LlmLog feature name for Explain with AI on a Data Security issue
  * (DataSecurityAPI): one request, started by a person on the issue's page
  * and answered while they wait. Not autonomous. Written since Explain
@@ -421,6 +434,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * most one constrained call per store scan, started by the scan.
    */
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  /*
+   * OneUptime AI's verdicts on the findings that wait for a person
+   * (DataSecurityFindingVerdicts): at most two constrained calls per store
+   * scan, started by the scan.
+   */
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
   /*
    * OneUptime AI's analysis of a new Data Security issue
    * (DataSecurityIssueAnalysis): one constrained call per issue that opens,

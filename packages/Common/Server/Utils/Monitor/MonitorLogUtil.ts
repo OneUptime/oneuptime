@@ -12,6 +12,7 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import DataToProcess from "./DataToProcess";
 import MonitorRecordEvidence from "./MonitorRecordEvidence";
 import MonitorStoredCheck from "./MonitorStoredCheck";
+import MonitorEvaluationClock from "./MonitorEvaluationClock";
 
 /*
  * Maximum rows held in memory before we force a flush, and the
@@ -143,6 +144,13 @@ export default class MonitorLogUtil {
     if (!data.dataToProcess) {
       return;
     }
+
+    /*
+     * The evaluation ends here: its summary says, on this entry, how long it
+     * took, how many series it judged and how often its monitor is
+     * evaluated (#10317). Now, not once the row is queued below.
+     */
+    MonitorEvaluationClock.end(data.dataToProcess);
 
     /*
      * The project's first check result (issue #6830). Every stored result

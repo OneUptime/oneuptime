@@ -14,6 +14,7 @@ import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchH
 import CheckWindowCounts from "./Criteria/CheckWindowCounts";
 import CriteriaInEffect from "./CriteriaInEffect";
 import MonitorLogUtil from "./MonitorLogUtil";
+import MonitorEvaluationClock from "./MonitorEvaluationClock";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -193,6 +194,12 @@ export interface MonitorResourceOptions {
    * every request it receives (#10582).
    */
   skippedIncomingRequests?: SkippedIncomingRequestsNote | undefined;
+  /*
+   * When the evaluation began, on MonitorEvaluationClock's clock, when it
+   * began before this call: a telemetry check's reads come first, and its
+   * time counts them (#10317). Left out, it begins here.
+   */
+  evaluationStartedAtMs?: number | undefined;
 }
 
 /*
@@ -407,6 +414,12 @@ export default class MonitorResourceUtil {
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;
+
+    // Its log entry says how long it took (MonitorEvaluationClock, #10317).
+    MonitorEvaluationClock.begin(
+      evaluationSummary,
+      options?.evaluationStartedAtMs,
+    );
 
     if (options?.skippedIncomingRequests) {
       evaluationSummary.events.push(
@@ -684,6 +697,9 @@ export default class MonitorResourceUtil {
       }
 
       dataToProcess.projectId = monitor.projectId;
+
+      // What its time is weighed against: how often it is evaluated.
+      MonitorEvaluationClock.schedule(evaluationSummary, monitor);
 
       /*
        * Probes check only the monitor types probes run (isProbableMonitor),
