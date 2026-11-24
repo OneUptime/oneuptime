@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Välj ett namn för den här sparade loggvyn.",
   "Choose a postmortem template to populate the note.": "Välj en obduktionsmall för att fylla i anteckningen.",
   "Choose a repository...": "Välj ett repository...",
+  "Type a repository's name to find one that is not listed.": "Skriv namnet på ett arkiv för att hitta ett som inte finns i listan.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Välj hur data anges för det här fältet. Rullgardinstyper behöver också en lista med alternativ nedan.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Välj hur ofta den här sammanfattningen ska publiceras (t.ex. varje dag, varje vecka).",
   "Choose what this processor does": "Välj vad den här processorn gör",

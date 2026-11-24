@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "為此已儲存的日誌檢視選擇名稱。",
   "Choose a postmortem template to populate the note.": "選擇事後檢討範本以填入備註。",
   "Choose a repository...": "選擇儲存庫...",
+  "Type a repository's name to find one that is not listed.": "輸入儲存庫名稱，尋找未列出的儲存庫。",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "選擇此欄位的資料輸入方式。下拉式類型還需要下方的選項清單。",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "選擇此摘要的發布頻率（例如每 1 天、每 1 週）。",
   "Choose what this processor does": "選擇此處理器的功能",

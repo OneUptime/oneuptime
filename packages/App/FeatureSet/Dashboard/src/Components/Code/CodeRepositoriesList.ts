@@ -1,7 +1,7 @@
 import { CodeRepositoryListItem } from "./CodeApi";
-import { getRepositoryFullName } from "./CodePaths";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import { matchesCodeRepositorySearch } from "Common/Types/CodeRepository/CodeRepositorySearch";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -21,6 +21,19 @@ export const REPOSITORY_SEARCH_THRESHOLD: number = 6;
 
 // How many repositories a page of the list holds.
 export const REPOSITORIES_PAGE_SIZE: number = 10;
+
+/*
+ * How long typing rests before the server is asked for the repositories
+ * that match: the page and the pickers search the server, over every
+ * repository the reader may read (#10764).
+ */
+export const REPOSITORY_SEARCH_DELAY_MS: number = 250;
+
+/*
+ * How many repositories a picker lists at once, those AI can work in first:
+ * the rest are found by typing.
+ */
+export const REPOSITORY_PICKER_PAGE_SIZE: number = 50;
 
 export const CODE_REPOSITORIES_COPY: {
   cardTitle: string;
@@ -103,7 +116,12 @@ export const sortRepositories: (
   );
 };
 
-// Whether a repository's name, organization/name or description holds the search.
+/*
+ * Whether a repository's name, organization/name or description holds the
+ * search: the rule the server searches every repository by
+ * (CodeRepositorySearch), so a list here never finds what the server's
+ * would not.
+ */
 export const matchesRepositorySearch: (
   repository: CodeRepositoryListItem,
   search: string,
@@ -111,17 +129,7 @@ export const matchesRepositorySearch: (
   repository: CodeRepositoryListItem,
   search: string,
 ): boolean => {
-  const needle: string = search.trim().toLowerCase();
-
-  if (!needle) {
-    return true;
-  }
-
-  return (
-    repository.name.toLowerCase().includes(needle) ||
-    getRepositoryFullName(repository).toLowerCase().includes(needle) ||
-    (repository.description || "").toLowerCase().includes(needle)
-  );
+  return matchesCodeRepositorySearch(repository, search);
 };
 
 /*

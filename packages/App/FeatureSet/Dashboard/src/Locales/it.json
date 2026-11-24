@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Scegli un nome per questa vista di log salvata.",
   "Choose a postmortem template to populate the note.": "Scegli un modello di analisi post-incidente per popolare la nota.",
   "Choose a repository...": "Scegli un repository...",
+  "Type a repository's name to find one that is not listed.": "Digita il nome di un repository per trovarne uno che non è in elenco.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Scegli come inserire i dati per questo campo. I tipi a tendina richiedono anche un elenco di opzioni qui sotto.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Scegli con quale frequenza pubblicare questo riepilogo (ad es. ogni 1 giorno, ogni 1 settimana).",
   "Choose what this processor does": "Scegli cosa fa questo processore",

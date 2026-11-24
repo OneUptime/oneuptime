@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "この保存されたログビューの名前を選択してください。",
   "Choose a postmortem template to populate the note.": "メモに入力するポストモーテムテンプレートを選択してください。",
   "Choose a repository...": "リポジトリを選択...",
+  "Type a repository's name to find one that is not listed.": "一覧にないリポジトリは、名前を入力して検索してください。",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "このフィールドのデータ入力方法を選択してください。ドロップダウン型では下記のオプション一覧も必要です。",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "このサマリーを投稿する頻度を選択してください（例: 1 日ごと、1 週間ごと）。",
   "Choose what this processor does": "このプロセッサの動作を選択してください",

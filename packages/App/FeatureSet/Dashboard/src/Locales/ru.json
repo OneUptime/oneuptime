@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Выберите имя для этого сохранённого представления логов.",
   "Choose a postmortem template to populate the note.": "Выберите шаблон ретроспективы для заполнения заметки.",
   "Choose a repository...": "Выберите репозиторий...",
+  "Type a repository's name to find one that is not listed.": "Введите имя репозитория, чтобы найти тот, которого нет в списке.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Выберите, как вводятся данные для этого поля. Для типов с выпадающим списком также требуется список вариантов ниже.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Выберите, как часто должна публиковаться эта сводка (например, каждый 1 день, каждую 1 неделю).",
   "Choose what this processor does": "Выберите, что делает этот обработчик",

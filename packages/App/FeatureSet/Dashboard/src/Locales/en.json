@@ -1902,6 +1902,7 @@
   "Choose a name for this saved log view.": "Choose a name for this saved log view.",
   "Choose a postmortem template to populate the note.": "Choose a postmortem template to populate the note.",
   "Choose a repository...": "Choose a repository...",
+  "Type a repository's name to find one that is not listed.": "Type a repository's name to find one that is not listed.",
   "Choose how data is entered for this field. Dropdown types also need a list of options below.": "Choose how data is entered for this field. Dropdown types also need a list of options below.",
   "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).": "Choose how frequently this summary should be posted (e.g., every 1 day, every 1 week).",
   "Choose what this processor does": "Choose what this processor does",
